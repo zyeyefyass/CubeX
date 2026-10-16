@@ -168,6 +168,7 @@ func main() {
 	// 3. WireGuard Mobile Penetration & QR
 	mux.HandleFunc("/api/v1/wireguard/info", srv.handleWGInfo)
 	mux.HandleFunc("/api/v1/wireguard/peer/add", srv.handleWGPeerAdd)
+	mux.HandleFunc("/api/v1/wireguard/peer/rename", srv.handleWGPeerRename)
 	mux.HandleFunc("/api/v1/wireguard/peer/delete", srv.handleWGPeerDelete)
 	mux.HandleFunc("/api/v1/wireguard/peer/config", srv.handleWGPeerConfig)
 
@@ -1104,6 +1105,26 @@ func (s *Server) handleWGPeerDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sendJSON(w, map[string]any{"status": "deleted"})
+}
+
+func (s *Server) handleWGPeerRename(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := s.wgMgr.RenamePeer(req.ID, req.Name); err != nil {
+		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{"status": "renamed", "id": req.ID, "name": req.Name})
 }
 
 func (s *Server) handleWGPeerConfig(w http.ResponseWriter, r *http.Request) {

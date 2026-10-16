@@ -1050,8 +1050,43 @@
                 <div class="flex items-center gap-3">
                   <span class="text-2xl p-2 bg-slate-900 rounded-xl border border-slate-800">💻</span>
                   <div>
-                    <div class="flex items-center gap-2">
-                      <span class="text-sm font-bold text-white">{{ dev.name }}</span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <!-- Normal Display State -->
+                      <template v-if="editingDeviceIp !== dev.ip">
+                        <span class="text-sm font-bold text-white tracking-wide">{{ dev.name }}</span>
+                        <!-- Rename Trigger Button -->
+                        <button @click="startEditDevice(dev)" 
+                          title="修改设备备注名" 
+                          class="opacity-70 hover:opacity-100 hover:text-cyan-300 transition p-1 rounded-lg hover:bg-slate-800 text-xs flex items-center gap-1 group">
+                          <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                          </svg>
+                          <span class="text-[10px] text-slate-400 group-hover:text-cyan-300">重命名</span>
+                        </button>
+                      </template>
+
+                      <!-- Inline Editing State -->
+                      <template v-else>
+                        <div class="flex items-center gap-1.5 animate-in fade-in py-0.5">
+                          <input v-model="editingDeviceName" 
+                            @keyup.enter="saveDeviceAlias(dev)" 
+                            @keyup.esc="cancelEditDevice" 
+                            autofocus 
+                            class="px-2.5 py-1 text-xs rounded-lg bg-slate-900 border border-cyan-400 text-white font-bold outline-none ring-2 ring-cyan-500/30 w-48 sm:w-64 shadow-inner"
+                            placeholder="输入新设备备注名..." />
+                          <button @click="saveDeviceAlias(dev)" 
+                            :disabled="savingDeviceAlias"
+                            class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1 shadow">
+                            <span>✔ 保存</span>
+                          </button>
+                          <button @click="cancelEditDevice" 
+                            class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition">
+                            <span>✕ 取消</span>
+                          </button>
+                        </div>
+                      </template>
+
                       <span :class="[
                         'text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold',
                         dev.mode === 'rule' ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40' :
@@ -1095,7 +1130,29 @@
                   <div class="flex items-center gap-2">
                     <span class="text-xl">📱</span>
                     <div>
-                      <div class="text-xs font-bold text-white">{{ peer.name }}</div>
+                      <div class="flex items-center gap-1.5">
+                        <template v-if="editingPeerId !== peer.id">
+                          <span class="text-xs font-bold text-white">{{ peer.name }}</span>
+                          <button @click="startEditPeer(peer)" title="重命名穿透设备" class="opacity-60 hover:opacity-100 hover:text-cyan-300 p-0.5 rounded transition">
+                            <svg class="w-3 h-3 text-slate-400 hover:text-cyan-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                          </button>
+                        </template>
+                        <template v-else>
+                          <div class="flex items-center gap-1 py-0.5">
+                            <input v-model="editingPeerName" 
+                              @keyup.enter="savePeerName(peer)" 
+                              @keyup.esc="cancelEditPeer" 
+                              autofocus 
+                              class="px-1.5 py-0.5 text-xs rounded bg-slate-900 border border-cyan-400 text-white font-bold outline-none ring-1 ring-cyan-500/30 w-28 sm:w-36"
+                              placeholder="新设备名称..." />
+                            <button @click="savePeerName(peer)" :disabled="savingPeerName" class="px-1.5 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold">✔</button>
+                            <button @click="cancelEditPeer" class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px]">✕</button>
+                          </div>
+                        </template>
+                      </div>
                       <div class="text-[10px] text-slate-400 font-mono">{{ peer.client_ip }}</div>
                     </div>
                   </div>
@@ -1974,6 +2031,9 @@ const lanDevices = ref([
   { ip: '192.168.88.135', mac: 'D8:49:2F:55:66:77', name: '客厅 Apple TV (4K)', mode: 'rule', bound_node: '' },
   { ip: '192.168.88.188', mac: 'E0:CB:1D:88:99:AA', name: 'PS5 游戏主机', mode: 'node', bound_node: '🇯🇵 日本 01' }
 ])
+const editingDeviceIp = ref('')
+const editingDeviceName = ref('')
+const savingDeviceAlias = ref(false)
 
 // ── Sub-module Modals & Forms ──
 const showAddPeerModal = ref(false)
@@ -2066,6 +2126,9 @@ const wgPeers = ref([
   { id: 'peer_2', name: 'MacBook Air M3 (移动办公)', client_ip: '10.88.0.3', synced_to_ros: true },
   { id: 'peer_3', name: 'iPad Pro (随身平板)', client_ip: '10.88.0.4', synced_to_ros: true }
 ])
+const editingPeerId = ref('')
+const editingPeerName = ref('')
+const savingPeerName = ref(false)
 
 // ── AdBlock State ──
 const adblockStats = ref({
@@ -2474,6 +2537,44 @@ async function fetchLanDevices() {
   loadingDevices.value = false
 }
 
+function startEditDevice(dev) {
+  editingDeviceIp.value = dev.ip
+  editingDeviceName.value = dev.name
+}
+
+function cancelEditDevice() {
+  editingDeviceIp.value = ''
+  editingDeviceName.value = ''
+}
+
+async function saveDeviceAlias(dev) {
+  const newName = (editingDeviceName.value || '').trim()
+  if (!newName) {
+    showToast('设备备注名不能为空', true)
+    return
+  }
+  savingDeviceAlias.value = true
+  try {
+    const res = await fetch('/api/v1/devices/alias', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip: dev.ip, mac: dev.mac, name: newName })
+    })
+    const data = await res.json()
+    if (data.status === 'saved' || !data.error) {
+      dev.name = newName
+      showToast(`已重命名设备: ${newName}`)
+      cancelEditDevice()
+    } else {
+      showToast(`保存失败: ${data.error || '未知错误'}`, true)
+    }
+  } catch (e) {
+    showToast('保存备注失败，网络异常', true)
+  } finally {
+    savingDeviceAlias.value = false
+  }
+}
+
 async function setDeviceRouting(dev, mode, boundNode = '') {
   dev.mode = mode
   dev.bound_node = boundNode
@@ -2659,6 +2760,44 @@ async function deletePeer(id) {
   } catch (e) {}
   wgPeers.value = wgPeers.value.filter(p => p.id !== id)
   showToast('已撤回该穿透设备授权')
+}
+
+function startEditPeer(peer) {
+  editingPeerId.value = peer.id
+  editingPeerName.value = peer.name
+}
+
+function cancelEditPeer() {
+  editingPeerId.value = ''
+  editingPeerName.value = ''
+}
+
+async function savePeerName(peer) {
+  const newName = (editingPeerName.value || '').trim()
+  if (!newName) {
+    showToast('设备名称不能为空', true)
+    return
+  }
+  savingPeerName.value = true
+  try {
+    const res = await fetch('/api/v1/wireguard/peer/rename', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: peer.id || peer.public_key, name: newName })
+    })
+    const data = await res.json()
+    if (data.status === 'renamed' || !data.error) {
+      peer.name = newName
+      showToast(`已更新终端名称: ${newName}`)
+      cancelEditPeer()
+    } else {
+      showToast(`重命名失败: ${data.error || '未知错误'}`, true)
+    }
+  } catch (e) {
+    showToast('重命名失败，网络异常', true)
+  } finally {
+    savingPeerName.value = false
+  }
 }
 
 // ── Script Copying ──
