@@ -4,8 +4,8 @@
   "subtitle": "DUAL-ENGINE ROUTEROS & HIGH-AVAILABILITY GATEWAY",
   "version": "v1.0.0-Aurora",
   "engines": [
-    "sing-box v1.14.3+",
-    "mihomo alpha-0e0fa70"
+    "sing-box v1.14.3",
+    "mihomo v1.19.32"
   ],
   "architectures": [
     "amd64",

@@ -19,6 +19,7 @@ data/*.sqlite
 data/*.log
 data/*.pid
 data/autostart
+data/*.json
 data/wireguard.json
 
 # Local test scratch

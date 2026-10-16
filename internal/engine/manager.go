@@ -46,6 +46,13 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 	if initialIR == nil {
 		initialIR = schema.NewDefaultIR()
 	}
+	irFile := filepath.Join(workDir, "data", "config.ir.json")
+	if data, err := os.ReadFile(irFile); err == nil {
+		var savedIR schema.ConfigIR
+		if json.Unmarshal(data, &savedIR) == nil && len(savedIR.Proxies) > 0 {
+			initialIR = &savedIR
+		}
+	}
 	apiAddr := fmt.Sprintf("http://127.0.0.1:%d", initialIR.Network.ClashAPIPort)
 	return &Manager{
 		ir:           initialIR,
@@ -78,11 +85,15 @@ func (m *Manager) GetIR() *schema.ConfigIR {
 	return m.ir
 }
 
-// UpdateIR safely updates the configuration IR in memory.
+// UpdateIR safely updates the configuration IR in memory and persists to disk.
 func (m *Manager) UpdateIR(newIR *schema.ConfigIR) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.ir = newIR
+	_ = os.MkdirAll(filepath.Join(m.workDir, "data"), 0755)
+	if data, err := json.MarshalIndent(newIR, "", "  "); err == nil {
+		_ = os.WriteFile(filepath.Join(m.workDir, "data", "config.ir.json"), data, 0644)
+	}
 }
 
 // SnapshotClashState snapshots active selector node choices from 127.0.0.1:9090/proxies.

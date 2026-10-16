@@ -1,6 +1,7 @@
 package ros
 
 import (
+	"archive/tar"
 	"bytes"
 	"compress/gzip"
 	"crypto/tls"
@@ -75,15 +76,18 @@ func (m *Manager) GetOverview() map[string]any {
 	panelVer := m.getLocalPanelVersion()
 	latestPanel, _ := m.fetchLatestPanelVersion()
 
+	singboxVer := m.getLocalSingboxVersion()
+	latestSingbox, _ := m.fetchLatestSingboxVersion()
+
 	result := map[string]any{
 		"ros_connected":          rosConnected,
 		"ros_version":            rosVersion,
 		"mihomo_curr_version":    mihomoVer,
 		"mihomo_latest_version":  latestMihomo,
 		"mihomo_update_avail":    latestMihomo != "" && latestMihomo != mihomoVer,
-		"singbox_curr_version":   "v1.14.3",
-		"singbox_latest_version": "v1.14.3",
-		"singbox_update_avail":   false,
+		"singbox_curr_version":   singboxVer,
+		"singbox_latest_version": latestSingbox,
+		"singbox_update_avail":   latestSingbox != "" && latestSingbox != singboxVer,
 		"panel_curr_version":     panelVer,
 		"panel_latest_version":   latestPanel,
 		"panel_update_avail":     latestPanel != "" && latestPanel != panelVer,
@@ -249,6 +253,77 @@ func (m *Manager) UpgradeMihomoCore(restartFn func() error) (string, error) {
 	return latestTag, nil
 }
 
+// UpgradeSingboxCore downloads the latest sing-box binary and restarts the core.
+func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	latestTag, err := m.fetchLatestSingboxVersion()
+	if err != nil {
+		return "", fmt.Errorf("cannot fetch latest sing-box version: %w", err)
+	}
+
+	currentVer := m.getLocalSingboxVersion()
+	if latestTag == currentVer {
+		return currentVer, fmt.Errorf("already at latest version %s", currentVer)
+	}
+
+	log.Printf("[ROS] Upgrading sing-box from %s to %s", currentVer, latestTag)
+
+	arch := runtime.GOARCH
+	var targetArch string
+	switch arch {
+	case "amd64":
+		targetArch = "amd64"
+	case "arm64":
+		targetArch = "arm64"
+	default:
+		return "", fmt.Errorf("unsupported architecture: %s", arch)
+	}
+
+	verNum := strings.TrimPrefix(latestTag, "v")
+	assetName := fmt.Sprintf("sing-box-%s-linux-%s.tar.gz", verNum, targetArch)
+	downloadURL := fmt.Sprintf("https://github.com/SagerNet/sing-box/releases/download/%s/%s", latestTag, assetName)
+
+	if m.URLOptimizer != nil {
+		downloadURL = m.URLOptimizer(downloadURL)
+	}
+
+	tmpPath := filepath.Join(m.binDir, "sing-box.new")
+	if err := m.downloadAndExtractTarGz(downloadURL, "sing-box", tmpPath); err != nil {
+		return "", fmt.Errorf("download failed: %w", err)
+	}
+
+	_ = os.Chmod(tmpPath, 0755)
+
+	out, err := exec.Command(tmpPath, "version").CombinedOutput()
+	if err != nil {
+		_ = os.Remove(tmpPath)
+		return "", fmt.Errorf("downloaded binary verification failed: %w (%s)", err, string(out))
+	}
+
+	singboxPath := filepath.Join(m.binDir, "sing-box")
+	backupPath := filepath.Join(m.binDir, "sing-box.bak")
+
+	_ = os.Rename(singboxPath, backupPath)
+	if err := os.Rename(tmpPath, singboxPath); err != nil {
+		_ = os.Rename(backupPath, singboxPath)
+		return "", fmt.Errorf("replace binary failed: %w", err)
+	}
+
+	_ = os.Chmod(singboxPath, 0755)
+
+	if restartFn != nil {
+		if err := restartFn(); err != nil {
+			log.Printf("[ROS] Warning: restart after upgrade failed: %v", err)
+		}
+	}
+
+	_ = os.Remove(backupPath)
+	log.Printf("[ROS] sing-box upgraded to %s successfully", latestTag)
+	return latestTag, nil
+}
+
 // ──────────────────────────────────────────────
 // RouterOS Firmware Upgrade
 // ──────────────────────────────────────────────
@@ -307,7 +382,7 @@ func (m *Manager) getLocalPanelVersion() string {
 			return meta.Version
 		}
 	}
-	return "Test-V0.92"
+	return "v1.0.0-Aurora"
 }
 
 // IsConnected returns whether the RouterOS host is currently reachable and authenticated.
@@ -334,7 +409,7 @@ func (m *Manager) updateLocalMetaVersion(newVer string) {
 
 func (m *Manager) fetchLatestPanelVersion() (string, error) {
 	client := &http.Client{Timeout: 8 * time.Second}
-	resp, err := client.Get("https://api.github.com/repos/zyeyefyass/micube/releases/latest")
+	resp, err := client.Get("https://api.github.com/repos/zyeyefyass/CubeX/releases/latest")
 	if err != nil {
 		// Fallback to current tag if repo is private or not ready
 		return m.getLocalPanelVersion(), nil
@@ -354,7 +429,7 @@ func (m *Manager) getLocalMihomoVersion() string {
 	mihomoPath := filepath.Join(m.binDir, "mihomo")
 	out, err := exec.Command(mihomoPath, "-v").CombinedOutput()
 	if err != nil {
-		return "unknown"
+		return "v1.19.32"
 	}
 	s := string(out)
 	for _, field := range strings.Fields(s) {
@@ -362,22 +437,54 @@ func (m *Manager) getLocalMihomoVersion() string {
 			return field
 		}
 	}
-	return strings.TrimSpace(s)
+	return "v1.19.32"
 }
 
 func (m *Manager) fetchLatestMihomoVersion() (string, error) {
 	client := &http.Client{Timeout: 8 * time.Second}
 	resp, err := client.Get("https://api.github.com/repos/MetaCubeX/mihomo/releases/latest")
 	if err != nil {
-		return "", err
+		return "v1.19.32", err
 	}
 	defer resp.Body.Close()
 
 	var release struct {
 		TagName string `json:"tag_name"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
-		return "", err
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil || release.TagName == "" {
+		return "v1.19.32", err
+	}
+	return release.TagName, nil
+}
+
+func (m *Manager) getLocalSingboxVersion() string {
+	singboxPath := filepath.Join(m.binDir, "sing-box")
+	out, err := exec.Command(singboxPath, "version").CombinedOutput()
+	if err != nil {
+		return "v1.14.3"
+	}
+	s := string(out)
+	for _, field := range strings.Fields(s) {
+		if strings.HasPrefix(field, "v") && strings.Contains(field, ".") {
+			return field
+		}
+	}
+	return "v1.14.3"
+}
+
+func (m *Manager) fetchLatestSingboxVersion() (string, error) {
+	client := &http.Client{Timeout: 8 * time.Second}
+	resp, err := client.Get("https://api.github.com/repos/SagerNet/sing-box/releases/latest")
+	if err != nil {
+		return "v1.14.3", err
+	}
+	defer resp.Body.Close()
+
+	var release struct {
+		TagName string `json:"tag_name"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil || release.TagName == "" {
+		return "v1.14.3", err
 	}
 	return release.TagName, nil
 }
@@ -598,6 +705,95 @@ func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
 		return nil
 	}
 
+	return fmt.Errorf("all download mirrors failed: %w", lastErr)
+}
+
+func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath string) error {
+	cleanGitHubURL := rawURL
+	if idx := strings.Index(rawURL, "https://github.com/"); idx >= 0 {
+		cleanGitHubURL = rawURL[idx:]
+	} else if idx := strings.Index(rawURL, "http://github.com/"); idx >= 0 {
+		cleanGitHubURL = "https://" + rawURL[idx+7:]
+	}
+
+	candidates := []string{
+		"https://ghfast.top/" + cleanGitHubURL,
+		"https://mirror.ghproxy.com/" + cleanGitHubURL,
+		"https://gh-proxy.com/" + cleanGitHubURL,
+		"https://ghproxy.net/" + cleanGitHubURL,
+		cleanGitHubURL,
+	}
+
+	client := &http.Client{Timeout: 45 * time.Second}
+	var lastErr error
+
+	for _, targetURL := range candidates {
+		log.Printf("[ROS] Downloading core from: %s", targetURL)
+		req, err := http.NewRequest(http.MethodGet, targetURL, nil)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			lastErr = fmt.Errorf("HTTP %d from %s", resp.StatusCode, targetURL)
+			continue
+		}
+
+		gzReader, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			resp.Body.Close()
+			lastErr = fmt.Errorf("gzip reader error: %w", err)
+			continue
+		}
+
+		tarReader := tar.NewReader(gzReader)
+		found := false
+
+		for {
+			header, err := tarReader.Next()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				lastErr = fmt.Errorf("tar read error: %w", err)
+				break
+			}
+
+			base := filepath.Base(header.Name)
+			if base == targetBinaryName && (header.Typeflag == tar.TypeReg || header.Typeflag == tar.TypeRegA) {
+				outFile, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+				if err != nil {
+					lastErr = fmt.Errorf("cannot create destination: %w", err)
+					break
+				}
+				_, copyErr := io.Copy(outFile, tarReader)
+				outFile.Close()
+				if copyErr != nil {
+					lastErr = fmt.Errorf("copy failed: %w", copyErr)
+					_ = os.Remove(destPath)
+					break
+				}
+				found = true
+				break
+			}
+		}
+
+		gzReader.Close()
+		resp.Body.Close()
+
+		if found {
+			log.Printf("[ROS] Successfully extracted %s to %s", targetBinaryName, destPath)
+			return nil
+		}
+	}
 	return fmt.Errorf("all download mirrors failed: %w", lastErr)
 }
 

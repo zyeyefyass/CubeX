@@ -171,9 +171,13 @@ func NewDefaultIR() *ConfigIR {
 			EnableFakeIP: true,
 			FakeIPRange:  "198.18.0.1/16",
 			FakeIPFilter: []string{
+				"geosite:cn",
+				"+.cn",
 				"*.lan", "*.local", "localhost",
 				"+.msftconnecttest.com", "+.msftncsi.com",
 				"+.routeros.com", "+.mikrotik.com",
+				"+.bilibili.com", "+.baidu.com", "+.qq.com",
+				"+.taobao.com", "+.jd.com", "+.alipay.com", "+.163.com",
 			},
 			DirectDNS: []string{
 				"223.5.5.5",

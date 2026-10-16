@@ -66,8 +66,9 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"server":     "dns-fakeip",
 			},
 			{
-				"geosite": []string{"cn"},
-				"server":  "dns-direct",
+				"geosite":       []string{"cn"},
+				"domain_suffix": []string{".cn", "bilibili.com", "baidu.com", "qq.com", "taobao.com", "jd.com", "alipay.com", "163.com"},
+				"server":        "dns-direct",
 			},
 			{
 				"query_type": []string{"A", "AAAA"},

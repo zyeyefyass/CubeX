@@ -149,14 +149,14 @@
               'px-4 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 active:scale-95',
               activeEngine === 'singbox' ? 'bg-gradient-to-r from-teal-400 to-cyan-500 text-slate-950 shadow-md font-extrabold' : 'text-slate-400 hover:text-slate-200'
             ]">
-            <span>⚡ SingCube (极光青)</span>
+            <span>⚡ sing-box</span>
           </button>
           <button @click="switchEngine('mihomo')" :disabled="switchingEngine"
             :class="[
               'px-4 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 active:scale-95',
               activeEngine === 'mihomo' ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 shadow-md font-extrabold' : 'text-slate-400 hover:text-slate-200'
             ]">
-            <span>🛡️ MiCube (矩阵金)</span>
+            <span>🛡️ mihomo</span>
           </button>
           <div v-if="switchingEngine" class="absolute inset-0 bg-slate-950/90 rounded-2xl flex items-center justify-center text-xs text-cyan-300 font-mono animate-pulse">
             🔄 零断流切换中...
@@ -208,7 +208,7 @@
                   <span class="text-xl">🌌</span>
                   <h2 class="text-lg font-bold text-white tracking-wide">双擎主控驾驶舱</h2>
                   <span class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-                    当前内核: {{ activeEngine === 'singbox' ? 'SingCube (v1.14.3+)' : 'MiCube (Mihomo Core)' }}
+                    当前内核: {{ activeEngine === 'singbox' ? 'sing-box (v1.14.3)' : 'mihomo (v1.19.32)' }}
                   </span>
                 </div>
                 <p class="text-xs text-slate-400 mt-1">Universal IR 配置中间表示层驱动 · 支持在 TProxy 透明代理与原生 TUN 协议栈间无缝切换。</p>
@@ -759,7 +759,7 @@
                   <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40">双核合璧</span>
                 </div>
                 <div class="text-xs text-slate-400 font-mono">
-                  Mihomo: {{ systemOverview.mihomo_curr_version || 'v1.19.18' }} | sing-box: {{ systemOverview.singbox_curr_version || 'v1.14.3' }}
+                  Mihomo: {{ systemOverview.mihomo_curr_version || 'v1.19.32' }} | sing-box: {{ systemOverview.singbox_curr_version || 'v1.14.3' }}
                 </div>
                 <div class="flex gap-2">
                   <button @click="upgradeCore('mihomo')" class="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs">
@@ -1030,7 +1030,7 @@ const hostConfig = ref({
 
 const systemOverview = ref({
   cubex_version: 'v1.0.0-Aurora',
-  mihomo_curr_version: 'v1.19.18',
+  mihomo_curr_version: 'v1.19.32',
   singbox_curr_version: 'v1.14.3',
   update_available: false
 })
@@ -1214,7 +1214,7 @@ async function switchEngine(target) {
     const data = await res.json()
     activeEngine.value = target
     systemStatus.value.active_engine = target
-    showToast(`🎉 已成功无损热切换至 ${target === 'singbox' ? '⚡ SingCube (极光青)' : '🛡️ MiCube (矩阵金)'}！`)
+    showToast(`🎉 已成功无损热切换至 ${target === 'singbox' ? '⚡ sing-box' : '🛡️ mihomo'}！`)
   } catch (e) {
     activeEngine.value = target
     showToast(`热切完成: ${target}`)

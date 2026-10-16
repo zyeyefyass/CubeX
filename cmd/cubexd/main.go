@@ -389,14 +389,30 @@ func (s *Server) handleBenchmark(w http.ResponseWriter, r *http.Request) {
 
 	ir := s.engMgr.GetIR()
 	var targetNode *schema.ProxyNode
-	for _, p := range ir.Proxies {
-		if p.Name == req.NodeName {
-			targetNode = &p
-			break
+	if req.NodeName != "" {
+		for _, p := range ir.Proxies {
+			if p.Name == req.NodeName {
+				targetNode = &p
+				break
+			}
+		}
+		if targetNode == nil {
+			for _, p := range ir.Proxies {
+				if strings.Contains(strings.ToLower(p.Name), strings.ToLower(req.NodeName)) {
+					targetNode = &p
+					break
+				}
+			}
 		}
 	}
-	if targetNode == nil && len(ir.Proxies) > 0 {
-		targetNode = &ir.Proxies[0]
+	if targetNode == nil {
+		// Pick first real proxy node (skip DIRECT, REJECT)
+		for _, p := range ir.Proxies {
+			if p.Type != "direct" && p.Type != "block" && p.Type != "reject" && p.Server != "" {
+				targetNode = &p
+				break
+			}
+		}
 	}
 	if targetNode == nil {
 		targetNode = &schema.ProxyNode{Name: "香港 BGP 01", Server: "1.1.1.1", Port: 443, Type: "vless"}
@@ -896,7 +912,7 @@ func (s *Server) handleUpgradeCore(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			if strings.Contains(err.Error(), "already at latest version") {
-				sendJSON(w, map[string]any{"status": "latest", "version": ver, "message": "Mihomo 内核已是最新版本"})
+				sendJSON(w, map[string]any{"status": "latest", "version": ver, "message": "Mihomo 内核已是官方最新稳定版 (" + ver + ")"})
 				return
 			}
 			sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
@@ -905,7 +921,19 @@ func (s *Server) handleUpgradeCore(w http.ResponseWriter, r *http.Request) {
 		sendJSON(w, map[string]any{"status": "upgraded", "version": ver})
 		return
 	} else if req.Core == "singbox" {
-		sendJSON(w, map[string]any{"status": "latest", "version": "v1.14.3", "message": "sing-box 极速轻量核已是官方最新版本 (v1.14.3+)"})
+		ver, err := s.rosMgr.UpgradeSingboxCore(func() error {
+			_, err := s.engMgr.SwitchEngine("singbox")
+			return err
+		})
+		if err != nil {
+			if strings.Contains(err.Error(), "already at latest version") {
+				sendJSON(w, map[string]any{"status": "latest", "version": ver, "message": "sing-box 内核已是官方最新稳定版 (" + ver + ")"})
+				return
+			}
+			sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+			return
+		}
+		sendJSON(w, map[string]any{"status": "upgraded", "version": ver})
 		return
 	}
 	sendJSON(w, map[string]any{"status": "error", "error": "unknown core type: " + req.Core})
