@@ -276,7 +276,12 @@ func parseURILink(link string) (schema.ProxyNode, error) {
 		node.Network = u.Query().Get("type")
 		node.Path = u.Query().Get("path")
 		node.SNI = u.Query().Get("sni")
-		node.TLS = u.Query().Get("security") == "tls" || u.Query().Get("security") == "reality"
+	case "anytls":
+		node.Type = "anytls"
+		node.Password = u.User.Username()
+		node.SNI = u.Query().Get("sni")
+		node.SkipCertVerify = u.Query().Get("insecure") == "1" || u.Query().Get("insecure") == "true"
+		node.TLS = true
 	case "trojan":
 		node.Type = "trojan"
 		node.Password = u.User.Username()

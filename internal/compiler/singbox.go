@@ -180,6 +180,9 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			nodeMap["uuid"] = p.UUID
 			nodeMap["password"] = p.Password
 			nodeMap["congestion_control"] = "bbr"
+		case "anytls":
+			nodeMap["type"] = "anytls"
+			nodeMap["password"] = p.Password
 		default:
 			nodeMap["type"] = pType
 		}

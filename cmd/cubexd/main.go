@@ -435,24 +435,57 @@ func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Name string `json:"name"`
-		URL  string `json:"url"`
-		Type string `json:"type"`
+		Name    string `json:"name"`
+		URL     string `json:"url"`
+		Type    string `json:"type"`
+		Content string `json:"content"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if req.URL == "" {
-		http.Error(w, "url required", http.StatusBadRequest)
+	if req.URL == "" && req.Content == "" {
+		http.Error(w, "url or content required", http.StatusBadRequest)
 		return
 	}
 
-	fetcher := sub.NewFetcher()
-	res, err := fetcher.Fetch(req.URL)
-	if err != nil {
-		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
-		return
+	var res *sub.FetchResult
+	if req.Content != "" {
+		nodes, err := sub.ParseSubscription([]byte(req.Content))
+		if err != nil {
+			sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+			return
+		}
+		res = &sub.FetchResult{
+			Nodes:      nodes,
+			NodeCount:  len(nodes),
+			DurationMs: 1,
+		}
+	} else if strings.HasPrefix(req.URL, "http://") || strings.HasPrefix(req.URL, "https://") {
+		fetcher := sub.NewFetcher()
+		var err error
+		res, err = fetcher.Fetch(req.URL)
+		if err != nil {
+			sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+			return
+		}
+	} else {
+		filePath := strings.TrimPrefix(req.URL, "file://")
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+			return
+		}
+		nodes, err := sub.ParseSubscription(data)
+		if err != nil {
+			sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+			return
+		}
+		res = &sub.FetchResult{
+			Nodes:      nodes,
+			NodeCount:  len(nodes),
+			DurationMs: 1,
+		}
 	}
 
 	ir := s.engMgr.GetIR()
