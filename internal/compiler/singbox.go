@@ -51,11 +51,15 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"tag":     "dns-fakeip",
 				"address": "fakeip",
 			},
+			{
+				"tag":     "dns-block",
+				"address": "rcode://refused",
+			},
 		},
 		"rules": []map[string]any{
 			{
-				"outbound": "any",
-				"server":   "dns-direct",
+				"query_type": []string{"HTTPS", "SVCB"},
+				"server":     "dns-block",
 			},
 			{
 				"clash_mode": "direct",
@@ -71,10 +75,15 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"server":        "dns-direct",
 			},
 			{
+				"outbound": "direct",
+				"server":   "dns-direct",
+			},
+			{
 				"query_type": []string{"A", "AAAA"},
 				"server":     "dns-fakeip",
 			},
 		},
+		"final": "dns-remote",
 		"fakeip": map[string]any{
 			"enabled":     true,
 			"inet4_range": "198.18.0.0/15",

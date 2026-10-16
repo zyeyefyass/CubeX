@@ -68,6 +68,23 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	// DNS Configuration (Mihomo v1.19+ anti-leak & proxy-server bootstrap)
+	remoteDNSList := make([]string, 0, len(dns.RemoteDNS))
+	for _, u := range dns.RemoteDNS {
+		if (strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "tls://")) && !strings.Contains(u, "#") {
+			remoteDNSList = append(remoteDNSList, u+"#disable-qtype-65=true")
+		} else {
+			remoteDNSList = append(remoteDNSList, u)
+		}
+	}
+	fallbackDNSList := make([]string, 0, len(dns.FallbackDNS))
+	for _, u := range dns.FallbackDNS {
+		if (strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "tls://")) && !strings.Contains(u, "#") {
+			fallbackDNSList = append(fallbackDNSList, u+"#disable-qtype-65=true")
+		} else {
+			fallbackDNSList = append(fallbackDNSList, u)
+		}
+	}
+
 	dnsMap := map[string]any{
 		"enable":                  true,
 		"listen":                  fmt.Sprintf("0.0.0.0:%d", net.DNSPort),
@@ -78,8 +95,9 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"default-nameserver":      dns.DirectDNS,
 		"proxy-server-nameserver": dns.DirectDNS,
 		"direct-nameserver":       dns.DirectDNS,
-		"nameserver":              dns.RemoteDNS,
-		"fallback":                dns.FallbackDNS,
+		"nameserver":              remoteDNSList,
+		"fallback":                fallbackDNSList,
+		"respect-rules":           true,
 		"fallback-filter": map[string]any{
 			"geoip":      true,
 			"geoip-code": "CN",
