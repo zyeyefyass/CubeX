@@ -23,6 +23,7 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/netstack"
 	"github.com/zyeyefyass/CubeX/internal/ros"
 	"github.com/zyeyefyass/CubeX/internal/schema"
+	"github.com/zyeyefyass/CubeX/internal/security"
 	"github.com/zyeyefyass/CubeX/internal/sub"
 	"github.com/zyeyefyass/CubeX/internal/webrtc"
 	"github.com/zyeyefyass/CubeX/internal/wireguard"
@@ -148,6 +149,9 @@ func main() {
 	mux.HandleFunc("/api/v1/netstack/bypass", srv.handleNetstackBypass)
 	mux.HandleFunc("/api/v1/netstack/apply", srv.handleNetstackApply)
 	mux.HandleFunc("/api/v1/netstack/webrtc-audit", srv.handleWebRTCAudit)
+	mux.HandleFunc("/api/v1/security/radar", srv.handleSecurityRadar)
+	mux.HandleFunc("/api/v1/security/audit", srv.handleSecurityRadar)
+	mux.HandleFunc("/api/v1/security/remediate", srv.handleSecurityRemediate)
 	mux.HandleFunc("/api/v1/config/subscriptions", srv.handleSubList)
 	mux.HandleFunc("/api/v1/config/subscriptions/add", srv.handleSubAdd)
 	mux.HandleFunc("/api/v1/config/subscriptions/update", srv.handleSubUpdate)
@@ -462,6 +466,21 @@ func (s *Server) handleWebRTCAudit(w http.ResponseWriter, r *http.Request) {
 	ir := s.engMgr.GetIR()
 	report := webrtc.RunWebRTCAudit(ir)
 	sendJSON(w, report)
+}
+
+func (s *Server) handleSecurityRadar(w http.ResponseWriter, r *http.Request) {
+	ir := s.engMgr.GetIR()
+	report := security.RunSecurityAudit(ir)
+	sendJSON(w, report)
+}
+
+func (s *Server) handleSecurityRemediate(w http.ResponseWriter, r *http.Request) {
+	ir := s.engMgr.GetIR()
+	result := security.AutoRemediateAll(ir)
+	if _, err := s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine()); err != nil {
+		log.Printf("[SecurityRemediate] Engine reload notice: %v", err)
+	}
+	sendJSON(w, result)
 }
 
 func (s *Server) handleRosScript(w http.ResponseWriter, r *http.Request) {
