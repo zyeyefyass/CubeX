@@ -22,6 +22,7 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/ros"
 	"github.com/zyeyefyass/CubeX/internal/schema"
 	"github.com/zyeyefyass/CubeX/internal/sub"
+	"github.com/zyeyefyass/CubeX/internal/webrtc"
 	"github.com/zyeyefyass/CubeX/internal/wireguard"
 )
 
@@ -144,6 +145,7 @@ func main() {
 	mux.HandleFunc("/api/v1/netstack/status", srv.handleNetstackStatus)
 	mux.HandleFunc("/api/v1/netstack/bypass", srv.handleNetstackBypass)
 	mux.HandleFunc("/api/v1/netstack/apply", srv.handleNetstackApply)
+	mux.HandleFunc("/api/v1/netstack/webrtc-audit", srv.handleWebRTCAudit)
 	mux.HandleFunc("/api/v1/config/subscriptions/add", srv.handleSubAdd)
 	mux.HandleFunc("/api/v1/config/subscriptions/update", srv.handleSubUpdate)
 	mux.HandleFunc("/api/v1/ros/script", srv.handleRosScript)
@@ -434,6 +436,12 @@ func (s *Server) handleNetstackBypass(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleNetstackApply(w http.ResponseWriter, r *http.Request) {
 	_ = s.netCtrl.ApplyNFTables()
 	sendJSON(w, map[string]any{"status": "applied", "message": "nftables 规则已重新装载"})
+}
+
+func (s *Server) handleWebRTCAudit(w http.ResponseWriter, r *http.Request) {
+	ir := s.engMgr.GetIR()
+	report := webrtc.RunWebRTCAudit(ir)
+	sendJSON(w, report)
 }
 
 func (s *Server) handleRosScript(w http.ResponseWriter, r *http.Request) {
