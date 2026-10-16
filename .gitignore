@@ -1,0 +1,32 @@
+# Binaries and executable outputs
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+/cubexd
+/cubex
+
+# Web build dependencies and temporary output
+web/node_modules/
+web/dist/
+
+# Persistent runtime data
+etc/config.yaml
+etc/config.json
+data/*.sqlite
+data/*.log
+data/*.pid
+data/autostart
+data/wireguard.json
+
+# Local test scratch
+scratch/
+test_screen*.png
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

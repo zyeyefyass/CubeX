@@ -1,0 +1,32 @@
+{
+  "name": "CubeX",
+  "codename": "CyberAurora",
+  "subtitle": "DUAL-ENGINE ROUTEROS & HIGH-AVAILABILITY GATEWAY",
+  "version": "v1.0.0-Aurora",
+  "engines": [
+    "sing-box v1.14.3+",
+    "mihomo alpha-0e0fa70"
+  ],
+  "architectures": [
+    "amd64",
+    "arm64"
+  ],
+  "platforms": [
+    "RouterOS v7 Container (VETH)",
+    "Proxmox VE LXC",
+    "fnOS Docker",
+    "Synology DSM",
+    "Unraid",
+    "Alpine/Debian Linux"
+  ],
+  "ports": {
+    "panel": 2026,
+    "tproxy": 7893,
+    "mixed_proxy": 7890,
+    "redir": 7892,
+    "dns": 1053,
+    "clash_api": 9090
+  },
+  "memory_limit_mb": 60,
+  "license": "MIT"
+}

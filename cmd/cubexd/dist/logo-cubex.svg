@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <defs>
+    <linearGradient id="auroraTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f5d4" />
+      <stop offset="100%" stop-color="#3a86ff" />
+    </linearGradient>
+    <linearGradient id="auroraLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3a86ff" />
+      <stop offset="100%" stop-color="#7b2cbf" />
+    </linearGradient>
+    <linearGradient id="auroraRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f5d4" />
+      <stop offset="100%" stop-color="#fbbf24" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Glowing background ring -->
+  <circle cx="60" cy="60" r="48" stroke="url(#auroraTop)" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.4" />
+
+  <!-- 3D Isometric CubeX -->
+  <g filter="url(#glow)">
+    <!-- Top Face -->
+    <polygon points="60,18 100,40 60,62 20,40" fill="url(#auroraTop)" fill-opacity="0.9" stroke="#ffffff" stroke-width="1.2" />
+    <!-- Left Face -->
+    <polygon points="20,40 60,62 60,104 20,82" fill="url(#auroraLeft)" fill-opacity="0.85" stroke="#ffffff" stroke-width="1.2" />
+    <!-- Right Face -->
+    <polygon points="60,62 100,40 100,82 60,104" fill="url(#auroraRight)" fill-opacity="0.85" stroke="#ffffff" stroke-width="1.2" />
+
+    <!-- Center Pulse Energy Core -->
+    <circle cx="60" cy="62" r="5" fill="#ffffff" />
+    <line x1="60" y1="18" x2="60" y2="62" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.8" />
+    <line x1="20" y1="40" x2="60" y2="62" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.8" />
+    <line x1="100" y1="40" x2="60" y2="62" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.8" />
+  </g>
+</svg>

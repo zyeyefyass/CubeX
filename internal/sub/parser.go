@@ -1,0 +1,336 @@
+package sub
+
+import (
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"net/url"
+	"strconv"
+	"strings"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
+	"gopkg.in/yaml.v3"
+)
+
+// ParseSubscription automatically identifies and extracts ProxyNodes from Clash YAML, sing-box JSON, or base64 links.
+func ParseSubscription(raw []byte) ([]schema.ProxyNode, error) {
+	trimmed := strings.TrimSpace(string(raw))
+	if len(trimmed) == 0 {
+		return nil, fmt.Errorf("empty subscription data")
+	}
+
+	// 1. Try Clash YAML (look for 'proxies:')
+	if strings.Contains(trimmed, "proxies:") {
+		var clashCfg struct {
+			Proxies []map[string]any `yaml:"proxies"`
+		}
+		if err := yaml.Unmarshal(raw, &clashCfg); err == nil && len(clashCfg.Proxies) > 0 {
+			nodes := make([]schema.ProxyNode, 0, len(clashCfg.Proxies))
+			for _, p := range clashCfg.Proxies {
+				node := parseClashNode(p)
+				if node.Name != "" && node.Server != "" {
+					nodes = append(nodes, node)
+				}
+			}
+			if len(nodes) > 0 {
+				return nodes, nil
+			}
+		}
+	}
+
+	// 2. Try sing-box JSON (look for 'outbounds')
+	if strings.HasPrefix(trimmed, "{") && strings.Contains(trimmed, "outbounds") {
+		var sbCfg struct {
+			Outbounds []map[string]any `json:"outbounds"`
+		}
+		if err := json.Unmarshal(raw, &sbCfg); err == nil && len(sbCfg.Outbounds) > 0 {
+			nodes := make([]schema.ProxyNode, 0, len(sbCfg.Outbounds))
+			for _, ob := range sbCfg.Outbounds {
+				node := parseSingboxNode(ob)
+				if node.Name != "" && node.Server != "" {
+					nodes = append(nodes, node)
+				}
+			}
+			if len(nodes) > 0 {
+				return nodes, nil
+			}
+		}
+	}
+
+	// 3. Try base64 decoded plain-text links
+	var textToParse = trimmed
+	if !strings.Contains(trimmed, "://") {
+		// Attempt base64 decode
+		cleanB64 := strings.ReplaceAll(trimmed, "\r\n", "")
+		cleanB64 = strings.ReplaceAll(cleanB64, "\n", "")
+		decoded, err := base64.StdEncoding.DecodeString(cleanB64)
+		if err == nil {
+			textToParse = string(decoded)
+		} else {
+			// Try URL-safe base64 decode
+			decoded, err = base64.RawURLEncoding.DecodeString(cleanB64)
+			if err == nil {
+				textToParse = string(decoded)
+			}
+		}
+	}
+
+	// 4. Parse URI lines (ss://, vmess://, vless://, trojan://, hysteria2://, tuic://)
+	lines := strings.Split(textToParse, "\n")
+	nodes := make([]schema.ProxyNode, 0)
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		node, err := parseURILink(line)
+		if err == nil && node.Name != "" && node.Server != "" {
+			nodes = append(nodes, node)
+		}
+	}
+
+	if len(nodes) > 0 {
+		return nodes, nil
+	}
+
+	return nil, fmt.Errorf("unrecognized subscription format or no valid nodes found")
+}
+
+func parseClashNode(p map[string]any) schema.ProxyNode {
+	getString := func(key string) string {
+		if v, ok := p[key]; ok && v != nil {
+			return fmt.Sprintf("%v", v)
+		}
+		return ""
+	}
+	getInt := func(key string) int {
+		if v, ok := p[key]; ok && v != nil {
+			switch n := v.(type) {
+			case int:
+				return n
+			case float64:
+				return int(n)
+			case string:
+				val, _ := strconv.Atoi(n)
+				return val
+			}
+		}
+		return 0
+	}
+	getBool := func(key string) bool {
+		if v, ok := p[key]; ok && v != nil {
+			b, _ := strconv.ParseBool(fmt.Sprintf("%v", v))
+			return b
+		}
+		return false
+	}
+
+	node := schema.ProxyNode{
+		Name:           getString("name"),
+		Type:           strings.ToLower(getString("type")),
+		Server:         getString("server"),
+		Port:           getInt("port"),
+		UUID:           getString("uuid"),
+		Password:       getString("password"),
+		Cipher:         getString("cipher"),
+		TLS:            getBool("tls"),
+		SNI:            getString("servername"),
+		SkipCertVerify: getBool("skip-cert-verify"),
+		Network:        getString("network"),
+		Flow:           getString("flow"),
+	}
+
+	if node.SNI == "" {
+		node.SNI = getString("sni")
+	}
+
+	if wsOpts, ok := p["ws-opts"].(map[string]any); ok {
+		if path, ok := wsOpts["path"].(string); ok {
+			node.Path = path
+		}
+	}
+
+	return node
+}
+
+func parseSingboxNode(ob map[string]any) schema.ProxyNode {
+	getString := func(key string) string {
+		if v, ok := ob[key]; ok && v != nil {
+			return fmt.Sprintf("%v", v)
+		}
+		return ""
+	}
+	getInt := func(key string) int {
+		if v, ok := ob[key]; ok && v != nil {
+			switch n := v.(type) {
+			case int:
+				return n
+			case float64:
+				return int(n)
+			case string:
+				val, _ := strconv.Atoi(n)
+				return val
+			}
+		}
+		return 0
+	}
+
+	pType := strings.ToLower(getString("type"))
+	if pType == "direct" || pType == "block" || pType == "dns" || pType == "selector" || pType == "urltest" {
+		return schema.ProxyNode{}
+	}
+
+	node := schema.ProxyNode{
+		Name:     getString("tag"),
+		Type:     pType,
+		Server:   getString("server"),
+		Port:     getInt("server_port"),
+		UUID:     getString("uuid"),
+		Password: getString("password"),
+		Cipher:   getString("method"),
+		Flow:     getString("flow"),
+	}
+
+	if tlsMap, ok := ob["tls"].(map[string]any); ok {
+		node.TLS = true
+		if sni, ok := tlsMap["server_name"].(string); ok {
+			node.SNI = sni
+		}
+		if insecure, ok := tlsMap["insecure"].(bool); ok {
+			node.SkipCertVerify = insecure
+		}
+	}
+
+	if transMap, ok := ob["transport"].(map[string]any); ok {
+		node.Network = fmt.Sprintf("%v", transMap["type"])
+		if path, ok := transMap["path"].(string); ok {
+			node.Path = path
+		}
+	}
+
+	return node
+}
+
+func parseURILink(link string) (schema.ProxyNode, error) {
+	node := schema.ProxyNode{}
+
+	if strings.HasPrefix(link, "vmess://") {
+		// vmess is base64 encoded JSON
+		b64 := strings.TrimPrefix(link, "vmess://")
+		decoded, err := base64.StdEncoding.DecodeString(b64)
+		if err != nil {
+			decoded, err = base64.RawURLEncoding.DecodeString(b64)
+			if err != nil {
+				return node, err
+			}
+		}
+		var v struct {
+			V    any    `json:"v"`
+			PS   string `json:"ps"`
+			Add  string `json:"add"`
+			Port any    `json:"port"`
+			ID   string `json:"id"`
+			Net  string `json:"net"`
+			TLS  string `json:"tls"`
+			Path string `json:"path"`
+			Host string `json:"host"`
+			SNI  string `json:"sni"`
+		}
+		if err := json.Unmarshal(decoded, &v); err != nil {
+			return node, err
+		}
+		node.Name = v.PS
+		node.Type = "vmess"
+		node.Server = v.Add
+		node.Port = toInt(v.Port)
+		node.UUID = v.ID
+		node.Network = v.Net
+		node.Path = v.Path
+		node.TLS = v.TLS == "tls"
+		node.SNI = v.SNI
+		if node.SNI == "" {
+			node.SNI = v.Host
+		}
+		return node, nil
+	}
+
+	u, err := url.Parse(link)
+	if err != nil {
+		return node, err
+	}
+
+	node.Name = u.Fragment
+	if node.Name == "" {
+		node.Name = u.Host
+	}
+
+	node.Server = u.Hostname()
+	node.Port, _ = strconv.Atoi(u.Port())
+
+	scheme := strings.ToLower(u.Scheme)
+	switch scheme {
+	case "vless":
+		node.Type = "vless"
+		node.UUID = u.User.Username()
+		node.Flow = u.Query().Get("flow")
+		node.Network = u.Query().Get("type")
+		node.Path = u.Query().Get("path")
+		node.SNI = u.Query().Get("sni")
+		node.TLS = u.Query().Get("security") == "tls" || u.Query().Get("security") == "reality"
+	case "trojan":
+		node.Type = "trojan"
+		node.Password = u.User.Username()
+		node.SNI = u.Query().Get("sni")
+		node.TLS = true
+	case "hysteria2", "hy2":
+		node.Type = "hysteria2"
+		node.Password = u.User.Username()
+		node.SNI = u.Query().Get("sni")
+		node.TLS = true
+	case "tuic":
+		node.Type = "tuic"
+		node.UUID = u.User.Username()
+		if pass, ok := u.User.Password(); ok {
+			node.Password = pass
+		}
+		node.SNI = u.Query().Get("sni")
+		node.TLS = true
+	case "ss":
+		node.Type = "shadowsocks"
+		// ss://base64(method:password)@server:port
+		if u.User != nil {
+			rawUser := u.User.Username()
+			if decoded, err := base64.URLEncoding.DecodeString(rawUser); err == nil {
+				parts := strings.SplitN(string(decoded), ":", 2)
+				if len(parts) == 2 {
+					node.Cipher = parts[0]
+					node.Password = parts[1]
+				}
+			} else if decoded, err := base64.StdEncoding.DecodeString(rawUser); err == nil {
+				parts := strings.SplitN(string(decoded), ":", 2)
+				if len(parts) == 2 {
+					node.Cipher = parts[0]
+					node.Password = parts[1]
+				}
+			} else if pass, ok := u.User.Password(); ok {
+				node.Cipher = rawUser
+				node.Password = pass
+			}
+		}
+	}
+
+	return node, nil
+}
+
+func toInt(v any) int {
+	switch n := v.(type) {
+	case int:
+		return n
+	case float64:
+		return int(n)
+	case string:
+		val, _ := strconv.Atoi(n)
+		return val
+	}
+	return 0
+}

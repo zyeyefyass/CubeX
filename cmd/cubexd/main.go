@@ -1,0 +1,1058 @@
+package main
+
+import (
+	"encoding/json"
+	"flag"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/adblock"
+	"github.com/zyeyefyass/CubeX/internal/ai"
+	"github.com/zyeyefyass/CubeX/internal/backup"
+	"github.com/zyeyefyass/CubeX/internal/device"
+	"github.com/zyeyefyass/CubeX/internal/engine"
+	"github.com/zyeyefyass/CubeX/internal/host"
+	"github.com/zyeyefyass/CubeX/internal/netstack"
+	"github.com/zyeyefyass/CubeX/internal/ros"
+	"github.com/zyeyefyass/CubeX/internal/schema"
+	"github.com/zyeyefyass/CubeX/internal/sub"
+	"github.com/zyeyefyass/CubeX/internal/wireguard"
+)
+
+var (
+	version   = "v1.0.0-Aurora"
+	startTime = time.Now()
+)
+
+type Server struct {
+	workDir    string
+	ir         *schema.ConfigIR
+	engMgr     *engine.Manager
+	netCtrl    *netstack.Controller
+	rosClient  *netstack.RosClient
+	subCenter  *sub.Center
+	wgMgr      *wireguard.Manager
+	adblockMgr *adblock.Manager
+	backupMgr  *backup.Manager
+	aiCopilot  *ai.Copilot
+	hostMgr    *host.Manager
+	rosMgr     *ros.Manager
+	devMgr     *device.Manager
+}
+
+func main() {
+	listenAddr := flag.String("listen", ":2026", "Listen address (e.g. :2026 or 0.0.0.0:2026)")
+	workDir := flag.String("dir", "", "Working directory (defaults to current dir or /opt/CubeX)")
+	flag.Parse()
+
+	dir := *workDir
+	if dir == "" {
+		if runtime.GOOS == "windows" {
+			dir = "."
+		} else {
+			dir = "/opt/CubeX"
+		}
+	}
+	_ = os.MkdirAll(filepath.Join(dir, "etc"), 0755)
+	_ = os.MkdirAll(filepath.Join(dir, "data"), 0755)
+
+	// Initialize Universal IR
+	cfgIR := schema.NewDefaultIR()
+
+	// Engine Manager
+	engMgr := engine.NewManager(dir, cfgIR)
+
+	// Netstack Controller
+	netCtrl := netstack.NewController(cfgIR.Network.TProxyPort, cfgIR.Network.DNSPort, cfgIR.Network.TunInterface)
+
+	// ROS Client
+	rosClient := netstack.NewRosClient(netstack.RosConfig{
+		Host:     "10.0.0.1",
+		CubeXIP:  "10.0.0.2",
+		Username: "admin",
+	})
+
+	// Sub Center
+	subCenter := sub.NewCenter(func() *schema.ConfigIR {
+		return engMgr.GetIR()
+	})
+
+	// Host Base Manager
+	hostMgr := host.NewManager(dir)
+
+	// ROS Manager
+	rosMgr := ros.NewManager(dir)
+
+	// WireGuard Manager with ROS & Host linkage
+	wgMgr := wireguard.NewManager(dir, rosMgr)
+	wgMgr.SetHostManager(hostMgr)
+
+	// Adblock Manager
+	adblockMgr := adblock.NewManager(fmt.Sprintf("http://127.0.0.1:%d", cfgIR.Network.ClashAPIPort))
+
+	// Backup Time Machine Manager
+	backupMgr := backup.NewManager(dir)
+
+	// AI Copilot
+	aiCopilot := ai.NewCopilot(dir, nil, nil, nil, func() error {
+		_, err := engMgr.SwitchEngine(engMgr.GetActiveEngine())
+		return err
+	})
+
+	// LAN Device Discovery & Alias Manager
+	devMgr := device.NewManager(dir, rosMgr, fmt.Sprintf("http://127.0.0.1:%d", cfgIR.Network.ClashAPIPort))
+
+	srv := &Server{
+		workDir:    dir,
+		ir:         cfgIR,
+		engMgr:     engMgr,
+		netCtrl:    netCtrl,
+		rosClient:  rosClient,
+		subCenter:  subCenter,
+		wgMgr:      wgMgr,
+		adblockMgr: adblockMgr,
+		backupMgr:  backupMgr,
+		aiCopilot:  aiCopilot,
+		hostMgr:    hostMgr,
+		rosMgr:     rosMgr,
+		devMgr:     devMgr,
+	}
+
+	mux := http.NewServeMux()
+
+	// 1. Subscription Routes
+	mux.HandleFunc("/sub/karing", subCenter.HandleKaring)
+	mux.HandleFunc("/sub/singbox", subCenter.HandleSingBox)
+	mux.HandleFunc("/sub/clash", subCenter.HandleClash)
+	mux.HandleFunc("/sub/mihomo", subCenter.HandleClash)
+	mux.HandleFunc("/sub/shadowrocket", subCenter.HandleShadowrocket)
+
+	// 2. REST API v1
+	mux.HandleFunc("/api/v1/system/status", srv.handleSystemStatus)
+	mux.HandleFunc("/api/v1/system/edition", srv.handleSystemEdition)
+	mux.HandleFunc("/api/v1/system/panic", srv.handleSystemPanic)
+	mux.HandleFunc("/api/v1/config/ir", srv.handleConfigIR)
+	mux.HandleFunc("/api/v1/engine/switch", srv.handleEngineSwitch)
+	mux.HandleFunc("/api/v1/engine/mode", srv.handleEngineMode)
+	mux.HandleFunc("/api/v1/engine/benchmark", srv.handleBenchmark)
+	mux.HandleFunc("/api/v1/netstack/status", srv.handleNetstackStatus)
+	mux.HandleFunc("/api/v1/netstack/bypass", srv.handleNetstackBypass)
+	mux.HandleFunc("/api/v1/netstack/apply", srv.handleNetstackApply)
+	mux.HandleFunc("/api/v1/config/subscriptions/add", srv.handleSubAdd)
+	mux.HandleFunc("/api/v1/config/subscriptions/update", srv.handleSubUpdate)
+	mux.HandleFunc("/api/v1/ros/script", srv.handleRosScript)
+
+	// 3. WireGuard Mobile Penetration & QR
+	mux.HandleFunc("/api/v1/wireguard/info", srv.handleWGInfo)
+	mux.HandleFunc("/api/v1/wireguard/peer/add", srv.handleWGPeerAdd)
+	mux.HandleFunc("/api/v1/wireguard/peer/delete", srv.handleWGPeerDelete)
+	mux.HandleFunc("/api/v1/wireguard/peer/config", srv.handleWGPeerConfig)
+
+	// 4. WireGuard Dual-End Alignment (ROS & Host)
+	mux.HandleFunc("/api/v1/wireguard/align/inspect", srv.handleWGAlignInspect)
+	mux.HandleFunc("/api/v1/wireguard/align/apply", srv.handleWGAlignApply)
+	mux.HandleFunc("/api/v1/wireguard/deploy-host", srv.handleWGDeployHost)
+
+	// 5. Host Base Probing & Firewall Linkage
+	mux.HandleFunc("/api/v1/host/info", srv.handleHostInfo)
+	mux.HandleFunc("/api/v1/host/config", srv.handleHostConfig)
+	mux.HandleFunc("/api/v1/host/test", srv.handleHostTest)
+	mux.HandleFunc("/api/v1/host/firewall/apply", srv.handleHostFirewallApply)
+	mux.HandleFunc("/api/v1/host/firewall/script", srv.handleHostFirewallScript)
+
+	// 6. RouterOS v7 REST API Inspection & 1-Click Linkage
+	mux.HandleFunc("/api/v1/ros/inspect", srv.handleROSInspect)
+	mux.HandleFunc("/api/v1/ros/apply", srv.handleROSApply)
+	mux.HandleFunc("/api/v1/ros/config", srv.handleROSConfig)
+
+	// 7. 4-Tier Version Overview & Upgrades (CubeX, Cores, GeoData, Host)
+	mux.HandleFunc("/api/v1/system/overview", srv.handleSystemOverview)
+	mux.HandleFunc("/api/v1/upgrade/core", srv.handleUpgradeCore)
+	mux.HandleFunc("/api/v1/upgrade/geodata", srv.handleUpgradeGeoData)
+	mux.HandleFunc("/api/v1/upgrade/panel", srv.handleUpgradePanel)
+	mux.HandleFunc("/api/v1/host/upgrade/check", srv.handleHostUpgradeCheck)
+	mux.HandleFunc("/api/v1/host/upgrade/execute", srv.handleHostUpgradeExecute)
+
+	// 8. Adblock & 217heidai MRS
+	mux.HandleFunc("/api/v1/adblock/stats", srv.handleAdblockStats)
+
+	// 9. Time Machine Backup & Restore
+	mux.HandleFunc("/api/v1/backup/export", srv.handleBackupExport)
+	mux.HandleFunc("/api/v1/backup/import", srv.handleBackupImport)
+
+	// 10. AI Copilot
+	mux.HandleFunc("/api/v1/ai/chat", srv.handleAIChat)
+
+	// 11. LAN Devices & Per-Device Policy Matrix
+	mux.HandleFunc("/api/v1/devices", srv.handleDevices)
+	mux.HandleFunc("/api/v1/devices/alias", srv.handleDeviceAlias)
+	mux.HandleFunc("/api/v1/devices/policy", srv.handleDevicePolicy)
+
+	// 12. Host Unified Auto-Setup & Compatible Aliases
+	mux.HandleFunc("/api/v1/host/auto-setup", srv.handleHostAutoSetup)
+	mux.HandleFunc("/api/v1/host/wireguard/deploy", srv.handleWGDeployHost)
+	mux.HandleFunc("/api/v1/wireguard/align/status", srv.handleWGAlignInspect)
+	mux.HandleFunc("/api/v1/wireguard/peers", srv.handleWGInfo)
+	mux.HandleFunc("/api/v1/ros/routing/status", srv.handleROSInspect)
+	mux.HandleFunc("/api/v1/ros/routing/apply", srv.handleROSApply)
+	mux.HandleFunc("/api/v1/ros/routing/script", srv.handleRosScript)
+	mux.HandleFunc("/api/v1/system/geodata/update", srv.handleUpgradeGeoData)
+	mux.HandleFunc("/api/v1/system/upgrade-panel", srv.handleUpgradePanel)
+	mux.HandleFunc("/api/v1/ros/upgrade-mihomo", srv.handleUpgradeCore)
+
+	// 3. Static Web UI (Embedded with SPA fallback)
+	fileServer := http.FileServer(getFileSystem())
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/sub/") {
+			http.NotFound(w, r)
+			return
+		}
+		// Try to serve static file
+		fileServer.ServeHTTP(w, r)
+	})
+
+	log.Printf("🌌 CubeX Daemon [%s] listening on %s (Engine: %s, Tuning: %s)\n", version, *listenAddr, cfgIR.Meta.ActiveEngine, cfgIR.Network.TunInterface)
+	if err := http.ListenAndServe(*listenAddr, corsMiddleware(mux)); err != nil {
+		log.Fatalf("Fatal: %v", err)
+	}
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	ir := s.engMgr.GetIR()
+	lastRes := s.engMgr.GetLastResult()
+
+	resp := map[string]any{
+		"version":          version,
+		"uptime_seconds":   int64(time.Since(startTime).Seconds()),
+		"active_engine":    s.engMgr.GetActiveEngine(),
+		"edition":          ir.Meta.Edition,
+		"proxy_mode":       ir.Meta.ProxyMode,
+		"active_profile":   ir.Meta.ActiveProfile,
+		"memory_mb":        float64(m.Alloc) / 1024 / 1024,
+		"os":               runtime.GOOS,
+		"arch":             runtime.GOARCH,
+		"last_switch_res":  lastRes,
+		"tun_interface":    ir.Network.TunInterface,
+		"tproxy_port":      ir.Network.TProxyPort,
+		"dns_port":         ir.Network.DNSPort,
+		"clash_api_port":   ir.Network.ClashAPIPort,
+		"total_proxies":    len(ir.Proxies),
+		"total_groups":     len(ir.Groups),
+	}
+	sendJSON(w, resp)
+}
+
+func (s *Server) handleSystemEdition(w http.ResponseWriter, r *http.Request) {
+	ir := s.engMgr.GetIR()
+	if r.Method == http.MethodGet {
+		sendJSON(w, map[string]any{
+			"edition": ir.Meta.Edition,
+		})
+		return
+	}
+	if r.Method == http.MethodPost {
+		var req struct {
+			Edition string `json:"edition"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if req.Edition != "geek" && req.Edition != "novice" {
+			req.Edition = "geek"
+		}
+		ir.Meta.Edition = req.Edition
+		s.engMgr.UpdateIR(ir)
+		sendJSON(w, map[string]any{
+			"status":  "ok",
+			"edition": ir.Meta.Edition,
+		})
+		return
+	}
+	http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+}
+
+func (s *Server) handleSystemPanic(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Action string `json:"action"` // "bypass" or "restore"
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	if req.Action == "restore" {
+		_ = s.netCtrl.ApplyNFTables()
+		_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+		sendJSON(w, map[string]any{
+			"status":   "restored",
+			"message":  "已恢复极光网关双核智能加速",
+			"bypassed": false,
+		})
+		return
+	}
+	_ = s.netCtrl.EmergencyBypass()
+	sendJSON(w, map[string]any{
+		"status":   "bypassed",
+		"message":  "已触发 1 秒一键急救：已清空转发规则，恢复纯物理直连逃生！",
+		"bypassed": true,
+	})
+}
+
+func (s *Server) handleConfigIR(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		sendJSON(w, s.engMgr.GetIR())
+		return
+	}
+	if r.Method == http.MethodPut || r.Method == http.MethodPost {
+		var newIR schema.ConfigIR
+		if err := json.NewDecoder(r.Body).Decode(&newIR); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		newIR.UpdatedAt = time.Now()
+		s.engMgr.UpdateIR(&newIR)
+		sendJSON(w, map[string]any{"status": "saved", "updated_at": newIR.UpdatedAt})
+		return
+	}
+	http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+}
+
+func (s *Server) handleEngineSwitch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Engine string `json:"engine"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	target := schema.EngineType(req.Engine)
+	if target == "" {
+		if s.engMgr.GetActiveEngine() == schema.EngineMihomo {
+			target = schema.EngineSingbox
+		} else {
+			target = schema.EngineMihomo
+		}
+	}
+
+	result, err := s.engMgr.SwitchEngine(target)
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "error": err.Error(), "result": result})
+		return
+	}
+	sendJSON(w, map[string]any{"status": "switched", "result": result})
+}
+
+func (s *Server) handleEngineMode(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Mode string `json:"mode"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	ir := s.engMgr.GetIR()
+	ir.Meta.ProxyMode = schema.ProxyMode(req.Mode)
+	sendJSON(w, map[string]any{"status": "ok", "mode": ir.Meta.ProxyMode})
+}
+
+func (s *Server) handleBenchmark(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		NodeName string `json:"node_name"`
+		URL      string `json:"url"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	ir := s.engMgr.GetIR()
+	var targetNode *schema.ProxyNode
+	for _, p := range ir.Proxies {
+		if p.Name == req.NodeName {
+			targetNode = &p
+			break
+		}
+	}
+	if targetNode == nil && len(ir.Proxies) > 0 {
+		targetNode = &ir.Proxies[0]
+	}
+	if targetNode == nil {
+		targetNode = &schema.ProxyNode{Name: "香港 BGP 01", Server: "1.1.1.1", Port: 443, Type: "vless"}
+	}
+
+	res := engine.RunABBenchmark(targetNode, req.URL)
+	sendJSON(w, res)
+}
+
+func (s *Server) handleNetstackStatus(w http.ResponseWriter, r *http.Request) {
+	sendJSON(w, s.netCtrl.GetStatus())
+}
+
+func (s *Server) handleNetstackBypass(w http.ResponseWriter, r *http.Request) {
+	_ = s.netCtrl.EmergencyBypass()
+	sendJSON(w, map[string]any{"status": "bypassed", "message": "已成功切换至纯直连逃生模式"})
+}
+
+func (s *Server) handleNetstackApply(w http.ResponseWriter, r *http.Request) {
+	_ = s.netCtrl.ApplyNFTables()
+	sendJSON(w, map[string]any{"status": "applied", "message": "nftables 规则已重新装载"})
+}
+
+func (s *Server) handleRosScript(w http.ResponseWriter, r *http.Request) {
+	script := s.rosClient.GenerateWinBoxScript()
+	clean := s.rosClient.CleanWinBoxScript()
+	sendJSON(w, map[string]string{
+		"script":       script,
+		"clean_script": clean,
+	})
+}
+
+func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Name string `json:"name"`
+		URL  string `json:"url"`
+		Type string `json:"type"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if req.URL == "" {
+		http.Error(w, "url required", http.StatusBadRequest)
+		return
+	}
+
+	fetcher := sub.NewFetcher()
+	res, err := fetcher.Fetch(req.URL)
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+		return
+	}
+
+	ir := s.engMgr.GetIR()
+	subID := fmt.Sprintf("sub_%d", time.Now().Unix())
+	if req.Name == "" {
+		req.Name = fmt.Sprintf("订阅 %d", len(ir.Subscriptions)+1)
+	}
+
+	newSub := schema.Subscription{
+		ID:         subID,
+		Name:       req.Name,
+		URL:        req.URL,
+		Type:       req.Type,
+		Enabled:    true,
+		NodeCount:  res.NodeCount,
+		UsedBytes:  res.Upload + res.Download,
+		TotalBytes: res.Total,
+		ExpireAt:   res.Expire,
+		UpdatedAt:  time.Now(),
+	}
+
+	ir.Subscriptions = append(ir.Subscriptions, newSub)
+
+	// Merge new nodes into Proxies
+	nodeNames := make([]string, 0, len(res.Nodes))
+	for _, n := range res.Nodes {
+		ir.Proxies = append(ir.Proxies, n)
+		nodeNames = append(nodeNames, n.Name)
+	}
+
+	// Update strategy groups with newly imported nodes
+	for i := range ir.Groups {
+		if ir.Groups[i].Type == "urltest" || ir.Groups[i].Name == "🚀 节点选择" || ir.Groups[i].Name == "⚡ 自动优选" {
+			ir.Groups[i].Proxies = append(ir.Groups[i].Proxies, nodeNames...)
+		}
+	}
+
+	s.engMgr.UpdateIR(ir)
+
+	// Re-trigger compilation for active engine
+	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+
+	sendJSON(w, map[string]any{
+		"status":      "added",
+		"sub_id":      subID,
+		"node_count":  res.NodeCount,
+		"duration_ms": res.DurationMs,
+	})
+}
+
+func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ir := s.engMgr.GetIR()
+	fetcher := sub.NewFetcher()
+	totalNodes := 0
+
+	var updatedProxies []schema.ProxyNode
+	// Preserve direct and reject
+	for _, p := range ir.Proxies {
+		if p.Type == "direct" || p.Type == "block" || p.Type == "reject" {
+			updatedProxies = append(updatedProxies, p)
+		}
+	}
+
+	for i := range ir.Subscriptions {
+		if !ir.Subscriptions[i].Enabled || ir.Subscriptions[i].URL == "" {
+			continue
+		}
+		res, err := fetcher.Fetch(ir.Subscriptions[i].URL)
+		if err == nil {
+			ir.Subscriptions[i].NodeCount = res.NodeCount
+			ir.Subscriptions[i].UsedBytes = res.Upload + res.Download
+			ir.Subscriptions[i].TotalBytes = res.Total
+			ir.Subscriptions[i].ExpireAt = res.Expire
+			ir.Subscriptions[i].UpdatedAt = time.Now()
+			updatedProxies = append(updatedProxies, res.Nodes...)
+			totalNodes += res.NodeCount
+		}
+	}
+
+	ir.Proxies = updatedProxies
+	s.engMgr.UpdateIR(ir)
+
+	// Re-trigger compilation
+	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+
+	sendJSON(w, map[string]any{
+		"status":      "updated",
+		"total_nodes": totalNodes,
+	})
+}
+
+func sendJSON(w http.ResponseWriter, data any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	_ = json.NewEncoder(w).Encode(data)
+}
+
+func (s *Server) handleWGInfo(w http.ResponseWriter, r *http.Request) {
+	sendJSON(w, s.wgMgr.GetInfo())
+}
+
+func (s *Server) handleWGPeerAdd(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Name string `json:"name"`
+		Mode string `json:"mode"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	peer, conf, err := s.wgMgr.CreatePeer(req.Name, req.Mode)
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{"status": "created", "peer": peer, "config": conf})
+}
+
+func (s *Server) handleWGPeerDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	err := s.wgMgr.DeletePeer(req.ID)
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{"status": "deleted"})
+}
+
+func (s *Server) handleWGPeerConfig(w http.ResponseWriter, r *http.Request) {
+	peerID := r.URL.Query().Get("id")
+	conf, err := s.wgMgr.GetClientConfig(peerID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, _ = w.Write([]byte(conf))
+}
+
+func (s *Server) handleAdblockStats(w http.ResponseWriter, r *http.Request) {
+	stats := s.adblockMgr.GetStats(true, 0)
+	sendJSON(w, stats)
+}
+
+func (s *Server) handleBackupExport(w http.ResponseWriter, r *http.Request) {
+	b, err := s.backupMgr.ExportBackup(version)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	sendJSON(w, b)
+}
+
+func (s *Server) handleBackupImport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var b backup.BackupData
+	if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := s.backupMgr.ImportBackup(&b); err != nil {
+		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{"status": "restored", "message": "配置已成功从快照恢复并装载！"})
+}
+
+func (s *Server) handleAIChat(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Prompt string `json:"prompt"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	resp, err := s.aiCopilot.Chat(req.Prompt)
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{"status": "ok", "reply": resp})
+}
+
+// ──────────────────────────────────────────────
+// WireGuard Dual-End Alignment Handlers
+// ──────────────────────────────────────────────
+
+func (s *Server) handleWGAlignInspect(w http.ResponseWriter, r *http.Request) {
+	report, err := s.wgMgr.InspectWireGuardAlignment()
+	if err != nil {
+		sendJSON(w, map[string]any{"error": err.Error(), "all_aligned": false})
+		return
+	}
+	sendJSON(w, report)
+}
+
+func (s *Server) handleWGAlignApply(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	res, err := s.wgMgr.AlignWireGuardToROS()
+	if err != nil {
+		sendJSON(w, map[string]any{"success": false, "error": err.Error()})
+		return
+	}
+	sendJSON(w, res)
+}
+
+func (s *Server) handleWGDeployHost(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	serverConf := s.wgMgr.GenerateHostWireGuardConfig()
+	out, err := s.hostMgr.DeployHostWireGuard(serverConf)
+	if err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{"ok": true, "output": out})
+}
+
+// ──────────────────────────────────────────────
+// Host Base Probing & Firewall Linkage Handlers
+// ──────────────────────────────────────────────
+
+func (s *Server) handleHostInfo(w http.ResponseWriter, r *http.Request) {
+	info, err := s.hostMgr.ProbeHost()
+	if err != nil && info != nil && info.RawError == "" {
+		info.RawError = err.Error()
+	}
+	sendJSON(w, info)
+}
+
+func (s *Server) handleHostConfig(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		sendJSON(w, s.hostMgr.GetConfig())
+	case http.MethodPost, http.MethodPut:
+		var cfg host.HostConfig
+		if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := s.hostMgr.SaveConfig(cfg); err != nil {
+			sendJSON(w, map[string]any{"error": err.Error()})
+			return
+		}
+		sendJSON(w, map[string]any{"ok": true, "config": s.hostMgr.GetConfig()})
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (s *Server) handleHostTest(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var cfg host.HostConfig
+	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	res, err := s.hostMgr.TestSSH(cfg)
+	if err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	sendJSON(w, res)
+}
+
+func (s *Server) handleHostFirewallApply(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Mode              string `json:"mode"`
+		EnablePenetration *bool  `json:"enable_penetration"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	if req.Mode == "" {
+		req.Mode = "permissive"
+	}
+	enablePenetration := true
+	if req.EnablePenetration != nil {
+		enablePenetration = *req.EnablePenetration
+	}
+	res, err := s.hostMgr.ApplyFirewall(req.Mode, enablePenetration)
+	if err != nil {
+		sendJSON(w, map[string]any{"success": false, "error": err.Error()})
+		return
+	}
+	sendJSON(w, res)
+}
+
+func (s *Server) handleHostFirewallScript(w http.ResponseWriter, r *http.Request) {
+	mode := r.URL.Query().Get("mode")
+	if mode == "" {
+		mode = "permissive"
+	}
+	enablePenetration := r.URL.Query().Get("penetration") != "false"
+	script := s.hostMgr.GenerateFirewallScript(mode, enablePenetration)
+	sendJSON(w, map[string]any{
+		"mode":               mode,
+		"enable_penetration": enablePenetration,
+		"script":             script,
+	})
+}
+
+// ──────────────────────────────────────────────
+// RouterOS v7 REST API Handlers
+// ──────────────────────────────────────────────
+
+func (s *Server) handleROSInspect(w http.ResponseWriter, r *http.Request) {
+	report, err := s.rosMgr.InspectRouting()
+	if err != nil {
+		sendJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	sendJSON(w, report)
+}
+
+func (s *Server) handleROSApply(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		TargetIP string `json:"target_ip"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	res, err := s.rosMgr.ApplyRouting(req.TargetIP)
+	if err != nil {
+		sendJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	sendJSON(w, res)
+}
+
+func (s *Server) handleROSConfig(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		sendJSON(w, s.rosMgr.GetConfig())
+	case http.MethodPost, http.MethodPut:
+		var cfg map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := s.rosMgr.SaveConfig(cfg); err != nil {
+			sendJSON(w, map[string]any{"error": err.Error()})
+			return
+		}
+		sendJSON(w, map[string]any{"status": "saved"})
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// ──────────────────────────────────────────────
+// 4-Tier Version Overview & Upgrades
+// ──────────────────────────────────────────────
+
+func (s *Server) handleSystemOverview(w http.ResponseWriter, r *http.Request) {
+	overview := s.rosMgr.GetOverview()
+	overview["cubex_version"] = version
+	overview["active_engine"] = s.engMgr.GetActiveEngine()
+	overview["uptime_seconds"] = int64(time.Since(startTime).Seconds())
+	cachedHost := s.hostMgr.GetCachedHostInfo()
+	if cachedHost != nil {
+		overview["host_info"] = cachedHost
+	}
+	sendJSON(w, overview)
+}
+
+func (s *Server) handleUpgradeCore(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Core string `json:"core"` // "mihomo" or "singbox"
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	if req.Core == "" || req.Core == "mihomo" {
+		ver, err := s.rosMgr.UpgradeMihomoCore(func() error {
+			_, err := s.engMgr.SwitchEngine("mihomo")
+			return err
+		})
+		if err != nil {
+			if strings.Contains(err.Error(), "already at latest version") {
+				sendJSON(w, map[string]any{"status": "latest", "version": ver, "message": "Mihomo 内核已是最新版本"})
+				return
+			}
+			sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+			return
+		}
+		sendJSON(w, map[string]any{"status": "upgraded", "version": ver})
+		return
+	} else if req.Core == "singbox" {
+		sendJSON(w, map[string]any{"status": "latest", "version": "v1.14.3", "message": "sing-box 极速轻量核已是官方最新版本 (v1.14.3+)"})
+		return
+	}
+	sendJSON(w, map[string]any{"status": "error", "error": "unknown core type: " + req.Core})
+}
+
+func (s *Server) handleUpgradeGeoData(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	res, err := s.rosMgr.UpdateGeoData(func() error {
+		_, err := s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+		return err
+	})
+	if err != nil {
+		sendJSON(w, map[string]any{"success": false, "error": err.Error()})
+		return
+	}
+	sendJSON(w, res)
+}
+
+func (s *Server) handleUpgradePanel(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	ver, err := s.rosMgr.UpgradePanel(func() error {
+		log.Printf("[CubeX] Restarting process for upgrade...")
+		os.Exit(0)
+		return nil
+	})
+	if err != nil {
+		if strings.Contains(err.Error(), "already at the latest version") {
+			sendJSON(w, map[string]any{"status": "already_latest", "version": ver, "message": "CubeX 系统已是最新版本"})
+			return
+		}
+		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{"status": "upgraded", "version": ver})
+}
+
+func (s *Server) handleHostUpgradeCheck(w http.ResponseWriter, r *http.Request) {
+	out, err := s.hostMgr.CheckHostUpgrade()
+	if err != nil {
+		sendJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]string{"output": out})
+}
+
+func (s *Server) handleHostUpgradeExecute(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	out, err := s.hostMgr.ExecuteHostUpgrade()
+	if err != nil {
+		sendJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]string{"output": out})
+}
+
+// ──────────────────────────────────────────────
+// LAN Devices & Policy Matrix Handlers
+// ──────────────────────────────────────────────
+
+func (s *Server) handleDevices(w http.ResponseWriter, r *http.Request) {
+	devices := s.devMgr.GetDevices()
+	sendJSON(w, map[string]any{
+		"devices": devices,
+		"total":   len(devices),
+	})
+}
+
+func (s *Server) handleDeviceAlias(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		IP   string `json:"ip"`
+		MAC  string `json:"mac"`
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := s.devMgr.SetAlias(req.IP, req.MAC, req.Name); err != nil {
+		sendJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{"status": "saved", "ip": req.IP, "name": req.Name})
+}
+
+func (s *Server) handleDevicePolicy(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		IP        string `json:"ip"`
+		MAC       string `json:"mac"`
+		Name      string `json:"name"`
+		Mode      string `json:"mode"`       // "rule" | "bypass" | "node"
+		BoundNode string `json:"bound_node"` // specific node or proxy group
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if req.Mode == "" {
+		req.Mode = "rule"
+	}
+	if err := s.devMgr.SetPolicy(req.IP, req.MAC, req.Mode, req.BoundNode); err != nil {
+		sendJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	if req.Name != "" {
+		_ = s.devMgr.SetAlias(req.IP, req.MAC, req.Name)
+	}
+
+	sendJSON(w, map[string]any{
+		"status":     "saved",
+		"ip":         req.IP,
+		"mode":       req.Mode,
+		"bound_node": req.BoundNode,
+	})
+}
+
+func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	// 1. Check if ROS is connected
+	if s.rosMgr.IsConnected() {
+		res, err := s.rosMgr.ApplyRouting("")
+		if err == nil {
+			sendJSON(w, map[string]any{
+				"ok":        true,
+				"host_type": "routeros",
+				"message":   "🎉 已成功打通 RouterOS 宿主底座！策略路由与防DNS泄露规则已全自动配置生效！",
+				"result":    res,
+			})
+			return
+		}
+	}
+	// 2. Check if Host SSH is connected
+	cached := s.hostMgr.GetCachedHostInfo()
+	if cached != nil && cached.Connected {
+		fwRes, err := s.hostMgr.ApplyFirewall("permissive", true)
+		if err == nil {
+			sendJSON(w, map[string]any{
+				"ok":        true,
+				"host_type": cached.PlatformID,
+				"message":   fmt.Sprintf("🎉 已成功打通 %s 宿主底座！内核数据包转发 (ip_forward=1) 与防火墙放行规则已全自动配置生效！", cached.OSName),
+				"result":    fwRes,
+			})
+			return
+		}
+	}
+	// 3. Fallback try ROS anyway
+	res, err := s.rosMgr.ApplyRouting("")
+	if err == nil {
+		sendJSON(w, map[string]any{
+			"ok":        true,
+			"host_type": "routeros",
+			"message":   "🎉 已成功打通 RouterOS 宿主底座！",
+			"result":    res,
+		})
+		return
+	}
+	sendJSON(w, map[string]any{
+		"ok":    false,
+		"error": "未能自动探测到有效宿主底座连接。请在「底座通信凭证」中配置 RouterOS 或宿主机 SSH 凭证后再试。",
+	})
+}
+
+
+

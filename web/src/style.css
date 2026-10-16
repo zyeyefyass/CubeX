@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #0b0914;
+  overflow-x: hidden;
+}
+
+/* Cyber Aurora Glass Card */
+.glass-aurora {
+  background: rgba(22, 16, 42, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(123, 44, 191, 0.35);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+.glass-aurora:hover {
+  border-color: rgba(0, 245, 212, 0.45);
+}
+
+/* MiCube Matrix Blue Glass Card (Theme Morphing) */
+.glass-matrix {
+  background: rgba(0, 34, 68, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 210, 255, 0.35);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+.glass-matrix:hover {
+  border-color: rgba(251, 191, 36, 0.5);
+}
+
+/* Novice Emerald Glass Card */
+.glass-novice {
+  background: rgba(6, 30, 22, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+.glass-novice:hover {
+  border-color: rgba(52, 211, 153, 0.55);
+}
+
+/* Glow Keyframes */
+@keyframes neon-pulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(0, 245, 212, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(0, 245, 212, 0.8), 0 0 45px rgba(123, 44, 191, 0.5);
+  }
+}
+
+.animate-neon-pulse {
+  animation: neon-pulse 2.2s infinite ease-in-out;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(11, 9, 20, 0.8);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(123, 44, 191, 0.4);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 245, 212, 0.6);
+}
