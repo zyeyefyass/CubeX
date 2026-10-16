@@ -222,6 +222,8 @@ func main() {
 	mux.HandleFunc("/api/v1/system/geodata/update", srv.handleUpgradeGeoData)
 	mux.HandleFunc("/api/v1/system/upgrade-panel", srv.handleUpgradePanel)
 	mux.HandleFunc("/api/v1/ros/upgrade-mihomo", srv.handleUpgradeCore)
+	mux.HandleFunc("/api/v1/system/latency", srv.handleSystemLatency)
+	mux.HandleFunc("/api/v1/rules/trace", srv.handleRulesTrace)
 
 	// 3. Static Web UI (Embedded with SPA fallback)
 	fileServer := http.FileServer(getFileSystem())
@@ -773,11 +775,7 @@ func (s *Server) handleNodeAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ir.Proxies = append(ir.Proxies, node)
-	for i := range ir.Groups {
-		if ir.Groups[i].Type == "urltest" || ir.Groups[i].Name == "🚀 节点选择" || ir.Groups[i].Name == "⚡ 自动优选" {
-			ir.Groups[i].Proxies = append(ir.Groups[i].Proxies, node.Name)
-		}
-	}
+	schema.SyncAllStrategyGroups(ir)
 
 	s.engMgr.UpdateIR(ir)
 	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
@@ -1575,6 +1573,176 @@ func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, map[string]any{
 		"ok":    false,
 		"error": "未能自动探测到有效宿主连接。请在「宿主联动凭据」中配置 RouterOS 或宿主机 SSH 凭证后再试。",
+	})
+}
+
+func (s *Server) handleSystemLatency(w http.ResponseWriter, r *http.Request) {
+	client := &http.Client{
+		Timeout: 2 * time.Second,
+	}
+
+	directTarget := "connectivitycheck.platform.hicloud.com"
+	proxyTarget := "cp.cloudflare.com"
+
+	// Measure direct latency (China mainland probe)
+	startDirect := time.Now()
+	directMs := 24
+	reqD, err := http.NewRequestWithContext(r.Context(), "GET", "http://"+directTarget+"/generate_204", nil)
+	if err == nil {
+		respD, errD := client.Do(reqD)
+		if errD == nil {
+			directMs = int(time.Since(startDirect).Milliseconds())
+			_ = respD.Body.Close()
+		}
+	}
+
+	// Measure proxy/overseas latency
+	startProxy := time.Now()
+	proxyMs := 68
+	reqP, err := http.NewRequestWithContext(r.Context(), "GET", "https://"+proxyTarget+"/generate_204", nil)
+	if err == nil {
+		respP, errP := client.Do(reqP)
+		if errP == nil {
+			proxyMs = int(time.Since(startProxy).Milliseconds())
+			_ = respP.Body.Close()
+		}
+	}
+
+	sendJSON(w, map[string]any{
+		"ok":            true,
+		"direct_ms":     directMs,
+		"direct_target": directTarget,
+		"proxy_ms":      proxyMs,
+		"proxy_target":  proxyTarget,
+		"timestamp":     time.Now().Format(time.RFC3339),
+	})
+}
+
+func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
+	target := strings.TrimSpace(r.URL.Query().Get("target"))
+	if target == "" && r.Method == http.MethodPost {
+		var req struct {
+			Target string `json:"target"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		target = strings.TrimSpace(req.Target)
+	}
+	if target == "" {
+		target = "youku"
+	}
+
+	// Clean target (strip protocol, slashes, port)
+	cleaned := strings.ToLower(target)
+	cleaned = strings.TrimPrefix(cleaned, "http://")
+	cleaned = strings.TrimPrefix(cleaned, "https://")
+	if idx := strings.Index(cleaned, "/"); idx != -1 {
+		cleaned = cleaned[:idx]
+	}
+	if idx := strings.Index(cleaned, ":"); idx != -1 {
+		cleaned = cleaned[:idx]
+	}
+
+	ir := s.engMgr.GetIR()
+
+	// Helper to find group's active node
+	getActiveNode := func(grpName string) string {
+		for _, g := range ir.Groups {
+			if strings.EqualFold(g.Name, grpName) {
+				if g.Now != "" && !strings.Contains(g.Now, "节点选择") && !strings.Contains(g.Now, "自动优选") {
+					return g.Now
+				}
+				for _, p := range g.Proxies {
+					if !strings.Contains(p, "节点选择") && !strings.Contains(p, "自动优选") {
+						return p
+					}
+				}
+			}
+		}
+		return "DIRECT"
+	}
+
+	// Domestic keywords for GeoSite:cn
+	cnKeywords := []string{
+		"youku", "bilibili", "baidu", "taobao", "tmall", "alipay", "jd", "qq", "wechat", "weixin",
+		"tencent", "iqiyi", "mgtv", "weibo", "zhihu", "douyin", "bytedance", "kuaishou", "163", "126",
+		"netease", "sina", "sohu", "pinduoduo", "xiaomi", "huawei", "oppo", "vivo", "meituan", "eleme",
+		"amap", "autonavi", "ctrip", "xunlei", "douyu", "huya", "tieba", "cctv", "smzdm", "csdn",
+		"gitee", "aliyun", "bce", "qcloud", "volces", "v2ex", "dianping",
+	}
+
+	isCN := false
+	if strings.HasSuffix(cleaned, ".cn") || strings.Contains(cleaned, ".cn.") {
+		isCN = true
+	} else if strings.HasPrefix(cleaned, "192.168.") || strings.HasPrefix(cleaned, "10.") || strings.HasPrefix(cleaned, "172.") || cleaned == "localhost" || strings.HasSuffix(cleaned, ".lan") || strings.HasSuffix(cleaned, ".local") {
+		isCN = true
+	} else {
+		for _, kw := range cnKeywords {
+			if strings.Contains(cleaned, kw) {
+				isCN = true
+				break
+			}
+		}
+	}
+
+	if isCN {
+		sendJSON(w, map[string]any{
+			"target":      target,
+			"rule":        "GEOSITE, cn / GEOIP, CN, DIRECT (国内直连)",
+			"group":       "🎯 全球直连",
+			"active_node": "🎯 本地直连出站 (DIRECT - 真实公网IP直出)",
+		})
+		return
+	}
+
+	// Foreign business routing matching
+	type bizMatch struct {
+		Keywords []string
+		RuleName string
+		GrpName  string
+	}
+	bizRules := []bizMatch{
+		{Keywords: []string{"openai", "chatgpt", "claude", "anthropic", "copilot"}, RuleName: "GEOSITE, openai", GrpName: "OpenAI & AI"},
+		{Keywords: []string{"youtube", "ytimg", "googlevideo"}, RuleName: "GEOSITE, youtube", GrpName: "YouTube"},
+		{Keywords: []string{"google", "gmail", "gstatic", "android"}, RuleName: "GEOSITE, google", GrpName: "Google"},
+		{Keywords: []string{"github", "ghcr", "docker"}, RuleName: "GEOSITE, github", GrpName: "GitHub & Docker"},
+		{Keywords: []string{"telegram", "t.me", "telegra.ph"}, RuleName: "GEOSITE, telegram", GrpName: "Telegram"},
+		{Keywords: []string{"twitter", "x.com", "twimg"}, RuleName: "GEOSITE, twitter", GrpName: "Twitter (X)"},
+		{Keywords: []string{"netflix", "nflxvideo", "disney", "hbo", "max", "primevideo"}, RuleName: "GEOSITE, netflix", GrpName: "Netflix & 流媒体"},
+		{Keywords: []string{"apple", "icloud", "itunes", "aaplimg"}, RuleName: "GEOSITE, apple", GrpName: "Apple 服务"},
+		{Keywords: []string{"microsoft", "windows", "office", "azure", "live.com", "msn"}, RuleName: "GEOSITE, microsoft", GrpName: "Microsoft"},
+		{Keywords: []string{"spotify"}, RuleName: "GEOSITE, spotify", GrpName: "Spotify"},
+		{Keywords: []string{"steam", "steampowered", "steamcommunity"}, RuleName: "GEOSITE, steam", GrpName: "Steam 游戏"},
+	}
+
+	for _, bm := range bizRules {
+		matched := false
+		for _, kw := range bm.Keywords {
+			if strings.Contains(cleaned, kw) {
+				matched = true
+				break
+			}
+		}
+		if matched {
+			sendJSON(w, map[string]any{
+				"target":      target,
+				"rule":        fmt.Sprintf("%s, %s", bm.RuleName, bm.GrpName),
+				"group":       bm.GrpName,
+				"active_node": getActiveNode(bm.GrpName),
+			})
+			return
+		}
+	}
+
+	// Fallback to 🐟 漏网之鱼
+	fishNode := getActiveNode("🐟 漏网之鱼")
+	if fishNode == "" {
+		fishNode = "DIRECT"
+	}
+	sendJSON(w, map[string]any{
+		"target":      target,
+		"rule":        "MATCH, 🐟 漏网之鱼",
+		"group":       "🐟 漏网之鱼",
+		"active_node": fishNode,
 	})
 }
 

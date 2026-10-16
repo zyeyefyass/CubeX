@@ -208,30 +208,15 @@ func NewDefaultIR() *ConfigIR {
 		},
 		Groups: []StrategyGroup{
 			{
-				Name:    "🚀 节点选择",
-				Type:    "select",
-				Proxies: []string{"⚡ 自动优选", "DIRECT"},
-				Now:     "⚡ 自动优选",
-			},
-			{
-				Name:      "⚡ 自动优选",
-				Type:      "urltest",
-				Proxies:   []string{},
-				Now:       "",
-				URL:       "http://www.gstatic.com/generate_204",
-				Interval:  300,
-				Tolerance: 50,
-			},
-			{
 				Name:    "🐟 漏网之鱼",
 				Type:    "select",
-				Proxies: []string{"🚀 节点选择", "DIRECT"},
-				Now:     "🚀 节点选择",
+				Proxies: []string{"🇭🇰 香港自动", "DIRECT"},
+				Now:     "🇭🇰 香港自动",
 			},
 			{
 				Name:    "🎯 全球直连",
 				Type:    "select",
-				Proxies: []string{"DIRECT", "🚀 节点选择"},
+				Proxies: []string{"DIRECT"},
 				Now:     "DIRECT",
 			},
 			{
