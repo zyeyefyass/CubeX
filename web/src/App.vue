@@ -361,11 +361,20 @@
                     </span>
                   </div>
 
-                  <!-- Multi-Strategy Capsules (自动 / 故转 / 容灾) -->
-                  <div class="p-1 rounded-xl bg-slate-950/90 border border-slate-800/90 flex items-center justify-between gap-1 text-[11px] font-mono">
+                  <!-- Multi-Strategy Capsules (手动 / 自动 / 故转 / 容灾) -->
+                  <div class="p-1 rounded-xl bg-slate-950/90 border border-slate-800/90 grid grid-cols-4 gap-1 text-[11px] font-mono">
+                    <button @click="selectRegionPolicy(reg, 'manual')"
+                      :class="[
+                        'py-1 rounded-lg transition font-bold text-center',
+                        regionActivePolicy[reg.id] === 'manual'
+                          ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                          : 'text-slate-400 hover:text-white'
+                      ]">
+                      👆 手动
+                    </button>
                     <button @click="selectRegionPolicy(reg, 'auto')"
                       :class="[
-                        'flex-1 py-1 rounded-lg transition font-bold text-center',
+                        'py-1 rounded-lg transition font-bold text-center',
                         (regionActivePolicy[reg.id] || 'auto') === 'auto'
                           ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
                           : 'text-slate-400 hover:text-white'
@@ -374,7 +383,7 @@
                     </button>
                     <button @click="selectRegionPolicy(reg, 'fall')"
                       :class="[
-                        'flex-1 py-1 rounded-lg transition font-bold text-center',
+                        'py-1 rounded-lg transition font-bold text-center',
                         regionActivePolicy[reg.id] === 'fall'
                           ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
                           : 'text-slate-400 hover:text-white'
@@ -383,7 +392,7 @@
                     </button>
                     <button @click="selectRegionPolicy(reg, 'disa')"
                       :class="[
-                        'flex-1 py-1 rounded-lg transition font-bold text-center',
+                        'py-1 rounded-lg transition font-bold text-center',
                         regionActivePolicy[reg.id] === 'disa'
                           ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-md shadow-purple-500/20'
                           : 'text-slate-400 hover:text-white'
@@ -406,7 +415,7 @@
                   <!-- Expanded Regional Node List -->
                   <div v-if="expandedRegion[reg.id]" class="pt-2 border-t border-slate-800/80 space-y-1.5 max-h-36 overflow-y-auto animate-in fade-in">
                     <button v-for="node in getRegionNodes(reg)" :key="node.name"
-                      @click="selectNodeFast(node.name)"
+                      @click="selectRegionalNodeItem(reg, node.name)"
                       :class="[
                         'w-full px-2 py-1 rounded-lg text-left text-[10px] font-mono flex items-center justify-between transition border',
                         activeSelectedNode === node.name
@@ -552,7 +561,7 @@
                 <!-- Fast Filter Tags -->
                 <div class="flex items-center gap-1.5 overflow-x-auto text-[10px] font-mono py-0.5">
                   <span class="text-slate-500 shrink-0">快捷筛选:</span>
-                  <button v-for="tag in ['全部', '香港', '台湾', '新加坡', '日本', '美国', '直连']" :key="tag"
+                  <button v-for="tag in ['全部', '香港', '台湾', '新加坡', '日韩', '美国', '其它', '直连']" :key="tag"
                     @click="setGroupFilter(grp.name, tag === '全部' ? '' : tag)"
                     :class="[
                       'px-2 py-0.5 rounded-lg transition shrink-0',
@@ -628,13 +637,16 @@
                   <label class="block text-slate-400 font-mono mb-1">默认绑定出站策略</label>
                   <select v-model="newGroupForm.target"
                     class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono">
-                    <option value="🇭🇰 香港自动">🇭🇰 香港自动 (低延迟推荐)</option>
-                    <option value="🇹🇼 台湾自动">🇹🇼 台湾自动</option>
-                    <option value="🇸🇬 新加坡自动">🇸🇬 新加坡自动</option>
-                    <option value="🇯🇵🇰🇷 日韩自动">🇯🇵🇰🇷 日韩自动</option>
-                    <option value="🇺🇸 美国自动">🇺🇸 美国自动 (AI推荐)</option>
-                    <option value="🌐 其它自动">🌐 其它自动</option>
-                    <option value="DIRECT">DIRECT (国内直连)</option>
+                    <optgroup v-for="reg in regionDefs" :key="reg.id" :label="`${reg.flag} ${reg.name}集群策略`">
+                      <option :value="reg.manual">{{ reg.manual }} (👆 人工指派)</option>
+                      <option :value="reg.auto">{{ reg.auto }} (⚡ 自动优选)</option>
+                      <option :value="reg.fall">{{ reg.fall }} (🔄 故障转移)</option>
+                      <option :value="reg.disa">{{ reg.disa }} (🛡️ 容灾负载)</option>
+                    </optgroup>
+                    <optgroup label="⚡ 通用直连与全局">
+                      <option value="DIRECT">DIRECT (国内直连绕过)</option>
+                      <option value="GLOBAL">GLOBAL (全局代理出站)</option>
+                    </optgroup>
                   </select>
                 </div>
 
@@ -2414,14 +2426,14 @@ async function importBackup(ev) {
   }
 }
 
-// ── Region Clusters & Strategies (6 Regions x 3 Policies) ──
+// ── Region Clusters & Strategies (6 Regions x 4 Policies: 手动/自动/故转/容灾) ──
 const regionDefs = [
-  { id: 'HK', name: '香港', flag: '🇭🇰', auto: '🇭🇰 香港自动', fall: '🇭🇰 香港故转', disa: '🇭🇰 香港容灾', regex: /(港|hk|hong kong)/i },
-  { id: 'TW', name: '台湾', flag: '🇹🇼', auto: '🇹🇼 台湾自动', fall: '🇹🇼 台湾故转', disa: '🇹🇼 台湾容灾', regex: /(台|tw|taiwan)/i },
-  { id: 'SG', name: '新加坡', flag: '🇸🇬', auto: '🇸🇬 新加坡自动', fall: '🇸🇬 新加坡故转', disa: '🇸🇬 新加坡容灾', regex: /(新|sg|singapore|狮城)/i },
-  { id: 'JPKR', name: '日韩', flag: '🇯🇵🇰🇷', auto: '🇯🇵🇰🇷 日韩自动', fall: '🇯🇵🇰🇷 日韩故转', disa: '🇯🇵🇰🇷 日韩容灾', regex: /(日|jp|japan|东京|大阪|韩|kr|korea|首尔)/i },
-  { id: 'US', name: '美国', flag: '🇺🇸', auto: '🇺🇸 美国自动', fall: '🇺🇸 美国故转', disa: '🇺🇸 美国容灾', regex: /(美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯)/i },
-  { id: 'OTHERS', name: '其它', flag: '🌐', auto: '🌐 其它自动', fall: '🌐 其它故转', disa: '🌐 其它容灾', regex: null }
+  { id: 'HK', name: '香港', flag: '🇭🇰', manual: '🇭🇰 香港手动', auto: '🇭🇰 香港自动', fall: '🇭🇰 香港故转', disa: '🇭🇰 香港容灾', regex: /(港|hk|hong kong)/i },
+  { id: 'TW', name: '台湾', flag: '🇹🇼', manual: '🇹🇼 台湾手动', auto: '🇹🇼 台湾自动', fall: '🇹🇼 台湾故转', disa: '🇹🇼 台湾容灾', regex: /(台|tw|taiwan)/i },
+  { id: 'SG', name: '新加坡', flag: '🇸🇬', manual: '🇸🇬 新加坡手动', auto: '🇸🇬 新加坡自动', fall: '🇸🇬 新加坡故转', disa: '🇸🇬 新加坡容灾', regex: /(新|sg|singapore|狮城)/i },
+  { id: 'JPKR', name: '日韩', flag: '🇯🇵🇰🇷', manual: '🇯🇵🇰🇷 日韩手动', auto: '🇯🇵🇰🇷 日韩自动', fall: '🇯🇵🇰🇷 日韩故转', disa: '🇯🇵🇰🇷 日韩容灾', regex: /(日|jp|japan|东京|大阪|韩|kr|korea|首尔)/i },
+  { id: 'US', name: '美国', flag: '🇺🇸', manual: '🇺🇸 美国手动', auto: '🇺🇸 美国自动', fall: '🇺🇸 美国故转', disa: '🇺🇸 美国容灾', regex: /(美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯)/i },
+  { id: 'OTHERS', name: '其它', flag: '🌐', manual: '🌐 其它手动', auto: '🌐 其它自动', fall: '🌐 其它故转', disa: '🌐 其它容灾', regex: null }
 ]
 
 const expandedRegion = ref({})
@@ -2446,7 +2458,11 @@ function getRegionNodes(reg) {
 
 function getRegionActiveNode(reg) {
   const curPolicy = regionActivePolicy.value[reg.id] || 'auto'
-  const groupName = curPolicy === 'auto' ? reg.auto : (curPolicy === 'fall' ? reg.fall : reg.disa)
+  let groupName = reg.auto
+  if (curPolicy === 'manual') groupName = reg.manual
+  else if (curPolicy === 'fall') groupName = reg.fall
+  else if (curPolicy === 'disa') groupName = reg.disa
+
   const group = (ir.value.groups || []).find(g => g.name === groupName)
   if (group?.now) return group.now
   const nodes = getRegionNodes(reg)
@@ -2468,12 +2484,31 @@ function getRegionLatency(reg) {
 
 async function selectRegionPolicy(reg, policy) {
   regionActivePolicy.value[reg.id] = policy
-  const groupName = policy === 'auto' ? reg.auto : (policy === 'fall' ? reg.fall : reg.disa)
+  let groupName = reg.auto
+  let label = '⚡ 自动优选'
+  if (policy === 'manual') {
+    groupName = reg.manual
+    label = '👆 手动指定'
+    expandedRegion.value[reg.id] = true
+  } else if (policy === 'fall') {
+    groupName = reg.fall
+    label = '🔄 故障转移'
+  } else if (policy === 'disa') {
+    groupName = reg.disa
+    label = '🛡️ 容灾负载'
+  }
+
   activeSelectedNode.value = groupName
-  showToast(`已将【${reg.flag} ${reg.name}】策略设为: ${policy === 'auto' ? '⚡ 自动优选' : (policy === 'fall' ? '🔄 故障转移' : '🛡️ 容灾负载')}`)
-  
-  // 热切对应的主选出口
+  showToast(`已将【${reg.flag} ${reg.name}】策略设为: ${label}`)
   await selectGroupNode('🚀 节点选择', groupName)
+}
+
+async function selectRegionalNodeItem(reg, nodeName) {
+  regionActivePolicy.value[reg.id] = 'manual'
+  await selectGroupNode(reg.manual, nodeName)
+  await selectGroupNode('🚀 节点选择', nodeName)
+  activeSelectedNode.value = nodeName
+  showToast(`【${reg.flag} ${reg.name}】已手动锁定节点: ${nodeName}`)
 }
 
 // ── Business Routing Groups (Filtered & Add Modal) ──
@@ -2488,8 +2523,8 @@ const newGroupForm = ref({
 const businessGroups = computed(() => {
   const groups = ir.value.groups || []
   return groups.filter(g => {
-    // 过滤掉纯 18 个地区内部策略组，只展现业务分流组
-    const isRegionGroup = regionDefs.some(r => r.auto === g.name || r.fall === g.name || r.disa === g.name)
+    // 过滤掉纯 24 个地区内部策略组，只展现业务分流组
+    const isRegionGroup = regionDefs.some(r => r.manual === g.name || r.auto === g.name || r.fall === g.name || r.disa === g.name)
     return !isRegionGroup
   })
 })
@@ -2594,6 +2629,15 @@ function setGroupFilter(groupName, tag) {
 function getFilteredGroupProxies(grp) {
   const filter = groupFilters.value[grp.name] || ''
   if (!filter) return grp.proxies || []
+  if (filter === '直连') {
+    return (grp.proxies || []).filter(p => p.includes('直连') || p === 'DIRECT')
+  }
+  if (filter === '日韩') {
+    return (grp.proxies || []).filter(p => p.includes('日韩') || /(日|jp|japan|东京|大阪|韩|kr|korea|首尔)/i.test(p))
+  }
+  if (filter === '其它') {
+    return (grp.proxies || []).filter(p => p.includes('其它') || p.includes('🌐'))
+  }
   return (grp.proxies || []).filter(p => p.includes(filter))
 }
 

@@ -24,9 +24,9 @@ func TestRegionAndBusinessGroupsSync(t *testing.T) {
 
 	SyncAllStrategyGroups(ir)
 
-	// Check that 18 regional groups + standard business groups are created
-	if len(ir.Groups) < 29 {
-		t.Fatalf("expected at least 29 groups (18 regional + 11 business), got %d", len(ir.Groups))
+	// Check that 24 regional groups (6 regions * 4 policies) + standard business groups are created
+	if len(ir.Groups) < 36 {
+		t.Fatalf("expected at least 36 groups (24 regional + 12 business), got %d", len(ir.Groups))
 	}
 
 	groupMap := make(map[string]StrategyGroup)
@@ -34,7 +34,15 @@ func TestRegionAndBusinessGroupsSync(t *testing.T) {
 		groupMap[g.Name] = g
 	}
 
-	// Verify Hong Kong region groups
+	// Verify Hong Kong region manual and auto groups
+	hkManual, ok := groupMap["🇭🇰 香港手动"]
+	if !ok {
+		t.Fatalf("missing '🇭🇰 香港手动' group")
+	}
+	if len(hkManual.Proxies) != 2 {
+		t.Errorf("expected 2 HK proxies in '🇭🇰 香港手动', got %d", len(hkManual.Proxies))
+	}
+
 	hkAuto, ok := groupMap["🇭🇰 香港自动"]
 	if !ok {
 		t.Fatalf("missing '🇭🇰 香港自动' group")

@@ -6,70 +6,77 @@ import (
 
 // RegionDef defines standard geographic routing clusters.
 type RegionDef struct {
-	ID        string
-	Name      string
-	Flag      string
-	Regex     *regexp.Regexp
-	AutoName  string
-	FallName  string
-	DisaName  string
+	ID         string
+	Name       string
+	Flag       string
+	Regex      *regexp.Regexp
+	ManualName string
+	AutoName   string
+	FallName   string
+	DisaName   string
 }
 
 // StandardRegions defines the 6 geographic regions specified by user.
 var StandardRegions = []RegionDef{
 	{
-		ID:       "HK",
-		Name:     "香港",
-		Flag:     "🇭🇰",
-		Regex:    regexp.MustCompile(`(?i)(港|hk|hong kong)`),
-		AutoName: "🇭🇰 香港自动",
-		FallName: "🇭🇰 香港故转",
-		DisaName: "🇭🇰 香港容灾",
+		ID:         "HK",
+		Name:       "香港",
+		Flag:       "🇭🇰",
+		Regex:      regexp.MustCompile(`(?i)(港|hk|hong kong)`),
+		ManualName: "🇭🇰 香港手动",
+		AutoName:   "🇭🇰 香港自动",
+		FallName:   "🇭🇰 香港故转",
+		DisaName:   "🇭🇰 香港容灾",
 	},
 	{
-		ID:       "TW",
-		Name:     "台湾",
-		Flag:     "🇹🇼",
-		Regex:    regexp.MustCompile(`(?i)(台|tw|taiwan)`),
-		AutoName: "🇹🇼 台湾自动",
-		FallName: "🇹🇼 台湾故转",
-		DisaName: "🇹🇼 台湾容灾",
+		ID:         "TW",
+		Name:       "台湾",
+		Flag:       "🇹🇼",
+		Regex:      regexp.MustCompile(`(?i)(台|tw|taiwan)`),
+		ManualName: "🇹🇼 台湾手动",
+		AutoName:   "🇹🇼 台湾自动",
+		FallName:   "🇹🇼 台湾故转",
+		DisaName:   "🇹🇼 台湾容灾",
 	},
 	{
-		ID:       "SG",
-		Name:     "新加坡",
-		Flag:     "🇸🇬",
-		Regex:    regexp.MustCompile(`(?i)(新|sg|singapore|狮城)`),
-		AutoName: "🇸🇬 新加坡自动",
-		FallName: "🇸🇬 新加坡故转",
-		DisaName: "🇸🇬 新加坡容灾",
+		ID:         "SG",
+		Name:       "新加坡",
+		Flag:       "🇸🇬",
+		Regex:      regexp.MustCompile(`(?i)(新|sg|singapore|狮城)`),
+		ManualName: "🇸🇬 新加坡手动",
+		AutoName:   "🇸🇬 新加坡自动",
+		FallName:   "🇸🇬 新加坡故转",
+		DisaName:   "🇸🇬 新加坡容灾",
 	},
 	{
-		ID:       "JPKR",
-		Name:     "日韩",
-		Flag:     "🇯🇵🇰🇷",
-		Regex:    regexp.MustCompile(`(?i)(日|jp|japan|东京|大阪|韩|kr|korea|首尔)`),
-		AutoName: "🇯🇵🇰🇷 日韩自动",
-		FallName: "🇯🇵🇰🇷 日韩故转",
-		DisaName: "🇯🇵🇰🇷 日韩容灾",
+		ID:         "JPKR",
+		Name:       "日韩",
+		Flag:       "🇯🇵🇰🇷",
+		Regex:      regexp.MustCompile(`(?i)(日|jp|japan|东京|大阪|韩|kr|korea|首尔)`),
+		ManualName: "🇯🇵🇰🇷 日韩手动",
+		AutoName:   "🇯🇵🇰🇷 日韩自动",
+		FallName:   "🇯🇵🇰🇷 日韩故转",
+		DisaName:   "🇯🇵🇰🇷 日韩容灾",
 	},
 	{
-		ID:       "US",
-		Name:     "美国",
-		Flag:     "🇺🇸",
-		Regex:    regexp.MustCompile(`(?i)(美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯)`),
-		AutoName: "🇺🇸 美国自动",
-		FallName: "🇺🇸 美国故转",
-		DisaName: "🇺🇸 美国容灾",
+		ID:         "US",
+		Name:       "美国",
+		Flag:       "🇺🇸",
+		Regex:      regexp.MustCompile(`(?i)(美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯)`),
+		ManualName: "🇺🇸 美国手动",
+		AutoName:   "🇺🇸 美国自动",
+		FallName:   "🇺🇸 美国故转",
+		DisaName:   "🇺🇸 美国容灾",
 	},
 	{
-		ID:       "OTHERS",
-		Name:     "其它",
-		Flag:     "🌐",
-		Regex:    nil, // Catch-all for non-HK/TW/SG/JPKR/US
-		AutoName: "🌐 其它自动",
-		FallName: "🌐 其它故转",
-		DisaName: "🌐 其它容灾",
+		ID:         "OTHERS",
+		Name:       "其它",
+		Flag:       "🌐",
+		Regex:      nil, // Catch-all for non-HK/TW/SG/JPKR/US
+		ManualName: "🌐 其它手动",
+		AutoName:   "🌐 其它自动",
+		FallName:   "🌐 其它故转",
+		DisaName:   "🌐 其它容灾",
 	},
 }
 
@@ -122,16 +129,6 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 		}
 	}
 
-	// 2. Prepare master region anchor options
-	regionAutoList := []string{
-		"🇭🇰 香港自动",
-		"🇹🇼 台湾自动",
-		"🇸🇬 新加坡自动",
-		"🇯🇵🇰🇷 日韩自动",
-		"🇺🇸 美国自动",
-		"🌐 其它自动",
-		"DIRECT",
-	}
 
 	// Existing groups map for preserving selections and custom additions
 	existingMap := make(map[string]StrategyGroup)
@@ -147,6 +144,22 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 		if len(nodes) == 0 {
 			nodes = []string{"DIRECT"}
 		}
+
+		// (0) 手动 (select)
+		manualGrp := StrategyGroup{
+			Name:     reg.ManualName,
+			Type:     "select",
+			Proxies:  nodes,
+			Now:      nodes[0],
+			Category: "region",
+			Region:   reg.ID,
+			Policy:   "manual",
+			Icon:     reg.Flag,
+		}
+		if eg, exists := existingMap[reg.ManualName]; exists && eg.Now != "" {
+			manualGrp.Now = eg.Now
+		}
+		newGroups = append(newGroups, manualGrp)
 
 		// (1) 自动 (url-test)
 		autoGrp := StrategyGroup{
@@ -207,7 +220,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 	// 4. Ensure Business Routing Groups exist
 	allRegionalCandidateProxies := make([]string, 0)
 	for _, reg := range StandardRegions {
-		allRegionalCandidateProxies = append(allRegionalCandidateProxies, reg.AutoName, reg.FallName, reg.DisaName)
+		allRegionalCandidateProxies = append(allRegionalCandidateProxies, reg.ManualName, reg.AutoName, reg.FallName, reg.DisaName)
 	}
 	// Append concrete proxy nodes as well for granular manual override
 	for _, p := range ir.Proxies {
@@ -218,25 +231,27 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 	allRegionalCandidateProxies = append(allRegionalCandidateProxies, "DIRECT")
 
 	for _, bg := range StandardBusinessGroups {
-		defaultCandidates := append([]string{}, regionAutoList...)
+		candidates := append([]string{}, allRegionalCandidateProxies...)
 		if bg.Name == "🎯 全球直连" {
-			defaultCandidates = []string{"DIRECT", "🇭🇰 香港自动", "🚀 国外"}
+			candidates = append([]string{"DIRECT"}, allRegionalCandidateProxies...)
 		}
 
 		bizGrp := StrategyGroup{
 			Name:     bg.Name,
 			Type:     "select",
-			Proxies:  defaultCandidates,
-			Now:      defaultCandidates[0],
+			Proxies:  candidates,
+			Now:      candidates[0],
 			Category: "business",
 			Icon:     bg.Icon,
 			IsCustom: false,
 		}
 
 		if eg, exists := existingMap[bg.Name]; exists {
-			bizGrp.Now = eg.Now
+			if eg.Now != "" {
+				bizGrp.Now = eg.Now
+			}
 			if len(eg.Proxies) > 0 {
-				bizGrp.Proxies = eg.Proxies
+				bizGrp.Proxies = mergeProxiesUnique(candidates, eg.Proxies)
 			}
 		}
 		newGroups = append(newGroups, bizGrp)
@@ -264,16 +279,17 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 
 // GetRegionSummary returns statistics for the 6 geographic regions.
 type RegionStat struct {
-	ID         string   `json:"id"`
-	Name       string   `json:"name"`
-	Flag       string   `json:"flag"`
-	TotalNodes int      `json:"total_nodes"`
-	ActiveNode string   `json:"active_node"`
-	LatencyMs  int      `json:"latency_ms"`
-	AutoGroup  string   `json:"auto_group"`
-	FallGroup  string   `json:"fall_group"`
-	DisaGroup  string   `json:"disa_group"`
-	NodeNames  []string `json:"node_names"`
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Flag        string   `json:"flag"`
+	TotalNodes  int      `json:"total_nodes"`
+	ActiveNode  string   `json:"active_node"`
+	LatencyMs   int      `json:"latency_ms"`
+	ManualGroup string   `json:"manual_group"`
+	AutoGroup   string   `json:"auto_group"`
+	FallGroup   string   `json:"fall_group"`
+	DisaGroup   string   `json:"disa_group"`
+	NodeNames   []string `json:"node_names"`
 }
 
 func ExtractRegionStats(ir *ConfigIR) []RegionStat {
@@ -299,16 +315,17 @@ func ExtractRegionStats(ir *ConfigIR) []RegionStat {
 		}
 
 		stat := RegionStat{
-			ID:         reg.ID,
-			Name:       reg.Name,
-			Flag:       reg.Flag,
-			TotalNodes: len(nodes),
-			ActiveNode: autoGrp.Now,
-			LatencyMs:  32, // calculated or default
-			AutoGroup:  reg.AutoName,
-			FallGroup:  reg.FallName,
-			DisaGroup:  reg.DisaName,
-			NodeNames:  nodes,
+			ID:          reg.ID,
+			Name:        reg.Name,
+			Flag:        reg.Flag,
+			TotalNodes:  len(nodes),
+			ActiveNode:  autoGrp.Now,
+			LatencyMs:   32, // calculated or default
+			ManualGroup: reg.ManualName,
+			AutoGroup:   reg.AutoName,
+			FallGroup:   reg.FallName,
+			DisaGroup:   reg.DisaName,
+			NodeNames:   nodes,
 		}
 
 		if stat.ActiveNode == "" && len(nodes) > 0 {
@@ -318,4 +335,22 @@ func ExtractRegionStats(ir *ConfigIR) []RegionStat {
 	}
 
 	return stats
+}
+
+func mergeProxiesUnique(base, extra []string) []string {
+	seen := make(map[string]bool)
+	res := make([]string, 0, len(base)+len(extra))
+	for _, item := range base {
+		if !seen[item] {
+			seen[item] = true
+			res = append(res, item)
+		}
+	}
+	for _, item := range extra {
+		if !seen[item] {
+			seen[item] = true
+			res = append(res, item)
+		}
+	}
+	return res
 }
