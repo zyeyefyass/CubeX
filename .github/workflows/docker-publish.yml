@@ -1,0 +1,88 @@
+name: Build and Publish Multi-Arch Docker Image
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'Test-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  docker-build:
+    name: Build & Push Multi-Arch Docker Images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU (for arm64 emulation)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub (Optional)
+        if: env.DOCKERHUB_USERNAME != ''
+        uses: docker/login-action@v3
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+            ${{ secrets.DOCKERHUB_USERNAME && format('docker.io/{0}/cubex', secrets.DOCKERHUB_USERNAME) || '' }}
+          tags: |
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and Push Multi-Arch Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & Save Offline Docker Image (for fnOS / Offline Users)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          mkdir -p dist/docker
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          
+          # Build single-arch amd64 image for local export
+          docker buildx build --platform linux/amd64 -t cubex:${TAG_NAME} -t cubex:latest -f ./Dockerfile --output type=docker,dest=dist/docker/CubeX-${TAG_NAME}-docker-amd64.tar .
+          
+          echo "Compressing Docker offline image for fnOS..."
+          gzip -9 dist/docker/CubeX-${TAG_NAME}-docker-amd64.tar
+
+      - name: Upload Docker Image to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/docker/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

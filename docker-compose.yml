@@ -1,25 +1,41 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# CubeX 官方 Docker Compose 编排文件 (专为 飞牛 NAS / 通用 Linux 旁路由定制)
+# ═════════════════════════════════════════════════════════════════════════════
 services:
   cubex:
+    # 镜像地址选择（国内推荐方式）：
+    # 方式 A (默认 GHCR): ghcr.io/zyeyefyass/cubex:latest
+    # 方式 B (DockerHub): zyeyefyass/cubex:latest
+    # 方式 C (国内加速/直连): docker.m.daocloud.io/zyeyefyass/cubex:latest
+    # 方式 D (本地导入 .tar): cubex:latest
     image: ghcr.io/zyeyefyass/cubex:latest
     container_name: cubex
     restart: unless-stopped
+    
+    # 必须使用 Host 网络模式，使旁路由透明代理与 TUN 虚拟网卡能够接管流量
     network_mode: host
+    
+    # 必备的网络特权配置（创建 TUN 网卡与策略路由规则）
     cap_add:
       - NET_ADMIN
       - NET_BIND_SERVICE
       - SYS_MODULE
     devices:
       - /dev/net/tun:/dev/net/tun
+      
     volumes:
-      # 飞牛 fnOS 推荐 /vol1/1000/cubex，通用 Linux 推荐 /opt/cubex，当前相对目录自动兼容
+      # 飞牛 NAS (fnOS) 推荐挂载路径为 /vol1/1000/cubex/data 与 /vol1/1000/cubex/etc
+      # 其他 Linux 主机默认使用当前目录下的 ./data 与 ./etc
       - ${CUBEX_DATA_DIR:-./data}:/app/data
       - ${CUBEX_ETC_DIR:-./etc}:/app/etc
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
+      
     environment:
       - TZ=Asia/Shanghai
       - CUBEX_PORT=2026
       - CUBEX_LISTEN=:2026
+      
     logging:
       driver: "json-file"
       options:

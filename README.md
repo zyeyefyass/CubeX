@@ -222,13 +222,30 @@ curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | 
 ---
 
 <details>
-<summary><b>点击展开：查看 Docker Compose 手动部署配置 (飞牛 fnOS / Linux 通用)</b></summary>
+<summary><b>点击展开：飞牛 fnOS 三种极速部署方式详解（含国内免梯离线导入）</b></summary>
 
-在 `/vol1/1000/cubex`（飞牛）或 `/opt/cubex` 目录下创建 `docker-compose.yml`：
+飞牛（fnOS）用户可自由选择以下三种最便捷的方式进行部署：
+
+#### 🌟 方式一：飞牛 Docker GUI【本地镜像导入】（强烈推荐，0 联网门槛，绝对不卡死）
+因国内直接拉取 Docker Hub 经常受限，推荐直接使用离线镜像包：
+1. 前往 GitHub Releases 下载 **`CubeX-Test-v0.9-docker-amd64.tar`**；
+2. 打开飞牛桌面 -> 进入 **【Docker】应用** -> 点击左侧 **【镜像仓库】**；
+3. 点击右上角 **【本地导入】** -> 上传选中的 `.tar` 镜像文件（1 秒导入完毕）；
+4. 进入 **【容器】** -> 点击 **【新建容器】** -> 镜像选择刚刚导入的 `cubex:test-v0.9`：
+   * **网络**：必须勾选 **`Host` 模式**（使旁路由透明代理接管局域网流量）；
+   * **特权与功能**：勾选 **【高权限执行】**（需要 `NET_ADMIN` 管理 TUN 网卡）；
+   * **路径挂载**：
+     * 宿主机 `/vol1/1000/cubex/data` 映射到容器 `/app/data`
+     * 宿主机 `/vol1/1000/cubex/etc` 映射到容器 `/app/etc`
+5. 点击完成，容器即可极速启动！
+
+#### 🐳 方式二：飞牛 Docker Compose 一键编排 (GUI 支持)
+在飞牛 **【Docker】** -> **【Compose 项目】** 中新建项目，直接粘贴以下配置：
 
 ```yaml
 services:
   cubex:
+    # 镜像地址：国内网络建议搭配飞牛内置的加速镜像源，或使用 GHCR/阿里云
     image: ghcr.io/zyeyefyass/cubex:latest
     container_name: cubex
     restart: unless-stopped
@@ -240,9 +257,8 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     volumes:
-      # 飞牛 fnOS 推荐 /vol1/1000/cubex，通用环境自动映射当前目录
-      - ${CUBEX_DATA_DIR:-./data}:/app/data
-      - ${CUBEX_ETC_DIR:-./etc}:/app/etc
+      - /vol1/1000/cubex/data:/app/data
+      - /vol1/1000/cubex/etc:/app/etc
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     environment:
@@ -256,10 +272,11 @@ services:
         max-file: "3"
 ```
 
-启动命令：
+#### ⚡ 方式三：SSH 终端一键全自动嗅探安装
 ```bash
-docker compose up -d
+curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | bash
 ```
+脚本将全自动识别 `/vol1/1000/cubex`，并自动完成全部目录创建、权限修正与服务拉起。
 
 </details>
 
