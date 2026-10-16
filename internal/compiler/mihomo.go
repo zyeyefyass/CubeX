@@ -37,22 +37,26 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	cfg["tun"] = map[string]any{
 		"enable":               true,
 		"stack":                net.TunStack,
-		"device":               net.TunInterface,
-		"auto-route":           true,
-		"auto-detect-interface": true,
-		"strict-route":         true,
-		"mtu":                  net.TunMTU,
+		"device":                   net.TunInterface,
+		"auto-route":               true,
+		"auto-detect-interface":    true,
+		"strict-route":             true,
+		"mtu":                      net.TunMTU,
+		"endpoint-independent-nat": true,
 		"dns-hijack": []string{
 			"tcp://any:53",
 			"udp://any:53",
 		},
 	}
 
-	// Sniffer
+	// Sniffer (Mihomo v1.19+ standard syntax with string port ranges)
 	cfg["sniffer"] = map[string]any{
-		"enable": true,
+		"enable":               true,
+		"force-dns-mapping":    true,
+		"parse-pure-ip":        true,
+		"override-destination": false,
 		"sniff": map[string]any{
-			"HTTP": map[string]any{"ports": []int{80, 8080-8880}, "override-destination": true},
+			"HTTP": map[string]any{"ports": []any{80, "8080-8880"}, "override-destination": true},
 			"TLS":  map[string]any{"ports": []int{443, 8443}, "override-destination": true},
 			"QUIC": map[string]any{"ports": []int{443, 8443}, "override-destination": true},
 		},
@@ -63,19 +67,21 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		},
 	}
 
-	// DNS Configuration
+	// DNS Configuration (Mihomo v1.19+ anti-leak & proxy-server bootstrap)
 	dnsMap := map[string]any{
-		"enable":             true,
-		"listen":             fmt.Sprintf("0.0.0.0:%d", net.DNSPort),
-		"ipv6":               net.IPv6,
-		"enhanced-mode":      "fake-ip",
-		"fake-ip-range":      dns.FakeIPRange,
-		"fake-ip-filter":     dns.FakeIPFilter,
-		"default-nameserver": dns.DirectDNS,
-		"nameserver":         dns.RemoteDNS,
-		"fallback":           dns.FallbackDNS,
+		"enable":                  true,
+		"listen":                  fmt.Sprintf("0.0.0.0:%d", net.DNSPort),
+		"ipv6":                    net.IPv6,
+		"enhanced-mode":           "fake-ip",
+		"fake-ip-range":           dns.FakeIPRange,
+		"fake-ip-filter":          dns.FakeIPFilter,
+		"default-nameserver":      dns.DirectDNS,
+		"proxy-server-nameserver": dns.DirectDNS,
+		"direct-nameserver":       dns.DirectDNS,
+		"nameserver":              dns.RemoteDNS,
+		"fallback":                dns.FallbackDNS,
 		"fallback-filter": map[string]any{
-			"geoip":     true,
+			"geoip":      true,
 			"geoip-code": "CN",
 			"ipcidr": []string{
 				"240.0.0.0/4",
@@ -87,48 +93,58 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 	cfg["dns"] = dnsMap
 
-	// Proxies
+	// Proxies (Preserve RawConfig for VLESS Reality, AnyTLS, Hysteria 2, and TUIC)
 	proxiesList := make([]map[string]any, 0, len(ir.Proxies))
 	for _, p := range ir.Proxies {
 		if p.Type == "direct" || p.Type == "block" || p.Type == "reject" {
 			continue
 		}
-		pMap := map[string]any{
-			"name":   p.Name,
-			"type":   p.Type,
-			"server": p.Server,
-			"port":   p.Port,
-		}
-		if p.UUID != "" {
-			pMap["uuid"] = p.UUID
-		}
-		if p.Password != "" {
-			pMap["password"] = p.Password
-		}
-		if p.Cipher != "" {
-			pMap["cipher"] = p.Cipher
-		}
-		if p.TLS {
-			pMap["tls"] = true
-			if p.SNI != "" {
-				pMap["servername"] = p.SNI
+		pMap := make(map[string]any)
+		if len(p.RawConfig) > 0 {
+			for k, v := range p.RawConfig {
+				pMap[k] = v
 			}
-			if p.SkipCertVerify {
-				pMap["skip-cert-verify"] = true
+		} else {
+			pMap["name"] = p.Name
+			pMap["type"] = p.Type
+			pMap["server"] = p.Server
+			pMap["port"] = p.Port
+			if p.UUID != "" {
+				pMap["uuid"] = p.UUID
 			}
-			if len(p.ALPN) > 0 {
-				pMap["alpn"] = p.ALPN
+			if p.Password != "" {
+				pMap["password"] = p.Password
+			}
+			if p.Cipher != "" {
+				pMap["cipher"] = p.Cipher
+			}
+			if p.TLS {
+				pMap["tls"] = true
+				if p.SNI != "" {
+					pMap["servername"] = p.SNI
+				}
+				if p.SkipCertVerify {
+					pMap["skip-cert-verify"] = true
+				}
+				if len(p.ALPN) > 0 {
+					pMap["alpn"] = p.ALPN
+				}
+			}
+			if p.Network != "" {
+				pMap["network"] = p.Network
+			}
+			if p.Path != "" {
+				pMap["ws-opts"] = map[string]any{"path": p.Path}
+			}
+			if p.Flow != "" {
+				pMap["flow"] = p.Flow
 			}
 		}
-		if p.Network != "" {
-			pMap["network"] = p.Network
-		}
-		if p.Path != "" {
-			pMap["ws-opts"] = map[string]any{"path": p.Path}
-		}
-		if p.Flow != "" {
-			pMap["flow"] = p.Flow
-		}
+		pMap["name"] = p.Name
+		pMap["type"] = p.Type
+		pMap["server"] = p.Server
+		pMap["port"] = p.Port
+		pMap["udp"] = true
 		proxiesList = append(proxiesList, pMap)
 	}
 	cfg["proxies"] = proxiesList

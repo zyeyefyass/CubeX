@@ -150,6 +150,8 @@ func parseClashNode(p map[string]any) schema.ProxyNode {
 		}
 	}
 
+	node.RawConfig = p
+
 	return node
 }
 

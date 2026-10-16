@@ -66,57 +66,6 @@
           </button>
         </nav>
       </div>
-
-      <!-- Persistent Sidebar Monitor & Core Control Capsule (MiCube Cockpit Standard) -->
-      <div class="p-3 border-t bg-slate-950/60 border-slate-800/80">
-        <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-lg space-y-2.5">
-          <!-- 6-Metric 2x3 Grid -->
-          <div class="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[11px] font-mono">
-            <div>
-              <span class="text-[9px] text-slate-400 block leading-tight">连接数</span>
-              <span class="text-white font-bold">{{ realtimeStats.active_conns }}</span>
-            </div>
-            <div>
-              <span class="text-[9px] text-slate-400 block leading-tight">内存使用</span>
-              <span class="text-cyan-300 font-bold">{{ (systemStatus.memory_mb || 0.42).toFixed(2) }} MB</span>
-            </div>
-            <div>
-              <span class="text-[9px] text-slate-400 block leading-tight">进站流量</span>
-              <span class="text-slate-300">{{ realtimeStats.download_total }}</span>
-            </div>
-            <div>
-              <span class="text-[9px] text-slate-400 block leading-tight">进站速率</span>
-              <span class="text-cyan-400 font-bold">{{ realtimeStats.down_speed }}</span>
-            </div>
-            <div>
-              <span class="text-[9px] text-slate-400 block leading-tight">出站流量</span>
-              <span class="text-slate-300">{{ realtimeStats.upload_total }}</span>
-            </div>
-            <div>
-              <span class="text-[9px] text-slate-400 block leading-tight">出站速率</span>
-              <span class="text-emerald-400 font-bold">{{ realtimeStats.up_speed }}</span>
-            </div>
-          </div>
-
-          <!-- Bottom Row: Uptime & Quick Core Control Actions -->
-          <div class="pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] font-mono">
-            <div class="text-slate-400 truncate max-w-[90px]" :title="'运行时长: ' + formatUptime(systemStatus.uptime_seconds)">
-              {{ formatUptime(systemStatus.uptime_seconds) }}
-            </div>
-            <div class="flex items-center gap-1">
-              <button @click="triggerAction('start')" title="启动核心" class="w-6 h-6 rounded-lg bg-emerald-950/80 hover:bg-emerald-800 text-emerald-300 border border-emerald-500/40 flex items-center justify-center transition">
-                ▶
-              </button>
-              <button @click="triggerAction('stop')" title="停止核心" class="w-6 h-6 rounded-lg bg-rose-950/80 hover:bg-rose-800 text-rose-300 border border-rose-500/40 flex items-center justify-center transition">
-                ■
-              </button>
-              <button @click="triggerAction('restart')" title="重启核心" class="w-6 h-6 rounded-lg bg-cyan-950/80 hover:bg-cyan-800 text-cyan-300 border border-cyan-500/40 flex items-center justify-center transition">
-                ↻
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
     </aside>
 
     <!-- ════════════════════════════════════════════════════════════════════ -->

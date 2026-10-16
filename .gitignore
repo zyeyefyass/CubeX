@@ -13,8 +13,7 @@ web/node_modules/
 web/dist/
 
 # Persistent runtime data
-etc/config.yaml
-etc/config.json
+etc/
 data/*.sqlite
 data/*.log
 data/*.pid
