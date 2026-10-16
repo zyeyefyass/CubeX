@@ -299,7 +299,7 @@ func (ks *KSpeeder) GenerateROSRegistryScript() string {
 		mirror = "https://docker.m.daocloud.io"
 	}
 
-	return fmt.Sprintf(`# 🚀 MiCube KSpeeder RouterOS 容器镜像加速配置
+	return fmt.Sprintf(`# 🚀 CubeX KSpeeder RouterOS 容器镜像加速配置
 # WinBox 点击 New Terminal 粘贴执行即可：
 /container/config/set registry-url="%s"
 /container/config/print

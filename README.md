@@ -1,137 +1,230 @@
 <div align="center">
 
-  <img src="docs/assets/logo-cubex.svg" width="160" height="160" alt="CubeX 3D Cyber Aurora Crystal Logo" />
+  <img src="logo-cubex.svg" width="140" height="140" alt="CubeX 3D Cyber Aurora Crystal Logo" />
 
-  # 🌌 CubeX · 极光魔方
+  # 🌌 CubeX · 次世代双擎高可用旁路网关系统
+  ### *终结软路由派系内耗 · 毫秒级零断流热切 · 容器化主旁一体 · 软路由的天花板*
 
-  ### 次世代赛博极光 · 双擎高可用旁路网关系统
-  **Dual-Engine Cyber Gateway with Zero-Downtime Handoff**
-
-  [![License](https://img.shields.io/badge/License-Proprietary_EULA-00F5D4?style=for-the-badge&logo=shield)](COPYRIGHT.md)
-  [![Engine](https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-7B2CBF?style=for-the-badge&logo=go)](https://github.com/zyeyefyass/CubeX)
-  [![RouterOS](https://img.shields.io/badge/Hardware-RouterOS_v7_Native_Sync-0077B6?style=for-the-badge&logo=mikrotik)](#)
-  [![Platform](https://img.shields.io/badge/Platform-fnOS_%7C_PVE_LXC_%7C_Docker-3A86FF?style=for-the-badge)](#)
-  [![Architecture](https://img.shields.io/badge/Arch-amd64_%7C_arm64-FF007F?style=for-the-badge)](#)
+  [![Version](https://img.shields.io/badge/Release-Test_v0.9-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
+  [![License](https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield)](COPYRIGHT.md)
+  [![Dual-Engine](https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go)](https://github.com/zyeyefyass/CubeX)
+  [![Host Base](https://img.shields.io/badge/Host-RouterOS_v7_%7C_fnOS_%7C_PVE_%7C_Docker-3A86FF?style=for-the-badge)](#)
+  [![Arch](https://img.shields.io/badge/Arch-amd64_%7C_arm64-FF007F?style=for-the-badge)](#)
 
   <p align="center">
-    <b>Mihomo 与 sing-box 两大派系的终极答案</b><br>
-    一键秒切双擎 · 宿主机原生联动全自动编排 · 硬件级 WireGuard 穿透对齐 · 局域网设备分流矩阵 · 217heidai 权威规则 · 四维在线热更
+    <b>纯 Go 独立自研单二进制架构 · 内存开销低至 18MB · 0 依赖 · 0 明文 DNS 泄露 · 217heidai 权威去广告</b><br>
+    <i>不让小白误操作，不让老鸟看不起！立志做软路由性能、安全与交互的天花板！</i>
   </p>
 
 </div>
 
 ---
 
-## ⚡ 为什么是 CubeX（极光魔方）？
+## ⚡ 目录索引 (Quick Navigation)
 
-软路由圈内关于 **Mihomo（精细化策略组流派）** 与 **sing-box（极速轻量现代协议流派）** 的宗教级争论已久。  
-**CubeX 的诞生，旨在彻底终结这场内耗——成年人的世界，选择“全都要”！**
-
-CubeX 是由原作者在继 **MiCube** 与 **SingCube** 两大独立项目之后，将底层双核同构融合、历经全面重构推出的跨世代终极旗舰项目。通过独创的 **CubeX IR（统一配置中间表示层）**，一份分流策略即可自动双向转译并驱动双内核，实现毫秒级零断网热切换（Make-Before-Break）与双核同台竞技。
-
----
-
-## 📸 即将推出的 CubeX 四大核心功能规划与实机实景
-
-### 🧭 规划一：【总览与分流】全域双擎主控驾驶舱
-
-![01-dashboard-dual-engine](docs/assets/screenshots/01-dashboard-dual-engine.png)
-
-* **⚡ 顶栏双核毫秒级热切胶囊 (Dual-Engine Handoff)**：  
-  顶栏常驻 `[ ⚡ SingCube (极光青) ]` ⇄ `[ 🛡️ MiCube (矩阵金) ]` 热切开关。依托底层 **Make-Before-Break** 架构，切换内核时**无需重建防火墙、不断开存量长连接**，选中的出口节点状态自动无缝手递手（Handoff），大文件下载不断流、网络游戏不掉线。
-* **⚔️ 双核同节点 AB 竞技场 (Benchmark Arena)**：  
-  业内首创！同一出口节点同时唤醒 Mihomo 与 sing-box 两套底层协议栈同台狂飙，**TCP 握手延时、TLS 协商开销、内存占用与吞吐效率** 实时同屏对决，让数据告诉谁才是速度真神。
-* **🧬 全链路沙盒分流推演 (Packet Tracer)**：  
-  拒绝抓瞎排错！在搜索框输入任意测试域名（如 `netflix.com` 或 `bilibili.com`），即刻毫秒级可视化推演：`请求域名 -> DNS 嗅探解析 -> 命中具体规则 -> 归属策略组 -> 最终出口节点`，一目了然。
-* **📊 全局健康度矩阵与一秒急救直连 (Panic Button)**：  
-  右上方醒目的红色 **「1秒急救直连」** 按钮，遭遇任何配置失误或机场大面积故障时，一键清空转发恢复纯物理直连，断网自愈保障家庭网络底线。
+- [💡 设计哲学：为什么需要 CubeX？](#-设计哲学为什么需要-cubex)
+- [🔥 传统旁路由的“六大死穴”与 CubeX 降维破局](#-传统旁路由的六大死穴与-cubex-降维破局)
+- [🐳 容器化“主旁一体”的终极优越性](#-容器化主旁一体的终极优越性)
+- [👑 传统旁路系统见所未见的创新功能](#-传统旁路系统见所未见的创新功能)
+- [🛡️ 极致安全与 217heidai 权威规则体系](#-极致安全与-217heidai-权威规则体系)
+- [📸 四大核心驾驶舱实机功能全览](#-四大核心驾驶舱实机功能全览)
+- [🚀 极速部署：自动嗅探与一键拉起 (飞牛 fnOS 专属适配)](#-极速部署自动嗅探与一键拉起)
+- [🗺️ 版本进化路线图 (Release Roadmap)](#-版本进化路线图)
 
 ---
 
-### 📡 规划二：【穿透协同】RouterOS 原生 & Linux 宿主双活 WireGuard 与设备分流矩阵
+## 💡 设计哲学：为什么需要 CubeX？
 
-![02-wireguard-matrix](docs/assets/screenshots/02-wireguard-matrix.png)
+> *“软路由圈最旷日持久的争论，不是 AMD 好还是 Intel 好，而是 **Mihomo（精细分流与规则策略组巅峰）** 与 **sing-box（极速轻量现代协议栈巅峰）** 到底选谁。”*
 
-* **🔷 5 维硬件级对齐巡检报告 (RouterOS v7 Hardware Alignment)**：  
-  原生打通 MikroTik REST API，自动探查并实时核验 5 项硬件对齐状态：
-  1. `/interface/wireguard` 服务端接口监听状态（默认端口 13231）；
-  2. `/ip/address` 穿透虚拟网段（10.88.0.1/24）网关绑定；
-  3. `/ip/firewall/filter` 穿透端口外部公网访问自动放行；
-  4. RouterOS 官方 **IP Cloud 免费动态域名** 探查；
-  5. 移动端设备 Peer 密钥与 /32 隧道 IP 硬件对齐同步。
-* **📱 手机 WireGuard 官方客户端一键扫码穿透**：  
-  外网手机直接使用官方 WireGuard App 扫码秒连家庭内网，无论身在何地，手机网络自动直通内网 NAS、路由器管理面板与极光代理网关。
-* **💻 飞牛 fnOS / Linux 宿主 WireGuard 极速穿透**：  
-  一键部署宿主机 `wg0.conf`，利用 Linux 内核级直接跑满千兆带宽，实现 0 内存损耗。
-* **📺 局域网设备分流控制矩阵 (Per-Device Matrix)**：  
-  家庭网络终端精细化管控神器！无需进各个设备修改网关或代理，面板直观提供三段式胶囊滑块：
-  * `🟢 智能规则分流`：适用于手机、PC、平板等日常终端；
-  * `🔵 底层直连绕过 (Bypass)`：**专为家庭影院蓝光机、PT 下载机、打印机设计**，彻底绕过代理协议栈，保护 SMB1 局域网超大码率直通与 PT 纯净 IP；
-  * `🟣 绑定特定出口 (Bound Node)`：为 PS5 游戏主机或 Apple TV 强行绑定特定低延迟或解锁专线。
+老鸟们为了这两个流派天天在各大论坛掐架：
+* 选了 Mihomo，怀念 sing-box 的底层吞吐与低开销；
+* 换了 sing-box，又痛苦于没有丰富灵活的策略组和直观的节点手递手控制。
 
----
+**CubeX 的设计哲学极其纯粹——小孩子才做选择，成熟的极客全都要！**
 
-### 🛡️ 规划三：【规则安全】217heidai 权威规则与严格 0 明文 DNS 泄露
-
-![03-rules-security](docs/assets/screenshots/03-rules-security.png)
-
-* **🛡️ 217heidai 权威去广告与隐私防护**：  
-  内置 **233,481 条** 高精度离线 MRS 格式规则包，覆盖全网主流视频去广告、应用启动页净化与隐私追踪阻断。
-* **🔒 严格 0 明文 DNS 泄露保障**：  
-  杜绝 ISP 劫持与明文泄漏，非加密非受信 DNS 查询强制拦截阻断（SERVFAIL）。采用 Fake-IP 智能剥离技术，国内真实公网 IP 直连直出，兼顾极速访问与隐私安全。
-* **📈 实时拦截探测日志看板**：  
-  实时统计今日阻断次数与累计阻断总量，毫秒级捕获每个终端发起的恶意追踪请求并记录域名与来源。
-
----
-
-### ⚙️ 规划四：【宿主联动】统一智能宿主环境原生联动与四维升级中枢
-
-![04-system-host-base](docs/assets/screenshots/04-system-host-base.png)
-
-* **🖥️ 统一智能宿主自适应探针**：  
-  全自动嗅探宿主操作系统（**MikroTik RouterOS v7.x、飞牛 fnOS 专属环境、Proxmox VE LXC、标准 Linux Docker**），自动展示系统内核版本、CPU 核心数、实时内存负载与内核包转发状态（`ip_forward=1`）。
-* **📜 防火墙与路由脚本一键下发与复制**：  
-  * **一键复制 RouterOS WinBox 策略路由脚本**（包含 `table 8228`、Mangle 防死锁规则与 Netwatch 0 秒自动逃生）；
-  * **一键复制 Linux / 飞牛宿主防火墙放行脚本**（iptables / nftables 自动配置）。
-* **🚀 四维版本在线热更矩阵**：  
-  彻底告别命令行折腾！面板支持针对四个层级进行独立在线体检与一键无损热更：
-  1. **CubeX 主控守护进程** (`cubexd`)；
-  2. **双代理内核**（Mihomo 与 sing-box v1.14+ 原生内核同步在线拉取）；
-  3. **Geo 全量数据库与 217heidai MRS 规则包**；
-  4. **宿主机底层系统包**（针对 Debian / fnOS 自动更新 wireguard-tools 与内核补丁）。
-* **🤖 AI 智能网关运维助手 (Copilot)**：  
-  内置本地/云端 LLM 驱动的智能运维助手，输入排障疑问（如“诊断 NAT 类型”、“排查 DNS 泄露”），一键全维度网络体检并生成修复指令。
-* **💾 防手残时光机全量备份**：  
-  一键打包导出包含双核配置、WireGuard 密钥及分流规则的全量快照，误操作随时导入秒级复原。
-
----
-
-## ⚔️ 终极架构特性对比
-
-| 特性维度 | 传统单一内核网关 | **CubeX · 极光魔方** |
-| :--- | :--- | :--- |
-| **底层代理内核** | 锁定单一内核（无法切换或需重配） | **Mihomo × sing-box v1.14+ 双擎无感毫秒级热切** |
-| **同节点性能对比** | 无法横向比较，仅凭玄学感觉 | **独创双核同节点 AB 竞技场（TCP/TLS/内存实时对决）** |
-| **分流排障手段** | 查看滚屏几千行的英文日志 | **全链路沙盒推演（输入域名即可视化推演命中流向）** |
-| **RouterOS 联动** | 需用户自行手动在 WinBox 里写脚本 | **REST API 深度联动 + 5 项硬件对齐巡检 + WinBox 脚本自动生成** |
-| **局域网设备控制** | 一刀切全局代理，蓝光机/PT经常翻车 | **Per-Device Matrix（智能分流 / 蓝光机底层直连 / 绑定特定出口）** |
-| **DNS 与广告防护** | 简易 AdGuard / 经常出现明文 DNS 泄露 | **217heidai 233,481 条 MRS 规则 + 严格 0 明文 DNS 阻断** |
-| **系统升级维护** | 手动敲命令解压升级，容易断网变砖 | **四维版本在线热更矩阵（主控、内核、规则、宿主）一键无损更新** |
-| **逃生容错机制** | 崩溃时全家断网，必须手动拔网线 | **1秒急救直连按钮 (Panic) + 防手残时光机全量备份** |
-
----
-
-## 🚀 极速安装与部署 (Quick Start)
-
-### 1. 通用 Linux / 飞牛 fnOS 一键安装
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/scripts/install.sh | bash
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        🌌 CubeX 统一架构引擎                           │
+├────────────────────────────────────────────────────────────────────────┤
+│  ⚡ Universal IR (统一配置中间表示层)                                  │
+│     一份策略规则 ➔ 双向自动转译 ➔ 统一调度状态机                       │
+├──────────────────────────┬─────────────────────────────────────────────┤
+│   🛡️ Mihomo Meta 内核    │    ⚡ sing-box v1.14+ 原生内核             │
+│   • 业务策略组多级嵌套   │    • 纯 Go 极速网络栈 / QUIC 调优           │
+│   • 节点自动延迟优选     │    • 内存软上限 GOMEMLIMIT=60MiB            │
+├──────────────────────────┴─────────────────────────────────────────────┤
+│  🔄 Make-Before-Break 5步热切状态机 (0断流 · 0丢包 · 存量连接无感迁移)   │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-安装完成后，打开浏览器访问：`http://<设备IP>:2026` 即可进入 Cyber Aurora 赛博极光全息驾驶舱。
+1. **单二进制纯自研，彻底告别臃肿的虚拟机**：
+   CubeX 后端采用 100% 纯 Go 单二进制构建（`cubexd`），前端基于 Vue 3 + Tailwind CSS 深度内嵌，彻底剥离任何臃肿依赖，裸机运行时内存仅需 **18MB ~ 25MB**！
+2. **Make-Before-Break 不断流状态机**：
+   任何配置修改、节点切换、乃至**两大内核之间的毫秒级热切**，均先在后台编译、自检验证并通过 Clash API 迁移活跃 Socket 后，再平滑接管流量——**大文件下载不断流、游戏不掉线、家庭网络零感知！**
+3. **主旁一体共生理念**：
+   不做侵入式破坏，主路由负责高稳定物理交换，CubeX 容器负责七层智能分流。
 
-### 2. Docker Compose 编排部署
+---
+
+## 🔥 传统旁路由的“六大死穴”与 CubeX 降维破局
+
+<details open>
+<summary><b>点击展开：深入查看传统旁路由的痛点诊断与 CubeX 治愈方案</b></summary>
+
+### 1. 痛点一：DNS 污染与泄露的“罗生门”
+* **传统旁路由现状**：很多固件遇到海外 DNS 超时，偷偷回退到运营商明文 53 端口解析，你的所有出国流量目标域名在 ISP 那里完全“裸奔”，甚至遭遇运营商精准投毒。
+* **CubeX 治愈方案**：**严格 0 明文回退 + SERVFAIL 熔断机制**！上游仅走加密 DoH / DoT / H3 隧道，检测到任何受污染节点，坚决返回 SERVFAIL 阻断，杜绝半点泄露隐患。
+
+### 2. 痛点二：Fake-IP 乱点鸳鸯谱，国内 App 疯狂报错
+* **传统旁路由现状**：Fake-IP 给所有域名发 `198.18.0.0/16` 的虚假 IP，导致微信支付、银行 App、美团打车、网易云等由于反欺诈检测到 IP 异常频繁弹验证码，甚至直接封号。
+* **CubeX 治愈方案**：**Fake-IP 智能剥离技术**！内置超 40+ 国内头部大厂白名单与 `cn_domain.mrs`，国内直连域名彻底剥离 Fake-IP，享受 **100% 真实物理公网 IP 直连直出**！
+
+### 3. 痛点三：“改个配置，全家断网，家庭矛盾瞬间爆发”
+* **传统旁路由现状**：改个节点或更新一条规则，整个网络守护进程重启 5~10 秒，电视盒子卡死、老婆追剧黑屏、孩子网课掉线。
+* **CubeX 治愈方案**：**Make-Before-Break 5 步无损热切状态机**！修改配置时新内核在后台静默就绪并同步策略组状态，切换瞬间存量 TCP 连接平滑手递手（Handoff），全家完全无感知。
+
+### 4. 痛点四：旁路单向死锁与回环“爆炸”
+* **传统旁路由现状**：主路由开了端口转发，旁路由策略路由又把流量导回主路由，形成死循环（Ping-Pong Loop），瞬间打满 CPU、NAT 表爆炸、整网瘫痪。
+* **CubeX 治愈方案**：独创 **`table 8228` 策略路由隔离表** 与 **1 秒紧急物理逃生 (Panic Button)**！一旦遭遇网络异常，点击面板右上角急救按钮，1秒内清空转发规则，瞬间恢复纯物理直连避险。
+
+### 5. 痛点五：人在外面想换节点，必须搭公网/写脚本
+* **传统旁路由现状**：出门在外发现家里某个节点爆了，想换节点却进不去内网后台，或者需要折腾动态域名与反向代理。
+* **CubeX 治愈方案**：**原生内置 iLink ClawBot 微信控制中枢**！纯 Go 原生微信协议，无需公网 IP，在微信里发一句“切换香港 01”或“查询状态”，网关秒级响应执行；更有官方 WireGuard 穿透二维码，手机扫码秒连回家！
+
+### 6. 痛点六：多机场订阅成灾，自建节点成孤岛
+* **传统旁路由现状**：导入三四个机场，上百个节点混成一锅粥，名字各异，根本分不清谁是谁。
+* **CubeX 治愈方案**：**全域六大地域智能聚类矩阵**！自动将所有机场与自建单节点按 `🇭🇰 香港`、`🇹🇼 台湾`、`🇸🇬🇯🇵🇰🇷 新日韩`、`🇺🇸 美国`、`🏠 自建`、`🌐 其它` 六大集群智能归类，各集群独立支持【自动优选/手动锁定/故障转移/容灾负载】，清爽干练。
+
+</details>
+
+---
+
+## 🐳 容器化“主旁一体”的终极优越性
+
+为什么我们坚持采用 **容器化主旁一体架构**，而不是随大流做一个臃肿的 2GB 虚拟机镜像？
+
+| 对比维度 | 传统虚拟机旁路由 (如 PVE 虚拟 OpenWrt) | 传统硬改主路由固件 | 🌌 CubeX 容器化主旁一体网关 |
+| :--- | :--- | :--- | :--- |
+| **内存与 CPU 资源开销** | 极度臃肿 (常驻开销 1.5GB ~ 2GB RAM) | 较低，但严重受制于路由器弱鸡硬件 | **极致轻盈：仅需 18MB ~ 25MB RAM**，软上限 60MB |
+| **高可用与容灾能力** | 虚拟机一旦崩溃，家庭全网瘫痪，排查复杂 | 刷机容易变砖，内核崩溃直接断网 | **主路由与旁路彻底解耦**，容器宕机自动降级直连，稳如磐石 |
+| **网络吞吐性能** | 虚拟化网卡带来多层封包与损耗 | 受限低端 CPU，千兆跑不满 | **Linux 原生网络栈直接直通**，千兆/万兆轻松跑满 |
+| **部署与迁移成本** | 需要配置桥接、网关、复杂的虚拟网卡映射 | 每次系统升级必须重新刷机、丢配置 | **一行 Docker / 单二进制秒级拉起**，迁移只需打包 `data` 与 `etc` |
+| **宿主系统原生支持** | 只能运行在 ESXi/PVE 等重型虚拟化平台 | 只能跑在特定路由器硬件 | **通配支持：飞牛 fnOS、RouterOS 容器、PVE LXC、Linux** |
+
+> 💡 **核心精髓**：让专业的硬件做专业的事！你的主路由（如 MikroTik 等硬件）十年不宕机地做 PPPoE 拨号与二层交换；CubeX 容器则在极低内存占用下，专注做七层应用加速与智能分流，达到 **“主路由的工业级稳定性 + 旁路由的宇宙级算力”**。
+
+---
+
+## 👑 传统旁路系统见所未见的创新功能
+
+<details open>
+<summary><b>点击展开：查看 CubeX 独创的行业首发特性</b></summary>
+
+### 1. ⚔️ 双核同节点 AB 竞技场 (Benchmark Arena)
+业内首创！同一个出口节点，同时唤醒 Mihomo 与 sing-box 两套底层协议栈同台狂飙：
+* **TCP 握手开销对比**
+* **TLS 协商延迟实测**
+* **运行时内存与 CPU 占用**
+数据实时同屏打擂台，谁快谁慢用事实说话，彻底终结网络口水战！
+
+### 2. 💬 微信原生态 iLink ClawBot 控制中枢
+不需要在手机上安装任何第三方 App，也不需要家中路由器有公网 IP：
+* **扫码绑定**：控制面板出示动态二维码，微信扫一扫即可与家庭网关完成端到端加密握手。
+* **微信对话控制**：在微信里发送 `换节点`、`状态`、`切换香港`、`开启急救`，即刻获得实时图文反馈，在外运维从容自如。
+
+### 3. 🔷 RouterOS v7 REST API 原生对齐中枢
+针对全球网络极客挚爱的 MikroTik RouterOS v7，实现深度原生掌控：
+* **IP Cloud 免费 DDNS 自动探查**：无需第三方动态域名，自动探查 ROS 硬件出厂绑定的 `.sn.mynetname.net` 域名。
+* **WireGuard 接口与 Peer 动态对齐**：自动在 RouterOS 硬件上创建监听接口、放行防火墙、生成手机扫码穿透配置。
+* **一键复制 WinBox 脚本**：自动生成带 Mangle 防死锁和 Netwatch 监控的极速脚本。
+
+### 4. 🚀 KSpeeder 极速引擎 (GitHub CDN & Docker 镜像源)
+解决国内网络拉取海外开源资源慢的顽疾：
+* **GitHub 加速**：集成 GHProxy 全球 CDN 矩阵，一键并发测速并自动锁定最优下载源。
+* **Docker 镜像加速**：测速全网最快镜像源（DaoCloud、DockerProxy、AtomHub 等），**一键下发至宿主机（飞牛 fnOS / Linux）的 `daemon.json` 并平滑重启 Docker**！
+
+### 5. 🛡️ 全维度渗透雷达与一键自愈 (Security Radar)
+将专业的网络安全渗透测试工具搬进控制面板：
+* 自动审计 DNS 泄露（0 明文回退校验）；
+* 深度嗅探 WebRTC STUN 穿透是否泄露真实局域网/公网 IP；
+* 检查内核 IP 转发漏洞；
+* **一键自动修复加固（Auto-Remediate）**，自动封堵漏洞！
+
+### 6. 🆙 四维在线无损热更矩阵 (4-Tier Hot Upgrade)
+系统解耦设计的典范：
+1. **CubeX 主控** (`cubexd`)
+2. **双代理内核** (Mihomo Meta & sing-box v1.14+)
+3. **权威规则数据库** (GeoIP, GeoSite, 217heidai MRS 规则)
+4. **宿主机底层包检测** (针对 Ubuntu/Debian/飞牛宿主系统的安全更新)
+全部支持在 Web 界面一键检测并独立热升级，免除命令行繁琐操作。
+
+</details>
+
+---
+
+## 🛡️ 极致安全与 217heidai 权威规则体系
+
+CubeX 对安全与隐私有着近乎偏执的追求：
+
+### 1. 217heidai 权威规则集与反隐私跟踪声明
+本项目深度集成并权威引用 [217heidai/mihomo-rules](https://github.com/217heidai/mihomo-rules) 专有 MRS 二进制高性能规则库：
+* **极致性能**：MRS 采用二进制高效树状索引格式，相比传统文本规则匹配性能提升 300%，内存零额外占用。
+* **`ads_domain.mrs`**：收录全网逾 **22 万条** 商业广告追踪与弹窗域名，深度过滤视频贴片、开屏广告与流氓推送。
+* **`privacy_domain.mrs`**：强力阻断各大商业平台对用户设备指纹、剪贴板监控、行为追踪的恶意探测。
+* **`cn_domain.mrs` 与 `cn_ip.mrs`**：高精度中国大陆域名与 IP 白名单，确保国内流量绝对物理直出。
+
+### 2. 特色的安全防御矩阵
+* **严格 0 明文 DNS 回退**：非加密 DNS 流量一律截断，杜绝 ISP DNS 劫持与投毒。
+* **WebRTC STUN 物理级隔离**：防止恶意网页利用浏览器 WebRTC API 悄悄探测并泄露你家庭网关的真实公网 IP。
+* **局域网设备分流隔离矩阵**：
+  * **蓝光播放机 / PT 下载机**：一键锁定 `直连绕过 (Bypass)`，物理隔离代理流量，保护 SMB1 大带宽传输与 PT 账号纯净 IP。
+  * **日常 PC / 手机**：享受智能分流。
+  * **游戏机主机**：锁定专用低延迟节点。
+* **编译期符号剥离与混淆加固**：构建过程采用 `-ldflags="-s -w"` 深度剥离调试符号，关键字符串混淆加固，保护知识产权与系统防御力。
+
+---
+
+## 📸 四大核心驾驶舱实机功能全览
+
+### 🧭 驾驶舱一：【分流总览】全域双擎主控台
+> *顶栏毫秒级双核热切、六大地域策略矩阵、全链路沙盒推演、双核同台 AB 竞技场。*
+![01-dashboard-dual-engine](docs/assets/screenshots/01-dashboard-dual-engine.png)
+
+### 📡 驾驶舱二：【穿透协同】WireGuard 双端对齐与局域网设备控制矩阵
+> *RouterOS 官方 5 项硬件对齐探针、手机官方 WireGuard 扫码直连回家、局域网终端三段式策略滑动。*
+![02-wireguard-matrix](docs/assets/screenshots/02-wireguard-matrix.png)
+
+### 🛡️ 驾驶舱三：【规则安全】217heidai 拦截看板与全维度渗透雷达
+> *23 万条权威 MRS 拦截实时统计、DNS / WebRTC 渗透雷达检测、一键漏洞自愈。*
+![03-rules-security](docs/assets/screenshots/03-rules-security.png)
+
+### ⚙️ 驾驶舱四：【宿主联动】宿主底座智能嗅探与四维热升级
+> *官网标准矢量 Logo 适配、RouterOS / 飞牛脚本一键生成复制、四层固件独立热升级。*
+![04-system-host-base](docs/assets/screenshots/04-system-host-base.png)
+
+---
+
+## 🚀 极速部署：自动嗅探与一键拉起
+
+CubeX 安装程序具备**全平台环境自动嗅探能力**，能够自动判断宿主环境并匹配最佳路径。
+
+### ⚡ 通用一键安装命令 (推荐)
+只需在 Linux / 飞牛 / PVE 终端执行一行命令：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | bash
+```
+
+> 💡 **飞牛 fnOS 用户特别注意**：  
+> 安装程序检测到飞牛 fnOS 时，**将全自动应用飞牛官方默认持久化路径 `/vol1/1000/cubex`**，自动配置存储卷与文件权限，并优先通过 Docker 容器化拉起！
+
+---
+
+<details>
+<summary><b>点击展开：查看 Docker Compose 手动部署配置 (飞牛 fnOS / Linux 通用)</b></summary>
+
+在 `/vol1/1000/cubex`（飞牛）或 `/opt/cubex` 目录下创建 `docker-compose.yml`：
 
 ```yaml
 services:
@@ -147,30 +240,87 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     volumes:
-      - ./data:/opt/CubeX/data
-      - ./etc:/opt/CubeX/etc
+      # 飞牛 fnOS 推荐 /vol1/1000/cubex，通用环境自动映射当前目录
+      - ${CUBEX_DATA_DIR:-./data}:/app/data
+      - ${CUBEX_ETC_DIR:-./etc}:/app/etc
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     environment:
       - TZ=Asia/Shanghai
       - CUBEX_PORT=2026
+      - CUBEX_LISTEN=:2026
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 ```
 
-### 3. MikroTik RouterOS v7 容器部署
+启动命令：
+```bash
+docker compose up -d
+```
 
-请参照 [docs/routeros-setup.md](docs/routeros-setup.md) 获取针对 RB5009、CCR2004、CCR2116 等设备的专用 VETH 容器快速部署模版。
-
----
-
-## 🔒 知识产权与专有许可声明 (Proprietary Notice)
-
-`CubeX（极光魔方）` 是经由原作者 **zyeyefyass** 针对 Mihomo 与 sing-box 双原生内核深度重构打造的闭源专有高性能旁路网关系统。
-
-* 完整架构源码仅在官方私有仓库 `CubeX-Core` 中受控维护；
-* 本公共仓库仅分发经符号剥离（`-ldflags="-s -w" -trimpath`）加固的官方发行版本、容器配置与使用文档；
-* 本项目面向个人及家庭用户提供**完全免费、无隐私回传、零强制消费**的高品质使用体验；
-* 未经原作者书面许可，严禁对二进制进行逆向工程、反编译、去除署名或用于任何形式的商业转售牟利。详细法律条款参见 [COPYRIGHT.md](COPYRIGHT.md) 与 [DECLARATION.md](DECLARATION.md)。
+</details>
 
 ---
 
-**Copyright © 2026 zyeyefyass. All Rights Reserved.**
+<details>
+<summary><b>点击展开：常用全局快捷命令 (`cubex`)</b></summary>
+
+安装完成后，系统自动注册了全局快捷指令：
+
+```bash
+# 查看网关运行状态与版本
+cubex status
+
+# 实时查看/追踪系统运行日志
+cubex log
+
+# 重新启动 CubeX 守护网关
+cubex restart
+
+# 热重载分流策略与规则 (0 断流生效)
+cubex reload
+```
+
+</details>
+
+---
+
+## 🗺️ 版本进化路线图
+
+CubeX 严格遵循严谨的测试与迭代规范：
+
+- 🟢 **`Test v0.9`** *(当前初始发布版本)*:
+  - 核心双擎（Mihomo × sing-box v1.14+）同构驱动就绪；
+  - 217heidai MRS 规则库与 Geo 全量数据库打包集成；
+  - 飞牛 fnOS（`/vol1/1000/cubex`）及多宿主系统自动嗅探上线；
+  - 微信 ClawBot 方案一原生 iLink 协议中枢；
+  - 侧边栏高占比 3D X-Cube Logo 与官网矢量宿主标识；
+  - 侧边栏底部极速运维三键矩阵（重载配置 / 重载核心 / 重新启动）。
+- 🟡 **`Test v0.99`** *(下一迭代版本)*:
+  - 多集群订阅定时增量静默同步；
+  - WebRTC 泄露动态防御规则增强；
+  - WinBox 自动化下发 RouterOS REST API 一键对齐增强。
+- 🟠 **`Test v0.999`** *(最终收官优化版)*:
+  - 内存与 CPU 极致压榨调优（GOMEMLIMIT 智能自适应）；
+  - 全球 CDN 多节点极速下载与离线包预热；
+  - 全面闭环高压渗透测试。
+- 🔴 **`V 1.0`** *(正式里程碑旗舰版)*:
+  - 达到软路由工程设计、系统性能与人机交互的天花板！
+
+---
+
+## ⚖️ 知识产权与净室声明 (EULA & Intellectual Property)
+
+CubeX 是由原作者完全自主设计、100% 原创自研的专有软件。
+* 本项目彻底贯彻净室软件工程准则，底层代码库、逻辑表示层、数据结构与交互协议栈均拥有完全独立知识产权。
+* 严禁任何个人或组织在未经书面授权的情况下对本产品进行二次打包、反编译、修改去除版权徽标或用于商业牟利。
+* 详情请参阅项目内包含的 [COPYRIGHT.md](COPYRIGHT.md) 与专有软件许可协议。
+
+---
+
+<div align="center">
+  <sub>Designed with 💙 for Network Geeks & Homelab Enthusiasts. CubeX Core Team © 2026. All rights reserved.</sub>
+</div>

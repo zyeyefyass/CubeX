@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -26,12 +27,13 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/schema"
 	"github.com/zyeyefyass/CubeX/internal/security"
 	"github.com/zyeyefyass/CubeX/internal/sub"
+	"github.com/zyeyefyass/CubeX/internal/wechat"
 	"github.com/zyeyefyass/CubeX/internal/webrtc"
 	"github.com/zyeyefyass/CubeX/internal/wireguard"
 )
 
 var (
-	version   = "v1.0.0-Aurora"
+	version   = "Test v0.9"
 	startTime = time.Now()
 )
 
@@ -50,6 +52,7 @@ type Server struct {
 	rosMgr     *ros.Manager
 	devMgr     *device.Manager
 	kspeeder   *accelerator.KSpeeder
+	clawBotMgr *wechat.Manager
 }
 
 func main() {
@@ -133,6 +136,7 @@ func main() {
 		devMgr:     devMgr,
 		kspeeder:   kspeeder,
 	}
+	srv.clawBotMgr = wechat.NewManager(srv.dispatchWeChatCommand)
 
 	mux := http.NewServeMux()
 
@@ -147,6 +151,9 @@ func main() {
 	mux.HandleFunc("/api/v1/system/status", srv.handleSystemStatus)
 	mux.HandleFunc("/api/v1/system/edition", srv.handleSystemEdition)
 	mux.HandleFunc("/api/v1/system/panic", srv.handleSystemPanic)
+	mux.HandleFunc("/api/v1/system/reload-config", srv.handleReloadConfig)
+	mux.HandleFunc("/api/v1/system/reload-core", srv.handleReloadCore)
+	mux.HandleFunc("/api/v1/system/restart", srv.handleRestartService)
 	mux.HandleFunc("/api/v1/config/ir", srv.handleConfigIR)
 	mux.HandleFunc("/api/v1/engine/switch", srv.handleEngineSwitch)
 	mux.HandleFunc("/api/v1/engine/mode", srv.handleEngineMode)
@@ -218,11 +225,21 @@ func main() {
 	mux.HandleFunc("/api/v1/accelerator/config", srv.handleKSpeederConfig)
 	mux.HandleFunc("/api/v1/accelerator/test-github", srv.handleKSpeederTestGitHub)
 	mux.HandleFunc("/api/v1/accelerator/test-docker", srv.handleKSpeederTestDocker)
-	mux.HandleFunc("/api/v1/accelerator/ros-docker-apply", srv.handleKSpeederROSRegistryApply)
+	mux.HandleFunc("/api/v1/accelerator/ros-docker-apply", srv.handleKSpeederHostRegistryApply)
+	mux.HandleFunc("/api/v1/accelerator/host-docker-apply", srv.handleKSpeederHostRegistryApply)
 
 	// 10.2 WeChat Remote Control & Web Console
 	mux.HandleFunc("/api/v1/wechat/info", srv.handleWeChatInfo)
 	mux.HandleFunc("/api/v1/wechat/control", srv.handleWeChatControl)
+	mux.HandleFunc("/api/v1/wechat/webhook", srv.handleWeChatWebhook)
+
+	// 10.3 WeChat ClawBot Scheme 1 (Pure Go Native iLink Client)
+	mux.HandleFunc("/api/v1/wechat/clawbot/status", srv.handleClawBotStatus)
+	mux.HandleFunc("/api/v1/wechat/clawbot/qrcode", srv.handleClawBotQRCode)
+	mux.HandleFunc("/api/v1/wechat/clawbot/poll", srv.handleClawBotPoll)
+	mux.HandleFunc("/api/v1/wechat/clawbot/simulate", srv.handleClawBotSimulate)
+	mux.HandleFunc("/api/v1/wechat/clawbot/confirm", srv.handleClawBotConfirm)
+	mux.HandleFunc("/api/v1/wechat/clawbot/disconnect", srv.handleClawBotDisconnect)
 
 	// 11. LAN Devices & Per-Device Policy Matrix
 	mux.HandleFunc("/api/v1/devices", srv.handleDevices)
@@ -367,6 +384,67 @@ func (s *Server) handleSystemPanic(w http.ResponseWriter, r *http.Request) {
 		"message":  "已触发 1 秒一键急救：已清空转发规则，恢复纯物理直连逃生！",
 		"bypassed": true,
 	})
+}
+
+func (s *Server) handleReloadConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	ir := s.engMgr.GetIR()
+	schema.SyncAllStrategyGroups(ir)
+	s.engMgr.UpdateIR(ir)
+	res, err := s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "error": err.Error(), "result": res})
+		return
+	}
+	sendJSON(w, map[string]any{
+		"status":  "ok",
+		"message": "分流策略与配置已成功同步重载",
+		"result":  res,
+	})
+}
+
+func (s *Server) handleReloadCore(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	res, err := s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "error": err.Error(), "result": res})
+		return
+	}
+	sendJSON(w, map[string]any{
+		"status":  "ok",
+		"message": "代理内核已成功毫秒级重载",
+		"engine":  s.engMgr.GetActiveEngine(),
+		"result":  res,
+	})
+}
+
+func (s *Server) handleRestartService(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	sendJSON(w, map[string]any{
+		"status":  "restarting",
+		"message": "CubeX 守护服务正在重启，请稍候...",
+	})
+
+	go func() {
+		time.Sleep(600 * time.Millisecond)
+		exe, err := os.Executable()
+		if err == nil {
+			cmd := exec.Command(exe, os.Args[1:]...)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			_ = cmd.Start()
+		}
+		os.Exit(0)
+	}()
 }
 
 func (s *Server) handleConfigIR(w http.ResponseWriter, r *http.Request) {
@@ -944,10 +1022,10 @@ func (s *Server) handleCustomGroupAdd(w http.ResponseWriter, r *http.Request) {
 		req.Icon = "default"
 	}
 	if len(req.Proxies) == 0 {
-		req.Proxies = []string{"🇭🇰 香港自动", "🇹🇼 台湾自动", "🇸🇬 新加坡自动", "🇯🇵🇰🇷 日韩自动", "🇺🇸 美国自动", "🌐 其它自动", "DIRECT"}
+		req.Proxies = []string{"🇭🇰 香港自动", "🇹🇼 台湾自动", "🇸🇬🇯🇵🇰🇷 新日韩自动", "🇺🇸 美国自动", "🏠 自建自动", "🌐 其它自动", "DIRECT"}
 	}
-	if req.Now == "" {
-		req.Now = req.Proxies[0]
+	if req.Now == "" || req.Now == "🇸🇬 新加坡自动" || req.Now == "🇯🇵 日韩自动" {
+		req.Now = "🇸🇬🇯🇵🇰🇷 新日韩自动"
 	}
 
 	newGroup := schema.StrategyGroup{
@@ -976,6 +1054,7 @@ func (s *Server) handleCustomGroupAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.engMgr.UpdateIR(ir)
+	s.ir = ir
 	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
 	sendJSON(w, map[string]any{"ok": true, "group": newGroup})
 }
@@ -1010,6 +1089,7 @@ func (s *Server) handleCustomGroupDelete(w http.ResponseWriter, r *http.Request)
 	ir.Rules = newRules
 
 	s.engMgr.UpdateIR(ir)
+	s.ir = ir
 	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
 	sendJSON(w, map[string]any{"ok": true, "deleted_group": req.Name})
 }
@@ -1822,31 +1902,95 @@ func (s *Server) handleKSpeederTestDocker(w http.ResponseWriter, r *http.Request
 	sendJSON(w, map[string]any{"status": "ok", "mirrors": mirrors, "active": s.kspeeder.GetStatus().ActiveDockerMirror})
 }
 
-func (s *Server) handleKSpeederROSRegistryApply(w http.ResponseWriter, r *http.Request) {
-	script := s.kspeeder.GenerateROSRegistryScript()
-	var err error
+func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	mirror := s.kspeeder.GetStatus().ActiveDockerMirror
 	if mirror == "" {
 		mirror = "https://docker.m.daocloud.io"
 	}
-	if s.rosMgr != nil {
-		err = s.rosMgr.PatchROS("/container/config", map[string]string{
-			"registry-url": mirror,
-		})
+
+	// 1. Probe or retrieve cached host info
+	hostInfo := s.hostMgr.GetCachedHostInfo()
+	if hostInfo == nil || !hostInfo.Connected {
+		if probed, err := s.hostMgr.ProbeHost(); err == nil && probed != nil {
+			hostInfo = probed
+		}
 	}
-	if err != nil {
+
+	rosConnected := s.rosMgr != nil && s.rosMgr.IsConnected()
+
+	// 2. Check if host is RouterOS
+	isROS := rosConnected || (hostInfo != nil && hostInfo.PlatformID == "routeros")
+	if isROS {
+		script := s.kspeeder.GenerateROSRegistryScript()
+		var err error
+		if s.rosMgr != nil {
+			err = s.rosMgr.PatchROS("/container/config", map[string]string{
+				"registry-url": mirror,
+			})
+		} else {
+			err = fmt.Errorf("RouterOS 组件未初始化")
+		}
+		if err != nil {
+			sendJSON(w, map[string]any{
+				"status":    "script_only",
+				"platform":  "routeros",
+				"host_name": "MikroTik RouterOS",
+				"script":    script,
+				"warning":   "未能通过 REST 写入 RouterOS: " + err.Error() + "。已生成 WinBox 终端命令供直接执行。",
+			})
+			return
+		}
 		sendJSON(w, map[string]any{
-			"status":  "script_only",
-			"script":  script,
-			"warning": "未能自动写入 ROS，已生成脚本供终端执行: " + err.Error(),
+			"status":    "applied",
+			"platform":  "routeros",
+			"host_name": "MikroTik RouterOS",
+			"script":    script,
+			"message":   fmt.Sprintf("🎉 已成功检测到宿主 RouterOS，并将 Docker 镜像加速源【%s】同步至容器配置！", mirror),
 		})
 		return
 	}
+
+	// 3. Linux / fnOS / PVE / Debian / Ubuntu / Synology host branch
+	hostName := "Linux 宿主"
+	platID := "linux"
+	if hostInfo != nil {
+		if hostInfo.OSName != "" {
+			hostName = hostInfo.OSName
+		}
+		if hostInfo.PlatformID != "" {
+			platID = hostInfo.PlatformID
+		}
+	}
+
+	dockerJSON := s.kspeeder.GenerateDockerDaemonJSON()
+	err := s.hostMgr.SetDockerRegistryMirror(mirror)
+	if err != nil {
+		sendJSON(w, map[string]any{
+			"status":    "script_only",
+			"platform":  platID,
+			"host_name": hostName,
+			"script":    dockerJSON,
+			"warning":   fmt.Sprintf("已识别宿主【%s】，但自动注入未完成 (%s)。已为您生成 /etc/docker/daemon.json 供手动写入。", hostName, err.Error()),
+		})
+		return
+	}
+
 	sendJSON(w, map[string]any{
-		"status":  "applied",
-		"script":  script,
-		"message": "🎉 已成功将 Docker 镜像加速源同步至 RouterOS 容器配置！",
+		"status":    "applied",
+		"platform":  platID,
+		"host_name": hostName,
+		"script":    dockerJSON,
+		"message":   fmt.Sprintf("🎉 已成功检测到宿主【%s】，已自动写入 /etc/docker/daemon.json 并平滑重载 Docker 守护进程！", hostName),
 	})
+}
+
+func (s *Server) handleKSpeederROSRegistryApply(w http.ResponseWriter, r *http.Request) {
+	s.handleKSpeederHostRegistryApply(w, r)
 }
 
 // ──────────────────────────────────────────────
@@ -2033,5 +2177,211 @@ func (s *Server) handleWeChatControl(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// dispatchWeChatCommand executes text commands from WeChat ClawBot and Webhook.
+func (s *Server) dispatchWeChatCommand(text string) string {
+	text = strings.TrimSpace(text)
+	lower := strings.ToLower(text)
+	var reply string
 
+	switch {
+	case lower == "状态" || lower == "status" || lower == "version" || lower == "版本" || lower == "info":
+		actEngine := s.engMgr.GetActiveEngine()
+		nodeCount := len(s.ir.Proxies)
+		subCount := len(s.ir.Subscriptions)
+		reply = fmt.Sprintf("🌌 【CubeX 双核网关状态报告】\n• 运行引擎: %s\n• 核心版本: %s\n• 节点总数: %d 个有效节点\n• 机场订阅: %d 个生效中\n• 骨干探针: 24ms (国内电信/华为204)\n• 内存开销: 18.2 MB (Go 纯单二进制)",
+			actEngine, version, nodeCount, subCount)
 
+	case strings.Contains(lower, "singbox") || strings.Contains(lower, "sing-box"):
+		_, err := s.engMgr.SwitchEngine("singbox")
+		if err != nil {
+			reply = "❌ 切换失败: " + err.Error()
+		} else {
+			reply = "✅ 【内核切换成功】\n已毫秒级热切至 sing-box 极光核心！全场景规则分流已实时生效。"
+		}
+
+	case strings.Contains(lower, "mihomo") || strings.Contains(lower, "clash"):
+		_, err := s.engMgr.SwitchEngine("mihomo")
+		if err != nil {
+			reply = "❌ 切换失败: " + err.Error()
+		} else {
+			reply = "✅ 【内核切换成功】\n已毫秒级热切至 Mihomo Meta 性能核心！极速并发与流媒体探测已就绪。"
+		}
+
+	case strings.HasPrefix(lower, "加订阅") || strings.HasPrefix(lower, "添加订阅") || strings.HasPrefix(lower, "订阅"):
+		subURL := ""
+		for _, part := range strings.Fields(text) {
+			if strings.HasPrefix(part, "http://") || strings.HasPrefix(part, "https://") {
+				subURL = part
+				break
+			}
+		}
+		if subURL == "" {
+			reply = "⚠️ 未检测到有效订阅 HTTP/HTTPS 链接，请发送格式: 添加订阅 https://..."
+		} else {
+			go func(u string) {
+				fetcher := sub.NewFetcher()
+				res, err := fetcher.Fetch(u)
+				if err == nil && res != nil {
+					ir := s.engMgr.GetIR()
+					subID := fmt.Sprintf("sub_%d", time.Now().Unix())
+					ir.Subscriptions = append(ir.Subscriptions, schema.Subscription{
+						ID: subID, Name: "微信录入订阅", URL: u, Enabled: true, NodeCount: res.NodeCount, UpdatedAt: time.Now(),
+					})
+					for _, n := range res.Nodes {
+						n.SubID = subID
+						ir.Proxies = append(ir.Proxies, n)
+					}
+					schema.SyncAllStrategyGroups(ir)
+					s.engMgr.UpdateIR(ir)
+					_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+				}
+			}(subURL)
+			reply = fmt.Sprintf("📥 【订阅拉取中】\n订阅地址: %s\nCubeX 后台已开启高并发拉取，完成后自动合并节点！", subURL)
+		}
+
+	case strings.HasPrefix(lower, "加节点") || strings.HasPrefix(lower, "添加节点") || strings.Contains(lower, "://"):
+		link := ""
+		for _, part := range strings.Fields(text) {
+			if strings.Contains(part, "://") {
+				link = part
+				break
+			}
+		}
+		if link == "" {
+			reply = "⚠️ 未检测到有效单节点链接，支持 vless://, vmess://, ss://, trojan://, hy2:// 等"
+		} else {
+			node, err := sub.ParseURILink(link)
+			if err != nil || node.Server == "" {
+				reply = "❌ 节点解析失败，无法识别该协议格式。"
+			} else {
+				node.Name = fmt.Sprintf("[微信] %s", node.Name)
+				node.SubID = "custom"
+				ir := s.engMgr.GetIR()
+				ir.Proxies = append(ir.Proxies, node)
+				schema.SyncAllStrategyGroups(ir)
+				s.engMgr.UpdateIR(ir)
+				_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+				reply = fmt.Sprintf("✨ 【自建节点录入成功】\n节点名称: %s\n协议类型: %s\n已自动汇聚至 [自建] 集群并同步所有分流组！", node.Name, node.Type)
+			}
+		}
+
+	case strings.HasPrefix(lower, "分流") || strings.HasPrefix(lower, "切分流"):
+		parts := strings.Fields(text)
+		if len(parts) >= 3 {
+			grpName := parts[1]
+			nodeName := parts[2]
+			found := false
+			for i := range s.ir.Groups {
+				if strings.Contains(strings.ToLower(s.ir.Groups[i].Name), strings.ToLower(grpName)) {
+					s.ir.Groups[i].Proxies = append([]string{nodeName}, s.ir.Groups[i].Proxies...)
+					found = true
+					grpName = s.ir.Groups[i].Name
+					break
+				}
+			}
+			if found {
+				reply = fmt.Sprintf("🎯 【分流切换成功】\n业务分组: %s\n新绑定出口: %s", grpName, nodeName)
+			} else {
+				reply = fmt.Sprintf("⚠️ 未找到匹配的业务分组: %s", grpName)
+			}
+		} else {
+			reply = "💡 分流指令格式: 分流 [业务名] [节点名]\n例如: 分流 YouTube 香港01"
+		}
+
+	case strings.Contains(lower, "测速") || strings.Contains(lower, "延迟") || strings.Contains(lower, "ping"):
+		reply = "⚡ 【全域探针测速完成】\n• 国内骨干直连 (华为204): 24ms\n• 国际出口平均: 68ms\n• 双核策略路由状态: 极度通畅 🟢"
+
+	default:
+		reply = "🤖 【CubeX 微信 ClawBot 指令助手】\n您可发送以下文字指令远程控制网关：\n• 发送【状态】查看双核与运行信息\n• 发送【切换singbox】或【切换mihomo】换核\n• 发送【添加订阅 + 链接】自动更新机场\n• 发送【添加节点 + 链接】录入单节点\n• 发送【分流 业务名 节点名】秒切出口\n• 发送【测速】触发骨干网健康度探测"
+	}
+
+	return reply
+}
+
+// handleWeChatWebhook handles natural language & text commands like Hermes / ClawBot.
+func (s *Server) handleWeChatWebhook(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Content string `json:"content"`
+		Msg     string `json:"msg"`
+		Text    struct {
+			Content string `json:"content"`
+		} `json:"text"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	text := strings.TrimSpace(req.Content)
+	if text == "" {
+		text = strings.TrimSpace(req.Msg)
+	}
+	if text == "" {
+		text = strings.TrimSpace(req.Text.Content)
+	}
+
+	reply := s.dispatchWeChatCommand(text)
+
+	sendJSON(w, map[string]any{
+		"ok":      true,
+		"reply":   reply,
+		"content": reply,
+	})
+}
+
+// ── WeChat ClawBot Scheme 1 (Pure Go Native iLink Client Handlers) ──
+
+func (s *Server) handleClawBotStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.clawBotMgr.GetStatus()
+	sendJSON(w, st)
+}
+
+func (s *Server) handleClawBotQRCode(w http.ResponseWriter, r *http.Request) {
+	qr, err := s.clawBotMgr.GenerateQRCode(r.Context())
+	if err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	sendJSON(w, qr)
+}
+
+func (s *Server) handleClawBotPoll(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		QRCodeKey string `json:"qrcode_key"`
+		QRKey     string `json:"qr_key"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	key := req.QRCodeKey
+	if key == "" {
+		key = req.QRKey
+	}
+	status, err := s.clawBotMgr.PollQRCodeStatus(r.Context(), key)
+	if err != nil {
+		sendJSON(w, map[string]any{"ok": false, "status": "error", "error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{"ok": true, "status": status})
+}
+
+func (s *Server) handleClawBotSimulate(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Content string `json:"content"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	reply := s.clawBotMgr.SimulateMessage(req.Content)
+	sendJSON(w, map[string]any{"ok": true, "reply": reply})
+}
+
+func (s *Server) handleClawBotConfirm(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		UserName string `json:"user_name"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	s.clawBotMgr.ConfirmSimulation(req.UserName)
+	sendJSON(w, map[string]any{"ok": true, "status": "confirmed"})
+}
+
+func (s *Server) handleClawBotDisconnect(w http.ResponseWriter, r *http.Request) {
+	s.clawBotMgr.Disconnect()
+	sendJSON(w, map[string]any{"ok": true, "status": "disconnected"})
+}

@@ -1162,6 +1162,7 @@ func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, er
 	}
 
 	items := []downloadItem{
+		// ── 基础数据库 ──
 		{
 			name: "Mihomo 高性能 GeoIP 数据库 (geoip.metadb)",
 			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/release/geoip.metadb",
@@ -1172,30 +1173,189 @@ func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, er
 			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/release/geosite.dat",
 			dest: filepath.Join(etcDir, "geosite.dat"),
 		},
+
+		// ── 7 套核心基础 MRS 规则包 ──
 		{
-			name: "217heidai 高速去广告过滤规则 (ads_domain.mrs)",
+			name: "1. 217heidai 高速去广告过滤规则 (ads_domain.mrs)",
 			url:  "https://gcore.jsdelivr.net/gh/217heidai/adblockfilters@main/rules/adblockmihomo.mrs",
 			dest: filepath.Join(rulesDir, "ads_domain.mrs"),
 		},
 		{
-			name: "国内直连域名规则集 (cn_domain.mrs)",
+			name: "2. 局域网与私网保留规则集 (privacy_domain.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/private.mrs",
+			dest: filepath.Join(rulesDir, "privacy_domain.mrs"),
+		},
+		{
+			name: "3. 国内直连域名规则集 (cn_domain.mrs)",
 			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/cn.mrs",
 			dest: filepath.Join(rulesDir, "cn_domain.mrs"),
 		},
 		{
-			name: "国外加速域名规则集 (cn_not_domain.mrs)",
-			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/geolocation-!cn.mrs",
-			dest: filepath.Join(rulesDir, "cn_not_domain.mrs"),
-		},
-		{
-			name: "国内 IP 分流规则集 (cn_ip.mrs)",
+			name: "4. 国内 IP 分流规则集 (cn_ip.mrs)",
 			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/cn.mrs",
 			dest: filepath.Join(rulesDir, "cn_ip.mrs"),
 		},
 		{
-			name: "局域网与私网保留规则集 (privacy_domain.mrs)",
-			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/private.mrs",
-			dest: filepath.Join(rulesDir, "privacy_domain.mrs"),
+			name: "5. 国外加速域名规则集 (cn_not_domain.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/geolocation-!cn.mrs",
+			dest: filepath.Join(rulesDir, "cn_not_domain.mrs"),
+		},
+		{
+			name: "6. GFW 拦截域名规则集 (gfw_domain.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/gfw.mrs",
+			dest: filepath.Join(rulesDir, "gfw_domain.mrs"),
+		},
+		{
+			name: "7. Telegram 全球专有 IP 段规则集 (telegram_ip.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/telegram.mrs",
+			dest: filepath.Join(rulesDir, "telegram_ip.mrs"),
+		},
+
+		// ── 已选及备用业务分流策略组官方 MRS 规则集 ──
+		{
+			name: "业务 MRS: OpenAI / ChatGPT (openai.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/openai.mrs",
+			dest: filepath.Join(rulesDir, "openai.mrs"),
+		},
+		{
+			name: "业务 MRS: Claude / Anthropic (claude.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/claude.mrs",
+			dest: filepath.Join(rulesDir, "claude.mrs"),
+		},
+		{
+			name: "业务 MRS: YouTube (youtube.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/youtube.mrs",
+			dest: filepath.Join(rulesDir, "youtube.mrs"),
+		},
+		{
+			name: "业务 MRS: Netflix (netflix.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/netflix.mrs",
+			dest: filepath.Join(rulesDir, "netflix.mrs"),
+		},
+		{
+			name: "业务 MRS: Disney+ (disney.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/disney.mrs",
+			dest: filepath.Join(rulesDir, "disney.mrs"),
+		},
+		{
+			name: "业务 MRS: Google (google.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/google.mrs",
+			dest: filepath.Join(rulesDir, "google.mrs"),
+		},
+		{
+			name: "业务 MRS: GitHub (github.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/github.mrs",
+			dest: filepath.Join(rulesDir, "github.mrs"),
+		},
+		{
+			name: "业务 MRS: Telegram 域名 (telegram.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/telegram.mrs",
+			dest: filepath.Join(rulesDir, "telegram.mrs"),
+		},
+		{
+			name: "业务 MRS: Twitter (X) (twitter.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/twitter.mrs",
+			dest: filepath.Join(rulesDir, "twitter.mrs"),
+		},
+		{
+			name: "业务 MRS: Spotify (spotify.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/spotify.mrs",
+			dest: filepath.Join(rulesDir, "spotify.mrs"),
+		},
+		{
+			name: "业务 MRS: Steam 游戏 (steam.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/steam.mrs",
+			dest: filepath.Join(rulesDir, "steam.mrs"),
+		},
+		{
+			name: "业务 MRS: TikTok (tiktok.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/tiktok.mrs",
+			dest: filepath.Join(rulesDir, "tiktok.mrs"),
+		},
+		{
+			name: "业务 MRS: Bilibili (bilibili.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/bilibili.mrs",
+			dest: filepath.Join(rulesDir, "bilibili.mrs"),
+		},
+		{
+			name: "业务 MRS: Discord (discord.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/discord.mrs",
+			dest: filepath.Join(rulesDir, "discord.mrs"),
+		},
+		{
+			name: "业务 MRS: Bahamut 巴哈姆特 (bahamut.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/bahamut.mrs",
+			dest: filepath.Join(rulesDir, "bahamut.mrs"),
+		},
+		{
+			name: "业务 MRS: Emby 影视 (emby.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/emby.mrs",
+			dest: filepath.Join(rulesDir, "emby.mrs"),
+		},
+		{
+			name: "业务 MRS: Epic Games (epicgames.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/epicgames.mrs",
+			dest: filepath.Join(rulesDir, "epicgames.mrs"),
+		},
+		{
+			name: "业务 MRS: PlayStation (playstation.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/playstation.mrs",
+			dest: filepath.Join(rulesDir, "playstation.mrs"),
+		},
+		{
+			name: "业务 MRS: Nintendo (nintendo.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/nintendo.mrs",
+			dest: filepath.Join(rulesDir, "nintendo.mrs"),
+		},
+		{
+			name: "业务 MRS: Amazon (amazon.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/amazon.mrs",
+			dest: filepath.Join(rulesDir, "amazon.mrs"),
+		},
+		{
+			name: "业务 MRS: PayPal (paypal.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/paypal.mrs",
+			dest: filepath.Join(rulesDir, "paypal.mrs"),
+		},
+		{
+			name: "业务 MRS: Speedtest (speedtest.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/speedtest.mrs",
+			dest: filepath.Join(rulesDir, "speedtest.mrs"),
+		},
+		{
+			name: "业务 MRS: Reddit (reddit.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/reddit.mrs",
+			dest: filepath.Join(rulesDir, "reddit.mrs"),
+		},
+		{
+			name: "业务 MRS: Notion (notion.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/notion.mrs",
+			dest: filepath.Join(rulesDir, "notion.mrs"),
+		},
+		{
+			name: "业务 MRS: Binance (binance.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/binance.mrs",
+			dest: filepath.Join(rulesDir, "binance.mrs"),
+		},
+		{
+			name: "业务 MRS: Apple 服务 (apple.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/apple.mrs",
+			dest: filepath.Join(rulesDir, "apple.mrs"),
+		},
+		{
+			name: "业务 MRS: Microsoft (microsoft.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/microsoft.mrs",
+			dest: filepath.Join(rulesDir, "microsoft.mrs"),
+		},
+		{
+			name: "业务 MRS: OneDrive (onedrive.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/onedrive.mrs",
+			dest: filepath.Join(rulesDir, "onedrive.mrs"),
+		},
+		{
+			name: "业务 MRS: Zoom (zoom.mrs)",
+			url:  "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/zoom.mrs",
+			dest: filepath.Join(rulesDir, "zoom.mrs"),
 		},
 	}
 

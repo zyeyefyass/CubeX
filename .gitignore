@@ -30,3 +30,6 @@ test_screen*.png
 Thumbs.db
 .idea/
 .vscode/
+dist/release/
+*.tar.gz
+*.zip

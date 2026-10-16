@@ -241,6 +241,8 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			rulesList = append(rulesList, fmt.Sprintf("IP-CIDR,%s,%s", r.Value, r.Target))
 		case "SRC_IP_CIDR", "SRC-IP-CIDR":
 			rulesList = append(rulesList, fmt.Sprintf("SRC-IP-CIDR,%s,%s", r.Value, r.Target))
+		case "RULE_SET", "RULE-SET":
+			rulesList = append(rulesList, fmt.Sprintf("RULE-SET,%s,%s", r.Value, r.Target))
 		case "MATCH", "FINAL":
 			rulesList = append(rulesList, fmt.Sprintf("MATCH,%s", r.Target))
 		}

@@ -81,3 +81,16 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 245, 212, 0.6);
 }
+
+/* Safe area utilities for modern mobile edge-to-edge screens */
+.pb-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-h-screen {
+  height: 100vh;
+  height: 100dvh;
+}
+

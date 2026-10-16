@@ -1,0 +1,7 @@
+<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- OpenWrt Official Blue Wireless Emblem -->
+  <rect width="32" height="32" rx="7" fill="#002540"/>
+  <circle cx="16" cy="16" r="10" stroke="#00B4D8" stroke-width="1.8" fill="none"/>
+  <circle cx="16" cy="16" r="6" stroke="#90E0EF" stroke-width="1.8" fill="none"/>
+  <circle cx="16" cy="16" r="2.5" fill="#FFFFFF"/>
+</svg>

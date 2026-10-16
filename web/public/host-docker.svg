@@ -1,0 +1,14 @@
+<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Docker Official Blue Emblem -->
+  <rect width="32" height="32" rx="7" fill="#001830"/>
+  <!-- Containers -->
+  <rect x="7" y="13" width="2.5" height="2.5" rx="0.5" fill="#0DB7ED"/>
+  <rect x="10.5" y="13" width="2.5" height="2.5" rx="0.5" fill="#0DB7ED"/>
+  <rect x="14" y="13" width="2.5" height="2.5" rx="0.5" fill="#0DB7ED"/>
+  <rect x="10.5" y="9.5" width="2.5" height="2.5" rx="0.5" fill="#0DB7ED"/>
+  <rect x="14" y="9.5" width="2.5" height="2.5" rx="0.5" fill="#0DB7ED"/>
+  <rect x="17.5" y="13" width="2.5" height="2.5" rx="0.5" fill="#0DB7ED"/>
+  <!-- Whale Body -->
+  <path d="M26 15C25.5 15 24.2 15.6 23.5 16.5C21 16 19 16 16 16C10 16 6 18 5 21C6.5 22.5 10 23.5 15 23.5C22 23.5 25.5 20.5 26.5 17C27.5 17 28.5 16.5 29 15.5C28 15 27 15 26 15Z" fill="#0DB7ED"/>
+  <circle cx="9" cy="19.5" r="0.8" fill="#FFFFFF"/>
+</svg>

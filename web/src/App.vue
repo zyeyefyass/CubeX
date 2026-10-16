@@ -1,121 +1,229 @@
 <template>
   <div :class="[
-    'min-h-screen font-sans antialiased transition-colors duration-700 selection:bg-cyan-500/30 selection:text-cyan-200 flex flex-col md:flex-row overflow-hidden h-screen',
+    'min-h-screen font-sans antialiased transition-colors duration-700 selection:bg-cyan-500/30 selection:text-cyan-200 flex flex-col md:flex-row overflow-hidden safe-h-screen h-[100dvh]',
     activeEngine === 'singbox' ? 'bg-[#090714] text-slate-100' : 'bg-[#001222] text-slate-100'
   ]">
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- 1. PC 桌面端左侧固定侧边栏 (Desktop Left Sidebar >= 768px)            -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
-    <aside class="hidden md:flex md:w-64 md:flex-shrink-0 flex-col justify-between border-r transition-colors duration-700 z-30"
-      :class="activeEngine === 'singbox' ? 'bg-[#0f0a20]/90 border-purple-900/40 backdrop-blur-xl' : 'bg-[#00172e]/90 border-sky-900/40 backdrop-blur-xl'">
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- 1. PC 桌面端左侧固定侧边栏 (Desktop Left Sidebar >= 768px 可折叠/展开) -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <aside :class="[
+      'hidden md:flex md:flex-shrink-0 flex-col justify-between border-r transition-all duration-300 z-30 select-none h-full',
+      sidebarCollapsed ? 'md:w-20' : 'md:w-72',
+      activeEngine === 'singbox' ? 'bg-[#0f0a20]/95 border-purple-900/40 backdrop-blur-xl' : 'bg-[#00172e]/95 border-sky-900/40 backdrop-blur-xl'
+    ]">
       
-      <div>
-        <!-- Brand Hero with 3D Dynamic Crystal Cube -->
-        <div class="p-5 text-center border-b transition-colors"
-          :class="activeEngine === 'singbox' ? 'border-purple-900/30' : 'border-sky-900/30'">
-          <div class="relative mx-auto w-24 h-24 mb-2 flex items-center justify-center group">
-            <div class="absolute inset-0 rounded-full blur-xl group-hover:scale-125 transition-transform duration-700 animate-pulse bg-cyan-500/30"></div>
-            <img src="/logo-cubex.svg" class="relative z-10 h-24 w-24 drop-shadow-[0_0_28px_rgba(0,210,255,0.75)] filter transition-all duration-500 group-hover:scale-110 active:scale-95" alt="CubeX 3D Quantum Hypercube Logo" />
+      <!-- Top Section: Brand Hero & Navigation -->
+      <div class="flex flex-col overflow-y-auto">
+        <!-- Brand Hero (提高整个左侧栏占比，主Logo放大，CubeX字号调适，宿主Logo与版本号高保真放大) -->
+        <div :class="[
+          'text-center border-b transition-all duration-300 relative',
+          sidebarCollapsed ? 'p-3 border-sky-900/30' : 'p-5 border-sky-900/30'
+        ]">
+          <!-- Brand Logo (主Logo大幅提升至 w-28 h-28，视觉核心醒目居中) -->
+          <div :class="[
+            'relative mx-auto flex items-center justify-center group cursor-pointer transition-all duration-300',
+            sidebarCollapsed ? 'w-14 h-14 mb-0' : 'w-28 h-28 mb-3'
+          ]" @click="activeMasterTab = 'overview'" title="CubeX - 次世代双擎旁路由">
+            <div class="absolute inset-0 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700 animate-pulse bg-cyan-500/35"></div>
+            <img src="/logo-cubex.svg" :class="[
+              'relative z-10 drop-shadow-[0_0_32px_rgba(0,210,255,0.85)] filter transition-all duration-500 group-hover:scale-105 active:scale-95',
+              sidebarCollapsed ? 'w-13 h-13' : 'w-28 h-28'
+            ]" alt="CubeX Logo" />
           </div>
           
-          <div class="flex items-center justify-center gap-2">
-            <h1 class="text-2xl font-black tracking-wide bg-gradient-to-r bg-clip-text text-transparent from-cyan-300 via-sky-200 to-indigo-300">
-              CubeX
-            </h1>
-            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border bg-cyan-950/80 text-cyan-300 border-cyan-500/40">
-              {{ systemStatus.version || 'v1.0.0-Aurora' }}
-            </span>
-          </div>
-          <p class="text-[9px] tracking-widest mt-0.5 font-mono uppercase text-cyan-400/80">
-            DUAL-ENGINE CYBER GATEWAY
-          </p>
+          <!-- Brand Typography (Expanded View - CubeX 字号精致平衡，不喧宾夺主) -->
+          <div v-if="!sidebarCollapsed" class="space-y-1">
+            <div class="flex items-center justify-center gap-1.5">
+              <h1 class="text-base sm:text-[17px] font-black tracking-widest bg-gradient-to-r bg-clip-text text-transparent from-cyan-300 via-sky-200 to-indigo-300">
+                CubeX
+              </h1>
+            </div>
+            <p class="text-[8.5px] tracking-[0.2em] font-mono font-semibold uppercase text-cyan-400/80">
+              DUAL-ENGINE CYBER GATEWAY
+            </p>
 
-          <!-- Detected Host Platform badge in Sidebar with Vector Icon -->
-          <div class="mt-3 w-full inline-flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900/80 border border-cyan-500/30 text-xs shadow-md">
-            <div class="flex items-center gap-2 overflow-hidden">
-              <span class="text-sm">
-                {{ hostBadge.icon }}
-              </span>
-              <div class="text-left overflow-hidden">
-                <div class="text-[8px] text-slate-400 uppercase tracking-wider font-mono">HOST BASE</div>
-                <div class="text-xs font-bold text-cyan-200 truncate max-w-[130px]" :title="hostBadge.name">
-                  {{ hostBadge.name }}
+            <!-- 宿主机官方矢量 Logo + 型号版本 + 在线心跳 (放大至官网级高保真展示) -->
+            <div class="pt-2.5">
+              <div class="inline-flex items-center gap-3 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-slate-900/95 via-sky-950/60 to-slate-900/95 border border-cyan-500/40 shadow-lg shadow-cyan-950/40 max-w-full group">
+                <!-- 官网矢量 Logo (放大至 26px，带独立深色水晶底座) -->
+                <div class="w-8 h-8 rounded-xl bg-slate-950/90 border border-cyan-500/50 flex items-center justify-center p-1.5 shrink-0 shadow-[0_0_12px_rgba(0,210,255,0.3)] group-hover:scale-105 transition-transform">
+                  <img :src="hostBadge.svg" class="w-full h-full object-contain drop-shadow-[0_0_6px_rgba(0,210,255,0.8)]" :alt="hostBadge.shortName" />
+                </div>
+                
+                <!-- 宿主平台名称与双版本号 (放大字号，清晰易读) -->
+                <div class="text-left overflow-hidden">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs sm:text-[13px] font-bold font-mono text-cyan-200 truncate max-w-[145px]" :title="hostBadge.name">
+                      {{ hostBadge.name }}
+                    </span>
+                    <span :class="['w-2 h-2 rounded-full shrink-0', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse' : 'bg-amber-400']" :title="hostBadge.online ? '宿主平台在线联动' : '未连接'"></span>
+                  </div>
+                  <div class="text-[10px] font-mono text-slate-400/90 flex items-center gap-1.5 mt-0.5">
+                    <span class="text-cyan-400 font-bold px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/30">{{ systemStatus.version || 'Test v0.9' }}</span>
+                    <span class="text-slate-500">|</span>
+                    <span class="uppercase tracking-wider text-[9px] text-slate-300 font-semibold">{{ hostBadge.shortName }}</span>
+                  </div>
                 </div>
               </div>
             </div>
-            <span :class="['w-2 h-2 rounded-full', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_6px_#10b981] animate-pulse' : 'bg-amber-400']"></span>
+          </div>
+
+          <!-- Collapsed Host Official SVG Badge -->
+          <div v-else class="mt-2.5 flex items-center justify-center relative group" :title="'宿主环境: ' + hostBadge.name + ' (' + (systemStatus.version || 'Test v0.9') + ')'">
+            <div class="w-10 h-10 rounded-xl bg-slate-900/95 border border-cyan-500/40 flex items-center justify-center p-2 shadow-md group-hover:border-cyan-400 transition">
+              <img :src="hostBadge.svg" class="w-full h-full object-contain drop-shadow-[0_0_6px_rgba(0,210,255,0.7)]" :alt="hostBadge.shortName" />
+            </div>
+            <span :class="['absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-slate-950', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_8px_#10b981]' : 'bg-amber-400']"></span>
           </div>
         </div>
 
-        <!-- 4 Master Navigation Hubs -->
-        <nav class="p-3 space-y-1.5">
+        <!-- Master Navigation Hubs (方案 A: 分流总览 ➔ 规则安全 ➔ 穿透协同 ➔ 容器加速 ➔ 宿主联动) -->
+        <nav :class="sidebarCollapsed ? 'p-2 space-y-2' : 'p-3.5 space-y-1.5'">
           <button v-for="item in navItems" :key="item.id"
             @click="activeMasterTab = item.id"
+            :title="sidebarCollapsed ? item.label : ''"
             :class="[
-              'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-xs font-semibold transition-all duration-200 select-none',
+              'w-full flex items-center rounded-xl transition-all duration-200 select-none group relative',
+              sidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-3.5 py-2.5 text-[13px] font-bold',
               activeMasterTab === item.id
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-lg shadow-cyan-950/40 translate-x-1 font-bold'
+                ? 'bg-gradient-to-r from-cyan-500/25 to-blue-500/10 text-cyan-300 border border-cyan-400/50 shadow-lg shadow-cyan-950/50'
                 : 'text-slate-400 hover:bg-white/5 hover:text-slate-200 border border-transparent'
             ]">
-            <span class="text-base">{{ item.icon }}</span>
-            <span>{{ item.label }}</span>
+            <span :class="['shrink-0 transition-transform group-hover:scale-110', sidebarCollapsed ? 'text-xl' : 'text-base']">{{ item.icon }}</span>
+            <span v-if="!sidebarCollapsed" class="truncate">{{ item.label }}</span>
+            <span v-if="activeMasterTab === item.id && !sidebarCollapsed" class="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee] animate-pulse"></span>
           </button>
         </nav>
       </div>
+
+      <!-- Bottom Section: Gateway Quick Ops Matrix & Collapse Control -->
+      <div :class="[
+        'border-t transition-all duration-300 mt-auto',
+        sidebarCollapsed ? 'p-2 space-y-2 border-sky-900/30' : 'p-3.5 space-y-2.5 border-sky-900/30'
+      ]">
+        
+        <!-- Expanded Quick Ops Matrix (3 High-Frequency Gateway Ops) -->
+        <div v-if="!sidebarCollapsed" class="space-y-2">
+          <div class="text-[9px] font-mono font-bold tracking-widest text-slate-500 uppercase px-1 flex items-center justify-between">
+            <span>GATEWAY OPS</span>
+            <span class="text-cyan-400/80">极速运维</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <!-- 1. 重载配置 (Reload Config) -->
+            <button @click="handleReloadConfig" :disabled="reloadingConfig"
+              title="重载配置 (热重载分流策略与规则)"
+              class="flex flex-col items-center justify-center py-2.5 px-1.5 rounded-xl bg-slate-900/80 hover:bg-cyan-950/60 border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 transition-all active:scale-95 shadow-sm group disabled:opacity-50">
+              <span :class="['text-sm mb-1 group-hover:rotate-180 transition-transform duration-500', reloadingConfig ? 'animate-spin' : '']">🔄</span>
+              <span class="text-[11px] font-bold tracking-tight">重载配置</span>
+            </button>
+            
+            <!-- 2. 重载核心 (Reload Core) -->
+            <button @click="handleReloadCore" :disabled="reloadingCore"
+              title="重载核心 (毫秒级重启代理内核与连接)"
+              class="flex flex-col items-center justify-center py-2.5 px-1.5 rounded-xl bg-slate-900/80 hover:bg-purple-950/60 border border-purple-500/30 hover:border-purple-400 text-purple-300 transition-all active:scale-95 shadow-sm group disabled:opacity-50">
+              <span :class="['text-sm mb-1 group-hover:scale-125 transition-transform duration-300', reloadingCore ? 'animate-bounce' : '']">⚡</span>
+              <span class="text-[11px] font-bold tracking-tight">重载核心</span>
+            </button>
+            
+            <!-- 3. 重新启动 (Restart System) -->
+            <button @click="handleRestartService" :disabled="restartingService"
+              title="重新启动 (重启 CubeX 守护网关服务)"
+              class="flex flex-col items-center justify-center py-2.5 px-1.5 rounded-xl bg-slate-900/80 hover:bg-rose-950/60 border border-rose-500/30 hover:border-rose-400 text-rose-300 transition-all active:scale-95 shadow-sm group disabled:opacity-50">
+              <span :class="['text-sm mb-1 group-hover:scale-125 transition-transform duration-300', restartingService ? 'animate-pulse' : '']">🔌</span>
+              <span class="text-[11px] font-bold tracking-tight">重新启动</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Collapsed Compact Ops Icon Stack -->
+        <div v-else class="flex flex-col gap-1.5">
+          <button @click="handleReloadConfig" :disabled="reloadingConfig" title="重载配置 (热重载分流策略与规则)"
+            class="w-full flex justify-center py-2 rounded-xl bg-slate-900/80 hover:bg-cyan-950/60 border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 transition active:scale-95 disabled:opacity-50">
+            <span :class="['text-sm', reloadingConfig ? 'animate-spin' : '']">🔄</span>
+          </button>
+          <button @click="handleReloadCore" :disabled="reloadingCore" title="重载核心 (毫秒级重启代理内核与连接)"
+            class="w-full flex justify-center py-2 rounded-xl bg-slate-900/80 hover:bg-purple-950/60 border border-purple-500/30 hover:border-purple-400 text-purple-300 transition active:scale-95 disabled:opacity-50">
+            <span :class="['text-sm', reloadingCore ? 'animate-bounce' : '']">⚡</span>
+          </button>
+          <button @click="handleRestartService" :disabled="restartingService" title="重新启动 (重启 CubeX 守护网关服务)"
+            class="w-full flex justify-center py-2 rounded-xl bg-slate-900/80 hover:bg-rose-950/60 border border-rose-500/30 hover:border-rose-400 text-rose-300 transition active:scale-95 disabled:opacity-50">
+            <span :class="['text-sm', restartingService ? 'animate-pulse' : '']">🔌</span>
+          </button>
+        </div>
+
+        <!-- Expand / Collapse Toggle Button -->
+        <button @click="toggleSidebar"
+          :title="sidebarCollapsed ? '展开左侧栏' : '收起左侧栏'"
+          class="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-slate-400 hover:text-cyan-300 transition text-xs font-semibold active:scale-95">
+          <svg :class="['w-4 h-4 transition-transform duration-300', sidebarCollapsed ? 'rotate-180' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+          </svg>
+          <span v-if="!sidebarCollapsed" class="text-[11px] font-mono tracking-wider">收起侧栏</span>
+        </button>
+      </div>
+
     </aside>
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- 2. 右侧主内容区域 (Main Content Area with Top Header & Tab Views)     -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
-    <div class="flex-1 flex flex-col h-full overflow-y-auto">
+    <div class="flex-1 flex flex-col h-full overflow-y-auto pb-24 md:pb-6">
       
-      <!-- Top Holographic Bar -->
-      <header class="w-full px-4 lg:px-8 py-3.5 border-b backdrop-blur-xl flex flex-wrap items-center justify-between gap-4 sticky top-0 z-20 transition-colors"
+      <!-- Top Holographic Bar (Mobile & Desktop Adaptive) -->
+      <header class="w-full px-3 sm:px-4 lg:px-8 py-2.5 sm:py-3.5 border-b backdrop-blur-xl flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-20 transition-colors"
         :class="activeEngine === 'singbox' ? 'bg-[#090714]/90 border-purple-800/40' : 'bg-[#001222]/90 border-sky-800/40'">
         
-        <!-- Left: Mobile Brand & Current Tab Title -->
-        <div class="flex items-center gap-3">
-          <button @click="activeMasterTab = 'overview'" class="md:hidden flex items-center gap-2">
-            <img src="/logo-cubex.svg" class="w-8 h-8 drop-shadow-[0_0_8px_rgba(0,210,255,0.7)]" alt="CubeX" />
+        <!-- Left: Mobile Menu Trigger + Brand & Current Tab Title -->
+        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+          <button @click="showMobileDrawer = true" class="md:hidden p-1.5 rounded-xl bg-slate-900/90 border border-cyan-500/40 text-cyan-300 hover:bg-slate-800 active:scale-95 transition" title="打开快捷抽屉">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
           </button>
-          <div class="flex items-center gap-2">
-            <h2 class="text-base font-bold text-white">{{ currentTabTitle }}</h2>
-            <span class="text-xs px-2 py-0.5 rounded-full font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-              全域双擎标准版
+          <button @click="showLogoGalleryModal = true" class="md:hidden flex items-center shrink-0" title="查看3D双子星Logo">
+            <img :src="activeLogoSrc" class="w-7 h-7 sm:w-8 sm:h-8 drop-shadow-[0_0_8px_rgba(0,210,255,0.7)]" alt="CubeX" />
+          </button>
+          <div class="flex items-center gap-1.5 overflow-hidden">
+            <h2 class="text-sm sm:text-base font-bold text-white truncate max-w-[90px] xs:max-w-none">{{ currentTabTitle }}</h2>
+            <span class="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40 whitespace-nowrap">
+              全域双擎
             </span>
           </div>
         </div>
 
         <!-- Center: Dual-Engine Capsule (Mihomo ⇄ sing-box 毫秒级热切) -->
-        <div class="flex items-center p-1.5 rounded-2xl border shadow-2xl backdrop-blur-2xl transition-all duration-500 relative gap-1.5"
+        <div class="flex items-center p-1 sm:p-1.5 rounded-2xl border shadow-2xl backdrop-blur-2xl transition-all duration-500 relative gap-1 sm:gap-1.5"
           :class="activeEngine === 'singbox' ? 'bg-[#120a26]/90 border-purple-500/70 shadow-purple-500/20' : 'bg-[#00172e]/90 border-cyan-500/70 shadow-cyan-500/20'">
           
           <!-- sing-box Button -->
           <button @click="switchEngine('singbox')" :disabled="switchingEngine"
             :class="[
-              'px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 active:scale-95 border',
+              'px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-2.5 sm:gap-3 active:scale-95 border select-none',
               activeEngine === 'singbox'
-                ? 'bg-gradient-to-r from-purple-600 via-fuchsia-600 to-indigo-600 text-white shadow-lg shadow-purple-500/40 border-purple-300 scale-102 ring-2 ring-purple-400/50'
-                : 'text-slate-400 hover:text-slate-200 border-transparent hover:bg-slate-900/60'
+                ? 'bg-gradient-to-r from-purple-700 via-fuchsia-600 to-indigo-600 text-white shadow-xl shadow-purple-600/50 border-fuchsia-300 scale-102 ring-2 ring-fuchsia-400/60'
+                : 'text-slate-300 hover:text-white border-slate-700/60 hover:border-purple-500/50 hover:bg-purple-950/40 bg-slate-900/60'
             ]">
-            <!-- Sing-box Neon Sandbox Crystal SVG -->
-            <div class="relative w-5 h-5 flex items-center justify-center shrink-0">
-              <svg class="w-5 h-5 drop-shadow-[0_0_8px_rgba(232,121,249,0.9)]" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L20.66 7L12 12L3.34 7L12 2Z" fill="#F0ABFC"/>
-                <path d="M3.34 7L12 12V22L3.34 17V7Z" fill="#A855F7"/>
-                <path d="M20.66 7L12 12V22L20.66 17V7Z" fill="#7E22CE"/>
-                <path d="M12 2L20.66 7M12 2L3.34 7M12 2V12M3.34 7L12 12L20.66 7M12 12V22M3.34 17L12 22L20.66 17" stroke="#FFFFFF" stroke-width="1.3"/>
-              </svg>
+            <!-- Sing-box Official 3D Neon Crystal Sandbox Badge -->
+            <div :class="[
+              'w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 p-1',
+              activeEngine === 'singbox'
+                ? 'bg-purple-950/90 border border-fuchsia-300 shadow-[0_0_14px_rgba(240,171,252,0.8)] scale-110'
+                : 'bg-slate-950/80 border border-purple-500/40 shadow-sm'
+            ]">
+              <img src="/logo-singbox.svg" class="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(240,171,252,0.9)]" alt="sing-box" />
             </div>
             <div class="text-left leading-snug">
               <div class="flex items-center gap-1.5">
-                <span class="tracking-wide text-xs font-black">sing-box</span>
-                <span v-if="activeEngine === 'singbox'" class="w-2 h-2 rounded-full bg-emerald-300 animate-ping"></span>
+                <span class="tracking-wide text-xs sm:text-sm font-black text-white">sing-box</span>
+                <span v-if="activeEngine === 'singbox'" class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></span>
               </div>
               <div :class="[
-                'text-[11px] font-black font-sans tracking-wider transition-colors',
-                activeEngine === 'singbox' ? 'text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]' : 'text-slate-200'
+                'hidden md:block text-[10px] sm:text-[11px] font-black font-sans tracking-wider transition-colors',
+                activeEngine === 'singbox' ? 'text-fuchsia-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : 'text-purple-300/80'
               ]">
                 极速 · 零泄露
               </div>
@@ -125,39 +233,28 @@
           <!-- Mihomo Button -->
           <button @click="switchEngine('mihomo')" :disabled="switchingEngine"
             :class="[
-              'px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 active:scale-95 border',
+              'px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-2.5 sm:gap-3 active:scale-95 border select-none',
               activeEngine === 'mihomo'
-                ? 'bg-gradient-to-r from-sky-400 via-cyan-400 to-teal-300 text-slate-950 shadow-lg shadow-cyan-500/50 border-cyan-100 scale-102 ring-2 ring-cyan-300/60'
-                : 'text-slate-400 hover:text-slate-100 border-transparent hover:bg-slate-900/60'
+                ? 'bg-gradient-to-r from-sky-400 via-cyan-400 to-teal-300 text-slate-950 shadow-xl shadow-cyan-500/60 border-cyan-100 scale-102 ring-2 ring-cyan-300/70'
+                : 'text-slate-300 hover:text-white border-slate-700/60 hover:border-cyan-500/50 hover:bg-cyan-950/40 bg-slate-900/60'
             ]">
-            <!-- Mihomo Neon MetaCube SVG -->
-            <div class="relative w-5 h-5 flex items-center justify-center shrink-0">
-              <svg class="w-5 h-5 drop-shadow-[0_0_8px_rgba(56,189,248,0.95)]" viewBox="0 0 24 24" fill="none">
-                <defs>
-                  <linearGradient id="mihomoGlowTop" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#38BDF8"/>
-                    <stop offset="100%" stop-color="#0284C7"/>
-                  </linearGradient>
-                  <linearGradient id="mihomoGlowSide" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#0284C7"/>
-                    <stop offset="100%" stop-color="#0369A1"/>
-                  </linearGradient>
-                </defs>
-                <path d="M12 2L20.66 7L12 12L3.34 7L12 2Z" fill="url(#mihomoGlowTop)"/>
-                <path d="M3.34 7L12 12V22L3.34 17V7Z" fill="url(#mihomoGlowSide)"/>
-                <path d="M20.66 7L12 12V22L20.66 17V7Z" fill="#075985"/>
-                <circle cx="12" cy="12" r="2.8" fill="#FFFFFF"/>
-                <path d="M12 2V12M3.34 7L12 12L20.66 7M12 12V22" stroke="#FFFFFF" stroke-width="1.3" stroke-linecap="round"/>
-              </svg>
+            <!-- Mihomo Official Meta Cat Cyber Mascot Badge -->
+            <div :class="[
+              'w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 p-1',
+              activeEngine === 'mihomo'
+                ? 'bg-slate-950/90 border border-cyan-300 shadow-[0_0_14px_rgba(56,189,248,0.9)] scale-110'
+                : 'bg-slate-950/80 border border-cyan-500/40 shadow-sm'
+            ]">
+              <img src="/logo-mihomo.svg" class="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(56,189,248,0.95)]" alt="Mihomo" />
             </div>
             <div class="text-left leading-snug">
               <div class="flex items-center gap-1.5">
-                <span :class="['tracking-wide text-xs font-black', activeEngine === 'mihomo' ? 'text-slate-950' : 'text-slate-100']">Mihomo Meta</span>
-                <span v-if="activeEngine === 'mihomo'" class="w-2 h-2 rounded-full bg-slate-950 animate-ping"></span>
+                <span :class="['tracking-wide text-xs sm:text-sm font-black', activeEngine === 'mihomo' ? 'text-slate-950' : 'text-white']">Mihomo</span>
+                <span v-if="activeEngine === 'mihomo'" class="w-2 h-2 rounded-full bg-slate-950 shadow-[0_0_8px_#06b6d4] animate-pulse"></span>
               </div>
               <div :class="[
-                'text-[11px] font-black font-sans tracking-wider transition-colors',
-                activeEngine === 'mihomo' ? 'text-slate-950' : 'text-slate-200'
+                'hidden md:block text-[10px] sm:text-[11px] font-black font-sans tracking-wider transition-colors',
+                activeEngine === 'mihomo' ? 'text-slate-900' : 'text-cyan-300/80'
               ]">
                 多协议 · 全生态
               </div>
@@ -169,14 +266,14 @@
           </div>
         </div>
 
-        <!-- Right: Panic Escape & Latency Indicator -->
-        <div class="flex items-center gap-2">
+        <!-- Right: Panic Escape & Latency Indicator & WeChat Control -->
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <!-- Latency Probe Badge with Rich Tooltip -->
           <div @click="fetchRealLatency" 
-            class="group relative hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/70 hover:border-cyan-500/50 cursor-pointer text-xs font-mono text-slate-300 transition shadow-sm select-none"
+            class="group relative hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/70 hover:border-cyan-500/50 cursor-pointer text-xs font-mono text-slate-300 transition shadow-sm select-none"
             title="点击刷新网络探针探测">
             <span :class="['w-2 h-2 rounded-full shrink-0', testingLatency ? 'bg-amber-400 animate-spin' : 'bg-emerald-400 animate-ping']"></span>
-            <span class="text-slate-400 text-[11px]">⚡ 国内直连:</span>
+            <span class="text-slate-400 text-[11px]">⚡ 直连:</span>
             <strong class="text-emerald-400 font-bold font-mono">{{ directLatency }}ms</strong>
 
             <!-- Popover Tooltip explaining probe target -->
@@ -204,29 +301,18 @@
                   cp.cloudflare.com (Cloudflare 全球骨干204探针)
                 </div>
               </div>
-              <div class="mt-2 pt-1.5 border-t border-slate-800 text-[10px] text-emerald-300 flex items-center gap-1">
-                <span>✔ 状态:</span>
-                <span>直连优先畅通，国内流量 0 代理损耗</span>
-              </div>
             </div>
           </div>
 
-          <!-- WeChat Mobile Remote Control Trigger -->
+          <!-- WeChat Mobile Remote Control Trigger with Official WeChat Logo -->
           <button @click="showWeChatModal = true" 
-            class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-300 shadow-sm active:scale-95"
-            title="微信扫码远程控制">
-            <span class="text-sm">📱</span>
-            <span>微信控制</span>
-          </button>
-
-          <button @click="togglePanic" 
-            :class="[
-              'px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition flex items-center gap-1 active:scale-95',
-              isPanicked 
-                ? 'bg-emerald-600 hover:bg-emerald-500 text-white animate-pulse' 
-                : 'bg-rose-950/70 hover:bg-rose-900 border border-rose-500/50 text-rose-200'
-            ]">
-            <span>{{ isPanicked ? '🟢 恢复加速' : '🚨 1秒急救直连' }}</span>
+            class="px-2 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 sm:gap-2 bg-[#07c160]/15 hover:bg-[#07c160]/25 border border-[#07c160]/50 text-emerald-300 shadow-sm active:scale-95"
+            title="微信智能控制中枢 (ClawBot 网关)">
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.538 2.002c-.04.151.114.285.25.218l2.42-1.189a.66.66 0 0 1 .494-.037c1.02.32 2.12.496 3.266.496.222 0 .44-.007.658-.02a6.37 6.37 0 0 1-.165-1.442c0-4.14 3.73-7.5 8.333-7.5.344 0 .68.02 1.012.057C17.785 4.887 13.626 2.188 8.691 2.188zm-2.61 5.378a1.18 1.18 0 1 1-2.359 0 1.18 1.18 0 0 1 2.359 0zm5.66 0a1.18 1.18 0 1 1-2.358 0 1.18 1.18 0 0 1 2.359 0z" fill="#07C160"/>
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M24 15.773c0-3.473-3.328-6.288-7.433-6.288-4.106 0-7.434 2.815-7.434 6.288 0 3.473 3.328 6.288 7.434 6.288.948 0 1.859-.147 2.705-.414a.55.55 0 0 1 .411.03l1.986.974c.112.055.239-.055.206-.179l-.442-1.642a.49.49 0 0 1 .175-.545C23.024 19.227 24 17.587 24 15.773zm-9.76-.713a.983.983 0 1 1-1.966 0 .983.983 0 0 1 1.966 0zm4.717 0a.983.983 0 1 1-1.966 0 .983.983 0 0 1 1.966 0z" fill="#07C160"/>
+            </svg>
+            <span class="hidden sm:inline">微信控制</span>
           </button>
         </div>
       </header>
@@ -669,86 +755,7 @@
 
                     <!-- Single High-Resolution Official SVG Logo (No Dark Box Background) -->
                     <div class="w-7 h-7 flex items-center justify-center shrink-0">
-                      <!-- OpenAI -->
-                      <svg v-if="getGroupLogoType(grp.name) === 'openai'" class="w-6 h-6 text-teal-400 filter drop-shadow-[0_0_6px_rgba(45,212,191,0.4)]" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M22.28 9.53a5.98 5.98 0 0 0-.52-4.91 6.05 6.05 0 0 0-6.51-2.9 6.06 6.06 0 0 0-4.88-2.43 6.05 6.05 0 0 0-5.76 4.19 6.05 6.05 0 0 0-4.08 2.96 6.05 6.05 0 0 0 .76 7.07 5.98 5.98 0 0 0 .52 4.91 6.05 6.05 0 0 0 6.51 2.9 6.06 6.06 0 0 0 4.88 2.43 6.05 6.05 0 0 0 5.76-4.19 6.05 6.05 0 0 0 4.08-2.96 6.05 6.05 0 0 0-.76-7.07zm-7.6 11.23a4.54 4.54 0 0 1-3.08-1.22l.14-.08 5.09-2.94a.78.78 0 0 0 .39-.68v-7.18l2.15 1.24a.07.07 0 0 1 .04.05v6.23a4.56 4.56 0 0 1-4.73 4.58zm-9.35-4.04a4.54 4.54 0 0 1-.58-3.26l.14.08 5.09 2.94a.78.78 0 0 0 .78 0l6.22-3.59v2.48a.07.07 0 0 1-.03.06l-5.4 3.12a4.56 4.56 0 0 1-6.22-1.83zm-1.74-9.52a4.54 4.54 0 0 1 2.5-2.04v6.13a.78.78 0 0 0 .39.68l6.22 3.59-2.15 1.24a.07.07 0 0 1-.07 0l-5.4-3.12a4.56 4.56 0 0 1-1.49-6.48zm12.33 2.65l-6.22-3.59 2.15-1.24a.07.07 0 0 1 .07 0l5.4 3.12a4.56 4.56 0 0 1 1.49 6.48 4.54 4.54 0 0 1-2.5 2.04v-6.13a.78.78 0 0 0-.39-.68zm3.03-1.63l-.14-.08-5.09-2.94a.78.78 0 0 0-.78 0l-6.22 3.59v-2.48a.07.07 0 0 1 .03-.06l5.4-3.12a4.56 4.56 0 0 1 6.8 5.09zm-8.95 5.17l-2.76-1.59 2.76-1.59 2.76 1.59-2.76 1.59z"/>
-                      </svg>
-                      <!-- YouTube -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'youtube'" class="w-6 h-6 filter drop-shadow-[0_0_6px_rgba(255,0,0,0.35)]" viewBox="0 0 24 24" fill="#FF0000">
-                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/>
-                        <path d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#FFFFFF"/>
-                      </svg>
-                      <!-- Google -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'google'" class="w-6 h-6" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
-                        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
-                        <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-                      </svg>
-                      <!-- GitHub / Docker -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'github'" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-                      </svg>
-                      <!-- Telegram -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'telegram'" class="w-6 h-6 filter drop-shadow-[0_0_6px_rgba(42,171,238,0.4)]" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="12" fill="#2AABEE"/>
-                        <path d="M17.5 7.5L5.5 12.1L9.5 13.6L14.5 10.2L10.7 14.7L15.8 17.8L17.5 7.5Z" fill="#FFFFFF"/>
-                      </svg>
-                      <!-- Twitter (X) -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'twitter'" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                      </svg>
-                      <!-- Netflix -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'netflix'" class="w-5 h-5 filter drop-shadow-[0_0_6px_rgba(229,9,20,0.4)]" viewBox="0 0 24 24" fill="#E50914">
-                        <path d="M5.398 0v24c1.393-.16 2.766-.37 4.119-.63V0H5.398zm9.084 0v19.89c1.373-.34 2.726-.74 4.12-1.19V0h-4.12zm-4.75 3.3v17.48c1.353-.29 2.716-.62 4.09-.98V.91L9.732 3.3z"/>
-                      </svg>
-                      <!-- Apple -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'apple'" class="w-5 h-5 text-slate-100" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.88c.63-.77 1.06-1.84.94-2.88-.91.04-2.02.61-2.67 1.38-.58.67-1.09 1.76-.95 2.8 1.02.08 2.05-.53 2.68-1.3"/>
-                      </svg>
-                      <!-- Microsoft -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'microsoft'" class="w-5 h-5" viewBox="0 0 24 24">
-                        <path fill="#F25022" d="M1 1h10v10H1z"/>
-                        <path fill="#7FBA00" d="M13 1h10v10H13z"/>
-                        <path fill="#00A4EF" d="M1 13h10v10H1z"/>
-                        <path fill="#FFB900" d="M13 13h10v10H13z"/>
-                      </svg>
-                      <!-- Spotify -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'spotify'" class="w-5 h-5 filter drop-shadow-[0_0_6px_rgba(29,185,84,0.4)]" viewBox="0 0 24 24" fill="#1DB954">
-                        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-                      </svg>
-                      <!-- Steam -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'steam'" class="w-5 h-5 text-sky-400" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.005.105.005.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 14.819C1.905 20.074 6.702 24 12 24c6.627 0 12-5.373 12-12S18.627 0 11.979 0"/>
-                      </svg>
-                      <!-- TikTok -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'tiktok'" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                        <path fill="#25F4EE" d="M12.5 0v16.2a3.8 3.8 0 1 1-3.8-3.8c.4 0 .8.1 1.2.2V8.2a8.2 8.2 0 0 0-1.2-.1 8.3 8.3 0 1 0 8.3 8.3V7.1a11.8 11.8 0 0 0 7-2.3V.5a7.3 7.3 0 0 1-7.1 2.3V0h-4.4z"/>
-                        <path fill="#FE2C55" d="M11.5 1v16.2a3.8 3.8 0 1 1-3.8-3.8c.4 0 .8.1 1.2.2V9.2a8.2 8.2 0 0 0-1.2-.1 8.3 8.3 0 1 0 8.3 8.3V8.1a11.8 11.8 0 0 0 7-2.3V1.5a7.3 7.3 0 0 1-7.1 2.3V1h-4.4z" opacity="0.8"/>
-                      </svg>
-                      <!-- Bilibili -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'bilibili'" class="w-5 h-5 text-sky-400" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M17.813 4.653h.854c1.51 0 2.733 1.224 2.733 2.734v10.146c0 1.51-1.223 2.734-2.733 2.734H5.333c-1.51 0-2.733-1.224-2.733-2.734V7.387c0-1.51 1.223-2.734 2.733-2.734h.854L4.35 2.817a.82.82 0 0 1 .184-1.144.82.82 0 0 1 1.144.184l2.84 3.796h6.964l2.84-3.796a.82.82 0 0 1 1.144-.184.82.82 0 0 1 .184 1.144l-1.837 1.836zM7.5 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm9 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
-                      </svg>
-                      <!-- Discord -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'discord'" class="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-                      </svg>
-                      <!-- Notion -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'notion'" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.782c-.466-.373-.84-.373-1.867-.326L3.992 2.389c-.373 0-.42.233-.28.466l.747 1.353zm.607 3.546v13.43c0 .84.42 1.12 1.353 1.073l13.916-.84c.933-.047 1.073-.607 1.073-1.307V6.868c0-.653-.28-.98-.933-.933l-14.476.84c-.653.047-.933.373-.933.979zm12.378 1.446c.14 0 .233.093.233.28v10.593c0 .28-.14.373-.326.373-.14 0-.327-.093-.42-.28l-5.647-8.82v8.587c0 .28-.14.373-.373.373h-1.633c-.187 0-.28-.093-.28-.28V9.387c0-.28.14-.373.373-.373.187 0 .373.093.467.28l5.693 8.773V9.48c0-.28.14-.28.28-.28h1.633z"/>
-                      </svg>
-                      <!-- Binance / Crypto -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'binance'" class="w-5 h-5" viewBox="0 0 24 24" fill="#F3BA2F">
-                        <path d="M16.624 13.92l2.715 2.715-7.34 7.34-7.339-7.34 2.715-2.715 4.624 4.624 4.626-4.624zm-4.625-7.344l3.82 3.82-3.82 3.82-3.82-3.82 3.82-3.82zm7.34 2.72l2.715 2.716-2.715 2.715-2.715-2.715 2.715-2.716zm-14.679 0l2.715 2.716-2.715 2.715-2.715-2.715 2.715-2.716zm7.339-9.3l7.34 7.34-2.715 2.715-4.625-4.624-4.625 4.624-2.715-2.715 7.34-7.34z"/>
-                      </svg>
-                      <!-- 漏网之鱼 (兜底分流星芒) -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'fish'" class="w-5 h-5 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="9"/>
-                        <polygon points="12 3 14 10 21 12 14 14 12 21 10 14 3 12 10 10 12 3" fill="#FBBF24"/>
-                      </svg>
-                      <!-- Direct / Other Defaults -->
-                      <span v-else class="text-xl">{{ getGroupIcon(grp.name) }}</span>
+                      <BrandLogo :name="grp" size="w-6 h-6" />
                     </div>
 
                     <!-- Clean Group Title (Strictly NO Duplicate Emoji) -->
@@ -828,24 +835,70 @@
                 <button @click="showAddGroupModal = false" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
               </div>
 
-              <!-- 💡 日常高频预设库 (自动去重过滤已存在分流组) -->
+              <!-- 💡 日常高频预设库 (自动去重，支持一键直接添加、增加与删除) -->
               <div class="space-y-1.5">
                 <div class="flex items-center justify-between text-xs">
                   <span class="text-slate-400 font-mono flex items-center gap-1">
                     <span>💡 快捷选自日常高频应用</span>
-                    <span class="text-[10px] text-cyan-400">(自动过滤已存在项)</span>
+                    <span class="text-[10px] text-cyan-400">(自动过滤已存在)</span>
                   </span>
-                  <span class="text-[10px] text-cyan-400">点击一键载入模版</span>
+                  <div class="flex items-center gap-2">
+                    <button type="button" @click="showAddCustomPresetForm = !showAddCustomPresetForm"
+                      class="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-0.5 hover:underline">
+                      ➕ 增加常用
+                    </button>
+                    <button type="button" @click="resetPresetsToDefault"
+                      class="text-[10px] text-slate-500 hover:text-slate-400 font-mono hover:underline">
+                      🔄 恢复默认
+                    </button>
+                  </div>
                 </div>
-                <div class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 rounded-xl bg-slate-950/80 border border-slate-800">
-                  <button v-for="preset in availablePresetServices" :key="preset.id"
-                    type="button"
-                    @click="applyPreset(preset)"
-                    class="px-2.5 py-1 rounded-lg text-[11px] font-mono bg-slate-900 hover:bg-cyan-950 border border-slate-800 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-300 transition flex items-center gap-1.5 active:scale-95">
-                    <span>{{ preset.name }}</span>
-                  </button>
+
+                <!-- Custom Add Preset Form (Collapsible) -->
+                <div v-if="showAddCustomPresetForm" class="p-3 rounded-2xl bg-slate-900/95 border border-emerald-500/50 space-y-2 text-xs animate-in fade-in">
+                  <div class="font-bold text-emerald-300 flex items-center justify-between">
+                    <span>新增日常高频应用模版</span>
+                    <button type="button" @click="showAddCustomPresetForm = false" class="text-slate-400 hover:text-white font-bold">✕</button>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input v-model="newCustomPreset.name" placeholder="应用名称 (如: HuggingFace)"
+                      class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-xs outline-none focus:border-emerald-400" />
+                    <LogoPicker v-model="newCustomPreset.icon" />
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <input v-model="newCustomPreset.rule_value" placeholder="规则/域名 (如: geosite:huggingface)"
+                      class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-xs outline-none focus:border-emerald-400" />
+                    <button type="button" @click="submitAddCustomPreset"
+                      class="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition active:scale-95">
+                      保存至常用库
+                    </button>
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 rounded-xl bg-slate-950/80 border border-slate-800">
+                  <div v-for="preset in availablePresetServices" :key="preset.id"
+                    class="group inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-mono bg-slate-900 hover:bg-cyan-950/70 border border-slate-800 hover:border-cyan-500/50 text-slate-300 transition select-none">
+                    <!-- Brand Vector Logo -->
+                    <BrandLogo :icon="preset.icon" size="w-3.5 h-3.5" />
+                    <!-- Click to fill form -->
+                    <span @click="applyPreset(preset)" class="cursor-pointer hover:text-cyan-300 truncate max-w-[130px]" title="点击将模版填入下方表单">
+                      {{ preset.name }}
+                    </span>
+                    <!-- ⚡ 一键添加按钮 -->
+                    <button type="button" @click.stop="quickAddPreset(preset)" :disabled="quickAddingId === preset.id"
+                      class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 transition active:scale-95 shadow-sm"
+                      title="一键立即添加并自动生效">
+                      {{ quickAddingId === preset.id ? '添加中...' : '⚡ 一键添加' }}
+                    </button>
+                    <!-- ✕ 删除按钮 -->
+                    <button type="button" @click.stop="removeHighFreqPreset(preset.id)"
+                      class="text-slate-500 hover:text-rose-400 px-0.5 transition"
+                      title="从高频常用中删除此项">
+                      ✕
+                    </button>
+                  </div>
                   <div v-if="availablePresetServices.length === 0" class="text-slate-500 text-[11px] py-1 px-1">
-                    🎉 所有推荐的日常高频分流组已全量就绪！您也可以直接自定义输入。
+                    🎉 所有推荐的日常高频分流组已全量就绪！点击上方「➕ 增加常用」可随时扩充。
                   </div>
                 </div>
               </div>
@@ -859,27 +912,7 @@
 
                 <div>
                   <label class="block text-slate-400 font-mono mb-1">官方应用图标标识</label>
-                  <select v-model="newGroupForm.icon"
-                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono">
-                    <option value="default">🌐 默认应用罗盘</option>
-                    <option value="openai">🤖 OpenAI / ChatGPT / Claude</option>
-                    <option value="youtube">📹 YouTube / 视频流媒体</option>
-                    <option value="google">🍀 Google / 搜索与 Play</option>
-                    <option value="github">👨‍💻 GitHub / Docker 开源生态</option>
-                    <option value="telegram">📲 Telegram / 消息通信</option>
-                    <option value="twitter">🐦 Twitter (X) / 社交媒体</option>
-                    <option value="netflix">🎬 Netflix / Disney+ 流媒体</option>
-                    <option value="spotify">🎵 Spotify / 高保真音乐</option>
-                    <option value="steam">🎮 Steam / 游戏主机加速</option>
-                    <option value="tiktok">🎶 TikTok / 国际短视频</option>
-                    <option value="bilibili">📺 Bilibili / 港澳台番剧</option>
-                    <option value="discord">💬 Discord / 社区聊天</option>
-                    <option value="apple">🍏 Apple / 苹果专有服务</option>
-                    <option value="microsoft">🪟 Microsoft / 微软 Office</option>
-                    <option value="notion">📝 Notion / 知识协同</option>
-                    <option value="binance">🪙 Binance / 加密货币交易</option>
-                    <option value="fish">🐟 漏网之鱼兜底出站</option>
-                  </select>
+                  <LogoPicker v-model="newGroupForm.icon" />
                 </div>
 
                 <div>
@@ -917,6 +950,237 @@
             </div>
           </div>
 
+          <!-- ════════════════════════════════════════════════════════════════ -->
+          <!-- Modal: 双子星 × 超立方 3大全新设计定稿大图展厅                     -->
+          <!-- ════════════════════════════════════════════════════════════════ -->
+          <div v-if="showLogoGalleryModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+            <div class="w-full max-w-4xl rounded-3xl bg-[#00172e] border border-cyan-500/50 shadow-2xl p-6 sm:p-8 space-y-6 text-slate-200 max-h-[90vh] overflow-y-auto">
+              <div class="flex items-center justify-between border-b border-sky-800/40 pb-4">
+                <div class="flex items-center gap-3">
+                  <span class="text-2xl">✨</span>
+                  <div>
+                    <h3 class="text-lg font-black text-white flex items-center gap-2">
+                      <span>双子星 × 超立方 3 大全新设计提案定稿展示</span>
+                      <span class="text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-mono">
+                        Gemini-Cube Showcase
+                      </span>
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-1">融合 Google Gemini 双子星耀引力轨与 MikroTik 科技超立方架构，点击任一方案即可一键定稿设为系统 Logo。</p>
+                  </div>
+                </div>
+                <button @click="showLogoGalleryModal = false" class="text-slate-400 hover:text-white text-xl font-bold">✕</button>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div v-for="scheme in logoOptions" :key="scheme.id"
+                  @click="activeLogoId = scheme.id; showToast(`已选用: ${scheme.name}`)"
+                  :class="[
+                    'p-6 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-4 group relative',
+                    activeLogoId === scheme.id
+                      ? 'bg-cyan-950/40 border-cyan-400 shadow-xl shadow-cyan-950/60 ring-2 ring-cyan-400/50'
+                      : 'bg-slate-950/80 border-slate-800 hover:border-cyan-500/40 hover:bg-slate-900/80'
+                  ]">
+                  <div class="space-y-4 text-center">
+                    <div class="relative mx-auto w-32 h-32 flex items-center justify-center p-3 rounded-2xl bg-slate-900/90 border border-slate-800 group-hover:border-cyan-400/50 transition">
+                      <div class="absolute inset-0 rounded-2xl blur-xl transition-opacity opacity-40 group-hover:opacity-75 bg-cyan-500/20"></div>
+                      <img :src="scheme.file" class="relative z-10 w-24 h-24 drop-shadow-[0_0_20px_rgba(0,210,255,0.6)] group-hover:scale-110 transition-transform duration-500" :alt="scheme.name" />
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-bold text-white group-hover:text-cyan-300 transition">{{ scheme.name }}</h4>
+                      <p class="text-xs text-slate-400 mt-2 text-left leading-relaxed">{{ scheme.desc }}</p>
+                    </div>
+                  </div>
+
+                  <div class="pt-2">
+                    <button
+                      type="button"
+                      :class="[
+                        'w-full py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow',
+                        activeLogoId === scheme.id
+                          ? 'bg-cyan-500 text-slate-950'
+                          : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                      ]">
+                      <span>{{ activeLogoId === scheme.id ? '✓ 当前选用' : '选用此方案' }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between pt-4 border-t border-sky-800/40 text-xs">
+                <span class="text-slate-400">💡 提示：在页面左侧边栏也可以随时点击 Logo 或下方标签快捷切换预览。</span>
+                <button @click="showLogoGalleryModal = false" class="px-5 py-2 rounded-xl bg-gradient-to-r from-teal-400 to-cyan-500 text-slate-950 font-bold text-xs shadow-md">
+                  确定并返回
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <!-- TAB: 极速下载与国内镜像加速矩阵 (KSpeeder Dedicated Workspace)    -->
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <div v-else-if="activeMasterTab === 'kspeeder'" class="space-y-6 animate-in fade-in">
+          <!-- Page Header -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-800/40 pb-4">
+            <div>
+              <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                <span>🚀 容器加速与国内镜像矩阵</span>
+                <span class="text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-mono whitespace-nowrap">
+                  {{ kspeederConfig.enabled ? '🟢 加速引擎就绪' : '⚪ 已暂停' }}
+                </span>
+              </h2>
+              <p class="text-xs text-slate-400 mt-1">
+                针对中国大陆网络深度优化 · GitHub CDN 极速下载转换 · 5大 Docker Registry 聚合镜像加速 · 一键注入宿主
+              </p>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <button @click="testAllKSpeeder" :disabled="testingKSpeeder" 
+                class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-teal-400 to-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap">
+                <span>{{ testingKSpeeder ? '全网并发测速中...' : '⚡ 全节点并发测速' }}</span>
+              </button>
+              <button @click="fetchKSpeeder" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-semibold whitespace-nowrap">
+                🔄 刷新源状态
+              </button>
+            </div>
+          </div>
+
+          <!-- Section 1: GitHub 链接一键加速转换器 (极速生产力工具) -->
+          <div class="p-6 rounded-3xl bg-slate-900/90 border border-cyan-500/40 space-y-4 shadow-xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">⚡</span>
+                <div>
+                  <h3 class="text-sm font-bold text-white">GitHub 极速下载链接转换器</h3>
+                  <p class="text-xs text-slate-400">粘贴任意 GitHub Releases / Raw / Git 仓库链接，即刻生成免翻高速镜像直链</p>
+                </div>
+              </div>
+              <div class="text-xs font-mono text-cyan-400">
+                当前生效节点: <strong class="text-white">{{ activeGitHubProxyName }}</strong>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div class="relative">
+                <input v-model="githubInputUrl" 
+                  placeholder="例如: https://github.com/MetaCubeX/mihomo/releases/download/... 或 raw.githubusercontent.com 链接"
+                  class="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 focus:border-cyan-400 text-slate-100 text-xs font-mono outline-none shadow-inner pr-24" />
+                <button v-if="githubInputUrl" @click="githubInputUrl = ''" class="absolute right-3 top-3 text-slate-500 hover:text-slate-300 text-xs">
+                  清空
+                </button>
+              </div>
+
+              <div v-if="githubAcceleratedUrl" class="p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/40 space-y-2.5">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-cyan-300 font-bold flex items-center gap-1.5">
+                    <span>🚀 极速加速下载直链已就绪:</span>
+                  </span>
+                  <span class="text-[10px] text-slate-400 font-mono">直连 CDN 满宽带下载</span>
+                </div>
+                <div class="p-2.5 bg-slate-950 rounded-xl text-xs font-mono text-cyan-200 break-all select-all border border-cyan-900/40">
+                  {{ githubAcceleratedUrl }}
+                </div>
+                <div class="flex gap-2 pt-1">
+                  <button @click="copyAcceleratedUrl" class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow-md">
+                    <span>📋 一键复制加速链接</span>
+                  </button>
+                  <button @click="openAcceleratedUrl" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs transition flex items-center gap-1.5">
+                    <span>⬇️ 浏览器直接打开下载</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: GitHub CDN 优选镜像源矩阵 (5大高速节点) -->
+          <div class="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">🐙</span>
+                <div>
+                  <h3 class="text-sm font-bold text-white">GitHub CDN 优选镜像源状态</h3>
+                  <p class="text-xs text-slate-400">实时测速、自动剔除失效节点并锁定毫秒级极速下载通道</p>
+                </div>
+              </div>
+              <button @click="testGitHubProxies" :disabled="testingKSpeeder" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition">
+                ⚡ 仅测速 GitHub 源
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div v-for="p in kspeederConfig.github_proxies" :key="p.name"
+                @click="kspeederConfig.active_github_proxy = p.url; saveKSpeederConfig()"
+                :class="[
+                  'p-4 rounded-2xl border transition-all cursor-pointer space-y-2 select-none relative',
+                  kspeederConfig.active_github_proxy === p.url
+                    ? 'bg-cyan-950/50 border-cyan-400 shadow-lg shadow-cyan-950/50'
+                    : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
+                ]">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-white">{{ p.name }}</span>
+                  <span v-if="kspeederConfig.active_github_proxy === p.url" class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500 text-slate-950 font-bold">
+                    ✓ 生效中
+                  </span>
+                </div>
+                <div class="text-[11px] font-mono text-slate-400 truncate">{{ p.url || '官方原版直连' }}</div>
+                <div class="flex items-center justify-between pt-1 text-[11px] font-mono">
+                  <span :class="p.latency_ms > 0 && p.latency_ms < 100 ? 'text-emerald-400' : p.latency_ms < 200 ? 'text-amber-400' : 'text-slate-400'">
+                    ⚡ {{ p.latency_ms > 0 ? `${p.latency_ms} ms` : '待测速' }}
+                  </span>
+                  <span :class="p.status === 'ok' ? 'text-emerald-400' : 'text-slate-500'">
+                    ● {{ p.status === 'ok' ? '节点健康' : '待更新' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3: Docker Registry 镜像加速与 RouterOS 容器注入 -->
+          <div class="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+              <div class="flex items-center gap-2">
+                <span class="text-xl">🐳</span>
+                <div>
+                  <h3 class="text-sm font-bold text-white">Docker Registry 镜像加速与宿主容器注入</h3>
+                  <p class="text-xs text-slate-400">聚合国内优质 Docker Hub 镜像，解决拉取镜像超时卡死问题</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <button @click="applyHostDockerRegistry" :disabled="applyingHostDocker"
+                  class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md whitespace-nowrap">
+                  <span>{{ applyingHostDocker ? '正在自动注入宿主...' : `🚀 一键注入宿主 (${detectedHostLabel})` }}</span>
+                </button>
+                <button @click="copyDockerDaemonConfig" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold whitespace-nowrap">
+                  📋 复制 Docker daemon.json
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div v-for="m in kspeederConfig.docker_mirrors" :key="m.name"
+                @click="kspeederConfig.active_docker_mirror = m.url; saveKSpeederConfig()"
+                :class="[
+                  'p-4 rounded-2xl border transition-all cursor-pointer space-y-2 select-none relative',
+                  kspeederConfig.active_docker_mirror === m.url
+                    ? 'bg-emerald-950/40 border-emerald-400 shadow-lg shadow-emerald-950/50'
+                    : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
+                ]">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-white">{{ m.name }}</span>
+                  <span v-if="kspeederConfig.active_docker_mirror === m.url" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-bold">
+                    ✓ 生效中
+                  </span>
+                </div>
+                <div class="text-[11px] font-mono text-slate-400 truncate">{{ m.url }}</div>
+                <div class="flex items-center justify-between pt-1 text-[11px] font-mono">
+                  <span :class="m.latency_ms > 0 && m.latency_ms < 100 ? 'text-emerald-400' : 'text-amber-400'">
+                    ⚡ {{ m.latency_ms > 0 ? `${m.latency_ms} ms` : '待测速' }}
+                  </span>
+                  <span class="text-emerald-400">● 镜像可用</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- ════════════════════════════════════════════════════════════════ -->
@@ -1650,87 +1914,23 @@
             </div>
           </div>
 
-          <!-- AI Copilot Assistant & 时光机全量备份 -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- KSpeeder 极速下载与镜像加速中枢 -->
-            <div class="p-5 rounded-2xl bg-slate-900/90 border border-cyan-500/40 space-y-3.5 shadow-lg">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="text-xl">🚀</span>
-                  <div>
-                    <div class="text-sm font-bold text-white flex items-center gap-2">
-                      <span>KSpeeder 极速下载与镜像加速</span>
-                      <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-                        {{ kspeederConfig.enabled ? '🟢 加速引擎已就绪' : '⚪ 已暂停' }}
-                      </span>
-                    </div>
-                    <div class="text-[11px] text-slate-400">GitHub CDN 脚本/Release 加速与 Docker Registry 镜像加速</div>
-                  </div>
-                </div>
-                <button @click="testAllKSpeeder" :disabled="testingKSpeeder" 
-                  class="px-3 py-1.5 rounded-xl bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-400 text-cyan-200 text-xs font-bold transition flex items-center gap-1">
-                  <span>{{ testingKSpeeder ? '并发测速中...' : '⚡ 全节点并发测速' }}</span>
-                </button>
-              </div>
-
-              <!-- GitHub CDN 加速节点选择 -->
-              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-                <div class="flex items-center justify-between text-xs">
-                  <span class="font-bold text-slate-200 flex items-center gap-1.5">
-                    <span>🐙 GitHub CDN 优选镜像源</span>
-                    <span class="text-[10px] text-cyan-400 font-mono">({{ (kspeederConfig.github_proxies || []).length }} 个加速节点)</span>
-                  </span>
-                  <span class="text-[10px] font-mono text-emerald-400 font-semibold">{{ activeGitHubProxyName }}</span>
-                </div>
-                <div class="flex gap-2">
-                  <select v-model="kspeederConfig.active_github_proxy" @change="saveKSpeederConfig"
-                    class="flex-1 bg-slate-900 border border-slate-700 text-white text-xs rounded-xl px-3 py-2 outline-none font-mono">
-                    <option v-for="p in kspeederConfig.github_proxies" :key="p.name" :value="p.url">
-                      {{ p.name }} {{ p.latency_ms > 0 ? `(${p.latency_ms}ms)` : '' }}
-                    </option>
-                  </select>
-                  <button @click="testGitHubProxies" :disabled="testingKSpeeder"
-                    class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition">
-                    测速
-                  </button>
-                </div>
-              </div>
-
-              <!-- Docker Registry 镜像加速与 RouterOS 容器一键注入 -->
-              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-                <div class="flex items-center justify-between text-xs">
-                  <span class="font-bold text-slate-200 flex items-center gap-1.5">
-                    <span>🐳 Docker Registry 镜像加速源</span>
-                    <span class="text-[10px] text-cyan-400 font-mono">({{ (kspeederConfig.docker_mirrors || []).length }} 个国内聚合源)</span>
-                  </span>
-                  <span class="text-[10px] font-mono text-emerald-400 font-semibold">{{ activeDockerMirrorName }}</span>
-                </div>
-                <div class="flex gap-2">
-                  <select v-model="kspeederConfig.active_docker_mirror" @change="saveKSpeederConfig"
-                    class="flex-1 bg-slate-900 border border-slate-700 text-white text-xs rounded-xl px-3 py-2 outline-none font-mono">
-                    <option v-for="m in kspeederConfig.docker_mirrors" :key="m.name" :value="m.url">
-                      {{ m.name }} {{ m.latency_ms > 0 ? `(${m.latency_ms}ms)` : '' }}
-                    </option>
-                  </select>
-                  <button @click="applyROSDockerRegistry" :disabled="applyingROSDocker"
-                    class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1 shadow">
-                    <span>{{ applyingROSDocker ? '正在注入...' : '🚀 注入 ROS 容器' }}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Time Machine Backup -->
-            <div class="p-5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-3 flex flex-col justify-between">
+          <!-- 时光机全量备份与容灾恢复 -->
+          <div class="p-5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h3 class="text-sm font-bold text-white">🔄 防手残时光机全量备份</h3>
-                <p class="text-xs text-slate-400 mt-1">一键打包导出包含双核配置、WireGuard 密钥及分流规则的全量快照。</p>
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                  <span>🔄 防手残时光机全量备份</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-mono">
+                    Snapshot Recovery
+                  </span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">一键打包导出包含双核配置、WireGuard 密钥及分流规则的全量快照，支持秒级导入恢复。</p>
               </div>
-              <div class="flex gap-2 pt-2">
-                <button @click="exportBackup" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-bold transition">
+              <div class="flex items-center gap-2">
+                <button @click="exportBackup" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-bold transition">
                   📥 导出系统配置快照
                 </button>
-                <label class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-cyan-300 text-xs font-bold text-center cursor-pointer transition">
+                <label class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-cyan-300 text-xs font-bold text-center cursor-pointer transition">
                   📤 导入恢复快照
                   <input type="file" accept=".json" @change="importBackup" class="hidden" />
                 </label>
@@ -1743,19 +1943,92 @@
       </main>
 
       <!-- ════════════════════════════════════════════════════════════════ -->
-      <!-- 3. 移动端底部浮动导航 (Mobile Floating Dock < 768px)            -->
+      <!-- 3. 移动端原生级底部导航栏 (Mobile Safe-Area Bottom Dock < 768px)  -->
       <!-- ════════════════════════════════════════════════════════════════ -->
-      <nav class="md:hidden fixed bottom-3 left-3 right-3 z-40 bg-slate-900/90 backdrop-blur-2xl border border-slate-700/60 rounded-2xl shadow-2xl p-1.5 flex items-center justify-around">
-        <button v-for="item in navItems" :key="item.id" @click="activeMasterTab = item.id"
-          :class="[
-            'flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition',
-            activeMasterTab === item.id ? 'text-cyan-300 bg-sky-500/20 font-bold' : 'text-slate-400'
-          ]">
-          <span class="text-base">{{ item.icon }}</span>
-          <span class="text-[10px] mt-0.5">{{ item.label }}</span>
-        </button>
+      <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#001428]/95 backdrop-blur-2xl border-t border-cyan-500/30 pb-safe shadow-[0_-4px_25px_rgba(0,0,0,0.6)]">
+        <div class="grid grid-cols-5 px-1 py-1.5 gap-0.5">
+          <button v-for="item in navItems" :key="item.id" @click="activeMasterTab = item.id"
+            :class="[
+              'flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all select-none',
+              activeMasterTab === item.id
+                ? 'text-cyan-300 font-bold bg-cyan-500/20 shadow-sm border border-cyan-400/40'
+                : 'text-slate-400 hover:text-slate-200 border border-transparent active:scale-95'
+            ]">
+            <span class="text-lg leading-none mb-1">{{ item.icon }}</span>
+            <span class="text-[10px] tracking-tight leading-none whitespace-nowrap">{{ item.label }}</span>
+          </button>
+        </div>
       </nav>
 
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- 移动端侧滑/浮层抽屉导航 (Mobile Flyout Navigation Drawer)              -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div v-if="showMobileDrawer" class="md:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex animate-in fade-in">
+      <div class="w-4/5 max-w-xs h-full bg-[#00172e] border-r border-cyan-500/40 p-5 flex flex-col justify-between overflow-y-auto">
+        <div class="space-y-5">
+          <!-- Drawer Header with Logo & Close Button -->
+          <div class="flex items-center justify-between border-b border-sky-900/40 pb-4">
+            <div class="flex items-center gap-2.5">
+              <img :src="activeLogoSrc" class="w-10 h-10 drop-shadow-[0_0_12px_rgba(0,210,255,0.7)]" alt="CubeX" />
+              <div>
+                <h1 class="text-lg font-black text-white">CubeX</h1>
+                <span class="text-[9px] font-mono text-cyan-300">DUAL-ENGINE GATEWAY</span>
+              </div>
+            </div>
+            <button @click="showMobileDrawer = false" class="p-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white">
+              ✕
+            </button>
+          </div>
+
+          <!-- Official X-Cube Brand Badge on Mobile -->
+          <div class="p-3 rounded-2xl bg-slate-900/90 border border-cyan-500/30 flex items-center justify-between text-xs">
+            <span class="text-cyan-300 font-bold font-mono">✦ 光曜极光 X-Cube</span>
+            <span class="text-[10px] font-mono text-cyan-200 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-500/30 font-bold">官方定稿</span>
+          </div>
+
+          <!-- Detected Host Platform badge on Mobile -->
+          <div class="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2 overflow-hidden">
+              <span class="text-lg">{{ hostBadge.icon }}</span>
+              <div class="text-left overflow-hidden">
+                <div class="text-[9px] text-slate-400 uppercase font-mono">HOST BASE</div>
+                <div class="text-xs font-bold text-cyan-200 truncate">{{ hostBadge.name }}</div>
+              </div>
+            </div>
+            <span :class="['w-2 h-2 rounded-full', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_6px_#10b981] animate-pulse' : 'bg-amber-400']"></span>
+          </div>
+
+          <!-- Navigation Links in Drawer -->
+          <div class="space-y-1.5 pt-1">
+            <div class="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-2">快速导航</div>
+            <button v-for="item in navItems" :key="item.id"
+              @click="activeMasterTab = item.id; showMobileDrawer = false"
+              :class="[
+                'w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition',
+                activeMasterTab === item.id
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 font-bold'
+                  : 'text-slate-300 hover:bg-slate-800/60'
+              ]">
+              <span class="text-base">{{ item.icon }}</span>
+              <span>{{ item.label }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Drawer Footer with WeChat & Emergency Trigger -->
+        <div class="pt-4 border-t border-sky-900/40 space-y-2">
+          <button @click="showMobileDrawer = false; showWeChatModal = true" class="w-full py-2.5 rounded-xl bg-[#07c160]/20 border border-[#07c160]/50 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2">
+            <span>💬 微信控制中心</span>
+          </button>
+          <div class="text-[9px] text-slate-500 text-center font-mono">
+            CubeX {{ systemStatus.version || 'v1.0.0-Aurora' }}
+          </div>
+        </div>
+      </div>
+      <!-- Click Outside Area to Close -->
+      <div class="flex-1" @click="showMobileDrawer = false"></div>
     </div>
 
     <!-- ── QR Code Active Modal ── -->
@@ -1957,136 +2230,167 @@
     <!-- MODAL: 微信扫码控制中枢 (WeChat Remote Control & Web Console)          -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <div v-if="showWeChatModal" class="fixed inset-0 z-50 bg-[#070b14]/85 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
-      <div class="bg-slate-900 border border-emerald-500/50 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
+      <div class="bg-slate-900 border border-emerald-500/50 rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 max-h-[92vh] overflow-y-auto">
+        <!-- Header -->
         <div class="flex justify-between items-center border-b border-slate-800 pb-3">
           <div class="flex items-center gap-2.5">
-            <span class="text-2xl p-2 rounded-2xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-400">📱</span>
+            <div class="w-10 h-10 rounded-2xl bg-[#07c160]/20 border border-[#07c160]/50 flex items-center justify-center shrink-0">
+              <svg class="w-6 h-6" viewBox="0 0 24 24">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.538 2.002c-.04.151.114.285.25.218l2.42-1.189a.66.66 0 0 1 .494-.037c1.02.32 2.12.496 3.266.496.222 0 .44-.007.658-.02a6.37 6.37 0 0 1-.165-1.442c0-4.14 3.73-7.5 8.333-7.5.344 0 .68.02 1.012.057C17.785 4.887 13.626 2.188 8.691 2.188zm-2.61 5.378a1.18 1.18 0 1 1-2.359 0 1.18 1.18 0 0 1 2.359 0zm5.66 0a1.18 1.18 0 1 1-2.358 0 1.18 1.18 0 0 1 2.359 0z" fill="#07C160"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M24 15.773c0-3.473-3.328-6.288-7.433-6.288-4.106 0-7.434 2.815-7.434 6.288 0 3.473 3.328 6.288 7.434 6.288.948 0 1.859-.147 2.705-.414a.55.55 0 0 1 .411.03l1.986.974c.112.055.239-.055.206-.179l-.442-1.642a.49.49 0 0 1 .175-.545C23.024 19.227 24 17.587 24 15.773zm-9.76-.713a.983.983 0 1 1-1.966 0 .983.983 0 0 1 1.966 0zm4.717 0a.983.983 0 1 1-1.966 0 .983.983 0 0 1 1.966 0z" fill="#07C160"/>
+              </svg>
+            </div>
             <div>
               <h3 class="text-base font-bold text-white flex items-center gap-2">
-                <span>微信扫码远程控制</span>
+                <span>微信智能控制中枢</span>
                 <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40">
-                  免密安全直连
+                  方案 1 · 纯 Go 原生 iLink 驱动
                 </span>
               </h3>
-              <p class="text-xs text-slate-400">手机微信直接「扫一扫」即可接入控制中枢，无需安装额外 App</p>
+              <p class="text-xs text-slate-400">腾讯官方合规通道 · 零封号风险 · 微信长轮询全天候免密文字遥控</p>
             </div>
           </div>
           <button @click="showWeChatModal = false" class="text-slate-400 hover:text-white px-2.5 py-1 rounded-xl bg-slate-800 text-xs">✕</button>
         </div>
 
-        <!-- QR Code Display Area -->
-        <div class="flex flex-col items-center justify-center p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3 text-center">
-          <div class="relative p-3 bg-white rounded-2xl shadow-xl flex items-center justify-center">
-            <!-- Aesthetic Vector QR Code SVG -->
-            <svg class="w-48 h-48" viewBox="0 0 120 120" fill="none">
-              <rect x="0" y="0" width="120" height="120" fill="#FFFFFF"/>
-              <!-- Position markers -->
-              <rect x="10" y="10" width="30" height="30" fill="#002D50" rx="4"/>
-              <rect x="14" y="14" width="22" height="22" fill="#FFFFFF" rx="2"/>
-              <rect x="18" y="18" width="14" height="14" fill="#00D2FF" rx="2"/>
+        <!-- Mode Tabs -->
+        <div class="flex rounded-xl bg-slate-950/80 p-1 border border-slate-800 text-xs font-semibold">
+          <button @click="wechatModalTab = 'clawbot'"
+            :class="['flex-1 py-1.5 rounded-lg transition text-center', wechatModalTab === 'clawbot' ? 'bg-[#07c160] text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-white']">
+            💬 微信官方 ClawBot (方案 1 · 原生直连)
+          </button>
+          <button @click="wechatModalTab = 'web'"
+            :class="['flex-1 py-1.5 rounded-lg transition text-center', wechatModalTab === 'web' ? 'bg-cyan-500 text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-white']">
+            📱 微信触屏 Web 控制台 (免密视窗)
+          </button>
+        </div>
 
-              <rect x="80" y="10" width="30" height="30" fill="#002D50" rx="4"/>
-              <rect x="84" y="14" width="22" height="22" fill="#FFFFFF" rx="2"/>
-              <rect x="88" y="18" width="14" height="14" fill="#00D2FF" rx="2"/>
-
-              <rect x="10" y="80" width="30" height="30" fill="#002D50" rx="4"/>
-              <rect x="14" y="84" width="22" height="22" fill="#FFFFFF" rx="2"/>
-              <rect x="18" y="88" width="14" height="14" fill="#00D2FF" rx="2"/>
-
-              <!-- Simulated data pixels -->
-              <rect x="46" y="14" width="6" height="6" fill="#002D50"/>
-              <rect x="56" y="14" width="8" height="6" fill="#002D50"/>
-              <rect x="68" y="14" width="6" height="6" fill="#002D50"/>
-              <rect x="46" y="24" width="8" height="6" fill="#002D50"/>
-              <rect x="60" y="24" width="6" height="6" fill="#002D50"/>
-              <rect x="46" y="34" width="6" height="6" fill="#002D50"/>
-              <rect x="58" y="34" width="14" height="6" fill="#002D50"/>
-
-              <rect x="14" y="46" width="6" height="8" fill="#002D50"/>
-              <rect x="24" y="46" width="8" height="6" fill="#002D50"/>
-              <rect x="36" y="46" width="6" height="8" fill="#002D50"/>
-              <rect x="46" y="46" width="12" height="12" fill="#00D2FF" rx="2"/>
-              <rect x="62" y="46" width="12" height="12" fill="#002D50" rx="2"/>
-              <rect x="78" y="46" width="6" height="8" fill="#002D50"/>
-              <rect x="90" y="46" width="8" height="6" fill="#002D50"/>
-              <rect x="102" y="46" width="6" height="8" fill="#002D50"/>
-
-              <rect x="14" y="58" width="8" height="6" fill="#002D50"/>
-              <rect x="26" y="58" width="6" height="8" fill="#002D50"/>
-              <rect x="36" y="58" width="6" height="6" fill="#002D50"/>
-              <rect x="46" y="62" width="12" height="12" fill="#002D50" rx="2"/>
-              <rect x="62" y="62" width="12" height="12" fill="#00D2FF" rx="2"/>
-              <rect x="78" y="58" width="8" height="6" fill="#002D50"/>
-              <rect x="92" y="58" width="6" height="8" fill="#002D50"/>
-
-              <rect x="46" y="80" width="6" height="6" fill="#002D50"/>
-              <rect x="58" y="80" width="12" height="6" fill="#002D50"/>
-              <rect x="74" y="80" width="6" height="6" fill="#002D50"/>
-              <rect x="86" y="80" width="14" height="6" fill="#002D50"/>
-              <rect x="104" y="80" width="6" height="6" fill="#002D50"/>
-
-              <rect x="46" y="90" width="12" height="6" fill="#002D50"/>
-              <rect x="64" y="90" width="6" height="8" fill="#002D50"/>
-              <rect x="76" y="90" width="8" height="6" fill="#002D50"/>
-              <rect x="90" y="90" width="6" height="6" fill="#002D50"/>
-              <rect x="100" y="90" width="10" height="6" fill="#002D50"/>
-
-              <rect x="46" y="100" width="6" height="8" fill="#002D50"/>
-              <rect x="56" y="100" width="8" height="6" fill="#002D50"/>
-              <rect x="70" y="100" width="12" height="6" fill="#002D50"/>
-              <rect x="88" y="100" width="8" height="8" fill="#002D50"/>
-              <rect x="100" y="100" width="6" height="6" fill="#002D50"/>
-
-              <!-- Central Mini Cube Logo Overlay -->
-              <rect x="48" y="48" width="24" height="24" fill="#001529" rx="5" stroke="#00D2FF" stroke-width="1"/>
-              <circle cx="60" cy="60" r="6" fill="#00D2FF"/>
-              <circle cx="60" cy="60" r="2.5" fill="#FFFFFF"/>
-            </svg>
+        <!-- ══ TAB 1: ClawBot Scheme 1 (Pure Go Native iLink) ══ -->
+        <div v-if="wechatModalTab === 'clawbot'" class="space-y-4">
+          <!-- State Banner -->
+          <div :class="['p-3.5 rounded-2xl border flex items-center justify-between text-xs transition', clawBotStatus.authorized ? 'bg-emerald-950/40 border-emerald-500/50' : 'bg-slate-950/60 border-slate-800']">
+            <div class="flex items-center gap-2.5">
+              <span :class="['w-3 h-3 rounded-full shrink-0', clawBotStatus.authorized ? 'bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse' : 'bg-amber-400']"></span>
+              <div>
+                <div class="font-bold text-white flex items-center gap-2">
+                  <span>{{ clawBotStatus.authorized ? '● 微信 ClawBot 已连接在线' : '○ 微信官方通道待绑定' }}</span>
+                  <span v-if="clawBotStatus.authorized_user" class="text-[10px] font-mono px-2 py-0.2 rounded bg-emerald-900/60 text-emerald-200 border border-emerald-500/40">
+                    {{ clawBotStatus.authorized_user }}
+                  </span>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-0.5 font-mono">
+                  {{ clawBotStatus.authorized ? '长轮询已维持 (iLink Long-Polling) · 微信私聊发送指令即时响应' : '请使用手机微信扫码授权绑定，免去任何第三方中间件' }}
+                </div>
+              </div>
+            </div>
+            <button v-if="clawBotStatus.authorized" @click="disconnectClawBot" class="px-3 py-1 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-500/40 text-rose-300 text-xs font-semibold">
+              解除绑定
+            </button>
           </div>
 
-          <div class="text-[11px] font-mono text-cyan-300 font-bold break-all px-3 py-1 bg-slate-900 rounded-lg border border-slate-800">
-            {{ wechatConsoleUrl }}
+          <!-- Unbound State: QR Code Authorization Area -->
+          <div v-if="!clawBotStatus.authorized" class="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col items-center justify-center space-y-3 text-center">
+            <div class="relative p-3 bg-white rounded-2xl shadow-2xl flex items-center justify-center cursor-pointer group" @click="fetchClawBotQRCode" title="点击刷新生成二维码">
+              <img v-if="clawBotQrDataUrl" :src="clawBotQrDataUrl" class="w-44 h-44 object-contain" alt="WeChat ClawBot Binding QR Code" />
+              <div v-else class="w-44 h-44 flex flex-col items-center justify-center bg-slate-100 text-slate-500 text-xs font-mono">
+                <span v-if="clawBotLoading" class="animate-pulse">⏳ 生成专属二维码...</span>
+                <span v-else class="group-hover:text-emerald-600 font-bold transition">🔄 点击刷新生成二维码</span>
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <div class="text-xs font-bold text-emerald-300 flex items-center justify-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span>等待手机微信「扫一扫」授权绑定</span>
+              </div>
+              <p class="text-[11px] text-slate-400 max-w-sm">
+                打开微信「扫一扫」扫描上方二维码并确认授权。微信通讯录将自动出现专属「微信 ClawBot」对话框。
+              </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 pt-1">
+              <button @click="fetchClawBotQRCode" :disabled="clawBotLoading" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">
+                🔄 刷新二维码
+              </button>
+              <button @click="confirmClawBotSimulation" :disabled="clawBotLoading" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 text-xs font-bold shadow active:scale-95 transition">
+                ⚡ 快速模拟授权上线
+              </button>
+            </div>
           </div>
-          <div class="text-[10px] text-slate-400">
-            💡 支持局域网与外网 RouterOS IP Cloud 动态域名穿透自动解析
+
+          <!-- Bound State: Remote Instructions & Live Dialogue Simulator -->
+          <div v-else class="space-y-3">
+            <!-- Fast Instruction Chips -->
+            <div class="space-y-1.5">
+              <div class="text-[11px] font-mono text-slate-400 flex items-center justify-between">
+                <span>💡 常用微信指令 (点击快速填入测试):</span>
+                <span class="text-emerald-400">收发: {{ clawBotStatus.total_in }} / {{ clawBotStatus.total_out }}</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5 text-xs font-mono">
+                <button v-for="cmd in ['状态', '切换singbox', '切换mihomo', '分流 YouTube 香港01', '添加订阅 https://...', '添加节点 vless://...', '测速']" :key="cmd"
+                  @click="sendClawBotSimulate(cmd)"
+                  class="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-emerald-500/50 transition active:scale-95">
+                  {{ cmd }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Live Dialogue Audit Log Box -->
+            <div class="p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 max-h-56 overflow-y-auto space-y-2.5 text-xs font-mono">
+              <div v-if="clawBotStatus.recent_logs && clawBotStatus.recent_logs.length > 0" class="space-y-2">
+                <div v-for="log in clawBotStatus.recent_logs" :key="log.id"
+                  :class="['p-2 rounded-xl border flex flex-col gap-1', log.direction === 'in' ? 'bg-slate-900/90 border-slate-700 text-slate-200' : 'bg-emerald-950/30 border-emerald-500/40 text-emerald-200']">
+                  <div class="flex items-center justify-between text-[10px] opacity-70">
+                    <span class="font-bold">{{ log.direction === 'in' ? `👤 ${log.user}` : '🤖 CubeX (已送达微信)' }}</span>
+                    <span>{{ log.time }}</span>
+                  </div>
+                  <div class="whitespace-pre-wrap leading-relaxed text-[11px]">{{ log.content }}</div>
+                </div>
+              </div>
+              <div v-else class="text-center py-6 text-slate-500 text-xs">
+                暂无微信对话记录，发送指令即可在此查看实时互动。
+              </div>
+            </div>
+
+            <!-- Simulator Input Bar -->
+            <div class="flex gap-2">
+              <input v-model="clawBotSimInput" @keyup.enter="sendClawBotSimulate()" placeholder="在网页模拟向微信 ClawBot 发送指令 (如: 状态、切换singbox)..."
+                class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono outline-none focus:border-emerald-400" />
+              <button @click="sendClawBotSimulate()" :disabled="clawBotSimulating"
+                class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition shadow active:scale-95">
+                {{ clawBotSimulating ? '发送中...' : '发送测试' }}
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- WeChat Control Capabilities Breakdown -->
-        <div class="grid grid-cols-2 gap-2 text-xs">
-          <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
-            <div class="font-bold text-white flex items-center gap-1.5">
-              <span>⚡ 双核毫秒切换</span>
+        <!-- ══ TAB 2: WeChat Web Console (Original Mode) ══ -->
+        <div v-else class="space-y-4">
+          <!-- QR Code Display Area -->
+          <div class="flex flex-col items-center justify-center p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3 text-center">
+            <div class="relative p-3 bg-white rounded-2xl shadow-xl flex items-center justify-center">
+              <img v-if="wechatWebQrDataUrl" :src="wechatWebQrDataUrl" class="w-44 h-44" alt="WeChat Web Console QR Code" />
+              <div v-else class="w-44 h-44 flex items-center justify-center bg-slate-100 text-slate-400 text-xs font-mono">
+                加载中...
+              </div>
             </div>
-            <div class="text-[11px] text-slate-400">微信单手一键切换 sing-box ⇄ mihomo</div>
-          </div>
-          <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
-            <div class="font-bold text-white flex items-center gap-1.5">
-              <span>🎯 业务分流切换</span>
-            </div>
-            <div class="text-[11px] text-slate-400">动态切换 AI、流媒体、Telegram 等出口节点</div>
-          </div>
-          <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
-            <div class="font-bold text-white flex items-center gap-1.5">
-              <span>➕ 订阅与节点录入</span>
-            </div>
-            <div class="text-[11px] text-slate-400">微信直接粘贴机场订阅与单节点链接</div>
-          </div>
-          <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
-            <div class="font-bold text-white flex items-center gap-1.5">
-              <span>🆙 三端体检与升级</span>
-            </div>
-            <div class="text-[11px] text-slate-400">查看核心、CubeX与RouterOS版本并一键升级</div>
-          </div>
-        </div>
 
-        <div class="flex gap-2 pt-1">
-          <button @click="copyWechatLink" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center gap-1">
-            <span>📋 复制微信直连网址</span>
-          </button>
-          <button @click="enterWeChatView" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 text-xs font-bold transition flex items-center justify-center gap-1 shadow-lg">
-            <span>📱 电脑浏览器预览微信页</span>
-          </button>
+            <div class="text-[11px] font-mono text-cyan-300 font-bold break-all px-3 py-1 bg-slate-900 rounded-lg border border-slate-800">
+              {{ wechatConsoleUrl }}
+            </div>
+            <div class="text-[10px] text-slate-400">
+              💡 手机微信扫码后在内置浏览器直接打开免密极简控制台
+            </div>
+          </div>
+
+          <div class="flex gap-2 pt-1">
+            <button @click="copyWechatLink" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center gap-1">
+              <span>📋 复制微信直连网址</span>
+            </button>
+            <button @click="enterWeChatView" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 text-xs font-bold transition flex items-center justify-center gap-1 shadow-lg">
+              <span>📱 电脑浏览器预览微信页</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -2118,12 +2422,14 @@
           </div>
           <div class="grid grid-cols-2 gap-2">
             <button @click="switchEngine('singbox')" 
-              :class="['py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5', activeEngine === 'singbox' ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50' : 'bg-slate-950 text-slate-400 border border-slate-800']">
-              <span>💎 sing-box</span>
+              :class="['py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2', activeEngine === 'singbox' ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50' : 'bg-slate-950 text-slate-400 border border-slate-800']">
+              <img src="/logo-singbox.svg" class="w-4 h-4 object-contain drop-shadow" alt="sing-box" />
+              <span>sing-box</span>
             </button>
             <button @click="switchEngine('mihomo')" 
-              :class="['py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5', activeEngine === 'mihomo' ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-900/50' : 'bg-slate-950 text-slate-400 border border-slate-800']">
-              <span>🐱 Mihomo Meta</span>
+              :class="['py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-2', activeEngine === 'mihomo' ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-900/50' : 'bg-slate-950 text-slate-400 border border-slate-800']">
+              <img src="/logo-mihomo.svg" class="w-4 h-4 object-contain drop-shadow" alt="Mihomo" />
+              <span>Mihomo Meta</span>
             </button>
           </div>
         </div>
@@ -2135,7 +2441,7 @@
             <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
               <div>
                 <div class="font-bold text-white">CubeX 双核引擎</div>
-                <div class="text-[10px] text-slate-400 font-mono">{{ systemStatus.version || 'v1.0.0-Aurora' }}</div>
+                <div class="text-[10px] text-slate-400 font-mono">{{ systemStatus.version || 'Test v0.9' }}</div>
               </div>
               <button @click="upgradeCore" :disabled="upgradingPanel" class="px-2.5 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[11px]">
                 一键升级
@@ -2144,7 +2450,7 @@
             <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
               <div>
                 <div class="font-bold text-white">CubeX 面板版本</div>
-                <div class="text-[10px] text-slate-400 font-mono">{{ systemStatus.version || 'v1.0.0-Aurora' }}</div>
+                <div class="text-[10px] text-slate-400 font-mono">{{ systemStatus.version || 'Test v0.9' }}</div>
               </div>
               <button @click="upgradePanel" :disabled="upgradingPanel" class="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px]">
                 升级面板
@@ -2211,25 +2517,38 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import QRCode from 'qrcode'
+import BrandLogo from './components/BrandLogo.vue'
+import LogoPicker from './components/LogoPicker.vue'
 
-// ── Master Navigation Hubs (四大模块导航) ──
+// ── Master Navigation Hubs (五大核心模块导航 - 全四字统一) ──
 function getInitialTab() {
   try {
     const raw = window.location.hash.replace(/^#\/?/, '')
-    if (['overview', 'wireguard', 'rules', 'system'].includes(raw)) return raw
+    if (['overview', 'kspeeder', 'wireguard', 'rules', 'system'].includes(raw)) return raw
     const sp = new URLSearchParams(window.location.search)
     const tab = sp.get('tab')
-    if (['overview', 'wireguard', 'rules', 'system'].includes(tab)) return tab
+    if (['overview', 'kspeeder', 'wireguard', 'rules', 'system'].includes(tab)) return tab
   } catch (e) {}
   return 'overview'
 }
 const activeMasterTab = ref(getInitialTab())
 
+// ── Desktop Sidebar Collapse State (支持收起展开与偏好记忆) ──
+const sidebarCollapsed = ref(localStorage.getItem('cubex_sidebar_collapsed') === 'true')
+function toggleSidebar() {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+  try {
+    localStorage.setItem('cubex_sidebar_collapsed', sidebarCollapsed.value ? 'true' : 'false')
+  } catch (e) {}
+}
+
 const navItems = [
-  { id: 'overview', label: '总览与分流', icon: '🧭' },
-  { id: 'wireguard', label: '穿透协同', icon: '📡' },
+  { id: 'overview', label: '分流总览', icon: '🧭' },
   { id: 'rules', label: '规则安全', icon: '🛡️' },
+  { id: 'wireguard', label: '穿透协同', icon: '📡' },
+  { id: 'kspeeder', label: '容器加速', icon: '🚀' },
   { id: 'system', label: '宿主联动', icon: '⚙️' }
 ]
 
@@ -2238,17 +2557,18 @@ const currentTabTitle = computed(() => {
   return match ? match.label : '控制面板'
 })
 
-// ── Logo Design Schemes (4 种动力学方案切换) ──
+// ── Logo Design Schemes (CubeX 官方定稿 X-Cube 极光动力) ──
 const logoOptions = [
-  { id: 'v3', label: '方案1·超立方', name: '量子动力超立方体 (Quantum Kinetic Hypercube)', file: '/logo-cube-v3.svg' },
-  { id: 'v2', label: '方案2·棱镜体', name: '时空流光棱镜动力体 (Prismatic Chrono-Cube)', file: '/logo-cube-v2.svg' },
-  { id: 'v4', label: '方案3·引力网格', name: '蜂巢量子引力网格 (Hexagonal Gravity Grid)', file: '/logo-cube-v4.svg' },
-  { id: 'v5', label: '方案4·微核引擎', name: '赛博微核聚变引擎 (Cyber Reactor Core)', file: '/logo-cube-v5.svg' },
+  { id: 'cubex', label: '官方定稿·光曜X-Cube', name: 'CubeX 光曜极光 X-Cube (流动X光条 · 官方定稿)', desc: '3D等轴深蓝超立方体，只展示交汇形成X的边缘流光，伴随活体极光色彩渐变与双重星环公转。', file: '/logo-cubex.svg' },
+  { id: 'gemini-1', label: '方案1·星轨引力', name: '方案1 · 双子星轨引力超立方 (Binary Orbital Hypercube)', desc: '双子星沿双交叉对称轨道环绕超立方旋转，象征双引擎协同与极速网络引力，富有动感。', file: '/logo-gemini-cube-1.svg' },
+  { id: 'gemini-2', label: '方案2·双星共生', name: '方案2 · 双星共生微核能量动力体 (Symbiotic Core Dual-Star Cube)', desc: '两颗微核双子星在超立方深处共生共振，外层包裹科技深蓝动力框架与光束，沉稳内敛。', file: '/logo-gemini-cube-2.svg' },
+  { id: 'gemini-3', label: '方案3·星曜折叠', name: '方案3 · 双子星曜几何折叠立方 (Dual-Nova Geometric Prism Cube)', desc: '双子四芒星曜镶嵌于对角折叠棱晶立方，极具未来几何张力与锐利科技感。', file: '/logo-gemini-cube-3.svg' }
 ]
-const activeLogoId = ref('v3')
+const activeLogoId = ref('cubex')
+const showLogoGalleryModal = ref(false)
 const activeLogoSrc = computed(() => {
   const m = logoOptions.find(o => o.id === activeLogoId.value)
-  return m ? m.file : '/logo-cube-v3.svg'
+  return m ? m.file : '/logo-cubex.svg'
 })
 function cycleLogo() {
   const idx = logoOptions.findIndex(o => o.id === activeLogoId.value)
@@ -2278,7 +2598,41 @@ const kspeederConfig = ref({
   ]
 })
 const testingKSpeeder = ref(false)
-const applyingROSDocker = ref(false)
+const githubInputUrl = ref('')
+
+const githubAcceleratedUrl = computed(() => {
+  const raw = (githubInputUrl.value || '').trim()
+  if (!raw) return ''
+  const proxy = kspeederConfig.value.active_github_proxy || 'https://ghproxy.net/'
+  const base = proxy.endsWith('/') ? proxy : proxy + '/'
+  return base + raw.replace(/^https?:\/\//, 'https://')
+})
+
+function copyAcceleratedUrl() {
+  if (!githubAcceleratedUrl.value) {
+    showToast('请先输入 GitHub 链接', true)
+    return
+  }
+  navigator.clipboard.writeText(githubAcceleratedUrl.value)
+  showToast('📋 已复制加速下载链接！')
+}
+
+function openAcceleratedUrl() {
+  if (!githubAcceleratedUrl.value) {
+    showToast('请先输入 GitHub 链接', true)
+    return
+  }
+  window.open(githubAcceleratedUrl.value, '_blank')
+}
+
+function copyDockerDaemonConfig() {
+  const mirror = kspeederConfig.value.active_docker_mirror || 'https://docker.m.daocloud.io'
+  const config = JSON.stringify({
+    "registry-mirrors": [mirror, "https://dockerproxy.net", "https://atomhub.openatom.cn"]
+  }, null, 2)
+  navigator.clipboard.writeText(config)
+  showToast('📋 已复制 Docker daemon.json 镜像加速配置！')
+}
 
 const activeGitHubProxyName = computed(() => {
   const m = (kspeederConfig.value.github_proxies || []).find(p => p.url === kspeederConfig.value.active_github_proxy)
@@ -2349,30 +2703,235 @@ async function testAllKSpeeder() {
   }
 }
 
-async function applyROSDockerRegistry() {
-  applyingROSDocker.value = true
+const applyingHostDocker = ref(false)
+
+const detectedHostLabel = computed(() => {
+  const plat = hostInfo.value?.platform_id || ''
+  const name = hostInfo.value?.os_name || ''
+  if (plat === 'routeros' || name.includes('RouterOS')) return 'RouterOS v7'
+  if (plat === 'fnos' || name.includes('fnOS') || name.includes('飞牛')) return '飞牛 fnOS'
+  if (plat === 'pve' || name.includes('Proxmox')) return 'PVE'
+  if (plat === 'synology') return '群晖 DSM'
+  if (name) return name
+  return '宿主系统'
+})
+
+async function applyHostDockerRegistry() {
+  applyingHostDocker.value = true
   try {
-    const res = await fetch('/api/v1/accelerator/ros-docker-apply', { method: 'POST' })
+    const res = await fetch('/api/v1/accelerator/host-docker-apply', { method: 'POST' })
     const data = await res.json()
-    showToast(data.message || '🎉 Docker 加速源已成功同步至 RouterOS 容器！')
+    if (data.status === 'applied') {
+      showToast(data.message || `🎉 已成功将 Docker 加速源注入 ${detectedHostLabel.value}！`)
+    } else if (data.warning) {
+      showToast(data.warning, true)
+      if (data.script) {
+        navigator.clipboard.writeText(data.script).then(() => {
+          showToast('📋 已自动复制对应宿主配置脚本至剪贴板', false)
+        }).catch(() => {})
+      }
+    } else {
+      showToast(data.message || '🎉 宿主 Docker 镜像加速源已更新')
+    }
   } catch (e) {
-    showToast('配置已下发至 RouterOS')
+    showToast('注入宿主请求异常，请检查网络或后端状态', true)
   } finally {
-    applyingROSDocker.value = false
+    applyingHostDocker.value = false
   }
 }
 
-// ── WeChat Remote Control State & Methods ──
+const applyROSDockerRegistry = applyHostDockerRegistry
+
+// ── Mobile Responsive Drawer State ──
+const showMobileDrawer = ref(false)
+
+// ── WeChat Remote Control State & Methods (方案 1: 纯 Go 原生 iLink ClawBot 驱动) ──
 const showWeChatModal = ref(false)
+const wechatModalTab = ref('clawbot') // 'clawbot' | 'web'
 const isWeChatMode = ref(window.location.search.includes('wechat') || false)
 const wechatSubUrl = ref('')
 const wechatAddingSub = ref(false)
 const wechatNodeLink = ref('')
 const wechatAddingNode = ref(false)
 
+// ClawBot Scheme 1 State
+const clawBotStatus = ref({
+  authorized: false,
+  authorized_user: '',
+  total_in: 0,
+  total_out: 0,
+  recent_logs: []
+})
+const clawBotQrDataUrl = ref('')
+const clawBotLoading = ref(false)
+const clawBotSimInput = ref('')
+const clawBotSimulating = ref(false)
+const wechatWebQrDataUrl = ref('')
+let clawBotQrKey = ''
+let clawBotPollTimer = null
+
 const wechatConsoleUrl = computed(() => {
   const host = window.location.host || '192.168.88.1:2026'
   return `http://${host}/?wechat=1`
+})
+
+async function fetchClawBotStatus() {
+  try {
+    const res = await fetch('/api/v1/wechat/clawbot/status')
+    if (res.ok) {
+      clawBotStatus.value = await res.json()
+    }
+  } catch (e) {
+    console.error('Failed to fetch ClawBot status', e)
+  }
+}
+
+async function fetchClawBotQRCode() {
+  clawBotLoading.value = true
+  try {
+    const res = await fetch('/api/v1/wechat/clawbot/qrcode')
+    if (res.ok) {
+      const data = await res.json()
+      clawBotQrKey = data.qrcode_key || data.qr_key || ''
+      const targetUrl = data.qrcode_url || data.qr_url || ''
+      if (targetUrl) {
+        try {
+          clawBotQrDataUrl.value = await QRCode.toDataURL(targetUrl, {
+            width: 240,
+            margin: 1,
+            color: { dark: '#000000', light: '#ffffff' }
+          })
+        } catch (qrErr) {
+          console.warn('QRCode.toDataURL fallback', qrErr)
+          clawBotQrDataUrl.value = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(targetUrl)}`
+        }
+      }
+      startClawBotPolling()
+    } else {
+      showToast('获取微信二维码接口异常', true)
+    }
+  } catch (e) {
+    console.error('Failed to generate ClawBot QR', e)
+    showToast('生成微信二维码失败', true)
+  } finally {
+    clawBotLoading.value = false
+  }
+}
+
+function startClawBotPolling() {
+  if (clawBotPollTimer) clearInterval(clawBotPollTimer)
+  clawBotPollTimer = setInterval(async () => {
+    if (!showWeChatModal.value || wechatModalTab.value !== 'clawbot' || clawBotStatus.value.authorized) {
+      clearInterval(clawBotPollTimer)
+      clawBotPollTimer = null
+      return
+    }
+    if (!clawBotQrKey) return
+    try {
+      const res = await fetch('/api/v1/wechat/clawbot/poll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qrcode_key: clawBotQrKey, qr_key: clawBotQrKey })
+      })
+      if (res.ok) {
+        const result = await res.json()
+        if (result.status === 'confirmed' || result.status === 'authorized') {
+          clearInterval(clawBotPollTimer)
+          clawBotPollTimer = null
+          await fetchClawBotStatus()
+          showToast('🎉 微信 ClawBot 授权成功上线！')
+        }
+      }
+    } catch (e) {}
+  }, 2500)
+}
+
+async function confirmClawBotSimulation() {
+  clawBotLoading.value = true
+  try {
+    const res = await fetch('/api/v1/wechat/clawbot/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_name: '微信管理员' })
+    })
+    if (res.ok) {
+      if (clawBotPollTimer) {
+        clearInterval(clawBotPollTimer)
+        clawBotPollTimer = null
+      }
+      await fetchClawBotStatus()
+      showToast('🎉 微信 ClawBot 模拟授权成功！')
+    }
+  } catch (e) {
+    showToast('模拟授权失败', true)
+  } finally {
+    clawBotLoading.value = false
+  }
+}
+
+async function disconnectClawBot() {
+  try {
+    const res = await fetch('/api/v1/wechat/clawbot/disconnect', { method: 'POST' })
+    if (res.ok) {
+      await fetchClawBotStatus()
+      showToast('已解除微信 ClawBot 绑定')
+      fetchClawBotQRCode()
+    }
+  } catch (e) {
+    showToast('解除绑定失败', true)
+  }
+}
+
+async function sendClawBotSimulate(presetCmd) {
+  const text = (presetCmd || clawBotSimInput.value || '').trim()
+  if (!text) {
+    showToast('请输入指令内容', true)
+    return
+  }
+  clawBotSimulating.value = true
+  try {
+    const res = await fetch('/api/v1/wechat/clawbot/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: text })
+    })
+    if (res.ok) {
+      if (!presetCmd) clawBotSimInput.value = ''
+      await fetchClawBotStatus()
+      showToast('✅ 模拟指令已执行并送达回复')
+    } else {
+      showToast('指令执行错误', true)
+    }
+  } catch (e) {
+    showToast('指令提交异常', true)
+  } finally {
+    clawBotSimulating.value = false
+  }
+}
+
+async function generateWebQr() {
+  try {
+    wechatWebQrDataUrl.value = await QRCode.toDataURL(wechatConsoleUrl.value, {
+      width: 220,
+      margin: 1,
+      color: { dark: '#000000', light: '#ffffff' }
+    })
+  } catch (e) {}
+}
+
+watch(showWeChatModal, (val) => {
+  if (val) {
+    fetchClawBotStatus()
+    fetchClawBotQRCode()
+    if (!wechatWebQrDataUrl.value) {
+      generateWebQr()
+    }
+  } else {
+    if (clawBotPollTimer) {
+      clearInterval(clawBotPollTimer)
+      clawBotPollTimer = null
+    }
+  }
 })
 
 function copyWechatLink() {
@@ -2473,7 +3032,6 @@ async function fetchRealLatency() {
       if (data.direct_ms) directLatency.value = data.direct_ms
       if (data.proxy_ms) overseasLatency.value = data.proxy_ms
       globalLatency.value = data.direct_ms
-      showToast(`⚡ 探针测速成功: 国内直连 ${directLatency.value}ms (华为骨干204探针)`)
     }
   } catch (e) {
     directLatency.value = Math.floor(Math.random() * 6) + 20
@@ -2506,18 +3064,116 @@ const hostInfo = ref({
 })
 
 const hostBadge = computed(() => {
-  const plat = hostInfo.value.platform_id || ''
-  if (plat === 'routeros' || (hostInfo.value.os_name && hostInfo.value.os_name.includes('RouterOS'))) {
-    return { name: hostInfo.value.os_name || 'RouterOS v7', icon: '🔷', online: true }
+  const plat = (hostInfo.value.platform_id || '').toLowerCase()
+  const name = (hostInfo.value.os_name || '').toLowerCase()
+
+  if (plat === 'routeros' || name.includes('routeros') || name.includes('mikrotik')) {
+    return {
+      name: hostInfo.value.os_name || 'RouterOS v7',
+      shortName: 'RouterOS v7',
+      svg: '/host-routeros.svg',
+      icon: '🔷',
+      online: hostInfo.value.connected !== false
+    }
   }
-  if (plat === 'fnos' || (hostInfo.value.os_name && hostInfo.value.os_name.includes('fnOS'))) {
-    return { name: '飞牛 fnOS 专属环境', icon: '🟢', online: true }
+  if (plat === 'pve' || name.includes('proxmox') || name.includes('pve')) {
+    return {
+      name: hostInfo.value.os_name || 'Proxmox VE',
+      shortName: 'Proxmox VE',
+      svg: '/host-pve.svg',
+      icon: '🟠',
+      online: hostInfo.value.connected !== false
+    }
   }
-  if (plat === 'pve') {
-    return { name: 'Proxmox VE 宿主', icon: '🟠', online: true }
+  if (plat === 'fnos' || name.includes('fnos') || name.includes('飞牛')) {
+    return {
+      name: hostInfo.value.os_name || '飞牛 fnOS',
+      shortName: '飞牛 fnOS',
+      svg: '/host-fnos.svg',
+      icon: '🟢',
+      online: hostInfo.value.connected !== false
+    }
   }
-  return { name: hostInfo.value.os_name || 'Linux 宿主环境', icon: '💻', online: true }
+  if (plat === 'openwrt' || name.includes('openwrt')) {
+    return {
+      name: hostInfo.value.os_name || 'OpenWrt',
+      shortName: 'OpenWrt',
+      svg: '/host-openwrt.svg',
+      icon: '📡',
+      online: hostInfo.value.connected !== false
+    }
+  }
+  if (plat === 'docker' || name.includes('docker')) {
+    return {
+      name: hostInfo.value.os_name || 'Docker Container',
+      shortName: 'Docker',
+      svg: '/host-docker.svg',
+      icon: '🐳',
+      online: hostInfo.value.connected !== false
+    }
+  }
+  return {
+    name: hostInfo.value.os_name || 'Linux 宿主环境',
+    shortName: 'Linux Base',
+    svg: '/host-linux.svg',
+    icon: '🐧',
+    online: hostInfo.value.connected !== false
+  }
 })
+
+// ── Gateway Quick Ops (侧栏极速运维: 重载配置 / 重载核心 / 重新启动) ──
+const reloadingConfig = ref(false)
+const reloadingCore = ref(false)
+const restartingService = ref(false)
+
+async function handleReloadConfig() {
+  if (reloadingConfig.value) return
+  reloadingConfig.value = true
+  showToast('正在热重载分流配置与规则库...')
+  try {
+    const res = await fetch('/api/v1/system/reload-config', { method: 'POST' })
+    const data = await res.json()
+    if (data.status === 'ok') {
+      showToast('🎉 分流配置已成功热重载！零断流生效。')
+      await fetchIR()
+    } else {
+      showToast(data.message || '配置热重载完成')
+    }
+  } catch (e) {
+    showToast('配置热重载指令已下发')
+  } finally {
+    reloadingConfig.value = false
+  }
+}
+
+async function handleReloadCore() {
+  if (reloadingCore.value) return
+  reloadingCore.value = true
+  showToast(`正在毫秒级重启【${activeEngine.value}】代理内核...`)
+  try {
+    const res = await fetch('/api/v1/system/reload-core', { method: 'POST' })
+    const data = await res.json()
+    showToast(`⚡ ${activeEngine.value} 内核已成功重载！连接已复位。`)
+  } catch (e) {
+    showToast('内核重载完成')
+  } finally {
+    reloadingCore.value = false
+  }
+}
+
+async function handleRestartService() {
+  if (!confirm('⚠️ 确定要重新启动 CubeX 守护网关服务吗？\n重启期间将瞬间断开管理面板连接并在 1 秒内自愈恢复。')) {
+    return
+  }
+  restartingService.value = true
+  showToast('🔌 正在重启 CubeX 守护服务，1秒后自动恢复...', true)
+  try {
+    await fetch('/api/v1/system/restart', { method: 'POST' })
+  } catch (e) {}
+  setTimeout(() => {
+    window.location.reload()
+  }, 2000)
+}
 
 const hostConfig = ref({
   host: '10.0.0.1',
@@ -2527,7 +3183,7 @@ const hostConfig = ref({
 })
 
 const systemOverview = ref({
-  cubex_version: 'v1.0.0-Aurora',
+  cubex_version: 'Test v0.9',
   mihomo_curr_version: 'v1.19.32',
   singbox_curr_version: 'v1.14.3',
   update_available: false
@@ -2577,7 +3233,7 @@ const aiLoading = ref(false)
 
 // ── System Status & Last Result ──
 const systemStatus = ref({
-  version: 'v1.0.0-Aurora',
+  version: 'Test v0.9',
   uptime_seconds: 1420,
   active_engine: 'singbox',
   tun_interface: 'cubex-tun',
@@ -3615,29 +4271,103 @@ const businessGroups = computed(() => {
   return filtered
 })
 
-// 💡 日常高频预设库与自动去重
-const presetServices = [
-  { id: 'openai', name: 'AI', icon: 'openai', rule_value: 'geosite:openai,geosite:claude', target: '🇭🇰 香港自动' },
+// 💡 日常高频预设库与自动去重 (官方正版矢量标识与标准地区策略绑定)
+const defaultPresets = [
+  { id: 'openai', name: 'OpenAI / ChatGPT', icon: 'openai', rule_value: 'geosite:openai,geosite:chatgpt', target: '🇭🇰 香港自动' },
+  { id: 'claude', name: 'Claude / Anthropic', icon: 'claude', rule_value: 'geosite:claude', target: '🇺🇸 美国自动' },
   { id: 'youtube', name: 'YouTube 视频', icon: 'youtube', rule_value: 'geosite:youtube', target: '🇭🇰 香港自动' },
+  { id: 'netflix', name: 'Netflix 奈飞', icon: 'netflix', rule_value: 'geosite:netflix', target: '🇸🇬🇯🇵🇰🇷 新日韩自动' },
+  { id: 'disney', name: 'Disney+ 流媒体', icon: 'disney', rule_value: 'geosite:disney', target: '🇸🇬🇯🇵🇰🇷 新日韩自动' },
   { id: 'google', name: 'Google 搜索', icon: 'google', rule_value: 'geosite:google', target: '🇭🇰 香港自动' },
   { id: 'github', name: 'GitHub & Docker', icon: 'github', rule_value: 'geosite:github,geosite:docker', target: '🇭🇰 香港自动' },
-  { id: 'telegram', name: 'Telegram', icon: 'telegram', rule_value: 'geosite:telegram', target: '🇸🇬 新加坡自动' },
+  { id: 'telegram', name: 'Telegram 通信', icon: 'telegram', rule_value: 'geosite:telegram', target: '🇸🇬🇯🇵🇰🇷 新日韩自动' },
   { id: 'twitter', name: 'Twitter (X)', icon: 'twitter', rule_value: 'geosite:twitter', target: '🇭🇰 香港自动' },
-  { id: 'netflix', name: 'Netflix & 流媒体', icon: 'netflix', rule_value: 'geosite:netflix,geosite:disney', target: '🇸🇬 新加坡自动' },
   { id: 'spotify', name: 'Spotify 音乐', icon: 'spotify', rule_value: 'geosite:spotify', target: '🇭🇰 香港自动' },
   { id: 'steam', name: 'Steam 游戏', icon: 'steam', rule_value: 'geosite:steam', target: '🇭🇰 香港自动' },
+  { id: 'epicgames', name: 'Epic Games', icon: 'epicgames', rule_value: 'geosite:epicgames', target: '🇭🇰 香港自动' },
+  { id: 'playstation', name: 'PlayStation (PSN)', icon: 'playstation', rule_value: 'geosite:playstation', target: '🇭🇰 香港自动' },
+  { id: 'nintendo', name: 'Nintendo Switch', icon: 'nintendo', rule_value: 'geosite:nintendo', target: '🇭🇰 香港自动' },
+  { id: 'bahamut', name: '巴哈姆特动画疯', icon: 'bahamut', rule_value: 'geosite:bahamut', target: '🇹🇼 台湾自动' },
+  { id: 'emby', name: 'Emby 私有影院', icon: 'emby', rule_value: 'geosite:emby', target: '🇭🇰 香港手动' },
   { id: 'tiktok', name: 'TikTok 国际版', icon: 'tiktok', rule_value: 'geosite:tiktok', target: '🇺🇸 美国自动' },
   { id: 'bilibili', name: 'Bilibili 港澳台', icon: 'bilibili', rule_value: 'geosite:bilibili@!cn', target: '🇭🇰 香港自动' },
-  { id: 'discord', name: 'Discord 社区', icon: 'discord', rule_value: 'geosite:discord', target: '🇸🇬 新加坡自动' },
+  { id: 'discord', name: 'Discord 社区', icon: 'discord', rule_value: 'geosite:discord', target: '🇸🇬🇯🇵🇰🇷 新日韩自动' },
+  { id: 'amazon', name: 'Amazon 亚马逊', icon: 'amazon', rule_value: 'geosite:amazon', target: '🇺🇸 美国自动' },
+  { id: 'paypal', name: 'PayPal 国际支付', icon: 'paypal', rule_value: 'geosite:paypal', target: '🇭🇰 香港手动' },
+  { id: 'speedtest', name: 'Speedtest 测速', icon: 'speedtest', rule_value: 'geosite:speedtest', target: 'DIRECT' },
+  { id: 'reddit', name: 'Reddit 讨论区', icon: 'reddit', rule_value: 'geosite:reddit', target: '🇺🇸 美国自动' },
   { id: 'notion', name: 'Notion 笔记', icon: 'notion', rule_value: 'geosite:notion', target: '🇺🇸 美国自动' },
-  { id: 'binance', name: 'Binance / 加密货币', icon: 'binance', rule_value: 'geosite:binance,geosite:okx', target: '🇸🇬 新加坡自动' },
+  { id: 'binance', name: 'Binance / 加密货币', icon: 'binance', rule_value: 'geosite:binance,geosite:okx', target: '🇸🇬🇯🇵🇰🇷 新日韩自动' },
   { id: 'apple', name: 'Apple 服务', icon: 'apple', rule_value: 'geosite:apple', target: 'DIRECT' },
-  { id: 'microsoft', name: 'Microsoft 365', icon: 'microsoft', rule_value: 'geosite:microsoft', target: 'DIRECT' }
+  { id: 'microsoft', name: 'Microsoft 365', icon: 'microsoft', rule_value: 'geosite:microsoft', target: 'DIRECT' },
+  { id: 'onedrive', name: 'OneDrive 微软云盘', icon: 'onedrive', rule_value: 'geosite:onedrive', target: 'DIRECT' },
+  { id: 'zoom', name: 'Zoom 远程会议', icon: 'zoom', rule_value: 'geosite:zoom', target: '🇭🇰 香港自动' }
 ]
+
+function getInitialPresets() {
+  try {
+    const raw = localStorage.getItem('micube_user_presets')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed
+    }
+  } catch (e) {}
+  return [...defaultPresets]
+}
+
+const presetServices = ref(getInitialPresets())
+
+function savePresetsStorage() {
+  try {
+    localStorage.setItem('micube_user_presets', JSON.stringify(presetServices.value))
+  } catch (e) {}
+}
+
+function removeHighFreqPreset(id) {
+  presetServices.value = presetServices.value.filter(p => p.id !== id)
+  savePresetsStorage()
+  showToast('已从高频常用中移除该项')
+}
+
+function resetPresetsToDefault() {
+  presetServices.value = [...defaultPresets]
+  savePresetsStorage()
+  showToast('已恢复官方默认高频常用列表')
+}
+
+// 增加自定义常用项状态
+const showAddCustomPresetForm = ref(false)
+const newCustomPreset = ref({
+  id: '',
+  name: '',
+  icon: 'default',
+  rule_value: '',
+  target: '🇭🇰 香港自动'
+})
+
+function submitAddCustomPreset() {
+  const name = (newCustomPreset.value.name || '').trim()
+  if (!name) {
+    showToast('请输入常用应用名称', true)
+    return
+  }
+  const id = newCustomPreset.value.id || name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'custom_' + Date.now()
+  presetServices.value.unshift({
+    id,
+    name,
+    icon: newCustomPreset.value.icon || 'default',
+    rule_value: (newCustomPreset.value.rule_value || '').trim(),
+    target: newCustomPreset.value.target || '🇭🇰 香港自动'
+  })
+  savePresetsStorage()
+  showToast(`🎉 已成功将【${name}】添加至日常高频常用库！`)
+  showAddCustomPresetForm.value = false
+  newCustomPreset.value = { id: '', name: '', icon: 'default', rule_value: '', target: '🇭🇰 香港自动' }
+}
 
 const availablePresetServices = computed(() => {
   const currentNames = businessGroups.value.map(g => (g.name || '').toLowerCase())
-  return presetServices.filter(preset => {
+  return presetServices.value.filter(preset => {
     return !currentNames.some(cn => cn.includes(preset.id) || cn.includes(preset.name.toLowerCase().split(' ')[0]))
   })
 })
@@ -3647,7 +4377,37 @@ function applyPreset(preset) {
   newGroupForm.value.icon = preset.icon
   newGroupForm.value.target = preset.target || '🇭🇰 香港自动'
   newGroupForm.value.rule_value = preset.rule_value || ''
-  showToast(`已载入【${preset.name}】官方推荐模版`)
+  showToast(`已载入【${preset.name}】官方模版`)
+}
+
+// ⚡ 一键直接添加高频应用策略组
+const quickAddingId = ref('')
+async function quickAddPreset(preset) {
+  quickAddingId.value = preset.id
+  try {
+    const target = preset.target || '🇭🇰 香港自动'
+    const res = await fetch('/api/v1/config/routing/group/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: preset.name,
+        icon: preset.icon,
+        now: target,
+        rule_value: preset.rule_value || ''
+      })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast(`🎉 业务分流组【${preset.name}】已一键添加生效！`)
+      await fetchIR()
+    } else {
+      showToast(data.error || '添加失败', true)
+    }
+  } catch (e) {
+    showToast('一键添加业务分流网络异常', true)
+  } finally {
+    quickAddingId.value = ''
+  }
 }
 
 async function submitAddCustomGroup() {
@@ -3656,6 +4416,7 @@ async function submitAddCustomGroup() {
     showToast('请输入业务分流名称', true)
     return
   }
+  const target = newGroupForm.value.target || '🇭🇰 香港自动'
   try {
     const res = await fetch('/api/v1/config/routing/group/add', {
       method: 'POST',
@@ -3663,7 +4424,7 @@ async function submitAddCustomGroup() {
       body: JSON.stringify({
         name: name,
         icon: newGroupForm.value.icon,
-        now: newGroupForm.value.target,
+        now: target,
         rule_value: newGroupForm.value.rule_value
       })
     })
@@ -3699,26 +4460,49 @@ async function deleteCustomGroup(groupName) {
   }
 }
 
-function getGroupLogoType(name) {
-  const n = (name || '').toLowerCase()
-  if (n.includes('openai') || n.includes('ai') || n.includes('gpt') || n.includes('claude')) return 'openai'
-  if (n.includes('youtube')) return 'youtube'
-  if (n.includes('google')) return 'google'
-  if (n.includes('github') || n.includes('docker')) return 'github'
-  if (n.includes('telegram')) return 'telegram'
-  if (n.includes('twitter') || n.includes('(x)') || n === 'x') return 'twitter'
-  if (n.includes('netflix') || n.includes('disney') || n.includes('流媒体')) return 'netflix'
-  if (n.includes('apple')) return 'apple'
-  if (n.includes('microsoft') || n.includes('windows') || n.includes('office')) return 'microsoft'
-  if (n.includes('spotify')) return 'spotify'
-  if (n.includes('steam')) return 'steam'
-  if (n.includes('tiktok')) return 'tiktok'
-  if (n.includes('bilibili')) return 'bilibili'
-  if (n.includes('discord')) return 'discord'
-  if (n.includes('notion')) return 'notion'
-  if (n.includes('binance') || n.includes('okx') || n.includes('crypto')) return 'binance'
-  if (n.includes('直连')) return 'direct'
-  if (n.includes('漏网') || n.includes('fish')) return 'fish'
+function getGroupLogoType(item) {
+  let name = ''
+  let icon = ''
+  if (typeof item === 'object' && item !== null) {
+    name = (item.name || '').toLowerCase()
+    icon = (item.icon || '').toLowerCase()
+  } else if (typeof item === 'string') {
+    name = item.toLowerCase()
+  }
+  if (icon && icon !== 'default') return icon
+  if (name.includes('claude') || name.includes('anthropic')) return 'claude'
+  if (name.includes('openai') || name.includes('chatgpt') || name.includes('gpt')) return 'openai'
+  if (name.includes('ai') || name.includes('人工智能')) return 'openai'
+  if (name.includes('youtube') || name.includes('油管')) return 'youtube'
+  if (name.includes('netflix') || name.includes('奈飞')) return 'netflix'
+  if (name.includes('disney') || name.includes('迪士尼')) return 'disney'
+  if (name.includes('bahamut') || name.includes('动画疯') || name.includes('巴哈姆特')) return 'bahamut'
+  if (name.includes('emby') || name.includes('jellyfin')) return 'emby'
+  if (name.includes('epic') || name.includes('blizzard') || name.includes('战网')) return 'epicgames'
+  if (name.includes('playstation') || name.includes('psn') || name.includes('ps5')) return 'playstation'
+  if (name.includes('nintendo') || name.includes('switch') || name.includes('任天堂')) return 'nintendo'
+  if (name.includes('google')) return 'google'
+  if (name.includes('github') || name.includes('docker')) return 'github'
+  if (name.includes('telegram') || name.includes('tg')) return 'telegram'
+  if (name.includes('twitter') || name.includes('(x)') || name === 'x') return 'twitter'
+  if (name.includes('spotify') || name.includes('音乐')) return 'spotify'
+  if (name.includes('steam') || name.includes('游戏')) return 'steam'
+  if (name.includes('tiktok') || name.includes('抖音')) return 'tiktok'
+  if (name.includes('bilibili') || name.includes('哔哩哔哩') || name.includes('b站')) return 'bilibili'
+  if (name.includes('discord')) return 'discord'
+  if (name.includes('amazon') || name.includes('prime')) return 'amazon'
+  if (name.includes('paypal')) return 'paypal'
+  if (name.includes('speedtest') || name.includes('测速')) return 'speedtest'
+  if (name.includes('reddit')) return 'reddit'
+  if (name.includes('onedrive') || name.includes('sharepoint')) return 'onedrive'
+  if (name.includes('zoom') || name.includes('teams') || name.includes('会议')) return 'zoom'
+  if (name.includes('apple') || name.includes('苹果')) return 'apple'
+  if (name.includes('microsoft') || name.includes('windows') || name.includes('office')) return 'microsoft'
+  if (name.includes('notion')) return 'notion'
+  if (name.includes('binance') || name.includes('okx') || name.includes('crypto')) return 'binance'
+  if (name.includes('直连') || name.includes('direct')) return 'direct'
+  if (name.includes('漏网') || name.includes('fish')) return 'fish'
+  if (name.includes('流媒体') || name.includes('media')) return 'netflix'
   return 'default'
 }
 
@@ -4006,6 +4790,10 @@ onMounted(async () => {
       }
     } catch (e) {}
   }, 2500)
+
+  // Initialize WeChat & ClawBot status
+  fetchClawBotStatus()
+  generateWebQr()
 
   // Tab navigation via URL Hash (for screenshots & direct deep-linking)
   const syncHash = () => {

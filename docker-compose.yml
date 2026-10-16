@@ -11,8 +11,9 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     volumes:
-      - ./data:/opt/CubeX/data
-      - ./etc:/opt/CubeX/etc
+      # 飞牛 fnOS 推荐 /vol1/1000/cubex，通用 Linux 推荐 /opt/cubex，当前相对目录自动兼容
+      - ${CUBEX_DATA_DIR:-./data}:/app/data
+      - ${CUBEX_ETC_DIR:-./etc}:/app/etc
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     environment:

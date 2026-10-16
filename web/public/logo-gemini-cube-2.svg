@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <!-- Deep Space Horizon Gradient -->
+    <radialGradient id="sym-glow" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#00355c" stop-opacity="0.7"/>
+      <stop offset="50%" stop-color="#001a33" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#000d1a" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Binary Core Gradient (Sing-Box to Mihomo Fusion) -->
+    <linearGradient id="fusion-core" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="30%" stop-color="#9333ea"/>
+      <stop offset="50%" stop-color="#ffffff"/>
+      <stop offset="70%" stop-color="#00d2ff"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <!-- Star Glow Filter -->
+    <filter id="core-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Facet Shader Gradients -->
+    <linearGradient id="face-top-2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#005a96" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#002b4d" stop-opacity="0.5"/>
+    </linearGradient>
+    <linearGradient id="face-left-2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#002b4d" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#001426" stop-opacity="0.7"/>
+    </linearGradient>
+    <linearGradient id="face-right-2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#003e6b" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#001b33" stop-opacity="0.6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ambient Space Core -->
+  <rect x="0" y="0" width="200" height="200" rx="36" fill="url(#sym-glow)"/>
+
+  <!-- Hexagonal Energy Shield Web (Gravitational Waves) -->
+  <polygon points="100,16 168,56 168,136 100,176 32,136 32,56" 
+           stroke="#00d2ff" stroke-width="1" stroke-dasharray="3 3" fill="none" opacity="0.3"/>
+  <polygon points="100,24 160,59 160,131 100,166 40,131 40,59" 
+           stroke="#a855f7" stroke-width="0.8" fill="none" opacity="0.25"/>
+
+  <!-- Outer Isometric Cube Skeleton -->
+  <!-- Top Face -->
+  <polygon points="100,34 152,64 100,94 48,64" fill="url(#face-top-2)" stroke="#00d2ff" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- Left Face -->
+  <polygon points="48,64 100,94 100,154 48,124" fill="url(#face-left-2)" stroke="#004e82" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- Right Face -->
+  <polygon points="100,94 152,64 152,124 100,154" fill="url(#face-right-2)" stroke="#38bdf8" stroke-width="1.8" stroke-linejoin="round"/>
+
+  <!-- High-Energy Center Cavity Windows (Open Geometric Cutouts) -->
+  <polygon points="100,64 126,79 100,94 74,79" fill="#001428" stroke="#00d2ff" stroke-width="1" opacity="0.7"/>
+  <polygon points="74,79 100,94 100,124 74,109" fill="#000d1a" stroke="#9333ea" stroke-width="1" opacity="0.7"/>
+  <polygon points="100,94 126,79 126,109 100,124" fill="#001428" stroke="#00d2ff" stroke-width="1" opacity="0.7"/>
+
+  <!-- SYMBIOTIC BINARY CORE (Intersecting Twin Singularities) -->
+  <g filter="url(#core-glow)">
+    <!-- Plasma Roche-Lobe Bridge connecting both stars -->
+    <path d="M 88,94 C 88,80 112,80 112,94 C 112,108 88,108 88,94 Z" fill="url(#fusion-core)" opacity="0.7"/>
+
+    <!-- Star 1: sing-box (Purple Node - Left Focus) -->
+    <circle cx="90" cy="94" r="10.5" fill="#9333ea" opacity="0.5"/>
+    <circle cx="90" cy="94" r="7" fill="#c084fc"/>
+    <circle cx="90" cy="94" r="3" fill="#ffffff"/>
+
+    <!-- Star 2: mihomo (Cyan Node - Right Focus) -->
+    <circle cx="110" cy="94" r="10.5" fill="#00d2ff" opacity="0.5"/>
+    <circle cx="110" cy="94" r="7" fill="#38bdf8"/>
+    <circle cx="110" cy="94" r="3" fill="#ffffff"/>
+
+    <!-- Dual Helix Orbital Flares (Swirling Energy Arms) -->
+    <path d="M 72 104 C 80 118, 120 118, 128 104 C 132 96, 124 82, 110 82" 
+          stroke="#00d2ff" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+    <path d="M 128 84 C 120 70, 80 70, 72 84 C 68 92, 76 106, 90 106" 
+          stroke="#c084fc" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+
+    <!-- Central Singularity Sparkle Flares -->
+    <polygon points="100,80 102.5,91.5 114,94 102.5,96.5 100,108 97.5,96.5 86,94 97.5,91.5" fill="#ffffff"/>
+  </g>
+
+  <!-- Quantum Lattice Rays Linking to Vertices -->
+  <line x1="100" y1="34" x2="100" y2="80" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="2 2" opacity="0.7"/>
+  <line x1="48" y1="124" x2="86" y2="98" stroke="#9333ea" stroke-width="1.2" stroke-dasharray="2 2" opacity="0.7"/>
+  <line x1="152" y1="124" x2="114" y2="98" stroke="#00d2ff" stroke-width="1.2" stroke-dasharray="2 2" opacity="0.7"/>
+</svg>
