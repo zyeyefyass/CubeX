@@ -1,0 +1,78 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 方案 4: 赛博微核引擎 (Cyber Reactor Core / 聚变动力立方) -->
+  <defs>
+    <radialGradient id="reactorCore" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="35%" stop-color="#00D2FF"/>
+      <stop offset="70%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#001529"/>
+    </radialGradient>
+    <linearGradient id="shieldVane" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#002D50"/>
+    </linearGradient>
+    <filter id="reactorBloom" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <style>
+    @keyframes coreTurbine {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes counterTurbine {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
+    }
+    @keyframes reactorHeartbeat {
+      0%, 100% { transform: scale(0.92); opacity: 0.85; filter: drop-shadow(0 0 6px #00d2ff); }
+      50% { transform: scale(1.12); opacity: 1; filter: drop-shadow(0 0 16px #38bdf8); }
+    }
+    .mc-turbine-cw { animation: coreTurbine 12s linear infinite; transform-origin: 50px 50px; }
+    .mc-turbine-ccw { animation: counterTurbine 8s linear infinite; transform-origin: 50px 50px; }
+    .mc-heartbeat { animation: reactorHeartbeat 2.4s ease-in-out infinite; transform-origin: 50px 50px; }
+  </style>
+
+  <!-- 外围 12 等分动力能量场刻度环 -->
+  <circle cx="50" cy="50" r="43" stroke="#0284C7" stroke-width="1.2" stroke-opacity="0.4" stroke-dasharray="2 18" fill="none"/>
+  <circle cx="50" cy="50" r="40" stroke="#00D2FF" stroke-width="0.8" stroke-opacity="0.3" fill="none"/>
+
+  <!-- 第一阶外悬浮磁力叶片 (正向旋转) -->
+  <g class="mc-turbine-cw">
+    <path d="M50,12 L54,24 L46,24 Z" fill="url(#shieldVane)" stroke="#38BDF8" stroke-width="0.8"/>
+    <path d="M50,88 L54,76 L46,76 Z" fill="url(#shieldVane)" stroke="#38BDF8" stroke-width="0.8"/>
+    <path d="M12,50 L24,54 L24,46 Z" fill="url(#shieldVane)" stroke="#38BDF8" stroke-width="0.8"/>
+    <path d="M88,50 L76,54 L76,46 Z" fill="url(#shieldVane)" stroke="#38BDF8" stroke-width="0.8"/>
+    <!-- 对角极速导流小叶片 -->
+    <path d="M23,23 L33,31 L28,36 Z" fill="#0284C7" opacity="0.7"/>
+    <path d="M77,77 L67,69 L72,64 Z" fill="#0284C7" opacity="0.7"/>
+    <path d="M77,23 L69,33 L64,28 Z" fill="#0284C7" opacity="0.7"/>
+    <path d="M23,77 L31,67 L36,72 Z" fill="#0284C7" opacity="0.7"/>
+  </g>
+
+  <!-- 第二阶内聚加速环 (逆向旋转) -->
+  <g class="mc-turbine-ccw">
+    <!-- 8角星型磁约束力场晶格 -->
+    <polygon points="50,22 58,35 72,28 65,42 78,50 65,58 72,72 58,65 50,78 42,65 28,72 35,58 22,50 35,42 28,28 42,35" 
+             stroke="#00D2FF" stroke-width="1.2" fill="#001529" fill-opacity="0.8" stroke-linejoin="round"/>
+  </g>
+
+  <!-- 第三阶聚变中心超动力核 (呼吸脉冲) -->
+  <g class="mc-heartbeat">
+    <circle cx="50" cy="50" r="15" fill="url(#reactorCore)" filter="url(#reactorBloom)"/>
+    <circle cx="50" cy="50" r="6" fill="#FFFFFF"/>
+    <!-- 中心能量微孔 -->
+    <circle cx="50" cy="50" r="2.2" fill="#001529"/>
+  </g>
+
+  <!-- 4个象限能量爆发光斑 -->
+  <circle cx="50" cy="12" r="1.8" fill="#00D2FF"/>
+  <circle cx="88" cy="50" r="1.8" fill="#00D2FF"/>
+  <circle cx="50" cy="88" r="1.8" fill="#00D2FF"/>
+  <circle cx="12" cy="50" r="1.8" fill="#00D2FF"/>
+</svg>

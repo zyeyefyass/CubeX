@@ -1,0 +1,67 @@
+<svg viewBox="0 0 35 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 亚洲地区彩色 3D 地球仪 (Asia Vibrant 3D Globe) -->
+  <defs>
+    <!-- 地球深邃海洋径向渐变 -->
+    <radialGradient id="asiaOcean" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="45%" stop-color="#0284C7"/>
+      <stop offset="85%" stop-color="#0369A1"/>
+      <stop offset="100%" stop-color="#002D50"/>
+    </radialGradient>
+
+    <!-- 亚洲大陆翠绿陆地渐变 -->
+    <linearGradient id="asiaLand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="50%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <!-- 球体边缘高光与大气层 -->
+    <linearGradient id="atmoGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#BAE6FD" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#38BDF8" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#00D2FF" stop-opacity="0"/>
+    </linearGradient>
+
+    <clipPath id="globeClip">
+      <circle cx="17.5" cy="12.5" r="11"/>
+    </clipPath>
+  </defs>
+
+  <!-- 外围微光大气层光环 -->
+  <circle cx="17.5" cy="12.5" r="11.8" stroke="#00D2FF" stroke-width="0.7" stroke-opacity="0.4" fill="none"/>
+
+  <!-- 地球主体 (蔚蓝海洋) -->
+  <circle cx="17.5" cy="12.5" r="11" fill="url(#asiaOcean)"/>
+
+  <!-- 裁剪区域内的经纬线与亚洲大陆板块 -->
+  <g clip-path="url(#globeClip)">
+    <!-- 经度弧线 -->
+    <ellipse cx="17.5" cy="12.5" rx="5.5" ry="11" stroke="#BAE6FD" stroke-width="0.5" stroke-opacity="0.35" fill="none"/>
+    <line x1="17.5" y1="1.5" x2="17.5" y2="23.5" stroke="#BAE6FD" stroke-width="0.5" stroke-opacity="0.35"/>
+    <!-- 纬度弧线 -->
+    <line x1="6.5" y1="12.5" x2="28.5" y2="12.5" stroke="#BAE6FD" stroke-width="0.5" stroke-opacity="0.35"/>
+    <path d="M7.5,7 Q17.5,10 27.5,7" stroke="#BAE6FD" stroke-width="0.5" stroke-opacity="0.25" fill="none"/>
+    <path d="M7.5,18 Q17.5,15 27.5,18" stroke="#BAE6FD" stroke-width="0.5" stroke-opacity="0.25" fill="none"/>
+
+    <!-- 亚洲大陆板块 (East Asia / Mainland China / Indochina) -->
+    <path d="M12,4 Q17,3 22,6 Q23,9 20,12 Q17,14 15,16 Q13,15 11,12 Q10,8 12,4 Z" fill="url(#asiaLand)"/>
+
+    <!-- 日本群岛 (Japan Archipelago) -->
+    <path d="M23,6 Q24.5,7 23.5,9" stroke="#FDE047" stroke-width="1.2" stroke-linecap="round"/>
+
+    <!-- 朝鲜半岛 (Korean Peninsula) -->
+    <path d="M20,8.5 L20.5,10.5" stroke="#FDE047" stroke-width="1" stroke-linecap="round"/>
+
+    <!-- 新加坡与东南亚岛链 (Singapore / Southeast Asia Maritime Islands) -->
+    <circle cx="16.5" cy="17.5" r="0.9" fill="#FDE047"/>
+    <circle cx="18.5" cy="18.5" r="0.8" fill="#34D399"/>
+    <circle cx="21" cy="17" r="0.7" fill="#34D399"/>
+
+    <!-- 印度洋边缘次大陆微角 -->
+    <path d="M11,12 Q13,14 12,17" stroke="#10B981" stroke-width="1.2" stroke-linecap="round"/>
+
+    <!-- 球面透镜反射弧光 -->
+    <path d="M8,7 A10 10 0 0 1 17,2.5" stroke="url(#atmoGlow)" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+  </g>
+</svg>

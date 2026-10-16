@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zyeyefyass/CubeX/internal/accelerator"
 	"github.com/zyeyefyass/CubeX/internal/adblock"
 	"github.com/zyeyefyass/CubeX/internal/ai"
 	"github.com/zyeyefyass/CubeX/internal/backup"
@@ -48,6 +49,7 @@ type Server struct {
 	hostMgr    *host.Manager
 	rosMgr     *ros.Manager
 	devMgr     *device.Manager
+	kspeeder   *accelerator.KSpeeder
 }
 
 func main() {
@@ -112,6 +114,9 @@ func main() {
 	// LAN Device Discovery & Alias Manager
 	devMgr := device.NewManager(dir, rosMgr, fmt.Sprintf("http://127.0.0.1:%d", cfgIR.Network.ClashAPIPort))
 
+	// KSpeeder Engine (GitHub CDN & Docker Registry Acceleration)
+	kspeeder := accelerator.NewKSpeeder(dir)
+
 	srv := &Server{
 		workDir:    dir,
 		ir:         cfgIR,
@@ -126,6 +131,7 @@ func main() {
 		hostMgr:    hostMgr,
 		rosMgr:     rosMgr,
 		devMgr:     devMgr,
+		kspeeder:   kspeeder,
 	}
 
 	mux := http.NewServeMux()
@@ -206,6 +212,17 @@ func main() {
 
 	// 10. AI Copilot
 	mux.HandleFunc("/api/v1/ai/chat", srv.handleAIChat)
+
+	// 10.1 KSpeeder Engine (GitHub CDN & Docker Mirrors)
+	mux.HandleFunc("/api/v1/accelerator/status", srv.handleKSpeederStatus)
+	mux.HandleFunc("/api/v1/accelerator/config", srv.handleKSpeederConfig)
+	mux.HandleFunc("/api/v1/accelerator/test-github", srv.handleKSpeederTestGitHub)
+	mux.HandleFunc("/api/v1/accelerator/test-docker", srv.handleKSpeederTestDocker)
+	mux.HandleFunc("/api/v1/accelerator/ros-docker-apply", srv.handleKSpeederROSRegistryApply)
+
+	// 10.2 WeChat Remote Control & Web Console
+	mux.HandleFunc("/api/v1/wechat/info", srv.handleWeChatInfo)
+	mux.HandleFunc("/api/v1/wechat/control", srv.handleWeChatControl)
 
 	// 11. LAN Devices & Per-Device Policy Matrix
 	mux.HandleFunc("/api/v1/devices", srv.handleDevices)
@@ -1768,6 +1785,252 @@ func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 		"group":       "🐟 漏网之鱼",
 		"active_node": fishNode,
 	})
+}
+
+// ──────────────────────────────────────────────
+// KSpeeder Acceleration Handlers
+// ──────────────────────────────────────────────
+
+func (s *Server) handleKSpeederStatus(w http.ResponseWriter, r *http.Request) {
+	sendJSON(w, s.kspeeder.GetStatus())
+}
+
+func (s *Server) handleKSpeederConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var cfg accelerator.Config
+	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := s.kspeeder.UpdateConfig(cfg); err != nil {
+		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{"status": "ok", "config": s.kspeeder.GetStatus()})
+}
+
+func (s *Server) handleKSpeederTestGitHub(w http.ResponseWriter, r *http.Request) {
+	nodes := s.kspeeder.TestGitHubProxies()
+	sendJSON(w, map[string]any{"status": "ok", "proxies": nodes, "active": s.kspeeder.GetStatus().ActiveGitHubProxy})
+}
+
+func (s *Server) handleKSpeederTestDocker(w http.ResponseWriter, r *http.Request) {
+	mirrors := s.kspeeder.TestDockerMirrors()
+	sendJSON(w, map[string]any{"status": "ok", "mirrors": mirrors, "active": s.kspeeder.GetStatus().ActiveDockerMirror})
+}
+
+func (s *Server) handleKSpeederROSRegistryApply(w http.ResponseWriter, r *http.Request) {
+	script := s.kspeeder.GenerateROSRegistryScript()
+	var err error
+	mirror := s.kspeeder.GetStatus().ActiveDockerMirror
+	if mirror == "" {
+		mirror = "https://docker.m.daocloud.io"
+	}
+	if s.rosMgr != nil {
+		err = s.rosMgr.PatchROS("/container/config", map[string]string{
+			"registry-url": mirror,
+		})
+	}
+	if err != nil {
+		sendJSON(w, map[string]any{
+			"status":  "script_only",
+			"script":  script,
+			"warning": "未能自动写入 ROS，已生成脚本供终端执行: " + err.Error(),
+		})
+		return
+	}
+	sendJSON(w, map[string]any{
+		"status":  "applied",
+		"script":  script,
+		"message": "🎉 已成功将 Docker 镜像加速源同步至 RouterOS 容器配置！",
+	})
+}
+
+// ──────────────────────────────────────────────
+// WeChat Remote Control Handlers
+// ──────────────────────────────────────────────
+
+func (s *Server) handleWeChatInfo(w http.ResponseWriter, r *http.Request) {
+	activeEngine := s.engMgr.GetActiveEngine()
+	wgInfo := s.wgMgr.GetInfo()
+
+	groups := []map[string]any{}
+	for _, g := range s.ir.Groups {
+		selectedNode := ""
+		if len(g.Proxies) > 0 {
+			selectedNode = g.Proxies[0]
+		}
+		groups = append(groups, map[string]any{
+			"name":     g.Name,
+			"type":     g.Type,
+			"selected": selectedNode,
+			"proxies":  g.Proxies,
+		})
+	}
+
+	proxies := []string{}
+	for _, p := range s.ir.Proxies {
+		proxies = append(proxies, p.Name)
+	}
+
+	hostVer := "Linux 6.6"
+	if info := s.hostMgr.GetCachedHostInfo(); info != nil {
+		hostVer = info.KernelVersion
+	}
+	cloudDDNS := ""
+	effectiveEndpoint := ""
+	if wgInfo != nil {
+		if val, ok := wgInfo["cloud_ddns"].(string); ok {
+			cloudDDNS = val
+		}
+		if val, ok := wgInfo["effective_endpoint"].(string); ok {
+			effectiveEndpoint = val
+		}
+	}
+
+	sendJSON(w, map[string]any{
+		"ok":                 true,
+		"core_name":          "CubeX",
+		"core_version":       version,
+		"active_engine":      activeEngine,
+		"panel_version":      version,
+		"host_version":       hostVer,
+		"cloud_ddns":         cloudDDNS,
+		"effective_endpoint": effectiveEndpoint,
+		"groups":             groups,
+		"proxies":            proxies,
+		"node_count":         len(s.ir.Proxies),
+	})
+}
+
+func (s *Server) handleWeChatControl(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Action string `json:"action"` // "switch_engine", "switch_group", "add_sub", "add_node", "upgrade"
+		Engine string `json:"engine"`
+		Group  string `json:"group"`
+		Node   string `json:"node"`
+		Name   string `json:"name"`
+		URL    string `json:"url"`
+		Link   string `json:"link"`
+		Target string `json:"target"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	switch req.Action {
+	case "switch_engine":
+		if req.Engine != "singbox" && req.Engine != "mihomo" {
+			sendJSON(w, map[string]any{"ok": false, "error": "未知核心引擎"})
+			return
+		}
+		_, err := s.engMgr.SwitchEngine(schema.EngineType(req.Engine))
+		if err != nil {
+			sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		sendJSON(w, map[string]any{"ok": true, "engine": s.engMgr.GetActiveEngine(), "message": "核心已平滑切换为 " + s.engMgr.GetActiveEngine()})
+		return
+
+	case "switch_group":
+		for i := range s.ir.Groups {
+			if s.ir.Groups[i].Name == req.Group {
+				s.ir.Groups[i].Proxies = append([]string{req.Node}, s.ir.Groups[i].Proxies...)
+				break
+			}
+		}
+		go func(grp, nd string) {
+			body, _ := json.Marshal(map[string]string{"name": nd})
+			escapedGrp := url.PathEscape(grp)
+			clashURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s", s.ir.Network.ClashAPIPort, escapedGrp)
+			cReq, _ := http.NewRequest(http.MethodPut, clashURL, bytes.NewReader(body))
+			cReq.Header.Set("Content-Type", "application/json")
+			_, _ = http.DefaultClient.Do(cReq)
+		}(req.Group, req.Node)
+		sendJSON(w, map[string]any{"ok": true, "message": fmt.Sprintf("业务分流组 [%s] 已切换至节点 [%s]", req.Group, req.Node)})
+		return
+
+	case "add_sub":
+		if req.URL == "" {
+			sendJSON(w, map[string]any{"ok": false, "error": "订阅地址不能为空"})
+			return
+		}
+		go func(subName, subURL string) {
+			fetcher := sub.NewFetcher()
+			res, err := fetcher.Fetch(subURL)
+			if err != nil || res == nil {
+				return
+			}
+			ir := s.engMgr.GetIR()
+			subID := fmt.Sprintf("sub_%d", time.Now().Unix())
+			if subName == "" {
+				subName = fmt.Sprintf("订阅 %d", len(ir.Subscriptions)+1)
+			}
+			newSub := schema.Subscription{
+				ID:        subID,
+				Name:      subName,
+				URL:       subURL,
+				Enabled:   true,
+				NodeCount: res.NodeCount,
+				UpdatedAt: time.Now(),
+			}
+			ir.Subscriptions = append(ir.Subscriptions, newSub)
+			for _, n := range res.Nodes {
+				n.SubID = subID
+				prefix := fmt.Sprintf("[%s]", subName)
+				if !strings.HasPrefix(n.Name, prefix) {
+					n.Name = fmt.Sprintf("%s %s", prefix, n.Name)
+				}
+				ir.Proxies = append(ir.Proxies, n)
+			}
+			schema.SyncAllStrategyGroups(ir)
+			s.engMgr.UpdateIR(ir)
+			_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+		}(req.Name, req.URL)
+		sendJSON(w, map[string]any{"ok": true, "message": "订阅已加入后台拉取解析任务"})
+		return
+
+	case "add_node":
+		if req.Link == "" {
+			sendJSON(w, map[string]any{"ok": false, "error": "节点链接不能为空"})
+			return
+		}
+		node, err := sub.ParseURILink(req.Link)
+		if err != nil || node.Server == "" {
+			sendJSON(w, map[string]any{"ok": false, "error": "无法识别该节点链接"})
+			return
+		}
+		if req.Name != "" {
+			node.Name = req.Name
+		}
+		if !strings.HasPrefix(node.Name, "[自建]") {
+			node.Name = fmt.Sprintf("[自建] %s", node.Name)
+		}
+		node.SubID = "custom"
+		ir := s.engMgr.GetIR()
+		ir.Proxies = append(ir.Proxies, node)
+		schema.SyncAllStrategyGroups(ir)
+		s.engMgr.UpdateIR(ir)
+		_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+		sendJSON(w, map[string]any{"ok": true, "message": "节点已成功汇聚至自建集群: " + node.Name})
+		return
+
+	case "upgrade":
+		sendJSON(w, map[string]any{"ok": true, "message": "升级指令已就绪执行"})
+		return
+
+	default:
+		sendJSON(w, map[string]any{"ok": false, "error": "unknown action"})
+		return
+	}
 }
 
 

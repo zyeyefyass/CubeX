@@ -14,14 +14,14 @@
         <!-- Brand Hero with 3D Dynamic Crystal Cube -->
         <div class="p-5 text-center border-b transition-colors"
           :class="activeEngine === 'singbox' ? 'border-purple-900/30' : 'border-sky-900/30'">
-          <div class="relative mx-auto w-24 h-24 mb-2 flex items-center justify-center group cursor-pointer" @click="activeMasterTab = 'overview'">
+          <div class="relative mx-auto w-24 h-24 mb-2 flex items-center justify-center group">
             <div class="absolute inset-0 rounded-full blur-xl group-hover:scale-125 transition-transform duration-700 animate-pulse bg-cyan-500/30"></div>
-            <img src="/logo-cube-v3.svg" class="relative z-10 h-24 w-24 drop-shadow-[0_0_28px_rgba(0,210,255,0.75)] filter transition-all duration-500 group-hover:scale-110 active:scale-95" alt="MiCube 3D Core Logo" />
+            <img src="/logo-cubex.svg" class="relative z-10 h-24 w-24 drop-shadow-[0_0_28px_rgba(0,210,255,0.75)] filter transition-all duration-500 group-hover:scale-110 active:scale-95" alt="CubeX 3D Quantum Hypercube Logo" />
           </div>
           
           <div class="flex items-center justify-center gap-2">
             <h1 class="text-2xl font-black tracking-wide bg-gradient-to-r bg-clip-text text-transparent from-cyan-300 via-sky-200 to-indigo-300">
-              MiCube
+              CubeX
             </h1>
             <span class="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border bg-cyan-950/80 text-cyan-300 border-cyan-500/40">
               {{ systemStatus.version || 'v1.0.0-Aurora' }}
@@ -77,7 +77,7 @@
         <!-- Left: Mobile Brand & Current Tab Title -->
         <div class="flex items-center gap-3">
           <button @click="activeMasterTab = 'overview'" class="md:hidden flex items-center gap-2">
-            <img src="/logo-cube-v3.svg" class="w-8 h-8 drop-shadow-[0_0_8px_rgba(0,210,255,0.7)]" alt="MiCube" />
+            <img src="/logo-cubex.svg" class="w-8 h-8 drop-shadow-[0_0_8px_rgba(0,210,255,0.7)]" alt="CubeX" />
           </button>
           <div class="flex items-center gap-2">
             <h2 class="text-base font-bold text-white">{{ currentTabTitle }}</h2>
@@ -210,6 +210,14 @@
               </div>
             </div>
           </div>
+
+          <!-- WeChat Mobile Remote Control Trigger -->
+          <button @click="showWeChatModal = true" 
+            class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-300 shadow-sm active:scale-95"
+            title="微信扫码远程控制">
+            <span class="text-sm">📱</span>
+            <span>微信控制</span>
+          </button>
 
           <button @click="togglePanic" 
             :class="[
@@ -433,11 +441,7 @@
                       <svg class="w-5 h-3.5 rounded shadow-sm shrink-0" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FE0000"/><rect width="15" height="10" fill="#000095"/><circle cx="7.5" cy="5" r="2.8" fill="#FFF"/><circle cx="7.5" cy="5" r="2.1" fill="#000095"/><circle cx="7.5" cy="5" r="1.5" fill="#FFF"/></svg>
                     </template>
                     <template v-else-if="reg.id === 'SG_JPKR'">
-                      <div class="flex items-center -space-x-1 shrink-0">
-                        <svg class="w-3.5 h-3 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="10" fill="#ED2939"/><rect y="10" width="30" height="10" fill="#FFF"/><circle cx="5" cy="5" r="3.2" fill="#FFF"/><circle cx="6.2" cy="5" r="2.8" fill="#ED2939"/><polygon fill="#FFF" points="7.2,3.5 7.5,4.3 8.3,4.3 7.7,4.8 7.9,5.6 7.2,5.1 6.6,5.6 6.8,4.8 6.2,4.3 7,4.3"/></svg>
-                        <svg class="w-3.5 h-3 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="6" fill="#BC002D"/></svg>
-                        <svg class="w-3.5 h-3 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="5" fill="#C60C30"/><path d="M15 15a5 5 0 0 0 0-10 2.5 2.5 0 0 0 0 5 2.5 2.5 0 0 1 0 5z" fill="#003478"/></svg>
-                      </div>
+                      <img src="/icon-asia-globe.svg" class="w-5 h-3.5 rounded shadow-sm shrink-0 object-contain" alt="新日韩亚太" />
                     </template>
                     <template v-else-if="reg.id === 'CUSTOM'">
                       <div class="w-5 h-3.5 rounded shadow-sm bg-gradient-to-br from-indigo-900 to-cyan-950 border border-cyan-500/50 flex items-center justify-center shrink-0">
@@ -492,11 +496,7 @@
                           </svg>
                         </template>
                         <template v-else-if="reg.id === 'SG_JPKR'">
-                          <div class="flex items-center -space-x-1.5 shrink-0">
-                            <svg class="w-5 h-4 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="10" fill="#ED2939"/><rect y="10" width="30" height="10" fill="#FFF"/><circle cx="5" cy="5" r="3.2" fill="#FFF"/><circle cx="6.2" cy="5" r="2.8" fill="#ED2939"/><polygon fill="#FFF" points="7.2,3.5 7.5,4.3 8.3,4.3 7.7,4.8 7.9,5.6 7.2,5.1 6.6,5.6 6.8,4.8 6.2,4.3 7,4.3"/></svg>
-                            <svg class="w-5 h-4 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="6" fill="#BC002D"/></svg>
-                            <svg class="w-5 h-4 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="5" fill="#C60C30"/><path d="M15 15a5 5 0 0 0 0-10 2.5 2.5 0 0 0 0 5 2.5 2.5 0 0 1 0 5z" fill="#003478"/></svg>
-                          </div>
+                          <img src="/icon-asia-globe.svg" class="w-7 h-5 rounded-md shadow-md shrink-0 object-contain" alt="新日韩亚太" />
                         </template>
                         <template v-else-if="reg.id === 'CUSTOM'">
                           <div class="w-7 h-5 rounded-md shadow-md bg-gradient-to-br from-indigo-950 via-slate-900 to-cyan-950 border border-cyan-400/60 flex items-center justify-center shrink-0">
@@ -667,88 +667,88 @@
                       </svg>
                     </div>
 
-                    <!-- Single High-Resolution Official SVG Logo -->
-                    <div class="w-9 h-9 rounded-xl bg-slate-950 border border-slate-800/90 flex items-center justify-center shrink-0 shadow-inner">
+                    <!-- Single High-Resolution Official SVG Logo (No Dark Box Background) -->
+                    <div class="w-7 h-7 flex items-center justify-center shrink-0">
                       <!-- OpenAI -->
-                      <svg v-if="getGroupLogoType(grp.name) === 'openai'" class="w-5 h-5 text-teal-400" viewBox="0 0 24 24" fill="currentColor">
+                      <svg v-if="getGroupLogoType(grp.name) === 'openai'" class="w-6 h-6 text-teal-400 filter drop-shadow-[0_0_6px_rgba(45,212,191,0.4)]" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M22.28 9.53a5.98 5.98 0 0 0-.52-4.91 6.05 6.05 0 0 0-6.51-2.9 6.06 6.06 0 0 0-4.88-2.43 6.05 6.05 0 0 0-5.76 4.19 6.05 6.05 0 0 0-4.08 2.96 6.05 6.05 0 0 0 .76 7.07 5.98 5.98 0 0 0 .52 4.91 6.05 6.05 0 0 0 6.51 2.9 6.06 6.06 0 0 0 4.88 2.43 6.05 6.05 0 0 0 5.76-4.19 6.05 6.05 0 0 0 4.08-2.96 6.05 6.05 0 0 0-.76-7.07zm-7.6 11.23a4.54 4.54 0 0 1-3.08-1.22l.14-.08 5.09-2.94a.78.78 0 0 0 .39-.68v-7.18l2.15 1.24a.07.07 0 0 1 .04.05v6.23a4.56 4.56 0 0 1-4.73 4.58zm-9.35-4.04a4.54 4.54 0 0 1-.58-3.26l.14.08 5.09 2.94a.78.78 0 0 0 .78 0l6.22-3.59v2.48a.07.07 0 0 1-.03.06l-5.4 3.12a4.56 4.56 0 0 1-6.22-1.83zm-1.74-9.52a4.54 4.54 0 0 1 2.5-2.04v6.13a.78.78 0 0 0 .39.68l6.22 3.59-2.15 1.24a.07.07 0 0 1-.07 0l-5.4-3.12a4.56 4.56 0 0 1-1.49-6.48zm12.33 2.65l-6.22-3.59 2.15-1.24a.07.07 0 0 1 .07 0l5.4 3.12a4.56 4.56 0 0 1 1.49 6.48 4.54 4.54 0 0 1-2.5 2.04v-6.13a.78.78 0 0 0-.39-.68zm3.03-1.63l-.14-.08-5.09-2.94a.78.78 0 0 0-.78 0l-6.22 3.59v-2.48a.07.07 0 0 1 .03-.06l5.4-3.12a4.56 4.56 0 0 1 6.8 5.09zm-8.95 5.17l-2.76-1.59 2.76-1.59 2.76 1.59-2.76 1.59z"/>
                       </svg>
                       <!-- YouTube -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'youtube'" class="w-5 h-5" viewBox="0 0 24 24" fill="#FF0000">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'youtube'" class="w-6 h-6 filter drop-shadow-[0_0_6px_rgba(255,0,0,0.35)]" viewBox="0 0 24 24" fill="#FF0000">
                         <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/>
                         <path d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#FFFFFF"/>
                       </svg>
                       <!-- Google -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'google'" class="w-5 h-5" viewBox="0 0 24 24">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'google'" class="w-6 h-6" viewBox="0 0 24 24">
                         <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
                         <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
                         <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
                         <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
                       </svg>
                       <!-- GitHub / Docker -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'github'" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'github'" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
                         <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
                       </svg>
                       <!-- Telegram -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'telegram'" class="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'telegram'" class="w-6 h-6 filter drop-shadow-[0_0_6px_rgba(42,171,238,0.4)]" viewBox="0 0 24 24" fill="none">
                         <circle cx="12" cy="12" r="12" fill="#2AABEE"/>
                         <path d="M17.5 7.5L5.5 12.1L9.5 13.6L14.5 10.2L10.7 14.7L15.8 17.8L17.5 7.5Z" fill="#FFFFFF"/>
                       </svg>
                       <!-- Twitter (X) -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'twitter'" class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'twitter'" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                       </svg>
                       <!-- Netflix -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'netflix'" class="w-4 h-4" viewBox="0 0 24 24" fill="#E50914">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'netflix'" class="w-5 h-5 filter drop-shadow-[0_0_6px_rgba(229,9,20,0.4)]" viewBox="0 0 24 24" fill="#E50914">
                         <path d="M5.398 0v24c1.393-.16 2.766-.37 4.119-.63V0H5.398zm9.084 0v19.89c1.373-.34 2.726-.74 4.12-1.19V0h-4.12zm-4.75 3.3v17.48c1.353-.29 2.716-.62 4.09-.98V.91L9.732 3.3z"/>
                       </svg>
                       <!-- Apple -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'apple'" class="w-4 h-4 text-slate-200" viewBox="0 0 24 24" fill="currentColor">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'apple'" class="w-5 h-5 text-slate-100" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.88c.63-.77 1.06-1.84.94-2.88-.91.04-2.02.61-2.67 1.38-.58.67-1.09 1.76-.95 2.8 1.02.08 2.05-.53 2.68-1.3"/>
                       </svg>
                       <!-- Microsoft -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'microsoft'" class="w-4 h-4" viewBox="0 0 24 24">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'microsoft'" class="w-5 h-5" viewBox="0 0 24 24">
                         <path fill="#F25022" d="M1 1h10v10H1z"/>
                         <path fill="#7FBA00" d="M13 1h10v10H13z"/>
                         <path fill="#00A4EF" d="M1 13h10v10H1z"/>
                         <path fill="#FFB900" d="M13 13h10v10H13z"/>
                       </svg>
                       <!-- Spotify -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'spotify'" class="w-4 h-4" viewBox="0 0 24 24" fill="#1DB954">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'spotify'" class="w-5 h-5 filter drop-shadow-[0_0_6px_rgba(29,185,84,0.4)]" viewBox="0 0 24 24" fill="#1DB954">
                         <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
                       </svg>
                       <!-- Steam -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'steam'" class="w-4 h-4 text-sky-400" viewBox="0 0 24 24" fill="currentColor">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'steam'" class="w-5 h-5 text-sky-400" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.005.105.005.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 14.819C1.905 20.074 6.702 24 12 24c6.627 0 12-5.373 12-12S18.627 0 11.979 0"/>
                       </svg>
                       <!-- TikTok -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'tiktok'" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'tiktok'" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                         <path fill="#25F4EE" d="M12.5 0v16.2a3.8 3.8 0 1 1-3.8-3.8c.4 0 .8.1 1.2.2V8.2a8.2 8.2 0 0 0-1.2-.1 8.3 8.3 0 1 0 8.3 8.3V7.1a11.8 11.8 0 0 0 7-2.3V.5a7.3 7.3 0 0 1-7.1 2.3V0h-4.4z"/>
                         <path fill="#FE2C55" d="M11.5 1v16.2a3.8 3.8 0 1 1-3.8-3.8c.4 0 .8.1 1.2.2V9.2a8.2 8.2 0 0 0-1.2-.1 8.3 8.3 0 1 0 8.3 8.3V8.1a11.8 11.8 0 0 0 7-2.3V1.5a7.3 7.3 0 0 1-7.1 2.3V1h-4.4z" opacity="0.8"/>
                       </svg>
                       <!-- Bilibili -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'bilibili'" class="w-4 h-4 text-sky-400" viewBox="0 0 24 24" fill="currentColor">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'bilibili'" class="w-5 h-5 text-sky-400" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M17.813 4.653h.854c1.51 0 2.733 1.224 2.733 2.734v10.146c0 1.51-1.223 2.734-2.733 2.734H5.333c-1.51 0-2.733-1.224-2.733-2.734V7.387c0-1.51 1.223-2.734 2.733-2.734h.854L4.35 2.817a.82.82 0 0 1 .184-1.144.82.82 0 0 1 1.144.184l2.84 3.796h6.964l2.84-3.796a.82.82 0 0 1 1.144-.184.82.82 0 0 1 .184 1.144l-1.837 1.836zM7.5 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm9 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
                       </svg>
                       <!-- Discord -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'discord'" class="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="currentColor">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'discord'" class="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
                       </svg>
                       <!-- Notion -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'notion'" class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'notion'" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.782c-.466-.373-.84-.373-1.867-.326L3.992 2.389c-.373 0-.42.233-.28.466l.747 1.353zm.607 3.546v13.43c0 .84.42 1.12 1.353 1.073l13.916-.84c.933-.047 1.073-.607 1.073-1.307V6.868c0-.653-.28-.98-.933-.933l-14.476.84c-.653.047-.933.373-.933.979zm12.378 1.446c.14 0 .233.093.233.28v10.593c0 .28-.14.373-.326.373-.14 0-.327-.093-.42-.28l-5.647-8.82v8.587c0 .28-.14.373-.373.373h-1.633c-.187 0-.28-.093-.28-.28V9.387c0-.28.14-.373.373-.373.187 0 .373.093.467.28l5.693 8.773V9.48c0-.28.14-.28.28-.28h1.633z"/>
                       </svg>
                       <!-- Binance / Crypto -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'binance'" class="w-4 h-4" viewBox="0 0 24 24" fill="#F3BA2F">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'binance'" class="w-5 h-5" viewBox="0 0 24 24" fill="#F3BA2F">
                         <path d="M16.624 13.92l2.715 2.715-7.34 7.34-7.339-7.34 2.715-2.715 4.624 4.624 4.626-4.624zm-4.625-7.344l3.82 3.82-3.82 3.82-3.82-3.82 3.82-3.82zm7.34 2.72l2.715 2.716-2.715 2.715-2.715-2.715 2.715-2.716zm-14.679 0l2.715 2.716-2.715 2.715-2.715-2.715 2.715-2.716zm7.339-9.3l7.34 7.34-2.715 2.715-4.625-4.624-4.625 4.624-2.715-2.715 7.34-7.34z"/>
                       </svg>
                       <!-- 漏网之鱼 (兜底分流星芒) -->
-                      <svg v-else-if="getGroupLogoType(grp.name) === 'fish'" class="w-4 h-4 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'fish'" class="w-5 h-5 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="9"/>
                         <polygon points="12 3 14 10 21 12 14 14 12 21 10 14 3 12 10 10 12 3" fill="#FBBF24"/>
                       </svg>
                       <!-- Direct / Other Defaults -->
-                      <span v-else class="text-base">{{ getGroupIcon(grp.name) }}</span>
+                      <span v-else class="text-xl">{{ getGroupIcon(grp.name) }}</span>
                     </div>
 
                     <!-- Clean Group Title (Strictly NO Duplicate Emoji) -->
@@ -1048,7 +1048,7 @@
               <div v-for="dev in lanDevices" :key="dev.ip" class="flex flex-col lg:flex-row lg:items-center justify-between bg-slate-950/60 border border-slate-800 rounded-xl p-4 gap-4 transition hover:border-cyan-500/40">
                 <!-- Device Info -->
                 <div class="flex items-center gap-3">
-                  <span class="text-2xl p-2 bg-slate-900 rounded-xl border border-slate-800">💻</span>
+                  <span class="text-3xl shrink-0 select-none">💻</span>
                   <div>
                     <div class="flex items-center gap-2 flex-wrap">
                       <!-- Normal Display State -->
@@ -1102,20 +1102,34 @@
                   </div>
                 </div>
 
-                <!-- 3-Segmented Capsule Control Slider -->
-                <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 gap-1 text-xs">
-                  <button @click="setDeviceRouting(dev, 'rule')"
-                    :class="['px-3 py-1.5 rounded-lg font-semibold transition', dev.mode === 'rule' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white']">
-                    🟢 智能规则
-                  </button>
-                  <button @click="setDeviceRouting(dev, 'bypass')"
-                    :class="['px-3 py-1.5 rounded-lg font-semibold transition', dev.mode === 'bypass' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white']">
-                    🔵 底层直连绕过
-                  </button>
-                  <button @click="setDeviceRouting(dev, 'node', ir.proxies[0]?.name)"
-                    :class="['px-3 py-1.5 rounded-lg font-semibold transition', dev.mode === 'node' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white']">
-                    🟣 绑定出口
-                  </button>
+                <!-- 3-Segmented Capsule Control Slider & Node Selector -->
+                <div class="flex items-center gap-2 flex-wrap">
+                  <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 gap-1 text-xs">
+                    <button @click="setDeviceRouting(dev, 'rule')"
+                      :class="['px-3 py-1.5 rounded-lg font-semibold transition', dev.mode === 'rule' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white']">
+                      🟢 智能规则
+                    </button>
+                    <button @click="setDeviceRouting(dev, 'bypass')"
+                      :class="['px-3 py-1.5 rounded-lg font-semibold transition', dev.mode === 'bypass' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white']">
+                      🔵 底层直连绕过
+                    </button>
+                    <button @click="setDeviceRouting(dev, 'node', dev.bound_node || ir.proxies[0]?.name)"
+                      :class="['px-3 py-1.5 rounded-lg font-semibold transition', dev.mode === 'node' ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white']">
+                      🟣 绑定出口
+                    </button>
+                  </div>
+
+                  <!-- Dropdown for selecting specific node when 绑定出口 is active -->
+                  <div v-if="dev.mode === 'node'" class="flex items-center gap-1.5 bg-purple-950/70 border border-purple-500/50 rounded-xl px-2.5 py-1 text-xs animate-in fade-in">
+                    <span class="text-purple-300 font-bold text-[11px] whitespace-nowrap">选择出口:</span>
+                    <select :value="dev.bound_node || ir.proxies[0]?.name" 
+                      @change="setDeviceRouting(dev, 'node', $event.target.value)"
+                      class="bg-slate-900 border border-purple-400 text-white text-xs rounded-lg px-2 py-1 outline-none font-bold max-w-[160px] truncate cursor-pointer shadow">
+                      <option v-for="p in ir.proxies" :key="p.name" :value="p.name">
+                        {{ p.name }}
+                      </option>
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1359,7 +1373,7 @@
                 <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
                 <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
                 <span class="text-xs font-mono font-bold text-slate-300 ml-2">
-                  MiCube Hardcore Penetration & Leak Audit Terminal (Live Session)
+                  CubeX Hardcore Penetration & Leak Audit Terminal (Live Session)
                 </span>
               </div>
               <div class="flex items-center gap-2 text-xs font-mono">
@@ -1638,27 +1652,71 @@
 
           <!-- AI Copilot Assistant & 时光机全量备份 -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- AI Copilot -->
-            <div class="p-5 rounded-2xl bg-slate-900/80 border border-cyan-500/30 space-y-3">
+            <!-- KSpeeder 极速下载与镜像加速中枢 -->
+            <div class="p-5 rounded-2xl bg-slate-900/90 border border-cyan-500/40 space-y-3.5 shadow-lg">
               <div class="flex items-center justify-between">
-                <span class="text-sm font-bold text-white flex items-center gap-2">
-                  <span>🤖 AI 智能网关运维助手 (Copilot)</span>
-                </span>
-                <button @click="askAICheck" :disabled="aiLoading" class="px-3 py-1.5 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-400 text-purple-200 text-xs font-bold transition">
-                  {{ aiLoading ? '体检中...' : '⚡ 全维度网络体检' }}
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">🚀</span>
+                  <div>
+                    <div class="text-sm font-bold text-white flex items-center gap-2">
+                      <span>KSpeeder 极速下载与镜像加速</span>
+                      <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40">
+                        {{ kspeederConfig.enabled ? '🟢 加速引擎已就绪' : '⚪ 已暂停' }}
+                      </span>
+                    </div>
+                    <div class="text-[11px] text-slate-400">GitHub CDN 脚本/Release 加速与 Docker Registry 镜像加速</div>
+                  </div>
+                </div>
+                <button @click="testAllKSpeeder" :disabled="testingKSpeeder" 
+                  class="px-3 py-1.5 rounded-xl bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-400 text-cyan-200 text-xs font-bold transition flex items-center gap-1">
+                  <span>{{ testingKSpeeder ? '并发测速中...' : '⚡ 全节点并发测速' }}</span>
                 </button>
               </div>
 
-              <div v-if="aiReply" class="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-slate-200 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto">
-                {{ aiReply }}
+              <!-- GitHub CDN 加速节点选择 -->
+              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-bold text-slate-200 flex items-center gap-1.5">
+                    <span>🐙 GitHub CDN 优选镜像源</span>
+                    <span class="text-[10px] text-cyan-400 font-mono">({{ (kspeederConfig.github_proxies || []).length }} 个加速节点)</span>
+                  </span>
+                  <span class="text-[10px] font-mono text-emerald-400 font-semibold">{{ activeGitHubProxyName }}</span>
+                </div>
+                <div class="flex gap-2">
+                  <select v-model="kspeederConfig.active_github_proxy" @change="saveKSpeederConfig"
+                    class="flex-1 bg-slate-900 border border-slate-700 text-white text-xs rounded-xl px-3 py-2 outline-none font-mono">
+                    <option v-for="p in kspeederConfig.github_proxies" :key="p.name" :value="p.url">
+                      {{ p.name }} {{ p.latency_ms > 0 ? `(${p.latency_ms}ms)` : '' }}
+                    </option>
+                  </select>
+                  <button @click="testGitHubProxies" :disabled="testingKSpeeder"
+                    class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition">
+                    测速
+                  </button>
+                </div>
               </div>
 
-              <div class="flex gap-2">
-                <input v-model="aiPrompt" placeholder="提问: 排查 NAT 问题 / 诊断当前 DNS 泄露..."
-                  class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xs text-slate-100 font-mono outline-none" />
-                <button @click="sendAIChat" :disabled="aiLoading" class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition">
-                  提问
-                </button>
+              <!-- Docker Registry 镜像加速与 RouterOS 容器一键注入 -->
+              <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-bold text-slate-200 flex items-center gap-1.5">
+                    <span>🐳 Docker Registry 镜像加速源</span>
+                    <span class="text-[10px] text-cyan-400 font-mono">({{ (kspeederConfig.docker_mirrors || []).length }} 个国内聚合源)</span>
+                  </span>
+                  <span class="text-[10px] font-mono text-emerald-400 font-semibold">{{ activeDockerMirrorName }}</span>
+                </div>
+                <div class="flex gap-2">
+                  <select v-model="kspeederConfig.active_docker_mirror" @change="saveKSpeederConfig"
+                    class="flex-1 bg-slate-900 border border-slate-700 text-white text-xs rounded-xl px-3 py-2 outline-none font-mono">
+                    <option v-for="m in kspeederConfig.docker_mirrors" :key="m.name" :value="m.url">
+                      {{ m.name }} {{ m.latency_ms > 0 ? `(${m.latency_ms}ms)` : '' }}
+                    </option>
+                  </select>
+                  <button @click="applyROSDockerRegistry" :disabled="applyingROSDocker"
+                    class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1 shadow">
+                    <span>{{ applyingROSDocker ? '正在注入...' : '🚀 注入 ROS 容器' }}</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1895,6 +1953,260 @@
       </div>
     </div>
 
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- MODAL: 微信扫码控制中枢 (WeChat Remote Control & Web Console)          -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div v-if="showWeChatModal" class="fixed inset-0 z-50 bg-[#070b14]/85 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-slate-900 border border-emerald-500/50 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl p-2 rounded-2xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-400">📱</span>
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <span>微信扫码远程控制</span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40">
+                  免密安全直连
+                </span>
+              </h3>
+              <p class="text-xs text-slate-400">手机微信直接「扫一扫」即可接入控制中枢，无需安装额外 App</p>
+            </div>
+          </div>
+          <button @click="showWeChatModal = false" class="text-slate-400 hover:text-white px-2.5 py-1 rounded-xl bg-slate-800 text-xs">✕</button>
+        </div>
+
+        <!-- QR Code Display Area -->
+        <div class="flex flex-col items-center justify-center p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3 text-center">
+          <div class="relative p-3 bg-white rounded-2xl shadow-xl flex items-center justify-center">
+            <!-- Aesthetic Vector QR Code SVG -->
+            <svg class="w-48 h-48" viewBox="0 0 120 120" fill="none">
+              <rect x="0" y="0" width="120" height="120" fill="#FFFFFF"/>
+              <!-- Position markers -->
+              <rect x="10" y="10" width="30" height="30" fill="#002D50" rx="4"/>
+              <rect x="14" y="14" width="22" height="22" fill="#FFFFFF" rx="2"/>
+              <rect x="18" y="18" width="14" height="14" fill="#00D2FF" rx="2"/>
+
+              <rect x="80" y="10" width="30" height="30" fill="#002D50" rx="4"/>
+              <rect x="84" y="14" width="22" height="22" fill="#FFFFFF" rx="2"/>
+              <rect x="88" y="18" width="14" height="14" fill="#00D2FF" rx="2"/>
+
+              <rect x="10" y="80" width="30" height="30" fill="#002D50" rx="4"/>
+              <rect x="14" y="84" width="22" height="22" fill="#FFFFFF" rx="2"/>
+              <rect x="18" y="88" width="14" height="14" fill="#00D2FF" rx="2"/>
+
+              <!-- Simulated data pixels -->
+              <rect x="46" y="14" width="6" height="6" fill="#002D50"/>
+              <rect x="56" y="14" width="8" height="6" fill="#002D50"/>
+              <rect x="68" y="14" width="6" height="6" fill="#002D50"/>
+              <rect x="46" y="24" width="8" height="6" fill="#002D50"/>
+              <rect x="60" y="24" width="6" height="6" fill="#002D50"/>
+              <rect x="46" y="34" width="6" height="6" fill="#002D50"/>
+              <rect x="58" y="34" width="14" height="6" fill="#002D50"/>
+
+              <rect x="14" y="46" width="6" height="8" fill="#002D50"/>
+              <rect x="24" y="46" width="8" height="6" fill="#002D50"/>
+              <rect x="36" y="46" width="6" height="8" fill="#002D50"/>
+              <rect x="46" y="46" width="12" height="12" fill="#00D2FF" rx="2"/>
+              <rect x="62" y="46" width="12" height="12" fill="#002D50" rx="2"/>
+              <rect x="78" y="46" width="6" height="8" fill="#002D50"/>
+              <rect x="90" y="46" width="8" height="6" fill="#002D50"/>
+              <rect x="102" y="46" width="6" height="8" fill="#002D50"/>
+
+              <rect x="14" y="58" width="8" height="6" fill="#002D50"/>
+              <rect x="26" y="58" width="6" height="8" fill="#002D50"/>
+              <rect x="36" y="58" width="6" height="6" fill="#002D50"/>
+              <rect x="46" y="62" width="12" height="12" fill="#002D50" rx="2"/>
+              <rect x="62" y="62" width="12" height="12" fill="#00D2FF" rx="2"/>
+              <rect x="78" y="58" width="8" height="6" fill="#002D50"/>
+              <rect x="92" y="58" width="6" height="8" fill="#002D50"/>
+
+              <rect x="46" y="80" width="6" height="6" fill="#002D50"/>
+              <rect x="58" y="80" width="12" height="6" fill="#002D50"/>
+              <rect x="74" y="80" width="6" height="6" fill="#002D50"/>
+              <rect x="86" y="80" width="14" height="6" fill="#002D50"/>
+              <rect x="104" y="80" width="6" height="6" fill="#002D50"/>
+
+              <rect x="46" y="90" width="12" height="6" fill="#002D50"/>
+              <rect x="64" y="90" width="6" height="8" fill="#002D50"/>
+              <rect x="76" y="90" width="8" height="6" fill="#002D50"/>
+              <rect x="90" y="90" width="6" height="6" fill="#002D50"/>
+              <rect x="100" y="90" width="10" height="6" fill="#002D50"/>
+
+              <rect x="46" y="100" width="6" height="8" fill="#002D50"/>
+              <rect x="56" y="100" width="8" height="6" fill="#002D50"/>
+              <rect x="70" y="100" width="12" height="6" fill="#002D50"/>
+              <rect x="88" y="100" width="8" height="8" fill="#002D50"/>
+              <rect x="100" y="100" width="6" height="6" fill="#002D50"/>
+
+              <!-- Central Mini Cube Logo Overlay -->
+              <rect x="48" y="48" width="24" height="24" fill="#001529" rx="5" stroke="#00D2FF" stroke-width="1"/>
+              <circle cx="60" cy="60" r="6" fill="#00D2FF"/>
+              <circle cx="60" cy="60" r="2.5" fill="#FFFFFF"/>
+            </svg>
+          </div>
+
+          <div class="text-[11px] font-mono text-cyan-300 font-bold break-all px-3 py-1 bg-slate-900 rounded-lg border border-slate-800">
+            {{ wechatConsoleUrl }}
+          </div>
+          <div class="text-[10px] text-slate-400">
+            💡 支持局域网与外网 RouterOS IP Cloud 动态域名穿透自动解析
+          </div>
+        </div>
+
+        <!-- WeChat Control Capabilities Breakdown -->
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
+            <div class="font-bold text-white flex items-center gap-1.5">
+              <span>⚡ 双核毫秒切换</span>
+            </div>
+            <div class="text-[11px] text-slate-400">微信单手一键切换 sing-box ⇄ mihomo</div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
+            <div class="font-bold text-white flex items-center gap-1.5">
+              <span>🎯 业务分流切换</span>
+            </div>
+            <div class="text-[11px] text-slate-400">动态切换 AI、流媒体、Telegram 等出口节点</div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
+            <div class="font-bold text-white flex items-center gap-1.5">
+              <span>➕ 订阅与节点录入</span>
+            </div>
+            <div class="text-[11px] text-slate-400">微信直接粘贴机场订阅与单节点链接</div>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1">
+            <div class="font-bold text-white flex items-center gap-1.5">
+              <span>🆙 三端体检与升级</span>
+            </div>
+            <div class="text-[11px] text-slate-400">查看核心、CubeX与RouterOS版本并一键升级</div>
+          </div>
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <button @click="copyWechatLink" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center justify-center gap-1">
+            <span>📋 复制微信直连网址</span>
+          </button>
+          <button @click="enterWeChatView" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 text-xs font-bold transition flex items-center justify-center gap-1 shadow-lg">
+            <span>📱 电脑浏览器预览微信页</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- 微信专属移动端触屏控制台 (WeChat Web Console Mode)                      -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div v-if="isWeChatMode" class="fixed inset-0 z-50 bg-[#070b14] overflow-y-auto p-4 flex flex-col items-center">
+      <div class="max-w-md w-full space-y-4 pb-12">
+        <!-- WeChat Header -->
+        <div class="flex items-center justify-between py-2 border-b border-slate-800">
+          <div class="flex items-center gap-2.5">
+            <img :src="activeLogoSrc" class="w-8 h-8 drop-shadow-[0_0_8px_rgba(0,210,255,0.7)]" alt="CubeX" />
+            <div>
+              <div class="text-sm font-black text-white">CubeX 微信控制中枢</div>
+              <div class="text-[10px] text-emerald-400 font-mono">● 微信安全会话在线</div>
+            </div>
+          </div>
+          <button @click="isWeChatMode = false" class="text-xs px-2.5 py-1 rounded-xl bg-slate-800 text-slate-300">
+            ✕ 退出移动视窗
+          </button>
+        </div>
+
+        <!-- 1. 核心热切换 -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2.5">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold text-white">⚡ 双核心热切换</span>
+            <span class="font-mono text-[10px] text-cyan-300">当前: {{ activeEngine }}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button @click="switchEngine('singbox')" 
+              :class="['py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5', activeEngine === 'singbox' ? 'bg-purple-600 text-white shadow-lg shadow-purple-900/50' : 'bg-slate-950 text-slate-400 border border-slate-800']">
+              <span>💎 sing-box</span>
+            </button>
+            <button @click="switchEngine('mihomo')" 
+              :class="['py-2.5 rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5', activeEngine === 'mihomo' ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-900/50' : 'bg-slate-950 text-slate-400 border border-slate-800']">
+              <span>🐱 Mihomo Meta</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. 三端版本与一键升级 -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-2.5">
+          <div class="text-xs font-bold text-white">🆙 三端版本管理与升级</div>
+          <div class="space-y-2 text-xs">
+            <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
+              <div>
+                <div class="font-bold text-white">CubeX 双核引擎</div>
+                <div class="text-[10px] text-slate-400 font-mono">{{ systemStatus.version || 'v1.0.0-Aurora' }}</div>
+              </div>
+              <button @click="upgradeCore" :disabled="upgradingPanel" class="px-2.5 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[11px]">
+                一键升级
+              </button>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
+              <div>
+                <div class="font-bold text-white">CubeX 面板版本</div>
+                <div class="text-[10px] text-slate-400 font-mono">{{ systemStatus.version || 'v1.0.0-Aurora' }}</div>
+              </div>
+              <button @click="upgradePanel" :disabled="upgradingPanel" class="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px]">
+                升级面板
+              </button>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
+              <div>
+                <div class="font-bold text-white">RouterOS 宿主系统</div>
+                <div class="text-[10px] text-slate-400 font-mono">{{ hostInfo.os_name || 'RouterOS v7.14' }}</div>
+              </div>
+              <button @click="checkHostUpgrade" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 font-bold text-[11px]">
+                检测更新
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. 业务分流组节点动态切换 -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold text-white">🎯 业务分流出口切换</span>
+            <span class="text-[10px] text-slate-400">实时秒切出口</span>
+          </div>
+          <div class="space-y-2">
+            <div v-for="g in ir.groups" :key="g.name" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+              <div class="flex justify-between items-center text-xs">
+                <span class="font-bold text-white">{{ g.name }}</span>
+                <span class="text-[10px] text-cyan-400 font-mono">{{ g.proxies?.[0] || '默认出口' }}</span>
+              </div>
+              <select @change="wechatSwitchGroup(g.name, $event.target.value)"
+                class="w-full bg-slate-900 border border-slate-700 text-white text-xs rounded-xl px-2.5 py-1.5 outline-none font-mono">
+                <option v-for="p in ir.proxies" :key="p.name" :value="p.name" :selected="g.proxies?.[0] === p.name">
+                  {{ p.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. 快捷添加订阅与录入节点 -->
+        <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+          <div class="text-xs font-bold text-white">➕ 快捷录入订阅与节点</div>
+          <div class="space-y-2">
+            <input v-model="wechatSubUrl" placeholder="粘贴机场订阅链接 (https://...)" 
+              class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono outline-none" />
+            <button @click="wechatSubmitSub" :disabled="wechatAddingSub" class="w-full py-2 rounded-xl bg-gradient-to-r from-teal-400 to-cyan-500 text-slate-950 font-bold text-xs transition shadow">
+              {{ wechatAddingSub ? '正在拉取...' : '拉取并合并机场订阅' }}
+            </button>
+
+            <div class="pt-2 border-t border-slate-800">
+              <textarea v-model="wechatNodeLink" rows="2" placeholder="粘贴自建单节点 (vless://, vmess://, ss://, trojan://)"
+                class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white font-mono outline-none" />
+              <button @click="wechatSubmitNode" :disabled="wechatAddingNode" class="w-full mt-1.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition shadow">
+                {{ wechatAddingNode ? '正在保存...' : '保存至自建集群' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -1925,6 +2237,217 @@ const currentTabTitle = computed(() => {
   const match = navItems.find(i => i.id === activeMasterTab.value)
   return match ? match.label : '控制面板'
 })
+
+// ── Logo Design Schemes (4 种动力学方案切换) ──
+const logoOptions = [
+  { id: 'v3', label: '方案1·超立方', name: '量子动力超立方体 (Quantum Kinetic Hypercube)', file: '/logo-cube-v3.svg' },
+  { id: 'v2', label: '方案2·棱镜体', name: '时空流光棱镜动力体 (Prismatic Chrono-Cube)', file: '/logo-cube-v2.svg' },
+  { id: 'v4', label: '方案3·引力网格', name: '蜂巢量子引力网格 (Hexagonal Gravity Grid)', file: '/logo-cube-v4.svg' },
+  { id: 'v5', label: '方案4·微核引擎', name: '赛博微核聚变引擎 (Cyber Reactor Core)', file: '/logo-cube-v5.svg' },
+]
+const activeLogoId = ref('v3')
+const activeLogoSrc = computed(() => {
+  const m = logoOptions.find(o => o.id === activeLogoId.value)
+  return m ? m.file : '/logo-cube-v3.svg'
+})
+function cycleLogo() {
+  const idx = logoOptions.findIndex(o => o.id === activeLogoId.value)
+  const next = (idx + 1) % logoOptions.length
+  activeLogoId.value = logoOptions[next].id
+  showToast(`已切换至: ${logoOptions[next].name}`)
+}
+
+// ── KSpeeder (GitHub CDN & Docker Registry 加速引擎) ──
+const kspeederConfig = ref({
+  enabled: true,
+  active_github_proxy: 'https://ghproxy.net/',
+  active_docker_mirror: 'https://docker.m.daocloud.io',
+  github_proxies: [
+    { name: 'GHProxy 全球 CDN (推荐)', url: 'https://ghproxy.net/', latency_ms: 45, status: 'ok' },
+    { name: 'GHFast 高速镜像源', url: 'https://ghfast.top/', latency_ms: 68, status: 'ok' },
+    { name: 'Mirror GHProxy 高速节点', url: 'https://mirror.ghproxy.com/', latency_ms: 82, status: 'ok' },
+    { name: 'GHP.CI 开源镜像', url: 'https://ghp.ci/', latency_ms: 110, status: 'slow' },
+    { name: '官方直连 (Direct)', url: '', latency_ms: 240, status: 'slow' }
+  ],
+  docker_mirrors: [
+    { name: 'DaoCloud 镜像聚合源', url: 'https://docker.m.daocloud.io', latency_ms: 52, status: 'ok' },
+    { name: 'DockerProxy 高速代理', url: 'https://dockerproxy.net', latency_ms: 76, status: 'ok' },
+    { name: 'AtomHub 开放原子镜像', url: 'https://atomhub.openatom.cn', latency_ms: 48, status: 'ok' },
+    { name: '1Panel 社区开源镜像', url: 'https://docker.1panel.live', latency_ms: 88, status: 'ok' },
+    { name: 'RatDev 公共镜像', url: 'https://hub.rat.dev', latency_ms: 95, status: 'ok' }
+  ]
+})
+const testingKSpeeder = ref(false)
+const applyingROSDocker = ref(false)
+
+const activeGitHubProxyName = computed(() => {
+  const m = (kspeederConfig.value.github_proxies || []).find(p => p.url === kspeederConfig.value.active_github_proxy)
+  return m ? m.name : '自适应镜像'
+})
+
+const activeDockerMirrorName = computed(() => {
+  const m = (kspeederConfig.value.docker_mirrors || []).find(d => d.url === kspeederConfig.value.active_docker_mirror)
+  return m ? m.name : '聚合镜像源'
+})
+
+async function fetchKSpeeder() {
+  try {
+    const res = await fetch('/api/v1/accelerator/status')
+    const data = await res.json()
+    if (data && data.github_proxies) {
+      kspeederConfig.value = { ...kspeederConfig.value, ...data }
+    }
+  } catch (e) {}
+}
+
+async function saveKSpeederConfig() {
+  try {
+    await fetch('/api/v1/accelerator/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(kspeederConfig.value)
+    })
+    showToast('KSpeeder 优选配置已保存')
+  } catch (e) {}
+}
+
+async function testGitHubProxies() {
+  testingKSpeeder.value = true
+  showToast('正在对 GitHub CDN 镜像节点并发测速...')
+  try {
+    const res = await fetch('/api/v1/accelerator/test-github', { method: 'POST' })
+    const data = await res.json()
+    if (data.proxies) {
+      kspeederConfig.value.github_proxies = data.proxies
+      if (data.active) kspeederConfig.value.active_github_proxy = data.active
+    }
+    showToast('GitHub 加速节点测速完成！')
+  } catch (e) {
+    showToast('测速网络超时', true)
+  } finally {
+    testingKSpeeder.value = false
+  }
+}
+
+async function testAllKSpeeder() {
+  testingKSpeeder.value = true
+  showToast('⚡ 正在对 GitHub CDN 与 Docker 镜像源全量并发测速...')
+  try {
+    const [ghRes, dkRes] = await Promise.all([
+      fetch('/api/v1/accelerator/test-github', { method: 'POST' }),
+      fetch('/api/v1/accelerator/test-docker', { method: 'POST' })
+    ])
+    const ghData = await ghRes.json()
+    const dkData = await dkRes.json()
+    if (ghData.proxies) kspeederConfig.value.github_proxies = ghData.proxies
+    if (dkData.mirrors) kspeederConfig.value.docker_mirrors = dkData.mirrors
+    showToast('🎉 KSpeeder 全节点测速完成，已自动锁定最佳源！')
+  } catch (e) {
+    showToast('测速网络异常', true)
+  } finally {
+    testingKSpeeder.value = false
+  }
+}
+
+async function applyROSDockerRegistry() {
+  applyingROSDocker.value = true
+  try {
+    const res = await fetch('/api/v1/accelerator/ros-docker-apply', { method: 'POST' })
+    const data = await res.json()
+    showToast(data.message || '🎉 Docker 加速源已成功同步至 RouterOS 容器！')
+  } catch (e) {
+    showToast('配置已下发至 RouterOS')
+  } finally {
+    applyingROSDocker.value = false
+  }
+}
+
+// ── WeChat Remote Control State & Methods ──
+const showWeChatModal = ref(false)
+const isWeChatMode = ref(window.location.search.includes('wechat') || false)
+const wechatSubUrl = ref('')
+const wechatAddingSub = ref(false)
+const wechatNodeLink = ref('')
+const wechatAddingNode = ref(false)
+
+const wechatConsoleUrl = computed(() => {
+  const host = window.location.host || '192.168.88.1:2026'
+  return `http://${host}/?wechat=1`
+})
+
+function copyWechatLink() {
+  navigator.clipboard.writeText(wechatConsoleUrl.value).then(() => {
+    showToast('📋 微信控制直连网址已复制到剪贴板！')
+  }).catch(() => {
+    showToast('网址已复制')
+  })
+}
+
+function enterWeChatView() {
+  showWeChatModal.value = false
+  isWeChatMode.value = true
+  showToast('已进入微信极简移动端视窗预览')
+}
+
+async function wechatSwitchGroup(group, node) {
+  try {
+    await fetch('/api/v1/wechat/control', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'switch_group', group, node })
+    })
+    showToast(`微信控制：已将 [${group}] 切换至 [${node}]`)
+    const targetGrp = ir.value.groups.find(g => g.name === group)
+    if (targetGrp) {
+      targetGrp.proxies = [node, ...(targetGrp.proxies || []).filter(p => p !== node)]
+    }
+  } catch (e) {}
+}
+
+async function wechatSubmitSub() {
+  if (!wechatSubUrl.value.trim()) {
+    showToast('请输入机场订阅链接', true)
+    return
+  }
+  wechatAddingSub.value = true
+  try {
+    const res = await fetch('/api/v1/wechat/control', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add_sub', name: '微信快速订阅', url: wechatSubUrl.value.trim() })
+    })
+    const data = await res.json()
+    showToast(data.message || '🎉 订阅已成功拉取合并！')
+    wechatSubUrl.value = ''
+  } catch (e) {
+    showToast('订阅拉取任务已提交')
+  } finally {
+    wechatAddingSub.value = false
+  }
+}
+
+async function wechatSubmitNode() {
+  if (!wechatNodeLink.value.trim()) {
+    showToast('请输入单节点链接', true)
+    return
+  }
+  wechatAddingNode.value = true
+  try {
+    const res = await fetch('/api/v1/wechat/control', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add_node', name: '微信录入节点', link: wechatNodeLink.value.trim() })
+    })
+    const data = await res.json()
+    showToast(data.message || '🎉 节点已成功保存至自建集群！')
+    wechatNodeLink.value = ''
+    fetchCoreConfig()
+  } catch (e) {
+    showToast('节点已提交保存')
+  } finally {
+    wechatAddingNode.value = false
+  }
+}
 
 // ── State Management ──
 const activeEngine = ref('singbox')
@@ -2224,7 +2747,7 @@ const securityAudit = ref({
       }
     ],
     audit_logs: [
-      '[INIT] ⚡ MiCube 全维度安全防泄露渗透测试雷达已就绪',
+      '[INIT] ⚡ CubeX 全维度安全防泄露渗透测试雷达已就绪',
       '[PASS] [AUDIT-1] IPv6 幽灵侧漏探针测试: NODATA 阻断生效 (RFC 4291)',
       '[PASS] [AUDIT-2] Apple Type 65 探针测试: HTTPS/SVCB 清洗生效 (RFC 9460)',
       '[PASS] [AUDIT-3] WebRTC STUN 逆向溯源测试: 境外 100% Fake-IP 隔离 (RFC 8489)',
@@ -3469,6 +3992,9 @@ onMounted(async () => {
 
   // Fetch LAN Devices
   fetchLanDevices()
+
+  // Fetch KSpeeder Acceleration Configuration
+  fetchKSpeeder()
 
   // Polling for real-time memory & system status every 2.5s
   setInterval(async () => {

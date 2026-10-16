@@ -1,0 +1,88 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 方案 3: 蜂巢量子引力网格 (Hexagonal Gravity Grid / 空间折叠网关) -->
+  <defs>
+    <linearGradient id="hexFrame" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00D2FF"/>
+      <stop offset="50%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#001529"/>
+    </linearGradient>
+    <linearGradient id="dualCoreA" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#004E82"/>
+    </linearGradient>
+    <linearGradient id="dualCoreB" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22D3EE"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
+    </linearGradient>
+    <radialGradient id="gravityWell" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00D2FF" stop-opacity="0.35"/>
+      <stop offset="70%" stop-color="#002D50" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="hexGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <style>
+    @keyframes orbitSpinCW {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes orbitSpinCCW {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
+    }
+    @keyframes pulseMesh {
+      0%, 100% { opacity: 0.4; stroke-width: 0.8; }
+      50% { opacity: 0.9; stroke-width: 1.4; filter: drop-shadow(0 0 5px #00d2ff); }
+    }
+    .mc-spin-cw { animation: orbitSpinCW 16s linear infinite; transform-origin: 50px 50px; }
+    .mc-spin-ccw { animation: orbitSpinCCW 10s linear infinite; transform-origin: 50px 50px; }
+    .mc-mesh-pulse { animation: pulseMesh 3.2s ease-in-out infinite; }
+  </style>
+
+  <!-- 引力场引力底晕 -->
+  <circle cx="50" cy="50" r="44" fill="url(#gravityWell)"/>
+
+  <!-- 外部正六边形重型钛金网关框架 -->
+  <polygon points="50,6 88,28 88,72 50,94 12,72 12,28" 
+           stroke="url(#hexFrame)" stroke-width="2.2" stroke-linejoin="round" fill="#001529" fill-opacity="0.75"/>
+
+  <!-- 正六边形顶点强化锚点 (与 RouterOS 硬件对齐概念) -->
+  <circle cx="50" cy="6" r="2.2" fill="#00D2FF"/>
+  <circle cx="88" cy="28" r="2" fill="#38BDF8"/>
+  <circle cx="88" cy="72" r="2" fill="#0284C7"/>
+  <circle cx="50" cy="94" r="2.2" fill="#00D2FF"/>
+  <circle cx="12" cy="72" r="2" fill="#0284C7"/>
+  <circle cx="12" cy="28" r="2" fill="#38BDF8"/>
+
+  <!-- 蜂巢量子引力网格内线 -->
+  <g class="mc-mesh-pulse" stroke="#38BDF8" stroke-opacity="0.5" stroke-dasharray="3 3">
+    <line x1="50" y1="6" x2="50" y2="94"/>
+    <line x1="12" y1="28" x2="88" y2="72"/>
+    <line x1="12" y1="72" x2="88" y2="28"/>
+  </g>
+
+  <!-- 旋转的星轨公转粒子环 (正向旋转) -->
+  <g class="mc-spin-cw">
+    <circle cx="50" cy="50" r="32" stroke="#00D2FF" stroke-width="1" stroke-dasharray="8 16" fill="none" stroke-opacity="0.6"/>
+    <circle cx="50" cy="18" r="2" fill="#FFFFFF" filter="url(#hexGlow)"/>
+    <circle cx="50" cy="82" r="1.8" fill="#38BDF8"/>
+  </g>
+
+  <!-- 逆向自转的双核原子互锁超立方体 (sing-box + mihomo 双引擎交织) -->
+  <g class="mc-spin-ccw">
+    <!-- 双菱形互锁立方结构 -->
+    <polygon points="50,26 70,38 70,62 50,74 30,62 30,38" 
+             stroke="#38BDF8" stroke-width="1.4" fill="url(#dualCoreA)" fill-opacity="0.7" stroke-linejoin="round"/>
+    <!-- 内部次级晶格 -->
+    <polygon points="50,33 64,42 64,58 50,67 36,58 36,42" 
+             stroke="#FFFFFF" stroke-width="1.2" fill="url(#dualCoreB)" fill-opacity="0.85" filter="url(#hexGlow)"/>
+    <circle cx="50" cy="50" r="4.5" fill="#FFFFFF" filter="url(#hexGlow)"/>
+  </g>
+</svg>

@@ -1,27 +1,22 @@
 <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Top Face Gradient -->
     <linearGradient id="cubeTop" x1="50%" y1="0%" x2="50%" y2="100%">
       <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.9"/>
       <stop offset="100%" stop-color="#0284C7" stop-opacity="0.7"/>
     </linearGradient>
-    <!-- Left Face Gradient -->
     <linearGradient id="cubeLeft" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#0369A1" stop-opacity="0.8"/>
       <stop offset="100%" stop-color="#002D50" stop-opacity="0.95"/>
     </linearGradient>
-    <!-- Right Face Gradient -->
     <linearGradient id="cubeRight" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#0284C7" stop-opacity="0.75"/>
       <stop offset="100%" stop-color="#001529" stop-opacity="0.98"/>
     </linearGradient>
-    <!-- Quantum Core Gradient -->
     <linearGradient id="quantumCore" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#00D2FF"/>
       <stop offset="50%" stop-color="#C084FC"/>
       <stop offset="100%" stop-color="#38BDF8"/>
     </linearGradient>
-    <!-- Neon Edge Glow Filter -->
     <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur stdDeviation="2.2" result="blur"/>
       <feMerge>
@@ -55,36 +50,25 @@
     .mc-halo-ring { animation: mcPulseRing 3.5s ease-in-out infinite; transform-origin: 50px 50px; }
   </style>
 
-  <!-- Ambient Energy Orbit Halo -->
   <circle class="mc-halo-ring" cx="50" cy="50" r="39" stroke="#00D2FF" stroke-width="0.9" stroke-opacity="0.45" stroke-dasharray="5 7" fill="none"/>
 
-  <!-- 3D Isometric Floating Cube -->
   <g class="mc-float-cube">
-    <!-- Top Face (Isometric) -->
     <polygon points="50,14 82,32 50,50 18,32" fill="url(#cubeTop)" stroke="#38BDF8" stroke-width="1.2" stroke-linejoin="round"/>
-    
-    <!-- Left Face -->
     <polygon points="18,32 50,50 50,86 18,68" fill="url(#cubeLeft)" stroke="#0284C7" stroke-width="1.2" stroke-linejoin="round"/>
-    
-    <!-- Right Face -->
     <polygon points="50,50 82,32 82,68 50,86" fill="url(#cubeRight)" stroke="#0369A1" stroke-width="1.2" stroke-linejoin="round"/>
 
-    <!-- High-Tech Inner Grid Axis -->
     <line x1="50" y1="50" x2="50" y2="14" stroke="#00D2FF" stroke-width="1" stroke-opacity="0.6"/>
     <line x1="50" y1="50" x2="18" y2="68" stroke="#00D2FF" stroke-width="1" stroke-opacity="0.6"/>
     <line x1="50" y1="50" x2="82" y2="68" stroke="#00D2FF" stroke-width="1" stroke-opacity="0.6"/>
 
-    <!-- Laser Flow Border Overlay -->
     <path class="mc-flow-edge" d="M50,14 L82,32 L82,68 L50,86 L18,68 L18,32 Z M50,50 L50,86 M50,50 L18,32 M50,50 L82,32" stroke="#FFFFFF" stroke-width="1.5" fill="none" filter="url(#neonGlow)"/>
 
-    <!-- Suspended Quantum Core -->
     <g class="mc-core-pulse">
       <polygon points="50,38 59,50 50,62 41,50" fill="url(#quantumCore)" opacity="0.95"/>
       <polygon points="50,38 59,50 50,50" fill="#FFFFFF" opacity="0.8"/>
       <circle cx="50" cy="50" r="3.4" fill="#FFFFFF"/>
     </g>
 
-    <!-- Vertex Micro-LED Dots -->
     <circle cx="50" cy="14" r="2" fill="#FFFFFF"/>
     <circle cx="82" cy="32" r="1.8" fill="#00D2FF"/>
     <circle cx="82" cy="68" r="1.8" fill="#38BDF8"/>

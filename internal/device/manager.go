@@ -420,39 +420,61 @@ func (m *Manager) GetDevices() []Device {
 	for key, alias := range m.store.Aliases {
 		if strings.Contains(key, ":") { // MAC
 			if _, exists := macToIP[key]; !exists {
-				dev := Device{
-					IP:       "-",
-					MAC:      key,
-					Name:     alias,
-					IsCustom: true,
-					Source:   "已保存离线设备",
-					Online:   false,
-					LastSeen: 0,
-					Mode:     "rule",
+				// Check if an offline device with the exact same alias was already added by IP
+				merged := false
+				for i := range result {
+					if result[i].Name == alias && (result[i].MAC == "-" || result[i].MAC == "") {
+						result[i].MAC = key
+						merged = true
+						break
+					}
 				}
-				if pol, ok := m.store.Policies[key]; ok {
-					dev.Mode = pol.Mode
-					dev.BoundNode = pol.BoundNode
+				if !merged {
+					dev := Device{
+						IP:       "-",
+						MAC:      key,
+						Name:     alias,
+						IsCustom: true,
+						Source:   "已保存离线设备",
+						Online:   false,
+						LastSeen: 0,
+						Mode:     "rule",
+					}
+					if pol, ok := m.store.Policies[key]; ok {
+						dev.Mode = pol.Mode
+						dev.BoundNode = pol.BoundNode
+					}
+					result = append(result, dev)
 				}
-				result = append(result, dev)
 			}
 		} else if strings.Contains(key, ".") { // IP
 			if _, exists := deviceMap[key]; !exists {
-				dev := Device{
-					IP:       key,
-					MAC:      "-",
-					Name:     alias,
-					IsCustom: true,
-					Source:   "已保存离线设备",
-					Online:   false,
-					LastSeen: 0,
-					Mode:     "rule",
+				// Check if an offline device with the exact same alias was already added by MAC
+				merged := false
+				for i := range result {
+					if result[i].Name == alias && (result[i].IP == "-" || result[i].IP == "") {
+						result[i].IP = key
+						merged = true
+						break
+					}
 				}
-				if pol, ok := m.store.Policies[key]; ok {
-					dev.Mode = pol.Mode
-					dev.BoundNode = pol.BoundNode
+				if !merged {
+					dev := Device{
+						IP:       key,
+						MAC:      "-",
+						Name:     alias,
+						IsCustom: true,
+						Source:   "已保存离线设备",
+						Online:   false,
+						LastSeen: 0,
+						Mode:     "rule",
+					}
+					if pol, ok := m.store.Policies[key]; ok {
+						dev.Mode = pol.Mode
+						dev.BoundNode = pol.BoundNode
+					}
+					result = append(result, dev)
 				}
-				result = append(result, dev)
 			}
 		}
 	}
