@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ═════════════════════════════════════════════════════════════════════════════
 # 🌌 CubeX Universal Deployer · 次世代双擎高可用旁路网关一键极速安装程序
-# Target Version: Test v0.9 (Next: Test v0.99 -> Test v0.999 -> v1.0)
+# Target Version: Test v0.99 (Next: Test v0.999 -> v1.0)
 # Supported: 飞牛 fnOS (/vol1/1000/cubex), RouterOS Container, PVE, OpenWrt, Linux
 # ═════════════════════════════════════════════════════════════════════════════
 set -e
@@ -25,7 +25,7 @@ cat << "EOF"
  ╚██████╗╚██████╔╝██████╔╝███████╗██╔╝ ██╗
   ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝
  🌌 次世代双擎高可用旁路网关系统 · 软路由的天花板
- [Version: Test v0.9 | Engine: Mihomo × sing-box v1.14+]
+ [Version: Test v0.99 | Engine: Mihomo × sing-box v1.14+]
 EOF
 echo ""
 

@@ -167,6 +167,21 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 	cfg["proxies"] = proxiesList
 
+	// Build set of all known valid target names (proxies + group names)
+	validTargets := make(map[string]bool)
+	validTargets["DIRECT"] = true
+	validTargets["REJECT"] = true
+	validTargets["COMPATIBLE"] = true
+	validTargets["PASS"] = true
+	for _, p := range proxiesList {
+		if name, ok := p["name"].(string); ok {
+			validTargets[name] = true
+		}
+	}
+	for _, g := range ir.Groups {
+		validTargets[g.Name] = true
+	}
+
 	// Proxy Groups
 	groupsList := make([]map[string]any, 0, len(ir.Groups))
 	for _, g := range ir.Groups {
@@ -175,14 +190,18 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			gType = "select"
 		} else if gType == "urltest" {
 			gType = "url-test"
+		} else if gType == "loadbalance" {
+			gType = "load-balance"
 		}
 
-		proxies := g.Proxies
-		if len(proxies) == 0 && len(proxiesList) > 0 {
-			// Auto populate proxies if empty
-			for _, p := range proxiesList {
-				proxies = append(proxies, p["name"].(string))
+		proxies := make([]string, 0, len(g.Proxies))
+		for _, p := range g.Proxies {
+			if p != g.Name && validTargets[p] {
+				proxies = append(proxies, p)
 			}
+		}
+		if len(proxies) == 0 {
+			proxies = append(proxies, "DIRECT")
 		}
 
 		gMap := map[string]any{
@@ -190,7 +209,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			"type":    gType,
 			"proxies": proxies,
 		}
-		if gType == "url-test" || gType == "fallback" {
+		if gType == "url-test" || gType == "fallback" || gType == "load-balance" {
 			gMap["url"] = g.URL
 			if gMap["url"] == nil || gMap["url"] == "" {
 				gMap["url"] = "http://www.gstatic.com/generate_204"
@@ -261,25 +280,38 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	// 3. Generic Rules
 	for _, r := range ir.Rules {
 		rType := strings.ToUpper(r.Type)
+		target := r.Target
+		if !validTargets[target] {
+			if strings.Contains(target, "拦截") || strings.Contains(target, "REJECT") || strings.Contains(target, "BLOCK") {
+				target = "REJECT"
+			} else if strings.Contains(target, "直连") || strings.Contains(target, "DIRECT") {
+				target = "DIRECT"
+			} else if validTargets["🐟 漏网之鱼"] {
+				target = "🐟 漏网之鱼"
+			} else {
+				target = "DIRECT"
+			}
+		}
+
 		switch rType {
 		case "DOMAIN":
-			rulesList = append(rulesList, fmt.Sprintf("DOMAIN,%s,%s", r.Value, r.Target))
+			rulesList = append(rulesList, fmt.Sprintf("DOMAIN,%s,%s", r.Value, target))
 		case "DOMAIN_SUFFIX", "DOMAIN-SUFFIX":
-			rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,%s,%s", r.Value, r.Target))
+			rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,%s,%s", r.Value, target))
 		case "DOMAIN_KEYWORD", "DOMAIN-KEYWORD":
-			rulesList = append(rulesList, fmt.Sprintf("DOMAIN-KEYWORD,%s,%s", r.Value, r.Target))
+			rulesList = append(rulesList, fmt.Sprintf("DOMAIN-KEYWORD,%s,%s", r.Value, target))
 		case "GEOSITE":
-			rulesList = append(rulesList, fmt.Sprintf("GEOSITE,%s,%s", r.Value, r.Target))
+			rulesList = append(rulesList, fmt.Sprintf("GEOSITE,%s,%s", r.Value, target))
 		case "GEOIP":
-			rulesList = append(rulesList, fmt.Sprintf("GEOIP,%s,%s", strings.ToUpper(r.Value), r.Target))
+			rulesList = append(rulesList, fmt.Sprintf("GEOIP,%s,%s", strings.ToUpper(r.Value), target))
 		case "IP_CIDR", "IP-CIDR":
-			rulesList = append(rulesList, fmt.Sprintf("IP-CIDR,%s,%s", r.Value, r.Target))
+			rulesList = append(rulesList, fmt.Sprintf("IP-CIDR,%s,%s", r.Value, target))
 		case "SRC_IP_CIDR", "SRC-IP-CIDR":
-			rulesList = append(rulesList, fmt.Sprintf("SRC-IP-CIDR,%s,%s", r.Value, r.Target))
+			rulesList = append(rulesList, fmt.Sprintf("SRC-IP-CIDR,%s,%s", r.Value, target))
 		case "RULE_SET", "RULE-SET":
-			rulesList = append(rulesList, fmt.Sprintf("RULE-SET,%s,%s", r.Value, r.Target))
+			rulesList = append(rulesList, fmt.Sprintf("RULE-SET,%s,%s", r.Value, target))
 		case "MATCH", "FINAL":
-			rulesList = append(rulesList, fmt.Sprintf("MATCH,%s", r.Target))
+			rulesList = append(rulesList, fmt.Sprintf("MATCH,%s", target))
 		}
 	}
 
@@ -292,7 +324,11 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		}
 	}
 	if !hasMatch {
-		rulesList = append(rulesList, "MATCH,🐟 漏网之鱼")
+		if validTargets["🐟 漏网之鱼"] {
+			rulesList = append(rulesList, "MATCH,🐟 漏网之鱼")
+		} else {
+			rulesList = append(rulesList, "MATCH,DIRECT")
+		}
 	}
 
 	cfg["rules"] = rulesList

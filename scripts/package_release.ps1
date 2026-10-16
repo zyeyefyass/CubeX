@@ -1,15 +1,15 @@
 # ═════════════════════════════════════════════════════════════════════════════
 # CubeX Release Packaging Script (Bundles Dual Cores + Geodata + Rules + Config)
-# Target Version: Test v0.9 (Next: Test v0.99 -> Test v0.999 -> v1.0)
+# Target Version: Test v0.99 (Next: Test v0.999 -> v1.0)
 # Formats: Native .zip for General Releases + Uncompressed .tar for RouterOS
 # ═════════════════════════════════════════════════════════════════════════════
 $ErrorActionPreference = "Stop"
-$Version = "Test-v0.9"
+$Version = "Test-v0.99"
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 $DistDir = "$RootDir\dist"
 $ReleaseDir = "$DistDir\release"
 
-Write-Host "📦 Starting CubeX Test v0.9 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
+Write-Host "📦 Starting CubeX Test v0.99 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
 
 # 1. Clean & Prepare Release Directory
 if (Test-Path $ReleaseDir) {

@@ -234,16 +234,36 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	}
 
 	// Step 3: Launch new core (Port Reuse / Handoff)
-	binPath := filepath.Join(m.workDir, "bin", binName)
+	var binPath string
 	if runtime.GOOS == "windows" {
-		if _, err := os.Stat(binPath + ".exe"); err == nil {
-			binPath += ".exe"
+		candidates := []string{
+			filepath.Join(m.workDir, "bin", binName+".exe"),
+			filepath.Join(m.workDir, "bin", "windows", binName+".exe"),
+			filepath.Join(m.workDir, binName+".exe"),
 		}
-	}
-	if _, err := os.Stat(binPath); os.IsNotExist(err) {
-		if runtime.GOOS == "windows" {
+		for _, c := range candidates {
+			if _, err := os.Stat(c); err == nil {
+				binPath = c
+				break
+			}
+		}
+		if binPath == "" {
 			binPath = binName + ".exe"
-		} else {
+		}
+	} else {
+		candidates := []string{
+			filepath.Join(m.workDir, "bin", binName),
+			filepath.Join(m.workDir, "bin", runtime.GOARCH, binName),
+			filepath.Join(m.workDir, binName),
+			filepath.Join("/app/bin", binName),
+		}
+		for _, c := range candidates {
+			if _, err := os.Stat(c); err == nil {
+				binPath = c
+				break
+			}
+		}
+		if binPath == "" {
 			binPath = binName
 		}
 	}

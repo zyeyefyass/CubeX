@@ -5,7 +5,7 @@
   # 🌌 CubeX · 次世代双擎高可用旁路网关系统
   ### *终结软路由派系内耗 · 毫秒级零断流热切 · 容器化主旁一体 · 软路由的天花板*
 
-  [![Version](https://img.shields.io/badge/Release-Test_v0.9-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
+  [![Version](https://img.shields.io/badge/Release-Test_v0.99-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
   [![License](https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield)](COPYRIGHT.md)
   [![Dual-Engine](https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go)](https://github.com/zyeyefyass/CubeX)
   [![Host Base](https://img.shields.io/badge/Host-RouterOS_v7_%7C_fnOS_%7C_PVE_%7C_Docker-3A86FF?style=for-the-badge)](#)
@@ -318,18 +318,19 @@ cubex reload
 
 CubeX 严格遵循严谨的测试与迭代规范：
 
-- 🟢 **`Test v0.9`** *(当前初始发布版本)*:
+- ⚪ **`Test v0.9`** *(初始构建验证版)*:
   - 核心双擎（Mihomo × sing-box v1.14+）同构驱动就绪；
-  - 217heidai MRS 规则库与 Geo 全量数据库打包集成；
+  - 217heidai MRS/SRS 规则库与 Geo 全量数据库打包集成；
   - 飞牛 fnOS（`/vol1/1000/cubex`）及多宿主系统自动嗅探上线；
-  - 微信 ClawBot 方案一原生 iLink 协议中枢；
   - 侧边栏高占比 3D X-Cube Logo 与官网矢量宿主标识；
   - 侧边栏底部极速运维三键矩阵（重载配置 / 重载核心 / 重新启动）。
-- 🟡 **`Test v0.99`** *(下一迭代版本)*:
-  - 多集群订阅定时增量静默同步；
-  - WebRTC 泄露动态防御规则增强；
-  - WinBox 自动化下发 RouterOS REST API 一键对齐增强。
-- 🟠 **`Test v0.999`** *(最终收官优化版)*:
+- 🟢 **`Test v0.99`** *(当前全面自愈加固版 · 零已知缺陷)*:
+  - **双核最新规范深度对齐**：彻底修复 sing-box v1.14+ 现代 DNS/FakeIP/Sniff Action 规范及 Mihomo load-balance 编译语法；
+  - **100% 深度脱敏与凭据擦除**：安装包与模板完全清空个人测试凭证、串号与私钥，绝对净室交付；
+  - **双引擎反隐私跟踪闭环**：内置编译原生 `privacy.srs` 与 `privacy_domain.mrs`，双向秒级拦截大数据探针；
+  - **RouterOS 原生容器适配**：提供未压缩 `cubex-ros-*.tar` 与一键 RSC 联动脚本；
+  - **飞牛 Docker 多维交付**：提供 Compose 配置、本地离线 `.tar` 导入与启动防空挂载自愈。
+- 🟡 **`Test v0.999`** *(下一收官优化版)*:
   - 内存与 CPU 极致压榨调优（GOMEMLIMIT 智能自适应）；
   - 全球 CDN 多节点极速下载与离线包预热；
   - 全面闭环高压渗透测试。

@@ -35,31 +35,47 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		remoteDNSAddr = dns.RemoteDNS[0]
 	}
 
+	directServer := map[string]any{
+		"tag":         "dns-direct",
+		"type":        "udp",
+		"server":      directDNSAddr,
+		"server_port": 53,
+		"detour":      "direct",
+	}
+
+	remoteServer := map[string]any{
+		"tag":         "dns-remote",
+		"type":        "udp",
+		"server":      "8.8.8.8",
+		"server_port": 53,
+		"detour":      "direct",
+	}
+	if strings.HasPrefix(remoteDNSAddr, "https://") {
+		trimmed := strings.TrimPrefix(remoteDNSAddr, "https://")
+		parts := strings.SplitN(trimmed, "/", 2)
+		remoteServer["type"] = "https"
+		remoteServer["server"] = parts[0]
+		remoteServer["server_port"] = 443
+	} else if strings.HasPrefix(remoteDNSAddr, "udp://") {
+		remoteServer["server"] = strings.TrimPrefix(remoteDNSAddr, "udp://")
+	} else if remoteDNSAddr != "" {
+		remoteServer["server"] = remoteDNSAddr
+	}
+
 	cfg["dns"] = map[string]any{
 		"servers": []map[string]any{
+			directServer,
+			remoteServer,
 			{
-				"tag":     "dns-direct",
-				"address": directDNSAddr,
-				"detour":  "direct",
-			},
-			{
-				"tag":     "dns-remote",
-				"address": remoteDNSAddr,
-				"detour":  "🚀 节点选择",
-			},
-			{
-				"tag":     "dns-fakeip",
-				"address": "fakeip",
-			},
-			{
-				"tag":     "dns-block",
-				"address": "rcode://refused",
+				"tag":         "dns-fakeip",
+				"type":        "fakeip",
+				"inet4_range": "198.18.0.0/15",
 			},
 		},
 		"rules": []map[string]any{
 			{
 				"query_type": []string{"HTTPS", "SVCB"},
-				"server":     "dns-block",
+				"action":     "reject",
 			},
 			{
 				"clash_mode": "direct",
@@ -70,56 +86,42 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"server":     "dns-fakeip",
 			},
 			{
-				"geosite":       []string{"cn"},
+				"rule_set":      []string{"geosite-cn"},
 				"domain_suffix": []string{".cn", "bilibili.com", "baidu.com", "qq.com", "taobao.com", "jd.com", "alipay.com", "163.com"},
 				"server":        "dns-direct",
-			},
-			{
-				"outbound": "direct",
-				"server":   "dns-direct",
 			},
 			{
 				"query_type": []string{"A", "AAAA"},
 				"server":     "dns-fakeip",
 			},
 		},
-		"final": "dns-remote",
-		"fakeip": map[string]any{
-			"enabled":     true,
-			"inet4_range": "198.18.0.0/15",
-		},
-		"strategy":          "prefer_ipv4",
-		"independent_cache": true,
+		"final":    "dns-remote",
+		"strategy": "prefer_ipv4",
 	}
 
-	// 2. Inbounds Section
+	// 2. Inbounds Section (sing-box 1.14+ compliant)
 	inbounds := []map[string]any{
 		{
-			"type":                       "tun",
-			"tag":                        "tun-in",
-			"interface_name":              net.TunInterface,
-			"inet4_address":              net.TunIPv4,
-			"mtu":                        net.TunMTU,
-			"auto_route":                 true,
-			"strict_route":               true,
-			"stack":                      net.TunStack,
-			"sniff":                      true,
-			"sniff_override_destination": true,
+			"type":           "tun",
+			"tag":            "tun-in",
+			"interface_name": net.TunInterface,
+			"address":        []string{net.TunIPv4},
+			"mtu":            net.TunMTU,
+			"auto_route":     true,
+			"strict_route":   true,
+			"stack":          net.TunStack,
 		},
 		{
-			"type":                       "tproxy",
-			"tag":                        "tproxy-in",
-			"listen":                     "0.0.0.0",
-			"listen_port":                net.TProxyPort,
-			"sniff":                      true,
-			"sniff_override_destination": true,
+			"type":        "tproxy",
+			"tag":         "tproxy-in",
+			"listen":      "0.0.0.0",
+			"listen_port": net.TProxyPort,
 		},
 		{
 			"type":        "mixed",
 			"tag":         "mixed-in",
 			"listen":      "0.0.0.0",
 			"listen_port": net.MixedPort,
-			"sniff":       true,
 		},
 	}
 	cfg["inbounds"] = inbounds
@@ -143,10 +145,6 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	outbounds = append(outbounds, map[string]any{
 		"type": "block",
 		"tag":  "REJECT",
-	})
-	outbounds = append(outbounds, map[string]any{
-		"type": "dns",
-		"tag":  "dns-out",
 	})
 
 	// Add user proxy nodes
@@ -223,11 +221,29 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		outbounds = append(outbounds, nodeMap)
 	}
 
+	// Build set of valid outbounds (built-ins + user nodes + group tags)
+	validOutbounds := make(map[string]bool)
+	validOutbounds["direct"] = true
+	validOutbounds["DIRECT"] = true
+	validOutbounds["block"] = true
+	validOutbounds["REJECT"] = true
+	for _, tag := range nodeTags {
+		validOutbounds[tag] = true
+	}
+	for _, g := range ir.Groups {
+		validOutbounds[g.Name] = true
+	}
+
 	// Strategy groups -> sing-box selector / urltest
 	for _, g := range ir.Groups {
-		proxies := g.Proxies
-		if len(proxies) == 0 && len(nodeTags) > 0 {
-			proxies = append([]string{"direct"}, nodeTags...)
+		proxies := make([]string, 0, len(g.Proxies))
+		for _, p := range g.Proxies {
+			if p != g.Name && validOutbounds[p] {
+				proxies = append(proxies, p)
+			}
+		}
+		if len(proxies) == 0 {
+			proxies = append(proxies, "direct")
 		}
 
 		gType := "selector"
@@ -235,14 +251,21 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			gType = "urltest"
 		}
 
+		// If g.Now is specified, move it to the front of proxies list so sing-box selects it by default
+		if g.Now != "" && validOutbounds[g.Now] {
+			reordered := []string{g.Now}
+			for _, p := range proxies {
+				if p != g.Now {
+					reordered = append(reordered, p)
+				}
+			}
+			proxies = reordered
+		}
+
 		gOutbound := map[string]any{
 			"type":      gType,
 			"tag":       g.Name,
 			"outbounds": proxies,
-		}
-
-		if g.Now != "" {
-			gOutbound["default"] = g.Now
 		}
 
 		if gType == "urltest" {
@@ -295,10 +318,13 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 	routeRules := make([]map[string]any, 0)
 
-	// A. Hijack DNS
+	// A. Global Sniff & DNS Hijack (sing-box 1.14+ action format)
+	routeRules = append(routeRules, map[string]any{
+		"action": "sniff",
+	})
 	routeRules = append(routeRules, map[string]any{
 		"protocol": "dns",
-		"outbound": "dns-out",
+		"action":   "hijack-dns",
 	})
 
 	// B. Device Policies (Top Priority)
@@ -334,10 +360,16 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	for _, r := range ir.Rules {
 		rType := strings.ToLower(r.Type)
 		targetOutbound := r.Target
-		if targetOutbound == "DIRECT" {
-			targetOutbound = "direct"
-		} else if targetOutbound == "REJECT" {
-			targetOutbound = "block"
+		if !validOutbounds[targetOutbound] {
+			if strings.Contains(targetOutbound, "拦截") || strings.EqualFold(targetOutbound, "REJECT") || strings.EqualFold(targetOutbound, "block") {
+				targetOutbound = "block"
+			} else if strings.Contains(targetOutbound, "直连") || strings.EqualFold(targetOutbound, "DIRECT") || strings.EqualFold(targetOutbound, "direct") {
+				targetOutbound = "direct"
+			} else if validOutbounds["🐟 漏网之鱼"] {
+				targetOutbound = "🐟 漏网之鱼"
+			} else {
+				targetOutbound = "direct"
+			}
 		}
 
 		ruleMap := map[string]any{
@@ -352,13 +384,23 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		case "domain_keyword", "domain-keyword":
 			ruleMap["domain_keyword"] = []string{r.Value}
 		case "geosite":
-			ruleMap["geosite"] = []string{r.Value}
+			val := strings.ToLower(r.Value)
+			if strings.Contains(val, "ad") {
+				ruleMap["rule_set"] = []string{"217heidai-ads"}
+			} else if val == "cn" {
+				ruleMap["rule_set"] = []string{"geosite-cn"}
+			}
 		case "geoip":
-			ruleMap["geoip"] = []string{strings.ToLower(r.Value)}
+			val := strings.ToLower(r.Value)
+			if val == "cn" {
+				ruleMap["rule_set"] = []string{"geoip-cn"}
+			}
 		case "ip_cidr", "ip-cidr":
 			ruleMap["ip_cidr"] = []string{r.Value}
 		case "src_ip_cidr", "src-ip-cidr":
 			ruleMap["source_ip_cidr"] = []string{r.Value}
+		case "rule_set", "rule-set":
+			ruleMap["rule_set"] = []string{r.Value}
 		case "port":
 			ruleMap["port"] = []int{80, 443}
 		}
@@ -368,11 +410,17 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		}
 	}
 
+	finalOutbound := "direct"
+	if validOutbounds["🐟 漏网之鱼"] {
+		finalOutbound = "🐟 漏网之鱼"
+	}
+
 	cfg["route"] = map[string]any{
-		"rule_set":              ruleSets,
-		"rules":                 routeRules,
-		"auto_detect_interface": true,
-		"final":                 "🐟 漏网之鱼",
+		"default_domain_resolver": "dns-direct",
+		"rule_set":                ruleSets,
+		"rules":                   routeRules,
+		"auto_detect_interface":   true,
+		"final":                   finalOutbound,
 	}
 
 	// 5. Experimental Clash API (1:1 state sync)
