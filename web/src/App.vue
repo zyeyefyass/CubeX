@@ -91,53 +91,74 @@
         </div>
 
         <!-- Center: Dual-Engine Capsule (Mihomo ⇄ sing-box 毫秒级热切) -->
-        <div class="flex items-center p-1 rounded-2xl border shadow-xl backdrop-blur-2xl transition-all duration-500 relative"
-          :class="activeEngine === 'singbox' ? 'bg-purple-950/60 border-purple-500/50' : 'bg-sky-950/60 border-cyan-500/50'">
+        <div class="flex items-center p-1.5 rounded-2xl border shadow-2xl backdrop-blur-2xl transition-all duration-500 relative gap-1.5"
+          :class="activeEngine === 'singbox' ? 'bg-[#120a26]/90 border-purple-500/70 shadow-purple-500/20' : 'bg-[#00172e]/90 border-cyan-500/70 shadow-cyan-500/20'">
+          
+          <!-- sing-box Button -->
           <button @click="switchEngine('singbox')" :disabled="switchingEngine"
             :class="[
-              'px-4 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 active:scale-95',
-              activeEngine === 'singbox' ? 'bg-gradient-to-r from-teal-400 to-cyan-500 text-slate-950 shadow-md font-extrabold' : 'text-slate-400 hover:text-slate-200'
+              'px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 active:scale-95 border',
+              activeEngine === 'singbox'
+                ? 'bg-gradient-to-r from-purple-600 via-fuchsia-600 to-indigo-600 text-white shadow-lg shadow-purple-500/40 border-purple-300 scale-102 ring-2 ring-purple-400/50'
+                : 'text-slate-400 hover:text-slate-200 border-transparent hover:bg-slate-900/60'
             ]">
-            <svg class="w-3.5 h-3.5 inline-block shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L20.66 7L12 12L3.34 7L12 2Z" fill="#3D4F59"/>
-              <path d="M3.34 7L12 12V22L3.34 17V7Z" fill="#1E282E"/>
-              <path d="M20.66 7L12 12V22L20.66 17V7Z" fill="#2E3C44"/>
-              <path d="M7.67 4.5L16.33 9.5L14.33 10.65L5.67 5.65L7.67 4.5Z" fill="#A0B0BA" opacity="0.9"/>
-              <path d="M9.67 3.35L18.33 8.35L16.33 9.5L7.67 4.5L9.67 3.35Z" fill="#E2E8F0" opacity="0.95"/>
-              <path d="M14.33 10.65L16.33 9.5V14.5L14.33 15.65V10.65Z" fill="#8899A6" opacity="0.9"/>
-              <path d="M16.33 9.5L18.33 8.35V13.35L16.33 14.5V9.5Z" fill="#CBD5E1" opacity="0.95"/>
-            </svg>
-            <span>sing-box</span>
+            <!-- Sing-box Neon Sandbox Crystal SVG -->
+            <div class="relative w-5 h-5 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5 drop-shadow-[0_0_8px_rgba(232,121,249,0.9)]" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L20.66 7L12 12L3.34 7L12 2Z" fill="#F0ABFC"/>
+                <path d="M3.34 7L12 12V22L3.34 17V7Z" fill="#A855F7"/>
+                <path d="M20.66 7L12 12V22L20.66 17V7Z" fill="#7E22CE"/>
+                <path d="M12 2L20.66 7M12 2L3.34 7M12 2V12M3.34 7L12 12L20.66 7M12 12V22M3.34 17L12 22L20.66 17" stroke="#FFFFFF" stroke-width="1.3"/>
+              </svg>
+            </div>
+            <div class="text-left leading-tight">
+              <div class="flex items-center gap-1.5">
+                <span class="tracking-wide">sing-box</span>
+                <span v-if="activeEngine === 'singbox'" class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              </div>
+              <div class="text-[9px] font-mono opacity-80 font-normal">极速·零泄露</div>
+            </div>
           </button>
+
+          <!-- Mihomo Button -->
           <button @click="switchEngine('mihomo')" :disabled="switchingEngine"
             :class="[
-              'px-4 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 active:scale-95',
-              activeEngine === 'mihomo' ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 shadow-md font-extrabold' : 'text-slate-400 hover:text-slate-200'
+              'px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-2 active:scale-95 border',
+              activeEngine === 'mihomo'
+                ? 'bg-gradient-to-r from-sky-500 via-cyan-500 to-teal-400 text-slate-950 shadow-lg shadow-cyan-500/40 border-cyan-200 scale-102 ring-2 ring-cyan-400/50'
+                : 'text-slate-400 hover:text-slate-200 border-transparent hover:bg-slate-900/60'
             ]">
-            <svg class="w-3.5 h-3.5 inline-block shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="metaTopNav" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#38BDF8"/>
-                  <stop offset="100%" stop-color="#818CF8"/>
-                </linearGradient>
-                <linearGradient id="metaLeftNav" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#6366F1"/>
-                  <stop offset="100%" stop-color="#A855F7"/>
-                </linearGradient>
-                <linearGradient id="metaRightNav" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#0284C7"/>
-                  <stop offset="100%" stop-color="#2563EB"/>
-                </linearGradient>
-              </defs>
-              <path d="M12 2L20.66 7L12 12L3.34 7L12 2Z" fill="url(#metaTopNav)"/>
-              <path d="M3.34 7L12 12V22L3.34 17V7Z" fill="url(#metaLeftNav)"/>
-              <path d="M20.66 7L12 12V22L20.66 17V7Z" fill="url(#metaRightNav)"/>
-              <path d="M12 2V12M3.34 7L12 12L20.66 7M12 12V22" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
-            </svg>
-            <span>mihomo</span>
+            <!-- Mihomo Neon MetaCube SVG -->
+            <div class="relative w-5 h-5 flex items-center justify-center shrink-0">
+              <svg class="w-5 h-5 drop-shadow-[0_0_8px_rgba(56,189,248,0.95)]" viewBox="0 0 24 24" fill="none">
+                <defs>
+                  <linearGradient id="mihomoGlowTop" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#38BDF8"/>
+                    <stop offset="100%" stop-color="#0284C7"/>
+                  </linearGradient>
+                  <linearGradient id="mihomoGlowSide" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#0284C7"/>
+                    <stop offset="100%" stop-color="#0369A1"/>
+                  </linearGradient>
+                </defs>
+                <path d="M12 2L20.66 7L12 12L3.34 7L12 2Z" fill="url(#mihomoGlowTop)"/>
+                <path d="M3.34 7L12 12V22L3.34 17V7Z" fill="url(#mihomoGlowSide)"/>
+                <path d="M20.66 7L12 12V22L20.66 17V7Z" fill="#075985"/>
+                <circle cx="12" cy="12" r="2.8" fill="#FFFFFF"/>
+                <path d="M12 2V12M3.34 7L12 12L20.66 7M12 12V22" stroke="#FFFFFF" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="text-left leading-tight">
+              <div class="flex items-center gap-1.5">
+                <span class="tracking-wide">Mihomo Meta</span>
+                <span v-if="activeEngine === 'mihomo'" class="w-2 h-2 rounded-full bg-cyan-300 animate-ping"></span>
+              </div>
+              <div class="text-[9px] font-mono opacity-80 font-normal">多协议·全生态</div>
+            </div>
           </button>
-          <div v-if="switchingEngine" class="absolute inset-0 bg-slate-950/90 rounded-2xl flex items-center justify-center text-xs text-cyan-300 font-mono animate-pulse">
-            🔄 零断流切换中...
+
+          <div v-if="switchingEngine" class="absolute inset-0 bg-slate-950/90 rounded-2xl flex items-center justify-center text-xs text-cyan-300 font-mono animate-pulse z-10">
+            🔄 双核零断流热切中...
           </div>
         </div>
 
@@ -324,7 +345,7 @@
             </div>
 
             <!-- ════════════════════════════════════════════════════════════════ -->
-            <!-- 🌐 节点池地区健康度矩阵 (6 大战略集群 · 自动/故转/容灾)            -->
+            <!-- 🌐 节点池地区健康度矩阵 (6 大战略集群 · 四态联动调度)            -->
             <!-- ════════════════════════════════════════════════════════════════ -->
             <div class="pt-4 border-t border-slate-800/80 space-y-3">
               <div class="flex items-center justify-between text-xs font-bold text-slate-300">
@@ -332,21 +353,113 @@
                   <span class="text-sm">🌐</span>
                   <span>节点池地区健康度矩阵 (按地区集群调度):</span>
                   <span class="text-[10px] text-cyan-300 font-mono bg-cyan-950/80 px-2 py-0.5 rounded-full border border-cyan-500/30">
-                    6 大战略地理集群 · 三态策略 (自动/故转/容灾)
+                    6 大战略地理集群 · 四态策略 (手动/自动/故转/容灾)
                   </span>
                 </div>
-                <span class="text-[10px] text-slate-400 font-mono">共 {{ ir.proxies?.length || 0 }} 个节点收录</span>
+                <div class="flex items-center gap-3">
+                  <span class="text-[10px] text-slate-400 font-mono">共 {{ ir.proxies?.length || 0 }} 个节点收录</span>
+                  <button @click="isMatrixCollapsed = !isMatrixCollapsed" class="text-xs text-cyan-300 hover:text-cyan-200 font-mono transition flex items-center gap-1 bg-cyan-950/60 px-2.5 py-1 rounded-lg border border-cyan-500/30 active:scale-95">
+                    <span>{{ isMatrixCollapsed ? '展开矩阵卡片 ▼' : '收起为极简条 ▲' }}</span>
+                  </button>
+                </div>
               </div>
 
-              <!-- 6 大地区健康度集群卡片网格 -->
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              <!-- 极简高密状态横幅 (收起模式) -->
+              <div v-if="isMatrixCollapsed" class="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 text-xs font-mono animate-in fade-in">
+                <div v-for="reg in regionDefs" :key="reg.id"
+                  @click="isMatrixCollapsed = false"
+                  class="p-2 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800 hover:border-cyan-500/40 cursor-pointer transition flex items-center justify-between">
+                  <div class="flex items-center gap-2 truncate">
+                    <!-- SVG Flag -->
+                    <template v-if="reg.id === 'HK'">
+                      <svg class="w-5 h-3.5 rounded shadow-sm shrink-0" viewBox="0 0 30 20"><rect width="30" height="20" fill="#ED1C24"/><path fill="#FFF" d="M15 5.5c.3 1-.2 1.8-.7 2.4.8-.3 1.6-.2 2 .3.6.6.6 1.5.3 2.2.9-.3 1.6 0 1.9.7.4.8.3 1.6-.3 2.2.8 0 1.4.5 1.5 1.3.1.9-.4 1.6-1.2 1.8-.7.2-1.5-.1-2-.6-.5-.5-.6-1.2-.3-1.8-.6.6-1.3.9-2.1.7-.8-.2-1.3-.8-1.3-1.6 0-.8.4-1.4 1.1-1.7-.6-.3-1-1-.9-1.6 0-.7.4-1.3 1.1-1.6.7-.2 1.5-.1 2 .3z"/></svg>
+                    </template>
+                    <template v-else-if="reg.id === 'TW'">
+                      <svg class="w-5 h-3.5 rounded shadow-sm shrink-0" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FE0000"/><rect width="15" height="10" fill="#000095"/><circle cx="7.5" cy="5" r="2.8" fill="#FFF"/><circle cx="7.5" cy="5" r="2.1" fill="#000095"/><circle cx="7.5" cy="5" r="1.5" fill="#FFF"/></svg>
+                    </template>
+                    <template v-else-if="reg.id === 'SG'">
+                      <svg class="w-5 h-3.5 rounded shadow-sm shrink-0" viewBox="0 0 30 20"><rect width="30" height="10" fill="#ED2939"/><rect y="10" width="30" height="10" fill="#FFF"/><circle cx="5" cy="5" r="3.2" fill="#FFF"/><circle cx="6.2" cy="5" r="2.8" fill="#ED2939"/><polygon fill="#FFF" points="7.2,3.5 7.5,4.3 8.3,4.3 7.7,4.8 7.9,5.6 7.2,5.1 6.6,5.6 6.8,4.8 6.2,4.3 7,4.3"/></svg>
+                    </template>
+                    <template v-else-if="reg.id === 'JPKR'">
+                      <div class="flex items-center -space-x-1 shrink-0"><svg class="w-3.5 h-3 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="6" fill="#BC002D"/></svg><svg class="w-3.5 h-3 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="5" fill="#C60C30"/><path d="M15 15a5 5 0 0 0 0-10 2.5 2.5 0 0 0 0 5 2.5 2.5 0 0 1 0 5z" fill="#003478"/></svg></div>
+                    </template>
+                    <template v-else-if="reg.id === 'US'">
+                      <svg class="w-5 h-3.5 rounded shadow-sm shrink-0" viewBox="0 0 30 20"><rect width="30" height="20" fill="#B22234"/><path d="M0 1.54h30M0 4.62h30M0 7.7h30M0 10.77h30M0 13.85h30M0 16.92h30" stroke="#FFF" stroke-width="1.54"/><rect width="13" height="10.77" fill="#3C3B6E"/></svg>
+                    </template>
+                    <template v-else>
+                      <svg class="w-4 h-4 text-cyan-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15 15 0 0 0 0 20 15 15 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                    </template>
+                    <span class="font-bold text-white">{{ reg.name }}</span>
+                  </div>
+                  <span class="text-[10px] text-cyan-300">{{ getRegionNodes(reg).length }}节点</span>
+                </div>
+              </div>
+
+              <!-- 6 大地区健康度集群卡片网格 (完整展开模式) -->
+              <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 animate-in fade-in">
                 <div v-for="reg in regionDefs" :key="reg.id"
                   class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-cyan-500/40 transition shadow-lg space-y-2.5 flex flex-col justify-between">
                   
-                  <!-- Region Header -->
+                  <!-- Region Header with High-Resolution SVG Flags -->
                   <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <span class="text-xl leading-none">{{ reg.flag }}</span>
+                    <div class="flex items-center gap-2.5">
+                      <!-- Flag SVGs -->
+                      <div class="shrink-0 flex items-center justify-center">
+                        <template v-if="reg.id === 'HK'">
+                          <svg class="w-7 h-5 rounded-md shadow-md border border-red-500/30" viewBox="0 0 30 20">
+                            <rect width="30" height="20" fill="#ED1C24"/>
+                            <path fill="#FFF" d="M15 5.5c.3 1-.2 1.8-.7 2.4.8-.3 1.6-.2 2 .3.6.6.6 1.5.3 2.2.9-.3 1.6 0 1.9.7.4.8.3 1.6-.3 2.2.8 0 1.4.5 1.5 1.3.1.9-.4 1.6-1.2 1.8-.7.2-1.5-.1-2-.6-.5-.5-.6-1.2-.3-1.8-.6.6-1.3.9-2.1.7-.8-.2-1.3-.8-1.3-1.6 0-.8.4-1.4 1.1-1.7-.6-.3-1-1-.9-1.6 0-.7.4-1.3 1.1-1.6.7-.2 1.5-.1 2 .3z"/>
+                            <circle cx="15" cy="11.5" r="0.6" fill="#ED1C24"/>
+                          </svg>
+                        </template>
+                        <template v-else-if="reg.id === 'TW'">
+                          <svg class="w-7 h-5 rounded-md shadow-md border border-slate-700/50" viewBox="0 0 30 20">
+                            <rect width="30" height="20" fill="#FE0000"/>
+                            <rect width="15" height="10" fill="#000095"/>
+                            <circle cx="7.5" cy="5" r="2.8" fill="#FFF"/>
+                            <circle cx="7.5" cy="5" r="2.1" fill="#000095"/>
+                            <circle cx="7.5" cy="5" r="1.5" fill="#FFF"/>
+                          </svg>
+                        </template>
+                        <template v-else-if="reg.id === 'SG'">
+                          <svg class="w-7 h-5 rounded-md shadow-md border border-slate-700/50" viewBox="0 0 30 20">
+                            <rect width="30" height="10" fill="#ED2939"/>
+                            <rect y="10" width="30" height="10" fill="#FFF"/>
+                            <circle cx="5" cy="5" r="3.2" fill="#FFF"/>
+                            <circle cx="6.2" cy="5" r="2.8" fill="#ED2939"/>
+                            <polygon fill="#FFF" points="7.2,3.5 7.5,4.3 8.3,4.3 7.7,4.8 7.9,5.6 7.2,5.1 6.6,5.6 6.8,4.8 6.2,4.3 7,4.3"/>
+                          </svg>
+                        </template>
+                        <template v-else-if="reg.id === 'JPKR'">
+                          <div class="flex items-center -space-x-1.5 shrink-0">
+                            <svg class="w-5 h-4 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="6" fill="#BC002D"/></svg>
+                            <svg class="w-5 h-4 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="5" fill="#C60C30"/><path d="M15 15a5 5 0 0 0 0-10 2.5 2.5 0 0 0 0 5 2.5 2.5 0 0 1 0 5z" fill="#003478"/></svg>
+                          </div>
+                        </template>
+                        <template v-else-if="reg.id === 'US'">
+                          <svg class="w-7 h-5 rounded-md shadow-md border border-slate-700/50" viewBox="0 0 30 20">
+                            <rect width="30" height="20" fill="#B22234"/>
+                            <path d="M0 1.54h30M0 4.62h30M0 7.7h30M0 10.77h30M0 13.85h30M0 16.92h30" stroke="#FFF" stroke-width="1.54"/>
+                            <rect width="13" height="10.77" fill="#3C3B6E"/>
+                            <circle cx="3" cy="2.5" r="0.7" fill="#FFF"/>
+                            <circle cx="6.5" cy="2.5" r="0.7" fill="#FFF"/>
+                            <circle cx="10" cy="2.5" r="0.7" fill="#FFF"/>
+                            <circle cx="4.8" cy="5.4" r="0.7" fill="#FFF"/>
+                            <circle cx="8.3" cy="5.4" r="0.7" fill="#FFF"/>
+                            <circle cx="3" cy="8.3" r="0.7" fill="#FFF"/>
+                            <circle cx="6.5" cy="8.3" r="0.7" fill="#FFF"/>
+                            <circle cx="10" cy="8.3" r="0.7" fill="#FFF"/>
+                          </svg>
+                        </template>
+                        <template v-else>
+                          <svg class="w-6 h-6 text-cyan-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 2a15 15 0 0 0 0 20 15 15 0 0 0 0-20"/>
+                            <path d="M2 12h20"/>
+                          </svg>
+                        </template>
+                      </div>
+
                       <div>
                         <div class="text-xs font-bold text-white flex items-center gap-1.5">
                           <span>{{ reg.name }}集群</span>
@@ -422,7 +535,7 @@
                           ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/50'
                           : 'bg-slate-950/60 text-slate-300 hover:text-white border-slate-800'
                       ]">
-                      <div class="flex items-center gap-1.5 truncate max-w-[180px]">
+                      <div class="flex items-center gap-1.5 truncate max-w-[190px]">
                         <span :class="['w-1.5 h-1.5 rounded-full shrink-0', getNodeDotColor(node.name)]"></span>
                         <span class="truncate">{{ node.name }}</span>
                       </div>
@@ -464,15 +577,31 @@
               </div>
             </div>
 
-            <!-- Business Strategy Groups Grid -->
+            <!-- Business Strategy Groups Grid with Drag & Drop Reordering -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div v-for="grp in businessGroups" :key="grp.name" class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 hover:border-cyan-500/30 transition shadow-lg">
-                <!-- Group Header with Official Logos -->
+              <div v-for="(grp, idx) in businessGroups" :key="grp.name"
+                draggable="true"
+                @dragstart="onDragStart($event, idx)"
+                @dragover="onDragOver($event)"
+                @drop="onDrop($event, idx)"
+                @dragend="onDragEnd"
+                class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 hover:border-cyan-500/40 transition shadow-lg relative group">
+                
+                <!-- Group Header with Exclusive Official Logo & Clean Title -->
                 <div class="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
                   <div class="flex items-center gap-3">
                     
-                    <!-- Official SVG Logos -->
-                    <div class="w-8 h-8 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center shrink-0 shadow-inner">
+                    <!-- Drag Grip Handle -->
+                    <div class="cursor-grab active:cursor-grabbing text-slate-500 hover:text-cyan-400 p-0.5 shrink-0 opacity-60 group-hover:opacity-100 transition" title="按住拖拽排序">
+                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="8" cy="6" r="1.8"/><circle cx="16" cy="6" r="1.8"/>
+                        <circle cx="8" cy="12" r="1.8"/><circle cx="16" cy="12" r="1.8"/>
+                        <circle cx="8" cy="18" r="1.8"/><circle cx="16" cy="18" r="1.8"/>
+                      </svg>
+                    </div>
+
+                    <!-- Single High-Resolution Official SVG Logo -->
+                    <div class="w-9 h-9 rounded-xl bg-slate-950 border border-slate-800/90 flex items-center justify-center shrink-0 shadow-inner">
                       <!-- OpenAI -->
                       <svg v-if="getGroupLogoType(grp.name) === 'openai'" class="w-5 h-5 text-teal-400" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M22.28 9.53a5.98 5.98 0 0 0-.52-4.91 6.05 6.05 0 0 0-6.51-2.9 6.06 6.06 0 0 0-4.88-2.43 6.05 6.05 0 0 0-5.76 4.19 6.05 6.05 0 0 0-4.08 2.96 6.05 6.05 0 0 0 .76 7.07 5.98 5.98 0 0 0 .52 4.91 6.05 6.05 0 0 0 6.51 2.9 6.06 6.06 0 0 0 4.88 2.43 6.05 6.05 0 0 0 5.76-4.19 6.05 6.05 0 0 0 4.08-2.96 6.05 6.05 0 0 0-.76-7.07zm-7.6 11.23a4.54 4.54 0 0 1-3.08-1.22l.14-.08 5.09-2.94a.78.78 0 0 0 .39-.68v-7.18l2.15 1.24a.07.07 0 0 1 .04.05v6.23a4.56 4.56 0 0 1-4.73 4.58zm-9.35-4.04a4.54 4.54 0 0 1-.58-3.26l.14.08 5.09 2.94a.78.78 0 0 0 .78 0l6.22-3.59v2.48a.07.07 0 0 1-.03.06l-5.4 3.12a4.56 4.56 0 0 1-6.22-1.83zm-1.74-9.52a4.54 4.54 0 0 1 2.5-2.04v6.13a.78.78 0 0 0 .39.68l6.22 3.59-2.15 1.24a.07.07 0 0 1-.07 0l-5.4-3.12a4.56 4.56 0 0 1-1.49-6.48zm12.33 2.65l-6.22-3.59 2.15-1.24a.07.07 0 0 1 .07 0l5.4 3.12a4.56 4.56 0 0 1 1.49 6.48 4.54 4.54 0 0 1-2.5 2.04v-6.13a.78.78 0 0 0-.39-.68zm3.03-1.63l-.14-.08-5.09-2.94a.78.78 0 0 0-.78 0l-6.22 3.59v-2.48a.07.07 0 0 1 .03-.06l5.4-3.12a4.56 4.56 0 0 1 6.8 5.09zm-8.95 5.17l-2.76-1.59 2.76-1.59 2.76 1.59-2.76 1.59z"/>
@@ -525,13 +654,40 @@
                       <svg v-else-if="getGroupLogoType(grp.name) === 'steam'" class="w-4 h-4 text-sky-400" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.005.105.005.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 14.819C1.905 20.074 6.702 24 12 24c6.627 0 12-5.373 12-12S18.627 0 11.979 0"/>
                       </svg>
-                      <!-- Direct / Proxy / Other Defaults -->
+                      <!-- TikTok -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'tiktok'" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill="#25F4EE" d="M12.5 0v16.2a3.8 3.8 0 1 1-3.8-3.8c.4 0 .8.1 1.2.2V8.2a8.2 8.2 0 0 0-1.2-.1 8.3 8.3 0 1 0 8.3 8.3V7.1a11.8 11.8 0 0 0 7-2.3V.5a7.3 7.3 0 0 1-7.1 2.3V0h-4.4z"/>
+                        <path fill="#FE2C55" d="M11.5 1v16.2a3.8 3.8 0 1 1-3.8-3.8c.4 0 .8.1 1.2.2V9.2a8.2 8.2 0 0 0-1.2-.1 8.3 8.3 0 1 0 8.3 8.3V8.1a11.8 11.8 0 0 0 7-2.3V1.5a7.3 7.3 0 0 1-7.1 2.3V1h-4.4z" opacity="0.8"/>
+                      </svg>
+                      <!-- Bilibili -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'bilibili'" class="w-4 h-4 text-sky-400" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.813 4.653h.854c1.51 0 2.733 1.224 2.733 2.734v10.146c0 1.51-1.223 2.734-2.733 2.734H5.333c-1.51 0-2.733-1.224-2.733-2.734V7.387c0-1.51 1.223-2.734 2.733-2.734h.854L4.35 2.817a.82.82 0 0 1 .184-1.144.82.82 0 0 1 1.144.184l2.84 3.796h6.964l2.84-3.796a.82.82 0 0 1 1.144-.184.82.82 0 0 1 .184 1.144l-1.837 1.836zM7.5 10.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm9 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
+                      </svg>
+                      <!-- Discord -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'discord'" class="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                      </svg>
+                      <!-- Notion -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'notion'" class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M4.459 4.208c.746.606 1.026.56 2.428.466l13.215-.793c.28 0 .047-.28-.046-.326L17.86 1.782c-.466-.373-.84-.373-1.867-.326L3.992 2.389c-.373 0-.42.233-.28.466l.747 1.353zm.607 3.546v13.43c0 .84.42 1.12 1.353 1.073l13.916-.84c.933-.047 1.073-.607 1.073-1.307V6.868c0-.653-.28-.98-.933-.933l-14.476.84c-.653.047-.933.373-.933.979zm12.378 1.446c.14 0 .233.093.233.28v10.593c0 .28-.14.373-.326.373-.14 0-.327-.093-.42-.28l-5.647-8.82v8.587c0 .28-.14.373-.373.373h-1.633c-.187 0-.28-.093-.28-.28V9.387c0-.28.14-.373.373-.373.187 0 .373.093.467.28l5.693 8.773V9.48c0-.28.14-.28.28-.28h1.633z"/>
+                      </svg>
+                      <!-- Binance / Crypto -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'binance'" class="w-4 h-4" viewBox="0 0 24 24" fill="#F3BA2F">
+                        <path d="M16.624 13.92l2.715 2.715-7.34 7.34-7.339-7.34 2.715-2.715 4.624 4.624 4.626-4.624zm-4.625-7.344l3.82 3.82-3.82 3.82-3.82-3.82 3.82-3.82zm7.34 2.72l2.715 2.716-2.715 2.715-2.715-2.715 2.715-2.716zm-14.679 0l2.715 2.716-2.715 2.715-2.715-2.715 2.715-2.716zm7.339-9.3l7.34 7.34-2.715 2.715-4.625-4.624-4.625 4.624-2.715-2.715 7.34-7.34z"/>
+                      </svg>
+                      <!-- 漏网之鱼 (兜底分流星芒) -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'fish'" class="w-4 h-4 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="9"/>
+                        <polygon points="12 3 14 10 21 12 14 14 12 21 10 14 3 12 10 10 12 3" fill="#FBBF24"/>
+                      </svg>
+                      <!-- Direct / Other Defaults -->
                       <span v-else class="text-base">{{ getGroupIcon(grp.name) }}</span>
                     </div>
 
+                    <!-- Clean Group Title (Strictly NO Duplicate Emoji) -->
                     <div>
                       <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                        <span>{{ grp.name }}</span>
+                        <span class="tracking-wide">{{ getCleanGroupName(grp.name) }}</span>
                         <span v-if="grp.is_custom" class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-950 text-purple-300 border border-purple-500/40">
                           自定义
                         </span>
@@ -541,19 +697,20 @@
                       </div>
                       <div class="text-[11px] font-mono text-cyan-300 mt-0.5 flex items-center gap-1">
                         <span class="text-slate-400">当前出口:</span>
-                        <strong class="text-cyan-300 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30">
+                        <strong class="text-cyan-300 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30 truncate max-w-[220px]">
                           {{ grp.now || (grp.proxies && grp.proxies[0]) || '-' }}
                         </strong>
                       </div>
                     </div>
                   </div>
 
+                  <!-- Actions: Candidate Count & Delete Button -->
                   <div class="flex items-center gap-2">
                     <span class="text-[11px] font-mono text-slate-400">
                       {{ (grp.proxies?.length || 0) }} 个候选
                     </span>
-                    <button v-if="grp.is_custom" @click="deleteCustomGroup(grp.name)" title="删除此业务分流组" class="text-slate-500 hover:text-rose-400 text-xs px-1.5 py-0.5 rounded bg-slate-800/80 transition">
-                      ✕
+                    <button @click="deleteCustomGroup(grp.name)" title="移除此业务分流组" class="text-slate-500 hover:text-rose-400 text-xs px-2 py-1 rounded-lg bg-slate-800/80 hover:bg-rose-950/60 border border-slate-700/60 hover:border-rose-500/50 transition flex items-center gap-1">
+                      <span>✕</span>
                     </button>
                   </div>
                 </div>
@@ -584,7 +741,7 @@
                         : 'bg-slate-950/80 text-slate-300 hover:text-white border-slate-800 hover:border-slate-700'
                     ]">
                     <span :class="['w-2 h-2 rounded-full shrink-0', getNodeDotColor(nodeName)]"></span>
-                    <span class="truncate max-w-[150px]">{{ nodeName }}</span>
+                    <span class="truncate max-w-[160px]">{{ nodeName }}</span>
                     <span v-if="getNodeLatency(nodeName)" class="text-[9px] opacity-75 font-semibold">
                       {{ getNodeLatency(nodeName) }}ms
                     </span>
@@ -598,7 +755,7 @@
           <!-- Modal: 手动添加业务分流组 (Add Custom Routing Group Modal)         -->
           <!-- ════════════════════════════════════════════════════════════════ -->
           <div v-if="showAddGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in">
-            <div class="w-full max-w-md rounded-3xl bg-[#00172e] border border-cyan-500/40 shadow-2xl p-6 space-y-4 text-slate-200">
+            <div class="w-full max-w-lg rounded-3xl bg-[#00172e] border border-cyan-500/40 shadow-2xl p-6 space-y-4 text-slate-200">
               <div class="flex items-center justify-between border-b border-sky-900/40 pb-3">
                 <div class="flex items-center gap-2">
                   <span class="text-xl">➕</span>
@@ -607,9 +764,31 @@
                 <button @click="showAddGroupModal = false" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
               </div>
 
+              <!-- 💡 日常高频预设库 (自动去重过滤已存在分流组) -->
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-slate-400 font-mono flex items-center gap-1">
+                    <span>💡 快捷选自日常高频应用</span>
+                    <span class="text-[10px] text-cyan-400">(自动过滤已存在项)</span>
+                  </span>
+                  <span class="text-[10px] text-cyan-400">点击一键载入模版</span>
+                </div>
+                <div class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 rounded-xl bg-slate-950/80 border border-slate-800">
+                  <button v-for="preset in availablePresetServices" :key="preset.id"
+                    type="button"
+                    @click="applyPreset(preset)"
+                    class="px-2.5 py-1 rounded-lg text-[11px] font-mono bg-slate-900 hover:bg-cyan-950 border border-slate-800 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-300 transition flex items-center gap-1.5 active:scale-95">
+                    <span>{{ preset.name }}</span>
+                  </button>
+                  <div v-if="availablePresetServices.length === 0" class="text-slate-500 text-[11px] py-1 px-1">
+                    🎉 所有推荐的日常高频分流组已全量就绪！您也可以直接自定义输入。
+                  </div>
+                </div>
+              </div>
+
               <div class="space-y-3 text-xs">
                 <div>
-                  <label class="block text-slate-400 font-mono mb-1">业务分流名称 (例: 🎵 Spotify 音乐 / 🎮 Steam 游戏)</label>
+                  <label class="block text-slate-400 font-mono mb-1">业务分流名称 (例: Spotify / Steam / TikTok)</label>
                   <input v-model="newGroupForm.name" placeholder="请输入业务名称..."
                     class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono" />
                 </div>
@@ -626,10 +805,16 @@
                     <option value="telegram">📲 Telegram / 消息通信</option>
                     <option value="twitter">🐦 Twitter (X) / 社交媒体</option>
                     <option value="netflix">🎬 Netflix / Disney+ 流媒体</option>
-                    <option value="apple">🍏 Apple / 苹果专有服务</option>
-                    <option value="microsoft">🪟 Microsoft / 微软 Office</option>
                     <option value="spotify">🎵 Spotify / 高保真音乐</option>
                     <option value="steam">🎮 Steam / 游戏主机加速</option>
+                    <option value="tiktok">🎶 TikTok / 国际短视频</option>
+                    <option value="bilibili">📺 Bilibili / 港澳台番剧</option>
+                    <option value="discord">💬 Discord / 社区聊天</option>
+                    <option value="apple">🍏 Apple / 苹果专有服务</option>
+                    <option value="microsoft">🪟 Microsoft / 微软 Office</option>
+                    <option value="notion">📝 Notion / 知识协同</option>
+                    <option value="binance">🪙 Binance / 加密货币交易</option>
+                    <option value="fish">🐟 漏网之鱼兜底出站</option>
                   </select>
                 </div>
 
@@ -637,7 +822,7 @@
                   <label class="block text-slate-400 font-mono mb-1">默认绑定出站策略</label>
                   <select v-model="newGroupForm.target"
                     class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono">
-                    <optgroup v-for="reg in regionDefs" :key="reg.id" :label="`${reg.flag} ${reg.name}集群策略`">
+                    <optgroup v-for="reg in regionDefs" :key="reg.id" :label="`${reg.name}集群策略`">
                       <option :value="reg.manual">{{ reg.manual }} (👆 人工指派)</option>
                       <option :value="reg.auto">{{ reg.auto }} (⚡ 自动优选)</option>
                       <option :value="reg.fall">{{ reg.fall }} (🔄 故障转移)</option>
@@ -2511,7 +2696,36 @@ async function selectRegionalNodeItem(reg, nodeName) {
   showToast(`【${reg.flag} ${reg.name}】已手动锁定节点: ${nodeName}`)
 }
 
-// ── Business Routing Groups (Filtered & Add Modal) ──
+// ── Region Matrix Collapse State ──
+const isMatrixCollapsed = ref(false)
+
+// ── Clean Group Title (Eliminate Duplicate Emojis in Card Titles) ──
+function getCleanGroupName(name) {
+  if (!name) return ''
+  // 过滤开头的 emoji 和多余问号/空格
+  let clean = name.replace(/^[\p{Emoji}\p{Symbol}\s?？]+/u, '').trim()
+  // 针对特定应用进行规范化显示
+  if (clean.includes('OpenAI') || clean.includes('AI')) return 'OpenAI / Claude'
+  if (clean.includes('YouTube')) return 'YouTube'
+  if (clean.includes('Google')) return 'Google'
+  if (clean.includes('GitHub')) return 'GitHub & Docker'
+  if (clean.includes('Telegram')) return 'Telegram'
+  if (clean.includes('Twitter')) return 'Twitter (X)'
+  if (clean.includes('Netflix')) return 'Netflix / 流媒体'
+  if (clean.includes('Apple')) return 'Apple 服务'
+  if (clean.includes('Microsoft')) return 'Microsoft 365'
+  if (clean.includes('Spotify')) return 'Spotify 音乐'
+  if (clean.includes('Steam')) return 'Steam 游戏'
+  if (clean.includes('TikTok')) return 'TikTok'
+  if (clean.includes('Bilibili')) return 'Bilibili 港澳台'
+  if (clean.includes('Discord')) return 'Discord'
+  if (clean.includes('Notion')) return 'Notion'
+  if (clean.includes('Binance')) return 'Binance / 加密货币'
+  if (clean.includes('漏网之鱼')) return '漏网之鱼 (兜底出站)'
+  return clean || name
+}
+
+// ── Business Routing Groups (Filtered & Drag & Drop Reordering) ──
 const showAddGroupModal = ref(false)
 const newGroupForm = ref({
   name: '',
@@ -2520,14 +2734,100 @@ const newGroupForm = ref({
   rule_value: ''
 })
 
+// Drag & Drop Sorting State
+const customGroupOrder = ref([])
+try {
+  const saved = localStorage.getItem('cubex_biz_order')
+  if (saved) customGroupOrder.value = JSON.parse(saved)
+} catch (e) {}
+
+let draggedGroupIndex = null
+
+function onDragStart(event, index) {
+  draggedGroupIndex = index
+  event.dataTransfer.effectAllowed = 'move'
+}
+
+function onDragOver(event) {
+  event.preventDefault()
+  event.dataTransfer.dropEffect = 'move'
+}
+
+function onDrop(event, targetIndex) {
+  event.preventDefault()
+  if (draggedGroupIndex === null || draggedGroupIndex === targetIndex) return
+  const currentList = [...businessGroups.value]
+  const [moved] = currentList.splice(draggedGroupIndex, 1)
+  currentList.splice(targetIndex, 0, moved)
+  const newOrder = currentList.map(g => g.name)
+  customGroupOrder.value = newOrder
+  try {
+    localStorage.setItem('cubex_biz_order', JSON.stringify(newOrder))
+  } catch (e) {}
+  draggedGroupIndex = null
+  showToast('分流组已重新排序')
+}
+
+function onDragEnd() {
+  draggedGroupIndex = null
+}
+
 const businessGroups = computed(() => {
   const groups = ir.value.groups || []
-  return groups.filter(g => {
-    // 过滤掉纯 24 个地区内部策略组，只展现业务分流组
+  const filtered = groups.filter(g => {
+    // 过滤掉纯 24 个地区内部策略组和通用节点选择组
+    if (g.name === '🚀 节点选择') return false
     const isRegionGroup = regionDefs.some(r => r.manual === g.name || r.auto === g.name || r.fall === g.name || r.disa === g.name)
     return !isRegionGroup
   })
+
+  if (customGroupOrder.value.length > 0) {
+    filtered.sort((a, b) => {
+      const idxA = customGroupOrder.value.indexOf(a.name)
+      const idxB = customGroupOrder.value.indexOf(b.name)
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB
+      if (idxA !== -1) return -1
+      if (idxB !== -1) return 1
+      return 0
+    })
+  }
+  return filtered
 })
+
+// 💡 日常高频预设库与自动去重
+const presetServices = [
+  { id: 'openai', name: 'OpenAI / Claude', icon: 'openai', rule_value: 'geosite:openai,geosite:claude', target: '🇺🇸 美国自动' },
+  { id: 'youtube', name: 'YouTube 视频', icon: 'youtube', rule_value: 'geosite:youtube', target: '🇭🇰 香港自动' },
+  { id: 'google', name: 'Google 搜索', icon: 'google', rule_value: 'geosite:google', target: '🇭🇰 香港自动' },
+  { id: 'github', name: 'GitHub & Docker', icon: 'github', rule_value: 'geosite:github,geosite:docker', target: '🇭🇰 香港自动' },
+  { id: 'telegram', name: 'Telegram', icon: 'telegram', rule_value: 'geosite:telegram', target: '🇸🇬 新加坡自动' },
+  { id: 'twitter', name: 'Twitter (X)', icon: 'twitter', rule_value: 'geosite:twitter', target: '🇭🇰 香港自动' },
+  { id: 'netflix', name: 'Netflix & 流媒体', icon: 'netflix', rule_value: 'geosite:netflix,geosite:disney', target: '🇸🇬 新加坡自动' },
+  { id: 'spotify', name: 'Spotify 音乐', icon: 'spotify', rule_value: 'geosite:spotify', target: '🇭🇰 香港自动' },
+  { id: 'steam', name: 'Steam 游戏', icon: 'steam', rule_value: 'geosite:steam', target: '🇭🇰 香港自动' },
+  { id: 'tiktok', name: 'TikTok 国际版', icon: 'tiktok', rule_value: 'geosite:tiktok', target: '🇺🇸 美国自动' },
+  { id: 'bilibili', name: 'Bilibili 港澳台', icon: 'bilibili', rule_value: 'geosite:bilibili@!cn', target: '🇭🇰 香港自动' },
+  { id: 'discord', name: 'Discord 社区', icon: 'discord', rule_value: 'geosite:discord', target: '🇸🇬 新加坡自动' },
+  { id: 'notion', name: 'Notion 笔记', icon: 'notion', rule_value: 'geosite:notion', target: '🇺🇸 美国自动' },
+  { id: 'binance', name: 'Binance / 加密货币', icon: 'binance', rule_value: 'geosite:binance,geosite:okx', target: '🇸🇬 新加坡自动' },
+  { id: 'apple', name: 'Apple 服务', icon: 'apple', rule_value: 'geosite:apple', target: 'DIRECT' },
+  { id: 'microsoft', name: 'Microsoft 365', icon: 'microsoft', rule_value: 'geosite:microsoft', target: 'DIRECT' }
+]
+
+const availablePresetServices = computed(() => {
+  const currentNames = businessGroups.value.map(g => (g.name || '').toLowerCase())
+  return presetServices.filter(preset => {
+    return !currentNames.some(cn => cn.includes(preset.id) || cn.includes(preset.name.toLowerCase().split(' ')[0]))
+  })
+})
+
+function applyPreset(preset) {
+  newGroupForm.value.name = preset.name
+  newGroupForm.value.icon = preset.icon
+  newGroupForm.value.target = preset.target || '🇭🇰 香港自动'
+  newGroupForm.value.rule_value = preset.rule_value || ''
+  showToast(`已载入【${preset.name}】官方推荐模版`)
+}
 
 async function submitAddCustomGroup() {
   const name = newGroupForm.value.name.trim()
@@ -2591,9 +2891,13 @@ function getGroupLogoType(name) {
   if (n.includes('microsoft') || n.includes('windows') || n.includes('office')) return 'microsoft'
   if (n.includes('spotify')) return 'spotify'
   if (n.includes('steam')) return 'steam'
+  if (n.includes('tiktok')) return 'tiktok'
+  if (n.includes('bilibili')) return 'bilibili'
+  if (n.includes('discord')) return 'discord'
+  if (n.includes('notion')) return 'notion'
+  if (n.includes('binance') || n.includes('okx') || n.includes('crypto')) return 'binance'
   if (n.includes('直连')) return 'direct'
   if (n.includes('漏网') || n.includes('fish')) return 'fish'
-  if (n.includes('国外') || n.includes('proxy') || n.includes('节点选择')) return 'proxy'
   return 'default'
 }
 

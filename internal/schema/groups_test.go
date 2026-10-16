@@ -98,18 +98,18 @@ func TestRegionAndBusinessGroupsSync(t *testing.T) {
 
 	// Verify Business Groups exist
 	expectedBiz := []string{
-		"🤖 OpenAI&AI",
-		"📹 YouTube",
-		"🍀 Google",
-		"👨‍💻 GitHub&docker",
-		"📲 Telegram",
-		"🐦 Twitter(X)",
-		"🎬 Netflix&流媒体",
-		"🍏 Apple服务",
-		"🪟 Microsoft",
-		"🚀 国外",
+		"OpenAI & AI",
+		"YouTube",
+		"Google",
+		"GitHub & Docker",
+		"Telegram",
+		"Twitter (X)",
+		"Netflix & 流媒体",
+		"Apple 服务",
+		"Microsoft",
+		"Spotify",
+		"Steam 游戏",
 		"🐟 漏网之鱼",
-		"🎯 全球直连",
 	}
 
 	for _, bName := range expectedBiz {

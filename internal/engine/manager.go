@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -50,8 +51,21 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 	if data, err := os.ReadFile(irFile); err == nil {
 		var savedIR schema.ConfigIR
 		if json.Unmarshal(data, &savedIR) == nil && len(savedIR.Proxies) > 0 {
+			// Clean up any corrupted groups from old files
+			cleanGroups := make([]schema.StrategyGroup, 0, len(savedIR.Groups))
+			for _, g := range savedIR.Groups {
+				if strings.Contains(g.Name, "??") || strings.Contains(g.Name, "\ufffd") {
+					continue
+				}
+				cleanGroups = append(cleanGroups, g)
+			}
+			savedIR.Groups = cleanGroups
 			initialIR = &savedIR
 		}
+	}
+	schema.SyncAllStrategyGroups(initialIR)
+	if cleanData, err := json.MarshalIndent(initialIR, "", "  "); err == nil {
+		_ = os.WriteFile(irFile, cleanData, 0644)
 	}
 	apiAddr := fmt.Sprintf("http://127.0.0.1:%d", initialIR.Network.ClashAPIPort)
 	return &Manager{

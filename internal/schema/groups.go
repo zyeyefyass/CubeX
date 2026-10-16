@@ -1,7 +1,9 @@
 package schema
 
 import (
+	"fmt"
 	"regexp"
+	"strings"
 )
 
 // RegionDef defines standard geographic routing clusters.
@@ -85,25 +87,99 @@ var StandardBusinessGroups = []struct {
 	Name string
 	Icon string
 }{
-	{Name: "🤖 OpenAI&AI", Icon: "openai"},
-	{Name: "📹 YouTube", Icon: "youtube"},
-	{Name: "🍀 Google", Icon: "google"},
-	{Name: "👨‍💻 GitHub&docker", Icon: "github"},
-	{Name: "📲 Telegram", Icon: "telegram"},
-	{Name: "🐦 Twitter(X)", Icon: "twitter"},
-	{Name: "🎬 Netflix&流媒体", Icon: "netflix"},
-	{Name: "🍏 Apple服务", Icon: "apple"},
-	{Name: "🪟 Microsoft", Icon: "microsoft"},
-	{Name: "🚀 国外", Icon: "proxy"},
+	{Name: "OpenAI & AI", Icon: "openai"},
+	{Name: "YouTube", Icon: "youtube"},
+	{Name: "Google", Icon: "google"},
+	{Name: "GitHub & Docker", Icon: "github"},
+	{Name: "Telegram", Icon: "telegram"},
+	{Name: "Twitter (X)", Icon: "twitter"},
+	{Name: "Netflix & 流媒体", Icon: "netflix"},
+	{Name: "Apple 服务", Icon: "apple"},
+	{Name: "Microsoft", Icon: "microsoft"},
+	{Name: "Spotify", Icon: "spotify"},
+	{Name: "Steam 游戏", Icon: "steam"},
 	{Name: "🐟 漏网之鱼", Icon: "fish"},
-	{Name: "🎯 全球直连", Icon: "direct"},
 }
 
-// SyncAllStrategyGroups dynamically aligns region clusters (18 groups) and business routing groups.
+// AlignNodeAirportPrefixes prepends subscription/airport name to proxy node names if not already present.
+func AlignNodeAirportPrefixes(ir *ConfigIR) {
+	if ir == nil || len(ir.Proxies) == 0 {
+		return
+	}
+
+	subNameMap := make(map[string]string)
+	for _, sub := range ir.Subscriptions {
+		if sub.ID != "" && sub.Name != "" {
+			subNameMap[sub.ID] = sub.Name
+		}
+	}
+
+	renameMap := make(map[string]string)
+
+	for i := range ir.Proxies {
+		p := &ir.Proxies[i]
+		if p.Type == "direct" || p.Type == "block" || p.Type == "reject" {
+			continue
+		}
+
+		airportName := ""
+		if p.SubID != "" && subNameMap[p.SubID] != "" {
+			airportName = subNameMap[p.SubID]
+		}
+
+		// If sub_id missing, heuristically map based on node signature
+		if airportName == "" {
+			nameLower := strings.ToLower(p.Name)
+			if strings.Contains(nameLower, "cloud") || strings.Contains(nameLower, "xtls") || strings.Contains(nameLower, "reality") || strings.Contains(nameLower, "tuic") {
+				airportName = "Hhost-JP"
+			} else if strings.Contains(nameLower, "专线") || strings.Contains(nameLower, "家庭") || strings.Contains(nameLower, "dmit") {
+				airportName = "Mtice"
+			} else if strings.Contains(nameLower, "hk-") || strings.Contains(nameLower, "tw-") || strings.Contains(nameLower, "sg-") || strings.Contains(nameLower, "jp-") || strings.Contains(nameLower, "us-") || strings.Contains(nameLower, "kr-") {
+				airportName = "Jscloud"
+			} else if strings.Contains(p.Name, "MPLS") {
+				airportName = "Niubi"
+			} else if strings.Contains(p.Name, "x15") || strings.Contains(p.Name, "Forest") || strings.Contains(p.Name, "国际优化") {
+				airportName = "Forest"
+			} else {
+				airportName = "Kuailei"
+			}
+		}
+
+		prefix := fmt.Sprintf("[%s]", airportName)
+		if !strings.HasPrefix(p.Name, "[") {
+			oldName := p.Name
+			newName := fmt.Sprintf("%s %s", prefix, oldName)
+			p.Name = newName
+			renameMap[oldName] = newName
+		}
+	}
+
+	if len(renameMap) == 0 {
+		return
+	}
+
+	// Also update groups referencing old node names
+	for gi := range ir.Groups {
+		g := &ir.Groups[gi]
+		if newNow, exists := renameMap[g.Now]; exists {
+			g.Now = newNow
+		}
+		for pi := range g.Proxies {
+			if newP, exists := renameMap[g.Proxies[pi]]; exists {
+				g.Proxies[pi] = newP
+			}
+		}
+	}
+}
+
+// SyncAllStrategyGroups dynamically aligns region clusters (24 groups) and business routing groups.
 func SyncAllStrategyGroups(ir *ConfigIR) {
 	if ir == nil {
 		return
 	}
+
+	// 0. Ensure all nodes have airport prefixes
+	AlignNodeAirportPrefixes(ir)
 
 	// 1. Classify all proxies into regional buckets
 	regionNodes := make(map[string][]string)
@@ -128,7 +204,6 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			regionNodes["OTHERS"] = append(regionNodes["OTHERS"], name)
 		}
 	}
-
 
 	// Existing groups map for preserving selections and custom additions
 	existingMap := make(map[string]StrategyGroup)
@@ -232,9 +307,6 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 
 	for _, bg := range StandardBusinessGroups {
 		candidates := append([]string{}, allRegionalCandidateProxies...)
-		if bg.Name == "🎯 全球直连" {
-			candidates = append([]string{"DIRECT"}, allRegionalCandidateProxies...)
-		}
 
 		bizGrp := StrategyGroup{
 			Name:     bg.Name,
@@ -257,10 +329,14 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 		newGroups = append(newGroups, bizGrp)
 	}
 
-	// 5. Preserve user custom-added business groups
+	// 5. Preserve user custom-added business groups (filter out corrupt or placeholder names)
 	for _, g := range ir.Groups {
 		if g.IsCustom {
-			// Check if already in newGroups
+			// Skip corrupted names like '?? Spotify??' or empty
+			if strings.Contains(g.Name, "??") || strings.Contains(g.Name, "\ufffd") || strings.TrimSpace(g.Name) == "" {
+				continue
+			}
+			// Skip if already in newGroups
 			found := false
 			for _, ng := range newGroups {
 				if ng.Name == g.Name {

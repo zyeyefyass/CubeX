@@ -576,10 +576,14 @@ func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
 
 	ir.Subscriptions = append(ir.Subscriptions, newSub)
 
-	// Merge new nodes into Proxies
+	// Merge new nodes into Proxies with airport prefix
 	nodeNames := make([]string, 0, len(res.Nodes))
 	for _, n := range res.Nodes {
 		n.SubID = subID
+		prefix := fmt.Sprintf("[%s]", req.Name)
+		if !strings.HasPrefix(n.Name, prefix) {
+			n.Name = fmt.Sprintf("%s %s", prefix, n.Name)
+		}
 		ir.Proxies = append(ir.Proxies, n)
 		nodeNames = append(nodeNames, n.Name)
 	}
@@ -1033,6 +1037,10 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 			ir.Subscriptions[i].UpdatedAt = time.Now()
 			for _, n := range res.Nodes {
 				n.SubID = ir.Subscriptions[i].ID
+				prefix := fmt.Sprintf("[%s]", ir.Subscriptions[i].Name)
+				if !strings.HasPrefix(n.Name, prefix) {
+					n.Name = fmt.Sprintf("%s %s", prefix, n.Name)
+				}
 				updatedProxies = append(updatedProxies, n)
 			}
 			totalNodes += res.NodeCount
