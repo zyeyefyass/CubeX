@@ -207,6 +207,35 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 	cfg["proxy-groups"] = groupsList
 
+	// 217heidai MRS Adaptive Rule Providers for Mihomo
+	ruleProviders := map[string]any{
+		"217heidai_ads": map[string]any{
+			"type":     "file",
+			"behavior": "domain",
+			"format":   "mrs",
+			"path":     "./rules/ads_domain.mrs",
+		},
+		"privacy_domain": map[string]any{
+			"type":     "file",
+			"behavior": "domain",
+			"format":   "mrs",
+			"path":     "./rules/privacy_domain.mrs",
+		},
+		"cn_domain": map[string]any{
+			"type":     "file",
+			"behavior": "domain",
+			"format":   "mrs",
+			"path":     "./rules/cn_domain.mrs",
+		},
+		"cn_ip": map[string]any{
+			"type":     "file",
+			"behavior": "ipcidr",
+			"format":   "mrs",
+			"path":     "./rules/cn_ip.mrs",
+		},
+	}
+	cfg["rule-providers"] = ruleProviders
+
 	// Rules compilation with device policies top-priority prepending
 	rulesList := make([]string, 0)
 
@@ -223,7 +252,13 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		}
 	}
 
-	// 2. Generic Rules
+	// 2. 217heidai MRS High-Performance Interception Rules (Mihomo Adaptive)
+	rulesList = append(rulesList, "RULE-SET,217heidai_ads,REJECT")
+	rulesList = append(rulesList, "RULE-SET,privacy_domain,REJECT")
+	rulesList = append(rulesList, "RULE-SET,cn_domain,DIRECT")
+	rulesList = append(rulesList, "RULE-SET,cn_ip,DIRECT")
+
+	// 3. Generic Rules
 	for _, r := range ir.Rules {
 		rType := strings.ToUpper(r.Type)
 		switch rType {

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -234,9 +235,17 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	// Step 3: Launch new core (Port Reuse / Handoff)
 	binPath := filepath.Join(m.workDir, "bin", binName)
+	if runtime.GOOS == "windows" {
+		if _, err := os.Stat(binPath + ".exe"); err == nil {
+			binPath += ".exe"
+		}
+	}
 	if _, err := os.Stat(binPath); os.IsNotExist(err) {
-		// Look in PATH or simulation
-		binPath = binName
+		if runtime.GOOS == "windows" {
+			binPath = binName + ".exe"
+		} else {
+			binPath = binName
+		}
 	}
 
 	var cmd *exec.Cmd

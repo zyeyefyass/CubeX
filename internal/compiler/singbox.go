@@ -265,7 +265,34 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 	cfg["outbounds"] = outbounds
 
-	// 4. Route Section
+	// 4. Route Section with Adaptive sing-box Rule-Sets (.srs)
+	ruleSets := []map[string]any{
+		{
+			"tag":    "217heidai-ads",
+			"type":   "local",
+			"format": "binary",
+			"path":   "rules/adblocksingbox.srs",
+		},
+		{
+			"tag":    "privacy-tracking",
+			"type":   "local",
+			"format": "binary",
+			"path":   "rules/privacy.srs",
+		},
+		{
+			"tag":    "geosite-cn",
+			"type":   "local",
+			"format": "binary",
+			"path":   "rules/geosite-cn.srs",
+		},
+		{
+			"tag":    "geoip-cn",
+			"type":   "local",
+			"format": "binary",
+			"path":   "rules/geoip-cn.srs",
+		},
+	}
+
 	routeRules := make([]map[string]any, 0)
 
 	// A. Hijack DNS
@@ -293,7 +320,17 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		}
 	}
 
-	// C. Generic Rules
+	// C. Adaptive SRS Rule-Set Interception (Adblock & Anti-Tracking native sing-box)
+	routeRules = append(routeRules, map[string]any{
+		"rule_set": []string{"217heidai-ads", "privacy-tracking"},
+		"outbound": "block",
+	})
+	routeRules = append(routeRules, map[string]any{
+		"rule_set": []string{"geosite-cn", "geoip-cn"},
+		"outbound": "direct",
+	})
+
+	// D. Generic Rules
 	for _, r := range ir.Rules {
 		rType := strings.ToLower(r.Type)
 		targetOutbound := r.Target
@@ -332,6 +369,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	cfg["route"] = map[string]any{
+		"rule_set":              ruleSets,
 		"rules":                 routeRules,
 		"auto_detect_interface": true,
 		"final":                 "🐟 漏网之鱼",
