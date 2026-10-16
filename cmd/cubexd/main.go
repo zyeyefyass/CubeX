@@ -757,7 +757,10 @@ func (s *Server) handleNodeAdd(w http.ResponseWriter, r *http.Request) {
 		node.Name = req.Name
 	}
 	if node.Name == "" {
-		node.Name = fmt.Sprintf("自建-%s:%d", node.Server, node.Port)
+		node.Name = fmt.Sprintf("节点-%s:%d", node.Server, node.Port)
+	}
+	if !strings.HasPrefix(node.Name, "[自建]") {
+		node.Name = fmt.Sprintf("[自建] %s", node.Name)
 	}
 	node.SubID = "custom"
 
@@ -1701,7 +1704,7 @@ func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 		GrpName  string
 	}
 	bizRules := []bizMatch{
-		{Keywords: []string{"openai", "chatgpt", "claude", "anthropic", "copilot"}, RuleName: "GEOSITE, openai", GrpName: "OpenAI & AI"},
+		{Keywords: []string{"openai", "chatgpt", "claude", "anthropic", "copilot"}, RuleName: "GEOSITE, openai", GrpName: "AI"},
 		{Keywords: []string{"youtube", "ytimg", "googlevideo"}, RuleName: "GEOSITE, youtube", GrpName: "YouTube"},
 		{Keywords: []string{"google", "gmail", "gstatic", "android"}, RuleName: "GEOSITE, google", GrpName: "Google"},
 		{Keywords: []string{"github", "ghcr", "docker"}, RuleName: "GEOSITE, github", GrpName: "GitHub & Docker"},

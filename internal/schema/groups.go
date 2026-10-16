@@ -18,7 +18,7 @@ type RegionDef struct {
 	DisaName   string
 }
 
-// StandardRegions defines the 6 geographic regions specified by user.
+// StandardRegions defines standard geographic and custom node routing clusters.
 var StandardRegions = []RegionDef{
 	{
 		ID:         "HK",
@@ -41,24 +41,14 @@ var StandardRegions = []RegionDef{
 		DisaName:   "🇹🇼 台湾容灾",
 	},
 	{
-		ID:         "SG",
-		Name:       "新加坡",
-		Flag:       "🇸🇬",
-		Regex:      regexp.MustCompile(`(?i)(新|sg|singapore|狮城)`),
-		ManualName: "🇸🇬 新加坡手动",
-		AutoName:   "🇸🇬 新加坡自动",
-		FallName:   "🇸🇬 新加坡故转",
-		DisaName:   "🇸🇬 新加坡容灾",
-	},
-	{
-		ID:         "JPKR",
-		Name:       "日韩",
-		Flag:       "🇯🇵🇰🇷",
-		Regex:      regexp.MustCompile(`(?i)(日|jp|japan|东京|大阪|韩|kr|korea|首尔)`),
-		ManualName: "🇯🇵🇰🇷 日韩手动",
-		AutoName:   "🇯🇵🇰🇷 日韩自动",
-		FallName:   "🇯🇵🇰🇷 日韩故转",
-		DisaName:   "🇯🇵🇰🇷 日韩容灾",
+		ID:         "SG_JPKR",
+		Name:       "新日韩",
+		Flag:       "🇸🇬🇯🇵🇰🇷",
+		Regex:      regexp.MustCompile(`(?i)(新|sg|singapore|狮城|日|jp|japan|东京|大阪|韩|kr|korea|首尔)`),
+		ManualName: "🇸🇬🇯🇵🇰🇷 新日韩手动",
+		AutoName:   "🇸🇬🇯🇵🇰🇷 新日韩自动",
+		FallName:   "🇸🇬🇯🇵🇰🇷 新日韩故转",
+		DisaName:   "🇸🇬🇯🇵🇰🇷 新日韩容灾",
 	},
 	{
 		ID:         "US",
@@ -71,10 +61,20 @@ var StandardRegions = []RegionDef{
 		DisaName:   "🇺🇸 美国容灾",
 	},
 	{
+		ID:         "CUSTOM",
+		Name:       "自建",
+		Flag:       "🏠",
+		Regex:      nil, // Handled specifically for manually added nodes
+		ManualName: "🏠 自建手动",
+		AutoName:   "🏠 自建自动",
+		FallName:   "🏠 自建故转",
+		DisaName:   "🏠 自建容灾",
+	},
+	{
 		ID:         "OTHERS",
 		Name:       "其它",
 		Flag:       "🌐",
-		Regex:      nil, // Catch-all for non-HK/TW/SG/JPKR/US
+		Regex:      nil, // Catch-all for non-HK/TW/SG_JPKR/US airport nodes
 		ManualName: "🌐 其它手动",
 		AutoName:   "🌐 其它自动",
 		FallName:   "🌐 其它故转",
@@ -87,7 +87,7 @@ var StandardBusinessGroups = []struct {
 	Name string
 	Icon string
 }{
-	{Name: "OpenAI & AI", Icon: "openai"},
+	{Name: "AI", Icon: "openai"},
 	{Name: "YouTube", Icon: "youtube"},
 	{Name: "Google", Icon: "google"},
 	{Name: "GitHub & Docker", Icon: "github"},
@@ -119,6 +119,16 @@ func AlignNodeAirportPrefixes(ir *ConfigIR) {
 	for i := range ir.Proxies {
 		p := &ir.Proxies[i]
 		if p.Type == "direct" || p.Type == "block" || p.Type == "reject" {
+			continue
+		}
+
+		if p.SubID == "custom" || strings.HasPrefix(p.Name, "[自建]") || (p.SubID == "" && strings.Contains(strings.ToLower(p.Name), "自建")) {
+			if !strings.HasPrefix(p.Name, "[") {
+				oldName := p.Name
+				newName := fmt.Sprintf("[自建] %s", oldName)
+				p.Name = newName
+				renameMap[oldName] = newName
+			}
 			continue
 		}
 
@@ -192,8 +202,18 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			continue
 		}
 		name := p.Name
+
+		// Check if it's a manually added custom node
+		if p.SubID == "custom" || strings.HasPrefix(name, "[自建]") || (p.SubID == "" && strings.Contains(strings.ToLower(name), "自建")) {
+			regionNodes["CUSTOM"] = append(regionNodes["CUSTOM"], name)
+			continue
+		}
+
 		matched := false
 		for _, reg := range StandardRegions {
+			if reg.ID == "CUSTOM" || reg.ID == "OTHERS" {
+				continue
+			}
 			if reg.Regex != nil && reg.Regex.MatchString(name) {
 				regionNodes[reg.ID] = append(regionNodes[reg.ID], name)
 				matched = true
@@ -201,7 +221,14 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			}
 		}
 		if !matched {
-			regionNodes["OTHERS"] = append(regionNodes["OTHERS"], name)
+			// If not matched to HK/TW/SG_JPKR/US:
+			// If it has airport prefix or sub_id, put into OTHERS;
+			// If standalone without airport signature, put into CUSTOM
+			if p.SubID == "" && !strings.Contains(name, "Hhost") && !strings.Contains(name, "Mtice") && !strings.Contains(name, "Jscloud") && !strings.Contains(name, "Niubi") && !strings.Contains(name, "Forest") && !strings.Contains(name, "Kuailei") {
+				regionNodes["CUSTOM"] = append(regionNodes["CUSTOM"], name)
+			} else {
+				regionNodes["OTHERS"] = append(regionNodes["OTHERS"], name)
+			}
 		}
 	}
 
@@ -324,6 +351,18 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			}
 			if len(eg.Proxies) > 0 {
 				bizGrp.Proxies = mergeProxiesUnique(candidates, eg.Proxies)
+			}
+		} else if bg.Name == "AI" {
+			for _, oldName := range []string{"OpenAI & AI", "OpenAI / Claude", "OpenAI", "ChatGPT"} {
+				if eg, ok := existingMap[oldName]; ok {
+					if eg.Now != "" {
+						bizGrp.Now = eg.Now
+					}
+					if len(eg.Proxies) > 0 {
+						bizGrp.Proxies = mergeProxiesUnique(candidates, eg.Proxies)
+					}
+					break
+				}
 			}
 		}
 		newGroups = append(newGroups, bizGrp)

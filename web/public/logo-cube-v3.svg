@@ -1,0 +1,80 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cubeTop" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#0284C7" stop-opacity="0.7"/>
+    </linearGradient>
+    <linearGradient id="cubeLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0369A1" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#002D50" stop-opacity="0.95"/>
+    </linearGradient>
+    <linearGradient id="cubeRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#001529" stop-opacity="0.98"/>
+    </linearGradient>
+    <linearGradient id="quantumCore" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00D2FF"/>
+      <stop offset="50%" stop-color="#C084FC"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
+    <filter id="neonGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <style>
+    @keyframes mcFloatY {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-4px) rotate(1.2deg); }
+    }
+    @keyframes mcCoreSpin {
+      0% { transform: rotate(0deg) scale(0.92); filter: drop-shadow(0 0 6px #00d2ff); }
+      50% { transform: rotate(180deg) scale(1.08); filter: drop-shadow(0 0 14px #c084fc); }
+      100% { transform: rotate(360deg) scale(0.92); filter: drop-shadow(0 0 6px #00d2ff); }
+    }
+    @keyframes mcFlowLine {
+      0% { stroke-dashoffset: 80; }
+      100% { stroke-dashoffset: 0; }
+    }
+    @keyframes mcPulseRing {
+      0%, 100% { opacity: 0.35; transform: scale(0.96); }
+      50% { opacity: 0.85; transform: scale(1.04); }
+    }
+    .mc-float-cube { animation: mcFloatY 5s ease-in-out infinite; transform-origin: 50px 50px; }
+    .mc-core-pulse { animation: mcCoreSpin 7s linear infinite; transform-origin: 50px 50px; }
+    .mc-flow-edge { stroke-dasharray: 14 30; animation: mcFlowLine 2.5s linear infinite; }
+    .mc-halo-ring { animation: mcPulseRing 3.5s ease-in-out infinite; transform-origin: 50px 50px; }
+  </style>
+
+  <circle class="mc-halo-ring" cx="50" cy="50" r="39" stroke="#00D2FF" stroke-width="0.9" stroke-opacity="0.45" stroke-dasharray="5 7" fill="none"/>
+
+  <g class="mc-float-cube">
+    <polygon points="50,14 82,32 50,50 18,32" fill="url(#cubeTop)" stroke="#38BDF8" stroke-width="1.2" stroke-linejoin="round"/>
+    <polygon points="18,32 50,50 50,86 18,68" fill="url(#cubeLeft)" stroke="#0284C7" stroke-width="1.2" stroke-linejoin="round"/>
+    <polygon points="50,50 82,32 82,68 50,86" fill="url(#cubeRight)" stroke="#0369A1" stroke-width="1.2" stroke-linejoin="round"/>
+
+    <line x1="50" y1="50" x2="50" y2="14" stroke="#00D2FF" stroke-width="1" stroke-opacity="0.6"/>
+    <line x1="50" y1="50" x2="18" y2="68" stroke="#00D2FF" stroke-width="1" stroke-opacity="0.6"/>
+    <line x1="50" y1="50" x2="82" y2="68" stroke="#00D2FF" stroke-width="1" stroke-opacity="0.6"/>
+
+    <path class="mc-flow-edge" d="M50,14 L82,32 L82,68 L50,86 L18,68 L18,32 Z M50,50 L50,86 M50,50 L18,32 M50,50 L82,32" stroke="#FFFFFF" stroke-width="1.5" fill="none" filter="url(#neonGlow)"/>
+
+    <g class="mc-core-pulse">
+      <polygon points="50,38 59,50 50,62 41,50" fill="url(#quantumCore)" opacity="0.95"/>
+      <polygon points="50,38 59,50 50,50" fill="#FFFFFF" opacity="0.8"/>
+      <circle cx="50" cy="50" r="3.4" fill="#FFFFFF"/>
+    </g>
+
+    <circle cx="50" cy="14" r="2" fill="#FFFFFF"/>
+    <circle cx="82" cy="32" r="1.8" fill="#00D2FF"/>
+    <circle cx="82" cy="68" r="1.8" fill="#38BDF8"/>
+    <circle cx="50" cy="86" r="2" fill="#00D2FF"/>
+    <circle cx="18" cy="68" r="1.8" fill="#38BDF8"/>
+    <circle cx="18" cy="32" r="1.8" fill="#00D2FF"/>
+    <circle cx="50" cy="50" r="2.5" fill="#FFFFFF"/>
+  </g>
+</svg>

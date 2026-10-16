@@ -15,18 +15,15 @@
         <div class="p-5 text-center border-b transition-colors"
           :class="activeEngine === 'singbox' ? 'border-purple-900/30' : 'border-sky-900/30'">
           <div class="relative mx-auto w-24 h-24 mb-2 flex items-center justify-center group cursor-pointer" @click="activeMasterTab = 'overview'">
-            <div class="absolute inset-0 rounded-full blur-xl group-hover:scale-125 transition-transform duration-700 animate-pulse"
-              :class="activeEngine === 'singbox' ? 'bg-cyan-500/25' : 'bg-amber-500/25'"></div>
-            <img src="/logo-cubex.svg" class="relative z-10 h-20 w-20 drop-shadow-[0_0_24px_rgba(0,245,212,0.6)] filter transition-all duration-500 group-hover:scale-110 active:scale-95" alt="CubeX Logo" />
+            <div class="absolute inset-0 rounded-full blur-xl group-hover:scale-125 transition-transform duration-700 animate-pulse bg-cyan-500/30"></div>
+            <img src="/logo-cube-v3.svg" class="relative z-10 h-24 w-24 drop-shadow-[0_0_28px_rgba(0,210,255,0.75)] filter transition-all duration-500 group-hover:scale-110 active:scale-95" alt="MiCube 3D Core Logo" />
           </div>
           
           <div class="flex items-center justify-center gap-2">
-            <h1 class="text-2xl font-black tracking-wide bg-gradient-to-r bg-clip-text text-transparent"
-              :class="activeEngine === 'singbox' ? 'from-cyan-300 via-teal-200 to-purple-400' : 'from-amber-300 via-sky-200 to-cyan-400'">
-              CubeX
+            <h1 class="text-2xl font-black tracking-wide bg-gradient-to-r bg-clip-text text-transparent from-cyan-300 via-sky-200 to-indigo-300">
+              MiCube
             </h1>
-            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border"
-              :class="activeEngine === 'singbox' ? 'bg-purple-950/80 text-cyan-300 border-purple-500/40' : 'bg-sky-950/80 text-amber-300 border-amber-500/40'">
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border bg-cyan-950/80 text-cyan-300 border-cyan-500/40">
               {{ systemStatus.version || 'v1.0.0-Aurora' }}
             </span>
           </div>
@@ -80,7 +77,7 @@
         <!-- Left: Mobile Brand & Current Tab Title -->
         <div class="flex items-center gap-3">
           <button @click="activeMasterTab = 'overview'" class="md:hidden flex items-center gap-2">
-            <img src="/logo-cubex.svg" class="w-8 h-8" alt="CubeX" />
+            <img src="/logo-cube-v3.svg" class="w-8 h-8 drop-shadow-[0_0_8px_rgba(0,210,255,0.7)]" alt="MiCube" />
           </button>
           <div class="flex items-center gap-2">
             <h2 class="text-base font-bold text-white">{{ currentTabTitle }}</h2>
@@ -435,11 +432,17 @@
                     <template v-else-if="reg.id === 'TW'">
                       <svg class="w-5 h-3.5 rounded shadow-sm shrink-0" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FE0000"/><rect width="15" height="10" fill="#000095"/><circle cx="7.5" cy="5" r="2.8" fill="#FFF"/><circle cx="7.5" cy="5" r="2.1" fill="#000095"/><circle cx="7.5" cy="5" r="1.5" fill="#FFF"/></svg>
                     </template>
-                    <template v-else-if="reg.id === 'SG'">
-                      <svg class="w-5 h-3.5 rounded shadow-sm shrink-0" viewBox="0 0 30 20"><rect width="30" height="10" fill="#ED2939"/><rect y="10" width="30" height="10" fill="#FFF"/><circle cx="5" cy="5" r="3.2" fill="#FFF"/><circle cx="6.2" cy="5" r="2.8" fill="#ED2939"/><polygon fill="#FFF" points="7.2,3.5 7.5,4.3 8.3,4.3 7.7,4.8 7.9,5.6 7.2,5.1 6.6,5.6 6.8,4.8 6.2,4.3 7,4.3"/></svg>
+                    <template v-else-if="reg.id === 'SG_JPKR'">
+                      <div class="flex items-center -space-x-1 shrink-0">
+                        <svg class="w-3.5 h-3 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="10" fill="#ED2939"/><rect y="10" width="30" height="10" fill="#FFF"/><circle cx="5" cy="5" r="3.2" fill="#FFF"/><circle cx="6.2" cy="5" r="2.8" fill="#ED2939"/><polygon fill="#FFF" points="7.2,3.5 7.5,4.3 8.3,4.3 7.7,4.8 7.9,5.6 7.2,5.1 6.6,5.6 6.8,4.8 6.2,4.3 7,4.3"/></svg>
+                        <svg class="w-3.5 h-3 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="6" fill="#BC002D"/></svg>
+                        <svg class="w-3.5 h-3 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="5" fill="#C60C30"/><path d="M15 15a5 5 0 0 0 0-10 2.5 2.5 0 0 0 0 5 2.5 2.5 0 0 1 0 5z" fill="#003478"/></svg>
+                      </div>
                     </template>
-                    <template v-else-if="reg.id === 'JPKR'">
-                      <div class="flex items-center -space-x-1 shrink-0"><svg class="w-3.5 h-3 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="6" fill="#BC002D"/></svg><svg class="w-3.5 h-3 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="5" fill="#C60C30"/><path d="M15 15a5 5 0 0 0 0-10 2.5 2.5 0 0 0 0 5 2.5 2.5 0 0 1 0 5z" fill="#003478"/></svg></div>
+                    <template v-else-if="reg.id === 'CUSTOM'">
+                      <div class="w-5 h-3.5 rounded shadow-sm bg-gradient-to-br from-indigo-900 to-cyan-950 border border-cyan-500/50 flex items-center justify-center shrink-0">
+                        <svg class="w-3 h-3 text-cyan-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                      </div>
                     </template>
                     <template v-else-if="reg.id === 'US'">
                       <svg class="w-5 h-3.5 rounded shadow-sm shrink-0" viewBox="0 0 30 20"><rect width="30" height="20" fill="#B22234"/><path d="M0 1.54h30M0 4.62h30M0 7.7h30M0 10.77h30M0 13.85h30M0 16.92h30" stroke="#FFF" stroke-width="1.54"/><rect width="13" height="10.77" fill="#3C3B6E"/></svg>
@@ -488,19 +491,16 @@
                             <circle cx="7.5" cy="5" r="1.5" fill="#FFF"/>
                           </svg>
                         </template>
-                        <template v-else-if="reg.id === 'SG'">
-                          <svg class="w-7 h-5 rounded-md shadow-md border border-slate-700/50" viewBox="0 0 30 20">
-                            <rect width="30" height="10" fill="#ED2939"/>
-                            <rect y="10" width="30" height="10" fill="#FFF"/>
-                            <circle cx="5" cy="5" r="3.2" fill="#FFF"/>
-                            <circle cx="6.2" cy="5" r="2.8" fill="#ED2939"/>
-                            <polygon fill="#FFF" points="7.2,3.5 7.5,4.3 8.3,4.3 7.7,4.8 7.9,5.6 7.2,5.1 6.6,5.6 6.8,4.8 6.2,4.3 7,4.3"/>
-                          </svg>
-                        </template>
-                        <template v-else-if="reg.id === 'JPKR'">
+                        <template v-else-if="reg.id === 'SG_JPKR'">
                           <div class="flex items-center -space-x-1.5 shrink-0">
+                            <svg class="w-5 h-4 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="10" fill="#ED2939"/><rect y="10" width="30" height="10" fill="#FFF"/><circle cx="5" cy="5" r="3.2" fill="#FFF"/><circle cx="6.2" cy="5" r="2.8" fill="#ED2939"/><polygon fill="#FFF" points="7.2,3.5 7.5,4.3 8.3,4.3 7.7,4.8 7.9,5.6 7.2,5.1 6.6,5.6 6.8,4.8 6.2,4.3 7,4.3"/></svg>
                             <svg class="w-5 h-4 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="6" fill="#BC002D"/></svg>
                             <svg class="w-5 h-4 rounded shadow-sm border border-slate-700/60" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="5" fill="#C60C30"/><path d="M15 15a5 5 0 0 0 0-10 2.5 2.5 0 0 0 0 5 2.5 2.5 0 0 1 0 5z" fill="#003478"/></svg>
+                          </div>
+                        </template>
+                        <template v-else-if="reg.id === 'CUSTOM'">
+                          <div class="w-7 h-5 rounded-md shadow-md bg-gradient-to-br from-indigo-950 via-slate-900 to-cyan-950 border border-cyan-400/60 flex items-center justify-center shrink-0">
+                            <svg class="w-4 h-4 text-cyan-300 drop-shadow-[0_0_6px_rgba(0,210,255,0.8)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                           </div>
                         </template>
                         <template v-else-if="reg.id === 'US'">
@@ -782,7 +782,7 @@
                 <!-- Fast Filter Tags -->
                 <div class="flex items-center gap-1.5 overflow-x-auto text-[10px] font-mono py-0.5">
                   <span class="text-slate-500 shrink-0">快捷筛选:</span>
-                  <button v-for="tag in ['全部', '香港', '台湾', '新加坡', '日韩', '美国', '其它', '直连']" :key="tag"
+                  <button v-for="tag in ['全部', '香港', '台湾', '新日韩', '美国', '自建', '其它', '直连']" :key="tag"
                     @click="setGroupFilter(grp.name, tag === '全部' ? '' : tag)"
                     :class="[
                       'px-2 py-0.5 rounded-lg transition shrink-0',
@@ -2225,7 +2225,7 @@ function inferPacketRoute(input) {
 
   // 2. Specific Business Routing
   const bizList = [
-    { kws: ['openai', 'chatgpt', 'claude', 'anthropic', 'copilot'], group: 'OpenAI & AI', ruleTag: 'GEOSITE, openai' },
+    { kws: ['openai', 'chatgpt', 'claude', 'anthropic', 'copilot'], group: 'AI', ruleTag: 'GEOSITE, openai' },
     { kws: ['youtube', 'ytimg', 'googlevideo'], group: 'YouTube', ruleTag: 'GEOSITE, youtube' },
     { kws: ['google', 'gmail', 'gstatic', 'android'], group: 'Google', ruleTag: 'GEOSITE, google' },
     { kws: ['github', 'ghcr', 'docker'], group: 'GitHub & Docker', ruleTag: 'GEOSITE, github' },
@@ -2757,13 +2757,13 @@ async function importBackup(ev) {
   }
 }
 
-// ── Region Clusters & Strategies (6 Regions x 4 Policies: 手动/自动/故转/容灾) ──
+// ── Region Clusters & Strategies (6 Regions: 香港, 台湾, 新日韩, 美国, 自建, 其它) ──
 const regionDefs = [
   { id: 'HK', name: '香港', flag: '🇭🇰', manual: '🇭🇰 香港手动', auto: '🇭🇰 香港自动', fall: '🇭🇰 香港故转', disa: '🇭🇰 香港容灾', regex: /(港|hk|hong kong)/i },
   { id: 'TW', name: '台湾', flag: '🇹🇼', manual: '🇹🇼 台湾手动', auto: '🇹🇼 台湾自动', fall: '🇹🇼 台湾故转', disa: '🇹🇼 台湾容灾', regex: /(台|tw|taiwan)/i },
-  { id: 'SG', name: '新加坡', flag: '🇸🇬', manual: '🇸🇬 新加坡手动', auto: '🇸🇬 新加坡自动', fall: '🇸🇬 新加坡故转', disa: '🇸🇬 新加坡容灾', regex: /(新|sg|singapore|狮城)/i },
-  { id: 'JPKR', name: '日韩', flag: '🇯🇵🇰🇷', manual: '🇯🇵🇰🇷 日韩手动', auto: '🇯🇵🇰🇷 日韩自动', fall: '🇯🇵🇰🇷 日韩故转', disa: '🇯🇵🇰🇷 日韩容灾', regex: /(日|jp|japan|东京|大阪|韩|kr|korea|首尔)/i },
+  { id: 'SG_JPKR', name: '新日韩', flag: '🇸🇬🇯🇵🇰🇷', manual: '🇸🇬🇯🇵🇰🇷 新日韩手动', auto: '🇸🇬🇯🇵🇰🇷 新日韩自动', fall: '🇸🇬🇯🇵🇰🇷 新日韩故转', disa: '🇸🇬🇯🇵🇰🇷 新日韩容灾', regex: /(新|sg|singapore|狮城|日|jp|japan|东京|大阪|韩|kr|korea|首尔)/i },
   { id: 'US', name: '美国', flag: '🇺🇸', manual: '🇺🇸 美国手动', auto: '🇺🇸 美国自动', fall: '🇺🇸 美国故转', disa: '🇺🇸 美国容灾', regex: /(美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯)/i },
+  { id: 'CUSTOM', name: '自建', flag: '🏠', manual: '🏠 自建手动', auto: '🏠 自建自动', fall: '🏠 自建故转', disa: '🏠 自建容灾', regex: null },
   { id: 'OTHERS', name: '其它', flag: '🌐', manual: '🌐 其它手动', auto: '🌐 其它自动', fall: '🌐 其它故转', disa: '🌐 其它容灾', regex: null }
 ]
 
@@ -2776,15 +2776,28 @@ function toggleRegionExpand(id) {
 
 function getRegionNodes(reg) {
   const proxies = (ir.value.proxies || []).filter(p => p.type !== 'direct' && p.type !== 'block' && p.type !== 'reject')
-  if (!reg.regex) {
+
+  // 1. CUSTOM: 手动自建单节点
+  if (reg.id === 'CUSTOM') {
+    return proxies.filter(p => p.sub_id === 'custom' || p.name.startsWith('[自建]') || (!p.sub_id && !p.name.includes('Hhost') && !p.name.includes('Mtice') && !p.name.includes('Jscloud') && !p.name.includes('Niubi') && !p.name.includes('Forest') && !p.name.includes('Kuailei') && !/(港|hk|台|tw|新|sg|日|jp|韩|kr|美|us)/i.test(p.name)))
+  }
+
+  // 2. OTHERS: 其它机场节点
+  if (reg.id === 'OTHERS') {
     return proxies.filter(p => {
+      if (p.sub_id === 'custom' || p.name.startsWith('[自建]')) return false
       for (const r of regionDefs) {
         if (r.regex && r.regex.test(p.name)) return false
       }
       return true
     })
   }
-  return proxies.filter(p => reg.regex.test(p.name))
+
+  // 3. 常规地区正则匹配 (排除自建)
+  return proxies.filter(p => {
+    if (p.sub_id === 'custom' || p.name.startsWith('[自建]')) return false
+    return reg.regex.test(p.name)
+  })
 }
 
 function getRegionActiveNode(reg) {
@@ -2851,7 +2864,7 @@ function getCleanGroupName(name) {
   // 过滤开头的 emoji 和多余问号/空格
   let clean = name.replace(/^[\p{Emoji}\p{Symbol}\s?？]+/u, '').trim()
   // 针对特定应用进行规范化显示
-  if (clean.includes('OpenAI') || clean.includes('AI')) return 'OpenAI / Claude'
+  if (clean.includes('OpenAI') || clean.includes('Claude') || clean === 'AI' || clean.includes('AI') || clean.includes('ChatGPT')) return 'AI'
   if (clean.includes('YouTube')) return 'YouTube'
   if (clean.includes('Google')) return 'Google'
   if (clean.includes('GitHub')) return 'GitHub & Docker'
@@ -2942,7 +2955,7 @@ const businessGroups = computed(() => {
 
 // 💡 日常高频预设库与自动去重
 const presetServices = [
-  { id: 'openai', name: 'OpenAI / Claude', icon: 'openai', rule_value: 'geosite:openai,geosite:claude', target: '🇺🇸 美国自动' },
+  { id: 'openai', name: 'AI', icon: 'openai', rule_value: 'geosite:openai,geosite:claude', target: '🇭🇰 香港自动' },
   { id: 'youtube', name: 'YouTube 视频', icon: 'youtube', rule_value: 'geosite:youtube', target: '🇭🇰 香港自动' },
   { id: 'google', name: 'Google 搜索', icon: 'google', rule_value: 'geosite:google', target: '🇭🇰 香港自动' },
   { id: 'github', name: 'GitHub & Docker', icon: 'github', rule_value: 'geosite:github,geosite:docker', target: '🇭🇰 香港自动' },
@@ -3082,8 +3095,11 @@ function getFilteredGroupProxies(grp) {
   if (filter === '直连') {
     return (grp.proxies || []).filter(p => p.includes('直连') || p === 'DIRECT')
   }
-  if (filter === '日韩') {
-    return (grp.proxies || []).filter(p => p.includes('日韩') || /(日|jp|japan|东京|大阪|韩|kr|korea|首尔)/i.test(p))
+  if (filter === '自建') {
+    return (grp.proxies || []).filter(p => p.includes('自建') || p.includes('🏠'))
+  }
+  if (filter === '新日韩') {
+    return (grp.proxies || []).filter(p => p.includes('新日韩') || p.includes('新加坡') || p.includes('日韩') || /(新|sg|singapore|狮城|日|jp|japan|东京|大阪|韩|kr|korea|首尔)/i.test(p))
   }
   if (filter === '其它') {
     return (grp.proxies || []).filter(p => p.includes('其它') || p.includes('🌐'))
