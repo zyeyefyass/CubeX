@@ -965,12 +965,12 @@ func (m *Manager) GenerateFirewallScript(mode string, enablePenetration bool) st
 		if enablePenetration {
 			return `#!/usr/bin/env bash
 # ==============================================================================
-#  MiCube · 宿主机网络底座与防火墙极速一键通关 (🛡️ 严格模式 + 🚀 手机 WireGuard 穿透)
+#  MiCube · 宿主机原生联动与防火墙极速一键通关 (🛡️ 严格模式 + 🚀 手机 WireGuard 穿透)
 #  适用平台: 飞牛 fnOS / PVE / Debian / Ubuntu (最小特权白名单防御)
 # ==============================================================================
 set -e
 
-echo "🧊 [MiCube] 正在为宿主机配置网络底座与防火墙 (🛡️ 严格模式 + 🚀 穿透模式)..."
+echo "🧊 [MiCube] 正在为宿主机配置原生联动与防火墙 (🛡️ 严格模式 + 🚀 穿透模式)..."
 
 # 1. 开启 Linux 内核 IPv4 数据包转发
 echo "  -> 开启 IPv4 数据包转发 (net.ipv4.ip_forward=1)..."
@@ -1006,19 +1006,19 @@ iptables -t nat -C POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/nul
 echo "  -> 持久化防火墙规则..."
 which netfilter-persistent &>/dev/null && netfilter-persistent save || (which iptables-save &>/dev/null && iptables-save > /etc/iptables.rules 2>/dev/null || true)
 
-echo "✅ [MiCube] 宿主机网络底座与防火墙已以【🛡️ 严格模式 + 🚀 穿透模式】成功打通！"
+echo "✅ [MiCube] 宿主机网络与防火墙已以【🛡️ 严格模式 + 🚀 穿透模式】成功原生联动！"
 `
 		}
 
 		// Strict mode WITHOUT penetration (Pure LAN bypass, zero public ports)
 		return `#!/usr/bin/env bash
 # ==============================================================================
-#  MiCube · 宿主机网络底座与防火墙极速一键通关 (🛡️ 严格模式 · 🌐 纯局域网旁路由)
+#  MiCube · 宿主机原生联动与防火墙极速一键通关 (🛡️ 严格模式 · 🌐 纯局域网旁路由)
 #  适用平台: 飞牛 fnOS / PVE / Debian / Ubuntu (零公网暴露面 · 最小特权)
 # ==============================================================================
 set -e
 
-echo "🧊 [MiCube] 正在为宿主机配置网络底座与防火墙 (🛡️ 严格模式 · 🌐 纯局域网旁路由)..."
+echo "🧊 [MiCube] 正在为宿主机配置原生联动与防火墙 (🛡️ 严格模式 · 🌐 纯局域网旁路由)..."
 
 # 1. 开启 Linux 内核 IPv4 数据包转发
 echo "  -> 开启 IPv4 数据包转发 (net.ipv4.ip_forward=1)..."
@@ -1046,7 +1046,7 @@ iptables -C INPUT -p tcp --dport 2026 -j ACCEPT 2>/dev/null || iptables -I INPUT
 echo "  -> 持久化防火墙规则..."
 which netfilter-persistent &>/dev/null && netfilter-persistent save || (which iptables-save &>/dev/null && iptables-save > /etc/iptables.rules 2>/dev/null || true)
 
-echo "✅ [MiCube] 宿主机网络底座与防火墙已以【🛡️ 严格模式 · 🌐 纯局域网】成功打通！零公网端口暴露，固若金汤！"
+echo "✅ [MiCube] 宿主机网络与防火墙已以【🛡️ 严格模式 · 🌐 纯局域网】成功原生联动！零公网端口暴露，固若金汤！"
 `
 	}
 
@@ -1054,12 +1054,12 @@ echo "✅ [MiCube] 宿主机网络底座与防火墙已以【🛡️ 严格模�
 	if enablePenetration {
 		return `#!/usr/bin/env bash
 # ==============================================================================
-#  MiCube · 宿主机网络底座与防火墙极速一键通关 (🟢 宽松模式 + 🚀 手机 WireGuard 穿透)
+#  MiCube · 宿主机原生联动与防火墙极速一键通关 (🟢 宽松模式 + 🚀 手机 WireGuard 穿透)
 #  适用平台: 飞牛 fnOS / PVE / 群晖 DSM / Ubuntu / Debian / CentOS Linux
 # ==============================================================================
 set -e
 
-echo "🧊 [MiCube] 正在为宿主机配置网络底座与防火墙 (🟢 宽松模式 + 🚀 穿透模式)..."
+echo "🧊 [MiCube] 正在为宿主机配置原生联动与防火墙 (🟢 宽松模式 + 🚀 穿透模式)..."
 
 # 1. 永久开启 Linux 内核 IPv4 数据包转发
 echo "  -> 开启 IPv4 数据包转发 (net.ipv4.ip_forward=1)..."
@@ -1086,19 +1086,19 @@ iptables -t nat -C POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/nul
 echo "  -> 持久化防火墙规则..."
 which netfilter-persistent &>/dev/null && netfilter-persistent save || (which iptables-save &>/dev/null && iptables-save > /etc/iptables.rules 2>/dev/null || true)
 
-echo "✅ [MiCube] 宿主机网络底座与防火墙已以【🟢 宽松模式 + 🚀 穿透模式】成功打通！"
+echo "✅ [MiCube] 宿主机网络与防火墙已以【🟢 宽松模式 + 🚀 穿透模式】成功原生联动！"
 `
 	}
 
 	// Permissive mode WITHOUT penetration (Pure LAN bypass, zero public ports)
 	return `#!/usr/bin/env bash
 # ==============================================================================
-#  MiCube · 宿主机网络底座与防火墙极速一键通关 (🟢 宽松模式 · 🌐 纯局域网旁路由)
+#  MiCube · 宿主机原生联动与防火墙极速一键通关 (🟢 宽松模式 · 🌐 纯局域网旁路由)
 #  适用平台: 飞牛 fnOS / PVE / 群晖 DSM / Ubuntu / Debian / CentOS Linux
 # ==============================================================================
 set -e
 
-echo "🧊 [MiCube] 正在为宿主机配置网络底座与防火墙 (🟢 宽松模式 · 🌐 纯局域网旁路由)..."
+echo "🧊 [MiCube] 正在为宿主机配置原生联动与防火墙 (🟢 宽松模式 · 🌐 纯局域网旁路由)..."
 
 # 1. 永久开启 Linux 内核 IPv4 数据包转发
 echo "  -> 开启 IPv4 数据包转发 (net.ipv4.ip_forward=1)..."
@@ -1119,7 +1119,7 @@ iptables -C INPUT -p tcp --dport 2026 -j ACCEPT 2>/dev/null || iptables -I INPUT
 echo "  -> 持久化防火墙规则..."
 which netfilter-persistent &>/dev/null && netfilter-persistent save || (which iptables-save &>/dev/null && iptables-save > /etc/iptables.rules 2>/dev/null || true)
 
-echo "✅ [MiCube] 宿主机网络底座与防火墙已以【🟢 宽松模式 · 🌐 纯局域网】成功打通！零公网端口暴露，开箱即通，绝不断网！"
+echo "✅ [MiCube] 宿主机网络与防火墙已以【🟢 宽松模式 · 🌐 纯局域网】成功原生联动！零公网端口暴露，开箱即通，绝不断网！"
 `
 }
 
@@ -1255,7 +1255,7 @@ func (m *Manager) SetDockerRegistryMirror(mirrorURL string) error {
 	m.mu.RUnlock()
 
 	if !cfg.Enabled || cfg.Host == "" {
-		return fmt.Errorf("宿主机 SSH 未配置，请先在底座中配置宿主 IP 与密码")
+		return fmt.Errorf("宿主机 SSH 未配置，请先在「宿主联动」中配置宿主 IP 与密码")
 	}
 
 	client, err := m.getSSHClient(cfg)

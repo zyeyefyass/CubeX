@@ -105,6 +105,7 @@ type ProxyNode struct {
 	Flow           string            `json:"flow,omitempty" yaml:"flow,omitempty"`
 	Congestion     string            `json:"congestion,omitempty" yaml:"congestion,omitempty"`
 	Delay          int               `json:"delay" yaml:"delay"` // measured latency ms
+	SubID          string            `json:"sub_id,omitempty" yaml:"sub_id,omitempty"`
 	RawConfig      map[string]any    `json:"raw_config,omitempty" yaml:"raw_config,omitempty"`
 }
 

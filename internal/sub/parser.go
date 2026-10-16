@@ -83,7 +83,7 @@ func ParseSubscription(raw []byte) ([]schema.ProxyNode, error) {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		node, err := parseURILink(line)
+		node, err := ParseURILink(line)
 		if err == nil && node.Name != "" && node.Server != "" {
 			nodes = append(nodes, node)
 		}
@@ -213,7 +213,8 @@ func parseSingboxNode(ob map[string]any) schema.ProxyNode {
 	return node
 }
 
-func parseURILink(link string) (schema.ProxyNode, error) {
+// ParseURILink parses a single node URI (ss, vmess, vless, trojan, hysteria2, tuic).
+func ParseURILink(link string) (schema.ProxyNode, error) {
 	node := schema.ProxyNode{}
 
 	if strings.HasPrefix(link, "vmess://") {

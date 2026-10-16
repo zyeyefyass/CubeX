@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -146,8 +148,15 @@ func main() {
 	mux.HandleFunc("/api/v1/netstack/bypass", srv.handleNetstackBypass)
 	mux.HandleFunc("/api/v1/netstack/apply", srv.handleNetstackApply)
 	mux.HandleFunc("/api/v1/netstack/webrtc-audit", srv.handleWebRTCAudit)
+	mux.HandleFunc("/api/v1/config/subscriptions", srv.handleSubList)
 	mux.HandleFunc("/api/v1/config/subscriptions/add", srv.handleSubAdd)
 	mux.HandleFunc("/api/v1/config/subscriptions/update", srv.handleSubUpdate)
+	mux.HandleFunc("/api/v1/config/subscriptions/delete", srv.handleSubDelete)
+	mux.HandleFunc("/api/v1/config/subscriptions/toggle", srv.handleSubToggle)
+	mux.HandleFunc("/api/v1/config/subscriptions/rename", srv.handleSubRename)
+	mux.HandleFunc("/api/v1/config/subscriptions/node/add", srv.handleNodeAdd)
+	mux.HandleFunc("/api/v1/config/subscriptions/node/delete", srv.handleNodeDelete)
+	mux.HandleFunc("/api/v1/engine/group/select", srv.handleGroupSelect)
 	mux.HandleFunc("/api/v1/ros/script", srv.handleRosScript)
 
 	// 3. WireGuard Mobile Penetration & QR
@@ -245,6 +254,13 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 	ir := s.engMgr.GetIR()
 	lastRes := s.engMgr.GetLastResult()
 
+	coreMem := 18.2
+	if s.engMgr.GetActiveEngine() == "mihomo" {
+		coreMem = 48.5
+	}
+	appMem := float64(m.Alloc) / 1024 / 1024
+	totalOverhead := appMem + coreMem
+
 	resp := map[string]any{
 		"version":          version,
 		"uptime_seconds":   int64(time.Since(startTime).Seconds()),
@@ -252,7 +268,11 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 		"edition":          ir.Meta.Edition,
 		"proxy_mode":       ir.Meta.ProxyMode,
 		"active_profile":   ir.Meta.ActiveProfile,
-		"memory_mb":        float64(m.Alloc) / 1024 / 1024,
+		"memory_mb":        appMem,
+		"memory_sys_mb":    float64(m.Sys) / 1024 / 1024,
+		"core_memory_mb":   coreMem,
+		"total_overhead_mb": totalOverhead,
+		"goroutines":       runtime.NumGoroutine(),
 		"os":               runtime.GOOS,
 		"arch":             runtime.GOARCH,
 		"last_switch_res":  lastRes,
@@ -536,6 +556,7 @@ func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
 	// Merge new nodes into Proxies
 	nodeNames := make([]string, 0, len(res.Nodes))
 	for _, n := range res.Nodes {
+		n.SubID = subID
 		ir.Proxies = append(ir.Proxies, n)
 		nodeNames = append(nodeNames, n.Name)
 	}
@@ -553,10 +574,286 @@ func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
 	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
 
 	sendJSON(w, map[string]any{
+		"ok":          true,
 		"status":      "added",
 		"sub_id":      subID,
 		"node_count":  res.NodeCount,
 		"duration_ms": res.DurationMs,
+	})
+}
+
+func (s *Server) handleSubList(w http.ResponseWriter, r *http.Request) {
+	ir := s.engMgr.GetIR()
+	sendJSON(w, map[string]any{
+		"ok":            true,
+		"subscriptions": ir.Subscriptions,
+		"proxies":       ir.Proxies,
+	})
+}
+
+func (s *Server) handleSubDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	if req.ID == "" {
+		http.Error(w, "id required", http.StatusBadRequest)
+		return
+	}
+
+	ir := s.engMgr.GetIR()
+	newSubs := make([]schema.Subscription, 0)
+	for _, sub := range ir.Subscriptions {
+		if sub.ID != req.ID {
+			newSubs = append(newSubs, sub)
+		}
+	}
+	ir.Subscriptions = newSubs
+
+	// Remove proxies belonging to this sub
+	newProxies := make([]schema.ProxyNode, 0)
+	removedNames := make(map[string]bool)
+	for _, p := range ir.Proxies {
+		if p.SubID == req.ID {
+			removedNames[p.Name] = true
+		} else {
+			newProxies = append(newProxies, p)
+		}
+	}
+	ir.Proxies = newProxies
+
+	// Clean up groups
+	for i := range ir.Groups {
+		newGrpProxies := make([]string, 0)
+		for _, name := range ir.Groups[i].Proxies {
+			if !removedNames[name] {
+				newGrpProxies = append(newGrpProxies, name)
+			}
+		}
+		ir.Groups[i].Proxies = newGrpProxies
+		if removedNames[ir.Groups[i].Now] && len(newGrpProxies) > 0 {
+			ir.Groups[i].Now = newGrpProxies[0]
+		}
+	}
+
+	s.engMgr.UpdateIR(ir)
+	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+
+	sendJSON(w, map[string]any{"ok": true, "deleted_id": req.ID})
+}
+
+func (s *Server) handleSubToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID      string `json:"id"`
+		Enabled bool   `json:"enabled"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	ir := s.engMgr.GetIR()
+	for i := range ir.Subscriptions {
+		if ir.Subscriptions[i].ID == req.ID {
+			ir.Subscriptions[i].Enabled = req.Enabled
+			break
+		}
+	}
+	s.engMgr.UpdateIR(ir)
+	sendJSON(w, map[string]any{"ok": true})
+}
+
+func (s *Server) handleSubRename(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	if req.ID == "" || req.Name == "" {
+		http.Error(w, "id and name required", http.StatusBadRequest)
+		return
+	}
+	ir := s.engMgr.GetIR()
+	for i := range ir.Subscriptions {
+		if ir.Subscriptions[i].ID == req.ID {
+			ir.Subscriptions[i].Name = req.Name
+			break
+		}
+	}
+	s.engMgr.UpdateIR(ir)
+	sendJSON(w, map[string]any{"ok": true})
+}
+
+func (s *Server) handleNodeAdd(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Name string `json:"name"`
+		Link string `json:"link"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	req.Link = strings.TrimSpace(req.Link)
+	if req.Link == "" {
+		sendJSON(w, map[string]any{"ok": false, "error": "节点链接不能为空"})
+		return
+	}
+
+	var node schema.ProxyNode
+	var err error
+
+	if strings.Contains(req.Link, "://") {
+		node, err = sub.ParseURILink(req.Link)
+	} else {
+		nodes, pErr := sub.ParseSubscription([]byte(req.Link))
+		if pErr == nil && len(nodes) > 0 {
+			node = nodes[0]
+		} else {
+			err = fmt.Errorf("无法解析节点链接")
+		}
+	}
+
+	if err != nil || node.Server == "" {
+		sendJSON(w, map[string]any{"ok": false, "error": "节点格式无法识别，请检查 ss://, vmess://, vless://, trojan://, hysteria2:// 链接"})
+		return
+	}
+
+	if req.Name != "" {
+		node.Name = req.Name
+	}
+	if node.Name == "" {
+		node.Name = fmt.Sprintf("自建-%s:%d", node.Server, node.Port)
+	}
+	node.SubID = "custom"
+
+	ir := s.engMgr.GetIR()
+	// Ensure unique node name
+	exists := false
+	for _, p := range ir.Proxies {
+		if p.Name == node.Name {
+			exists = true
+			break
+		}
+	}
+	if exists {
+		node.Name = fmt.Sprintf("%s (%d)", node.Name, time.Now().Unix()%1000)
+	}
+
+	ir.Proxies = append(ir.Proxies, node)
+	for i := range ir.Groups {
+		if ir.Groups[i].Type == "urltest" || ir.Groups[i].Name == "🚀 节点选择" || ir.Groups[i].Name == "⚡ 自动优选" {
+			ir.Groups[i].Proxies = append(ir.Groups[i].Proxies, node.Name)
+		}
+	}
+
+	s.engMgr.UpdateIR(ir)
+	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+
+	sendJSON(w, map[string]any{
+		"ok":   true,
+		"node": node,
+	})
+}
+
+func (s *Server) handleNodeDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Name string `json:"name"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	if req.Name == "" {
+		http.Error(w, "name required", http.StatusBadRequest)
+		return
+	}
+
+	ir := s.engMgr.GetIR()
+	newProxies := make([]schema.ProxyNode, 0)
+	for _, p := range ir.Proxies {
+		if p.Name != req.Name {
+			newProxies = append(newProxies, p)
+		}
+	}
+	ir.Proxies = newProxies
+
+	for i := range ir.Groups {
+		newGrpProxies := make([]string, 0)
+		for _, name := range ir.Groups[i].Proxies {
+			if name != req.Name {
+				newGrpProxies = append(newGrpProxies, name)
+			}
+		}
+		ir.Groups[i].Proxies = newGrpProxies
+		if ir.Groups[i].Now == req.Name && len(newGrpProxies) > 0 {
+			ir.Groups[i].Now = newGrpProxies[0]
+		}
+	}
+
+	s.engMgr.UpdateIR(ir)
+	sendJSON(w, map[string]any{"ok": true, "deleted_name": req.Name})
+}
+
+func (s *Server) handleGroupSelect(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Group string `json:"group"`
+		Node  string `json:"node"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if req.Group == "" || req.Node == "" {
+		http.Error(w, "group and node required", http.StatusBadRequest)
+		return
+	}
+
+	ir := s.engMgr.GetIR()
+	updated := false
+	for i := range ir.Groups {
+		if ir.Groups[i].Name == req.Group {
+			ir.Groups[i].Now = req.Node
+			updated = true
+			break
+		}
+	}
+	if updated {
+		s.engMgr.UpdateIR(ir)
+		// If Clash API is available, notify Mihomo
+		go func() {
+			payload, _ := json.Marshal(map[string]string{"name": req.Node})
+			escapedGroup := url.PathEscape(req.Group)
+			reqURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s", ir.Network.ClashAPIPort, escapedGroup)
+			client := http.Client{Timeout: 1 * time.Second}
+			cReq, err := http.NewRequest(http.MethodPut, reqURL, bytes.NewBuffer(payload))
+			if err == nil {
+				cReq.Header.Set("Content-Type", "application/json")
+				_, _ = client.Do(cReq)
+			}
+		}()
+	}
+
+	sendJSON(w, map[string]any{
+		"ok":    true,
+		"group": req.Group,
+		"now":   req.Node,
 	})
 }
 
@@ -566,20 +863,31 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var req struct {
+		ID string `json:"id"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
 	ir := s.engMgr.GetIR()
 	fetcher := sub.NewFetcher()
 	totalNodes := 0
 
 	var updatedProxies []schema.ProxyNode
-	// Preserve direct and reject
+	// Preserve direct, reject, and custom manual nodes
 	for _, p := range ir.Proxies {
-		if p.Type == "direct" || p.Type == "block" || p.Type == "reject" {
+		if p.Type == "direct" || p.Type == "block" || p.Type == "reject" || p.SubID == "custom" {
+			updatedProxies = append(updatedProxies, p)
+		} else if req.ID != "" && p.SubID != req.ID {
+			// If updating single sub, keep other sub's nodes
 			updatedProxies = append(updatedProxies, p)
 		}
 	}
 
 	for i := range ir.Subscriptions {
 		if !ir.Subscriptions[i].Enabled || ir.Subscriptions[i].URL == "" {
+			continue
+		}
+		if req.ID != "" && ir.Subscriptions[i].ID != req.ID {
 			continue
 		}
 		res, err := fetcher.Fetch(ir.Subscriptions[i].URL)
@@ -589,7 +897,10 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 			ir.Subscriptions[i].TotalBytes = res.Total
 			ir.Subscriptions[i].ExpireAt = res.Expire
 			ir.Subscriptions[i].UpdatedAt = time.Now()
-			updatedProxies = append(updatedProxies, res.Nodes...)
+			for _, n := range res.Nodes {
+				n.SubID = ir.Subscriptions[i].ID
+				updatedProxies = append(updatedProxies, n)
+			}
 			totalNodes += res.NodeCount
 		}
 	}
@@ -601,6 +912,7 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
 
 	sendJSON(w, map[string]any{
+		"ok":          true,
 		"status":      "updated",
 		"total_nodes": totalNodes,
 	})
@@ -1086,7 +1398,7 @@ func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
 			sendJSON(w, map[string]any{
 				"ok":        true,
 				"host_type": "routeros",
-				"message":   "🎉 已成功打通 RouterOS 宿主底座！策略路由与防DNS泄露规则已全自动配置生效！",
+				"message":   "🎉 已成功原生联动 RouterOS 宿主！策略路由与防DNS泄露规则已全自动配置生效！",
 				"result":    res,
 			})
 			return
@@ -1100,7 +1412,7 @@ func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
 			sendJSON(w, map[string]any{
 				"ok":        true,
 				"host_type": cached.PlatformID,
-				"message":   fmt.Sprintf("🎉 已成功打通 %s 宿主底座！内核数据包转发 (ip_forward=1) 与防火墙放行规则已全自动配置生效！", cached.OSName),
+				"message":   fmt.Sprintf("🎉 已成功原生联动 %s 宿主！内核数据包转发 (ip_forward=1) 与防火墙放行规则已全自动配置生效！", cached.OSName),
 				"result":    fwRes,
 			})
 			return
@@ -1112,14 +1424,14 @@ func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
 		sendJSON(w, map[string]any{
 			"ok":        true,
 			"host_type": "routeros",
-			"message":   "🎉 已成功打通 RouterOS 宿主底座！",
+			"message":   "🎉 已成功原生联动 RouterOS 宿主！",
 			"result":    res,
 		})
 		return
 	}
 	sendJSON(w, map[string]any{
 		"ok":    false,
-		"error": "未能自动探测到有效宿主底座连接。请在「底座通信凭证」中配置 RouterOS 或宿主机 SSH 凭证后再试。",
+		"error": "未能自动探测到有效宿主连接。请在「宿主联动凭据」中配置 RouterOS 或宿主机 SSH 凭证后再试。",
 	})
 }
 

@@ -15,7 +15,7 @@
 
   <p align="center">
     <b>Mihomo 与 sing-box 两大派系的终极答案</b><br>
-    一键秒切双擎 · 宿主机底座全自动打通 · 硬件级 WireGuard 穿透对齐 · 局域网设备分流矩阵 · 217heidai 权威规则 · 四维在线热更
+    一键秒切双擎 · 宿主机原生联动全自动编排 · 硬件级 WireGuard 穿透对齐 · 局域网设备分流矩阵 · 217heidai 权威规则 · 四维在线热更
   </p>
 
 </div>
@@ -84,12 +84,12 @@ CubeX 是由原作者在继 **MiCube** 与 **SingCube** 两大独立项目之后
 
 ---
 
-### ⚙️ 规划四：【系统与底座】统一智能宿主机底座打通与四维升级中枢
+### ⚙️ 规划四：【宿主联动】统一智能宿主环境原生联动与四维升级中枢
 
 ![04-system-host-base](docs/assets/screenshots/04-system-host-base.png)
 
-* **🖥️ 统一智能宿主机底座自适应探针**：  
-  全自动嗅探宿主操作系统（**MikroTik RouterOS v7.x、飞牛 fnOS 专属底座、Proxmox VE LXC、标准 Linux Docker**），自动展示系统内核版本、CPU 核心数、实时内存负载与内核包转发状态（`ip_forward=1`）。
+* **🖥️ 统一智能宿主自适应探针**：  
+  全自动嗅探宿主操作系统（**MikroTik RouterOS v7.x、飞牛 fnOS 专属环境、Proxmox VE LXC、标准 Linux Docker**），自动展示系统内核版本、CPU 核心数、实时内存负载与内核包转发状态（`ip_forward=1`）。
 * **📜 防火墙与路由脚本一键下发与复制**：  
   * **一键复制 RouterOS WinBox 策略路由脚本**（包含 `table 8228`、Mangle 防死锁规则与 Netwatch 0 秒自动逃生）；
   * **一键复制 Linux / 飞牛宿主防火墙放行脚本**（iptables / nftables 自动配置）。
