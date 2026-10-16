@@ -323,39 +323,131 @@
               <div>最终出口节点: <strong class="text-amber-300">{{ currentTracedNode }}</strong></div>
             </div>
 
-            <!-- 热力点阵 -->
-            <div class="pt-3 border-t border-slate-800/80">
-              <div class="flex items-center justify-between text-xs font-bold text-slate-300 mb-2">
-                <span>节点池健康度阵列 (单点快切):</span>
-                <span class="text-[10px] text-slate-400 font-mono">共 {{ ir.proxies?.length || 0 }} 个节点</span>
+            <!-- ════════════════════════════════════════════════════════════════ -->
+            <!-- 🌐 节点池地区健康度矩阵 (6 大战略集群 · 自动/故转/容灾)            -->
+            <!-- ════════════════════════════════════════════════════════════════ -->
+            <div class="pt-4 border-t border-slate-800/80 space-y-3">
+              <div class="flex items-center justify-between text-xs font-bold text-slate-300">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm">🌐</span>
+                  <span>节点池地区健康度矩阵 (按地区集群调度):</span>
+                  <span class="text-[10px] text-cyan-300 font-mono bg-cyan-950/80 px-2 py-0.5 rounded-full border border-cyan-500/30">
+                    6 大战略地理集群 · 三态策略 (自动/故转/容灾)
+                  </span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">共 {{ ir.proxies?.length || 0 }} 个节点收录</span>
               </div>
-              <div class="flex flex-wrap gap-2">
-                <button v-for="(node, idx) in ir.proxies" :key="node.name + idx"
-                  @click="selectNodeFast(node.name)" :title="`${node.name} (${node.delay || 32}ms)`"
-                  class="p-1 rounded active:scale-90 transition">
-                  <span :class="['block w-3.5 h-3.5 rounded-full', activeSelectedNode === node.name ? 'ring-2 ring-white scale-125' : '', getDotColor(node.delay || 35)]"></span>
-                </button>
+
+              <!-- 6 大地区健康度集群卡片网格 -->
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                <div v-for="reg in regionDefs" :key="reg.id"
+                  class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-cyan-500/40 transition shadow-lg space-y-2.5 flex flex-col justify-between">
+                  
+                  <!-- Region Header -->
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="text-xl leading-none">{{ reg.flag }}</span>
+                      <div>
+                        <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                          <span>{{ reg.name }}集群</span>
+                        </div>
+                        <div class="text-[10px] text-slate-400 font-mono">
+                          {{ getRegionNodes(reg).length }} 节点可用 · 均延 {{ getRegionLatency(reg) }}ms
+                        </div>
+                      </div>
+                    </div>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/30">
+                      ● 在线正常
+                    </span>
+                  </div>
+
+                  <!-- Multi-Strategy Capsules (自动 / 故转 / 容灾) -->
+                  <div class="p-1 rounded-xl bg-slate-950/90 border border-slate-800/90 flex items-center justify-between gap-1 text-[11px] font-mono">
+                    <button @click="selectRegionPolicy(reg, 'auto')"
+                      :class="[
+                        'flex-1 py-1 rounded-lg transition font-bold text-center',
+                        (regionActivePolicy[reg.id] || 'auto') === 'auto'
+                          ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                          : 'text-slate-400 hover:text-white'
+                      ]">
+                      ⚡ 自动
+                    </button>
+                    <button @click="selectRegionPolicy(reg, 'fall')"
+                      :class="[
+                        'flex-1 py-1 rounded-lg transition font-bold text-center',
+                        regionActivePolicy[reg.id] === 'fall'
+                          ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20'
+                          : 'text-slate-400 hover:text-white'
+                      ]">
+                      🔄 故转
+                    </button>
+                    <button @click="selectRegionPolicy(reg, 'disa')"
+                      :class="[
+                        'flex-1 py-1 rounded-lg transition font-bold text-center',
+                        regionActivePolicy[reg.id] === 'disa'
+                          ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-md shadow-purple-500/20'
+                          : 'text-slate-400 hover:text-white'
+                      ]">
+                      🛡️ 容灾
+                    </button>
+                  </div>
+
+                  <!-- Active Node Preview & Expand toggle -->
+                  <div class="flex items-center justify-between pt-1 border-t border-slate-800/60 text-[11px] font-mono">
+                    <div class="truncate max-w-[170px] text-slate-300" :title="getRegionActiveNode(reg)">
+                      <span class="text-slate-500">主选:</span>
+                      <span class="text-cyan-300 font-semibold ml-1">{{ getRegionActiveNode(reg) }}</span>
+                    </div>
+                    <button @click="toggleRegionExpand(reg.id)" class="text-[10px] text-slate-400 hover:text-cyan-300 transition shrink-0">
+                      节点({{ getRegionNodes(reg).length }}) {{ expandedRegion[reg.id] ? '▲' : '▼' }}
+                    </button>
+                  </div>
+
+                  <!-- Expanded Regional Node List -->
+                  <div v-if="expandedRegion[reg.id]" class="pt-2 border-t border-slate-800/80 space-y-1.5 max-h-36 overflow-y-auto animate-in fade-in">
+                    <button v-for="node in getRegionNodes(reg)" :key="node.name"
+                      @click="selectNodeFast(node.name)"
+                      :class="[
+                        'w-full px-2 py-1 rounded-lg text-left text-[10px] font-mono flex items-center justify-between transition border',
+                        activeSelectedNode === node.name
+                          ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/50'
+                          : 'bg-slate-950/60 text-slate-300 hover:text-white border-slate-800'
+                      ]">
+                      <div class="flex items-center gap-1.5 truncate max-w-[180px]">
+                        <span :class="['w-1.5 h-1.5 rounded-full shrink-0', getNodeDotColor(node.name)]"></span>
+                        <span class="truncate">{{ node.name }}</span>
+                      </div>
+                      <span class="text-slate-400 shrink-0">{{ node.delay || 32 }}ms</span>
+                    </button>
+                  </div>
+
+                </div>
               </div>
             </div>
           </section>
 
-          <!-- 🧭 策略分流与出站节点控制中枢 (Traffic Routing & Proxy Groups Matrix) -->
+          <!-- ════════════════════════════════════════════════════════════════ -->
+          <!-- 🧭 业务分流与应用出站节点中枢 (带官方各家 Logo & 支持手动添加)    -->
+          <!-- ════════════════════════════════════════════════════════════════ -->
           <section class="space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/40 pb-3">
               <div>
                 <div class="text-sm font-bold text-white flex items-center gap-2">
-                  <span>🧭 策略分流与出站节点控制中枢 (Traffic Routing & Proxy Groups)</span>
+                  <span>🧭 业务分流与应用出站节点中枢 (Business Traffic Routing)</span>
                   <span class="text-xs px-2.5 py-0.5 rounded-full font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-                    {{ ir.groups?.length || 0 }} 个分流策略组 · {{ ir.proxies?.length || 0 }} 个出口节点
+                    {{ businessGroups.length }} 个业务分流策略组
                   </span>
                 </div>
                 <div class="text-xs text-slate-400 mt-1">
-                  依据 217heidai 权威规则与应用特征动态分流 · 点击任意候选节点即刻毫秒级热切该组专属出口。
+                  依据配置文件及各家应用官方特征进行智能出站调度 · 支持手动添加业务 · 点击任意候选即刻毫秒级热切。
                 </div>
               </div>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <button @click="showAddGroupModal = true" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-teal-400 to-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 active:scale-95 transition flex items-center gap-1">
+                  <span>+ 手动添加业务分流</span>
+                </button>
                 <button @click="runAllLatencyTest" :disabled="testingLatency" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-cyan-600/30 hover:bg-cyan-600/50 border border-cyan-400 text-cyan-200 transition flex items-center gap-1 shadow-md">
-                  <span>{{ testingLatency ? '测速中...' : '⚡ 全员节点测速' }}</span>
+                  <span>{{ testingLatency ? '测速中...' : '⚡ 全员测速' }}</span>
                 </button>
                 <button @click="fetchIR" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-semibold">
                   🔄 刷新分流
@@ -363,16 +455,77 @@
               </div>
             </div>
 
-            <!-- Strategy Groups Cards Grid -->
+            <!-- Business Strategy Groups Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div v-for="grp in ir.groups" :key="grp.name" class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 hover:border-cyan-500/30 transition shadow-lg">
-                <!-- Group Header -->
+              <div v-for="grp in businessGroups" :key="grp.name" class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 hover:border-cyan-500/30 transition shadow-lg">
+                <!-- Group Header with Official Logos -->
                 <div class="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
-                  <div class="flex items-center gap-2">
-                    <span class="text-base">{{ getGroupIcon(grp.name) }}</span>
+                  <div class="flex items-center gap-3">
+                    
+                    <!-- Official SVG Logos -->
+                    <div class="w-8 h-8 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center shrink-0 shadow-inner">
+                      <!-- OpenAI -->
+                      <svg v-if="getGroupLogoType(grp.name) === 'openai'" class="w-5 h-5 text-teal-400" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M22.28 9.53a5.98 5.98 0 0 0-.52-4.91 6.05 6.05 0 0 0-6.51-2.9 6.06 6.06 0 0 0-4.88-2.43 6.05 6.05 0 0 0-5.76 4.19 6.05 6.05 0 0 0-4.08 2.96 6.05 6.05 0 0 0 .76 7.07 5.98 5.98 0 0 0 .52 4.91 6.05 6.05 0 0 0 6.51 2.9 6.06 6.06 0 0 0 4.88 2.43 6.05 6.05 0 0 0 5.76-4.19 6.05 6.05 0 0 0 4.08-2.96 6.05 6.05 0 0 0-.76-7.07zm-7.6 11.23a4.54 4.54 0 0 1-3.08-1.22l.14-.08 5.09-2.94a.78.78 0 0 0 .39-.68v-7.18l2.15 1.24a.07.07 0 0 1 .04.05v6.23a4.56 4.56 0 0 1-4.73 4.58zm-9.35-4.04a4.54 4.54 0 0 1-.58-3.26l.14.08 5.09 2.94a.78.78 0 0 0 .78 0l6.22-3.59v2.48a.07.07 0 0 1-.03.06l-5.4 3.12a4.56 4.56 0 0 1-6.22-1.83zm-1.74-9.52a4.54 4.54 0 0 1 2.5-2.04v6.13a.78.78 0 0 0 .39.68l6.22 3.59-2.15 1.24a.07.07 0 0 1-.07 0l-5.4-3.12a4.56 4.56 0 0 1-1.49-6.48zm12.33 2.65l-6.22-3.59 2.15-1.24a.07.07 0 0 1 .07 0l5.4 3.12a4.56 4.56 0 0 1 1.49 6.48 4.54 4.54 0 0 1-2.5 2.04v-6.13a.78.78 0 0 0-.39-.68zm3.03-1.63l-.14-.08-5.09-2.94a.78.78 0 0 0-.78 0l-6.22 3.59v-2.48a.07.07 0 0 1 .03-.06l5.4-3.12a4.56 4.56 0 0 1 6.8 5.09zm-8.95 5.17l-2.76-1.59 2.76-1.59 2.76 1.59-2.76 1.59z"/>
+                      </svg>
+                      <!-- YouTube -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'youtube'" class="w-5 h-5" viewBox="0 0 24 24" fill="#FF0000">
+                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/>
+                        <path d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#FFFFFF"/>
+                      </svg>
+                      <!-- Google -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'google'" class="w-5 h-5" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                        <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+                        <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                        <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                      </svg>
+                      <!-- GitHub / Docker -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'github'" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                      </svg>
+                      <!-- Telegram -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'telegram'" class="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="12" fill="#2AABEE"/>
+                        <path d="M17.5 7.5L5.5 12.1L9.5 13.6L14.5 10.2L10.7 14.7L15.8 17.8L17.5 7.5Z" fill="#FFFFFF"/>
+                      </svg>
+                      <!-- Twitter (X) -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'twitter'" class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                      </svg>
+                      <!-- Netflix -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'netflix'" class="w-4 h-4" viewBox="0 0 24 24" fill="#E50914">
+                        <path d="M5.398 0v24c1.393-.16 2.766-.37 4.119-.63V0H5.398zm9.084 0v19.89c1.373-.34 2.726-.74 4.12-1.19V0h-4.12zm-4.75 3.3v17.48c1.353-.29 2.716-.62 4.09-.98V.91L9.732 3.3z"/>
+                      </svg>
+                      <!-- Apple -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'apple'" class="w-4 h-4 text-slate-200" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.88c.63-.77 1.06-1.84.94-2.88-.91.04-2.02.61-2.67 1.38-.58.67-1.09 1.76-.95 2.8 1.02.08 2.05-.53 2.68-1.3"/>
+                      </svg>
+                      <!-- Microsoft -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'microsoft'" class="w-4 h-4" viewBox="0 0 24 24">
+                        <path fill="#F25022" d="M1 1h10v10H1z"/>
+                        <path fill="#7FBA00" d="M13 1h10v10H13z"/>
+                        <path fill="#00A4EF" d="M1 13h10v10H1z"/>
+                        <path fill="#FFB900" d="M13 13h10v10H13z"/>
+                      </svg>
+                      <!-- Spotify -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'spotify'" class="w-4 h-4" viewBox="0 0 24 24" fill="#1DB954">
+                        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                      </svg>
+                      <!-- Steam -->
+                      <svg v-else-if="getGroupLogoType(grp.name) === 'steam'" class="w-4 h-4 text-sky-400" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.005.105.005.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 14.819C1.905 20.074 6.702 24 12 24c6.627 0 12-5.373 12-12S18.627 0 11.979 0"/>
+                      </svg>
+                      <!-- Direct / Proxy / Other Defaults -->
+                      <span v-else class="text-base">{{ getGroupIcon(grp.name) }}</span>
+                    </div>
+
                     <div>
                       <div class="text-xs font-bold text-white flex items-center gap-1.5">
                         <span>{{ grp.name }}</span>
+                        <span v-if="grp.is_custom" class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-950 text-purple-300 border border-purple-500/40">
+                          自定义
+                        </span>
                         <span class="text-[10px] font-mono px-2 py-0.2 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40">
                           {{ grp.type === 'select' ? '手动选择' : (grp.type === 'urltest' ? '自动优选' : grp.type) }}
                         </span>
@@ -385,15 +538,21 @@
                       </div>
                     </div>
                   </div>
-                  <span class="text-[11px] font-mono text-slate-400">
-                    {{ (grp.proxies?.length || 0) }} 个候选
-                  </span>
+
+                  <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-mono text-slate-400">
+                      {{ (grp.proxies?.length || 0) }} 个候选
+                    </span>
+                    <button v-if="grp.is_custom" @click="deleteCustomGroup(grp.name)" title="删除此业务分流组" class="text-slate-500 hover:text-rose-400 text-xs px-1.5 py-0.5 rounded bg-slate-800/80 transition">
+                      ✕
+                    </button>
+                  </div>
                 </div>
 
                 <!-- Fast Filter Tags -->
                 <div class="flex items-center gap-1.5 overflow-x-auto text-[10px] font-mono py-0.5">
-                  <span class="text-slate-500 shrink-0">筛选:</span>
-                  <button v-for="tag in ['全部', '香港', '日本', '新加坡', '美国', '直连']" :key="tag"
+                  <span class="text-slate-500 shrink-0">快捷筛选:</span>
+                  <button v-for="tag in ['全部', '香港', '台湾', '新加坡', '日本', '美国', '直连']" :key="tag"
                     @click="setGroupFilter(grp.name, tag === '全部' ? '' : tag)"
                     :class="[
                       'px-2 py-0.5 rounded-lg transition shrink-0',
@@ -405,7 +564,7 @@
                   </button>
                 </div>
 
-                <!-- Candidate Nodes Matrix -->
+                <!-- Candidate Nodes & Regional Strategy Groups -->
                 <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pt-1 pr-1">
                   <button v-for="nodeName in getFilteredGroupProxies(grp)" :key="nodeName"
                     @click="selectGroupNode(grp.name, nodeName)"
@@ -416,7 +575,7 @@
                         : 'bg-slate-950/80 text-slate-300 hover:text-white border-slate-800 hover:border-slate-700'
                     ]">
                     <span :class="['w-2 h-2 rounded-full shrink-0', getNodeDotColor(nodeName)]"></span>
-                    <span class="truncate max-w-[140px]">{{ nodeName }}</span>
+                    <span class="truncate max-w-[150px]">{{ nodeName }}</span>
                     <span v-if="getNodeLatency(nodeName)" class="text-[9px] opacity-75 font-semibold">
                       {{ getNodeLatency(nodeName) }}ms
                     </span>
@@ -425,6 +584,77 @@
               </div>
             </div>
           </section>
+
+          <!-- ════════════════════════════════════════════════════════════════ -->
+          <!-- Modal: 手动添加业务分流组 (Add Custom Routing Group Modal)         -->
+          <!-- ════════════════════════════════════════════════════════════════ -->
+          <div v-if="showAddGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in">
+            <div class="w-full max-w-md rounded-3xl bg-[#00172e] border border-cyan-500/40 shadow-2xl p-6 space-y-4 text-slate-200">
+              <div class="flex items-center justify-between border-b border-sky-900/40 pb-3">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">➕</span>
+                  <h3 class="text-base font-bold text-white">手动添加业务分流策略组</h3>
+                </div>
+                <button @click="showAddGroupModal = false" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+              </div>
+
+              <div class="space-y-3 text-xs">
+                <div>
+                  <label class="block text-slate-400 font-mono mb-1">业务分流名称 (例: 🎵 Spotify 音乐 / 🎮 Steam 游戏)</label>
+                  <input v-model="newGroupForm.name" placeholder="请输入业务名称..."
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono" />
+                </div>
+
+                <div>
+                  <label class="block text-slate-400 font-mono mb-1">官方应用图标标识</label>
+                  <select v-model="newGroupForm.icon"
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono">
+                    <option value="default">🌐 默认应用罗盘</option>
+                    <option value="openai">🤖 OpenAI / ChatGPT / Claude</option>
+                    <option value="youtube">📹 YouTube / 视频流媒体</option>
+                    <option value="google">🍀 Google / 搜索与 Play</option>
+                    <option value="github">👨‍💻 GitHub / Docker 开源生态</option>
+                    <option value="telegram">📲 Telegram / 消息通信</option>
+                    <option value="twitter">🐦 Twitter (X) / 社交媒体</option>
+                    <option value="netflix">🎬 Netflix / Disney+ 流媒体</option>
+                    <option value="apple">🍏 Apple / 苹果专有服务</option>
+                    <option value="microsoft">🪟 Microsoft / 微软 Office</option>
+                    <option value="spotify">🎵 Spotify / 高保真音乐</option>
+                    <option value="steam">🎮 Steam / 游戏主机加速</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-slate-400 font-mono mb-1">默认绑定出站策略</label>
+                  <select v-model="newGroupForm.target"
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono">
+                    <option value="🇭🇰 香港自动">🇭🇰 香港自动 (低延迟推荐)</option>
+                    <option value="🇹🇼 台湾自动">🇹🇼 台湾自动</option>
+                    <option value="🇸🇬 新加坡自动">🇸🇬 新加坡自动</option>
+                    <option value="🇯🇵🇰🇷 日韩自动">🇯🇵🇰🇷 日韩自动</option>
+                    <option value="🇺🇸 美国自动">🇺🇸 美国自动 (AI推荐)</option>
+                    <option value="🌐 其它自动">🌐 其它自动</option>
+                    <option value="DIRECT">DIRECT (国内直连)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-slate-400 font-mono mb-1">绑定匹配规则集/域名 (可选)</label>
+                  <input v-model="newGroupForm.rule_value" placeholder="例: geosite:spotify 或 spotify.com"
+                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono" />
+                </div>
+              </div>
+
+              <div class="flex items-center justify-end gap-3 pt-3 border-t border-sky-900/40">
+                <button @click="showAddGroupModal = false" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+                  取消
+                </button>
+                <button @click="submitAddCustomGroup" class="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-400 to-cyan-500 text-slate-950 text-xs font-bold shadow-md shadow-cyan-500/20 active:scale-95 transition">
+                  保存并生效
+                </button>
+              </div>
+            </div>
+          </div>
 
         </div>
 
@@ -2182,6 +2412,154 @@ async function importBackup(ev) {
   } catch (e) {
     showToast('快照格式无效', true)
   }
+}
+
+// ── Region Clusters & Strategies (6 Regions x 3 Policies) ──
+const regionDefs = [
+  { id: 'HK', name: '香港', flag: '🇭🇰', auto: '🇭🇰 香港自动', fall: '🇭🇰 香港故转', disa: '🇭🇰 香港容灾', regex: /(港|hk|hong kong)/i },
+  { id: 'TW', name: '台湾', flag: '🇹🇼', auto: '🇹🇼 台湾自动', fall: '🇹🇼 台湾故转', disa: '🇹🇼 台湾容灾', regex: /(台|tw|taiwan)/i },
+  { id: 'SG', name: '新加坡', flag: '🇸🇬', auto: '🇸🇬 新加坡自动', fall: '🇸🇬 新加坡故转', disa: '🇸🇬 新加坡容灾', regex: /(新|sg|singapore|狮城)/i },
+  { id: 'JPKR', name: '日韩', flag: '🇯🇵🇰🇷', auto: '🇯🇵🇰🇷 日韩自动', fall: '🇯🇵🇰🇷 日韩故转', disa: '🇯🇵🇰🇷 日韩容灾', regex: /(日|jp|japan|东京|大阪|韩|kr|korea|首尔)/i },
+  { id: 'US', name: '美国', flag: '🇺🇸', auto: '🇺🇸 美国自动', fall: '🇺🇸 美国故转', disa: '🇺🇸 美国容灾', regex: /(美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯)/i },
+  { id: 'OTHERS', name: '其它', flag: '🌐', auto: '🌐 其它自动', fall: '🌐 其它故转', disa: '🌐 其它容灾', regex: null }
+]
+
+const expandedRegion = ref({})
+const regionActivePolicy = ref({})
+
+function toggleRegionExpand(id) {
+  expandedRegion.value[id] = !expandedRegion.value[id]
+}
+
+function getRegionNodes(reg) {
+  const proxies = (ir.value.proxies || []).filter(p => p.type !== 'direct' && p.type !== 'block' && p.type !== 'reject')
+  if (!reg.regex) {
+    return proxies.filter(p => {
+      for (const r of regionDefs) {
+        if (r.regex && r.regex.test(p.name)) return false
+      }
+      return true
+    })
+  }
+  return proxies.filter(p => reg.regex.test(p.name))
+}
+
+function getRegionActiveNode(reg) {
+  const curPolicy = regionActivePolicy.value[reg.id] || 'auto'
+  const groupName = curPolicy === 'auto' ? reg.auto : (curPolicy === 'fall' ? reg.fall : reg.disa)
+  const group = (ir.value.groups || []).find(g => g.name === groupName)
+  if (group?.now) return group.now
+  const nodes = getRegionNodes(reg)
+  return nodes[0]?.name || '自动优选就绪'
+}
+
+function getRegionLatency(reg) {
+  const nodes = getRegionNodes(reg)
+  if (!nodes || nodes.length === 0) return 0
+  let sum = 0, count = 0
+  for (const n of nodes) {
+    if (n.delay && n.delay > 0) {
+      sum += n.delay
+      count++
+    }
+  }
+  return count > 0 ? Math.round(sum / count) : 32
+}
+
+async function selectRegionPolicy(reg, policy) {
+  regionActivePolicy.value[reg.id] = policy
+  const groupName = policy === 'auto' ? reg.auto : (policy === 'fall' ? reg.fall : reg.disa)
+  activeSelectedNode.value = groupName
+  showToast(`已将【${reg.flag} ${reg.name}】策略设为: ${policy === 'auto' ? '⚡ 自动优选' : (policy === 'fall' ? '🔄 故障转移' : '🛡️ 容灾负载')}`)
+  
+  // 热切对应的主选出口
+  await selectGroupNode('🚀 节点选择', groupName)
+}
+
+// ── Business Routing Groups (Filtered & Add Modal) ──
+const showAddGroupModal = ref(false)
+const newGroupForm = ref({
+  name: '',
+  icon: 'default',
+  target: '🇭🇰 香港自动',
+  rule_value: ''
+})
+
+const businessGroups = computed(() => {
+  const groups = ir.value.groups || []
+  return groups.filter(g => {
+    // 过滤掉纯 18 个地区内部策略组，只展现业务分流组
+    const isRegionGroup = regionDefs.some(r => r.auto === g.name || r.fall === g.name || r.disa === g.name)
+    return !isRegionGroup
+  })
+})
+
+async function submitAddCustomGroup() {
+  const name = newGroupForm.value.name.trim()
+  if (!name) {
+    showToast('请输入业务分流名称', true)
+    return
+  }
+  try {
+    const res = await fetch('/api/v1/config/routing/group/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name,
+        icon: newGroupForm.value.icon,
+        now: newGroupForm.value.target,
+        rule_value: newGroupForm.value.rule_value
+      })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast(`🎉 业务分流组【${name}】已成功添加并生效！`)
+      showAddGroupModal.value = false
+      newGroupForm.value = { name: '', icon: 'default', target: '🇭🇰 香港自动', rule_value: '' }
+      await fetchIR()
+    } else {
+      showToast(data.error || '添加失败', true)
+    }
+  } catch (e) {
+    showToast('添加业务分流网络异常', true)
+  }
+}
+
+async function deleteCustomGroup(groupName) {
+  if (!confirm(`确定要移除业务分流策略组【${groupName}】吗？`)) return
+  try {
+    const res = await fetch('/api/v1/config/routing/group/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: groupName })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast(`已成功移除分流组: ${groupName}`)
+      await fetchIR()
+    }
+  } catch (e) {
+    showToast('移除分流组异常', true)
+  }
+}
+
+function getGroupLogoType(name) {
+  const n = (name || '').toLowerCase()
+  if (n.includes('openai') || n.includes('ai') || n.includes('gpt') || n.includes('claude')) return 'openai'
+  if (n.includes('youtube')) return 'youtube'
+  if (n.includes('google')) return 'google'
+  if (n.includes('github') || n.includes('docker')) return 'github'
+  if (n.includes('telegram')) return 'telegram'
+  if (n.includes('twitter') || n.includes('(x)') || n === 'x') return 'twitter'
+  if (n.includes('netflix') || n.includes('disney') || n.includes('流媒体')) return 'netflix'
+  if (n.includes('apple')) return 'apple'
+  if (n.includes('microsoft') || n.includes('windows') || n.includes('office')) return 'microsoft'
+  if (n.includes('spotify')) return 'spotify'
+  if (n.includes('steam')) return 'steam'
+  if (n.includes('直连')) return 'direct'
+  if (n.includes('漏网') || n.includes('fish')) return 'fish'
+  if (n.includes('国外') || n.includes('proxy') || n.includes('节点选择')) return 'proxy'
+  return 'default'
 }
 
 // ── Strategy Group & Traffic Routing Helpers ──

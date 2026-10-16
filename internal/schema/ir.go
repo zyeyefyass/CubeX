@@ -117,6 +117,11 @@ type StrategyGroup struct {
 	URL       string   `json:"url,omitempty" yaml:"url,omitempty"`
 	Interval  int      `json:"interval,omitempty" yaml:"interval,omitempty"`
 	Tolerance int      `json:"tolerance,omitempty" yaml:"tolerance,omitempty"`
+	Icon      string   `json:"icon,omitempty" yaml:"icon,omitempty"`           // openai, youtube, google, github, telegram, twitter, netflix, apple, microsoft, default
+	Category  string   `json:"category,omitempty" yaml:"category,omitempty"`   // business / region
+	Region    string   `json:"region,omitempty" yaml:"region,omitempty"`       // HK, TW, SG, JPKR, US, OTHERS
+	Policy    string   `json:"policy,omitempty" yaml:"policy,omitempty"`       // auto, fallback, disaster
+	IsCustom  bool     `json:"is_custom,omitempty" yaml:"is_custom,omitempty"` // whether user manually added this
 }
 
 type Rule struct {
@@ -146,7 +151,7 @@ type Profile struct {
 
 // NewDefaultIR creates an optimized default CubeX Universal IR configuration.
 func NewDefaultIR() *ConfigIR {
-	return &ConfigIR{
+	res := &ConfigIR{
 		Meta: MetaConfig{
 			Version:       "1.0.0",
 			ActiveEngine:  EngineSingbox,
@@ -281,4 +286,6 @@ func NewDefaultIR() *ConfigIR {
 		},
 		UpdatedAt: time.Now(),
 	}
+	SyncAllStrategyGroups(res)
+	return res
 }

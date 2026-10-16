@@ -159,8 +159,10 @@ func main() {
 	mux.HandleFunc("/api/v1/config/subscriptions/toggle", srv.handleSubToggle)
 	mux.HandleFunc("/api/v1/config/subscriptions/rename", srv.handleSubRename)
 	mux.HandleFunc("/api/v1/config/subscriptions/node/add", srv.handleNodeAdd)
-	mux.HandleFunc("/api/v1/config/subscriptions/node/delete", srv.handleNodeDelete)
 	mux.HandleFunc("/api/v1/engine/group/select", srv.handleGroupSelect)
+	mux.HandleFunc("/api/v1/routing/regions", srv.handleRoutingRegions)
+	mux.HandleFunc("/api/v1/config/routing/group/add", srv.handleCustomGroupAdd)
+	mux.HandleFunc("/api/v1/config/routing/group/delete", srv.handleCustomGroupDelete)
 	mux.HandleFunc("/api/v1/ros/script", srv.handleRosScript)
 
 	// 3. WireGuard Mobile Penetration & QR
@@ -349,7 +351,9 @@ func (s *Server) handleSystemPanic(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleConfigIR(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
-		sendJSON(w, s.engMgr.GetIR())
+		ir := s.engMgr.GetIR()
+		schema.SyncAllStrategyGroups(ir)
+		sendJSON(w, ir)
 		return
 	}
 	if r.Method == http.MethodPut || r.Method == http.MethodPost {
@@ -580,13 +584,7 @@ func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
 		nodeNames = append(nodeNames, n.Name)
 	}
 
-	// Update strategy groups with newly imported nodes
-	for i := range ir.Groups {
-		if ir.Groups[i].Type == "urltest" || ir.Groups[i].Name == "🚀 节点选择" || ir.Groups[i].Name == "⚡ 自动优选" {
-			ir.Groups[i].Proxies = append(ir.Groups[i].Proxies, nodeNames...)
-		}
-	}
-
+	schema.SyncAllStrategyGroups(ir)
 	s.engMgr.UpdateIR(ir)
 
 	// Re-trigger compilation for active engine
@@ -876,6 +874,123 @@ func (s *Server) handleGroupSelect(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *Server) handleRoutingRegions(w http.ResponseWriter, r *http.Request) {
+	ir := s.engMgr.GetIR()
+	stats := schema.ExtractRegionStats(ir)
+	sendJSON(w, map[string]any{
+		"ok":      true,
+		"regions": stats,
+	})
+}
+
+func (s *Server) handleCustomGroupAdd(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Name      string   `json:"name"`
+		Icon      string   `json:"icon"`
+		Type      string   `json:"type"`
+		Proxies   []string `json:"proxies"`
+		Now       string   `json:"now"`
+		RuleType  string   `json:"rule_type"`
+		RuleValue string   `json:"rule_value"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		sendJSON(w, map[string]any{"ok": false, "error": "业务分流名称不能为空"})
+		return
+	}
+	ir := s.engMgr.GetIR()
+	for _, g := range ir.Groups {
+		if g.Name == req.Name {
+			sendJSON(w, map[string]any{"ok": false, "error": "该策略组名称已存在"})
+			return
+		}
+	}
+
+	if req.Type == "" {
+		req.Type = "select"
+	}
+	if req.Icon == "" {
+		req.Icon = "default"
+	}
+	if len(req.Proxies) == 0 {
+		req.Proxies = []string{"🇭🇰 香港自动", "🇹🇼 台湾自动", "🇸🇬 新加坡自动", "🇯🇵🇰🇷 日韩自动", "🇺🇸 美国自动", "🌐 其它自动", "DIRECT"}
+	}
+	if req.Now == "" {
+		req.Now = req.Proxies[0]
+	}
+
+	newGroup := schema.StrategyGroup{
+		Name:     req.Name,
+		Type:     req.Type,
+		Proxies:  req.Proxies,
+		Now:      req.Now,
+		Icon:     req.Icon,
+		Category: "business",
+		IsCustom: true,
+	}
+	ir.Groups = append(ir.Groups, newGroup)
+
+	if req.RuleValue != "" {
+		rType := req.RuleType
+		if rType == "" {
+			rType = "geosite"
+		}
+		ir.Rules = append([]schema.Rule{
+			{
+				Type:   rType,
+				Value:  req.RuleValue,
+				Target: req.Name,
+			},
+		}, ir.Rules...)
+	}
+
+	s.engMgr.UpdateIR(ir)
+	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+	sendJSON(w, map[string]any{"ok": true, "group": newGroup})
+}
+
+func (s *Server) handleCustomGroupDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	ir := s.engMgr.GetIR()
+	newGroups := make([]schema.StrategyGroup, 0)
+	for _, g := range ir.Groups {
+		if g.Name != req.Name {
+			newGroups = append(newGroups, g)
+		}
+	}
+	ir.Groups = newGroups
+
+	newRules := make([]schema.Rule, 0)
+	for _, r := range ir.Rules {
+		if r.Target != req.Name {
+			newRules = append(newRules, r)
+		}
+	}
+	ir.Rules = newRules
+
+	s.engMgr.UpdateIR(ir)
+	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+	sendJSON(w, map[string]any{"ok": true, "deleted_group": req.Name})
+}
+
 func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -925,6 +1040,7 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ir.Proxies = updatedProxies
+	schema.SyncAllStrategyGroups(ir)
 	s.engMgr.UpdateIR(ir)
 
 	// Re-trigger compilation
