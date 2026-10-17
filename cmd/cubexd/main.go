@@ -1582,12 +1582,26 @@ func (s *Server) handleUpgradePanel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleHostUpgradeCheck(w http.ResponseWriter, r *http.Request) {
-	out, err := s.hostMgr.CheckHostUpgrade()
-	if err != nil {
-		sendJSON(w, map[string]any{"error": err.Error()})
+	if s.rosMgr.IsConnected() {
+		out, err := s.rosMgr.CheckROSFirmwareUpgrade()
+		if err != nil {
+			sendJSON(w, map[string]any{"error": "RouterOS 固件检查失败: " + err.Error()})
+			return
+		}
+		sendJSON(w, map[string]string{"output": out})
 		return
 	}
-	sendJSON(w, map[string]string{"output": out})
+	cfg := s.hostMgr.GetConfig()
+	if cfg.Enabled && cfg.Host != "" {
+		out, err := s.hostMgr.CheckHostUpgrade()
+		if err != nil {
+			sendJSON(w, map[string]any{"error": err.Error()})
+			return
+		}
+		sendJSON(w, map[string]string{"output": out})
+		return
+	}
+	sendJSON(w, map[string]any{"error": "未检测到已连接的 RouterOS 或宿主机 SSH，请先在「系统升级与联动」配置联动凭证"})
 }
 
 func (s *Server) handleHostUpgradeExecute(w http.ResponseWriter, r *http.Request) {
@@ -1595,12 +1609,26 @@ func (s *Server) handleHostUpgradeExecute(w http.ResponseWriter, r *http.Request
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	out, err := s.hostMgr.ExecuteHostUpgrade()
-	if err != nil {
-		sendJSON(w, map[string]any{"error": err.Error()})
+	if s.rosMgr.IsConnected() {
+		err := s.rosMgr.TriggerROSFirmwareUpgrade()
+		if err != nil {
+			sendJSON(w, map[string]any{"error": "RouterOS 固件升级触发失败: " + err.Error()})
+			return
+		}
+		sendJSON(w, map[string]string{"output": "🚀 RouterOS 官方固件下载与安装升级指令已成功下发！RouterOS 将在下载完成后自动安全重启并应用新版系统。"})
 		return
 	}
-	sendJSON(w, map[string]string{"output": out})
+	cfg := s.hostMgr.GetConfig()
+	if cfg.Enabled && cfg.Host != "" {
+		out, err := s.hostMgr.ExecuteHostUpgrade()
+		if err != nil {
+			sendJSON(w, map[string]any{"error": err.Error()})
+			return
+		}
+		sendJSON(w, map[string]string{"output": out})
+		return
+	}
+	sendJSON(w, map[string]any{"error": "未检测到已连接的 RouterOS 或宿主机 SSH"})
 }
 
 // ──────────────────────────────────────────────

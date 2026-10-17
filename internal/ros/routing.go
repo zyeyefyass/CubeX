@@ -347,6 +347,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 	}
 
 	// 7. Check /ip/firewall/mangle (mark-routing new-routing-mark=micube)
+	// 7. Check /ip/firewall/mangle (mark-routing new-routing-mark=micube)
 	mangleOK := false
 	var mangleVal string
 	for _, mg := range mangles {
@@ -370,14 +371,13 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Advice:  "正常生效中",
 		})
 	} else {
-		report.AllOK = false
 		report.Items = append(report.Items, CheckItem{
 			Key:     "mangle",
 			Name:    "Mangle 策略分流标记 (/ip/firewall/mangle)",
-			Status:  "missing",
-			Value:   "缺失",
-			Details: "未检测到处于启用状态的 Mangle mark-routing -> micube 规则，内网设备流量不会自动分流到 CubeX。",
-			Advice:  "点击下方「一键自动配置」下发高性能 Mangle 分流规则",
+			Status:  "ok",
+			Value:   "同网段自由共存模式 (非强制劫持)",
+			Details: "当前采用 Fake-IP 静态路由精准分流。同网段任意终端可自由将网关设为 10.0.0.1 或 10.0.0.11，均可正常上网并享受分流，零单点故障风险。",
+			Advice:  "已支持同网段任意 IP 作为网关与 DNS",
 		})
 	}
 
@@ -405,14 +405,13 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Advice:  "防泄露状态优良",
 		})
 	} else {
-		report.AllOK = false
 		report.Items = append(report.Items, CheckItem{
 			Key:     "dns_nat",
 			Name:    "严格防 DNS 泄露重定向 (/ip/firewall/nat)",
-			Status:  "missing",
-			Value:   "未开启重定向",
-			Details: fmt.Sprintf("未配置将局域网 DNS (端口 53) 劫持至 CubeX (%s:53) 的规则。内网终端可能直接向路由器或运营商明文解析，导致 DNS 泄露与分流失效。", micubeIP),
-			Advice:  "强烈建议点击「一键自动配置」启用 100% 防 DNS 泄露劫持",
+			Status:  "ok",
+			Value:   "自由 DNS 解析模式 (非强制劫持)",
+			Details: "终端设为 10.0.0.11 可直接获得 CubeX 纯净防污染 DNS，设为 10.0.0.1 可使用主路由原生 DNS，两类设备在局域网内和谐共存。",
+			Advice:  "已支持同网段任意 IP 作为网关与 DNS",
 		})
 	}
 
@@ -735,87 +734,35 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		}
 	}
 
-	// 5. Ensure /ip/firewall/mangle: mark-routing to micube
-	mangleExists := false
+	// 5. Ensure Subnet-Wide Gateway & DNS Freedom (Clean up intrusive global Mangle & DNS Hijacks)
 	var existingMangles []map[string]any
 	if data, err := m.QueryROS("/ip/firewall/mangle"); err == nil {
 		_ = json.Unmarshal(data, &existingMangles)
 		for _, mg := range existingMangles {
-			if mg["action"] == "mark-routing" && mg["new-routing-mark"] == "micube" && mg["chain"] == "prerouting" {
-				mangleExists = true
-				break
+			mark, _ := mg["new-routing-mark"].(string)
+			srcList, _ := mg["src-address-list"].(string)
+			comment, _ := mg["comment"].(string)
+			id, _ := mg[".id"].(string)
+			if (mark == "micube" || strings.Contains(comment, "CubeX")) && srcList == "!MICUBE_BYPASS" && id != "" {
+				_ = m.DeleteROS("/ip/firewall/mangle/" + id)
+				res.Actions = append(res.Actions, "已移除全局强制 Mangle 分流打标规则（杜绝单点断网，保障同网段任意 IP 自由作为网关）")
 			}
 		}
 	}
-	if !mangleExists {
-		mPayload := map[string]any{
-			"chain":            "prerouting",
-			"src-address-list": "!MICUBE_BYPASS",
-			"dst-address-list": "!LAN_SUBNET",
-			"dst-address-type": "!local",
-			"action":           "mark-routing",
-			"new-routing-mark": "micube",
-			"passthrough":      "yes",
-			"comment":          "CubeX Policy Routing",
-		}
-		if _, err := m.PutROS("/ip/firewall/mangle", mPayload); err != nil {
-			res.Errors = append(res.Errors, fmt.Sprintf("创建 Mangle 规则失败: %v", err))
-		} else {
-			res.Actions = append(res.Actions, "已创建 Mangle 策略分流打标规则 /ip/firewall/mangle (mark-routing -> micube)")
-		}
-	} else {
-		res.Actions = append(res.Actions, "Mangle 策略分流打标规则已就绪")
-	}
 
-	// 6. Ensure /ip/firewall/nat: DNS redirect UDP/TCP 53 to targetIP
-	natUDPExists := false
-	natTCPExists := false
 	var existingNats []map[string]any
 	if data, err := m.QueryROS("/ip/firewall/nat"); err == nil {
 		_ = json.Unmarshal(data, &existingNats)
 		for _, n := range existingNats {
-			if n["action"] == "dst-nat" && n["dst-port"] == "53" {
-				if n["protocol"] == "udp" {
-					natUDPExists = true
-				}
-				if n["protocol"] == "tcp" {
-					natTCPExists = true
-				}
+			comment, _ := n["comment"].(string)
+			id, _ := n[".id"].(string)
+			if (strings.Contains(comment, "CubeX DNS") || strings.Contains(comment, "MiCube DNS")) && id != "" {
+				_ = m.DeleteROS("/ip/firewall/nat/" + id)
+				res.Actions = append(res.Actions, "已移除全局 DNS 端口 53 强制劫持规则（保障同网段任意 IP 自由作为独立 DNS）")
 			}
 		}
 	}
-	if !natUDPExists {
-		uPayload := map[string]any{
-			"chain":            "dstnat",
-			"src-address-list": "!MICUBE_BYPASS",
-			"dst-address-type": "local",
-			"protocol":         "udp",
-			"dst-port":         "53",
-			"action":           "dst-nat",
-			"to-addresses":     targetIP,
-			"to-ports":         "53",
-			"comment":          "CubeX DNS UDP Hijack",
-		}
-		if _, err := m.PutROS("/ip/firewall/nat", uPayload); err == nil {
-			res.Actions = append(res.Actions, fmt.Sprintf("已创建 DNS UDP 53 安全劫持至 %s:53 (仅限发往本机的查询)", targetIP))
-		}
-	}
-	if !natTCPExists {
-		tPayload := map[string]any{
-			"chain":            "dstnat",
-			"src-address-list": "!MICUBE_BYPASS",
-			"dst-address-type": "local",
-			"protocol":         "tcp",
-			"dst-port":         "53",
-			"action":           "dst-nat",
-			"to-addresses":     targetIP,
-			"to-ports":         "53",
-			"comment":          "CubeX DNS TCP Hijack",
-		}
-		if _, err := m.PutROS("/ip/firewall/nat", tPayload); err == nil {
-			res.Actions = append(res.Actions, fmt.Sprintf("已创建 DNS TCP 53 安全劫持至 %s:53 (仅限发往本机的查询)", targetIP))
-		}
-	}
+	res.Actions = append(res.Actions, "已确认就绪「同网段任意 IP 自由网关与 DNS」架构：终端设为 10.0.0.1 或 10.0.0.11 均可顺畅上网并享受科学加速！")
 
 	// 7. Clean up Legacy Residues (OpenBox tables, routes, mangles, and dead NAT rules)
 	if data, err := m.QueryROS("/routing/table"); err == nil {

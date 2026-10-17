@@ -115,15 +115,8 @@ func TestSingboxDNSLeakPrevention(t *testing.T) {
 		t.Fatalf("dns section missing in sing-box config")
 	}
 
-	// 1. Verify Fake-IP range and enabled
-	fakeip, ok := dnsSection["fakeip"].(map[string]any)
-	if !ok || fakeip["enabled"] != true || fakeip["inet4_range"] != "198.18.0.0/15" {
-		t.Errorf("Fake-IP not properly configured in sing-box: %v", fakeip)
-	}
-
-	// 2. Verify dns-block for Type 65 / SVCB
+	// 1. Verify Fake-IP server in servers list (sing-box 1.14+ compliant)
 	servers, _ := dnsSection["servers"].([]any)
-	hasBlockServer := false
 	hasDirectServer := false
 	hasFakeIPServer := false
 	hasRemoteServer := false
@@ -131,23 +124,20 @@ func TestSingboxDNSLeakPrevention(t *testing.T) {
 	for _, s := range servers {
 		sMap, _ := s.(map[string]any)
 		tag := sMap["tag"]
-		if tag == "dns-block" && sMap["address"] == "rcode://refused" {
-			hasBlockServer = true
-		}
-		if tag == "dns-direct" && sMap["detour"] == "direct" {
+		if tag == "dns-direct" {
 			hasDirectServer = true
 		}
-		if tag == "dns-fakeip" && sMap["address"] == "fakeip" {
+		if tag == "dns-fakeip" && sMap["type"] == "fakeip" {
 			hasFakeIPServer = true
+			if sMap["inet4_range"] != "198.18.0.0/15" {
+				t.Errorf("Fake-IP inet4_range expected 198.18.0.0/15, got: %v", sMap["inet4_range"])
+			}
 		}
 		if tag == "dns-remote" {
 			hasRemoteServer = true
 		}
 	}
 
-	if !hasBlockServer {
-		t.Errorf("sing-box missing dns-block (rcode://refused) server for Apple Type 65 leak prevention")
-	}
 	if !hasDirectServer || !hasFakeIPServer || !hasRemoteServer {
 		t.Errorf("sing-box missing core DNS servers (direct, fakeip, remote)")
 	}
@@ -167,7 +157,7 @@ func TestSingboxDNSLeakPrevention(t *testing.T) {
 		rMap, _ := r.(map[string]any)
 		qTypes, _ := rMap["query_type"].([]any)
 		for _, qt := range qTypes {
-			if qt == "HTTPS" && rMap["server"] == "dns-block" {
+			if qt == "HTTPS" && rMap["action"] == "reject" {
 				hasType65Rule = true
 			}
 			if qt == "A" && rMap["server"] == "dns-fakeip" {

@@ -41,4 +41,8 @@ LISTEN_PORT="${CUBEX_PORT:-2026}"
 echo "🌟 [CubeX] Listening on 0.0.0.0:${LISTEN_PORT} (Dual-Engine: Mihomo + sing-box ready)"
 
 cd /app
-exec /app/bin/cubexd -dir /app -listen ":${LISTEN_PORT}" "$@"
+while true; do
+    /app/bin/cubexd -dir /app -listen ":${LISTEN_PORT}" "$@" || true
+    echo "🔄 [CubeX] Daemon exited. Respawning in 1 second..."
+    sleep 1
+done

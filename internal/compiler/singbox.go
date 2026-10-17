@@ -3,10 +3,47 @@ package compiler
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/zyeyefyass/CubeX/internal/schema"
 )
+
+func makeSingboxDNSServer(tag, rawAddr, detour string) map[string]any {
+	serverMap := map[string]any{
+		"tag": tag,
+	}
+	if detour != "" {
+		serverMap["detour"] = detour
+	}
+	if strings.HasPrefix(rawAddr, "https://") {
+		serverMap["type"] = "https"
+		u, err := url.Parse(rawAddr)
+		if err == nil {
+			serverMap["server"] = u.Hostname()
+			if u.Port() != "" {
+				p, _ := strconv.Atoi(u.Port())
+				serverMap["server_port"] = p
+			}
+			if u.Path != "" {
+				serverMap["path"] = u.Path
+			}
+		} else {
+			serverMap["server"] = strings.TrimPrefix(rawAddr, "https://")
+		}
+	} else if strings.HasPrefix(rawAddr, "tls://") {
+		serverMap["type"] = "tls"
+		serverMap["server"] = strings.TrimPrefix(rawAddr, "tls://")
+	} else if strings.HasPrefix(rawAddr, "tcp://") {
+		serverMap["type"] = "tcp"
+		serverMap["server"] = strings.TrimPrefix(rawAddr, "tcp://")
+	} else {
+		serverMap["type"] = "udp"
+		serverMap["server"] = rawAddr
+	}
+	return serverMap
+}
 
 // BuildSingBox transcompiles CubeX Universal IR to sing-box v1.14.3+ config.json
 func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
@@ -35,39 +72,23 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		remoteDNSAddr = dns.RemoteDNS[0]
 	}
 
-	directServer := map[string]any{
-		"tag":     "dns-direct",
-		"address": directDNSAddr,
-		"detour":  "direct",
-	}
-
-	remoteServer := map[string]any{
-		"tag":     "dns-remote",
-		"address": remoteDNSAddr,
-		"detour":  "direct",
-	}
+	directServer := makeSingboxDNSServer("dns-direct", directDNSAddr, "")
+	remoteServer := makeSingboxDNSServer("dns-remote", remoteDNSAddr, "")
 
 	cfg["dns"] = map[string]any{
-		"fakeip": map[string]any{
-			"enabled":     true,
-			"inet4_range": "198.18.0.0/15",
-		},
 		"servers": []map[string]any{
-			{
-				"tag":     "dns-block",
-				"address": "rcode://refused",
-			},
 			directServer,
 			{
-				"tag":     "dns-fakeip",
-				"address": "fakeip",
+				"type":        "fakeip",
+				"tag":         "dns-fakeip",
+				"inet4_range": "198.18.0.0/15",
 			},
 			remoteServer,
 		},
 		"rules": []map[string]any{
 			{
-				"query_type": []string{"HTTPS", "TYPE65", "SVCB"},
-				"server":     "dns-block",
+				"query_type": []string{"HTTPS", "SVCB"},
+				"action":     "reject",
 			},
 			{
 				"clash_mode": "direct",
@@ -91,7 +112,11 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"strategy": "prefer_ipv4",
 	}
 
-	// 2. Inbounds Section (sing-box 1.14+ compliant)
+	dnsPort := net.DNSPort
+	if dnsPort == 0 {
+		dnsPort = 53
+	}
+
 	inbounds := []map[string]any{
 		{
 			"type":           "tun",
@@ -100,8 +125,14 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			"address":        []string{net.TunIPv4},
 			"mtu":            net.TunMTU,
 			"auto_route":     true,
-			"strict_route":   true,
+			"strict_route":   false,
 			"stack":          net.TunStack,
+		},
+		{
+			"type":        "direct",
+			"tag":         "dns-in",
+			"listen":      "0.0.0.0",
+			"listen_port": dnsPort,
 		},
 		{
 			"type":        "tproxy",
@@ -313,6 +344,10 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	// A. Global Sniff & DNS Hijack (sing-box 1.14+ action format)
 	routeRules = append(routeRules, map[string]any{
 		"action": "sniff",
+	})
+	routeRules = append(routeRules, map[string]any{
+		"inbound": []string{"dns-in"},
+		"action":  "hijack-dns",
 	})
 	routeRules = append(routeRules, map[string]any{
 		"protocol": "dns",

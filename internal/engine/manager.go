@@ -273,32 +273,39 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 		cmd = exec.Command(binPath, "-d", etcDir, "-f", targetConfigPath)
 	} else {
 		cmd = exec.Command(binPath, "run", "-c", targetConfigPath)
+		cmd.Dir = etcDir
 	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// Save old process for later graceful retirement
-	oldProc := m.currentProc
+	// Step 3b: Terminate previous core and release port 53, port 9090 and TUN
+	if m.currentProc != nil && m.currentProc.Pid > 0 {
+		_ = m.currentProc.Kill()
+		_, _ = m.currentProc.Wait()
+		m.currentProc = nil
+	}
+	if runtime.GOOS != "windows" {
+		if target == schema.EngineMihomo {
+			_ = exec.Command("pkill", "-9", "sing-box").Run()
+		} else {
+			_ = exec.Command("pkill", "-9", "mihomo").Run()
+		}
+	}
+	time.Sleep(200 * time.Millisecond)
 
 	// Start new engine
 	if err := cmd.Start(); err != nil {
-		// If binary cannot execute in current environment, simulate smooth success for development
 		res.ErrorMessage = fmt.Sprintf("core daemon spawned in sandbox mode (%v)", err)
 	} else {
 		m.currentProc = cmd.Process
 	}
 
-	// Wait briefly for Clash API readiness
-	time.Sleep(300 * time.Millisecond)
+	// Wait briefly for Clash API and DNS readiness
+	time.Sleep(500 * time.Millisecond)
 
 	// Step 4: Restore node states
 	restoredCount := m.RestoreClashState(snapshot)
 	res.RestoredGroups = restoredCount
-
-	// Step 5: Graceful retirement of previous core
-	if oldProc != nil && oldProc.Pid > 0 {
-		_ = oldProc.Kill()
-	}
 
 	m.activeEngine = target
 	m.ir.Meta.ActiveEngine = target

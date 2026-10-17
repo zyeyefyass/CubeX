@@ -2,6 +2,7 @@ package ros
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"crypto/tls"
@@ -106,7 +107,7 @@ func (m *Manager) GetOverview() map[string]any {
 // Panel Self-Upgrade
 // ──────────────────────────────────────────────
 
-// UpgradePanel downloads the latest micube-server binary and restarts the panel process.
+// UpgradePanel downloads the latest cubexd binary and restarts the panel process.
 func (m *Manager) UpgradePanel(restartFn func() error) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -117,43 +118,74 @@ func (m *Manager) UpgradePanel(restartFn func() error) (string, error) {
 	}
 
 	currTag := m.getLocalPanelVersion()
-	if latestTag == currTag && latestTag != "" {
+	normLatest := strings.TrimPrefix(strings.ToLower(latestTag), "v")
+	normCurr := strings.TrimPrefix(strings.ToLower(currTag), "v")
+	if normLatest == normCurr && latestTag != "" {
 		return currTag, fmt.Errorf("panel is already at the latest version %s", currTag)
 	}
 
-	log.Printf("[Upgrade] Starting MiCube panel upgrade: %s -> %s", currTag, latestTag)
+	log.Printf("[Upgrade] Starting CubeX panel upgrade: %s -> %s", currTag, latestTag)
 
 	arch := runtime.GOARCH
-	assetName := fmt.Sprintf("micube-server-linux-%s", arch)
-	if runtime.GOOS == "windows" {
-		assetName = fmt.Sprintf("micube-server-windows-%s.exe", arch)
+	destPath, err := os.Executable()
+	if err != nil || destPath == "" {
+		serverName := "cubexd"
+		if runtime.GOOS == "windows" {
+			serverName = "cubexd.exe"
+		}
+		destPath = filepath.Join(m.binDir, serverName)
 	}
 
-	downloadURL := fmt.Sprintf(
-		"https://github.com/zyeyefyass/micube/releases/download/%s/%s",
+	tmpPath := destPath + ".new"
+	backupPath := destPath + ".bak"
+
+	// Try candidate 1: direct binary asset
+	assetName := fmt.Sprintf("cubexd-linux-%s", arch)
+	if runtime.GOOS == "windows" {
+		assetName = "cubexd.exe"
+	}
+	binURL := fmt.Sprintf(
+		"https://github.com/zyeyefyass/CubeX/releases/download/%s/%s",
 		latestTag, assetName,
 	)
 	if m.URLOptimizer != nil {
-		downloadURL = m.URLOptimizer(downloadURL)
+		binURL = m.URLOptimizer(binURL)
 	}
 
-	serverName := "micube-server"
-	if runtime.GOOS == "windows" {
-		serverName = "micube-server.exe"
+	downloadErr := m.downloadFile(binURL, tmpPath)
+	if downloadErr != nil {
+		// Try candidate 2: extract binary from zip release package
+		zipPkgName := fmt.Sprintf("CubeX-%s-linux-%s.zip", latestTag, arch)
+		if runtime.GOOS == "windows" {
+			zipPkgName = fmt.Sprintf("CubeX-%s-windows-%s.zip", latestTag, arch)
+		}
+		zipURL := fmt.Sprintf("https://github.com/zyeyefyass/CubeX/releases/download/%s/%s", latestTag, zipPkgName)
+		if m.URLOptimizer != nil {
+			zipURL = m.URLOptimizer(zipURL)
+		}
+		targetBinName := "cubexd"
+		if runtime.GOOS == "windows" {
+			targetBinName = "cubexd.exe"
+		}
+		downloadErr = m.downloadAndExtractZip(zipURL, targetBinName, tmpPath)
 	}
 
-	tmpPath := filepath.Join(m.binDir, serverName+".new")
-	destPath := filepath.Join(m.binDir, serverName)
-	backupPath := filepath.Join(m.binDir, serverName+".bak")
-
-	// Download binary
-	if err := m.downloadFile(downloadURL, tmpPath); err != nil {
-		return "", fmt.Errorf("download panel binary failed: %w", err)
+	if downloadErr != nil {
+		return "", fmt.Errorf("download panel binary failed: %w", downloadErr)
 	}
 
 	_ = os.Chmod(tmpPath, 0755)
 
+	// Verify new binary by executing quick version test if possible
+	if runtime.GOOS != "windows" {
+		if out, err := exec.Command(tmpPath, "-help").CombinedOutput(); err != nil && len(out) == 0 {
+			_ = os.Remove(tmpPath)
+			return "", fmt.Errorf("downloaded binary verification failed: %w", err)
+		}
+	}
+
 	// Backup current binary
+	_ = os.Remove(backupPath)
 	_ = os.Rename(destPath, backupPath)
 
 	// Move new binary in place
@@ -169,12 +201,12 @@ func (m *Manager) UpgradePanel(restartFn func() error) (string, error) {
 	// If restart function is provided, call it
 	if restartFn != nil {
 		go func() {
-			time.Sleep(1 * time.Second)
+			time.Sleep(2 * time.Second)
 			_ = restartFn()
 		}()
 	}
 
-	log.Printf("[Upgrade] MiCube panel successfully upgraded to %s", latestTag)
+	log.Printf("[Upgrade] CubeX panel successfully upgraded to %s", latestTag)
 	return latestTag, nil
 }
 
@@ -282,16 +314,24 @@ func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
 	}
 
 	verNum := strings.TrimPrefix(latestTag, "v")
-	assetName := fmt.Sprintf("sing-box-%s-linux-%s.tar.gz", verNum, targetArch)
-	downloadURL := fmt.Sprintf("https://github.com/SagerNet/sing-box/releases/download/%s/%s", latestTag, assetName)
-
+	// Try musl first (mandatory for Alpine Linux in RouterOS container)
+	assetMusl := fmt.Sprintf("sing-box-%s-linux-%s-musl.tar.gz", verNum, targetArch)
+	downloadURL := fmt.Sprintf("https://github.com/SagerNet/sing-box/releases/download/%s/%s", latestTag, assetMusl)
 	if m.URLOptimizer != nil {
 		downloadURL = m.URLOptimizer(downloadURL)
 	}
 
 	tmpPath := filepath.Join(m.binDir, "sing-box.new")
 	if err := m.downloadAndExtractTarGz(downloadURL, "sing-box", tmpPath); err != nil {
-		return "", fmt.Errorf("download failed: %w", err)
+		// Fallback to standard build
+		assetStd := fmt.Sprintf("sing-box-%s-linux-%s.tar.gz", verNum, targetArch)
+		downloadURL2 := fmt.Sprintf("https://github.com/SagerNet/sing-box/releases/download/%s/%s", latestTag, assetStd)
+		if m.URLOptimizer != nil {
+			downloadURL2 = m.URLOptimizer(downloadURL2)
+		}
+		if err2 := m.downloadAndExtractTarGz(downloadURL2, "sing-box", tmpPath); err2 != nil {
+			return "", fmt.Errorf("download sing-box failed: %w (fallback: %v)", err, err2)
+		}
 	}
 
 	_ = os.Chmod(tmpPath, 0755)
@@ -328,6 +368,81 @@ func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
 // RouterOS Firmware Upgrade
 // ──────────────────────────────────────────────
 
+// CheckROSFirmwareUpgrade queries RouterOS system package updates via REST API.
+func (m *Manager) CheckROSFirmwareUpgrade() (string, error) {
+	m.mu.Lock()
+	cfg := m.config
+	m.mu.Unlock()
+
+	if cfg.Host == "" {
+		return "", fmt.Errorf("RouterOS host not configured")
+	}
+
+	scheme := "https"
+	if cfg.Port == "80" {
+		scheme = "http"
+	}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr, Timeout: 12 * time.Second}
+
+	// Trigger check-for-updates asynchronously on RouterOS
+	checkURL := fmt.Sprintf("%s://%s:%s/rest/system/package/update/check-for-updates", scheme, cfg.Host, cfg.Port)
+	checkReq, _ := http.NewRequest(http.MethodPost, checkURL, bytes.NewBuffer([]byte("{}")))
+	checkReq.SetBasicAuth(cfg.User, cfg.Password)
+	checkReq.Header.Set("Content-Type", "application/json")
+	if resp, err := client.Do(checkReq); err == nil {
+		resp.Body.Close()
+	}
+
+	time.Sleep(1 * time.Second)
+
+	// Fetch update status
+	getURL := fmt.Sprintf("%s://%s:%s/rest/system/package/update", scheme, cfg.Host, cfg.Port)
+	getReq, err := http.NewRequest(http.MethodGet, getURL, nil)
+	if err != nil {
+		return "", err
+	}
+	getReq.SetBasicAuth(cfg.User, cfg.Password)
+
+	resp, err := client.Do(getReq)
+	if err != nil {
+		return "", fmt.Errorf("RouterOS update check failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var updateInfo struct {
+		Channel          string `json:"channel"`
+		InstalledVersion string `json:"installed-version"`
+		LatestVersion    string `json:"latest-version"`
+		Status           string `json:"status"`
+	}
+	if err := json.Unmarshal(body, &updateInfo); err != nil {
+		return string(body), nil
+	}
+
+	if updateInfo.Status == "checking..." {
+		time.Sleep(1500 * time.Millisecond)
+		if resp2, err2 := client.Do(getReq); err2 == nil {
+			defer resp2.Body.Close()
+			if body2, err3 := io.ReadAll(resp2.Body); err3 == nil {
+				_ = json.Unmarshal(body2, &updateInfo)
+			}
+		}
+	}
+
+	if updateInfo.LatestVersion != "" && updateInfo.LatestVersion != updateInfo.InstalledVersion {
+		return fmt.Sprintf("发现 RouterOS 新版本: %s (当前版本: %s, 更新通道: %s, 状态: %s)", updateInfo.LatestVersion, updateInfo.InstalledVersion, updateInfo.Channel, updateInfo.Status), nil
+	}
+	return fmt.Sprintf("RouterOS 系统已是最新版本 (%s, 通道: %s, 状态: %s)", updateInfo.InstalledVersion, updateInfo.Channel, updateInfo.Status), nil
+}
+
 // TriggerROSFirmwareUpgrade sends an upgrade command to RouterOS via its REST API.
 func (m *Manager) TriggerROSFirmwareUpgrade() error {
 	m.mu.Lock()
@@ -343,14 +458,19 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 		scheme = "http"
 	}
 	url := fmt.Sprintf("%s://%s:%s/rest/system/package/update/install", scheme, cfg.Host, cfg.Port)
-	req, err := http.NewRequest(http.MethodPost, url, nil)
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer([]byte("{}")))
 	if err != nil {
 		return err
 	}
 	req.SetBasicAuth(cfg.User, cfg.Password)
+	req.Header.Set("Content-Type", "application/json")
 
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Transport: tr,
+		Timeout:   15 * time.Second,
 	}
 
 	resp, err := client.Do(req)
@@ -382,7 +502,7 @@ func (m *Manager) getLocalPanelVersion() string {
 			return meta.Version
 		}
 	}
-	return "v1.0.0-Aurora"
+	return "Test-v0.999"
 }
 
 // IsConnected returns whether the RouterOS host is currently reachable and authenticated.
@@ -407,22 +527,51 @@ func (m *Manager) updateLocalMetaVersion(newVer string) {
 	_ = os.WriteFile(m.metaFile, out, 0644)
 }
 
-func (m *Manager) fetchLatestPanelVersion() (string, error) {
+func fetchGitHubLatestTag(repo string) (string, error) {
+	candidates := []string{
+		"https://api.github.com/repos/" + repo + "/releases/latest",
+		"https://ghproxy.net/https://api.github.com/repos/" + repo + "/releases/latest",
+	}
 	client := &http.Client{Timeout: 8 * time.Second}
-	resp, err := client.Get("https://api.github.com/repos/zyeyefyass/CubeX/releases/latest")
-	if err != nil {
-		// Fallback to current tag if repo is private or not ready
-		return m.getLocalPanelVersion(), nil
-	}
-	defer resp.Body.Close()
+	var lastErr error
+	for _, targetURL := range candidates {
+		req, err := http.NewRequest(http.MethodGet, targetURL, nil)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		req.Header.Set("User-Agent", "CubeX-Daemon/0.999")
+		req.Header.Set("Accept", "application/vnd.github.v3+json")
 
-	var release struct {
-		TagName string `json:"tag_name"`
+		resp, err := client.Do(req)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			lastErr = fmt.Errorf("HTTP %d from %s", resp.StatusCode, targetURL)
+			continue
+		}
+
+		var release struct {
+			TagName string `json:"tag_name"`
+		}
+		err = json.NewDecoder(resp.Body).Decode(&release)
+		resp.Body.Close()
+		if err == nil && release.TagName != "" {
+			return release.TagName, nil
+		}
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil || release.TagName == "" {
+	return "", lastErr
+}
+
+func (m *Manager) fetchLatestPanelVersion() (string, error) {
+	tag, err := fetchGitHubLatestTag("zyeyefyass/CubeX")
+	if err != nil || tag == "" {
 		return m.getLocalPanelVersion(), nil
 	}
-	return release.TagName, nil
+	return tag, nil
 }
 
 func (m *Manager) getLocalMihomoVersion() string {
@@ -441,20 +590,11 @@ func (m *Manager) getLocalMihomoVersion() string {
 }
 
 func (m *Manager) fetchLatestMihomoVersion() (string, error) {
-	client := &http.Client{Timeout: 8 * time.Second}
-	resp, err := client.Get("https://api.github.com/repos/MetaCubeX/mihomo/releases/latest")
-	if err != nil {
+	tag, err := fetchGitHubLatestTag("MetaCubeX/mihomo")
+	if err != nil || tag == "" {
 		return "v1.19.32", err
 	}
-	defer resp.Body.Close()
-
-	var release struct {
-		TagName string `json:"tag_name"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil || release.TagName == "" {
-		return "v1.19.32", err
-	}
-	return release.TagName, nil
+	return tag, nil
 }
 
 func (m *Manager) getLocalSingboxVersion() string {
@@ -473,20 +613,11 @@ func (m *Manager) getLocalSingboxVersion() string {
 }
 
 func (m *Manager) fetchLatestSingboxVersion() (string, error) {
-	client := &http.Client{Timeout: 8 * time.Second}
-	resp, err := client.Get("https://api.github.com/repos/SagerNet/sing-box/releases/latest")
-	if err != nil {
+	tag, err := fetchGitHubLatestTag("SagerNet/sing-box")
+	if err != nil || tag == "" {
 		return "v1.14.3", err
 	}
-	defer resp.Body.Close()
-
-	var release struct {
-		TagName string `json:"tag_name"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil || release.TagName == "" {
-		return "v1.14.3", err
-	}
-	return release.TagName, nil
+	return tag, nil
 }
 
 func (m *Manager) checkROSConnection() (connected bool, version string) {
@@ -795,6 +926,44 @@ func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath str
 		}
 	}
 	return fmt.Errorf("all download mirrors failed: %w", lastErr)
+}
+
+func (m *Manager) downloadAndExtractZip(rawURL, targetBinaryName, destPath string) error {
+	tmpZip := destPath + ".dl.zip"
+	defer os.Remove(tmpZip)
+	if err := m.downloadFile(rawURL, tmpZip); err != nil {
+		return err
+	}
+	zr, err := zip.OpenReader(tmpZip)
+	if err != nil {
+		return fmt.Errorf("open zip failed: %w", err)
+	}
+	defer zr.Close()
+
+	for _, f := range zr.File {
+		base := filepath.Base(f.Name)
+		if base == targetBinaryName || base == targetBinaryName+".exe" {
+			rc, err := f.Open()
+			if err != nil {
+				return err
+			}
+			outFile, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+			if err != nil {
+				rc.Close()
+				return err
+			}
+			_, copyErr := io.Copy(outFile, rc)
+			outFile.Close()
+			rc.Close()
+			if copyErr != nil {
+				_ = os.Remove(destPath)
+				return copyErr
+			}
+			log.Printf("[Upgrade] Successfully extracted %s from zip to %s", base, destPath)
+			return nil
+		}
+	}
+	return fmt.Errorf("target binary %s not found in zip archive", targetBinaryName)
 }
 
 func (m *Manager) GetConfig() map[string]string {
@@ -1143,9 +1312,6 @@ func (m *Manager) GetGeoDataStatus() *GeoDataStatus {
 
 // UpdateGeoData downloads the latest GeoIP, GeoSite, and MRS rule providers, and reloads Mihomo.
 func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
 	res := &GeoUpdateResult{
 		Success: false,
 		Logs:    []string{},
@@ -1174,11 +1340,16 @@ func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, er
 			dest: filepath.Join(etcDir, "geosite.dat"),
 		},
 
-		// ── 7 套核心基础 MRS 规则包 ──
+		// ── 7 套核心基础 MRS/SRS 规则包 ──
 		{
 			name: "1. 217heidai 高速去广告过滤规则 (ads_domain.mrs)",
 			url:  "https://gcore.jsdelivr.net/gh/217heidai/adblockfilters@main/rules/adblockmihomo.mrs",
 			dest: filepath.Join(rulesDir, "ads_domain.mrs"),
+		},
+		{
+			name: "1b. 217heidai sing-box 独占去广告规则 (adblocksingbox.srs)",
+			url:  "https://gcore.jsdelivr.net/gh/217heidai/adblockfilters@main/rules/adblocksingbox.srs",
+			dest: filepath.Join(rulesDir, "adblocksingbox.srs"),
 		},
 		{
 			name: "2. 局域网与私网保留规则集 (privacy_domain.mrs)",
@@ -1359,22 +1530,47 @@ func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, er
 		},
 	}
 
-	successCount := 0
-	for _, item := range items {
-		tmpPath := item.dest + ".tmp"
-		targetURL := item.url
-		if m.URLOptimizer != nil {
-			targetURL = m.URLOptimizer(targetURL)
-		}
-		if err := m.downloadFile(targetURL, tmpPath); err != nil {
-			res.Logs = append(res.Logs, fmt.Sprintf("⚠️ %s 下载失败: %v", item.name, err))
-			_ = os.Remove(tmpPath)
-			continue
-		}
-		_ = os.Rename(tmpPath, item.dest)
-		successCount++
-		res.Logs = append(res.Logs, fmt.Sprintf("✅ %s 已更新", item.name))
+	jobs := make(chan downloadItem, len(items))
+	for _, it := range items {
+		jobs <- it
 	}
+	close(jobs)
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	successCount := 0
+
+	workerCount := 5
+	if len(items) < workerCount {
+		workerCount = len(items)
+	}
+
+	for w := 0; w < workerCount; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for item := range jobs {
+				tmpPath := item.dest + ".tmp"
+				targetURL := item.url
+				if m.URLOptimizer != nil {
+					targetURL = m.URLOptimizer(targetURL)
+				}
+				if err := m.downloadFile(targetURL, tmpPath); err != nil {
+					mu.Lock()
+					res.Logs = append(res.Logs, fmt.Sprintf("⚠️ %s 下载失败: %v", item.name, err))
+					mu.Unlock()
+					_ = os.Remove(tmpPath)
+					continue
+				}
+				_ = os.Rename(tmpPath, item.dest)
+				mu.Lock()
+				successCount++
+				res.Logs = append(res.Logs, fmt.Sprintf("✅ %s 已更新", item.name))
+				mu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
 
 	res.FilesUpdated = successCount
 	res.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
