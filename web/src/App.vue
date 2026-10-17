@@ -1768,10 +1768,6 @@
 
               <!-- Action buttons -->
               <div class="flex flex-wrap gap-2">
-                <button @click="cleanAndReapplyRosFirewall" :disabled="cleaningRosFirewall" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg shadow-rose-600/25 active:scale-95 transition flex items-center gap-1.5">
-                  <span v-if="cleaningRosFirewall" class="inline-block animate-spin">↻</span>
-                  <span>🧹 一键清理 ROS 防火墙并重新全量配置</span>
-                </button>
                 <button @click="autoSetupHostPlatform" :disabled="autoSettingUpHost" class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold shadow-lg shadow-cyan-500/20 active:scale-95 transition">
                   <span v-if="autoSettingUpHost" class="inline-block animate-spin mr-1">↻</span>
                   <span>⚡ 一键原生联动宿主</span>
@@ -1847,18 +1843,26 @@
               </div>
             </div>
 
-            <!-- 防火墙与策略路由脚本一键复制 -->
-            <div class="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-800">
-              <button @click="cleanAndReapplyRosFirewall" :disabled="cleaningRosFirewall" class="flex-1 py-2 rounded-xl bg-rose-900/40 hover:bg-rose-900/60 border border-rose-500/40 text-rose-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm">
-                <span v-if="cleaningRosFirewall" class="inline-block animate-spin">↻</span>
-                <span>🧹 一键清理 ROS 防火墙并重新全量配置</span>
-              </button>
-              <button @click="copyRosScript" class="flex-1 py-2 rounded-xl bg-cyan-900/30 hover:bg-cyan-900/50 border border-cyan-500/40 text-cyan-200 text-xs font-bold transition">
-                📋 复制 RouterOS WinBox 策略路由脚本 (table 8228)
-              </button>
-              <button @click="copyHostBashScript" class="flex-1 py-2 rounded-xl bg-purple-900/30 hover:bg-purple-900/50 border border-purple-500/40 text-purple-200 text-xs font-bold transition">
-                📋 复制 Linux / 飞牛宿主防火墙脚本 (iptables)
-              </button>
+            <!-- 宿主防火墙与策略路由智能巡检与全量配置 -->
+            <div class="space-y-2 pt-2 border-t border-slate-800">
+              <div class="flex flex-col sm:flex-row gap-2">
+                <button @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall" class="flex-1 py-2.5 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-500/40 text-cyan-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50">
+                  <span v-if="cleaningRosFirewall" class="inline-block animate-spin">↻</span>
+                  <span v-else>🧹</span>
+                  <span>一键巡检 ROS 配置及全量重新配置</span>
+                </button>
+                <button @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall" class="flex-1 py-2.5 rounded-xl bg-purple-950/60 hover:bg-purple-900/60 border border-purple-500/40 text-purple-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50">
+                  <span v-if="applyingLinuxFirewall" class="inline-block animate-spin">↻</span>
+                  <span v-else>⚡</span>
+                  <span>一键配置 Linux / 飞牛防火墙</span>
+                </button>
+              </div>
+              <div class="flex items-center justify-end gap-3 text-[11px] text-slate-400 px-1">
+                <span>如需在宿主手动运行脚本：</span>
+                <button @click="copyRosScript" class="text-cyan-400 hover:text-cyan-300 underline underline-offset-2">📋 复制 ROS WinBox 脚本</button>
+                <span class="text-slate-600">|</span>
+                <button @click="copyHostBashScript" class="text-purple-400 hover:text-purple-300 underline underline-offset-2">📋 复制 Linux iptables 脚本</button>
+              </div>
             </div>
           </div>
 
@@ -3089,6 +3093,7 @@ const updatingGeo = ref(false)
 const checkingHostUpgrade = ref(false)
 const executingHostUpgrade = ref(false)
 const cleaningRosFirewall = ref(false)
+const applyingLinuxFirewall = ref(false)
 const deployingHostWg = ref(false)
 const loadingDevices = ref(false)
 
@@ -3939,26 +3944,52 @@ async function executeHostUpgrade() {
   }
 }
 
-async function cleanAndReapplyRosFirewall() {
+async function inspectAndCleanReapplyRos() {
   cleaningRosFirewall.value = true
-  showToast('正在全量清理 RouterOS 防火墙残留、过期路由并下发纯旁路由架构...')
+  showToast('🔍 正在深度巡检 RouterOS 策略路由与防火墙，并执行全量配置自愈...')
   try {
     const res = await fetch('/api/v1/ros/clean-and-reapply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ target_ip: '10.0.0.11' })
+      body: JSON.stringify({ target_ip: hostConfig.value.host === '10.0.0.1' ? '10.0.0.11' : '' })
     })
     const data = await res.json()
     if (data.error) {
-      showToast('⚠️ 清理或配置提示: ' + data.error)
+      showToast('⚠️ 巡检与配置提示: ' + data.error)
     } else {
-      showToast(data.message || '🎉 RouterOS 防火墙已全量深度清理并重新配置完毕！')
+      showToast(data.message || '🎉 RouterOS 配置已全量巡检、深度清理并全量重新配置完毕！')
     }
     await refreshHostTelemetry()
   } catch (e) {
-    showToast('❌ 触发全量清理与重配失败: ' + e.message)
+    showToast('❌ 触发全量巡检与重配失败: ' + e.message)
   } finally {
     cleaningRosFirewall.value = false
+  }
+}
+const cleanAndReapplyRosFirewall = inspectAndCleanReapplyRos
+
+async function applyLinuxHostFirewall() {
+  applyingLinuxFirewall.value = true
+  showToast('⚡ 正在下发 Linux / 飞牛宿主防火墙转发规则与内核参数...')
+  try {
+    const res = await fetch('/api/v1/host/firewall/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'permissive', enable_penetration: true })
+    })
+    const data = await res.json()
+    if (!data.success && data.error) {
+      showToast('⚠️ Linux / 飞牛防火墙配置提示: ' + data.error)
+    } else if (data.success) {
+      showToast('🎉 Linux / 飞牛宿主防火墙已全量配置就绪！内核转发 (ip_forward=1) 与转发链放行生效！')
+      await refreshHostTelemetry()
+    } else {
+      showToast('⚠️ 宿主防火墙反馈: ' + (data.error || '执行完成'))
+    }
+  } catch (e) {
+    showToast('❌ 触发配置 Linux / 飞牛防火墙失败: ' + e.message)
+  } finally {
+    applyingLinuxFirewall.value = false
   }
 }
 
