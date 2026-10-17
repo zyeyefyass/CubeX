@@ -245,3 +245,151 @@ func TestMihomoDNSLeakPrevention(t *testing.T) {
 		t.Errorf("Mihomo respect-rules must be true")
 	}
 }
+
+func TestDefensiveNodeSanitation(t *testing.T) {
+	ir := schema.NewDefaultIR()
+	ir.Proxies = []schema.ProxyNode{
+		{
+			Name: "Valid-SS",
+			Type: "shadowsocks",
+			Server: "1.1.1.1",
+			Port: 8388,
+			Cipher: "aes-256-gcm",
+			Password: "password123",
+		},
+		{
+			Name: "Invalid-SS-MultiUser",
+			Type: "shadowsocks",
+			Server: "1.1.1.2",
+			Port: 8388,
+			Cipher: "2022-blake3-aes-256-gcm",
+			Password: "MjAyNjJrNXN6WWtHQVZPeA==:NkJGM0FGOTAtQURCRS00Mw==",
+		},
+		{
+			Name: "URLSafe-SS2022",
+			Type: "shadowsocks",
+			Server: "1.1.1.3",
+			Port: 8388,
+			Cipher: "2022-blake3-aes-256-gcm",
+			Password: "a6EHVcxkpKGp-XSY32DhL86p46IngnTqouoD8dYgNnc",
+		},
+		{
+			Name: "Hysteria2-NoTLS",
+			Type: "hysteria2",
+			Server: "1.1.1.4",
+			Port: 8443,
+			Password: "secretpassword",
+			SNI: "example.com",
+			TLS: false, // Intentionally false to verify auto-TLS
+		},
+		{
+			Name: "VLESS-Flow-NoTLS",
+			Type: "vless",
+			Server: "1.1.1.5",
+			Port: 443,
+			UUID: "9442a3e9-48f2-49b7-8e8e-0bfb446e9669",
+			Flow: "xtls-rprx-vision",
+			SNI: "example.com",
+			TLS: false, // Intentionally false to verify auto-TLS
+		},
+		{
+			Name: "Empty-Type-Node",
+			Type: "",
+			Server: "1.1.1.6",
+			Port: 443,
+		},
+	}
+
+	// 1. Test Sing-box output
+	sbData, err := compiler.BuildSingBox(ir)
+	if err != nil {
+		t.Fatalf("BuildSingBox failed: %v", err)
+	}
+	var sbMap struct {
+		Outbounds []map[string]any `json:"outbounds"`
+	}
+	if err := json.Unmarshal(sbData, &sbMap); err != nil {
+		t.Fatalf("JSON parse failed: %v", err)
+	}
+
+	sbOutbounds := make(map[string]map[string]any)
+	for _, ob := range sbMap.Outbounds {
+		if tag, ok := ob["tag"].(string); ok {
+			sbOutbounds[tag] = ob
+		}
+	}
+
+	// Multi-user SS-2022 must be excluded
+	if _, ok := sbOutbounds["Invalid-SS-MultiUser"]; ok {
+		t.Errorf("Invalid-SS-MultiUser must NOT be present in Sing-box outbounds")
+	}
+
+	// Empty type node must be excluded
+	if _, ok := sbOutbounds["Empty-Type-Node"]; ok {
+		t.Errorf("Empty-Type-Node must NOT be present in Sing-box outbounds")
+	}
+
+	// URL-safe SS-2022 must be present with normalized std base64
+	if ob, ok := sbOutbounds["URLSafe-SS2022"]; !ok {
+		t.Errorf("URLSafe-SS2022 must be present in Sing-box outbounds")
+	} else if ob["password"] != "a6EHVcxkpKGp+XSY32DhL86p46IngnTqouoD8dYgNnc=" {
+		t.Errorf("URLSafe-SS2022 password was not normalized properly: %v", ob["password"])
+	}
+
+	// Hysteria2 must have TLS enabled
+	if ob, ok := sbOutbounds["Hysteria2-NoTLS"]; !ok {
+		t.Errorf("Hysteria2-NoTLS must be present in Sing-box outbounds")
+	} else {
+		tls, ok := ob["tls"].(map[string]any)
+		if !ok || tls["enabled"] != true {
+			t.Errorf("Hysteria2-NoTLS must have tls.enabled = true, got: %v", ob["tls"])
+		}
+	}
+
+	// VLESS with flow must have TLS enabled
+	if ob, ok := sbOutbounds["VLESS-Flow-NoTLS"]; !ok {
+		t.Errorf("VLESS-Flow-NoTLS must be present in Sing-box outbounds")
+	} else {
+		tls, ok := ob["tls"].(map[string]any)
+		if !ok || tls["enabled"] != true {
+			t.Errorf("VLESS-Flow-NoTLS must have tls.enabled = true, got: %v", ob["tls"])
+		}
+	}
+
+	// 2. Test Mihomo output
+	mhData, err := compiler.BuildMihomo(ir)
+	if err != nil {
+		t.Fatalf("BuildMihomo failed: %v", err)
+	}
+	var mhMap struct {
+		Proxies []map[string]any `yaml:"proxies"`
+	}
+	if err := yaml.Unmarshal(mhData, &mhMap); err != nil {
+		t.Fatalf("YAML parse failed: %v", err)
+	}
+
+	mhProxies := make(map[string]map[string]any)
+	for _, p := range mhMap.Proxies {
+		if name, ok := p["name"].(string); ok {
+			mhProxies[name] = p
+		}
+	}
+
+	// Multi-user SS-2022 must be excluded
+	if _, ok := mhProxies["Invalid-SS-MultiUser"]; ok {
+		t.Errorf("Invalid-SS-MultiUser must NOT be present in Mihomo proxies")
+	}
+
+	// Empty type node must be excluded
+	if _, ok := mhProxies["Empty-Type-Node"]; ok {
+		t.Errorf("Empty-Type-Node must NOT be present in Mihomo proxies")
+	}
+
+	// URL-safe SS-2022 must be present with normalized std base64
+	if p, ok := mhProxies["URLSafe-SS2022"]; !ok {
+		t.Errorf("URLSafe-SS2022 must be present in Mihomo proxies")
+	} else if p["password"] != "a6EHVcxkpKGp+XSY32DhL86p46IngnTqouoD8dYgNnc=" {
+		t.Errorf("Mihomo URLSafe-SS2022 password was not normalized properly: %v", p["password"])
+	}
+}
+

@@ -262,6 +262,8 @@ func main() {
 	mux.HandleFunc("/api/v1/wireguard/peers", srv.handleWGInfo)
 	mux.HandleFunc("/api/v1/ros/routing/status", srv.handleROSInspect)
 	mux.HandleFunc("/api/v1/ros/routing/apply", srv.handleROSApply)
+	mux.HandleFunc("/api/v1/ros/routing/clean-and-reapply", srv.handleROSCleanAndReapply)
+	mux.HandleFunc("/api/v1/ros/clean-and-reapply", srv.handleROSCleanAndReapply)
 	mux.HandleFunc("/api/v1/ros/routing/script", srv.handleRosScript)
 	mux.HandleFunc("/api/v1/system/geodata/update", srv.handleUpgradeGeoData)
 	mux.HandleFunc("/api/v1/system/upgrade-panel", srv.handleUpgradePanel)
@@ -1458,6 +1460,23 @@ func (s *Server) handleROSApply(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = json.NewDecoder(r.Body).Decode(&req)
 	res, err := s.rosMgr.ApplyRouting(req.TargetIP)
+	if err != nil {
+		sendJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	sendJSON(w, res)
+}
+
+func (s *Server) handleROSCleanAndReapply(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		TargetIP string `json:"target_ip"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	res, err := s.rosMgr.CleanAndReapplyRouting(req.TargetIP)
 	if err != nil {
 		sendJSON(w, map[string]any{"error": err.Error()})
 		return

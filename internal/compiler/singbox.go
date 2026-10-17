@@ -3,6 +3,7 @@ package compiler
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/url"
 	"strconv"
 	"strings"
@@ -173,10 +174,13 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	// Add user proxy nodes
 	nodeTags := make([]string, 0, len(ir.Proxies))
 	for _, p := range ir.Proxies {
-		if p.Type == "direct" || p.Type == "block" || p.Type == "reject" {
+		pType := strings.ToLower(p.Type)
+		if pType == "direct" || pType == "block" || pType == "reject" || pType == "" {
 			continue
 		}
-		nodeTags = append(nodeTags, p.Name)
+		if p.Server == "" || p.Port <= 0 || p.Name == "" {
+			continue
+		}
 
 		nodeMap := map[string]any{
 			"tag":         p.Name,
@@ -184,15 +188,21 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			"server_port": p.Port,
 		}
 
-		pType := strings.ToLower(p.Type)
+		valid := true
 		switch pType {
 		case "vless":
+			if p.UUID == "" {
+				continue
+			}
 			nodeMap["type"] = "vless"
 			nodeMap["uuid"] = p.UUID
 			if p.Flow != "" {
 				nodeMap["flow"] = p.Flow
 			}
 		case "vmess":
+			if p.UUID == "" {
+				continue
+			}
 			nodeMap["type"] = "vmess"
 			nodeMap["uuid"] = p.UUID
 			nodeMap["security"] = "auto"
@@ -200,9 +210,23 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			nodeMap["type"] = "trojan"
 			nodeMap["password"] = p.Password
 		case "shadowsocks", "ss":
-			nodeMap["type"] = "shadowsocks"
-			nodeMap["method"] = p.Cipher
-			nodeMap["password"] = p.Password
+			cipher := strings.ToLower(p.Cipher)
+			if !ValidSSCiphers[cipher] {
+				valid = false
+			} else if strings.HasPrefix(cipher, "2022-") {
+				cleanPwd, ok := CleanSS2022Password(cipher, p.Password)
+				if !ok {
+					valid = false
+				} else {
+					nodeMap["type"] = "shadowsocks"
+					nodeMap["method"] = p.Cipher
+					nodeMap["password"] = cleanPwd
+				}
+			} else {
+				nodeMap["type"] = "shadowsocks"
+				nodeMap["method"] = p.Cipher
+				nodeMap["password"] = p.Password
+			}
 		case "hysteria2", "hy2":
 			nodeMap["type"] = "hysteria2"
 			nodeMap["password"] = p.Password
@@ -215,22 +239,60 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			nodeMap["type"] = "anytls"
 			nodeMap["password"] = p.Password
 		default:
-			nodeMap["type"] = pType
+			valid = false
 		}
 
-		if p.TLS {
+		if !valid || nodeMap["type"] == "" {
+			log.Printf("[Singbox] Skipping invalid or unsupported proxy: %s (%s)", p.Name, pType)
+			continue
+		}
+		nodeTags = append(nodeTags, p.Name)
+
+		// Mandatory TLS protocols in Sing-box
+		isTLSRequired := (pType == "hysteria2" || pType == "hy2" || pType == "tuic" || pType == "trojan" || pType == "anytls")
+		if pType == "vless" && p.Flow != "" {
+			isTLSRequired = true
+		}
+
+		if p.TLS || isTLSRequired {
 			tlsMap := map[string]any{
 				"enabled": true,
 			}
-			if p.SNI != "" {
-				tlsMap["server_name"] = p.SNI
+			sni := p.SNI
+			if sni == "" {
+				sni = p.Server
 			}
+			tlsMap["server_name"] = sni
+
 			if p.SkipCertVerify {
 				tlsMap["insecure"] = true
 			}
 			if len(p.ALPN) > 0 {
 				tlsMap["alpn"] = p.ALPN
 			}
+
+			// Reality opts
+			if realityOpts, ok := p.RawConfig["reality-opts"].(map[string]any); ok {
+				realityMap := map[string]any{
+					"enabled": true,
+				}
+				if pk, ok := realityOpts["public-key"].(string); ok && pk != "" {
+					realityMap["public_key"] = pk
+				}
+				if sid, ok := realityOpts["short-id"].(string); ok && sid != "" {
+					realityMap["short_id"] = sid
+				}
+				tlsMap["reality"] = realityMap
+			}
+
+			// Client fingerprint (uTLS)
+			if fp, ok := p.RawConfig["client-fingerprint"].(string); ok && fp != "" {
+				tlsMap["utls"] = map[string]any{
+					"enabled":     true,
+					"fingerprint": fp,
+				}
+			}
+
 			nodeMap["tls"] = tlsMap
 		}
 
@@ -382,6 +444,62 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"rule_set": []string{"geosite-cn", "geoip-cn"},
 		"outbound": "direct",
 	})
+
+	// C2. Application / Business routing groups for Sing-box
+	if validOutbounds["Google"] {
+		routeRules = append(routeRules, map[string]any{
+			"domain_suffix": []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "googlevideo.com"},
+			"outbound":      "Google",
+		})
+	}
+	if validOutbounds["YouTube"] {
+		routeRules = append(routeRules, map[string]any{
+			"domain_suffix": []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be"},
+			"outbound":      "YouTube",
+		})
+	}
+	if validOutbounds["AI"] {
+		routeRules = append(routeRules, map[string]any{
+			"domain_suffix": []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "oaistatic.com", "oaiusercontent.com"},
+			"outbound":      "AI",
+		})
+	}
+	if validOutbounds["Telegram"] {
+		routeRules = append(routeRules, map[string]any{
+			"domain_suffix": []string{"telegram.org", "t.me", "telegram.me", "telegra.ph"},
+			"outbound":      "Telegram",
+		})
+	}
+	if validOutbounds["GitHub & Docker"] {
+		routeRules = append(routeRules, map[string]any{
+			"domain_suffix": []string{"github.com", "githubusercontent.com", "docker.com", "docker.io"},
+			"outbound":      "GitHub & Docker",
+		})
+	}
+	if validOutbounds["Twitter (X)"] {
+		routeRules = append(routeRules, map[string]any{
+			"domain_suffix": []string{"twitter.com", "x.com", "twimg.com", "t.co"},
+			"outbound":      "Twitter (X)",
+		})
+	}
+	if validOutbounds["Netflix & 流媒体"] {
+		routeRules = append(routeRules, map[string]any{
+			"domain_suffix": []string{"netflix.com", "netflix.net", "nflximg.net", "nflxvideo.net", "nflxso.net", "nflxext.com"},
+			"outbound":      "Netflix & 流媒体",
+		})
+	}
+	if validOutbounds["Apple 服务"] {
+		routeRules = append(routeRules, map[string]any{
+			"domain_suffix": []string{"apple.com", "icloud.com", "aaplimg.com"},
+			"outbound":      "Apple 服务",
+		})
+	}
+	if validOutbounds["Microsoft"] {
+		routeRules = append(routeRules, map[string]any{
+			"domain_suffix": []string{"microsoft.com", "windows.com", "live.com", "office.com", "azure.com"},
+			"outbound":      "Microsoft",
+		})
+	}
 
 	// D. Generic Rules
 	for _, r := range ir.Rules {

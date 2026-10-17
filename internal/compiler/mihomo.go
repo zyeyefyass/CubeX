@@ -2,6 +2,7 @@ package compiler
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/zyeyefyass/CubeX/internal/schema"
@@ -118,9 +119,14 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	// Proxies (Preserve RawConfig for VLESS Reality, AnyTLS, Hysteria 2, and TUIC)
 	proxiesList := make([]map[string]any, 0, len(ir.Proxies))
 	for _, p := range ir.Proxies {
-		if p.Type == "direct" || p.Type == "block" || p.Type == "reject" {
+		ptype := strings.ToLower(p.Type)
+		if ptype == "direct" || ptype == "block" || ptype == "reject" || ptype == "" {
 			continue
 		}
+		if p.Server == "" || p.Port <= 0 || p.Name == "" {
+			continue
+		}
+
 		pMap := make(map[string]any)
 		if len(p.RawConfig) > 0 {
 			for k, v := range p.RawConfig {
@@ -168,7 +174,6 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		pMap["udp"] = true
 
 		// Normalize Type for Mihomo (Clash Meta)
-		ptype := p.Type
 		if ptype == "shadowsocks" {
 			ptype = "ss"
 		} else if ptype == "shadowsocksr" {
@@ -178,11 +183,32 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		// Mihomo strict validation fixes
 		if ptype == "vmess" {
+			if p.UUID == "" {
+				continue
+			}
 			if _, ok := pMap["cipher"]; !ok || pMap["cipher"] == "" {
 				pMap["cipher"] = "auto"
 			}
 			if _, ok := pMap["alterId"]; !ok {
 				pMap["alterId"] = 0
+			}
+		} else if ptype == "vless" {
+			if p.UUID == "" {
+				continue
+			}
+		} else if ptype == "ss" {
+			cipher := strings.ToLower(p.Cipher)
+			if !ValidSSCiphers[cipher] {
+				log.Printf("[Compiler] Skipping invalid SS proxy %s: unsupported cipher %s", p.Name, p.Cipher)
+				continue
+			}
+			if strings.HasPrefix(cipher, "2022-") {
+				cleanPwd, ok := CleanSS2022Password(cipher, p.Password)
+				if !ok {
+					log.Printf("[Compiler] Skipping SS-2022 proxy %s: invalid or multi-user password %s", p.Name, p.Password)
+					continue
+				}
+				pMap["password"] = cleanPwd
 			}
 		}
 
@@ -283,6 +309,37 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			"path":     "./rules/cn_ip.mrs",
 		},
 	}
+
+	bizMRS := []struct {
+		id       string
+		group    string
+		file     string
+		behavior string
+	}{
+		{"google_domain", "Google", "./rules/google.mrs", "domain"},
+		{"youtube_domain", "YouTube", "./rules/youtube.mrs", "domain"},
+		{"openai_domain", "AI", "./rules/openai.mrs", "domain"},
+		{"github_domain", "GitHub & Docker", "./rules/github.mrs", "domain"},
+		{"telegram_domain", "Telegram", "./rules/telegram.mrs", "domain"},
+		{"telegram_ip", "Telegram", "./rules/telegram_ip.mrs", "ipcidr"},
+		{"twitter_domain", "Twitter (X)", "./rules/twitter.mrs", "domain"},
+		{"netflix_domain", "Netflix & 流媒体", "./rules/netflix.mrs", "domain"},
+		{"spotify_domain", "Spotify", "./rules/spotify.mrs", "domain"},
+		{"steam_domain", "Steam 游戏", "./rules/steam.mrs", "domain"},
+		{"apple_domain", "Apple 服务", "./rules/apple.mrs", "domain"},
+		{"microsoft_domain", "Microsoft", "./rules/microsoft.mrs", "domain"},
+	}
+
+	for _, bm := range bizMRS {
+		if validTargets[bm.group] {
+			ruleProviders[bm.id] = map[string]any{
+				"type":     "file",
+				"behavior": bm.behavior,
+				"format":   "mrs",
+				"path":     bm.file,
+			}
+		}
+	}
 	cfg["rule-providers"] = ruleProviders
 
 	// Rules compilation with device policies top-priority prepending
@@ -306,6 +363,13 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	rulesList = append(rulesList, "RULE-SET,privacy_domain,REJECT")
 	rulesList = append(rulesList, "RULE-SET,cn_domain,DIRECT")
 	rulesList = append(rulesList, "RULE-SET,cn_ip,DIRECT")
+
+	// 2b. Business Service Rule-Sets
+	for _, bm := range bizMRS {
+		if validTargets[bm.group] {
+			rulesList = append(rulesList, fmt.Sprintf("RULE-SET,%s,%s", bm.id, bm.group))
+		}
+	}
 
 	// 3. Generic Rules
 	for _, r := range ir.Rules {

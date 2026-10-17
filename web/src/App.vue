@@ -1768,6 +1768,10 @@
 
               <!-- Action buttons -->
               <div class="flex flex-wrap gap-2">
+                <button @click="cleanAndReapplyRosFirewall" :disabled="cleaningRosFirewall" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg shadow-rose-600/25 active:scale-95 transition flex items-center gap-1.5">
+                  <span v-if="cleaningRosFirewall" class="inline-block animate-spin">↻</span>
+                  <span>🧹 一键清理 ROS 防火墙并重新全量配置</span>
+                </button>
                 <button @click="autoSetupHostPlatform" :disabled="autoSettingUpHost" class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold shadow-lg shadow-cyan-500/20 active:scale-95 transition">
                   <span v-if="autoSettingUpHost" class="inline-block animate-spin mr-1">↻</span>
                   <span>⚡ 一键原生联动宿主</span>
@@ -1845,11 +1849,15 @@
 
             <!-- 防火墙与策略路由脚本一键复制 -->
             <div class="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-800">
+              <button @click="cleanAndReapplyRosFirewall" :disabled="cleaningRosFirewall" class="flex-1 py-2 rounded-xl bg-rose-900/40 hover:bg-rose-900/60 border border-rose-500/40 text-rose-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm">
+                <span v-if="cleaningRosFirewall" class="inline-block animate-spin">↻</span>
+                <span>🧹 一键清理 ROS 防火墙并重新全量配置</span>
+              </button>
               <button @click="copyRosScript" class="flex-1 py-2 rounded-xl bg-cyan-900/30 hover:bg-cyan-900/50 border border-cyan-500/40 text-cyan-200 text-xs font-bold transition">
                 📋 复制 RouterOS WinBox 策略路由脚本 (table 8228)
               </button>
               <button @click="copyHostBashScript" class="flex-1 py-2 rounded-xl bg-purple-900/30 hover:bg-purple-900/50 border border-purple-500/40 text-purple-200 text-xs font-bold transition">
-                📋 复制 Linux / 飞牛宿主防火墙放行脚本 (iptables)
+                📋 复制 Linux / 飞牛宿主防火墙脚本 (iptables)
               </button>
             </div>
           </div>
@@ -1913,22 +1921,26 @@
                 </button>
               </div>
 
-              <!-- 4. 宿主机系统包升级 -->
+              <!-- 4. RouterOS 固件系统 / 宿主机系统包升级 -->
               <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
                 <div class="flex justify-between items-center">
                   <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                    <span>💻</span>
-                    <span>宿主机底层系统包 (Debian / Linux)</span>
+                    <span>📡</span>
+                    <span>MikroTik RouterOS 固件系统版本</span>
                   </div>
-                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40">系统安全</span>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40">ROS v7 官方升级</span>
                 </div>
-                <div class="text-xs text-slate-400 font-mono">检查并更新宿主机 wireguard-tools、内核安全补丁</div>
+                <div class="text-xs text-slate-400 font-mono">
+                  当前固件: {{ hostInfo.os_name || 'MikroTik RouterOS v7.24.5' }} · 官方稳定升级通道 (Channel: stable)
+                </div>
                 <div class="flex gap-2">
-                  <button @click="checkHostUpgrade" class="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs">
-                    🔍 检查宿主更新
+                  <button @click="checkHostUpgrade" :disabled="checkingHostUpgrade" class="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs transition active:scale-95 flex items-center justify-center gap-1">
+                    <span v-if="checkingHostUpgrade" class="inline-block animate-spin mr-1">↻</span>
+                    <span>🔍 检查 ROS 固件更新</span>
                   </button>
-                  <button @click="executeHostUpgrade" class="flex-1 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs">
-                    ⬆ 执行宿主升级
+                  <button @click="executeHostUpgrade" :disabled="executingHostUpgrade" class="flex-1 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition active:scale-95 flex items-center justify-center gap-1">
+                    <span v-if="executingHostUpgrade" class="inline-block animate-spin mr-1">↻</span>
+                    <span>⬆ 升级 RouterOS 并重启</span>
                   </button>
                 </div>
               </div>
@@ -2480,11 +2492,16 @@
             <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
               <div>
                 <div class="font-bold text-white">RouterOS 宿主系统</div>
-                <div class="text-[10px] text-slate-400 font-mono">{{ hostInfo.os_name || 'RouterOS v7.14' }}</div>
+                <div class="text-[10px] text-slate-400 font-mono">{{ hostInfo.os_name || 'RouterOS v7.24.5' }}</div>
               </div>
-              <button @click="checkHostUpgrade" class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 font-bold text-[11px]">
-                检测更新
-              </button>
+              <div class="flex gap-1.5">
+                <button @click="checkHostUpgrade" :disabled="checkingHostUpgrade" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px]">
+                  {{ checkingHostUpgrade ? '检测中...' : '检测更新' }}
+                </button>
+                <button @click="executeHostUpgrade" :disabled="executingHostUpgrade" class="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px]">
+                  {{ executingHostUpgrade ? '升级中...' : '升级系统' }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -3069,6 +3086,9 @@ const showHostCredentials = ref(false)
 const testingHostCreds = ref(false)
 const upgradingPanel = ref(false)
 const updatingGeo = ref(false)
+const checkingHostUpgrade = ref(false)
+const executingHostUpgrade = ref(false)
+const cleaningRosFirewall = ref(false)
 const deployingHostWg = ref(false)
 const loadingDevices = ref(false)
 
@@ -3881,24 +3901,64 @@ async function updateGeoData() {
 }
 
 async function checkHostUpgrade() {
-  showToast('正在检查宿主机系统包更新 (apt check)...')
+  checkingHostUpgrade.value = true
+  showToast('正在通过 RouterOS REST API 检查官方固件版本与升级通道...')
   try {
     const res = await fetch('/api/v1/host/upgrade/check')
     const data = await res.json()
-    showToast('宿主系统检查完成: ' + (data.output || '0 个软件包可升级'))
+    if (data.error) {
+      showToast('⚠️ 固件检查反馈: ' + data.error)
+    } else {
+      showToast('🎉 ' + (data.output || 'RouterOS 固件已是最新稳定版本'))
+    }
   } catch (e) {
-    showToast('宿主机软件包已全部保持最新状态')
+    showToast('⚠️ 检查连接失败: ' + e.message)
+  } finally {
+    checkingHostUpgrade.value = false
   }
 }
 
 async function executeHostUpgrade() {
-  showToast('正在下发宿主机底层系统安全升级指令...')
+  if (!confirm('确定要升级 RouterOS 固件吗？\nRouterOS 下载完成后将自动重启路由器并应用新版本。')) {
+    return
+  }
+  executingHostUpgrade.value = true
+  showToast('正在向 RouterOS REST API 下发官方固件升级指令...')
   try {
     const res = await fetch('/api/v1/host/upgrade/execute', { method: 'POST' })
     const data = await res.json()
-    showToast('宿主机升级完成: ' + (data.output || '成功'))
+    if (data.error) {
+      showToast('⚠️ 升级指令反馈: ' + data.error)
+    } else {
+      showToast(data.output || '🚀 RouterOS 官方固件升级指令已成功下发！')
+    }
   } catch (e) {
-    showToast('宿主底层系统升级已触发')
+    showToast('⚠️ 升级请求失败: ' + e.message)
+  } finally {
+    executingHostUpgrade.value = false
+  }
+}
+
+async function cleanAndReapplyRosFirewall() {
+  cleaningRosFirewall.value = true
+  showToast('正在全量清理 RouterOS 防火墙残留、过期路由并下发纯旁路由架构...')
+  try {
+    const res = await fetch('/api/v1/ros/clean-and-reapply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target_ip: '10.0.0.11' })
+    })
+    const data = await res.json()
+    if (data.error) {
+      showToast('⚠️ 清理或配置提示: ' + data.error)
+    } else {
+      showToast(data.message || '🎉 RouterOS 防火墙已全量深度清理并重新配置完毕！')
+    }
+    await refreshHostTelemetry()
+  } catch (e) {
+    showToast('❌ 触发全量清理与重配失败: ' + e.message)
+  } finally {
+    cleaningRosFirewall.value = false
   }
 }
 

@@ -268,7 +268,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			Policy:   "manual",
 			Icon:     reg.Flag,
 		}
-		if eg, exists := existingMap[reg.ManualName]; exists && eg.Now != "" {
+		if eg, exists := existingMap[reg.ManualName]; exists && eg.Now != "" && (reg.ID == "CUSTOM" || eg.Now != "DIRECT") && containsString(nodes, eg.Now) {
 			manualGrp.Now = eg.Now
 		}
 		newGroups = append(newGroups, manualGrp)
@@ -287,7 +287,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			Policy:    "auto",
 			Icon:      reg.Flag,
 		}
-		if eg, exists := existingMap[reg.AutoName]; exists && eg.Now != "" {
+		if eg, exists := existingMap[reg.AutoName]; exists && eg.Now != "" && (reg.ID == "CUSTOM" || eg.Now != "DIRECT") && containsString(nodes, eg.Now) {
 			autoGrp.Now = eg.Now
 		}
 		newGroups = append(newGroups, autoGrp)
@@ -305,7 +305,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			Policy:    "fallback",
 			Icon:      reg.Flag,
 		}
-		if eg, exists := existingMap[reg.FallName]; exists && eg.Now != "" {
+		if eg, exists := existingMap[reg.FallName]; exists && eg.Now != "" && (reg.ID == "CUSTOM" || eg.Now != "DIRECT") && containsString(nodes, eg.Now) {
 			fallGrp.Now = eg.Now
 		}
 		newGroups = append(newGroups, fallGrp)
@@ -323,7 +323,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			Policy:    "disaster",
 			Icon:      reg.Flag,
 		}
-		if eg, exists := existingMap[reg.DisaName]; exists && eg.Now != "" {
+		if eg, exists := existingMap[reg.DisaName]; exists && eg.Now != "" && (reg.ID == "CUSTOM" || eg.Now != "DIRECT") && containsString(nodes, eg.Now) {
 			disaGrp.Now = eg.Now
 		}
 		newGroups = append(newGroups, disaGrp)
@@ -332,7 +332,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 	// 4. Ensure Business Routing Groups exist
 	allRegionalCandidateProxies := make([]string, 0)
 	for _, reg := range StandardRegions {
-		allRegionalCandidateProxies = append(allRegionalCandidateProxies, reg.ManualName, reg.AutoName, reg.FallName, reg.DisaName)
+		allRegionalCandidateProxies = append(allRegionalCandidateProxies, reg.AutoName, reg.ManualName, reg.FallName, reg.DisaName)
 	}
 	// Append concrete proxy nodes as well for granular manual override
 	for _, p := range ir.Proxies {
@@ -345,19 +345,28 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 	for _, bg := range StandardBusinessGroups {
 		candidates := append([]string{}, allRegionalCandidateProxies...)
 
+		defaultNow := candidates[0]
+		if bg.Name == "Apple 服务" || bg.Name == "Microsoft" {
+			defaultNow = "DIRECT"
+		}
+
 		bizGrp := StrategyGroup{
 			Name:     bg.Name,
 			Type:     "select",
 			Proxies:  candidates,
-			Now:      candidates[0],
+			Now:      defaultNow,
 			Category: "business",
 			Icon:     bg.Icon,
 			IsCustom: false,
 		}
 
 		if eg, exists := existingMap[bg.Name]; exists {
-			if eg.Now != "" {
-				bizGrp.Now = eg.Now
+			if eg.Now != "" && containsString(candidates, eg.Now) {
+				if eg.Now == "DIRECT" && bg.Name != "Apple 服务" && bg.Name != "Microsoft" {
+					bizGrp.Now = defaultNow
+				} else {
+					bizGrp.Now = eg.Now
+				}
 			}
 			if len(eg.Proxies) > 0 {
 				bizGrp.Proxies = mergeProxiesUnique(candidates, eg.Proxies)
@@ -365,8 +374,12 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 		} else if bg.Name == "AI" {
 			for _, oldName := range []string{"OpenAI & AI", "OpenAI / Claude", "OpenAI", "ChatGPT"} {
 				if eg, ok := existingMap[oldName]; ok {
-					if eg.Now != "" {
-						bizGrp.Now = eg.Now
+					if eg.Now != "" && containsString(candidates, eg.Now) {
+						if eg.Now == "DIRECT" {
+							bizGrp.Now = defaultNow
+						} else {
+							bizGrp.Now = eg.Now
+						}
 					}
 					if len(eg.Proxies) > 0 {
 						bizGrp.Proxies = mergeProxiesUnique(candidates, eg.Proxies)
@@ -479,3 +492,13 @@ func mergeProxiesUnique(base, extra []string) []string {
 	}
 	return res
 }
+
+func containsString(list []string, target string) bool {
+	for _, item := range list {
+		if item == target {
+			return true
+		}
+	}
+	return false
+}
+

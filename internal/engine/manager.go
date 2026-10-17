@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -278,6 +279,19 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
+	// Step 3a: Dry-run config validation before terminating current core
+	var testCmd *exec.Cmd
+	if target == schema.EngineMihomo {
+		testCmd = exec.Command(binPath, "-t", "-d", etcDir, "-f", targetConfigPath)
+	} else {
+		testCmd = exec.Command(binPath, "check", "-c", targetConfigPath)
+		testCmd.Dir = etcDir
+	}
+	if out, err := testCmd.CombinedOutput(); err != nil {
+		outStr := strings.TrimSpace(string(out))
+		log.Printf("⚠️ [Engine] Dry-run validation error for %s: %s (%v)", target, outStr, err)
+	}
+
 	// Step 3b: Terminate previous core and release port 53, port 9090 and TUN
 	if m.currentProc != nil && m.currentProc.Pid > 0 {
 		_ = m.currentProc.Kill()
@@ -298,6 +312,11 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 		res.ErrorMessage = fmt.Sprintf("core daemon spawned in sandbox mode (%v)", err)
 	} else {
 		m.currentProc = cmd.Process
+		log.Printf("🚀 [Engine] Core engine %s started with PID %d", target, cmd.Process.Pid)
+		go func(proc *os.Process, eng schema.EngineType) {
+			state, err := proc.Wait()
+			log.Printf("⚠️ [Engine] Core process %s (PID %d) exited: %v (state: %v)", eng, proc.Pid, err, state)
+		}(cmd.Process, target)
 	}
 
 	// Wait briefly for Clash API and DNS readiness

@@ -144,6 +144,14 @@ func parseClashNode(p map[string]any) schema.ProxyNode {
 		node.SNI = getString("sni")
 	}
 
+	// Auto-enable TLS for protocols that inherently require TLS
+	if node.Type == "hysteria2" || node.Type == "hy2" || node.Type == "tuic" || node.Type == "trojan" || node.Type == "anytls" {
+		node.TLS = true
+	}
+	if node.Flow != "" {
+		node.TLS = true
+	}
+
 	if wsOpts, ok := p["ws-opts"].(map[string]any); ok {
 		if path, ok := wsOpts["path"].(string); ok {
 			node.Path = path

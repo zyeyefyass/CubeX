@@ -881,6 +881,97 @@ func (m *Manager) CleanRoutingRules() (*ApplyResult, error) {
 	return res, nil
 }
 
+// CleanAndReapplyRouting performs a thorough cleanup of RouterOS firewall mangle/nat/filter rules,
+// purges conflicting Fake-IP routes, and fully reconfigures pristine subnet-wide gateway & DNS architecture.
+func (m *Manager) CleanAndReapplyRouting(targetIP string) (*ApplyResult, error) {
+	if targetIP == "" {
+		targetIP = m.GetOutboundIP()
+	}
+	if targetIP == "" {
+		targetIP = "10.0.0.11"
+	}
+
+	res := &ApplyResult{
+		Success: true,
+		Actions: make([]string, 0),
+		Errors:  make([]string, 0),
+	}
+
+	// 1. Clean Mangle rules (any with micube or CubeX/MiCube)
+	if data, err := m.QueryROS("/ip/firewall/mangle"); err == nil {
+		var mangles []map[string]any
+		_ = json.Unmarshal(data, &mangles)
+		for _, mg := range mangles {
+			comment, _ := mg["comment"].(string)
+			mark, _ := mg["new-routing-mark"].(string)
+			id, _ := mg[".id"].(string)
+			if (strings.Contains(comment, "CubeX") || strings.Contains(comment, "MiCube") || mark == "micube") && id != "" {
+				if delErr := m.DeleteROS("/ip/firewall/mangle/" + id); delErr == nil {
+					res.Actions = append(res.Actions, "已清理 RouterOS Mangle 策略分流打标规则 (杜绝全局抢流)")
+				}
+			}
+		}
+	}
+
+	// 2. Clean DNS nat hijack rules
+	if data, err := m.QueryROS("/ip/firewall/nat"); err == nil {
+		var nats []map[string]any
+		_ = json.Unmarshal(data, &nats)
+		for _, n := range nats {
+			comment, _ := n["comment"].(string)
+			id, _ := n[".id"].(string)
+			if (strings.Contains(comment, "CubeX") || strings.Contains(comment, "MiCube") || strings.Contains(comment, "DNS")) && id != "" {
+				if toAddr, ok := n["to-addresses"].(string); ok && (toAddr == targetIP || toAddr == "10.0.0.11") {
+					if delErr := m.DeleteROS("/ip/firewall/nat/" + id); delErr == nil {
+						res.Actions = append(res.Actions, "已清理 RouterOS DNS 端口 53 强制劫持规则 (恢复内网 DNS 自由选择)")
+					}
+				}
+			}
+		}
+	}
+
+	// 3. Clean conflicting / stale Fake-IP routes
+	if data, err := m.QueryROS("/ip/route"); err == nil {
+		var routes []map[string]any
+		_ = json.Unmarshal(data, &routes)
+		for _, r := range routes {
+			dst := fmt.Sprintf("%v", r["dst-address"])
+			gw := fmt.Sprintf("%v", r["gateway"])
+			id, _ := r[".id"].(string)
+			table, _ := r["routing-table"].(string)
+			if (table == "" || table == "main") && (dst == "198.18.0.0/16" || strings.HasPrefix(dst, "198.18.")) {
+				if gw != targetIP && id != "" {
+					if delErr := m.DeleteROS("/ip/route/" + id); delErr == nil {
+						res.Actions = append(res.Actions, fmt.Sprintf("已清理失效/冲突 Fake-IP 路由: %s -> %s", dst, gw))
+					}
+				}
+			}
+		}
+	}
+
+	// 4. Now perform full pristine reconfiguration
+	applyRes, err := m.ApplyRouting(targetIP)
+	if err != nil {
+		res.Errors = append(res.Errors, err.Error())
+		res.Success = false
+	} else {
+		res.Actions = append(res.Actions, applyRes.Actions...)
+		if len(applyRes.Errors) > 0 {
+			res.Errors = append(res.Errors, applyRes.Errors...)
+		}
+	}
+
+	if len(res.Errors) > 0 {
+		res.Success = false
+		res.Message = "⚠️ RouterOS 防火墙全量配置部分项目完成，存在部分提示。"
+	} else {
+		res.Success = true
+		res.Message = "🎉 RouterOS 防火墙已全量深度清理并重新配置完毕！已完美就绪同网段任意设备自由选择网关与 DNS！"
+	}
+
+	return res, nil
+}
+
 // GenerateWinBoxScript generates the manual WinBox Terminal command script.
 func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 	if targetIP == "" {
