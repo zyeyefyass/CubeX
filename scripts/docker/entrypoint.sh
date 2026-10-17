@@ -33,8 +33,8 @@ fi
 if [ -w /proc/sys/net/ipv4/ip_forward ]; then
     echo 1 > /proc/sys/net/ipv4/ip_forward 2>/dev/null || true
 fi
-iptables -P FORWARD ACCEPT 2>/dev/null || true
-iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE 2>/dev/null || true
+# Enable SNAT Masquerade for any forwarded traffic exiting container (veth-cubex / eth0 / etc.)
+iptables -t nat -A POSTROUTING -j MASQUERADE 2>/dev/null || true
 
 # 4. Set working directory and listen port
 LISTEN_PORT="${CUBEX_PORT:-2026}"

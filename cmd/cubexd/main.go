@@ -75,6 +75,11 @@ func main() {
 	_ = os.MkdirAll(filepath.Join(dir, "etc"), 0755)
 	_ = os.MkdirAll(filepath.Join(dir, "data"), 0755)
 
+	// Ensure kernel forwarding and NAT Masquerade on Linux (veth / gateway mode)
+	if runtime.GOOS == "linux" {
+		_ = exec.Command("sh", "-c", "echo 1 > /proc/sys/net/ipv4/ip_forward 2>/dev/null; iptables -P FORWARD ACCEPT 2>/dev/null; iptables -t nat -A POSTROUTING -j MASQUERADE 2>/dev/null").Run()
+	}
+
 	// Initialize Universal IR
 	cfgIR := schema.NewDefaultIR()
 
