@@ -25,6 +25,7 @@ data/wireguard.json
 scratch/
 test_screen*.png
 scripts/upload_releases.go
+scripts/*.py
 
 # OS & Editor files
 .DS_Store
@@ -32,5 +33,7 @@ Thumbs.db
 .idea/
 .vscode/
 dist/release/
+dist/docker/
+*.tar
 *.tar.gz
 *.zip

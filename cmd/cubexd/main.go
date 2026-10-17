@@ -65,7 +65,11 @@ func main() {
 		if runtime.GOOS == "windows" {
 			dir = "."
 		} else {
-			dir = "/opt/CubeX"
+			if _, err := os.Stat("/app"); err == nil {
+				dir = "/app"
+			} else {
+				dir = "/opt/CubeX"
+			}
 		}
 	}
 	_ = os.MkdirAll(filepath.Join(dir, "etc"), 0755)

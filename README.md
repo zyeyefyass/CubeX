@@ -341,13 +341,15 @@ docker run -d \
 ```
 
 #### 🌐 方式四：飞牛 Docker 官方应用中心 / 镜像仓库在线搜索拉取
-飞牛 OS 用户如果希望直接在线拉取官方镜像：
+飞牛 OS (fnOS) 的「镜像仓库」默认检索 Docker Hub 官方源，现已官方同步上架：
 1. 打开飞牛【Docker】应用 ➔ 点击左侧【镜像仓库】；
-2. 如果你的网络配置了 Docker 代理加速，或者添加了 GitHub Packages 镜像源，在搜索框中输入：
+2. 在搜索框直接搜索：
    ```text
-   ghcr.io/zyeyefyass/cubex:latest
+   fyasshole/cubex
    ```
-3. 点击【下载】；下载完成后在【本地镜像】中点击【创建容器】即可直接使用！
+   *(亦可搜索兼容源 `fyasshole/micube` 或输入全路径 `ghcr.io/zyeyefyass/cubex:latest`)*；
+3. 选择版本标签（`latest` 或 `Test-v0.99`），点击【下载】；
+4. 下载完成后在【本地镜像】中点击【创建容器】，配置网络为 `Host`，添加特权 `NET_ADMIN` 即可直接使用！
 
 #### ⚡ 方式五：SSH 终端一键全自动嗅探安装
 ```bash

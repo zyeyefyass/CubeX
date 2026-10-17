@@ -5,8 +5,8 @@ services:
   cubex:
     # 镜像地址选择（国内推荐方式）：
     # 方式 A (默认 GHCR): ghcr.io/zyeyefyass/cubex:latest
-    # 方式 B (DockerHub): zyeyefyass/cubex:latest
-    # 方式 C (国内加速/直连): docker.m.daocloud.io/zyeyefyass/cubex:latest
+    # 方式 B (DockerHub 官方公共库): fyasshole/cubex:latest
+    # 方式 C (国内加速/直连): docker.m.daocloud.io/fyasshole/cubex:latest
     # 方式 D (本地导入 .tar): cubex:latest
     image: ghcr.io/zyeyefyass/cubex:latest
     container_name: cubex
