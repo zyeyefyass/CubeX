@@ -300,6 +300,17 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			proxies = append(proxies, "DIRECT")
 		}
 
+		// If g.Now is specified, move it to the front of proxies list so Mihomo selects it by default
+		if g.Now != "" && validTargets[g.Now] {
+			reordered := []string{g.Now}
+			for _, p := range proxies {
+				if p != g.Now {
+					reordered = append(reordered, p)
+				}
+			}
+			proxies = reordered
+		}
+
 		gMap := map[string]any{
 			"name":    g.Name,
 			"type":    gType,

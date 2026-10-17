@@ -85,8 +85,8 @@ func TestBuildSingBox(t *testing.T) {
 	if !strings.Contains(content, "cubex-tun") {
 		t.Errorf("Expected cubex-tun in sing-box config")
 	}
-	if !strings.Contains(content, "7893") {
-		t.Errorf("Expected 7893 tproxy port in sing-box config")
+	if !strings.Contains(content, "mixed-in") {
+		t.Errorf("Expected mixed-in in sing-box config")
 	}
 
 	// Verify device rules
@@ -157,7 +157,7 @@ func TestSingboxDNSLeakPrevention(t *testing.T) {
 		rMap, _ := r.(map[string]any)
 		qTypes, _ := rMap["query_type"].([]any)
 		for _, qt := range qTypes {
-			if qt == "HTTPS" && rMap["action"] == "reject" {
+			if qt == "HTTPS" && (rMap["action"] == "reject" || (rMap["action"] == "predefined" && rMap["rcode"] == "NOERROR")) {
 				hasType65Rule = true
 			}
 			if qt == "A" && rMap["server"] == "dns-fakeip" {

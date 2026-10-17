@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/url"
 	"strconv"
 	"strings"
@@ -11,11 +12,31 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
+func detectDefaultInterface() string {
+	ifaces, err := net.Interfaces()
+	if err == nil {
+		for _, iface := range ifaces {
+			if iface.Flags&net.FlagLoopback != 0 || iface.Flags&net.FlagUp == 0 {
+				continue
+			}
+			name := strings.ToLower(iface.Name)
+			if strings.HasPrefix(name, "tun") || strings.HasPrefix(name, "cubex") || strings.HasPrefix(name, "wg") {
+				continue
+			}
+			addrs, _ := iface.Addrs()
+			if len(addrs) > 0 {
+				return iface.Name
+			}
+		}
+	}
+	return "veth-cubex"
+}
+
 func makeSingboxDNSServer(tag, rawAddr, detour string) map[string]any {
 	serverMap := map[string]any{
 		"tag": tag,
 	}
-	if detour != "" {
+	if detour != "" && detour != "direct" && detour != "DIRECT" {
 		serverMap["detour"] = detour
 	}
 	if strings.HasPrefix(rawAddr, "https://") {
@@ -82,23 +103,41 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		}
 	}
 
-	directServer := makeSingboxDNSServer("dns-direct", directDNSAddr, "")
+	directServer := makeSingboxDNSServer("dns-direct", directDNSAddr, "direct")
+	if directServer["type"] == "udp" && directServer["server_port"] == nil {
+		directServer["server_port"] = 53
+	}
 	remoteServer := makeSingboxDNSServer("dns-remote", remoteDNSAddr, foreignDetour)
+	if remoteServer["type"] == "https" && remoteServer["server_port"] == nil {
+		remoteServer["server_port"] = 443
+	}
 
 	cfg["dns"] = map[string]any{
 		"servers": []map[string]any{
-			directServer,
 			{
-				"type":        "fakeip",
+				"tag":  "dns-local",
+				"type": "local",
+			},
+			directServer,
+			remoteServer,
+			{
 				"tag":         "dns-fakeip",
+				"type":        "fakeip",
 				"inet4_range": "198.18.0.0/15",
 			},
-			remoteServer,
 		},
 		"rules": []map[string]any{
 			{
-				"action":     "predefined",
+				"domain_suffix": []string{".lan", ".local", ".home", ".internal", ".home.arpa"},
+				"server":        "dns-local",
+			},
+			{
+				"domain_regex": []string{"^[^.]+$"},
+				"server":       "dns-local",
+			},
+			{
 				"query_type": []string{"HTTPS", "SVCB"},
+				"action":     "predefined",
 				"rcode":      "NOERROR",
 			},
 			{
@@ -110,9 +149,18 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"server":     "dns-fakeip",
 			},
 			{
-				"rule_set":      []string{"geosite-cn"},
-				"domain_suffix": []string{".cn", "bilibili.com", "baidu.com", "qq.com", "taobao.com", "jd.com", "alipay.com", "163.com"},
-				"server":        "dns-direct",
+				"domain_suffix": []string{
+					".cn",
+					"bilibili.com",
+					"baidu.com",
+					"qq.com",
+					"taobao.com",
+					"jd.com",
+					"alipay.com",
+					"163.com",
+				},
+				"rule_set": []string{"geosite-cn"},
+				"server":   "dns-direct",
 			},
 			{
 				"query_type": []string{"A", "AAAA"},
@@ -124,19 +172,14 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"strategy":        "prefer_ipv4",
 	}
 
-	dnsPort := net.DNSPort
-	if dnsPort == 0 {
-		dnsPort = 53
-	}
-
 	tunMTU := net.TunMTU
 	if tunMTU <= 0 || tunMTU > 1500 {
 		tunMTU = 1500
 	}
 
 	tunStack := net.TunStack
-	if tunStack == "" || tunStack == "mixed" {
-		tunStack = "system"
+	if tunStack == "" {
+		tunStack = "mixed"
 	}
 
 	inbounds := []map[string]any{
@@ -147,28 +190,30 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			"address":        []string{net.TunIPv4},
 			"mtu":            tunMTU,
 			"auto_route":     true,
-			"strict_route":   false,
-			"dns_mode":       "hijack",
-			"udp_timeout":    "60s",
+			"auto_redirect":  false,
+			"strict_route":   true,
 			"stack":          tunStack,
-		},
-		{
-			"type":        "direct",
-			"tag":         "dns-in",
-			"listen":      "0.0.0.0",
-			"listen_port": dnsPort,
-		},
-		{
-			"type":        "tproxy",
-			"tag":         "tproxy-in",
-			"listen":      "0.0.0.0",
-			"listen_port": net.TProxyPort,
+			"udp_timeout":    "60s",
+			"route_exclude_address": []string{
+				"10.0.0.0/8",
+				"100.64.0.0/10",
+				"169.254.0.0/16",
+				"172.16.0.0/12",
+				"192.168.0.0/16",
+				"224.0.0.0/4",
+			},
 		},
 		{
 			"type":        "mixed",
 			"tag":         "mixed-in",
 			"listen":      "0.0.0.0",
 			"listen_port": net.MixedPort,
+		},
+		{
+			"type":        "direct",
+			"tag":         "dns-in",
+			"listen":      "0.0.0.0",
+			"listen_port": 53,
 		},
 	}
 	cfg["inbounds"] = inbounds
@@ -452,6 +497,8 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"protocol": "dns",
 		"action":   "hijack-dns",
 	})
+
+	// B. Direct Private IP & NTP (Port 123)
 	routeRules = append(routeRules, map[string]any{
 		"ip_is_private": true,
 		"outbound":      "direct",
@@ -462,7 +509,37 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"outbound": "direct",
 	})
 
-	// B. Device Policies (Top Priority)
+	// C. Node Server Domains & IPs Anti-Looping Bypass
+	nodeDomains := make([]string, 0)
+	nodeIPs := make([]string, 0)
+	for _, p := range ir.Proxies {
+		if p.Server == "" {
+			continue
+		}
+		if strings.Contains(p.Server, ":") || (strings.Count(p.Server, ".") == 3 && !strings.ContainsAny(p.Server, "abcdefghijklmnopqrstuvwxyz")) {
+			cidr := p.Server
+			if !strings.Contains(cidr, "/") {
+				cidr = cidr + "/32"
+			}
+			nodeIPs = append(nodeIPs, cidr)
+		} else {
+			nodeDomains = append(nodeDomains, p.Server)
+		}
+	}
+	if len(nodeDomains) > 0 || len(nodeIPs) > 0 {
+		nodeRule := map[string]any{
+			"outbound": "direct",
+		}
+		if len(nodeDomains) > 0 {
+			nodeRule["domain"] = nodeDomains
+		}
+		if len(nodeIPs) > 0 {
+			nodeRule["ip_cidr"] = nodeIPs
+		}
+		routeRules = append(routeRules, nodeRule)
+	}
+
+	// D. Device Policies (Top Priority)
 	for _, dev := range ir.DevicePolicies {
 		cidr := dev.IP
 		if !strings.Contains(cidr, "/") {
@@ -481,52 +558,75 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		}
 	}
 
-	// C. Adaptive SRS Rule-Set Interception (Adblock & Anti-Tracking native sing-box)
+	// E. Adaptive SRS Rule-Set Interception (Adblock & Anti-Tracking native sing-box)
 	routeRules = append(routeRules, map[string]any{
 		"rule_set": []string{"217heidai-ads", "privacy-tracking"},
-		"outbound": "block",
+		"action":   "reject",
+	})
+
+	// F. Domestic Direct Routing (geosite-cn + Pure-IP GeoIP Isolation)
+	routeRules = append(routeRules, map[string]any{
+		"rule_set": []string{"geosite-cn"},
+		"outbound": "direct",
 	})
 	routeRules = append(routeRules, map[string]any{
-		"rule_set": []string{"geosite-cn", "geoip-cn"},
+		"type":   "logical",
+		"mode":   "and",
+		"invert": false,
+		"rules": []map[string]any{
+			{
+				"domain_regex": []string{"^[^:]*[a-z][^:]*$"},
+				"invert":       true,
+			},
+			{
+				"rule_set": []string{"geoip-cn"},
+			},
+		},
 		"outbound": "direct",
 	})
 
-	// C1.5. Intercept foreign UDP 443/8443 (QUIC) to prevent ISP UDP QoS throttling and force BBR TCP
+	// G. Foreign QUIC (UDP 443) Targeted Interception (Forces fallback to high-speed TCP)
 	routeRules = append(routeRules, map[string]any{
-		"network":  []string{"udp"},
-		"port":     []int{443, 8443},
-		"outbound": "block",
+		"type": "logical",
+		"mode": "and",
+		"rules": []map[string]any{
+			{
+				"network": "udp",
+				"port":    443,
+			},
+		},
+		"action": "reject",
 	})
 
-	// C2. Application / Business routing groups for Sing-box
-	if validOutbounds["Google"] {
+	// H. 11 Major Business Strategy Groups (Comprehensive Domain Matching)
+	if validOutbounds["AI"] {
 		routeRules = append(routeRules, map[string]any{
-			"domain_suffix": []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "googlevideo.com"},
-			"outbound":      "Google",
+			"domain_suffix": []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "oaistatic.com", "oaiusercontent.com", "perplexity.ai", "gemini.google.com"},
+			"outbound":      "AI",
 		})
 	}
 	if validOutbounds["YouTube"] {
 		routeRules = append(routeRules, map[string]any{
-			"domain_suffix": []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be"},
+			"domain_suffix": []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com"},
 			"outbound":      "YouTube",
 		})
 	}
-	if validOutbounds["AI"] {
+	if validOutbounds["Google"] {
 		routeRules = append(routeRules, map[string]any{
-			"domain_suffix": []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "oaistatic.com", "oaiusercontent.com"},
-			"outbound":      "AI",
+			"domain_suffix": []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "googlevideo.com", "ggpht.com"},
+			"outbound":      "Google",
+		})
+	}
+	if validOutbounds["GitHub & Docker"] {
+		routeRules = append(routeRules, map[string]any{
+			"domain_suffix": []string{"github.com", "githubusercontent.com", "docker.com", "docker.io", "ghcr.io"},
+			"outbound":      "GitHub & Docker",
 		})
 	}
 	if validOutbounds["Telegram"] {
 		routeRules = append(routeRules, map[string]any{
 			"domain_suffix": []string{"telegram.org", "t.me", "telegram.me", "telegra.ph"},
 			"outbound":      "Telegram",
-		})
-	}
-	if validOutbounds["GitHub & Docker"] {
-		routeRules = append(routeRules, map[string]any{
-			"domain_suffix": []string{"github.com", "githubusercontent.com", "docker.com", "docker.io"},
-			"outbound":      "GitHub & Docker",
 		})
 	}
 	if validOutbounds["Twitter (X)"] {
@@ -537,24 +637,36 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 	if validOutbounds["Netflix & 流媒体"] {
 		routeRules = append(routeRules, map[string]any{
-			"domain_suffix": []string{"netflix.com", "netflix.net", "nflximg.net", "nflxvideo.net", "nflxso.net", "nflxext.com"},
+			"domain_suffix": []string{"netflix.com", "netflix.net", "nflximg.net", "nflxvideo.net", "nflxso.net", "nflxext.com", "disneyplus.com", "hbo.com"},
 			"outbound":      "Netflix & 流媒体",
 		})
 	}
 	if validOutbounds["Apple 服务"] {
 		routeRules = append(routeRules, map[string]any{
-			"domain_suffix": []string{"apple.com", "icloud.com", "aaplimg.com"},
+			"domain_suffix": []string{"apple.com", "icloud.com", "aaplimg.com", "itunes.com"},
 			"outbound":      "Apple 服务",
 		})
 	}
 	if validOutbounds["Microsoft"] {
 		routeRules = append(routeRules, map[string]any{
-			"domain_suffix": []string{"microsoft.com", "windows.com", "live.com", "office.com", "azure.com"},
+			"domain_suffix": []string{"microsoft.com", "windows.com", "live.com", "office.com", "azure.com", "msftconnecttest.com"},
 			"outbound":      "Microsoft",
 		})
 	}
+	if validOutbounds["Spotify"] {
+		routeRules = append(routeRules, map[string]any{
+			"domain_suffix": []string{"spotify.com", "scdn.co", "spoti.fi"},
+			"outbound":      "Spotify",
+		})
+	}
+	if validOutbounds["Steam 游戏"] {
+		routeRules = append(routeRules, map[string]any{
+			"domain_suffix": []string{"steampowered.com", "steamcommunity.com", "steamgames.com", "steamusercontent.com", "steamcontent.com"},
+			"outbound":      "Steam 游戏",
+		})
+	}
 
-	// D. Generic Rules
+	// I. Custom / User Defined Generic Rules (Deduplicated)
 	for _, r := range ir.Rules {
 		rType := strings.ToLower(r.Type)
 		targetOutbound := r.Target
@@ -570,6 +682,15 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			}
 		}
 
+		// Deduplicate built-in rules
+		val := strings.ToLower(r.Value)
+		if (rType == "geosite" && (val == "cn" || strings.Contains(val, "ad"))) ||
+			(rType == "geoip" && (val == "cn" || val == "private")) ||
+			(rType == "port" && (val == "443" || val == "80" || val == "123")) ||
+			rType == "match" || rType == "final" {
+			continue
+		}
+
 		ruleMap := map[string]any{
 			"outbound": targetOutbound,
 		}
@@ -581,26 +702,12 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			ruleMap["domain_suffix"] = []string{r.Value}
 		case "domain_keyword", "domain-keyword":
 			ruleMap["domain_keyword"] = []string{r.Value}
-		case "geosite":
-			val := strings.ToLower(r.Value)
-			if strings.Contains(val, "ad") {
-				ruleMap["rule_set"] = []string{"217heidai-ads"}
-			} else if val == "cn" {
-				ruleMap["rule_set"] = []string{"geosite-cn"}
-			}
-		case "geoip":
-			val := strings.ToLower(r.Value)
-			if val == "cn" {
-				ruleMap["rule_set"] = []string{"geoip-cn"}
-			}
 		case "ip_cidr", "ip-cidr":
 			ruleMap["ip_cidr"] = []string{r.Value}
 		case "src_ip_cidr", "src-ip-cidr":
 			ruleMap["source_ip_cidr"] = []string{r.Value}
 		case "rule_set", "rule-set":
 			ruleMap["rule_set"] = []string{r.Value}
-		case "port":
-			ruleMap["port"] = []int{80, 443}
 		}
 
 		if len(ruleMap) > 1 {
@@ -614,10 +721,11 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	cfg["route"] = map[string]any{
+		"auto_detect_interface":   false,
+		"default_interface":       detectDefaultInterface(),
 		"default_domain_resolver": "dns-direct",
 		"rule_set":                ruleSets,
 		"rules":                   routeRules,
-		"auto_detect_interface":   true,
 		"final":                   finalOutbound,
 	}
 
