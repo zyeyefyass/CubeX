@@ -97,8 +97,9 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		},
 		"rules": []map[string]any{
 			{
+				"action":     "predefined",
 				"query_type": []string{"HTTPS", "SVCB"},
-				"action":     "reject",
+				"rcode":      "NOERROR",
 			},
 			{
 				"clash_mode": "direct",
@@ -118,8 +119,9 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"server":     "dns-fakeip",
 			},
 		},
-		"final":    "dns-remote",
-		"strategy": "prefer_ipv4",
+		"final":           "dns-remote",
+		"reverse_mapping": true,
+		"strategy":        "prefer_ipv4",
 	}
 
 	dnsPort := net.DNSPort
@@ -146,6 +148,8 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			"mtu":            tunMTU,
 			"auto_route":     true,
 			"strict_route":   false,
+			"dns_mode":       "hijack",
+			"udp_timeout":    "60s",
 			"stack":          tunStack,
 		},
 		{
@@ -396,7 +400,10 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			gOutbound["interval"] = fmt.Sprintf("%ds", interval)
 			if g.Tolerance > 0 {
 				gOutbound["tolerance"] = g.Tolerance
+			} else {
+				gOutbound["tolerance"] = 50
 			}
+			gOutbound["idle_timeout"] = "12h"
 		}
 
 		outbounds = append(outbounds, gOutbound)
@@ -444,6 +451,15 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	routeRules = append(routeRules, map[string]any{
 		"protocol": "dns",
 		"action":   "hijack-dns",
+	})
+	routeRules = append(routeRules, map[string]any{
+		"ip_is_private": true,
+		"outbound":      "direct",
+	})
+	routeRules = append(routeRules, map[string]any{
+		"network":  []string{"udp"},
+		"port":     []int{123},
+		"outbound": "direct",
 	})
 
 	// B. Device Policies (Top Priority)
@@ -605,8 +621,13 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"final":                   finalOutbound,
 	}
 
-	// 5. Experimental Clash API (1:1 state sync)
+	// 5. Experimental Clash API & Cache DB (with persistent store_fakeip)
 	cfg["experimental"] = map[string]any{
+		"cache_file": map[string]any{
+			"enabled":      true,
+			"path":         "/app/etc/cache.db",
+			"store_fakeip": true,
+		},
 		"clash_api": map[string]any{
 			"external_controller": fmt.Sprintf("0.0.0.0:%d", net.ClashAPIPort),
 			"secret":              net.ClashSecret,
