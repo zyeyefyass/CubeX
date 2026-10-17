@@ -24,7 +24,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"tproxy-port":         net.TProxyPort,
 		"allow-lan":           net.AllowLAN,
 		"mode":                string(ir.Meta.ProxyMode),
-		"log-level":           ir.Meta.LogLevel,
+		"log-level":           "warning",
 		"ipv6":                net.IPv6,
 		"external-controller": fmt.Sprintf("0.0.0.0:%d", net.ClashAPIPort),
 		"secret":              net.ClashSecret,
@@ -32,6 +32,8 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"tcp-concurrent":      true,
 		"geodata-mode":        true,
 		"find-process-mode":   "strict",
+		"keep-alive-idle":     600,
+		"keep-alive-interval": 15,
 	}
 
 	tunMTU := net.TunMTU
@@ -39,10 +41,15 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		tunMTU = 1500
 	}
 
-	// TUN Configuration
+	tunStack := net.TunStack
+	if tunStack == "" || tunStack == "mixed" {
+		tunStack = "system"
+	}
+
+	// TUN Configuration (Zero-copy kernel stack)
 	cfg["tun"] = map[string]any{
 		"enable":                   true,
-		"stack":                    net.TunStack,
+		"stack":                    tunStack,
 		"device":                   net.TunInterface,
 		"auto-route":               true,
 		"auto-detect-interface":    true,
@@ -55,59 +62,73 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		},
 	}
 
-	// Sniffer (Mihomo v1.19+ standard syntax with string port ranges)
+	// Sniffer (Disabled by default to eliminate CPU overhead and TLS handshake latency)
 	cfg["sniffer"] = map[string]any{
-		"enable":               true,
-		"force-dns-mapping":    true,
+		"enable":               false,
+		"force-dns-mapping":    false,
 		"parse-pure-ip":        true,
 		"override-destination": false,
 		"sniff": map[string]any{
-			"HTTP": map[string]any{"ports": []any{80, "8080-8880"}, "override-destination": true},
-			"TLS":  map[string]any{"ports": []int{443, 8443}, "override-destination": true},
-			"QUIC": map[string]any{"ports": []int{443, 8443}, "override-destination": true},
+			"HTTP": map[string]any{"ports": []any{80, "8080-8880"}},
+			"TLS":  map[string]any{"ports": []int{443, 8443}},
+			"QUIC": map[string]any{"ports": []int{443, 8443}},
 		},
 		"skip-domain": []string{
 			"Mijia Cloud",
 			"dlg.io.mi.com",
 			"+.apple.com",
+			"+.push.apple.com",
 		},
 	}
 
-	// DNS Configuration (Mihomo v1.19+ anti-leak & proxy-server bootstrap)
-	remoteDNSList := make([]string, 0, len(dns.RemoteDNS))
-	for _, u := range dns.RemoteDNS {
-		if (strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "tls://")) && !strings.Contains(u, "#") {
-			remoteDNSList = append(remoteDNSList, u+"#disable-qtype-65=true")
-		} else {
-			remoteDNSList = append(remoteDNSList, u)
-		}
-	}
-	fallbackDNSList := make([]string, 0, len(dns.FallbackDNS))
-	for _, u := range dns.FallbackDNS {
-		if (strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "tls://")) && !strings.Contains(u, "#") {
-			fallbackDNSList = append(fallbackDNSList, u+"#disable-qtype-65=true")
-		} else {
-			fallbackDNSList = append(fallbackDNSList, u)
+	// Determine outbound proxy group for remote DoH queries
+	foreignGroup := "🐟 漏网之鱼"
+	for _, g := range ir.Groups {
+		if g.Name == "🚀 国外" || g.Name == "🐟 漏网之鱼" || g.Name == "PROXY" {
+			foreignGroup = g.Name
+			break
 		}
 	}
 
+	// DNS Configuration (Mihomo v1.19+ anti-leak & proxy-server bootstrap)
 	dnsPort := net.DNSPort
 	if dnsPort == 0 || dnsPort == 1053 {
 		dnsPort = 53
 	}
+
+	remoteDNSList := []string{
+		fmt.Sprintf("https://8.8.8.8/dns-query#%s&ecs=223.5.5.0/24&disable-qtype-65=true", foreignGroup),
+	}
+	fallbackDNSList := []string{
+		fmt.Sprintf("https://8.8.8.8/dns-query#%s&disable-qtype-65=true", foreignGroup),
+	}
+
 	dnsMap := map[string]any{
-		"enable":                  true,
-		"listen":                  fmt.Sprintf("0.0.0.0:%d", dnsPort),
-		"ipv6":                    net.IPv6,
-		"enhanced-mode":           "fake-ip",
-		"fake-ip-range":           dns.FakeIPRange,
-		"fake-ip-filter":          dns.FakeIPFilter,
-		"default-nameserver":      dns.DirectDNS,
-		"proxy-server-nameserver": dns.DirectDNS,
-		"direct-nameserver":       dns.DirectDNS,
-		"nameserver":              remoteDNSList,
-		"fallback":                fallbackDNSList,
-		"respect-rules":           true,
+		"enable":             true,
+		"cache-algorithm":    "arc",
+		"cache-size":         4096,
+		"listen":             fmt.Sprintf("0.0.0.0:%d", dnsPort),
+		"ipv6":               net.IPv6,
+		"enhanced-mode":      "fake-ip",
+		"fake-ip-range":      dns.FakeIPRange,
+		"fake-ip-filter":     dns.FakeIPFilter,
+		"default-nameserver": []string{
+			"https://223.5.5.5/dns-query",
+			"223.5.5.5",
+			"119.29.29.29",
+		},
+		"proxy-server-nameserver": []string{
+			"https://dns.alidns.com/dns-query",
+			"https://doh.pub/dns-query",
+			"223.5.5.5",
+		},
+		"direct-nameserver": []string{
+			"https://dns.alidns.com/dns-query",
+			"https://doh.pub/dns-query",
+		},
+		"nameserver":    remoteDNSList,
+		"fallback":      fallbackDNSList,
+		"respect-rules": true,
 		"fallback-filter": map[string]any{
 			"geoip":      true,
 			"geoip-code": "CN",
@@ -116,7 +137,10 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			},
 		},
 		"nameserver-policy": map[string]any{
-			"geosite:cn,private": dns.DirectDNS,
+			"geosite:cn,private": []string{
+				"https://dns.alidns.com/dns-query#disable-qtype-65=true",
+				"https://doh.pub/dns-query#disable-qtype-65=true",
+			},
 		},
 	}
 	cfg["dns"] = dnsMap
@@ -290,8 +314,11 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			if g.Interval == 0 {
 				gMap["interval"] = 300
 			}
+			gMap["lazy"] = true
 			if g.Tolerance > 0 {
 				gMap["tolerance"] = g.Tolerance
+			} else if gType == "url-test" {
+				gMap["tolerance"] = 50
 			}
 		}
 		groupsList = append(groupsList, gMap)
@@ -382,6 +409,15 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	// Intercept foreign UDP 443/8443 (QUIC) to prevent ISP UDP QoS throttling and force BBR TCP
 	rulesList = append(rulesList, "AND,((NETWORK,udp),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT")
+
+	// 2a. YouTube Video Streaming High-Speed Direct Rules
+	if validTargets["YouTube"] {
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,googlevideo.com,YouTube")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,ytimg.com,YouTube")
+		rulesList = append(rulesList, "DOMAIN-KEYWORD,googlevideo,YouTube")
+		rulesList = append(rulesList, "DOMAIN-KEYWORD,sponsorblock,YouTube")
+		rulesList = append(rulesList, "DOMAIN,youtubei.googleapis.com,YouTube")
+	}
 
 	// 2b. Business Service Rule-Sets
 	for _, bm := range bizMRS {

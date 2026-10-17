@@ -2,8 +2,8 @@
 
   <img src="logo-cubex.svg" width="140" height="140" alt="CubeX 3D Cyber Aurora Crystal Logo" />
 
-  # 🌌 CubeX · 次世代双擎高可用旁路网关系统
-  ### *终结软路由派系内耗 · 毫秒级零断流热切 · 容器化主旁一体 · 软路由的天花板*
+  # 🌌 CubeX · 宿主寄生旁路透明代理系统 (Host-Parasitic Sidecar Gateway)
+  ### *告别臃肿虚拟机 · 300ms 极速冷启 · 18MB 极限开销 · 与 RouterOS/PVE 宿主机融为一体的极客巅峰*
 
   [![Version](https://img.shields.io/badge/Release-Test_v0.999-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
   [![License](https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield)](COPYRIGHT.md)
@@ -31,6 +31,7 @@
 
 ## ⚡ 目录索引 (Quick Navigation)
 
+- [🧬 核心定性：为什么是“宿主寄生透明代理系统”？](#-核心定性为什么是宿主寄生透明代理系统)
 - [💡 设计哲学：为什么需要 CubeX？](#-设计哲学为什么需要-cubex)
 - [🔥 传统旁路由的“六大死穴”与 CubeX 降维破局](#-传统旁路由的六大死穴与-cubex-降维破局)
 - [🐳 容器化“主旁一体”的终极优越性](#-容器化主旁一体的终极优越性)
@@ -39,6 +40,18 @@
 - [📸 四大核心驾驶舱实机功能全览](#-四大核心驾驶舱实机功能全览)
 - [🚀 极速部署：自动嗅探与一键拉起 (飞牛 fnOS 专属适配)](#-极速部署自动嗅探与一键拉起)
 - [🗺️ 版本进化路线图 (Release Roadmap)](#-版本进化路线图)
+
+---
+
+## 🧬 核心定性：为什么是“宿主寄生透明代理系统”？(The Parasitic Architecture)
+
+在软路由与家庭网络演进史上，传统旁路由方案一直背负着难以克服的沉重历史包袱：
+* **传统旁路由之痛**：为了一个科学上网透明分流，用户不得不额外安装臃肿的 OpenWrt 虚拟机，动辄划分 1~2GB 内存与独立虚拟磁盘，忍受 30~60 秒的龟速冷启动，还要在主副路由之间折腾复杂的双网关与 DNS 回环，一旦虚拟机卡死全家断网！
+* **CubeX 寄生革命**：
+  * **宿主共生，微核轻量**：CubeX 以极简微容器形态直接“寄生”在 MikroTik RouterOS、PVE LXC 或飞牛 Linux 宿主机网络命名空间中，**内存开销低至 18MB ~ 40MB**！
+  * **300ms 极客冷启**：得益于纯 Go 独立自研单二进制架构，无需引导完整操作系统内核，容器拉起到全量接管网络仅需 **300 毫秒**！
+  * **零拷贝原生内核直通 (`tun.stack: system`)**：彻底颠覆传统用户态 gVisor 协议栈的 CPU 瓶颈，直接共享宿主机 Linux 内核高性能 Socket，吞吐直达千兆/万兆硬件极限！
+  * **主旁天衣无缝协同**：宿主机负责硬件主路由、DHCP 与 FastTrack 极速直通；国内与直连流量在宿主机入口直接放行（完全不经过容器内核），跨境加密流量由寄生微核透明接管解密，主旁融为一体，带来极致的极客巅峰爽感！
 
 ---
 

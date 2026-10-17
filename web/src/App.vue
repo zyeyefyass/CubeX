@@ -42,9 +42,14 @@
                 CubeX
               </h1>
             </div>
-            <p class="text-[8.5px] tracking-[0.2em] font-mono font-semibold uppercase text-cyan-400/80">
-              DUAL-ENGINE CYBER GATEWAY
+            <p class="text-[8px] tracking-[0.16em] font-mono font-semibold uppercase text-cyan-400/80">
+              PARASITIC SIDECAR GATEWAY
             </p>
+            <div class="flex items-center justify-center pt-0.5">
+              <span class="text-[9.5px] px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 font-medium scale-95 shadow-sm">
+                宿主寄生旁路透明系统
+              </span>
+            </div>
 
             <!-- 宿主机官方矢量 Logo + 型号版本 + 在线心跳 (放大至官网级高保真展示) -->
             <div class="pt-2.5">

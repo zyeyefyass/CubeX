@@ -73,8 +73,17 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		remoteDNSAddr = dns.RemoteDNS[0]
 	}
 
+	// Find foreign outbound group tag for remote DNS tunnel detour
+	foreignDetour := "🐟 漏网之鱼"
+	for _, g := range ir.Groups {
+		if g.Name == "🚀 国外" || g.Name == "🐟 漏网之鱼" || g.Name == "PROXY" {
+			foreignDetour = g.Name
+			break
+		}
+	}
+
 	directServer := makeSingboxDNSServer("dns-direct", directDNSAddr, "")
-	remoteServer := makeSingboxDNSServer("dns-remote", remoteDNSAddr, "")
+	remoteServer := makeSingboxDNSServer("dns-remote", remoteDNSAddr, foreignDetour)
 
 	cfg["dns"] = map[string]any{
 		"servers": []map[string]any{
@@ -123,6 +132,11 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		tunMTU = 1500
 	}
 
+	tunStack := net.TunStack
+	if tunStack == "" || tunStack == "mixed" {
+		tunStack = "system"
+	}
+
 	inbounds := []map[string]any{
 		{
 			"type":           "tun",
@@ -132,7 +146,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			"mtu":            tunMTU,
 			"auto_route":     true,
 			"strict_route":   false,
-			"stack":          net.TunStack,
+			"stack":          tunStack,
 		},
 		{
 			"type":        "direct",
