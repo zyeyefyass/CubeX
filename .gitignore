@@ -24,6 +24,7 @@ data/wireguard.json
 # Local test scratch
 scratch/
 test_screen*.png
+scripts/upload_releases.go
 
 # OS & Editor files
 .DS_Store

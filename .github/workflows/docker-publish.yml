@@ -54,6 +54,33 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Prepare Multi-Arch Embedded Cores & Rulesets
+        run: |
+          mkdir -p bin/amd64 bin/arm64 etc/rules data
+
+          echo "Downloading official Mihomo v1.19.32 binaries..."
+          curl -sL https://github.com/MetaCubeX/mihomo/releases/download/v1.19.32/mihomo-linux-amd64-v1.19.32.gz | gzip -d > bin/amd64/mihomo
+          curl -sL https://github.com/MetaCubeX/mihomo/releases/download/v1.19.32/mihomo-linux-arm64-v1.19.32.gz | gzip -d > bin/arm64/mihomo
+          chmod +x bin/amd64/mihomo bin/arm64/mihomo
+
+          echo "Downloading official sing-box v1.14.3 binaries..."
+          curl -sL https://github.com/SagerNet/sing-box/releases/download/v1.14.3/sing-box-1.14.3-linux-amd64.tar.gz | tar -xz -C /tmp
+          mv /tmp/sing-box-*/sing-box bin/amd64/sing-box
+          rm -rf /tmp/sing-box-*
+          curl -sL https://github.com/SagerNet/sing-box/releases/download/v1.14.3/sing-box-1.14.3-linux-arm64.tar.gz | tar -xz -C /tmp
+          mv /tmp/sing-box-*/sing-box bin/arm64/sing-box
+          rm -rf /tmp/sing-box-*
+          chmod +x bin/amd64/sing-box bin/arm64/sing-box
+
+          echo "Downloading GeoIP and GeoSite rulesets..."
+          curl -sLo etc/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
+          curl -sLo etc/geosite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          curl -sLo etc/GeoIP.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat
+
+          # Initialize default fallback data
+          touch etc/config.yaml etc/config.json
+          echo "{}" > data/config.ir.json
+
       - name: Build and Push Multi-Arch Docker Image
         uses: docker/build-push-action@v5
         with:
