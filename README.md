@@ -325,9 +325,92 @@ curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | 
 
 ---
 
-### ⚡ 三、通用 Linux / PVE LXC 极速部署
+### 🖥️ 三、Proxmox VE (PVE) CT (LXC) 容器部署指南 (极致轻盈 · 20MB 内存占用)
 
-在任何 Ubuntu / Debian / PVE 终端执行一行命令：
+> 💡 **为什么 PVE 强烈推荐 CT (LXC) 容器而非 KVM 虚拟机？**  
+> • **几乎零虚拟化损耗**：直接共享 PVE 宿主机 Linux 内核与网络协议栈，千兆/万兆跑满毫无多层封装损耗；  
+> • **内存极致节省**：KVM 虚拟机需常驻 1GB~2GB RAM，而 CubeX CT 容器**常驻仅需 18MB ~ 25MB**！  
+> • **秒级启停**：启动仅需 1 秒，备份恢复极度迅捷。
+
+#### 🌟 方式一：PVE Web 控制台可视化部署 (推荐小白)
+
+##### 步骤 ①：准备 CT 模板
+在 PVE Web 界面点击存储节点（如 `local`）➔ 进入 **【CT 模板】** ➔ 点击 **【模板】** ➔ 下载 `debian-12-standard`（推荐）或 `ubuntu-24.04-standard`。
+
+##### 步骤 ②：创建 CT 容器 (⚠️ 关键避坑设置)
+点击右上角 **【创建 CT】**：
+* **常规**：设置主机名（如 `cubex`），设置 root 密码；  
+  👉 **【核心避坑】务必取消勾选「无特权容器」(Unprivileged container)！必须为特权容器 (Privileged)**（接管网络与创建 TUN 网卡必需）；
+* **模板**：选择刚才下载的 `debian-12` 模板；
+* **磁盘**：分配 `4GB` 空间足够；
+* **CPU / 内存**：分配 `1~2` 核 CPU，内存给 `512MB`（实际常驻仅 20MB）；
+* **网络**：网桥选 `vmbr0`，IPv4 选 **静态 (Static)**，填入局域网规划 IP（如 `192.168.88.241/24`），网关填主路由（如 `192.168.88.1`）。
+
+##### 步骤 ③：向容器注入 TUN 穿透权限 (仅需在 PVE 宿主执行一次)
+在 PVE 宿主机本身的 **【Shell】** 执行以下命令（假设新建的 CT ID 为 `108`）：
+```bash
+# 1. 确保 PVE 节点已加载 tun 内核模块
+modprobe tun
+echo "tun" >> /etc/modules-load.d/cubex-tun.conf
+
+# 2. 向该 CT 注入 TUN 网卡与特权权限
+cat <<EOF >> /etc/pve/lxc/108.conf
+lxc.cgroup2.devices.allow: c 10:200 rwm
+lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
+EOF
+```
+
+##### 步骤 ④：启动 CT 并一键拉起 CubeX
+1. 启动该容器，进入容器的 **【控制台】(Console)**；
+2. 输入 `root` 及密码登录，执行一行命令：
+```bash
+curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | bash
+```
+脚本自动嗅探 PVE LXC 环境，释放核心包与 217heidai 规则库，注册 `cubex.service` 自动自愈守护启动！
+
+---
+
+#### ⚡ 方式二：PVE 宿主机终端 1 行 CLI 脚本全自动拉起 (极客一键流)
+
+直接在 PVE 宿主机的 **Shell** 里粘贴以下脚本，全自动完成下载模板、创建特权容器、开启 TUN、拉起 CubeX：
+
+```bash
+CT_ID=108
+CT_IP="192.168.88.241/24"
+GW_IP="192.168.88.1"
+
+# 1. 下载模板并创建特权容器
+pveam update && pveam download local debian-12-standard_12.7-1_amd64.tar.zst || true
+TMPL=$(ls -t /var/lib/vz/template/cache/debian-12-standard*.tar.zst | head -1)
+
+pct create $CT_ID $TMPL \
+  --hostname cubex \
+  --memory 512 \
+  --cores 2 \
+  --rootfs local-lvm:4 \
+  --net0 name=eth0,bridge=vmbr0,ip=$CT_IP,gw=$GW_IP \
+  --unprivileged 0 \
+  --features nesting=1 \
+  --start 0
+
+# 2. 注入 TUN 设备穿透
+modprobe tun && echo "tun" >> /etc/modules-load.d/cubex-tun.conf
+cat <<EOF >> /etc/pve/lxc/${CT_ID}.conf
+lxc.cgroup2.devices.allow: c 10:200 rwm
+lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
+EOF
+
+# 3. 启动容器并一键部署
+pct start $CT_ID
+sleep 3
+pct exec $CT_ID -- bash -c "curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | bash -s -- -y"
+```
+
+---
+
+### 🐧 四、通用 Linux (Ubuntu / Debian / OpenWrt) 极速部署
+
+在任何裸机或虚拟机终端执行一行命令：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | bash
