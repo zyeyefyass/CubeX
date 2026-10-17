@@ -15,11 +15,12 @@ func TestRegionAndBusinessGroupsSync(t *testing.T) {
 		{Name: "🇭🇰 香港 02 [CN2 GIA]", Type: "ss", Server: "1.1.1.2", Port: 8388},
 		{Name: "🇹🇼 台湾 01 [Hinet]", Type: "ss", Server: "1.1.1.3", Port: 8388},
 		{Name: "🇸🇬 新加坡 01 [AWS]", Type: "ss", Server: "1.1.1.4", Port: 8388},
-		{Name: "🇯🇵 日本东京 01", Type: "ss", Server: "1.1.1.5", Port: 8388},
-		{Name: "🇰🇷 韩国首尔 01", Type: "ss", Server: "1.1.1.6", Port: 8388},
-		{Name: "🇺🇸 美国洛杉矶 01", Type: "ss", Server: "1.1.1.7", Port: 8388},
-		{Name: "🇬🇧 英国伦敦 01", Type: "ss", Server: "1.1.1.8", Port: 8388},
-		{Name: "🇩🇪 德国法兰克福 01", Type: "ss", Server: "1.1.1.9", Port: 8388},
+		{Name: "[HHost-JP] 🇯🇵 cloud xtls-reality", Type: "vless", Server: "1.1.1.5", Port: 8388},
+		{Name: "[Mtice] 🇯🇵 日本东京 01", Type: "ss", Server: "1.1.1.6", Port: 8388},
+		{Name: "🇰🇷 韩国首尔 01", Type: "ss", Server: "1.1.1.7", Port: 8388},
+		{Name: "🇺🇸 美国洛杉矶 01", Type: "ss", Server: "1.1.1.8", Port: 8388},
+		{Name: "🇬🇧 英国伦敦 01", Type: "ss", Server: "1.1.1.9", Port: 8388},
+		{Name: "🇩🇪 德国法兰克福 01", Type: "ss", Server: "1.1.1.10", Port: 8388},
 	}
 
 	SyncAllStrategyGroups(ir)
@@ -60,31 +61,22 @@ func TestRegionAndBusinessGroupsSync(t *testing.T) {
 		t.Errorf("expected 1 TW proxy, got %d", len(twAuto.Proxies))
 	}
 
-	// Verify Singapore region groups
-	sgAuto, ok := groupMap["🇸🇬 新加坡自动"]
-	if !ok {
-		t.Fatalf("missing '🇸🇬 新加坡自动' group")
-	}
-	if len(sgAuto.Proxies) != 1 {
-		t.Errorf("expected 1 SG proxy, got %d", len(sgAuto.Proxies))
-	}
-
-	// Verify Japan region groups
+	// Verify Japan region groups (Exclusive for HHost-JP)
 	jpAuto, ok := groupMap["🇯🇵 日本自动"]
 	if !ok {
 		t.Fatalf("missing '🇯🇵 日本自动' group")
 	}
-	if len(jpAuto.Proxies) != 1 {
-		t.Errorf("expected 1 JP proxy, got %d", len(jpAuto.Proxies))
+	if len(jpAuto.Proxies) != 1 || jpAuto.Proxies[0] != "[HHost-JP] 🇯🇵 cloud xtls-reality" {
+		t.Errorf("expected only [HHost-JP] proxy in '🇯🇵 日本自动', got %v", jpAuto.Proxies)
 	}
 
-	// Verify Korea region groups
-	krAuto, ok := groupMap["🇰🇷 韩国自动"]
+	// Verify Singapore, Japan, Korea composite group (All other subscriptions)
+	sgjpkrAuto, ok := groupMap["🇸🇬🇯🇵🇰🇷 新日韩自动"]
 	if !ok {
-		t.Fatalf("missing '🇰🇷 韩国自动' group")
+		t.Fatalf("missing '🇸🇬🇯🇵🇰🇷 新日韩自动' group")
 	}
-	if len(krAuto.Proxies) != 1 {
-		t.Errorf("expected 1 KR proxy, got %d", len(krAuto.Proxies))
+	if len(sgjpkrAuto.Proxies) != 3 {
+		t.Errorf("expected 3 proxies in '🇸🇬🇯🇵🇰🇷 新日韩自动', got %d: %v", len(sgjpkrAuto.Proxies), sgjpkrAuto.Proxies)
 	}
 
 	// Verify US region groups
