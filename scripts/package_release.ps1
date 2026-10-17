@@ -64,11 +64,8 @@ function Assemble-ReleasePackage($TargetName, $GatewayBinary, $ArchType) {
     Copy-Item -Path "$RootDir\etc\*" -Destination "$StageDir\etc" -Recurse -Force
     Copy-Item -Path "$RootDir\data\*" -Destination "$StageDir\data" -Recurse -Force
 
-    # Strict Desensitization: strip runtime caches, logs, databases, and temporary state
-    Remove-Item -Path "$StageDir\etc\cache.db" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$StageDir\data\*.log" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$StageDir\data\*.sqlite" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$StageDir\data\*.pid" -Force -ErrorAction SilentlyContinue
+    # Strict Desensitization: strip runtime caches, logs, databases, and sanitize configs
+    python "$RootDir\scripts\desensitize.py" $StageDir | Out-Host
 
     # Copy Deployment & Script Tools
     Copy-Item -Path "$RootDir\install.sh" -Destination "$StageDir\install.sh" -Force
@@ -113,11 +110,8 @@ function Assemble-RosContainer($TargetName, $GatewayBinary, $ArchType) {
     Copy-Item -Path "$RootDir\etc\*" -Destination "$RosStage\app\etc" -Recurse -Force
     Copy-Item -Path "$RootDir\data\*" -Destination "$RosStage\app\data" -Recurse -Force
 
-    # Strict Desensitization: strip runtime caches, logs, databases, and temporary state
-    Remove-Item -Path "$RosStage\app\etc\cache.db" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$RosStage\app\data\*.log" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$RosStage\app\data\*.sqlite" -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path "$RosStage\app\data\*.pid" -Force -ErrorAction SilentlyContinue
+    # Strict Desensitization: strip runtime caches, logs, databases, and sanitize configs
+    python "$RootDir\scripts\desensitize.py" $RosStage | Out-Host
 
     # Uncompressed .tar (RouterOS strictly requires uncompressed .tar, NOT .tar.gz)
     tar -cf "$ReleaseDir\$TargetName.tar" -C "$RosStage" app
