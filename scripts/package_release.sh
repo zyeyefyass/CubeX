@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # ═════════════════════════════════════════════════════════════════════════════
 # CubeX Release Packaging Script (Bundles Dual Cores + Geodata + Rules + Config)
-# Target Version: Test v0.99 (Next: Test v0.999 -> v1.0)
+# Target Version: Test v0.999 (Next: v1.0)
 # Formats: Native .zip for General Releases + Uncompressed .tar for RouterOS
 # ═════════════════════════════════════════════════════════════════════════════
 set -e
 
-VERSION="Test-v0.99"
+VERSION="Test-v0.999"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 RELEASE_DIR="$DIST_DIR/release"
 
-echo "📦 Starting CubeX Test v0.99 Complete Release Packaging (Dual-Core Embedded)..."
+echo "📦 Starting CubeX Test v0.999 Complete Release Packaging (Dual-Core Embedded)..."
 
 # 1. Clean and prepare output directories
 rm -rf "$RELEASE_DIR"

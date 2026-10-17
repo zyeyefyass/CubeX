@@ -5,7 +5,7 @@
   # 🌌 CubeX · 次世代双擎高可用旁路网关系统
   ### *终结软路由派系内耗 · 毫秒级零断流热切 · 容器化主旁一体 · 软路由的天花板*
 
-  [![Version](https://img.shields.io/badge/Release-Test_v0.99-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
+  [![Version](https://img.shields.io/badge/Release-Test_v0.999-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
   [![License](https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield)](COPYRIGHT.md)
   [![Dual-Engine](https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go)](https://github.com/zyeyefyass/CubeX)
   [![Host Base](https://img.shields.io/badge/Host-RouterOS_v7_%7C_fnOS_%7C_PVE_%7C_Docker-3A86FF?style=for-the-badge)](#)
@@ -538,11 +538,13 @@ CubeX 严格遵循严谨的测试与迭代规范：
   - **双引擎反隐私跟踪闭环**：内置编译原生 `privacy.srs` 与 `privacy_domain.mrs`，双向秒级拦截大数据探针；
   - **RouterOS 原生容器适配**：提供未压缩 `cubex-ros-*.tar` 与一键 RSC 联动脚本；
   - **飞牛 Docker 多维交付**：提供 Compose 配置、本地离线 `.tar` 导入与启动防空挂载自愈。
-- 🟡 **`Test v0.999`** *(下一收官优化版)*:
-  - 内存与 CPU 极致压榨调优（GOMEMLIMIT 智能自适应）；
-  - 全球 CDN 多节点极速下载与离线包预热；
-  - 全面闭环高压渗透测试。
-- 🔴 **`V 1.0`** *(正式里程碑旗舰版)*:
+- 🟢 **`Test v0.999`** *(当前旁路网关与自愈加固版)*:
+  - **原生 DNS 53 端口秒级直应**：全面接管 `0.0.0.0:53` 标准 DNS 端口，终端手动指定 DNS 零报错秒开网页；
+  - **双引擎节点协议全兼容自愈**：自动转译 Shadowsocks (`ss`)、自动注入 VMess 缺失安全字段，过滤未知协议，100% 杜绝核心起动崩溃；
+  - **容器开机秒级自启核心**：守护进程开机自动拉起 Mihomo 核心，实现免点击、全自动无缝接管；
+  - **旁路网关转发与 NAT 伪装打通**：自动开启内核 `ip_forward`、放通 `FORWARD ACCEPT` 并启用 `MASQUERADE` 规则；
+  - **HHost-JP 日本独占与新日韩聚合分流**：专属独占日本集群与亚太聚合集群精准解耦分流。
+- 🟡 **`V 1.0`** *(正式收官旗舰版)*:
   - 达到软路由工程设计、系统性能与人机交互的天花板！
 
 ---

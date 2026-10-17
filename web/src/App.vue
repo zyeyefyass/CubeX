@@ -63,7 +63,7 @@
                     <span :class="['w-2 h-2 rounded-full shrink-0', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse' : 'bg-amber-400']" :title="hostBadge.online ? '宿主平台在线联动' : '未连接'"></span>
                   </div>
                   <div class="text-[10px] font-mono text-slate-400/90 flex items-center gap-1.5 mt-0.5">
-                    <span class="text-cyan-400 font-bold px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/30">{{ systemStatus.version || 'Test v0.9' }}</span>
+                    <span class="text-cyan-400 font-bold px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/30">{{ systemStatus.version || 'Test v0.999' }}</span>
                     <span class="text-slate-500">|</span>
                     <span class="uppercase tracking-wider text-[9px] text-slate-300 font-semibold">{{ hostBadge.shortName }}</span>
                   </div>
@@ -73,7 +73,7 @@
           </div>
 
           <!-- Collapsed Host Official SVG Badge -->
-          <div v-else class="mt-2.5 flex items-center justify-center relative group" :title="'宿主环境: ' + hostBadge.name + ' (' + (systemStatus.version || 'Test v0.9') + ')'">
+          <div v-else class="mt-2.5 flex items-center justify-center relative group" :title="'宿主环境: ' + hostBadge.name + ' (' + (systemStatus.version || 'Test v0.999') + ')'">
             <div class="w-10 h-10 rounded-xl bg-slate-900/95 border border-cyan-500/40 flex items-center justify-center p-2 shadow-md group-hover:border-cyan-400 transition">
               <img :src="hostBadge.svg" class="w-full h-full object-contain drop-shadow-[0_0_6px_rgba(0,210,255,0.7)]" :alt="hostBadge.shortName" />
             </div>
@@ -2462,7 +2462,7 @@
             <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
               <div>
                 <div class="font-bold text-white">CubeX 双核引擎</div>
-                <div class="text-[10px] text-slate-400 font-mono">{{ systemStatus.version || 'Test v0.9' }}</div>
+                <div class="text-[10px] text-slate-400 font-mono">{{ systemStatus.version || 'Test v0.999' }}</div>
               </div>
               <button @click="upgradeCore" :disabled="upgradingPanel" class="px-2.5 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-[11px]">
                 一键升级
@@ -2471,7 +2471,7 @@
             <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800">
               <div>
                 <div class="font-bold text-white">CubeX 面板版本</div>
-                <div class="text-[10px] text-slate-400 font-mono">{{ systemStatus.version || 'Test v0.9' }}</div>
+                <div class="text-[10px] text-slate-400 font-mono">{{ systemStatus.version || 'Test v0.999' }}</div>
               </div>
               <button @click="upgradePanel" :disabled="upgradingPanel" class="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px]">
                 升级面板
@@ -3204,7 +3204,7 @@ const hostConfig = ref({
 })
 
 const systemOverview = ref({
-  cubex_version: 'Test v0.9',
+  cubex_version: 'Test v0.999',
   mihomo_curr_version: 'v1.19.32',
   singbox_curr_version: 'v1.14.3',
   update_available: false
@@ -3254,12 +3254,12 @@ const aiLoading = ref(false)
 
 // ── System Status & Last Result ──
 const systemStatus = ref({
-  version: 'Test v0.9',
+  version: 'Test v0.999',
   uptime_seconds: 1420,
-  active_engine: 'singbox',
+  active_engine: 'mihomo',
   tun_interface: 'cubex-tun',
   tproxy_port: 7893,
-  dns_port: 1053,
+  dns_port: 53,
   clash_api_port: 9090,
   memory_mb: 6.6,
   core_memory_mb: 18.2,

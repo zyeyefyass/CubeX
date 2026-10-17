@@ -1,15 +1,15 @@
 # ═════════════════════════════════════════════════════════════════════════════
 # CubeX Release Packaging Script (Bundles Dual Cores + Geodata + Rules + Config)
-# Target Version: Test v0.99 (Next: Test v0.999 -> v1.0)
+# Target Version: Test v0.999 (Next: v1.0)
 # Formats: Native .zip for General Releases + Uncompressed .tar for RouterOS
 # ═════════════════════════════════════════════════════════════════════════════
 $ErrorActionPreference = "Stop"
-$Version = "Test-v0.99"
+$Version = "Test-v0.999"
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 $DistDir = "$RootDir\dist"
 $ReleaseDir = "$DistDir\release"
 
-Write-Host "📦 Starting CubeX Test v0.99 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
+Write-Host "📦 Starting CubeX Test v0.999 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
 
 # 1. Clean & Prepare Release Directory
 if (Test-Path $ReleaseDir) {
@@ -64,6 +64,12 @@ function Assemble-ReleasePackage($TargetName, $GatewayBinary, $ArchType) {
     Copy-Item -Path "$RootDir\etc\*" -Destination "$StageDir\etc" -Recurse -Force
     Copy-Item -Path "$RootDir\data\*" -Destination "$StageDir\data" -Recurse -Force
 
+    # Strict Desensitization: strip runtime caches, logs, databases, and temporary state
+    Remove-Item -Path "$StageDir\etc\cache.db" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$StageDir\data\*.log" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$StageDir\data\*.sqlite" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$StageDir\data\*.pid" -Force -ErrorAction SilentlyContinue
+
     # Copy Deployment & Script Tools
     Copy-Item -Path "$RootDir\install.sh" -Destination "$StageDir\install.sh" -Force
     Copy-Item -Path "$RootDir\docker-compose.yml" -Destination "$StageDir\docker-compose.yml" -Force
@@ -106,6 +112,12 @@ function Assemble-RosContainer($TargetName, $GatewayBinary, $ArchType) {
     # Rulesets & configs inside container
     Copy-Item -Path "$RootDir\etc\*" -Destination "$RosStage\app\etc" -Recurse -Force
     Copy-Item -Path "$RootDir\data\*" -Destination "$RosStage\app\data" -Recurse -Force
+
+    # Strict Desensitization: strip runtime caches, logs, databases, and temporary state
+    Remove-Item -Path "$RosStage\app\etc\cache.db" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$RosStage\app\data\*.log" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$RosStage\app\data\*.sqlite" -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path "$RosStage\app\data\*.pid" -Force -ErrorAction SilentlyContinue
 
     # Uncompressed .tar (RouterOS strictly requires uncompressed .tar, NOT .tar.gz)
     tar -cf "$ReleaseDir\$TargetName.tar" -C "$RosStage" app
