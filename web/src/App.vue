@@ -526,6 +526,15 @@
                     <template v-else-if="reg.id === 'TW'">
                       <svg class="w-5 h-3.5 rounded shadow-sm shrink-0" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FE0000"/><rect width="15" height="10" fill="#000095"/><circle cx="7.5" cy="5" r="2.8" fill="#FFF"/><circle cx="7.5" cy="5" r="2.1" fill="#000095"/><circle cx="7.5" cy="5" r="1.5" fill="#FFF"/></svg>
                     </template>
+                    <template v-else-if="reg.id === 'JP'">
+                      <svg class="w-5 h-3.5 rounded shadow-sm shrink-0 border border-slate-700/40" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="6" fill="#BC002D"/></svg>
+                    </template>
+                    <template v-else-if="reg.id === 'SG'">
+                      <svg class="w-5 h-3.5 rounded shadow-sm shrink-0 border border-slate-700/40" viewBox="0 0 30 20"><rect width="30" height="10" fill="#ED2939"/><rect y="10" width="30" height="10" fill="#FFF"/><circle cx="6" cy="5" r="3.5" fill="#FFF"/><circle cx="7" cy="5" r="3.5" fill="#ED2939"/></svg>
+                    </template>
+                    <template v-else-if="reg.id === 'KR'">
+                      <svg class="w-5 h-3.5 rounded shadow-sm shrink-0 border border-slate-700/40" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="5" fill="#CD2E3A"/></svg>
+                    </template>
                     <template v-else-if="reg.id === 'SG_JPKR'">
                       <img src="/icon-asia-globe.svg" class="w-5 h-3.5 rounded shadow-sm shrink-0 object-contain" alt="新日韩亚太" />
                     </template>
@@ -580,6 +589,15 @@
                             <circle cx="7.5" cy="5" r="2.1" fill="#000095"/>
                             <circle cx="7.5" cy="5" r="1.5" fill="#FFF"/>
                           </svg>
+                        </template>
+                        <template v-else-if="reg.id === 'JP'">
+                          <svg class="w-7 h-5 rounded-md shadow-md border border-slate-700/50 shrink-0" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="6" fill="#BC002D"/></svg>
+                        </template>
+                        <template v-else-if="reg.id === 'SG'">
+                          <svg class="w-7 h-5 rounded-md shadow-md border border-slate-700/50 shrink-0" viewBox="0 0 30 20"><rect width="30" height="10" fill="#ED2939"/><rect y="10" width="30" height="10" fill="#FFF"/><circle cx="6" cy="5" r="3.5" fill="#FFF"/><circle cx="7" cy="5" r="3.5" fill="#ED2939"/></svg>
+                        </template>
+                        <template v-else-if="reg.id === 'KR'">
+                          <svg class="w-7 h-5 rounded-md shadow-md border border-slate-700/50 shrink-0" viewBox="0 0 30 20"><rect width="30" height="20" fill="#FFF"/><circle cx="15" cy="10" r="5" fill="#CD2E3A"/></svg>
                         </template>
                         <template v-else-if="reg.id === 'SG_JPKR'">
                           <img src="/icon-asia-globe.svg" class="w-7 h-5 rounded-md shadow-md shrink-0 object-contain" alt="新日韩亚太" />
@@ -789,7 +807,7 @@
                 <!-- Fast Filter Tags -->
                 <div class="flex items-center gap-1.5 overflow-x-auto text-[10px] font-mono py-0.5">
                   <span class="text-slate-500 shrink-0">快捷筛选:</span>
-                  <button v-for="tag in ['全部', '香港', '台湾', '新日韩', '美国', '自建', '其它', '直连']" :key="tag"
+                  <button v-for="tag in ['全部', '香港', '台湾', '日本', '新加坡', '韩国', '美国', '自建', '其它', '直连']" :key="tag"
                     @click="setGroupFilter(grp.name, tag === '全部' ? '' : tag)"
                     :class="[
                       'px-2 py-0.5 rounded-lg transition shrink-0',
@@ -4078,11 +4096,13 @@ async function importBackup(ev) {
   }
 }
 
-// ── Region Clusters & Strategies (6 Regions: 香港, 台湾, 新日韩, 美国, 自建, 其它) ──
+// ── Region Clusters & Strategies (8 Regions: 香港, 台湾, 日本, 新加坡, 韩国, 美国, 自建, 其它) ──
 const regionDefs = [
   { id: 'HK', name: '香港', flag: '🇭🇰', manual: '🇭🇰 香港手动', auto: '🇭🇰 香港自动', fall: '🇭🇰 香港故转', disa: '🇭🇰 香港容灾', regex: /(港|hk|hong kong)/i },
   { id: 'TW', name: '台湾', flag: '🇹🇼', manual: '🇹🇼 台湾手动', auto: '🇹🇼 台湾自动', fall: '🇹🇼 台湾故转', disa: '🇹🇼 台湾容灾', regex: /(台|tw|taiwan)/i },
-  { id: 'SG_JPKR', name: '新日韩', flag: '🇸🇬🇯🇵🇰🇷', manual: '🇸🇬🇯🇵🇰🇷 新日韩手动', auto: '🇸🇬🇯🇵🇰🇷 新日韩自动', fall: '🇸🇬🇯🇵🇰🇷 新日韩故转', disa: '🇸🇬🇯🇵🇰🇷 新日韩容灾', regex: /(新|sg|singapore|狮城|日|jp|japan|东京|大阪|韩|kr|korea|首尔)/i },
+  { id: 'JP', name: '日本', flag: '🇯🇵', manual: '🇯🇵 日本手动', auto: '🇯🇵 日本自动', fall: '🇯🇵 日本故转', disa: '🇯🇵 日本容灾', regex: /(hhost[-_ ]?jp|日|jp|japan|东京|大阪|tokyo|osaka|🇯🇵)/i },
+  { id: 'SG', name: '新加坡', flag: '🇸🇬', manual: '🇸🇬 新加坡手动', auto: '🇸🇬 新加坡自动', fall: '🇸🇬 新加坡故转', disa: '🇸🇬 新加坡容灾', regex: /(新|sg|singapore|狮城|🇸🇬)/i },
+  { id: 'KR', name: '韩国', flag: '🇰🇷', manual: '🇰🇷 韩国手动', auto: '🇰🇷 韩国自动', fall: '🇰🇷 韩国故转', disa: '🇰🇷 韩国容灾', regex: /(韩|kr|korea|首尔|🇰🇷)/i },
   { id: 'US', name: '美国', flag: '🇺🇸', manual: '🇺🇸 美国手动', auto: '🇺🇸 美国自动', fall: '🇺🇸 美国故转', disa: '🇺🇸 美国容灾', regex: /(美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯)/i },
   { id: 'CUSTOM', name: '自建', flag: '🏠', manual: '🏠 自建手动', auto: '🏠 自建自动', fall: '🏠 自建故转', disa: '🏠 自建容灾', regex: null },
   { id: 'OTHERS', name: '其它', flag: '🌐', manual: '🌐 其它手动', auto: '🌐 其它自动', fall: '🌐 其它故转', disa: '🌐 其它容灾', regex: null }
@@ -4546,6 +4566,15 @@ function getFilteredGroupProxies(grp) {
   }
   if (filter === '自建') {
     return (grp.proxies || []).filter(p => p.includes('自建') || p.includes('🏠'))
+  }
+  if (filter === '日本') {
+    return (grp.proxies || []).filter(p => p.includes('日本') || p.includes('🇯🇵') || /(hhost[-_ ]?jp|日|jp|japan|东京|大阪|tokyo|osaka)/i.test(p))
+  }
+  if (filter === '新加坡') {
+    return (grp.proxies || []).filter(p => p.includes('新加坡') || p.includes('🇸🇬') || /(新|sg|singapore|狮城)/i.test(p))
+  }
+  if (filter === '韩国') {
+    return (grp.proxies || []).filter(p => p.includes('韩国') || p.includes('🇰🇷') || /(韩|kr|korea|首尔)/i.test(p))
   }
   if (filter === '新日韩') {
     return (grp.proxies || []).filter(p => p.includes('新日韩') || p.includes('新加坡') || p.includes('日韩') || /(新|sg|singapore|狮城|日|jp|japan|东京|大阪|韩|kr|korea|首尔)/i.test(p))

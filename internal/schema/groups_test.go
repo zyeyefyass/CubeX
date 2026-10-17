@@ -69,13 +69,22 @@ func TestRegionAndBusinessGroupsSync(t *testing.T) {
 		t.Errorf("expected 1 SG proxy, got %d", len(sgAuto.Proxies))
 	}
 
-	// Verify Japan & Korea region groups
-	jpkrAuto, ok := groupMap["🇯🇵🇰🇷 日韩自动"]
+	// Verify Japan region groups
+	jpAuto, ok := groupMap["🇯🇵 日本自动"]
 	if !ok {
-		t.Fatalf("missing '🇯🇵🇰🇷 日韩自动' group")
+		t.Fatalf("missing '🇯🇵 日本自动' group")
 	}
-	if len(jpkrAuto.Proxies) != 2 {
-		t.Errorf("expected 2 JPKR proxies, got %d", len(jpkrAuto.Proxies))
+	if len(jpAuto.Proxies) != 1 {
+		t.Errorf("expected 1 JP proxy, got %d", len(jpAuto.Proxies))
+	}
+
+	// Verify Korea region groups
+	krAuto, ok := groupMap["🇰🇷 韩国自动"]
+	if !ok {
+		t.Fatalf("missing '🇰🇷 韩国自动' group")
+	}
+	if len(krAuto.Proxies) != 1 {
+		t.Errorf("expected 1 KR proxy, got %d", len(krAuto.Proxies))
 	}
 
 	// Verify US region groups
@@ -98,7 +107,7 @@ func TestRegionAndBusinessGroupsSync(t *testing.T) {
 
 	// Verify Business Groups exist
 	expectedBiz := []string{
-		"OpenAI & AI",
+		"AI",
 		"YouTube",
 		"Google",
 		"GitHub & Docker",
@@ -120,7 +129,7 @@ func TestRegionAndBusinessGroupsSync(t *testing.T) {
 
 	// Verify Region Statistics
 	stats := ExtractRegionStats(ir)
-	if len(stats) != 6 {
-		t.Fatalf("expected 6 region stats, got %d", len(stats))
+	if len(stats) != len(StandardRegions) {
+		t.Fatalf("expected %d region stats, got %d", len(StandardRegions), len(stats))
 	}
 }
