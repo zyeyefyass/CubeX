@@ -274,6 +274,8 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	} else {
 		cmd = exec.Command(binPath, "run", "-c", targetConfigPath)
 	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
 	// Save old process for later graceful retirement
 	oldProc := m.currentProc
@@ -287,7 +289,7 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	}
 
 	// Wait briefly for Clash API readiness
-	time.Sleep(80 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 
 	// Step 4: Restore node states
 	restoredCount := m.RestoreClashState(snapshot)

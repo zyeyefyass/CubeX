@@ -275,6 +275,20 @@ func main() {
 		fileServer.ServeHTTP(w, r)
 	})
 
+	// Automatically boot the active engine on daemon startup
+	go func() {
+		time.Sleep(300 * time.Millisecond)
+		activeEng := engMgr.GetActiveEngine()
+		if activeEng == "" {
+			activeEng = schema.EngineMihomo
+		}
+		if _, err := engMgr.SwitchEngine(activeEng); err != nil {
+			log.Printf("⚠️ [Engine] Auto-boot engine %s warning: %v\n", activeEng, err)
+		} else {
+			log.Printf("🚀 [Engine] Core engine %s successfully started on boot\n", activeEng)
+		}
+	}()
+
 	log.Printf("🌌 CubeX Daemon [%s] listening on %s (Engine: %s, Tuning: %s)\n", version, *listenAddr, cfgIR.Meta.ActiveEngine, cfgIR.Network.TunInterface)
 	if err := http.ListenAndServe(*listenAddr, corsMiddleware(mux)); err != nil {
 		log.Fatalf("Fatal: %v", err)

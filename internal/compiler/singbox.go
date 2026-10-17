@@ -36,46 +36,38 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	directServer := map[string]any{
-		"tag":         "dns-direct",
-		"type":        "udp",
-		"server":      directDNSAddr,
-		"server_port": 53,
-		"detour":      "direct",
+		"tag":     "dns-direct",
+		"address": directDNSAddr,
+		"detour":  "direct",
 	}
 
 	remoteServer := map[string]any{
-		"tag":         "dns-remote",
-		"type":        "udp",
-		"server":      "8.8.8.8",
-		"server_port": 53,
-		"detour":      "direct",
-	}
-	if strings.HasPrefix(remoteDNSAddr, "https://") {
-		trimmed := strings.TrimPrefix(remoteDNSAddr, "https://")
-		parts := strings.SplitN(trimmed, "/", 2)
-		remoteServer["type"] = "https"
-		remoteServer["server"] = parts[0]
-		remoteServer["server_port"] = 443
-	} else if strings.HasPrefix(remoteDNSAddr, "udp://") {
-		remoteServer["server"] = strings.TrimPrefix(remoteDNSAddr, "udp://")
-	} else if remoteDNSAddr != "" {
-		remoteServer["server"] = remoteDNSAddr
+		"tag":     "dns-remote",
+		"address": remoteDNSAddr,
+		"detour":  "direct",
 	}
 
 	cfg["dns"] = map[string]any{
+		"fakeip": map[string]any{
+			"enabled":     true,
+			"inet4_range": "198.18.0.0/15",
+		},
 		"servers": []map[string]any{
-			directServer,
-			remoteServer,
 			{
-				"tag":         "dns-fakeip",
-				"type":        "fakeip",
-				"inet4_range": "198.18.0.0/15",
+				"tag":     "dns-block",
+				"address": "rcode://refused",
 			},
+			directServer,
+			{
+				"tag":     "dns-fakeip",
+				"address": "fakeip",
+			},
+			remoteServer,
 		},
 		"rules": []map[string]any{
 			{
-				"query_type": []string{"HTTPS", "SVCB"},
-				"action":     "reject",
+				"query_type": []string{"HTTPS", "TYPE65", "SVCB"},
+				"server":     "dns-block",
 			},
 			{
 				"clash_mode": "direct",

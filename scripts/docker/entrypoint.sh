@@ -29,10 +29,12 @@ if [ ! -f "/app/data/config.ir.json" ]; then
     cp -rn /app/defaults/data/* /app/data/ 2>/dev/null || cp -r /app/defaults/data/* /app/data/
 fi
 
-# 3. Enable IP Forwarding if running with NET_ADMIN privilege
+# 3. Enable IP Forwarding and NAT Masquerade for Gateway / Secondary Router Mode
 if [ -w /proc/sys/net/ipv4/ip_forward ]; then
     echo 1 > /proc/sys/net/ipv4/ip_forward 2>/dev/null || true
 fi
+iptables -P FORWARD ACCEPT 2>/dev/null || true
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE 2>/dev/null || true
 
 # 4. Set working directory and listen port
 LISTEN_PORT="${CUBEX_PORT:-2026}"

@@ -85,9 +85,13 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		}
 	}
 
+	dnsPort := net.DNSPort
+	if dnsPort == 0 || dnsPort == 1053 {
+		dnsPort = 53
+	}
 	dnsMap := map[string]any{
 		"enable":                  true,
-		"listen":                  fmt.Sprintf("0.0.0.0:%d", net.DNSPort),
+		"listen":                  fmt.Sprintf("0.0.0.0:%d", dnsPort),
 		"ipv6":                    net.IPv6,
 		"enhanced-mode":           "fake-ip",
 		"fake-ip-range":           dns.FakeIPRange,
@@ -159,11 +163,37 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			}
 		}
 		pMap["name"] = p.Name
-		pMap["type"] = p.Type
 		pMap["server"] = p.Server
 		pMap["port"] = p.Port
 		pMap["udp"] = true
-		proxiesList = append(proxiesList, pMap)
+
+		// Normalize Type for Mihomo (Clash Meta)
+		ptype := p.Type
+		if ptype == "shadowsocks" {
+			ptype = "ss"
+		} else if ptype == "shadowsocksr" {
+			ptype = "ssr"
+		}
+		pMap["type"] = ptype
+
+		// Mihomo strict validation fixes
+		if ptype == "vmess" {
+			if _, ok := pMap["cipher"]; !ok || pMap["cipher"] == "" {
+				pMap["cipher"] = "auto"
+			}
+			if _, ok := pMap["alterId"]; !ok {
+				pMap["alterId"] = 0
+			}
+		}
+
+		// Filter out protocols that Mihomo cannot parse to avoid daemon abort
+		switch ptype {
+		case "ss", "ssr", "vmess", "vless", "trojan", "socks5", "http", "snell", "wireguard", "tuic", "hysteria", "hysteria2":
+			proxiesList = append(proxiesList, pMap)
+		default:
+			// Unsupported protocol in Mihomo (e.g. anytls) - safely skip
+			continue
+		}
 	}
 	cfg["proxies"] = proxiesList
 

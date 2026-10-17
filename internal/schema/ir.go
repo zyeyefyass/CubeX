@@ -154,7 +154,7 @@ func NewDefaultIR() *ConfigIR {
 	res := &ConfigIR{
 		Meta: MetaConfig{
 			Version:       "1.0.0",
-			ActiveEngine:  EngineSingbox,
+			ActiveEngine:  EngineMihomo,
 			ProxyMode:     ModeRule,
 			ActiveProfile: "balanced",
 			LogLevel:      "info",
@@ -167,7 +167,7 @@ func NewDefaultIR() *ConfigIR {
 			TProxyPort:   7893,
 			MixedPort:    7890,
 			RedirPort:    7892,
-			DNSPort:      1053,
+			DNSPort:      53,
 			ClashAPIPort: 9090,
 			ClashSecret:  "",
 			AllowLAN:     true,
