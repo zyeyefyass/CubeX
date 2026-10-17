@@ -1799,22 +1799,25 @@
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                 <div>
-                  <label class="block text-[11px] text-slate-400 mb-1">宿主 / 主路由 IP</label>
-                  <input v-model="hostConfig.host" placeholder="如 10.0.0.1 或 172.17.0.1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono outline-none" />
+                  <label class="block text-[11px] text-slate-300 font-bold mb-1">宿主 / 主路由 IP</label>
+                  <input v-model="hostConfig.host" placeholder="如 192.168.88.1 或 172.17.0.1" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono outline-none" />
                 </div>
                 <div>
-                  <label class="block text-[11px] text-slate-400 mb-1">通信端口 (默认自动探测)</label>
-                  <input v-model.number="hostConfig.port" type="number" placeholder="80 / 22" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono outline-none" />
+                  <label class="block text-[11px] text-slate-300 font-bold mb-1">通信端口 (ROS选80/443，SSH选22)</label>
+                  <input v-model.number="hostConfig.port" type="number" placeholder="80 / 443 / 22" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono outline-none" />
                 </div>
                 <div>
-                  <label class="block text-[11px] text-slate-400 mb-1">用户名 (WinBox / SSH)</label>
+                  <label class="block text-[11px] text-slate-300 font-bold mb-1">用户名 (WinBox账号 / SSH用户)</label>
                   <input v-model="hostConfig.user" placeholder="admin 或 root" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono outline-none" />
                 </div>
                 <div>
-                  <label class="block text-[11px] text-slate-400 mb-1">登录密码</label>
-                  <input v-model="hostConfig.password" type="password" placeholder="密码" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono outline-none" />
+                  <label class="block text-[11px] text-slate-300 font-bold mb-1">登录密码 (WinBox密码 / SSH密码)</label>
+                  <input v-model="hostConfig.password" type="password" placeholder="WinBox密码 (无密码留空)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono outline-none" />
                 </div>
               </div>
+              <p class="text-[11px] text-cyan-300/90 bg-cyan-950/40 border border-cyan-800/40 px-3 py-1.5 rounded-lg">
+                💡 <b>特别说明</b>：对于 MikroTik RouterOS，用户名与密码<b>完全指你平时登录 WinBox 客户端所用的账号（默认 admin）与登录密码</b>（若平时登录 WinBox 无密码则直接留空）。
+              </p>
               <div class="flex items-center justify-end gap-2 pt-1">
                 <button @click="testAndSaveHostCredentials" :disabled="testingHostCreds" class="px-4 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs">
                   {{ testingHostCreds ? '测试中...' : '🔌 测试并保存宿主连接' }}
