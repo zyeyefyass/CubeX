@@ -3,6 +3,10 @@
 # Target Version: Test v0.999 (Next: v1.0)
 # Formats: Native .zip for General Releases + Uncompressed .tar for RouterOS
 # ═════════════════════════════════════════════════════════════════════════════
+param(
+    [switch]$IncludeWindows = $false
+)
+
 $ErrorActionPreference = "Stop"
 $Version = "Test-v0.999"
 $RootDir = Resolve-Path "$PSScriptRoot\.."
@@ -10,6 +14,9 @@ $DistDir = "$RootDir\dist"
 $ReleaseDir = "$DistDir\release"
 
 Write-Host "📦 Starting CubeX Test v0.999 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
+if (-not $IncludeWindows) {
+    Write-Host "ℹ️  Windows 平台包发布已按策略暂停 (可通过 -IncludeWindows 显式启用)" -ForegroundColor DarkCyan
+}
 
 # 1. Clean & Prepare Release Directory
 if (Test-Path $ReleaseDir) {
@@ -18,16 +25,20 @@ if (Test-Path $ReleaseDir) {
 New-Item -ItemType Directory -Path $ReleaseDir -Force | Out-Null
 
 # 2. Build Web Frontend & Multi-Arch Binaries
-Write-Host "🔨 [1/5] Building Web Frontend & Multi-Arch Gateway Binaries..." -ForegroundColor Yellow
+Write-Host "🔨 [1/4] Building Web Frontend & Multi-Arch Gateway Binaries..." -ForegroundColor Yellow
 Set-Location -Path "$RootDir\web"
 cmd /c npm run build
 
 Set-Location -Path $RootDir
 $env:CGO_ENABLED = "0"
 
-# Windows amd64
-Write-Host "   -> Compiling Windows cubexd.exe..." -ForegroundColor Green
-go build -ldflags="-s -w" -o "$DistDir\cubexd.exe" ./cmd/cubexd
+if ($IncludeWindows) {
+    # Windows amd64
+    Write-Host "   -> Compiling Windows cubexd.exe..." -ForegroundColor Green
+    go build -ldflags="-s -w" -o "$DistDir\cubexd.exe" ./cmd/cubexd
+} else {
+    Write-Host "   -> Skipping Windows cubexd.exe build (暂时不发布windows包)" -ForegroundColor DarkGray
+}
 
 # Linux amd64
 Write-Host "   -> Cross-compiling Linux amd64 cubexd..." -ForegroundColor Green
@@ -77,21 +88,25 @@ function Assemble-ReleasePackage($TargetName, $GatewayBinary, $ArchType) {
 }
 
 # 4. Packaging Linux amd64 & arm64 (.zip format, NO .tar.gz)
-Write-Host "📦 [2/5] Packaging Linux amd64 Release (Dual-Core + Geodata + Rules -> .zip)..." -ForegroundColor Yellow
+Write-Host "📦 [2/4] Packaging Linux amd64 Release (Dual-Core + Geodata + Rules -> .zip)..." -ForegroundColor Yellow
 $stageAmd64 = Assemble-ReleasePackage "CubeX-$Version-linux-amd64" "$DistDir\cubexd-linux-amd64" "amd64"
 Compress-Archive -Path "$stageAmd64\*" -DestinationPath "$ReleaseDir\CubeX-$Version-linux-amd64.zip" -Force
 
-Write-Host "📦 [3/5] Packaging Linux arm64 Release (Dual-Core + Geodata + Rules -> .zip)..." -ForegroundColor Yellow
+Write-Host "📦 [3/4] Packaging Linux arm64 Release (Dual-Core + Geodata + Rules -> .zip)..." -ForegroundColor Yellow
 $stageArm64 = Assemble-ReleasePackage "CubeX-$Version-linux-arm64" "$DistDir\cubexd-linux-arm64" "arm64"
 Compress-Archive -Path "$stageArm64\*" -DestinationPath "$ReleaseDir\CubeX-$Version-linux-arm64.zip" -Force
 
-# 5. Packaging Windows amd64 (.zip)
-Write-Host "📦 [4/5] Packaging Windows amd64 Release (Dual-Core .exe + WebUI -> .zip)..." -ForegroundColor Yellow
-$stageWin = Assemble-ReleasePackage "CubeX-$Version-windows-amd64" "$DistDir\cubexd.exe" "windows"
-Compress-Archive -Path "$stageWin\*" -DestinationPath "$ReleaseDir\CubeX-$Version-windows-amd64.zip" -Force
+# 5. Packaging Windows amd64 (.zip) - Conditional
+if ($IncludeWindows) {
+    Write-Host "📦 [*] Packaging Windows amd64 Release (Dual-Core .exe + WebUI -> .zip)..." -ForegroundColor Yellow
+    $stageWin = Assemble-ReleasePackage "CubeX-$Version-windows-amd64" "$DistDir\cubexd.exe" "windows"
+    Compress-Archive -Path "$stageWin\*" -DestinationPath "$ReleaseDir\CubeX-$Version-windows-amd64.zip" -Force
+} else {
+    Write-Host "⏩ Skipping Windows amd64 packaging (暂时不发布 Windows 包)..." -ForegroundColor DarkGray
+}
 
 # 6. Packaging Dedicated RouterOS v7 Container Packages (Uncompressed .tar for WinBox /container/add)
-Write-Host "📦 [5/5] Packaging RouterOS v7 Dedicated Container Images (Uncompressed .tar + RSC Script)..." -ForegroundColor Yellow
+Write-Host "📦 [4/4] Packaging RouterOS v7 Dedicated Container Images (Uncompressed .tar + RSC Script)..." -ForegroundColor Yellow
 
 # Helper to assemble RouterOS container rootfs .tar
 function Assemble-RosContainer($TargetName, $GatewayBinary, $ArchType) {
@@ -127,6 +142,13 @@ Copy-Item -Path "$RootDir\scripts\ros\setup-routeros-v7.rsc" -Destination "$Rele
 # Clean up staging
 Remove-Item -Path "$DistDir\staging" -Recurse -Force
 
-Write-Host "`n🎉 All Dual-Core Release Packages (ZIP & RouterOS TAR) Successfully Generated in:" -ForegroundColor Magenta
+Write-Host "`n🎉 All Release Packages Successfully Generated in:" -ForegroundColor Magenta
 Write-Host "   $ReleaseDir" -ForegroundColor White
 Get-ChildItem -Path $ReleaseDir | Select-Object Name, Length
+
+# 7. Strict Automated Post-Packaging Desensitization & Unpack Audit
+Write-Host "`n🛡️  Executing Mandatory Post-Packaging Desensitization Audit (.tar & .zip independent unpack)..." -ForegroundColor Cyan
+python "$RootDir\scripts\audit_release_artifacts.py" "$ReleaseDir"
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "🚨 Post-Packaging Desensitization Audit Failed! Release is blocked."
+}
