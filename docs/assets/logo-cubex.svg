@@ -1,39 +1,261 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="auroraTop" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00f5d4" />
-      <stop offset="100%" stop-color="#3a86ff" />
+    <!-- Ultra High-Contrast Facet Shading (Cosmic Obsidian & Deep Cyber Prism) -->
+    <linearGradient id="facetTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f2b48" stop-opacity="0.95"/>
+      <stop offset="50%" stop-color="#091b30" stop-opacity="0.98"/>
+      <stop offset="100%" stop-color="#040d1a" stop-opacity="1"/>
     </linearGradient>
-    <linearGradient id="auroraLeft" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#3a86ff" />
-      <stop offset="100%" stop-color="#7b2cbf" />
+
+    <linearGradient id="facetLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e0a2e" stop-opacity="0.95"/>
+      <stop offset="60%" stop-color="#0d0417" stop-opacity="0.98"/>
+      <stop offset="100%" stop-color="#04010a" stop-opacity="1"/>
     </linearGradient>
-    <linearGradient id="auroraRight" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00f5d4" />
-      <stop offset="100%" stop-color="#fbbf24" />
+
+    <linearGradient id="facetRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#08223c" stop-opacity="0.95"/>
+      <stop offset="60%" stop-color="#041220" stop-opacity="0.98"/>
+      <stop offset="100%" stop-color="#01060d" stop-opacity="1"/>
     </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="6" result="blur" />
-      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+
+    <!-- X Arm 1: High-Voltage Hyper Cyan Laser -->
+    <linearGradient id="laserCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F5FF"/>
+      <stop offset="35%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#FFFFFF"/>
+      <stop offset="65%" stop-color="#00F5FF"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+
+    <!-- X Arm 2: High-Voltage Hyper Magenta Laser (VIVID CONTRAST!) -->
+    <linearGradient id="laserMagenta" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF007F"/>
+      <stop offset="35%" stop-color="#F43F5E"/>
+      <stop offset="50%" stop-color="#FFFFFF"/>
+      <stop offset="65%" stop-color="#FF007F"/>
+      <stop offset="100%" stop-color="#A855F7"/>
+    </linearGradient>
+
+    <!-- Celestial Quantum Orbit Rings Gradients -->
+    <linearGradient id="orbitCyanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00F5FF" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#00F5FF" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0.8"/>
+    </linearGradient>
+
+    <linearGradient id="orbitMagentaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF007F" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#A855F7" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#FF007F" stop-opacity="0.8"/>
+    </linearGradient>
+
+    <!-- Radial High-Intensity Glow Filters -->
+    <filter id="hyperBloom" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3.2" result="glow1"/>
+      <feGaussianBlur stdDeviation="1.6" result="glow2"/>
+      <feMerge>
+        <feMergeNode in="glow1"/>
+        <feMergeNode in="glow2"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="intenseCore" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4.5" result="flare"/>
+      <feMerge>
+        <feMergeNode in="flare"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
 
-  <!-- Glowing background ring -->
-  <circle cx="60" cy="60" r="48" stroke="url(#auroraTop)" stroke-width="1.5" stroke-dasharray="4 6" opacity="0.4" />
+  <style>
+    @keyframes cubeFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-3.5px); }
+    }
+    @keyframes spinClockwise {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes spinCounter {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
+    }
+    @keyframes starSpin {
+      0% { transform: rotate(0deg) scale(0.9); }
+      50% { transform: rotate(180deg) scale(1.25); }
+      100% { transform: rotate(360deg) scale(0.9); }
+    }
+    @keyframes rippleWave {
+      0% { r: 2px; opacity: 1; stroke-width: 2px; }
+      100% { r: 18px; opacity: 0; stroke-width: 0.5px; }
+    }
+    @keyframes flashPulse {
+      0%, 100% { opacity: 0.55; }
+      50% { opacity: 1; }
+    }
+    @keyframes beamFlow1 {
+      0% { stroke-dashoffset: 148; }
+      100% { stroke-dashoffset: 0; }
+    }
+    @keyframes beamFlow2 {
+      0% { stroke-dashoffset: -148; }
+      100% { stroke-dashoffset: 0; }
+    }
 
-  <!-- 3D Isometric CubeX -->
-  <g filter="url(#glow)">
-    <!-- Top Face -->
-    <polygon points="60,18 100,40 60,62 20,40" fill="url(#auroraTop)" fill-opacity="0.9" stroke="#ffffff" stroke-width="1.2" />
-    <!-- Left Face -->
-    <polygon points="20,40 60,62 60,104 20,82" fill="url(#auroraLeft)" fill-opacity="0.85" stroke="#ffffff" stroke-width="1.2" />
-    <!-- Right Face -->
-    <polygon points="60,62 100,40 100,82 60,104" fill="url(#auroraRight)" fill-opacity="0.85" stroke="#ffffff" stroke-width="1.2" />
+    .cube-float-group { animation: cubeFloat 4s ease-in-out infinite; transform-origin: 50px 50px; }
+    .orbit-cyan { animation: spinClockwise 10s linear infinite; transform-origin: 50px 50px; }
+    .orbit-magenta { animation: spinCounter 12s linear infinite; transform-origin: 50px 50px; }
+    .nova-star { animation: starSpin 6s linear infinite; transform-origin: 50px 50px; }
+    .flow-cyan-beam { stroke-dasharray: 24 50; animation: beamFlow1 1.4s linear infinite; }
+    .flow-magenta-beam { stroke-dasharray: 24 50; animation: beamFlow2 1.4s linear infinite; }
+    .ambient-flash { animation: flashPulse 2.4s ease-in-out infinite; }
+  </style>
 
-    <!-- Center Pulse Energy Core -->
-    <circle cx="60" cy="62" r="5" fill="#ffffff" />
-    <line x1="60" y1="18" x2="60" y2="62" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.8" />
-    <line x1="20" y1="40" x2="60" y2="62" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.8" />
-    <line x1="100" y1="40" x2="60" y2="62" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.8" />
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- 1. DUAL-COLOR CONTRAST CELESTIAL ORBITS (CYAN VS MAGENTA)           -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  
+  <!-- Cyan Planetary Ring (Clockwise, Tilted Orbit) -->
+  <g class="orbit-cyan">
+    <ellipse cx="50" cy="50" rx="43" ry="24" transform="rotate(-25 50 50)" 
+      stroke="url(#orbitCyanGrad)" stroke-width="1.2" stroke-dasharray="8 12 3 16" fill="none" opacity="0.85"/>
+    <!-- Orbiting Cyan Quantum Bead -->
+    <circle cx="88" cy="40" r="2" fill="#00F5FF" filter="url(#hyperBloom)">
+      <animate attributeName="r" values="1.6;2.5;1.6" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Magenta Counter-Rotating Orbit (Counter-Clockwise, Opposing Tilt) -->
+  <g class="orbit-magenta">
+    <ellipse cx="50" cy="50" rx="44" ry="22" transform="rotate(35 50 50)" 
+      stroke="url(#orbitMagentaGrad)" stroke-width="1" stroke-dasharray="14 8 2 10" fill="none" opacity="0.85"/>
+    <!-- Orbiting Magenta Quantum Bead -->
+    <circle cx="12" cy="58" r="2" fill="#FF007F" filter="url(#hyperBloom)">
+      <animate attributeName="r" values="2.4;1.5;2.4" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Equatorial Cyber Radar Ring -->
+  <circle cx="50" cy="50" r="46.5" stroke="#38BDF8" stroke-width="0.6" stroke-opacity="0.3" stroke-dasharray="2 18 1 12" fill="none"/>
+
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- 2. LEVITATING 3D HIGH-CONTRAST OBSIDIAN HYPERCUBE                  -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <g class="cube-float-group">
+    
+    <!-- Isometric Facets with High-Contrast Cyber Gradients -->
+    <!-- Top Facet (Cyan Luminescence) -->
+    <polygon points="50,14 82,32 50,50 18,32" fill="url(#facetTop)" stroke="#00F5FF" stroke-width="1.2" stroke-opacity="0.75" stroke-linejoin="round"/>
+    
+    <!-- Left Facet (Magenta Luminescence) -->
+    <polygon points="18,32 50,50 50,86 18,68" fill="url(#facetLeft)" stroke="#FF007F" stroke-width="1.2" stroke-opacity="0.75" stroke-linejoin="round"/>
+    
+    <!-- Right Facet (Deep Cosmic Void) -->
+    <polygon points="50,50 82,32 82,68 50,86" fill="url(#facetRight)" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.7" stroke-linejoin="round"/>
+
+    <!-- Inner Circuit Detail Geometry on Facets for Sci-Fi Depth -->
+    <path d="M50,18 L76,33 M24,33 L50,48" stroke="#00F5FF" stroke-width="0.5" stroke-opacity="0.4" stroke-dasharray="3 4"/>
+    <path d="M22,37 L46,51 M22,63 L46,77" stroke="#FF007F" stroke-width="0.5" stroke-opacity="0.4" stroke-dasharray="3 4"/>
+
+    <!-- Subtle Silhouette Wireframe Outer Ring -->
+    <path d="M50,14 L82,32 L82,68 L50,86 L18,68 L18,32 Z" stroke="#FFFFFF" stroke-width="0.6" stroke-opacity="0.3" fill="none"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- 3. THE "X" LIGHT STRIPS (STRICTLY THE ONLY FLOWING LIGHT PATHS)     -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+
+    <!-- Arm 1 Base Glow & High-Voltage Cyan Laser Stream (18,32 -> 50,50 -> 82,68) -->
+    <!-- Deep Neon Underlay Track -->
+    <path d="M18,32 L50,50 L82,68" stroke="#002244" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Ambient Breathing Halo -->
+    <path class="ambient-flash" d="M18,32 L50,50 L82,68" stroke="#00F5FF" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" filter="url(#hyperBloom)"/>
+    <!-- High-Speed Flowing Cyan Laser Beam -->
+    <path class="flow-cyan-beam" d="M18,32 L50,50 L82,68" stroke="url(#laserCyan)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" filter="url(#hyperBloom)"/>
+    <!-- Blazing Pure White Core Filament -->
+    <path d="M18,32 L50,50 L82,68" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+
+    <!-- Arm 2 Base Glow & High-Voltage Magenta Laser Stream (82,32 -> 50,50 -> 18,68) -->
+    <!-- Deep Neon Underlay Track -->
+    <path d="M82,32 L50,50 L18,68" stroke="#330022" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Ambient Breathing Halo -->
+    <path class="ambient-flash" d="M82,32 L50,50 L18,68" stroke="#FF007F" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.6" filter="url(#hyperBloom)"/>
+    <!-- High-Speed Flowing Magenta Laser Beam -->
+    <path class="flow-magenta-beam" d="M82,32 L50,50 L18,68" stroke="url(#laserMagenta)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" filter="url(#hyperBloom)"/>
+    <!-- Blazing Pure White Core Filament -->
+    <path d="M82,32 L50,50 L18,68" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- 4. HIGH-ENERGY CORNER CAPACITORS (4 ANCHOR TERMINALS)              -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- Top-Left Terminal (Cyan) -->
+    <circle cx="18" cy="32" r="3.2" fill="#00F5FF" filter="url(#hyperBloom)"/>
+    <circle cx="18" cy="32" r="1.4" fill="#FFFFFF"/>
+    <circle cx="18" cy="32" r="5" stroke="#00F5FF" stroke-width="0.8" fill="none" opacity="0.7">
+      <animate attributeName="r" values="3.5;6.5;3.5" dur="1.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.8;0;0.8" dur="1.8s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Bottom-Right Terminal (Cyan) -->
+    <circle cx="82" cy="68" r="3.2" fill="#00F5FF" filter="url(#hyperBloom)"/>
+    <circle cx="82" cy="68" r="1.4" fill="#FFFFFF"/>
+    <circle cx="82" cy="68" r="5" stroke="#00F5FF" stroke-width="0.8" fill="none" opacity="0.7">
+      <animate attributeName="r" values="3.5;6.5;3.5" dur="1.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.8;0;0.8" dur="1.8s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Top-Right Terminal (Magenta) -->
+    <circle cx="82" cy="32" r="3.2" fill="#FF007F" filter="url(#hyperBloom)"/>
+    <circle cx="82" cy="32" r="1.4" fill="#FFFFFF"/>
+    <circle cx="82" cy="32" r="5" stroke="#FF007F" stroke-width="0.8" fill="none" opacity="0.7">
+      <animate attributeName="r" values="3.5;6.5;3.5" dur="1.8s" repeatCount="indefinite" begin="0.9s"/>
+      <animate attributeName="opacity" values="0.8;0;0.8" dur="1.8s" repeatCount="indefinite" begin="0.9s"/>
+    </circle>
+
+    <!-- Bottom-Left Terminal (Magenta) -->
+    <circle cx="18" cy="68" r="3.2" fill="#FF007F" filter="url(#hyperBloom)"/>
+    <circle cx="18" cy="68" r="1.4" fill="#FFFFFF"/>
+    <circle cx="18" cy="68" r="5" stroke="#FF007F" stroke-width="0.8" fill="none" opacity="0.7">
+      <animate attributeName="r" values="3.5;6.5;3.5" dur="1.8s" repeatCount="indefinite" begin="0.9s"/>
+      <animate attributeName="opacity" values="0.8;0;0.8" dur="1.8s" repeatCount="indefinite" begin="0.9s"/>
+    </circle>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- 5. NUCLEAR FUSION CENTER SINGULARITY (INTERSECTION AT 50, 50)       -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    
+    <!-- Concentric Shockwave Energy Ripples from Collision -->
+    <circle cx="50" cy="50" r="4" stroke="#FFFFFF" stroke-width="1.5" fill="none" opacity="0.9">
+      <animate attributeName="r" values="2;18" dur="1.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="1;0" dur="1.8s" repeatCount="indefinite"/>
+      <animate attributeName="stroke" values="#FFFFFF;#00F5FF;#FF007F" dur="1.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="50" cy="50" r="4" stroke="#00F5FF" stroke-width="1.2" fill="none" opacity="0.9">
+      <animate attributeName="r" values="2;18" dur="1.8s" repeatCount="indefinite" begin="0.9s"/>
+      <animate attributeName="opacity" values="1;0" dur="1.8s" repeatCount="indefinite" begin="0.9s"/>
+      <animate attributeName="stroke" values="#FFFFFF;#FF007F;#00F5FF" dur="1.8s" repeatCount="indefinite" begin="0.9s"/>
+    </circle>
+
+    <!-- Anamorphic Laser Flare Beam across the horizontal axis -->
+    <line x1="28" y1="50" x2="72" y2="50" stroke="#FFFFFF" stroke-width="1.4" opacity="0.9" filter="url(#intenseCore)">
+      <animate attributeName="stroke-width" values="0.8;2;0.8" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite"/>
+    </line>
+
+    <!-- 4-Point Rotating Cyber Nova Starburst -->
+    <g class="nova-star">
+      <!-- Outer Cyan Starburst -->
+      <polygon points="50,38 53.5,46.5 62,50 53.5,53.5 50,62 46.5,53.5 38,50 46.5,46.5" 
+        fill="url(#laserCyan)" filter="url(#hyperBloom)"/>
+      <!-- Inner High-Contrast Magenta Starlet -->
+      <polygon points="50,42 52.5,47.5 58,50 52.5,52.5 50,58 47.5,52.5 42,50 47.5,47.5" 
+        fill="url(#laserMagenta)" transform="rotate(45 50 50)"/>
+      <!-- Brilliant Pure White Fusion Core -->
+      <circle cx="50" cy="50" r="3.2" fill="#FFFFFF" filter="url(#hyperBloom)"/>
+      <circle cx="50" cy="50" r="1.6" fill="#00F5FF"/>
+    </g>
+
   </g>
 </svg>
