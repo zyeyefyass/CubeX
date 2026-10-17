@@ -162,7 +162,7 @@ func NewDefaultIR() *ConfigIR {
 		Network: NetworkConfig{
 			TunInterface: "cubex-tun",
 			TunIPv4:      "172.19.0.1/30",
-			TunMTU:       9000,
+			TunMTU:       1500,
 			TunStack:     "mixed",
 			TProxyPort:   7893,
 			MixedPort:    7890,

@@ -640,33 +640,49 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		_ = json.Unmarshal(data, &existingFilters)
 	}
 
-	// 4b. Patch FastTrack rule to exclude CubeX
-	for _, f := range existingFilters {
+	// 4b. Ensure FastTrack rule is configured to exclude CubeX AND placed before established accept
+	var fasttrackID string
+	var establishedID string
+	fasttrackIndex := -1
+	establishedIndex := -1
+
+	for idx, f := range existingFilters {
 		action, _ := f["action"].(string)
 		chain, _ := f["chain"].(string)
+		connState, _ := f["connection-state"].(string)
+		comment, _ := f["comment"].(string)
 		id, _ := f[".id"].(string)
-		if action == "fasttrack-connection" && chain == "forward" && id != "" {
-			srcList, _ := f["src-address-list"].(string)
-			dstList, _ := f["dst-address-list"].(string)
-			srcAddr, _ := f["src-address"].(string)
-			dstAddr, _ := f["dst-address"].(string)
 
-			needsPatch := !strings.Contains(srcList, "!MICUBE_BYPASS") &&
-				!strings.Contains(dstList, "!MICUBE_BYPASS") &&
-				!(strings.Contains(srcAddr, "!"+targetIP) && strings.Contains(dstAddr, "!"+targetIP))
-
-			if needsPatch {
-				patchPayload := map[string]any{
-					"src-address": "!" + targetIP,
-					"dst-address": "!" + targetIP,
-					"comment":     fmt.Sprintf("FastTrack (Excluding CubeX %s)", targetIP),
-				}
-				if err := m.PatchROS("/ip/firewall/filter/"+id, patchPayload); err == nil {
-					res.Actions = append(res.Actions, "已成功为 FastTrack 加速规则添加旁路由排除条件 (!"+targetIP+")，保障连接跟踪稳定性")
-				}
-			} else {
-				res.Actions = append(res.Actions, "FastTrack 规则已配置旁路由排除白名单")
+		if chain == "forward" {
+			if action == "fasttrack-connection" && id != "" {
+				fasttrackID = id
+				fasttrackIndex = idx
 			}
+			if action == "accept" && strings.Contains(connState, "established") && !strings.Contains(comment, "CubeX") && id != "" {
+				if establishedID == "" {
+					establishedID = id
+					establishedIndex = idx
+				}
+			}
+		}
+	}
+
+	if fasttrackID != "" {
+		patchPayload := map[string]any{
+			"src-address": "!" + targetIP,
+			"dst-address": "!" + targetIP,
+			"comment":     fmt.Sprintf("FastTrack (Excluding CubeX %s)", targetIP),
+		}
+		_ = m.PatchROS("/ip/firewall/filter/"+fasttrackID, patchPayload)
+
+		if establishedID != "" && establishedIndex != -1 && fasttrackIndex > establishedIndex {
+			_, _ = m.PostROS("/ip/firewall/filter/move", map[string]any{
+				"numbers":     fasttrackID,
+				"destination": establishedID,
+			})
+			res.Actions = append(res.Actions, "已将 FastTrack 硬件加速规则置顶于已建立连接放行规则之前，恢复千兆级硬件全速转发")
+		} else {
+			res.Actions = append(res.Actions, "FastTrack 规则已配置旁路由排除白名单且位置正确")
 		}
 	}
 

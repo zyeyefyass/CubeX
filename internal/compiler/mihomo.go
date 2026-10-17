@@ -34,15 +34,20 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"find-process-mode":   "strict",
 	}
 
+	tunMTU := net.TunMTU
+	if tunMTU <= 0 || tunMTU > 1500 {
+		tunMTU = 1500
+	}
+
 	// TUN Configuration
 	cfg["tun"] = map[string]any{
-		"enable":               true,
-		"stack":                net.TunStack,
+		"enable":                   true,
+		"stack":                    net.TunStack,
 		"device":                   net.TunInterface,
 		"auto-route":               true,
 		"auto-detect-interface":    true,
-		"strict-route":             true,
-		"mtu":                      net.TunMTU,
+		"strict-route":             false,
+		"mtu":                      tunMTU,
 		"endpoint-independent-nat": true,
 		"dns-hijack": []string{
 			"tcp://any:53",
@@ -116,9 +121,20 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 	cfg["dns"] = dnsMap
 
+	// Build map of disabled or exhausted subscriptions
+	disabledSubIDs := make(map[string]bool)
+	for _, sub := range ir.Subscriptions {
+		if !sub.Enabled || (sub.TotalBytes > 0 && sub.UsedBytes >= sub.TotalBytes) {
+			disabledSubIDs[sub.ID] = true
+		}
+	}
+
 	// Proxies (Preserve RawConfig for VLESS Reality, AnyTLS, Hysteria 2, and TUIC)
 	proxiesList := make([]map[string]any, 0, len(ir.Proxies))
 	for _, p := range ir.Proxies {
+		if p.SubID != "" && disabledSubIDs[p.SubID] {
+			continue
+		}
 		ptype := strings.ToLower(p.Type)
 		if ptype == "direct" || ptype == "block" || ptype == "reject" || ptype == "" {
 			continue
@@ -363,6 +379,9 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	rulesList = append(rulesList, "RULE-SET,privacy_domain,REJECT")
 	rulesList = append(rulesList, "RULE-SET,cn_domain,DIRECT")
 	rulesList = append(rulesList, "RULE-SET,cn_ip,DIRECT")
+
+	// Intercept foreign UDP 443/8443 (QUIC) to prevent ISP UDP QoS throttling and force BBR TCP
+	rulesList = append(rulesList, "AND,((NETWORK,udp),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT")
 
 	// 2b. Business Service Rule-Sets
 	for _, bm := range bizMRS {

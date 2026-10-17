@@ -118,13 +118,18 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		dnsPort = 53
 	}
 
+	tunMTU := net.TunMTU
+	if tunMTU <= 0 || tunMTU > 1500 {
+		tunMTU = 1500
+	}
+
 	inbounds := []map[string]any{
 		{
 			"type":           "tun",
 			"tag":            "tun-in",
 			"interface_name": net.TunInterface,
 			"address":        []string{net.TunIPv4},
-			"mtu":            net.TunMTU,
+			"mtu":            tunMTU,
 			"auto_route":     true,
 			"strict_route":   false,
 			"stack":          net.TunStack,
@@ -171,9 +176,20 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"tag":  "REJECT",
 	})
 
+	// Build map of disabled or exhausted subscriptions
+	disabledSubIDs := make(map[string]bool)
+	for _, sub := range ir.Subscriptions {
+		if !sub.Enabled || (sub.TotalBytes > 0 && sub.UsedBytes >= sub.TotalBytes) {
+			disabledSubIDs[sub.ID] = true
+		}
+	}
+
 	// Add user proxy nodes
 	nodeTags := make([]string, 0, len(ir.Proxies))
 	for _, p := range ir.Proxies {
+		if p.SubID != "" && disabledSubIDs[p.SubID] {
+			continue
+		}
 		pType := strings.ToLower(p.Type)
 		if pType == "direct" || pType == "block" || pType == "reject" || pType == "" {
 			continue
@@ -443,6 +459,13 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	routeRules = append(routeRules, map[string]any{
 		"rule_set": []string{"geosite-cn", "geoip-cn"},
 		"outbound": "direct",
+	})
+
+	// C1.5. Intercept foreign UDP 443/8443 (QUIC) to prevent ISP UDP QoS throttling and force BBR TCP
+	routeRules = append(routeRules, map[string]any{
+		"network":  []string{"udp"},
+		"port":     []int{443, 8443},
+		"outbound": "block",
 	})
 
 	// C2. Application / Business routing groups for Sing-box
