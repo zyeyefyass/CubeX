@@ -13,7 +13,8 @@ COPY web/ ./
 RUN npm run build
 
 # Stage 2: Build Multi-Arch Gateway Daemon (cubexd)
-FROM --platform=$BUILDPLATFORM golang:1.23-alpine AS server-builder
+FROM --platform=$BUILDPLATFORM golang:alpine AS server-builder
+ENV GOTOOLCHAIN=auto
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /build/gateway
