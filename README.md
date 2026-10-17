@@ -269,17 +269,18 @@ CubeX 具备**全平台环境自动嗅探能力**，无论你使用的是企业�
 
 ---
 
-### 🐳 二、飞牛 fnOS 部署指南 (原生持久化路径 `/vol1/1000/cubex`)
+### 🐳 二、飞牛 fnOS 与通用 Docker 部署指南 (原生持久化路径 `/vol1/1000/cubex`)
 
-飞牛（fnOS）用户可自由选择以下三种最便捷的方式进行部署：
+飞牛（fnOS）及所有支持 Docker 的系统，均可自由选择以下五种最便捷的方式进行部署：
 
-#### 🌟 方式一：飞牛 Docker GUI【本地镜像导入】（强烈推荐，0 联网门槛，免海外梯子）
-1. 前往 GitHub Releases 下载 **`CubeX-Test-v0.99-linux-amd64.zip`** 或离线 Docker 镜像包；
+#### 🌟 方式一：飞牛 Docker GUI【本地镜像导入】（强烈推荐，0 联网门槛，国内免翻墙绝对不卡死）
+因国内直接从 Docker Hub 拉取镜像经常超时受阻，强烈推荐直接使用官方离线镜像包：
+1. 前往 [GitHub Releases](https://github.com/zyeyefyass/CubeX/releases) 下载 **`CubeX-Test-v0.99-docker-amd64.tar.gz`** 专属离线镜像包；
 2. 打开飞牛桌面 -> 进入 **【Docker】应用** -> 点击左侧 **【镜像仓库】**；
-3. 点击右上角 **【本地导入】** -> 上传选中的镜像文件（秒级导入完毕）；
-4. 进入 **【容器】** -> 点击 **【新建容器】** -> 镜像选择刚刚导入的 `cubex:latest`：
+3. 点击右上角 **【本地导入】** -> 上传选中的 `.tar.gz` 镜像文件（1 秒导入完毕）；
+4. 进入 **【容器】** -> 点击 **【新建容器】** -> 镜像选择刚刚导入的 `cubex:latest`（或 `cubex:Test-v0.99`）：
    * **网络**：必须勾选 **`Host` 模式**（使旁路由透明代理接管局域网流量）；
-   * **特权与功能**：勾选 **【高权限执行】**（需要 `NET_ADMIN` 管理 TUN 网卡）；
+   * **特权与功能**：勾选 **【高权限执行】**（需要 `NET_ADMIN` 管理 TUN 虚拟网卡）；
    * **路径挂载**：
      * 宿主机 `/vol1/1000/cubex/data` 映射到容器 `/app/data`
      * 宿主机 `/vol1/1000/cubex/etc` 映射到容器 `/app/etc`
@@ -317,7 +318,38 @@ services:
         max-file: "3"
 ```
 
-#### ⚡ 方式三：SSH 终端一键全自动嗅探安装
+#### 🚀 方式三：飞牛终端原生 `docker run` 一行单命令拉起 (无需创建任何文件)
+如果你更习惯在飞牛 SSH 终端中直接运行命令，直接复制以下单行命令即可拉起：
+
+```bash
+docker run -d \
+  --name cubex \
+  --restart unless-stopped \
+  --network host \
+  --cap-add NET_ADMIN \
+  --cap-add NET_BIND_SERVICE \
+  --cap-add SYS_MODULE \
+  --device /dev/net/tun:/dev/net/tun \
+  -v /vol1/1000/cubex/data:/app/data \
+  -v /vol1/1000/cubex/etc:/app/etc \
+  -v /etc/timezone:/etc/timezone:ro \
+  -v /etc/localtime:/etc/localtime:ro \
+  -e TZ=Asia/Shanghai \
+  -e CUBEX_PORT=2026 \
+  -e CUBEX_LISTEN=:2026 \
+  ghcr.io/zyeyefyass/cubex:latest
+```
+
+#### 🌐 方式四：飞牛 Docker 官方应用中心 / 镜像仓库在线搜索拉取
+飞牛 OS 用户如果希望直接在线拉取官方镜像：
+1. 打开飞牛【Docker】应用 ➔ 点击左侧【镜像仓库】；
+2. 如果你的网络配置了 Docker 代理加速，或者添加了 GitHub Packages 镜像源，在搜索框中输入：
+   ```text
+   ghcr.io/zyeyefyass/cubex:latest
+   ```
+3. 点击【下载】；下载完成后在【本地镜像】中点击【创建容器】即可直接使用！
+
+#### ⚡ 方式五：SSH 终端一键全自动嗅探安装
 ```bash
 curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | bash
 ```
