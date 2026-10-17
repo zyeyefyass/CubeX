@@ -27,7 +27,7 @@
           <div :class="[
             'relative mx-auto flex items-center justify-center group cursor-pointer transition-all duration-300',
             sidebarCollapsed ? 'w-14 h-14 mb-0' : 'w-28 h-28 mb-3'
-          ]" @click="activeMasterTab = 'overview'" title="CubeX - 次世代双擎旁路由">
+          ]" @click="activeMasterTab = 'overview'" title="CubeX - 宿主共生零感网络系统">
             <div class="absolute inset-0 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700 animate-pulse bg-cyan-500/35"></div>
             <img src="/logo-cubex.svg" :class="[
               'relative z-10 drop-shadow-[0_0_32px_rgba(0,210,255,0.85)] filter transition-all duration-500 group-hover:scale-105 active:scale-95',
@@ -42,12 +42,12 @@
                 CubeX
               </h1>
             </div>
-            <p class="text-[8px] tracking-[0.16em] font-mono font-semibold uppercase text-cyan-400/80">
-              PARASITIC SIDECAR GATEWAY
+            <p class="text-[8px] tracking-[0.14em] font-mono font-semibold uppercase text-cyan-400/80">
+              SYMBIOTIC ZERO-PERCEPTION GATEWAY
             </p>
             <div class="flex items-center justify-center pt-0.5">
               <span class="text-[9.5px] px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 font-medium scale-95 shadow-sm">
-                宿主寄生旁路透明系统
+                宿主共生 · 零感微核网关
               </span>
             </div>
 
@@ -1887,7 +1887,7 @@
                   </div>
                   <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">当前最新</span>
                 </div>
-                <div class="text-xs text-slate-400 font-mono">当前版本: {{ systemOverview.cubex_version || 'v1.0.0-Aurora' }}</div>
+                <div class="text-xs text-slate-400 font-mono">当前版本: {{ systemOverview.cubex_version || 'Test v0.999' }}</div>
                 <button @click="upgradePanel" :disabled="upgradingPanel" class="w-full py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition">
                   {{ upgradingPanel ? '升级中...' : '🚀 一键在线热更 CubeX' }}
                 </button>
@@ -2065,7 +2065,7 @@
             <span>💬 微信控制中心</span>
           </button>
           <div class="text-[9px] text-slate-500 text-center font-mono">
-            CubeX {{ systemStatus.version || 'v1.0.0-Aurora' }}
+            CubeX {{ systemStatus.version || 'Test v0.999' }}
           </div>
         </div>
       </div>
