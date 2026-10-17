@@ -214,33 +214,70 @@ CubeX 对安全与隐私有着近乎偏执的追求：
 
 ---
 
-## 🚀 极速部署：自动嗅探与一键拉起
+## 🚀 极速部署指南 (Deployment Guide)
 
-CubeX 安装程序具备**全平台环境自动嗅探能力**，能够自动判断宿主环境并匹配最佳路径。
-
-### ⚡ 通用一键安装命令 (推荐)
-只需在 Linux / 飞牛 / PVE 终端执行一行命令：
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | bash
-```
-
-> 💡 **飞牛 fnOS 用户特别注意**：  
-> 安装程序检测到飞牛 fnOS 时，**将全自动应用飞牛官方默认持久化路径 `/vol1/1000/cubex`**，自动配置存储卷与文件权限，并优先通过 Docker 容器化拉起！
+CubeX 具备**全平台环境自动嗅探能力**，无论你使用的是企业级 RouterOS 硬件路由器、家用飞牛 fnOS NAS、PVE 虚拟化底座还是通用 Linux，均能原生秒级拉起。
 
 ---
 
-<details>
-<summary><b>点击展开：飞牛 fnOS 三种极速部署方式详解（含国内免梯离线导入）</b></summary>
+### 👑 一、MikroTik RouterOS v7 容器原生部署 (官方首推 · 硬件级协同)
+
+> 💡 **架构精髓**：让 RouterOS 硬件做专业的高性能拨号与网络二层交换，CubeX 容器则在极低内存（18MB~25MB）下专注执行七层代理加速与防泄漏规则，实现 **“工业级硬件稳定性 + 宇宙级旁路算力”**。
+
+#### 1. 适用硬件平台
+* **x86 / CHR** 虚拟机及物理机（下载 `CubeX-*-ros-amd64.tar`）
+* **RB5009, CCR2004, CCR2116, RB4011** 等 ARM64 硬件（下载 `CubeX-*-ros-arm64.tar`）
+* RouterOS 系统版本：**RouterOS v7.12 或更高稳定版**（已启用 `container` package）
+
+#### 2. 所需文件准备 (前往 [Releases](https://github.com/zyeyefyass/CubeX/releases) 下载)
+1. **`CubeX-Test-v0.99-ros-amd64.tar`** (或 `ros-arm64.tar`)：**专为 RouterOS 打造的未压缩原生容器包**（直接导入，无需解压，杜绝格式报错）；
+2. **`setup-routeros-v7.rsc`**：官方 1-Click WinBox 自动化联动脚本。
+
+#### 3. 部署步骤详解 (WinBox GUI 与 CLI 对照)
+
+##### 步骤 ①：上传文件至 RouterOS
+* 打开 WinBox -> 点击左侧 **【Files】**；
+* 将下载的 `CubeX-Test-v0.99-ros-*.tar` 与 `setup-routeros-v7.rsc` 直接拖拽上传至 RouterOS 存储目录（如 `disk1/` 或根目录）。
+
+##### 步骤 ②：执行一键环境初始化脚本 (配置网络与防死锁)
+打开 WinBox 的 **【Terminal】** 终端，执行：
+```routeros
+/import setup-routeros-v7.rsc
+```
+> **该脚本自动完成 5 项底层硬件配置**：
+> 1. 创建专用独立网卡 `veth-cubex`（默认分配 IP: `192.168.88.240/24`，网关: `192.168.88.1`）；
+> 2. 将 `veth-cubex` 自动挂载至局域网主网桥 `bridge`；
+> 3. 创建隔离策略路由表 `table-cubex-8228`（Table 8228 · 独立分流）；
+> 4. 添加默认策略路由条目（指向 `192.168.88.240`，启用 ping 自愈探活）；
+> 5. 注入 Mangle 防回环与本地局域网豁免规则（杜绝网关互指死锁）。
+
+##### 步骤 ③：添加并拉起 CubeX 容器
+在 WinBox 的 **【Terminal】** 终端执行一行命令（或在 **Container** 界面添加）：
+
+* **针对 x86 / CHR 用户**：
+```routeros
+/container/add file=disk1/CubeX-Test-v0.99-ros-amd64.tar interface=veth-cubex root-dir=disk1/cubex start-on-boot=yes
+```
+* **针对 RB5009 / CCR2004 / ARM64 用户**：
+```routeros
+/container/add file=disk1/CubeX-Test-v0.99-ros-arm64.tar interface=veth-cubex root-dir=disk1/cubex start-on-boot=yes
+```
+
+> ⚠️ 若上传在根目录而非 `disk1`，请将路径相应调整为 `file=CubeX-Test-v0.99-ros-*.tar` 与 `root-dir=cubex`。
+
+添加完成后，在 WinBox 中点击 **【Container】** -> 选中刚创建的容器，点击 **【Start】** 启动！容器将在 2 秒内极速就绪。
+
+---
+
+### 🐳 二、飞牛 fnOS 部署指南 (原生持久化路径 `/vol1/1000/cubex`)
 
 飞牛（fnOS）用户可自由选择以下三种最便捷的方式进行部署：
 
-#### 🌟 方式一：飞牛 Docker GUI【本地镜像导入】（强烈推荐，0 联网门槛，绝对不卡死）
-因国内直接拉取 Docker Hub 经常受限，推荐直接使用离线镜像包：
-1. 前往 GitHub Releases 下载 **`CubeX-Test-v0.9-docker-amd64.tar`**；
+#### 🌟 方式一：飞牛 Docker GUI【本地镜像导入】（强烈推荐，0 联网门槛，免海外梯子）
+1. 前往 GitHub Releases 下载 **`CubeX-Test-v0.99-linux-amd64.zip`** 或离线 Docker 镜像包；
 2. 打开飞牛桌面 -> 进入 **【Docker】应用** -> 点击左侧 **【镜像仓库】**；
-3. 点击右上角 **【本地导入】** -> 上传选中的 `.tar` 镜像文件（1 秒导入完毕）；
-4. 进入 **【容器】** -> 点击 **【新建容器】** -> 镜像选择刚刚导入的 `cubex:test-v0.9`：
+3. 点击右上角 **【本地导入】** -> 上传选中的镜像文件（秒级导入完毕）；
+4. 进入 **【容器】** -> 点击 **【新建容器】** -> 镜像选择刚刚导入的 `cubex:latest`：
    * **网络**：必须勾选 **`Host` 模式**（使旁路由透明代理接管局域网流量）；
    * **特权与功能**：勾选 **【高权限执行】**（需要 `NET_ADMIN` 管理 TUN 网卡）；
    * **路径挂载**：
@@ -254,7 +291,6 @@ curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | 
 ```yaml
 services:
   cubex:
-    # 镜像地址：国内网络建议搭配飞牛内置的加速镜像源，或使用 GHCR/阿里云
     image: ghcr.io/zyeyefyass/cubex:latest
     container_name: cubex
     restart: unless-stopped
@@ -285,16 +321,20 @@ services:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | bash
 ```
-脚本将全自动识别 `/vol1/1000/cubex`，并自动完成全部目录创建、权限修正与服务拉起。
-
-</details>
+脚本将全自动识别飞牛存储卷 `/vol1/1000/cubex`，并自动完成全部目录创建、权限修正与服务拉起。
 
 ---
 
-<details>
-<summary><b>点击展开：常用全局快捷命令 (`cubex`)</b></summary>
+### ⚡ 三、通用 Linux / PVE LXC 极速部署
 
-安装完成后，系统自动注册了全局快捷指令：
+在任何 Ubuntu / Debian / PVE 终端执行一行命令：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | bash
+```
+
+<details>
+<summary><b>常用全局快捷运维指令 (`cubex`)</b></summary>
 
 ```bash
 # 查看网关运行状态与版本
@@ -311,6 +351,50 @@ cubex reload
 ```
 
 </details>
+
+---
+
+## 🧭 安装后初始配置：三步全通关向导
+
+安装完成后，打开浏览器访问：`http://<设备IP>:2026`（例如 RouterOS 容器默认 `http://192.168.88.240:2026`）即可进入 **Cyber Aurora 赛博极光全息驾驶舱**。
+
+### 🔥 第一步：连通宿主机 (RouterOS / 飞牛底座打通) —— 【核心关键步】
+
+> ⚠️ **为什么必须把“连通宿主机”放在第一步？**  
+> 传统的旁路由软件与主路由器是割裂的，无法知道局域网里有哪些设备，也无法联动主路由的硬件能力。  
+> **CubeX 革命性地通过双向 REST API 握手打通宿主底座**。一旦第一步连通宿主机，系统将瞬间激活四大超能力：
+> 1. **全屋设备实时同步**：自动通过 RouterOS DHCP Lease 探查局域网内所有连网设备（手机、电视、NAS），并在控制面板直观呈现，支持自由改名与一键分流锁定；
+> 2. **免费 IP Cloud DDNS 自动探查**：直接读取 RouterOS 原厂 `.sn.mynetname.net` 动态域名，无需自行购买域名与配置 DDNS；
+> 3. **WireGuard 硬件级双端对齐**：自动在主路由中创建 WireGuard 接口与防火墙放行规则，一键生成手机扫码直连回家二维码；
+> 4. **策略路由健康巡检**：自动验证 Table 8228 路由表状态，避免死锁或断网。
+
+#### 🛠️ 如何配置连通宿主机：
+1. 打开 Web 控制台，点击顶部导航栏【宿主底座】（或快捷键进入【RouterOS 联动配置】）；
+2. 填写宿主机连接参数：
+   * **宿主机 IP**：填写主路由器管理 IP（如 `192.168.88.1`）；
+   * **API 协议与端口**：默认选择 `REST API (HTTPS 443)` 或 `HTTP 80`；
+   * **管理员凭据**：填写 RouterOS 管理员账号与密码（如 `admin`）；
+3. 点击 **【测试连通并保存】**：
+   * 系统将自动向主路由发送保活探测包，连通成功后顶部状态栏指示灯将瞬间切换为 **【极光绿 · 已握手】**；
+   * 此时返回【穿透协同】与【设备矩阵】，你将看到局域网内所有设备已被全量识别！
+
+---
+
+### 🌐 第二步：导入订阅节点与分流策略
+
+1. 点击侧边栏 **【分流总览】** ➔ 点击 **【导入订阅】**；
+2. 粘贴你的机场订阅链接（支持 Clash、V2Ray、Trojan 及 AnyTLS 混编订阅），点击 **【解析并同步】**；
+3. 系统将通过 CubeX IR 统一中间表示层，将所有节点自动聚类分配至 **6 大区域战略中心**（港台、新日韩、美洲、欧洲、自建节点、大陆直连）；
+4. 你可在面板中直观查看各节点真实延迟，并可自由拖拽排序或设置定时健康检测。
+
+---
+
+### ⚡ 第三步：双核无感热切与透明代理生效
+
+1. **选择分流内核**：在顶部控制栏，可自由选择 **Mihomo (稳定均衡)** 或 **sing-box v1.14+ (极速现代)**，点击一键切换（毫秒级热切，0 断流切换）；
+2. **局域网设备接管分流**：
+   * **自动方式 (推荐)**：在第一步 RouterOS 连通后，系统已通过 Table 8228 自动接管需要加速的设备；
+   * **手动指定方式**：若需个别设备单独直连（如 PT 下载机、蓝光播放机），在【局域网设备矩阵】中将该设备一键滑至 **【直连绕过 (Bypass)】** 即可！
 
 ---
 
