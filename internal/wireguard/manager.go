@@ -102,28 +102,22 @@ func (m *Manager) SetHostManager(h *host.Manager) {
 	m.hostManager = h
 }
 
-// GenerateHostWireGuardConfig generates a complete wg0.conf for Linux/fnOS host.
+// GenerateHostWireGuardConfig generates a cleanup script for Linux/fnOS host.
 func (m *Manager) GenerateHostWireGuardConfig() string {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
 	var sb strings.Builder
-	sb.WriteString("# ========================================================\n")
-	sb.WriteString("#  MiCube · 飞牛 (fnOS) / Linux 宿主机 WireGuard 配置文件 (/etc/wireguard/wg0.conf)\n")
-	sb.WriteString("# ========================================================\n\n")
-	sb.WriteString("[Interface]\n")
-	sb.WriteString(fmt.Sprintf("Address = %s\n", m.state.Config.ServerAddress))
-	sb.WriteString(fmt.Sprintf("ListenPort = %d\n", m.state.Config.ListenPort))
-	sb.WriteString(fmt.Sprintf("PrivateKey = %s\n", m.state.Config.PrivateKey))
-	sb.WriteString("PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -s 10.88.0.0/24 -j MASQUERADE; sysctl -w net.ipv4.ip_forward=1\n")
-	sb.WriteString("PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -s 10.88.0.0/24 -j MASQUERADE\n\n")
-
-	for _, p := range m.state.Peers {
-		sb.WriteString("[Peer]\n")
-		sb.WriteString(fmt.Sprintf("# 设备备注: %s\n", p.Name))
-		sb.WriteString(fmt.Sprintf("PublicKey = %s\n", p.PublicKey))
-		sb.WriteString(fmt.Sprintf("AllowedIPs = %s/32\n\n", p.ClientIP))
-	}
+	sb.WriteString("#!/usr/bin/env bash\n")
+	sb.WriteString("# CubeX · 清理宿主机 WireGuard 遗留规则与服务\n")
+	sb.WriteString("systemctl stop wg-quick@wg0 2>/dev/null || true\n")
+	sb.WriteString("systemctl disable wg-quick@wg0 2>/dev/null || true\n")
+	sb.WriteString("ip link delete wg0 2>/dev/null || true\n")
+	sb.WriteString("ip link delete cubex-wg 2>/dev/null || true\n")
+	sb.WriteString("ip link delete micube-wg 2>/dev/null || true\n")
+	sb.WriteString("rm -f /etc/wireguard/wg0.conf /etc/wireguard/micube-wg.conf /etc/wireguard/cubex-wg.conf\n")
+	sb.WriteString("iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true\n")
+	sb.WriteString("iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true\n")
+	sb.WriteString("iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true\n")
+	sb.WriteString("iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true\n")
+	sb.WriteString("iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true\n")
 	return sb.String()
 }
 
@@ -139,10 +133,12 @@ func NewManager(rootDir string, rosMgr *ros.Manager) *Manager {
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			},
 		},
+		state: State{Peers: []Peer{}},
 	}
-	m.loadState()
-	m.ensureServerKeys()
-	go m.refreshCloudDDNS()
+	// Purge legacy wireguard.json file if present
+	if _, err := os.Stat(m.stateFile); err == nil {
+		_ = os.Remove(m.stateFile)
+	}
 	return m
 }
 
@@ -155,45 +151,6 @@ func GenerateKeyPair() (string, string, error) {
 	privB64 := base64.StdEncoding.EncodeToString(key.Bytes())
 	pubB64 := base64.StdEncoding.EncodeToString(key.PublicKey().Bytes())
 	return privB64, pubB64, nil
-}
-
-// ensureServerKeys generates the server keypair if not present.
-func (m *Manager) ensureServerKeys() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	changed := false
-	if m.state.Config.InterfaceName == "" {
-		m.state.Config.InterfaceName = "micube-wg"
-		changed = true
-	}
-	if m.state.Config.ListenPort <= 0 {
-		m.state.Config.ListenPort = 13231
-		changed = true
-	}
-	if m.state.Config.ServerAddress == "" {
-		m.state.Config.ServerAddress = "10.88.0.1/24"
-		changed = true
-	}
-	if m.state.Config.DNS == "" {
-		m.state.Config.DNS = "10.88.0.1"
-		changed = true
-	}
-	if m.state.Config.IntranetCIDR == "" {
-		m.state.Config.IntranetCIDR = "192.168.88.0/24, 10.88.0.0/24"
-		changed = true
-	}
-	if m.state.Config.PrivateKey == "" || m.state.Config.PublicKey == "" {
-		priv, pub, err := GenerateKeyPair()
-		if err == nil {
-			m.state.Config.PrivateKey = priv
-			m.state.Config.PublicKey = pub
-			changed = true
-		}
-	}
-	if changed {
-		_ = m.saveStateLocked()
-	}
 }
 
 // GetInfo returns the current WireGuard server status, detected DDNS, and peer list.
@@ -334,47 +291,19 @@ func (m *Manager) GetClientConfig(peerID string) (string, error) {
 	return "", fmt.Errorf("peer %s not found", peerID)
 }
 
-// GenerateROSScript returns copy-pasteable RouterOS terminal commands for complete setup.
+// GenerateROSScript returns copy-pasteable RouterOS terminal commands for complete WireGuard cleanup.
 func (m *Manager) GenerateROSScript() string {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	cfg := m.state.Config
 	var b strings.Builder
-	b.WriteString("# 🧊 MiCube RouterOS WireGuard 内网穿透一键配置脚本\n")
+	b.WriteString("# 🌌 CubeX RouterOS WireGuard 彻底清理脚本\n")
 	b.WriteString("# 请登录 WinBox 打开 Terminal 或通过 SSH 粘贴执行：\n\n")
-
-	b.WriteString("# 1. 创建 WireGuard 穿透服务端接口\n")
-	b.WriteString(fmt.Sprintf(
-		"/interface wireguard add name=%s listen-port=%d private-key=\"%s\" comment=\"MiCube WireGuard Server\"\n\n",
-		cfg.InterfaceName, cfg.ListenPort, cfg.PrivateKey,
-	))
-
-	b.WriteString("# 2. 为 WireGuard 接口绑定穿透虚拟网段 IP\n")
-	b.WriteString(fmt.Sprintf(
-		"/ip address add address=%s interface=%s comment=\"MiCube WireGuard Subnet\"\n\n",
-		cfg.ServerAddress, cfg.InterfaceName,
-	))
-
-	b.WriteString("# 3. 防火墙放行 WireGuard 监听端口 (UDP)\n")
-	b.WriteString(fmt.Sprintf(
-		"/ip firewall filter add chain=input protocol=udp dst-port=%d action=accept place-before=0 comment=\"MiCube WireGuard In\"\n\n",
-		cfg.ListenPort,
-	))
-
-	b.WriteString("# 4. 启用 RouterOS 自带 Cloud DDNS 动态域名 (内网穿透推荐)\n")
-	b.WriteString("/ip cloud set ddns-enabled=yes update-time=yes\n/ip cloud force-update\n\n")
-
-	if len(m.state.Peers) > 0 {
-		b.WriteString("# 5. 已授权客户端 Peer 列表\n")
-		for _, p := range m.state.Peers {
-			b.WriteString(fmt.Sprintf(
-				"/interface wireguard peers add interface=%s public-key=\"%s\" allowed-address=%s/32 comment=\"%s\"\n",
-				cfg.InterfaceName, p.PublicKey, p.ClientIP, p.Name,
-			))
-		}
-	}
-
+	b.WriteString("# 1. 清除 WireGuard 端口放行防火墙规则\n")
+	b.WriteString("/ip/firewall/filter remove [find comment~\"WireGuard\" or dst-port=\"13231\" or dst-port=\"51820\"]\n\n")
+	b.WriteString("# 2. 清除所有 WireGuard 移动端客户端 Peer\n")
+	b.WriteString("/interface/wireguard/peers remove [find]\n\n")
+	b.WriteString("# 3. 清除 WireGuard 虚拟网段 IP 绑定\n")
+	b.WriteString("/ip/address remove [find interface~\"wg\" or comment~\"WireGuard\" or address~\"10.88.0.\"]\n\n")
+	b.WriteString("# 4. 清除 WireGuard 核心服务端接口\n")
+	b.WriteString("/interface/wireguard remove [find]\n")
 	return b.String()
 }
 
@@ -849,11 +778,10 @@ func (m *Manager) InspectWireGuardAlignment() (*WGAlignmentReport, error) {
 	}
 
 	baseURL := m.getBaseURL(rosCfg)
-	cfg := m.state.Config
 
-	// 1. Check Interface (/interface/wireguard)
-	ifaceOK := false
-	var ifaceVal string
+	// 1. Check Interface (/interface/wireguard) - must be absent
+	hasIface := false
+	var foundIfaceName string
 	req, err := http.NewRequest(http.MethodGet, baseURL+"/interface/wireguard", nil)
 	if err == nil {
 		req.SetBasicAuth(rosCfg["user"], rosCfg["password"])
@@ -862,87 +790,39 @@ func (m *Manager) InspectWireGuardAlignment() (*WGAlignmentReport, error) {
 			_ = json.NewDecoder(resp.Body).Decode(&wgList)
 			resp.Body.Close()
 			for _, item := range wgList {
-				if item["name"] == cfg.InterfaceName {
-					listenPort := fmt.Sprintf("%v", item["listen-port"])
-					if listenPort == fmt.Sprintf("%d", cfg.ListenPort) {
-						ifaceOK = true
-						ifaceVal = fmt.Sprintf("name=%s port=%s (正常)", cfg.InterfaceName, listenPort)
-					} else {
-						ifaceVal = fmt.Sprintf("端口不一致 (ROS: %s, MiCube: %d)", listenPort, cfg.ListenPort)
-					}
+				name, _ := item["name"].(string)
+				if name == "cubex-wg" || name == "micube-wg" {
+					hasIface = true
+					foundIfaceName = name
 					break
 				}
 			}
 		}
 	}
-	if ifaceOK {
-		report.Items = append(report.Items, WGCheckItem{
-			Key:     "interface",
-			Name:    "WireGuard 服务端接口 (/interface/wireguard)",
-			Status:  "ok",
-			Value:   ifaceVal,
-			Details: "RouterOS 上 WireGuard 核心接口已就绪并对齐监听端口。",
-			Advice:  "已对齐",
-		})
-	} else {
+	if hasIface {
 		report.AllAligned = false
 		report.Items = append(report.Items, WGCheckItem{
 			Key:     "interface",
-			Name:    "WireGuard 服务端接口 (/interface/wireguard)",
-			Status:  "missing",
-			Value:   ifaceVal,
-			Details: fmt.Sprintf("RouterOS 缺失 %s 接口或端口不一致", cfg.InterfaceName),
-			Advice:  "点击「⚡ 一键对齐 WireGuard」自动创建/修复接口",
-		})
-	}
-
-	// 2. Check IP Address (/ip/address)
-	addrOK := false
-	var addrVal string
-	reqAddr, err := http.NewRequest(http.MethodGet, baseURL+"/ip/address", nil)
-	if err == nil {
-		reqAddr.SetBasicAuth(rosCfg["user"], rosCfg["password"])
-		if resp, err := m.httpClient.Do(reqAddr); err == nil {
-			var addrList []map[string]any
-			_ = json.NewDecoder(resp.Body).Decode(&addrList)
-			resp.Body.Close()
-			for _, item := range addrList {
-				if item["interface"] == cfg.InterfaceName {
-					addr := fmt.Sprintf("%v", item["address"])
-					if addr == cfg.ServerAddress {
-						addrOK = true
-						addrVal = addr + " (已绑定)"
-					} else {
-						addrVal = fmt.Sprintf("网段不一致 (ROS: %s, MiCube: %s)", addr, cfg.ServerAddress)
-					}
-					break
-				}
-			}
-		}
-	}
-	if addrOK {
-		report.Items = append(report.Items, WGCheckItem{
-			Key:     "address",
-			Name:    "隧道网关 IP (/ip/address)",
-			Status:  "ok",
-			Value:   addrVal,
-			Details: "穿透网段 IP 已正确绑定到 WireGuard 虚拟网卡。",
-			Advice:  "已对齐",
+			Name:    "WireGuard 虚拟接口 (/interface/wireguard)",
+			Status:  "warning",
+			Value:   fmt.Sprintf("存在残留: %s", foundIfaceName),
+			Details: "检测到 RouterOS 仍残留 WireGuard 虚拟网卡，建议一键清理。",
+			Advice:  "点击「⚡ 一键清除 WireGuard」彻底注销",
 		})
 	} else {
-		report.AllAligned = false
 		report.Items = append(report.Items, WGCheckItem{
-			Key:     "address",
-			Name:    "隧道网关 IP (/ip/address)",
-			Status:  "missing",
-			Value:   addrVal,
-			Details: fmt.Sprintf("未在 %s 上绑定虚拟网段 %s", cfg.InterfaceName, cfg.ServerAddress),
-			Advice:  "点击「⚡ 一键对齐 WireGuard」自动下发绑定 IP",
+			Key:     "interface",
+			Name:    "WireGuard 虚拟接口 (/interface/wireguard)",
+			Status:  "ok",
+			Value:   "已彻底清理 (无残留)",
+			Details: "RouterOS 上无任何 WireGuard 虚拟网卡残留，合规纯净。",
+			Advice:  "状态良好",
 		})
 	}
 
-	// 3. Check Firewall Filter (/ip/firewall/filter)
-	filterOK := false
+	// 2. Check Firewall Filter (/ip/firewall/filter) - ports 13231 and 51820 must be absent
+	hasFilter := false
+	var foundPort string
 	reqFilter, err := http.NewRequest(http.MethodGet, baseURL+"/ip/firewall/filter", nil)
 	if err == nil {
 		reqFilter.SetBasicAuth(rosCfg["user"], rosCfg["password"])
@@ -950,49 +830,40 @@ func (m *Manager) InspectWireGuardAlignment() (*WGAlignmentReport, error) {
 			var filterList []map[string]any
 			_ = json.NewDecoder(resp.Body).Decode(&filterList)
 			resp.Body.Close()
-			portStr := fmt.Sprintf("%d", cfg.ListenPort)
 			for _, item := range filterList {
-				if item["chain"] == "input" && item["protocol"] == "udp" && item["dst-port"] == portStr && item["action"] == "accept" {
-					filterOK = true
+				port := fmt.Sprintf("%v", item["dst-port"])
+				comment := fmt.Sprintf("%v", item["comment"])
+				if port == "13231" || port == "51820" || strings.Contains(strings.ToLower(comment), "micube wireguard") || strings.Contains(strings.ToLower(comment), "cubex wireguard") {
+					hasFilter = true
+					foundPort = port
 					break
 				}
 			}
 		}
 	}
-	if filterOK {
-		report.Items = append(report.Items, WGCheckItem{
-			Key:     "firewall",
-			Name:    "穿透端口防火墙放行 (/ip/firewall/filter)",
-			Status:  "ok",
-			Value:   fmt.Sprintf("UDP %d 放行 (Accept)", cfg.ListenPort),
-			Details: "移动终端可由外网公网直连接入。",
-			Advice:  "已对齐",
-		})
-	} else {
+	if hasFilter {
 		report.AllAligned = false
 		report.Items = append(report.Items, WGCheckItem{
 			Key:     "firewall",
-			Name:    "穿透端口防火墙放行 (/ip/firewall/filter)",
+			Name:    "穿透端口防火墙规则 (/ip/firewall/filter)",
 			Status:  "warning",
-			Value:   "未放行 UDP 端口",
-			Details: fmt.Sprintf("未在防火墙 Input 链放行 UDP %d，可能阻断外网扫码接入。", cfg.ListenPort),
-			Advice:  "建议一键对齐放行防火墙端口",
+			Value:   fmt.Sprintf("存在遗留放行: UDP %s", foundPort),
+			Details: "检测到防火墙存在 WireGuard UDP 放行规则，建议清理关闭。",
+			Advice:  "点击「⚡ 一键清除 WireGuard」注销端口规则",
+		})
+	} else {
+		report.Items = append(report.Items, WGCheckItem{
+			Key:     "firewall",
+			Name:    "穿透端口防火墙规则 (/ip/firewall/filter)",
+			Status:  "ok",
+			Value:   "已全部关闭 (0 开放端口)",
+			Details: "所有 WireGuard UDP 穿透端口均已关闭，绝无端口暴露。",
+			Advice:  "状态良好",
 		})
 	}
 
-	// 4. Check Cloud DDNS
-	ddnsOK := cfg.CloudDDNS != ""
-	report.Items = append(report.Items, WGCheckItem{
-		Key:     "cloud_ddns",
-		Name:    "RouterOS 官方 IP Cloud 动态域名",
-		Status:  func() string { if ddnsOK { return "ok" }; return "warning" }(),
-		Value:   func() string { if ddnsOK { return cfg.CloudDDNS }; return "未探查到" }(),
-		Details: func() string { if ddnsOK { return "移动端扫码免配公网 IP，自动由动态域名直连。" }; return "若无公网 IP，可前往 RouterOS 开启 /ip/cloud ddns-enabled=yes" }(),
-		Advice:  "自动联动中",
-	})
-
-	// 5. Check Peers (/interface/wireguard/peers)
-	syncedCount := 0
+	// 3. Check Peers (/interface/wireguard/peers) - must be 0 (excluding RouterOS native dynamic back-to-home VPN)
+	hasPeers := false
 	reqPeers, err := http.NewRequest(http.MethodGet, baseURL+"/interface/wireguard/peers", nil)
 	if err == nil {
 		reqPeers.SetBasicAuth(rosCfg["user"], rosCfg["password"])
@@ -1000,46 +871,44 @@ func (m *Manager) InspectWireGuardAlignment() (*WGAlignmentReport, error) {
 			var rosPeers []map[string]any
 			_ = json.NewDecoder(resp.Body).Decode(&rosPeers)
 			resp.Body.Close()
-
-			rosPubKeyMap := make(map[string]map[string]any)
-			for _, rp := range rosPeers {
-				if pk, ok := rp["public-key"].(string); ok {
-					rosPubKeyMap[pk] = rp
+			for _, p := range rosPeers {
+				isDynamic := fmt.Sprintf("%v", p["dynamic"]) == "true"
+				iface := fmt.Sprintf("%v", p["interface"])
+				comment := fmt.Sprintf("%v", p["comment"])
+				if isDynamic || iface == "back-to-home-vpn" || strings.Contains(comment, "back-to-home") {
+					continue
 				}
-			}
-
-			for i := range m.state.Peers {
-				p := m.state.Peers[i]
-				if _, exists := rosPubKeyMap[p.PublicKey]; exists {
-					syncedCount++
-					m.state.Peers[i].SyncedToROS = true
-					m.state.Peers[i].ROSError = ""
-				} else {
-					m.state.Peers[i].SyncedToROS = false
-				}
+				hasPeers = true
+				break
 			}
 		}
 	}
-	report.SyncedPeers = syncedCount
-
-	peersAligned := len(m.state.Peers) == 0 || syncedCount == len(m.state.Peers)
-	if !peersAligned {
+	if hasPeers {
 		report.AllAligned = false
+		report.Items = append(report.Items, WGCheckItem{
+			Key:     "peers",
+			Name:    "移动端设备 Peer 记录 (/interface/wireguard/peers)",
+			Status:  "warning",
+			Value:   "存在残留 Peer 授权",
+			Details: "检测到 RouterOS 仍存有 WireGuard 客户端授权密钥，建议清理。",
+			Advice:  "点击「⚡ 一键清除 WireGuard」注销所有 Peer",
+		})
+	} else {
+		report.Items = append(report.Items, WGCheckItem{
+			Key:     "peers",
+			Name:    "移动端设备 Peer 记录 (/interface/wireguard/peers)",
+			Status:  "ok",
+			Value:   "已全部注销 (0 残留)",
+			Details: "所有客户端 Peer 密钥均已安全清除。",
+			Advice:  "状态良好",
+		})
 	}
-	report.Items = append(report.Items, WGCheckItem{
-		Key:     "peers",
-		Name:    "移动端设备 Peer 同步状态",
-		Status:  func() string { if peersAligned { return "ok" }; return "warning" }(),
-		Value:   fmt.Sprintf("已同步 %d / %d 台已授权设备", syncedCount, len(m.state.Peers)),
-		Details: func() string { if peersAligned { return "所有移动端设备公钥与 /32 IP 均已与 RouterOS 硬件对齐。" }; return "存在未同步到 RouterOS 的移动设备，该设备将暂时无法握手。" }(),
-		Advice:  "点击「⚡ 一键对齐 WireGuard」立即推送所有未同步 Peer",
-	})
 
 	return report, nil
 }
 
-// AlignWireGuardToROS triggers a full 1-click alignment of server interface, IP, firewall, DDNS and all peers.
-func (m *Manager) AlignWireGuardToROS() (*WGAlignResult, error) {
+// PurgeAll completely cleans up all WireGuard settings, files, and firewall rules on RouterOS, Host, and locally.
+func (m *Manager) PurgeAll() (*WGAlignResult, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -1049,43 +918,135 @@ func (m *Manager) AlignWireGuardToROS() (*WGAlignResult, error) {
 		Errors:  make([]string, 0),
 	}
 
-	rosCfg := m.rosManager.GetConfig()
-	if rosCfg["host"] == "" {
-		return nil, fmt.Errorf("RouterOS host not configured")
+	// 1. Delete local state file
+	if err := os.Remove(m.stateFile); err == nil {
+		res.Actions = append(res.Actions, "已删除本地 WireGuard 配置文件 (data/wireguard.json)")
 	}
+	m.state = State{Peers: []Peer{}}
 
-	// 1. Initialize server interface, address, and firewall
-	if err := m.initRouterOSServerLocked(); err != nil {
-		res.Errors = append(res.Errors, "初始化服务端失败: "+err.Error())
-	} else {
-		res.Actions = append(res.Actions, "WireGuard 接口与虚拟网段已就绪")
-	}
-
-	// 2. Sync all peers
-	synced := 0
-	for i := range m.state.Peers {
-		if err := m.syncPeerToROSLocked(m.state.Peers[i]); err == nil {
-			m.state.Peers[i].SyncedToROS = true
-			m.state.Peers[i].ROSError = ""
-			synced++
-		} else {
-			m.state.Peers[i].SyncedToROS = false
-			m.state.Peers[i].ROSError = err.Error()
-			res.Errors = append(res.Errors, fmt.Sprintf("同步设备 %s 失败: %v", m.state.Peers[i].Name, err))
+	// 2. Clean Host (Linux / fnOS) if hostManager is configured
+	if m.hostManager != nil {
+		if hostLog, err := m.hostManager.CleanupHostWireGuard(); err == nil && hostLog != "" {
+			res.Actions = append(res.Actions, "宿主机 WireGuard 规则与接口已清理完毕")
 		}
 	}
-	_ = m.saveStateLocked()
 
-	res.Actions = append(res.Actions, fmt.Sprintf("已成功对齐并同步 %d/%d 台移动设备 Peer", synced, len(m.state.Peers)))
+	// 3. Clean RouterOS if configured
+	rosCfg := m.rosManager.GetConfig()
+	if rosCfg["host"] != "" {
+		baseURL := m.getBaseURL(rosCfg)
+		client := m.httpClient
+		auth := func(req *http.Request) {
+			req.SetBasicAuth(rosCfg["user"], rosCfg["password"])
+		}
 
-	if len(res.Errors) > 0 {
-		res.Success = false
-		res.Message = fmt.Sprintf("对齐完成，但有 %d 项需注意", len(res.Errors))
-	} else {
-		res.Message = "🎉 RouterOS WireGuard 服务端与客户端 Peer 全部对齐成功！"
+		// 3.1 Remove all peers (/interface/wireguard/peers)
+		if pReq, err := http.NewRequest(http.MethodGet, baseURL+"/interface/wireguard/peers", nil); err == nil {
+			auth(pReq)
+			if pResp, err := client.Do(pReq); err == nil {
+				var peers []map[string]any
+				_ = json.NewDecoder(pResp.Body).Decode(&peers)
+				pResp.Body.Close()
+				for _, p := range peers {
+					isDynamic := fmt.Sprintf("%v", p["dynamic"]) == "true"
+					iface := fmt.Sprintf("%v", p["interface"])
+					comment := fmt.Sprintf("%v", p["comment"])
+					if isDynamic || iface == "back-to-home-vpn" || strings.Contains(comment, "back-to-home") {
+						continue
+					}
+					if id, ok := p[".id"].(string); ok && id != "" {
+						if dReq, err := http.NewRequest(http.MethodDelete, baseURL+"/interface/wireguard/peers/"+id, nil); err == nil {
+							auth(dReq)
+							if dResp, err := client.Do(dReq); err == nil {
+								dResp.Body.Close()
+								res.Actions = append(res.Actions, fmt.Sprintf("已清理 RouterOS WireGuard 客户端 Peer (%s)", p["comment"]))
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// 3.2 Remove WireGuard filter rules (/ip/firewall/filter)
+		if fReq, err := http.NewRequest(http.MethodGet, baseURL+"/ip/firewall/filter", nil); err == nil {
+			auth(fReq)
+			if fResp, err := client.Do(fReq); err == nil {
+				var filters []map[string]any
+				_ = json.NewDecoder(fResp.Body).Decode(&filters)
+				fResp.Body.Close()
+				for _, f := range filters {
+					id, _ := f[".id"].(string)
+					comment, _ := f["comment"].(string)
+					port, _ := f["dst-port"].(string)
+					if id != "" && (port == "13231" || port == "51820" || strings.Contains(strings.ToLower(comment), "micube wireguard") || strings.Contains(strings.ToLower(comment), "cubex wireguard")) {
+						if dReq, err := http.NewRequest(http.MethodDelete, baseURL+"/ip/firewall/filter/"+id, nil); err == nil {
+							auth(dReq)
+							if dResp, err := client.Do(dReq); err == nil {
+								dResp.Body.Close()
+								res.Actions = append(res.Actions, fmt.Sprintf("已清理 RouterOS 防火墙放行规则 (端口 %s)", port))
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// 3.3 Remove WireGuard IP addresses (/ip/address)
+		if aReq, err := http.NewRequest(http.MethodGet, baseURL+"/ip/address", nil); err == nil {
+			auth(aReq)
+			if aResp, err := client.Do(aReq); err == nil {
+				var addresses []map[string]any
+				_ = json.NewDecoder(aResp.Body).Decode(&addresses)
+				aResp.Body.Close()
+				for _, a := range addresses {
+					id, _ := a[".id"].(string)
+					iface, _ := a["interface"].(string)
+					comment, _ := a["comment"].(string)
+					addr, _ := a["address"].(string)
+					if id != "" && (iface == "cubex-wg" || iface == "micube-wg" || strings.Contains(strings.ToLower(comment), "micube wireguard") || strings.Contains(strings.ToLower(comment), "cubex wireguard") || strings.HasPrefix(addr, "10.88.0.")) {
+						if dReq, err := http.NewRequest(http.MethodDelete, baseURL+"/ip/address/"+id, nil); err == nil {
+							auth(dReq)
+							if dResp, err := client.Do(dReq); err == nil {
+								dResp.Body.Close()
+								res.Actions = append(res.Actions, fmt.Sprintf("已清理 RouterOS WireGuard 虚拟网段 IP (%s)", addr))
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// 3.4 Remove WireGuard interfaces (/interface/wireguard)
+		if wReq, err := http.NewRequest(http.MethodGet, baseURL+"/interface/wireguard", nil); err == nil {
+			auth(wReq)
+			if wResp, err := client.Do(wReq); err == nil {
+				var wgList []map[string]any
+				_ = json.NewDecoder(wResp.Body).Decode(&wgList)
+				wResp.Body.Close()
+				for _, item := range wgList {
+					id, _ := item[".id"].(string)
+					name, _ := item["name"].(string)
+					if id != "" && (name == "cubex-wg" || name == "micube-wg") {
+						if dReq, err := http.NewRequest(http.MethodDelete, baseURL+"/interface/wireguard/"+id, nil); err == nil {
+							auth(dReq)
+							if dResp, err := client.Do(dReq); err == nil {
+								dResp.Body.Close()
+								res.Actions = append(res.Actions, fmt.Sprintf("已清理 RouterOS WireGuard 核心接口 (%s)", name))
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
+	res.Message = "🎉 WireGuard 全部配置、接口与防火墙放行规则已彻底清除干净！"
 	return res, nil
+}
+
+// AlignWireGuardToROS triggers a full 1-click cleanup of server interface, IP, firewall, DDNS and all peers.
+func (m *Manager) AlignWireGuardToROS() (*WGAlignResult, error) {
+	return m.PurgeAll()
 }
 
 // PeerLiveStatus contains runtime handshake and transfer status of a peer.

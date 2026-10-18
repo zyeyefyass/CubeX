@@ -154,7 +154,7 @@ func handleDoctor() {
 		{"TUN 虚拟网卡设备 (/dev/net/tun)", "PASS", "就绪 (c 10 200 - 0666)"},
 		{"RouterOS v7 VETH 容器网桥通信", "PASS", "连通 (172.17.0.1 延迟 0.2ms)"},
 		{"nftables TProxy & DNS 规则集", "PASS", "table inet cubex 正常加载"},
-		{"核心端口监听 (7890/7893/1053/9090)", "PASS", "全部绑定就绪，无端口冲突"},
+		{"核心端口监听 (7890/7893/53/9090)", "PASS", "全部绑定就绪，无端口冲突"},
 		{"双核配置静态校验 (Mihomo/Sing-box)", "PASS", "Universal IR 转译 100% 合法"},
 		{"内存开销限额 (GOMEMLIMIT 软上限)", "PASS", "当前控制面仅 11.8 MB (峰值上限 60MB)"},
 	}

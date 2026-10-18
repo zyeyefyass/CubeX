@@ -14,18 +14,21 @@ web/dist/
 
 # Persistent runtime data
 etc/
-data/*.sqlite
-data/*.log
-data/*.pid
-data/autostart
-data/*.json
-data/wireguard.json
+data/
+
+# Agent and assistant rules
+.agents/
+.gemini/
+GEMINI.md
+__pycache__/
+*.pyc
 
 # Local test scratch
 scratch/
 test_screen*.png
-scripts/upload_releases.go
 scripts/*.py
+!scripts/audit_release_artifacts.py
+!scripts/desensitize.py
 
 # OS & Editor files
 .DS_Store

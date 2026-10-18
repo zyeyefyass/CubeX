@@ -47,11 +47,13 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	// TUN Configuration (Zero-copy kernel stack)
+	// TUN Configuration (Zero-copy kernel stack)
 	cfg["tun"] = map[string]any{
 		"enable":                   true,
 		"stack":                    tunStack,
 		"device":                   net.TunInterface,
 		"auto-route":               true,
+		"auto-redirect":            true,
 		"auto-detect-interface":    true,
 		"strict-route":             false,
 		"mtu":                      tunMTU,
@@ -62,10 +64,10 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		},
 	}
 
-	// Sniffer (Disabled by default to eliminate CPU overhead and TLS handshake latency)
+	// Sniffer (Optimized for zero Fake-IP corruption & preserving original destination)
 	cfg["sniffer"] = map[string]any{
-		"enable":               false,
-		"force-dns-mapping":    false,
+		"enable":               true,
+		"force-dns-mapping":    true,
 		"parse-pure-ip":        true,
 		"override-destination": false,
 		"sniff": map[string]any{
@@ -81,10 +83,16 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		},
 	}
 
+	// Profile for persistent Fake-IP & selection storage
+	cfg["profile"] = map[string]any{
+		"store-selected": true,
+		"store-fake-ip":  true,
+	}
+
 	// Determine outbound proxy group for remote DoH queries
-	foreignGroup := "🐟 漏网之鱼"
+	foreignGroup := "🌐 国外流量"
 	for _, g := range ir.Groups {
-		if g.Name == "🚀 国外" || g.Name == "🐟 漏网之鱼" || g.Name == "PROXY" {
+		if g.Name == "🌐 国外流量" || g.Name == "🚀 国外" || g.Name == "PROXY" || g.Name == "🐟 漏网之鱼" {
 			foreignGroup = g.Name
 			break
 		}
@@ -97,23 +105,36 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	remoteDNSList := []string{
-		fmt.Sprintf("https://8.8.8.8/dns-query#%s&ecs=223.5.5.0/24&disable-qtype-65=true", foreignGroup),
+		fmt.Sprintf("https://dns.google/dns-query#%s&disable-qtype-65=true", foreignGroup),
+		fmt.Sprintf("https://cloudflare-dns.com/dns-query#%s&disable-qtype-65=true", foreignGroup),
+		fmt.Sprintf("tls://8.8.8.8#%s", foreignGroup),
 	}
 	fallbackDNSList := []string{
-		fmt.Sprintf("https://8.8.8.8/dns-query#%s&disable-qtype-65=true", foreignGroup),
+		fmt.Sprintf("https://dns.google/dns-query#%s&disable-qtype-65=true", foreignGroup),
+		fmt.Sprintf("https://cloudflare-dns.com/dns-query#%s&disable-qtype-65=true", foreignGroup),
+	}
+
+	cleanFakeIPFilter := []string{
+		"*.lan",
+		"*.local",
+		"localhost",
+		"+.cn",
+		"+.msftconnecttest.com",
+		"+.msftncsi.com",
+		"+.routeros.com",
+		"+.mikrotik.com",
 	}
 
 	dnsMap := map[string]any{
 		"enable":             true,
 		"cache-algorithm":    "arc",
-		"cache-size":         4096,
+		"cache-size":         8192,
 		"listen":             fmt.Sprintf("0.0.0.0:%d", dnsPort),
 		"ipv6":               net.IPv6,
 		"enhanced-mode":      "fake-ip",
 		"fake-ip-range":      dns.FakeIPRange,
-		"fake-ip-filter":     dns.FakeIPFilter,
+		"fake-ip-filter":     cleanFakeIPFilter,
 		"default-nameserver": []string{
-			"https://223.5.5.5/dns-query",
 			"223.5.5.5",
 			"119.29.29.29",
 		},
@@ -141,9 +162,21 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 				"https://dns.alidns.com/dns-query#disable-qtype-65=true",
 				"https://doh.pub/dns-query#disable-qtype-65=true",
 			},
+			"rule-set:cn_domain,privacy_domain": []string{
+				"https://dns.alidns.com/dns-query#disable-qtype-65=true",
+				"https://doh.pub/dns-query#disable-qtype-65=true",
+			},
 		},
 	}
 	cfg["dns"] = dnsMap
+
+	// Static DNS bootstrap hosts mapping (avoids circular resolution dependency)
+	cfg["hosts"] = map[string]any{
+		"dns.google":         []string{"8.8.8.8", "8.8.4.4"},
+		"cloudflare-dns.com": []string{"1.1.1.1", "1.0.0.1"},
+		"dns.alidns.com":     []string{"223.5.5.5", "223.6.6.6"},
+		"doh.pub":            []string{"1.12.12.12", "120.53.53.53"},
+	}
 
 	// Build map of disabled or exhausted subscriptions
 	disabledSubIDs := make(map[string]bool)
@@ -364,36 +397,6 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		},
 	}
 
-	bizMRS := []struct {
-		id       string
-		group    string
-		file     string
-		behavior string
-	}{
-		{"google_domain", "Google", "./rules/google.mrs", "domain"},
-		{"youtube_domain", "YouTube", "./rules/youtube.mrs", "domain"},
-		{"openai_domain", "AI", "./rules/openai.mrs", "domain"},
-		{"github_domain", "GitHub & Docker", "./rules/github.mrs", "domain"},
-		{"telegram_domain", "Telegram", "./rules/telegram.mrs", "domain"},
-		{"telegram_ip", "Telegram", "./rules/telegram_ip.mrs", "ipcidr"},
-		{"twitter_domain", "Twitter (X)", "./rules/twitter.mrs", "domain"},
-		{"netflix_domain", "Netflix & 流媒体", "./rules/netflix.mrs", "domain"},
-		{"spotify_domain", "Spotify", "./rules/spotify.mrs", "domain"},
-		{"steam_domain", "Steam 游戏", "./rules/steam.mrs", "domain"},
-		{"apple_domain", "Apple 服务", "./rules/apple.mrs", "domain"},
-		{"microsoft_domain", "Microsoft", "./rules/microsoft.mrs", "domain"},
-	}
-
-	for _, bm := range bizMRS {
-		if validTargets[bm.group] {
-			ruleProviders[bm.id] = map[string]any{
-				"type":     "file",
-				"behavior": bm.behavior,
-				"format":   "mrs",
-				"path":     bm.file,
-			}
-		}
-	}
 	cfg["rule-providers"] = ruleProviders
 
 	// Rules compilation with device policies top-priority prepending
@@ -415,8 +418,12 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	// 2. 217heidai MRS High-Performance Interception Rules (Mihomo Adaptive)
 	rulesList = append(rulesList, "RULE-SET,217heidai_ads,REJECT")
 	rulesList = append(rulesList, "RULE-SET,privacy_domain,REJECT")
-	rulesList = append(rulesList, "RULE-SET,cn_domain,DIRECT")
-	rulesList = append(rulesList, "RULE-SET,cn_ip,DIRECT")
+	cnOutbound := "DIRECT"
+	if validTargets["🎯 国内流量"] {
+		cnOutbound = "🎯 国内流量"
+	}
+	rulesList = append(rulesList, fmt.Sprintf("RULE-SET,cn_domain,%s", cnOutbound))
+	rulesList = append(rulesList, fmt.Sprintf("RULE-SET,cn_ip,%s", cnOutbound))
 
 	// Intercept foreign UDP 443/8443 (QUIC) to prevent ISP UDP QoS throttling and force BBR TCP
 	rulesList = append(rulesList, "AND,((NETWORK,udp),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT")
@@ -430,10 +437,36 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		rulesList = append(rulesList, "DOMAIN,youtubei.googleapis.com,YouTube")
 	}
 
-	// 2b. Business Service Rule-Sets
-	for _, bm := range bizMRS {
-		if validTargets[bm.group] {
-			rulesList = append(rulesList, fmt.Sprintf("RULE-SET,%s,%s", bm.id, bm.group))
+	// 2b. High-Speed Business Service Rules (Native Domain-Suffix & GEOSITE)
+	bizRules := []struct {
+		group    string
+		suffixes []string
+		geosite  string
+	}{
+		{"AI", []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "oaistatic.com", "oaiusercontent.com", "perplexity.ai", "gemini.google.com"}, "openai"},
+		{"YouTube", []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com"}, "youtube"},
+		{"Google", []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com"}, "google"},
+		{"GitHub & Docker", []string{"github.com", "githubusercontent.com", "docker.com", "docker.io", "ghcr.io"}, "github"},
+		{"Telegram", []string{"telegram.org", "t.me", "telegram.me", "telegra.ph"}, "telegram"},
+		{"Twitter (X)", []string{"twitter.com", "x.com", "twimg.com", "t.co"}, "twitter"},
+		{"Netflix & 流媒体", []string{"netflix.com", "netflix.net", "nflximg.net", "nflxvideo.net", "nflxso.net", "nflxext.com", "disneyplus.com", "hbo.com"}, "netflix"},
+		{"Spotify", []string{"spotify.com", "scdn.co", "spoti.fi"}, "spotify"},
+		{"Steam 游戏", []string{"steampowered.com", "steamcommunity.com", "steamgames.com", "steamusercontent.com", "steamcontent.com"}, "steam"},
+		{"Apple 服务", []string{"apple.com", "icloud.com", "aaplimg.com", "itunes.com"}, "apple"},
+		{"Microsoft", []string{"microsoft.com", "windows.com", "live.com", "office.com", "azure.com", "msftconnecttest.com"}, "microsoft"},
+	}
+
+	for _, br := range bizRules {
+		if validTargets[br.group] {
+			for _, s := range br.suffixes {
+				rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,%s,%s", s, br.group))
+			}
+			if br.geosite != "" {
+				rulesList = append(rulesList, fmt.Sprintf("GEOSITE,%s,%s", br.geosite, br.group))
+			}
+			if br.group == "Telegram" {
+				rulesList = append(rulesList, "GEOIP,telegram,Telegram")
+			}
 		}
 	}
 

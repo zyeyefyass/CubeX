@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/zyeyefyass/CubeX/internal/schema"
@@ -120,17 +121,32 @@ func measureDirectConnection(node *schema.ProxyNode, targetURL string) Benchmark
 	m.TotalLatencyMs = m.TCPHandshakeMs + m.TLSHandshakeMs
 
 	// Simple HTTP GET check
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	if pURL, err := url.Parse("http://127.0.0.1:7890"); err == nil {
+		tr.Proxy = http.ProxyURL(pURL)
+	}
 	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-		Timeout: 3 * time.Second,
+		Transport: tr,
+		Timeout:   3 * time.Second,
 	}
 	httpStart := time.Now()
 	resp, err := client.Get(targetURL)
 	if err == nil {
 		resp.Body.Close()
 		m.TotalLatencyMs = time.Since(httpStart).Milliseconds()
+	} else {
+		// Fallback to direct client if proxy not ready
+		directClient := &http.Client{
+			Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
+			Timeout:   2 * time.Second,
+		}
+		dStart := time.Now()
+		if dResp, dErr := directClient.Get(targetURL); dErr == nil {
+			dResp.Body.Close()
+			m.TotalLatencyMs = time.Since(dStart).Milliseconds()
+		}
 	}
 
 	return m

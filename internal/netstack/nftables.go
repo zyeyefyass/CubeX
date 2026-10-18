@@ -32,8 +32,8 @@ func NewController(tproxyPort, dnsPort int, tunIface string) *Controller {
 	if tproxyPort == 0 {
 		tproxyPort = 7893
 	}
-	if dnsPort == 0 {
-		dnsPort = 1053
+	if dnsPort == 0 || dnsPort == 1053 {
+		dnsPort = 53
 	}
 	if tunIface == "" {
 		tunIface = "cubex-tun"
@@ -115,7 +115,7 @@ table inet cubex {
         # 1. 放行保留局域网内网地址
         ip daddr @reserved_ip return
 
-        # 2. DNS 流量重定向至 1053 端口 (0 明文防泄漏)
+        # 2. DNS 流量重定向至 53 端口 (0 明文防泄漏)
         meta l4proto { tcp, udp } th dport 53 tproxy to :%d accept
 
         # 3. TCP & UDP 透明代理重定向至 TProxy 7893 端口

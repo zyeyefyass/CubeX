@@ -25,9 +25,18 @@ func TestRegionAndBusinessGroupsSync(t *testing.T) {
 
 	SyncAllStrategyGroups(ir)
 
-	// Check that 24 regional groups (6 regions * 4 policies) + standard business groups are created
+	// Check that 24 regional groups (8 regions * 3 policies) + standard business groups are created
 	if len(ir.Groups) < 36 {
 		t.Fatalf("expected at least 36 groups (24 regional + 12 business), got %d", len(ir.Groups))
+	}
+	disasterCount := 0
+	for _, g := range ir.Groups {
+		if g.Policy == "disaster" {
+			disasterCount++
+		}
+	}
+	if disasterCount != 8 {
+		t.Fatalf("expected 8 regional disaster groups, got %d", disasterCount)
 	}
 
 	groupMap := make(map[string]StrategyGroup)
@@ -35,13 +44,9 @@ func TestRegionAndBusinessGroupsSync(t *testing.T) {
 		groupMap[g.Name] = g
 	}
 
-	// Verify Hong Kong region manual and auto groups
-	hkManual, ok := groupMap["🇭🇰 香港手动"]
-	if !ok {
-		t.Fatalf("missing '🇭🇰 香港手动' group")
-	}
-	if len(hkManual.Proxies) != 2 {
-		t.Errorf("expected 2 HK proxies in '🇭🇰 香港手动', got %d", len(hkManual.Proxies))
+	// Verify Hong Kong region: manual deleted, auto -> fall -> disaster added
+	if _, ok := groupMap["🇭🇰 香港手动"]; ok {
+		t.Fatalf("unexpected '🇭🇰 香港手动' group, should be removed")
 	}
 
 	hkAuto, ok := groupMap["🇭🇰 香港自动"]
@@ -50,6 +55,23 @@ func TestRegionAndBusinessGroupsSync(t *testing.T) {
 	}
 	if len(hkAuto.Proxies) != 2 {
 		t.Errorf("expected 2 HK proxies in '🇭🇰 香港自动', got %d", len(hkAuto.Proxies))
+	}
+
+	hkFall, ok := groupMap["🇭🇰 香港故转"]
+	if !ok {
+		t.Fatalf("missing '🇭🇰 香港故转' group")
+	}
+	if len(hkFall.Proxies) != 2 {
+		t.Errorf("expected 2 HK proxies in '🇭🇰 香港故转', got %d", len(hkFall.Proxies))
+	}
+
+	hkDisaster, ok := groupMap["🇭🇰 香港容灾"]
+	if !ok {
+		t.Fatalf("missing '🇭🇰 香港容灾' group")
+	}
+	// HK Disaster contains nodes + DIRECT
+	if len(hkDisaster.Proxies) < 2 {
+		t.Errorf("expected at least 2 HK proxies in '🇭🇰 香港容灾', got %d", len(hkDisaster.Proxies))
 	}
 
 	// Verify Taiwan region groups
@@ -61,22 +83,31 @@ func TestRegionAndBusinessGroupsSync(t *testing.T) {
 		t.Errorf("expected 1 TW proxy, got %d", len(twAuto.Proxies))
 	}
 
-	// Verify Japan region groups (Exclusive for HHost-JP)
+	// Verify Japan region groups
 	jpAuto, ok := groupMap["🇯🇵 日本自动"]
 	if !ok {
 		t.Fatalf("missing '🇯🇵 日本自动' group")
 	}
-	if len(jpAuto.Proxies) != 1 || jpAuto.Proxies[0] != "[HHost-JP] 🇯🇵 cloud xtls-reality" {
-		t.Errorf("expected only [HHost-JP] proxy in '🇯🇵 日本自动', got %v", jpAuto.Proxies)
+	if len(jpAuto.Proxies) != 2 {
+		t.Errorf("expected 2 JP proxies in '🇯🇵 日本自动', got %d: %v", len(jpAuto.Proxies), jpAuto.Proxies)
 	}
 
-	// Verify Singapore, Japan, Korea composite group (All other subscriptions)
-	sgjpkrAuto, ok := groupMap["🇸🇬🇯🇵🇰🇷 新日韩自动"]
+	// Verify Korea region groups
+	krAuto, ok := groupMap["🇰🇷 韩国自动"]
 	if !ok {
-		t.Fatalf("missing '🇸🇬🇯🇵🇰🇷 新日韩自动' group")
+		t.Fatalf("missing '🇰🇷 韩国自动' group")
 	}
-	if len(sgjpkrAuto.Proxies) != 3 {
-		t.Errorf("expected 3 proxies in '🇸🇬🇯🇵🇰🇷 新日韩自动', got %d: %v", len(sgjpkrAuto.Proxies), sgjpkrAuto.Proxies)
+	if len(krAuto.Proxies) != 1 {
+		t.Errorf("expected 1 KR proxy in '🇰🇷 韩国自动', got %d: %v", len(krAuto.Proxies), krAuto.Proxies)
+	}
+
+	// Verify Singapore region groups
+	sgAuto, ok := groupMap["🇸🇬 新加坡自动"]
+	if !ok {
+		t.Fatalf("missing '🇸🇬 新加坡自动' group")
+	}
+	if len(sgAuto.Proxies) != 1 {
+		t.Errorf("expected 1 SG proxy, got %d", len(sgAuto.Proxies))
 	}
 
 	// Verify US region groups
@@ -99,6 +130,8 @@ func TestRegionAndBusinessGroupsSync(t *testing.T) {
 
 	// Verify Business Groups exist
 	expectedBiz := []string{
+		"🎯 国内流量",
+		"🌐 国外流量",
 		"AI",
 		"YouTube",
 		"Google",

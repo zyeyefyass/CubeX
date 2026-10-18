@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -40,6 +41,30 @@ type FetchResult struct {
 
 // Fetch downloads subscription content from a URL and extracts standard ProxyNodes.
 func (f *Fetcher) Fetch(urlStr string) (*FetchResult, error) {
+	res, err := f.doFetch(urlStr, f.client)
+	if err == nil {
+		return res, nil
+	}
+
+	// Automatic fallback to local core mixed-port (7890) if direct fetching times out or is blocked by GFW
+	proxyURL, pErr := url.Parse("http://127.0.0.1:7890")
+	if pErr == nil {
+		proxyClient := &http.Client{
+			Transport: &http.Transport{
+				Proxy:           http.ProxyURL(proxyURL),
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+			Timeout: 20 * time.Second,
+		}
+		if resProxy, errProxy := f.doFetch(urlStr, proxyClient); errProxy == nil {
+			return resProxy, nil
+		}
+	}
+
+	return nil, err
+}
+
+func (f *Fetcher) doFetch(urlStr string, client *http.Client) (*FetchResult, error) {
 	startTime := time.Now()
 	req, err := http.NewRequest(http.MethodGet, urlStr, nil)
 	if err != nil {
@@ -48,7 +73,7 @@ func (f *Fetcher) Fetch(urlStr string) (*FetchResult, error) {
 
 	req.Header.Set("User-Agent", "Clash.Meta; sing-box/1.14.3; CubeX-Universal/1.0")
 
-	resp, err := f.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("network request failed: %w", err)
 	}

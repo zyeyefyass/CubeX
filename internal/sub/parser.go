@@ -270,7 +270,13 @@ func ParseURILink(link string) (schema.ProxyNode, error) {
 		return node, err
 	}
 
-	node.Name = u.Fragment
+	if u.Fragment != "" {
+		if unescaped, err := url.QueryUnescape(u.Fragment); err == nil && unescaped != "" {
+			node.Name = unescaped
+		} else {
+			node.Name = u.Fragment
+		}
+	}
 	if node.Name == "" {
 		node.Name = u.Host
 	}
@@ -283,26 +289,123 @@ func ParseURILink(link string) (schema.ProxyNode, error) {
 	case "vless":
 		node.Type = "vless"
 		node.UUID = u.User.Username()
-		node.Flow = u.Query().Get("flow")
-		node.Network = u.Query().Get("type")
-		node.Path = u.Query().Get("path")
-		node.SNI = u.Query().Get("sni")
+		q := u.Query()
+		node.Flow = q.Get("flow")
+		node.Network = q.Get("type")
+		node.Path = q.Get("path")
+		node.SNI = q.Get("sni")
+		if node.SNI == "" {
+			node.SNI = q.Get("servername")
+		}
+		security := strings.ToLower(q.Get("security"))
+		if security == "tls" || security == "reality" || node.Flow != "" {
+			node.TLS = true
+		}
+		if q.Get("insecure") == "1" || q.Get("insecure") == "true" {
+			node.SkipCertVerify = true
+		}
+
+		raw := map[string]any{
+			"name":   node.Name,
+			"type":   "vless",
+			"server": node.Server,
+			"port":   node.Port,
+			"uuid":   node.UUID,
+			"udp":    true,
+		}
+		if node.Flow != "" {
+			raw["flow"] = node.Flow
+		}
+		if node.TLS {
+			raw["tls"] = true
+			if node.SNI != "" {
+				raw["servername"] = node.SNI
+			}
+			if node.SkipCertVerify {
+				raw["skip-cert-verify"] = true
+			}
+		}
+		if fp := q.Get("fp"); fp != "" {
+			raw["client-fingerprint"] = fp
+		}
+		if security == "reality" || q.Get("pbk") != "" {
+			realityOpts := map[string]any{
+				"public-key": q.Get("pbk"),
+			}
+			if sid := q.Get("sid"); sid != "" {
+				realityOpts["short-id"] = sid
+			}
+			raw["reality-opts"] = realityOpts
+		}
+		if node.Network == "grpc" {
+			serviceName := q.Get("serviceName")
+			if serviceName == "" {
+				serviceName = q.Get("path")
+			}
+			raw["network"] = "grpc"
+			raw["grpc-opts"] = map[string]any{
+				"grpc-service-name": serviceName,
+			}
+		} else if node.Network == "ws" {
+			raw["network"] = "ws"
+			raw["ws-opts"] = map[string]any{
+				"path": node.Path,
+			}
+		}
+		node.RawConfig = raw
 	case "anytls":
 		node.Type = "anytls"
 		node.Password = u.User.Username()
 		node.SNI = u.Query().Get("sni")
 		node.SkipCertVerify = u.Query().Get("insecure") == "1" || u.Query().Get("insecure") == "true"
 		node.TLS = true
+		node.RawConfig = map[string]any{
+			"name":             node.Name,
+			"type":             "anytls",
+			"server":           node.Server,
+			"port":             node.Port,
+			"password":         node.Password,
+			"sni":              node.SNI,
+			"skip-cert-verify": node.SkipCertVerify,
+			"tls":              true,
+		}
 	case "trojan":
 		node.Type = "trojan"
 		node.Password = u.User.Username()
 		node.SNI = u.Query().Get("sni")
 		node.TLS = true
+		if u.Query().Get("insecure") == "1" || u.Query().Get("insecure") == "true" {
+			node.SkipCertVerify = true
+		}
+		node.RawConfig = map[string]any{
+			"name":             node.Name,
+			"type":             "trojan",
+			"server":           node.Server,
+			"port":             node.Port,
+			"password":         node.Password,
+			"servername":       node.SNI,
+			"tls":              true,
+			"skip-cert-verify": node.SkipCertVerify,
+			"udp":              true,
+		}
 	case "hysteria2", "hy2":
 		node.Type = "hysteria2"
 		node.Password = u.User.Username()
 		node.SNI = u.Query().Get("sni")
 		node.TLS = true
+		if u.Query().Get("insecure") == "1" || u.Query().Get("insecure") == "true" {
+			node.SkipCertVerify = true
+		}
+		node.RawConfig = map[string]any{
+			"name":             node.Name,
+			"type":             "hysteria2",
+			"server":           node.Server,
+			"port":             node.Port,
+			"password":         node.Password,
+			"sni":              node.SNI,
+			"skip-cert-verify": node.SkipCertVerify,
+			"udp":              true,
+		}
 	case "tuic":
 		node.Type = "tuic"
 		node.UUID = u.User.Username()

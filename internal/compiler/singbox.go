@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"net/url"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -95,9 +96,9 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	// Find foreign outbound group tag for remote DNS tunnel detour
-	foreignDetour := "🐟 漏网之鱼"
+	foreignDetour := "🌐 国外流量"
 	for _, g := range ir.Groups {
-		if g.Name == "🚀 国外" || g.Name == "🐟 漏网之鱼" || g.Name == "PROXY" {
+		if g.Name == "🌐 国外流量" || g.Name == "🚀 国外" || g.Name == "PROXY" || g.Name == "🐟 漏网之鱼" {
 			foreignDetour = g.Name
 			break
 		}
@@ -118,12 +119,24 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"tag":  "dns-local",
 				"type": "local",
 			},
+			{
+				"tag":  "dns-hosts",
+				"type": "hosts",
+				"predefined": map[string]any{
+					"dns.alidns.com":     []string{"223.5.5.5", "223.6.6.6"},
+					"doh.pub":            []string{"1.12.12.12", "120.53.53.53"},
+					"dns.google":         []string{"8.8.8.8", "8.8.4.4"},
+					"cloudflare-dns.com": []string{"1.1.1.1", "1.0.0.1"},
+					"1.1.1.1":            []string{"1.1.1.1"},
+					"8.8.8.8":            []string{"8.8.8.8"},
+				},
+			},
 			directServer,
 			remoteServer,
 			{
 				"tag":         "dns-fakeip",
 				"type":        "fakeip",
-				"inet4_range": "198.18.0.0/15",
+				"inet4_range": "198.18.0.0/16",
 			},
 		},
 		"rules": []map[string]any{
@@ -137,8 +150,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			},
 			{
 				"query_type": []string{"HTTPS", "SVCB"},
-				"action":     "predefined",
-				"rcode":      "NOERROR",
+				"action":     "reject",
 			},
 			{
 				"clash_mode": "direct",
@@ -170,6 +182,10 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"final":           "dns-remote",
 		"reverse_mapping": true,
 		"strategy":        "prefer_ipv4",
+		"cache_capacity":  8192,
+		"optimistic": map[string]any{
+			"enabled": true,
+		},
 	}
 
 	tunMTU := net.TunMTU
@@ -182,40 +198,73 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		tunStack = "mixed"
 	}
 
-	inbounds := []map[string]any{
-		{
-			"type":           "tun",
-			"tag":            "tun-in",
-			"interface_name": net.TunInterface,
-			"address":        []string{net.TunIPv4},
-			"mtu":            tunMTU,
-			"auto_route":     true,
-			"auto_redirect":  false,
-			"strict_route":   true,
-			"stack":          tunStack,
-			"udp_timeout":    "60s",
-			"route_exclude_address": []string{
-				"10.0.0.0/8",
-				"100.64.0.0/10",
-				"169.254.0.0/16",
-				"172.16.0.0/12",
-				"192.168.0.0/16",
-				"224.0.0.0/4",
+	tproxyPort := net.TProxyPort
+	if tproxyPort == 0 {
+		tproxyPort = 7893
+	}
+	redirPort := net.RedirPort
+	if redirPort == 0 {
+		redirPort = 7892
+	}
+	dnsPort := net.DNSPort
+	if dnsPort == 0 || dnsPort == 1053 {
+		dnsPort = 53
+	}
+
+	inbounds := make([]map[string]any, 0)
+	if runtime.GOOS != "windows" {
+		inbounds = append(inbounds,
+			map[string]any{
+				"type":           "tun",
+				"tag":            "tun-in",
+				"interface_name": net.TunInterface,
+				"address":        []string{net.TunIPv4},
+				"mtu":            tunMTU,
+				"auto_route":     true,
+				"auto_redirect":  false,
+				"strict_route":   false,
+				"stack":          tunStack,
+				"udp_timeout":    "60s",
+				"route_exclude_address": []string{
+					"10.0.0.0/8",
+					"100.64.0.0/10",
+					"169.254.0.0/16",
+					"172.16.0.0/12",
+					"192.168.0.0/16",
+					"224.0.0.0/4",
+				},
 			},
-		},
-		{
+			map[string]any{
+				"type":        "tproxy",
+				"tag":         "tproxy-in",
+				"listen":      "0.0.0.0",
+				"listen_port": tproxyPort,
+				"network":     []string{"tcp", "udp"},
+			},
+			map[string]any{
+				"type":        "redirect",
+				"tag":         "redir-in",
+				"listen":      "0.0.0.0",
+				"listen_port": redirPort,
+			},
+		)
+	}
+
+	inbounds = append(inbounds,
+		map[string]any{
 			"type":        "mixed",
 			"tag":         "mixed-in",
 			"listen":      "0.0.0.0",
 			"listen_port": net.MixedPort,
 		},
-		{
+		map[string]any{
 			"type":        "direct",
 			"tag":         "dns-in",
 			"listen":      "0.0.0.0",
-			"listen_port": 53,
+			"listen_port": dnsPort,
+			"network":     []string{"tcp", "udp"},
 		},
-	}
+	)
 	cfg["inbounds"] = inbounds
 
 	// 3. Outbounds Section
@@ -494,11 +543,24 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"action":  "hijack-dns",
 	})
 	routeRules = append(routeRules, map[string]any{
+		"port":   []int{53, dnsPort},
+		"action": "hijack-dns",
+	})
+	routeRules = append(routeRules, map[string]any{
 		"protocol": "dns",
 		"action":   "hijack-dns",
 	})
 
-	// B. Direct Private IP & NTP (Port 123)
+	// B. QUIC & STUN Fast Reject (Immediate RST/ICMP rejection without packet drop stall)
+	routeRules = append(routeRules, map[string]any{
+		"port":     []int{443, 853},
+		"network":  []string{"udp"},
+		"protocol": []string{"quic", "stun"},
+		"action":   "reject",
+		"no_drop":  true,
+	})
+
+	// C. Direct Private IP & NTP (Port 123)
 	routeRules = append(routeRules, map[string]any{
 		"ip_is_private": true,
 		"outbound":      "direct",
@@ -565,9 +627,13 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	})
 
 	// F. Domestic Direct Routing (geosite-cn + Pure-IP GeoIP Isolation)
+	domesticTarget := "direct"
+	if validOutbounds["🎯 国内流量"] {
+		domesticTarget = "🎯 国内流量"
+	}
 	routeRules = append(routeRules, map[string]any{
 		"rule_set": []string{"geosite-cn"},
-		"outbound": "direct",
+		"outbound": domesticTarget,
 	})
 	routeRules = append(routeRules, map[string]any{
 		"type":   "logical",
@@ -582,7 +648,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"rule_set": []string{"geoip-cn"},
 			},
 		},
-		"outbound": "direct",
+		"outbound": domesticTarget,
 	})
 
 	// G. Foreign QUIC (UDP 443) Targeted Interception (Forces fallback to high-speed TCP)
@@ -733,7 +799,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	cfg["experimental"] = map[string]any{
 		"cache_file": map[string]any{
 			"enabled":      true,
-			"path":         "/app/etc/cache.db",
+			"path":         "cache.db",
 			"store_fakeip": true,
 		},
 		"clash_api": map[string]any{

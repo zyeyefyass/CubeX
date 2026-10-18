@@ -5,6 +5,18 @@
       <path d="M22.28 9.53a5.98 5.98 0 0 0-.52-4.91 6.05 6.05 0 0 0-6.51-2.9 6.06 6.06 0 0 0-4.88-2.43 6.05 6.05 0 0 0-5.76 4.19 6.05 6.05 0 0 0-4.08 2.96 6.05 6.05 0 0 0 .76 7.07 5.98 5.98 0 0 0 .52 4.91 6.05 6.05 0 0 0 6.51 2.9 6.06 6.06 0 0 0 4.88 2.43 6.05 6.05 0 0 0 5.76-4.19 6.05 6.05 0 0 0 4.08-2.96 6.05 6.05 0 0 0-.76-7.07zm-7.6 11.23a4.54 4.54 0 0 1-3.08-1.22l.14-.08 5.09-2.94a.78.78 0 0 0 .39-.68v-7.18l2.15 1.24a.07.07 0 0 1 .04.05v6.23a4.56 4.56 0 0 1-4.73 4.58zm-9.35-4.04a4.54 4.54 0 0 1-.58-3.26l.14.08 5.09 2.94a.78.78 0 0 0 .78 0l6.22-3.59v2.48a.07.07 0 0 1-.03.06l-5.4 3.12a4.56 4.56 0 0 1-6.22-1.83zm-1.74-9.52a4.54 4.54 0 0 1 2.5-2.04v6.13a.78.78 0 0 0 .39.68l6.22 3.59-2.15 1.24a.07.07 0 0 1-.07 0l-5.4-3.12a4.56 4.56 0 0 1-1.49-6.48zm12.33 2.65l-6.22-3.59 2.15-1.24a.07.07 0 0 1 .07 0l5.4 3.12a4.56 4.56 0 0 1 1.49 6.48 4.54 4.54 0 0 1-2.5 2.04v-6.13a.78.78 0 0 0-.39-.68zm3.03-1.63l-.14-.08-5.09-2.94a.78.78 0 0 0-.78 0l-6.22 3.59v-2.48a.07.07 0 0 1 .03-.06l5.4-3.12a4.56 4.56 0 0 1 6.8 5.09zm-8.95 5.17l-2.76-1.59 2.76-1.59 2.76 1.59-2.76 1.59z"/>
     </svg>
 
+    <!-- Gemini -->
+    <svg v-else-if="logoKey === 'gemini'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(59,130,246,0.5)]" viewBox="0 0 24 24" fill="none">
+      <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" fill="url(#geminiGrad)" />
+      <defs>
+        <linearGradient id="geminiGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#1BA1E2"/>
+          <stop offset="0.5" stop-color="#7B2CBF"/>
+          <stop offset="1" stop-color="#00F5D4"/>
+        </linearGradient>
+      </defs>
+    </svg>
+
     <!-- Claude (Anthropic) -->
     <svg v-else-if="logoKey === 'claude'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(217,119,6,0.5)]" viewBox="0 0 24 24" fill="#D97706">
       <path d="M12 0l2.2 7.8 7.8-2.2-4.8 6.4 6.8 4.4-7.8 2.2 2.2 7.8-6.4-4.8-4.4 6.8-2.2-7.8-7.8 2.2 4.8-6.4-6.8-4.4 7.8-2.2-2.2-7.8 6.4 4.8z"/>
@@ -22,6 +34,12 @@
       <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
       <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
       <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+    </svg>
+
+    <!-- Cloudflare -->
+    <svg v-else-if="logoKey === 'cloudflare'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(243,128,32,0.4)]" viewBox="0 0 24 24">
+      <path fill="#F38020" d="M16.5 9.4c-.4-2.8-2.8-4.9-5.7-4.9-2.5 0-4.6 1.6-5.4 3.9-2 .2-3.6 1.9-3.6 4 0 2.2 1.8 4 4 4h10.5c2 0 3.7-1.7 3.7-3.7 0-1.9-1.5-3.5-3.5-3.7v.4z"/>
+      <path fill="#FAAD3F" d="M19.8 11.2c-.2 0-.4 0-.6.1.5.7.8 1.5.8 2.4 0 2-1.7 3.7-3.7 3.7H6c.6 1.4 2 2.3 3.6 2.3h10.2c2.2 0 4-1.8 4-4 0-2.1-1.7-3.9-3.8-4.1-.1-.3-.1-.4-.2-.4z"/>
     </svg>
 
     <!-- GitHub / Docker -->
@@ -163,6 +181,11 @@
       <path d="M16.624 13.92l2.715 2.715-7.34 7.34-7.339-7.34 2.715-2.715 4.624 4.624 4.626-4.624zm-4.625-7.344l3.82 3.82-3.82 3.82-3.82-3.82 3.82-3.82zm7.34 2.72l2.715 2.716-2.715 2.715-2.715-2.715 2.715-2.716zm-14.679 0l2.715 2.716-2.715 2.715-2.715-2.715 2.715-2.716zm7.339-9.3l7.34 7.34-2.715 2.715-4.625-4.624-4.625 4.624-2.715-2.715 7.34-7.34z"/>
     </svg>
 
+    <!-- Baidu (百度官方熊掌) -->
+    <svg v-else-if="logoKey === 'baidu'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(41,50,225,0.4)]" viewBox="0 0 24 24" fill="#2932E1">
+      <path d="M12.002 12.87c-1.89 0-3.834.787-4.113 2.871-.237 1.77 1.096 3.86 2.724 4.545 1.156.486 2.83.473 3.842-.26 1.134-.823 1.66-2.502 1.393-3.903-.338-1.777-1.956-3.253-3.846-3.253zm-5.467-3.41c-1.127.135-2.073 1.34-2.112 2.69-.04 1.397.87 2.656 2.036 2.81 1.165.155 2.274-.897 2.476-2.35.202-1.455-.718-3.08-2.4-3.15zm10.934 0c-1.682.07-2.602 1.695-2.4 3.15.202 1.453 1.31 2.505 2.476 2.35 1.166-.154 2.076-1.413 2.036-2.81-.04-1.35-.985-2.555-2.112-2.69zm-7.69-5.45c-1.22.464-1.96 1.947-1.65 3.313.31 1.365 1.54 2.222 2.748 1.916 1.21-.305 1.944-1.745 1.637-3.158-.306-1.414-1.515-2.535-2.735-2.071zm4.444 0c-1.22-.464-2.43 0.657-2.736 2.07-.306 1.414.428 2.854 1.637 3.16 1.208.305 2.438-.552 2.748-1.917.31-1.366-.43-2.85-1.65-3.313z"/>
+    </svg>
+
     <!-- Direct (直连) -->
     <svg v-else-if="logoKey === 'direct'" class="w-full h-full text-emerald-400 filter drop-shadow-[0_0_6px_rgba(16,185,129,0.4)]" viewBox="0 0 24 24" fill="currentColor">
       <path d="M13 2L3 14h7v8l10-12h-7z"/>
@@ -212,9 +235,11 @@ const logoKey = computed(() => {
   }
 
   if (str.includes('openai') || str.includes('chatgpt')) return 'openai'
+  if (str.includes('gemini')) return 'gemini'
   if (str.includes('claude') || str.includes('anthropic')) return 'claude'
   if (str.includes('youtube')) return 'youtube'
   if (str.includes('google')) return 'google'
+  if (str.includes('cloudflare')) return 'cloudflare'
   if (str.includes('github') || str.includes('docker')) return 'github'
   if (str.includes('telegram')) return 'telegram'
   if (str.includes('twitter') || str.includes(' x ') || str.endsWith(' x') || str.includes('(x)')) return 'twitter'
@@ -240,8 +265,10 @@ const logoKey = computed(() => {
   if (str.includes('zoom')) return 'zoom'
   if (str.includes('notion')) return 'notion'
   if (str.includes('binance') || str.includes('okx') || str.includes('币安') || str.includes('加密货币')) return 'binance'
-  if (str.includes('direct') || str.includes('直连')) return 'direct'
-  if (str.includes('fish') || str.includes('漏网之鱼')) return 'fish'
+  if (str.includes('baidu') || str.includes('百度')) return 'baidu'
+  if (str.includes('direct') || str.includes('直连') || str.includes('国内')) return 'direct'
+  if (str.includes('fish') || str.includes('漏网之鱼') || str.includes('兜底')) return 'fish'
+  if (str.includes('globe') || str.includes('国外') || str.includes('海外')) return 'default'
 
   return 'default'
 })

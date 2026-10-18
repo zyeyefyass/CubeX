@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/zyeyefyass/CubeX/internal/compiler"
@@ -56,7 +57,7 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 			// Clean up any corrupted groups from old files
 			cleanGroups := make([]schema.StrategyGroup, 0, len(savedIR.Groups))
 			for _, g := range savedIR.Groups {
-				if strings.Contains(g.Name, "??") || strings.Contains(g.Name, "\ufffd") {
+				if strings.Contains(g.Name, "??") || strings.Contains(g.Name, "\ufffd") || strings.HasSuffix(g.Name, "手动") || g.Policy == "manual" {
 					continue
 				}
 				cleanGroups = append(cleanGroups, g)
@@ -66,6 +67,9 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 		}
 	}
 	schema.SyncAllStrategyGroups(initialIR)
+	if initialIR.Network.DNSPort == 0 || initialIR.Network.DNSPort == 1053 {
+		initialIR.Network.DNSPort = 53
+	}
 	if cleanData, err := json.MarshalIndent(initialIR, "", "  "); err == nil {
 		_ = os.WriteFile(irFile, cleanData, 0644)
 	}
@@ -177,7 +181,157 @@ func (m *Manager) RestoreClashState(snapshot map[string]string) int {
 	return restored
 }
 
-// SwitchEngine performs the 5-step Make-Before-Break Zero-Downtime Hot-Swap.
+func (m *Manager) findBinary(binName string) string {
+	if runtime.GOOS == "windows" {
+		candidates := []string{
+			filepath.Join(m.workDir, "bin", binName+".exe"),
+			filepath.Join(m.workDir, "bin", "windows", binName+".exe"),
+			filepath.Join(m.workDir, binName+".exe"),
+		}
+		for _, c := range candidates {
+			if _, err := os.Stat(c); err == nil {
+				return c
+			}
+		}
+		return binName + ".exe"
+	}
+	candidates := []string{
+		filepath.Join(m.workDir, "bin", binName),
+		filepath.Join(m.workDir, "bin", runtime.GOARCH, binName),
+		filepath.Join(m.workDir, binName),
+		filepath.Join("/app/bin", binName),
+	}
+	for _, c := range candidates {
+		if _, err := os.Stat(c); err == nil {
+			return c
+		}
+	}
+	return binName
+}
+
+func (m *Manager) buildCmd(eng schema.EngineType, binPath, etcDir, configPath string) *exec.Cmd {
+	var cmd *exec.Cmd
+	if eng == schema.EngineMihomo {
+		cmd = exec.Command(binPath, "-d", etcDir, "-f", configPath)
+	} else {
+		cmd = exec.Command(binPath, "run", "-c", configPath)
+		cmd.Dir = etcDir
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// OOM Defense & Garbage Collection tuning for tight router RAM (CHR 448MB)
+	cmd.Env = append(os.Environ(),
+		"GOMEMLIMIT=45MiB",
+		"GOGC=50",
+		"GODEBUG=madvdontneed=1",
+	)
+	return cmd
+}
+
+func (m *Manager) dryRunCheck(eng schema.EngineType, binPath, etcDir, configPath string) error {
+	var testCmd *exec.Cmd
+	if eng == schema.EngineMihomo {
+		testCmd = exec.Command(binPath, "-t", "-d", etcDir, "-f", configPath)
+	} else {
+		testCmd = exec.Command(binPath, "check", "-c", configPath)
+		testCmd.Dir = etcDir
+	}
+	out, err := testCmd.CombinedOutput()
+	if err != nil {
+		outStr := strings.TrimSpace(string(out))
+		return fmt.Errorf("%s dry-run failed: %s (%w)", eng, outStr, err)
+	}
+	return nil
+}
+
+func (m *Manager) stopCurrentCore(binName string) {
+	if m.currentProc != nil && m.currentProc.Pid > 0 {
+		pid := m.currentProc.Pid
+		log.Printf("🛑 [Engine] Gracefully stopping active core (PID %d)...", pid)
+		if runtime.GOOS != "windows" {
+			_ = m.currentProc.Signal(syscall.SIGTERM)
+			done := make(chan struct{})
+			go func() {
+				_, _ = m.currentProc.Wait()
+				close(done)
+			}()
+			select {
+			case <-done:
+				log.Printf("✅ [Engine] Core (PID %d) gracefully exited", pid)
+			case <-time.After(500 * time.Millisecond):
+				log.Printf("⚠️ [Engine] Core (PID %d) did not terminate in 500ms, force killing...", pid)
+				_ = m.currentProc.Kill()
+				<-done
+			}
+		} else {
+			_ = m.currentProc.Kill()
+			_, _ = m.currentProc.Wait()
+		}
+		m.currentProc = nil
+	}
+	if runtime.GOOS != "windows" && binName != "" {
+		_ = exec.Command("pkill", "-15", binName).Run()
+	}
+	time.Sleep(100 * time.Millisecond)
+}
+
+func (m *Manager) probeCoreHealth(target schema.EngineType, maxWait time.Duration) bool {
+	deadline := time.Now().Add(maxWait)
+	versionURL := fmt.Sprintf("%s/version", m.clashAPI)
+	for time.Now().Before(deadline) {
+		if m.currentProc == nil {
+			return false
+		}
+		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, versionURL, nil)
+		if err == nil {
+			if m.ir.Network.ClashSecret != "" {
+				req.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
+			}
+			resp, err := m.httpClient.Do(req)
+			if err == nil {
+				resp.Body.Close()
+				if resp.StatusCode == http.StatusOK {
+					return true
+				}
+			}
+		}
+		time.Sleep(60 * time.Millisecond)
+	}
+	return false
+}
+
+func (m *Manager) rollback(eng schema.EngineType, etcDir string, snapshot map[string]string) {
+	log.Printf("🛡️ [Engine] Initiating emergency self-healing rollback to %s...", eng)
+	binName := "mihomo"
+	configFile := "config.yaml"
+	if eng == schema.EngineSingbox {
+		binName = "sing-box"
+		configFile = "config.json"
+	}
+	binPath := m.findBinary(binName)
+	configPath := filepath.Join(etcDir, configFile)
+
+	cmd := m.buildCmd(eng, binPath, etcDir, configPath)
+	if err := cmd.Start(); err == nil {
+		m.currentProc = cmd.Process
+		log.Printf("🛡️ [Engine] Rollback process for %s started with PID %d", eng, cmd.Process.Pid)
+		go func(proc *os.Process, e schema.EngineType) {
+			state, err := proc.Wait()
+			log.Printf("⚠️ [Engine] Rollback core %s (PID %d) exited: %v (state: %v)", e, proc.Pid, err, state)
+		}(cmd.Process, eng)
+		if m.probeCoreHealth(eng, 3*time.Second) {
+			m.RestoreClashState(snapshot)
+			m.activeEngine = eng
+			m.ir.Meta.ActiveEngine = eng
+			log.Printf("✅ [Engine] Self-healing rollback to %s succeeded! Network preserved.", eng)
+		}
+	} else {
+		log.Printf("🚨 [Engine] Critical: rollback to %s failed: %v", eng, err)
+	}
+}
+
+// SwitchEngine performs the Make-Before-Break Zero-Downtime Hot-Swap with health probe & auto-rollback.
 func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -194,7 +348,7 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	// Step 1: Snapshot active selections
 	snapshot := m.SnapshotClashState()
 
-	// Step 2: Compile & Dry-Run
+	// Step 2: Compile target config
 	var configData []byte
 	var configFileName string
 	var binName string
@@ -234,95 +388,59 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 		return res, err
 	}
 
-	// Step 3: Launch new core (Port Reuse / Handoff)
-	var binPath string
-	if runtime.GOOS == "windows" {
-		candidates := []string{
-			filepath.Join(m.workDir, "bin", binName+".exe"),
-			filepath.Join(m.workDir, "bin", "windows", binName+".exe"),
-			filepath.Join(m.workDir, binName+".exe"),
-		}
-		for _, c := range candidates {
-			if _, err := os.Stat(c); err == nil {
-				binPath = c
-				break
-			}
-		}
-		if binPath == "" {
-			binPath = binName + ".exe"
-		}
-	} else {
-		candidates := []string{
-			filepath.Join(m.workDir, "bin", binName),
-			filepath.Join(m.workDir, "bin", runtime.GOARCH, binName),
-			filepath.Join(m.workDir, binName),
-			filepath.Join("/app/bin", binName),
-		}
-		for _, c := range candidates {
-			if _, err := os.Stat(c); err == nil {
-				binPath = c
-				break
-			}
-		}
-		if binPath == "" {
-			binPath = binName
-		}
+	binPath := m.findBinary(binName)
+
+	// Step 3: Strict Pre-Switch Dry-Run Validation (Make-Before-Break)
+	// If target config is invalid, abort immediately to protect the currently running engine!
+	if err := m.dryRunCheck(target, binPath, etcDir, targetConfigPath); err != nil {
+		log.Printf("⚠️ [Engine] Pre-flight dry-run failed for %s: %v. Aborting switch to protect active network!", target, err)
+		res.Success = false
+		res.ErrorMessage = fmt.Sprintf("pre-flight validation failed: %v", err)
+		m.lastResult = res
+		return res, err
 	}
 
-	var cmd *exec.Cmd
-	if target == schema.EngineMihomo {
-		cmd = exec.Command(binPath, "-d", etcDir, "-f", targetConfigPath)
-	} else {
-		cmd = exec.Command(binPath, "run", "-c", targetConfigPath)
-		cmd.Dir = etcDir
+	// Step 4: Graceful shutdown of old engine and release port 53, port 9090, port 7893 and TUN
+	prevBin := "mihomo"
+	if fromEngine == schema.EngineSingbox {
+		prevBin = "sing-box"
 	}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	m.stopCurrentCore(prevBin)
 
-	// Step 3a: Dry-run config validation before terminating current core
-	var testCmd *exec.Cmd
-	if target == schema.EngineMihomo {
-		testCmd = exec.Command(binPath, "-t", "-d", etcDir, "-f", targetConfigPath)
-	} else {
-		testCmd = exec.Command(binPath, "check", "-c", targetConfigPath)
-		testCmd.Dir = etcDir
-	}
-	if out, err := testCmd.CombinedOutput(); err != nil {
-		outStr := strings.TrimSpace(string(out))
-		log.Printf("⚠️ [Engine] Dry-run validation error for %s: %s (%v)", target, outStr, err)
-	}
-
-	// Step 3b: Terminate previous core and release port 53, port 9090 and TUN
-	if m.currentProc != nil && m.currentProc.Pid > 0 {
-		_ = m.currentProc.Kill()
-		_, _ = m.currentProc.Wait()
-		m.currentProc = nil
-	}
-	if runtime.GOOS != "windows" {
-		if target == schema.EngineMihomo {
-			_ = exec.Command("pkill", "-9", "sing-box").Run()
-		} else {
-			_ = exec.Command("pkill", "-9", "mihomo").Run()
-		}
-	}
-	time.Sleep(200 * time.Millisecond)
-
-	// Start new engine
+	// Step 5: Start new engine
+	cmd := m.buildCmd(target, binPath, etcDir, targetConfigPath)
 	if err := cmd.Start(); err != nil {
-		res.ErrorMessage = fmt.Sprintf("core daemon spawned in sandbox mode (%v)", err)
-	} else {
-		m.currentProc = cmd.Process
-		log.Printf("🚀 [Engine] Core engine %s started with PID %d", target, cmd.Process.Pid)
-		go func(proc *os.Process, eng schema.EngineType) {
-			state, err := proc.Wait()
-			log.Printf("⚠️ [Engine] Core process %s (PID %d) exited: %v (state: %v)", eng, proc.Pid, err, state)
-		}(cmd.Process, target)
+		log.Printf("🚨 [Engine] Failed to spawn %s: %v. Triggering self-healing rollback to %s!", target, err, fromEngine)
+		res.ErrorMessage = fmt.Sprintf("failed to spawn %s: %v", target, err)
+		if fromEngine != "" && fromEngine != target {
+			m.rollback(fromEngine, etcDir, snapshot)
+		}
+		res.Success = false
+		m.lastResult = res
+		return res, err
 	}
 
-	// Wait briefly for Clash API and DNS readiness
-	time.Sleep(500 * time.Millisecond)
+	m.currentProc = cmd.Process
+	log.Printf("🚀 [Engine] Core engine %s started with PID %d", target, cmd.Process.Pid)
+	go func(proc *os.Process, eng schema.EngineType) {
+		state, err := proc.Wait()
+		log.Printf("⚠️ [Engine] Core process %s (PID %d) exited: %v (state: %v)", eng, proc.Pid, err, state)
+	}(cmd.Process, target)
 
-	// Step 4: Restore node states
+	// Step 6: Active Health Probe (verify Clash API and DNS readiness within 3s)
+	if !m.probeCoreHealth(target, 3*time.Second) {
+		log.Printf("🚨 [Engine] Target core %s failed health probe after launch! Triggering self-healing rollback to %s...", target, fromEngine)
+		m.stopCurrentCore(binName)
+		if fromEngine != "" && fromEngine != target {
+			m.rollback(fromEngine, etcDir, snapshot)
+		}
+		res.Success = false
+		res.ErrorMessage = fmt.Sprintf("core %s failed liveness health check; network rolled back to %s", target, fromEngine)
+		m.lastResult = res
+		return res, fmt.Errorf("%s", res.ErrorMessage)
+	}
+
+	// Step 7: Restore node states
 	restoredCount := m.RestoreClashState(snapshot)
 	res.RestoredGroups = restoredCount
 
@@ -331,6 +449,7 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	res.ElapsedMs = time.Since(startTime).Milliseconds()
 	res.Success = true
 	m.lastResult = res
+	log.Printf("✨ [Engine] Zero-downtime hot-swap to %s completed in %d ms (%d groups restored)", target, res.ElapsedMs, restoredCount)
 
 	select {
 	case m.statusCh <- target:

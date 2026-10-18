@@ -52,7 +52,7 @@ type NetworkConfig struct {
 	TProxyPort   int    `json:"tproxy_port" yaml:"tproxy_port"`     // 7893
 	MixedPort    int    `json:"mixed_port" yaml:"mixed_port"`       // 7890
 	RedirPort    int    `json:"redir_port" yaml:"redir_port"`       // 7892
-	DNSPort      int    `json:"dns_port" yaml:"dns_port"`           // 1053
+	DNSPort      int    `json:"dns_port" yaml:"dns_port"`           // 53
 	ClashAPIPort int    `json:"clash_api_port" yaml:"clash_api_port"` // 9090
 	ClashSecret  string `json:"clash_secret" yaml:"clash_secret"`
 	AllowLAN     bool   `json:"allow_lan" yaml:"allow_lan"`

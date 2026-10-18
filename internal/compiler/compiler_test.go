@@ -2,6 +2,7 @@ package compiler_test
 
 import (
 	"encoding/json"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -82,7 +83,7 @@ func TestBuildSingBox(t *testing.T) {
 	content := string(data)
 
 	// Verify inbounds
-	if !strings.Contains(content, "cubex-tun") {
+	if runtime.GOOS != "windows" && !strings.Contains(content, "cubex-tun") {
 		t.Errorf("Expected cubex-tun in sing-box config")
 	}
 	if !strings.Contains(content, "mixed-in") {
@@ -129,8 +130,8 @@ func TestSingboxDNSLeakPrevention(t *testing.T) {
 		}
 		if tag == "dns-fakeip" && sMap["type"] == "fakeip" {
 			hasFakeIPServer = true
-			if sMap["inet4_range"] != "198.18.0.0/15" {
-				t.Errorf("Fake-IP inet4_range expected 198.18.0.0/15, got: %v", sMap["inet4_range"])
+			if sMap["inet4_range"] != "198.18.0.0/16" {
+				t.Errorf("Fake-IP inet4_range expected 198.18.0.0/16, got: %v", sMap["inet4_range"])
 			}
 		}
 		if tag == "dns-remote" {

@@ -74,6 +74,7 @@ function Assemble-ReleasePackage($TargetName, $GatewayBinary, $ArchType) {
     # Copy Geodata and 217heidai Dual-Format Rules (.mrs for Mihomo, .srs for sing-box)
     Copy-Item -Path "$RootDir\etc\*" -Destination "$StageDir\etc" -Recurse -Force
     Copy-Item -Path "$RootDir\data\*" -Destination "$StageDir\data" -Recurse -Force
+    if (Test-Path "$StageDir\data\ros_backup") { Remove-Item -Path "$StageDir\data\ros_backup" -Recurse -Force }
 
     # Strict Desensitization: strip runtime caches, logs, databases, and sanitize configs
     python "$RootDir\scripts\desensitize.py" $StageDir | Out-Host
@@ -124,6 +125,7 @@ function Assemble-RosContainer($TargetName, $GatewayBinary, $ArchType) {
     # Rulesets & configs inside container
     Copy-Item -Path "$RootDir\etc\*" -Destination "$RosStage\app\etc" -Recurse -Force
     Copy-Item -Path "$RootDir\data\*" -Destination "$RosStage\app\data" -Recurse -Force
+    if (Test-Path "$RosStage\app\data\ros_backup") { Remove-Item -Path "$RosStage\app\data\ros_backup" -Recurse -Force }
 
     # Strict Desensitization: strip runtime caches, logs, databases, and sanitize configs
     python "$RootDir\scripts\desensitize.py" $RosStage | Out-Host
@@ -148,7 +150,12 @@ Get-ChildItem -Path $ReleaseDir | Select-Object Name, Length
 
 # 7. Strict Automated Post-Packaging Desensitization & Unpack Audit
 Write-Host "`n🛡️  Executing Mandatory Post-Packaging Desensitization Audit (.tar & .zip independent unpack)..." -ForegroundColor Cyan
-python "$RootDir\scripts\audit_release_artifacts.py" "$ReleaseDir"
+$auditArgs = @("$ReleaseDir")
+if ($IncludeWindows) {
+    $auditArgs += "--allow-windows"
+}
+python "$RootDir\scripts\audit_release_artifacts.py" @auditArgs
 if ($LASTEXITCODE -ne 0) {
     Write-Error "🚨 Post-Packaging Desensitization Audit Failed! Release is blocked."
 }
+

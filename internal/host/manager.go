@@ -657,13 +657,13 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 		info.WireGuardActive = strings.Contains(out.String(), "wg0")
 	}
 
-	// 6. Check Firewall iptables rule for 13231 UDP
+	// 6. Check Firewall iptables rule for 2026 TCP
 	if session, err := client.NewSession(); err == nil {
 		var out bytes.Buffer
 		session.Stdout = &out
-		_ = session.Run("iptables -L INPUT -n 2>/dev/null | grep 13231")
+		_ = session.Run("iptables -L INPUT -n 2>/dev/null | grep 2026")
 		session.Close()
-		info.FirewallConfigured = strings.Contains(out.String(), "13231")
+		info.FirewallConfigured = strings.Contains(out.String(), "2026")
 	}
 
 	m.mu.Lock()
@@ -684,7 +684,7 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 
 	// 1. If currently connected host is RouterOS, guide user to ROS configuration
 	if cached != nil && cached.PlatformID == "routeros" && cfg.Host != "" {
-		return nil, fmt.Errorf("当前连接的宿主为 MikroTik RouterOS（无需 iptables）。请直接使用【一键巡检 ROS 配置及全量重新配置】。若宿主机为独立 Linux / 飞牛 NAS，请在【宿主联动凭据】中填入其 SSH 凭据")
+		return nil, fmt.Errorf("当前连接的宿主为 MikroTik RouterOS（无需 iptables）。请直接使用【一键巡检 ROS 配置及全量重新配置】。若宿主机为独立 Linux / 飞牛 NAS，请在【宿主共生凭据】中填入其 SSH 凭据")
 	}
 
 	mode = strings.ToLower(strings.TrimSpace(mode))
@@ -720,24 +720,31 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 			struct {
 				desc string
 				cmd  string
-			}{"放行 MiCube Web 面板 TCP 2026 端口", "iptables -C INPUT -p tcp --dport 2026 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 2026 -j ACCEPT"},
+			}{"放行 CubeX Web 面板 TCP 2026 端口", "iptables -C INPUT -p tcp --dport 2026 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 2026 -j ACCEPT"},
+			struct {
+				desc string
+				cmd  string
+			}{"注入 TCP MSS Clamping (消除 IP 分片黑洞与丢包，降低首包延迟)", "iptables -t mangle -C FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu"},
+			struct {
+				desc string
+				cmd  string
+			}{"开启 Linux 内核 TCP Fast Open (0 RTT 握手加速)", "sysctl -w net.ipv4.tcp_fastopen=3 2>/dev/null || true"},
+			struct {
+				desc string
+				cmd  string
+			}{"启用 FQ 队列调度 (防抖动与排队延迟优化)", "sysctl -w net.core.default_qdisc=fq 2>/dev/null || true"},
+			struct {
+				desc string
+				cmd  string
+			}{"IPv6 海外断流与泄露防护 (迫使 0ms 回退至 IPv4 极速代理)", "ip6tables -C FORWARD -d 2000::/3 -j REJECT --reject-with icmp6-adm-prohibited 2>/dev/null || ip6tables -A FORWARD -d 2000::/3 -j REJECT --reject-with icmp6-adm-prohibited 2>/dev/null || true"},
 		)
-		if enablePenetration {
-			commands = append(commands,
-				struct {
-					desc string
-					cmd  string
-				}{"放行 WireGuard UDP 13231 穿透端口", "iptables -C INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 13231 -j ACCEPT"},
-				struct {
-					desc string
-					cmd  string
-				}{"放行 WireGuard UDP 51820 备用端口", "iptables -C INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 51820 -j ACCEPT"},
-				struct {
-					desc string
-					cmd  string
-				}{"配置 WireGuard 虚拟网段 (10.88.0.0/24) NAT 出网伪装", "iptables -t nat -C POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || iptables -t nat -I POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE"},
-			)
-		}
+		// Clean up any legacy WireGuard rules from iptables
+		commands = append(commands,
+			struct {
+				desc string
+				cmd  string
+			}{"清理 WireGuard 端口与伪装规则", "iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true; iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true; iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true; iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; ip link delete wg0 2>/dev/null || true; ip link delete cubex-wg 2>/dev/null || true; ip link delete micube-wg 2>/dev/null || true"},
+		)
 	} else {
 		// Strict mode
 		commands = append(commands,
@@ -760,28 +767,31 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 			struct {
 				desc string
 				cmd  string
-			}{"放行 MiCube Web 面板 TCP 2026 端口", "iptables -C INPUT -p tcp --dport 2026 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 2026 -j ACCEPT"},
+			}{"放行 CubeX Web 面板 TCP 2026 端口", "iptables -C INPUT -p tcp --dport 2026 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 2026 -j ACCEPT"},
+			struct {
+				desc string
+				cmd  string
+			}{"注入 TCP MSS Clamping (消除 IP 分片黑洞与丢包，降低首包延迟)", "iptables -t mangle -C FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu"},
+			struct {
+				desc string
+				cmd  string
+			}{"开启 Linux 内核 TCP Fast Open (0 RTT 握手加速)", "sysctl -w net.ipv4.tcp_fastopen=3 2>/dev/null || true"},
+			struct {
+				desc string
+				cmd  string
+			}{"启用 FQ 队列调度 (防抖动与排队延迟优化)", "sysctl -w net.core.default_qdisc=fq 2>/dev/null || true"},
+			struct {
+				desc string
+				cmd  string
+			}{"IPv6 海外断流与泄露防护 (迫使 0ms 回退至 IPv4 极速代理)", "ip6tables -C FORWARD -d 2000::/3 -j REJECT --reject-with icmp6-adm-prohibited 2>/dev/null || ip6tables -A FORWARD -d 2000::/3 -j REJECT --reject-with icmp6-adm-prohibited 2>/dev/null || true"},
 		)
-		if enablePenetration {
-			commands = append(commands,
-				struct {
-					desc string
-					cmd  string
-				}{"定向放行 WireGuard 虚拟网段 (10.88.0.0/24) 转发", "iptables -C FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || iptables -I FORWARD 4 -s 10.88.0.0/24 -j ACCEPT; iptables -C FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || iptables -I FORWARD 5 -d 10.88.0.0/24 -j ACCEPT"},
-				struct {
-					desc string
-					cmd  string
-				}{"放行 WireGuard UDP 13231 穿透端口", "iptables -C INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 13231 -j ACCEPT"},
-				struct {
-					desc string
-					cmd  string
-				}{"放行 WireGuard UDP 51820 备用端口", "iptables -C INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 51820 -j ACCEPT"},
-				struct {
-					desc string
-					cmd  string
-				}{"配置 WireGuard 虚拟网段 (10.88.0.0/24) NAT 出网伪装", "iptables -t nat -C POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || iptables -t nat -I POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE"},
-			)
-		}
+		// Clean up any legacy WireGuard rules from iptables
+		commands = append(commands,
+			struct {
+				desc string
+				cmd  string
+			}{"清理 WireGuard 端口与伪装规则", "iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true; iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true; iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true; iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; ip link delete wg0 2>/dev/null || true; ip link delete cubex-wg 2>/dev/null || true; ip link delete micube-wg 2>/dev/null || true"},
+		)
 	}
 
 	var client *ssh.Client
@@ -808,7 +818,7 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 		if err != nil {
 			return nil, fmt.Errorf("无法连接 Linux / 飞牛宿主机 SSH (%s): %w", cfg.Host, err)
 		}
-		return nil, fmt.Errorf("请先在【宿主联动凭据】中填入 Linux / 飞牛宿主的 SSH 地址与凭据")
+		return nil, fmt.Errorf("请先在【宿主共生凭据】中填入 Linux / 飞牛宿主的 SSH 地址与凭据")
 	}
 	defer client.Close()
 
@@ -845,8 +855,8 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 	return res, nil
 }
 
-// DeployHostWireGuard installs wireguard tools and applies the configuration on fnOS / Linux host.
-func (m *Manager) DeployHostWireGuard(wgServerConf string) (string, error) {
+// CleanupHostWireGuard stops and purges all wireguard services and rules on fnOS / Linux host.
+func (m *Manager) CleanupHostWireGuard() (string, error) {
 	m.mu.RLock()
 	cfg := m.config
 	m.mu.RUnlock()
@@ -863,103 +873,51 @@ func (m *Manager) DeployHostWireGuard(wgServerConf string) (string, error) {
 
 	var logs []string
 
-	// 1. Install wireguard if missing
+	// 1. Stop & disable WireGuard services
+	stopCmd := "systemctl stop wg-quick@wg0 2>/dev/null; systemctl disable wg-quick@wg0 2>/dev/null; wg-quick down wg0 2>/dev/null; ip link delete wg0 2>/dev/null || true"
 	if session, err := client.NewSession(); err == nil {
-		var out bytes.Buffer
-		session.Stdout = &out
-		session.Stderr = &out
-		_ = session.Run("which wg-quick || (apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y wireguard wireguard-tools)")
+		_ = session.Run(stopCmd)
 		session.Close()
-		logs = append(logs, "检查并就绪 wireguard-tools: "+strings.TrimSpace(out.String()))
+		logs = append(logs, "✅ 已停止并下线宿主机 WireGuard 服务与虚拟接口")
 	}
 
-	// 2. Ensure /etc/wireguard directory
+	// 2. Remove configuration files
+	rmCmd := "rm -f /etc/wireguard/wg0.conf /etc/wireguard/micube-wg.conf /etc/wireguard/cubex-wg.conf"
 	if session, err := client.NewSession(); err == nil {
-		_ = session.Run("mkdir -p /etc/wireguard")
+		_ = session.Run(rmCmd)
 		session.Close()
+		logs = append(logs, "✅ 已彻底清除宿主机 WireGuard 配置文件")
 	}
 
-	// 3. Write /etc/wireguard/wg0.conf
-	writeCmd := fmt.Sprintf("cat << 'EOF' > /etc/wireguard/wg0.conf\n%s\nEOF\nchmod 600 /etc/wireguard/wg0.conf", wgServerConf)
+	// 3. Remove iptables firewall rules
+	cleanFwCmd := `iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true
+iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true
+iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true
+iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true
+iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true
+command -v netfilter-persistent &>/dev/null && netfilter-persistent save || true`
 	if session, err := client.NewSession(); err == nil {
-		var out bytes.Buffer
-		session.Stdout = &out
-		session.Stderr = &out
-		if err := session.Run(writeCmd); err != nil {
-			session.Close()
-			return "", fmt.Errorf("写入 /etc/wireguard/wg0.conf 失败: %w", err)
-		}
+		_ = session.Run(cleanFwCmd)
 		session.Close()
-		logs = append(logs, "✅ 已写入宿主机 /etc/wireguard/wg0.conf")
+		logs = append(logs, "✅ 已从宿主机防火墙彻底注销 WireGuard 规则")
 	}
-
-	// 4. Start or Reload WireGuard
-	reloadCmd := "wg-quick down wg0 2>/dev/null; systemctl restart wg-quick@wg0 || wg-quick up wg0"
-	if session, err := client.NewSession(); err == nil {
-		var out bytes.Buffer
-		session.Stdout = &out
-		session.Stderr = &out
-		_ = session.Run(reloadCmd)
-		session.Close()
-		logs = append(logs, "✅ 宿主机 WireGuard 服务已拉起生效: "+strings.TrimSpace(out.String()))
-	}
-
-	// 5. Automatically ensure firewall rules
-	_, _ = m.ApplyFirewall("permissive", true)
 
 	return strings.Join(logs, "\n"), nil
 }
 
-// SyncPeerToHost adds or updates a peer on the host wg0 interface dynamically.
-func (m *Manager) SyncPeerToHost(publicKey, clientIP string) error {
-	m.mu.RLock()
-	cfg := m.config
-	m.mu.RUnlock()
-
-	if !cfg.Enabled || cfg.Host == "" {
-		return nil // Host SSH not configured, skip
-	}
-
-	client, err := m.getSSHClient(cfg)
-	if err != nil {
-		return err
-	}
-	defer client.Close()
-
-	session, err := client.NewSession()
-	if err != nil {
-		return err
-	}
-	defer session.Close()
-
-	cmd := fmt.Sprintf("wg set wg0 peer '%s' allowed-ips '%s/32'", publicKey, clientIP)
-	return session.Run(cmd)
+// DeployHostWireGuard is deprecated. It cleans up WireGuard on the host.
+func (m *Manager) DeployHostWireGuard(wgServerConf string) (string, error) {
+	return m.CleanupHostWireGuard()
 }
 
-// RemovePeerFromHost deletes a peer from the host wg0 interface dynamically.
+// SyncPeerToHost is deprecated and no-op.
+func (m *Manager) SyncPeerToHost(publicKey, clientIP string) error {
+	return nil
+}
+
+// RemovePeerFromHost is deprecated and no-op.
 func (m *Manager) RemovePeerFromHost(publicKey string) error {
-	m.mu.RLock()
-	cfg := m.config
-	m.mu.RUnlock()
-
-	if !cfg.Enabled || cfg.Host == "" {
-		return nil
-	}
-
-	client, err := m.getSSHClient(cfg)
-	if err != nil {
-		return err
-	}
-	defer client.Close()
-
-	session, err := client.NewSession()
-	if err != nil {
-		return err
-	}
-	defer session.Close()
-
-	cmd := fmt.Sprintf("wg set wg0 peer '%s' remove", publicKey)
-	return session.Run(cmd)
+	return nil
 }
 
 // CheckHostUpgrade queries upgradable packages on the host.
@@ -992,63 +950,14 @@ func (m *Manager) ExecuteHostUpgrade() (string, error) {
 func (m *Manager) GenerateFirewallScript(mode string, enablePenetration bool) string {
 	mode = strings.ToLower(strings.TrimSpace(mode))
 	if mode == "strict" {
-		if enablePenetration {
-			return `#!/usr/bin/env bash
-# ==============================================================================
-#  MiCube · 宿主机原生联动与防火墙极速一键通关 (🛡️ 严格模式 + 🚀 手机 WireGuard 穿透)
-#  适用平台: 飞牛 fnOS / PVE / Debian / Ubuntu (最小特权白名单防御)
-# ==============================================================================
-set -e
-
-echo "🧊 [MiCube] 正在为宿主机配置原生联动与防火墙 (🛡️ 严格模式 + 🚀 穿透模式)..."
-
-# 1. 开启 Linux 内核 IPv4 数据包转发
-echo "  -> 开启 IPv4 数据包转发 (net.ipv4.ip_forward=1)..."
-sysctl -w net.ipv4.ip_forward=1
-grep -q '^net.ipv4.ip_forward=1' /etc/sysctl.conf || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
-
-# 2. 保持 FORWARD 链默认 DROP 策略 (最小权限原则)
-echo "  -> 保持 FORWARD 链默认 DROP (最小特权防御)..."
-iptables -P FORWARD DROP
-
-# 3. 放行状态跟踪连接 (ESTABLISHED, RELATED)
-echo "  -> 放行已建立连接状态跟踪..."
-iptables -C FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || iptables -C FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || iptables -I FORWARD 1 -m state --state RELATED,ESTABLISHED -j ACCEPT
-
-# 4. 定向放行 WireGuard 虚拟网段与私网互访
-echo "  -> 定向放行 WireGuard 虚拟接口与私网互访..."
-iptables -C FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || iptables -I FORWARD 2 -s 10.88.0.0/24 -j ACCEPT
-iptables -C FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || iptables -I FORWARD 3 -d 10.88.0.0/24 -j ACCEPT
-iptables -C FORWARD -s 192.168.0.0/16 -d 192.168.0.0/16 -j ACCEPT 2>/dev/null || iptables -I FORWARD 4 -s 192.168.0.0/16 -d 192.168.0.0/16 -j ACCEPT
-iptables -C FORWARD -s 10.0.0.0/8 -d 10.0.0.0/8 -j ACCEPT 2>/dev/null || iptables -I FORWARD 5 -s 10.0.0.0/8 -d 10.0.0.0/8 -j ACCEPT
-
-# 5. 放行核心服务端口 (MiCube Web 面板 TCP 2026 + WireGuard UDP 13231/51820)
-echo "  -> 放行核心通信端口..."
-iptables -C INPUT -p tcp --dport 2026 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 2026 -j ACCEPT
-iptables -C INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 13231 -j ACCEPT
-iptables -C INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 51820 -j ACCEPT
-
-# 6. 仅为 WireGuard 虚拟网段启用 NAT 伪装
-echo "  -> 开启 WireGuard 专属 NAT 伪装..."
-iptables -t nat -C POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || iptables -t nat -I POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE
-
-# 7. 持久化保存
-echo "  -> 持久化防火墙规则..."
-which netfilter-persistent &>/dev/null && netfilter-persistent save || (which iptables-save &>/dev/null && iptables-save > /etc/iptables.rules 2>/dev/null || true)
-
-echo "✅ [MiCube] 宿主机网络与防火墙已以【🛡️ 严格模式 + 🚀 穿透模式】成功原生联动！"
-`
-		}
-
-		// Strict mode WITHOUT penetration (Pure LAN bypass, zero public ports)
 		return `#!/usr/bin/env bash
 # ==============================================================================
-#  MiCube · 宿主机原生联动与防火墙极速一键通关 (🛡️ 严格模式 · 🌐 纯局域网旁路由)
-#  适用平台: 飞牛 fnOS / PVE / Debian / Ubuntu (零公网暴露面 · 最小特权)
+#  CubeX · 宿主机原生联动与防火墙极速一键通关 (🛡️ 严格模式)
+#  适用平台: 飞牛 fnOS / PVE / Debian / Ubuntu (最小特权白名单防御 · 零公网端口暴露)
 # ==============================================================================
 set -e
 
-echo "🧊 [MiCube] 正在为宿主机配置原生联动与防火墙 (🛡️ 严格模式 · 🌐 纯局域网旁路由)..."
+echo "🧊 [CubeX] 正在为宿主机配置原生联动与防火墙 (🛡️ 严格模式)..."
 
 # 1. 开启 Linux 内核 IPv4 数据包转发
 echo "  -> 开启 IPv4 数据包转发 (net.ipv4.ip_forward=1)..."
@@ -1068,28 +977,38 @@ echo "  -> 定向放行局域网私网流量互访..."
 iptables -C FORWARD -s 192.168.0.0/16 -d 192.168.0.0/16 -j ACCEPT 2>/dev/null || iptables -I FORWARD 2 -s 192.168.0.0/16 -d 192.168.0.0/16 -j ACCEPT
 iptables -C FORWARD -s 10.0.0.0/8 -d 10.0.0.0/8 -j ACCEPT 2>/dev/null || iptables -I FORWARD 3 -s 10.0.0.0/8 -d 10.0.0.0/8 -j ACCEPT
 
-# 5. 放行核心 Web 面板 TCP 2026 端口 (不开放任何 WireGuard 公网 UDP 端口)
-echo "  -> 放行 MiCube Web 面板端口 (TCP 2026)..."
+# 5. 放行核心 Web 面板 TCP 2026 端口
+echo "  -> 放行 CubeX Web 面板端口 (TCP 2026)..."
 iptables -C INPUT -p tcp --dport 2026 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 2026 -j ACCEPT
 
-# 6. 持久化保存
+# 6. 彻底清理遗留的 WireGuard 防火墙规则与接口
+echo "  -> 清理废弃 WireGuard 规则与接口..."
+iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true
+iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true
+iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true
+iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true
+iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true
+ip link delete wg0 2>/dev/null || true
+ip link delete micube-wg 2>/dev/null || true
+ip link delete cubex-wg 2>/dev/null || true
+
+# 7. 持久化保存
 echo "  -> 持久化防火墙规则..."
 which netfilter-persistent &>/dev/null && netfilter-persistent save || (which iptables-save &>/dev/null && iptables-save > /etc/iptables.rules 2>/dev/null || true)
 
-echo "✅ [MiCube] 宿主机网络与防火墙已以【🛡️ 严格模式 · 🌐 纯局域网】成功原生联动！零公网端口暴露，固若金汤！"
+echo "✅ [CubeX] 宿主机网络与防火墙已以【🛡️ 严格模式】成功原生联动！零公网端口暴露，固若金汤！"
 `
 	}
 
 	// Permissive mode
-	if enablePenetration {
-		return `#!/usr/bin/env bash
+	return `#!/usr/bin/env bash
 # ==============================================================================
-#  MiCube · 宿主机原生联动与防火墙极速一键通关 (🟢 宽松模式 + 🚀 手机 WireGuard 穿透)
+#  CubeX · 宿主机原生联动与防火墙极速一键通关 (🟢 宽松模式 · 🌐 纯局域网旁路由)
 #  适用平台: 飞牛 fnOS / PVE / 群晖 DSM / Ubuntu / Debian / CentOS Linux
 # ==============================================================================
 set -e
 
-echo "🧊 [MiCube] 正在为宿主机配置原生联动与防火墙 (🟢 宽松模式 + 🚀 穿透模式)..."
+echo "🧊 [CubeX] 正在为宿主机配置原生联动与防火墙 (🟢 宽松模式)..."
 
 # 1. 永久开启 Linux 内核 IPv4 数据包转发
 echo "  -> 开启 IPv4 数据包转发 (net.ipv4.ip_forward=1)..."
@@ -1102,96 +1021,56 @@ echo "  -> 放行 FORWARD 链策略 (宽松放行，防止断网)..."
 iptables -P FORWARD ACCEPT
 iptables -C FORWARD -j ACCEPT 2>/dev/null || iptables -I FORWARD 1 -j ACCEPT
 
-# 3. 放行核心通信端口 (Web 面板 TCP 2026 + WireGuard UDP 13231/51820)
-echo "  -> 放行 MiCube 核心端口..."
+# 3. 放行核心 Web 面板 TCP 2026 端口
+echo "  -> 放行 CubeX Web 面板端口 (TCP 2026)..."
 iptables -C INPUT -p tcp --dport 2026 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 2026 -j ACCEPT
-iptables -C INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 13231 -j ACCEPT
-iptables -C INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport 51820 -j ACCEPT
 
-# 4. 配置 WireGuard 虚拟网段 (10.88.0.0/24) NAT 出网伪装
-echo "  -> 配置 WireGuard 虚拟网段 NAT 伪装..."
-iptables -t nat -C POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || iptables -t nat -I POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE
+# 4. 彻底清理遗留的 WireGuard 防火墙规则与接口
+echo "  -> 清理废弃 WireGuard 规则与接口..."
+iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true
+iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true
+iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true
+iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true
+iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true
+ip link delete wg0 2>/dev/null || true
+ip link delete micube-wg 2>/dev/null || true
+ip link delete cubex-wg 2>/dev/null || true
 
 # 5. 持久化保存防火墙规则
 echo "  -> 持久化防火墙规则..."
 which netfilter-persistent &>/dev/null && netfilter-persistent save || (which iptables-save &>/dev/null && iptables-save > /etc/iptables.rules 2>/dev/null || true)
 
-echo "✅ [MiCube] 宿主机网络与防火墙已以【🟢 宽松模式 + 🚀 穿透模式】成功原生联动！"
-`
-	}
-
-	// Permissive mode WITHOUT penetration (Pure LAN bypass, zero public ports)
-	return `#!/usr/bin/env bash
-# ==============================================================================
-#  MiCube · 宿主机原生联动与防火墙极速一键通关 (🟢 宽松模式 · 🌐 纯局域网旁路由)
-#  适用平台: 飞牛 fnOS / PVE / 群晖 DSM / Ubuntu / Debian / CentOS Linux
-# ==============================================================================
-set -e
-
-echo "🧊 [MiCube] 正在为宿主机配置原生联动与防火墙 (🟢 宽松模式 · 🌐 纯局域网旁路由)..."
-
-# 1. 永久开启 Linux 内核 IPv4 数据包转发
-echo "  -> 开启 IPv4 数据包转发 (net.ipv4.ip_forward=1)..."
-sysctl -w net.ipv4.ip_forward=1
-grep -q '^net.ipv4.ip_forward=1' /etc/sysctl.conf || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
-sysctl -w net.ipv4.conf.all.forwarding=1 2>/dev/null || true
-
-# 2. 设置 FORWARD 链默认策略为 ACCEPT 并置顶放行 (100% 避免断网)
-echo "  -> 放行 FORWARD 链策略 (宽松放行，防止断网)..."
-iptables -P FORWARD ACCEPT
-iptables -C FORWARD -j ACCEPT 2>/dev/null || iptables -I FORWARD 1 -j ACCEPT
-
-# 3. 放行核心 Web 面板 TCP 2026 端口 (不开放任何 WireGuard 公网 UDP 端口)
-echo "  -> 放行 MiCube Web 面板端口 (TCP 2026)..."
-iptables -C INPUT -p tcp --dport 2026 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 2026 -j ACCEPT
-
-# 4. 持久化保存防火墙规则
-echo "  -> 持久化防火墙规则..."
-which netfilter-persistent &>/dev/null && netfilter-persistent save || (which iptables-save &>/dev/null && iptables-save > /etc/iptables.rules 2>/dev/null || true)
-
-echo "✅ [MiCube] 宿主机网络与防火墙已以【🟢 宽松模式 · 🌐 纯局域网】成功原生联动！零公网端口暴露，开箱即通，绝不断网！"
+echo "✅ [CubeX] 宿主机网络与防火墙已以【🟢 宽松模式】成功原生联动！开箱即通，绝不断网！"
 `
 }
 
-// GenerateSetupBashScript creates a zero-SSH 1-click installer script that users can run on fnOS / Linux.
-func (m *Manager) GenerateSetupBashScript(serverIP string, serverPort int, serverPubKey, clientIP, clientPrivKey, clientPubKey string) string {
-	if serverIP == "" {
-		serverIP = "192.168.88.1"
-	}
-	if serverPort <= 0 {
-		serverPort = 13231
-	}
-
-	return fmt.Sprintf(`#!/usr/bin/env bash
+// GenerateCleanupWireGuardScript creates a 1-click script to purge all wireguard artifacts from host.
+func (m *Manager) GenerateCleanupWireGuardScript() string {
+	return `#!/usr/bin/env bash
 # ========================================================
-#  MiCube · 飞牛 (fnOS) / Linux 宿主机 WireGuard 极速一键配置
+#  CubeX · 宿主机 WireGuard 残留清理脚本
 # ========================================================
 set -e
 
-echo "🧊 [MiCube] 正在为飞牛 fnOS / Linux 宿主机部署 WireGuard 与防火墙..."
+echo "🧹 [CubeX] 正在清理宿主机 WireGuard 残留与防火墙规则..."
 
-# 1. 开启内核转发
-sysctl -w net.ipv4.ip_forward=1
-grep -q '^net.ipv4.ip_forward=1' /etc/sysctl.conf || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
+systemctl stop wg-quick@wg0 2>/dev/null || true
+systemctl disable wg-quick@wg0 2>/dev/null || true
+wg-quick down wg0 2>/dev/null || true
+ip link delete wg0 2>/dev/null || true
+ip link delete micube-wg 2>/dev/null || true
+ip link delete cubex-wg 2>/dev/null || true
+rm -f /etc/wireguard/wg0.conf /etc/wireguard/micube-wg.conf /etc/wireguard/cubex-wg.conf
 
-# 2. 安装 WireGuard 工具包
-if ! command -v wg &> /dev/null; then
-    echo "📦 正在安装 wireguard wireguard-tools..."
-    apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq wireguard wireguard-tools
-fi
+iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true
+iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true
+iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true
+iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true
+iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true
+which netfilter-persistent &>/dev/null && netfilter-persistent save || (which iptables-save &>/dev/null && iptables-save > /etc/iptables.rules 2>/dev/null || true)
 
-# 3. 部署防火墙规则 (放行 UDP %d 并启用 NAT 伪装)
-iptables -C INPUT -p udp --dport %d -j ACCEPT 2>/dev/null || iptables -I INPUT -p udp --dport %d -j ACCEPT
-iptables -C INPUT -p tcp --dport 2026 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 2026 -j ACCEPT
-iptables -t nat -C POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || iptables -t nat -I POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE
-iptables -C FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || iptables -I FORWARD -s 10.88.0.0/24 -j ACCEPT
-iptables -C FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || iptables -I FORWARD -d 10.88.0.0/24 -j ACCEPT
-
-# 4. 尝试保存防火墙
-command -v netfilter-persistent &>/dev/null && netfilter-persistent save || true
-
-echo "✅ [MiCube] 宿主机 WireGuard 与防火墙配置已圆满完成！手机现在可以通过扫码秒级穿透接入！"
-`, serverPort, serverPort, serverPort)
+echo "✅ [CubeX] 宿主机 WireGuard 规则与服务已彻底清理干净！"
+`
 }
 
 func (m *Manager) detectLocalHost() string {
@@ -1278,14 +1157,22 @@ func parseOSRelease(content string) (osName string, platID string) {
 	return "Linux Host", "linux"
 }
 
-// SetDockerRegistryMirror updates /etc/docker/daemon.json on fnOS / Linux host via SSH.
+// SetDockerRegistryMirror updates /etc/docker/daemon.json on fnOS / Linux host via SSH (or local if accessible).
 func (m *Manager) SetDockerRegistryMirror(mirrorURL string) error {
 	m.mu.RLock()
 	cfg := m.config
 	m.mu.RUnlock()
 
+	// 1. Try local write if on Linux and /etc/docker is writable
+	if runtime.GOOS == "linux" {
+		if err := m.writeLocalDockerDaemonJSON(mirrorURL); err == nil {
+			return nil
+		}
+	}
+
+	// 2. Otherwise write via host SSH
 	if !cfg.Enabled || cfg.Host == "" {
-		return fmt.Errorf("宿主机 SSH 未配置，请先在「宿主联动」中配置宿主 IP 与密码")
+		return fmt.Errorf("宿主机 SSH 未配置，请先在「宿主共生」中配置宿主 IP 与密码以实现免密全自动直写")
 	}
 
 	client, err := m.getSSHClient(cfg)
@@ -1316,4 +1203,35 @@ with open(p, "w") as f: json.dump(d, f, indent=2)
 ' 2>/dev/null || (which jq >/dev/null && [ -f /etc/docker/daemon.json ] && jq '.["registry-mirrors"] = ["%s"]' /etc/docker/daemon.json > /tmp/d.json && mv /tmp/d.json /etc/docker/daemon.json) || echo '{"registry-mirrors": ["%s"]}' > /etc/docker/daemon.json; (systemctl daemon-reload && systemctl restart docker) 2>/dev/null || true`, mirrorURL, mirrorURL, mirrorURL, mirrorURL, mirrorURL)
 
 	return session.Run(cmd)
+}
+
+func (m *Manager) writeLocalDockerDaemonJSON(mirrorURL string) error {
+	daemonPath := "/etc/docker/daemon.json"
+	_ = os.MkdirAll("/etc/docker", 0755)
+
+	type daemonConfig struct {
+		RegistryMirrors []string `json:"registry-mirrors"`
+	}
+	var dCfg daemonConfig
+	if data, err := os.ReadFile(daemonPath); err == nil {
+		_ = json.Unmarshal(data, &dCfg)
+	}
+
+	newMirrors := []string{mirrorURL}
+	for _, mir := range dCfg.RegistryMirrors {
+		if mir != mirrorURL {
+			newMirrors = append(newMirrors, mir)
+		}
+	}
+	dCfg.RegistryMirrors = newMirrors
+	out, err := json.MarshalIndent(dCfg, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(daemonPath, out, 0644); err != nil {
+		return err
+	}
+	_ = exec.Command("systemctl", "daemon-reload").Run()
+	_ = exec.Command("systemctl", "restart", "docker").Run()
+	return nil
 }
