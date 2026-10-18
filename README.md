@@ -298,29 +298,122 @@ CubeX 摒弃了传统工具粗糙简陋的“单选模式”，在底层 IR 中�
 
 ---
 
-## 🚀 极速部署指南
+## 🚀 极速部署指南 (RouterOS / 飞牛 fnOS / PVE / Linux)
 
 CubeX 严格遵循专有闭源 EULA 合规准则与脱敏规范，发布包内**绝不包含任何作者私钥、生产 Token 或个人订阅**。
 
+---
+
 ### 方式 A：MikroTik RouterOS v7 容器一键导入 (官方强烈推荐)
 
-1. 前往 [GitHub Releases](https://github.com/zyeyefyass/CubeX/releases) 下载 `CubeX-Test-v0.999-ros-amd64.tar`（或 ARM64 对应版本）；
+1. 前往 [GitHub Releases](https://github.com/zyeyefyass/CubeX/releases) 下载 `CubeX-Test-v0.999-ros-amd64.tar`（或 ARM64 如 RB5009 对应版本）；
 2. 打开 WinBox，将 `.tar` 镜像文件拖入 `Files` 根目录；
-3. 在 WinBox 终端直接执行随包附带的 `setup-routeros-v7.rsc`，或手动创建容器；
+3. 在 WinBox 终端直接执行随包附带的 `setup-routeros-v7.rsc`，或手动创建容器：
+   ```routeros
+   /container/add file=CubeX-Test-v0.999-ros-amd64.tar interface=veth-cubex root-dir=cubex start-on-boot=yes
+   ```
 4. 容器拉起后，浏览器直接访问：`http://<容器IP>:2026` 即可进入 Cyber Aurora 全息控制台！
 
-### 方式 B：Linux / 飞牛 fnOS / PVE / Docker 极速拉起
+---
 
+### 方式 B：飞牛 fnOS 专属 Docker 部署 (严格遵循 `/vol1/1000/cubex` 规范)
+
+飞牛 fnOS 是当前最热门的国产 NAS 操作系统之一。CubeX 安装程序与容器镜像经过专门针对飞牛底座的深度调优，**默认持久化存储路径严格对齐飞牛官方规范 `/vol1/1000/cubex`**。
+
+#### 🌟 途径 ①：飞牛 Docker Compose 编排拉起 (最推荐 · 0门槛秒级上线)
+在飞牛【Docker】->【项目】中新建项目，或者在 `/vol1/1000/cubex` 目录下创建 `docker-compose.yml`：
+
+```yaml
+version: '3.8'
+
+services:
+  cubex:
+    image: fyasshole/cubex:Test-v0.999  # 亦可使用 :latest 或 ghcr.io/zyeyefyass/cubex:Test-v0.999
+    container_name: cubex
+    restart: unless-stopped
+    network_mode: "host"                 # 必须 host 模式以实现局域网旁路接管
+    cap_add:
+      - NET_ADMIN                       # 必须赋予网络管理特权
+    devices:
+      - /dev/net/tun:/dev/net/tun       # 虚拟网卡隧道设备映射
+    volumes:
+      - /vol1/1000/cubex/data:/app/data # 飞牛持久化配置目录
+      - /vol1/1000/cubex/etc:/app/etc   # 核心配置文件目录
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - CUBEX_PORT=2026
+      - CUBEX_LISTEN=:2026
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+```
+点击【构建并启动】即可！浏览器访问：`http://<飞牛IP>:2026`。
+
+#### 📦 途径 ②：飞牛 Docker GUI【离线镜像导入】(国内免翻墙 · 0 超时风险)
+1. 在 [Releases](https://github.com/zyeyefyass/CubeX/releases) 下载 `CubeX-Test-v0.999-docker-amd64.tar.gz` 离线镜像；
+2. 飞牛桌面 ->【Docker】应用 ->【镜像仓库】-> 点击右上角【本地导入】上传 `.tar.gz`；
+3. 【本地镜像】点击【创建容器】：
+   - **网络模式**：勾选 **`Host`**；
+   - **环境权限**：勾选 **【高权限执行】(Privileged 或 NET_ADMIN)**；
+   - **路径映射**：本地 `/vol1/1000/cubex/data` 映射容器内 `/app/data`；
+   - **启动**：容器 2 秒内极速就绪！
+
+---
+
+### 方式 C：Proxmox VE (PVE) CT 容器 (LXC) 极速部署
+
+相比笨重的 KVM 完整虚拟机（动辄占用 2G~4G 内存与大量 CPU 损耗），在 PVE 中采用 **LXC 轻量级 CT 容器** 是极客运行 CubeX 的终极优雅姿态——**常驻内存仅 ~25MB，零虚拟化损耗**！
+
+#### 1. 创建 PVE LXC 容器
+* 模板：Debian 12 或 Alpine Linux 均可；
+* 资源分配：内存 256MB ~ 512MB，CPU 1 核，磁盘 4GB 足够；
+* 网络：网桥绑定 `vmbr0`，IP 设置为静态 IP（例如 `10.0.0.11/24`），网关填主路由（`10.0.0.1`）。
+
+#### 2. 在 PVE 宿主机开启 LXC TUN 隧道权限 (关键必做)
+在 PVE 宿主机终端执行（假设新建的 CT 容器 VMID 为 `105`）：
 ```bash
-# 1. 创建运行目录
+# 允许该容器访问 /dev/net/tun 虚拟网卡设备
+cat << 'EOF' >> /etc/pve/lxc/105.conf
+lxc.cgroup2.devices.allow: c 10:200 rwm
+lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
+EOF
+```
+
+#### 3. 启动 CT 容器并一键部署
+进入该 CT 容器控制台，直接执行：
+```bash
+# 进入容器工作目录
 mkdir -p /opt/cubex && cd /opt/cubex
 
-# 2. 下载并解压最新 Test v0.999 资产包
+# 下载解压 Test v0.999 资产包
 curl -sSL -O https://github.com/zyeyefyass/CubeX/releases/download/Test-v0.999/CubeX-Test-v0.999-linux-amd64.zip
 unzip CubeX-Test-v0.999-linux-amd64.zip
 
-# 3. 运行一键安装部署脚本
+# 运行一键安装部署服务
 sudo bash install.sh
+```
+部署完毕后，`cubexd` 将作为 systemd 服务开机自启，浏览器直接访问 `http://10.0.0.11:2026` 即可！
+
+---
+
+### 方式 D：通用 Linux 终端一键全自动安装
+
+适用于 Ubuntu / Debian / CentOS / Alpine 等任何标准 Linux 发行版：
+
+```bash
+# 官方一键智能嗅探脚本
+curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | bash
+```
+
+脚本将全自动识别宿主环境、安装依赖、注册 `cubex` 运维 CLI 与 `systemd` 守护服务。常用运维指令：
+```bash
+cubex status    # 查看网关运行状态、内存与双引擎版本
+cubex log       # 实时追踪全息诊断日志流
+cubex reload    # 0 断流秒级热重载分流策略与规则
+cubex restart   # 重新启动守护进程
 ```
 
 ---
