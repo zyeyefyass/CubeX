@@ -5,7 +5,7 @@
   # 🌌 CubeX · 宿主共生零感网络系统 (Host-Symbiotic Zero-Perception Gateway)
   ### *单二进制纯自研 · 告别传统重型虚机旁路 · 18MB 极限微核 · 300ms 冷启 · 宛如物理肉身直连全球互联网的终极共生体*
 
-  [![Version](https://img.shields.io/badge/Release-Test_v1.0-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
+  [![Version](https://img.shields.io/badge/Release-Test_v1.1-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
   [![License](https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield)](COPYRIGHT.md)
   [![Dual-Engine](https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go)](https://github.com/zyeyefyass/CubeX)
   [![Host Base](https://img.shields.io/badge/Host-RouterOS_v7_%7C_fnOS_%7C_PVE_%7C_Docker-3A86FF?style=for-the-badge)](#)
@@ -30,7 +30,7 @@
 ---
 
 > [!TIP]
-> ### 📢 站长咆哮式前言：为什么说 Test v1.0 是“最接近正式版”的封神版本？
+> ### 📢 站长咆哮式前言：为什么说 Test v1.1 是“最接近正式版”的封神版本？
 > **致所有曾经被传统旁路由折磨到怀疑人生的老铁们：**
 > 
 > 你是否经历过这些崩溃瞬间：
@@ -39,16 +39,16 @@
 > 3. 国内测速连宽带一半都跑不到，主路由 CPU 100% 满载烤鸡蛋，排查半天发现是旁路由把全家流量包了顿饺子？
 > 4. 满心欢喜切到 Mihomo，结果 Gemini 给你弹个大红三角报 `ERR_CERT_COMMON_NAME_INVALID`（证书无效），让你怀疑是不是被 FBI 盯上了？
 > 
-> **别慌！这些地狱级折磨，在今天发布的 `Test v1.0` 版中已被彻底送入历史垃圾桶！**  
+> **别慌！这些地狱级折磨，在今天发布的 `Test v1.1` 版中已被彻底送入历史垃圾桶！**  
 > 
-> 经过数十个日夜与真实万兆/千兆家庭物理网络的死磕，**CubeX Test v1.0 正式达成了从架构到体验的全面质变**：
+> 经过数十个日夜与真实万兆/千兆家庭物理网络的死磕，**CubeX Test v1.1 正式达成了从架构到体验的全面质变**：
 > * 🏎️ **双核心全线满血**：`sing-box v1.14+` 与 `Mihomo v1.19+` 双核混动平滑手递手（Handoff），实测切换耗时低至 **560ms**，常驻内存仅 **18MB~53MB**，内置 glibc 兼容层彻底消灭 Alpine 环境下 sing-box 启动异常！
 > * 🌐 **原生 IPv6 双栈防泄露一键编排**：全自动打通主路由 IPv6-PD 前缀获取，永久锁死 `advertise-dns=no` 掐灭运营商 DNS 泄露，海外 IPv6 毫秒级回退告别卡死！
 > * ⚡ **国内满带宽直通（主路由 CPU 仅 1%）**：独创「主网关 + 旁路 DNS」配合 RouterOS FastTrack 硬件加速，国内流量走物理线速狂飙；
 > * 🛡️ **RFC 2544 完整网段回指**：升级为 `198.18.0.0/15` 全域回指，彻底根治假 IP 漏往光猫引发的证书错误；
 > * 🛑 **ICMP Send-Redirects 绝杀**：全自动关闭主路由 ICMP 重定向，消灭二层三角路由丢包与“老太太过马路式”TCP 停顿！
 > 
-> 🚀 **这是目前为止最稳定、最成熟的里程碑版本 (Test v1.0)！**  
+> 🚀 **这是目前为止最稳定、最成熟的里程碑版本 (Test v1.1)！**  
 > 我们强烈推荐大家下载体验，无论你是 RouterOS 骨灰级玩家、飞牛 fnOS 用户、PVE 极客还是普通家庭折腾党，欢迎试用并**畅所欲言提出优化建议和新功能需求**！
 
 ---
@@ -279,7 +279,7 @@ CubeX 摒弃了传统工具粗糙简陋的“单选模式”，在底层 IR 中�
 
 ## 🥊 传统旁路由的“五大死穴”与 CubeX 降维打击
 
-| 传统旁路由痛点 | 发生原理与后果 | CubeX Test v1.0 破局解法 |
+| 传统旁路由痛点 | 发生原理与后果 | CubeX Test v1.1 破局解法 |
 | :--- | :--- | :--- |
 | **死穴 ①：直连测速不到带宽一半** | 终端网关强指旁路由，导致去往百度的国内大流量在单网口上双向折返跑，软路由 CPU 爆满掉速。 | **架构解耦**：终端网关指主路由，DNS 指 CubeX。国内真实 IP 直接由主路由硬件 FastTrack 满速直通，主路由 CPU 仅 ~1%！ |
 | **死穴 ②：莫名其妙卡顿重传** | 旁路与主路由同处于一个网桥（如 `bridge1`），主路由默认发出 ICMP 重定向包，引发 Windows/iOS 频繁 TCP 停顿。 | **自动封穴**：CubeX 巡检引擎自动设置 `/ip/settings set send-redirects=no`，彻底掐死三角重定向丢包！ |
@@ -328,11 +328,11 @@ CubeX 严格遵循专有闭源 EULA 合规准则与脱敏规范，发布包内**
 
 ### 方式 A：MikroTik RouterOS v7 容器一键导入 (官方强烈推荐)
 
-1. 前往 [GitHub Releases](https://github.com/zyeyefyass/CubeX/releases) 下载 `CubeX-Test-v1.0-ros-amd64.tar`（或 ARM64 如 RB5009 对应版本）；
+1. 前往 [GitHub Releases](https://github.com/zyeyefyass/CubeX/releases) 下载 `CubeX-Test-v1.1-ros-amd64.tar`（或 ARM64 如 RB5009 对应版本）；
 2. 打开 WinBox，将 `.tar` 镜像文件拖入 `Files` 根目录；
 3. 在 WinBox 终端直接执行随包附带的 `setup-routeros-v7.rsc`，或手动创建容器：
    ```routeros
-   /container/add file=CubeX-Test-v1.0-ros-amd64.tar interface=veth-cubex root-dir=cubex start-on-boot=yes
+   /container/add file=CubeX-Test-v1.1-ros-amd64.tar interface=veth-cubex root-dir=cubex start-on-boot=yes
    ```
 4. 容器拉起后，浏览器直接访问：`http://<容器IP>:2026` 即可进入 Cyber Aurora 全息控制台！
 
@@ -350,7 +350,7 @@ version: '3.8'
 
 services:
   cubex:
-    image: fyasshole/cubex:Test-v1.0  # 亦可使用 :latest 或 ghcr.io/zyeyefyass/cubex:Test-v1.0
+    image: fyasshole/cubex:Test-v1.1  # 亦可使用 :latest 或 ghcr.io/zyeyefyass/cubex:Test-v1.1
     container_name: cubex
     restart: unless-stopped
     network_mode: "host"                 # 必须 host 模式以实现局域网旁路接管
@@ -375,7 +375,7 @@ services:
 点击【构建并启动】即可！浏览器访问：`http://<飞牛IP>:2026`。
 
 #### 📦 途径 ②：飞牛 Docker GUI【离线镜像导入】(国内免翻墙 · 0 超时风险)
-1. 在 [Releases](https://github.com/zyeyefyass/CubeX/releases) 下载 `CubeX-Test-v1.0-docker-amd64.tar.gz` 离线镜像；
+1. 在 [Releases](https://github.com/zyeyefyass/CubeX/releases) 下载 `CubeX-Test-v1.1-docker-amd64.tar.gz` 离线镜像；
 2. 飞牛桌面 ->【Docker】应用 ->【镜像仓库】-> 点击右上角【本地导入】上传 `.tar.gz`；
 3. 【本地镜像】点击【创建容器】：
    - **网络模式**：勾选 **`Host`**；
@@ -410,9 +410,9 @@ EOF
 # 进入容器工作目录
 mkdir -p /opt/cubex && cd /opt/cubex
 
-# 下载解压 Test v1.0 资产包
-curl -sSL -O https://github.com/zyeyefyass/CubeX/releases/download/Test-v1.0/CubeX-Test-v1.0-linux-amd64.zip
-unzip CubeX-Test-v1.0-linux-amd64.zip
+# 下载解压 Test v1.1 资产包
+curl -sSL -O https://github.com/zyeyefyass/CubeX/releases/download/Test-v1.1/CubeX-Test-v1.1-linux-amd64.zip
+unzip CubeX-Test-v1.1-linux-amd64.zip
 
 # 运行一键安装部署服务
 sudo bash install.sh
@@ -444,7 +444,7 @@ cubex restart   # 重新启动守护进程
 
 > [!IMPORTANT]
 > **“独行快，众行远。”**  
-> CubeX 从一个单二进制雏形走到今天 Test v1.0 的双引擎融合共生体，离不开每一位极客玩家的测试与真实反馈。
+> CubeX 从一个单二进制雏形走到今天 Test v1.1 的双引擎融合共生体，离不开每一位极客玩家的测试与真实反馈。
 
 此版本已经**完全达到了设计初衷与高可用指标**，距离最终正式稳定版（v1.0）仅有一步之遥！我们真诚地期待听到您的声音：
 
@@ -452,7 +452,7 @@ cubex restart   # 重新启动守护进程
 * 💡 **在 UI 交互与数据看板上，您还希望看到哪些维度的图表或快捷控制？**
 * 💡 **对于 IPv6、DNS 防污染、局域网设备免配置穿透等场景，您还有哪些进阶想法？**
 
-👉 **[点击这里直达 GitHub Issues 提交反馈与功能需求](https://github.com/zyeyefyass/CubeX/issues/new?title=%5BFeature+Request%2FFeedback%5D+Test+v1.0+%E4%BD%BF%E7%94%A8%E5%8F%8D%E9%A6%88)**
+👉 **[点击这里直达 GitHub Issues 提交反馈与功能需求](https://github.com/zyeyefyass/CubeX/issues/new?title=%5BFeature+Request%2FFeedback%5D+Test+v1.1+%E4%BD%BF%E7%94%A8%E5%8F%8D%E9%A6%88)**
 
 无论是一句肯定、一个 Bug 提交，还是一个天马行空的新功能脑洞，请在社区**畅所欲言**，与我们一起打造软路由领域最强悍的宿主共生网络系统！
 
