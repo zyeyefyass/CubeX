@@ -384,14 +384,21 @@ func main() {
 	mux.HandleFunc("/api/v1/system/logs", srv.handleSystemLogs)
 	mux.HandleFunc("/api/v1/system/diagnose/export", srv.handleSystemDiagnoseExport)
 
-	// 3. Static Web UI (Embedded with SPA fallback)
+	// 3. Static Web UI (Embedded with SPA fallback & strict anti-caching for HTML)
 	fileServer := http.FileServer(getFileSystem())
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/sub/") {
 			http.NotFound(w, r)
 			return
 		}
-		// Try to serve static file
+		path := r.URL.Path
+		if path == "/" || path == "/index.html" || !strings.Contains(path, ".") {
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("Expires", "0")
+		} else if strings.HasPrefix(path, "/assets/") {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		}
 		fileServer.ServeHTTP(w, r)
 	})
 

@@ -751,7 +751,8 @@
                       <span class="text-slate-500">|</span>
                       <span class="text-slate-300">进站 <strong class="text-emerald-400">{{ formatSpeed(telemetryMetrics.inboundSpeedBps) }}</strong></span>
                       <span class="text-slate-500">·</span>
-                      <span class="text-slate-400">峰值 {{ formatSpeed(maxRealtimeSpeedKB * 1024) }}</span>
+                      <span v-if="isRealtimeIdle" class="text-cyan-400 font-mono flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>待机心跳 (1s 采样)</span>
+                      <span v-else class="text-slate-400 font-mono">峰值 {{ formatSpeed(maxRealtimeSpeedKB * 1024) }}</span>
                     </template>
                     <template v-else>
                       <span class="text-white font-bold">{{ trafficInsights.year }}-{{ String(trafficInsights.month).padStart(2, '0') }}-{{ String(trafficInsights.selectedDay).padStart(2, '0') }}</span>
@@ -4798,17 +4799,52 @@ const trafficInsights = ref({
   ]
 })
 
+function calcEcgoSample(t, offsetPhase = 0) {
+  const time = t + offsetPhase
+  // Base gentle undulating wave
+  const breath = 0.22 + 0.08 * Math.sin(time * 0.8) + 0.04 * Math.cos(time * 1.5)
+  // Periodic ECG heartbeat pulse every 4.5 seconds
+  const cycle = ((time % 4.5) + 4.5) % 4.5
+  let spike = 0
+  if (cycle > 3.6 && cycle <= 3.9) {
+    // Sharp R peak
+    spike = 0.42 * Math.sin((cycle - 3.6) / 0.3 * Math.PI)
+  } else if (cycle > 3.9 && cycle <= 4.1) {
+    // S wave dip
+    spike = -0.06 * Math.sin((cycle - 3.9) / 0.2 * Math.PI)
+  } else if (cycle > 4.1 && cycle <= 4.45) {
+    // T wave bump
+    spike = 0.16 * Math.sin((cycle - 4.1) / 0.35 * Math.PI)
+  }
+  return parseFloat(Math.max(0.08, Math.min(0.85, breath + spike)).toFixed(3))
+}
+
+function createInitialEcgoWave(offsetPhase = 0) {
+  const now = Date.now() / 1000
+  const arr = []
+  for (let i = 59; i >= 0; i--) {
+    arr.push(calcEcgoSample(now - i, offsetPhase))
+  }
+  return arr
+}
+
 const trafficChartMode = ref('realtime') // 'realtime' | 'hourly'
 const realtimePaused = ref(false)
-// 60-second rolling history queues (in KB/s)
-const historyRealtimeTrafficOut = ref(Array(60).fill(0))
-const historyRealtimeTrafficIn = ref(Array(60).fill(0))
+// 60-second rolling history queues (in KB/s) initialized with vibrant pre-filled ECG waveforms
+const historyRealtimeTrafficOut = ref(createInitialEcgoWave(0))
+const historyRealtimeTrafficIn = ref(createInitialEcgoWave(2.25))
+
+const isRealtimeIdle = computed(() => {
+  const m1 = Math.max(...historyRealtimeTrafficOut.value, 0)
+  const m2 = Math.max(...historyRealtimeTrafficIn.value, 0)
+  return Math.max(m1, m2) <= 1.05
+})
 
 const maxRealtimeSpeedKB = computed(() => {
   const m1 = Math.max(...historyRealtimeTrafficOut.value, 0)
   const m2 = Math.max(...historyRealtimeTrafficIn.value, 0)
   const peak = Math.max(m1, m2)
-  if (peak <= 0.2) return 1.0 // 1 kB/s scale when idle so subtle dynamic waves are vividly visible
+  if (peak <= 1.05) return 1.0 // 1 kB/s scale when idle so heartbeat waves are vividly visible
   if (peak < 10) return Math.max(peak * 1.35, 1.0)
   return peak * 1.15
 })
@@ -5277,15 +5313,19 @@ async function fetchTelemetryTraffic() {
 
       // Push to 60s real-time ECG traffic wave with reactive array reassignment
       if (!realtimePaused.value) {
-        let outKb = parseFloat(((data.outbound_speed_bps || 0) / 1024).toFixed(2))
-        let inKb = parseFloat(((data.inbound_speed_bps || 0) / 1024).toFixed(2))
+        const rawOutBps = data.outbound_speed_bps || 0
+        const rawInBps = data.inbound_speed_bps || 0
+        let outKb = parseFloat((rawOutBps / 1024).toFixed(2))
+        let inKb = parseFloat((rawInBps / 1024).toFixed(2))
 
-        // When completely idle (0 B/s), inject subtle breathing heartbeat (0.04 - 0.09 kB/s)
-        // so that both Outbound (Cyan) and Inbound (Emerald) curves flow dynamically
-        if (outKb <= 0.01 && inKb <= 0.01) {
-          const t = Date.now() / 1000
-          outKb = parseFloat((0.05 + Math.sin(t * 1.5) * 0.025).toFixed(3))
-          inKb = parseFloat((0.07 + Math.cos(t * 1.8) * 0.035).toFixed(3))
+        // When network traffic is idle / standby (< 1.5 KB/s), inject rhythmic cyber ECG heartbeat
+        // so both Outbound (Cyber Cyan) and Inbound (Emerald) pulse and undulate organically
+        const nowSec = Date.now() / 1000
+        if (outKb < 1.5) {
+          outKb = calcEcgoSample(nowSec, 0)
+        }
+        if (inKb < 1.5) {
+          inKb = calcEcgoSample(nowSec, 2.25)
         }
 
         const newOut = [...historyRealtimeTrafficOut.value.slice(1), outKb]
