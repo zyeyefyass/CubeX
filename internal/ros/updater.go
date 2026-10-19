@@ -85,9 +85,23 @@ func (m *Manager) startAsyncVersionWorker() {
 }
 
 func (m *Manager) refreshVersionsAsync() {
-	latestMihomo, _ := m.fetchLatestMihomoVersion()
-	latestPanel, _ := m.fetchLatestPanelVersion()
-	latestSingbox, _ := m.fetchLatestSingboxVersion()
+	var wg sync.WaitGroup
+	var latestMihomo, latestPanel, latestSingbox string
+
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		latestMihomo, _ = m.fetchLatestMihomoVersion()
+	}()
+	go func() {
+		defer wg.Done()
+		latestPanel, _ = m.fetchLatestPanelVersion()
+	}()
+	go func() {
+		defer wg.Done()
+		latestSingbox, _ = m.fetchLatestSingboxVersion()
+	}()
+	wg.Wait()
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -123,7 +137,7 @@ func (m *Manager) GetOverview() map[string]any {
 	}
 	latestPanel := m.cachedLatestPanel
 	if latestPanel == "" {
-		latestPanel = panelVer
+		latestPanel = "Test v1.4"
 	}
 	latestSingbox := m.cachedLatestSingbox
 	if latestSingbox == "" {
@@ -645,10 +659,14 @@ func (m *Manager) getLocalPanelVersion() string {
 			Version string `json:"version"`
 		}
 		if json.Unmarshal(data, &meta) == nil && meta.Version != "" {
+			if normalizeVersion(meta.Version) == "testv1.3" || normalizeVersion(meta.Version) == "testv0.999" {
+				m.updateLocalMetaVersion("Test v1.4")
+				return "Test v1.4"
+			}
 			return meta.Version
 		}
 	}
-	return "Test-v1.3"
+	return "Test v1.4"
 }
 
 // IsConnected returns whether the RouterOS host is currently reachable and authenticated.

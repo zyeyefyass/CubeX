@@ -1704,13 +1704,15 @@ func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSe
 	// 1. If Clash API is available, try direct end-to-end HTTP 204 measurement through proxy tunnel
 	if clashPort > 0 && node.Name != "" {
 		escaped := url.PathEscape(node.Name)
-		testURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?url=http://cp.cloudflare.com/generate_204&timeout=2500", clashPort, escaped)
+		escaped = strings.ReplaceAll(escaped, "[", "%5B")
+		escaped = strings.ReplaceAll(escaped, "]", "%5D")
+		testURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?url=http://www.gstatic.com/generate_204&timeout=3000", clashPort, escaped)
 		req, err := http.NewRequest(http.MethodGet, testURL, nil)
 		if err == nil {
 			if clashSecret != "" {
 				req.Header.Set("Authorization", "Bearer "+clashSecret)
 			}
-			client := &http.Client{Timeout: 2600 * time.Millisecond}
+			client := &http.Client{Timeout: 3200 * time.Millisecond}
 			resp, err := client.Do(req)
 			if err == nil {
 				defer resp.Body.Close()
@@ -1718,29 +1720,21 @@ func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSe
 					var result struct {
 						Delay int `json:"delay"`
 					}
-					if err := json.NewDecoder(resp.Body).Decode(&result); err == nil {
-						if result.Delay > 0 {
-							return result.Delay
-						}
-						return 0
+					if err := json.NewDecoder(resp.Body).Decode(&result); err == nil && result.Delay > 0 {
+						return result.Delay
 					}
-				}
-				// If proxy tunnel actively timed out or failed in the core, return 0 (offline)
-				if resp.StatusCode == http.StatusGatewayTimeout || resp.StatusCode == http.StatusBadGateway ||
-					resp.StatusCode == http.StatusServiceUnavailable || resp.StatusCode == http.StatusRequestTimeout {
-					return 0
 				}
 			}
 		}
 	}
 
-	// 2. TCP ping to node server + physical transit calculation
+	// 2. High-precision TCP ping to node server + physical undersea cable delay model
 	if node.Server == "" || node.Port <= 0 {
 		return 0
 	}
 	addr := net.JoinHostPort(node.Server, strconv.Itoa(node.Port))
 	start := time.Now()
-	conn, err := net.DialTimeout("tcp", addr, 1200*time.Millisecond)
+	conn, err := net.DialTimeout("tcp", addr, 2500*time.Millisecond)
 	if err != nil {
 		return 0
 	}
@@ -2587,6 +2581,10 @@ func (s *Server) handleROSConfig(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleSystemOverview(w http.ResponseWriter, r *http.Request) {
 	overview := s.rosMgr.GetOverview()
 	overview["cubex_version"] = version
+	overview["panel_curr_version"] = version
+	if overview["panel_latest_version"] == nil || overview["panel_latest_version"] == "" || overview["panel_latest_version"] == "Test-v1.3" {
+		overview["panel_latest_version"] = version
+	}
 	overview["active_engine"] = s.engMgr.GetActiveEngine()
 	overview["uptime_seconds"] = int64(time.Since(startTime).Seconds())
 	cachedHost := s.hostMgr.GetCachedHostInfo()

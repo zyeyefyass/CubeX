@@ -517,7 +517,8 @@
             <!-- Row 1: 4 Service Speedtest Cards with Custom Cyber Aurora Dropdown -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div v-for="(item, bi) in serviceProbes" :key="bi"
-                class="min-h-[72px] py-3.5 px-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-cyan-500/40 transition flex items-center justify-between gap-1 shadow-md group relative overflow-hidden">
+                class="min-h-[72px] py-3.5 px-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-cyan-500/40 transition flex items-center justify-between gap-1 shadow-md group relative"
+                :class="activeProbeDropdown === bi ? 'z-50 ring-1 ring-cyan-400/50' : 'z-10'">
                 
                 <!-- Left: Official Clean Brand Logo & Site Selector -->
                 <div class="flex items-center gap-1.5 shrink-0 min-w-0">
@@ -530,17 +531,19 @@
                   <!-- Site Dropdown Selector Popover -->
                   <div class="relative min-w-0">
                     <button @click="toggleProbeDropdown(bi)" title="点击切换测速站点"
-                      class="flex items-center gap-1 px-2 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 hover:border-cyan-400/50 text-xs text-slate-100 hover:text-white font-bold transition cursor-pointer select-none">
-                      <span class="truncate max-w-[50px] sm:max-w-[62px]">{{ item.name }}</span>
+                      class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer select-none"
+                      :class="activeProbeDropdown === bi ? 'bg-cyan-950/80 border-cyan-400 text-cyan-200 ring-1 ring-cyan-400/30' : 'bg-slate-900/80 hover:bg-slate-800 border-slate-700/60 hover:border-cyan-400/50 text-slate-100 hover:text-white'">
+                      <span class="truncate max-w-[60px] sm:max-w-[72px]">{{ item.name }}</span>
                       <span class="text-[9px] text-cyan-400 shrink-0 transition-transform duration-200" :class="activeProbeDropdown === bi ? 'rotate-180' : ''">▾</span>
                     </button>
 
                     <!-- Custom Dropdown Popover Menu -->
                     <div v-if="activeProbeDropdown === bi"
-                      class="absolute left-0 top-full mt-2 w-56 max-h-72 overflow-y-auto bg-[#00172e]/98 backdrop-blur-2xl border border-cyan-500/50 rounded-2xl shadow-2xl p-1.5 z-50 text-slate-200 space-y-0.5 custom-scrollbar animate-in fade-in zoom-in-95">
+                      class="absolute top-full mt-2 w-56 max-h-72 overflow-y-auto bg-[#00172e]/98 backdrop-blur-2xl border border-cyan-500/60 rounded-2xl shadow-2xl p-1.5 z-[60] text-slate-200 space-y-0.5 custom-scrollbar animate-in fade-in zoom-in-95"
+                      :class="bi >= 2 ? 'right-0' : 'left-0'">
                       <div class="px-2.5 py-1 text-[10px] font-mono text-cyan-400 uppercase tracking-wider border-b border-slate-800/80 mb-1 flex items-center justify-between">
                         <span>选择测速目标</span>
-                        <span class="text-slate-500">18 个站点</span>
+                        <span class="text-slate-500 font-sans">{{ availableProbeTargets.length }} 个站点</span>
                       </div>
                       <button v-for="target in availableProbeTargets" :key="target.id"
                         @click="selectProbeTarget(bi, target)"
@@ -1086,18 +1089,26 @@
                   <span>🔄</span>
                 </button>
 
-                <button v-if="routingSubTab === 'policy' && deletedPolicyGroupNames.length > 0" @click="restoreDefaultPolicies"
-                  class="px-3 py-2 rounded-xl text-xs font-semibold bg-amber-950/60 hover:bg-amber-900/60 border border-amber-500/40 text-amber-300 transition flex items-center gap-1 active:scale-95 whitespace-nowrap">
-                  <span>↺ 恢复已删策略 ({{ deletedPolicyGroupNames.length }})</span>
+                <button v-if="routingSubTab === 'policy'" @click="restoreDefaultPolicies" title="一键恢复官方默认 14 个业务分流策略与 8 大地区"
+                  class="px-3 py-2 rounded-xl text-xs font-semibold border transition flex items-center gap-1 active:scale-95 whitespace-nowrap shadow-sm cursor-pointer"
+                  :class="deletedPolicyGroupNames.length > 0 ? 'bg-amber-950/70 hover:bg-amber-900 border-amber-500/50 text-amber-300' : 'bg-slate-900/90 hover:bg-slate-800 border-slate-700/80 hover:border-cyan-400 text-slate-300 hover:text-white'">
+                  <span>↺ 恢复默认策略 (14个)</span>
+                  <span v-if="deletedPolicyGroupNames.length > 0" class="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-200">
+                    {{ deletedPolicyGroupNames.length }}
+                  </span>
                 </button>
                 <button v-if="routingSubTab === 'policy'" @click="showAddGroupModal = true"
                   class="px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-teal-400 to-cyan-500 hover:from-teal-300 hover:to-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap">
                   <span>➕ 添加策略</span>
                 </button>
                 <div v-else-if="routingSubTab === 'node'" class="flex items-center gap-2">
-                  <button v-if="deletedRegionIds.length > 0" @click="restoreDefaultRegions"
-                    class="px-3 py-2 rounded-xl text-xs font-semibold bg-amber-950/60 hover:bg-amber-900/60 border border-amber-500/40 text-amber-300 transition flex items-center gap-1 active:scale-95 whitespace-nowrap">
-                    <span>↺ 恢复已删地区 ({{ deletedRegionIds.length }})</span>
+                  <button @click="restoreDefaultRegions" title="一键恢复官方预设 8 大核心地区聚类"
+                    class="px-3 py-2 rounded-xl text-xs font-semibold border transition flex items-center gap-1 active:scale-95 whitespace-nowrap shadow-sm cursor-pointer"
+                    :class="deletedRegionIds.length > 0 ? 'bg-amber-950/70 hover:bg-amber-900 border-amber-500/50 text-amber-300' : 'bg-slate-900/90 hover:bg-slate-800 border-slate-700/80 hover:border-cyan-400 text-slate-300 hover:text-white'">
+                    <span>↺ 恢复默认地区 (8个)</span>
+                    <span v-if="deletedRegionIds.length > 0" class="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-200">
+                      {{ deletedRegionIds.length }}
+                    </span>
                   </button>
                   <button @click="showAddCustomNodeGroupModal = true"
                     class="px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-teal-400 to-cyan-500 hover:from-teal-300 hover:to-cyan-400 text-slate-950 shadow-md shadow-cyan-500/20 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap">
@@ -7804,10 +7815,24 @@ function deletePolicyGroup(groupName) {
 
 function restoreDefaultPolicies() {
   deletedPolicyGroupNames.value = []
+  groupExcludedCandidates.value = {}
+  customGroupOrder.value = []
   try {
     localStorage.removeItem('cubex_deleted_policy_groups')
+    localStorage.removeItem('cubex_group_excluded_candidates')
+    localStorage.removeItem('cubex_custom_group_order')
   } catch (e) {}
-  showToast('已成功恢复所有预设分流策略组！')
+  // 同时恢复 8 大默认核心地区，彻底清除错位分组
+  deletedRegionIds.value = []
+  customRegionGroups.value = []
+  regionGroupOrder.value = []
+  try {
+    localStorage.removeItem('cubex_deleted_region_ids')
+    localStorage.removeItem('cubex_custom_region_groups')
+    localStorage.removeItem('cubex_region_group_order')
+  } catch (e) {}
+  fetch('/api/v1/config/ir', { method: 'GET' }).then(() => fetchIR())
+  showToast('✓ 已成功恢复 14 个官方纯业务策略与 8 大核心地区！')
 }
 
 // ── Per-Group Candidate Exclusion (可以在策略组内部删除/隐藏某个出站地区) ──
@@ -7850,13 +7875,59 @@ function getExcludedRegionsForGroup(grp) {
   return allRegionDefs.value.filter(r => excludedKeys.includes(r.id))
 }
 
+// 判定是否为地区路由集群或底层节点分组 (严格杜绝地区出现在应用分流策略中，保持业务策略纯粹性)
+function isRegionalOrInfrastructureGroup(grp) {
+  if (!grp || !grp.name) return false
+  if (grp.category === 'region' || grp.region) return true
+  if (grp.type === 'urltest' || grp.type === 'fallback') return true
+
+  const raw = grp.name.trim()
+  const clean = getCleanGroupName(raw).toLowerCase()
+
+  // 1. 地区自动/故障转移/容灾集群特征
+  if (raw.endsWith('自动') || raw.endsWith('故转') || raw.endsWith('容灾') || raw.endsWith('手动') ||
+      raw.includes('自动') || raw.includes('故转') || raw.includes('容灾')) {
+    return true
+  }
+
+  // 2. 官方标准 8 大地区名称与自定义地区
+  for (const reg of defaultRegionDefs) {
+    if (reg.auto === raw || reg.fall === raw || reg.disaster === raw) return true
+    if (clean === reg.name.toLowerCase() || raw === reg.name) {
+      if (!raw.includes('国内') && !raw.includes('国外') && !raw.includes('漏网之鱼')) return true
+    }
+  }
+  for (const reg of allRegionDefs.value) {
+    if (reg.auto === raw || reg.fall === raw || reg.disaster === raw) return true
+    if (clean === (reg.name || '').toLowerCase() || raw === reg.name) {
+      if (!raw.includes('国内') && !raw.includes('国外') && !raw.includes('漏网之鱼')) return true
+    }
+  }
+
+  // 3. 31+ 国家/地区预设库
+  for (const cp of availableCountryPresets) {
+    if (clean === cp.name.toLowerCase() || clean.includes(cp.name.toLowerCase())) return true
+  }
+
+  // 4. 机场订阅分组或带专属/节点特征名
+  if (clean.includes('专属') || raw.includes('专属')) return true
+  if (ir.value && ir.value.subscriptions) {
+    for (const sub of ir.value.subscriptions) {
+      if (sub.name && (clean === sub.name.toLowerCase() || raw.includes(sub.name))) return true
+    }
+  }
+
+  return false
+}
+
 const businessGroups = computed(() => {
   const groups = (ir.value.groups || [])
   let filtered = groups.filter(g => {
-    // 过滤掉纯 24 个地区内部策略组和通用节点选择组 (自动, 故转, 容灾)
+    if (!g || !g.name) return false
     if (g.name === '🚀 节点选择') return false
-    const isRegionGroup = allRegionDefs.value.some(r => r.auto === g.name || r.fall === g.name || r.disaster === g.name || g.name.endsWith('手动'))
-    return !isRegionGroup
+    // 严格规范：策略内绝对不能出现地区分流，只能出现按应用/业务区分的策略！
+    if (isRegionalOrInfrastructureGroup(g)) return false
+    return true
   })
 
   // 三大核心基石策略组 (不可删除，受底层网络安全保护，常驻基石)
@@ -7920,30 +7991,48 @@ const businessGroups = computed(() => {
     }
   }
 
-  // 保证先锋应用策略组 (Speed, AI, Stream) 常驻 (除非用户已手动删除)
-  const standardPioneers = [
-    { name: 'Speed', icon: 'speedtest', now: 'DIRECT', proxies: ['DIRECT', '🇭🇰 香港自动', '🇸🇬 新加坡自动', '🇯🇵 日本自动', '🇰🇷 韩国自动', '🇺🇸 美国自动', 'REJECT'] },
-    { name: 'AI', icon: 'openai', now: '🇯🇵 日本自动', proxies: ['DIRECT', '🇭🇰 香港自动', '🇸🇬 新加坡自动', '🇯🇵 日本自动', '🇰🇷 韩国自动', '🇺🇸 美国自动', 'REJECT'] },
-    { name: 'Stream', icon: 'netflix', now: '🇭🇰 香港自动', proxies: ['DIRECT', '🇭🇰 香港自动', '🇹🇼 台湾自动', '🇸🇬 新加坡自动', '🇯🇵 日本自动', '🇰🇷 韩国自动', '🇺🇸 美国自动', 'REJECT'] }
+  // 官方标准默认 11 大业务分流策略组 (加上三大基石总共 14 个，与 groups.go 严格对齐)
+  const standardBusinessPresets = [
+    { name: 'AI', icon: 'openai', now: '🇯🇵 日本自动' },
+    { name: 'YouTube', icon: 'youtube', now: '🇭🇰 香港自动' },
+    { name: 'Google', icon: 'google', now: '🇭🇰 香港自动' },
+    { name: 'GitHub & Docker', icon: 'github', now: '🇭🇰 香港自动' },
+    { name: 'Telegram', icon: 'telegram', now: '🇸🇬 新加坡自动' },
+    { name: 'Twitter (X)', icon: 'twitter', now: '🇭🇰 香港自动' },
+    { name: 'Netflix & 流媒体', icon: 'netflix', now: '🇸🇬 新加坡自动' },
+    { name: 'Apple 服务', icon: 'apple', now: 'DIRECT' },
+    { name: 'Microsoft', icon: 'microsoft', now: 'DIRECT' },
+    { name: 'Spotify', icon: 'spotify', now: '🇸🇬 新加坡自动' },
+    { name: 'Steam 游戏', icon: 'steam', now: 'DIRECT' }
   ]
 
-  for (const p of standardPioneers) {
+  for (const p of standardBusinessPresets) {
     if (deletedPolicyGroupNames.value.includes(p.name)) continue
-    const exists = filtered.find(g => (g.name || '').toLowerCase() === p.name.toLowerCase() || (p.name === 'AI' && ((g.name || '').toLowerCase().includes('ai') || (g.name || '').toLowerCase().includes('openai'))))
+    const exists = filtered.find(g => {
+      const gName = (g.name || '').toLowerCase()
+      if (gName === p.name.toLowerCase()) return true
+      if (p.name === 'AI' && (gName.includes('ai') || gName.includes('openai') || gName.includes('chatgpt'))) return true
+      if (p.name.includes('Netflix') && (gName.includes('netflix') || gName.includes('流媒体'))) return true
+      if (p.name.includes('GitHub') && (gName.includes('github') || gName.includes('docker'))) return true
+      if (p.name.includes('Twitter') && (gName.includes('twitter') || gName === 'x')) return true
+      if (p.name.includes('Apple') && gName.includes('apple')) return true
+      if (p.name.includes('Steam') && gName.includes('steam')) return true
+      return false
+    })
     if (!exists) {
       filtered.push({
         name: p.name,
         icon: p.icon,
         type: 'select',
         now: p.now,
-        proxies: p.proxies,
+        proxies: ['DIRECT', '🇭🇰 香港自动', '🇹🇼 台湾自动', '🇯🇵 日本自动', '🇰🇷 韩国自动', '🇸🇬 新加坡自动', '🇺🇸 美国自动', 'REJECT'],
         is_custom: false
       })
     }
   }
 
   // 核心架构路由流水线排布：
-  // 1. 顶部应用层：业务策略组 (Speed, AI, Stream, YouTube, Google, GitHub 等，依用户拖拽次序排序与增删)
+  // 1. 顶部应用层：业务策略组 (AI, YouTube, Google, GitHub 等，依用户拖拽次序排序与增删)
   // 2. 底部三大基石 (常驻固定最底端、不可拖拽、不可删除)：
   //    - 🌐 国外流量 (国外流量在上方兜底海外未分类流量)
   //    - 🎯 国内流量 (国内流量紧随其下直连中国大陆流量)
