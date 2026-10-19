@@ -385,8 +385,38 @@ func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
 	}
 
 	logs := []string{}
+	lanIf := "lan1"
 
-	// 1. Read existing static routes
+	// 1. Inspect DHCP server to determine active LAN interface and configure DNS1
+	dhcpResp, err := c.Call("dhcp", "show", map[string]string{
+		"TYPE":  "data,total",
+		"limit": "0,50",
+	})
+	if err == nil && dhcpResp.Result == 30000 {
+		var dData struct {
+			Data []map[string]any `json:"data"`
+		}
+		_ = json.Unmarshal(dhcpResp.Data, &dData)
+		for _, d := range dData.Data {
+			if iface, ok := d["interface"].(string); ok && iface != "" {
+				lanIf = iface
+			}
+			idVal := d["id"]
+			currDNS1, _ := d["dns1"].(string)
+			if currDNS1 != cubexIP && idVal != nil {
+				// Clone param and update dns1
+				d["dns1"] = cubexIP
+				editResp, editErr := c.Call("dhcp", "edit", d)
+				if editErr == nil && editResp.Result == 30000 {
+					logs = append(logs, fmt.Sprintf("成功更新爱快 DHCP 首选 DNS 为 CubeX 独立 IP: %s (接口 %s)", cubexIP, lanIf))
+				}
+			} else if currDNS1 == cubexIP {
+				logs = append(logs, fmt.Sprintf("爱快 DHCP 首选 DNS 已是 CubeX IP (%s)，状态健康", cubexIP))
+			}
+		}
+	}
+
+	// 2. Read existing static routes
 	routeResp, err := c.Call("route_static", "show", map[string]string{
 		"TYPE":  "data,total",
 		"limit": "0,100",
@@ -407,7 +437,7 @@ func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
 
 	hasRoute := false
 	for _, r := range rData.Data {
-		if r.IP == "198.18.0.0" && r.Netmask == "255.254.0.0" {
+		if r.IP == "198.18.0.0" && (r.Netmask == "255.254.0.0" || r.Netmask == "255.255.0.0" || r.Netmask == "15" || r.Netmask == "16") {
 			if r.Gateway == cubexIP {
 				hasRoute = true
 				logs = append(logs, fmt.Sprintf("静态路由 198.18.0.0/15 -> %s 已存在，无需重复添加", cubexIP))
@@ -427,19 +457,19 @@ func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
 			"ip":        "198.18.0.0",
 			"netmask":   "255.254.0.0",
 			"gateway":   cubexIP,
-			"interface": "lan1",
+			"interface": lanIf,
 			"comment":   "CubeX-FakeIP-Bypass",
 			"enabled":   "yes",
 		})
 		if err == nil && addResp.Result == 30000 {
-			logs = append(logs, fmt.Sprintf("成功在爱快中创建静态回指路由: 198.18.0.0/15 -> %s (LAN)", cubexIP))
+			logs = append(logs, fmt.Sprintf("成功在爱快中创建静态回指路由: 198.18.0.0/15 -> %s (接口 %s)", cubexIP, lanIf))
 		} else {
 			// Some strict iKuai versions require adding dual /16
 			_, _ = c.Call("route_static", "add", map[string]string{
 				"ip":        "198.18.0.0",
 				"netmask":   "255.255.0.0",
 				"gateway":   cubexIP,
-				"interface": "lan1",
+				"interface": lanIf,
 				"comment":   "CubeX-FakeIP-Bypass-1",
 				"enabled":   "yes",
 			})
@@ -447,39 +477,14 @@ func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
 				"ip":        "198.19.0.0",
 				"netmask":   "255.255.0.0",
 				"gateway":   cubexIP,
-				"interface": "lan1",
+				"interface": lanIf,
 				"comment":   "CubeX-FakeIP-Bypass-2",
 				"enabled":   "yes",
 			})
-			logs = append(logs, fmt.Sprintf("成功在爱快中创建双 /16 静态回指路由: 198.18.0.0/16 & 198.19.0.0/16 -> %s", cubexIP))
-		}
-	}
-
-	// 2. Configure DHCP DNS1
-	dhcpResp, err := c.Call("dhcp", "show", map[string]string{
-		"TYPE":  "data,total",
-		"limit": "0,50",
-	})
-	if err == nil && dhcpResp.Result == 30000 {
-		var dData struct {
-			Data []map[string]any `json:"data"`
-		}
-		_ = json.Unmarshal(dhcpResp.Data, &dData)
-		for _, d := range dData.Data {
-			idVal := d["id"]
-			currDNS1, _ := d["dns1"].(string)
-			if currDNS1 != cubexIP && idVal != nil {
-				// Clone param and update dns1
-				d["dns1"] = cubexIP
-				editResp, editErr := c.Call("dhcp", "edit", d)
-				if editErr == nil && editResp.Result == 30000 {
-					logs = append(logs, fmt.Sprintf("成功更新爱快 DHCP 首选 DNS 为 CubeX 独立 IP: %s (网关保持默认不变)", cubexIP))
-				}
-			} else if currDNS1 == cubexIP {
-				logs = append(logs, fmt.Sprintf("爱快 DHCP 首选 DNS 已是 CubeX IP (%s)，状态健康", cubexIP))
-			}
+			logs = append(logs, fmt.Sprintf("成功在爱快中创建双 /16 静态回指路由: 198.18.0.0/16 & 198.19.0.0/16 -> %s (接口 %s)", cubexIP, lanIf))
 		}
 	}
 
 	return logs, nil
 }
+

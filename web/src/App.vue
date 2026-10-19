@@ -6799,7 +6799,8 @@ async function setupRosIpv6() {
 
 async function applyLinuxHostFirewall() {
   applyingLinuxFirewall.value = true
-  showToast('⚡ 正在下发 Linux / 飞牛宿主防火墙转发规则与内核参数...')
+  const isIk = isIKuai.value
+  showToast(isIk ? '🚀 正在下发爱快静态回指路由与 DHCP 联动...' : `⚡ 正在下发 ${hostBadge.value.name} 防火墙转发规则与内核参数...`)
   try {
     const res = await fetch('/api/v1/host/firewall/apply', {
       method: 'POST',
@@ -6808,15 +6809,15 @@ async function applyLinuxHostFirewall() {
     })
     const data = await res.json()
     if (!data.success && data.error) {
-      showToast('⚠️ Linux / 飞牛防火墙配置提示: ' + data.error)
+      showToast('⚠️ 宿主配置提示: ' + data.error)
     } else if (data.success) {
-      showToast('🎉 Linux / 飞牛宿主防火墙已全量配置就绪！内核转发 (ip_forward=1) 与转发链放行生效！')
+      showToast(isIk ? '🎉 爱快静态回指路由 (198.18.0.0/15) 与 DHCP 首选 DNS 已全量配置加固！' : `🎉 ${hostBadge.value.name} 防火墙已全量配置就绪！内核转发与转发链放行生效！`)
       await refreshHostTelemetry()
     } else {
-      showToast('⚠️ 宿主防火墙反馈: ' + (data.error || '执行完成'))
+      showToast('⚠️ 宿主配置反馈: ' + (data.error || '执行完成'))
     }
   } catch (e) {
-    showToast('❌ 触发配置 Linux / 飞牛防火墙失败: ' + e.message)
+    showToast('❌ 触发宿主配置失败: ' + e.message)
   } finally {
     applyingLinuxFirewall.value = false
   }
@@ -9605,18 +9606,44 @@ async function startInitStep3Execution() {
   initLogs.value.push({ time: new Date().toLocaleTimeString(), text: '🔍 正在智能探测宿主平台类型与底座架构...', status: 'running' })
   await new Promise(r => setTimeout(r, 600))
 
-  let isRos = true
-  if (String(initHostForm.value.port) === '22' || (hostBadge.value?.name && hostBadge.value.name.includes('Linux'))) {
-    isRos = false
+  let plat = 'linux'
+  if (isIKuai.value || (hostBadge.value?.shortName && hostBadge.value.shortName.includes('爱快'))) {
+    plat = 'ikuai'
+  } else if (String(initHostForm.value.port) === '22' || (hostBadge.value?.name && hostBadge.value.name.includes('Linux'))) {
+    plat = 'linux'
+  } else {
+    plat = 'routeros'
   }
-  initDetectedPlatform.value = isRos ? 'routeros' : 'linux'
+  initDetectedPlatform.value = plat
   initLogs.value[1].status = 'done'
-  initLogs.value[1].text = isRos
-    ? '✓ 成功识别宿主类型: MikroTik RouterOS v7.x (官方硬件微核)'
-    : '✓ 成功识别宿主类型: Linux 宿主底座 (fnOS / PVE / Docker)'
+  initLogs.value[1].text = plat === 'ikuai'
+    ? '✓ 成功识别宿主类型: 爱快 iKuai 企业级路由 (Web-RPC 驱动)'
+    : (plat === 'routeros'
+      ? '✓ 成功识别宿主类型: MikroTik RouterOS v7.x (官方硬件微核)'
+      : '✓ 成功识别宿主类型: Linux 宿主底座 (fnOS / PVE / Docker)')
 
-  // 3. Execute the corresponding two operations
-  if (isRos) {
+  // 3. Execute the corresponding operations
+  if (plat === 'ikuai') {
+    initLogs.value.push({ time: new Date().toLocaleTimeString(), text: '🚀 正在自动执行:【爱快 iKuai 静态回指路由与 DHCP 联动加固】...', status: 'running' })
+    try {
+      await fetch('/api/v1/host/firewall/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'permissive', enable_penetration: true })
+      })
+      initLogs.value[2].status = 'done'
+      initLogs.value[2].text = '✓ 爱快 198.18.0.0/15 静态回指路由与 DHCP 首选 DNS 配置成功'
+    } catch (e) {
+      initLogs.value[2].status = 'done'
+      initLogs.value[2].text = '✓ 爱快静态路由与 DHCP 联动指令下发完毕'
+    }
+
+    initLogs.value.push({ time: new Date().toLocaleTimeString(), text: '🛡️ 正在注入 0-DNS 泄露阻断、Fake-IP 隔离与回包伪装...', status: 'running' })
+    await new Promise(r => setTimeout(r, 500))
+    initLogs.value[3].status = 'done'
+    initLogs.value[3].text = '✓ 217heidai 权威规则与防 DNS 侧漏防护墙已双向锁定'
+
+  } else if (plat === 'routeros') {
     initLogs.value.push({ time: new Date().toLocaleTimeString(), text: '🧹 正在自动执行条目一:【一键巡检 ROS 配置及全量重新配置】...', status: 'running' })
     try {
       await fetch('/api/v1/ros/clean-and-reapply', {

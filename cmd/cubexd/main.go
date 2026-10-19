@@ -1718,9 +1718,17 @@ func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSe
 					var result struct {
 						Delay int `json:"delay"`
 					}
-					if err := json.NewDecoder(resp.Body).Decode(&result); err == nil && result.Delay > 0 {
-						return result.Delay
+					if err := json.NewDecoder(resp.Body).Decode(&result); err == nil {
+						if result.Delay > 0 {
+							return result.Delay
+						}
+						return 0
 					}
+				}
+				// If proxy tunnel actively timed out or failed in the core, return 0 (offline)
+				if resp.StatusCode == http.StatusGatewayTimeout || resp.StatusCode == http.StatusBadGateway ||
+					resp.StatusCode == http.StatusServiceUnavailable || resp.StatusCode == http.StatusRequestTimeout {
+					return 0
 				}
 			}
 		}
@@ -2799,7 +2807,23 @@ func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	// 1. Check if ROS is connected
+	// 1. Check if iKuai Host is active
+	cached := s.hostMgr.GetCachedHostInfo()
+	hostCfg := s.hostMgr.GetConfig()
+	if (cached != nil && cached.PlatformID == "ikuai") || hostCfg.PlatformType == "ikuai" {
+		fwRes, err := s.hostMgr.ApplyFirewall("permissive", true)
+		if err == nil {
+			sendJSON(w, map[string]any{
+				"ok":        true,
+				"host_type": "ikuai",
+				"message":   "🎉 已成功原生联动爱快 iKuai 宿主！198.18.0.0/15 静态回指路由与 DHCP 联动已全自动配置生效！",
+				"result":    fwRes,
+			})
+			return
+		}
+	}
+
+	// 2. Check if ROS is connected
 	if s.rosMgr.IsConnected() {
 		res, err := s.rosMgr.ApplyRouting("")
 		if err == nil {
@@ -2812,8 +2836,8 @@ func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	// 2. Check if Host SSH is connected
-	cached := s.hostMgr.GetCachedHostInfo()
+
+	// 3. Check if Host SSH is connected (Linux/fnOS/PVE)
 	if cached != nil && cached.Connected {
 		fwRes, err := s.hostMgr.ApplyFirewall("permissive", true)
 		if err == nil {
