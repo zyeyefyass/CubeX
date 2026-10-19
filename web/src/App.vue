@@ -8184,13 +8184,77 @@ function getGroupRegionStrategy(grpName, regId) {
   return groupRegionPolicyMap.value[key] || 'auto'
 }
 
-function isRegionActiveInGroup(grp, reg) {
+// 记录策略组当前显式选中的地区/出站 (严格排他单选，绝不允许同时亮起两个或多个地区)
+const groupSelectedRegionMap = ref({})
+try {
+  const savedSel = localStorage.getItem('cubex_group_selected_region_map')
+  if (savedSel) groupSelectedRegionMap.value = JSON.parse(savedSel)
+} catch (e) {}
+
+function getActiveRegionIdForGroup(grp) {
+  if (isDirectActive(grp) || isRejectActive(grp)) return null
   const activeNow = grp.now || grp.proxies?.[0] || 'DIRECT'
-  if (activeNow === reg.auto || activeNow === reg.fall || activeNow === reg.disaster) return true
-  if (activeNow.includes(reg.name)) return true
-  if (reg.country_code && activeNow.toUpperCase().includes(reg.country_code)) return true
-  const nodes = getRegionNodes(reg)
-  return nodes.some(n => n.name === activeNow)
+  if (activeNow === 'DIRECT' || activeNow === 'REJECT') return null
+
+  // 1. 优先使用用户在当前会话或历史中显式点击的地区 ID（严格排他单选）
+  const explicitRegId = groupSelectedRegionMap.value[grp.name]
+  if (explicitRegId && explicitRegId !== 'DIRECT' && explicitRegId !== 'REJECT') {
+    const foundReg = allRegionDefs.value.find(r => r.id === explicitRegId)
+    if (foundReg) {
+      if (activeNow === foundReg.auto || activeNow === foundReg.fall || activeNow === foundReg.disaster) {
+        return foundReg.id
+      }
+      const nodes = getRegionNodes(foundReg)
+      if (nodes.some(n => n.name === activeNow)) {
+        return foundReg.id
+      }
+      if (foundReg.name && activeNow.includes(foundReg.name)) {
+        return foundReg.id
+      }
+    }
+  }
+
+  // 2. 精确全名匹配集群名: reg.auto / reg.fall / reg.disaster (高确定性单选)
+  for (const reg of allRegionDefs.value) {
+    if (activeNow === reg.auto || activeNow === reg.fall || activeNow === reg.disaster) {
+      return reg.id
+    }
+  }
+
+  // 3. 严格匹配节点名完全归属 (若节点命中多个分组，仅提取最专属的分组，绝不多选)
+  const matched = []
+  for (const reg of allRegionDefs.value) {
+    const nodes = getRegionNodes(reg)
+    if (nodes.some(n => n.name === activeNow)) {
+      matched.push(reg)
+    }
+  }
+  if (matched.length === 1) {
+    return matched[0].id
+  }
+  if (matched.length > 1) {
+    // 优先选择名称或ID被节点名完全包含的专属分组 (如 [HHost-JP] 优先匹配 HHost-JP)
+    for (const m of matched) {
+      if (m.name && activeNow.includes(m.name)) return m.id
+      if (m.id && activeNow.includes(m.id)) return m.id
+    }
+    // 其次优先官方标准 8 大地区
+    const std = matched.find(m => defaultRegionDefs.some(d => d.id === m.id))
+    if (std) return std.id
+    return matched[0].id
+  }
+
+  // 4. 地区名称包含兜底 (只返回第一个匹配项，严格单选)
+  for (const reg of allRegionDefs.value) {
+    if (reg.name && activeNow.includes(reg.name)) return reg.id
+  }
+
+  return null
+}
+
+function isRegionActiveInGroup(grp, reg) {
+  if (isDirectActive(grp) || isRejectActive(grp)) return false
+  return getActiveRegionIdForGroup(grp) === reg.id
 }
 
 function selectPolicyRegion(grp, reg, forcedStrategy = null) {
@@ -8201,8 +8265,10 @@ function selectPolicyRegion(grp, reg, forcedStrategy = null) {
 
   const key = `${grp.name}__${reg.id}`
   groupRegionPolicyMap.value[key] = strategy
+  groupSelectedRegionMap.value[grp.name] = reg.id
   try {
     localStorage.setItem('cubex_group_region_policy_map', JSON.stringify(groupRegionPolicyMap.value))
+    localStorage.setItem('cubex_group_selected_region_map', JSON.stringify(groupSelectedRegionMap.value))
   } catch (e) {}
 
   // Smart outbound matching: If grp.proxies doesn't contain targetNode (e.g. custom region "俄罗斯"),
@@ -8857,6 +8923,14 @@ async function selectGroupNode(groupName, nodeName) {
   if (match) match.now = nodeName
   const bMatch = businessGroups.value?.find(g => g.name === groupName)
   if (bMatch) bMatch.now = nodeName
+
+  if (nodeName === 'DIRECT' || nodeName.includes('直连')) {
+    groupSelectedRegionMap.value[groupName] = 'DIRECT'
+    try { localStorage.setItem('cubex_group_selected_region_map', JSON.stringify(groupSelectedRegionMap.value)) } catch (e) {}
+  } else if (nodeName === 'REJECT' || nodeName.includes('拒绝')) {
+    groupSelectedRegionMap.value[groupName] = 'REJECT'
+    try { localStorage.setItem('cubex_group_selected_region_map', JSON.stringify(groupSelectedRegionMap.value)) } catch (e) {}
+  }
 
   try {
     const res = await fetch('/api/v1/engine/group/select', {
