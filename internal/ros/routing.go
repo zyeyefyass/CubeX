@@ -92,11 +92,12 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		_ = json.Unmarshal(data, &tables)
 	}
 
-	// 1. Check /routing/table (table micube)
+	// 1. Check /routing/table (table cubex / micube)
 	tableOK := false
 	var tableVal string
 	for _, t := range tables {
-		if t["name"] == "micube" {
+		name, _ := t["name"].(string)
+		if name == "cubex" || name == "micube" {
 			fib, _ := t["fib"].(bool)
 			if !fib {
 				if fibStr, ok := t["fib"].(string); ok && (fibStr == "true" || fibStr == "yes") {
@@ -104,7 +105,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 				}
 			}
 			tableOK = true
-			tableVal = fmt.Sprintf("name=micube fib=%v", fib)
+			tableVal = fmt.Sprintf("name=%s fib=%v", name, fib)
 			break
 		}
 	}
@@ -114,7 +115,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Name:    "策略路由表 (/routing/table)",
 			Status:  "ok",
 			Value:   tableVal,
-			Details: "检测到专有路由表「micube」已正确注册并启用 FIB 转发。",
+			Details: "检测到 CubeX 专有路由表已正确注册并启用 FIB 转发。",
 			Advice:  "无需调整",
 		})
 	} else {
@@ -124,19 +125,19 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Name:    "策略路由表 (/routing/table)",
 			Status:  "missing",
 			Value:   "缺失",
-			Details: "未找到专用策略路由表「micube」。若无此表，Mangle 标记后流量无法被策略路由接管。",
-			Advice:  "点击下方「一键自动配置」即可自动创建 /routing/table add name=micube fib",
+			Details: "未找到专用策略路由表（cubex）。若无此表，Mangle 标记后流量无法被策略路由接管。",
+			Advice:  "点击下方「一键自动配置」即可自动创建 /routing/table add name=cubex fib",
 		})
 	}
 
-	// 2. Check /ip/route (default route in table micube pointing to MiCubeIP)
+	// 2. Check /ip/route (default route in table cubex/micube pointing to targetIP)
 	routeOK := false
 	var routeVal string
 	for _, r := range routes {
 		table, _ := r["routing-table"].(string)
 		dst, _ := r["dst-address"].(string)
 		gw, _ := r["gateway"].(string)
-		if table == "micube" && (dst == "0.0.0.0/0" || strings.HasPrefix(dst, "0.0.0.0")) {
+		if (table == "cubex" || table == "micube") && (dst == "0.0.0.0/0" || strings.HasPrefix(dst, "0.0.0.0")) {
 			routeOK = true
 			routeVal = fmt.Sprintf("dst=%s gw=%s (table=%s)", dst, gw, table)
 			break
@@ -635,33 +636,39 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		Errors:  make([]string, 0),
 	}
 
-	// 1. Ensure /routing/table: micube (fib=true)
+	// 1. Ensure /routing/table: cubex or micube (fib=true)
+	targetTableName := "cubex"
 	tableExists := false
 	if data, err := m.QueryROS("/routing/table"); err == nil {
 		var tables []map[string]any
 		_ = json.Unmarshal(data, &tables)
 		for _, t := range tables {
-			if t["name"] == "micube" {
+			name, _ := t["name"].(string)
+			if name == "cubex" {
 				tableExists = true
+				targetTableName = "cubex"
 				break
+			} else if name == "micube" {
+				tableExists = true
+				targetTableName = "micube"
 			}
 		}
 	}
 	if !tableExists {
 		payload := map[string]any{
-			"name": "micube",
+			"name": targetTableName,
 			"fib":  "true",
 		}
 		if _, err := m.PutROS("/routing/table", payload); err != nil {
-			res.Errors = append(res.Errors, fmt.Sprintf("创建路由表 micube 失败: %v", err))
+			res.Errors = append(res.Errors, fmt.Sprintf("创建路由表 %s 失败: %v", targetTableName, err))
 		} else {
-			res.Actions = append(res.Actions, "已成功创建策略路由表 /routing/table (name=micube fib=true)")
+			res.Actions = append(res.Actions, fmt.Sprintf("已成功创建策略路由表 /routing/table (name=%s fib=true)", targetTableName))
 		}
 	} else {
-		res.Actions = append(res.Actions, "策略路由表 /routing/table micube 已存在")
+		res.Actions = append(res.Actions, fmt.Sprintf("策略路由表 /routing/table %s 已存在", targetTableName))
 	}
 
-	// 2. Ensure /ip/route: dst=0.0.0.0/0 gateway=targetIP routing-table=micube
+	// 2. Ensure /ip/route: dst=0.0.0.0/0 gateway=targetIP routing-table=targetTableName
 	defaultRouteExists := false
 	var existingDefaultRouteID string
 	var existingRoutes []map[string]any
@@ -670,7 +677,7 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		for _, r := range existingRoutes {
 			table, _ := r["routing-table"].(string)
 			dst := fmt.Sprintf("%v", r["dst-address"])
-			if table == "micube" && (dst == "0.0.0.0/0" || strings.HasPrefix(dst, "0.0.0.0")) {
+			if (table == targetTableName || table == "micube" || table == "cubex") && (dst == "0.0.0.0/0" || strings.HasPrefix(dst, "0.0.0.0")) {
 				defaultRouteExists = true
 				if id, ok := r[".id"].(string); ok {
 					existingDefaultRouteID = id
@@ -683,13 +690,13 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		rPayload := map[string]any{
 			"dst-address":   "0.0.0.0/0",
 			"gateway":       targetIP,
-			"routing-table": "micube",
+			"routing-table": targetTableName,
 			"comment":       "CubeX Gateway Route",
 		}
 		if _, err := m.PutROS("/ip/route", rPayload); err != nil {
 			res.Errors = append(res.Errors, fmt.Sprintf("创建默认路由失败: %v", err))
 		} else {
-			res.Actions = append(res.Actions, fmt.Sprintf("已创建默认路由 /ip/route (0.0.0.0/0 -> %s table=micube)", targetIP))
+			res.Actions = append(res.Actions, fmt.Sprintf("已创建默认路由 /ip/route (0.0.0.0/0 -> %s table=%s)", targetIP, targetTableName))
 		}
 	} else if existingDefaultRouteID != "" {
 		_ = m.PatchROS("/ip/route/"+existingDefaultRouteID, map[string]any{

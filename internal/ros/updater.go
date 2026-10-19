@@ -382,14 +382,60 @@ func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
 // RouterOS Firmware Upgrade
 // ──────────────────────────────────────────────
 
-// CheckROSFirmwareUpgrade queries RouterOS system package updates via REST API.
-func (m *Manager) CheckROSFirmwareUpgrade() (string, error) {
+// ROSFirmwareCheckResult holds parsed RouterOS package update status.
+type ROSFirmwareCheckResult struct {
+	InstalledVersion string `json:"installed_version"`
+	LatestVersion    string `json:"latest_version"`
+	Channel          string `json:"channel"`
+	Status           string `json:"status"`
+	HasUpdate        bool   `json:"has_update"`
+	Message          string `json:"message"`
+}
+
+func parseROSUpdateJSON(data []byte) (installed, latest, channel, status string) {
+	var arr []map[string]any
+	if err := json.Unmarshal(data, &arr); err == nil && len(arr) > 0 {
+		last := arr[len(arr)-1]
+		if v, ok := last["installed-version"].(string); ok {
+			installed = v
+		}
+		if v, ok := last["latest-version"].(string); ok {
+			latest = v
+		}
+		if v, ok := last["channel"].(string); ok {
+			channel = v
+		}
+		if v, ok := last["status"].(string); ok {
+			status = v
+		}
+		return
+	}
+	var single map[string]any
+	if err := json.Unmarshal(data, &single); err == nil {
+		if v, ok := single["installed-version"].(string); ok {
+			installed = v
+		}
+		if v, ok := single["latest-version"].(string); ok {
+			latest = v
+		}
+		if v, ok := single["channel"].(string); ok {
+			channel = v
+		}
+		if v, ok := single["status"].(string); ok {
+			status = v
+		}
+	}
+	return
+}
+
+// CheckROSFirmwareUpgradeDetails queries RouterOS system package updates and returns structured details.
+func (m *Manager) CheckROSFirmwareUpgradeDetails() (*ROSFirmwareCheckResult, error) {
 	m.mu.Lock()
 	cfg := m.config
 	m.mu.Unlock()
 
 	if cfg.Host == "" {
-		return "", fmt.Errorf("RouterOS host not configured")
+		return nil, fmt.Errorf("RouterOS host not configured")
 	}
 
 	scheme := "https"
@@ -399,66 +445,101 @@ func (m *Manager) CheckROSFirmwareUpgrade() (string, error) {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	client := &http.Client{Transport: tr, Timeout: 12 * time.Second}
+	client := &http.Client{Transport: tr, Timeout: 15 * time.Second}
 
-	// Trigger check-for-updates asynchronously on RouterOS
 	checkURL := fmt.Sprintf("%s://%s:%s/rest/system/package/update/check-for-updates", scheme, cfg.Host, cfg.Port)
 	checkReq, _ := http.NewRequest(http.MethodPost, checkURL, bytes.NewBuffer([]byte("{}")))
 	checkReq.SetBasicAuth(cfg.User, cfg.Password)
 	checkReq.Header.Set("Content-Type", "application/json")
+
+	var installed, latest, channel, status string
 	if resp, err := client.Do(checkReq); err == nil {
+		postBody, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
+		installed, latest, channel, status = parseROSUpdateJSON(postBody)
 	}
 
-	time.Sleep(1 * time.Second)
-
-	// Fetch update status
 	getURL := fmt.Sprintf("%s://%s:%s/rest/system/package/update", scheme, cfg.Host, cfg.Port)
-	getReq, err := http.NewRequest(http.MethodGet, getURL, nil)
-	if err != nil {
-		return "", err
-	}
-	getReq.SetBasicAuth(cfg.User, cfg.Password)
-
-	resp, err := client.Do(getReq)
-	if err != nil {
-		return "", fmt.Errorf("RouterOS update check failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	var updateInfo struct {
-		Channel          string `json:"channel"`
-		InstalledVersion string `json:"installed-version"`
-		LatestVersion    string `json:"latest-version"`
-		Status           string `json:"status"`
-	}
-	if err := json.Unmarshal(body, &updateInfo); err != nil {
-		return string(body), nil
-	}
-
-	if updateInfo.Status == "checking..." {
-		time.Sleep(1500 * time.Millisecond)
-		if resp2, err2 := client.Do(getReq); err2 == nil {
-			defer resp2.Body.Close()
-			if body2, err3 := io.ReadAll(resp2.Body); err3 == nil {
-				_ = json.Unmarshal(body2, &updateInfo)
+	// Poll GET if status is still searching
+	for i := 0; i < 5; i++ {
+		lowerStatus := strings.ToLower(status)
+		if latest != "" && !strings.Contains(lowerStatus, "finding") && !strings.Contains(lowerStatus, "checking") {
+			break
+		}
+		time.Sleep(800 * time.Millisecond)
+		getReq, err := http.NewRequest(http.MethodGet, getURL, nil)
+		if err != nil {
+			break
+		}
+		getReq.SetBasicAuth(cfg.User, cfg.Password)
+		if resp, err := client.Do(getReq); err == nil {
+			getBody, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			inst, lat, ch, st := parseROSUpdateJSON(getBody)
+			if inst != "" {
+				installed = inst
+			}
+			if lat != "" {
+				latest = lat
+			}
+			if ch != "" {
+				channel = ch
+			}
+			if st != "" {
+				status = st
 			}
 		}
 	}
 
-	if updateInfo.LatestVersion != "" && updateInfo.LatestVersion != updateInfo.InstalledVersion {
-		return fmt.Sprintf("发现 RouterOS 新版本: %s (当前版本: %s, 更新通道: %s, 状态: %s)", updateInfo.LatestVersion, updateInfo.InstalledVersion, updateInfo.Channel, updateInfo.Status), nil
+	if channel == "" {
+		channel = "stable"
 	}
-	return fmt.Sprintf("RouterOS 系统已是最新版本 (%s, 通道: %s, 状态: %s)", updateInfo.InstalledVersion, updateInfo.Channel, updateInfo.Status), nil
+	if status == "" {
+		status = "System is already up to date"
+	}
+	if latest == "" && installed != "" && (strings.Contains(strings.ToLower(status), "up to date") || strings.Contains(strings.ToLower(status), "already")) {
+		latest = installed
+	}
+
+	hasUpdate := latest != "" && installed != "" && latest != installed
+	msg := ""
+	if hasUpdate {
+		msg = fmt.Sprintf("发现 RouterOS 官方新固件: %s (当前版本: %s, 升级通道: %s, 状态: %s)", latest, installed, channel, status)
+	} else if installed != "" {
+		msg = fmt.Sprintf("RouterOS 固件已是最新稳定版本 (当前版本: %s, 升级通道: %s, 状态: %s)", installed, channel, status)
+	} else {
+		msg = fmt.Sprintf("RouterOS 升级通道状态: %s (通道: %s)", status, channel)
+	}
+
+	return &ROSFirmwareCheckResult{
+		InstalledVersion: installed,
+		LatestVersion:    latest,
+		Channel:          channel,
+		Status:           status,
+		HasUpdate:        hasUpdate,
+		Message:          msg,
+	}, nil
+}
+
+// CheckROSFirmwareUpgrade queries RouterOS system package updates via REST API.
+func (m *Manager) CheckROSFirmwareUpgrade() (string, error) {
+	res, err := m.CheckROSFirmwareUpgradeDetails()
+	if err != nil {
+		return "", err
+	}
+	return res.Message, nil
 }
 
 // TriggerROSFirmwareUpgrade sends an upgrade command to RouterOS via its REST API.
 func (m *Manager) TriggerROSFirmwareUpgrade() error {
+	// First check whether an update actually exists
+	checkRes, err := m.CheckROSFirmwareUpgradeDetails()
+	if err == nil && checkRes != nil {
+		if !checkRes.HasUpdate && checkRes.InstalledVersion != "" {
+			return fmt.Errorf("RouterOS 当前固件已是最新稳定版本 (%s)，无需重复更新", checkRes.InstalledVersion)
+		}
+	}
+
 	m.mu.Lock()
 	cfg := m.config
 	m.mu.Unlock()

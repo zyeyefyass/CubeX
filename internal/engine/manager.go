@@ -43,6 +43,8 @@ type Manager struct {
 	httpClient   *http.Client
 	lastResult   *SwitchResult
 	statusCh     chan schema.EngineType
+	stopping     bool
+	crashCount   int
 }
 
 // NewManager creates a dual-engine manager.
@@ -74,7 +76,7 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 		_ = os.WriteFile(irFile, cleanData, 0644)
 	}
 	apiAddr := fmt.Sprintf("http://127.0.0.1:%d", initialIR.Network.ClashAPIPort)
-	return &Manager{
+	mgr := &Manager{
 		ir:           initialIR,
 		workDir:      workDir,
 		activeEngine: initialIR.Meta.ActiveEngine,
@@ -82,6 +84,8 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 		httpClient:   &http.Client{Timeout: 3 * time.Second},
 		statusCh:     make(chan schema.EngineType, 10),
 	}
+	mgr.StartSupervisor()
+	return mgr
 }
 
 // GetActiveEngine returns the currently active persona.
@@ -334,7 +338,11 @@ func (m *Manager) rollback(eng schema.EngineType, etcDir string, snapshot map[st
 // SwitchEngine performs the Make-Before-Break Zero-Downtime Hot-Swap with health probe & auto-rollback.
 func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.stopping = true
+	defer func() {
+		m.stopping = false
+		m.mu.Unlock()
+	}()
 
 	startTime := time.Now()
 	fromEngine := m.activeEngine
@@ -458,3 +466,72 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	return res, nil
 }
+
+// StartSupervisor runs the 5s periodic health heartbeat & auto-healing state machine
+func (m *Manager) StartSupervisor() {
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			m.mu.Lock()
+			stopping := m.stopping
+			active := m.activeEngine
+			proc := m.currentProc
+			m.mu.Unlock()
+
+			if stopping || active == "" || proc == nil {
+				continue
+			}
+
+			// 1. Process Liveness Check
+			isAlive := true
+			if runtime.GOOS != "windows" {
+				if err := proc.Signal(syscall.Signal(0)); err != nil {
+					isAlive = false
+				}
+			}
+
+			// 2. Health API Probe
+			if isAlive {
+				isAlive = m.probeCoreHealth(active, 2*time.Second)
+			}
+
+			if !isAlive {
+				m.mu.Lock()
+				m.crashCount++
+				count := m.crashCount
+				m.mu.Unlock()
+
+				log.Printf("🚨 [Supervisor] Detected active engine %s (PID %d) unhealthy/crashed! (Crash count: %d)", active, proc.Pid, count)
+
+				if count <= 3 {
+					log.Printf("🛡️ [Supervisor] Auto-recovering %s (attempt %d/3) with backoff...", active, count)
+					time.Sleep(time.Duration(count) * time.Second)
+					if _, err := m.SwitchEngine(active); err == nil {
+						log.Printf("✅ [Supervisor] Successfully revived engine %s on attempt %d", active, count)
+					}
+				} else {
+					standby := schema.EngineSingbox
+					if active == schema.EngineSingbox {
+						standby = schema.EngineMihomo
+					}
+					log.Printf("🚨 [Supervisor] Engine %s failed 3 consecutive times! Auto failover to standby engine %s...", active, standby)
+					if _, err := m.SwitchEngine(standby); err == nil {
+						log.Printf("✅ [Supervisor] Auto-failover to %s succeeded! Network restored.", standby)
+						m.mu.Lock()
+						m.crashCount = 0
+						m.mu.Unlock()
+					}
+				}
+			} else {
+				m.mu.Lock()
+				if m.crashCount > 0 {
+					m.crashCount = 0
+				}
+				m.mu.Unlock()
+			}
+		}
+	}()
+}
+

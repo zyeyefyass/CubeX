@@ -24,7 +24,7 @@ import (
 
 // ServerConfig stores the WireGuard server configuration on RouterOS.
 type ServerConfig struct {
-	InterfaceName string `json:"interface_name"` // default "micube-wg"
+	InterfaceName string `json:"interface_name"` // default "cubex-wg"
 	ListenPort    int    `json:"listen_port"`    // default 13231
 	ServerAddress string `json:"server_address"` // default "10.88.0.1/24"
 	PrivateKey    string `json:"private_key"`    // Curve25519 base64
@@ -153,7 +153,14 @@ func GenerateKeyPair() (string, string, error) {
 	return privB64, pubB64, nil
 }
 
-// GetInfo returns the current WireGuard server status, detected DDNS, and peer list.
+func maskKey(k string) string {
+	if len(k) <= 8 {
+		return "********"
+	}
+	return k[:4] + "...." + k[len(k)-4:]
+}
+
+// GetInfo returns the current WireGuard server status, detected DDNS, and peer list with masked credentials.
 func (m *Manager) GetInfo() map[string]any {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -165,12 +172,26 @@ func (m *Manager) GetInfo() map[string]any {
 		endpoint = fmt.Sprintf("%s:%d", endpoint, m.state.Config.ListenPort)
 	}
 
+	safeCfg := m.state.Config
+	if safeCfg.PrivateKey != "" {
+		safeCfg.PrivateKey = maskKey(safeCfg.PrivateKey)
+	}
+
+	safePeers := make([]Peer, len(m.state.Peers))
+	for i, p := range m.state.Peers {
+		safeP := p
+		if safeP.PrivateKey != "" {
+			safeP.PrivateKey = maskKey(safeP.PrivateKey)
+		}
+		safePeers[i] = safeP
+	}
+
 	return map[string]any{
-		"config":          m.state.Config,
-		"peers":           m.state.Peers,
-		"total_peers":     len(m.state.Peers),
+		"config":             safeCfg,
+		"peers":              safePeers,
+		"total_peers":        len(m.state.Peers),
 		"effective_endpoint": endpoint,
-		"cloud_ddns":      m.state.Config.CloudDDNS,
+		"cloud_ddns":         m.state.Config.CloudDDNS,
 	}
 }
 

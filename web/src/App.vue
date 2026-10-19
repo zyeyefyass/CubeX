@@ -2865,15 +2865,21 @@
                       <span v-else>{{ hostBadge.icon }}</span>
                       <span>{{ isRouterOS ? 'MikroTik RouterOS 固件系统版本' : (hostBadge.name + ' 宿主系统版本') }}</span>
                     </div>
-                    <span :class="['text-[10px] font-mono px-2 py-0.5 rounded border', isRouterOS ? 'bg-purple-950 text-purple-300 border-purple-500/40' : 'bg-cyan-950 text-cyan-300 border-cyan-500/40']">
+                    <span v-if="hostUpgradeDetails.checked && hostUpgradeDetails.hasUpdate" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse">发现新固件 {{ hostUpgradeDetails.latestVersion }}</span>
+                    <span v-else-if="hostUpgradeDetails.checked && !hostUpgradeDetails.hasUpdate" class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">✓ 已是最新稳定版</span>
+                    <span v-else :class="['text-[10px] font-mono px-2 py-0.5 rounded border', isRouterOS ? 'bg-purple-950 text-purple-300 border-purple-500/40' : 'bg-cyan-950 text-cyan-300 border-cyan-500/40']">
                       {{ isRouterOS ? 'ROS v7 官方升级通道' : (hostBadge.shortName + ' 系统通道') }}
                     </span>
                   </div>
-                  <div class="text-xs text-slate-400 font-mono bg-slate-950/40 p-2 rounded-xl border border-slate-800/60">
+                  <div class="text-xs text-slate-400 font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 space-y-1">
                     <template v-if="isRouterOS">
                       <div class="flex justify-between items-center">
-                        <span>当前固件: <strong class="text-purple-300">{{ hostInfo.os_name || 'MikroTik RouterOS 7.24.5 (stable)' }}</strong></span>
-                        <span class="text-slate-500">升级通道: <span class="text-slate-300">stable</span></span>
+                        <span>当前固件: <strong class="text-purple-300">{{ hostUpgradeDetails.installedVersion || hostInfo.os_name || 'MikroTik RouterOS 7.24.5' }}</strong></span>
+                        <span class="text-slate-500">升级通道: <span class="text-slate-300">{{ hostUpgradeDetails.channel || 'stable' }}</span></span>
+                      </div>
+                      <div v-if="hostUpgradeDetails.checked" class="flex justify-between items-center text-[11px] pt-1 border-t border-slate-800/60">
+                        <span>云端最新: <strong :class="hostUpgradeDetails.hasUpdate ? 'text-amber-400' : 'text-emerald-400'">{{ hostUpgradeDetails.latestVersion || hostUpgradeDetails.installedVersion }}</strong></span>
+                        <span :class="hostUpgradeDetails.hasUpdate ? 'text-amber-400 font-bold' : 'text-emerald-400 font-medium'">{{ hostUpgradeDetails.hasUpdate ? '● 存在新版本' : '● 最新稳定版' }}</span>
                       </div>
                     </template>
                     <template v-else>
@@ -2887,10 +2893,13 @@
                       <span v-if="checkingHostUpgrade" class="inline-block animate-spin mr-1">↻</span>
                       <span>🔍 检查 {{ isRouterOS ? 'ROS 固件' : hostBadge.shortName }} 更新</span>
                     </button>
-                    <button @click="executeHostUpgrade" :disabled="executingHostUpgrade" class="flex-1 py-2.5 rounded-xl font-bold text-xs shadow-lg transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
-                      :class="isRouterOS ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-600/30' : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-600/30'">
+                    <button @click="executeHostUpgrade" :disabled="executingHostUpgrade || (isRouterOS && hostUpgradeDetails.checked && !hostUpgradeDetails.hasUpdate)" class="flex-1 py-2.5 rounded-xl font-bold text-xs shadow-lg transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      :class="isRouterOS ? (hostUpgradeDetails.hasUpdate ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30' : 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-600/30') : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-600/30'">
                       <span v-if="executingHostUpgrade" class="inline-block animate-spin mr-1">↻</span>
-                      <span>⬆ {{ isRouterOS ? '升级 RouterOS 并重启' : '升级宿主系统包' }}</span>
+                      <span v-if="isRouterOS">
+                        {{ hostUpgradeDetails.checked && !hostUpgradeDetails.hasUpdate ? '✓ 固件已是最新版' : (hostUpgradeDetails.hasUpdate ? `🚀 升级至 ${hostUpgradeDetails.latestVersion}` : '⬆ 升级 RouterOS 并重启') }}
+                      </span>
+                      <span v-else>⬆ 升级宿主系统包</span>
                     </button>
                   </div>
                   <!-- 真实回显区域 -->
@@ -4848,6 +4857,15 @@ const geoUpdateLog = ref('')
 const geodataLastUpdateText = ref('')
 const hostUpgradeResult = ref('')
 const hostUpgradeCheckTime = ref('')
+const hostUpgradeDetails = ref({
+  checked: false,
+  hasUpdate: false,
+  installedVersion: '',
+  latestVersion: '',
+  channel: 'stable',
+  status: '',
+  message: ''
+})
 const cleaningRosFirewall = ref(false)
 const applyingLinuxFirewall = ref(false)
 const deployingHostWg = ref(false)
@@ -4855,7 +4873,7 @@ const loadingDevices = ref(false)
 
 const hostInfo = ref({
   connected: true,
-  os_name: 'MikroTik RouterOS v7.14',
+  os_name: 'MikroTik RouterOS 7.24.5 (stable)',
   platform_id: 'routeros',
   kernel_version: 'Linux 6.6.30-amd64',
   arch: 'x86_64',
@@ -6097,9 +6115,23 @@ async function checkHostUpgrade() {
     if (data.error) {
       hostUpgradeResult.value = `⚠️ 检查反馈: ${data.error}`
       showToast('⚠️ 检查反馈: ' + data.error)
+      hostUpgradeDetails.value.checked = true
+      hostUpgradeDetails.value.message = data.error
     } else {
-      hostUpgradeResult.value = `🎉 官方固件检查结果：\n${data.output || (isRouterOS.value ? 'RouterOS 固件已是最新稳定版本 (7.24.5 stable)' : hostBadge.value.shortName + ' 已是最新版本')}`
-      showToast('🎉 检查完成：' + (data.output || `${isRouterOS.value ? 'RouterOS 固件' : hostBadge.value.shortName} 已是最新稳定版本`))
+      hostUpgradeDetails.value = {
+        checked: true,
+        hasUpdate: !!data.has_update,
+        installedVersion: data.installed_version || '',
+        latestVersion: data.latest_version || '',
+        channel: data.channel || 'stable',
+        status: data.status || '',
+        message: data.output || ''
+      }
+      if (data.installed_version) {
+        hostInfo.value.os_name = `MikroTik RouterOS ${data.installed_version} (${data.channel || 'stable'})`
+      }
+      hostUpgradeResult.value = data.output || (isRouterOS.value ? `RouterOS 固件已是最新稳定版本 (${data.installed_version || '7.24.5'} stable)` : hostBadge.value.shortName + ' 已是最新版本')
+      showToast(data.has_update ? `🎉 发现 RouterOS 新版本: ${data.latest_version}！` : `✓ 固件核对完成：已是最新稳定版本 (${data.installed_version || '7.24.5'})`)
     }
   } catch (e) {
     hostUpgradeResult.value = `⚠️ 检查连接失败: ${e.message}`
@@ -6110,8 +6142,13 @@ async function checkHostUpgrade() {
 }
 
 async function executeHostUpgrade() {
+  if (isRouterOS.value && hostUpgradeDetails.value.checked && !hostUpgradeDetails.value.hasUpdate) {
+    showToast('✓ RouterOS 当前固件已是最新稳定版本，无需重复升级')
+    return
+  }
+  const targetVer = hostUpgradeDetails.value.latestVersion ? ` (新版本: ${hostUpgradeDetails.value.latestVersion})` : ''
   const confirmMsg = isRouterOS.value
-    ? '确定要升级 RouterOS 固件吗？\nRouterOS 下载完成后将自动重启路由器并应用新版本。'
+    ? `确定要升级 RouterOS 固件吗？${targetVer}\nRouterOS 下载完成后将自动重启路由器并应用新版本。`
     : `确定要为当前宿主 (${hostBadge.value.name}) 执行系统与内核升级吗？`
   if (!confirm(confirmMsg)) {
     return

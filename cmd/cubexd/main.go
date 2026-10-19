@@ -2244,12 +2244,20 @@ func (s *Server) handleUpgradePanel(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleHostUpgradeCheck(w http.ResponseWriter, r *http.Request) {
 	if s.rosMgr.IsConnected() {
-		out, err := s.rosMgr.CheckROSFirmwareUpgrade()
+		res, err := s.rosMgr.CheckROSFirmwareUpgradeDetails()
 		if err != nil {
 			sendJSON(w, map[string]any{"error": "RouterOS 固件检查失败: " + err.Error()})
 			return
 		}
-		sendJSON(w, map[string]string{"output": out})
+		sendJSON(w, map[string]any{
+			"output":            res.Message,
+			"installed_version": res.InstalledVersion,
+			"latest_version":    res.LatestVersion,
+			"channel":           res.Channel,
+			"status":            res.Status,
+			"has_update":        res.HasUpdate,
+			"is_routeros":       true,
+		})
 		return
 	}
 	cfg := s.hostMgr.GetConfig()
@@ -2259,7 +2267,7 @@ func (s *Server) handleHostUpgradeCheck(w http.ResponseWriter, r *http.Request) 
 			sendJSON(w, map[string]any{"error": err.Error()})
 			return
 		}
-		sendJSON(w, map[string]string{"output": out})
+		sendJSON(w, map[string]any{"output": out, "is_routeros": false})
 		return
 	}
 	sendJSON(w, map[string]any{"error": "未检测到已连接的 RouterOS 或宿主机 SSH，请先在「系统升级与联动」配置联动凭证"})
@@ -2273,7 +2281,7 @@ func (s *Server) handleHostUpgradeExecute(w http.ResponseWriter, r *http.Request
 	if s.rosMgr.IsConnected() {
 		err := s.rosMgr.TriggerROSFirmwareUpgrade()
 		if err != nil {
-			sendJSON(w, map[string]any{"error": "RouterOS 固件升级触发失败: " + err.Error()})
+			sendJSON(w, map[string]any{"error": err.Error()})
 			return
 		}
 		sendJSON(w, map[string]string{"output": "🚀 RouterOS 官方固件下载与安装升级指令已成功下发！RouterOS 将在下载完成后自动安全重启并应用新版系统。"})
