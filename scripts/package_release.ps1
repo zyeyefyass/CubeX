@@ -1,6 +1,6 @@
 # ═════════════════════════════════════════════════════════════════════════════
 # CubeX Release Packaging Script (Bundles Dual Cores + Geodata + Rules + Config)
-# Target Version: Test v0.999 (Next: v1.0)
+# Target Version: Test v1.0
 # Formats: Native .zip for General Releases + Uncompressed .tar for RouterOS
 # ═════════════════════════════════════════════════════════════════════════════
 param(
@@ -8,12 +8,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Version = "Test-v0.999"
+$Version = "Test-v1.0"
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 $DistDir = "$RootDir\dist"
 $ReleaseDir = "$DistDir\release"
 
-Write-Host "📦 Starting CubeX Test v0.999 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
+Write-Host "📦 Starting CubeX Test v1.0 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
 if (-not $IncludeWindows) {
     Write-Host "ℹ️  Windows 平台包发布已按策略暂停 (可通过 -IncludeWindows 显式启用)" -ForegroundColor DarkCyan
 }
@@ -41,15 +41,17 @@ if ($IncludeWindows) {
 }
 
 # Linux amd64
-Write-Host "   -> Cross-compiling Linux amd64 cubexd..." -ForegroundColor Green
+Write-Host "   -> Cross-compiling Linux amd64 cubexd & cubex CLI..." -ForegroundColor Green
 $env:GOOS = "linux"
 $env:GOARCH = "amd64"
 go build -ldflags="-s -w" -o "$DistDir\cubexd-linux-amd64" ./cmd/cubexd
+go build -ldflags="-s -w" -o "$DistDir\cubex-linux-amd64" ./cmd/cubex
 
 # Linux arm64
-Write-Host "   -> Cross-compiling Linux arm64 cubexd..." -ForegroundColor Green
+Write-Host "   -> Cross-compiling Linux arm64 cubexd & cubex CLI..." -ForegroundColor Green
 $env:GOARCH = "arm64"
 go build -ldflags="-s -w" -o "$DistDir\cubexd-linux-arm64" ./cmd/cubexd
+go build -ldflags="-s -w" -o "$DistDir\cubex-linux-arm64" ./cmd/cubex
 
 # 3. Helper to assemble package staging directory
 function Assemble-ReleasePackage($TargetName, $GatewayBinary, $ArchType) {
@@ -67,6 +69,9 @@ function Assemble-ReleasePackage($TargetName, $GatewayBinary, $ArchType) {
         Copy-Item -Path "$RootDir\bin\windows\sing-box.exe" -Destination "$StageDir\bin\sing-box.exe" -Force
     } else {
         Copy-Item -Path $GatewayBinary -Destination "$StageDir\bin\cubexd" -Force
+        if (Test-Path "$DistDir\cubex-linux-$ArchType") {
+            Copy-Item -Path "$DistDir\cubex-linux-$ArchType" -Destination "$StageDir\bin\cubex" -Force
+        }
         Copy-Item -Path "$RootDir\bin\$ArchType\mihomo" -Destination "$StageDir\bin\mihomo" -Force
         Copy-Item -Path "$RootDir\bin\$ArchType\sing-box" -Destination "$StageDir\bin\sing-box" -Force
     }
@@ -119,6 +124,9 @@ function Assemble-RosContainer($TargetName, $GatewayBinary, $ArchType) {
 
     # Binaries inside container /app/bin
     Copy-Item -Path $GatewayBinary -Destination "$RosStage\app\bin\cubexd" -Force
+    if (Test-Path "$DistDir\cubex-linux-$ArchType") {
+        Copy-Item -Path "$DistDir\cubex-linux-$ArchType" -Destination "$RosStage\app\bin\cubex" -Force
+    }
     Copy-Item -Path "$RootDir\bin\$ArchType\mihomo" -Destination "$RosStage\app\bin\mihomo" -Force
     Copy-Item -Path "$RootDir\bin\$ArchType\sing-box" -Destination "$RosStage\app\bin\sing-box" -Force
 

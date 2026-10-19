@@ -57,7 +57,7 @@
                     <span :class="['w-2 h-2 rounded-full shrink-0', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse' : 'bg-amber-400']" :title="hostBadge.online ? '宿主平台在线联动' : '未连接'"></span>
                   </div>
                   <div class="text-[10px] font-mono text-slate-400/90 flex items-center gap-1.5 mt-0.5">
-                    <span class="text-cyan-400 font-bold px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/30">{{ systemStatus.version || 'Test v0.999' }}</span>
+                    <span class="text-cyan-400 font-bold px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/30">{{ systemStatus.version || 'Test v1.0' }}</span>
                     <span class="text-slate-500">|</span>
                     <span class="uppercase tracking-wider text-[9px] text-slate-300 font-semibold">{{ hostBadge.shortName }}</span>
                   </div>
@@ -2735,6 +2735,15 @@
                   <span>📶 联动 RouterOS 主路由</span>
                 </button>
               </div>
+
+              <!-- RouterOS 原生 IPv6 双栈防泄露一键加固 -->
+              <div v-if="isRouterOS || isRosConnected" class="pt-1">
+                <button @click="setupRosIpv6" :disabled="settingUpRosIpv6" class="w-full py-2 rounded-xl bg-gradient-to-r from-emerald-950/70 via-teal-950/70 to-blue-950/70 hover:from-emerald-900/80 hover:to-teal-900/80 border border-emerald-500/40 text-emerald-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50" title="自动开启 RouterOS 全局 IPv6，自动下发 WAN 口 DHCP-PD 前缀获取，并永久锁定 advertise-dns=no 杜绝运营商 DNS 劫持">
+                  <span v-if="settingUpRosIpv6" class="inline-block animate-spin">↻</span>
+                  <span v-else>🌐</span>
+                  <span>一键自愈并加固 RouterOS 原生 IPv6 双栈 (防 DNS 泄露 · 毫秒级海外快速回退)</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -2759,7 +2768,7 @@
                   </div>
                   <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">当前最新</span>
                 </div>
-                <div class="text-xs text-slate-400 font-mono">当前版本: {{ systemOverview.cubex_version || 'Test v0.999' }}</div>
+                <div class="text-xs text-slate-400 font-mono">当前版本: {{ systemOverview.cubex_version || 'Test v1.0' }}</div>
                 <button @click="upgradePanel" :disabled="upgradingPanel" class="w-full py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition">
                   {{ upgradingPanel ? '升级中...' : '🚀 一键在线热更 CubeX' }}
                 </button>
@@ -3171,7 +3180,7 @@
         <!-- Drawer Footer -->
         <div class="pt-4 border-t border-sky-900/40 space-y-2">
           <div class="text-[9px] text-slate-500 text-center font-mono">
-            CubeX {{ systemStatus.version || 'Test v0.999' }}
+            CubeX {{ systemStatus.version || 'Test v1.0' }}
           </div>
         </div>
       </div>
@@ -4859,7 +4868,7 @@ const hostConfig = ref({
 })
 
 const systemOverview = ref({
-  cubex_version: 'Test v0.999',
+  cubex_version: 'Test v1.0',
   mihomo_curr_version: 'v1.19.32',
   singbox_curr_version: 'v1.14.3',
   update_available: false
@@ -5122,7 +5131,7 @@ const aiLoading = ref(false)
 
 // ── System Status & Last Result ──
 const systemStatus = ref({
-  version: 'Test v0.999',
+  version: 'Test v1.0',
   uptime_seconds: 1420,
   active_engine: 'mihomo',
   tun_interface: 'cubex-tun',
@@ -6028,6 +6037,30 @@ async function inspectAndCleanReapplyRos() {
   }
 }
 const cleanAndReapplyRosFirewall = inspectAndCleanReapplyRos
+
+const settingUpRosIpv6 = ref(false)
+async function setupRosIpv6() {
+  settingUpRosIpv6.value = true
+  showToast('🌐 正在一键编排并加固 RouterOS 原生 IPv6 双栈与防泄露规则...')
+  try {
+    const res = await fetch('/api/v1/ros/ipv6/setup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    })
+    const data = await res.json()
+    if (data.error) {
+      showToast('⚠️ IPv6 配置提示: ' + data.error)
+    } else {
+      showToast(data.message || '🎉 RouterOS 原生 IPv6 双栈已配置完毕，DNS 广播已锁定！')
+    }
+    await refreshHostTelemetry()
+  } catch (e) {
+    showToast('❌ 触发 IPv6 编排失败: ' + e.message)
+  } finally {
+    settingUpRosIpv6.value = false
+  }
+}
 
 async function applyLinuxHostFirewall() {
   applyingLinuxFirewall.value = true

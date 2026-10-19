@@ -37,7 +37,7 @@ import (
 )
 
 var (
-	version   = "Test v0.999"
+	version   = "Test v1.0"
 	startTime = time.Now()
 )
 
@@ -365,6 +365,7 @@ func main() {
 	mux.HandleFunc("/api/v1/ros/routing/apply", srv.handleROSApply)
 	mux.HandleFunc("/api/v1/ros/routing/clean-and-reapply", srv.handleROSCleanAndReapply)
 	mux.HandleFunc("/api/v1/ros/clean-and-reapply", srv.handleROSCleanAndReapply)
+	mux.HandleFunc("/api/v1/ros/ipv6/setup", srv.handleROSIpv6Setup)
 	mux.HandleFunc("/api/v1/ros/routing/script", srv.handleRosScript)
 	mux.HandleFunc("/api/v1/system/geodata/update", srv.handleUpgradeGeoData)
 	mux.HandleFunc("/api/v1/system/upgrade-panel", srv.handleUpgradePanel)
@@ -1599,7 +1600,7 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 			defer wg.Done()
 			defer func() { <-semaphore }()
 
-			addr := fmt.Sprintf("%s:%d", item.node.Server, item.node.Port)
+			addr := net.JoinHostPort(item.node.Server, strconv.Itoa(item.node.Port))
 			start := time.Now()
 			conn, err := net.DialTimeout("tcp", addr, 1200*time.Millisecond)
 			if err == nil {
@@ -2101,6 +2102,23 @@ func (s *Server) handleROSCleanAndReapply(w http.ResponseWriter, r *http.Request
 	}
 	_ = json.NewDecoder(r.Body).Decode(&req)
 	res, err := s.rosMgr.CleanAndReapplyRouting(req.TargetIP)
+	if err != nil {
+		sendJSON(w, map[string]any{"error": err.Error()})
+		return
+	}
+	sendJSON(w, res)
+}
+
+func (s *Server) handleROSIpv6Setup(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		WanInterface string `json:"wan_interface"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	res, err := s.rosMgr.SetupIPv6DualStack(req.WanInterface)
 	if err != nil {
 		sendJSON(w, map[string]any{"error": err.Error()})
 		return

@@ -10,10 +10,10 @@ if [ ! -f "/app/etc/config.yaml" ] && [ ! -f "/app/etc/config.json" ]; then
 fi
 
 # Always ensure rules and geodata exist in /app/etc
-if [ ! -d "/app/etc/rules" ]; then
+mkdir -p /app/etc/rules
+if [ -d "/app/defaults/etc/rules" ]; then
     echo "📦 [CubeX] Syncing dual-engine rulesets (MRS / SRS) to /app/etc/rules..."
-    mkdir -p /app/etc/rules
-    cp -r /app/defaults/etc/rules/* /app/etc/rules/ 2>/dev/null || true
+    cp -rn /app/defaults/etc/rules/* /app/etc/rules/ 2>/dev/null || cp -r /app/defaults/etc/rules/* /app/etc/rules/ 2>/dev/null || true
 fi
 
 if [ ! -f "/app/etc/geoip.metadb" ] && [ -f "/app/defaults/etc/geoip.metadb" ]; then
@@ -21,6 +21,9 @@ if [ ! -f "/app/etc/geoip.metadb" ] && [ -f "/app/defaults/etc/geoip.metadb" ]; 
 fi
 if [ ! -f "/app/etc/geosite.dat" ] && [ -f "/app/defaults/etc/geosite.dat" ]; then
     cp /app/defaults/etc/geosite.dat /app/etc/geosite.dat
+fi
+if [ ! -f "/app/etc/GeoIP.dat" ] && [ -f "/app/defaults/etc/GeoIP.dat" ]; then
+    cp /app/defaults/etc/GeoIP.dat /app/etc/GeoIP.dat
 fi
 
 # 2. Initialize /app/data if empty
@@ -30,9 +33,7 @@ if [ ! -f "/app/data/config.ir.json" ]; then
 fi
 
 # 3. Enable IP Forwarding and NAT Masquerade for Gateway / Secondary Router Mode
-if [ -w /proc/sys/net/ipv4/ip_forward ]; then
-    echo 1 > /proc/sys/net/ipv4/ip_forward 2>/dev/null || true
-fi
+sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || ( [ -w /proc/sys/net/ipv4/ip_forward ] && echo 1 > /proc/sys/net/ipv4/ip_forward 2>/dev/null ) || true
 # Enable SNAT Masquerade for any forwarded traffic exiting container (veth-cubex / eth0 / etc.)
 iptables -t nat -A POSTROUTING -j MASQUERADE 2>/dev/null || true
 

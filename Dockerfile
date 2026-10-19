@@ -29,7 +29,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
 FROM --platform=$TARGETPLATFORM alpine:3.21 AS runtime
 ARG TARGETARCH
 
-# Install essential network tools for transparent proxy, TUN, and routing
+# Install essential network tools for transparent proxy, TUN, routing, and glibc binary compatibility
 RUN apk add --no-cache \
     iptables \
     ip6tables \
@@ -39,6 +39,8 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata \
     procps \
+    gcompat \
+    libc6-compat \
     && rm -rf /var/cache/apk/*
 
 WORKDIR /app

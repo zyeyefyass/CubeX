@@ -14,7 +14,9 @@ web/dist/
 web/.vite/
 
 # Persistent runtime data
-etc/
+etc/*
+!etc/rules/
+!etc/rules/**
 data/
 
 # Agent and assistant rules

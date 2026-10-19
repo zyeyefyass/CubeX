@@ -502,7 +502,7 @@ func (m *Manager) getLocalPanelVersion() string {
 			return meta.Version
 		}
 	}
-	return "Test-v0.999"
+	return "Test-v1.0"
 }
 
 // IsConnected returns whether the RouterOS host is currently reachable and authenticated.
@@ -540,7 +540,7 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 			lastErr = err
 			continue
 		}
-		req.Header.Set("User-Agent", "CubeX-Daemon/0.999")
+		req.Header.Set("User-Agent", "CubeX-Daemon/1.0")
 		req.Header.Set("Accept", "application/vnd.github.v3+json")
 
 		resp, err := client.Do(req)

@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/zyeyefyass/CubeX/internal/schema"
@@ -90,7 +91,7 @@ func measureDirectConnection(node *schema.ProxyNode, targetURL string) Benchmark
 	if serverPort == 0 {
 		serverPort = 443
 	}
-	addr := fmt.Sprintf("%s:%d", serverHost, serverPort)
+	addr := net.JoinHostPort(serverHost, strconv.Itoa(serverPort))
 
 	// Measure TCP Dial RTT
 	tcpStart := time.Now()

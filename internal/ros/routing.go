@@ -519,6 +519,95 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		})
 	}
 
+	// 12. Check /ipv6/nd (advertise-dns=no 防运营商 IPv6 DNS 劫持与泄露)
+	ipv6NDHasLeakRisk := false
+	ipv6NDConfigured := false
+	if ndData, err := m.QueryROS("/ipv6/nd"); err == nil {
+		var ndList []map[string]any
+		if json.Unmarshal(ndData, &ndList) == nil && len(ndList) > 0 {
+			ipv6NDConfigured = true
+			for _, nd := range ndList {
+				disabled := fmt.Sprintf("%v", nd["disabled"])
+				if disabled == "true" || disabled == "yes" {
+					continue
+				}
+				advDNS := fmt.Sprintf("%v", nd["advertise-dns"])
+				if advDNS == "true" || advDNS == "yes" {
+					ipv6NDHasLeakRisk = true
+					break
+				}
+			}
+		}
+	}
+	if !ipv6NDConfigured {
+		report.Items = append(report.Items, CheckItem{
+			Key:     "ipv6_nd_dns",
+			Name:    "IPv6 邻居发现与 DNS 广播 (/ipv6/nd)",
+			Status:  "ok",
+			Value:   "未启用或无激活接口",
+			Details: "当前 RouterOS 未配置激活的 IPv6 邻居发现接口，不存在通过 IPv6 RDNSS 广播泄露运营商 DNS 的风险。",
+			Advice:  "状态安全",
+		})
+	} else if ipv6NDHasLeakRisk {
+		report.AllOK = false
+		report.Items = append(report.Items, CheckItem{
+			Key:     "ipv6_nd_dns",
+			Name:    "IPv6 邻居发现与 DNS 广播 (/ipv6/nd)",
+			Status:  "warning",
+			Value:   "存在 DNS 泄露风险 (advertise-dns=yes)",
+			Details: "检测到 RouterOS IPv6 邻居发现 (ND) 开启了运营商 DNS 广播。局域网双栈终端将通过 IPv6 直连运营商 DNS，导致 CubeX 旁路分流与去广告规则被完全绕过！",
+			Advice:  "点击下方「一键自动配置」即可自动关闭 advertise-dns，锁定 CubeX 防泄露分流",
+		})
+	} else {
+		report.Items = append(report.Items, CheckItem{
+			Key:     "ipv6_nd_dns",
+			Name:    "IPv6 邻居发现与 DNS 广播 (/ipv6/nd)",
+			Status:  "ok",
+			Value:   "advertise-dns=no (防泄露锁定)",
+			Details: "RouterOS IPv6 ND 已锁定关闭运营商 DNS 广播，局域网终端 DNS 解析严格闭环于 CubeX 纯净分流。",
+			Advice:  "防泄露状态极佳",
+		})
+	}
+
+	// 13. Check /ipv6/firewall/filter (2000::/3 reject 海外防断流与 0ms 回退)
+	ipv6FallbackOK := false
+	if v6FilterData, err := m.QueryROS("/ipv6/firewall/filter"); err == nil {
+		var v6Filters []map[string]any
+		if json.Unmarshal(v6FilterData, &v6Filters) == nil {
+			for _, f := range v6Filters {
+				dstAddr := fmt.Sprintf("%v", f["dst-address"])
+				action := fmt.Sprintf("%v", f["action"])
+				disabled := fmt.Sprintf("%v", f["disabled"])
+				if disabled == "true" || disabled == "yes" {
+					continue
+				}
+				if (dstAddr == "2000::/3" || strings.HasPrefix(dstAddr, "2000::")) && (action == "reject" || action == "drop") {
+					ipv6FallbackOK = true
+					break
+				}
+			}
+		}
+	}
+	if ipv6FallbackOK {
+		report.Items = append(report.Items, CheckItem{
+			Key:     "ipv6_fallback",
+			Name:    "IPv6 海外防断流与快速回退 (/ipv6/firewall/filter)",
+			Status:  "ok",
+			Value:   "2000::/3 极速拒答就绪 (0ms 回退)",
+			Details: "已就绪海外 IPv6 极速拒答与 0ms 回退机制，彻底根除 Happy Eyeballs 3秒握手卡死并杜绝海外节点泄漏公网 IP。",
+			Advice:  "高可用保障中",
+		})
+	} else {
+		report.Items = append(report.Items, CheckItem{
+			Key:     "ipv6_fallback",
+			Name:    "IPv6 海外防断流与快速回退 (/ipv6/firewall/filter)",
+			Status:  "warning",
+			Value:   "未配置 2000::/3 极速拒答",
+			Details: "未在 RouterOS IPv6 防火墙中检测到 2000::/3 极速回退规则。当访问纯 IPv4 代理节点时，终端可能经历数秒卡顿等待。",
+			Advice:  "点击下方「一键自动配置」即可自动注入 2000::/3 毫秒级防断流回退规则",
+		})
+	}
+
 	report.Items = append(report.Items, CheckItem{
 		Key:     "legacy_residues",
 		Name:    "历史旧版残留扫描",
@@ -882,6 +971,25 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		}
 	}
 
+	// 6b-2. Enforce RouterOS IPv6 Neighbor Discovery (ND) DNS Protection (advertise-dns=no)
+	// 掐死运营商 IPv6 DNS 广播，防止终端设备绕过旁路由 DNS 解析
+	if ndData, err := m.QueryROS("/ipv6/nd"); err == nil {
+		var ndList []map[string]any
+		if json.Unmarshal(ndData, &ndList) == nil {
+			for _, nd := range ndList {
+				id, _ := nd[".id"].(string)
+				advDNS := fmt.Sprintf("%v", nd["advertise-dns"])
+				if id != "" && (advDNS == "true" || advDNS == "yes") {
+					_ = m.PatchROS("/ipv6/nd/"+id, map[string]any{
+						"advertise-dns":       "false",
+						"other-configuration": "true",
+					})
+					res.Actions = append(res.Actions, "已自动校准 RouterOS IPv6 邻居发现 (/ipv6/nd advertise-dns=no，彻底阻断运营商 DNS 广播泄露)")
+				}
+			}
+		}
+	}
+
 	// 6c. Inject Netwatch HA Auto-Failover Probe (毫秒级宕机检测，容器宕机 3 秒自动回退直连)
 	hasValidNetwatch := false
 	if nwData, err := m.QueryROS("/tool/netwatch"); err == nil {
@@ -1159,7 +1267,9 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 	sb.WriteString("/ip/firewall/mangle add chain=forward protocol=tcp tcp-flags=syn tcp-mss=1401-65535 action=change-mss new-mss=clamp-to-pmtu comment=\"CubeX Anti-Block TCP MSS Clamping\"\n\n")
 
 	sb.WriteString("# 10. 注入抗封锁与防断流: IPv6 海外泄露阻断与 0ms 瞬间回退至 IPv4 极速代理 (杜绝 Happy Eyeballs 3秒卡死与公网 IP 泄漏)\n")
-	sb.WriteString("/ipv6/firewall/filter add chain=forward dst-address=2000::/3 action=reject reject-with=icmp-admin-prohibited comment=\"CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak\"\n\n")
+	sb.WriteString("/ipv6 settings set disable-ipv6=no forward=yes\n")
+	sb.WriteString("/ipv6 nd set [find default=yes] advertise-dns=no hop-limit=64 other-configuration=yes\n")
+	sb.WriteString("/ipv6 firewall filter add chain=forward dst-address=2000::/3 action=reject reject-with=icmp-admin-prohibited comment=\"CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak\"\n\n")
 
 	sb.WriteString("# 11. 注入 Netwatch 毫秒级心跳高可用逃生 (旁路由重启或宕机时全网自动 0秒直连与原生 DNS)\n")
 	sb.WriteString("/tool/netwatch remove [find comment~\"CubeX\"]\n")
@@ -1176,6 +1286,197 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 	return sb.String()
 }
 
+// SetupIPv6DualStack automatically configures IPv6 forward, DHCP-PD client on WAN, bridge address from pool, and anti-leak rules on RouterOS.
+func (m *Manager) SetupIPv6DualStack(wanInterface string) (*ApplyResult, error) {
+	res := &ApplyResult{
+		Success: true,
+		Actions: make([]string, 0),
+		Errors:  make([]string, 0),
+	}
+
+	// 1. Enable IPv6 globally
+	if err := m.PatchROS("/ipv6/settings", map[string]any{
+		"disable-ipv6": "false",
+		"forward":      "true",
+	}); err != nil {
+		res.Errors = append(res.Errors, fmt.Sprintf("开启 IPv6 全局转发失败: %v", err))
+	} else {
+		res.Actions = append(res.Actions, "已确认启用 RouterOS 全局 IPv6 与数据包转发 (/ipv6/settings)")
+	}
+
+	// 2. Detect WAN interface if not specified
+	if wanInterface == "" {
+		if rData, err := m.QueryROS("/ip/route"); err == nil {
+			var routes []map[string]any
+			if json.Unmarshal(rData, &routes) == nil {
+				for _, r := range routes {
+					dst := fmt.Sprintf("%v", r["dst-address"])
+					active := fmt.Sprintf("%v", r["active"])
+					if (dst == "0.0.0.0/0" || strings.HasPrefix(dst, "0.0.0.0")) && (active == "true" || active == "yes") {
+						gwIf := fmt.Sprintf("%v", r["immediate-gw"])
+						if gwIf != "" && gwIf != "<nil>" {
+							wanInterface = gwIf
+							break
+						}
+						gw := fmt.Sprintf("%v", r["gateway"])
+						if !strings.Contains(gw, ".") && gw != "" {
+							wanInterface = gw
+							break
+						}
+					}
+				}
+			}
+		}
+		if wanInterface == "" {
+			if ifData, err := m.QueryROS("/interface"); err == nil {
+				var ifs []map[string]any
+				if json.Unmarshal(ifData, &ifs) == nil {
+					for _, item := range ifs {
+						iType := fmt.Sprintf("%v", item["type"])
+						iName := fmt.Sprintf("%v", item["name"])
+						if iType == "pppoe-out" {
+							wanInterface = iName
+							break
+						}
+					}
+					if wanInterface == "" {
+						for _, item := range ifs {
+							iName := fmt.Sprintf("%v", item["name"])
+							if iName == "ether1" || strings.HasPrefix(iName, "wan") {
+								wanInterface = iName
+								break
+							}
+						}
+					}
+				}
+			}
+		}
+		if wanInterface == "" {
+			wanInterface = "pppoe-out1"
+		}
+	}
+
+	// 3. Configure /ipv6/dhcp-client on WAN interface
+	poolName := "CubeX-IPv6-Pool"
+	hasDHCPv6 := false
+	if dcData, err := m.QueryROS("/ipv6/dhcp-client"); err == nil {
+		var dcList []map[string]any
+		if json.Unmarshal(dcData, &dcList) == nil {
+			for _, dc := range dcList {
+				ifName := fmt.Sprintf("%v", dc["interface"])
+				pName := fmt.Sprintf("%v", dc["pool-name"])
+				if ifName == wanInterface || pName == poolName {
+					hasDHCPv6 = true
+					break
+				}
+			}
+		}
+	}
+	if !hasDHCPv6 {
+		dcPayload := map[string]any{
+			"interface":          wanInterface,
+			"pool-name":          poolName,
+			"request":            "prefix",
+			"pool-prefix-length": "64",
+			"comment":            "CubeX IPv6-PD",
+		}
+		if _, err := m.PutROS("/ipv6/dhcp-client", dcPayload); err != nil {
+			res.Errors = append(res.Errors, fmt.Sprintf("创建 DHCPv6 客户端失败 (%s): %v", wanInterface, err))
+		} else {
+			res.Actions = append(res.Actions, fmt.Sprintf("已成功在外网接口 %s 创建 IPv6-PD 客户端 (前缀池: %s)", wanInterface, poolName))
+		}
+	} else {
+		res.Actions = append(res.Actions, fmt.Sprintf("外网 IPv6-PD 客户端已就绪 (%s)", wanInterface))
+	}
+
+	// 4. Configure /ipv6/address from pool on bridge
+	hasBridgeAddr := false
+	if addrData, err := m.QueryROS("/ipv6/address"); err == nil {
+		var addrList []map[string]any
+		if json.Unmarshal(addrData, &addrList) == nil {
+			for _, a := range addrList {
+				fPool := fmt.Sprintf("%v", a["from-pool"])
+				if fPool == poolName {
+					hasBridgeAddr = true
+					break
+				}
+			}
+		}
+	}
+	if !hasBridgeAddr {
+		addrPayload := map[string]any{
+			"from-pool": poolName,
+			"interface": "bridge",
+			"advertise": "true",
+			"comment":   "CubeX LAN IPv6",
+		}
+		if _, err := m.PutROS("/ipv6/address", addrPayload); err != nil {
+			res.Errors = append(res.Errors, fmt.Sprintf("为局域网 bridge 分配 IPv6 地址池失败: %v", err))
+		} else {
+			res.Actions = append(res.Actions, fmt.Sprintf("已为局域网 bridge 自动分配 IPv6 地址池 (%s)", poolName))
+		}
+	} else {
+		res.Actions = append(res.Actions, "局域网 bridge IPv6 地址池分配正常")
+	}
+
+	// 5. Lock /ipv6/nd: advertise-dns=no
+	if ndData, err := m.QueryROS("/ipv6/nd"); err == nil {
+		var ndList []map[string]any
+		if json.Unmarshal(ndData, &ndList) == nil {
+			for _, nd := range ndList {
+				id, _ := nd[".id"].(string)
+				if id != "" {
+					_ = m.PatchROS("/ipv6/nd/"+id, map[string]any{
+						"advertise-dns":       "false",
+						"other-configuration": "true",
+						"hop-limit":           "64",
+					})
+				}
+			}
+			res.Actions = append(res.Actions, "已锁定所有 IPv6 邻居发现接口: advertise-dns=no (杜绝运营商 DNS 污染与泄露)")
+		}
+	}
+
+	// 6. Ensure /ipv6/firewall/filter: 2000::/3 reject
+	hasRejectRule := false
+	if fData, err := m.QueryROS("/ipv6/firewall/filter"); err == nil {
+		var fList []map[string]any
+		if json.Unmarshal(fData, &fList) == nil {
+			for _, f := range fList {
+				dst := fmt.Sprintf("%v", f["dst-address"])
+				action := fmt.Sprintf("%v", f["action"])
+				if (dst == "2000::/3" || strings.HasPrefix(dst, "2000::")) && (action == "reject" || action == "drop") {
+					hasRejectRule = true
+					break
+				}
+			}
+		}
+	}
+	if !hasRejectRule {
+		_, err := m.PutROS("/ipv6/firewall/filter", map[string]any{
+			"chain":       "forward",
+			"dst-address": "2000::/3",
+			"action":      "reject",
+			"reject-with": "icmp-admin-prohibited",
+			"comment":     "CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak",
+		})
+		if err == nil {
+			res.Actions = append(res.Actions, "已注入 2000::/3 极速拒答防断流规则 (海外流量 0ms 回退 IPv4 极速代理)")
+		}
+	} else {
+		res.Actions = append(res.Actions, "2000::/3 海外防断流与快速回退规则已生效")
+	}
+
+	if len(res.Errors) > 0 {
+		res.Success = false
+		res.Message = "⚠️ RouterOS IPv6 双栈自愈配置完成，部分项目有提示"
+	} else {
+		res.Success = true
+		res.Message = fmt.Sprintf("🎉 RouterOS 原生 IPv6 双栈已全自动化编排完毕！WAN接口: %s · 前缀池: %s · DNS广播已锁定！", wanInterface, poolName)
+	}
+	return res, nil
+}
+
 // SetContainerRegistryURL updates the container registry-url on RouterOS via REST API.
 func (m *Manager) SetContainerRegistryURL(mirrorURL string) error {
 	mirrorURL = strings.TrimSpace(mirrorURL)
@@ -1187,3 +1488,4 @@ func (m *Manager) SetContainerRegistryURL(mirrorURL string) error {
 	})
 	return err
 }
+
