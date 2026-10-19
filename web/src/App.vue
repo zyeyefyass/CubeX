@@ -5520,11 +5520,26 @@ const hostConfig = ref({
 })
 
 const systemOverview = ref({
-  cubex_version: 'Test v1.3',
+  cubex_version: 'Test v1.4',
+  panel_curr_version: 'Test v1.4',
+  panel_latest_version: 'Test v1.4',
   mihomo_curr_version: 'v1.19.32',
   singbox_curr_version: 'v1.14.3',
+  panel_update_avail: false,
   update_available: false
 })
+
+async function fetchSystemOverview() {
+  try {
+    const res = await fetch('/api/v1/system/overview')
+    if (res.ok) {
+      const data = await res.json()
+      if (data) {
+        systemOverview.value = { ...systemOverview.value, ...data }
+      }
+    }
+  } catch (e) {}
+}
 
 // ── 日志与诊断包 (Diagnostics & Ring Logs) State ──
 const systemLogs = ref([])
@@ -6510,13 +6525,15 @@ async function autoSetupHostPlatform() {
 
 async function refreshHostTelemetry() {
   try {
-    const res = await fetch('/api/v1/host/info')
-    const data = await res.json()
-    if (data) {
-      hostInfo.value = { ...hostInfo.value, ...data }
+    const [hRes] = await Promise.allSettled([
+      fetch('/api/v1/host/info').then(r => r.json()),
+      fetchSystemOverview()
+    ])
+    if (hRes.status === 'fulfilled' && hRes.value) {
+      hostInfo.value = { ...hostInfo.value, ...hRes.value }
     }
   } catch (e) {}
-  showToast('宿主环境体检已刷新')
+  showToast('宿主与系统环境体检已刷新')
 }
 
 async function fetchHostConfig() {
@@ -6608,12 +6625,13 @@ async function upgradePanel() {
       setTimeout(() => location.reload(), 3000)
     } else if (data.status === 'already_latest') {
       const timeStr = new Date().toLocaleTimeString()
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v1.3'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v1.4'})，无需重复更新。`
       showToast(data.message || 'CubeX 系统已是最新版本')
     } else {
       panelUpgradeLog.value = `❌ 热更反馈异常: ${data.error || data.message || '未知异常'}`
       showToast(`❌ 热更失败: ${data.error || data.message || '未知异常'}`)
     }
+    await fetchSystemOverview()
   } catch (e) {
     panelUpgradeLog.value = `❌ 请求异常: ${e.message}`
     showToast(`❌ 请求异常: ${e.message}`)
@@ -9719,14 +9737,18 @@ onMounted(async () => {
   }
 
   try {
-    const [stRes, wgRes, adRes, hostRes, secRes] = await Promise.allSettled([
+    const [stRes, wgRes, adRes, hostRes, secRes, ovRes] = await Promise.allSettled([
       fetch('/api/v1/system/status').then(r => r.json()),
       fetch('/api/v1/wireguard/info').then(r => r.json()),
       fetch('/api/v1/adblock/stats').then(r => r.json()),
       fetch('/api/v1/host/info').then(r => r.json()),
-      fetch('/api/v1/security/radar').then(r => r.json())
+      fetch('/api/v1/security/radar').then(r => r.json()),
+      fetch('/api/v1/system/overview').then(r => r.json())
     ])
 
+    if (ovRes.status === 'fulfilled' && ovRes.value) {
+      systemOverview.value = { ...systemOverview.value, ...ovRes.value }
+    }
     if (stRes.status === 'fulfilled' && stRes.value) {
       systemStatus.value = { ...systemStatus.value, ...stRes.value }
       if (stRes.value.active_engine) activeEngine.value = stRes.value.active_engine

@@ -683,15 +683,43 @@ func normalizeVersion(v string) string {
 }
 
 func fetchGitHubLatestTag(repo string) (string, error) {
-	// Tier 1: Web 302 Redirect (Zero API Rate Limit, supported by domestic GHProxy mirrors)
+	// Tier 0: Direct query via local active proxy port (127.0.0.1:7890) if engine is running
+	proxyURL, err := url.Parse("http://127.0.0.1:7890")
+	if err == nil {
+		pClient := &http.Client{
+			Transport: &http.Transport{
+				Proxy:           http.ProxyURL(proxyURL),
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+			Timeout: 4 * time.Second,
+		}
+		pReq, err := http.NewRequest(http.MethodGet, "https://api.github.com/repos/"+repo+"/releases/latest", nil)
+		if err == nil {
+			pReq.Header.Set("User-Agent", "CubeX-Daemon/1.0")
+			pReq.Header.Set("Accept", "application/vnd.github.v3+json")
+			pResp, err := pClient.Do(pReq)
+			if err == nil && pResp.StatusCode == http.StatusOK {
+				var rel struct {
+					TagName string `json:"tag_name"`
+				}
+				if json.NewDecoder(pResp.Body).Decode(&rel) == nil && rel.TagName != "" {
+					pResp.Body.Close()
+					return rel.TagName, nil
+				}
+				pResp.Body.Close()
+			}
+		}
+	}
+
+	// Tier 1: Web 302 Redirect via verified fast GitHub mirrors
 	redirectCandidates := []string{
-		"https://ghproxy.net/https://github.com/" + repo + "/releases/latest",
-		"https://mirror.ghproxy.com/https://github.com/" + repo + "/releases/latest",
+		"https://ghfast.top/https://github.com/" + repo + "/releases/latest",
+		"https://ghproxy.cn/https://github.com/" + repo + "/releases/latest",
 		"https://github.com/" + repo + "/releases/latest",
 	}
 
 	client := &http.Client{
-		Timeout: 2 * time.Second,
+		Timeout: 5 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
@@ -731,7 +759,7 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 		}
 	}
 
-	// Tier 2: GitHub API fallback
+	// Tier 2: GitHub API fallback (direct)
 	apiCandidates := []string{
 		"https://api.github.com/repos/" + repo + "/releases/latest",
 	}
@@ -766,6 +794,33 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 			return release.TagName, nil
 		}
 	}
+
+	// Tier 3: If repo is CubeX itself, fallback to raw meta.json on main branch
+	if strings.Contains(strings.ToLower(repo), "cubex") {
+		metaURLs := []string{
+			"https://ghfast.top/https://raw.githubusercontent.com/" + repo + "/main/meta.json",
+			"https://raw.githubusercontent.com/" + repo + "/main/meta.json",
+		}
+		for _, mURL := range metaURLs {
+			req, err := http.NewRequest(http.MethodGet, mURL, nil)
+			if err != nil {
+				continue
+			}
+			req.Header.Set("User-Agent", "CubeX-Daemon/1.0")
+			resp, err := client.Do(req)
+			if err == nil && resp.StatusCode == http.StatusOK {
+				var meta struct {
+					Version string `json:"version"`
+				}
+				if json.NewDecoder(resp.Body).Decode(&meta) == nil && meta.Version != "" {
+					resp.Body.Close()
+					return meta.Version, nil
+				}
+				resp.Body.Close()
+			}
+		}
+	}
+
 	return "", lastErr
 }
 
@@ -919,10 +974,38 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 		cleanGitHubURL = "https://" + rawURL[idx+7:]
 	}
 
+	// If local proxy 127.0.0.1:7890 is active, try direct download via local proxy first!
+	proxyURL, pErr := url.Parse("http://127.0.0.1:7890")
+	if pErr == nil {
+		pClient := &http.Client{
+			Transport: &http.Transport{
+				Proxy:           http.ProxyURL(proxyURL),
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+			Timeout: 120 * time.Second,
+		}
+		pReq, err := http.NewRequest(http.MethodGet, cleanGitHubURL, nil)
+		if err == nil {
+			pReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+			pResp, err := pClient.Do(pReq)
+			if err == nil && pResp.StatusCode == http.StatusOK {
+				out, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+				if err == nil {
+					_, copyErr := io.Copy(out, pResp.Body)
+					out.Close()
+					pResp.Body.Close()
+					if copyErr == nil {
+						return nil
+					}
+				}
+				pResp.Body.Close()
+			}
+		}
+	}
+
 	candidates := []string{
-		"https://ghproxy.net/" + cleanGitHubURL,
 		"https://ghfast.top/" + cleanGitHubURL,
-		"https://mirror.ghproxy.com/" + cleanGitHubURL,
+		"https://ghproxy.cn/" + cleanGitHubURL,
 		cleanGitHubURL,
 	}
 
