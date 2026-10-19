@@ -39,6 +39,11 @@ type Manager struct {
 
 	lastConnected bool
 	lastVersion   string
+
+	cachedLatestMihomo  string
+	cachedLatestSingbox string
+	cachedLatestPanel   string
+	cachedVerTime       time.Time
 }
 
 // ROSConfig stores the RouterOS connection settings.
@@ -73,14 +78,26 @@ func (m *Manager) GetOverview() map[string]any {
 	defer m.mu.Unlock()
 
 	mihomoVer := m.getLocalMihomoVersion()
-	latestMihomo, _ := m.fetchLatestMihomoVersion()
+	panelVer := m.getLocalPanelVersion()
+	singboxVer := m.getLocalSingboxVersion()
 	rosConnected, rosVersion := m.checkROSConnection()
 
-	panelVer := m.getLocalPanelVersion()
-	latestPanel, _ := m.fetchLatestPanelVersion()
-
-	singboxVer := m.getLocalSingboxVersion()
-	latestSingbox, _ := m.fetchLatestSingboxVersion()
+	var latestMihomo, latestPanel, latestSingbox string
+	if time.Since(m.cachedVerTime) < 10*time.Minute && m.cachedLatestPanel != "" {
+		latestMihomo = m.cachedLatestMihomo
+		latestPanel = m.cachedLatestPanel
+		latestSingbox = m.cachedLatestSingbox
+	} else {
+		latestMihomo, _ = m.fetchLatestMihomoVersion()
+		latestPanel, _ = m.fetchLatestPanelVersion()
+		latestSingbox, _ = m.fetchLatestSingboxVersion()
+		if latestPanel != "" {
+			m.cachedLatestMihomo = latestMihomo
+			m.cachedLatestPanel = latestPanel
+			m.cachedLatestSingbox = latestSingbox
+			m.cachedVerTime = time.Now()
+		}
+	}
 
 	normLatestPanel := normalizeVersion(latestPanel)
 	normCurrPanel := normalizeVersion(panelVer)
@@ -640,7 +657,7 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 	}
 
 	client := &http.Client{
-		Timeout: 6 * time.Second,
+		Timeout: 2 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},

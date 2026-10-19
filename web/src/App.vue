@@ -1446,12 +1446,12 @@
                   @drop="onRegionDrop(reg.id, $event)"
                   class="rounded-2xl bg-[#00172e]/85 border border-slate-800/80 hover:border-cyan-500/40 transition-all duration-200 shadow-md p-3.5 space-y-2.5 group">
                   
-                  <!-- Group Header Row: Drag Handle, Flag, Title, Dropdown, Latency & Actions -->
-                  <div class="flex items-center justify-between gap-2.5">
-                    <!-- Left: Drag + Flag + Group Info -->
+                  <!-- ── Group Header (Tier 1: Identity, Badges, Latency & Fast Actions) ── -->
+                  <div class="flex items-center justify-between gap-3">
+                    <!-- Left: Drag + Flag + Group Name + Type Badge + Count Badge -->
                     <div class="flex items-center gap-2.5 min-w-0">
                       <!-- Drag Handle -->
-                      <div class="text-slate-500 hover:text-cyan-400 cursor-grab active:cursor-grabbing p-0.5 transition select-none text-sm shrink-0" title="按住拖拽排序">
+                      <div class="text-slate-500 hover:text-cyan-400 cursor-grab active:cursor-grabbing p-0.5 transition select-none text-base shrink-0" title="按住拖拽排序">
                         ⠿
                       </div>
 
@@ -1462,43 +1462,28 @@
                         <RegionFlag :id="reg.id" :country-code="reg.country_code" :name="reg.name" :type="reg.type" :flag="reg.flag" size-class="w-8 h-5.5" />
                       </div>
 
-                      <!-- Group Name & Meta -->
-                      <div class="min-w-0 space-y-0.5">
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                          <span class="text-sm font-bold text-white tracking-wide truncate">{{ reg.name }}</span>
-                          <span v-if="reg.type === 'sub'" class="text-[9px] px-1.5 py-0.2 rounded-full font-mono bg-purple-950/80 text-purple-300 border border-purple-500/30">
-                            ✈️ 机场
-                          </span>
-                          <span v-else-if="reg.id === 'CUSTOM'" class="text-[9px] px-1.5 py-0.2 rounded-full font-mono bg-indigo-950/80 text-indigo-300 border border-indigo-500/30">
-                            🏠 自建
-                          </span>
-                          <span v-else class="text-[9px] px-1.5 py-0.2 rounded-full font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-500/30">
-                            🌍 地区
-                          </span>
-                          <span class="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-slate-900 text-slate-400 border border-slate-800">
-                            {{ reg.totalCount }} 节点
-                          </span>
-                        </div>
-                        <div class="text-[11px] font-mono text-emerald-300 flex items-center gap-1 truncate">
-                          <span class="text-slate-500">出站:</span>
-                          <span class="font-bold text-emerald-300 truncate max-w-[130px] sm:max-w-[180px]">{{ reg.winner || '自动优选就绪' }}</span>
-                        </div>
+                      <!-- Group Name & Category Tags -->
+                      <div class="flex items-center gap-2 flex-wrap min-w-0">
+                        <span class="text-sm sm:text-base font-bold text-white tracking-wide truncate max-w-[130px] sm:max-w-[180px]">{{ reg.name }}</span>
+                        <span v-if="reg.type === 'sub'" class="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium bg-purple-950/90 text-purple-300 border border-purple-500/30 whitespace-nowrap shrink-0">
+                          ✈️ 机场
+                        </span>
+                        <span v-else-if="reg.id === 'CUSTOM'" class="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium bg-indigo-950/90 text-indigo-300 border border-indigo-500/30 whitespace-nowrap shrink-0">
+                          🏠 自建
+                        </span>
+                        <span v-else class="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium bg-cyan-950/90 text-cyan-300 border border-cyan-500/30 whitespace-nowrap shrink-0">
+                          🌍 地区
+                        </span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-slate-900/90 text-slate-300 border border-slate-700/60 whitespace-nowrap shrink-0">
+                          {{ reg.totalCount }} 节点
+                        </span>
                       </div>
                     </div>
 
-                    <!-- Right: Strategy Dropdown + Latency + Actions -->
-                    <div class="flex items-center gap-1.5 shrink-0">
-                      <!-- 策略下拉切换器: 自动 / 故转 / 容灾 -->
-                      <select :value="regionActivePolicy[reg.id] || 'auto'"
-                        @change="selectRegionPolicy(reg, $event.target.value)"
-                        class="px-2.5 py-1.5 rounded-xl text-xs font-bold font-mono bg-slate-900 border border-slate-700/80 hover:border-cyan-400 focus:border-cyan-400 text-cyan-300 outline-none transition cursor-pointer shadow-sm">
-                        <option value="auto">⚡ 自动 (URLTest)</option>
-                        <option value="fall">🔄 故转 (Fallback)</option>
-                        <option value="disaster">🛡️ 容灾 (LoadBalance)</option>
-                      </select>
-
+                    <!-- Right: Latency Badge + Fast Speedtest + Delete Button -->
+                    <div class="flex items-center gap-2 shrink-0">
                       <!-- Latency badge (Click to speedtest) -->
-                      <span :class="['px-2 py-1 rounded-xl text-xs font-mono font-bold shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition select-none',
+                      <span :class="['px-2.5 py-1 rounded-xl text-xs font-mono font-bold shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition select-none whitespace-nowrap',
                         regionTestingMap[reg.id] ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : getLatencyBadgeClass(reg.winnerLatency)]"
                         @click.stop="enqueueRegionSpeedtest(reg)"
                         :title="regionTestingMap[reg.id] ? '正在测速中...' : '点击立即测速该分组所有节点'">
@@ -1511,19 +1496,43 @@
                         <span :class="{'inline-block animate-spin': regionTestingMap[reg.id]}">⚡</span>
                       </button>
 
-                      <!-- Toggle Node List Button (Collapsed by Default) -->
-                      <button @click.stop="toggleRegionExpand(reg.id)"
-                        class="p-1.5 px-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-xs transition flex items-center gap-0.5"
-                        :title="expandedRegion[reg.id] ? '收起节点清单' : '展开查看该组全部节点'">
-                        <span class="text-[11px]">{{ expandedRegion[reg.id] ? '收起' : '节点' }}</span>
-                        <span class="text-[9px] text-slate-500">({{ reg.totalCount }})</span>
-                        <span class="text-[10px] transition-transform duration-200" :class="{ 'rotate-180': expandedRegion[reg.id] }">▾</span>
-                      </button>
-
                       <!-- Region Group Delete Button -->
                       <button @click.stop="deleteRegionDef(reg.id)" title="删除此地区节点组"
                         class="p-1.5 px-2 rounded-xl bg-slate-900 hover:bg-rose-950/80 border border-slate-800 hover:border-rose-500/40 text-slate-500 hover:text-rose-400 text-xs transition active:scale-95">
                         ✕
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- ── Group Sub-Bar (Tier 2: Active Outbound Route & Policy Strategy Selector) ── -->
+                  <div class="pt-2 border-t border-slate-800/60 flex items-center justify-between gap-2.5">
+                    <!-- Left: Outbound Winner -->
+                    <div class="text-[11px] font-mono text-emerald-300 flex items-center gap-1.5 truncate min-w-0">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_6px_#10b981] animate-pulse"></span>
+                      <span class="text-slate-400 shrink-0">出站:</span>
+                      <span class="font-bold text-emerald-300 truncate max-w-[140px] sm:max-w-[200px]" :title="reg.winner || '自动优选就绪'">
+                        {{ reg.winner || '自动优选就绪' }}
+                      </span>
+                    </div>
+
+                    <!-- Right: Policy Strategy Selector + Toggle Nodes Button -->
+                    <div class="flex items-center gap-2 shrink-0">
+                      <!-- 策略下拉切换器: 自动 / 故转 / 容灾 -->
+                      <select :value="regionActivePolicy[reg.id] || 'auto'"
+                        @change="selectRegionPolicy(reg, $event.target.value)"
+                        class="px-2.5 py-1 rounded-xl text-xs font-bold font-mono bg-slate-950 border border-slate-700/80 hover:border-cyan-400 focus:border-cyan-400 text-cyan-300 outline-none transition cursor-pointer shadow-sm">
+                        <option value="auto">⚡ 自动 (URLTest)</option>
+                        <option value="fall">🔄 故转 (Fallback)</option>
+                        <option value="disaster">🛡️ 容灾 (LoadBalance)</option>
+                      </select>
+
+                      <!-- Toggle Node List Button (Collapsed by Default) -->
+                      <button @click.stop="toggleRegionExpand(reg.id)"
+                        class="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-slate-200 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+                        :title="expandedRegion[reg.id] ? '收起节点清单' : '展开查看该组全部节点'">
+                        <span class="text-[11px] font-medium">{{ expandedRegion[reg.id] ? '收起' : '节点' }}</span>
+                        <span class="text-[10px] text-cyan-400 font-mono font-semibold">({{ reg.totalCount }})</span>
+                        <span class="text-[10px] text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': expandedRegion[reg.id] }">▾</span>
                       </button>
                     </div>
                   </div>
@@ -5737,8 +5746,20 @@ const batchImportingSubs = ref(false)
 const batchAddingNodes = ref(false)
 const expandedSubIds = ref({})
 const subSpeedTesting = ref({})
-const groupFilters = ref({})
-const routingSubTab = ref('policy') // 'policy' | 'node' | 'sub'
+const routingSubTab = ref((() => {
+  try {
+    const sp = new URLSearchParams(window.location.search)
+    const sub = sp.get('sub')
+    if (['policy', 'node', 'sub'].includes(sub)) return sub
+    const saved = localStorage.getItem('cubex_routing_sub_tab')
+    if (['policy', 'node', 'sub'].includes(saved)) return saved
+  } catch (e) {}
+  return 'policy'
+})())
+
+watch(routingSubTab, (val) => {
+  try { localStorage.setItem('cubex_routing_sub_tab', val) } catch (e) {}
+})
 const routingSearchQuery = ref('')
 const routingSortMode = ref('default') // 'default' | 'latency' | 'name'
 const expandedPolicyRules = ref({})
