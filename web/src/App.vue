@@ -7139,11 +7139,20 @@ try {
       parsed.forEach(item => {
         if (!item.country_code && item.code) item.country_code = item.code
         if (!item.code && item.country_code) item.code = item.country_code
-        if (item.country_code && !item.regex_str) {
-          const p = availableCountryPresets.find(pre => pre.code === item.country_code.toUpperCase())
-          if (p) {
-            item.regex_str = `(${p.keywords})`
-            if (!item.flag) item.flag = p.flag
+        if (!item.regex_str) {
+          if (item.country_code) {
+            const codes = item.country_code.split(',').map(c => c.trim().toUpperCase()).filter(Boolean)
+            const matched = codes.map(c => availableCountryPresets.find(pre => pre.code === c)).filter(Boolean)
+            if (matched.length > 0) {
+              item.regex_str = `(${matched.map(p => `(${p.keywords})`).join('|')})`
+              if (!item.flag) item.flag = matched[0].flag
+            }
+          }
+          if (!item.regex_str && item.name) {
+            const matched = availableCountryPresets.filter(p => item.name.includes(p.name))
+            if (matched.length > 0) {
+              item.regex_str = `(${matched.map(p => `(${p.keywords})`).join('|')})`
+            }
           }
         }
         if (item.regex_str && (!item.regex || !(item.regex instanceof RegExp))) {
@@ -7435,8 +7444,21 @@ function submitAddCustomNodeGroup() {
       return
     }
 
-    // If 1 country was selected
-    if (selCodes.length === 1) {
+    // If multiple countries are selected in combine mode
+    if (selCodes.length > 1 && customNodeGroupForm.value.multi_mode === 'combine') {
+      const selectedPresets = selCodes.map(code => availableCountryPresets.find(item => item.code === code)).filter(Boolean)
+      if (selectedPresets.length > 0) {
+        if (!customNodeGroupForm.value.name) {
+          customNodeGroupForm.value.name = selectedPresets.map(p => p.name).join('·')
+        }
+        if (!customNodeGroupForm.value.flag) {
+          customNodeGroupForm.value.flag = selectedPresets[0].flag
+        }
+        customNodeGroupForm.value.country_code = selCodes.join(',')
+        const combinedKeywords = selectedPresets.map(p => `(${p.keywords})`).join('|')
+        customNodeGroupForm.value.regex_str = `(${combinedKeywords})`
+      }
+    } else if (selCodes.length === 1) {
       const p = availableCountryPresets.find(item => item.code === selCodes[0])
       if (p) {
         customNodeGroupForm.value.country_code = p.code

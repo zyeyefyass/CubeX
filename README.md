@@ -90,25 +90,61 @@
 > *全站 UI 采用 100% 独立构建的 **Cyber Aurora 赛博极光 × MikroTik 科技深蓝美学**，高质感全息毛玻璃 (`backdrop-blur-xl`)，彻底告别粗糙古董的前端陈旧感！*  
 > *所有展示截图均已通过自动化脱敏引擎审计，敏感订阅、私有节点与密钥信息均已抹除。*
 
-### 1. 全息网络中枢 · 双擎竞技与实时流量图谱
-支持一键秒级切换 `sing-box` 与 `Mihomo`，同台进行 TCP/TLS 握手延迟、内存开销与吞吐率的极限竞技；全域 24 小时流量曲线直观掌控。
+### 1. 全息网络中枢 · 双擎竞技、实时波形与一键平滑热更
+原生融合 `Mihomo × sing-box v1.14+` 双引擎，毫秒级无感热切换；全域 24 小时出入站流量波形掌控；顶栏集成**华为云/Cloudflare 双端真实网络健康度探针**与全新的**「⚡ 一键平滑热更」**无感自愈通道。
 
 <div align="center">
-  <img src="docs/assets/screenshots/01-cockpit-traffic-full.png" alt="CubeX 全息驾驶舱" width="95%" />
+  <img src="docs/assets/screenshots/01-cockpit-aurora-dashboard.png" alt="CubeX 全息驾驶舱与双擎竞技中枢" width="95%" />
 </div>
 
 ---
 
-### 2. 应用分流矩阵 · 国家地区卡片与业务直达
-涵盖 AI（ChatGPT/Claude/Gemini）、YouTube、Google、GitHub、Docker、Telegram、Steam 等全场景策略分流；支持一键测速与节点排序，纯净无广告。
+### 2. 纯净业务策略分流 · 14 大官方标准分流矩阵
+彻底拆分业务策略与地区集群，全景呈现专为应用而生的 14 大官方分流策略：涵盖 AI（ChatGPT/Claude/Gemini）、YouTube、Google、GitHub、Docker、Telegram、Netflix、Steam、🎯 国内流量、🌐 国外流量、🐟 漏网之鱼等；纯净直观，逻辑严密。
 
 <div align="center">
-  <img src="docs/assets/screenshots/02-routing-rules.png" alt="CubeX 应用分流矩阵" width="95%" />
+  <img src="docs/assets/screenshots/02-business-policy-matrix.png" alt="CubeX 14 大官方业务策略分流矩阵" width="95%" />
 </div>
 
 ---
 
-### 3. 全维度安全雷达 · 6 维防泄露与 100 分极光盾
+### 3. 策略候选地区严格互斥单选与直达调度
+每个业务策略卡片下方提供精准的出口候选卡片，实行**严格单选高亮（Radio Selection）**；支持一键直达全球各核心地区集群、直连（DIRECT）或拦截（REJECT），实时回显各集群当前优选出站节点与物理海缆真实时延。
+
+<div align="center">
+  <img src="docs/assets/screenshots/02-policy-radio-select.png" alt="CubeX 策略候选地区严格互斥单选" width="95%" />
+</div>
+
+---
+
+### 4. 地区节点集群 · 多国复合自建与专属机场组
+全球节点池高度结构化管理：自动归类香港、台湾、日本、韩国、新加坡、美国等预设地区；独创支持**多国复合组**（如「🇹🇼 台湾·日本·韩国」）与**机场专属订阅组**（如「HHost-JP 专属」）；各卡片支持三维高可用（自动优选/故转/容灾）、拖拽排序与单组/全员真实端到端测速。
+
+<div align="center">
+  <img src="docs/assets/screenshots/03-regional-node-clusters.png" alt="CubeX 地区节点集群与专属机场分组" width="95%" />
+</div>
+
+---
+
+### 5. 宿主共生中枢 · RouterOS v7 与爱快 (iKuai) 深度双向联动
+原生自研双向协同协议，自动体检并下发主路由 `table 8228` 纯净策略路由表、RFC 2544 标准 `198.18.0.0/15` 静态回指路由、接口状态联动与全维度体检，消灭传统旁路由的一切信息孤岛。
+
+<div align="center">
+  <img src="docs/assets/screenshots/04-host-symbiosis-ikuai-ros.png" alt="CubeX 宿主共生深度联动与全维度体检" width="95%" />
+</div>
+
+---
+
+### 6. 宿主凭据一键绑定与全自动路由编排
+内置 RouterOS REST API 与爱快 Web-RPC 原生驱动，无需安装任何外部模块，一键填入主机 IP 与管理凭据即可秒级连通并自动完成旁路网关与 DHCP 选项加固。
+
+<div align="center">
+  <img src="docs/assets/screenshots/05-host-credentials-linkage.png" alt="CubeX 宿主凭据一键绑定与自愈编排" width="95%" />
+</div>
+
+---
+
+### 7. 全维度安全雷达 · 6 维防泄露与 100 分极光盾
 0 明文 DNS 回退、Apple Type 65 探针阻断（杜绝 Safari 漏球）、WebRTC Fake-IP 保密隔离、EDNS0 真实子网剥离、QUIC 智能降级，让内网处于绝对安全状态。
 
 <div align="center">
@@ -117,7 +153,7 @@
 
 ---
 
-### 4. 权威广告过滤 · 217heidai MRS 纯内核级拦截
+### 8. 权威广告过滤 · 217heidai MRS 纯内核级拦截
 深度集成 217heidai 权威规则库（MRS 高性能二进制格式），直接在 DNS 与路由入口处毫秒级掐灭视频前贴片、流氓开屏广告与全域追踪探针。
 
 <div align="center">
@@ -126,20 +162,11 @@
 
 ---
 
-### 5. 穿透协同 · EasyTier 全协议 Mesh 与设备分流
+### 9. 穿透协同 · EasyTier 全协议 Mesh 与设备分流
 去中心化 P2P 穿透、多协议抗封锁（TCP/UDP/WSS/TLS）、子网代理漫游，免公网 IP 实现异地局域网大合体；局域网终端独立设备直连/代理按需勾选。
 
 <div align="center">
   <img src="docs/assets/screenshots/04-wireguard-matrix.png" alt="CubeX 穿透协同" width="95%" />
-</div>
-
----
-
-### 6. 宿主共生底座 · 工业级一键深度巡检与全量重配
-全自动嗅探 RouterOS / Linux / 飞牛底座，一键下发纯净策略路由表，彻底清理历史 Mangle 抢流与 DNS 53 端口强制劫持，配套 3 秒 Netwatch 宕机零感逃生。
-
-<div align="center">
-  <img src="docs/assets/screenshots/06-host-symbiosis.png" alt="CubeX 宿主共生中枢" width="95%" />
 </div>
 
 ---
@@ -338,6 +365,10 @@ CubeX 选择了一条完全不同的架构路径——**宿主共生 (Host Symbi
 2. **连通宿主（核心基石）**：**这是实现一切自动化与最高等级安全的最最重要一步！** 填入主路由通信凭据完成握手，CubeX 即刻掌握主路由编排大权；
 3. **一键编排，拒绝断网**：向导全自动下发 RFC 2544 标准 198.18.0.0/15 回指路由、关闭 send-redirects、配置 FastTrack 白名单与 Netwatch 逃生探针；
 4. **绚烂仪式感**：初始化成功后，全屏绽放专属 Cyber Aurora 极光动态粒子烟花，仪式感直接拉满！
+
+<div align="center">
+  <img src="docs/assets/screenshots/06-setup-wizard-ros.png" alt="CubeX 4步初次安装初始化向导" width="95%" />
+</div>
 
 ---
 
@@ -701,8 +732,12 @@ CubeX 严格遵循专有闭源 EULA 合规准则与脱敏规范，发布包内**
 
 ### 方式 A：MikroTik RouterOS v7 容器一键导入 (官方强烈推荐)
 
+<div align="center">
+  <img src="docs/assets/screenshots/06-setup-wizard-ros.png" alt="CubeX RouterOS 容器一键部署与初始化向导" width="95%" />
+</div>
+
 1. 前往 [GitHub Releases 最新发布页](https://github.com/zyeyefyass/CubeX/releases/latest) 下载最新版 `CubeX-ros-amd64.tar`（或 ARM64 如 RB5009 对应版本）；
-2. 打开 WinBox，将 `.tar` 镜像文件拖入 `Files` 根目录；
+2. 打开 WinBox，将 `.tar` 镜像文件直接拖入 `Files` 根目录；
 3. 在 WinBox 终端直接执行随包附带的 `setup-routeros-v7.rsc`，或手动创建容器：
    ```routeros
    /container/add file=CubeX-ros-amd64.tar interface=veth-cubex root-dir=cubex start-on-boot=yes
@@ -711,7 +746,7 @@ CubeX 严格遵循专有闭源 EULA 合规准则与脱敏规范，发布包内**
    ```routeros
    /container/add remote-image=fyasshole/cubex:latest interface=veth-cubex root-dir=cubex start-on-boot=yes
    ```
-4. 容器拉起后，浏览器直接访问：`http://<容器IP>:2026` 即可进入 Cyber Aurora 全息控制台！
+4. 容器拉起后，浏览器直接访问：`http://<容器IP>:2026` 即可进入 Cyber Aurora 全息控制台，4 步开箱向导将全自动为您打通 RouterOS 策略路由与 FastTrack 硬件加速白名单！
 
 ---
 
@@ -803,8 +838,18 @@ CubeX 严格遵循专有闭源 EULA 合规准则与脱敏规范，发布包内**
 
 ---
 
-#### 步骤 6：验证访问与极光控制台
+#### 步骤 6：验证访问与极光控制台 (爱快宿主共生深度联动)
+
+<div align="center">
+  <img src="docs/assets/screenshots/04-host-symbiosis-ikuai-ros.png" alt="CubeX 爱快与 RouterOS 多宿主共生全自动巡检" width="95%" />
+</div>
+
 * 打开浏览器访问：`http://192.168.1.200:2026`，即可进入 Cyber Aurora 全息控制台导入订阅；
+* 进入【宿主共生】设置，填入爱快管理后台账号密码并点击【保存并下发联动】：
+  <div align="center">
+    <img src="docs/assets/screenshots/05-host-credentials-linkage.png" alt="CubeX 爱快凭据绑定与 Web-RPC 联动" width="90%" />
+  </div>
+* CubeX 将通过自研纯 Go 原生 Web-RPC 驱动，自动对齐爱快当前活跃网卡与回指路由，并在控制台实时呈现静态路由与 DHCP 联动健康度！
 * 此时局域网内任意手机或 PC 访问海外网站即刻丝滑秒开，国内所有大文件下载与测速全部由爱快硬件加速满血狂飙！
 
 ---
