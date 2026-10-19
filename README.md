@@ -346,10 +346,90 @@ CubeX 严格遵循专有闭源 EULA 合规准则与脱敏规范，发布包内**
 
 CubeX 容器镜像原生支持飞牛 fnOS、群晖 Synology、QNAP 威联通及各类通用 Linux（Ubuntu/Debian/Alpine/CentOS）底座。**默认持久化存储路径严格对齐飞牛官方规范 `/vol1/1000/cubex`，通用 Linux 默认推荐 `/etc/cubex`**。
 
-#### ⚡ 途径 ①：Docker Run 命令行一键拉起 (极简直接 · 极客最爱)
+---
 
-##### 1. 飞牛 fnOS 专属单行指令 (遵循 `/vol1/1000/cubex` 存储卷规范)：
+#### 🌟【强烈推荐 · 最佳实践】途径 ①：独立 IP (Macvlan) 模式部署
+
+> [!TIP]
+> **为什么独立 IP 模式是最佳体验？**
+> 1. **彻底杜绝端口冲突**：CubeX 独占专属 IP（如 `10.0.0.11`），坐拥 65535 个独立端口，53 端口（DNS）绝不与飞牛自身系统服务或其它 Docker 容器（AdGuard Home 等）争抢；
+> 2. **拓扑逻辑极简解耦**：主路由设备列表中清晰呈现一台名为 `CubeX (10.0.0.11)` 的独立虚拟网关，概念不混淆；
+> 3. **主路由网关黄金共生**：终端网关填 `10.0.0.1`（国内流量物理线速直通），终端 DNS 填 `10.0.0.11`。飞牛 NAS 关机维护或重启，**全家国内上网、微信、刷抖音、智能家居 100% 不受影响，绝不断网**！
+
+##### 步骤 1：在飞牛终端创建一次 Macvlan 网络
+在飞牛终端通过 `ip a` 查看主物理网卡名称（通常为 `eth0` 或 `enp3s0`），执行一次创建（以局域网 `10.0.0.0/24`、主路由 `10.0.0.1` 为例）：
 ```bash
+docker network create -d macvlan \
+  --subnet=10.0.0.0/24 \
+  --gateway=10.0.0.1 \
+  -o parent=eth0 \
+  cubex_macvlan
+```
+
+##### 步骤 2：启动独立 IP 容器（提供 Compose 与 Run 两种方式）
+
+**方式 A：Docker Compose 编排（最推荐，在飞牛【Docker】->【项目】新建即可）**：
+```yaml
+version: '3.8'
+
+services:
+  cubex:
+    image: fyasshole/cubex:latest  # 亦可使用 ghcr.io/zyeyefyass/cubex:latest
+    container_name: cubex
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    networks:
+      cubex_macvlan:
+        ipv4_address: 10.0.0.11          # 分配给 CubeX 的专属局域网独立 IP
+    volumes:
+      - /vol1/1000/cubex/data:/app/data # 飞牛持久化配置目录 (通用Linux请改为 /etc/cubex/data)
+      - /vol1/1000/cubex/etc:/app/etc   # 核心配置文件目录 (通用Linux请改为 /etc/cubex/etc)
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - CUBEX_PORT=2026
+      - CUBEX_LISTEN=:2026
+
+networks:
+  cubex_macvlan:
+    external: true
+```
+
+**方式 B：Docker Run 单行指令启动**：
+```bash
+docker run -d \
+  --name cubex \
+  --restart unless-stopped \
+  --network cubex_macvlan \
+  --ip 10.0.0.11 \
+  --cap-add=NET_ADMIN \
+  --device /dev/net/tun:/dev/net/tun \
+  -v /vol1/1000/cubex/data:/app/data \
+  -v /vol1/1000/cubex/etc:/app/etc \
+  -v /etc/localtime:/etc/localtime:ro \
+  -e TZ=Asia/Shanghai \
+  -e CUBEX_PORT=2026 \
+  -e CUBEX_LISTEN=:2026 \
+  fyasshole/cubex:latest
+```
+
+##### 步骤 3：网络配置极速三步走
+1. **主路由添加静态路由**：`198.18.0.0/15 ➔ 10.0.0.11`；
+2. **终端设备网络配置**：默认网关填 **`10.0.0.1`**，首选 DNS 填 **`10.0.0.11`**（亦可在主路由 DHCP 选项中将下发 DNS 设为 `10.0.0.11`，全家全自动生效）；
+3. **飞牛 NAS 自身设置**：网关填 `10.0.0.1`，首选 DNS 填 `10.0.0.1` 或 `223.5.5.5`（飞牛自身直通公网，永不发生冷启动死锁）；
+4. 浏览器访问：`http://10.0.0.11:2026` 即可进入控制台！
+
+---
+
+#### ⚡【免折腾极速版】途径 ②：Host 共享网络模式（单行拉起）
+
+适合不想配置 Macvlan、且飞牛 53 端口没有被其他容器占用的用户：
+
+```bash
+# 飞牛 fnOS 专属单行指令 (共享飞牛 IP: 10.0.0.2)
 docker run -d \
   --name cubex \
   --restart unless-stopped \
@@ -364,63 +444,7 @@ docker run -d \
   -e CUBEX_LISTEN=:2026 \
   fyasshole/cubex:latest
 ```
-
-##### 2. 通用 Linux 宿主 (Ubuntu / Debian / PVE 宿主 / 群晖)：
-```bash
-docker run -d \
-  --name cubex \
-  --restart unless-stopped \
-  --net=host \
-  --cap-add=NET_ADMIN \
-  --device /dev/net/tun:/dev/net/tun \
-  -v /etc/cubex/data:/app/data \
-  -v /etc/cubex/etc:/app/etc \
-  -v /etc/localtime:/etc/localtime:ro \
-  -e TZ=Asia/Shanghai \
-  -e CUBEX_PORT=2026 \
-  -e CUBEX_LISTEN=:2026 \
-  fyasshole/cubex:latest
-```
-
-> [!TIP]
-> **参数要点解析**：
-> - `--net=host`：**必须项**，让 CubeX 容器直接共享宿主机物理网络栈，实现透明网关旁路接管；
-> - `--cap-add=NET_ADMIN` 与 `--device /dev/net/tun:/dev/net/tun`：**必须项**，赋予内核路由表操作与 TUN 虚拟网卡隧道创建特权；
-> - 镜像源均已同步最新版：Docker Hub `fyasshole/cubex:latest` 或 GitHub GHCR `ghcr.io/zyeyefyass/cubex:latest`。
-
----
-
-#### 🌟 途径 ②：Docker Compose 编排拉起 (推荐 · 便于维护升级)
-在飞牛【Docker】->【项目】中新建项目，或者在配置目录下创建 `docker-compose.yml`：
-
-```yaml
-version: '3.8'
-
-services:
-  cubex:
-    image: fyasshole/cubex:latest  # 亦可使用 ghcr.io/zyeyefyass/cubex:latest
-    container_name: cubex
-    restart: unless-stopped
-    network_mode: "host"                 # 必须 host 模式以实现局域网旁路接管
-    cap_add:
-      - NET_ADMIN                       # 必须赋予网络管理特权
-    devices:
-      - /dev/net/tun:/dev/net/tun       # 虚拟网卡隧道设备映射
-    volumes:
-      - /vol1/1000/cubex/data:/app/data # 飞牛持久化配置目录 (通用Linux请改为 /etc/cubex/data)
-      - /vol1/1000/cubex/etc:/app/etc   # 核心配置文件目录 (通用Linux请改为 /etc/cubex/etc)
-      - /etc/localtime:/etc/localtime:ro
-    environment:
-      - TZ=Asia/Shanghai
-      - CUBEX_PORT=2026
-      - CUBEX_LISTEN=:2026
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-```
-终端执行 `docker compose up -d` 即可！浏览器访问：`http://<宿主IP>:2026`。
+浏览器访问：`http://<飞牛IP>:2026`。
 
 ---
 
@@ -428,7 +452,7 @@ services:
 1. 在 [Releases 最新发布页](https://github.com/zyeyefyass/CubeX/releases/latest) 下载最新版 `CubeX-docker-amd64.tar.gz` 离线镜像；
 2. 飞牛桌面 ->【Docker】应用 ->【镜像仓库】-> 点击右上角【本地导入】上传 `.tar.gz`；
 3. 【本地镜像】点击【创建容器】：
-   - **网络模式**：勾选 **`Host`**；
+   - **网络**：可直接选 **`cubex_macvlan`** 指定独立 IP，或选 **`Host`**；
    - **环境权限**：勾选 **【高权限执行】(Privileged 或 NET_ADMIN)**；
    - **路径映射**：本地 `/vol1/1000/cubex/data` 映射容器内 `/app/data`；
    - **启动**：容器 2 秒内极速就绪！

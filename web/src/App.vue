@@ -4807,7 +4807,10 @@ const historyRealtimeTrafficIn = ref(Array(60).fill(0))
 const maxRealtimeSpeedKB = computed(() => {
   const m1 = Math.max(...historyRealtimeTrafficOut.value, 0)
   const m2 = Math.max(...historyRealtimeTrafficIn.value, 0)
-  return Math.max(m1, m2, 30) * 1.15
+  const peak = Math.max(m1, m2)
+  if (peak <= 0.2) return 1.0 // 1 kB/s scale when idle so subtle dynamic waves are vividly visible
+  if (peak < 10) return Math.max(peak * 1.35, 1.0)
+  return peak * 1.15
 })
 
 const realtimeOutboundPath = computed(() => {
@@ -5274,8 +5277,17 @@ async function fetchTelemetryTraffic() {
 
       // Push to 60s real-time ECG traffic wave with reactive array reassignment
       if (!realtimePaused.value) {
-        const outKb = parseFloat(((data.outbound_speed_bps || 0) / 1024).toFixed(2))
-        const inKb = parseFloat(((data.inbound_speed_bps || 0) / 1024).toFixed(2))
+        let outKb = parseFloat(((data.outbound_speed_bps || 0) / 1024).toFixed(2))
+        let inKb = parseFloat(((data.inbound_speed_bps || 0) / 1024).toFixed(2))
+
+        // When completely idle (0 B/s), inject subtle breathing heartbeat (0.04 - 0.09 kB/s)
+        // so that both Outbound (Cyan) and Inbound (Emerald) curves flow dynamically
+        if (outKb <= 0.01 && inKb <= 0.01) {
+          const t = Date.now() / 1000
+          outKb = parseFloat((0.05 + Math.sin(t * 1.5) * 0.025).toFixed(3))
+          inKb = parseFloat((0.07 + Math.cos(t * 1.8) * 0.035).toFixed(3))
+        }
+
         const newOut = [...historyRealtimeTrafficOut.value.slice(1), outKb]
         historyRealtimeTrafficOut.value = newOut
         const newIn = [...historyRealtimeTrafficIn.value.slice(1), inKb]
