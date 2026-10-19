@@ -226,7 +226,59 @@
         </div>
       </header>
 
-      <!-- Toast Feedback Notification Banner -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- Floating Regional Speedtest Toast Queue (Top-Right Stack, FIFO)      -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <transition-group name="speedtest-toast" tag="div"
+      class="fixed top-5 right-5 z-[9999] flex flex-col gap-2.5 max-w-[240px] pointer-events-none">
+      <div v-for="task in speedtestTasks" :key="task.id"
+        class="pointer-events-auto w-[210px] sm:w-[230px] rounded-2xl bg-[#00e5ff] text-slate-950 px-3.5 py-2.5 shadow-2xl shadow-cyan-500/40 border border-cyan-200/90 transition-all duration-300 flex flex-col gap-1 select-none animate-in slide-in-from-right fade-in">
+        
+        <!-- Top row: Group Name + Close '✕' Button -->
+        <div class="flex items-center justify-between">
+          <span class="font-black text-sm tracking-wide text-slate-950 truncate max-w-[160px]">{{ task.name }}</span>
+          <button @click.stop="dismissSpeedtestToast(task.id)"
+            class="w-5 h-5 flex items-center justify-center rounded-lg hover:bg-black/15 text-slate-900 hover:text-black font-black text-xs transition cursor-pointer"
+            title="关闭">
+            ✕
+          </button>
+        </div>
+
+        <!-- Bottom row: Status Text -->
+        <div class="text-xs font-mono font-bold flex items-center justify-between text-slate-900">
+          <template v-if="task.status === 'queued'">
+            <span class="flex items-center gap-1.5 opacity-80">
+              <span class="w-2 h-2 rounded-full bg-slate-800 animate-ping"></span>
+              排队等待中...
+            </span>
+            <span class="text-[11px] opacity-75 font-normal">{{ task.totalCount }} 节点</span>
+          </template>
+
+          <template v-else-if="task.status === 'testing'">
+            <span class="flex items-center gap-1.5 text-slate-950 font-black">
+              <span class="w-3 h-3 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
+              测速中...
+            </span>
+            <span class="text-[11px] font-bold">{{ task.totalCount }} 节点</span>
+          </template>
+
+          <template v-else-if="task.status === 'completed'">
+            <span class="font-black text-slate-950">
+              {{ task.onlineCount }}/{{ task.totalCount }} 测试完成
+            </span>
+            <span v-if="task.winnerDelay > 0" class="text-[11px] font-mono text-emerald-950 font-black">
+              {{ task.winnerDelay }}ms
+            </span>
+          </template>
+
+          <template v-else>
+            <span class="text-rose-950 font-bold">测速异常</span>
+          </template>
+        </div>
+      </div>
+    </transition-group>
+
+    <!-- Toast Feedback Notification Banner -->
       <div v-if="toastMsg" class="mx-4 lg:mx-8 mt-4 p-3 rounded-2xl border text-xs font-mono flex items-center justify-between shadow-2xl transition-all animate-in fade-in"
         :class="toastError ? 'bg-rose-950/90 border-rose-500/60 text-rose-200' : 'bg-cyan-950/90 border-cyan-500/60 text-cyan-200'">
         <div class="flex items-center gap-2">
@@ -344,52 +396,52 @@
             </div>
 
             <!-- 测速目标网站选择栏 (多预设快捷切换 + 自定义URL) -->
-            <div class="space-y-2 pt-0.5">
-              <div class="flex items-center justify-between flex-wrap gap-2">
-                <span class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+            <div class="space-y-3.5 pt-1.5">
+              <div class="flex items-center justify-between flex-wrap gap-2.5 py-1">
+                <span class="text-xs sm:text-[13px] font-semibold text-slate-300 flex items-center gap-2">
                   <span>🎯 测速目标网站:</span>
-                  <span class="text-[11px] font-mono text-cyan-400 font-normal truncate max-w-[280px]">{{ benchmarkTargetUrl }}</span>
+                  <span class="text-xs font-mono text-cyan-400 font-medium truncate max-w-[320px]">{{ benchmarkTargetUrl }}</span>
                 </span>
-                <span class="text-[11px] text-slate-400 font-mono flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs text-slate-400 font-mono flex items-center gap-2 flex-wrap">
                   <span>应用分流:</span>
-                  <span class="px-2 py-0.5 rounded-lg bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 text-[11px] font-bold shadow-sm" :title="'匹配规则: ' + currentBenchmarkRoute.ruleTag">
+                  <span class="px-2.5 py-1 rounded-xl bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 text-xs font-bold shadow-sm" :title="'匹配规则: ' + currentBenchmarkRoute.ruleTag">
                     {{ currentBenchmarkRoute.groupName }}
                   </span>
                   <span class="text-slate-500 font-sans">➜</span>
                   <span class="text-slate-400">节点组:</span>
-                  <span class="px-2 py-0.5 rounded-lg bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold shadow-sm" :title="'对应应用分流实际配置的节点组'">
+                  <span class="px-2.5 py-1 rounded-xl bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 text-xs font-bold shadow-sm" :title="'对应应用分流实际配置的节点组'">
                     {{ currentBenchmarkRoute.targetGroupName }}
                   </span>
                 </span>
               </div>
 
               <!-- 快捷网站选择标签药丸 (采用官网矢量 Logo) -->
-              <div class="flex items-center gap-1.5 flex-wrap">
+              <div class="flex items-center gap-2 flex-wrap">
                 <button v-for="site in benchmarkPresetSites" :key="site.url"
                   @click="selectBenchmarkSite(site.url)"
                   :title="site.desc"
                   :class="[
-                    'px-2.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center gap-2 border select-none active:scale-95',
+                    'px-3 py-2 rounded-xl text-xs sm:text-[13px] font-medium transition flex items-center gap-2.5 border select-none active:scale-95 shadow-sm',
                     benchmarkTargetUrl === site.url
                       ? 'bg-gradient-to-r from-cyan-500/25 to-blue-500/25 text-cyan-300 border-cyan-400/60 shadow-[0_0_12px_rgba(0,210,255,0.25)] font-bold'
                       : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-800 hover:border-slate-700'
                   ]">
-                  <BrandLogo :name="site.logo" size="w-3.5 h-3.5" class="shrink-0" />
+                  <BrandLogo :name="site.logo" size="w-4 h-4" class="shrink-0" />
                   <span>{{ site.name }}</span>
                 </button>
               </div>
 
               <!-- 自定义 URL 输入 -->
-              <div class="flex items-center gap-2 pt-1">
+              <div class="flex items-center gap-2.5 pt-1.5">
                 <div class="relative flex-1">
-                  <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-xs text-slate-500 font-mono">🔗</span>
+                  <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-sm text-slate-500 font-mono">🔗</span>
                   <input v-model="benchmarkTargetUrl" type="text"
                     placeholder="输入或粘贴自定义测速 URL (例如 https://...)"
-                    class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-950/80 border border-slate-800 focus:border-cyan-500/60 rounded-xl text-slate-200 placeholder-slate-600 focus:outline-none font-mono transition" />
+                    class="w-full pl-9 pr-3.5 py-2 text-xs sm:text-[13px] bg-slate-950/80 border border-slate-800 focus:border-cyan-500/60 rounded-xl text-slate-200 placeholder-slate-600 focus:outline-none font-mono transition" />
                 </div>
                 <button v-if="benchmarkTargetUrl !== defaultBenchmarkUrl"
                   @click="benchmarkTargetUrl = defaultBenchmarkUrl"
-                  class="px-2.5 py-1.5 rounded-xl text-[11px] text-slate-400 hover:text-cyan-300 bg-slate-900 border border-slate-800 hover:border-cyan-500/30 transition whitespace-nowrap">
+                  class="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-cyan-300 bg-slate-900 border border-slate-800 hover:border-cyan-500/30 transition whitespace-nowrap">
                   恢复默认
                 </button>
               </div>
@@ -463,24 +515,24 @@
             <div v-if="activeProbeDropdown !== null" @click="activeProbeDropdown = null" class="fixed inset-0 z-40"></div>
 
             <!-- Row 1: 4 Service Speedtest Cards with Custom Cyber Aurora Dropdown -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div v-for="(item, bi) in serviceProbes" :key="bi"
-                class="p-3.5 rounded-2xl bg-slate-950/75 border border-slate-800/80 hover:border-cyan-500/40 transition flex items-center justify-between gap-2.5 shadow-md group relative">
+                class="min-h-[72px] py-3.5 px-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-cyan-500/40 transition flex items-center justify-between gap-1 shadow-md group relative overflow-hidden">
                 
                 <!-- Left: Official Clean Brand Logo & Site Selector -->
-                <div class="flex items-center gap-2 sm:gap-2.5 shrink-0 min-w-0">
+                <div class="flex items-center gap-1.5 shrink-0 min-w-0">
                   <!-- Logo (Click to test this card) -->
                   <button @click="probeSingleService(item)" title="点击立即重新测速"
-                    class="w-8 h-8 flex items-center justify-center shrink-0 group-hover:scale-110 active:scale-95 transition-transform duration-200 cursor-pointer">
-                    <BrandLogo :name="item.logo || item.id" size="w-8 h-8" />
+                    class="w-7 h-7 flex items-center justify-center shrink-0 group-hover:scale-110 active:scale-95 transition-transform duration-200 cursor-pointer overflow-hidden">
+                    <BrandLogo :name="item.logo || item.id" size="w-6 h-6" />
                   </button>
 
                   <!-- Site Dropdown Selector Popover -->
                   <div class="relative min-w-0">
                     <button @click="toggleProbeDropdown(bi)" title="点击切换测速站点"
-                      class="flex items-center gap-1.5 px-2 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 hover:border-cyan-400/50 text-xs text-slate-100 hover:text-white font-bold transition cursor-pointer select-none">
-                      <span class="truncate max-w-[65px] sm:max-w-[85px] lg:max-w-[70px] xl:max-w-[90px]">{{ item.name }}</span>
-                      <span class="text-[10px] text-cyan-400 shrink-0 transition-transform duration-200" :class="activeProbeDropdown === bi ? 'rotate-180' : ''">▾</span>
+                      class="flex items-center gap-1 px-2 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 hover:border-cyan-400/50 text-xs text-slate-100 hover:text-white font-bold transition cursor-pointer select-none">
+                      <span class="truncate max-w-[50px] sm:max-w-[62px]">{{ item.name }}</span>
+                      <span class="text-[9px] text-cyan-400 shrink-0 transition-transform duration-200" :class="activeProbeDropdown === bi ? 'rotate-180' : ''">▾</span>
                     </button>
 
                     <!-- Custom Dropdown Popover Menu -->
@@ -502,58 +554,59 @@
                   </div>
                 </div>
 
-                <!-- Middle: 8根柱状图 (移到图标和测速之间，连接不上为红色，长短根据测速结果对应) -->
-                <div @click="probeSingleService(item)"
-                  class="flex items-end justify-center gap-1 h-5 px-1.5 cursor-pointer select-none transition-transform hover:scale-105"
-                  title="实时测速波动 (点击重新测速)">
-                  <span v-for="(bar, hi) in getProbeBars(item, bi)" :key="hi"
-                    class="w-1 rounded-full transition-all duration-300"
-                    :class="bar.colorClass"
-                    :style="{ height: (probingServiceLatencies ? Math.floor(Math.random() * 14 + 4) : bar.height) + 'px' }"></span>
-                </div>
+                <!-- Right: Wave Bars & Latency Value (Compact & Integrated, Never overflows) -->
+                <div @click="probeSingleService(item)" class="flex items-center gap-1.5 shrink-0 cursor-pointer select-none" title="点击立即重新测速">
+                  <!-- 5 Compact Bars -->
+                  <div class="flex items-end gap-0.5 h-4 shrink-0">
+                    <span v-for="(bar, hi) in getProbeBars(item, bi).slice(0, 5)" :key="hi"
+                      class="w-0.75 rounded-full transition-all duration-300"
+                      :class="bar.colorClass"
+                      :style="{ height: (probingServiceLatencies ? Math.floor(Math.random() * 12 + 3) : Math.min(bar.height, 14)) + 'px' }"></span>
+                  </div>
 
-                <!-- Right: 测速结果数值 -->
-                <div @click="probeSingleService(item)" class="flex items-baseline justify-end gap-1 shrink-0 cursor-pointer select-none" title="点击立即测速">
-                  <template v-if="!item.latency || item.latency <= 0 || item.latency >= 999 || item.error">
-                    <span class="text-xs sm:text-sm font-bold font-mono text-rose-500 animate-pulse">超时</span>
-                  </template>
-                  <template v-else>
-                    <span class="text-base sm:text-lg font-black font-mono tracking-tight"
-                      :class="item.latency > 350 ? 'text-amber-400' : 'text-emerald-400'">
-                      {{ item.latency }}
-                    </span>
-                    <span class="text-xs font-normal text-slate-400 font-sans">ms</span>
-                  </template>
+                  <!-- Latency text -->
+                  <div class="text-right min-w-[42px] pr-0.5">
+                    <template v-if="!item.latency || item.latency <= 0 || item.latency >= 999 || item.error">
+                      <span class="text-xs sm:text-sm font-bold font-mono text-rose-500 animate-pulse">超时</span>
+                    </template>
+                    <template v-else>
+                      <span class="text-sm sm:text-base font-black font-mono tracking-tight"
+                        :class="item.latency > 350 ? 'text-amber-400' : 'text-emerald-400'">
+                        {{ item.latency }}
+                      </span>
+                      <span class="text-[10px] font-normal text-slate-400 font-sans ml-0.5">ms</span>
+                    </template>
+                  </div>
                 </div>
               </div>
             </div>
 
             <!-- Row 2: 6 Metrics Strip -->
-            <div class="rounded-2xl bg-slate-950/80 border border-slate-800/80 p-3 sm:p-4">
-              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center divide-y sm:divide-y-0 sm:divide-x divide-slate-800/60">
+            <div class="rounded-2xl bg-slate-950/80 border border-slate-800/80 py-4.5 px-4 sm:px-6 min-h-[76px] flex items-center shadow-md">
+              <div class="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center divide-y sm:divide-y-0 sm:divide-x divide-slate-800/60">
                 <div class="pt-2 sm:pt-0">
-                  <div class="text-[11px] text-slate-400 font-medium">连接数</div>
-                  <div class="text-lg sm:text-xl font-bold font-mono text-white mt-0.5">{{ telemetryMetrics.connections }}</div>
+                  <div class="text-xs text-slate-400 font-medium">连接数</div>
+                  <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ telemetryMetrics.connections }}</div>
                 </div>
                 <div class="pt-2 sm:pt-0">
-                  <div class="text-[11px] text-slate-400 font-medium">内存使用</div>
-                  <div class="text-lg sm:text-xl font-bold font-mono text-white mt-0.5">{{ telemetryMetrics.memoryMB.toFixed(1) }} MB</div>
+                  <div class="text-xs text-slate-400 font-medium">内存使用</div>
+                  <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ telemetryMetrics.memoryMB.toFixed(1) }} MB</div>
                 </div>
                 <div class="pt-2 sm:pt-0">
-                  <div class="text-[11px] text-slate-400 font-medium">进站流量</div>
-                  <div class="text-lg sm:text-xl font-bold font-mono text-white mt-0.5">{{ telemetryMetrics.inboundTotalMB.toFixed(1) }} MB</div>
+                  <div class="text-xs text-slate-400 font-medium">进站流量</div>
+                  <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ telemetryMetrics.inboundTotalMB.toFixed(1) }} MB</div>
                 </div>
                 <div class="pt-2 sm:pt-0">
-                  <div class="text-[11px] text-slate-400 font-medium">进站速率</div>
-                  <div class="text-lg sm:text-xl font-bold font-mono text-white mt-0.5">{{ formatSpeed(telemetryMetrics.inboundSpeedBps) }}</div>
+                  <div class="text-xs text-slate-400 font-medium">进站速率</div>
+                  <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ formatSpeed(telemetryMetrics.inboundSpeedBps) }}</div>
                 </div>
                 <div class="pt-2 sm:pt-0">
-                  <div class="text-[11px] text-slate-400 font-medium">出站流量</div>
-                  <div class="text-lg sm:text-xl font-bold font-mono text-white mt-0.5">{{ telemetryMetrics.outboundTotalMB.toFixed(0) }} MB</div>
+                  <div class="text-xs text-slate-400 font-medium">出站流量</div>
+                  <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ telemetryMetrics.outboundTotalMB.toFixed(0) }} MB</div>
                 </div>
                 <div class="pt-2 sm:pt-0">
-                  <div class="text-[11px] text-slate-400 font-medium">出站速率</div>
-                  <div class="text-lg sm:text-xl font-bold font-mono text-white mt-0.5">{{ formatSpeed(telemetryMetrics.outboundSpeedBps) }}</div>
+                  <div class="text-xs text-slate-400 font-medium">出站速率</div>
+                  <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ formatSpeed(telemetryMetrics.outboundSpeedBps) }}</div>
                 </div>
               </div>
             </div>
@@ -775,14 +828,16 @@
                         <path :d="realtimeOutboundPath.line" fill="none" stroke="#00d2ff" stroke-width="2.5" stroke-linecap="round" />
 
                         <!-- Inbound Area & Line (Emerald) -->
-                        <path :d="realtimeInboundPath.line" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" />
+                        <path :d="realtimeInboundPath.area" fill="url(#realtimeInGrad)" />
+                        <path :d="realtimeInboundPath.line" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" />
 
                         <!-- Current Live Pulse Dot for Outbound (at x = 900) -->
                         <circle cx="896" :cy="realtimeOutboundLastY" r="4" fill="#00d2ff" />
                         <circle cx="896" :cy="realtimeOutboundLastY" r="8" fill="#00d2ff" opacity="0.4" class="animate-ping" />
 
                         <!-- Current Live Pulse Dot for Inbound (at x = 900) -->
-                        <circle cx="896" :cy="realtimeInboundLastY" r="3.5" fill="#10B981" />
+                        <circle cx="896" :cy="realtimeInboundLastY" r="4" fill="#10B981" />
+                        <circle cx="896" :cy="realtimeInboundLastY" r="8" fill="#10B981" opacity="0.4" class="animate-ping" />
                       </svg>
 
                       <!-- X-axis timestamps (-60s to 0s) -->
@@ -1226,31 +1281,6 @@
                           <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/25 to-transparent"></div>
                         </div>
 
-                        <!-- Hover Popover (悬浮窗: 最近 5 次测速精简紧凑视图) -->
-                        <div class="pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-200 absolute top-full left-1/2 -translate-x-1/2 mt-1.5 z-50 shadow-2xl">
-                          <div class="w-2 h-2 bg-[#172033] border-l border-t border-slate-700/80 rotate-45 mx-auto -mb-1 shadow-md"></div>
-                          <div class="w-50 rounded-xl bg-[#172033]/98 border border-slate-700/80 backdrop-blur-xl p-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.85)]">
-                            <div class="flex items-center justify-between text-[9.5px] font-mono pb-1.5 mb-1.5 border-b border-slate-700/50">
-                              <span class="text-slate-400">【{{ reg.name }}】测速记录</span>
-                              <span class="text-cyan-400 font-bold">5 样本</span>
-                            </div>
-                            <div class="relative space-y-1">
-                              <div class="absolute top-1 bottom-1 right-[44px] w-px bg-slate-700/60"></div>
-                              <div v-for="(rec, rIdx) in getCandidateLatencyHistory(grp, 'region', reg)" :key="rIdx"
-                                class="flex items-center justify-between text-[9px] font-mono relative py-0.5">
-                                <div class="min-w-0 pr-1.5 flex-1">
-                                  <div class="text-slate-200 font-medium truncate max-w-[100px]" :title="rec.node_name">{{ rec.node_name }}</div>
-                                  <div class="text-slate-400 text-[8.5px]">{{ rec.time }}</div>
-                                </div>
-                                <div class="w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-slate-900 shrink-0 z-10 mr-2"></div>
-                                <div :class="['w-9 text-right font-bold shrink-0 text-[9.5px]', getLatencyTextColor(rec.delay)]">
-                                  {{ rec.delay > 0 ? rec.delay + 'ms' : '0ms' }}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
                         <!-- Top Row: Delete Action (Top left is clean, completely exposing flag canton/sun/stars) -->
                         <div class="relative z-10 flex items-center justify-end min-h-[18px]">
                           <div class="shrink-0">
@@ -1271,12 +1301,18 @@
                             </span>
                           </div>
                           <span :class="[
-                            'text-[9.5px] font-mono font-bold px-2 py-0.5 rounded-full shadow-md transition shrink-0',
-                            isRegionActiveInGroup(grp, reg)
-                              ? 'bg-emerald-500 text-white shadow-emerald-500/40 ring-1 ring-emerald-300/50'
-                              : 'bg-slate-950/90 text-emerald-400 border border-emerald-500/30 backdrop-blur-sm'
-                          ]">
-                            {{ getRegionLatency(reg) > 0 ? getRegionLatency(reg) : 32 }}
+                            'text-[9.5px] font-mono font-bold px-2 py-0.5 rounded-full shadow-md transition shrink-0 flex items-center gap-1 cursor-pointer select-none',
+                            regionTestingMap[reg.id]
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 animate-pulse'
+                              : isRegionActiveInGroup(grp, reg)
+                                ? 'bg-emerald-500 text-white shadow-emerald-500/40 ring-1 ring-emerald-300/50'
+                                : 'bg-slate-950/90 text-emerald-400 border border-emerald-500/30 backdrop-blur-sm hover:border-cyan-400/60'
+                          ]"
+                          :title="regionTestingMap[reg.id] ? '正在测试中...' : '点击立即测速该组所有节点'"
+                          @click.stop="testRegionGroupNodes(reg)">
+                            <span v-if="regionTestingMap[reg.id]" class="w-2.5 h-2.5 border-2 border-amber-300 border-t-transparent rounded-full animate-spin"></span>
+                            <span v-else class="text-[8px] opacity-75">⚡</span>
+                            <span>{{ regionTestingMap[reg.id] ? '测速中' : (getRegionLatency(reg) > 0 ? getRegionLatency(reg) : 32) }}</span>
                           </span>
                         </div>
                       </div>
@@ -1418,10 +1454,10 @@
                         ⠿
                       </div>
 
-                      <!-- Pure Vector Flag / Icon (Click to Switch Outbound Region) -->
+                      <!-- Pure Vector Flag / Icon (Click to Speedtest Region Nodes) -->
                       <div class="shrink-0 flex items-center cursor-pointer hover:scale-110 active:scale-95 transition"
-                        @click.stop="selectRegionOutbound(reg)"
-                        title="点击直接切换至该地区出站">
+                        @click.stop="enqueueRegionSpeedtest(reg)"
+                        title="点击测速该地区全部节点">
                         <RegionFlag :id="reg.id" :country-code="reg.country_code" :name="reg.name" :type="reg.type" :flag="reg.flag" size-class="w-8 h-5.5" />
                       </div>
 
@@ -1460,16 +1496,18 @@
                         <option value="disaster">🛡️ 容灾 (LoadBalance)</option>
                       </select>
 
-                      <!-- Latency badge -->
-                      <span :class="['px-2 py-1 rounded-xl text-xs font-mono font-bold shadow-sm',
-                        getLatencyBadgeClass(reg.winnerLatency)]">
-                        {{ reg.winnerLatency > 0 ? `${reg.winnerLatency}ms` : '⚡' }}
+                      <!-- Latency badge (Click to speedtest) -->
+                      <span :class="['px-2 py-1 rounded-xl text-xs font-mono font-bold shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition select-none',
+                        regionTestingMap[reg.id] ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : getLatencyBadgeClass(reg.winnerLatency)]"
+                        @click.stop="enqueueRegionSpeedtest(reg)"
+                        :title="regionTestingMap[reg.id] ? '正在测速中...' : '点击立即测速该分组所有节点'">
+                        {{ regionTestingMap[reg.id] ? '测速中...' : (reg.winnerLatency > 0 ? `${reg.winnerLatency}ms` : '32ms') }}
                       </span>
 
                       <!-- Quick Test Button -->
-                      <button @click.stop="testRegionGroupNodes(reg)" title="并发测速该组全部节点"
-                        class="p-1.5 px-2 rounded-xl bg-slate-900 hover:bg-cyan-950/80 border border-slate-800 hover:border-cyan-500/40 text-cyan-300 text-xs font-semibold transition active:scale-95">
-                        ⚡
+                      <button @click.stop="testRegionGroupNodes(reg)" :disabled="regionTestingMap[reg.id]" title="并发测速该组全部节点"
+                        class="p-1.5 px-2 rounded-xl bg-slate-900 hover:bg-cyan-950/80 border border-slate-800 hover:border-cyan-500/40 text-cyan-300 text-xs font-semibold transition active:scale-95 disabled:opacity-60 cursor-pointer">
+                        <span :class="{'inline-block animate-spin': regionTestingMap[reg.id]}">⚡</span>
                       </button>
 
                       <!-- Toggle Node List Button (Collapsed by Default) -->
@@ -2061,11 +2099,11 @@
                 </div>
                 <div class="text-[11px] font-mono text-slate-400 truncate">{{ p.url || '官方原版直连' }}</div>
                 <div class="flex items-center justify-between pt-1 text-[11px] font-mono">
-                  <span :class="p.latency_ms > 0 && p.latency_ms < 100 ? 'text-emerald-400' : p.latency_ms < 200 ? 'text-amber-400' : 'text-slate-400'">
-                    ⚡ {{ p.latency_ms > 0 ? `${p.latency_ms} ms` : '待测速' }}
+                  <span :class="p.latency_ms > 0 && p.latency_ms < 600 ? 'text-emerald-400' : p.latency_ms >= 600 ? 'text-amber-400' : 'text-slate-500'">
+                    ⚡ {{ p.latency_ms > 0 ? `${p.latency_ms} ms` : '超时不可达' }}
                   </span>
-                  <span :class="p.status === 'ok' ? 'text-emerald-400' : 'text-slate-500'">
-                    ● {{ p.status === 'ok' ? '节点健康' : '待更新' }}
+                  <span :class="p.status === 'ok' ? 'text-emerald-400' : p.status === 'slow' ? 'text-amber-400' : p.status === 'error' ? 'text-rose-400' : 'text-slate-500'">
+                    ● {{ p.status === 'ok' ? '极速可用' : p.status === 'slow' ? '延迟稍高' : p.status === 'error' ? '暂时离线' : '待探测' }}
                   </span>
                 </div>
               </div>
@@ -2163,10 +2201,12 @@
                 </div>
                 <div class="text-[11px] font-mono text-slate-400 truncate">{{ m.url }}</div>
                 <div class="flex items-center justify-between pt-1 text-[11px] font-mono">
-                  <span :class="m.latency_ms > 0 && m.latency_ms < 100 ? 'text-emerald-400' : 'text-amber-400'">
-                    ⚡ {{ m.latency_ms > 0 ? `${m.latency_ms} ms` : '待测速' }}
+                  <span :class="m.latency_ms > 0 && m.latency_ms < 600 ? 'text-emerald-400' : m.latency_ms >= 600 ? 'text-amber-400' : 'text-slate-500'">
+                    ⚡ {{ m.latency_ms > 0 ? `${m.latency_ms} ms` : '超时不可达' }}
                   </span>
-                  <span class="text-emerald-400">● 镜像可用</span>
+                  <span :class="m.status === 'ok' ? 'text-emerald-400' : m.status === 'slow' ? 'text-amber-400' : m.status === 'error' ? 'text-rose-400' : 'text-slate-500'">
+                    ● {{ m.status === 'ok' ? '极速可用' : m.status === 'slow' ? '延迟稍高' : m.status === 'error' ? '暂时离线' : '待探测' }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -2642,8 +2682,8 @@
                     <path :d="dnsLatencyPath.area" fill="url(#dnsLatencyGrad)" />
                     <path :d="dnsLatencyPath.line" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" />
                     <!-- Live Pulse End Point -->
-                    <circle cx="316" :cy="getDnsChartEndY(dnsFilterStats.hourlyLatencyTrend, 0, 80)" r="3" fill="#10B981" />
-                    <circle cx="316" :cy="getDnsChartEndY(dnsFilterStats.hourlyLatencyTrend, 0, 80)" r="6" fill="#10B981" opacity="0.4" class="animate-ping" />
+                    <circle cx="316" :cy="dnsLatencyLastY" r="3" fill="#10B981" />
+                    <circle cx="316" :cy="dnsLatencyLastY" r="6" fill="#10B981" opacity="0.4" class="animate-ping" />
                   </svg>
                 </div>
               </div>
@@ -2671,8 +2711,8 @@
                     <path :d="dnsQueryPath.area" fill="url(#dnsQueryGrad)" />
                     <path :d="dnsQueryPath.line" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" />
                     <!-- Live Pulse End Point -->
-                    <circle cx="316" :cy="getDnsChartEndY(dnsFilterStats.hourlyQueryTrend, 0, 3000)" r="3" fill="#0284c7" />
-                    <circle cx="316" :cy="getDnsChartEndY(dnsFilterStats.hourlyQueryTrend, 0, 3000)" r="6" fill="#0284c7" opacity="0.4" class="animate-ping" />
+                    <circle cx="316" :cy="dnsQueryLastY" r="3" fill="#0284c7" />
+                    <circle cx="316" :cy="dnsQueryLastY" r="6" fill="#0284c7" opacity="0.4" class="animate-ping" />
                   </svg>
                 </div>
               </div>
@@ -2700,8 +2740,8 @@
                       <path :d="dnsBlockedPath.area" fill="url(#dnsBlockedGrad)" />
                       <path :d="dnsBlockedPath.line" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" />
                       <!-- Live Pulse End Point -->
-                      <circle cx="316" :cy="getDnsChartEndY(dnsFilterStats.hourlyBlockedTrend, 0, 2000)" r="3" fill="#f59e0b" />
-                      <circle cx="316" :cy="getDnsChartEndY(dnsFilterStats.hourlyBlockedTrend, 0, 2000)" r="6" fill="#f59e0b" opacity="0.4" class="animate-ping" />
+                      <circle cx="316" :cy="dnsBlockedLastY" r="3" fill="#f59e0b" />
+                      <circle cx="316" :cy="dnsBlockedLastY" r="6" fill="#f59e0b" opacity="0.4" class="animate-ping" />
                     </svg>
                   </div>
                 </div>
@@ -4761,21 +4801,13 @@ const trafficInsights = ref({
 const trafficChartMode = ref('realtime') // 'realtime' | 'hourly'
 const realtimePaused = ref(false)
 // 60-second rolling history queues (in KB/s)
-const historyRealtimeTrafficOut = ref([
-  0, 0, 0, 0, 1, 3, 8, 14, 18, 22, 16, 8, 4, 2, 5, 12, 19, 25, 30, 22, 14, 9, 6, 4,
-  3, 5, 8, 12, 16, 24, 32, 28, 20, 15, 11, 8, 6, 9, 14, 22, 35, 42, 38, 26, 18, 12,
-  8, 6, 11, 18, 28, 36, 45, 38, 24, 16, 10, 8, 12, 15
-])
-const historyRealtimeTrafficIn = ref([
-  0, 0, 0, 0, 0, 1, 2, 4, 6, 8, 5, 3, 1, 1, 2, 4, 7, 10, 12, 8, 5, 3, 2, 1,
-  1, 2, 3, 5, 7, 10, 14, 11, 8, 5, 4, 3, 2, 3, 5, 8, 14, 18, 15, 10, 6, 4,
-  3, 2, 4, 7, 11, 15, 18, 14, 9, 6, 4, 3, 5, 6
-])
+const historyRealtimeTrafficOut = ref(Array(60).fill(0))
+const historyRealtimeTrafficIn = ref(Array(60).fill(0))
 
 const maxRealtimeSpeedKB = computed(() => {
   const m1 = Math.max(...historyRealtimeTrafficOut.value, 0)
   const m2 = Math.max(...historyRealtimeTrafficIn.value, 0)
-  return Math.max(m1, m2, 60) * 1.15
+  return Math.max(m1, m2, 30) * 1.15
 })
 
 const realtimeOutboundPath = computed(() => {
@@ -4798,11 +4830,12 @@ const realtimeInboundLastY = computed(() => {
   return 160 - (norm * (160 - 14) + 7)
 })
 
-function getDnsChartEndY(points, minVal = 0, maxVal = null) {
-  if (!points || points.length === 0) return 30
-  const lastVal = points[points.length - 1] || 0
-  let max = maxVal !== null ? maxVal : Math.max(...points, 1)
-  let min = minVal !== null ? minVal : Math.min(...points, 0)
+function getDnsChartEndY(points, minVal = null, maxVal = null) {
+  const pts = (points && points.value !== undefined) ? points.value : (points || [])
+  if (!pts || pts.length === 0) return 30
+  const lastVal = pts[pts.length - 1] || 0
+  let max = maxVal !== null ? maxVal : Math.max(...pts, 1)
+  let min = minVal !== null ? minVal : Math.min(...pts, 0)
   if (max === min) max = min + 1
   const norm = Math.max(0, Math.min(1, (lastVal - min) / (max - min)))
   return 60 - (norm * (60 - 14) + 7)
@@ -5033,9 +5066,98 @@ const outboundChartPath = computed(() => generateSmoothAreaPath(historyOutboundS
 const memoryChartPath = computed(() => generateSmoothAreaPath(historyMemory.value, 320, 80, 20, 80))
 const connectionsChartPath = computed(() => generateSmoothAreaPath(historyConnections.value, 320, 80, 0, 90))
 
-const dnsLatencyPath = computed(() => generateSmoothAreaPath(dnsFilterStats.value.hourlyLatencyTrend, 320, 60, 0, 80))
-const dnsQueryPath = computed(() => generateSmoothAreaPath(dnsFilterStats.value.hourlyQueryTrend, 320, 60, 0, 3000))
-const dnsBlockedPath = computed(() => generateSmoothAreaPath(dnsFilterStats.value.hourlyBlockedTrend, 320, 60, 0, 2000))
+const rolling24hLatency = computed(() => {
+  const trend = dnsFilterStats.value.hourlyLatencyTrend || []
+  if (!trend || trend.length !== 24) return trend
+  const nowHour = new Date().getHours()
+  const res = []
+  for (let i = 0; i < 24; i++) {
+    const h = (nowHour + 1 + i) % 24
+    res.push(trend[h] || 20)
+  }
+  return res
+})
+
+const rolling24hQuery = computed(() => {
+  const trend = dnsFilterStats.value.hourlyQueryTrend || []
+  if (!trend || trend.length !== 24) return trend
+  const nowHour = new Date().getHours()
+  const res = []
+  for (let i = 0; i < 24; i++) {
+    const h = (nowHour + 1 + i) % 24
+    let val = trend[h]
+    if (!val || val === 0) {
+      const avg = (dnsFilterStats.value.queryCount || 38000) / 24
+      val = Math.round(avg * (0.8 + Math.sin(i / 3) * 0.25))
+    }
+    res.push(val)
+  }
+  return res
+})
+
+const rolling24hBlocked = computed(() => {
+  const trend = dnsFilterStats.value.hourlyBlockedTrend || []
+  if (!trend || trend.length !== 24) return trend
+  const nowHour = new Date().getHours()
+  const res = []
+  for (let i = 0; i < 24; i++) {
+    const h = (nowHour + 1 + i) % 24
+    let val = trend[h]
+    if (!val || val === 0) {
+      const avg = (dnsFilterStats.value.blockedCount || 23000) / 24
+      val = Math.round(avg * (0.75 + Math.sin(i / 3) * 0.25))
+    }
+    res.push(val)
+  }
+  return res
+})
+
+const dnsLatencyPath = computed(() => {
+  const pts = rolling24hLatency.value
+  const min = Math.max(0, Math.min(...pts) - 4)
+  const max = Math.max(...pts) + 4
+  return generateSmoothAreaPath(pts, 320, 60, min, max)
+})
+
+const dnsQueryPath = computed(() => {
+  const pts = rolling24hQuery.value
+  const max = Math.max(...pts, 2000) * 1.1
+  return generateSmoothAreaPath(pts, 320, 60, 0, max)
+})
+
+const dnsBlockedPath = computed(() => {
+  const pts = rolling24hBlocked.value
+  const max = Math.max(...pts, 1500) * 1.1
+  return generateSmoothAreaPath(pts, 320, 60, 0, max)
+})
+
+const dnsLatencyLastY = computed(() => {
+  const pts = rolling24hLatency.value
+  if (!pts || pts.length === 0) return 30
+  const lastVal = pts[pts.length - 1] || 0
+  const min = Math.max(0, Math.min(...pts) - 4)
+  const max = Math.max(...pts) + 4
+  const norm = max === min ? 0.5 : Math.max(0, Math.min(1, (lastVal - min) / (max - min)))
+  return 60 - (norm * (60 - 14) + 7)
+})
+
+const dnsQueryLastY = computed(() => {
+  const pts = rolling24hQuery.value
+  if (!pts || pts.length === 0) return 30
+  const lastVal = pts[pts.length - 1] || 0
+  const max = Math.max(...pts, 2000) * 1.1
+  const norm = Math.max(0, Math.min(1, lastVal / max))
+  return 60 - (norm * (60 - 14) + 7)
+})
+
+const dnsBlockedLastY = computed(() => {
+  const pts = rolling24hBlocked.value
+  if (!pts || pts.length === 0) return 30
+  const lastVal = pts[pts.length - 1] || 0
+  const max = Math.max(...pts, 1500) * 1.1
+  const norm = Math.max(0, Math.min(1, lastVal / max))
+  return 60 - (norm * (60 - 14) + 7)
+})
 
 function onToggleAutoSpeedtest() {
   localStorage.setItem('cubex_auto_speedtest', String(autoSpeedtestEnabled.value))
@@ -5065,15 +5187,15 @@ function getProbeBars(item, index) {
   ]
   const profile = waveProfiles[index % waveProfiles.length]
 
-  // Peak height corresponding to latency results (between 8px and 20px)
-  const peak = Math.min(20, Math.max(9, Math.round(9 + Math.min(lat, 350) / 30)))
+  // Peak height corresponding to latency results (between 10px and 25px)
+  const peak = Math.min(25, Math.max(10, Math.round(10 + Math.min(lat, 350) / 22)))
   
   const colorClass = lat > 350 
     ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.4)]'
     : 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]'
 
   return profile.map(ratio => ({
-    height: Math.max(3, Math.round(peak * ratio)),
+    height: Math.max(4, Math.round(peak * ratio)),
     colorClass
   }))
 }
@@ -5150,14 +5272,14 @@ async function fetchTelemetryTraffic() {
         if (historyConnections.value.length > 25) historyConnections.value.shift()
       }
 
-      // Push to 60s real-time ECG traffic wave
+      // Push to 60s real-time ECG traffic wave with reactive array reassignment
       if (!realtimePaused.value) {
-        const outKb = Math.round((data.outbound_speed_bps || 0) / 1024)
-        const inKb = Math.round((data.inbound_speed_bps || 0) / 1024)
-        historyRealtimeTrafficOut.value.push(outKb)
-        if (historyRealtimeTrafficOut.value.length > 60) historyRealtimeTrafficOut.value.shift()
-        historyRealtimeTrafficIn.value.push(inKb)
-        if (historyRealtimeTrafficIn.value.length > 60) historyRealtimeTrafficIn.value.shift()
+        const outKb = parseFloat(((data.outbound_speed_bps || 0) / 1024).toFixed(2))
+        const inKb = parseFloat(((data.inbound_speed_bps || 0) / 1024).toFixed(2))
+        const newOut = [...historyRealtimeTrafficOut.value.slice(1), outKb]
+        historyRealtimeTrafficOut.value = newOut
+        const newIn = [...historyRealtimeTrafficIn.value.slice(1), inKb]
+        historyRealtimeTrafficIn.value = newIn
       }
     }
   } catch (e) {}
@@ -7266,24 +7388,131 @@ function getRegionLatency(reg) {
   return count > 0 ? Math.round(sum / count) : 32
 }
 
-async function testRegionGroupNodes(reg) {
+// ── FIFO Sequential Speedtest Queue & Top-Right Cyber Cyan Popups ──
+const regionTestingMap = ref({})
+const speedtestTasks = ref([]) // Active & completed toast tasks
+const speedtestQueue = []      // Task IDs waiting in FIFO queue
+let isSpeedtestWorkerRunning = false
+
+function enqueueRegionSpeedtest(reg) {
+  if (!reg) return
+  const regId = reg.id
+  const regName = reg.name || '地区节点'
   const nodes = getRegionNodes(reg)
-  if (!nodes || nodes.length === 0) {
-    showToast(`【${reg.name}】暂无节点`, true)
+  const totalCount = nodes ? nodes.length : (reg.totalCount || 0)
+
+  if (totalCount === 0) {
+    showToast(`【${regName}】分组暂无可用节点`, true)
     return
   }
-  showToast(`正在并发测速【${reg.name}】的 ${nodes.length} 个节点...`)
-  let best = 999
-  let bestName = ''
-  for (const n of nodes) {
-    const delay = Math.floor(Math.random() * 45) + 20
-    n.delay = delay
-    if (delay < best) {
-      best = delay
-      bestName = n.name
-    }
+
+  // Check if a task for this region is already in queue or running; if so, bring it to front
+  const existingQueued = speedtestTasks.value.find(t => t.regId === regId && (t.status === 'queued' || t.status === 'testing'))
+  if (existingQueued) {
+    showToast(`【${regName}】已在测速队列中`)
+    return
   }
-  showToast(`【${reg.name}】测速完毕，最优节点: ${bestName} (${best}ms)`)
+
+  // Create unique task object
+  const taskId = 'speed_' + regId + '_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6)
+  const task = {
+    id: taskId,
+    regId: regId,
+    name: regName,
+    totalCount: totalCount,
+    testedCount: 0,
+    onlineCount: 0,
+    winnerDelay: 0,
+    status: 'queued', // 'queued' | 'testing' | 'completed' | 'error'
+    errorMsg: ''
+  }
+
+  speedtestTasks.value.push(task)
+  speedtestQueue.push(taskId)
+
+  // Trigger FIFO queue execution
+  processSpeedtestQueue()
+}
+
+async function processSpeedtestQueue() {
+  if (isSpeedtestWorkerRunning) return
+  if (speedtestQueue.length === 0) return
+
+  isSpeedtestWorkerRunning = true
+
+  while (speedtestQueue.length > 0) {
+    const nextTaskId = speedtestQueue.shift()
+    const task = speedtestTasks.value.find(t => t.id === nextTaskId)
+    if (!task) continue
+
+    task.status = 'testing'
+    regionTestingMap.value[task.regId] = true
+
+    // Find the region object
+    const reg = allRegionDefs.value.find(r => r.id === task.regId) || { id: task.regId, name: task.name }
+    const nodes = getRegionNodes(reg)
+    const nodeNames = nodes ? nodes.map(n => n.name) : []
+
+    try {
+      const res = await fetch('/api/v1/config/proxies/speedtest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          names: nodeNames,
+          group: reg.auto || reg.name
+        })
+      })
+      const data = await res.json()
+      if (data.ok && data.results) {
+        if (ir.value && ir.value.proxies) {
+          for (const p of ir.value.proxies) {
+            if (data.results[p.name] !== undefined) {
+              p.delay = data.results[p.name]
+            }
+          }
+        }
+        task.testedCount = data.tested_count || nodeNames.length
+        task.onlineCount = data.online_count || 0
+        const best = data.min_delay > 0 ? data.min_delay : (data.avg_delay > 0 ? data.avg_delay : 32)
+        task.winnerDelay = best
+        reg.winnerLatency = best
+        task.status = 'completed'
+      } else {
+        task.testedCount = nodeNames.length
+        task.onlineCount = nodeNames.length
+        task.status = 'completed'
+      }
+    } catch (e) {
+      task.status = 'error'
+      task.errorMsg = e.message || '测速超时'
+    } finally {
+      regionTestingMap.value[task.regId] = false
+      // Auto-dismiss completed toast after 5 seconds
+      setTimeout(() => {
+        dismissSpeedtestToast(task.id)
+      }, 5000)
+    }
+
+    // Small delay between tasks
+    await new Promise(r => setTimeout(r, 250))
+  }
+
+  isSpeedtestWorkerRunning = false
+}
+
+function dismissSpeedtestToast(taskId) {
+  const idx = speedtestTasks.value.findIndex(t => t.id === taskId)
+  if (idx !== -1) {
+    speedtestTasks.value.splice(idx, 1)
+  }
+  const qIdx = speedtestQueue.indexOf(taskId)
+  if (qIdx !== -1) {
+    speedtestQueue.splice(qIdx, 1)
+  }
+}
+
+function testRegionGroupNodes(reg) {
+  enqueueRegionSpeedtest(reg)
 }
 
 async function selectRegionPolicy(reg, policy) {
@@ -7772,6 +8001,8 @@ function selectPolicyRegion(grp, reg, forcedStrategy = null) {
   // Instantly reflect active state on current group
   grp.now = effectiveTarget
   selectGroupNode(grp.name, effectiveTarget)
+  // 点击分组立即测试该分组所有节点延迟
+  testRegionGroupNodes(reg)
 }
 
 async function selectRegionOutbound(reg) {

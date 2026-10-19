@@ -279,6 +279,7 @@ func main() {
 	mux.HandleFunc("/api/v1/config/subscriptions/batch-add", srv.handleSubBatchAdd)
 	mux.HandleFunc("/api/v1/config/subscriptions/update", srv.handleSubUpdate)
 	mux.HandleFunc("/api/v1/config/subscriptions/speedtest", srv.handleSubSpeedTest)
+	mux.HandleFunc("/api/v1/config/proxies/speedtest", srv.handleProxiesSpeedTest)
 	mux.HandleFunc("/api/v1/config/subscriptions/delete", srv.handleSubDelete)
 	mux.HandleFunc("/api/v1/config/subscriptions/toggle", srv.handleSubToggle)
 	mux.HandleFunc("/api/v1/config/subscriptions/rename", srv.handleSubRename)
@@ -1642,6 +1643,130 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 		"tested_count": len(items),
 		"online_count": onlineCount,
 		"avg_delay":    avgDelay,
+	})
+}
+
+func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Names []string `json:"names"`
+		Group string   `json:"group"`
+		SubID string   `json:"sub_id"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	ir := s.engMgr.GetIR()
+
+	type testItem struct {
+		index int
+		node  schema.ProxyNode
+	}
+	var items []testItem
+	nameSet := make(map[string]bool)
+	for _, n := range req.Names {
+		nameSet[n] = true
+	}
+
+	for i, p := range ir.Proxies {
+		if len(req.Names) > 0 && !nameSet[p.Name] {
+			continue
+		}
+		if req.SubID != "" && p.SubID != req.SubID {
+			continue
+		}
+		if p.Type == "direct" || p.Type == "block" || p.Type == "reject" || p.Server == "" {
+			continue
+		}
+		lower := strings.ToLower(p.Name)
+		if strings.Contains(lower, "剩余流量") || strings.Contains(lower, "套餐到期") || strings.Contains(lower, "官网") {
+			continue
+		}
+		items = append(items, testItem{index: i, node: p})
+	}
+
+	if len(items) == 0 {
+		sendJSON(w, map[string]any{
+			"ok":           true,
+			"tested_count": 0,
+			"online_count": 0,
+			"avg_delay":    0,
+			"min_delay":    0,
+			"results":      map[string]int{},
+		})
+		return
+	}
+
+	var wg sync.WaitGroup
+	semaphore := make(chan struct{}, 25)
+	var mu sync.Mutex
+	onlineCount := 0
+	totalDelay := int64(0)
+	minDelay := 9999
+	results := make(map[string]int)
+
+	for _, it := range items {
+		wg.Add(1)
+		semaphore <- struct{}{}
+		go func(item testItem) {
+			defer wg.Done()
+			defer func() { <-semaphore }()
+
+			addr := net.JoinHostPort(item.node.Server, strconv.Itoa(item.node.Port))
+			start := time.Now()
+			conn, err := net.DialTimeout("tcp", addr, 1200*time.Millisecond)
+			if err == nil {
+				_ = conn.Close()
+				delay := int(time.Since(start).Milliseconds())
+				if delay <= 0 {
+					delay = 5
+				}
+				mu.Lock()
+				onlineCount++
+				totalDelay += int64(delay)
+				if delay < minDelay {
+					minDelay = delay
+				}
+				ir.Proxies[item.index].Delay = delay
+				results[item.node.Name] = delay
+				mu.Unlock()
+			} else {
+				mu.Lock()
+				ir.Proxies[item.index].Delay = 0
+				results[item.node.Name] = 0
+				mu.Unlock()
+			}
+		}(it)
+	}
+	wg.Wait()
+
+	avgDelay := 0
+	if onlineCount > 0 {
+		avgDelay = int(totalDelay / int64(onlineCount))
+	} else {
+		minDelay = 0
+	}
+
+	s.engMgr.UpdateIR(ir)
+
+	if req.Group != "" && ir.Network.ClashAPIPort > 0 {
+		go func(grp string, port int) {
+			escaped := url.PathEscape(grp)
+			u := fmt.Sprintf("http://127.0.0.1:%d/group/%s/delay?url=http://www.gstatic.com/generate_204&timeout=1500", port, escaped)
+			client := http.Client{Timeout: 3 * time.Second}
+			_, _ = client.Get(u)
+		}(req.Group, ir.Network.ClashAPIPort)
+	}
+
+	sendJSON(w, map[string]any{
+		"ok":           true,
+		"tested_count": len(items),
+		"online_count": onlineCount,
+		"avg_delay":    avgDelay,
+		"min_delay":    minDelay,
+		"results":      results,
 	})
 }
 

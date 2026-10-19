@@ -328,29 +328,77 @@ CubeX 严格遵循专有闭源 EULA 合规准则与脱敏规范，发布包内**
 
 ### 方式 A：MikroTik RouterOS v7 容器一键导入 (官方强烈推荐)
 
-1. 前往 [GitHub Releases](https://github.com/zyeyefyass/CubeX/releases) 下载 `CubeX-Test-v1.1-ros-amd64.tar`（或 ARM64 如 RB5009 对应版本）；
+1. 前往 [GitHub Releases 最新发布页](https://github.com/zyeyefyass/CubeX/releases/latest) 下载最新版 `CubeX-ros-amd64.tar`（或 ARM64 如 RB5009 对应版本）；
 2. 打开 WinBox，将 `.tar` 镜像文件拖入 `Files` 根目录；
 3. 在 WinBox 终端直接执行随包附带的 `setup-routeros-v7.rsc`，或手动创建容器：
    ```routeros
-   /container/add file=CubeX-Test-v1.1-ros-amd64.tar interface=veth-cubex root-dir=cubex start-on-boot=yes
+   /container/add file=CubeX-ros-amd64.tar interface=veth-cubex root-dir=cubex start-on-boot=yes
+   ```
+   *亦可通过 Docker Hub 官方公共库直接拉取最新版*：
+   ```routeros
+   /container/add remote-image=fyasshole/cubex:latest interface=veth-cubex root-dir=cubex start-on-boot=yes
    ```
 4. 容器拉起后，浏览器直接访问：`http://<容器IP>:2026` 即可进入 Cyber Aurora 全息控制台！
 
 ---
 
-### 方式 B：飞牛 fnOS 专属 Docker 部署 (严格遵循 `/vol1/1000/cubex` 规范)
+### 方式 B：飞牛 fnOS 与通用 Linux Docker 部署
 
-飞牛 fnOS 是当前最热门的国产 NAS 操作系统之一。CubeX 安装程序与容器镜像经过专门针对飞牛底座的深度调优，**默认持久化存储路径严格对齐飞牛官方规范 `/vol1/1000/cubex`**。
+CubeX 容器镜像原生支持飞牛 fnOS、群晖 Synology、QNAP 威联通及各类通用 Linux（Ubuntu/Debian/Alpine/CentOS）底座。**默认持久化存储路径严格对齐飞牛官方规范 `/vol1/1000/cubex`，通用 Linux 默认推荐 `/etc/cubex`**。
 
-#### 🌟 途径 ①：飞牛 Docker Compose 编排拉起 (最推荐 · 0门槛秒级上线)
-在飞牛【Docker】->【项目】中新建项目，或者在 `/vol1/1000/cubex` 目录下创建 `docker-compose.yml`：
+#### ⚡ 途径 ①：Docker Run 命令行一键拉起 (极简直接 · 极客最爱)
+
+##### 1. 飞牛 fnOS 专属单行指令 (遵循 `/vol1/1000/cubex` 存储卷规范)：
+```bash
+docker run -d \
+  --name cubex \
+  --restart unless-stopped \
+  --net=host \
+  --cap-add=NET_ADMIN \
+  --device /dev/net/tun:/dev/net/tun \
+  -v /vol1/1000/cubex/data:/app/data \
+  -v /vol1/1000/cubex/etc:/app/etc \
+  -v /etc/localtime:/etc/localtime:ro \
+  -e TZ=Asia/Shanghai \
+  -e CUBEX_PORT=2026 \
+  -e CUBEX_LISTEN=:2026 \
+  fyasshole/cubex:latest
+```
+
+##### 2. 通用 Linux 宿主 (Ubuntu / Debian / PVE 宿主 / 群晖)：
+```bash
+docker run -d \
+  --name cubex \
+  --restart unless-stopped \
+  --net=host \
+  --cap-add=NET_ADMIN \
+  --device /dev/net/tun:/dev/net/tun \
+  -v /etc/cubex/data:/app/data \
+  -v /etc/cubex/etc:/app/etc \
+  -v /etc/localtime:/etc/localtime:ro \
+  -e TZ=Asia/Shanghai \
+  -e CUBEX_PORT=2026 \
+  -e CUBEX_LISTEN=:2026 \
+  fyasshole/cubex:latest
+```
+
+> [!TIP]
+> **参数要点解析**：
+> - `--net=host`：**必须项**，让 CubeX 容器直接共享宿主机物理网络栈，实现透明网关旁路接管；
+> - `--cap-add=NET_ADMIN` 与 `--device /dev/net/tun:/dev/net/tun`：**必须项**，赋予内核路由表操作与 TUN 虚拟网卡隧道创建特权；
+> - 镜像源均已同步最新版：Docker Hub `fyasshole/cubex:latest` 或 GitHub GHCR `ghcr.io/zyeyefyass/cubex:latest`。
+
+---
+
+#### 🌟 途径 ②：Docker Compose 编排拉起 (推荐 · 便于维护升级)
+在飞牛【Docker】->【项目】中新建项目，或者在配置目录下创建 `docker-compose.yml`：
 
 ```yaml
 version: '3.8'
 
 services:
   cubex:
-    image: fyasshole/cubex:Test-v1.1  # 亦可使用 :latest 或 ghcr.io/zyeyefyass/cubex:Test-v1.1
+    image: fyasshole/cubex:latest  # 亦可使用 ghcr.io/zyeyefyass/cubex:latest
     container_name: cubex
     restart: unless-stopped
     network_mode: "host"                 # 必须 host 模式以实现局域网旁路接管
@@ -359,8 +407,8 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun       # 虚拟网卡隧道设备映射
     volumes:
-      - /vol1/1000/cubex/data:/app/data # 飞牛持久化配置目录
-      - /vol1/1000/cubex/etc:/app/etc   # 核心配置文件目录
+      - /vol1/1000/cubex/data:/app/data # 飞牛持久化配置目录 (通用Linux请改为 /etc/cubex/data)
+      - /vol1/1000/cubex/etc:/app/etc   # 核心配置文件目录 (通用Linux请改为 /etc/cubex/etc)
       - /etc/localtime:/etc/localtime:ro
     environment:
       - TZ=Asia/Shanghai
@@ -372,10 +420,12 @@ services:
         max-size: "10m"
         max-file: "3"
 ```
-点击【构建并启动】即可！浏览器访问：`http://<飞牛IP>:2026`。
+终端执行 `docker compose up -d` 即可！浏览器访问：`http://<宿主IP>:2026`。
 
-#### 📦 途径 ②：飞牛 Docker GUI【离线镜像导入】(国内免翻墙 · 0 超时风险)
-1. 在 [Releases](https://github.com/zyeyefyass/CubeX/releases) 下载 `CubeX-Test-v1.1-docker-amd64.tar.gz` 离线镜像；
+---
+
+#### 📦 途径 ③：飞牛 Docker GUI【离线镜像导入】(国内免翻墙 · 0 超时风险)
+1. 在 [Releases 最新发布页](https://github.com/zyeyefyass/CubeX/releases/latest) 下载最新版 `CubeX-docker-amd64.tar.gz` 离线镜像；
 2. 飞牛桌面 ->【Docker】应用 ->【镜像仓库】-> 点击右上角【本地导入】上传 `.tar.gz`；
 3. 【本地镜像】点击【创建容器】：
    - **网络模式**：勾选 **`Host`**；
@@ -410,9 +460,9 @@ EOF
 # 进入容器工作目录
 mkdir -p /opt/cubex && cd /opt/cubex
 
-# 下载解压 Test v1.1 资产包
-curl -sSL -O https://github.com/zyeyefyass/CubeX/releases/download/Test-v1.1/CubeX-Test-v1.1-linux-amd64.zip
-unzip CubeX-Test-v1.1-linux-amd64.zip
+# 下载解压最新 Linux 资产包
+curl -sSL -O https://github.com/zyeyefyass/CubeX/releases/latest/download/CubeX-linux-amd64.zip
+unzip CubeX-linux-amd64.zip
 
 # 运行一键安装部署服务
 sudo bash install.sh
