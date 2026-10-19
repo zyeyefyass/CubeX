@@ -12,8 +12,10 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -80,19 +82,31 @@ func (m *Manager) GetOverview() map[string]any {
 	singboxVer := m.getLocalSingboxVersion()
 	latestSingbox, _ := m.fetchLatestSingboxVersion()
 
+	normLatestPanel := normalizeVersion(latestPanel)
+	normCurrPanel := normalizeVersion(panelVer)
+	panelUpdateAvail := latestPanel != "" && normLatestPanel != normCurrPanel
+
+	normLatestMihomo := normalizeVersion(latestMihomo)
+	normCurrMihomo := normalizeVersion(mihomoVer)
+	mihomoUpdateAvail := latestMihomo != "" && normLatestMihomo != normCurrMihomo
+
+	normLatestSingbox := normalizeVersion(latestSingbox)
+	normCurrSingbox := normalizeVersion(singboxVer)
+	singboxUpdateAvail := latestSingbox != "" && normLatestSingbox != normCurrSingbox
+
 	result := map[string]any{
 		"ros_connected":          rosConnected,
 		"ros_version":            rosVersion,
 		"mihomo_curr_version":    mihomoVer,
 		"mihomo_latest_version":  latestMihomo,
-		"mihomo_update_avail":    latestMihomo != "" && latestMihomo != mihomoVer,
+		"mihomo_update_avail":    mihomoUpdateAvail,
 		"singbox_curr_version":   singboxVer,
 		"singbox_latest_version": latestSingbox,
-		"singbox_update_avail":   latestSingbox != "" && latestSingbox != singboxVer,
+		"singbox_update_avail":   singboxUpdateAvail,
 		"panel_curr_version":     panelVer,
 		"panel_latest_version":   latestPanel,
-		"panel_update_avail":     latestPanel != "" && latestPanel != panelVer,
-		"update_available":       (latestMihomo != "" && latestMihomo != mihomoVer) || (latestPanel != "" && latestPanel != panelVer),
+		"panel_update_avail":     panelUpdateAvail,
+		"update_available":       mihomoUpdateAvail || singboxUpdateAvail || panelUpdateAvail,
 		"arch":                   runtime.GOARCH,
 		"geodata": map[string]any{
 			"geoip_date":    "2026-10-15",
@@ -118,8 +132,8 @@ func (m *Manager) UpgradePanel(restartFn func() error) (string, error) {
 	}
 
 	currTag := m.getLocalPanelVersion()
-	normLatest := strings.TrimPrefix(strings.ToLower(latestTag), "v")
-	normCurr := strings.TrimPrefix(strings.ToLower(currTag), "v")
+	normLatest := normalizeVersion(latestTag)
+	normCurr := normalizeVersion(currTag)
 	if normLatest == normCurr && latestTag != "" {
 		return currTag, fmt.Errorf("panel is already at the latest version %s", currTag)
 	}
@@ -527,14 +541,71 @@ func (m *Manager) updateLocalMetaVersion(newVer string) {
 	_ = os.WriteFile(m.metaFile, out, 0644)
 }
 
+func normalizeVersion(v string) string {
+	v = strings.ToLower(strings.TrimSpace(v))
+	v = strings.TrimPrefix(v, "v")
+	v = strings.ReplaceAll(v, " ", "")
+	v = strings.ReplaceAll(v, "-", "")
+	v = strings.ReplaceAll(v, "_", "")
+	return v
+}
+
 func fetchGitHubLatestTag(repo string) (string, error) {
-	candidates := []string{
-		"https://api.github.com/repos/" + repo + "/releases/latest",
-		"https://ghproxy.net/https://api.github.com/repos/" + repo + "/releases/latest",
+	// Tier 1: Web 302 Redirect (Zero API Rate Limit, supported by domestic GHProxy mirrors)
+	redirectCandidates := []string{
+		"https://ghproxy.net/https://github.com/" + repo + "/releases/latest",
+		"https://mirror.ghproxy.com/https://github.com/" + repo + "/releases/latest",
+		"https://github.com/" + repo + "/releases/latest",
 	}
-	client := &http.Client{Timeout: 8 * time.Second}
+
+	client := &http.Client{
+		Timeout: 6 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	for _, targetURL := range redirectCandidates {
+		req, err := http.NewRequest(http.MethodHead, targetURL, nil)
+		if err != nil {
+			continue
+		}
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			req.Method = http.MethodGet
+			resp, err = client.Do(req)
+			if err != nil {
+				continue
+			}
+		}
+
+		loc := resp.Header.Get("Location")
+		resp.Body.Close()
+
+		if loc != "" && strings.Contains(loc, "/releases/tag/") {
+			u, err := url.Parse(loc)
+			var targetPath string
+			if err == nil {
+				targetPath = u.Path
+			} else {
+				targetPath = loc
+			}
+			tag := path.Base(targetPath)
+			if tag != "" && tag != "." && tag != "/" && tag != "tag" {
+				return tag, nil
+			}
+		}
+	}
+
+	// Tier 2: GitHub API fallback
+	apiCandidates := []string{
+		"https://api.github.com/repos/" + repo + "/releases/latest",
+	}
+	apiClient := &http.Client{Timeout: 6 * time.Second}
 	var lastErr error
-	for _, targetURL := range candidates {
+	for _, targetURL := range apiCandidates {
 		req, err := http.NewRequest(http.MethodGet, targetURL, nil)
 		if err != nil {
 			lastErr = err
@@ -543,7 +614,7 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 		req.Header.Set("User-Agent", "CubeX-Daemon/1.0")
 		req.Header.Set("Accept", "application/vnd.github.v3+json")
 
-		resp, err := client.Do(req)
+		resp, err := apiClient.Do(req)
 		if err != nil {
 			lastErr = err
 			continue

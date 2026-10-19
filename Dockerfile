@@ -50,6 +50,7 @@ RUN mkdir -p /app/bin /app/etc /app/data /app/defaults/etc /app/defaults/data
 
 # Copy built Gateway Daemon
 COPY --from=server-builder /out/cubexd /app/bin/cubexd
+COPY meta.json /app/meta.json
 
 # Copy pre-compiled Multi-Arch Cores (mihomo & sing-box) based on TARGETARCH
 COPY bin/${TARGETARCH}/mihomo /app/bin/mihomo

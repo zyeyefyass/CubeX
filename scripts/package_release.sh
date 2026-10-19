@@ -73,6 +73,7 @@ assemble_zip_package() {
     python3 "$ROOT_DIR/scripts/desensitize.py" "$stage_dir"
 
     # Bundle Deployment & Documentation
+    cp "$ROOT_DIR/meta.json" "$stage_dir/"
     cp "$ROOT_DIR/install.sh" "$stage_dir/"
     cp "$ROOT_DIR/docker-compose.yml" "$stage_dir/"
     cp "$ROOT_DIR/README.md" "$stage_dir/"
@@ -108,6 +109,7 @@ assemble_ros_tar() {
     cp "$ROOT_DIR/bin/$arch_type/sing-box" "$stage_dir/app/bin/sing-box"
     chmod +x "$stage_dir/app/bin/"*
 
+    cp "$ROOT_DIR/meta.json" "$stage_dir/app/meta.json"
     cp -r "$ROOT_DIR/etc/"* "$stage_dir/app/etc/"
     cp -r "$ROOT_DIR/data/"* "$stage_dir/app/data/"
 
@@ -122,6 +124,10 @@ assemble_ros_tar() {
 echo "📦 [5/5] Packaging RouterOS v7 Dedicated Container Images (Uncompressed .tar)..."
 assemble_ros_tar "CubeX-$VERSION-ros-amd64" "$DIST_DIR/cubexd-linux-amd64" "amd64"
 assemble_ros_tar "CubeX-$VERSION-ros-arm64" "$DIST_DIR/cubexd-linux-arm64" "arm64"
+
+# Copy standalone cubexd gateway binaries for 1-click in-place hot-upgrade
+cp "$DIST_DIR/cubexd-linux-amd64" "$RELEASE_DIR/cubexd-linux-amd64"
+cp "$DIST_DIR/cubexd-linux-arm64" "$RELEASE_DIR/cubexd-linux-arm64"
 
 # Copy RouterOS WinBox 1-Click RSC Script
 cp "$ROOT_DIR/scripts/ros/setup-routeros-v7.rsc" "$RELEASE_DIR/setup-routeros-v7.rsc"

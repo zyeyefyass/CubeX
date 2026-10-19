@@ -2766,11 +2766,15 @@
                     <span>🧊</span>
                     <span>CubeX 系统守护进程</span>
                   </div>
-                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">当前最新</span>
+                  <span v-if="systemOverview.panel_update_avail" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse">发现新版 {{ systemOverview.panel_latest_version }}</span>
+                  <span v-else class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">当前最新</span>
                 </div>
-                <div class="text-xs text-slate-400 font-mono">当前版本: {{ systemOverview.cubex_version || 'Test v1.0' }}</div>
+                <div class="text-xs text-slate-400 font-mono flex items-center justify-between">
+                  <span>当前版本: {{ systemOverview.cubex_version || 'Test v1.0' }}</span>
+                  <span v-if="systemOverview.panel_latest_version" class="text-slate-500">云端最新: {{ systemOverview.panel_latest_version }}</span>
+                </div>
                 <button @click="upgradePanel" :disabled="upgradingPanel" class="w-full py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition">
-                  {{ upgradingPanel ? '升级中...' : '🚀 一键在线热更 CubeX' }}
+                  {{ upgradingPanel ? '升级中...' : (systemOverview.panel_update_avail ? `🚀 一键在线热更至 ${systemOverview.panel_latest_version}` : '🚀 一键在线热更 CubeX') }}
                 </button>
               </div>
 
@@ -5936,9 +5940,16 @@ async function upgradePanel() {
   try {
     const res = await fetch('/api/v1/upgrade/panel', { method: 'POST' })
     const data = await res.json()
-    showToast(data.message || 'CubeX 主控更新已触发！')
+    if (data.status === 'upgraded') {
+      showToast(`🎉 升级成功！CubeX 已平滑热更至 ${data.version}，守护进程正在平滑重启...`)
+      setTimeout(() => location.reload(), 3000)
+    } else if (data.status === 'already_latest') {
+      showToast(data.message || 'CubeX 系统已是最新版本')
+    } else {
+      showToast(`❌ 热更失败: ${data.error || data.message || '未知异常'}`)
+    }
   } catch (e) {
-    showToast('CubeX 系统已是最新版本')
+    showToast(`❌ 请求异常: ${e.message}`)
   } finally {
     upgradingPanel.value = false
   }
@@ -5952,9 +5963,15 @@ async function upgradeCore(type) {
       body: JSON.stringify({ core: type })
     })
     const data = await res.json()
-    showToast(data.message || `${type} 内核已检查并热更新完毕！`)
+    if (data.status === 'upgraded') {
+      showToast(`🎉 ${type} 内核已成功热更至 ${data.version}！`)
+    } else if (data.status === 'latest') {
+      showToast(data.message || `${type} 内核已是最新版本`)
+    } else {
+      showToast(`❌ ${type} 升级失败: ${data.error || '未知错误'}`)
+    }
   } catch (e) {
-    showToast(`${type} 内核已是最新版本`)
+    showToast(`${type} 内核更新请求异常: ${e.message}`)
   }
 }
 
@@ -5963,7 +5980,11 @@ async function updateGeoData() {
   try {
     const res = await fetch('/api/v1/upgrade/geodata', { method: 'POST' })
     const data = await res.json()
-    showToast('🎉 全量 GeoIP、GeoSite 及 217heidai MRS 规则库更新完毕！')
+    if (data.success !== false) {
+      showToast('🎉 全量 GeoIP、GeoSite 及 217heidai MRS 规则库更新完毕！')
+    } else {
+      showToast(`⚠️ 规则库更新异常: ${data.error || '部分规则同步超时'}`)
+    }
   } catch (e) {
     showToast('规则库已是最强防护版本')
   } finally {

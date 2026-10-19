@@ -85,6 +85,7 @@ function Assemble-ReleasePackage($TargetName, $GatewayBinary, $ArchType) {
     python "$RootDir\scripts\desensitize.py" $StageDir | Out-Host
 
     # Copy Deployment & Script Tools
+    Copy-Item -Path "$RootDir\meta.json" -Destination "$StageDir\meta.json" -Force
     Copy-Item -Path "$RootDir\install.sh" -Destination "$StageDir\install.sh" -Force
     Copy-Item -Path "$RootDir\docker-compose.yml" -Destination "$StageDir\docker-compose.yml" -Force
     Copy-Item -Path "$RootDir\README.md" -Destination "$StageDir\README.md" -Force
@@ -131,6 +132,7 @@ function Assemble-RosContainer($TargetName, $GatewayBinary, $ArchType) {
     Copy-Item -Path "$RootDir\bin\$ArchType\sing-box" -Destination "$RosStage\app\bin\sing-box" -Force
 
     # Rulesets & configs inside container
+    Copy-Item -Path "$RootDir\meta.json" -Destination "$RosStage\app\meta.json" -Force
     Copy-Item -Path "$RootDir\etc\*" -Destination "$RosStage\app\etc" -Recurse -Force
     Copy-Item -Path "$RootDir\data\*" -Destination "$RosStage\app\data" -Recurse -Force
     if (Test-Path "$RosStage\app\data\ros_backup") { Remove-Item -Path "$RosStage\app\data\ros_backup" -Recurse -Force }
@@ -145,6 +147,10 @@ function Assemble-RosContainer($TargetName, $GatewayBinary, $ArchType) {
 
 Assemble-RosContainer "CubeX-$Version-ros-amd64" "$DistDir\cubexd-linux-amd64" "amd64" | Out-Null
 Assemble-RosContainer "CubeX-$Version-ros-arm64" "$DistDir\cubexd-linux-arm64" "arm64" | Out-Null
+
+# Copy standalone cubexd gateway binaries for 1-click in-place hot-upgrade
+Copy-Item -Path "$DistDir\cubexd-linux-amd64" -Destination "$ReleaseDir\cubexd-linux-amd64" -Force
+Copy-Item -Path "$DistDir\cubexd-linux-arm64" -Destination "$ReleaseDir\cubexd-linux-arm64" -Force
 
 # Copy RouterOS WinBox 1-Click RSC Script
 Copy-Item -Path "$RootDir\scripts\ros\setup-routeros-v7.rsc" -Destination "$ReleaseDir\setup-routeros-v7.rsc" -Force
