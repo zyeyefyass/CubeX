@@ -10,6 +10,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
+	"github.com/zyeyefyass/CubeX/internal/sub"
 )
 
 // KSpeeder provides Docker registry mirrors and GitHub CDN acceleration
@@ -65,7 +68,12 @@ func NewKSpeeder(rootDir string) *KSpeeder {
 	ks := &KSpeeder{
 		rootDir:    rootDir,
 		configFile: filepath.Join(rootDir, "data", "kspeeder-config.json"),
-		httpClient: &http.Client{Timeout: 4 * time.Second},
+		httpClient: &http.Client{
+			Transport: &http.Transport{
+				DialContext: sub.CreateFastDualStackDialer(),
+			},
+			Timeout: 4 * time.Second,
+		},
 		config: Config{
 			Enabled:            true,
 			ActiveGitHubProxy:  "https://ghproxy.net/",
@@ -343,10 +351,9 @@ func (ks *KSpeeder) loadConfig() {
 }
 
 func (ks *KSpeeder) saveConfigLocked() error {
-	_ = os.MkdirAll(filepath.Dir(ks.configFile), 0755)
 	data, err := json.MarshalIndent(ks.config, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(ks.configFile, data, 0644)
+	return schema.WriteFileAtomicSecure(ks.configFile, data)
 }

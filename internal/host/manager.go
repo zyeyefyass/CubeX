@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"golang.org/x/crypto/ssh"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // HostConfig stores the SSH credentials for communicating with the host OS (e.g., fnOS, PVE, Debian, Ubuntu).
@@ -99,12 +101,11 @@ func (m *Manager) SaveConfig(cfg HostConfig) error {
 		cfg.User = "root"
 	}
 	m.config = cfg
-	_ = os.MkdirAll(filepath.Dir(m.configFile), 0755)
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(m.configFile, data, 0644)
+	return schema.WriteFileAtomicSecure(m.configFile, data)
 }
 
 // GetConfig returns the current Host SSH configuration.
@@ -433,7 +434,7 @@ func (m *Manager) syncToROSConfig(cfg HostConfig) error {
 	rosCfg["user"] = cfg.User
 	rosCfg["password"] = cfg.Password
 	outBytes, _ := json.MarshalIndent(rosCfg, "", "  ")
-	return os.WriteFile(rosFile, outBytes, 0644)
+	return schema.WriteFileAtomicSecure(rosFile, outBytes)
 }
 
 // RunCommand runs a single command string on the host and returns stdout+stderr combined.

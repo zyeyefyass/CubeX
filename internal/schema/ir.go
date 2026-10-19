@@ -1,6 +1,10 @@
 package schema
 
-import "time"
+import (
+	"os"
+	"path/filepath"
+	"time"
+)
 
 // EngineType represents the active proxy core engine persona.
 type EngineType string
@@ -274,3 +278,36 @@ func NewDefaultIR() *ConfigIR {
 	SyncAllStrategyGroups(res)
 	return res
 }
+
+// WriteFileAtomicSecure writes data to a temporary file with perm 0600 (owner only)
+// and atomically renames it to destPath, preventing corruption from crashes and unauthorized access.
+func WriteFileAtomicSecure(destPath string, data []byte) error {
+	dir := filepath.Dir(destPath)
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return err
+	}
+	tmpFile, err := os.CreateTemp(dir, "cubex-tmp-*")
+	if err != nil {
+		return err
+	}
+	tmpPath := tmpFile.Name()
+	defer os.Remove(tmpPath)
+
+	if err := tmpFile.Chmod(0600); err != nil {
+		tmpFile.Close()
+		return err
+	}
+	if _, err := tmpFile.Write(data); err != nil {
+		tmpFile.Close()
+		return err
+	}
+	if err := tmpFile.Sync(); err != nil {
+		tmpFile.Close()
+		return err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpPath, destPath)
+}
+

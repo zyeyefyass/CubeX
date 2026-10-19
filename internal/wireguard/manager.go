@@ -20,6 +20,7 @@ import (
 
 	"github.com/zyeyefyass/CubeX/internal/host"
 	"github.com/zyeyefyass/CubeX/internal/ros"
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // ServerConfig stores the WireGuard server configuration on RouterOS.
@@ -727,12 +728,11 @@ func (m *Manager) loadState() {
 }
 
 func (m *Manager) saveStateLocked() error {
-	_ = os.MkdirAll(filepath.Dir(m.stateFile), 0755)
 	data, err := json.MarshalIndent(m.state, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(m.stateFile, data, 0644)
+	return schema.WriteFileAtomicSecure(m.stateFile, data)
 }
 
 // RenamePeer updates the nickname of an authorized peer and syncs to ROS.

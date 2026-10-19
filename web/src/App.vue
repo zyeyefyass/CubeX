@@ -4708,6 +4708,7 @@ function onSelectProbeTarget(index, newTargetId) {
 const telemetryMetrics = ref({
   connections: 9,
   memoryMB: 51.1,
+  rssMB: 12.8,
   inboundTotalMB: 78.4,
   inboundSpeedBps: 0,
   outboundTotalMB: 802,
@@ -4994,6 +4995,16 @@ function updateHourlyDistribution(inMB, outMB, conns) {
   const now = new Date()
   const nowHour = now.getHours()
   const today = now.getDate()
+  const currentMonth = now.getMonth() + 1
+  const currentYear = now.getFullYear()
+
+  // 7x24h Cross-day auto detection: smoothly advance selected day when midnight passes
+  if (trafficInsights.value.year === currentYear && trafficInsights.value.month === currentMonth) {
+    if (trafficInsights.value.lastTrackedDay && trafficInsights.value.lastTrackedDay !== today) {
+      trafficInsights.value.selectedDay = today
+    }
+    trafficInsights.value.lastTrackedDay = today
+  }
 
   // Update today item in days array
   const todayItem = trafficInsights.value.days.find(d => d.day === today)
@@ -5286,6 +5297,7 @@ async function fetchTelemetryTraffic() {
       const liveMem = data.memory_mb || systemStatus.value?.total_overhead_mb || 51.1
       telemetryMetrics.value.connections = data.connections_count || 9
       telemetryMetrics.value.memoryMB = liveMem
+      if (data.rss_mb !== undefined) telemetryMetrics.value.rssMB = Number(data.rss_mb.toFixed(1))
       telemetryMetrics.value.inboundTotalMB = data.inbound_total_mb || 78.4
       telemetryMetrics.value.inboundSpeedBps = data.inbound_speed_bps || 0
       telemetryMetrics.value.outboundTotalMB = data.outbound_total_mb || 802

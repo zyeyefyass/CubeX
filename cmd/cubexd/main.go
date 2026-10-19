@@ -1927,10 +1927,28 @@ func (s *Server) handleAdblockStats(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, stats)
 }
 
-func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) {
+func getProcessRSS() float64 {
+	// On Linux, read /proc/self/status for VmRSS to report real physical resident memory
+	if data, err := os.ReadFile("/proc/self/status"); err == nil {
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines {
+			if strings.HasPrefix(line, "VmRSS:") {
+				fields := strings.Fields(line)
+				if len(fields) >= 2 {
+					if kb, err := strconv.ParseFloat(fields[1], 64); err == nil {
+						return kb / 1024.0
+					}
+				}
+			}
+		}
+	}
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	memMB := float64(m.Alloc) / (1024 * 1024)
+	return float64(m.Alloc) / (1024 * 1024)
+}
+
+func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) {
+	memMB := getProcessRSS()
 	coreMem := 18.2
 	if s.engMgr.GetActiveEngine() == schema.EngineMihomo {
 		coreMem = 48.5
@@ -1973,6 +1991,7 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 	sendJSON(w, map[string]any{
 		"connections_count":  connCount,
 		"memory_mb":          totalOverhead,
+		"rss_mb":             memMB,
 		"inbound_total_mb":   float64(downloadTotal) / (1024 * 1024),
 		"inbound_speed_bps":  downSpeed,
 		"outbound_total_mb":  float64(uploadTotal) / (1024 * 1024),

@@ -1,9 +1,11 @@
 package sub
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -13,14 +15,58 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
+// CreateFastDualStackDialer returns a dial function that prioritizes IPv4 addresses,
+// preventing hanging on unreachable IPv6 routes when DNS returns AAAA records (Happy Eyeballs fast fallback).
+func CreateFastDualStackDialer() func(ctx context.Context, network, addr string) (net.Conn, error) {
+	dialer := &net.Dialer{
+		Timeout:       8 * time.Second,
+		KeepAlive:     30 * time.Second,
+		FallbackDelay: 150 * time.Millisecond,
+	}
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return dialer.DialContext(ctx, network, addr)
+		}
+		// Resolve IPs and prioritize IPv4 to eliminate timeout delays on unreachable IPv6 routes
+		ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
+		if err == nil && len(ips) > 0 {
+			var v4s []net.IP
+			var v6s []net.IP
+			for _, ip := range ips {
+				if ip.To4() != nil {
+					v4s = append(v4s, ip)
+				} else {
+					v6s = append(v6s, ip)
+				}
+			}
+			sortedIPs := append(v4s, v6s...)
+			var lastErr error
+			for _, ip := range sortedIPs {
+				targetAddr := net.JoinHostPort(ip.String(), port)
+				conn, err := dialer.DialContext(ctx, network, targetAddr)
+				if err == nil {
+					return conn, nil
+				}
+				lastErr = err
+			}
+			if lastErr != nil {
+				return nil, lastErr
+			}
+		}
+		return dialer.DialContext(ctx, network, addr)
+	}
+}
+
 // Fetcher downloads and synchronizes subscription nodes.
 type Fetcher struct {
 	client *http.Client
 }
 
-// NewFetcher creates a subscription fetcher with high-speed timeout and TLS configuration.
+// NewFetcher creates a subscription fetcher with high-speed timeout, IPv4-first dialing and TLS configuration.
 func NewFetcher() *Fetcher {
 	tr := &http.Transport{
+		DialContext:     CreateFastDualStackDialer(),
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	return &Fetcher{
@@ -52,6 +98,7 @@ func (f *Fetcher) Fetch(urlStr string) (*FetchResult, error) {
 		proxyClient := &http.Client{
 			Transport: &http.Transport{
 				Proxy:           http.ProxyURL(proxyURL),
+				DialContext:     CreateFastDualStackDialer(),
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			},
 			Timeout: 20 * time.Second,

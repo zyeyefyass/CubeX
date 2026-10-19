@@ -73,7 +73,7 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 		initialIR.Network.DNSPort = 53
 	}
 	if cleanData, err := json.MarshalIndent(initialIR, "", "  "); err == nil {
-		_ = os.WriteFile(irFile, cleanData, 0644)
+		_ = schema.WriteFileAtomicSecure(irFile, cleanData)
 	}
 	apiAddr := fmt.Sprintf("http://127.0.0.1:%d", initialIR.Network.ClashAPIPort)
 	mgr := &Manager{
@@ -114,9 +114,9 @@ func (m *Manager) UpdateIR(newIR *schema.ConfigIR) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.ir = newIR
-	_ = os.MkdirAll(filepath.Join(m.workDir, "data"), 0755)
+	_ = os.MkdirAll(filepath.Join(m.workDir, "data"), 0700)
 	if data, err := json.MarshalIndent(newIR, "", "  "); err == nil {
-		_ = os.WriteFile(filepath.Join(m.workDir, "data", "config.ir.json"), data, 0644)
+		_ = schema.WriteFileAtomicSecure(filepath.Join(m.workDir, "data", "config.ir.json"), data)
 	}
 }
 
@@ -387,9 +387,9 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	// Persist target config
 	etcDir := filepath.Join(m.workDir, "etc")
-	_ = os.MkdirAll(etcDir, 0755)
+	_ = os.MkdirAll(etcDir, 0700)
 	targetConfigPath := filepath.Join(etcDir, configFileName)
-	if err := os.WriteFile(targetConfigPath, configData, 0644); err != nil {
+	if err := schema.WriteFileAtomicSecure(targetConfigPath, configData); err != nil {
 		res.Success = false
 		res.ErrorMessage = "failed to write config: " + err.Error()
 		m.lastResult = res
