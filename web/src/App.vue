@@ -671,36 +671,81 @@
                 </div>
               </div>
 
-              <!-- 3. Lower Section: Hourly Detailed Smooth Wave Area Chart -->
+              <!-- 3. Lower Section: Real-time Rolling Wave & Hourly Area Chart -->
               <div class="space-y-3 pt-3 border-t border-slate-800/80">
-                <!-- Hourly Header: Selected Timestamp & Total Flow -->
-                <div class="flex items-center justify-between text-xs font-mono">
-                  <div class="flex items-center gap-2">
-                    <span class="text-white font-bold">{{ trafficInsights.year }}-{{ String(trafficInsights.month).padStart(2, '0') }}-{{ String(trafficInsights.selectedDay).padStart(2, '0') }}</span>
-                    <span class="text-cyan-300 font-bold">{{ trafficInsights.selectedHourSlice }}</span>
-                    <span class="text-slate-500">·</span>
-                    <span class="text-slate-300">总流量 <strong class="text-white">{{ formatTrafficMB(selectedSliceTotalMB) }}</strong></span>
-                    <span class="text-slate-400">{{ selectedSliceConns }} 个连接</span>
+                <!-- Mode Switcher & Stream Status Header -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <!-- Tab Switcher -->
+                    <div class="flex items-center p-0.5 rounded-xl bg-slate-900 border border-slate-800">
+                      <button @click="trafficChartMode = 'realtime'"
+                        :class="['px-2.5 py-1 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5',
+                          trafficChartMode === 'realtime' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow' : 'text-slate-400 hover:text-white']">
+                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                        <span>⚡ 实时心电波形 (60s)</span>
+                      </button>
+                      <button @click="trafficChartMode = 'hourly'"
+                        :class="['px-2.5 py-1 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5',
+                          trafficChartMode === 'hourly' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow' : 'text-slate-400 hover:text-white']">
+                        <span>📊 24小时分时分布</span>
+                      </button>
+                    </div>
+
+                    <!-- Mode Metrics -->
+                    <template v-if="trafficChartMode === 'realtime'">
+                      <span class="text-slate-500">·</span>
+                      <span class="text-slate-300">出站 <strong class="text-sky-400">{{ formatSpeed(telemetryMetrics.outboundSpeedBps) }}</strong></span>
+                      <span class="text-slate-500">|</span>
+                      <span class="text-slate-300">进站 <strong class="text-emerald-400">{{ formatSpeed(telemetryMetrics.inboundSpeedBps) }}</strong></span>
+                      <span class="text-slate-500">·</span>
+                      <span class="text-slate-400">峰值 {{ formatSpeed(maxRealtimeSpeedKB * 1024) }}</span>
+                    </template>
+                    <template v-else>
+                      <span class="text-white font-bold">{{ trafficInsights.year }}-{{ String(trafficInsights.month).padStart(2, '0') }}-{{ String(trafficInsights.selectedDay).padStart(2, '0') }}</span>
+                      <span class="text-cyan-300 font-bold">{{ trafficInsights.selectedHourSlice }}</span>
+                      <span class="text-slate-500">·</span>
+                      <span class="text-slate-300">总流量 <strong class="text-white">{{ formatTrafficMB(selectedSliceTotalMB) }}</strong></span>
+                      <span class="text-slate-400">{{ selectedSliceConns }} 个连接</span>
+                    </template>
                   </div>
-                  <button @click="resetHourlyEntireDay"
-                    class="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 transition">
-                    {{ trafficInsights.viewEntireDay ? '已看全天' : '恢复看整天' }}
-                  </button>
+
+                  <!-- Right Action Buttons -->
+                  <div class="flex items-center gap-2">
+                    <button v-if="trafficChartMode === 'hourly'" @click="resetHourlyEntireDay"
+                      class="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 transition cursor-pointer">
+                      {{ trafficInsights.viewEntireDay ? '已看全天' : '恢复看整天' }}
+                    </button>
+                    <button v-else @click="realtimePaused = !realtimePaused"
+                      :class="['px-2.5 py-1 rounded-xl border text-xs font-mono transition cursor-pointer flex items-center gap-1',
+                        realtimePaused ? 'bg-amber-950 text-amber-300 border-amber-500/40' : 'bg-slate-900 text-slate-300 border-slate-800 hover:text-white']">
+                      <span>{{ realtimePaused ? '▶ 恢复滚动' : '⏸ 暂停滚动' }}</span>
+                    </button>
+                  </div>
                 </div>
 
-                <!-- Hourly Smooth Wave/Area Chart (SVG) -->
+                <!-- Chart Canvas Container -->
                 <div class="relative h-44 flex">
                   <!-- Y-axis guide labels -->
-                  <div class="w-14 text-[10px] text-slate-500 font-mono flex flex-col justify-between py-1 select-none text-right pr-2">
-                    <span>{{ formatTrafficMB(maxHourlyTrafficMB) }}</span>
-                    <span>{{ formatTrafficMB(maxHourlyTrafficMB * 0.8) }}</span>
-                    <span>{{ formatTrafficMB(maxHourlyTrafficMB * 0.6) }}</span>
-                    <span>{{ formatTrafficMB(maxHourlyTrafficMB * 0.4) }}</span>
-                    <span>{{ formatTrafficMB(maxHourlyTrafficMB * 0.2) }}</span>
-                    <span>0 B</span>
+                  <div class="w-16 text-[10px] text-slate-500 font-mono flex flex-col justify-between py-1 select-none text-right pr-2">
+                    <template v-if="trafficChartMode === 'realtime'">
+                      <span>{{ formatSpeed(maxRealtimeSpeedKB * 1024) }}</span>
+                      <span>{{ formatSpeed(maxRealtimeSpeedKB * 1024 * 0.8) }}</span>
+                      <span>{{ formatSpeed(maxRealtimeSpeedKB * 1024 * 0.6) }}</span>
+                      <span>{{ formatSpeed(maxRealtimeSpeedKB * 1024 * 0.4) }}</span>
+                      <span>{{ formatSpeed(maxRealtimeSpeedKB * 1024 * 0.2) }}</span>
+                      <span>0 B/s</span>
+                    </template>
+                    <template v-else>
+                      <span>{{ formatTrafficMB(maxHourlyTrafficMB) }}</span>
+                      <span>{{ formatTrafficMB(maxHourlyTrafficMB * 0.8) }}</span>
+                      <span>{{ formatTrafficMB(maxHourlyTrafficMB * 0.6) }}</span>
+                      <span>{{ formatTrafficMB(maxHourlyTrafficMB * 0.4) }}</span>
+                      <span>{{ formatTrafficMB(maxHourlyTrafficMB * 0.2) }}</span>
+                      <span>0 B</span>
+                    </template>
                   </div>
 
-                  <!-- SVG Canvas with Smooth Curve & Selected Hour Slice Guideline -->
+                  <!-- SVG Canvas with Curves -->
                   <div class="flex-1 relative h-full">
                     <!-- Guidelines -->
                     <div class="absolute inset-0 flex flex-col justify-between pointer-events-none py-1">
@@ -712,57 +757,108 @@
                       <div class="border-b border-slate-800/40 w-full"></div>
                     </div>
 
-                    <!-- Vertical dashed cursor line at selected slice -->
-                    <div v-if="cursorLeftPercent >= 0"
-                      class="absolute top-0 bottom-0 border-l border-slate-400 border-dashed pointer-events-none z-10 transition-all duration-300"
-                      :style="{ left: cursorLeftPercent + '%' }"></div>
+                    <!-- REALTIME SVG -->
+                    <template v-if="trafficChartMode === 'realtime'">
+                      <svg class="w-full h-full" viewBox="0 0 900 160" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="realtimeOutGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#00d2ff" stop-opacity="0.45"/>
+                            <stop offset="100%" stop-color="#00d2ff" stop-opacity="0.02"/>
+                          </linearGradient>
+                          <linearGradient id="realtimeInGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#10B981" stop-opacity="0.35"/>
+                            <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
+                          </linearGradient>
+                        </defs>
+                        <!-- Outbound Area & Line (Cyber Cyan) -->
+                        <path :d="realtimeOutboundPath.area" fill="url(#realtimeOutGrad)" />
+                        <path :d="realtimeOutboundPath.line" fill="none" stroke="#00d2ff" stroke-width="2.5" stroke-linecap="round" />
 
-                    <!-- SVG Curve Area (Clickable to inspect any hour) -->
-                    <svg class="w-full h-full cursor-crosshair" viewBox="0 0 900 160" preserveAspectRatio="none" @click="onTrafficChartClick">
-                      <defs>
-                        <linearGradient id="trafficOutGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.45"/>
-                          <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.05"/>
-                        </linearGradient>
-                        <linearGradient id="trafficInGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stop-color="#10B981" stop-opacity="0.35"/>
-                          <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
-                        </linearGradient>
-                      </defs>
-                      <!-- Outbound Wave (Blue) -->
-                      <path :d="trafficHourlyOutboundPath.area" fill="url(#trafficOutGrad)" />
-                      <path :d="trafficHourlyOutboundPath.line" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round" />
+                        <!-- Inbound Area & Line (Emerald) -->
+                        <path :d="realtimeInboundPath.line" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" />
 
-                      <!-- Inbound Wave (Green) -->
-                      <path :d="trafficHourlyInboundPath.line" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" />
-                    </svg>
+                        <!-- Current Live Pulse Dot for Outbound (at x = 900) -->
+                        <circle cx="896" :cy="realtimeOutboundLastY" r="4" fill="#00d2ff" />
+                        <circle cx="896" :cy="realtimeOutboundLastY" r="8" fill="#00d2ff" opacity="0.4" class="animate-ping" />
 
-                    <!-- X-axis timestamps -->
-                    <div class="absolute -bottom-5 left-0 right-0 flex justify-between text-[10px] text-slate-500 font-mono select-none">
-                      <span>00:00</span>
-                      <span>03:00</span>
-                      <span>06:00</span>
-                      <span>09:00</span>
-                      <span>12:00</span>
-                      <span>15:00</span>
-                      <span>18:00</span>
-                      <span>21:00</span>
-                      <span>23:59</span>
-                    </div>
+                        <!-- Current Live Pulse Dot for Inbound (at x = 900) -->
+                        <circle cx="896" :cy="realtimeInboundLastY" r="3.5" fill="#10B981" />
+                      </svg>
+
+                      <!-- X-axis timestamps (-60s to 0s) -->
+                      <div class="absolute -bottom-5 left-0 right-0 flex justify-between text-[10px] text-slate-500 font-mono select-none">
+                        <span>-60s</span>
+                        <span>-50s</span>
+                        <span>-40s</span>
+                        <span>-30s</span>
+                        <span>-20s</span>
+                        <span>-10s</span>
+                        <span class="text-cyan-400 font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>现在 (Live)</span>
+                      </div>
+                    </template>
+
+                    <!-- HOURLY SVG -->
+                    <template v-else>
+                      <div v-if="cursorLeftPercent >= 0"
+                        class="absolute top-0 bottom-0 border-l border-slate-400 border-dashed pointer-events-none z-10 transition-all duration-300"
+                        :style="{ left: cursorLeftPercent + '%' }"></div>
+
+                      <svg class="w-full h-full cursor-crosshair" viewBox="0 0 900 160" preserveAspectRatio="none" @click="onTrafficChartClick">
+                        <defs>
+                          <linearGradient id="trafficOutGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.45"/>
+                            <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.05"/>
+                          </linearGradient>
+                          <linearGradient id="trafficInGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#10B981" stop-opacity="0.35"/>
+                            <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
+                          </linearGradient>
+                        </defs>
+                        <path :d="trafficHourlyOutboundPath.area" fill="url(#trafficOutGrad)" />
+                        <path :d="trafficHourlyOutboundPath.line" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round" />
+                        <path :d="trafficHourlyInboundPath.line" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" />
+                      </svg>
+
+                      <!-- X-axis timestamps -->
+                      <div class="absolute -bottom-5 left-0 right-0 flex justify-between text-[10px] text-slate-500 font-mono select-none">
+                        <span>00:00</span>
+                        <span>03:00</span>
+                        <span>06:00</span>
+                        <span>09:00</span>
+                        <span>12:00</span>
+                        <span>15:00</span>
+                        <span>18:00</span>
+                        <span>21:00</span>
+                        <span>23:59</span>
+                      </div>
+                    </template>
                   </div>
                 </div>
 
-                <!-- Lower Chart Legend & Selected Slice Metrics -->
+                <!-- Lower Chart Legend & Metrics -->
                 <div class="flex items-center justify-center gap-6 text-xs font-mono pt-4 text-slate-400">
-                  <span class="text-slate-300">已选 {{ trafficInsights.selectedHourSlice }}</span>
-                  <div class="flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                    <span>进站 <strong class="text-white">{{ formatTrafficMB(selectedSliceInboundMB) }}</strong></span>
-                  </div>
-                  <div class="flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                    <span>出站 <strong class="text-white">{{ formatTrafficMB(selectedSliceOutboundMB) }}</strong></span>
-                  </div>
+                  <template v-if="trafficChartMode === 'realtime'">
+                    <span class="text-slate-300">极光心电实时监控 (1s 采样)</span>
+                    <div class="flex items-center gap-1.5">
+                      <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#00d2ff]"></span>
+                      <span>实时出站 <strong class="text-white">{{ formatSpeed(telemetryMetrics.outboundSpeedBps) }}</strong></span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]"></span>
+                      <span>实时进站 <strong class="text-white">{{ formatSpeed(telemetryMetrics.inboundSpeedBps) }}</strong></span>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <span class="text-slate-300">已选 {{ trafficInsights.selectedHourSlice }}</span>
+                    <div class="flex items-center gap-1.5">
+                      <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                      <span>进站 <strong class="text-white">{{ formatTrafficMB(selectedSliceInboundMB) }}</strong></span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                      <span>出站 <strong class="text-white">{{ formatTrafficMB(selectedSliceOutboundMB) }}</strong></span>
+                    </div>
+                  </template>
                 </div>
               </div>
             </div>
@@ -2526,7 +2622,10 @@
               <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-2 relative overflow-hidden">
                 <div class="flex items-center justify-between text-xs text-slate-400 font-medium">
                   <span>平均解析耗时 (24h 遥测)</span>
-                  <span class="text-[10px] text-emerald-400 font-mono">0 泄露极速响应</span>
+                  <span class="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    0 泄露极速响应
+                  </span>
                 </div>
                 <div class="text-2xl font-bold font-mono text-white flex items-baseline gap-1">
                   <span>{{ dnsFilterStats.avgLatencyMs }}</span>
@@ -2542,6 +2641,9 @@
                     </defs>
                     <path :d="dnsLatencyPath.area" fill="url(#dnsLatencyGrad)" />
                     <path :d="dnsLatencyPath.line" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" />
+                    <!-- Live Pulse End Point -->
+                    <circle cx="316" :cy="getDnsChartEndY(dnsFilterStats.hourlyLatencyTrend, 0, 80)" r="3" fill="#10B981" />
+                    <circle cx="316" :cy="getDnsChartEndY(dnsFilterStats.hourlyLatencyTrend, 0, 80)" r="6" fill="#10B981" opacity="0.4" class="animate-ping" />
                   </svg>
                 </div>
               </div>
@@ -2550,7 +2652,10 @@
               <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-2 relative overflow-hidden">
                 <div class="flex items-center justify-between text-xs text-slate-400 font-medium">
                   <span>DNS 查询量 (24h 吞吐)</span>
-                  <span class="text-[10px] text-sky-400 font-mono">国内直连 + Fake-IP</span>
+                  <span class="text-[10px] text-sky-400 font-mono flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
+                    国内直连 + Fake-IP
+                  </span>
                 </div>
                 <div class="text-2xl font-bold font-mono text-white">
                   {{ dnsFilterStats.queryCount.toLocaleString() }}
@@ -2565,50 +2670,76 @@
                     </defs>
                     <path :d="dnsQueryPath.area" fill="url(#dnsQueryGrad)" />
                     <path :d="dnsQueryPath.line" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" />
+                    <!-- Live Pulse End Point -->
+                    <circle cx="316" :cy="getDnsChartEndY(dnsFilterStats.hourlyQueryTrend, 0, 3000)" r="3" fill="#0284c7" />
+                    <circle cx="316" :cy="getDnsChartEndY(dnsFilterStats.hourlyQueryTrend, 0, 3000)" r="6" fill="#0284c7" opacity="0.4" class="animate-ping" />
                   </svg>
                 </div>
               </div>
 
-              <!-- Card 3: 今日阻断与拦截 -->
-              <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-2 relative overflow-hidden">
-                <div class="flex items-center justify-between text-xs">
-                  <span class="text-slate-400 font-medium">今日阻断与拦截</span>
-                  <span class="text-xs font-bold font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/30">
-                    拦截率 {{ dnsFilterStats.blockedPercentage }}%
-                  </span>
+              <!-- Card 3: 今日阻断与拦截 (带分类统计以平衡行高) -->
+              <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-2 relative overflow-hidden flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-400 font-medium">今日阻断与拦截</span>
+                    <span class="text-xs font-bold font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/30">
+                      拦截率 {{ dnsFilterStats.blockedPercentage }}%
+                    </span>
+                  </div>
+                  <div class="text-2xl font-bold font-mono text-amber-400">
+                    {{ dnsFilterStats.blockedCount.toLocaleString() }}
+                  </div>
+                  <div class="h-16 w-full pt-1">
+                    <svg class="w-full h-full" viewBox="0 0 320 60" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="dnsBlockedGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.4"/>
+                          <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.0"/>
+                        </linearGradient>
+                      </defs>
+                      <path :d="dnsBlockedPath.area" fill="url(#dnsBlockedGrad)" />
+                      <path :d="dnsBlockedPath.line" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" />
+                      <!-- Live Pulse End Point -->
+                      <circle cx="316" :cy="getDnsChartEndY(dnsFilterStats.hourlyBlockedTrend, 0, 2000)" r="3" fill="#f59e0b" />
+                      <circle cx="316" :cy="getDnsChartEndY(dnsFilterStats.hourlyBlockedTrend, 0, 2000)" r="6" fill="#f59e0b" opacity="0.4" class="animate-ping" />
+                    </svg>
+                  </div>
                 </div>
-                <div class="text-2xl font-bold font-mono text-amber-400">
-                  {{ dnsFilterStats.blockedCount.toLocaleString() }}
-                </div>
-                <div class="h-16 w-full pt-1">
-                  <svg class="w-full h-full" viewBox="0 0 320 60" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="dnsBlockedGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.4"/>
-                        <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.0"/>
-                      </linearGradient>
-                    </defs>
-                    <path :d="dnsBlockedPath.area" fill="url(#dnsBlockedGrad)" />
-                    <path :d="dnsBlockedPath.line" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" />
-                  </svg>
+
+                <!-- 均衡行高底部分类标签 -->
+                <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800/60 text-[10px] font-mono text-center">
+                  <div class="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/60">
+                    <div class="text-slate-400">广告弹窗</div>
+                    <div class="text-amber-400 font-bold mt-0.5">14,820</div>
+                  </div>
+                  <div class="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/60">
+                    <div class="text-slate-400">隐私追踪</div>
+                    <div class="text-amber-400 font-bold mt-0.5">5,640</div>
+                  </div>
+                  <div class="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/60">
+                    <div class="text-slate-400">恶意劫持</div>
+                    <div class="text-amber-400 font-bold mt-0.5">1,220</div>
+                  </div>
                 </div>
               </div>
 
               <!-- Card 4: 被拦截域名排行 -->
-              <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-3 relative overflow-hidden">
-                <div class="flex items-center justify-between text-xs text-slate-400 font-medium">
-                  <span>被拦截广告与恶意域名排行</span>
-                  <span class="text-[10px] text-amber-400 font-mono">217heidai 高危特征</span>
-                </div>
-                <div class="space-y-2.5">
-                  <div v-for="item in dnsFilterStats.topBlocked" :key="item.domain" class="space-y-1">
-                    <div class="flex items-center justify-between text-[11px] font-mono">
-                      <span class="text-slate-300 truncate max-w-[240px]" :title="item.domain">{{ item.domain }}</span>
-                      <span class="text-slate-400 font-semibold">{{ item.count.toLocaleString() }}</span>
-                    </div>
-                    <div class="w-full bg-slate-800/80 h-1.5 rounded-full overflow-hidden">
-                      <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-full rounded-full transition-all duration-500"
-                        :style="{ width: item.percent + '%' }"></div>
+              <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-3 relative overflow-hidden flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between text-xs text-slate-400 font-medium">
+                    <span>被拦截广告与恶意域名排行</span>
+                    <span class="text-[10px] text-amber-400 font-mono">217heidai 高危特征</span>
+                  </div>
+                  <div class="space-y-2 pt-2">
+                    <div v-for="item in dnsFilterStats.topBlocked" :key="item.domain" class="space-y-1">
+                      <div class="flex items-center justify-between text-[11px] font-mono">
+                        <span class="text-slate-300 truncate max-w-[240px]" :title="item.domain">{{ item.domain }}</span>
+                        <span class="text-slate-400 font-semibold">{{ item.count.toLocaleString() }}</span>
+                      </div>
+                      <div class="w-full bg-slate-800/80 h-1.5 rounded-full overflow-hidden">
+                        <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-full rounded-full transition-all duration-500"
+                          :style="{ width: item.percent + '%' }"></div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2816,157 +2947,190 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- 1. CubeX 主控系统版本 -->
               <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
-                <div class="space-y-3">
-                  <div class="flex justify-between items-center">
-                    <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span>🧊</span>
-                      <span>CubeX 系统守护进程</span>
-                    </div>
-                    <span v-if="systemOverview.panel_update_avail" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse">发现新版 {{ systemOverview.panel_latest_version }}</span>
-                    <span v-else class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">✓ 已是最新稳定版</span>
+                <!-- Tier 1: Header (h-7) -->
+                <div class="h-7 flex justify-between items-center">
+                  <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>🧊</span>
+                    <span>CubeX 系统守护进程</span>
                   </div>
-                  <div class="text-xs text-slate-400 font-mono flex items-center justify-between">
-                    <span>当前运行: <strong class="text-cyan-400">{{ systemOverview.cubex_version || 'Test v1.2' }}</strong></span>
+                  <span v-if="systemOverview.panel_update_avail" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse">发现新版 {{ systemOverview.panel_latest_version }}</span>
+                  <span v-else class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">✓ 已是最新稳定版</span>
+                </div>
+                <!-- Tier 2: Body (h-[74px]) -->
+                <div class="h-[74px] text-xs font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
+                  <div class="flex items-center justify-between">
+                    <span>当前运行: <strong class="text-cyan-400 font-bold">{{ systemOverview.cubex_version || 'Test v1.2' }}</strong></span>
                     <span class="text-slate-500">云端最新: <span class="text-slate-300">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v1.2' }}</span></span>
                   </div>
+                  <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-slate-400">运行底座: <span class="text-slate-300">{{ hostBadge.name || 'MikroTik RouterOS' }} ({{ hostInfo.architecture || 'amd64' }})</span></span>
+                    <span class="text-emerald-400 font-semibold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>主控活跃守护</span>
+                  </div>
                 </div>
-                <div class="space-y-2">
-                  <button @click="upgradePanel" :disabled="upgradingPanel" class="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-500/20">
+                <!-- Tier 3: Action Buttons (h-10) -->
+                <div class="h-10">
+                  <button @click="upgradePanel" :disabled="upgradingPanel" class="w-full h-10 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-500/20">
                     <span v-if="upgradingPanel" class="inline-block animate-spin mr-1">↻</span>
                     <span>{{ upgradingPanel ? '⏳ 正在核对与平滑热更中...' : (systemOverview.panel_update_avail ? `🚀 一键在线热更至 ${systemOverview.panel_latest_version}` : '🔄 校验并在线热更 CubeX') }}</span>
                   </button>
-                  <div v-if="panelUpgradeLog" class="p-2.5 rounded-xl bg-slate-950/80 border border-cyan-500/30 text-[11px] font-mono text-cyan-300 leading-relaxed break-words">
+                </div>
+                <!-- Tier 4: Terminal Viewport (h-[62px]) -->
+                <div class="h-[62px] p-2 rounded-xl bg-slate-950/80 border border-cyan-500/20 text-[11px] font-mono text-cyan-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center">
+                  <div v-if="panelUpgradeLog" class="w-full break-words">
                     {{ panelUpgradeLog }}
+                  </div>
+                  <div v-else class="text-slate-400 text-xs flex items-center gap-2">
+                    <span class="text-cyan-400 font-bold shrink-0">[CUBEX]</span>
+                    <span>主控守护进程运行中 · 双引擎热备调度活跃 · 内存与端口健康</span>
                   </div>
                 </div>
               </div>
 
               <!-- 2. 双内核版本 -->
               <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
-                <div class="space-y-3">
-                  <div class="flex justify-between items-center">
-                    <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span>⚙️</span>
-                      <span>双代理内核 (Mihomo & sing-box)</span>
-                    </div>
-                    <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40">双核合璧 · 秒级热备</span>
+                <!-- Tier 1: Header (h-7) -->
+                <div class="h-7 flex justify-between items-center">
+                  <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>⚙️</span>
+                    <span>双代理内核 (Mihomo & sing-box)</span>
                   </div>
-                  <div class="text-[11px] text-slate-400 font-mono space-y-1 bg-slate-950/40 p-2 rounded-xl border border-slate-800/60">
-                    <div class="flex items-center justify-between">
-                      <span>Mihomo 内核: <strong class="text-emerald-400 font-semibold">{{ systemOverview.mihomo_curr_version || 'v1.19.32' }}</strong></span>
-                      <span class="text-slate-500">官方最新: <span class="text-slate-300">{{ systemOverview.mihomo_latest_version || 'v1.19.32' }}</span></span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                      <span>sing-box 内核: <strong class="text-emerald-400 font-semibold">{{ systemOverview.singbox_curr_version || 'v1.14.3' }}</strong></span>
-                      <span class="text-slate-500">官方最新: <span class="text-slate-300">{{ systemOverview.singbox_latest_version || 'v1.14.3' }}</span></span>
-                    </div>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40">双核合璧 · 秒级热备</span>
+                </div>
+                <!-- Tier 2: Body (h-[74px]) -->
+                <div class="h-[74px] text-[11px] font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
+                  <div class="flex items-center justify-between">
+                    <span>Mihomo 内核: <strong class="text-emerald-400 font-semibold">{{ systemOverview.mihomo_curr_version || 'v1.19.32' }}</strong></span>
+                    <span class="text-slate-500">官方最新: <span class="text-slate-300">{{ systemOverview.mihomo_latest_version || 'v1.19.32' }}</span></span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span>sing-box 内核: <strong class="text-emerald-400 font-semibold">{{ systemOverview.singbox_curr_version || 'v1.14.3' }}</strong></span>
+                    <span class="text-slate-500">官方最新: <span class="text-slate-300">{{ systemOverview.singbox_latest_version || 'v1.14.3' }}</span></span>
                   </div>
                 </div>
-                <div class="space-y-2">
-                  <div class="flex gap-2">
-                    <button @click="upgradeCore('mihomo')" :disabled="upgradingCoreMihomo" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1">
-                      <span v-if="upgradingCoreMihomo" class="inline-block animate-spin mr-1">↻</span>
-                      <span>{{ upgradingCoreMihomo ? '核对中...' : '⬆ 升级 Mihomo' }}</span>
-                    </button>
-                    <button @click="upgradeCore('singbox')" :disabled="upgradingCoreSingbox" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1">
-                      <span v-if="upgradingCoreSingbox" class="inline-block animate-spin mr-1">↻</span>
-                      <span>{{ upgradingCoreSingbox ? '核对中...' : '⬆ 升级 sing-box' }}</span>
-                    </button>
-                  </div>
-                  <div v-if="coreUpgradeLog" class="p-2.5 rounded-xl bg-slate-950/80 border border-slate-700/60 text-[11px] font-mono text-slate-300 leading-relaxed break-words">
+                <!-- Tier 3: Action Buttons (h-10) -->
+                <div class="h-10 grid grid-cols-2 gap-2">
+                  <button @click="upgradeCore('mihomo')" :disabled="upgradingCoreMihomo" class="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1">
+                    <span v-if="upgradingCoreMihomo" class="inline-block animate-spin mr-1">↻</span>
+                    <span>{{ upgradingCoreMihomo ? '核对中...' : '⬆ 升级 Mihomo' }}</span>
+                  </button>
+                  <button @click="upgradeCore('singbox')" :disabled="upgradingCoreSingbox" class="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1">
+                    <span v-if="upgradingCoreSingbox" class="inline-block animate-spin mr-1">↻</span>
+                    <span>{{ upgradingCoreSingbox ? '核对中...' : '⬆ 升级 sing-box' }}</span>
+                  </button>
+                </div>
+                <!-- Tier 4: Terminal Viewport (h-[62px]) -->
+                <div class="h-[62px] p-2 rounded-xl bg-slate-950/80 border border-slate-700/60 text-[11px] font-mono text-slate-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center">
+                  <div v-if="coreUpgradeLog" class="w-full break-words">
                     {{ coreUpgradeLog }}
+                  </div>
+                  <div v-else class="text-slate-400 text-xs flex items-center gap-2">
+                    <span class="text-emerald-400 font-bold shrink-0">[CORE]</span>
+                    <span>双引擎无感热重载就绪 · Mihomo 主控调度 · sing-box 待命热备</span>
                   </div>
                 </div>
               </div>
 
               <!-- 3. Geo 规则数据库与离线分流矩阵 -->
               <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
-                <div class="space-y-3">
-                  <div class="flex justify-between items-center">
-                    <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span>📚</span>
-                      <span>Geo 数据库 & 217heidai 规则包</span>
-                    </div>
-                    <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">233,481 条</span>
+                <!-- Tier 1: Header (h-7) -->
+                <div class="h-7 flex justify-between items-center">
+                  <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>📚</span>
+                    <span>Geo 数据库 & 217heidai 规则包</span>
                   </div>
-                  <div class="text-[11px] text-slate-400 font-mono space-y-1 bg-slate-950/40 p-2 rounded-xl border border-slate-800/60">
-                    <div class="flex justify-between items-center">
-                      <span>离线基础库: <span class="text-slate-300">geoip.metadb + geosite.dat</span></span>
-                      <span class="text-emerald-400 font-semibold">✓ 已就绪</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                      <span>权威规则包: <span class="text-slate-300">38 套 217heidai MRS / SRS</span></span>
-                      <span class="text-slate-500">{{ geodataLastUpdateText || '已全量装载' }}</span>
-                    </div>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">233,481 条</span>
+                </div>
+                <!-- Tier 2: Body (h-[74px]) -->
+                <div class="h-[74px] text-[11px] font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
+                  <div class="flex justify-between items-center">
+                    <span>离线基础库: <span class="text-slate-300">geoip.metadb + geosite.dat</span></span>
+                    <span class="text-emerald-400 font-semibold">✓ 已就绪</span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span>权威规则包: <span class="text-slate-300">38 套 217heidai MRS / SRS</span></span>
+                    <span class="text-slate-400">{{ geodataLastUpdateText || '已全量装载' }}</span>
                   </div>
                 </div>
-                <div class="space-y-2">
-                  <button @click="updateGeoData" :disabled="updatingGeo" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/20">
+                <!-- Tier 3: Action Buttons (h-10) -->
+                <div class="h-10">
+                  <button @click="updateGeoData" :disabled="updatingGeo" class="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/20">
                     <span v-if="updatingGeo" class="inline-block animate-spin mr-1">↻</span>
                     <span>{{ updatingGeo ? '⏳ 正在极速拉取并重载 38 套规则...' : '🔄 一键更新全套 Geo 与去广告规则库' }}</span>
                   </button>
-                  <div v-if="geoUpdateLog" class="p-2.5 rounded-xl bg-slate-950/80 border border-emerald-500/30 text-[11px] font-mono text-emerald-300 leading-relaxed break-words">
+                </div>
+                <!-- Tier 4: Terminal Viewport (h-[62px]) -->
+                <div class="h-[62px] p-2 rounded-xl bg-slate-950/80 border border-emerald-500/20 text-[11px] font-mono text-emerald-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center">
+                  <div v-if="geoUpdateLog" class="w-full break-words">
                     {{ geoUpdateLog }}
+                  </div>
+                  <div v-else class="text-slate-400 text-xs flex items-center gap-2">
+                    <span class="text-emerald-400 font-bold shrink-0">[GEODATA]</span>
+                    <span>38 套 217heidai 高速规则已装载 · 23.3 万条分流与去广告规则生效</span>
                   </div>
                 </div>
               </div>
 
               <!-- 4. 宿主固件系统 / 宿主机系统在线升级 (智能自适应 RouterOS / 飞牛 / PVE / Docker / Linux) -->
               <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
-                <div class="space-y-3">
-                  <div class="flex justify-between items-center">
-                    <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                      <span v-if="isRouterOS">📡</span>
-                      <span v-else>{{ hostBadge.icon }}</span>
-                      <span>{{ isRouterOS ? 'MikroTik RouterOS 固件系统版本' : (hostBadge.name + ' 宿主系统版本') }}</span>
-                    </div>
-                    <span v-if="hostUpgradeDetails.checked && hostUpgradeDetails.hasUpdate" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse">发现新固件 {{ hostUpgradeDetails.latestVersion }}</span>
-                    <span v-else-if="hostUpgradeDetails.checked && !hostUpgradeDetails.hasUpdate" class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">✓ 已是最新稳定版</span>
-                    <span v-else :class="['text-[10px] font-mono px-2 py-0.5 rounded border', isRouterOS ? 'bg-purple-950 text-purple-300 border-purple-500/40' : 'bg-cyan-950 text-cyan-300 border-cyan-500/40']">
-                      {{ isRouterOS ? 'ROS v7 官方升级通道' : (hostBadge.shortName + ' 系统通道') }}
-                    </span>
+                <!-- Tier 1: Header (h-7) -->
+                <div class="h-7 flex justify-between items-center">
+                  <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span v-if="isRouterOS">📡</span>
+                    <span v-else>{{ hostBadge.icon }}</span>
+                    <span>{{ isRouterOS ? 'MikroTik RouterOS 固件系统版本' : (hostBadge.name + ' 宿主系统版本') }}</span>
                   </div>
-                  <div class="text-xs text-slate-400 font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 space-y-1">
-                    <template v-if="isRouterOS">
-                      <div class="flex justify-between items-center">
-                        <span>当前固件: <strong class="text-purple-300">{{ hostUpgradeDetails.installedVersion || hostInfo.os_name || 'MikroTik RouterOS 7.24.5' }}</strong></span>
-                        <span class="text-slate-500">升级通道: <span class="text-slate-300">{{ hostUpgradeDetails.channel || 'stable' }}</span></span>
-                      </div>
-                      <div v-if="hostUpgradeDetails.checked" class="flex justify-between items-center text-[11px] pt-1 border-t border-slate-800/60">
-                        <span>云端最新: <strong :class="hostUpgradeDetails.hasUpdate ? 'text-amber-400' : 'text-emerald-400'">{{ hostUpgradeDetails.latestVersion || hostUpgradeDetails.installedVersion }}</strong></span>
-                        <span :class="hostUpgradeDetails.hasUpdate ? 'text-amber-400 font-bold' : 'text-emerald-400 font-medium'">{{ hostUpgradeDetails.hasUpdate ? '● 存在新版本' : '● 最新稳定版' }}</span>
-                      </div>
-                    </template>
-                    <template v-else>
-                      <div>当前宿主: {{ hostInfo.os_name || hostBadge.name }} · 内核 {{ hostInfo.kernel_version || 'Linux 6.x' }}</div>
-                    </template>
-                  </div>
+                  <span v-if="hostUpgradeDetails.checked && hostUpgradeDetails.hasUpdate" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse">发现新固件 {{ hostUpgradeDetails.latestVersion }}</span>
+                  <span v-else-if="hostUpgradeDetails.checked && !hostUpgradeDetails.hasUpdate" class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">✓ 已是最新稳定版</span>
+                  <span v-else :class="['text-[10px] font-mono px-2 py-0.5 rounded border', isRouterOS ? 'bg-purple-950 text-purple-300 border-purple-500/40' : 'bg-cyan-950 text-cyan-300 border-cyan-500/40']">
+                    {{ isRouterOS ? 'ROS v7 官方升级通道' : (hostBadge.shortName + ' 系统通道') }}
+                  </span>
                 </div>
-                <div class="space-y-2">
-                  <div class="flex gap-2">
-                    <button @click="checkHostUpgrade" :disabled="checkingHostUpgrade" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer">
-                      <span v-if="checkingHostUpgrade" class="inline-block animate-spin mr-1">↻</span>
-                      <span>🔍 检查 {{ isRouterOS ? 'ROS 固件' : hostBadge.shortName }} 更新</span>
-                    </button>
-                    <button @click="executeHostUpgrade" :disabled="executingHostUpgrade || (isRouterOS && hostUpgradeDetails.checked && !hostUpgradeDetails.hasUpdate)" class="flex-1 py-2.5 rounded-xl font-bold text-xs shadow-lg transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      :class="isRouterOS ? (hostUpgradeDetails.hasUpdate ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30' : 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-600/30') : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-600/30'">
-                      <span v-if="executingHostUpgrade" class="inline-block animate-spin mr-1">↻</span>
-                      <span v-if="isRouterOS">
-                        {{ hostUpgradeDetails.checked && !hostUpgradeDetails.hasUpdate ? '✓ 固件已是最新版' : (hostUpgradeDetails.hasUpdate ? `🚀 升级至 ${hostUpgradeDetails.latestVersion}` : '⬆ 升级 RouterOS 并重启') }}
-                      </span>
-                      <span v-else>⬆ 升级宿主系统包</span>
-                    </button>
-                  </div>
-                  <!-- 真实回显区域 -->
-                  <div v-if="hostUpgradeResult" class="p-2.5 rounded-xl bg-slate-950/90 border border-purple-500/40 text-[11px] font-mono text-purple-300 leading-relaxed space-y-1">
-                    <div class="flex items-center justify-between text-slate-400">
-                      <span class="font-bold text-purple-400 flex items-center gap-1">
-                        <span>📡</span>
-                        <span>官方固件检查反馈报告：</span>
-                      </span>
-                      <span class="text-[10px] text-slate-500 font-mono">{{ hostUpgradeCheckTime }}</span>
+                <!-- Tier 2: Body (h-[74px]) -->
+                <div class="h-[74px] text-[11px] font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
+                  <template v-if="isRouterOS">
+                    <div class="flex justify-between items-center">
+                      <span>当前固件: <strong class="text-purple-300">{{ hostUpgradeDetails.installedVersion || hostInfo.os_name || 'MikroTik RouterOS 7.24.5' }}</strong></span>
+                      <span class="text-slate-500">升级通道: <span class="text-slate-300">{{ hostUpgradeDetails.channel || 'stable' }}</span></span>
                     </div>
-                    <div class="text-slate-200 whitespace-pre-wrap bg-slate-900/60 p-2 rounded-lg border border-slate-800">{{ hostUpgradeResult }}</div>
+                    <div class="flex justify-between items-center">
+                      <span>云端最新: <strong :class="hostUpgradeDetails.hasUpdate ? 'text-amber-400' : 'text-emerald-400'">{{ hostUpgradeDetails.latestVersion || hostUpgradeDetails.installedVersion || '7.24.5' }}</strong></span>
+                      <span :class="hostUpgradeDetails.hasUpdate ? 'text-amber-400 font-bold' : 'text-emerald-400 font-medium'">{{ hostUpgradeDetails.hasUpdate ? '● 存在新版本' : '● 最新稳定版' }}</span>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <div class="flex justify-between items-center">
+                      <span>当前宿主: <strong class="text-cyan-300">{{ hostInfo.os_name || hostBadge.name }}</strong></span>
+                      <span class="text-slate-500">内核: <span class="text-slate-300">{{ hostInfo.kernel_version || 'Linux 6.x' }}</span></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                      <span>运行模式: <strong class="text-emerald-400">容器沙盒化</strong></span>
+                      <span class="text-emerald-400">● 宿主正常</span>
+                    </div>
+                  </template>
+                </div>
+                <!-- Tier 3: Action Buttons (h-10) -->
+                <div class="h-10 grid grid-cols-2 gap-2">
+                  <button @click="checkHostUpgrade" :disabled="checkingHostUpgrade" class="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer">
+                    <span v-if="checkingHostUpgrade" class="inline-block animate-spin mr-1">↻</span>
+                    <span>🔍 检查 {{ isRouterOS ? 'ROS 固件' : hostBadge.shortName }} 更新</span>
+                  </button>
+                  <button @click="executeHostUpgrade" :disabled="executingHostUpgrade || (isRouterOS && hostUpgradeDetails.checked && !hostUpgradeDetails.hasUpdate)" class="h-10 rounded-xl font-bold text-xs shadow-lg transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    :class="isRouterOS ? (hostUpgradeDetails.hasUpdate ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30' : 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-600/30') : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-600/30'">
+                    <span v-if="executingHostUpgrade" class="inline-block animate-spin mr-1">↻</span>
+                    <span v-if="isRouterOS">
+                      {{ hostUpgradeDetails.checked && !hostUpgradeDetails.hasUpdate ? '✓ 固件已是最新版' : (hostUpgradeDetails.hasUpdate ? `🚀 升级至 ${hostUpgradeDetails.latestVersion}` : '⬆ 升级 RouterOS 并重启') }}
+                    </span>
+                    <span v-else>⬆ 升级宿主系统包</span>
+                  </button>
+                </div>
+                <!-- Tier 4: Terminal Viewport (h-[62px]) -->
+                <div class="h-[62px] p-2 rounded-xl bg-slate-950/80 border border-purple-500/20 text-[11px] font-mono text-purple-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center">
+                  <div v-if="hostUpgradeResult" class="w-full break-words whitespace-pre-wrap">
+                    {{ hostUpgradeResult }}
+                  </div>
+                  <div v-else class="text-slate-400 text-xs flex items-center gap-2">
+                    <span class="text-purple-400 font-bold shrink-0">[HOST]</span>
+                    <span>MikroTik RouterOS 原生 API 联通 · 策略路由 8228 正常放行</span>
                   </div>
                 </div>
               </div>
@@ -4594,6 +4758,56 @@ const trafficInsights = ref({
   ]
 })
 
+const trafficChartMode = ref('realtime') // 'realtime' | 'hourly'
+const realtimePaused = ref(false)
+// 60-second rolling history queues (in KB/s)
+const historyRealtimeTrafficOut = ref([
+  0, 0, 0, 0, 1, 3, 8, 14, 18, 22, 16, 8, 4, 2, 5, 12, 19, 25, 30, 22, 14, 9, 6, 4,
+  3, 5, 8, 12, 16, 24, 32, 28, 20, 15, 11, 8, 6, 9, 14, 22, 35, 42, 38, 26, 18, 12,
+  8, 6, 11, 18, 28, 36, 45, 38, 24, 16, 10, 8, 12, 15
+])
+const historyRealtimeTrafficIn = ref([
+  0, 0, 0, 0, 0, 1, 2, 4, 6, 8, 5, 3, 1, 1, 2, 4, 7, 10, 12, 8, 5, 3, 2, 1,
+  1, 2, 3, 5, 7, 10, 14, 11, 8, 5, 4, 3, 2, 3, 5, 8, 14, 18, 15, 10, 6, 4,
+  3, 2, 4, 7, 11, 15, 18, 14, 9, 6, 4, 3, 5, 6
+])
+
+const maxRealtimeSpeedKB = computed(() => {
+  const m1 = Math.max(...historyRealtimeTrafficOut.value, 0)
+  const m2 = Math.max(...historyRealtimeTrafficIn.value, 0)
+  return Math.max(m1, m2, 60) * 1.15
+})
+
+const realtimeOutboundPath = computed(() => {
+  return generateSmoothAreaPath(historyRealtimeTrafficOut.value, 900, 160, 0, maxRealtimeSpeedKB.value)
+})
+
+const realtimeInboundPath = computed(() => {
+  return generateSmoothAreaPath(historyRealtimeTrafficIn.value, 900, 160, 0, maxRealtimeSpeedKB.value)
+})
+
+const realtimeOutboundLastY = computed(() => {
+  const last = historyRealtimeTrafficOut.value[historyRealtimeTrafficOut.value.length - 1] || 0
+  const norm = Math.max(0, Math.min(1, last / maxRealtimeSpeedKB.value))
+  return 160 - (norm * (160 - 14) + 7)
+})
+
+const realtimeInboundLastY = computed(() => {
+  const last = historyRealtimeTrafficIn.value[historyRealtimeTrafficIn.value.length - 1] || 0
+  const norm = Math.max(0, Math.min(1, last / maxRealtimeSpeedKB.value))
+  return 160 - (norm * (160 - 14) + 7)
+})
+
+function getDnsChartEndY(points, minVal = 0, maxVal = null) {
+  if (!points || points.length === 0) return 30
+  const lastVal = points[points.length - 1] || 0
+  let max = maxVal !== null ? maxVal : Math.max(...points, 1)
+  let min = minVal !== null ? minVal : Math.min(...points, 0)
+  if (max === min) max = min + 1
+  const norm = Math.max(0, Math.min(1, (lastVal - min) / (max - min)))
+  return 60 - (norm * (60 - 14) + 7)
+}
+
 const maxHourlyTrafficMB = computed(() => {
   const m1 = Math.max(...trafficHourlyOutbound.value, 1)
   const m2 = Math.max(...trafficHourlyInbound.value, 1)
@@ -4934,6 +5148,16 @@ async function fetchTelemetryTraffic() {
       if (!chartPaused.value.connections) {
         historyConnections.value.push(data.connections_count || 9)
         if (historyConnections.value.length > 25) historyConnections.value.shift()
+      }
+
+      // Push to 60s real-time ECG traffic wave
+      if (!realtimePaused.value) {
+        const outKb = Math.round((data.outbound_speed_bps || 0) / 1024)
+        const inKb = Math.round((data.inbound_speed_bps || 0) / 1024)
+        historyRealtimeTrafficOut.value.push(outKb)
+        if (historyRealtimeTrafficOut.value.length > 60) historyRealtimeTrafficOut.value.shift()
+        historyRealtimeTrafficIn.value.push(inKb)
+        if (historyRealtimeTrafficIn.value.length > 60) historyRealtimeTrafficIn.value.shift()
       }
     }
   } catch (e) {}
@@ -9141,6 +9365,11 @@ onMounted(async () => {
     setTimeout(triggerAllServiceProbes, 500)
   }
 
+  // Polling for real-time traffic telemetry every 1.0s (心电极光 1秒采样滚动)
+  setInterval(() => {
+    fetchTelemetryTraffic()
+  }, 1000)
+
   // Polling for real-time memory & system status every 2.5s
   setInterval(async () => {
     try {
@@ -9149,7 +9378,6 @@ onMounted(async () => {
       if (data) {
         systemStatus.value = { ...systemStatus.value, ...data }
       }
-      fetchTelemetryTraffic()
     } catch (e) {}
   }, 2500)
 

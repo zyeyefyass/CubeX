@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/zyeyefyass/CubeX/internal/accelerator"
@@ -133,10 +134,13 @@ type Server struct {
 	hostMgr     *host.Manager
 	rosMgr      *ros.Manager
 	devMgr      *device.Manager
-	kspeeder    *accelerator.KSpeeder
-	easyTierMgr *easytier.Manager
-	logBuffer   *RingLogBuffer
+	kspeeder      *accelerator.KSpeeder
+	easyTierMgr   *easytier.Manager
+	logBuffer     *RingLogBuffer
+	liveUpSpeed   atomic.Int64
+	liveDownSpeed atomic.Int64
 }
+
 
 func main() {
 	// OOM Defense & Garbage Collection tuning for tight router RAM (CHR 448MB)
@@ -240,6 +244,7 @@ func main() {
 		easyTierMgr: easyTierMgr,
 		logBuffer:   logBuffer,
 	}
+	srv.startTrafficCollector()
 
 	mux := http.NewServeMux()
 
@@ -1830,18 +1835,8 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 		resp.Body.Close()
 	}
 
-	respTraffic, errTraffic := client.Get(fmt.Sprintf("http://127.0.0.1:%d/traffic", clashPort))
-	if errTraffic == nil && respTraffic.StatusCode == http.StatusOK {
-		var tf struct {
-			Up   int64 `json:"up"`
-			Down int64 `json:"down"`
-		}
-		if json.NewDecoder(respTraffic.Body).Decode(&tf) == nil {
-			upSpeed = tf.Up
-			downSpeed = tf.Down
-		}
-		respTraffic.Body.Close()
-	}
+	upSpeed = s.liveUpSpeed.Load()
+	downSpeed = s.liveDownSpeed.Load()
 
 	sendJSON(w, map[string]any{
 		"connections_count":  connCount,
@@ -1858,6 +1853,46 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 		},
 	})
 }
+
+// startTrafficCollector keeps a long-lived streaming connection to Clash /traffic endpoint,
+// continuously streaming real-time inbound and outbound bandwidth into atomic counters.
+func (s *Server) startTrafficCollector() {
+	go func() {
+		for {
+			clashPort := 9090
+			if ir := s.engMgr.GetIR(); ir != nil && ir.Network.ClashAPIPort > 0 {
+				clashPort = ir.Network.ClashAPIPort
+			}
+			reqURL := fmt.Sprintf("http://127.0.0.1:%d/traffic", clashPort)
+			resp, err := http.Get(reqURL)
+			if err != nil {
+				time.Sleep(2 * time.Second)
+				continue
+			}
+			if resp.StatusCode != http.StatusOK {
+				resp.Body.Close()
+				time.Sleep(2 * time.Second)
+				continue
+			}
+
+			dec := json.NewDecoder(resp.Body)
+			for {
+				var tf struct {
+					Up   int64 `json:"up"`
+					Down int64 `json:"down"`
+				}
+				if err := dec.Decode(&tf); err != nil {
+					break
+				}
+				s.liveUpSpeed.Store(tf.Up)
+				s.liveDownSpeed.Store(tf.Down)
+			}
+			resp.Body.Close()
+			time.Sleep(1 * time.Second)
+		}
+	}()
+}
+
 
 func (s *Server) handleBackupExport(w http.ResponseWriter, r *http.Request) {
 	b, err := s.backupMgr.ExportBackup(version)
