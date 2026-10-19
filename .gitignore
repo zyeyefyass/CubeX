@@ -11,6 +11,7 @@ bin/
 # Web build dependencies and temporary output
 web/node_modules/
 web/dist/
+web/.vite/
 
 # Persistent runtime data
 etc/
