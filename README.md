@@ -5,7 +5,7 @@
   # 🌌 CubeX · 宿主共生零感网络系统 (Host-Symbiotic Zero-Perception Gateway)
   ### *单二进制纯自研 · 告别传统重型虚机旁路 · 18MB 极限微核 · 300ms 冷启 · 宛如物理肉身直连全球互联网的终极共生体*
 
-  [![Version](https://img.shields.io/badge/Release-Test_v1.1-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
+  [![Version](https://img.shields.io/badge/Release-Test_v1.3-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
   [![License](https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield)](COPYRIGHT.md)
   [![Dual-Engine](https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go)](https://github.com/zyeyefyass/CubeX)
   [![Host Base](https://img.shields.io/badge/Host-RouterOS_v7_%7C_fnOS_%7C_PVE_%7C_Docker-3A86FF?style=for-the-badge)](#)
@@ -30,7 +30,7 @@
 ---
 
 > [!TIP]
-> ### 📢 站长咆哮式前言：为什么说 Test v1.1 是“最接近正式版”的封神版本？
+> ### 📢 站长咆哮式前言：为什么说 Test v1.3 是“最接近正式版”的封神版本？
 > **致所有曾经被传统旁路由折磨到怀疑人生的老铁们：**
 > 
 > 你是否经历过这些崩溃瞬间：
@@ -39,16 +39,18 @@
 > 3. 国内测速连宽带一半都跑不到，主路由 CPU 100% 满载烤鸡蛋，排查半天发现是旁路由把全家流量包了顿饺子？
 > 4. 满心欢喜切到 Mihomo，结果 Gemini 给你弹个大红三角报 `ERR_CERT_COMMON_NAME_INVALID`（证书无效），让你怀疑是不是被 FBI 盯上了？
 > 
-> **别慌！这些地狱级折磨，在今天发布的 `Test v1.1` 版中已被彻底送入历史垃圾桶！**  
+> **别慌！这些地狱级折磨，在今天发布的 `Test v1.3` 版中已被彻底送入历史垃圾桶！**  
 > 
-> 经过数十个日夜与真实万兆/千兆家庭物理网络的死磕，**CubeX Test v1.1 正式达成了从架构到体验的全面质变**：
-> * 🏎️ **双核心全线满血**：`sing-box v1.14+` 与 `Mihomo v1.19+` 双核混动平滑手递手（Handoff），实测切换耗时低至 **560ms**，常驻内存仅 **18MB~53MB**，内置 glibc 兼容层彻底消灭 Alpine 环境下 sing-box 启动异常！
-> * 🌐 **原生 IPv6 双栈防泄露一键编排**：全自动打通主路由 IPv6-PD 前缀获取，永久锁死 `advertise-dns=no` 掐灭运营商 DNS 泄露，海外 IPv6 毫秒级回退告别卡死！
+> 经过数十个日夜与真实万兆/千兆家庭物理网络的死磕，**CubeX Test v1.3 正式达成了从架构到体验的全面质变**：
+> * 🏎️ **双核心全线满血**：`sing-box v1.14+` 与 `Mihomo v1.19+` 双核混动平滑手递手（Handoff），实测切换耗时低至 **560ms**，常驻内核真实物理内存 (VmRSS) 仅 **15MB~30MB**！
+> * 🌐 **双栈 IPv4-First 极速拨号（Happy Eyeballs）**：消除无默认 IPv6 路由主机下 AAAA 记录卡死订阅或镜像拉取的顽疾，秒级自动回退！
+> * 🔒 **原子化 0600 安全落盘保护**：所有敏感配置、WireGuard 密钥及宿主凭证全面采用临时文件 + 0600 严格权限 + 原子替换，杜绝泄漏与并发损坏；
+> * 🧭 **应用分流 3-in-1 全景指南**：README 全面扩充订阅/节点分类机制、地区分组与自建分组来源、策略排序与基石保护深度解析；
 > * ⚡ **国内满带宽直通（主路由 CPU 仅 1%）**：独创「主网关 + 旁路 DNS」配合 RouterOS FastTrack 硬件加速，国内流量走物理线速狂飙；
 > * 🛡️ **RFC 2544 完整网段回指**：升级为 `198.18.0.0/15` 全域回指，彻底根治假 IP 漏往光猫引发的证书错误；
 > * 🛑 **ICMP Send-Redirects 绝杀**：全自动关闭主路由 ICMP 重定向，消灭二层三角路由丢包与“老太太过马路式”TCP 停顿！
 > 
-> 🚀 **这是目前为止最稳定、最成熟的里程碑版本 (Test v1.1)！**  
+> 🚀 **这是目前为止最稳定、最成熟的里程碑版本 (Test v1.3)！**  
 > 我们强烈推荐大家下载体验，无论你是 RouterOS 骨灰级玩家、飞牛 fnOS 用户、PVE 极客还是普通家庭折腾党，欢迎试用并**畅所欲言提出优化建议和新功能需求**！
 
 ---
