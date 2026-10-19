@@ -597,7 +597,7 @@ func (m *Manager) getLocalPanelVersion() string {
 			return meta.Version
 		}
 	}
-	return "Test-v1.1"
+	return "Test-v1.2"
 }
 
 // IsConnected returns whether the RouterOS host is currently reachable and authenticated.

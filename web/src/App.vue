@@ -57,7 +57,7 @@
                     <span :class="['w-2 h-2 rounded-full shrink-0', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse' : 'bg-amber-400']" :title="hostBadge.online ? '宿主平台在线联动' : '未连接'"></span>
                   </div>
                   <div class="text-[10px] font-mono text-slate-400/90 flex items-center gap-1.5 mt-0.5">
-                    <span class="text-cyan-400 font-bold px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/30">{{ systemStatus.version || 'Test v1.1' }}</span>
+                    <span class="text-cyan-400 font-bold px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/30">{{ systemStatus.version || 'Test v1.2' }}</span>
                     <span class="text-slate-500">|</span>
                     <span class="uppercase tracking-wider text-[9px] text-slate-300 font-semibold">{{ hostBadge.shortName }}</span>
                   </div>
@@ -2771,8 +2771,8 @@
                     <span v-else class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">✓ 已是最新稳定版</span>
                   </div>
                   <div class="text-xs text-slate-400 font-mono flex items-center justify-between">
-                    <span>当前运行: <strong class="text-cyan-400">{{ systemOverview.cubex_version || 'Test v1.1' }}</strong></span>
-                    <span class="text-slate-500">云端最新: <span class="text-slate-300">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v1.1' }}</span></span>
+                    <span>当前运行: <strong class="text-cyan-400">{{ systemOverview.cubex_version || 'Test v1.2' }}</strong></span>
+                    <span class="text-slate-500">云端最新: <span class="text-slate-300">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v1.2' }}</span></span>
                   </div>
                 </div>
                 <div class="space-y-2">
@@ -3252,7 +3252,7 @@
         <!-- Drawer Footer -->
         <div class="pt-4 border-t border-sky-900/40 space-y-2">
           <div class="text-[9px] text-slate-500 text-center font-mono">
-            CubeX {{ systemStatus.version || 'Test v1.1' }}
+            CubeX {{ systemStatus.version || 'Test v1.2' }}
           </div>
         </div>
       </div>
@@ -4957,7 +4957,7 @@ const hostConfig = ref({
 })
 
 const systemOverview = ref({
-  cubex_version: 'Test v1.1',
+  cubex_version: 'Test v1.2',
   mihomo_curr_version: 'v1.19.32',
   singbox_curr_version: 'v1.14.3',
   update_available: false
@@ -5220,7 +5220,7 @@ const aiLoading = ref(false)
 
 // ── System Status & Last Result ──
 const systemStatus = ref({
-  version: 'Test v1.1',
+  version: 'Test v1.2',
   uptime_seconds: 1420,
   active_engine: 'mihomo',
   tun_interface: 'cubex-tun',
@@ -6032,7 +6032,7 @@ async function upgradePanel() {
       setTimeout(() => location.reload(), 3000)
     } else if (data.status === 'already_latest') {
       const timeStr = new Date().toLocaleTimeString()
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v1.1'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v1.2'})，无需重复更新。`
       showToast(data.message || 'CubeX 系统已是最新版本')
     } else {
       panelUpgradeLog.value = `❌ 热更反馈异常: ${data.error || data.message || '未知异常'}`
