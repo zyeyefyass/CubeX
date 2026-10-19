@@ -142,10 +142,43 @@ type Server struct {
 }
 
 
+func configureAdaptiveMemoryLimit() {
+	// Base fallback
+	limit := int64(64 * 1024 * 1024)
+	gcPercent := 60
+
+	// Check total system RAM on Linux via /proc/meminfo
+	if data, err := os.ReadFile("/proc/meminfo"); err == nil {
+		for _, line := range strings.Split(string(data), "\n") {
+			if strings.HasPrefix(line, "MemTotal:") {
+				fields := strings.Fields(line)
+				if len(fields) >= 2 {
+					if totalKb, err := strconv.ParseInt(fields[1], 10, 64); err == nil {
+						totalMb := totalKb / 1024
+						if totalMb <= 512 {
+							limit = 48 * 1024 * 1024 // Tiny CHR/512MB RAM: 48MiB soft cap
+							gcPercent = 50
+						} else if totalMb <= 1024 {
+							limit = 96 * 1024 * 1024 // 1GB router: 96MiB
+							gcPercent = 75
+						} else {
+							limit = 200 * 1024 * 1024 // 2GB+ PVE/fnOS: 200MiB
+							gcPercent = 100
+						}
+					}
+				}
+				break
+			}
+		}
+	}
+	debug.SetMemoryLimit(limit)
+	debug.SetGCPercent(gcPercent)
+	log.Printf("🛡️ [Supervisor] Adaptive GOMEMLIMIT configured: %d MiB (GCPercent=%d)\n", limit/(1024*1024), gcPercent)
+}
+
 func main() {
-	// OOM Defense & Garbage Collection tuning for tight router RAM (CHR 448MB)
-	debug.SetMemoryLimit(40 * 1024 * 1024) // GOMEMLIMIT=40MiB
-	debug.SetGCPercent(50)                 // Aggressive GC
+	// OOM Defense & Adaptive Garbage Collection tuning
+	configureAdaptiveMemoryLimit()
 
 	listenAddr := flag.String("listen", ":2026", "Listen address (e.g. :2026 or 0.0.0.0:2026)")
 	workDir := flag.String("dir", "", "Working directory (defaults to current dir or /opt/CubeX)")

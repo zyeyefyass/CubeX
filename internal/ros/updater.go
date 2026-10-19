@@ -37,8 +37,10 @@ type Manager struct {
 	// URLOptimizer optionally rewrites download URLs through KSpeeder acceleration
 	URLOptimizer func(rawURL string) string
 
-	lastConnected bool
-	lastVersion   string
+	lastConnected     bool
+	lastVersion       string
+	lastFreeHddSpace  int64
+	lastTotalHddSpace int64
 
 	cachedLatestMihomo  string
 	cachedLatestSingbox string
@@ -65,7 +67,40 @@ func NewManager(rootDir string) *Manager {
 		config:     ROSConfig{Host: "10.0.0.1", Port: "443", User: "admin", Password: ""},
 	}
 	m.loadConfig()
+
+	// Launch background worker for periodic non-blocking version checks
+	go m.startAsyncVersionWorker()
+
 	return m
+}
+
+func (m *Manager) startAsyncVersionWorker() {
+	time.Sleep(1 * time.Second)
+	m.refreshVersionsAsync()
+
+	ticker := time.NewTicker(2 * time.Hour)
+	for range ticker.C {
+		m.refreshVersionsAsync()
+	}
+}
+
+func (m *Manager) refreshVersionsAsync() {
+	latestMihomo, _ := m.fetchLatestMihomoVersion()
+	latestPanel, _ := m.fetchLatestPanelVersion()
+	latestSingbox, _ := m.fetchLatestSingboxVersion()
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if latestMihomo != "" {
+		m.cachedLatestMihomo = latestMihomo
+	}
+	if latestPanel != "" {
+		m.cachedLatestPanel = latestPanel
+	}
+	if latestSingbox != "" {
+		m.cachedLatestSingbox = latestSingbox
+	}
+	m.cachedVerTime = time.Now()
 }
 
 // ──────────────────────────────────────────────
@@ -82,21 +117,17 @@ func (m *Manager) GetOverview() map[string]any {
 	singboxVer := m.getLocalSingboxVersion()
 	rosConnected, rosVersion := m.checkROSConnection()
 
-	var latestMihomo, latestPanel, latestSingbox string
-	if time.Since(m.cachedVerTime) < 10*time.Minute && m.cachedLatestPanel != "" {
-		latestMihomo = m.cachedLatestMihomo
-		latestPanel = m.cachedLatestPanel
-		latestSingbox = m.cachedLatestSingbox
-	} else {
-		latestMihomo, _ = m.fetchLatestMihomoVersion()
-		latestPanel, _ = m.fetchLatestPanelVersion()
-		latestSingbox, _ = m.fetchLatestSingboxVersion()
-		if latestPanel != "" {
-			m.cachedLatestMihomo = latestMihomo
-			m.cachedLatestPanel = latestPanel
-			m.cachedLatestSingbox = latestSingbox
-			m.cachedVerTime = time.Now()
-		}
+	latestMihomo := m.cachedLatestMihomo
+	if latestMihomo == "" {
+		latestMihomo = "v1.19.32"
+	}
+	latestPanel := m.cachedLatestPanel
+	if latestPanel == "" {
+		latestPanel = panelVer
+	}
+	latestSingbox := m.cachedLatestSingbox
+	if latestSingbox == "" {
+		latestSingbox = "v1.14.3"
 	}
 
 	normLatestPanel := normalizeVersion(latestPanel)
@@ -114,6 +145,9 @@ func (m *Manager) GetOverview() map[string]any {
 	result := map[string]any{
 		"ros_connected":          rosConnected,
 		"ros_version":            rosVersion,
+		"ros_free_hdd_mb":        m.lastFreeHddSpace / (1024 * 1024),
+		"ros_total_hdd_mb":       m.lastTotalHddSpace / (1024 * 1024),
+		"ros_hdd_warning":        m.lastFreeHddSpace > 0 && (m.lastFreeHddSpace < 200*1024*1024),
 		"mihomo_curr_version":    mihomoVer,
 		"mihomo_latest_version":  latestMihomo,
 		"mihomo_update_avail":    mihomoUpdateAvail,
@@ -829,8 +863,10 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 		defer resp.Body.Close()
 
 		var resource struct {
-			Version   string `json:"version"`
-			BoardName string `json:"board-name"`
+			Version       string `json:"version"`
+			BoardName     string `json:"board-name"`
+			FreeHddSpace  int64  `json:"free-hdd-space"`
+			TotalHddSpace int64  `json:"total-hdd-space"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&resource); err == nil {
 			ver := strings.TrimSpace(resource.Version)
@@ -842,6 +878,12 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 			}
 			m.lastConnected = true
 			m.lastVersion = ver
+			if resource.FreeHddSpace > 0 {
+				m.lastFreeHddSpace = resource.FreeHddSpace
+			}
+			if resource.TotalHddSpace > 0 {
+				m.lastTotalHddSpace = resource.TotalHddSpace
+			}
 			if m.config.Port != p {
 				m.config.Port = p
 				_ = m.saveConfigLocked()

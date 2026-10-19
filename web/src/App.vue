@@ -1052,14 +1052,18 @@
                   </svg>
                 </div>
                 <input
+                  ref="routingSearchInput"
                   v-model="routingSearchQuery"
-                  placeholder="搜索 | 多个关键词用空格分隔"
-                  class="w-full pl-9 pr-8 py-2 rounded-2xl bg-slate-900/90 border border-slate-800 focus:border-cyan-400 outline-none text-xs text-white placeholder-slate-500 font-mono transition shadow-inner"
+                  placeholder="搜索 | 多个关键词用空格分隔 (按 / 快捷聚焦)"
+                  class="w-full pl-9 pr-10 py-2 rounded-2xl bg-slate-900/90 border border-slate-800 focus:border-cyan-400 outline-none text-xs text-white placeholder-slate-500 font-mono transition shadow-inner"
                 />
-                <button v-if="routingSearchQuery" @click="routingSearchQuery = ''"
-                  class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300">
-                  ✕
-                </button>
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center gap-1.5">
+                  <button v-if="routingSearchQuery" @click="routingSearchQuery = ''"
+                    class="text-slate-500 hover:text-slate-300">
+                    ✕
+                  </button>
+                  <kbd v-else class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800/80 text-slate-400 border border-slate-700/60 select-none cursor-pointer" @click="routingSearchInput?.focus()" title="按下 / 键快速搜索">/</kbd>
+                </div>
               </div>
 
               <!-- Right: Quick Tools & Context Action Buttons -->
@@ -5761,6 +5765,7 @@ watch(routingSubTab, (val) => {
   try { localStorage.setItem('cubex_routing_sub_tab', val) } catch (e) {}
 })
 const routingSearchQuery = ref('')
+const routingSearchInput = ref(null)
 const routingSortMode = ref('default') // 'default' | 'latency' | 'name'
 const expandedPolicyRules = ref({})
 const newPeerName = ref('')
@@ -9630,6 +9635,17 @@ function completeInitWizard() {
 }
 
 onMounted(async () => {
+  // Global shortcut: press "/" to focus routing search input
+  window.addEventListener('keydown', (e) => {
+    if (e.key === '/' && activeMasterTab.value === 'routing') {
+      const tag = document.activeElement?.tagName?.toLowerCase()
+      if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') {
+        e.preventDefault()
+        routingSearchInput.value?.focus()
+      }
+    }
+  })
+
   // 首次运行检测并自动弹出系统初始化向导
   if (localStorage.getItem('cubex_initialized') !== 'true') {
     setTimeout(() => { openInitWizard(false) }, 800)
