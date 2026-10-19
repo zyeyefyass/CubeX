@@ -2658,7 +2658,8 @@ func (s *Server) handleUpgradePanel(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	ver, err := s.rosMgr.UpgradePanel(func() error {
+	force := r.URL.Query().Get("force") == "true"
+	ver, err := s.rosMgr.UpgradePanel(force, func() error {
 		log.Printf("[CubeX] Restarting process for upgrade...")
 		os.Exit(0)
 		return nil

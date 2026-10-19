@@ -187,7 +187,7 @@ func (m *Manager) GetOverview() map[string]any {
 // ──────────────────────────────────────────────
 
 // UpgradePanel downloads the latest cubexd binary and restarts the panel process.
-func (m *Manager) UpgradePanel(restartFn func() error) (string, error) {
+func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -199,7 +199,7 @@ func (m *Manager) UpgradePanel(restartFn func() error) (string, error) {
 	currTag := m.getLocalPanelVersion()
 	normLatest := normalizeVersion(latestTag)
 	normCurr := normalizeVersion(currTag)
-	if normLatest == normCurr && latestTag != "" {
+	if !force && normLatest == normCurr && latestTag != "" {
 		return currTag, fmt.Errorf("panel is already at the latest version %s", currTag)
 	}
 

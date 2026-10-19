@@ -222,7 +222,14 @@
             </div>
           </div>
 
-
+          <!-- One-Click In-Place Smooth Hot Upgrade Button -->
+          <button @click="triggerOneClickHotUpgrade(true)" :disabled="upgradingPanel"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 hover:border-amber-400 text-amber-300 hover:text-white transition shadow-sm active:scale-95 text-xs font-bold cursor-pointer select-none"
+            :title="upgradingPanel ? '正在从云端拉取更新包平滑热更中...' : '一键从云端拉取最新内核与控制面，平滑无感热更（免终端、免命令行）'">
+            <span v-if="upgradingPanel" class="w-3.5 h-3.5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></span>
+            <span v-else class="text-amber-400">⚡</span>
+            <span>{{ upgradingPanel ? '平滑热更中...' : '一键平滑热更' }}</span>
+          </button>
         </div>
       </header>
 
@@ -6407,16 +6414,44 @@ async function runBenchmark() {
 }
 
 async function runAllLatencyTest() {
+  if (testingLatency.value) return
   testingLatency.value = true
-  showToast('正在对全部策略组与出口节点并发测速...')
-  setTimeout(() => {
-    ir.value.proxies.forEach(p => {
-      p.delay = Math.floor(Math.random() * 40) + 20
-    })
+  showToast('⚡ 正在对全员出口节点进行真实端到端并发测速...')
+
+  const allNodes = (ir.value.proxies || []).filter(p => p.type !== 'direct' && p.type !== 'block' && p.type !== 'reject')
+  const names = allNodes.map(p => p.name)
+
+  if (names.length === 0) {
     testingLatency.value = false
-    globalLatency.value = ir.value.proxies[0]?.delay || 28
-    showToast('全员测速完毕，最佳延迟: ' + globalLatency.value + 'ms')
-  }, 1000)
+    showToast('当前暂无可测速的代理节点', true)
+    return
+  }
+
+  try {
+    const res = await fetch('/api/v1/config/proxies/speedtest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ names })
+    })
+    const data = await res.json()
+    if (data.ok && data.results) {
+      if (ir.value && ir.value.proxies) {
+        for (const p of ir.value.proxies) {
+          if (data.results[p.name] !== undefined) {
+            p.delay = data.results[p.name]
+          }
+        }
+      }
+      globalLatency.value = data.min_delay || data.avg_delay || 28
+      showToast(`🎉 全员测速完成！在线 ${data.online_count || 0}/${data.tested_count || names.length}，最低延迟: ${globalLatency.value}ms`)
+    } else {
+      showToast('全员测速完成')
+    }
+  } catch (e) {
+    showToast(`测速请求异常: ${e.message}`, true)
+  } finally {
+    testingLatency.value = false
+  }
 }
 
 function triggerReload() {
@@ -6624,11 +6659,35 @@ async function saveCredentialsAndLinkHost() {
 }
 
 // ── 4-Tier Upgrades ──
-async function upgradePanel() {
+async function triggerOneClickHotUpgrade(force = true) {
+  if (upgradingPanel.value) return
+  upgradingPanel.value = true
+  showToast('⚡ 正在从云端拉取最新系统控制面与补丁，执行平滑热更...')
+  try {
+    const url = force ? '/api/v1/upgrade/panel?force=true' : '/api/v1/upgrade/panel'
+    const res = await fetch(url, { method: 'POST' })
+    const data = await res.json()
+    if (data.status === 'upgraded') {
+      showToast(`🎉 恭喜！CubeX 控制面已平滑热更完成 (${data.version})，3秒后自动刷新网页...`)
+      setTimeout(() => location.reload(), 3000)
+    } else if (data.status === 'already_latest') {
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v1.4'})`)
+    } else {
+      showToast(`❌ 热更失败: ${data.error || data.message || '未知异常'}`)
+    }
+  } catch (e) {
+    showToast(`❌ 热更请求异常: ${e.message}`)
+  } finally {
+    upgradingPanel.value = false
+  }
+}
+
+async function upgradePanel(force = false) {
   upgradingPanel.value = true
   panelUpgradeLog.value = '⏳ 正在通过云端探针核对最新版本并执行平滑热更...'
   try {
-    const res = await fetch('/api/v1/upgrade/panel', { method: 'POST' })
+    const url = force ? '/api/v1/upgrade/panel?force=true' : '/api/v1/upgrade/panel'
+    const res = await fetch(url, { method: 'POST' })
     const data = await res.json()
     if (data.status === 'upgraded') {
       panelUpgradeLog.value = `🎉 升级成功！CubeX 已成功平滑热更至 ${data.version}，守护进程正在平滑重启生效...`
@@ -7462,48 +7521,93 @@ function deleteCustomRegionGroup(id) {
 }
 
 function getRegionNodes(reg) {
+  if (!reg) return []
+  // If reg already carries an array of nodes, return it directly
+  if (Array.isArray(reg.nodes) && reg.nodes.length > 0) {
+    return reg.nodes
+  }
+
+  // Look up full definition if regex or sub_id is missing on reg
+  const fullDef = (allRegionDefs.value && allRegionDefs.value.find(r => r.id === reg.id)) ||
+                  (defaultRegionDefs && defaultRegionDefs.find(r => r.id === reg.id)) ||
+                  {}
+  const merged = { ...fullDef, ...reg }
+
   const proxies = (ir.value.proxies || []).filter(p => p.type !== 'direct' && p.type !== 'block' && p.type !== 'reject')
 
   // 1. Custom Group by Subscription (如把某个机场订阅单独添加为一组)
-  if (reg.type === 'sub' && reg.sub_id) {
-    return proxies.filter(p => p.sub_id === reg.sub_id || (reg.sub_name && p.name.includes(`[${reg.sub_name}]`)))
+  if (merged.type === 'sub' && merged.sub_id) {
+    return proxies.filter(p => p.sub_id === merged.sub_id || (merged.sub_name && p.name.includes(`[${merged.sub_name}]`)))
   }
 
   // 2. Custom Group by Selected Nodes
-  if (reg.type === 'nodes' && Array.isArray(reg.node_names)) {
-    return proxies.filter(p => reg.node_names.includes(p.name))
+  if (merged.type === 'nodes' && Array.isArray(merged.node_names) && merged.node_names.length > 0) {
+    return proxies.filter(p => merged.node_names.includes(p.name))
   }
 
-  // 3. Custom Group by Regex
-  if (reg.is_custom && reg.regex) {
-    const regObj = typeof reg.regex === 'string' ? new RegExp(reg.regex, 'i') : reg.regex
+  // 3. Resolve regex from regex, regex_str, or country_code presets
+  let regObj = merged.regex
+  if (typeof regObj === 'string') {
+    try { regObj = new RegExp(regObj, 'i') } catch (e) { regObj = null }
+  }
+  if (!regObj && merged.regex_str) {
+    try { regObj = new RegExp(merged.regex_str, 'i') } catch (e) { regObj = null }
+  }
+  if (!regObj && merged.country_code) {
+    const code = merged.country_code.toUpperCase()
+    const p = availableCountryPresets.find(pre => pre.code === code)
+    if (p) {
+      try { regObj = new RegExp(`(${p.keywords})`, 'i') } catch (e) {}
+    }
+  }
+
+  // 4. Custom Group by Regex
+  if (merged.is_custom && regObj) {
     return proxies.filter(p => regObj.test(p.name))
   }
 
-  // 4. Default CUSTOM: 自建节点 (用户手动添加或标注自建的节点)
-  if (reg.id === 'CUSTOM') {
+  // 5. Default CUSTOM: 自建节点 (用户手动添加或标注自建的节点)
+  if (merged.id === 'CUSTOM') {
     return proxies.filter(p => p.sub_id === 'custom' || p.name.startsWith('[自建]') || (!p.sub_id && !p.name.includes('Hhost') && !p.name.includes('Mtice') && !p.name.includes('Jscloud') && !p.name.includes('Niubi') && !p.name.includes('Forest') && !p.name.includes('Kuailei') && !/(港|hk|台|tw|新|sg|日|jp|韩|kr|美|us)/i.test(p.name)))
   }
 
-  // 5. Default OTHERS: 其它机场节点 (未被前面所有组匹配的节点)
-  if (reg.id === 'OTHERS') {
+  // 6. Default OTHERS: 其它机场节点 (未被前面所有组匹配的节点)
+  if (merged.id === 'OTHERS') {
     return proxies.filter(p => {
       if (p.sub_id === 'custom' || p.name.startsWith('[自建]')) return false
       for (const r of allRegionDefs.value) {
         if (r.id !== 'OTHERS' && r.id !== 'CUSTOM') {
           if (r.type === 'sub' && (p.sub_id === r.sub_id || (r.sub_name && p.name.includes(`[${r.sub_name}]`)))) return false
-          if (r.regex && r.regex.test(p.name)) return false
+          let rRegex = r.regex
+          if (typeof rRegex === 'string') { try { rRegex = new RegExp(rRegex, 'i') } catch (e) {} }
+          if (rRegex && rRegex.test(p.name)) return false
         }
       }
       return true
     })
   }
 
-  // 6. 标准国家/地区正则匹配 (排除自建)
-  return proxies.filter(p => {
-    if (p.sub_id === 'custom' || p.name.startsWith('[自建]')) return false
-    return reg.regex && reg.regex.test(p.name)
-  })
+  // 7. 标准国家/地区正则匹配 (排除自建)
+  if (regObj) {
+    return proxies.filter(p => {
+      if (p.sub_id === 'custom' || p.name.startsWith('[自建]')) return false
+      return regObj.test(p.name)
+    })
+  }
+
+  // 8. 关键词名称智能保底匹配 (例如 "台湾·日本·韩国" 或 "新加坡")
+  const kw = (merged.name || '').replace(/[·\s,，]/g, '|').trim()
+  if (kw) {
+    try {
+      const nameRegex = new RegExp(`(${kw})`, 'i')
+      return proxies.filter(p => {
+        if (p.sub_id === 'custom' || p.name.startsWith('[自建]')) return false
+        return nameRegex.test(p.name)
+      })
+    } catch (e) {}
+  }
+
+  return []
 }
 
 function getRegionActiveNode(reg) {
@@ -8499,12 +8603,17 @@ const regionalAutoGroups = computed(() => {
     const totalCount = nodes.length || (proxies.length === 0 ? (providers[0]?.nodes.length || 3) : 0)
 
     groups.push({
+      ...reg,
       id: reg.id,
       name: reg.name,
+      country_code: reg.country_code,
       flag: reg.flag,
       type: reg.type || 'region',
       sub_id: reg.sub_id,
       sub_name: reg.sub_name,
+      regex: reg.regex,
+      regex_str: reg.regex_str,
+      node_names: reg.node_names,
       is_custom: !!reg.is_custom,
       auto: reg.auto,
       fall: reg.fall,

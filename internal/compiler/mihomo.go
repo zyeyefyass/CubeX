@@ -167,7 +167,9 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		},
 		"nameserver":    remoteDNSList,
 		"fallback":      fallbackDNSList,
-		"respect-rules": true,
+		"respect-rules":     true,
+		"use-hosts":         true,
+		"use-system-hosts":  false,
 		"fallback-filter": map[string]any{
 			"geoip":      true,
 			"geoip-code": "CN",
@@ -184,6 +186,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 				"https://dns.alidns.com/dns-query#disable-qtype-65=true",
 				"https://doh.pub/dns-query#disable-qtype-65=true",
 			},
+			"geosite:geolocation-!cn": remoteDNSList,
 		},
 	}
 	cfg["dns"] = dnsMap
