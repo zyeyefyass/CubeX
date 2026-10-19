@@ -1990,26 +1990,80 @@
                 <button @click="applyHostDockerRegistry" :disabled="applyingHostDocker"
                   class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-950/40 active:scale-95 whitespace-nowrap disabled:opacity-50">
                   <span v-if="applyingHostDocker" class="inline-block animate-spin">↻</span>
+                  <span v-else-if="isHostDockerSynced">✓</span>
                   <span v-else>🚀</span>
-                  <span>{{ applyingHostDocker ? '正在全自动注入宿主...' : (isRouterOS ? '一键注入当前宿主 (RouterOS 容器加速)' : `一键注入当前宿主 (${hostBadge.shortName} Docker 加速)`) }}</span>
+                  <span>{{ applyingHostDocker ? '正在全自动注入宿主...' : (isHostDockerSynced ? (isRouterOS ? '✓ 宿主已注入此镜像 (点击重新同步)' : `✓ 宿主已注入此镜像 (${hostBadge.shortName})`) : (isRouterOS ? '一键注入当前宿主 (RouterOS 容器加速)' : `一键注入当前宿主 (${hostBadge.shortName} Docker 加速)`)) }}</span>
                 </button>
               </div>
             </div>
 
+            <!-- 📡 宿主实际生效源与核验看板 (Host Live Registry Status Bar) -->
+            <div class="p-3.5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs backdrop-blur-md transition-all duration-300"
+              :class="isHostDockerSynced
+                ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-200'
+                : 'bg-amber-950/30 border-amber-500/40 text-amber-200'">
+              <div class="flex items-start sm:items-center gap-2.5">
+                <span class="text-lg leading-none mt-0.5 sm:mt-0">{{ isHostDockerSynced ? '🟢' : '⚠️' }}</span>
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-bold text-white">宿主实际配置生效源：</span>
+                    <span v-if="hostDockerRegistryLiveUrl" class="font-mono text-xs px-2.5 py-0.5 rounded-lg bg-slate-950/80 border border-slate-700/80 text-cyan-300 select-all font-semibold">
+                      {{ hostDockerRegistryLiveUrl }}
+                    </span>
+                    <span v-else class="text-slate-400 font-mono text-xs italic">
+                      未探测到生效源（或尚未注入）
+                    </span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide"
+                      :class="isHostDockerSynced
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'">
+                      {{ isHostDockerSynced ? '✓ 宿主与所选镜像一致 (已就绪)' : '⚠ 宿主尚未注入该镜像源' }}
+                    </span>
+                  </div>
+                  <div class="text-[11px] font-medium" :class="isHostDockerSynced ? 'text-emerald-400/90' : 'text-amber-400/90'">
+                    <span v-if="isHostDockerSynced">
+                      ✓ RouterOS 容器仓库实际配置已锁定此加速源，拉取镜像时宿主将直接走国内加速通道！
+                    </span>
+                    <span v-else>
+                      ⚠ 当前选中【{{ activeDockerMirrorName }}】，但宿主实际生效为【{{ hostDockerRegistryLiveUrl || '官方默认/未设置' }}】，请点击上方「一键注入当前宿主」同步生效！
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0 self-end md:self-center">
+                <button @click="fetchHostDockerStatus(true)" :disabled="fetchingHostDockerStatus"
+                  class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-semibold transition flex items-center gap-1 active:scale-95 disabled:opacity-50">
+                  <span :class="fetchingHostDockerStatus ? 'inline-block animate-spin' : ''">↻</span>
+                  <span>{{ fetchingHostDockerStatus ? '检测中...' : '校验宿主配置' }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 镜像卡片网格 -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div v-for="m in kspeederConfig.docker_mirrors" :key="m.name"
                 @click="kspeederConfig.active_docker_mirror = m.url; saveKSpeederConfig()"
                 :class="[
                   'p-4 rounded-2xl border transition-all cursor-pointer space-y-2 select-none relative',
                   kspeederConfig.active_docker_mirror === m.url
-                    ? 'bg-emerald-950/40 border-emerald-400 shadow-lg shadow-emerald-950/50'
+                    ? 'bg-emerald-950/40 border-emerald-400 shadow-lg shadow-emerald-950/50 ring-1 ring-emerald-500/30'
                     : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
                 ]">
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-bold text-white">{{ m.name }}</span>
-                  <span v-if="kspeederConfig.active_docker_mirror === m.url" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-bold">
-                    ✓ 生效中
-                  </span>
+                  <div class="flex items-center gap-1">
+                    <span v-if="kspeederConfig.active_docker_mirror === m.url"
+                      class="text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm"
+                      :class="(isHostDockerSynced && hostDockerRegistryLiveUrl === m.url)
+                        ? 'bg-emerald-500 text-slate-950'
+                        : 'bg-amber-500 text-slate-950'">
+                      {{ (isHostDockerSynced && hostDockerRegistryLiveUrl === m.url) ? '✓ 宿主已生效' : '● 已选中待注入' }}
+                    </span>
+                    <span v-else-if="hostDockerRegistryLiveUrl === m.url"
+                      class="text-[10px] px-2 py-0.5 rounded-full font-bold bg-sky-500/20 text-sky-300 border border-sky-400/30">
+                      📡 宿主当前源
+                    </span>
+                  </div>
                 </div>
                 <div class="text-[11px] font-mono text-slate-400 truncate">{{ m.url }}</div>
                 <div class="flex items-center justify-between pt-1 text-[11px] font-mono">
@@ -2021,6 +2075,7 @@
               </div>
             </div>
           </div>
+
         </div>
 
         <!-- ════════════════════════════════════════════════════════════════ -->
@@ -4173,10 +4228,56 @@ const activeGitHubProxyName = computed(() => {
   return m ? m.name : '自适应镜像'
 })
 
+const hostDockerStatus = ref({
+  platform: '',
+  host_name: '',
+  host_registry_url: '',
+  synced: false,
+  error: ''
+})
+const fetchingHostDockerStatus = ref(false)
+
+const hostDockerRegistryLiveUrl = computed(() => hostDockerStatus.value.host_registry_url || '')
+
+const isHostDockerSynced = computed(() => {
+  if (!hostDockerStatus.value.host_registry_url) return false
+  const live = hostDockerStatus.value.host_registry_url.trim().replace(/\/+$/, '').toLowerCase()
+  const active = (kspeederConfig.value.active_docker_mirror || '').trim().replace(/\/+$/, '').toLowerCase()
+  return live === active
+})
+
 const activeDockerMirrorName = computed(() => {
   const m = (kspeederConfig.value.docker_mirrors || []).find(d => d.url === kspeederConfig.value.active_docker_mirror)
-  return m ? m.name : '聚合镜像源'
+  return m ? m.name : (kspeederConfig.value.active_docker_mirror || '聚合镜像源')
 })
+
+async function fetchHostDockerStatus(notify = false) {
+  fetchingHostDockerStatus.value = true
+  try {
+    const res = await fetch('/api/v1/accelerator/host-docker-status')
+    const data = await res.json()
+    if (data && data.ok) {
+      hostDockerStatus.value = {
+        platform: data.platform || '',
+        host_name: data.host_name || '',
+        host_registry_url: data.host_registry_url || '',
+        synced: !!data.synced,
+        error: data.error || ''
+      }
+      if (notify) {
+        if (data.host_registry_url) {
+          showToast(`✓ 宿主【${data.host_name || 'RouterOS'}】当前生效源: ${data.host_registry_url} (${data.synced ? '已同步' : '待同步'})`)
+        } else {
+          showToast(`ℹ️ 宿主【${data.host_name || 'RouterOS'}】尚未配置镜像源加速`)
+        }
+      }
+    }
+  } catch (e) {
+    if (notify) showToast('获取宿主容器仓库状态失败', true)
+  } finally {
+    fetchingHostDockerStatus.value = false
+  }
+}
 
 async function fetchKSpeeder() {
   try {
@@ -4184,6 +4285,11 @@ async function fetchKSpeeder() {
     const data = await res.json()
     if (data && data.github_proxies) {
       kspeederConfig.value = { ...kspeederConfig.value, ...data }
+      if (data.host_registry_url !== undefined) {
+        hostDockerStatus.value.host_registry_url = data.host_registry_url || ''
+        hostDockerStatus.value.synced = !!data.host_docker_synced
+        hostDockerStatus.value.platform = data.host_platform || ''
+      }
     }
   } catch (e) {}
 }
@@ -4252,13 +4358,23 @@ const detectedHostLabel = computed(() => {
 
 async function applyHostDockerRegistry() {
   applyingHostDocker.value = true
+  const targetMirror = kspeederConfig.value.active_docker_mirror
   const targetHostName = isRouterOS.value ? 'MikroTik RouterOS 容器仓库' : `${hostBadge.value.name} Docker 守护进程`
-  showToast(`⚡ 正在全自动将镜像加速源注入【${targetHostName}】...`)
+  showToast(`⚡ 正在全自动将镜像加速源【${activeDockerMirrorName.value}】写入【${targetHostName}】...`)
   try {
-    const res = await fetch('/api/v1/accelerator/host-docker-apply', { method: 'POST' })
+    const res = await fetch('/api/v1/accelerator/host-docker-apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mirror: targetMirror })
+    })
     const data = await res.json()
     if (data.status === 'applied') {
-      showToast(data.message || `🎉 已成功将 Docker 镜像加速源注入【${targetHostName}】！`)
+      if (data.host_registry_url) {
+        hostDockerStatus.value.host_registry_url = data.host_registry_url
+        hostDockerStatus.value.synced = !!data.synced
+      }
+      showToast(data.message || `🎉 已成功将 Docker 镜像加速源注入【${targetHostName}】并核验生效！`)
+      await fetchHostDockerStatus(false)
     } else if (data.error || data.warning) {
       showToast(data.error || data.warning, true)
     } else {
@@ -4272,6 +4388,7 @@ async function applyHostDockerRegistry() {
 }
 
 const applyROSDockerRegistry = applyHostDockerRegistry
+
 
 // ── Mobile Responsive Drawer State ──
 const showMobileDrawer = ref(false)

@@ -1369,6 +1369,42 @@ func (m *Manager) PostROS(path string, body any) ([]byte, error) {
 	return bodyBytes, nil
 }
 
+// GetROS executes an authenticated GET request against RouterOS REST API.
+func (m *Manager) GetROS(path string) ([]byte, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.config.Host == "" {
+		return nil, fmt.Errorf("RouterOS not configured")
+	}
+	scheme := "https"
+	if m.config.Port == "80" {
+		scheme = "http"
+	}
+	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, m.config.Host, m.config.Port, strings.TrimPrefix(path, "/"))
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.SetBasicAuth(m.config.User, m.config.Password)
+	client := &http.Client{
+		Timeout: 6 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("ROS status %d: %s", resp.StatusCode, string(bodyBytes))
+	}
+	return bodyBytes, nil
+}
+
+
 // GetOutboundIP attempts to discover the local IP of the container/host used to reach RouterOS.
 func (m *Manager) GetOutboundIP() string {
 	m.mu.Lock()

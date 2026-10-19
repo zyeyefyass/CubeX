@@ -1496,3 +1496,25 @@ func (m *Manager) SetContainerRegistryURL(mirrorURL string) error {
 	return err
 }
 
+// GetContainerRegistryURL retrieves the current container registry-url from RouterOS via REST API.
+func (m *Manager) GetContainerRegistryURL() (string, error) {
+	data, err := m.GetROS("/container/config")
+	if err != nil {
+		return "", err
+	}
+	var cfg map[string]any
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		var list []map[string]any
+		if err2 := json.Unmarshal(data, &list); err2 == nil && len(list) > 0 {
+			cfg = list[0]
+		} else {
+			return "", err
+		}
+	}
+	if reg, ok := cfg["registry-url"].(string); ok {
+		return strings.TrimSpace(reg), nil
+	}
+	return "", nil
+}
+
+

@@ -1235,3 +1235,51 @@ func (m *Manager) writeLocalDockerDaemonJSON(mirrorURL string) error {
 	_ = exec.Command("systemctl", "restart", "docker").Run()
 	return nil
 }
+
+// GetDockerRegistryMirror retrieves current registry-mirrors configured on the host.
+func (m *Manager) GetDockerRegistryMirror() (string, error) {
+	m.mu.RLock()
+	cfg := m.config
+	m.mu.RUnlock()
+
+	daemonPath := "/etc/docker/daemon.json"
+	if runtime.GOOS == "linux" {
+		if data, err := os.ReadFile(daemonPath); err == nil {
+			type daemonConfig struct {
+				RegistryMirrors []string `json:"registry-mirrors"`
+			}
+			var dCfg daemonConfig
+			if err := json.Unmarshal(data, &dCfg); err == nil && len(dCfg.RegistryMirrors) > 0 {
+				return strings.TrimSpace(dCfg.RegistryMirrors[0]), nil
+			}
+		}
+	}
+
+	if !cfg.Enabled || cfg.Host == "" {
+		return "", nil
+	}
+	client, err := m.getSSHClient(cfg)
+	if err != nil {
+		return "", err
+	}
+	defer client.Close()
+
+	session, err := client.NewSession()
+	if err != nil {
+		return "", err
+	}
+	defer session.Close()
+
+	out, err := session.Output(`cat /etc/docker/daemon.json 2>/dev/null || true`)
+	if err == nil && len(out) > 0 {
+		type daemonConfig struct {
+			RegistryMirrors []string `json:"registry-mirrors"`
+		}
+		var dCfg daemonConfig
+		if err := json.Unmarshal(out, &dCfg); err == nil && len(dCfg.RegistryMirrors) > 0 {
+			return strings.TrimSpace(dCfg.RegistryMirrors[0]), nil
+		}
+	}
+	return "", nil
+}
+

@@ -345,6 +345,7 @@ func main() {
 	mux.HandleFunc("/api/v1/accelerator/test-docker", srv.handleKSpeederTestDocker)
 	mux.HandleFunc("/api/v1/accelerator/ros-docker-apply", srv.handleKSpeederHostRegistryApply)
 	mux.HandleFunc("/api/v1/accelerator/host-docker-apply", srv.handleKSpeederHostRegistryApply)
+	mux.HandleFunc("/api/v1/accelerator/host-docker-status", srv.handleKSpeederHostRegistryStatus)
 
 	// 10.2 Realtime Telemetry & Traffic Speed (Overview Module)
 	mux.HandleFunc("/api/v1/telemetry/traffic", srv.handleTelemetryTraffic)
@@ -2598,8 +2599,57 @@ func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 // KSpeeder Acceleration Handlers
 // ──────────────────────────────────────────────
 
+func (s *Server) queryLiveHostDockerRegistry(activeMirror string) (liveRegistry string, synced bool, platID string) {
+	hostInfo := s.hostMgr.GetCachedHostInfo()
+	if hostInfo == nil || !hostInfo.Connected {
+		if probed, err := s.hostMgr.ProbeHost(); err == nil && probed != nil {
+			hostInfo = probed
+		}
+	}
+	rosConnected := s.rosMgr != nil && s.rosMgr.IsConnected()
+	isROS := rosConnected || (hostInfo != nil && hostInfo.PlatformID == "routeros")
+
+	if isROS {
+		platID = "routeros"
+		if s.rosMgr != nil {
+			if reg, err := s.rosMgr.GetContainerRegistryURL(); err == nil {
+				liveRegistry = reg
+			}
+		}
+	} else {
+		platID = "linux"
+		if hostInfo != nil && hostInfo.PlatformID != "" {
+			platID = hostInfo.PlatformID
+		}
+		if s.hostMgr != nil {
+			if reg, err := s.hostMgr.GetDockerRegistryMirror(); err == nil {
+				liveRegistry = reg
+			}
+		}
+	}
+
+	if liveRegistry != "" && activeMirror != "" {
+		synced = strings.TrimRight(strings.ToLower(liveRegistry), "/") == strings.TrimRight(strings.ToLower(activeMirror), "/")
+	}
+	return
+}
+
 func (s *Server) handleKSpeederStatus(w http.ResponseWriter, r *http.Request) {
-	sendJSON(w, s.kspeeder.GetStatus())
+	status := s.kspeeder.GetStatus()
+	liveRegistry, hostSynced, platID := s.queryLiveHostDockerRegistry(status.ActiveDockerMirror)
+	resp := map[string]any{
+		"enabled":              status.Enabled,
+		"active_github_proxy":  status.ActiveGitHubProxy,
+		"active_docker_mirror": status.ActiveDockerMirror,
+		"github_proxies":       status.GitHubProxies,
+		"docker_mirrors":       status.DockerMirrors,
+		"auto_select_best":     status.AutoSelectBest,
+		"last_tested_at":       status.LastTestedAt,
+		"host_registry_url":    liveRegistry,
+		"host_docker_synced":   hostSynced,
+		"host_platform":        platID,
+	}
+	sendJSON(w, resp)
 }
 
 func (s *Server) handleKSpeederConfig(w http.ResponseWriter, r *http.Request) {
@@ -2629,15 +2679,55 @@ func (s *Server) handleKSpeederTestDocker(w http.ResponseWriter, r *http.Request
 	sendJSON(w, map[string]any{"status": "ok", "mirrors": mirrors, "active": s.kspeeder.GetStatus().ActiveDockerMirror})
 }
 
+func (s *Server) handleKSpeederHostRegistryStatus(w http.ResponseWriter, r *http.Request) {
+	activeMirror := s.kspeeder.GetStatus().ActiveDockerMirror
+	liveRegistry, synced, platID := s.queryLiveHostDockerRegistry(activeMirror)
+	hostName := "MikroTik RouterOS"
+	if platID != "routeros" {
+		hostInfo := s.hostMgr.GetCachedHostInfo()
+		if hostInfo != nil && hostInfo.OSName != "" {
+			hostName = hostInfo.OSName
+		} else {
+			hostName = "Linux 宿主"
+		}
+	}
+
+	sendJSON(w, map[string]any{
+		"ok":                   true,
+		"platform":             platID,
+		"host_name":            hostName,
+		"active_docker_mirror": activeMirror,
+		"host_registry_url":    liveRegistry,
+		"synced":               synced,
+	})
+}
+
 func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	mirror := s.kspeeder.GetStatus().ActiveDockerMirror
+	var reqBody struct {
+		Mirror string `json:"mirror"`
+	}
+	if r.Body != nil {
+		_ = json.NewDecoder(r.Body).Decode(&reqBody)
+	}
+
+	mirror := strings.TrimSpace(reqBody.Mirror)
 	if mirror == "" {
-		mirror = "https://docker.m.daocloud.io"
+		mirror = s.kspeeder.GetStatus().ActiveDockerMirror
+	}
+	if mirror == "" {
+		mirror = "https://atomhub.openatom.cn"
+	}
+
+	// Update local kspeeder config with this mirror if different
+	currCfg := s.kspeeder.GetStatus()
+	if currCfg.ActiveDockerMirror != mirror {
+		currCfg.ActiveDockerMirror = mirror
+		_ = s.kspeeder.UpdateConfig(currCfg)
 	}
 
 	// 1. Probe or retrieve cached host info
@@ -2668,11 +2758,22 @@ func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.
 			})
 			return
 		}
+
+		// Read back to verify live status
+		liveReg, _ := s.rosMgr.GetContainerRegistryURL()
+		if liveReg == "" {
+			liveReg = mirror
+		}
+		synced := strings.TrimRight(strings.ToLower(liveReg), "/") == strings.TrimRight(strings.ToLower(mirror), "/")
+
 		sendJSON(w, map[string]any{
-			"status":    "applied",
-			"platform":  "routeros",
-			"host_name": "MikroTik RouterOS",
-			"message":   fmt.Sprintf("🎉 已成功识别宿主【MikroTik RouterOS】，已将 Docker 镜像加速源【%s】一键写入容器仓库配置！", mirror),
+			"status":            "applied",
+			"platform":          "routeros",
+			"host_name":         "MikroTik RouterOS",
+			"applied_mirror":    mirror,
+			"host_registry_url": liveReg,
+			"synced":            synced,
+			"message":           fmt.Sprintf("🎉 已成功识别宿主【MikroTik RouterOS】，已将 Docker 镜像加速源【%s】一键写入容器仓库配置并核验生效！", liveReg),
 		})
 		return
 	}
@@ -2700,13 +2801,23 @@ func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.
 		return
 	}
 
+	liveReg, _ := s.hostMgr.GetDockerRegistryMirror()
+	if liveReg == "" {
+		liveReg = mirror
+	}
+	synced := strings.TrimRight(strings.ToLower(liveReg), "/") == strings.TrimRight(strings.ToLower(mirror), "/")
+
 	sendJSON(w, map[string]any{
-		"status":    "applied",
-		"platform":  platID,
-		"host_name": hostName,
-		"message":   fmt.Sprintf("🎉 已成功识别宿主【%s】，已自动将镜像源写入 /etc/docker/daemon.json 并平滑重载 Docker 守护进程！", hostName),
+		"status":            "applied",
+		"platform":          platID,
+		"host_name":         hostName,
+		"applied_mirror":    mirror,
+		"host_registry_url": liveReg,
+		"synced":            synced,
+		"message":           fmt.Sprintf("🎉 已成功识别宿主【%s】，已自动将镜像源写入 /etc/docker/daemon.json 并平滑重载 Docker 守护进程！", hostName),
 	})
 }
+
 
 func (s *Server) handleKSpeederROSRegistryApply(w http.ResponseWriter, r *http.Request) {
 	s.handleKSpeederHostRegistryApply(w, r)
