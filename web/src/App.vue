@@ -4783,7 +4783,7 @@ const trafficInsights = ref({
     { day: 16, inboundMB: 1100, outboundMB: 9100, label: '10.2GB' },
     { day: 17, inboundMB: 1000, outboundMB: 8700, label: '9.7GB' },
     { day: 18, inboundMB: 250.3, outboundMB: 3686, label: '3.9GB' },
-    { day: 19, inboundMB: 0, outboundMB: 0 },
+    { day: 19, inboundMB: 78.4, outboundMB: 802, label: '880MB' },
     { day: 20, inboundMB: 0, outboundMB: 0 },
     { day: 21, inboundMB: 0, outboundMB: 0 },
     { day: 22, inboundMB: 0, outboundMB: 0 },
@@ -5333,6 +5333,9 @@ async function fetchTelemetryTraffic() {
         const newIn = [...historyRealtimeTrafficIn.value.slice(1), inKb]
         historyRealtimeTrafficIn.value = newIn
       }
+
+      // Dynamically update today's column in the 31-day chart and the 24-hour distribution curve
+      updateHourlyDistribution(telemetryMetrics.value.inboundTotalMB, telemetryMetrics.value.outboundTotalMB, telemetryMetrics.value.connections)
     }
   } catch (e) {}
 }
@@ -9644,6 +9647,7 @@ onMounted(async () => {
   // Fetch Overview Dynamic Telemetry & DNS Filter Stats
   fetchTelemetryTraffic()
   fetchDnsFilterStats()
+  updateHourlyDistribution(telemetryMetrics.value.inboundTotalMB, telemetryMetrics.value.outboundTotalMB, telemetryMetrics.value.connections)
   if (autoSpeedtestEnabled.value) {
     setTimeout(triggerAllServiceProbes, 500)
   }

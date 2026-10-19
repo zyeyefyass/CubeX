@@ -378,7 +378,7 @@ func (m *Manager) initRouterOSServerLocked() error {
 			"name":        cfg.InterfaceName,
 			"listen-port": cfg.ListenPort,
 			"private-key": cfg.PrivateKey,
-			"comment":     "MiCube WireGuard Server",
+			"comment":     "CubeX WireGuard Server",
 		}
 		data, _ := json.Marshal(createPayload)
 		cReq, _ := http.NewRequest(http.MethodPut, baseURL+"/interface/wireguard", bytes.NewReader(data))
@@ -411,7 +411,7 @@ func (m *Manager) initRouterOSServerLocked() error {
 		addrPayload := map[string]any{
 			"address":   cfg.ServerAddress,
 			"interface": cfg.InterfaceName,
-			"comment":   "MiCube WireGuard Subnet",
+			"comment":   "CubeX WireGuard Subnet",
 		}
 		aData, _ := json.Marshal(addrPayload)
 		aReq, _ := http.NewRequest(http.MethodPut, baseURL+"/ip/address", bytes.NewReader(aData))
@@ -446,7 +446,7 @@ func (m *Manager) initRouterOSServerLocked() error {
 			"dst-port":     fmt.Sprintf("%d", cfg.ListenPort),
 			"action":       "accept",
 			"place-before": "0",
-			"comment":      "MiCube WireGuard In",
+			"comment":      "CubeX WireGuard In",
 		}
 		fData, _ := json.Marshal(fPayload)
 		fReq, _ := http.NewRequest(http.MethodPut, baseURL+"/ip/firewall/filter", bytes.NewReader(fData))

@@ -24,7 +24,7 @@ func RunSecurityAudit(ir *schema.ConfigIR) *SecurityAuditReport {
 	now := time.Now()
 	timestampStr := now.Format("15:04:05")
 
-	logs = append(logs, fmt.Sprintf("[%s] ⚡ 启动 MiCube 全维度硬核安全防泄露渗透测试...", timestampStr))
+	logs = append(logs, fmt.Sprintf("[%s] ⚡ 启动 CubeX 全维度硬核安全防泄露渗透测试...", timestampStr))
 	logs = append(logs, fmt.Sprintf("[%s] 当前活跃内核: %s | 代理模式: %s", timestampStr, engineName, ir.Meta.ProxyMode))
 
 	items := make([]SecurityTestItem, 0, 6)

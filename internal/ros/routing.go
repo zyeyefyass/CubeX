@@ -312,17 +312,19 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		})
 	}
 
-	// 6. Check /ip/firewall/address-list (MICUBE_BYPASS, LAN_SUBNET)
+	// 6. Check /ip/firewall/address-list (CUBEX_BYPASS, LAN_SUBNET)
 	bypassOK := false
 	lanOK := false
+	var foundBypassName string
 	if data, err := m.QueryROS("/ip/firewall/address-list"); err == nil {
 		var lists []map[string]any
 		_ = json.Unmarshal(data, &lists)
 		for _, l := range lists {
 			listName, _ := l["list"].(string)
 			addr, _ := l["address"].(string)
-			if listName == "MICUBE_BYPASS" && (addr == micubeIP || strings.Contains(addr, micubeIP)) {
+			if (listName == "CUBEX_BYPASS" || listName == "MICUBE_BYPASS") && (addr == micubeIP || strings.Contains(addr, micubeIP)) {
 				bypassOK = true
+				foundBypassName = listName
 			}
 			if listName == "LAN_SUBNET" {
 				lanOK = true
@@ -334,7 +336,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Key:     "address_list",
 			Name:    "防死锁地址清单 (/ip/firewall/address-list)",
 			Status:  "ok",
-			Value:   fmt.Sprintf("MICUBE_BYPASS (%s) & LAN_SUBNET 就绪", micubeIP),
+			Value:   fmt.Sprintf("%s (%s) & LAN_SUBNET 就绪", foundBypassName, micubeIP),
 			Details: "CubeX 自身 IP 已加入旁路白名单，彻底杜绝回环与循环代理死锁。",
 			Advice:  "地址列表完备",
 		})
@@ -345,8 +347,8 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Name:    "防死锁地址清单 (/ip/firewall/address-list)",
 			Status:  "missing",
 			Value:   "未完全配置",
-			Details: fmt.Sprintf("缺少 MICUBE_BYPASS (包含 %s) 或 LAN_SUBNET。这会导致 CubeX 自身外发流量被重复抓入代理引发死锁断网！", micubeIP),
-			Advice:  "必须配置 MICUBE_BYPASS 白名单排除 CubeX 容器 IP",
+			Details: fmt.Sprintf("缺少 CUBEX_BYPASS (包含 %s) 或 LAN_SUBNET。这会导致 CubeX 自身外发流量被重复抓入代理引发死锁断网！", micubeIP),
+			Advice:  "必须配置 CUBEX_BYPASS 白名单排除 CubeX 容器 IP",
 		})
 	}
 
@@ -753,15 +755,15 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		}
 	}
 
-	// Add MICUBE_BYPASS
-	if !existingLists[fmt.Sprintf("MICUBE_BYPASS_%s", targetIP)] {
+	// Add CUBEX_BYPASS (and keep compatibility with MICUBE_BYPASS)
+	if !existingLists[fmt.Sprintf("CUBEX_BYPASS_%s", targetIP)] && !existingLists[fmt.Sprintf("MICUBE_BYPASS_%s", targetIP)] {
 		_, err := m.PutROS("/ip/firewall/address-list", map[string]any{
-			"list":    "MICUBE_BYPASS",
+			"list":    "CUBEX_BYPASS",
 			"address": targetIP,
 			"comment": "CubeX Self Outbound Bypass",
 		})
 		if err == nil {
-			res.Actions = append(res.Actions, fmt.Sprintf("已添加防死锁地址 /ip/firewall/address-list (MICUBE_BYPASS %s)", targetIP))
+			res.Actions = append(res.Actions, fmt.Sprintf("已添加防死锁地址 /ip/firewall/address-list (CUBEX_BYPASS %s)", targetIP))
 		}
 	}
 
@@ -1244,13 +1246,13 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 	sb.WriteString(fmt.Sprintf("/ip/route add dst-address=198.18.0.0/15 gateway=%s comment=\"CubeX Fake-IP Route\"\n\n", targetIP))
 
 	sb.WriteString("# 2. 创建专用策略路由表 (FIB 转发)\n")
-	sb.WriteString("/routing/table add name=micube fib\n\n")
+	sb.WriteString("/routing/table add name=cubex fib\n\n")
 
-	sb.WriteString("# 3. 添加默认出国网关路由至 micube 路由表\n")
-	sb.WriteString(fmt.Sprintf("/ip/route add dst-address=0.0.0.0/0 gateway=%s routing-table=micube comment=\"CubeX Gateway Route\"\n\n", targetIP))
+	sb.WriteString("# 3. 添加默认出国网关路由至 cubex 路由表\n")
+	sb.WriteString(fmt.Sprintf("/ip/route add dst-address=0.0.0.0/0 gateway=%s routing-table=cubex comment=\"CubeX Gateway Route\"\n\n", targetIP))
 
 	sb.WriteString("# 4. 配置内网与旁路防死锁地址列表 (极为关键，杜绝自发循环死锁)\n")
-	sb.WriteString(fmt.Sprintf("/ip/firewall/address-list add list=MICUBE_BYPASS address=%s comment=\"CubeX Self Outbound Bypass\"\n", targetIP))
+	sb.WriteString(fmt.Sprintf("/ip/firewall/address-list add list=CUBEX_BYPASS address=%s comment=\"CubeX Self Outbound Bypass\"\n", targetIP))
 	sb.WriteString("/ip/firewall/address-list add list=LAN_SUBNET address=10.0.0.0/8 comment=\"Local LAN Subnet\"\n")
 	sb.WriteString("/ip/firewall/address-list add list=LAN_SUBNET address=172.16.0.0/12 comment=\"Local LAN Subnet\"\n")
 	sb.WriteString("/ip/firewall/address-list add list=LAN_SUBNET address=192.168.0.0/16 comment=\"Local LAN Subnet\"\n\n")
@@ -1263,12 +1265,12 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 	sb.WriteString(fmt.Sprintf("/ip/firewall/filter add chain=forward action=accept src-address=%s place-before=[find action=drop and chain=forward] comment=\"CubeX Outbound Forward Accept\"\n", targetIP))
 	sb.WriteString("/ip/firewall/filter add chain=forward action=accept dst-address=198.18.0.0/15 place-before=[find action=drop and chain=forward] comment=\"CubeX Fake-IP Forward Accept\"\n\n")
 
-	sb.WriteString("# 7. Mangle 策略分流打标 (终端出国流量标记至 micube 路由表)\n")
-	sb.WriteString("/ip/firewall/mangle add chain=prerouting src-address-list=!MICUBE_BYPASS dst-address-list=!LAN_SUBNET dst-address-type=!local action=mark-routing new-routing-mark=micube passthrough=yes comment=\"CubeX Policy Routing\"\n\n")
+	sb.WriteString("# 7. Mangle 策略分流打标 (终端出国流量标记至 cubex 路由表)\n")
+	sb.WriteString("/ip/firewall/mangle add chain=prerouting src-address-list=!CUBEX_BYPASS dst-address-list=!LAN_SUBNET dst-address-type=!local action=mark-routing new-routing-mark=cubex passthrough=yes comment=\"CubeX Policy Routing\"\n\n")
 
 	sb.WriteString("# 8. 严格防 DNS 泄露重定向 (仅劫持目标为 RouterOS 本机 IP 的 53 查询，绝不干扰同网段其他网关/DNS)\n")
-	sb.WriteString(fmt.Sprintf("/ip/firewall/nat add chain=dstnat src-address-list=!MICUBE_BYPASS dst-address-type=local protocol=udp dst-port=53 action=dst-nat to-addresses=%s to-ports=53 comment=\"CubeX DNS UDP Hijack\"\n", targetIP))
-	sb.WriteString(fmt.Sprintf("/ip/firewall/nat add chain=dstnat src-address-list=!MICUBE_BYPASS dst-address-type=local protocol=tcp dst-port=53 action=dst-nat to-addresses=%s to-ports=53 comment=\"CubeX DNS TCP Hijack\"\n\n", targetIP))
+	sb.WriteString(fmt.Sprintf("/ip/firewall/nat add chain=dstnat src-address-list=!CUBEX_BYPASS dst-address-type=local protocol=udp dst-port=53 action=dst-nat to-addresses=%s to-ports=53 comment=\"CubeX DNS UDP Hijack\"\n", targetIP))
+	sb.WriteString(fmt.Sprintf("/ip/firewall/nat add chain=dstnat src-address-list=!CUBEX_BYPASS dst-address-type=local protocol=tcp dst-port=53 action=dst-nat to-addresses=%s to-ports=53 comment=\"CubeX DNS TCP Hijack\"\n\n", targetIP))
 
 	sb.WriteString("# 9. 注入抗封锁与极限延迟优化: TCP MSS Clamping (消除 IP 分片黑洞，握手延迟降低 20%，杜绝 GFW 分片重组探测)\n")
 	sb.WriteString("/ip/firewall/mangle add chain=forward protocol=tcp tcp-flags=syn tcp-mss=1401-65535 action=change-mss new-mss=clamp-to-pmtu comment=\"CubeX Anti-Block TCP MSS Clamping\"\n\n")
