@@ -65,6 +65,7 @@
 - [🥊 传统旁路由的“五大死穴”与 CubeX 降维打击](#-传统旁路由的五大死穴与-cubex-降维打击)
 - [⚡ 双核混动实测：sing-box vs Mihomo 对比天梯](#-双核混动实测sing-box-vs-mihomo-对比天梯)
 - [🧹 一键自愈与深度巡检重器：拯救网络的降压药](#-一键自愈与深度巡检重器拯救网络的降压药)
+  - [🌐 原生 IPv6 双栈自愈与加固深度剖析 (配置与防火墙机制)](#3-原生-ipv6-双栈自愈与加固深度剖析到底配置了什么防火墙如何运作)
 - [🚀 极速部署指南 (RouterOS / Docker / fnOS / PVE)](#-极速部署指南)
 - [💬 极客畅所欲言：意见征集与需求大厅](#-极客畅所欲言意见征集与需求大厅)
 - [📜 净室合规与免责声明](#-净室合规与免责声明)
@@ -507,6 +508,53 @@ CubeX 默认预置了亚太与欧美最常用的 6 大核心国家/地区，加�
 2. **防火墙放行**：自动置顶注入 `iptables -I FORWARD 1 -j ACCEPT`，放行 Web 面板 TCP 2026 与 DNS 53 端口；
 3. **消除分片黑洞**：注入 `TCP MSS Clamping (--clamp-mss-to-pmtu)`，彻底解决跨 MTU 网络大包丢包、网页只加载文字不加载图片的问题；
 4. **TCP 握手加速**：开启 `net.ipv4.tcp_fastopen=3` 并启用 `FQ` 队列调度，降低首包握手延迟与排队抖动。
+
+---
+
+### 3. 【🌐 原生 IPv6 双栈自愈与加固】深度剖析（到底配置了什么？防火墙如何运作？）
+
+在控制台【系统升级与联动】中，点击 **`【🌐 一键自愈并加固 RouterOS 原生 IPv6 双栈 (防 DNS 泄露 · 毫秒级海外快速回退)】`**，很多极客朋友非常关心：**“它在 RouterOS 内部到底帮我配了哪些项目？是不是也启用了 IPv6 并配置了 IPv6 防火墙？”**
+
+**答案：是的！CubeX 通过 RouterOS REST API 执行了 6 大维度的原子级双栈加固与防火墙闭环编排：**
+
+```text
+┌───────────────────────────────────────────────────────────────────────────────┐
+│           🌐 CubeX RouterOS 原生 IPv6 双栈自动化编排与防火墙防御架构           │
+├───────────────────────────────────────────────────────────────────────────────┤
+│  1. 全局启用与转发: /ipv6/settings ➔ disable-ipv6=false, forward=true         │
+│  2. 外网探查与PD: 自动探查 WAN 口 (PPPoE/ether1), 创建 /ipv6/dhcp-client 获取前缀│
+│  3. 内网桥接广播: /ipv6/address ➔ 从地址池 CubeX-IPv6-Pool 为内网 bridge 分配    │
+│  4. 防DNS泄露死穴: 锁定所有 /ipv6/nd ➔ advertise-dns=false (掐灭运营商DNS污染)   │
+│  5. 防火墙极速拒答: /ipv6/firewall/filter ➔ 2000::/3 reject (毫秒级回退IPv4代理)│
+│  6. 国内流量直连: 百度、腾讯、B站等国内 IPv6 流量不受限制，物理线速满带宽狂飙  │
+└───────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 🛠️ 6 大关键配置与防火墙技术细节：
+
+1. **全面启用 IPv6 协议栈与内核数据包转发 (`/ipv6/settings`)**：
+   - 自动下发 `disable-ipv6=false` 与 `forward=true`。
+   - 确保主路由器底座具备完整的 IPv6 三层路由与跨网卡线速转发能力，消除部分系统因默认禁用 IPv6 导致的链路死锁。
+2. **自适应探查外网 WAN 出接口**：
+   - 算法自动检索 `0.0.0.0/0` 默认路由出接口（智能匹配 `pppoe-out1` 拨号口、`ether1` 或 `wan` 物理口），无需用户在命令行苦苦核对接口名。
+3. **自动化编排外网 DHCPv6-PD 前缀获取客户端 (`/ipv6/dhcp-client`)**：
+   - 在识别出的 WAN 口自动创建 DHCP-PD 客户端，配置 `request=prefix` 与 `pool-prefix-length=64`，将运营商动态下发的公网 IPv6 前缀汇聚至专用地址池 `CubeX-IPv6-Pool`。
+4. **内网局域网 IPv6 地址无感下发与通告 (`/ipv6/address`)**：
+   - 自动绑定 `from-pool=CubeX-IPv6-Pool` 至内网主网桥 `bridge`，开启 `advertise=true`。
+   - 家中所有连接主路由的手机、电脑、NAS 及智能家居设备，即插即用自动获取到合法独立的全球单播 IPv6 地址。
+5. **铁血扼杀运营商 IPv6 DNS 泄露 (`/ipv6/nd`)【最关键防线】**：
+   - 遍历主路由所有邻居发现（Neighbor Discovery）接口，**强制锁定 `advertise-dns=false`**！
+   - **痛点原理**：99% 的传统 IPv6 漏球灾难，皆因路由器通过 IPv6 RA 广播向内网终端下发了运营商（电信/联通/移动）的 IPv6 本地 DNS 地址。终端在发起网络请求时，往往优先使用运营商 IPv6 DNS 解析外网域名，不仅导致严重的 DNS 污染，更直接让旁路由分流形同虚设！CubeX 一键彻底掐死运营商 DNS 广播，内网所有 DNS 查询必须闭环由 CubeX 安全防泄露内核接管。
+6. **防火墙 2000::/3 极速拒答与海外快速回退 (`/ipv6/firewall/filter`)【黑科技】**：
+   - 在 RouterOS 防火墙 `forward` 链顶端自动注入规则：
+     ```routeros
+     /ipv6/firewall/filter
+     add chain=forward dst-address=2000::/3 action=reject reject-with=icmp-admin-prohibited comment="CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak"
+     ```
+   - **为什么采用 `reject` 而不是 `drop` 或直接放行？**
+     - 全球绝大部分海外 VPS 和机场代理节点在 IPv4 下具备最优 BGP/CN2 优化，而直连海外 IPv6（`2000::/3`）极易遭遇 GFW 丢包黑洞或跨国路由拥塞，导致长达数十秒的握手停顿；
+     - 若配置为 `drop`，客户端会持续等待 TCP 重传超时（卡顿 10~30 秒）；
+     - **CubeX 采用 `reject-with=icmp-admin-prohibited`（管理性阻断）**：当设备试图向海外发起原生 IPv6 直连时，主路由在 **0 毫秒内** 回复拒绝报文，现代浏览器和操作系统的 **Happy Eyeballs 双栈快速竞争算法** 会在**毫秒级瞬间回退至 IPv4 极速代理链路**！国内各大网站与直连服务（通过国内白名单和真实公网 IP）仍旧享受满血 IPv6 直通，彻底兼顾了国内 IPv6 高速体验与海外科学浏览的丝滑秒开！
 
 > [!IMPORTANT]
 > **⚠️ 关键澄清（关于封闭家用主路由）：**  
