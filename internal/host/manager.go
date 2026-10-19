@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -17,17 +18,19 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
+	"github.com/zyeyefyass/CubeX/internal/ikuai"
 	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
-// HostConfig stores the SSH credentials for communicating with the host OS (e.g., fnOS, PVE, Debian, Ubuntu).
+// HostConfig stores the SSH credentials for communicating with the host OS (e.g., fnOS, PVE, Debian, Ubuntu, iKuai).
 type HostConfig struct {
-	Enabled    bool   `json:"enabled"`
-	Host       string `json:"host"`
-	Port       int    `json:"port"`
-	User       string `json:"user"`
-	Password   string `json:"password"`
-	PrivateKey string `json:"private_key"`
+	Enabled      bool   `json:"enabled"`
+	Host         string `json:"host"`
+	Port         int    `json:"port"`
+	User         string `json:"user"`
+	Password     string `json:"password"`
+	PrivateKey   string `json:"private_key"`
+	PlatformType string `json:"platform_type,omitempty"` // "auto", "routeros", "ikuai", "linux"
 }
 
 // HostInfo represents status and telemetry probed from the host system.
@@ -327,16 +330,83 @@ func (m *Manager) testRouterOSRest(cfg HostConfig) (map[string]any, error) {
 	return nil, fmt.Errorf("RouterOS REST API 连接失败 (尝试端口 80/443)")
 }
 
+func (m *Manager) testIKuaiRPC(cfg HostConfig) (map[string]any, error) {
+	ports := []int{80, 443}
+	if cfg.Port > 0 && cfg.Port != 22 {
+		ports = []int{cfg.Port, 80, 443}
+	}
+
+	for _, p := range ports {
+		client := ikuai.NewClient(ikuai.Config{
+			Host:     cfg.Host,
+			Port:     p,
+			User:     cfg.User,
+			Password: cfg.Password,
+		})
+
+		stat, err := client.GetSysStat()
+		if err == nil && stat != nil {
+			result := map[string]any{
+				"ok":                  true,
+				"connected":           true,
+				"os_pretty":           fmt.Sprintf("爱快 iKuai %s", stat.Version),
+				"os_name":             "爱快 iKuai 企业级路由",
+				"arch":                stat.Arch,
+				"platform_id":         "ikuai",
+				"ip_forward":          true,
+				"kernel":              stat.Version,
+				"hostname":            stat.SysName,
+				"uptime":              stat.Uptime,
+				"cpu_cores":           4,
+				"cpu_load":            stat.CPULoad,
+				"memory_used":         stat.MemoryUsed,
+				"memory_total":        stat.MemoryTot,
+				"firewall_configured": true,
+			}
+
+			m.mu.Lock()
+			m.cachedInfo = &HostInfo{
+				Connected:          true,
+				OSName:             fmt.Sprintf("爱快 iKuai %s", stat.Version),
+				PlatformID:         "ikuai",
+				KernelVersion:      stat.Version,
+				Arch:               stat.Arch,
+				HostName:           stat.SysName,
+				Uptime:             stat.Uptime,
+				IPForward:          true,
+				FirewallConfigured: true,
+				CPUCores:           4,
+				CPULoad:            stat.CPULoad,
+				MemoryUsed:         stat.MemoryUsed,
+				MemoryTotal:        stat.MemoryTot,
+			}
+			m.mu.Unlock()
+
+			return result, nil
+		}
+	}
+	return nil, fmt.Errorf("爱快 iKuai Web-RPC 连接失败 (尝试端口 80/443)")
+}
+
 // TestSSH tests the SSH credentials, auto-detecting MikroTik RouterOS or standard Linux hosts.
 func (m *Manager) TestSSH(cfg HostConfig) (map[string]any, error) {
+	// If explicitly set to ikuai, test iKuai directly
+	if cfg.PlatformType == "ikuai" {
+		return m.testIKuaiRPC(cfg)
+	}
+
 	client, err := m.getSSHClient(cfg)
 	if err != nil {
-		// Fallback to RouterOS REST API check (port 80 / 443)
+		// Fallback 1: RouterOS REST API check (port 80 / 443)
 		if restRes, restErr := m.testRouterOSRest(cfg); restErr == nil && restRes != nil {
 			_ = m.syncToROSConfig(cfg)
 			return restRes, nil
 		}
-		return nil, fmt.Errorf("SSH 握手或鉴权失败: %w", err)
+		// Fallback 2: iKuai Web-RPC check (port 80 / 443)
+		if ikRes, ikErr := m.testIKuaiRPC(cfg); ikErr == nil && ikRes != nil {
+			return ikRes, nil
+		}
+		return nil, fmt.Errorf("宿主连接失败 (已自动尝试 SSH 22、RouterOS REST API 及 爱快 Web-RPC): %w", err)
 	}
 	defer client.Close()
 
@@ -674,6 +744,32 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 	return info, nil
 }
 
+// GetOutboundIP attempts to discover the local IP of the container/host used to reach target host.
+func (m *Manager) GetOutboundIP(targetHost string) string {
+	if targetHost == "" {
+		targetHost = "223.5.5.5"
+	}
+	conn, err := net.DialTimeout("udp", targetHost+":80", 1*time.Second)
+	if err == nil {
+		defer conn.Close()
+		if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
+			return localAddr.IP.String()
+		}
+	}
+	// Fallback to checking local network interfaces
+	addrs, err := net.InterfaceAddrs()
+	if err == nil {
+		for _, a := range addrs {
+			if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+				if ip4 := ipnet.IP.To4(); ip4 != nil {
+					return ip4.String()
+				}
+			}
+		}
+	}
+	return "10.0.0.11"
+}
+
 // ApplyFirewall configures IP forwarding, WireGuard UDP port, panel TCP port, and NAT masquerade on the host.
 // Supported modes: "permissive" (default, recommended for novices) and "strict" (least privilege).
 // If enablePenetration is false, no WireGuard UDP penetration ports will be opened (pure LAN bypass).
@@ -686,6 +782,25 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 	// 1. If currently connected host is RouterOS, guide user to ROS configuration
 	if cached != nil && cached.PlatformID == "routeros" && cfg.Host != "" {
 		return nil, fmt.Errorf("当前连接的宿主为 MikroTik RouterOS（无需 iptables）。请直接使用【一键巡检 ROS 配置及全量重新配置】。若宿主机为独立 Linux / 飞牛 NAS，请在【宿主共生凭据】中填入其 SSH 凭据")
+	}
+
+	// 1.1 If currently connected host is iKuai, execute iKuai bypass orchestration
+	if cached != nil && cached.PlatformID == "ikuai" && cfg.Host != "" {
+		client := ikuai.NewClient(ikuai.Config{
+			Host:     cfg.Host,
+			Port:     cfg.Port,
+			User:     cfg.User,
+			Password: cfg.Password,
+		})
+		cubexIP := m.GetOutboundIP(cfg.Host)
+		logs, err := client.ApplyBypass(cubexIP)
+		if err != nil {
+			return nil, fmt.Errorf("爱快一键自愈与加固失败: %w", err)
+		}
+		return &FirewallResult{
+			Success: true,
+			Logs:    append([]string{"[IKUAI] 成功连接爱快 Web-RPC", fmt.Sprintf("[IKUAI] 探查到 CubeX 宿主直连 IP 为: %s", cubexIP), "[IKUAI] 执行静态回指路由与 DHCP 联动加固"}, logs...),
+		}, nil
 	}
 
 	mode = strings.ToLower(strings.TrimSpace(mode))

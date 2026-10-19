@@ -85,8 +85,24 @@ elif [ -f "/etc/openwrt_release" ]; then
     DEFAULT_INSTALL_DIR="/opt/cubex"
 fi
 
+# 3.5 局域网上级主路由智能探查 (爱快 iKuai / MikroTik RouterOS)
+DEFAULT_GW=$(ip route show default 2>/dev/null | awk '/default/ {print $3}' | head -n 1)
+IS_IKUAI_GATEWAY=0
+if [ -n "$DEFAULT_GW" ]; then
+    GW_PROBE=$(curl -s -m 2 -I "http://$DEFAULT_GW/" 2>/dev/null || true)
+    if echo "$GW_PROBE" | grep -qi "ikuai"; then
+        IS_IKUAI_GATEWAY=1
+    elif curl -s -m 2 "http://$DEFAULT_GW/" 2>/dev/null | grep -qi "ikuai"; then
+        IS_IKUAI_GATEWAY=1
+    fi
+fi
+
 echo -e "${CYAN}🖥️  检测到宿主平台: ${BOLD}${DETECTED_HOST_NAME}${NC}"
 echo -e "${BLUE}📁 自动匹配推荐部署路径: ${BOLD}${DEFAULT_INSTALL_DIR}${NC}"
+if [ "$IS_IKUAI_GATEWAY" -eq 1 ]; then
+    echo -e "${PURPLE}🚀 嗅探到上级主路由为: ${BOLD}爱快 iKuai 企业级路由 (${DEFAULT_GW})${NC}"
+    echo -e "${CYAN}💡 【爱快宿主共生建议】: 部署完成后，在 CubeX 驾驶舱【宿主共生凭据】中填入爱快 IP (${DEFAULT_GW}) 与管理密码，系统将全自动下发 198.18.0.0/15 静态回指与 DHCP 联动加固！${NC}"
+fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. 用户交互与非交互模式判断
@@ -364,5 +380,12 @@ echo -e "  • 查看运行状态:   ${YELLOW}cubex status${NC}"
 echo -e "  • 追踪实时日志:   ${YELLOW}cubex log${NC}"
 echo -e "  • 重启网关服务:   ${YELLOW}cubex restart${NC}"
 echo -e "  • 热重载分流配置: ${YELLOW}cubex reload${NC}"
+if [ "$IS_IKUAI_GATEWAY" -eq 1 ]; then
+    echo ""
+    echo -e "${PURPLE}🚀 ${BOLD}爱快 iKuai 一键联动就绪:${NC}"
+    echo -e "  1. 浏览器打开: ${CYAN}http://${LOCAL_IP}:2026${NC}"
+    echo -e "  2. 进入【宿主共生凭据】，填入爱快地址 (${DEFAULT_GW}) 与 Web 密码"
+    echo -e "  3. 点击【一键深度巡检爱快静态回指路由与 DHCP 联动加固】或【一键自愈与规则加固】，自动注入 198.18.0.0/15 回指路由！"
+fi
 echo -e "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"
 EOF

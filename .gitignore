@@ -5,6 +5,7 @@
 *.so
 *.dylib
 bin/
+build/
 /cubexd
 /cubex
 

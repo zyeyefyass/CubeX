@@ -1491,7 +1491,7 @@
                         regionTestingMap[reg.id] ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : getLatencyBadgeClass(reg.winnerLatency)]"
                         @click.stop="enqueueRegionSpeedtest(reg)"
                         :title="regionTestingMap[reg.id] ? '正在测速中...' : '点击立即测速该分组所有节点'">
-                        {{ regionTestingMap[reg.id] ? '测速中...' : (reg.winnerLatency > 0 ? `${reg.winnerLatency}ms` : '32ms') }}
+                        {{ regionTestingMap[reg.id] ? '测速中...' : (reg.winnerLatency > 0 ? `${reg.winnerLatency}ms` : '⚡ 未测速') }}
                       </span>
 
                       <!-- Quick Test Button -->
@@ -2915,35 +2915,35 @@
                   <span class="text-cyan-400 text-sm">🔑</span>
                   <span class="font-bold text-white">宿主共生凭据与鉴权</span>
                   <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-                    RouterOS REST API / Linux SSH
+                    RouterOS REST API / 爱快 iKuai Web-RPC / Linux SSH
                   </span>
                 </div>
-                <span class="text-[11px] text-slate-400 font-normal">通常为主路由 IP（例: 192.168.88.1）或 Docker 网关（172.17.0.1）</span>
+                <span class="text-[11px] text-slate-400 font-normal">通常为主路由 IP（例: 192.168.88.1 或 192.168.1.1）或 Docker 网关（172.17.0.1）</span>
               </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                 <div>
                   <label class="block text-[11px] text-slate-300 font-bold mb-1">宿主 / 主路由 IP</label>
-                  <input v-model="hostConfig.host" placeholder="例: 192.168.88.1" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
+                  <input v-model="hostConfig.host" placeholder="例: 192.168.88.1 或 192.168.1.1" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
                 <div>
-                  <label class="block text-[11px] text-slate-300 font-bold mb-1">通信端口 (ROS: 80/443, SSH: 22)</label>
+                  <label class="block text-[11px] text-slate-300 font-bold mb-1">通信端口 (ROS/爱快: 80/443, SSH: 22)</label>
                   <input v-model.number="hostConfig.port" type="number" placeholder="80 / 443 / 22" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
                 <div>
-                  <label class="block text-[11px] text-slate-300 font-bold mb-1">管理员账号 (WinBox / SSH用户)</label>
+                  <label class="block text-[11px] text-slate-300 font-bold mb-1">管理员账号 (ROS/爱快: admin, SSH: root)</label>
                   <input v-model="hostConfig.user" placeholder="admin 或 root" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
                 <div>
-                  <label class="block text-[11px] text-slate-300 font-bold mb-1">登录密码 (WinBox / SSH密码)</label>
-                  <input type="password" v-model="hostConfig.password" placeholder="WinBox登录密码 (无密码留空)" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
+                  <label class="block text-[11px] text-slate-300 font-bold mb-1">登录密码 (WinBox / 爱快Web后台密码)</label>
+                  <input type="password" v-model="hostConfig.password" placeholder="Web / WinBox登录密码 (无密码留空)" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
               </div>
 
               <div class="p-3 rounded-xl bg-cyan-950/40 border border-cyan-800/40 text-[11px] text-cyan-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
                   <span>💡</span>
-                  <span>对于 <b>MikroTik RouterOS</b>，用户名与密码指您平时登录 <b>WinBox</b> 客户端所用的账号（默认 admin）与登录密码（无密码留空）。</span>
+                  <span>对于 <b>MikroTik RouterOS</b>，用户名密码为 <b>WinBox</b> 账号；对于 <b>爱快 iKuai</b>，填入 Web 管理后台 IP、端口(默认 80)及密码（CubeX 自动通过 MD5 握手并下发 198.18.0.0/15 静态回指与 DHCP 联动）。</span>
                 </div>
                 <button @click="saveCredentialsAndLinkHost" :disabled="savingAndLinkingHost" class="px-5 py-2 rounded-xl bg-gradient-to-r from-teal-400 to-cyan-500 hover:from-teal-300 hover:to-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 active:scale-95 transition shrink-0 flex items-center gap-1.5 disabled:opacity-50">
                   <span v-if="savingAndLinkingHost" class="inline-block animate-spin">↻</span>
@@ -2960,6 +2960,11 @@
                   <span v-if="cleaningRosFirewall" class="inline-block animate-spin">↻</span>
                   <span v-else>🧹</span>
                   <span>一键深度巡检 RouterOS 策略路由及全量重配 (含 Netwatch 0秒逃生)</span>
+                </button>
+                <button v-else-if="isIKuai" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-950/80 to-teal-950/80 hover:from-emerald-900/80 hover:to-teal-900/80 border border-emerald-500/50 text-emerald-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50">
+                  <span v-if="applyingLinuxFirewall" class="inline-block animate-spin">↻</span>
+                  <span v-else>🚀</span>
+                  <span>一键深度巡检爱快静态回指路由与 DHCP 联动加固</span>
                 </button>
                 <button v-else @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-purple-950/80 to-blue-950/80 hover:from-purple-900/80 hover:to-blue-900/80 border border-purple-500/50 text-purple-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50">
                   <span v-if="applyingLinuxFirewall" class="inline-block animate-spin">↻</span>
@@ -5457,6 +5462,15 @@ const hostBadge = computed(() => {
       online: hostInfo.value.connected !== false
     }
   }
+  if (plat === 'ikuai' || name.includes('ikuai') || name.includes('爱快')) {
+    return {
+      name: hostInfo.value.os_name || '爱快 iKuai 企业级路由',
+      shortName: '爱快 iKuai',
+      svg: '/host-ikuai.svg',
+      icon: '🚀',
+      online: hostInfo.value.connected !== false
+    }
+  }
   if (plat === 'openwrt' || name.includes('openwrt')) {
     return {
       name: hostInfo.value.os_name || 'OpenWrt',
@@ -5488,6 +5502,12 @@ const isRouterOS = computed(() => {
   const plat = (hostInfo.value.platform_id || '').toLowerCase()
   const name = (hostInfo.value.os_name || '').toLowerCase()
   return plat === 'routeros' || name.includes('routeros') || name.includes('mikrotik')
+})
+
+const isIKuai = computed(() => {
+  const plat = (hostInfo.value.platform_id || '').toLowerCase()
+  const name = (hostInfo.value.os_name || '').toLowerCase()
+  return plat === 'ikuai' || name.includes('ikuai') || name.includes('爱快')
 })
 
 
@@ -7566,7 +7586,7 @@ async function processSpeedtestQueue() {
         }
         task.testedCount = data.tested_count || nodeNames.length
         task.onlineCount = data.online_count || 0
-        const best = data.min_delay > 0 ? data.min_delay : (data.avg_delay > 0 ? data.avg_delay : 32)
+        const best = data.min_delay > 0 ? data.min_delay : (data.avg_delay > 0 ? data.avg_delay : 0)
         task.winnerDelay = best
         reg.winnerLatency = best
         task.status = 'completed'
@@ -8249,10 +8269,16 @@ const regionalAutoGroups = computed(() => {
   for (const reg of allRegionDefs.value) {
     const nodes = getRegionNodes(reg)
 
-    let winnerNode = nodes.find(n => n.delay > 0)
-    if (!winnerNode && nodes.length > 0) winnerNode = nodes[0]
-    const winnerName = winnerNode ? winnerNode.name : (nodes.length > 0 ? nodes[0].name : '自动优选就绪')
-    const winnerLat = winnerNode?.delay || (reg.id === 'HK' ? 62 : (reg.id === 'JP' ? 65 : (reg.id === 'KR' ? 72 : (reg.id === 'SG' ? 75 : (reg.id === 'US' ? 195 : 85)))))
+    let winnerNode = null
+    let minDelay = 99999
+    for (const n of nodes) {
+      if (n.delay > 0 && n.delay < minDelay) {
+        minDelay = n.delay
+        winnerNode = n
+      }
+    }
+    const winnerName = winnerNode ? winnerNode.name : (nodes.length > 0 ? nodes[0].name : '等待测速优选')
+    const winnerLat = winnerNode ? winnerNode.delay : 0
 
     const providerMap = {}
     for (const n of nodes) {
@@ -8394,28 +8420,42 @@ async function testSingleNode(node) {
     const res = await fetch(`/api/v1/engine/proxy/delay?name=${encodeURIComponent(node.name)}`)
     if (res.ok) {
       const data = await res.json()
-      if (data.delay) {
+      if (data.delay !== undefined) {
         node.delay = data.delay
-        showToast(`「${node.name}」延迟: ${node.delay}ms`)
+        if (data.delay > 0) {
+          showToast(`「${node.name}」真实端到端延迟: ${node.delay}ms`)
+        } else {
+          showToast(`「${node.name}」连接超时或不可达`)
+        }
         return
       }
     }
   } catch (e) {}
-
-  const simulated = Math.floor(Math.random() * 35) + 20
-  node.delay = simulated
-  showToast(`「${node.name}」延迟: ${simulated}ms`)
+  node.delay = 0
+  showToast(`「${node.name}」测速超时`)
 }
 
 async function testProviderNodes(nodes) {
   if (!nodes || nodes.length === 0) return
   showToast(`⚡ 正在并发测速 ${nodes.length} 个节点...`)
-  for (const n of nodes) {
-    n.delay = Math.floor(Math.random() * 45) + 25
-  }
-  setTimeout(() => {
-    showToast(`测速完成！${nodes.length} 个节点已更新延迟`)
-  }, 400)
+  try {
+    const res = await fetch('/api/v1/config/proxies/speedtest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ names: nodes.map(n => n.name) })
+    })
+    const data = await res.json()
+    if (data.ok && data.results) {
+      for (const n of nodes) {
+        if (data.results[n.name] !== undefined) {
+          n.delay = data.results[n.name]
+        }
+      }
+      showToast(`测速完成！${data.online_count || 0}/${nodes.length} 节点在线，平均延迟 ${data.avg_delay || 0}ms`)
+      return
+    }
+  } catch (e) {}
+  showToast('测速完成')
 }
 
 // 💡 日常高频预设库与自动去重 (官方正版矢量标识与标准地区策略绑定)
