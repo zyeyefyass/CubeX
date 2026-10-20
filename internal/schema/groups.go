@@ -384,6 +384,13 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 					break
 				}
 			}
+		} else if bg.Name == "YouTube" || bg.Name == "Netflix & 流媒体" || bg.Name == "Google" {
+			for _, pref := range []string{"🇯🇵 日本自动", "🇭🇰 香港自动", "🇸🇬 新加坡自动", "🇹🇼 台湾自动"} {
+				if containsString(candidates, pref) {
+					defaultNow = pref
+					break
+				}
+			}
 		}
 
 		bizGrp := StrategyGroup{
@@ -401,6 +408,8 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 				if eg.Now == "DIRECT" && bg.Name != "Apple 服务" && bg.Name != "Microsoft" && bg.Name != "🎯 国内流量" {
 					bizGrp.Now = defaultNow
 				} else if bg.Name == "AI" && (eg.Now == "🇭🇰 香港自动" || eg.Now == "🇭🇰 香港故转" || eg.Now == "🇭🇰 香港容灾") {
+					bizGrp.Now = defaultNow
+				} else if (bg.Name == "YouTube" || bg.Name == "Google") && strings.Contains(eg.Now, "HHost-JP") {
 					bizGrp.Now = defaultNow
 				} else {
 					bizGrp.Now = eg.Now

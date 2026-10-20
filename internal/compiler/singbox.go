@@ -160,6 +160,28 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"clash_mode": "global",
 				"server":     "dns-fakeip",
 			},
+			// 1. Google / YouTube / GStatic / Media / AI Strict Fake-IP Protection (Overrides geosite-cn to prevent DNS leak/pollution)
+			{
+				"domain_suffix": []string{
+					"google.com",
+					"googleapis.com",
+					"gstatic.com",
+					"googleusercontent.com",
+					"googlevideo.com",
+					"ggpht.com",
+					"youtube.com",
+					"ytimg.com",
+					"youtu.be",
+					"youtubei.googleapis.com",
+					"cloudflare.com",
+					"openai.com",
+					"chatgpt.com",
+					"anthropic.com",
+					"claude.ai",
+					"deepmind.google",
+				},
+				"server": "dns-fakeip",
+			},
 			{
 				"domain_suffix": []string{
 					".cn",
@@ -712,13 +734,14 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 	if validOutbounds["YouTube"] {
 		routeRules = append(routeRules, map[string]any{
-			"domain_suffix": []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com"},
-			"outbound":      "YouTube",
+			"domain_suffix":  []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com", "yt3.ggpht.com"},
+			"domain_keyword": []string{"googlevideo", "sponsorblock"},
+			"outbound":       "YouTube",
 		})
 	}
 	if validOutbounds["Google"] {
 		routeRules = append(routeRules, map[string]any{
-			"domain_suffix": []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "googlevideo.com", "ggpht.com"},
+			"domain_suffix": []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com"},
 			"outbound":      "Google",
 		})
 	}

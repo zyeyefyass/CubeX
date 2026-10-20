@@ -115,7 +115,6 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	cleanFakeIPFilter := []string{
-		"geosite:cn",
 		"geosite:private",
 		"rule-set:cn_domain",
 		"*.lan",
@@ -178,6 +177,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			},
 		},
 		"nameserver-policy": map[string]any{
+			"+.google.com,+.googleapis.com,+.gstatic.com,+.googlevideo.com,+.ytimg.com,+.youtube.com,+.openai.com,+.chatgpt.com,+.anthropic.com,+.claude.ai": remoteDNSList,
 			"geosite:cn,private": []string{
 				"https://dns.alidns.com/dns-query#disable-qtype-65=true",
 				"https://doh.pub/dns-query#disable-qtype-65=true",
@@ -466,6 +466,9 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	if validTargets["YouTube"] {
 		rulesList = append(rulesList, "DOMAIN-SUFFIX,googlevideo.com,YouTube")
 		rulesList = append(rulesList, "DOMAIN-SUFFIX,ytimg.com,YouTube")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,youtube.com,YouTube")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,youtu.be,YouTube")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,ggpht.com,YouTube")
 		rulesList = append(rulesList, "DOMAIN-KEYWORD,googlevideo,YouTube")
 		rulesList = append(rulesList, "DOMAIN-KEYWORD,sponsorblock,YouTube")
 		rulesList = append(rulesList, "DOMAIN,youtubei.googleapis.com,YouTube")
