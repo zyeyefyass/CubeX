@@ -256,7 +256,11 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 				pMap["network"] = p.Network
 			}
 			if p.Path != "" {
-				pMap["ws-opts"] = map[string]any{"path": p.Path}
+				if p.Network == "grpc" {
+					pMap["grpc-opts"] = map[string]any{"grpc-service-name": p.Path}
+				} else {
+					pMap["ws-opts"] = map[string]any{"path": p.Path}
+				}
 			}
 			if p.Flow != "" {
 				pMap["flow"] = p.Flow
@@ -448,6 +452,15 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	// Intercept foreign UDP 443/8443 (QUIC) to prevent ISP UDP QoS throttling and force BBR TCP
 	rulesList = append(rulesList, "AND,((NETWORK,udp),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT")
+
+	// High-Priority Line-Speed Benchmark / Speedtest Fast-Path Rule
+	if validTargets[foreignGroup] {
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN,speed.cloudflare.com,%s", foreignGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN,challenges.cloudflare.com,%s", foreignGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,fast.com,%s", foreignGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,speedtest.net,%s", foreignGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,ooklaserver.net,%s", foreignGroup))
+	}
 
 	// 2a. YouTube Video Streaming High-Speed Direct Rules
 	if validTargets["YouTube"] {

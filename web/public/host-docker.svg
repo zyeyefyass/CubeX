@@ -1,14 +1,1 @@
-<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Docker Official Blue Emblem -->
-  <rect width="32" height="32" rx="7" fill="#001830"/>
-  <!-- Containers -->
-  <rect x="7" y="13" width="2.5" height="2.5" rx="0.5" fill="#0DB7ED"/>
-  <rect x="10.5" y="13" width="2.5" height="2.5" rx="0.5" fill="#0DB7ED"/>
-  <rect x="14" y="13" width="2.5" height="2.5" rx="0.5" fill="#0DB7ED"/>
-  <rect x="10.5" y="9.5" width="2.5" height="2.5" rx="0.5" fill="#0DB7ED"/>
-  <rect x="14" y="9.5" width="2.5" height="2.5" rx="0.5" fill="#0DB7ED"/>
-  <rect x="17.5" y="13" width="2.5" height="2.5" rx="0.5" fill="#0DB7ED"/>
-  <!-- Whale Body -->
-  <path d="M26 15C25.5 15 24.2 15.6 23.5 16.5C21 16 19 16 16 16C10 16 6 18 5 21C6.5 22.5 10 23.5 15 23.5C22 23.5 25.5 20.5 26.5 17C27.5 17 28.5 16.5 29 15.5C28 15 27 15 26 15Z" fill="#0DB7ED"/>
-  <circle cx="9" cy="19.5" r="0.8" fill="#FFFFFF"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="-0.07 71.3 511.97 369.5"><path d="M501.4 212.3c-11.5-8-38-11-58.6-7-2.4-20-13.5-37.5-32.7-53l-11-8-7.7 11.5c-9.6 15-14.4 36-13 56 .5 7 2.9 19.5 10.1 30.5-6.7 4-20.7 9-38.9 9H2.3l-1 4c-3.4 20-3.4 82.5 36 130.5 29.8 36.5 74 55 132.1 55 125.9 0 219.1-60.5 262.8-170 17.3.5 54.3 0 73-37.5.5-1 1.4-3 4.8-10.5l1.9-4zM280 71.3h-52.8v50H280zm0 60h-52.8v50H280zm-62.5 0h-52.8v50h52.8zm-62.4 0h-52.8v50h52.8zm-62.5 60H39.8v50h52.8zm62.5 0h-52.8v50h52.8zm62.4 0h-52.8v50h52.8zm62.5 0h-52.8v50H280zm62.4 0h-52.8v50h52.8z" style="fill:#2396ed"/></svg>

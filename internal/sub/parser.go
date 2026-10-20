@@ -156,6 +156,10 @@ func parseClashNode(p map[string]any) schema.ProxyNode {
 		if path, ok := wsOpts["path"].(string); ok {
 			node.Path = path
 		}
+	} else if grpcOpts, ok := p["grpc-opts"].(map[string]any); ok {
+		if sn, ok := grpcOpts["grpc-service-name"].(string); ok {
+			node.Path = sn
+		}
 	}
 
 	node.RawConfig = p
@@ -215,6 +219,8 @@ func parseSingboxNode(ob map[string]any) schema.ProxyNode {
 		node.Network = fmt.Sprintf("%v", transMap["type"])
 		if path, ok := transMap["path"].(string); ok {
 			node.Path = path
+		} else if sn, ok := transMap["service_name"].(string); ok {
+			node.Path = sn
 		}
 	}
 
@@ -342,6 +348,7 @@ func ParseURILink(link string) (schema.ProxyNode, error) {
 			if serviceName == "" {
 				serviceName = q.Get("path")
 			}
+			node.Path = serviceName
 			raw["network"] = "grpc"
 			raw["grpc-opts"] = map[string]any{
 				"grpc-service-name": serviceName,

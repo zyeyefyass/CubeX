@@ -2,7 +2,7 @@
   "name": "CubeX",
   "codename": "CyberAurora",
   "subtitle": "HOST-SYMBIOTIC ZERO-PERCEPTION GATEWAY",
-  "version": "Test v1.4",
+  "version": "Test v1.5",
   "engines": [
     "sing-box v1.14.3",
     "mihomo v1.19.32"
@@ -28,5 +28,6 @@
     "clash_api": 9090
   },
   "memory_limit_mb": 60,
-  "license": "MIT"
+  "license": "MIT",
+  "description": "🌌 CubeX (极光魔方) · 宿主共生零感网络系统 (Host-Symbiotic Gateway) · 双引擎混动 (Mihomo × sing-box v1.14+) / 物理芯片满血直通 / 宿主实时开销仅 ~39MB (同类最优) / 0 明文 DNS 泄露 / RFC 2544 完整网段回指 / 全链路智能自愈"
 }

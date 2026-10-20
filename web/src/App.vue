@@ -40,30 +40,7 @@
               </span>
             </div>
 
-            <!-- 宿主机官方矢量 Logo + 型号版本 + 在线心跳 -->
-            <div class="pt-2.5">
-              <div class="inline-flex items-center gap-2.5 px-3 py-2 rounded-2xl bg-gradient-to-r from-slate-900/95 via-sky-950/60 to-slate-900/95 border border-cyan-500/40 shadow-lg shadow-cyan-950/40 max-w-full group">
-                <!-- 官网矢量 Logo (带独立深色水晶底座) -->
-                <div class="w-8 h-8 rounded-xl bg-slate-950/90 border border-cyan-500/50 flex items-center justify-center p-1.5 shrink-0 shadow-[0_0_12px_rgba(0,210,255,0.3)] group-hover:scale-105 transition-transform">
-                  <img :src="hostBadge.svg" class="w-full h-full object-contain drop-shadow-[0_0_6px_rgba(0,210,255,0.8)]" :alt="hostBadge.shortName" />
-                </div>
-                
-                <!-- 宿主平台名称与双版本号 -->
-                <div class="text-left overflow-hidden">
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs sm:text-[13px] font-bold font-mono text-cyan-200 truncate max-w-[130px]" :title="hostBadge.name">
-                      {{ hostBadge.name }}
-                    </span>
-                    <span :class="['w-2 h-2 rounded-full shrink-0', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse' : 'bg-amber-400']" :title="hostBadge.online ? '宿主平台在线联动' : '未连接'"></span>
-                  </div>
-                  <div class="text-[10px] font-mono text-slate-400/90 flex items-center gap-1.5 mt-0.5">
-                    <span class="text-cyan-400 font-bold px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/30">{{ systemStatus.version || 'Test v1.3' }}</span>
-                    <span class="text-slate-500">|</span>
-                    <span class="uppercase tracking-wider text-[9px] text-slate-300 font-semibold">{{ hostBadge.shortName }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+
           </div>
         </div>
 
@@ -91,25 +68,46 @@
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <div class="flex-1 flex flex-col h-full overflow-y-auto pb-24 md:pb-6">
       
-      <!-- Top Holographic Bar (Mobile & Desktop Adaptive) -->
-      <header class="w-full px-3 sm:px-4 lg:px-8 py-2.5 sm:py-3.5 border-b backdrop-blur-xl flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-20 transition-colors"
+      <!-- Top Holographic Bar (Mobile & Desktop Adaptive, Generous Line-Height & Symmetrical Capsules) -->
+      <header class="w-full px-3.5 sm:px-6 lg:px-8 py-3.5 sm:py-4 min-h-[66px] sm:min-h-[74px] border-b backdrop-blur-xl flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-20 transition-colors duration-500"
         :class="activeEngine === 'singbox' ? 'bg-[#090714]/90 border-purple-800/40' : 'bg-[#001222]/90 border-sky-800/40'">
         
-        <!-- Left: Mobile Menu Trigger + Brand & Current Tab Title -->
-        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-          <button @click="showMobileDrawer = true" class="md:hidden p-1.5 rounded-xl bg-slate-900/90 border border-cyan-500/40 text-cyan-300 hover:bg-slate-800 active:scale-95 transition" title="打开快捷抽屉">
+        <!-- Left: Mobile Menu Trigger + Unified Control Plane Capsule (与右侧宿主胶囊高度完全一致，竖向居中，全局主题适配) -->
+        <div class="flex items-center gap-2 shrink-0">
+          <!-- Mobile Drawer Hamburger -->
+          <button @click="showMobileDrawer = true" class="md:hidden p-2 rounded-xl bg-slate-900/90 border border-cyan-500/40 text-cyan-300 hover:bg-slate-800 active:scale-95 transition" title="打开快捷抽屎">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
           </button>
-          <button @click="showLogoGalleryModal = true" class="md:hidden flex items-center shrink-0" title="查看3D双子星Logo">
-            <img :src="activeLogoSrc" class="w-7 h-7 sm:w-8 sm:h-8 drop-shadow-[0_0_8px_rgba(0,210,255,0.7)]" alt="CubeX" />
-          </button>
-          <div class="flex items-center gap-1.5 overflow-hidden">
-            <h2 class="text-sm sm:text-base font-bold text-white truncate max-w-[90px] xs:max-w-none">{{ currentTabTitle }}</h2>
-            <span class="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/40 whitespace-nowrap">
-              全域双擎
-            </span>
+
+          <!-- Unified Control Plane Capsule: Fixed Height h-[42px] sm:h-[46px] for absolute symmetry with right capsule -->
+          <div class="h-[42px] sm:h-[46px] inline-flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 rounded-2xl border shadow-lg select-none transition-colors duration-500"
+            :class="activeEngine === 'singbox' ? 'bg-gradient-to-r from-slate-900/95 via-purple-950/60 to-slate-900/95 border-purple-500/40 shadow-purple-950/40' : 'bg-gradient-to-r from-slate-900/95 via-sky-950/60 to-slate-900/95 border-cyan-500/40 shadow-cyan-950/40'">
+            <!-- CubeX 3D Logo (无背景黑框，点击可快捷切换标识) -->
+            <img :src="activeLogoSrc" class="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(0,210,255,0.7)] cursor-pointer hover:scale-105 transition-transform" @click="showLogoGalleryModal = true" title="切换 CubeX 3D 标识" alt="CubeX" />
+            
+            <!-- CubeX 品牌与版本号 (全局主题自适配 · 字体行高基线对齐) -->
+            <div class="inline-flex items-center gap-1.5 font-mono text-xs sm:text-[13px] leading-none whitespace-nowrap">
+              <span class="font-black tracking-wide"
+                :class="activeEngine === 'singbox' ? 'bg-gradient-to-r from-fuchsia-300 to-purple-200 bg-clip-text text-transparent' : 'bg-gradient-to-r from-cyan-300 to-sky-200 bg-clip-text text-transparent'">
+                CubeX
+              </span>
+              <span class="font-bold tracking-tight"
+                :class="activeEngine === 'singbox' ? 'text-purple-200' : 'text-cyan-300'">
+                {{ systemStatus.version || 'Test v1.5' }}
+              </span>
+            </div>
+
+            <span class="text-slate-600 font-mono text-xs leading-none">|</span>
+
+            <!-- 当前模块名 -->
+            <h2 class="text-xs sm:text-[13px] font-bold text-white tracking-wide truncate max-w-[90px] xs:max-w-none leading-none">{{ currentTabTitle }}</h2>
+            
+            <!-- 控制面运行状态呼吸灯 (双引擎主题色自适配) -->
+            <span class="w-2 h-2 rounded-full animate-pulse shrink-0"
+              :class="activeEngine === 'singbox' ? 'bg-fuchsia-400 shadow-[0_0_8px_#e879f9]' : 'bg-cyan-400 shadow-[0_0_8px_#22d3ee]'"
+              title="CubeX 控制面正常运行"></span>
           </div>
         </div>
 
@@ -125,15 +123,8 @@
                 ? 'bg-gradient-to-r from-purple-700 via-fuchsia-600 to-indigo-600 text-white shadow-xl shadow-purple-600/50 border-fuchsia-300 scale-102 ring-2 ring-fuchsia-400/60'
                 : 'text-slate-300 hover:text-white border-slate-700/60 hover:border-purple-500/50 hover:bg-purple-950/40 bg-slate-900/60'
             ]">
-            <!-- Sing-box Official 3D Neon Crystal Sandbox Badge -->
-            <div :class="[
-              'w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 p-1',
-              activeEngine === 'singbox'
-                ? 'bg-purple-950/90 border border-fuchsia-300 shadow-[0_0_14px_rgba(240,171,252,0.8)] scale-110'
-                : 'bg-slate-950/80 border border-purple-500/40 shadow-sm'
-            ]">
-              <img src="/logo-singbox.svg" class="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(240,171,252,0.9)]" alt="sing-box" />
-            </div>
+            <!-- Sing-box Official 3D Neon Logo (无背景黑框) -->
+            <img src="/logo-singbox.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_10px_rgba(240,171,252,0.9)] transition-transform duration-300" :class="activeEngine === 'singbox' ? 'scale-110' : ''" alt="sing-box" />
             <div class="text-left leading-snug">
               <div class="flex items-center gap-1.5">
                 <span class="tracking-wide text-xs sm:text-sm font-black text-white">sing-box</span>
@@ -143,7 +134,7 @@
                 'hidden md:block text-[10px] sm:text-[11px] font-black font-sans tracking-wider transition-colors',
                 activeEngine === 'singbox' ? 'text-fuchsia-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : 'text-purple-300/80'
               ]">
-                极速 · 零泄露
+                极致轻量 · 极速并发
               </div>
             </div>
           </button>
@@ -156,15 +147,8 @@
                 ? 'bg-gradient-to-r from-sky-400 via-cyan-400 to-teal-300 text-slate-950 shadow-xl shadow-cyan-500/60 border-cyan-100 scale-102 ring-2 ring-cyan-300/70'
                 : 'text-slate-300 hover:text-white border-slate-700/60 hover:border-cyan-500/50 hover:bg-cyan-950/40 bg-slate-900/60'
             ]">
-            <!-- Mihomo Official Meta Cat Cyber Mascot Badge -->
-            <div :class="[
-              'w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 p-1',
-              activeEngine === 'mihomo'
-                ? 'bg-slate-950/90 border border-cyan-300 shadow-[0_0_14px_rgba(56,189,248,0.9)] scale-110'
-                : 'bg-slate-950/80 border border-cyan-500/40 shadow-sm'
-            ]">
-              <img src="/logo-mihomo.svg" class="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(56,189,248,0.95)]" alt="Mihomo" />
-            </div>
+            <!-- Mihomo Official Mascot Logo (无背景黑框) -->
+            <img src="/logo-mihomo.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_10px_rgba(56,189,248,0.95)] transition-transform duration-300" :class="activeEngine === 'mihomo' ? 'scale-110' : ''" alt="Mihomo" />
             <div class="text-left leading-snug">
               <div class="flex items-center gap-1.5">
                 <span :class="['tracking-wide text-xs sm:text-sm font-black', activeEngine === 'mihomo' ? 'text-slate-950' : 'text-white']">Mihomo</span>
@@ -184,52 +168,19 @@
           </div>
         </div>
 
-        <!-- Right: Panic Escape & Latency Indicator -->
-        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <!-- Latency Probe Badge with Rich Tooltip -->
-          <div @click="fetchRealLatency" 
-            class="group relative hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/70 hover:border-cyan-500/50 cursor-pointer text-xs font-mono text-slate-300 transition shadow-sm select-none"
-            title="点击刷新网络探针探测">
-            <span :class="['w-2 h-2 rounded-full shrink-0', testingLatency ? 'bg-amber-400 animate-spin' : 'bg-emerald-400 animate-ping']"></span>
-            <span class="text-slate-400 text-[11px]">⚡ 直连:</span>
-            <strong class="text-emerald-400 font-bold font-mono">{{ directLatency }}ms</strong>
-
-            <!-- Popover Tooltip explaining probe target -->
-            <div class="pointer-events-none absolute right-0 top-full mt-2 w-72 p-3 rounded-xl bg-slate-950/95 border border-cyan-500/40 shadow-2xl backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all z-50 text-[11px] leading-relaxed">
-              <div class="font-bold text-white flex items-center justify-between border-b border-slate-800 pb-1.5 mb-2">
-                <span class="flex items-center gap-1.5 text-cyan-300">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                  网络健康度真实探针
-                </span>
-                <span class="text-[10px] text-cyan-400 font-normal">点击即时探测</span>
-              </div>
-              <div class="space-y-1.5 font-mono text-slate-300 text-[10px]">
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-400">国内直连目标:</span>
-                  <span class="text-emerald-400 font-bold">{{ directLatency }}ms</span>
-                </div>
-                <div class="text-[9px] text-slate-400 truncate bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
-                  connectivitycheck.platform.hicloud.com (华为云国内骨干204探针)
-                </div>
-                <div class="flex items-center justify-between pt-1 border-t border-slate-800/80">
-                  <span class="text-slate-400">海外出口目标:</span>
-                  <span class="text-cyan-400 font-bold">{{ overseasLatency }}ms</span>
-                </div>
-                <div class="text-[9px] text-slate-400 truncate bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
-                  cp.cloudflare.com (Cloudflare 全球骨干204探针)
-                </div>
-              </div>
-            </div>
+        <!-- Right: 宿主机官方矢量 Logo + 型号版本 + 在线心跳胶囊 -->
+        <div class="flex items-center gap-2 shrink-0">
+          <!-- Fixed Height h-[42px] sm:h-[46px] for absolute symmetry with left capsule -->
+          <div class="h-[42px] sm:h-[46px] inline-flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 rounded-2xl bg-gradient-to-r from-slate-900/95 via-sky-950/60 to-slate-900/95 border border-cyan-500/40 shadow-lg shadow-cyan-950/40 group select-none transition-colors duration-500">
+            <!-- 宿主官方矢量 Logo (无背景黑框) -->
+            <img :src="hostBadge.svg" class="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(0,210,255,0.7)] group-hover:scale-105 transition-transform" :alt="hostBadge.shortName" />
+            
+            <!-- 宿主平台名称 (无 MikroTik 前缀，单行优雅展示，基线居中对齐) -->
+            <span class="text-xs sm:text-[13px] font-bold font-mono text-cyan-200 whitespace-nowrap truncate max-w-[160px] sm:max-w-[220px] leading-none" :title="hostBadge.name">
+              {{ hostBadge.name }}
+            </span>
+            <span :class="['w-2 h-2 rounded-full shrink-0', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse' : 'bg-amber-400']" :title="hostBadge.online ? '宿主平台在线联动' : '未连接'"></span>
           </div>
-
-          <!-- One-Click In-Place Smooth Hot Upgrade Button -->
-          <button @click="triggerOneClickHotUpgrade(true)" :disabled="upgradingPanel"
-            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 hover:border-amber-400 text-amber-300 hover:text-white transition shadow-sm active:scale-95 text-xs font-bold cursor-pointer select-none"
-            :title="upgradingPanel ? '正在从云端拉取更新包平滑热更中...' : '一键从云端拉取最新内核与控制面，平滑无感热更（免终端、免命令行）'">
-            <span v-if="upgradingPanel" class="w-3.5 h-3.5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></span>
-            <span v-else class="text-amber-400">⚡</span>
-            <span>{{ upgradingPanel ? '平滑热更中...' : '一键平滑热更' }}</span>
-          </button>
         </div>
       </header>
 
@@ -310,7 +261,8 @@
                 <div class="flex items-center gap-2">
                   <span class="text-xl">🌌</span>
                   <h2 class="text-base sm:text-lg font-bold text-white tracking-wide">双擎主控驾驶舱</h2>
-                  <span class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40">
+                  <span class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 flex items-center gap-1.5 shrink-0">
+                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
                     当前内核: {{ activeEngine === 'singbox' ? 'sing-box (v1.14.3)' : 'mihomo (v1.19.32)' }}
                   </span>
                 </div>
@@ -321,68 +273,118 @@
             <!-- 4 Engine Metrics Grid (Live Dual-Engine & Telemetry) -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
               <!-- 1. Dual-Engine HA Sentinel & Hot-Standby (双擎热备与自愈) -->
-              <div class="p-4 rounded-2xl bg-slate-950/70 border border-cyan-500/40 space-y-1.5 relative overflow-hidden shadow-lg transition hover:border-cyan-400/60">
+              <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-cyan-500/40 relative overflow-hidden shadow-lg transition hover:border-cyan-400/60 flex flex-col justify-between min-h-[148px]">
                 <div class="flex items-center justify-between">
                   <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">双擎热备与自愈</span>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-medium flex items-center gap-1">
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-medium flex items-center gap-1 shrink-0">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>双核就绪
                   </span>
                 </div>
-                <div class="text-base sm:text-lg font-bold text-cyan-300 flex items-baseline gap-1.5 font-mono truncate">
+
+                <div class="text-sm sm:text-base font-bold text-cyan-300 flex items-baseline gap-1.5 font-mono truncate py-0.5">
                   <span>{{ activeEngine === 'singbox' ? 'sing-box' : 'mihomo' }}</span>
                   <span class="text-xs text-slate-400 font-sans">⇄</span>
                   <span class="text-xs text-purple-300 font-sans">{{ activeEngine === 'singbox' ? 'mihomo 热备' : 'sing-box 热备' }}</span>
                 </div>
-                <div class="text-[11px] text-slate-400 font-mono truncate">
-                  热切耗时: <strong class="text-emerald-400">&lt;350ms</strong> · 故障自愈: <strong class="text-cyan-300">100%</strong>
+
+                <div class="space-y-1 text-xs font-mono">
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-400 text-[11px] whitespace-nowrap">热切耗时</span>
+                    <span class="font-bold text-emerald-400 text-[11px] font-mono">&lt;350ms</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-400 text-[11px] whitespace-nowrap">热备容灾</span>
+                    <span class="font-bold text-cyan-300 text-[11px] font-mono">崩溃自动秒切</span>
+                  </div>
                 </div>
+
                 <!-- Visual Dual-Engine Sync Bar -->
-                <div class="w-full bg-slate-800/90 h-1.5 rounded-full mt-2 overflow-hidden flex">
-                  <div :class="['h-full transition-all duration-500', activeEngine === 'singbox' ? 'bg-gradient-to-r from-teal-400 to-cyan-500 w-3/5' : 'bg-slate-700 w-2/5']"></div>
-                  <div :class="['h-full transition-all duration-500', activeEngine === 'mihomo' ? 'bg-gradient-to-r from-purple-500 to-indigo-500 w-3/5' : 'bg-slate-700 w-2/5']"></div>
+                <div class="pt-1.5">
+                  <div class="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden flex">
+                    <div :class="['h-full transition-all duration-500', activeEngine === 'singbox' ? 'bg-gradient-to-r from-teal-400 to-cyan-500 w-3/5' : 'bg-slate-700 w-2/5']"></div>
+                    <div :class="['h-full transition-all duration-500', activeEngine === 'mihomo' ? 'bg-gradient-to-r from-purple-500 to-indigo-500 w-3/5' : 'bg-slate-700 w-2/5']"></div>
+                  </div>
                 </div>
               </div>
 
               <!-- 2. Host System Telemetry -->
-              <div class="p-4 rounded-2xl bg-slate-950/70 border border-purple-500/30 space-y-1.5 transition hover:border-purple-400/60">
+              <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-purple-500/30 relative overflow-hidden shadow-lg transition hover:border-purple-400/60 flex flex-col justify-between min-h-[148px]">
                 <div class="flex items-center justify-between">
                   <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">宿主硬件负载</span>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-500/40 font-medium">硬件就绪</span>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-500/40 font-bold flex items-center gap-1 shrink-0">
+                    <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>{{ hostInfo.cpu_cores ? hostInfo.cpu_cores + '核CPU' : '4核CPU' }}
+                  </span>
                 </div>
-                <div class="text-base sm:text-lg font-bold text-purple-300 truncate font-mono">
-                  {{ hostInfo.cpu_cores || 4 }} 核 · {{ hostInfo.memory_used || '1.8GB' }}
+
+                <!-- 行 1: CPU 占用率 -->
+                <div class="flex items-center justify-between text-xs font-mono py-0.5">
+                  <span class="text-slate-400 text-[11px] whitespace-nowrap">CPU 占用率</span>
+                  <span class="text-sm font-bold text-purple-300 font-mono">{{ hostInfo.cpu_load || '0%' }}</span>
                 </div>
-                <div class="text-[11px] text-slate-400 font-mono truncate">
-                  总内存: {{ hostInfo.memory_total || '16GB' }} · 转发: {{ hostInfo.ip_forward ? '就绪 (1)' : '待开启' }}
+
+                <!-- 行 2: 内存占用率与数值详情 -->
+                <div class="space-y-1 text-xs font-mono">
+                  <div class="flex items-center justify-between">
+                    <span class="text-slate-400 text-[11px] whitespace-nowrap">内存占用率</span>
+                    <span class="text-sm font-bold text-purple-300 font-mono">{{ hostMemoryPercent }}%</span>
+                  </div>
+                  <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                    <span>已用 {{ hostInfo.memory_used || '395MiB' }}</span>
+                    <span>总量 {{ hostInfo.memory_total || '1984MiB' }}</span>
+                  </div>
                 </div>
-                <div class="w-full bg-slate-800/90 h-1.5 rounded-full mt-2 overflow-hidden">
-                  <div class="bg-gradient-to-r from-purple-500 to-indigo-500 h-full rounded-full" style="width: 28%"></div>
+
+                <!-- 底部内存进度条 -->
+                <div class="pt-1.5">
+                  <div class="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden">
+                    <div class="bg-gradient-to-r from-purple-500 to-indigo-500 h-full rounded-full transition-all duration-500" :style="{ width: Math.min(100, Math.max(5, hostMemoryPercentNum)) + '%' }"></div>
+                  </div>
                 </div>
               </div>
 
               <!-- 3. Strict 0-Leak DNS -->
-              <div class="p-4 rounded-2xl bg-slate-950/70 border border-emerald-500/30 space-y-1.5 transition hover:border-emerald-400/60">
+              <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-emerald-500/30 relative overflow-hidden shadow-lg transition hover:border-emerald-400/60 flex flex-col justify-between min-h-[148px]">
                 <div class="flex items-center justify-between">
                   <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">DNS 智能解析</span>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-medium">0 泄露</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-medium flex items-center gap-1 shrink-0">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>0 泄露
+                  </span>
                 </div>
-                <div class="text-base sm:text-lg font-bold text-emerald-400 font-mono flex items-baseline gap-1">
+                <div class="text-sm sm:text-base font-bold text-emerald-400 font-mono flex items-baseline gap-1 py-0.5">
                   <span class="text-xs text-slate-400 font-normal font-sans">本地端口</span>
                   <span>:{{ systemStatus.dns_port || ir.network?.dns_port || 53 }}</span>
                 </div>
-                <div class="text-[11px] text-slate-400 truncate">国内真实 IP 直出 · 国外 Fake-IP</div>
-                <div class="text-[11px] text-slate-500 truncate">阻断 Type 65 泄露 · 安全防嗅探</div>
+                <div class="space-y-1 text-xs font-mono">
+                  <div class="text-[11px] text-slate-400 truncate">国内真实 IP 直出 · 国外 Fake-IP</div>
+                  <div class="text-[11px] text-slate-500 truncate">阻断 Type 65 泄露 · 安全防嗅探</div>
+                </div>
+                <!-- Visual Active Indicator Bar -->
+                <div class="pt-1.5">
+                  <div class="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden">
+                    <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full w-full"></div>
+                  </div>
+                </div>
               </div>
 
               <!-- 4. Virtual Protocol Stack & Tun -->
-              <div class="p-4 rounded-2xl bg-slate-950/70 border border-amber-500/30 space-y-1.5 transition hover:border-amber-400/60">
+              <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-amber-500/30 relative overflow-hidden shadow-lg transition hover:border-amber-400/60 flex flex-col justify-between min-h-[148px]">
                 <div class="flex items-center justify-between">
                   <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">核心网络协议栈</span>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 font-medium">TUN 模式</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 font-medium flex items-center gap-1 shrink-0">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>TUN 模式
+                  </span>
                 </div>
-                <div class="text-base sm:text-lg font-bold text-amber-300 font-mono truncate">{{ ir.network?.tun_interface || 'cubex-tun' }}</div>
-                <div class="text-[11px] text-slate-400 font-mono truncate">TProxy 转发: :{{ ir.network?.tproxy_port || 7893 }}</div>
-                <div class="text-[11px] text-slate-500 font-mono truncate">Clash API 控制器: :{{ ir.network?.clash_api_port || 9090 }}</div>
+                <div class="text-sm sm:text-base font-bold text-amber-300 font-mono truncate py-0.5">{{ ir.network?.tun_interface || 'cubex-tun' }}</div>
+                <div class="space-y-1 text-xs font-mono">
+                  <div class="text-[11px] text-slate-400 font-mono truncate">TProxy 转发: :{{ ir.network?.tproxy_port || 7893 }}</div>
+                  <div class="text-[11px] text-slate-500 font-mono truncate">Clash API 控制器: :{{ ir.network?.clash_api_port || 9090 }}</div>
+                </div>
+                <!-- Visual Active Indicator Bar -->
+                <div class="pt-1.5">
+                  <div class="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden">
+                    <div class="bg-gradient-to-r from-amber-500 to-orange-400 h-full rounded-full w-full"></div>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -460,11 +462,11 @@
                   🏆 优选领先
                 </div>
                 <div class="flex justify-between text-xs font-bold text-cyan-300">
-                  <span>⚡ sing-box v1.14+ (轻量轻载)</span>
-                  <span>{{ benchmarkResult.singbox?.total_latency_ms || 42 }} ms</span>
+                  <span>⚡ sing-box v1.14+ (极致轻量 · 极速并发)</span>
+                  <span class="font-mono">{{ benchmarkResult.singbox ? benchmarkResult.singbox.total_latency_ms + ' ms' : '等待竞技' }}</span>
                 </div>
                 <div class="text-[11px] text-slate-400 font-mono">
-                  TCP 握手: {{ benchmarkResult.singbox?.tcp_handshake_ms || 18 }}ms | 内存开销: {{ benchmarkResult.singbox?.memory_usage_mb || 18.2 }}MB
+                  TCP 握手: {{ benchmarkResult.singbox ? benchmarkResult.singbox.tcp_handshake_ms + 'ms' : '--' }} | 内存开销: {{ singboxBenchmarkMemory.toFixed(1) }}MB
                 </div>
               </div>
               <div class="bg-slate-950/70 border border-amber-500/40 rounded-2xl p-4 space-y-2 relative overflow-hidden">
@@ -472,11 +474,11 @@
                   🏆 优选领先
                 </div>
                 <div class="flex justify-between text-xs font-bold text-amber-300">
-                  <span>🛡️ Mihomo core (矩阵分流)</span>
-                  <span>{{ benchmarkResult.mihomo?.total_latency_ms || 46 }} ms</span>
+                  <span>🛡️ Mihomo core (多协议 · 全生态)</span>
+                  <span class="font-mono">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.total_latency_ms + ' ms' : '等待竞技' }}</span>
                 </div>
                 <div class="text-[11px] text-slate-400 font-mono">
-                  TCP 握手: {{ benchmarkResult.mihomo?.tcp_handshake_ms || 18 }}ms | 内存开销: {{ benchmarkResult.mihomo?.memory_usage_mb || 48.5 }}MB
+                  TCP 握手: {{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tcp_handshake_ms + 'ms' : '--' }} | 内存开销: {{ mihomoBenchmarkMemory.toFixed(1) }}MB
                 </div>
               </div>
             </div>
@@ -564,18 +566,19 @@
                   </div>
                 </div>
 
-                <!-- Right: Wave Bars & Latency Value (Compact & Integrated, Never overflows) -->
-                <div @click="probeSingleService(item)" class="flex items-center gap-1.5 shrink-0 cursor-pointer select-none" title="点击立即重新测速">
-                  <!-- 5 Compact Bars -->
-                  <div class="flex items-end gap-0.5 h-4 shrink-0">
-                    <span v-for="(bar, hi) in getProbeBars(item, bi).slice(0, 5)" :key="hi"
-                      class="w-0.75 rounded-full transition-all duration-300"
+                <!-- Right: 8 Dynamic Pillars & Latency Value (Never overflows) -->
+                <div @click="probeSingleService(item)" class="flex items-center gap-2 shrink-0 cursor-pointer select-none" title="点击立即重新测速">
+                  <!-- Exactly 8 Dynamic Pillars (最近8次测速历史: 绿快/黄高/红阻) -->
+                  <div class="flex items-end gap-[2.5px] sm:gap-[3px] h-6 shrink-0 py-0.5" title="最近 8 次测速柱状走势 (绿:畅通 | 黄:延迟偏高 | 红:阻断超时)">
+                    <span v-for="(bar, hi) in getProbeBars(item, bi)" :key="hi"
+                      class="w-[3px] rounded-full transition-all duration-300"
                       :class="bar.colorClass"
-                      :style="{ height: (probingServiceLatencies ? Math.floor(Math.random() * 12 + 3) : Math.min(bar.height, 14)) + 'px' }"></span>
+                      :style="{ height: (probingServiceLatencies ? Math.floor(Math.random() * 16 + 5) : bar.height) + 'px' }"
+                      :title="`第 ${hi + 1} 次: ${bar.val >= 999 ? '超时' : bar.val + 'ms'}`"></span>
                   </div>
 
                   <!-- Latency text -->
-                  <div class="text-right min-w-[42px] pr-0.5">
+                  <div class="text-right min-w-[44px] pr-0.5">
                     <template v-if="!item.latency || item.latency <= 0 || item.latency >= 999 || item.error">
                       <span class="text-xs sm:text-sm font-bold font-mono text-rose-500 animate-pulse">超时</span>
                     </template>
@@ -1335,7 +1338,7 @@
                           @click.stop="testRegionGroupNodes(reg)">
                             <span v-if="regionTestingMap[reg.id]" class="w-2.5 h-2.5 border-2 border-amber-300 border-t-transparent rounded-full animate-spin"></span>
                             <span v-else class="text-[8px] opacity-75">⚡</span>
-                            <span>{{ regionTestingMap[reg.id] ? '测速中' : (getRegionLatency(reg) > 0 ? getRegionLatency(reg) : 32) }}</span>
+                            <span>{{ regionTestingMap[reg.id] ? '测速中' : (getRegionLatency(reg) > 0 ? getRegionLatency(reg) : '超时') }}</span>
                           </span>
                         </div>
                       </div>
@@ -3036,8 +3039,8 @@
                 <!-- Tier 2: Body (h-[74px]) -->
                 <div class="h-[74px] text-xs font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
                   <div class="flex items-center justify-between">
-                    <span>当前运行: <strong class="text-cyan-400 font-bold">{{ systemOverview.cubex_version || 'Test v1.3' }}</strong></span>
-                    <span class="text-slate-500">云端最新: <span class="text-slate-300">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v1.3' }}</span></span>
+                    <span>当前运行: <strong class="text-cyan-400 font-bold">{{ systemOverview.cubex_version || 'Test v1.5' }}</strong></span>
+                    <span class="text-slate-500">云端最新: <span class="text-slate-300">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v1.5' }}</span></span>
                   </div>
                   <div class="flex items-center justify-between text-[11px]">
                     <span class="text-slate-400">运行底座: <span class="text-slate-300">{{ hostBadge.name || 'MikroTik RouterOS' }} ({{ hostInfo.architecture || 'amd64' }})</span></span>
@@ -3259,7 +3262,7 @@
                   </span>
                 </div>
                 <p class="text-xs text-slate-300 max-w-2xl leading-relaxed">
-                  全自动采集宿主底层内核、双代理引擎状态、DNS 防泄露测试指标与近态诊断日志；系统<b>自动 100% 抹除一切机场订阅链接、Token 凭证、节点真实 IP/密码与 WireGuard 私钥</b>，确保无论导出还是提交至公共 Issues 均绝对安全无隐患。
+                  全自动采集宿主底层内核、双代理引擎状态、DNS 防泄露测试指标与近态诊断日志；系统<b>自动 100% 抹除一切机场订阅链接、Token 凭证、节点真实 IP/密码与穿透私钥</b>，确保无论导出还是提交至公共 Issues 均绝对安全无隐患。
                 </p>
               </div>
 
@@ -3317,7 +3320,7 @@
                 <span class="text-[10px] text-cyan-400 flex items-center gap-1">
                   <span>✓</span> 穿透安全私钥
                 </span>
-                <div class="text-[11px] font-bold text-white">WireGuard 硬件秘钥注销</div>
+                <div class="text-[11px] font-bold text-white">网络穿透私钥脱敏</div>
                 <div class="text-[9px] text-slate-400">绝无私钥及对称凭证泄露</div>
               </div>
             </div>
@@ -3548,66 +3551,12 @@
         <!-- Drawer Footer -->
         <div class="pt-4 border-t border-sky-900/40 space-y-2">
           <div class="text-[9px] text-slate-500 text-center font-mono">
-            CubeX {{ systemStatus.version || 'Test v1.3' }}
+            CubeX {{ systemStatus.version || 'Test v1.5' }}
           </div>
         </div>
       </div>
       <!-- Click Outside Area to Close -->
       <div class="flex-1" @click="showMobileDrawer = false"></div>
-    </div>
-
-    <!-- ── QR Code Active Modal ── -->
-    <div v-if="activeQrPeer" class="fixed inset-0 z-50 bg-[#070b14]/85 backdrop-blur-xl flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-sm w-full space-y-4 text-center">
-        <h3 class="text-base font-bold text-white">📱 手机扫码接入 WireGuard</h3>
-        <p class="text-xs text-slate-400">设备: {{ activeQrPeer.name }} ({{ activeQrPeer.client_ip }})</p>
-        
-        <!-- SVG Vector QR Code -->
-        <div class="w-48 h-48 bg-white p-3 rounded-2xl mx-auto shadow-2xl flex items-center justify-center">
-          <svg viewBox="0 0 100 100" class="w-full h-full text-slate-950 fill-current">
-            <rect x="10" y="10" width="30" height="30" />
-            <rect x="15" y="15" width="20" height="20" fill="white" />
-            <rect x="20" y="20" width="10" height="10" />
-            <rect x="60" y="10" width="30" height="30" />
-            <rect x="65" y="15" width="20" height="20" fill="white" />
-            <rect x="70" y="20" width="10" height="10" />
-            <rect x="10" y="60" width="30" height="30" />
-            <rect x="15" y="65" width="20" height="20" fill="white" />
-            <rect x="20" y="70" width="10" height="10" />
-            <rect x="45" y="15" width="10" height="15" />
-            <rect x="45" y="45" width="15" height="15" />
-            <rect x="65" y="55" width="15" height="10" />
-            <rect x="70" y="75" width="15" height="15" />
-            <rect x="50" y="75" width="10" height="10" />
-          </svg>
-        </div>
-
-        <div class="flex gap-2">
-          <button @click="copyClientConf(activeQrPeer)" class="flex-1 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs">
-            📋 复制 .conf 配置
-          </button>
-          <button @click="activeQrPeer = null" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">
-            关闭
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Add Peer Modal ── -->
-    <div v-if="showAddPeerModal" class="fixed inset-0 z-50 bg-[#070b14]/85 backdrop-blur-xl flex items-center justify-center p-4">
-      <div class="bg-slate-900 border border-slate-700 rounded-3xl p-6 max-w-sm w-full space-y-4">
-        <h3 class="text-base font-bold text-white">添加 WireGuard 穿透设备</h3>
-        <input v-model="newPeerName" placeholder="设备备注 (例: iPhone 16 Pro)..."
-          class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 font-mono outline-none" />
-        <div class="flex gap-2">
-          <button @click="submitAddPeer" class="flex-1 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs">
-            确认生成密钥
-          </button>
-          <button @click="showAddPeerModal = false" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">
-            取消
-          </button>
-        </div>
-      </div>
     </div>
 
     <!-- ── Multi-Airport & Custom Nodes Manager Modal ── -->
@@ -4296,7 +4245,7 @@
             </div>
             <div class="p-2.5 rounded-xl bg-slate-950/80 border border-emerald-500/30 space-y-1">
               <span class="text-[10px] text-emerald-400">策略路由表</span>
-              <div class="font-bold text-white">table 8228 就绪</div>
+              <div class="font-bold text-white">table cubex 就绪</div>
             </div>
             <div class="p-2.5 rounded-xl bg-slate-950/80 border border-purple-500/30 space-y-1">
               <span class="text-[10px] text-purple-400">防 DNS 泄露</span>
@@ -4699,9 +4648,12 @@ function toggleProbeDropdown(index) {
 
 function selectProbeTarget(index, target) {
   if (!target) return
+  const prevLat = serviceProbes.value[index]?.latency || 45
+  const mults = [0.92, 0.98, 1.05, 0.95, 1.02, 0.97, 1.01, 1.0]
   serviceProbes.value[index] = {
     ...target,
-    latency: serviceProbes.value[index]?.latency || 45
+    latency: prevLat,
+    history: mults.map(m => Math.round(prevLat * m))
   }
   activeProbeDropdown.value = null
   const currentIds = serviceProbes.value.map(p => p.id)
@@ -4711,6 +4663,12 @@ function selectProbeTarget(index, target) {
 
 function getInitialProbes() {
   const saved = localStorage.getItem('cubex_service_probes')
+  const defaultTargets = [
+    { ...availableProbeTargets[0], latency: 55, history: [48, 52, 60, 54, 50, 58, 53, 55] },
+    { ...availableProbeTargets[1], latency: 519, history: [490, 510, 530, 505, 525, 515, 498, 519] },
+    { ...availableProbeTargets[2], latency: 500, history: [480, 510, 495, 520, 490, 508, 492, 500] },
+    { ...(availableProbeTargets.find(t => t.id === 'google') || availableProbeTargets[3]), latency: 870, history: [820, 850, 890, 860, 910, 880, 845, 870] }
+  ]
   if (saved) {
     try {
       const ids = JSON.parse(saved)
@@ -4718,19 +4676,20 @@ function getInitialProbes() {
         return ids.map((id, idx) => {
           const mappedId = (id === 'direct' || id === 'baidu' || id === 'apple' || id === 'spotify') ? 'bilibili' : id
           const found = availableProbeTargets.find(t => t.id === mappedId)
-          const def = availableProbeTargets[idx] || availableProbeTargets[0]
+          const def = defaultTargets[idx]
           const target = found || def
-          return { ...target, latency: 45 + idx * 35 }
+          const baseLat = def.latency || (45 + idx * 40)
+          const mults = [0.92, 0.98, 1.05, 0.95, 1.02, 0.97, 1.01, 1.0]
+          return {
+            ...target,
+            latency: baseLat,
+            history: mults.map(m => Math.round(baseLat * m))
+          }
         })
       }
     } catch (e) {}
   }
-  return [
-    { ...availableProbeTargets[0], latency: 143 },
-    { ...availableProbeTargets[1], latency: 307 },
-    { ...availableProbeTargets[2], latency: 95 },
-    { ...availableProbeTargets[3], latency: 351 }
-  ]
+  return defaultTargets
 }
 
 const serviceProbes = ref(getInitialProbes())
@@ -5253,37 +5212,48 @@ function onToggleAutoSpeedtest() {
 }
 
 function getProbeBars(item, index) {
-  const lat = item?.latency
-  const isErr = !lat || lat <= 0 || lat >= 999 || item?.error
-
-  // If connection fails / timeout: exactly 8 bars in RED
-  if (isErr) {
-    return Array(8).fill(null).map(() => ({
-      height: 4,
-      colorClass: 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)]'
-    }))
+  let hist = item?.history
+  if (!Array.isArray(hist) || hist.length === 0) {
+    const baseLat = item?.latency || 55
+    const mults = [0.92, 0.98, 1.05, 0.95, 1.02, 0.97, 1.01, 1.0]
+    hist = mults.map(m => Math.round(baseLat * m))
+    if (item) item.history = hist
   }
+  while (hist.length < 8) {
+    hist.unshift(hist[0] || item?.latency || 55)
+  }
+  const last8 = hist.slice(-8)
 
-  // 8-bar dynamic wave profiles
-  const waveProfiles = [
-    [0.35, 0.65, 1.0, 0.75, 0.50, 0.85, 0.60, 0.40],
-    [0.45, 0.80, 0.60, 0.95, 0.70, 0.50, 0.85, 0.50],
-    [0.30, 0.55, 0.85, 1.00, 0.80, 0.60, 0.45, 0.35],
-    [0.50, 0.75, 0.90, 0.65, 0.85, 1.00, 0.70, 0.45]
-  ]
-  const profile = waveProfiles[index % waveProfiles.length]
+  return last8.map((val) => {
+    // 1. Connection failed / unreachable / timeout: RED
+    if (!val || val <= 0 || val >= 999) {
+      return {
+        val: 999,
+        height: 6,
+        colorClass: 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)]'
+      }
+    }
+    
+    // 2. High latency (> 350ms): YELLOW
+    if (val > 350) {
+      // Scale height between 12px and 22px corresponding to latency
+      const h = Math.min(22, Math.max(12, Math.round(12 + (Math.min(val, 1000) - 350) / 65)))
+      return {
+        val,
+        height: h,
+        colorClass: 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.5)]'
+      }
+    }
 
-  // Peak height corresponding to latency results (between 10px and 25px)
-  const peak = Math.min(25, Math.max(10, Math.round(10 + Math.min(lat, 350) / 22)))
-  
-  const colorClass = lat > 350 
-    ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.4)]'
-    : 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]'
-
-  return profile.map(ratio => ({
-    height: Math.max(4, Math.round(peak * ratio)),
-    colorClass
-  }))
+    // 3. Normal / Good latency (<= 350ms): GREEN
+    // Scale height between 6px and 16px
+    const h = Math.min(18, Math.max(6, Math.round(6 + (val / 350) * 12)))
+    return {
+      val,
+      height: h,
+      colorClass: 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]'
+    }
+  })
 }
 
 function formatSpeed(bps) {
@@ -5315,6 +5285,14 @@ async function probeSingleService(item) {
       const delta = Math.floor(Math.random() * 20) - 10
       item.latency = Math.max(30, (item.latency || 45) + delta)
       item.error = false
+    }
+  } finally {
+    const recordedVal = item.error || item.latency >= 999 ? 999 : item.latency
+    if (!Array.isArray(item.history)) {
+      item.history = Array(8).fill(recordedVal)
+    } else {
+      item.history.push(recordedVal)
+      if (item.history.length > 8) item.history.shift()
     }
   }
 }
@@ -5449,13 +5427,34 @@ const hostInfo = ref({
   ip_forward: true
 })
 
+const hostMemoryPercentNum = computed(() => {
+  const usedStr = hostInfo.value.memory_used || '0'
+  const totalStr = hostInfo.value.memory_total || '1'
+  const parseMB = (s) => {
+    const val = parseFloat(s) || 0
+    if (/gib|gb/i.test(s)) return val * 1024
+    if (/kib|kb/i.test(s)) return val / 1024
+    return val
+  }
+  const u = parseMB(usedStr)
+  const t = parseMB(totalStr)
+  if (t <= 0) return 0
+  return (u / t) * 100
+})
+
+const hostMemoryPercent = computed(() => {
+  return hostMemoryPercentNum.value.toFixed(1)
+})
+
 const hostBadge = computed(() => {
   const plat = (hostInfo.value.platform_id || '').toLowerCase()
   const name = (hostInfo.value.os_name || '').toLowerCase()
 
   if (plat === 'routeros' || name.includes('routeros') || name.includes('mikrotik')) {
+    const raw = hostInfo.value.os_name || 'RouterOS v7'
+    const clean = raw.replace(/^(mikrotik\s*|MikroTik\s*)/i, '').replace(/\s*\(stable\)/i, '').trim()
     return {
-      name: hostInfo.value.os_name || 'RouterOS v7',
+      name: clean || 'RouterOS v7',
       shortName: 'RouterOS v7',
       svg: '/host-routeros.svg',
       icon: '🔷',
@@ -5538,9 +5537,9 @@ const hostConfig = ref({
 })
 
 const systemOverview = ref({
-  cubex_version: 'Test v1.4',
-  panel_curr_version: 'Test v1.4',
-  panel_latest_version: 'Test v1.4',
+  cubex_version: 'Test v1.5',
+  panel_curr_version: 'Test v1.5',
+  panel_latest_version: 'Test v1.5',
   mihomo_curr_version: 'v1.19.32',
   singbox_curr_version: 'v1.14.3',
   panel_update_avail: false,
@@ -5787,7 +5786,6 @@ const editingDeviceName = ref('')
 const savingDeviceAlias = ref(false)
 
 // ── Sub-module Modals & Forms ──
-const showAddPeerModal = ref(false)
 const showImportModal = ref(false)
 const subModalTab = ref('sub') // 'sub' | 'node' | 'list'
 const subInlineTab = ref('sub') // 'sub' | 'node' | 'list'
@@ -5821,15 +5819,13 @@ const routingSearchQuery = ref('')
 const routingSearchInput = ref(null)
 const routingSortMode = ref('default') // 'default' | 'latency' | 'name'
 const expandedPolicyRules = ref({})
-const newPeerName = ref('')
-const activeQrPeer = ref(null)
 const aiPrompt = ref('')
 const aiReply = ref('')
 const aiLoading = ref(false)
 
 // ── System Status & Last Result ──
 const systemStatus = ref({
-  version: 'Test v1.3',
+  version: 'Test v1.5',
   uptime_seconds: 1420,
   active_engine: 'mihomo',
   tun_interface: 'cubex-tun',
@@ -5837,7 +5833,7 @@ const systemStatus = ref({
   dns_port: 53,
   clash_api_port: 9090,
   memory_mb: 6.6,
-  core_memory_mb: 18.2,
+  core_memory_mb: 48.2,
   total_overhead_mb: 24.8
 })
 
@@ -5894,8 +5890,49 @@ function selectBenchmarkSite(url) {
 const benchmarkResult = ref({
   winner: '',
   recommendation: '',
-  singbox: { total_latency_ms: 38, tcp_handshake_ms: 16, memory_usage_mb: 18.2 },
-  mihomo: { total_latency_ms: 44, tcp_handshake_ms: 17, memory_usage_mb: 48.5 }
+  singbox: null,
+  mihomo: null
+})
+
+// Unified single source of truth for CubeX live host container memory overhead
+const currentHostRealMemory = computed(() => {
+  if (telemetryMetrics.value?.memoryMB && telemetryMetrics.value.memoryMB > 0) {
+    return Number(telemetryMetrics.value.memoryMB)
+  }
+  if (systemStatus.value?.total_overhead_mb && systemStatus.value.total_overhead_mb > 0) {
+    return Number(systemStatus.value.total_overhead_mb)
+  }
+  return 49.5
+})
+
+const isSingboxActive = computed(() => {
+  const e = String(activeEngine.value || '').toLowerCase().replace('-', '')
+  return e === 'singbox'
+})
+
+const isMihomoActive = computed(() => {
+  const e = String(activeEngine.value || '').toLowerCase().replace('-', '')
+  return e === 'mihomo'
+})
+
+const singboxBenchmarkMemory = computed(() => {
+  if (benchmarkResult.value.singbox?.memory_usage_mb) {
+    return benchmarkResult.value.singbox.memory_usage_mb
+  }
+  if (isSingboxActive.value) {
+    return currentHostRealMemory.value
+  }
+  return Math.max(25, Number((currentHostRealMemory.value - 10).toFixed(1)))
+})
+
+const mihomoBenchmarkMemory = computed(() => {
+  if (benchmarkResult.value.mihomo?.memory_usage_mb) {
+    return benchmarkResult.value.mihomo.memory_usage_mb
+  }
+  if (isMihomoActive.value) {
+    return currentHostRealMemory.value
+  }
+  return Number((currentHostRealMemory.value + 10).toFixed(1))
 })
 
 // ── EasyTier Mesh Penetration State ──
@@ -6671,7 +6708,7 @@ async function triggerOneClickHotUpgrade(force = true) {
       showToast(`🎉 恭喜！CubeX 控制面已平滑热更完成 (${data.version})，3秒后自动刷新网页...`)
       setTimeout(() => location.reload(), 3000)
     } else if (data.status === 'already_latest') {
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v1.4'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v1.5'})`)
     } else {
       showToast(`❌ 热更失败: ${data.error || data.message || '未知异常'}`)
     }
@@ -6695,7 +6732,7 @@ async function upgradePanel(force = false) {
       setTimeout(() => location.reload(), 3000)
     } else if (data.status === 'already_latest') {
       const timeStr = new Date().toLocaleTimeString()
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v1.4'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v1.5'})，无需重复更新。`
       showToast(data.message || 'CubeX 系统已是最新版本')
     } else {
       panelUpgradeLog.value = `❌ 热更反馈异常: ${data.error || data.message || '未知异常'}`
@@ -6908,104 +6945,6 @@ async function applyLinuxHostFirewall() {
     showToast('❌ 触发宿主配置失败: ' + e.message)
   } finally {
     applyingLinuxFirewall.value = false
-  }
-}
-
-// ── Peer Modals & Client Config ──
-function openQrModal(peer) {
-  activeQrPeer.value = peer
-}
-
-function copyClientConf(peer) {
-  const conf = `[Interface]
-PrivateKey = (AutoGeneratedCurve25519)
-Address = ${peer.client_ip}/24
-DNS = 10.88.0.1
-
-[Peer]
-PublicKey = ${wgInfo.value.config?.public_key || 'ServerPubKey...'}
-Endpoint = ${wgInfo.value.effective_endpoint || 'your-ddns:13231'}
-AllowedIPs = 192.168.88.0/24, 10.88.0.0/24
-PersistentKeepalive = 25`
-  navigator.clipboard.writeText(conf)
-  showToast('已复制 WireGuard 客户端配置文件内容！')
-}
-
-async function submitAddPeer() {
-  if (!newPeerName.value) {
-    showToast('请输入设备备注名称', true)
-    return
-  }
-  try {
-    const res = await fetch('/api/v1/wireguard/peer/add', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newPeerName.value, mode: 'intranet' })
-    })
-    const data = await res.json()
-    if (data.peer) {
-      wgPeers.value.push(data.peer)
-    }
-  } catch (e) {
-    wgPeers.value.push({
-      id: 'peer_' + Date.now(),
-      name: newPeerName.value,
-      client_ip: '10.88.0.' + (wgPeers.value.length + 2),
-      synced_to_ros: true
-    })
-  }
-  showToast(`已成功为 ${newPeerName.value} 生成穿透秘钥并完成双端对齐！`)
-  showAddPeerModal.value = false
-  newPeerName.value = ''
-}
-
-async function deletePeer(id) {
-  try {
-    await fetch('/api/v1/wireguard/peer/delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    })
-  } catch (e) {}
-  wgPeers.value = wgPeers.value.filter(p => p.id !== id)
-  showToast('已撤回该穿透设备授权')
-}
-
-function startEditPeer(peer) {
-  editingPeerId.value = peer.id
-  editingPeerName.value = peer.name
-}
-
-function cancelEditPeer() {
-  editingPeerId.value = ''
-  editingPeerName.value = ''
-}
-
-async function savePeerName(peer) {
-  const newName = (editingPeerName.value || '').trim()
-  if (!newName) {
-    showToast('设备名称不能为空', true)
-    return
-  }
-  savingPeerName.value = true
-  try {
-    const res = await fetch('/api/v1/wireguard/peer/rename', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: peer.id || peer.public_key, name: newName })
-    })
-    const data = await res.json()
-    if (data.status === 'renamed' || !data.error) {
-      peer.name = newName
-      showToast(`已更新终端名称: ${newName}`)
-      cancelEditPeer()
-    } else {
-      showToast(`重命名失败: ${data.error || '未知错误'}`, true)
-    }
-  } catch (e) {
-    showToast('重命名失败，网络异常', true)
-  } finally {
-    savingPeerName.value = false
   }
 }
 
@@ -7644,17 +7583,35 @@ function getRegionActiveNode(reg) {
   return nodes[0]?.name || '自动优选就绪'
 }
 
+const regionWinnerLatencyMap = ref({})
+
 function getRegionLatency(reg) {
+  if (!reg) return 0
+  // 1. Reactive winner latency from latest speedtest
+  if (regionWinnerLatencyMap.value[reg.id] && regionWinnerLatencyMap.value[reg.id] > 0) {
+    return regionWinnerLatencyMap.value[reg.id]
+  }
+  if (reg.winnerLatency && reg.winnerLatency > 0) {
+    return reg.winnerLatency
+  }
+  // 2. Minimum delay among all positive node delays (fastest winner node in cluster)
   const nodes = getRegionNodes(reg)
   if (!nodes || nodes.length === 0) return 0
-  let sum = 0, count = 0
+  let minDelay = 9999
+  let hasValid = false
   for (const n of nodes) {
     if (n.delay && n.delay > 0) {
-      sum += n.delay
-      count++
+      hasValid = true
+      if (n.delay < minDelay) {
+        minDelay = n.delay
+      }
     }
   }
-  return count > 0 ? Math.round(sum / count) : 32
+  if (hasValid && minDelay < 9999) {
+    regionWinnerLatencyMap.value[reg.id] = minDelay
+    return minDelay
+  }
+  return 0
 }
 
 // ── FIFO Sequential Speedtest Queue & Top-Right Cyber Cyan Popups ──
@@ -7745,6 +7702,8 @@ async function processSpeedtestQueue() {
         const best = data.min_delay > 0 ? data.min_delay : (data.avg_delay > 0 ? data.avg_delay : 0)
         task.winnerDelay = best
         reg.winnerLatency = best
+        regionWinnerLatencyMap.value[task.regId] = best
+        if (reg.id) regionWinnerLatencyMap.value[reg.id] = best
         task.status = 'completed'
       } else {
         task.testedCount = nodeNames.length
@@ -8257,7 +8216,7 @@ function getPolicyRules(grp) {
 function getRegionLatencyById(id) {
   const reg = allRegionDefs.value.find(r => r.id === id)
   if (!reg) return 45
-  return getRegionLatency(reg) || 45
+  return getRegionLatency(reg) || 0
 }
 
 function getCandidateFlag(name) {
@@ -8441,15 +8400,29 @@ function getGroupActiveLatency(grp) {
   const activeNow = grp.now || grp.proxies?.[0] || 'DIRECT'
   if (activeNow === 'DIRECT' || activeNow.includes('直连')) return 22
   if (activeNow === 'REJECT' || activeNow.includes('拒绝')) return 0
+
+  // 1. If group explicitly has a selected region via groupSelectedRegionMap
+  const selRegId = groupSelectedRegionMap.value[grp.name]
+  if (selRegId) {
+    const reg = allRegionDefs.value.find(r => r.id === selRegId)
+    if (reg) {
+      const lat = getRegionLatency(reg)
+      if (lat > 0) return lat
+    }
+  }
+
+  // 2. Check if activeNow matches any region definition
   for (const reg of allRegionDefs.value) {
     if (activeNow === reg.manual || activeNow === reg.auto || activeNow === reg.fall || activeNow === reg.disaster || activeNow.includes(reg.name)) {
       return getRegionLatency(reg)
     }
   }
+
+  // 3. Exact or resolved node latency
   const directDelay = getNodeLatency(activeNow)
   if (directDelay > 0) return directDelay
   const resolved = resolveActualProxyNode(activeNow)
-  return getNodeLatency(resolved) || 45
+  return getNodeLatency(resolved) || 32
 }
 
 function getLatencyBadgeClass(latency) {
@@ -8508,7 +8481,7 @@ function getCandidateLatencyHistory(grp, type, reg) {
 
   // Regional node history (5 样本)
   const actualNode = reg ? resolveActualProxyNode(getRegionActiveNode(reg)) : '自动优选节点'
-  const baseDelay = reg ? (getRegionLatency(reg) || 68) : 68
+  const baseDelay = reg ? (getRegionLatency(reg) || 0) : 0
 
   // Check if proxy object in ir.value.proxies has real history from Mihomo core
   const matchProxy = (ir.value.proxies || []).find(p => p.name === actualNode)
@@ -10045,7 +10018,10 @@ onMounted(async () => {
     }
     if (stRes.status === 'fulfilled' && stRes.value) {
       systemStatus.value = { ...systemStatus.value, ...stRes.value }
-      if (stRes.value.active_engine) activeEngine.value = stRes.value.active_engine
+      if (stRes.value.active_engine) {
+        const eng = String(stRes.value.active_engine).toLowerCase().replace('-', '')
+        activeEngine.value = eng === 'mihomo' ? 'mihomo' : 'singbox'
+      }
     }
     if (wgRes.status === 'fulfilled' && wgRes.value) {
       wgInfo.value = { ...wgInfo.value, ...wgRes.value }

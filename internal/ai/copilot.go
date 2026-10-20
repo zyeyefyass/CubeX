@@ -360,7 +360,7 @@ func (c *Copilot) offlineResponse(prompt string) string {
 		}
 		report += "🛡️ 安全与策略审计结果：\n"
 		report += "• DNS 解析安全：已启用 Fake-IP (198.18.0.0/15) 纯净隔离，国内流量自动走真实真实 IP 直通，0 劫持 0 泄露。\n"
-		report += "• 路由与防死锁：策略路由表 8228 隔离有效，TUN 虚拟网卡协议栈就绪，回国与海外分流互不干扰。\n"
+		report += "• 路由与防死锁：策略路由表 cubex 隔离有效，TUN 虚拟网卡协议栈就绪，回国与海外分流互不干扰。\n"
 		report += "• 广告与隐私防护：217heidai MRS 二进制规则集实时阻断广告追踪（REJECT 模式不占出站流量）。\n"
 		report += "• 移动穿透能力：WireGuard 虚拟通道侦听正常，已绑定内网穿透模式，在外访问家中设备安全通畅。\n\n"
 		report += "⚡ 优化与加速建议：\n"

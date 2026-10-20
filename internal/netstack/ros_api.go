@@ -81,7 +81,7 @@ func (r *RosClient) GenerateWinBoxScript() string {
 # 🌌 CubeX 官方 RouterOS v7 高可用策略路由与 Netwatch 0秒逃生脚本
 # ════════════════════════════════════════════════════════════════════
 
-# 1. 创建专用路由表 table 8228
+# 1. 创建专用路由表 table cubex-bypass
 /routing table add fib name=cubex-bypass comment="CubeX Secondary Gateway Table"
 
 # 2. 指向 CubeX 旁路网关 IP

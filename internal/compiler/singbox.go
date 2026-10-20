@@ -170,6 +170,10 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 					"jd.com",
 					"alipay.com",
 					"163.com",
+					"gstatic.com",
+					"cloudflare.com",
+					"google.com",
+					"msftconnecttest.com",
 				},
 				"rule_set": []string{"geosite-cn"},
 				"server":   "dns-direct",
@@ -182,14 +186,14 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"final":           "dns-remote",
 		"reverse_mapping": true,
 		"strategy":        "prefer_ipv4",
-		"cache_capacity":  8192,
+		"cache_capacity":    8192,
 		"optimistic": map[string]any{
 			"enabled": true,
 		},
 	}
 
 	tunMTU := net.TunMTU
-	if tunMTU <= 0 || tunMTU > 1500 {
+	if tunMTU <= 0 {
 		tunMTU = 1500
 	}
 
@@ -223,8 +227,9 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"auto_route":     true,
 				"auto_redirect":  false,
 				"strict_route":   false,
-				"stack":          tunStack,
-				"udp_timeout":    "60s",
+				"stack":                     tunStack,
+				"udp_timeout":               "60s",
+				"endpoint_independent_nat":  true,
 				"route_exclude_address": []string{
 					"10.0.0.0/8",
 					"100.64.0.0/10",
@@ -272,12 +277,14 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 	// Built-in fixed endpoints
 	outbounds = append(outbounds, map[string]any{
-		"type": "direct",
-		"tag":  "direct",
+		"type":          "direct",
+		"tag":           "direct",
+		"tcp_fast_open": true,
 	})
 	outbounds = append(outbounds, map[string]any{
-		"type": "direct",
-		"tag":  "DIRECT",
+		"type":          "direct",
+		"tag":           "DIRECT",
+		"tcp_fast_open": true,
 	})
 	outbounds = append(outbounds, map[string]any{
 		"type": "block",
@@ -315,6 +322,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			"server":      p.Server,
 			"server_port": p.Port,
 		}
+
 
 		valid := true
 		switch pType {
@@ -429,6 +437,14 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"type": "ws",
 				"path": p.Path,
 			}
+		} else if p.Network == "grpc" {
+			grpcMap := map[string]any{
+				"type": "grpc",
+			}
+			if p.Path != "" {
+				grpcMap["service_name"] = p.Path
+			}
+			nodeMap["transport"] = grpcMap
 		}
 
 		outbounds = append(outbounds, nodeMap)
@@ -570,6 +586,22 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"port":     []int{123},
 		"outbound": "direct",
 	})
+
+	// High-Priority Line-Speed Benchmark / Speedtest Rule
+	if foreignDetour != "" {
+		routeRules = append(routeRules, map[string]any{
+			"domain": []string{
+				"speed.cloudflare.com",
+				"challenges.cloudflare.com",
+			},
+			"domain_suffix": []string{
+				"fast.com",
+				"speedtest.net",
+				"ooklaserver.net",
+			},
+			"outbound": foreignDetour,
+		})
+	}
 
 	// C. Node Server Domains & IPs Anti-Looping Bypass
 	nodeDomains := make([]string, 0)
@@ -741,6 +773,8 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				targetOutbound = "block"
 			} else if strings.Contains(targetOutbound, "直连") || strings.EqualFold(targetOutbound, "DIRECT") || strings.EqualFold(targetOutbound, "direct") {
 				targetOutbound = "direct"
+			} else if validOutbounds["🌐 国外流量"] {
+				targetOutbound = "🌐 国外流量"
 			} else if validOutbounds["🐟 漏网之鱼"] {
 				targetOutbound = "🐟 漏网之鱼"
 			} else {
@@ -782,7 +816,11 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	finalOutbound := "direct"
-	if validOutbounds["🐟 漏网之鱼"] {
+	if validOutbounds["🌐 国外流量"] {
+		finalOutbound = "🌐 国外流量"
+	} else if validOutbounds["PROXY"] {
+		finalOutbound = "PROXY"
+	} else if validOutbounds["🐟 漏网之鱼"] {
 		finalOutbound = "🐟 漏网之鱼"
 	}
 

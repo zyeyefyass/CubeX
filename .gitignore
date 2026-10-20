@@ -30,6 +30,11 @@ __pycache__/
 # Local test scratch
 scratch/
 test_screen*.png
+openbox_screen.png
+benchmark_results.json
+scripts/benchmark_*.json
+scripts/hhost_*.json
+scripts/update_sh.txt
 scripts/*.py
 !scripts/audit_release_artifacts.py
 !scripts/desensitize.py

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # ═════════════════════════════════════════════════════════════════════════════
 # 🌌 CubeX Universal Deployer · 次世代双擎高可用旁路网关一键极速安装程序
-# Target Version: Test v1.1
-# Supported: 飞牛 fnOS (/vol1/1000/cubex), RouterOS Container, PVE, OpenWrt, Linux
+# Target Version: Test v1.5
+# Supported Hosts: 爱快 iKuai (KVM/Docker/主路由联动), 飞牛 fnOS, RouterOS, PVE, OpenWrt, Linux
 # ═════════════════════════════════════════════════════════════════════════════
 set -e
 
@@ -25,7 +25,7 @@ cat << "EOF"
  ╚██████╗╚██████╔╝██████╔╝███████╗██╔╝ ██╗
   ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝
  🌌 次世代双擎高可用旁路网关系统 · 软路由的天花板
- [Version: Test v1.1 | Engine: Mihomo × sing-box v1.14+]
+ [Version: Test v1.5 | Engine: Mihomo × sing-box v1.14+]
 EOF
 echo ""
 
@@ -85,15 +85,35 @@ elif [ -f "/etc/openwrt_release" ]; then
     DEFAULT_INSTALL_DIR="/opt/cubex"
 fi
 
-# 3.5 局域网上级主路由智能探查 (爱快 iKuai / MikroTik RouterOS)
+# 3.5 局域网上级主路由与宿主底座深度嗅探 (爱快 iKuai / MikroTik RouterOS)
 DEFAULT_GW=$(ip route show default 2>/dev/null | awk '/default/ {print $3}' | head -n 1)
 IS_IKUAI_GATEWAY=0
+IS_IKUAI_HOST=0
+
 if [ -n "$DEFAULT_GW" ]; then
     GW_PROBE=$(curl -s -m 2 -I "http://$DEFAULT_GW/" 2>/dev/null || true)
-    if echo "$GW_PROBE" | grep -qi "ikuai"; then
+    GW_BODY=$(curl -s -m 2 "http://$DEFAULT_GW/" 2>/dev/null || true)
+    if echo "$GW_PROBE $GW_BODY" | grep -qi "ikuai"; then
         IS_IKUAI_GATEWAY=1
-    elif curl -s -m 2 "http://$DEFAULT_GW/" 2>/dev/null | grep -qi "ikuai"; then
-        IS_IKUAI_GATEWAY=1
+    fi
+fi
+
+# 检查当前机器是否本身运行在爱快 KVM 虚拟机或爱快 Docker 插件容器中
+if [ "$IS_IKUAI_GATEWAY" -eq 1 ]; then
+    if [ -f "/.dockerenv" ] || [ -f "/run/.containerenv" ]; then
+        IS_IKUAI_HOST=1
+        DETECTED_HOST="ikuai_docker"
+        DETECTED_HOST_NAME="爱快 iKuai Docker 插件沙盒容器"
+    elif [ "$DETECTED_HOST" = "linux" ]; then
+        VIRT_TYPE=""
+        if command -v systemd-detect-virt >/dev/null 2>&1; then
+            VIRT_TYPE=$(systemd-detect-virt 2>/dev/null || true)
+        fi
+        if [ "$VIRT_TYPE" = "kvm" ] || [ "$VIRT_TYPE" = "qemu" ] || grep -qi "qemu" /sys/class/dmi/id/sys_vendor 2>/dev/null; then
+            IS_IKUAI_HOST=1
+            DETECTED_HOST="ikuai_vm"
+            DETECTED_HOST_NAME="爱快 iKuai 内置 KVM 虚拟机"
+        fi
     fi
 fi
 
@@ -145,8 +165,8 @@ if [ "$AUTO_CONFIRM" -eq 0 ]; then
     if [ -z "$DEPLOY_MODE" ]; then
         echo ""
         echo -e "${BOLD}请选择运行部署模式:${NC}"
-        echo -e "  ${CYAN}1) Docker 容器化主旁一体部署 (推荐 · 隔离性好 · 飞牛/PVE/RouterOS 首选)${NC}"
-        echo -e "  ${PURPLE}2) 原生单二进制 Systemd 守护部署 (纯粹裸跑 · 内存开销仅 18MB · 极客首选)${NC}"
+        echo -e "  ${CYAN}1) Docker 容器化主旁一体部署 (推荐 · 隔离性好 · 飞牛/PVE/RouterOS/爱快首选)${NC}"
+        echo -e "  ${PURPLE}2) 原生单二进制 Systemd 守护部署 (纯粹裸跑 · 极致轻量低开销 · 极客首选)${NC}"
         read -r -p "请输入选项 [1/2, 默认 1]: " MODE_CHOICE
         case "$MODE_CHOICE" in
             2)
@@ -169,13 +189,70 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 5. Linux 内核网络与虚拟网卡预检加固
+# 5. Linux 内核网络协议栈加固与爱快 / ROS / Linux 专属调优
 # ─────────────────────────────────────────────────────────────────────────────
-echo -e "\n${YELLOW}⚙️  [1/4] 执行宿主底层网络协议栈加固 (启用 IP 转发与 TUN 设备)...${NC}"
+echo -e "\n${YELLOW}⚙️  [1/4] 执行宿主底层网络协议栈加固 (开启内核转发与网络缓冲区优化)...${NC}"
 
 # 开启 IP 转发
 sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
 sysctl -w net.ipv6.conf.all.forwarding=1 >/dev/null 2>&1 || true
+
+# 高性能 TCP Socket 缓冲区与并发队列自适应调优 (Mihomo × sing-box 双引擎线速底座)
+sysctl -w net.core.somaxconn=16384 >/dev/null 2>&1 || true
+sysctl -w net.core.netdev_max_backlog=32768 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.ip_local_port_range="10240 65535" >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_rmem="16384 1048576 33554432" >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_wmem="16384 1048576 33554432" >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_window_scaling=1 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_timestamps=1 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_sack=1 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_fastopen=3 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_slow_start_after_idle=0 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_max_syn_backlog=16384 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_max_tw_buckets=1440000 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_fin_timeout=10 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_tw_reuse=1 >/dev/null 2>&1 || true
+
+# 智能探查并尝试启用 BBR 拥塞控制
+if modprobe tcp_bbr >/dev/null 2>&1; then
+    sysctl -w net.core.default_qdisc=fq >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.tcp_congestion_control=bbr >/dev/null 2>&1 || true
+fi
+
+# 🌟 爱快 iKuai 宿主机 / 主路由联动专属网络协议栈优化
+if [ "$IS_IKUAI_GATEWAY" -eq 1 ] || [ "$IS_IKUAI_HOST" -eq 1 ]; then
+    echo -e "${PURPLE}🚀 [爱快专属优化] 检测到爱快环境，正在注入爱快旁路四项底层加固...${NC}"
+    
+    # 1. 禁用反向路径过滤 (非对称旁路由放行，彻底消除爱快重定向丢包)
+    sysctl -w net.ipv4.conf.all.rp_filter=0 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.default.rp_filter=0 >/dev/null 2>&1 || true
+    for dev in /proc/sys/net/ipv4/conf/*; do
+        [ -d "$dev" ] && echo 0 > "$dev/rp_filter" 2>/dev/null || true
+    done
+
+    # 2. 抑制 ARP 广播与防止 IP 漂移 (解决爱快 ARP 绑定紊乱与抢答风暴)
+    sysctl -w net.ipv4.conf.all.arp_ignore=1 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.all.arp_announce=2 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.default.arp_ignore=1 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.default.arp_announce=2 >/dev/null 2>&1 || true
+
+    # 3. 禁用 ICMP 重定向 (避免爱快与旁路之间产生次优路由死循环)
+    sysctl -w net.ipv4.conf.all.send_redirects=0 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.default.send_redirects=0 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.all.accept_redirects=0 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.default.accept_redirects=0 >/dev/null 2>&1 || true
+
+    # 4. PPPoE 广域网 TCP MSS 自动钳制 (适配爱快 1492 MTU，消除大包分片卡顿)
+    if command -v iptables >/dev/null 2>&1; then
+        iptables -t mangle -C POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || \
+        iptables -t mangle -A POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
+    fi
+
+    echo -e "${GREEN}  ✓ 爱快非对称路由直通 (rp_filter=0) 已生效${NC}"
+    echo -e "${GREEN}  ✓ 爱快 ARP 抑风暴与防漂移 (arp_ignore=1/arp_announce=2) 已就绪${NC}"
+    echo -e "${GREEN}  ✓ 爱快 PPPoE 自动 MSS 钳制已加载 (解决网页与测速截断卡顿)${NC}"
+    echo -e "${GREEN}  ✓ 爱快 ICMP 环路抑制已就绪${NC}"
+fi
 
 # 检查并自动创建 /dev/net/tun
 if [ ! -c /dev/net/tun ]; then
@@ -185,6 +262,22 @@ if [ ! -c /dev/net/tun ]; then
 fi
 modprobe tun 2>/dev/null || true
 
+# 宿主内存自适应分级计算 (支持 512MB / 1GB / 2GB / 4GB+ 动态适配)
+TOTAL_MEM_KB=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}' || echo "1048576")
+if [ "$TOTAL_MEM_KB" -le 600000 ]; then
+    HOST_GOMEMLIMIT="120MiB"
+    HOST_GOGC="50"
+elif [ "$TOTAL_MEM_KB" -le 1500000 ]; then
+    HOST_GOMEMLIMIT="256MiB"
+    HOST_GOGC="80"
+elif [ "$TOTAL_MEM_KB" -le 3000000 ]; then
+    HOST_GOMEMLIMIT="512MiB"
+    HOST_GOGC="100"
+else
+    HOST_GOMEMLIMIT="1024MiB"
+    HOST_GOGC="100"
+fi
+
 # ─────────────────────────────────────────────────────────────────────────────
 # 6. 目录结构初始化与数据包释放
 # ─────────────────────────────────────────────────────────────────────────────
@@ -193,7 +286,9 @@ mkdir -p "$INSTALL_DIR/bin" "$INSTALL_DIR/etc/rules" "$INSTALL_DIR/data"
 
 # 若当前目录已有 etc 数据包，则直接同步复制
 CURRENT_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -d "$CURRENT_SCRIPT_DIR/etc" ]; then
+if [ -d "$CURRENT_SCRIPT_DIR/../etc" ]; then
+    cp -r "$CURRENT_SCRIPT_DIR/../etc/"* "$INSTALL_DIR/etc/"
+elif [ -d "$CURRENT_SCRIPT_DIR/etc" ]; then
     cp -r "$CURRENT_SCRIPT_DIR/etc/"* "$INSTALL_DIR/etc/"
 elif [ -d "./etc" ]; then
     cp -r "./etc/"* "$INSTALL_DIR/etc/"
@@ -241,6 +336,8 @@ services:
       - CUBEX_PORT=2026
       - CUBEX_LISTEN=:2026
       - CUBEX_HOST_PLATFORM=${DETECTED_HOST}
+      - GOMEMLIMIT=${HOST_GOMEMLIMIT}
+      - GOGC=${HOST_GOGC}
     logging:
       driver: "json-file"
       options:
@@ -248,7 +345,7 @@ services:
         max-file: "3"
 EOF
 
-    echo -e "${GREEN}✅ 已生成 docker-compose.yml 配置文件${NC}"
+    echo -e "${GREEN}✅ 已生成 docker-compose.yml 配置文件 (内存配额: ${HOST_GOMEMLIMIT})${NC}"
     cd "$INSTALL_DIR"
     
     if command -v docker-compose >/dev/null 2>&1; then
@@ -273,6 +370,9 @@ EOF
           -e TZ=Asia/Shanghai \
           -e CUBEX_PORT=2026 \
           -e CUBEX_LISTEN=:2026 \
+          -e CUBEX_HOST_PLATFORM=${DETECTED_HOST} \
+          -e GOMEMLIMIT=${HOST_GOMEMLIMIT} \
+          -e GOGC=${HOST_GOGC} \
           ghcr.io/zyeyefyass/cubex:latest || true
     fi
 
@@ -280,7 +380,9 @@ else
     echo -e "${PURPLE}⚡ [3/4] 正在配置原生单二进制 Systemd 守护进程...${NC}"
     
     # 查找本地是否有编译好的二进制，若有则复制
-    if [ -f "$CURRENT_SCRIPT_DIR/dist/cubexd-linux-$TARGET_ARCH" ]; then
+    if [ -f "$CURRENT_SCRIPT_DIR/../dist/cubexd-linux-$TARGET_ARCH" ]; then
+        cp "$CURRENT_SCRIPT_DIR/../dist/cubexd-linux-$TARGET_ARCH" "$INSTALL_DIR/bin/cubexd"
+    elif [ -f "$CURRENT_SCRIPT_DIR/dist/cubexd-linux-$TARGET_ARCH" ]; then
         cp "$CURRENT_SCRIPT_DIR/dist/cubexd-linux-$TARGET_ARCH" "$INSTALL_DIR/bin/cubexd"
     elif [ -f "./dist/cubexd-linux-$TARGET_ARCH" ]; then
         cp "./dist/cubexd-linux-$TARGET_ARCH" "$INSTALL_DIR/bin/cubexd"
@@ -304,8 +406,8 @@ ExecStart=$INSTALL_DIR/bin/cubexd -dir $INSTALL_DIR -listen :2026
 Restart=always
 RestartSec=2s
 LimitNOFILE=65535
-Environment=GOMEMLIMIT=60MiB
-Environment=GOGC=30
+Environment=GOMEMLIMIT=${HOST_GOMEMLIMIT}
+Environment=GOGC=${HOST_GOGC}
 
 [Install]
 WantedBy=multi-user.target
@@ -314,13 +416,26 @@ EOF
     systemctl daemon-reload
     systemctl enable cubex >/dev/null 2>&1 || true
     systemctl restart cubex || true
-    echo -e "${GREEN}✅ systemd 服务已注册并启动 (/etc/systemd/system/cubex.service)${NC}"
+    echo -e "${GREEN}✅ systemd 服务已注册并启动 (/etc/systemd/system/cubex.service, 软上限: ${HOST_GOMEMLIMIT})${NC}"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 8. 快捷命令软链接与部署完成驾驶舱
 # ─────────────────────────────────────────────────────────────────────────────
 echo -e "${YELLOW}🔗 [4/4] 注册全局管理快捷指令 (cubex)...${NC}"
+
+# 如果本地存在编译好的 cubex 运维 CLI，则优先复制
+CLI_INSTALLED=0
+for cli_path in "$CURRENT_SCRIPT_DIR/../dist/cubex-linux-$TARGET_ARCH" "$CURRENT_SCRIPT_DIR/dist/cubex-linux-$TARGET_ARCH" "./dist/cubex-linux-$TARGET_ARCH"; do
+    if [ -f "$cli_path" ]; then
+        cp "$cli_path" /usr/local/bin/cubex
+        chmod +x /usr/local/bin/cubex 2>/dev/null || true
+        CLI_INSTALLED=1
+        break
+    fi
+done
+
+if [ "$CLI_INSTALLED" -eq 0 ]; then
 cat << 'EOF' > /usr/local/bin/cubex
 #!/usr/bin/env bash
 ACTION="$1"
@@ -354,13 +469,19 @@ case "$ACTION" in
         curl -s -X POST http://127.0.0.1:2026/api/v1/system/reload-config
         echo ""
         ;;
+    ikuai)
+        echo "🌐 爱快 iKuai 宿主联动中枢"
+        curl -s -X POST http://127.0.0.1:2026/api/v1/host/auto-setup
+        echo ""
+        ;;
     *)
         echo "🌌 CubeX 命令行控制中心"
-        echo "用法: cubex {status|restart|log|reload}"
+        echo "用法: cubex {status|restart|log|reload|ikuai}"
         ;;
 esac
 EOF
 chmod +x /usr/local/bin/cubex 2>/dev/null || true
+fi
 
 # 获取本机局域网 IP
 LOCAL_IP=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' || hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
@@ -374,6 +495,7 @@ echo -e "  🖥️  ${BOLD}已识别宿主底座:${NC}   ${PURPLE}${DETECTED_HOS
 echo -e "  📁 ${BOLD}持久化工作目录:${NC}   ${BLUE}${INSTALL_DIR}${NC}"
 echo -e "  ⚡ ${BOLD}双核心代理架构:${NC}   ${GREEN}Mihomo Meta ⇄ sing-box v1.14+ (毫秒级零断网热切)${NC}"
 echo -e "  🛡️  ${BOLD}权威规则数据库:${NC}   ${CYAN}217heidai MRS 广告拦截 + 隐私反追踪 + 0 明文 DNS 阻断${NC}"
+echo -e "  💾 ${BOLD}宿主自适应内存:${NC}   ${YELLOW}GOMEMLIMIT=${HOST_GOMEMLIMIT} (物理内存分级防护)${NC}"
 echo ""
 echo -e "${BOLD}常用运维指令:${NC}"
 echo -e "  • 查看运行状态:   ${YELLOW}cubex status${NC}"
@@ -382,10 +504,15 @@ echo -e "  • 重启网关服务:   ${YELLOW}cubex restart${NC}"
 echo -e "  • 热重载分流配置: ${YELLOW}cubex reload${NC}"
 if [ "$IS_IKUAI_GATEWAY" -eq 1 ]; then
     echo ""
-    echo -e "${PURPLE}🚀 ${BOLD}爱快 iKuai 一键联动就绪:${NC}"
-    echo -e "  1. 浏览器打开: ${CYAN}http://${LOCAL_IP}:2026${NC}"
-    echo -e "  2. 进入【宿主共生凭据】，填入爱快地址 (${DEFAULT_GW}) 与 Web 密码"
-    echo -e "  3. 点击【一键深度巡检爱快静态回指路由与 DHCP 联动加固】或【一键自愈与规则加固】，自动注入 198.18.0.0/15 回指路由！"
+    echo -e "${PURPLE}═════════════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BOLD}${PURPLE}🚀 【爱快 iKuai 宿主联动中枢就绪】(已嗅探到上级爱快主路由: ${DEFAULT_GW})${NC}"
+    echo -e "${PURPLE}═════════════════════════════════════════════════════════════════════════${NC}"
+    echo -e "  💡 爱快旁路由拓扑核心：需在爱快中将 ${BOLD}198.18.0.0/15${NC} 静态回指路由指向 CubeX (${LOCAL_IP})"
+    echo -e "  🔧 ${BOLD}全自动一键配置步骤:${NC}"
+    echo -e "     1. 浏览器打开: ${CYAN}http://${LOCAL_IP}:2026${NC}"
+    echo -e "     2. 进入左侧导航【宿主共生凭据】，选择【爱快 iKuai】"
+    echo -e "     3. 填入爱快地址 (${DEFAULT_GW}) 与 Web 管理密码"
+    echo -e "     4. 点击【一键自愈与规则加固】，系统自动写入 198.18.0.0/15 静态回指与 DHCP 首选 DNS！"
+    echo -e "  💻 也可在当前终端执行: ${CYAN}cubex ikuai${NC} 触发自动同步"
 fi
 echo -e "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"
-EOF

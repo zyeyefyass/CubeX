@@ -34,13 +34,53 @@ fi
 
 # 3. Enable IP Forwarding and NAT Masquerade for Gateway / Secondary Router Mode
 sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || ( [ -w /proc/sys/net/ipv4/ip_forward ] && echo 1 > /proc/sys/net/ipv4/ip_forward 2>/dev/null ) || true
-# Enable SNAT Masquerade for any forwarded traffic exiting container (veth-cubex / eth0 / etc.)
+iptables -P FORWARD ACCEPT 2>/dev/null || true
 iptables -t nat -A POSTROUTING -j MASQUERADE 2>/dev/null || true
+
+# Asymmetric bypass routing, ARP storm defense & ICMP redirect suppression (Essential for iKuai / ROS / PVE / fnOS)
+sysctl -w net.ipv4.conf.all.rp_filter=0 2>/dev/null || true
+sysctl -w net.ipv4.conf.default.rp_filter=0 2>/dev/null || true
+sysctl -w net.ipv4.conf.all.arp_ignore=1 2>/dev/null || true
+sysctl -w net.ipv4.conf.all.arp_announce=2 2>/dev/null || true
+sysctl -w net.ipv4.conf.default.arp_ignore=1 2>/dev/null || true
+sysctl -w net.ipv4.conf.default.arp_announce=2 2>/dev/null || true
+sysctl -w net.ipv4.conf.all.send_redirects=0 2>/dev/null || true
+sysctl -w net.ipv4.conf.default.send_redirects=0 2>/dev/null || true
+
+# PPPoE WAN MTU 1492 TCP MSS Clamping (Prevents fragmentation packet drops on iKuai & general WANs)
+iptables -t mangle -C POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || \
+iptables -t mangle -A POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
+
+# High-Performance TCP Socket & Queue Tuning (Universal Dual-Engine Line-Speed Base: Mihomo × sing-box)
+if [ -d /sys/class/net/eth0 ]; then
+    ip link set eth0 txqueuelen 10000 2>/dev/null || true
+fi
+sysctl -w net.core.somaxconn=16384 2>/dev/null || true
+sysctl -w net.core.netdev_max_backlog=32768 2>/dev/null || true
+sysctl -w net.ipv4.ip_local_port_range="10240 65535" 2>/dev/null || true
+sysctl -w net.ipv4.tcp_rmem="16384 1048576 33554432" 2>/dev/null || true
+sysctl -w net.ipv4.tcp_wmem="16384 1048576 33554432" 2>/dev/null || true
+sysctl -w net.ipv4.tcp_window_scaling=1 2>/dev/null || true
+sysctl -w net.ipv4.tcp_timestamps=1 2>/dev/null || true
+sysctl -w net.ipv4.tcp_sack=1 2>/dev/null || true
+sysctl -w net.ipv4.tcp_fastopen=3 2>/dev/null || true
+sysctl -w net.ipv4.tcp_slow_start_after_idle=0 2>/dev/null || true
+sysctl -w net.ipv4.tcp_max_syn_backlog=16384 2>/dev/null || true
+sysctl -w net.ipv4.tcp_max_tw_buckets=1440000 2>/dev/null || true
+sysctl -w net.ipv4.tcp_fin_timeout=10 2>/dev/null || true
+sysctl -w net.ipv4.tcp_tw_reuse=1 2>/dev/null || true
+
+# Probe BBR if supported
+if modprobe tcp_bbr >/dev/null 2>&1; then
+    sysctl -w net.core.default_qdisc=fq >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.tcp_congestion_control=bbr >/dev/null 2>&1 || true
+fi
 
 # 4. Set working directory and listen port
 LISTEN_PORT="${CUBEX_PORT:-2026}"
 echo "🌟 [CubeX] Listening on 0.0.0.0:${LISTEN_PORT} (Dual-Engine: Mihomo + sing-box ready)"
 
+chmod +x /app/bin/* 2>/dev/null || true
 cd /app
 while true; do
     /app/bin/cubexd -dir /app -listen ":${LISTEN_PORT}" "$@" || true

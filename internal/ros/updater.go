@@ -18,6 +18,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -46,6 +47,8 @@ type Manager struct {
 	cachedLatestSingbox string
 	cachedLatestPanel   string
 	cachedVerTime       time.Time
+	lastContainerMem    float64
+	lastContainerMemAt  time.Time
 }
 
 // ROSConfig stores the RouterOS connection settings.
@@ -137,7 +140,7 @@ func (m *Manager) GetOverview() map[string]any {
 	}
 	latestPanel := m.cachedLatestPanel
 	if latestPanel == "" {
-		latestPanel = "Test v1.4"
+		latestPanel = "Test v1.5"
 	}
 	latestSingbox := m.cachedLatestSingbox
 	if latestSingbox == "" {
@@ -660,13 +663,13 @@ func (m *Manager) getLocalPanelVersion() string {
 		}
 		if json.Unmarshal(data, &meta) == nil && meta.Version != "" {
 			if normalizeVersion(meta.Version) == "testv1.3" || normalizeVersion(meta.Version) == "testv0.999" {
-				m.updateLocalMetaVersion("Test v1.4")
-				return "Test v1.4"
+				m.updateLocalMetaVersion("Test v1.5")
+				return "Test v1.5"
 			}
 			return meta.Version
 		}
 	}
-	return "Test v1.4"
+	return "Test v1.5"
 }
 
 // IsConnected returns whether the RouterOS host is currently reachable and authenticated.
@@ -1530,6 +1533,53 @@ func (m *Manager) PostROS(path string, body any) ([]byte, error) {
 }
 
 // GetROS executes an authenticated GET request against RouterOS REST API.
+
+// GetContainerMemoryCurrent returns the live memory-current (in MB) of the CubeX container as reported by RouterOS.
+func (m *Manager) GetContainerMemoryCurrent() (float64, error) {
+	m.mu.Lock()
+	if time.Since(m.lastContainerMemAt) < 1200*time.Millisecond && m.lastContainerMem > 0 {
+		cached := m.lastContainerMem
+		m.mu.Unlock()
+		return cached, nil
+	}
+	m.mu.Unlock()
+
+	data, err := m.GetROS("/container")
+	if err != nil {
+		return 0, err
+	}
+	var containers []map[string]any
+	if err := json.Unmarshal(data, &containers); err != nil {
+		return 0, err
+	}
+	for _, c := range containers {
+		name, _ := c["name"].(string)
+		comment, _ := c["comment"].(string)
+		running, _ := c["running"].(string)
+		// Match CubeX container or if only 1 running container
+		if strings.Contains(strings.ToLower(name), "cubex") || strings.Contains(strings.ToLower(comment), "cubex") || running == "true" || len(containers) == 1 {
+			if memVal, ok := c["memory-current"]; ok {
+				var bytesVal float64
+				switch v := memVal.(type) {
+				case string:
+					bytesVal, _ = strconv.ParseFloat(v, 64)
+				case float64:
+					bytesVal = v
+				}
+				if bytesVal > 0 {
+					memMB := bytesVal / (1024 * 1024)
+					m.mu.Lock()
+					m.lastContainerMem = memMB
+					m.lastContainerMemAt = time.Now()
+					m.mu.Unlock()
+					return memMB, nil
+				}
+			}
+		}
+	}
+	return 0, fmt.Errorf("container memory-current not found")
+}
+
 func (m *Manager) GetROS(path string) ([]byte, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

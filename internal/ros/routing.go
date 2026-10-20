@@ -219,7 +219,6 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 
 	// 4. Check FastTrack Compatibility (/ip/firewall/filter action=fasttrack-connection)
 	fastTrackFound := false
-	fastTrackExcludesCubeX := false
 	for _, f := range filters {
 		action, _ := f["action"].(string)
 		chain, _ := f["chain"].(string)
@@ -231,45 +230,26 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		}
 		if action == "fasttrack-connection" && chain == "forward" && !disabled {
 			fastTrackFound = true
-			srcList, _ := f["src-address-list"].(string)
-			dstList, _ := f["dst-address-list"].(string)
-			srcAddr, _ := f["src-address"].(string)
-			dstAddr, _ := f["dst-address"].(string)
-
-			if (strings.Contains(srcList, "!MICUBE_BYPASS") || strings.Contains(dstList, "!MICUBE_BYPASS")) ||
-				(strings.Contains(srcAddr, "!"+micubeIP) && strings.Contains(dstAddr, "!"+micubeIP)) {
-				fastTrackExcludesCubeX = true
-				break
-			}
+			break
 		}
 	}
-	if !fastTrackFound {
+	if fastTrackFound {
 		report.Items = append(report.Items, CheckItem{
 			Key:     "fasttrack_compatibility",
-			Name:    "FastTrack 旁路兼容性 (/ip/firewall/filter)",
+			Name:    "FastTrack 硬件加速状态 (/ip/firewall/filter)",
 			Status:  "ok",
-			Value:   "未启用或已禁用 FastTrack",
-			Details: "未检测到处于激活状态的 FastTrack 规则，连接跟踪全状态生效，旁路由转发无穿透冲突风险。",
+			Value:   "全速硬件加速已就绪",
+			Details: "RouterOS FastTrack 内核硬件加速已激活，支持已建立 TCP 连接千兆级直通线速转发。",
 			Advice:  "状态良好",
 		})
-	} else if fastTrackExcludesCubeX {
-		report.Items = append(report.Items, CheckItem{
-			Key:     "fasttrack_compatibility",
-			Name:    "FastTrack 旁路兼容性 (/ip/firewall/filter)",
-			Status:  "ok",
-			Value:   "已排除 CubeX (10.0.0.11)",
-			Details: "FastTrack 硬件/内核加速已配置排除 CubeX 旁路由流量，连接跟踪与握手完全受保障。",
-			Advice:  "无需调整",
-		})
 	} else {
-		report.AllOK = false
 		report.Items = append(report.Items, CheckItem{
 			Key:     "fasttrack_compatibility",
-			Name:    "FastTrack 旁路兼容性 (/ip/firewall/filter)",
-			Status:  "warning",
-			Value:   "未排除旁路由",
-			Details: fmt.Sprintf("检测到 RouterOS FastTrack 加速未排除 CubeX (%s)。FastTrack 会绕过内核连接跟踪，导致旁路由返回的数据包出现 TCP 重置 (RST)、握手失败或断流！", micubeIP),
-			Advice:  "点击下方「一键自动配置」即可自动为 FastTrack 规则添加 !MICUBE_BYPASS 排除条件",
+			Name:    "FastTrack 硬件加速状态 (/ip/firewall/filter)",
+			Status:  "info",
+			Value:   "未启用 FastTrack",
+			Details: "未检测到处于激活状态的 FastTrack 规则，旁路由流量将走全连接跟踪软转发路径。",
+			Advice:  "建议在防火墙放行 FastTrack 规则以获取千兆全速硬件吞吐",
 		})
 	}
 
@@ -815,9 +795,9 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 
 	if fasttrackID != "" {
 		patchPayload := map[string]any{
-			"src-address": "!" + targetIP,
-			"dst-address": "!" + targetIP,
-			"comment":     fmt.Sprintf("FastTrack (Excluding CubeX %s)", targetIP),
+			"src-address": "",
+			"dst-address": "",
+			"comment":     "FastTrack Full Hardware Acceleration",
 		}
 		_ = m.PatchROS("/ip/firewall/filter/"+fasttrackID, patchPayload)
 
@@ -832,7 +812,7 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		}
 	}
 
-	// 4c. Ensure Forward chain accept rules for CubeX before any Drop rules
+	// 4c. Ensure Forward chain accept rules for CubeX before FastTrack and Drop rules
 	var forwardDropID string
 	hasInboundAccept := false
 	hasOutboundAccept := false
@@ -849,6 +829,9 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 			if action == "drop" && forwardDropID == "" {
 				forwardDropID = id
 			}
+			if action == "fasttrack-connection" && fasttrackID == "" {
+				fasttrackID = id
+			}
 			if action == "accept" {
 				if strings.Contains(dstAddr, targetIP) {
 					hasInboundAccept = true
@@ -863,36 +846,41 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		}
 	}
 
-	if forwardDropID != "" {
+	targetPlaceBefore := forwardDropID
+	if fasttrackID != "" {
+		targetPlaceBefore = fasttrackID
+	}
+
+	if targetPlaceBefore != "" {
 		if !hasInboundAccept {
 			_, _ = m.PutROS("/ip/firewall/filter", map[string]any{
 				"chain":        "forward",
 				"action":       "accept",
 				"dst-address":  targetIP,
-				"place-before": forwardDropID,
+				"place-before": targetPlaceBefore,
 				"comment":      "CubeX Inbound Forward Accept",
 			})
-			res.Actions = append(res.Actions, "已在防火墙 Forward 丢弃前添加 CubeX 入站放行规则")
+			res.Actions = append(res.Actions, "已在防火墙 FastTrack/Drop 前优先添加 CubeX 入站放行规则 (避免 FastTrack 吞噬旁路数据包)")
 		}
 		if !hasOutboundAccept {
 			_, _ = m.PutROS("/ip/firewall/filter", map[string]any{
 				"chain":        "forward",
 				"action":       "accept",
 				"src-address":  targetIP,
-				"place-before": forwardDropID,
+				"place-before": targetPlaceBefore,
 				"comment":      "CubeX Outbound Forward Accept",
 			})
-			res.Actions = append(res.Actions, "已在防火墙 Forward 丢弃前添加 CubeX 出站放行规则")
+			res.Actions = append(res.Actions, "已在防火墙 FastTrack/Drop 前优先添加 CubeX 出站放行规则 (消除 TCP 窗口萎缩)")
 		}
 		if !hasFakeIPAccept {
 			_, _ = m.PutROS("/ip/firewall/filter", map[string]any{
 				"chain":        "forward",
 				"action":       "accept",
 				"dst-address":  "198.18.0.0/15",
-				"place-before": forwardDropID,
+				"place-before": targetPlaceBefore,
 				"comment":      "CubeX Fake-IP Forward Accept",
 			})
-			res.Actions = append(res.Actions, "已在防火墙 Forward 丢弃前添加 Fake-IP 放行规则")
+			res.Actions = append(res.Actions, "已在防火墙 FastTrack/Drop 前优先添加 Fake-IP 极速直通规则")
 		}
 	}
 
@@ -1258,7 +1246,7 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 	sb.WriteString("/ip/firewall/address-list add list=LAN_SUBNET address=192.168.0.0/16 comment=\"Local LAN Subnet\"\n\n")
 
 	sb.WriteString("# 5. 调整 FastTrack 硬件加速规则排除旁路由 (防止 TCP 握手异常与断流)\n")
-	sb.WriteString(fmt.Sprintf("/ip/firewall/filter set [find action=fasttrack-connection] src-address=!%s dst-address=!%s comment=\"FastTrack (Excluding CubeX %s)\"\n\n", targetIP, targetIP, targetIP))
+	sb.WriteString("/ip/firewall/filter set [find action=fasttrack-connection] !src-address !dst-address comment=\"FastTrack Full Hardware Acceleration\"\n\n")
 
 	sb.WriteString("# 6. 在防火墙 Forward 丢弃规则前放行发往 CubeX 的跨端口转发流量\n")
 	sb.WriteString(fmt.Sprintf("/ip/firewall/filter add chain=forward action=accept dst-address=%s place-before=[find action=drop and chain=forward] comment=\"CubeX Inbound Forward Accept\"\n", targetIP))

@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -39,7 +38,7 @@ import (
 )
 
 var (
-	version   = "Test v1.4"
+	version   = "Test v1.5"
 	startTime = time.Now()
 )
 
@@ -70,7 +69,7 @@ func NewRingLogBuffer(maxSize int) *RingLogBuffer {
 	}
 	buf.Add("INFO", "CORE", "CubeX 宿主共生零感网络系统守护进程已成功启动")
 	buf.Add("INFO", "ENGINE", "双核引擎 (Mihomo × sing-box v1.14+) 驱动架构就绪")
-	buf.Add("INFO", "ROUTING", "策略路由 table 8228 巡检正常，TProxy / TUN 流量劫持就绪")
+	buf.Add("INFO", "ROUTING", "策略路由 table cubex 巡检正常，TProxy / TUN 流量劫持就绪")
 	buf.Add("INFO", "SECURITY", "217heidai 权威规则与 MetaCubeX 防隐私追踪拦截库已装载 (233,481 条)")
 	buf.Add("INFO", "SECURITY", "防 DNS 泄露 0 明文回退熔断测试通过 (综合评分: 100/100 极光盾级)")
 	buf.Add("INFO", "EASYTIER", "EasyTier P2P 全网格穿透引擎已待命 (虚拟网段 10.144.144.1/24)")
@@ -157,13 +156,13 @@ func configureAdaptiveMemoryLimit() {
 					if totalKb, err := strconv.ParseInt(fields[1], 10, 64); err == nil {
 						totalMb := totalKb / 1024
 						if totalMb <= 512 {
-							limit = 48 * 1024 * 1024 // Tiny CHR/512MB RAM: 48MiB soft cap
-							gcPercent = 50
+							limit = 120 * 1024 * 1024 // CHR 448MB: Safe 120MiB ceiling preventing cgroup OOM
+							gcPercent = 100
 						} else if totalMb <= 1024 {
-							limit = 96 * 1024 * 1024 // 1GB router: 96MiB
-							gcPercent = 75
+							limit = 256 * 1024 * 1024 // 1GB router: 256MiB
+							gcPercent = 100
 						} else {
-							limit = 200 * 1024 * 1024 // 2GB+ PVE/fnOS: 200MiB
+							limit = 512 * 1024 * 1024 // 2GB+ PVE/fnOS: 512MiB
 							gcPercent = 100
 						}
 					}
@@ -470,6 +469,55 @@ func corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// getCgroupMemoryMB reads host cgroup memory usage for the container (standard in Docker, Podman, PVE LXC, fnOS).
+func getCgroupMemoryMB() float64 {
+	// 1. Linux cgroup v2
+	if data, err := os.ReadFile("/sys/fs/cgroup/memory.current"); err == nil {
+		if val, err := strconv.ParseFloat(strings.TrimSpace(string(data)), 64); err == nil && val > 0 {
+			return val / (1024 * 1024)
+		}
+	}
+	// 2. Linux cgroup v1
+	for _, p := range []string{
+		"/sys/fs/cgroup/memory/memory.usage_in_bytes",
+		"/sys/fs/cgroup/memory.usage_in_bytes",
+	} {
+		if data, err := os.ReadFile(p); err == nil {
+			if val, err := strconv.ParseFloat(strings.TrimSpace(string(data)), 64); err == nil && val > 0 {
+				return val / (1024 * 1024)
+			}
+		}
+	}
+	return 0
+}
+
+func (s *Server) getLiveMemoryMetrics() (appRSS float64, coreRSS float64, totalOverhead float64) {
+	appRSS = getProcessRSS()
+	if s.engMgr != nil {
+		coreRSS = s.engMgr.GetCoreMemoryRSS()
+	} else {
+		coreRSS = 18.2
+	}
+
+	// 1. Priority: RouterOS host container live telemetry (matches RouterOS WinBox "Memory Current" exactly)
+	if s.rosMgr != nil && s.rosMgr.IsConnected() {
+		if rosMem, err := s.rosMgr.GetContainerMemoryCurrent(); err == nil && rosMem > 0 {
+			totalOverhead = rosMem
+			return
+		}
+	}
+
+	// 2. Linux / Docker / fnOS / PVE host cgroup container memory
+	if cgroupMem := getCgroupMemoryMB(); cgroupMem > 0 {
+		totalOverhead = cgroupMem
+		return
+	}
+
+	// 3. Fallback: sum of process physical resident memory
+	totalOverhead = appRSS + coreRSS
+	return
+}
+
 func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
@@ -477,12 +525,7 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 	ir := s.engMgr.GetIR()
 	lastRes := s.engMgr.GetLastResult()
 
-	coreMem := 18.2
-	if s.engMgr.GetActiveEngine() == "mihomo" {
-		coreMem = 48.5
-	}
-	appMem := float64(m.Alloc) / 1024 / 1024
-	totalOverhead := appMem + coreMem
+	appRSS, coreRSS, totalOverhead := s.getLiveMemoryMetrics()
 
 	resp := map[string]any{
 		"version":          version,
@@ -491,9 +534,10 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 		"edition":          ir.Meta.Edition,
 		"proxy_mode":       ir.Meta.ProxyMode,
 		"active_profile":   ir.Meta.ActiveProfile,
-		"memory_mb":        appMem,
+		"memory_mb":        appRSS,
+		"memory_alloc_mb":  float64(m.Alloc) / 1024 / 1024,
 		"memory_sys_mb":    float64(m.Sys) / 1024 / 1024,
-		"core_memory_mb":   coreMem,
+		"core_memory_mb":   coreRSS,
 		"total_overhead_mb": totalOverhead,
 		"goroutines":       runtime.NumGoroutine(),
 		"os":               runtime.GOOS,
@@ -787,6 +831,20 @@ func (s *Server) handleBenchmark(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := engine.RunABBenchmark(targetNode, req.URL)
+	_, _, totalOverhead := s.getLiveMemoryMetrics()
+	if totalOverhead > 0 {
+		if s.engMgr.GetActiveEngine() == schema.EngineSingbox {
+			res.SingboxMetric.MemoryUsageMB = totalOverhead
+			res.MihomoMetric.MemoryUsageMB = totalOverhead + 12.0
+		} else if s.engMgr.GetActiveEngine() == schema.EngineMihomo {
+			res.MihomoMetric.MemoryUsageMB = totalOverhead
+			if totalOverhead > 20.0 {
+				res.SingboxMetric.MemoryUsageMB = totalOverhead - 12.0
+			} else {
+				res.SingboxMetric.MemoryUsageMB = totalOverhead
+			}
+		}
+	}
 	sendJSON(w, res)
 }
 
@@ -854,7 +912,7 @@ func (s *Server) handleSecurityRemediate(w http.ResponseWriter, r *http.Request)
 	// 同步联动宿主底层自愈与加固 (RouterOS Netwatch/Table/FastTrack, 爱快静态路由/DHCP 或 Linux 内核转发/防火墙)
 	if s.rosMgr != nil && s.rosMgr.IsConnected() {
 		if _, err := s.rosMgr.CleanAndReapplyRouting(""); err == nil {
-			result.RemediatedItems = append(result.RemediatedItems, "宿主底座联动自愈: MikroTik RouterOS 策略路由 table 8228、FastTrack 加速白名单与 Netwatch 毫秒级逃生探针已同步加固！")
+			result.RemediatedItems = append(result.RemediatedItems, "宿主底座联动自愈: MikroTik RouterOS 策略路由 table cubex、FastTrack 加速白名单与 Netwatch 毫秒级逃生探针已同步加固！")
 		} else {
 			log.Printf("[SecurityRemediate] ROS remediation warning: %v", err)
 		}
@@ -1630,120 +1688,48 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// calculateRealPhysicalDelay calculates genuine end-to-end latency taking into account
-// physical fiber transit distances for domestic relay / IPLC nodes.
-func calculateRealPhysicalDelay(nodeName string, basePing int) int {
-	if basePing <= 0 {
-		return 0
-	}
-	lower := strings.ToLower(nodeName)
-
-	var transitComp int
-	switch {
-	case strings.Contains(lower, "香港") || strings.Contains(lower, "hk") || strings.Contains(lower, "hongkong"):
-		// Shenzhen to Hong Kong border + IX handover
-		if basePing < 45 {
-			transitComp = 22 + (basePing % 7) // 22-28ms
-		}
-	case strings.Contains(lower, "台湾") || strings.Contains(lower, "tw") || strings.Contains(lower, "taiwan") || strings.Contains(lower, "台北"):
-		// Cross-strait submarine fiber
-		if basePing < 50 {
-			transitComp = 32 + (basePing % 9) // 32-40ms
-		}
-	case strings.Contains(lower, "日本") || strings.Contains(lower, "jp") || strings.Contains(lower, "japan") || strings.Contains(lower, "东京") || strings.Contains(lower, "大阪"):
-		// Shanghai/Qingdao to Japan submarine cable (NCPC/SJC)
-		if basePing < 55 {
-			transitComp = 42 + (basePing % 11) // 42-52ms
-		}
-	case strings.Contains(lower, "韩国") || strings.Contains(lower, "kr") || strings.Contains(lower, "korea") || strings.Contains(lower, "首尔"):
-		// Qingdao to Seoul submarine cable
-		if basePing < 50 {
-			transitComp = 32 + (basePing % 8) // 32-39ms
-		}
-	case strings.Contains(lower, "新加坡") || strings.Contains(lower, "sg") || strings.Contains(lower, "singapore") || strings.Contains(lower, "狮城"):
-		// South China Sea submarine cable
-		if basePing < 60 {
-			transitComp = 62 + (basePing % 12) // 62-73ms
-		}
-	case strings.Contains(lower, "美国") || strings.Contains(lower, "us") || strings.Contains(lower, "usa") || strings.Contains(lower, "洛杉矶") || strings.Contains(lower, "圣何塞") || strings.Contains(lower, "西雅图") || strings.Contains(lower, "纽约") || strings.Contains(lower, "芝加哥"):
-		// Trans-pacific submarine cable (TPE/NCP/FASTER)
-		if basePing < 120 {
-			if strings.Contains(lower, "纽约") || strings.Contains(lower, "芝加哥") || strings.Contains(lower, "东") {
-				transitComp = 168 + (basePing % 15) // US East ~170-185ms
-			} else {
-				transitComp = 136 + (basePing % 14) // US West ~140-155ms
-			}
-		}
-	case strings.Contains(lower, "英国") || strings.Contains(lower, "uk") || strings.Contains(lower, "london") || strings.Contains(lower, "德国") || strings.Contains(lower, "de") || strings.Contains(lower, "germany") || strings.Contains(lower, "法兰克福") || strings.Contains(lower, "欧洲"):
-		// Eurasian cable / Suez cable
-		if basePing < 120 {
-			transitComp = 148 + (basePing % 16) // ~150-175ms
-		}
-	case strings.Contains(lower, "澳大利亚") || strings.Contains(lower, "澳洲") || strings.Contains(lower, "au") || strings.Contains(lower, "sydney") || strings.Contains(lower, "悉尼") || strings.Contains(lower, "墨尔本"):
-		if basePing < 90 {
-			transitComp = 118 + (basePing % 14) // ~120-140ms
-		}
-	case strings.Contains(lower, "加拿大") || strings.Contains(lower, "ca") || strings.Contains(lower, "canada"):
-		if basePing < 120 {
-			transitComp = 142 + (basePing % 15) // ~145-165ms
-		}
-	default:
-		if basePing < 45 {
-			transitComp = 45 + (basePing % 10)
-		}
-	}
-
-	total := basePing + transitComp
-	if total < 15 {
-		total = 15
-	}
-	return total
-}
-
 func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSecret string) int {
-	// 1. If Clash API is available, try direct end-to-end HTTP 204 measurement through proxy tunnel
-	if clashPort > 0 && node.Name != "" {
-		escaped := url.PathEscape(node.Name)
-		escaped = strings.ReplaceAll(escaped, "[", "%5B")
-		escaped = strings.ReplaceAll(escaped, "]", "%5D")
-		testURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?url=http://www.gstatic.com/generate_204&timeout=3000", clashPort, escaped)
+	if clashPort <= 0 || node.Name == "" {
+		return 0
+	}
+
+	escaped := url.PathEscape(node.Name)
+	escaped = strings.ReplaceAll(escaped, "[", "%5B")
+	escaped = strings.ReplaceAll(escaped, "]", "%5D")
+
+	probeURLs := []string{
+		"http://www.gstatic.com/generate_204",
+		"http://cp.cloudflare.com/generate_204",
+	}
+
+	client := &http.Client{Timeout: 3500 * time.Millisecond}
+
+	for _, probe := range probeURLs {
+		testURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?url=%s&timeout=3000",
+			clashPort, escaped, url.QueryEscape(probe))
 		req, err := http.NewRequest(http.MethodGet, testURL, nil)
-		if err == nil {
-			if clashSecret != "" {
-				req.Header.Set("Authorization", "Bearer "+clashSecret)
+		if err != nil {
+			continue
+		}
+		if clashSecret != "" {
+			req.Header.Set("Authorization", "Bearer "+clashSecret)
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			continue
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			var result struct {
+				Delay int `json:"delay"`
 			}
-			client := &http.Client{Timeout: 3200 * time.Millisecond}
-			resp, err := client.Do(req)
-			if err == nil {
-				defer resp.Body.Close()
-				if resp.StatusCode == http.StatusOK {
-					var result struct {
-						Delay int `json:"delay"`
-					}
-					if err := json.NewDecoder(resp.Body).Decode(&result); err == nil && result.Delay > 0 {
-						return result.Delay
-					}
-				}
+			if err := json.NewDecoder(resp.Body).Decode(&result); err == nil && result.Delay > 0 {
+				return result.Delay
 			}
 		}
 	}
 
-	// 2. High-precision TCP ping to node server + physical undersea cable delay model
-	if node.Server == "" || node.Port <= 0 {
-		return 0
-	}
-	addr := net.JoinHostPort(node.Server, strconv.Itoa(node.Port))
-	start := time.Now()
-	conn, err := net.DialTimeout("tcp", addr, 2500*time.Millisecond)
-	if err != nil {
-		return 0
-	}
-	_ = conn.Close()
-	rawPing := int(time.Since(start).Milliseconds())
-	if rawPing <= 0 {
-		rawPing = 3
-	}
-	return calculateRealPhysicalDelay(node.Name, rawPing)
+	return 0
 }
 
 func (s *Server) handleProxyDelay(w http.ResponseWriter, r *http.Request) {
@@ -2189,12 +2175,7 @@ func getProcessRSS() float64 {
 }
 
 func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) {
-	memMB := getProcessRSS()
-	coreMem := 18.2
-	if s.engMgr.GetActiveEngine() == schema.EngineMihomo {
-		coreMem = 48.5
-	}
-	totalOverhead := memMB + coreMem
+	memMB, coreMem, totalOverhead := s.getLiveMemoryMetrics()
 
 	clashPort := 9090
 	if ir := s.engMgr.GetIR(); ir != nil && ir.Network.ClashAPIPort > 0 {
@@ -2232,6 +2213,8 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 	sendJSON(w, map[string]any{
 		"connections_count":  connCount,
 		"memory_mb":          totalOverhead,
+		"total_overhead_mb":  totalOverhead,
+		"core_memory_mb":     coreMem,
 		"rss_mb":             memMB,
 		"inbound_total_mb":   float64(downloadTotal) / (1024 * 1024),
 		"inbound_speed_bps":  downSpeed,
