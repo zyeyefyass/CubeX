@@ -265,13 +265,13 @@ func getAdaptiveGOMEMLIMIT() string {
 					if totalKb, err := strconv.ParseInt(fields[1], 10, 64); err == nil {
 						totalMb := totalKb / 1024
 						if totalMb <= 512 {
-							limitMb = 120 // 512M CHR / router: 120MiB ceiling prevents OOM
+							limitMb = 80 // 512M CHR / router: 80MiB ceiling prevents OOM
 						} else if totalMb <= 1024 {
-							limitMb = 256 // 1GB host: 256MiB
+							limitMb = 120 // 1GB host: 120MiB
 						} else if totalMb <= 2048 {
-							limitMb = 512 // 2GB host: 512MiB
+							limitMb = 180 // 2GB host: 180MiB
 						} else {
-							limitMb = 1024 // 4GB+ fnOS / PVE: 1024MiB for line-speed multi-gigabit
+							limitMb = 256 // 4GB+ fnOS / PVE: 256MiB for line-speed multi-gigabit
 						}
 					}
 				}
@@ -298,7 +298,8 @@ func (m *Manager) buildCmd(eng schema.EngineType, binPath, etcDir, configPath st
 	// while keeping GOGC=100 for standard efficient garbage collection cycles without CPU thrashing.
 	cmd.Env = append(os.Environ(),
 		getAdaptiveGOMEMLIMIT(),
-		"GOGC=100",
+		"GOGC=80",
+		"GODEBUG=madvdontneed=1",
 	)
 	return cmd
 }

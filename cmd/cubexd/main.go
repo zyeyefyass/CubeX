@@ -534,7 +534,8 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 		"edition":          ir.Meta.Edition,
 		"proxy_mode":       ir.Meta.ProxyMode,
 		"active_profile":   ir.Meta.ActiveProfile,
-		"memory_mb":        appRSS,
+		"memory_mb":        appRSS + coreRSS,
+		"app_memory_mb":    appRSS,
 		"memory_alloc_mb":  float64(m.Alloc) / 1024 / 1024,
 		"memory_sys_mb":    float64(m.Sys) / 1024 / 1024,
 		"core_memory_mb":   coreRSS,
@@ -2217,10 +2218,11 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 
 	sendJSON(w, map[string]any{
 		"connections_count":  connCount,
-		"memory_mb":          totalOverhead,
+		"memory_mb":          memMB + coreMem,
 		"total_overhead_mb":  totalOverhead,
 		"core_memory_mb":     coreMem,
-		"rss_mb":             memMB,
+		"app_memory_mb":      memMB,
+		"rss_mb":             memMB + coreMem,
 		"inbound_total_mb":   float64(downloadTotal) / (1024 * 1024),
 		"inbound_speed_bps":  downSpeed,
 		"outbound_total_mb":  float64(uploadTotal) / (1024 * 1024),

@@ -44,7 +44,7 @@
           </div>
         </div>
 
-        <!-- Master Navigation Hubs (网络中枢 ➔ 应用分流 ➔ 安全防护 ➔ 穿透协同 ➔ 容器加速 ➔ 宿主共生) -->
+        <!-- Master Navigation Hubs (网络中枢 ➔ 应用分流 ➔ 安全防护 ➔ 容器加速 ➔ 宿主共生) -->
         <nav class="p-3 space-y-2">
           <button v-for="item in navItems" :key="item.id"
             @click="activeMasterTab = item.id"
@@ -604,6 +604,7 @@
                 <div class="pt-2 sm:pt-0">
                   <div class="text-xs text-slate-400 font-medium">内存使用</div>
                   <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ telemetryMetrics.memoryMB.toFixed(1) }} MB</div>
+                  <div class="text-[10px] text-slate-500 font-mono mt-0.5">进程活跃 RSS</div>
                 </div>
                 <div class="pt-2 sm:pt-0">
                   <div class="text-xs text-slate-400 font-medium">进站流量</div>
@@ -932,6 +933,100 @@
               </div>
             </div>
           </section>
+
+          <!-- 🎛️ 局域网设备分流控制矩阵 (Per-Device Matrix) -->
+          <div class="glass-matrix rounded-2xl p-5 space-y-4 border-l-4 border-l-purple-500 shadow-xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-900/30 pb-3">
+              <div>
+                <div class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                  <span>🎛️ 局域网设备分流控制矩阵</span>
+                  <span class="text-xs text-cyan-300 bg-sky-900/40 px-2.5 py-0.5 rounded-full font-mono">
+                    {{ lanDevices.length }} 台设备在线
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400 mt-1">针对局域网特定终端（蓝光机、飞牛 NAS、Apple TV、游戏机等）指定智能规则分流或底层直连绕过</p>
+              </div>
+              <button @click="fetchLanDevices" :disabled="loadingDevices" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer transition">
+                {{ loadingDevices ? '正在探查...' : '↻ 实时刷新设备' }}
+              </button>
+            </div>
+
+            <div class="space-y-3">
+              <div v-for="dev in lanDevices" :key="dev.ip" class="flex flex-col lg:flex-row lg:items-center justify-between bg-slate-950/60 border border-slate-800 rounded-xl p-4 gap-4 transition hover:border-cyan-500/40">
+                <!-- Device Info -->
+                <div class="flex items-center gap-3">
+                  <span class="text-3xl shrink-0 select-none">💻</span>
+                  <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <!-- Normal Display State -->
+                      <template v-if="editingDeviceIp !== dev.ip">
+                        <span class="text-sm font-bold text-white tracking-wide">{{ dev.name }}</span>
+                      </template>
+
+                      <!-- Inline Editing State -->
+                      <template v-else>
+                        <div class="flex items-center gap-1.5 animate-in fade-in py-0.5">
+                          <input v-model="editingDeviceName" 
+                            @keyup.enter="saveDeviceAlias(dev)" 
+                            @keyup.esc="cancelEditDevice" 
+                            autofocus 
+                            class="px-2.5 py-1 text-xs rounded-lg bg-slate-900 border border-cyan-400 text-white font-bold outline-none ring-2 ring-cyan-500/30 w-48 sm:w-64 shadow-inner"
+                            placeholder="输入新设备备注名..." />
+                          <button @click="saveDeviceAlias(dev)" 
+                            :disabled="savingDeviceAlias"
+                            class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1 shadow cursor-pointer">
+                            <span>✔ 保存</span>
+                          </button>
+                          <button @click="cancelEditDevice" 
+                            class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition cursor-pointer">
+                            <span>✕ 取消</span>
+                          </button>
+                        </div>
+                      </template>
+
+                      <span :class="[
+                        'text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold',
+                        dev.mode === 'bypass' ? 'bg-sky-950 text-sky-300 border border-sky-500/40' :
+                        'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
+                      ]">
+                        {{ dev.mode === 'bypass' ? '🔵 底层直连绕过' : '🟢 智能规则分流' }}
+                      </span>
+                    </div>
+                    <div class="text-xs font-mono text-slate-400 mt-0.5">
+                      IP: <strong class="text-cyan-300">{{ dev.ip }}</strong> | MAC: {{ dev.mac || '-' }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Right Controls: 2-Segmented Capsule Control Slider + 设备重命名 Button -->
+                <div class="flex items-center gap-2.5 flex-wrap">
+                  <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 gap-1 text-xs">
+                    <button @click="setDeviceRouting(dev, 'rule')"
+                      :class="['px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer', dev.mode === 'rule' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white']">
+                      🟢 智能规则
+                    </button>
+                    <button @click="setDeviceRouting(dev, 'bypass')"
+                      :class="['px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer', dev.mode === 'bypass' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white']">
+                      🔵 底层直连绕过
+                    </button>
+                  </div>
+
+                  <!-- 设备重命名 Trigger Button (最右侧) -->
+                  <button v-if="editingDeviceIp !== dev.ip"
+                    @click="startEditDevice(dev)" 
+                    title="修改设备备注名" 
+                    class="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 text-slate-400 hover:text-cyan-300 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-sm group">
+                    <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    <span>设备重命名</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
 
 
 
@@ -2250,258 +2345,6 @@
         </div>
 
         <!-- ════════════════════════════════════════════════════════════════ -->
-        <!-- TAB 2: 穿透协同 (WireGuard & Remote Access & Per-Device Matrix)   -->
-        <!-- ════════════════════════════════════════════════════════════════ -->
-        <div v-else-if="activeMasterTab === 'wireguard'" class="space-y-6 animate-in fade-in">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-800/40 pb-4">
-            <div>
-              <h2 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                <span>📡 EasyTier 极光穿透与全协议 Mesh 组网中枢</span>
-                <span class="text-xs px-2.5 py-0.5 rounded-full font-semibold font-mono"
-                  :class="easyTierStatus.running ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-400 border border-slate-700'">
-                  {{ easyTierStatus.running ? '● 组网中 (Active)' : '○ 已停用' }}
-                </span>
-              </h2>
-              <p class="text-xs text-slate-400 mt-1">去中心化 P2P 穿透 · 多协议抗封锁 (TCP / UDP / WSS / TLS) · 子网代理漫游 · 0 侵入穿透 NAT</p>
-            </div>
-            <div class="flex items-center gap-2">
-              <button @click="showEasyTierJoinModal = true" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-600 hover:from-cyan-400 hover:to-sky-500 text-slate-950 text-xs font-black shadow-lg shadow-cyan-500/20 active:scale-95 transition flex items-center gap-1.5">
-                <span>⚡ 生成客户端加入向导</span>
-              </button>
-              <button @click="fetchEasyTierStatus" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-bold transition">
-                ↻ 刷新
-              </button>
-              <button @click="toggleEasyTier" :disabled="easyTierLoading"
-                :class="['px-3.5 py-2 rounded-xl font-bold text-xs transition flex items-center gap-1.5', easyTierStatus.running ? 'bg-rose-950/60 hover:bg-rose-900/80 border border-rose-500/40 text-rose-300' : 'bg-emerald-600 hover:bg-emerald-500 text-white']">
-                <span>{{ easyTierStatus.running ? '⏹ 停止引擎' : '▶ 启动引擎' }}</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- 🌟 EasyTier 4-Card Bento Matrix -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Card 1: 虚拟 IP 与网关身份 -->
-            <div class="p-4 rounded-2xl bg-slate-950/70 border border-sky-800/40 space-y-2 relative overflow-hidden">
-              <div class="flex items-center justify-between text-xs text-slate-400">
-                <span class="flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-full" :class="easyTierStatus.running ? 'bg-emerald-400 animate-ping' : 'bg-slate-600'"></span>
-                  <span>本机虚拟 IP / 网关身份</span>
-                </span>
-                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/30">Master</span>
-              </div>
-              <div class="text-xl font-black font-mono text-cyan-300 tracking-wide">{{ easyTierStatus.virtual_ip || '10.144.144.1/24' }}</div>
-              <div class="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/60">
-                <span>节点标识:</span>
-                <span class="font-mono text-slate-300">{{ easyTierStatus.node_name }} ({{ easyTierStatus.node_id }})</span>
-              </div>
-            </div>
-
-            <!-- Card 2: 网络名称与共享密钥 -->
-            <div class="p-4 rounded-2xl bg-slate-950/70 border border-sky-800/40 space-y-2 relative overflow-hidden">
-              <div class="flex items-center justify-between text-xs text-slate-400">
-                <span>网络名称 / 共享密钥</span>
-                <button @click="regenerateEasyTierSecret" title="重生成密钥" class="text-[10px] text-purple-300 hover:text-purple-200">↻ 换密</button>
-              </div>
-              <div class="flex items-center justify-between">
-                <div class="text-lg font-black font-mono text-purple-300 tracking-wide truncate">{{ easyTierConfig.network_name }}</div>
-                <button @click="showEasyTierSecret = !showEasyTierSecret" class="text-xs text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-900 border border-slate-800">
-                  {{ showEasyTierSecret ? '隐藏' : '显示' }}
-                </button>
-              </div>
-              <div class="text-[11px] font-mono text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/60">
-                <span class="truncate max-w-[150px]">{{ showEasyTierSecret ? easyTierConfig.network_secret : '••••••••••••' }}</span>
-                <button @click="copyToClipboard(easyTierConfig.network_secret, '密钥已复制')" class="text-cyan-400 hover:text-cyan-300 text-[10px]">复制</button>
-              </div>
-            </div>
-
-            <!-- Card 3: 穿透协议与直连率 -->
-            <div class="p-4 rounded-2xl bg-slate-950/70 border border-sky-800/40 space-y-2 relative overflow-hidden">
-              <div class="flex items-center justify-between text-xs text-slate-400">
-                <span>穿透协议 / P2P 直连率</span>
-                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30">{{ easyTierStatus.p2p_direct_rate || '98.5%' }}</span>
-              </div>
-              <div class="text-lg font-bold text-white tracking-wide truncate">{{ easyTierStatus.protocol_mode || 'P2P 直连 + WSS 备援' }}</div>
-              <div class="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-800/60">
-                <span>NAT 类型:</span>
-                <span class="font-mono text-emerald-400">{{ easyTierStatus.nat_type || 'FullCone (完全圆锥)' }}</span>
-              </div>
-            </div>
-
-            <!-- Card 4: 子网漫游代理广播 -->
-            <div class="p-4 rounded-2xl bg-slate-950/70 border border-sky-800/40 space-y-2 relative overflow-hidden">
-              <div class="flex items-center justify-between text-xs text-slate-400">
-                <span>内网子网漫游代理</span>
-                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-500/30">广播中</span>
-              </div>
-              <div class="text-lg font-black font-mono text-indigo-300 tracking-wide">{{ easyTierConfig.subnet_proxy || '192.168.88.0/24' }}</div>
-              <div class="text-[10px] text-slate-400 pt-1 border-t border-slate-800/60 leading-tight">
-                远程客户端无感免配，直接访问家庭内网所有设备
-              </div>
-            </div>
-          </div>
-
-          <!-- ── EasyTier 接入设备与 Mesh 对等节点矩阵 ── -->
-          <div class="space-y-3">
-            <div class="flex items-center justify-between border-b border-slate-700/40 pb-3">
-              <div>
-                <h3 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                  <span>📱 EasyTier 接入设备与 Mesh 节点拓扑</span>
-                  <span class="text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-mono">
-                    {{ easyTierStatus.peers ? easyTierStatus.peers.length : 4 }} 台节点在线
-                  </span>
-                </h3>
-                <p class="text-xs text-slate-400 mt-1">全对等 Mesh 去中心化拓扑 · 自动穿透 NAT 打洞直连 · 跨网段安全互联</p>
-              </div>
-              <button @click="showEasyTierJoinModal = true" class="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 text-xs font-bold transition flex items-center gap-1.5">
-                <span>+ 接入新设备向导</span>
-              </button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              <div v-for="peer in easyTierStatus.peers" :key="peer.id" class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 hover:border-cyan-500/40 space-y-3 transition group">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-lg">
-                      <span v-if="peer.is_gateway">🖥️</span>
-                      <span v-else-if="peer.name.includes('Mac') || peer.name.includes('PC')">💻</span>
-                      <span v-else-if="peer.name.includes('iPhone') || peer.name.includes('Android')">📱</span>
-                      <span v-else>🗄️</span>
-                    </div>
-                    <div>
-                      <div class="text-xs font-bold text-white group-hover:text-cyan-300 transition">{{ peer.name }}</div>
-                      <div class="text-[10px] font-mono text-cyan-400">{{ peer.virtual_ip }}</div>
-                    </div>
-                  </div>
-                  <span :class="['text-[10px] font-mono px-2 py-0.5 rounded-full font-bold', peer.is_gateway ? 'bg-cyan-950 text-cyan-300 border border-cyan-500/40' : (peer.p2p_direct ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40' : 'bg-indigo-950 text-indigo-300 border border-indigo-500/40')]">
-                    {{ peer.is_gateway ? '网关主机' : (peer.p2p_direct ? 'P2P 直连' : '中继转发') }}
-                  </span>
-                </div>
-
-                <div class="space-y-1.5 pt-2 border-t border-slate-800/80 text-[11px] font-mono">
-                  <div class="flex items-center justify-between text-slate-400">
-                    <span>协议通道:</span>
-                    <span class="text-purple-300">{{ peer.protocol }}</span>
-                  </div>
-                  <div class="flex items-center justify-between text-slate-400">
-                    <span>物理链路:</span>
-                    <span class="text-slate-300 truncate max-w-[140px]" :title="peer.physical_ip">{{ peer.physical_ip }}</span>
-                  </div>
-                  <div class="flex items-center justify-between text-slate-400">
-                    <span>实时延迟:</span>
-                    <span :class="['font-bold', peer.latency_ms <= 20 ? 'text-emerald-400' : 'text-amber-400']">{{ peer.latency_ms }} ms</span>
-                  </div>
-                  <div class="flex items-center justify-between text-slate-400">
-                    <span>累计流量:</span>
-                    <span class="text-cyan-300">↓ {{ (peer.rx_bytes / 1024 / 1024).toFixed(1) }} MB · ↑ {{ (peer.tx_bytes / 1024 / 1024).toFixed(1) }} MB</span>
-                  </div>
-                </div>
-
-                <div class="flex items-center gap-2 pt-2 border-t border-slate-800/80 text-xs">
-                  <button @click="copyToClipboard(peer.virtual_ip, '虚拟 IP 已复制')" class="flex-1 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 font-mono text-[11px] border border-slate-700/60 transition">
-                    复制 IP
-                  </button>
-                  <button @click="showToast('正在向 ' + peer.name + ' 发送 ICMP 测活包: ' + peer.latency_ms + 'ms 正常')" class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-cyan-300 font-mono text-[11px] border border-slate-700/60 transition">
-                    Ping
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 🎛️ 局域网设备分流控制矩阵 (Per-Device Matrix) -->
-          <div class="glass-matrix rounded-2xl p-5 space-y-4 border-l-4 border-l-purple-500 shadow-xl">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-900/30 pb-3">
-              <div>
-                <div class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                  <span>🎛️ 局域网设备分流控制矩阵</span>
-                  <span class="text-xs text-cyan-300 bg-sky-900/40 px-2.5 py-0.5 rounded-full font-mono">
-                    {{ lanDevices.length }} 台设备在线
-                  </span>
-                </div>
-                <p class="text-xs text-slate-400 mt-1">针对局域网特定终端（蓝光机、飞牛 NAS、Apple TV、游戏机等）指定智能规则分流或底层直连绕过</p>
-              </div>
-              <button @click="fetchLanDevices" :disabled="loadingDevices" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer transition">
-                {{ loadingDevices ? '正在探查...' : '↻ 实时刷新设备' }}
-              </button>
-            </div>
-
-            <div class="space-y-3">
-              <div v-for="dev in lanDevices" :key="dev.ip" class="flex flex-col lg:flex-row lg:items-center justify-between bg-slate-950/60 border border-slate-800 rounded-xl p-4 gap-4 transition hover:border-cyan-500/40">
-                <!-- Device Info -->
-                <div class="flex items-center gap-3">
-                  <span class="text-3xl shrink-0 select-none">💻</span>
-                  <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <!-- Normal Display State -->
-                      <template v-if="editingDeviceIp !== dev.ip">
-                        <span class="text-sm font-bold text-white tracking-wide">{{ dev.name }}</span>
-                      </template>
-
-                      <!-- Inline Editing State -->
-                      <template v-else>
-                        <div class="flex items-center gap-1.5 animate-in fade-in py-0.5">
-                          <input v-model="editingDeviceName" 
-                            @keyup.enter="saveDeviceAlias(dev)" 
-                            @keyup.esc="cancelEditDevice" 
-                            autofocus 
-                            class="px-2.5 py-1 text-xs rounded-lg bg-slate-900 border border-cyan-400 text-white font-bold outline-none ring-2 ring-cyan-500/30 w-48 sm:w-64 shadow-inner"
-                            placeholder="输入新设备备注名..." />
-                          <button @click="saveDeviceAlias(dev)" 
-                            :disabled="savingDeviceAlias"
-                            class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1 shadow cursor-pointer">
-                            <span>✔ 保存</span>
-                          </button>
-                          <button @click="cancelEditDevice" 
-                            class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition cursor-pointer">
-                            <span>✕ 取消</span>
-                          </button>
-                        </div>
-                      </template>
-
-                      <span :class="[
-                        'text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold',
-                        dev.mode === 'bypass' ? 'bg-sky-950 text-sky-300 border border-sky-500/40' :
-                        'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
-                      ]">
-                        {{ dev.mode === 'bypass' ? '🔵 底层直连绕过' : '🟢 智能规则分流' }}
-                      </span>
-                    </div>
-                    <div class="text-xs font-mono text-slate-400 mt-0.5">
-                      IP: <strong class="text-cyan-300">{{ dev.ip }}</strong> | MAC: {{ dev.mac || '-' }}
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Right Controls: 2-Segmented Capsule Control Slider + 设备重命名 Button -->
-                <div class="flex items-center gap-2.5 flex-wrap">
-                  <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 gap-1 text-xs">
-                    <button @click="setDeviceRouting(dev, 'rule')"
-                      :class="['px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer', dev.mode === 'rule' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white']">
-                      🟢 智能规则
-                    </button>
-                    <button @click="setDeviceRouting(dev, 'bypass')"
-                      :class="['px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer', dev.mode === 'bypass' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white']">
-                      🔵 底层直连绕过
-                    </button>
-                  </div>
-
-                  <!-- 设备重命名 Trigger Button (最右侧) -->
-                  <button v-if="editingDeviceIp !== dev.ip"
-                    @click="startEditDevice(dev)" 
-                    title="修改设备备注名" 
-                    class="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 text-slate-400 hover:text-cyan-300 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-sm group">
-                    <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                    <span>设备重命名</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- ════════════════════════════════════════════════════════════════ -->
         <!-- TAB 3: 安全防护 (Security & 217heidai MRS AdBlock)                -->
         <!-- ════════════════════════════════════════════════════════════════ -->
@@ -3871,102 +3714,6 @@
       </div>
     </div>
 
-    <!-- ── EasyTier 客户端一键加入向导弹窗 ── -->
-    <div v-if="showEasyTierJoinModal" class="fixed inset-0 z-50 bg-[#070b14]/85 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
-      <div class="bg-[#00172e] border border-cyan-500/50 rounded-3xl p-6 sm:p-7 max-w-2xl w-full space-y-5 shadow-[0_0_50px_rgba(0,210,255,0.18)] max-h-[92vh] flex flex-col text-slate-200">
-        <div class="flex items-center justify-between border-b border-sky-800/40 pb-3.5">
-          <div class="flex items-center gap-3">
-            <span class="text-2xl p-2 rounded-2xl bg-cyan-950/80 border border-cyan-500/30">📡</span>
-            <div>
-              <h3 class="text-base font-black text-white flex items-center gap-2">
-                <span>EasyTier 客户端一键加入向导</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-mono font-bold">
-                  Mesh Join
-                </span>
-              </h3>
-              <p class="text-[11px] text-slate-400 mt-0.5">选择客户端操作系统，复制一键启动命令或扫描凭据即可快速加入 Mesh 虚拟专网</p>
-            </div>
-          </div>
-          <button @click="showEasyTierJoinModal = false" class="text-slate-400 hover:text-white px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-sm font-bold transition">✕</button>
-        </div>
-
-        <!-- Platform Tabs -->
-        <div class="flex p-1 bg-slate-950/90 rounded-2xl border border-slate-800 text-xs font-mono shrink-0">
-          <button @click="joinModalPlatform = 'linux'" :class="['flex-1 py-2 rounded-xl font-bold transition', joinModalPlatform === 'linux' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-slate-200']">
-            🐧 Linux / Docker
-          </button>
-          <button @click="joinModalPlatform = 'macos'" :class="['flex-1 py-2 rounded-xl font-bold transition', joinModalPlatform === 'macos' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-slate-200']">
-            🍏 macOS
-          </button>
-          <button @click="joinModalPlatform = 'windows'" :class="['flex-1 py-2 rounded-xl font-bold transition', joinModalPlatform === 'windows' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-slate-200']">
-            🪟 Windows
-          </button>
-          <button @click="joinModalPlatform = 'mobile'" :class="['flex-1 py-2 rounded-xl font-bold transition', joinModalPlatform === 'mobile' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-slate-200']">
-            📱 移动端 App
-          </button>
-        </div>
-
-        <!-- Platform Content -->
-        <div class="space-y-4">
-          <div v-if="joinModalPlatform === 'linux'" class="space-y-3">
-            <div class="text-xs text-slate-300 font-semibold">1. Docker 容器极速运行命令:</div>
-            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-cyan-300 relative group overflow-x-auto">
-              <code>docker run -d --name easytier --net=host --cap-add=NET_ADMIN --device /dev/net/tun easytier/easytier:latest -w {{ easyTierConfig.network_secret }} -n {{ easyTierConfig.network_name }} --peers tcp://your-ip:11010</code>
-              <button @click="copyToClipboard('docker run -d --name easytier --net=host --cap-add=NET_ADMIN --device /dev/net/tun easytier/easytier:latest -w ' + easyTierConfig.network_secret + ' -n ' + easyTierConfig.network_name + ' --peers tcp://your-ip:11010', 'Docker 命令已复制')" class="absolute top-2 right-2 px-2 py-1 rounded bg-slate-800 text-slate-300 hover:text-white text-[10px] font-sans">复制</button>
-            </div>
-            <div class="text-xs text-slate-300 font-semibold">2. Linux 单二进制一键命令:</div>
-            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-cyan-300 relative group overflow-x-auto">
-              <code>easytier-core -w {{ easyTierConfig.network_secret }} -n {{ easyTierConfig.network_name }} --peers tcp://your-ip:11010</code>
-              <button @click="copyToClipboard('easytier-core -w ' + easyTierConfig.network_secret + ' -n ' + easyTierConfig.network_name + ' --peers tcp://your-ip:11010', '命令已复制')" class="absolute top-2 right-2 px-2 py-1 rounded bg-slate-800 text-slate-300 hover:text-white text-[10px] font-sans">复制</button>
-            </div>
-          </div>
-
-          <div v-else-if="joinModalPlatform === 'macos'" class="space-y-3">
-            <div class="text-xs text-slate-300 font-semibold">macOS 终端直接运行:</div>
-            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-cyan-300 relative group overflow-x-auto">
-              <code>sudo easytier-core -w {{ easyTierConfig.network_secret }} -n {{ easyTierConfig.network_name }} --peers tcp://your-ip:11010</code>
-              <button @click="copyToClipboard('sudo easytier-core -w ' + easyTierConfig.network_secret + ' -n ' + easyTierConfig.network_name + ' --peers tcp://your-ip:11010', 'macOS 命令已复制')" class="absolute top-2 right-2 px-2 py-1 rounded bg-slate-800 text-slate-300 hover:text-white text-[10px] font-sans">复制</button>
-            </div>
-            <p class="text-[11px] text-slate-400">可通过 Homebrew 安装: <code>brew install easytier</code> 或直接下载官方 macOS arm64/x86_64 二进制。</p>
-          </div>
-
-          <div v-else-if="joinModalPlatform === 'windows'" class="space-y-3">
-            <div class="text-xs text-slate-300 font-semibold">Windows PowerShell (以管理员身份运行):</div>
-            <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-cyan-300 relative group overflow-x-auto">
-              <code>.\easytier-core.exe -w {{ easyTierConfig.network_secret }} -n {{ easyTierConfig.network_name }} --peers tcp://your-ip:11010</code>
-              <button @click="copyToClipboard('.\\easytier-core.exe -w ' + easyTierConfig.network_secret + ' -n ' + easyTierConfig.network_name + ' --peers tcp://your-ip:11010', 'PowerShell 命令已复制')" class="absolute top-2 right-2 px-2 py-1 rounded bg-slate-800 text-slate-300 hover:text-white text-[10px] font-sans">复制</button>
-            </div>
-          </div>
-
-          <div v-else class="space-y-3">
-            <div class="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
-              <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                <span>📱 手机客户端填入参数:</span>
-              </div>
-              <div class="grid grid-cols-2 gap-2 text-xs font-mono">
-                <div class="p-2 rounded bg-slate-900 border border-slate-800">
-                  <div class="text-[10px] text-slate-400">网络名称 (Network Name)</div>
-                  <div class="text-cyan-300 font-bold">{{ easyTierConfig.network_name }}</div>
-                </div>
-                <div class="p-2 rounded bg-slate-900 border border-slate-800">
-                  <div class="text-[10px] text-slate-400">网络密钥 (Secret Token)</div>
-                  <div class="text-purple-300 font-bold truncate">{{ easyTierConfig.network_secret }}</div>
-                </div>
-              </div>
-              <p class="text-[11px] text-slate-400 mt-2">支持 iOS (App Store 搜索 EasyTier) 及 Android APK。填入后即可与家庭内网和 Master 节点形成全加密 P2P Mesh 直连。</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="pt-3 border-t border-sky-800/40 flex justify-end">
-          <button @click="showEasyTierJoinModal = false" class="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition">
-            完成
-          </button>
-        </div>
-      </div>
-    </div>
-
-
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- Modal: 宿主共生系统初始化向导 (System Initialization Wizard Modal)    -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
@@ -4279,7 +4026,7 @@ import LogoPicker from './components/LogoPicker.vue'
 import RegionFlag from './components/RegionFlag.vue'
 
 // ── Master Navigation Hubs (核心模块导航 - 支持全状态记忆与 F5 刷新锁定) ──
-const VALID_TABS = ['overview', 'routing', 'rules', 'wireguard', 'kspeeder', 'system']
+const VALID_TABS = ['overview', 'routing', 'rules', 'kspeeder', 'system']
 
 function getInitialTab() {
   try {
@@ -4335,7 +4082,6 @@ const navItems = [
   { id: 'overview', label: '网络中枢', icon: '🌌' },
   { id: 'routing', label: '应用分流', icon: '🧭' },
   { id: 'rules', label: '安全防护', icon: '🛡️' },
-  { id: 'wireguard', label: '穿透协同', icon: '📡' },
   { id: 'kspeeder', label: '容器加速', icon: '🚀' },
   { id: 'system', label: '宿主共生', icon: '⚙️' }
 ]
@@ -5308,7 +5054,7 @@ async function fetchTelemetryTraffic() {
     const res = await fetch('/api/v1/telemetry/traffic')
     if (res.ok) {
       const data = await res.json()
-      const liveMem = data.memory_mb || systemStatus.value?.total_overhead_mb || 51.1
+      const liveMem = data.rss_mb || data.memory_mb || systemStatus.value?.memory_mb || 51.1
       telemetryMetrics.value.connections = data.connections_count || 9
       telemetryMetrics.value.memoryMB = liveMem
       if (data.rss_mb !== undefined) telemetryMetrics.value.rssMB = Number(data.rss_mb.toFixed(1))
