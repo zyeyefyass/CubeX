@@ -1474,7 +1474,7 @@ func (s *Server) handleGroupSelect(w http.ResponseWriter, r *http.Request) {
 	}
 	if updated {
 		s.engMgr.UpdateIR(ir)
-		// If Clash API is available, notify Mihomo
+		// If Clash API is available, notify Mihomo / sing-box and purge stale connections
 		go func() {
 			payload, _ := json.Marshal(map[string]string{"name": req.Node})
 			escapedGroup := url.PathEscape(req.Group)
@@ -1484,6 +1484,11 @@ func (s *Server) handleGroupSelect(w http.ResponseWriter, r *http.Request) {
 			if err == nil {
 				cReq.Header.Set("Content-Type", "application/json")
 				_, _ = client.Do(cReq)
+			}
+			// Terminate active HTTP/2 and keep-alive sockets so new traffic immediately routes through the new node
+			delReq, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://127.0.0.1:%d/connections", ir.Network.ClashAPIPort), nil)
+			if err == nil {
+				_, _ = client.Do(delReq)
 			}
 		}()
 	}

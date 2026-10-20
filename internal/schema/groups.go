@@ -377,6 +377,13 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 		defaultNow := candidates[0]
 		if bg.Name == "Apple 服务" || bg.Name == "Microsoft" || bg.Name == "🎯 国内流量" {
 			defaultNow = "DIRECT"
+		} else if bg.Name == "AI" {
+			for _, pref := range []string{"🇺🇸 美国自动", "🇯🇵 日本自动", "🇹🇼 台湾自动", "🇸🇬 新加坡自动"} {
+				if containsString(candidates, pref) {
+					defaultNow = pref
+					break
+				}
+			}
 		}
 
 		bizGrp := StrategyGroup{
@@ -392,6 +399,8 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 		if eg, exists := existingMap[bg.Name]; exists {
 			if eg.Now != "" && containsString(candidates, eg.Now) {
 				if eg.Now == "DIRECT" && bg.Name != "Apple 服务" && bg.Name != "Microsoft" && bg.Name != "🎯 国内流量" {
+					bizGrp.Now = defaultNow
+				} else if bg.Name == "AI" && (eg.Now == "🇭🇰 香港自动" || eg.Now == "🇭🇰 香港故转" || eg.Now == "🇭🇰 香港容灾") {
 					bizGrp.Now = defaultNow
 				} else {
 					bizGrp.Now = eg.Now

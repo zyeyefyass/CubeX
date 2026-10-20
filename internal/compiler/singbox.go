@@ -170,9 +170,6 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 					"jd.com",
 					"alipay.com",
 					"163.com",
-					"gstatic.com",
-					"cloudflare.com",
-					"google.com",
 					"msftconnecttest.com",
 				},
 				"rule_set": []string{"geosite-cn"},
@@ -569,9 +566,8 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 	// B. QUIC & STUN Fast Reject (Immediate RST/ICMP rejection without packet drop stall)
 	routeRules = append(routeRules, map[string]any{
-		"port":     []int{443, 853},
+		"port":     []int{443, 8443, 853},
 		"network":  []string{"udp"},
-		"protocol": []string{"quic", "stun"},
 		"action":   "reject",
 		"no_drop":  true,
 	})
@@ -683,24 +679,35 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"outbound": domesticTarget,
 	})
 
-	// G. Foreign QUIC (UDP 443) Targeted Interception (Forces fallback to high-speed TCP)
-	routeRules = append(routeRules, map[string]any{
-		"type": "logical",
-		"mode": "and",
-		"rules": []map[string]any{
-			{
-				"network": "udp",
-				"port":    443,
-			},
-		},
-		"action": "reject",
-	})
-
 	// H. 11 Major Business Strategy Groups (Comprehensive Domain Matching)
 	if validOutbounds["AI"] {
 		routeRules = append(routeRules, map[string]any{
-			"domain_suffix": []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "oaistatic.com", "oaiusercontent.com", "perplexity.ai", "gemini.google.com"},
-			"outbound":      "AI",
+			"domain": []string{
+				"generativelanguage.googleapis.com",
+				"daily-cloudcode-pa.googleapis.com",
+				"cloudcode-pa.googleapis.com",
+				"aiplatform.googleapis.com",
+				"alkalimakersuite-pa.clients6.google.com",
+				"aistudio.google.com",
+				"makersuite.google.com",
+				"bard.google.com",
+				"gemini.google.com",
+				"deepmind.google",
+			},
+			"domain_suffix": []string{
+				"openai.com",
+				"chatgpt.com",
+				"anthropic.com",
+				"claude.ai",
+				"oaistatic.com",
+				"oaiusercontent.com",
+				"perplexity.ai",
+				"gemini.google.com",
+				"deepmind.google",
+				"x.ai",
+				"grok.com",
+			},
+			"outbound": "AI",
 		})
 	}
 	if validOutbounds["YouTube"] {

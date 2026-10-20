@@ -471,13 +471,26 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		rulesList = append(rulesList, "DOMAIN,youtubei.googleapis.com,YouTube")
 	}
 
+	// 2a-2. AI (OpenAI / Claude / Google Gemini / Antigravity / DeepMind)
+	if validTargets["AI"] {
+		rulesList = append(rulesList, "DOMAIN,generativelanguage.googleapis.com,AI")
+		rulesList = append(rulesList, "DOMAIN,daily-cloudcode-pa.googleapis.com,AI")
+		rulesList = append(rulesList, "DOMAIN,cloudcode-pa.googleapis.com,AI")
+		rulesList = append(rulesList, "DOMAIN,aiplatform.googleapis.com,AI")
+		rulesList = append(rulesList, "DOMAIN,alkalimakersuite-pa.clients6.google.com,AI")
+		rulesList = append(rulesList, "DOMAIN,aistudio.google.com,AI")
+		rulesList = append(rulesList, "DOMAIN,makersuite.google.com,AI")
+		rulesList = append(rulesList, "DOMAIN,bard.google.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,deepmind.google,AI")
+	}
+
 	// 2b. High-Speed Business Service Rules (Native Domain-Suffix & GEOSITE)
 	bizRules := []struct {
 		group    string
 		suffixes []string
 		geosite  string
 	}{
-		{"AI", []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "oaistatic.com", "oaiusercontent.com", "perplexity.ai", "gemini.google.com"}, "openai"},
+		{"AI", []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "oaistatic.com", "oaiusercontent.com", "perplexity.ai", "gemini.google.com", "deepmind.google", "x.ai", "grok.com"}, "openai"},
 		{"YouTube", []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com"}, "youtube"},
 		{"Google", []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com"}, "google"},
 		{"GitHub & Docker", []string{"github.com", "githubusercontent.com", "docker.com", "docker.io", "ghcr.io"}, "github"},
