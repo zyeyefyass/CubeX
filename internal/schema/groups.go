@@ -163,30 +163,14 @@ func AlignNodeAirportPrefixes(ir *ConfigIR) {
 			airportName = subNameMap[p.SubID]
 		}
 
-		// If sub_id missing, heuristically map based on node signature
-		if airportName == "" {
-			nameLower := strings.ToLower(p.Name)
-			if strings.Contains(nameLower, "cloud") || strings.Contains(nameLower, "xtls") || strings.Contains(nameLower, "reality") || strings.Contains(nameLower, "tuic") {
-				airportName = "Hhost-JP"
-			} else if strings.Contains(nameLower, "专线") || strings.Contains(nameLower, "家庭") || strings.Contains(nameLower, "dmit") {
-				airportName = "Mtice"
-			} else if strings.Contains(nameLower, "hk-") || strings.Contains(nameLower, "tw-") || strings.Contains(nameLower, "sg-") || strings.Contains(nameLower, "jp-") || strings.Contains(nameLower, "us-") || strings.Contains(nameLower, "kr-") {
-				airportName = "Jscloud"
-			} else if strings.Contains(p.Name, "MPLS") {
-				airportName = "Niubi"
-			} else if strings.Contains(p.Name, "x15") || strings.Contains(p.Name, "Forest") || strings.Contains(p.Name, "国际优化") {
-				airportName = "Forest"
-			} else {
-				airportName = "Kuailei"
+		if airportName != "" {
+			prefix := fmt.Sprintf("[%s]", airportName)
+			if !strings.HasPrefix(p.Name, "[") {
+				oldName := p.Name
+				newName := fmt.Sprintf("%s %s", prefix, oldName)
+				p.Name = newName
+				renameMap[oldName] = newName
 			}
-		}
-
-		prefix := fmt.Sprintf("[%s]", airportName)
-		if !strings.HasPrefix(p.Name, "[") {
-			oldName := p.Name
-			newName := fmt.Sprintf("%s %s", prefix, oldName)
-			p.Name = newName
-			renameMap[oldName] = newName
 		}
 	}
 
@@ -255,10 +239,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			}
 		}
 		if !matched {
-			// If not matched to HK/TW/SG_JPKR/US:
-			// If it has airport prefix or sub_id, put into OTHERS;
-			// If standalone without airport signature, put into CUSTOM
-			if p.SubID == "" && !strings.Contains(name, "Hhost") && !strings.Contains(name, "Mtice") && !strings.Contains(name, "Jscloud") && !strings.Contains(name, "Niubi") && !strings.Contains(name, "Forest") && !strings.Contains(name, "Kuailei") {
+			if p.SubID == "custom" || strings.HasPrefix(name, "[自建]") || strings.Contains(name, "自建") {
 				regionNodes["CUSTOM"] = append(regionNodes["CUSTOM"], name)
 			} else {
 				regionNodes["OTHERS"] = append(regionNodes["OTHERS"], name)
@@ -409,8 +390,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 					bizGrp.Now = defaultNow
 				} else if bg.Name == "AI" && (eg.Now == "🇭🇰 香港自动" || eg.Now == "🇭🇰 香港故转" || eg.Now == "🇭🇰 香港容灾") {
 					bizGrp.Now = defaultNow
-				} else if (bg.Name == "YouTube" || bg.Name == "Google") && strings.Contains(eg.Now, "HHost-JP") {
-					bizGrp.Now = defaultNow
+
 				} else {
 					bizGrp.Now = eg.Now
 				}
