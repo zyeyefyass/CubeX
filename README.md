@@ -62,6 +62,7 @@
 ## ⚡ 极速导航 (Table of Contents)
 
 - [📸 全息驾驶舱实机功能大赏 (图文速览)](#-全息驾驶舱实机功能大赏-图文速览)
+  - [⚡ 容器极速加速引擎 (KSpeeder) · 网友热推爆款神器 (GitHub 直链 + Docker 镜像加速)](#6-容器极速加速引擎-kspeeder--github-免翻直链转换与-docker-镜像源多宿主自动注入)
 - [⚖️ 架构定位与生态位辩析：让主路由做主路由的事，CubeX 专注做什么？](#️-架构定位与生态位辩析让主路由做主路由的事cubex-专注做什么)
 - [🧬 核心定性：为什么是“宿主共生”？](#-核心定性为什么是宿主共生)
 - [🧭 架构决胜：为什么坚定采用「主网关 + 旁路 DNS」黄金解耦？](#-架构决胜为什么坚定采用主网关--旁路-dns黄金解耦)
@@ -134,12 +135,74 @@
 
 ---
 
-### 6. 容器极速加速引擎 · GitHub 直链转换与 Docker 多源镜像加速
-针对国内网络环境深度优化：内置 GitHub Releases / Raw / Git 仓库链接一键高速镜像直链转换器；聚合 5 大优选 GitHub CDN 与多源 Docker Registry 镜像加速，并支持一键下发至宿主容器引擎。
+### 6. 容器极速加速引擎 (KSpeeder) · GitHub 免翻直链转换与 Docker 镜像源多宿主自动注入
+> **💡 坦白说，最初这只是作者为了方便自己在测试时下载内核与根文件系统顺手写的小工具，没想到发布后直接成为了被各路极客网友疯狂热推的“爆款宝藏神器”！**
 
+#### 为什么国内家庭网络、NAS 和软路由用户苦 Docker Hub / GitHub 久矣？
+在当前国内复杂的网络环境下，几乎每一位玩软路由、NAS、Docker 的朋友都经历过以下痛点：
+1. **Docker 拉镜像卡死绝望**：在国内 Docker Hub 镜像站大面积关停后，各路 NAS / PVE / 软路由拉镜像频繁报 `context deadline exceeded` 或 `ImagePullBackOff`；
+2. **到处求源、源又频繁失效**：各大公共镜像加速站常常几天就失效，用户不得不在各个论坛四处打听最新的可用源，再手动 SSH 修改 `/etc/docker/daemon.json` 并重启 Docker，繁琐无比；
+3. **RouterOS 容器配置繁杂**：RouterOS v7 很多小白用户因 URL 或证书填错，导致官方 Container 怎么也拉不下来镜像；
+4. **GitHub Releases 大文件慢如蜗牛**：下载一个 500MB 的内核包、固件或 AI 模型权重，直接连常常跑 10KB/s 甚至中途断流。
+
+**CubeX 容器加速引擎 (KSpeeder) 彻底终结了这一切烦恼！无需配置复杂代理规则，开箱即用，秒级直连！**
+
+---
+
+#### 🌟 核心三大杀手级子模块功能详解：
+
+1. **⚡ GitHub 极速下载链接转换器 (直链转换器 · 生产力倍增)**
+   - **痛点终结**：直接粘贴任意 GitHub Releases 安装包、Raw 代码片段、Git 仓库 Archive 或 Release Asset 链接；
+   - **毫秒直出**：CubeX 自动分析 URL 并调用国内延迟最低的高速 CDN 通道，瞬间生成免翻直连加速直链；
+   - **双模极速获取**：支持【📋 一键复制加速直链】（方便在终端执行 `wget`/`curl`），或直接点击【⬇️ 浏览器直接打开下载】，跑满千兆物理带宽！
+
+2. **🐙 5 大 GitHub CDN 优选镜像源矩阵 (智能并发测速与动态优选)**
+   - 聚合当前网络环境下最高速的 5 大国内高可用 Anycast CDN 通道；
+   - 支持【⚡ 仅测速 GitHub 源】与【⚡ 全节点并发测速】，实时展示每个镜像站的真实毫秒级 RTT 延迟与健康状态（`极速可用` / `延迟稍高` / `暂时离线`）；
+   - 支持鼠标单击任意卡片，实时一键锁定为全局默认加速出站源。
+
+3. **🐳 Docker Registry 多源镜像加速与多宿主一键无感注入**
+   - 动态聚合国内最新存活的优质 Docker Registry 镜像加速站；
+   - **独家神技 · 智能宿主底座感知与一键下发**：
+     - 当运行于 **MikroTik RouterOS** 底座：点击【🚀 一键注入当前宿主 (RouterOS 容器加速)】，CubeX 自动调用 REST API 将最低延迟的优选源注入 `/container/config/set registry-url=...`，0 进 WinBox、0 敲命令行！
+     - 当运行于 **飞牛 fnOS / PVE / 通用 Linux** 底座：自动识别当前宿主系统，一键同步宿主 Docker 守护进程；
+   - **宿主生效看板与闭环核验**：配备【宿主实际生效源与核验看板】与实时状态指示灯（`🟢 宿主已生效` vs `⚠️ 宿主尚未注入该镜像源`），实际配置所见即所得，拒绝盲人摸象！
+
+---
+
+#### 📸 多角度实机大赏 (Rich Visual Showcase)：
+
+##### ① 容器极速加速引擎全局驾驶舱与 5 大 CDN / Docker 优选矩阵
 <div align="center">
-  <img src="docs/assets/screenshots/cubex-live-kspeeder-cdn.png" alt="CubeX 容器加速引擎与镜像源优选" width="95%" />
+  <img src="docs/assets/screenshots/cubex-live-kspeeder-cdn.png" alt="CubeX 容器加速引擎与镜像源优选全景" width="95%" />
 </div>
+
+##### ② GitHub 极速下载链接转换器 · 直链毫秒级就绪与多源并发测速
+<div align="center">
+  <img src="docs/assets/screenshots/cubex-kspeeder-full-matrix.png" alt="GitHub 极速免翻直链转换器与 CDN 优选矩阵" width="95%" />
+</div>
+
+##### ③ Docker Registry 镜像加速多源状态与 RouterOS / 飞牛宿主一键注入核验看板
+<div align="center">
+  <img src="docs/assets/screenshots/cubex-kspeeder-docker-mirrors.png" alt="Docker Registry 多源镜像加速与多宿主一键注入看板" width="95%" />
+</div>
+
+---
+
+#### 📖 保姆级 30 秒极速上手指南：
+
+* **场景 A：下载 GitHub Releases 大文件 (如固件、大模型、编译包)**：
+  1. 打开 GitHub 找到所需 Release 文件的下载链接（如 `.zip` 或 `.tar.gz`），右键复制链接；
+  2. 进入 CubeX 控制台【容器加速】页面，粘贴链接到输入框；
+  3. 系统秒级生成加速直链，点击【⬇️ 浏览器直接打开下载】，即刻享受几十 MB/s 的满速狂飙！
+* **场景 B：RouterOS v7 容器拉取 Docker 镜像老是超时报错**：
+  1. 进入【容器加速】页面 -> 点击【⚡ 全节点并发测速】；
+  2. 挑选延迟最低、绿标显示“极速可用”（如 20ms~40ms）的 Docker 镜像源卡片；
+  3. 点击右上角【🚀 一键注入当前宿主 (RouterOS 容器加速)】；
+  4. 观察下方状态看板变为 `🟢 宿主与所选镜像一致 (已就绪)`，此时回 WinBox 拉取任意镜像，秒拉完成！
+* **场景 C：飞牛 fnOS / Linux 宿主 Docker 告别拉镜像卡死**：
+  1. 选中最优 Docker 镜像源 -> 查看【宿主实际配置生效源看板】比对当前环境；
+  2. 点击注入即可同步更新，彻底告别 `context deadline exceeded` 报错。
 
 ---
 
