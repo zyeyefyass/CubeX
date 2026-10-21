@@ -3015,7 +3015,7 @@
                     <span class="text-emerald-400 font-semibold">✓ 已就绪 ({{ geodataStatus.geoip_size_str && geodataStatus.geosite_size_str ? (geodataStatus.geoip_size_str + ' + ' + geodataStatus.geosite_size_str) : '38.4 MB' }})</span>
                   </div>
                   <div class="flex justify-between items-center">
-                    <span>权威规则包: <span class="text-slate-300">{{ geodataStatus.rules_count || 39 }} 套 217heidai MRS / SRS</span></span>
+                    <span>权威规则包: <span class="text-slate-300">{{ geodataStatus.rules_count || 101 }} 套 217heidai MRS / SRS</span></span>
                     <span class="text-slate-400 font-mono">{{ geodataStatus.last_updated ? ('更新于 ' + (geodataStatus.last_updated.length > 10 ? geodataStatus.last_updated.substring(5, 16) : geodataStatus.last_updated)) : (geodataLastUpdateText || '已全量装载') }}</span>
                   </div>
                 </div>
@@ -3023,9 +3023,9 @@
                 <div class="h-10 flex gap-2">
                   <button @click="updateGeoData" :disabled="updatingGeo" class="flex-1 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/20">
                     <span v-if="updatingGeo" class="inline-block animate-spin mr-1">↻</span>
-                    <span>{{ updatingGeo ? '⏳ 正在全速同步 39 套规则包...' : '🔄 一键更新全套 Geo 与去广告规则库' }}</span>
+                    <span>{{ updatingGeo ? `⏳ 正在全速同步 ${geodataStatus.rules_count || 101} 套规则包...` : '🔄 一键更新全套 Geo 与去广告规则库' }}</span>
                   </button>
-                  <button @click="showGeodataDetailModal = true" title="查看 39 套规则清单与更新明细" class="px-3 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-xs font-bold transition flex items-center justify-center cursor-pointer">
+                  <button @click="showGeodataDetailModal = true" :title="`查看 ${geodataStatus.rules_count || 101} 套规则清单与更新明细`" class="px-3 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-xs font-bold transition flex items-center justify-center cursor-pointer">
                     📋
                   </button>
                 </div>
@@ -3036,7 +3036,7 @@
                   </div>
                   <div v-else class="text-slate-400 text-xs flex items-center gap-2">
                     <span class="text-emerald-400 font-bold shrink-0">[GEODATA]</span>
-                    <span>39 套 217heidai 高速规则已装载 · {{ (geodataStatus.total_rules || 236255).toLocaleString() }} 条去广告与分流规则生效</span>
+                    <span>{{ geodataStatus.rules_count || 101 }} 套 217heidai 高速规则已装载 · {{ (geodataStatus.total_rules || 236255).toLocaleString() }} 条去广告与分流规则生效</span>
                   </div>
                 </div>
               </div>
@@ -4296,7 +4296,7 @@
               </div>
               <div class="flex justify-between text-slate-400">
                 <span>规则文件:</span>
-                <span class="text-emerald-400">39 套 MRS/SRS 二进制规则</span>
+                <span class="text-emerald-400">{{ geodataStatus.rules_count || 101 }} 套 MRS/SRS 二进制规则</span>
               </div>
             </div>
             <button @click="updateGeoData" :disabled="updatingGeo" class="w-full py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">
@@ -4360,7 +4360,7 @@
                     <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                       <span>Geo 数据库 & 217heidai 规则包全景清单</span>
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-mono font-bold">
-                        39 套规则 · 已全量装载
+                        {{ geodataStatus.rules_count || 101 }} 套规则 · 已全量装载
                       </span>
                     </h3>
                     <p class="text-xs text-slate-400 mt-0.5">
@@ -4383,7 +4383,7 @@
                 </div>
                 <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
                   <div class="text-[10px] text-slate-400">装载规则文件</div>
-                  <div class="text-purple-300 font-bold text-sm mt-0.5">{{ geodataStatus.files_count || geodataStatus.rules_count || 39 }} 个</div>
+                  <div class="text-purple-300 font-bold text-sm mt-0.5">{{ geodataStatus.files_count || geodataStatus.rules_count || 101 }} 个</div>
                 </div>
                 <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
                   <div class="text-[10px] text-slate-400">最近校验/同步</div>
@@ -4701,8 +4701,7 @@ function copyAcceleratedUrl() {
     showToast('请先输入 GitHub 链接', true)
     return
   }
-  navigator.clipboard.writeText(githubAcceleratedUrl.value)
-  showToast('📋 已复制加速下载链接！')
+  copyToClipboard(githubAcceleratedUrl.value, '📋 已复制加速下载链接！')
 }
 
 function openAcceleratedUrl() {
@@ -5956,8 +5955,8 @@ const geodataStatus = ref({
   last_updated: '',
   geoip_size_str: '9.76 MB',
   geosite_size_str: '19.51 MB',
-  rules_count: 39,
-  files_count: 39,
+  rules_count: 101,
+  files_count: 101,
   files: [],
   recent_logs: [],
   is_updating: false
@@ -6149,8 +6148,7 @@ async function copyDiagnosticMarkdown() {
   try {
     const data = await getDesensitizedDiagnosticData()
     const md = buildDiagnosticMarkdown(data)
-    await navigator.clipboard.writeText(md)
-    showToast('📋 脱敏排障报告已复制到剪贴板，可直接粘贴！')
+    await copyToClipboard(md, '📋 脱敏排障报告已复制到剪贴板，可直接粘贴！')
   } catch (e) {
     showToast('生成报告失败: ' + e.message, true)
   }
@@ -6498,11 +6496,49 @@ async function regenerateEasyTierSecret() {
   }
 }
 
-function copyToClipboard(text, msg = '已复制到剪贴板') {
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text)
+async function copyToClipboard(text, msg = '📋 已复制到剪贴板！') {
+  if (!text) {
+    showToast('无可复制的内容', true)
+    return false
   }
-  showToast(msg)
+  let copied = false
+  // 1. Try modern Clipboard API if supported and in secure context
+  if (navigator?.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text)
+      copied = true
+    } catch (e) {
+      copied = false
+    }
+  }
+  // 2. Fallback to textarea + execCommand('copy') for HTTP LAN access (e.g. http://10.0.0.11:2026)
+  if (!copied) {
+    try {
+      const el = document.createElement('textarea')
+      el.value = text
+      el.setAttribute('readonly', '')
+      el.style.position = 'fixed'
+      el.style.left = '-9999px'
+      el.style.top = '-9999px'
+      el.style.opacity = '0'
+      document.body.appendChild(el)
+      el.focus()
+      el.select()
+      el.setSelectionRange(0, el.value.length)
+      copied = document.execCommand('copy')
+      document.body.removeChild(el)
+    } catch (err) {
+      copied = false
+    }
+  }
+
+  if (copied) {
+    showToast(msg)
+    return true
+  } else {
+    showToast('复制失败，请手动选择复制', true)
+    return false
+  }
 }
 
 // ── WireGuard State ──
@@ -7325,8 +7361,8 @@ async function fetchGeoDataStatus() {
 
 async function updateGeoData() {
   updatingGeo.value = true
-  geoUpdateLog.value = '⏳ 正在全速同步全套 39 套 GeoIP、GeoSite 及 217heidai MRS 规则库...'
-  showToast('⏳ 正在通过 CDN 镜像全速拉取 39 套 Geo 与 217heidai 规则包...')
+  geoUpdateLog.value = `⏳ 正在全速同步全套 ${geodataStatus.value.rules_count || 101} 套 GeoIP、GeoSite 及 217heidai MRS 规则库...`
+  showToast(`⏳ 正在通过 CDN 镜像全速拉取 ${geodataStatus.value.rules_count || 101} 套 Geo 与 217heidai 规则包...`)
   try {
     const res = await fetch('/api/v1/upgrade/geodata', { method: 'POST' })
     const data = await res.json()
@@ -7343,7 +7379,7 @@ async function updateGeoData() {
       }
       geodataLastUpdateText.value = `${timeStr} 规则库已同步`
       const ruleCountStr = (data.total_rules || 236255).toLocaleString()
-      geoUpdateLog.value = `🎉 [${timeStr}] 规则库更新完毕！已成功同步 ${data.files_updated || 39} 套规则库，总拦截规则达 ${ruleCountStr} 条，内存路由引擎已热重载生效。`
+      geoUpdateLog.value = `🎉 [${timeStr}] 规则库更新完毕！已成功同步 ${data.files_updated || geodataStatus.value.rules_count || 101} 套规则库，总拦截规则达 ${ruleCountStr} 条，内存路由引擎已热重载生效。`
       showToast(`🎉 规则库更新完毕！全网 ${ruleCountStr} 条规则已装载生效`)
     } else {
       geoUpdateLog.value = `⚠️ [${timeStr}] 规则库更新反馈: ${data.error || '部分镜像规则同步超时'}`

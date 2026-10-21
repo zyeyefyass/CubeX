@@ -163,7 +163,6 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	remoteDNSList := []string{
 		fmt.Sprintf("https://dns.google/dns-query#%s&disable-qtype-65=true", foreignGroup),
 		fmt.Sprintf("https://cloudflare-dns.com/dns-query#%s&disable-qtype-65=true", foreignGroup),
-		fmt.Sprintf("tls://8.8.8.8#%s", foreignGroup),
 	}
 	fallbackDNSList := []string{
 		fmt.Sprintf("https://dns.google/dns-query#%s&disable-qtype-65=true", foreignGroup),
@@ -681,8 +680,8 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		rulesList = append(rulesList, "DOMAIN,youtubei.googleapis.com,YouTube")
 	}
 
-	// Intercept foreign UDP 443/8443 (QUIC) to prevent ISP UDP QoS throttling and force BBR TCP
-	rulesList = append(rulesList, "AND,((NETWORK,udp),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT")
+	// Allow foreign QUIC / WebRTC UDP 443/8443 to flow without unprivileged ICMP stalls
+	// (UDP 443 blanket reject removed to align with sing-box v1.14+ dual-engine parity)
 
 	// High-Priority Line-Speed Benchmark / Speedtest Fast-Path Rule
 	if validTargets[foreignGroup] {

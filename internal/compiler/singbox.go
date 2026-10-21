@@ -1219,6 +1219,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			"enabled":      true,
 			"path":         "cache.db",
 			"store_fakeip": true,
+			"store_dns":    true,
 		},
 		"clash_api": map[string]any{
 			"external_controller": fmt.Sprintf("0.0.0.0:%d", net.ClashAPIPort),
