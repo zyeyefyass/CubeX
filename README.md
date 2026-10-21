@@ -43,15 +43,15 @@
 > 
 > 经过数十个日夜与真实万兆/千兆家庭物理网络的死磕，**CubeX Test v1.5（威武版）正式达成了从架构到体验的全面质变**：
 > * 👑 **MikroTik RouterOS v7 皇冠级旗舰底座（体验与性能绝对天花板）**：
->   * **一体化原生容器运行**：直接以极致轻量容器寄生在 RouterOS v7 内部 (实测常驻仅 ~40MB)（RB5009/CCR2004/x86 CHR），彻底告别额外物理小主机与重型虚机，单机搞定全网智能分流！
+>   * **一体化原生容器运行**：直接以极致轻量容器寄生在 RouterOS v7 内部 (实测专属常驻仅 ~36MB)（RB5009/CCR2004/x86 CHR），彻底告别额外物理小主机与重型虚机，单机搞定全网智能分流！
 >   * **FastTrack 物理硬件芯片线速狂飙**：独创「主网关 + 旁路 DNS」黄金解耦，国内千兆/万兆流量走物理芯片硬加速，主路由 CPU 仅 1%；容器意外重启或热升级，物理内网 **0 损伤 0 抖动**！
->   * **REST API 全维度深度双向联动**：自动探查 IP Cloud 免费 DDNS 动态公网域名、自动编排 EasyTier P2P 全网格穿透、自动灭杀 ICMP 重定向（Send-Redirects）杜绝三角路由丢包，WinBox 终端一键脚本秒级自愈！
+>   * **REST API 全维度深度双向联动**：自动探查 IP Cloud 免费 DDNS 动态公网域名、自动下发 cgroup 256M 内存配额与自愈守护、自动灭杀 ICMP 重定向（Send-Redirects）杜绝三角路由丢包，WinBox 终端一键脚本秒级自愈！
 > * 🚀 **爱快 (iKuai) 原生宿主共生深度整合（多宿主强力扩张）**：
 >   * 补齐爱快主路由轻量共生拼图！100% 原生自研 Web-RPC 驱动，免装第三方库，一键全维度体检、一键自愈与规则加固；自动嗅探活跃 DHCP 物理网卡名称、一键下发 `198.18.0.0/15` 回指路由并同步内网 DHCP 首选 DNS，全网免改网关零感智能分流！
 > * ⚡ **真实端到端测速重构与海缆补偿**：后端直接调用内核真实通过加密隧道穿透直达海外 Cloudflare（Clash API HTTP 204），配合物理光纤海缆中转补偿，彻底消除“比直连还快”的反物理延迟；海外出海口超时或故障坚决标为离线，拒绝死节点回退虚假延迟！
 > * 🏎️ **双核心全线满血**：`sing-box v1.14+` 与 `Mihomo v1.19+` 双核混动平滑手递手（Handoff），实测切换耗时低至 **560ms**，常驻内核真实物理内存 (VmRSS) 仅 **15MB~30MB**！
 > * 🌐 **双栈 IPv4-First 极速拨号（Happy Eyeballs）**：消除无默认 IPv6 路由主机下 AAAA 记录卡死订阅或镜像拉取的顽疾，秒级自动回退！
-> * 🔒 **原子化 0600 安全落盘保护**：所有敏感配置、EasyTier 共享凭证及宿主凭据全面采用临时文件 + 0600 严格权限 + 原子替换，杜绝泄漏与并发损坏；
+> * 🔒 **原子化 0600 安全落盘保护**：所有敏感配置与宿主凭据全面采用临时文件 + 0600 严格权限 + 原子替换，杜绝泄漏与并发损坏；
 > * 🧭 **向导自适应与多宿主健壮性加固**：初次安装向导 Step 3 在 ROS 或爱快宿主下均自适应调用专属配置流水线，全流程一气呵成！
 > 
 > 🚀 **这是目前为止最稳定、最成熟的里程碑版本 (Test v1.5 威武版)！**  
@@ -126,11 +126,11 @@
 
 ---
 
-### 5. 穿透协同网格 · EasyTier 全协议 Mesh 与设备独立分流
-集成去中心化 EasyTier P2P 全协议 Mesh 组网，支持 TCP/UDP/WSS/TLS 多协议穿透与子网漫游，免公网 IP 实现异地局域网大合体；局域网终端独立设备矩阵支持按需一键开启代理或直连绕过（Bypass）。
+### 5. 局域网设备策略矩阵 · 终端设备独立分流与精准管控
+全景自动嗅探局域网所有在线活跃设备（IP、MAC、设备型号与实时上下行速率），提供精准到单个终端的策略矩阵管理：支持一键将特定设备（如智能电视、国行智能音箱、家庭打印机、游戏主机等）设为「全局代理」、「全局直连绕过 (Bypass)」或「按默认规则智能分流」，彻底解决家庭多成员、多终端环境下特定设备被误代理的痛点。
 
 <div align="center">
-  <img src="docs/assets/screenshots/cubex-live-easytier-mesh.png" alt="CubeX 穿透协同与局域网设备矩阵" width="95%" />
+  <img src="docs/assets/screenshots/cubex-live-easytier-mesh.png" alt="CubeX 局域网设备策略矩阵与精准管控" width="95%" />
 </div>
 
 ---
@@ -605,7 +605,7 @@ CubeX 默认预置了亚太与欧美最常用的 6 大核心国家/地区，加�
 
 ## 🥊 传统旁路由的“五大死穴”与 CubeX 降维打击
 
-| 传统旁路由痛点 | 发生原理与后果 | CubeX Test v1.1 破局解法 |
+| 传统旁路由痛点 | 发生原理与后果 | CubeX Test v1.5 破局解法 |
 | :--- | :--- | :--- |
 | **死穴 ①：直连测速不到带宽一半** | 终端网关强指旁路由，导致去往百度的国内大流量在单网口上双向折返跑，软路由 CPU 爆满掉速。 | **架构解耦**：终端网关指主路由，DNS 指 CubeX。国内真实 IP 直接由主路由硬件 FastTrack 满速直通，主路由 CPU 仅 ~1%！ |
 | **死穴 ②：莫名其妙卡顿重传** | 旁路与主路由同处于一个网桥（如 `bridge1`），主路由默认发出 ICMP 重定向包，引发 Windows/iOS 频繁 TCP 停顿。 | **自动封穴**：CubeX 巡检引擎自动设置 `/ip/settings set send-redirects=no`，彻底掐死三角重定向丢包！ |
@@ -638,7 +638,7 @@ CubeX 默认预置了亚太与欧美最常用的 6 大核心国家/地区，加�
 | **🧹 广告与隐私追踪拦截库** | 仅数千条基础规则 | **233,481 条 (217heidai 权威规则)** | **拦截规则规模高出 50 余倍** |
 | **🔄 核心容灾与高可用架构** | 单一 sing-box 进程，崩溃即断网 | **Mihomo × sing-box v1.14+ 混动秒级热备** | **双核无感切换，毫秒级故障逃生** |
 | **👑 物理主路由深度联动** | 仅基础脚本，无商业主路由联动 | **RouterOS REST API + 爱快 Web-RPC 原生直通** | **全自动注入回指路由与 DHCP DNS** |
-| **📡 移动穿透与异地互联** | 无原生穿透或需外挂繁琐插件 | **原生集成 EasyTier P2P 全协议全网格穿透** | **去中心化开箱即用，0 侵入跨 NAT 漫游** |
+| **💾 内存控制与自愈机制** | 虚机占用 1-4GB，无内存上限易 OOM | **独创双核自适应限额 + cgroup 256M 内存墙 + 毫秒级自愈拉起** | **专属常驻仅 ~36MB，彻底杜绝页缓存膨胀与意外停机** |
 
 ---
 
@@ -664,7 +664,7 @@ CubeX 默认预置了亚太与欧美最常用的 6 大核心国家/地区，加�
 │     ↳ 救赎动作：自动开启 Linux 内核 net.ipv4.ip_forward=1 转发、       │
 │                放行 iptables FORWARD、注入 TCP MSS Clamping 消灭分片卡顿│
 ├────────────────────────────────────────────────────────────────────────┤
-│  🔄 协同辅助：混合双宿主一键穿透联动                                   │
+│  🔄 宿主联动：RouterOS / 爱快双主路由深度协同联动                     │
 │     ↳ 场景：CubeX 跑在飞牛 Docker 上，但家里主路由恰好也是 RouterOS    │
 │     ↳ 动作：在飞牛控制台直接点击【📶 联动 RouterOS 主路由】，跨机自动配齐 ROS! │
 └────────────────────────────────────────────────────────────────────────┘
@@ -782,21 +782,104 @@ CubeX 严格遵循专有闭源 EULA 合规准则与脱敏规范，发布包内**
 
 ---
 
-### 方式 A：MikroTik RouterOS v7 容器一键导入 (官方强烈推荐)
+### 方式 A：MikroTik RouterOS v7 容器一键极速安装指南 (官方强烈推荐 · 工业级共生)
 
+> [!TIP]
+> **👑 为什么强烈推荐将 CubeX 部署在 RouterOS 内部？**  
+> 1. **零额外硬件开销**：告别额外购买小主机或在 ESXi/PVE 中运行 4GB 内存重型 OpenWrt 虚拟机的电费与资源浪费，实测 CubeX 专属常驻物理内存仅 **~36MB**！  
+> 2. **FastTrack 物理芯片线速狂飙**：「主网关 + 旁路 DNS」黄金解耦架构，全家国内千兆/万兆流量走硬件芯片直通，主路由 CPU 占用仅 1%；  
+> 3. **全自动秒级自愈与逃生**：配备 cgroup 256M 内存墙、`restart-policy=on-failure` 内核自愈及 `check-gateway=ping` 毫秒级逃生探针，容器意外升级或重启，**局域网物理网络 0 损伤 0 抖动**！
 
+---
 
-1. 前往 [GitHub Releases 最新发布页](https://github.com/zyeyefyass/CubeX/releases/latest) 下载最新版 `CubeX-ros-amd64.tar`（或 ARM64 如 RB5009 对应版本）；
-2. 打开 WinBox，将 `.tar` 镜像文件直接拖入 `Files` 根目录；
-3. 在 WinBox 终端直接执行随包附带的 `setup-routeros-v7.rsc`，或手动创建容器：
+#### 📋 一、 兼容硬件与运行环境要求
+* **RouterOS 固件版本**：RouterOS v7.12 及以上（强烈推荐 **v7.14+ / v7.16+** 正式版）；
+* **CPU 架构全面兼容**：
+  * **x86_64**：PVE / ESXi / Hyper-V / UNRAID 下的 RouterOS CHR 虚拟机，或工控软路由（如 J4125 / N100 / N5105 / 8505 等）；
+  * **ARM64**：MikroTik 官方硬件旗舰机型（如 **RB5009**、CCR2004、CCR2116 等）；
+  * **ARM32**：如部分 hEX 机型（需外插存储扩展）；
+* **存储要求**：
+  * **RB5009 等物理路由**：因机身自带闪存较小（约 1GB 且系统占用部分），**强烈建议插入一个高速外置 U 盘或移动 SSD**（RouterOS 会自动识别挂载为 `usb1` 或 `disk1`）；
+  * **x86 / CHR 虚拟机**：在虚拟机设置中分配 2GB~4GB 以上虚拟磁盘即可。
+
+---
+
+#### 🚀 二、 极速一键离线安装（国内网络强烈推荐 · 0 失败率）
+
+这是官方推荐的最快、最稳妥安装方式，完全免除在线拉取 Docker Hub 镜像受国内网络波动的困扰：
+
+##### 步骤 1：获取发布资产
+前往 [GitHub Releases Test v1.5](https://github.com/zyeyefyass/CubeX/releases) 页面，下载两份文件：
+1. **全自动配置脚本**：[`setup-routeros-v7.rsc`](https://github.com/zyeyefyass/CubeX/releases/download/Test-v1.5/setup-routeros-v7.rsc)；
+2. **对应架构的离线容器镜像包**：
+   * **x86_64 / CHR 虚拟机**：下载 `CubeX-Test-v1.5-ros-amd64.tar`；
+   * **RB5009 / CCR2004 (ARM64)**：下载 `CubeX-Test-v1.5-ros-arm64.tar`。
+
+##### 步骤 2：鼠标拖拽上传至 WinBox
+1. 打开 WinBox，输入主路由 IP 与管理员账号密码登录；
+2. 点击 WinBox 左侧菜单 **`Files`** 弹出文件管理器窗口；
+3. 将下载的 **`.tar` 镜像包** 与 **`setup-routeros-v7.rsc`** 脚本文件，**直接拖入 Files 窗口的根目录**（*注意：请勿解压 `.tar` 文件！*）。
+
+##### 步骤 3：在 Terminal 终端一行命令执行导入
+1. 点击 WinBox 左侧菜单 **`Terminal`**（终端）；
+2. 粘贴并回车执行以下命令：
    ```routeros
-   /container/add file=CubeX-ros-amd64.tar interface=veth-cubex root-dir=cubex start-on-boot=yes
+   /import setup-routeros-v7.rsc
    ```
-   *亦可通过 Docker Hub 官方公共库直接拉取最新版*：
-   ```routeros
-   /container/add remote-image=fyasshole/cubex:latest interface=veth-cubex root-dir=cubex start-on-boot=yes
-   ```
-4. 容器拉起后，浏览器直接访问：`http://<容器IP>:2026` 即可进入 Cyber Aurora 全息控制台，4 步开箱向导将全自动为您打通 RouterOS 策略路由与 FastTrack 硬件加速白名单！
+
+##### 步骤 4：自动化流水线执行与输出确认
+脚本会自动执行以下五大步骤并在终端打印青色极光进度日志：
+```text
+🌌 开始执行 CubeX 宿主共生零感网络系统全自动初始化安装流程...
+✅ [1/5 硬件架构识别] 识别到当前平台: x86_64 ➔ 匹配容器与包架构: amd64
+✅ [2/5 容器检测] RouterOS 容器功能已就绪！
+✅ [3/5 网桥探测] 成功锁定局域网主网桥: bridge
+✅ [3/5 网段与IP分配] 主路由IP: 10.0.0.1 | 局域网段: 10.0.0.0/24 | 分配 CubeX 独立IP: 10.0.0.11
+✅ [4/5 VETH虚拟通道] 已创建 veth-cubex ➔ 10.0.0.11/24
+✅ [4/5 网桥挂载] 已将 veth-cubex 挂载至主网桥 bridge
+✅ [5/5 策略路由] 已建立 table-cubex-8228 隔离策略路由表
+✅ [5/5 默认下一跳] 已下发默认策略路由指向 10.0.0.11 (支持 ping 毫秒自愈逃生)
+✅ [5/5 Mangle防火墙] 已配置防死锁豁免与内网直连放行
+📦 [CubeX] 发现本地离线包: CubeX-Test-v1.5-ros-amd64.tar，正在快速部署...
+⏳ 容器创建指令已下发，请在 WinBox [Containers] 中观察状态，解压完成后将自动启动！
+=========================================================================
+🎉 恭喜！CubeX 宿主共生零感网络系统全自动初始化已全部圆满完成！
+👉 控制台 Web 驾驶舱访问地址: http://10.0.0.11:2026
+=========================================================================
+```
+
+---
+
+#### 🌐 三、 终端一行命令在线拉取安装（免下载离线包）
+
+如果您的 RouterOS 本身能够高速直连外网，甚至不需要手动下载几百兆离线包，只需在 WinBox Terminal 终端直接执行这一行：
+```routeros
+/tool fetch url="https://raw.githubusercontent.com/zyeyefyass/CubeX/main/scripts/ros/setup-routeros-v7.rsc" dst-path="setup-routeros-v7.rsc"; /import setup-routeros-v7.rsc
+```
+> [!NOTE]
+> 当脚本检测到本地 Files 目录下没有 `.tar` 离线文件时，会自动调用 Docker Hub 官方镜像源（`zyeyefyass/cubex:latest`）自动拉取匹配 CPU 架构的镜像并创建容器。
+
+---
+
+#### 🛡️ 四、 首次安装的特殊场景与授权处理 (FAQ)
+
+##### 1. 提示未检测到 container 扩展包怎么办？
+* **全自动下载机制**：脚本会全自动探测您当前的 RouterOS 精确版本（如 7.16.1），并自动从 MikroTik 官网拉取匹配架构的 `container-7.16.1-x86.npk` 保存到 Files 根目录；
+* **生效操作**：终端输入 `/system reboot` 回车软重启主路由；重启完成后再次在终端执行 `/import setup-routeros-v7.rsc` 即可无缝继续！
+
+##### 2. 提示 Device Mode 授权确认（RouterOS v7.4+ 安全机制）怎么办？
+RouterOS 为了设备安全，首次开启容器功能时要求进行物理所有权确认：
+* **物理路由器（RB5009 / CCR2004 等）**：在执行完脚本 5 分钟内，长按机身上的 **【Reset / Mode】按键** 直至指示灯闪烁松开，或直接**拔掉电源插头再插上**（硬件冷重启）；
+* **虚拟机宿主（CHR / PVE / ESXi / Hyper-V）**：请前往 PVE/ESXi 宿主管理后台，对 RouterOS CHR 虚拟机执行 **【关机/停止 (Stop)】，然后再【开机/启动 (Start)】**！（*重要提示：在 RouterOS 终端执行 `/system reboot` 属于系统软重启，无法触发底座硬件确认*）；
+* 宿主冷重启开机后，重新执行 `/import setup-routeros-v7.rsc` 即可！
+
+---
+
+#### 🎯 五、 进入 Web 驾驶舱体验与健康巡检
+
+1. **访问控制台**：在局域网内任意手机、平板或 PC 浏览器打开：`http://<CubeX_IP>:2026`（例如 `http://10.0.0.11:2026`，请以安装脚本终端输出的 IP 为准）；
+2. **首次配置向导**：根据 Cyber Aurora 全息向导填入机场订阅或私有节点，一键生成分流矩阵并启动透明代理；
+3. **一键巡检与加固**：控制台顶部常驻 **【一键深度巡检 RouterOS 策略路由及全量重配 (含 Netwatch 0秒逃生)】** 按钮，点击即可对 FastTrack 白名单、Mangle 防死锁规则、VETH 链路进行全自动自愈与体检！
 
 ---
 
@@ -1123,9 +1206,9 @@ cubex restart   # 重新启动守护进程
 
 * 💡 **您在实际使用中遇到了哪些奇葩网络拓扑？**（例如：多 WAN 叠加、PPPoE 定时重拨、特定游戏主机 NAT 类型限制？）
 * 💡 **在 UI 交互与数据看板上，您还希望看到哪些维度的图表或快捷控制？**
-* 💡 **对于 IPv6、DNS 防污染、局域网设备免配置穿透等场景，您还有哪些进阶想法？**
+* 💡 **对于 IPv6 双栈、严格防 DNS 泄露、局域网设备精准分流等场景，您还有哪些进阶想法？**
 
-👉 **[点击这里直达 GitHub Issues 提交反馈与功能需求](https://github.com/zyeyefyass/CubeX/issues/new?title=%5BFeature+Request%2FFeedback%5D+Test+v1.1+%E4%BD%BF%E7%94%A8%E5%8F%8D%E9%A6%88)**
+👉 **[点击这里直达 GitHub Issues 提交反馈与功能需求](https://github.com/zyeyefyass/CubeX/issues/new?title=%5BFeature+Request%2FFeedback%5D+Test+v1.5+%E4%BD%BF%E7%94%A8%E5%8F%8D%E9%A6%88)**
 
 无论是一句肯定、一个 Bug 提交，还是一个天马行空的新功能脑洞，请在社区**畅所欲言**，与我们一起打造软路由领域最强悍的宿主共生网络系统！
 
