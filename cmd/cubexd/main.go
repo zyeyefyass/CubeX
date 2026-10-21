@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -119,6 +121,53 @@ func (b *RingLogBuffer) Clear() {
 		Message:   "环形实时日志缓冲区已手动清空",
 	})
 }
+
+// LogBufferWriter captures standard log output and streams it into the ring log buffer.
+type LogBufferWriter struct {
+	buf *RingLogBuffer
+}
+
+func (w *LogBufferWriter) Write(p []byte) (n int, err error) {
+	n = len(p)
+	raw := strings.TrimSpace(string(p))
+	if raw == "" || w.buf == nil {
+		return n, nil
+	}
+
+	for _, line := range strings.Split(raw, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		msg := line
+		if len(msg) >= 20 && msg[4] == '/' && msg[7] == '/' && msg[10] == ' ' && msg[13] == ':' && msg[16] == ':' {
+			msg = strings.TrimSpace(msg[20:])
+		}
+
+		module := "SYS"
+		if start := strings.Index(msg, "["); start >= 0 {
+			if end := strings.Index(msg[start:], "]"); end > 1 {
+				modCandidate := strings.TrimSpace(msg[start+1 : start+end])
+				if len(modCandidate) <= 15 && !strings.Contains(modCandidate, " ") {
+					module = strings.ToUpper(modCandidate)
+					msg = strings.TrimSpace(msg[start+end+1:])
+				}
+			}
+		}
+
+		level := "INFO"
+		lower := strings.ToLower(line)
+		if strings.Contains(msg, "🚨") || strings.Contains(lower, "error") || strings.Contains(lower, "critical") || strings.Contains(lower, "fatal") {
+			level = "ERROR"
+		} else if strings.Contains(msg, "⚠️") || strings.Contains(lower, "warn") {
+			level = "WARN"
+		}
+
+		w.buf.Add(level, module, msg)
+	}
+	return n, nil
+}
+
 
 type Server struct {
 	workDir     string
@@ -272,6 +321,11 @@ func main() {
 
 	// Ring Log Buffer (Fixed 500 entries FIFO, strict RAM <2MB)
 	logBuffer := NewRingLogBuffer(500)
+	logWriter := &LogBufferWriter{buf: logBuffer}
+	log.SetOutput(io.MultiWriter(os.Stderr, logWriter))
+	engMgr.SetLogCallback(func(level, module, msg string) {
+		logBuffer.Add(level, module, msg)
+	})
 
 	srv := &Server{
 		workDir:     dir,
@@ -3420,9 +3474,25 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 	if lastRes != nil && !lastRes.Success {
 		engineRunning = false
 	}
+	probePort := func(network, addr string, timeout time.Duration) bool {
+		conn, err := net.DialTimeout(network, addr, timeout)
+		if err == nil {
+			conn.Close()
+			return true
+		}
+		return false
+	}
+	liveHealth := map[string]any{
+		"dns_53":         probePort("udp", "127.0.0.1:53", 250*time.Millisecond),
+		"clash_api_9090": probePort("tcp", "127.0.0.1:9090", 250*time.Millisecond),
+		"mixed_7890":     probePort("tcp", "127.0.0.1:7890", 250*time.Millisecond),
+	}
 	engineStatus := map[string]any{
 		"active_engine": s.engMgr.GetActiveEngine(),
 		"running":       engineRunning,
+		"core_pid":      s.engMgr.GetCurrentProcPID(),
+		"last_switch":   lastRes,
+		"health_probes": liveHealth,
 	}
 
 	var safeHost map[string]any
@@ -3480,7 +3550,7 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 	}
 
 	adStats := s.adblockMgr.GetStats(true, 0)
-	recentLogs := s.logBuffer.GetLogs(200)
+	recentLogs := s.logBuffer.GetLogs(500)
 
 	pack := map[string]any{
 		"cubex_diagnostic_report": true,

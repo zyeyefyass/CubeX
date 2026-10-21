@@ -282,8 +282,8 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	tunMTU := net.TunMTU
-	if tunMTU <= 0 {
-		tunMTU = 1500
+	if tunMTU <= 0 || tunMTU > 1400 {
+		tunMTU = 1400
 	}
 
 	tunStack := net.TunStack
@@ -322,6 +322,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"route_exclude_address": []string{
 					"10.0.0.0/8",
 					"100.64.0.0/10",
+					"127.0.0.0/8",
 					"169.254.0.0/16",
 					"172.16.0.0/12",
 					"192.168.0.0/16",
@@ -840,10 +841,11 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 	routeRules := make([]map[string]any, 0)
 
-	// A. Global Sniff & DNS Hijack (sing-box 1.14+ action format)
+	// A. Inbound Sniff & DNS Hijack (sing-box 1.14+ action format)
 	routeRules = append(routeRules, map[string]any{
+		"inbound": []string{"tun-in", "tproxy-in", "redir-in", "mixed-in"},
 		"action":  "sniff",
-		"timeout": "300ms",
+		"timeout": "150ms",
 	})
 	routeRules = append(routeRules, map[string]any{
 		"inbound": []string{"dns-in"},
@@ -885,13 +887,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		})
 	}
 
-	// B. Generic Foreign QUIC & STUN Fast Reject (Immediate RST/ICMP rejection for non-media foreign traffic)
-	routeRules = append(routeRules, map[string]any{
-		"port":    []int{443, 8443, 853},
-		"network": []string{"udp"},
-		"action":  "reject",
-		"method":  "default",
-	})
+	// B. QUIC & Media UDP passes through proxy tunnel without unprivileged ICMP stalls
 
 	// C. Direct Private IP & NTP (Port 123)
 	routeRules = append(routeRules, map[string]any{

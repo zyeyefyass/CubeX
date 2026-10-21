@@ -40,13 +40,38 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	net := ir.Network
 	dns := ir.DNS
 
+	logLevel := "info"
+
+
+	if ir.Meta.LogLevel != "" {
+
+
+		logLevel = ir.Meta.LogLevel
+
+
+	}
+
+
+
 	cfg := map[string]any{
+
+
 		"mixed-port":          net.MixedPort,
+
+
 		"redir-port":          net.RedirPort,
+
+
 		"tproxy-port":         net.TProxyPort,
+
+
 		"allow-lan":           net.AllowLAN,
+
+
 		"mode":                string(ir.Meta.ProxyMode),
-		"log-level":           "warning",
+
+
+		"log-level":           logLevel,
 		"ipv6":                net.IPv6,
 		"external-controller": fmt.Sprintf("0.0.0.0:%d", net.ClashAPIPort),
 		"secret":              net.ClashSecret,
@@ -59,27 +84,36 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	tunMTU := net.TunMTU
-	if tunMTU <= 0 || tunMTU > 1500 {
-		tunMTU = 1500
+	if tunMTU <= 0 || tunMTU > 1400 {
+		tunMTU = 1400
 	}
 
 	tunStack := net.TunStack
-	if tunStack == "" || tunStack == "mixed" {
-		tunStack = "system"
+	if tunStack == "" || tunStack == "system" {
+		tunStack = "gvisor"
 	}
 
-	// TUN Configuration (Zero-copy kernel stack)
-	// TUN Configuration (Zero-copy kernel stack)
+	// TUN Configuration (Zero-copy gvisor/mixed stack with local subnet bypass)
 	cfg["tun"] = map[string]any{
 		"enable":                   true,
 		"stack":                    tunStack,
 		"device":                   net.TunInterface,
 		"auto-route":               true,
-		"auto-redirect":            true,
+		"auto-redirect":            false,
 		"auto-detect-interface":    true,
 		"strict-route":             false,
 		"mtu":                      tunMTU,
+		"gso":                      true,
 		"endpoint-independent-nat": true,
+		"route-exclude-address": []string{
+			"10.0.0.0/8",
+			"100.64.0.0/10",
+			"127.0.0.0/8",
+			"169.254.0.0/16",
+			"172.16.0.0/12",
+			"192.168.0.0/16",
+			"224.0.0.0/4",
+		},
 		"dns-hijack": []string{
 			"tcp://any:53",
 			"udp://any:53",
@@ -178,16 +212,18 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			"119.29.29.29",
 		},
 		"proxy-server-nameserver": []string{
-			"https://dns.alidns.com/dns-query",
-			"https://doh.pub/dns-query",
 			"223.5.5.5",
+			"119.29.29.29",
 		},
 		"direct-nameserver": []string{
-			"https://dns.alidns.com/dns-query",
-			"https://doh.pub/dns-query",
+			"223.5.5.5",
+			"119.29.29.29",
 		},
-		"nameserver":    remoteDNSList,
-		"fallback":      fallbackDNSList,
+		"nameserver": []string{
+			"223.5.5.5",
+			"119.29.29.29",
+		},
+		"fallback":          fallbackDNSList,
 		"respect-rules":     true,
 		"use-hosts":         true,
 		"use-system-hosts":  false,
@@ -201,8 +237,16 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"nameserver-policy": map[string]any{
 			"+.google.com,+.googleapis.com,+.gstatic.com,+.googlevideo.com,+.ytimg.com,+.youtube.com,+.openai.com,+.chatgpt.com,+.anthropic.com,+.claude.ai,+.antigravity.dev,+.antigravity-unleash.goog,+.goog,+.run.app,+.1e100.net,+.gvt1.com": remoteDNSList,
 			"geosite:cn,private": []string{
-				"https://dns.alidns.com/dns-query#disable-qtype-65=true",
-				"https://doh.pub/dns-query#disable-qtype-65=true",
+				"223.5.5.5",
+				"119.29.29.29",
+			},
+			"geosite:cn": []string{
+				"223.5.5.5",
+				"119.29.29.29",
+			},
+			"geosite:private": []string{
+				"223.5.5.5",
+				"119.29.29.29",
 			},
 			"geosite:geolocation-!cn": remoteDNSList,
 		},

@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -34,8 +35,12 @@ type SwitchResult struct {
 }
 
 // Manager controls the dual-engine lifecycle, hot-swap state machine, and status.
+// LogFunc is the callback signature for streaming real-time core and engine events to the ring buffer.
+type LogFunc func(level, module, msg string)
+
 type Manager struct {
 	mu           sync.Mutex
+	cbMu         sync.RWMutex
 	ir           *schema.ConfigIR
 	workDir      string
 	activeEngine schema.EngineType
@@ -46,6 +51,7 @@ type Manager struct {
 	statusCh     chan schema.EngineType
 	stopping     bool
 	crashCount   int
+	logCallback  LogFunc
 }
 
 // NewManager creates a dual-engine manager.
@@ -95,6 +101,23 @@ func (m *Manager) GetActiveEngine() schema.EngineType {
 	defer m.mu.Unlock()
 	return m.activeEngine
 }
+
+// SetLogCallback registers the receiver for real-time engine and core logs.
+func (m *Manager) SetLogCallback(fn LogFunc) {
+	m.cbMu.Lock()
+	defer m.cbMu.Unlock()
+	m.logCallback = fn
+}
+
+func (m *Manager) log(level, module, msg string) {
+	m.cbMu.RLock()
+	cb := m.logCallback
+	m.cbMu.RUnlock()
+	if cb != nil {
+		cb(level, module, msg)
+	}
+}
+
 
 // GetCurrentProcPID returns the OS PID of the running core process, or 0.
 func (m *Manager) GetCurrentProcPID() int {
@@ -299,8 +322,6 @@ func (m *Manager) buildCmd(eng schema.EngineType, binPath, etcDir, configPath st
 		cmd = exec.Command(binPath, "run", "-c", configPath)
 		cmd.Dir = etcDir
 	}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 
 	// High-Performance Go Runtime & GC tuning:
 	// Adaptive GOMEMLIMIT ensures tight memory ceiling on routers and containers,
@@ -313,6 +334,65 @@ func (m *Manager) buildCmd(eng schema.EngineType, binPath, etcDir, configPath st
 	return cmd
 }
 
+
+func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Reader) {
+	scanner := bufio.NewScanner(r)
+	buf := make([]byte, 64*1024)
+	scanner.Buffer(buf, 64*1024)
+
+	module := "SINGBOX"
+	if eng == schema.EngineMihomo {
+		module = "MIHOMO"
+	}
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		if pipeType == "stderr" {
+			fmt.Fprintln(os.Stderr, line)
+		} else {
+			fmt.Fprintln(os.Stdout, line)
+		}
+
+		level := "INFO"
+		lower := strings.ToLower(line)
+		if strings.Contains(lower, "error") || strings.Contains(lower, "fatal") || strings.Contains(lower, "panic") || strings.Contains(lower, "fail") {
+			level = "ERROR"
+		} else if strings.Contains(lower, "warn") {
+			level = "WARN"
+		} else if strings.Contains(lower, "debug") {
+			level = "DEBUG"
+		}
+
+		m.log(level, module, line)
+	}
+}
+
+func (m *Manager) startEngineProcess(eng schema.EngineType, cmd *exec.Cmd) error {
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		cmd.Stdout = os.Stdout
+	}
+	stderrPipe, err2 := cmd.StderrPipe()
+	if err2 != nil {
+		cmd.Stderr = os.Stderr
+	}
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	if stdoutPipe != nil {
+		go m.streamLogPipe(eng, "stdout", stdoutPipe)
+	}
+	if stderrPipe != nil {
+		go m.streamLogPipe(eng, "stderr", stderrPipe)
+	}
+	return nil
+}
+
 func (m *Manager) dryRunCheck(eng schema.EngineType, binPath, etcDir, configPath string) error {
 	var testCmd *exec.Cmd
 	if eng == schema.EngineMihomo {
@@ -322,9 +402,19 @@ func (m *Manager) dryRunCheck(eng schema.EngineType, binPath, etcDir, configPath
 		testCmd.Dir = etcDir
 	}
 	out, err := testCmd.CombinedOutput()
+	outStr := strings.TrimSpace(string(out))
+	engTag := "MIHOMO"
+	if eng == schema.EngineSingbox {
+		engTag = "SINGBOX"
+	}
 	if err != nil {
-		outStr := strings.TrimSpace(string(out))
+		m.log("ERROR", engTag, fmt.Sprintf("内核预检失败: %s (%v)", outStr, err))
 		return fmt.Errorf("%s dry-run failed: %s (%w)", eng, outStr, err)
+	}
+	if outStr != "" {
+		m.log("INFO", engTag, fmt.Sprintf("内核预检通过: %s", outStr))
+	} else {
+		m.log("INFO", engTag, "内核配置预检通过: 语法与规则校验合规")
 	}
 	return nil
 }
@@ -397,7 +487,7 @@ func (m *Manager) rollback(eng schema.EngineType, etcDir string, snapshot map[st
 	configPath := filepath.Join(etcDir, configFile)
 
 	cmd := m.buildCmd(eng, binPath, etcDir, configPath)
-	if err := cmd.Start(); err == nil {
+	if err := m.startEngineProcess(eng, cmd); err == nil {
 		m.currentProc = cmd.Process
 		log.Printf("🛡️ [Engine] Rollback process for %s started with PID %d", eng, cmd.Process.Pid)
 		go func(proc *os.Process, e schema.EngineType) {
@@ -432,6 +522,7 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 		ToEngine:   target,
 		Timestamp:  startTime,
 	}
+	m.log("INFO", "ENGINE", fmt.Sprintf("发起双核切换指令: %s -> %s", fromEngine, target))
 
 	// Step 1: Snapshot active selections
 	snapshot := m.SnapshotClashState()
@@ -497,7 +588,7 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	// Step 5: Start new engine
 	cmd := m.buildCmd(target, binPath, etcDir, targetConfigPath)
-	if err := cmd.Start(); err != nil {
+	if err := m.startEngineProcess(target, cmd); err != nil {
 		log.Printf("🚨 [Engine] Failed to spawn %s: %v. Triggering self-healing rollback to %s!", target, err, fromEngine)
 		res.ErrorMessage = fmt.Sprintf("failed to spawn %s: %v", target, err)
 		if fromEngine != "" && fromEngine != target {
