@@ -852,12 +852,46 @@ CubeX 严格遵循专有闭源 EULA 合规准则与脱敏规范，发布包内**
 
 #### 🌐 三、 终端一行命令在线拉取安装（免下载离线包）
 
-如果您的 RouterOS 本身能够高速直连外网，甚至不需要手动下载几百兆离线包，只需在 WinBox Terminal 终端直接执行这一行：
+##### 场景 A：网络环境通畅（已具备外网/科学环境）
+如果您的主路由已经具备海外直连或临时网络环境，可直接在 WinBox Terminal 终端粘贴官方源一键拉取并安装：
 ```routeros
 /tool fetch url="https://raw.githubusercontent.com/zyeyefyass/CubeX/main/scripts/ros/setup-routeros-v7.rsc" dst-path="setup-routeros-v7.rsc"; /import setup-routeros-v7.rsc
 ```
-> [!NOTE]
-> 当脚本检测到本地 Files 目录下没有 `.tar` 离线文件时，会自动调用 Docker Hub 官方镜像源（`zyeyefyass/cubex:latest`）自动拉取匹配 CPU 架构的镜像并创建容器。
+
+---
+
+##### 场景 B：纯国内网络环境（无科学上网、无代理）—— 终极 3 招免翻部署指南！
+
+在纯国内直连网络下，通常面临两大痛点：
+1. `raw.githubusercontent.com` 无法直接连接（被 DNS 污染或阻断，报 connection timeout）；
+2. 官方 Docker Hub（`registry-1.docker.io`）无法直接拉取镜像（国内主流加速站失效或限流，报 failed to download image）。
+
+针对无代理网络环境，推荐以下 3 种极简解决路径：
+
+* **💡 解法 1（最推荐）：走「二、极速一键离线安装」—— 100% 零外网依赖！**
+  * **为什么最推荐**：在电脑或手机上（无论通过手机流量、浏览器下载、迅雷、夸克/百度网盘等方式），只要把 Release 资产包里的 `CubeX-Test-v1.5-ros-amd64.tar`（或 arm64）和 `setup-routeros-v7.rsc` 下载到本地并拖入 WinBox Files，终端执行 `/import setup-routeros-v7.rsc`；
+  * **零联网消耗**：脚本已做智能泛匹配，会自动优先探测本地 `.tar` 离线包并完成解压拉起，**全程完全不需要访问任何外网，30 秒 100% 必成！**
+
+* **⚡ 解法 2：使用国内 GitHub 免翻加速直链 + 国内可用 Docker 镜像源**
+  1. **国内高速拉取脚本**：
+     通过国内稳定加速镜像源（如 `ghfast.top` / `ghproxy.net`）拉取脚本：
+     ```routeros
+     /tool fetch url="https://ghfast.top/https://raw.githubusercontent.com/zyeyefyass/CubeX/main/scripts/ros/setup-routeros-v7.rsc" dst-path="setup-routeros-v7.rsc"; /import setup-routeros-v7.rsc
+     ```
+  2. **切换国内可用 Docker Registry 镜像加速站**：
+     如果未拖入离线包，RouterOS 在拉取镜像时需要访问镜像站。可先在 WinBox 终端将镜像源指定为国内可用源（例如 DaoCloud 镜像加速站）：
+     ```routeros
+     /container/config/set registry-url="https://docker.m.daocloud.io"
+     ```
+     然后再执行导入脚本，即可无翻墙高速拉取官方镜像！
+
+* **💻 解法 3：借助局域网内任意一台电脑/手机的临时代理**
+  如果局域网内有某台电脑或手机临时开启了代理软件并勾选了“允许局域网连接”（假设其 IP 为 `192.168.88.50`，端口为 `7890`）：
+  WinBox Terminal 终端拉取时只需指定 `http-proxy` 参数：
+  ```routeros
+  /tool fetch url="https://raw.githubusercontent.com/zyeyefyass/CubeX/main/scripts/ros/setup-routeros-v7.rsc" dst-path="setup-routeros-v7.rsc" http-proxy=192.168.88.50:7890; /import setup-routeros-v7.rsc
+  ```
+  这样 RouterOS 就会借助这台电脑的临时通道拉取文件，CubeX 容器一旦拉起并配置好节点，全家便拥有了永久原生的智能分流，电脑上的临时代理即可功成身退！
 
 ---
 
