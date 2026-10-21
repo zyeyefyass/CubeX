@@ -70,7 +70,7 @@ func (m *Manager) getHTTPClient() *http.Client {
 					if err != nil {
 						conn, err = d.DialContext(ctx, "udp", "119.29.29.29:53")
 						if err != nil {
-							return d.DialContext(ctx, "udp", "1.1.1.1:53")
+							return d.DialContext(ctx, "udp", "114.114.114.114:53")
 						}
 					}
 					return conn, nil
