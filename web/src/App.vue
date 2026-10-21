@@ -4213,58 +4213,85 @@
               </div>
 
               <!-- Filter & Search Bar -->
-              <div class="flex flex-col sm:flex-row gap-2 items-center justify-between text-xs">
-                <div class="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto">
-                  <button @click="geodataFilterCategory = 'all'" :class="['px-3 py-1.5 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === 'all' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
-                    全部 ({{ geodataStatus.files?.length || 39 }})
-                  </button>
-                  <button @click="geodataFilterCategory = '基础数据库'" :class="['px-3 py-1.5 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '基础数据库' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
-                    基础库 (2)
-                  </button>
-                  <button @click="geodataFilterCategory = '广告与恶意追踪拦截'" :class="['px-3 py-1.5 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '广告与恶意追踪拦截' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
-                    去广告拦截 (2)
-                  </button>
-                  <button @click="geodataFilterCategory = '基础路由分流'" :class="['px-3 py-1.5 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '基础路由分流' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
-                    基础路由 (6)
-                  </button>
-                  <button @click="geodataFilterCategory = '应用专线分流'" :class="['px-3 py-1.5 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '应用专线分流' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
-                    应用专线 (29)
-                  </button>
+              <div class="flex flex-col gap-2.5 text-xs">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <!-- Category Pills -->
+                  <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
+                    <button @click="geodataFilterCategory = 'all'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === 'all' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
+                      全部分类 ({{ geodataStatus.files?.length || 0 }})
+                    </button>
+                    <button @click="geodataFilterCategory = '基础数据库'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '基础数据库' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
+                      基础库 ({{ geodataStatus.files?.filter(f => f.category === '基础数据库').length || 0 }})
+                    </button>
+                    <button @click="geodataFilterCategory = '广告与恶意追踪拦截'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '广告与恶意追踪拦截' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
+                      去广告 ({{ geodataStatus.files?.filter(f => f.category === '广告与恶意追踪拦截').length || 0 }})
+                    </button>
+                    <button @click="geodataFilterCategory = '基础路由分流'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '基础路由分流' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
+                      基础路由 ({{ geodataStatus.files?.filter(f => f.category === '基础路由分流').length || 0 }})
+                    </button>
+                    <button @click="geodataFilterCategory = '应用专线分流'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '应用专线分流' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
+                      应用专线 ({{ geodataStatus.files?.filter(f => f.category === '应用专线分流').length || 0 }})
+                    </button>
+                  </div>
+
+                  <!-- Engine Toggles -->
+                  <div class="flex items-center gap-1 bg-slate-950/80 p-0.5 rounded-xl border border-slate-800 text-[11px]">
+                    <button @click="geodataFilterEngine = 'all'" :class="['px-2.5 py-0.5 rounded-lg transition cursor-pointer', geodataFilterEngine === 'all' ? 'bg-slate-700 text-white font-bold' : 'text-slate-400 hover:text-slate-200']">
+                      全部引擎
+                    </button>
+                    <button @click="geodataFilterEngine = 'Mihomo'" :class="['px-2.5 py-0.5 rounded-lg transition cursor-pointer flex items-center gap-1', geodataFilterEngine === 'Mihomo' ? 'bg-cyan-900/60 text-cyan-300 border border-cyan-500/40 font-bold' : 'text-slate-400 hover:text-cyan-300']">
+                      <span>Mihomo (MRS)</span>
+                    </button>
+                    <button @click="geodataFilterEngine = 'sing-box'" :class="['px-2.5 py-0.5 rounded-lg transition cursor-pointer flex items-center gap-1', geodataFilterEngine === 'sing-box' ? 'bg-purple-900/60 text-purple-300 border border-purple-500/40 font-bold' : 'text-slate-400 hover:text-purple-300']">
+                      <span>sing-box (SRS)</span>
+                    </button>
+                  </div>
                 </div>
-                <div class="relative w-full sm:w-64">
-                  <input v-model="geodataSearchQuery" placeholder="搜索规则名称、文件名..." class="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
-                  <span v-if="geodataSearchQuery" @click="geodataSearchQuery = ''" class="absolute right-2.5 top-1.5 text-slate-400 hover:text-white cursor-pointer text-xs">✕</span>
+
+                <!-- Search Input -->
+                <div class="relative w-full">
+                  <input v-model="geodataSearchQuery" placeholder="搜索规则名称、策略组、文件名（如 openai, apple, telegram, srs, mrs）..." class="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl px-3.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner" />
+                  <span v-if="geodataSearchQuery" @click="geodataSearchQuery = ''" class="absolute right-3 top-1.5 text-slate-400 hover:text-white cursor-pointer text-xs">✕</span>
                 </div>
               </div>
 
               <!-- Rule Files Table (Scrollable) -->
-              <div class="flex-1 overflow-y-auto border border-slate-800/80 rounded-2xl bg-slate-950/60 custom-scrollbar max-h-[380px]">
+              <div class="flex-1 overflow-y-auto border border-slate-800/80 rounded-2xl bg-slate-950/60 custom-scrollbar max-h-[400px]">
                 <table class="w-full text-left text-xs">
-                  <thead class="bg-slate-900/90 text-slate-400 font-mono border-b border-slate-800 sticky top-0 backdrop-blur z-10">
+                  <thead class="bg-slate-900/95 text-slate-400 font-mono border-b border-slate-800 sticky top-0 backdrop-blur z-10">
                     <tr>
                       <th class="py-2.5 px-3">规则名称与用途</th>
-                      <th class="py-2.5 px-3">文件路径</th>
-                      <th class="py-2.5 px-3">分类</th>
-                      <th class="py-2.5 px-3 text-right">文件体积</th>
+                      <th class="py-2.5 px-2.5 text-center">适配引擎</th>
+                      <th class="py-2.5 px-2.5">对应策略组</th>
+                      <th class="py-2.5 px-2.5">规则文件</th>
+                      <th class="py-2.5 px-2.5 text-right">文件体积</th>
                       <th class="py-2.5 px-3 text-center">运行状态</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-800/40">
                     <tr v-for="(f, idx) in filteredGeodataFiles" :key="idx" class="hover:bg-slate-800/30 transition">
-                      <td class="py-2.5 px-3">
+                      <td class="py-2.5 px-3 max-w-[280px]">
                         <div class="font-bold text-slate-200">{{ f.name }}</div>
-                        <div class="text-[11px] text-slate-400">{{ f.description }}</div>
+                        <div class="text-[11px] text-slate-400 truncate">{{ f.description }}</div>
                       </td>
-                      <td class="py-2.5 px-3 font-mono text-[11px] text-cyan-300">{{ f.filename }}</td>
-                      <td class="py-2.5 px-3">
-                        <span class="text-[10px] px-2 py-0.5 rounded font-mono" :class="{
-                          'bg-blue-950 text-blue-300 border border-blue-500/30': f.category === '基础数据库',
-                          'bg-rose-950 text-rose-300 border border-rose-500/30': f.category === '广告与恶意追踪拦截',
-                          'bg-amber-950 text-amber-300 border border-amber-500/30': f.category === '基础路由分流',
-                          'bg-purple-950 text-purple-300 border border-purple-500/30': f.category === '应用专线分流'
-                        }">{{ f.category }}</span>
+                      <td class="py-2.5 px-2.5 text-center">
+                        <span class="text-[10px] font-mono px-2 py-0.5 rounded font-bold" :class="{
+                          'bg-cyan-950 text-cyan-300 border border-cyan-500/40': f.engine === 'Mihomo',
+                          'bg-purple-950 text-purple-300 border border-purple-500/40': f.engine === 'sing-box',
+                          'bg-emerald-950 text-emerald-300 border border-emerald-500/40': f.engine === '双核通用' || !f.engine
+                        }">
+                          {{ f.engine || '双核通用' }}
+                        </span>
                       </td>
-                      <td class="py-2.5 px-3 font-mono text-right text-slate-300">{{ f.size_str || '-' }}</td>
+                      <td class="py-2.5 px-2.5">
+                        <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-200 border border-slate-700/80 font-mono">
+                          {{ f.group || '通用分流' }}
+                        </span>
+                      </td>
+                      <td class="py-2.5 px-2.5 font-mono text-[11px] text-cyan-300">
+                        <code>{{ f.filename }}</code>
+                      </td>
+                      <td class="py-2.5 px-2.5 font-mono text-right text-slate-300 font-semibold">{{ f.size_str || '-' }}</td>
                       <td class="py-2.5 px-3 text-center">
                         <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-mono">
                           ✓ 活跃生效
@@ -4272,7 +4299,7 @@
                       </td>
                     </tr>
                     <tr v-if="filteredGeodataFiles.length === 0">
-                      <td colspan="5" class="py-8 text-center text-slate-400">未找到匹配的规则文件</td>
+                      <td colspan="6" class="py-8 text-center text-slate-400">未找到匹配的规则文件</td>
                     </tr>
                   </tbody>
                 </table>
@@ -5679,6 +5706,7 @@ const probeChecked = ref(false)
 const probeLastTime = ref('')
 const showGeodataDetailModal = ref(false)
 const geodataFilterCategory = ref('all')
+const geodataFilterEngine = ref('all')
 const geodataSearchQuery = ref('')
 
 const geodataStatus = ref({
@@ -5738,12 +5766,17 @@ const filteredGeodataFiles = computed(() => {
   if (geodataFilterCategory.value !== 'all') {
     list = list.filter(f => f.category === geodataFilterCategory.value)
   }
+  if (geodataFilterEngine.value !== 'all') {
+    list = list.filter(f => f.engine === geodataFilterEngine.value || f.engine === '双核通用')
+  }
   if (geodataSearchQuery.value.trim()) {
     const q = geodataSearchQuery.value.toLowerCase().trim()
     list = list.filter(f => 
       (f.name && f.name.toLowerCase().includes(q)) ||
       (f.filename && f.filename.toLowerCase().includes(q)) ||
-      (f.description && f.description.toLowerCase().includes(q))
+      (f.description && f.description.toLowerCase().includes(q)) ||
+      (f.group && f.group.toLowerCase().includes(q)) ||
+      (f.engine && f.engine.toLowerCase().includes(q))
     )
   }
   return list

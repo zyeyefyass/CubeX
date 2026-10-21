@@ -1,6 +1,7 @@
 package ros
 
 import (
+	"math"
 	"archive/tar"
 	"archive/zip"
 	"bytes"
@@ -1070,6 +1071,8 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 		cleanGitHubURL = "https://" + rawURL[idx+7:]
 	}
 
+	isLargeDatabase := strings.Contains(destPath, "geoip.metadb") || strings.Contains(destPath, "geosite.dat") || strings.Contains(destPath, "GeoIP.dat") || strings.Contains(destPath, "GeoSite.dat")
+
 	// 1. If local proxy 127.0.0.1:7890 is active, try direct download via local proxy first! (15s timeout)
 	proxyURL, pErr := url.Parse("http://127.0.0.1:7890")
 	if pErr == nil {
@@ -1085,21 +1088,25 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 			pReq.Header.Set("User-Agent", "CubeX-Gateway/1.5")
 			pResp, err := pClient.Do(pReq)
 			if err == nil && pResp.StatusCode == http.StatusOK {
-				out, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
-				if err == nil {
-					_, copyErr := io.Copy(out, pResp.Body)
-					out.Close()
-					pResp.Body.Close()
-					if copyErr == nil {
-						return nil
+				bodyBytes, readErr := io.ReadAll(pResp.Body)
+				pResp.Body.Close()
+				if readErr == nil && len(bodyBytes) >= 100 {
+					headSample := strings.ToLower(string(bodyBytes[:int(math.Min(float64(len(bodyBytes)), 256))]))
+					if !strings.Contains(headSample, "<!doctype") && !strings.Contains(headSample, "<html") && !strings.Contains(headSample, "<!--") {
+						if !isLargeDatabase || len(bodyBytes) >= 1000000 {
+							if err := os.WriteFile(destPath, bodyBytes, 0755); err == nil {
+								return nil
+							}
+						}
 					}
 				}
+			} else if pResp != nil {
 				pResp.Body.Close()
 			}
 		}
 	}
 
-	// 2. Candidates with fast CDN mirrors
+	// 2. Candidates with fast CDN mirrors (ghproxy.cn excluded due to captive HTML challenge pages)
 	var candidates []string
 	if strings.Contains(rawURL, "jsdelivr.net") {
 		candidates = []string{
@@ -1110,7 +1117,8 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 	} else {
 		candidates = []string{
 			"https://ghfast.top/" + cleanGitHubURL,
-			"https://ghproxy.cn/" + cleanGitHubURL,
+			"https://ghproxy.net/" + cleanGitHubURL,
+			"https://mirror.ghproxy.com/" + cleanGitHubURL,
 			cleanGitHubURL,
 		}
 	}
@@ -1137,19 +1145,30 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 			continue
 		}
 
-		out, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
-		if err != nil {
-			resp.Body.Close()
-			return err
+		bodyBytes, readErr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if readErr != nil {
+			lastErr = readErr
+			continue
 		}
 
-		_, copyErr := io.Copy(out, resp.Body)
-		out.Close()
-		resp.Body.Close()
+		// Reject HTML error/block pages for binary rule databases
+		if len(bodyBytes) < 100 {
+			lastErr = fmt.Errorf("payload too small (%d bytes)", len(bodyBytes))
+			continue
+		}
+		if isLargeDatabase && len(bodyBytes) < 1000000 {
+			lastErr = fmt.Errorf("database payload too small (%d bytes, minimum 1MB required)", len(bodyBytes))
+			continue
+		}
+		headSample := strings.ToLower(string(bodyBytes[:int(math.Min(float64(len(bodyBytes)), 256))]))
+		if strings.Contains(headSample, "<!doctype") || strings.Contains(headSample, "<html") || strings.Contains(headSample, "<!--") {
+			lastErr = fmt.Errorf("received HTML page instead of binary database")
+			continue
+		}
 
-		if copyErr != nil {
-			lastErr = copyErr
-			_ = os.Remove(destPath)
+		if err := os.WriteFile(destPath, bodyBytes, 0755); err != nil {
+			lastErr = err
 			continue
 		}
 		return nil
@@ -1712,6 +1731,8 @@ type GeoRuleFile struct {
 	UpdatedAt   string `json:"updated_at"`
 	Description string `json:"description"`
 	Status      string `json:"status"`
+	Engine      string `json:"engine"` // "Mihomo" | "sing-box" | "双核通用"
+	Group       string `json:"group"`  // 对应策略组
 }
 
 type GeoDataStatus struct {
@@ -1754,281 +1775,525 @@ type ruleItemDef struct {
 	URL         string
 	Category    string
 	Description string
+	Engine      string
+	Group       string
 }
 
 var allGeoRuleDefs = []ruleItemDef{
+	// ── 1. 双核基础数据库 ──
 	{
 		Name:        "Mihomo 高性能 GeoIP 数据库 (geoip.metadb)",
 		Filename:    "geoip.metadb",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/release/geoip.metadb",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/geoip.metadb",
 		Category:    "基础数据库",
-		Description: "全球 IP 归属地高精度数据库 (MaxMind 兼容格式)",
+		Description: "全球 IP 归属地高精度数据库 (MaxMind 格式，Mihomo 专享)",
+		Engine:      "Mihomo",
+		Group:       "双核基础IP库",
 	},
 	{
 		Name:        "官方全量 GeoSite 域名分类库 (geosite.dat)",
 		Filename:    "geosite.dat",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/release/geosite.dat",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/geosite.dat",
 		Category:    "基础数据库",
 		Description: "全量分类域名数据库，包含国内外各大服务与 CDN 顶级标识",
+		Engine:      "Mihomo",
+		Group:       "双核基础域名库",
 	},
 	{
-		Name:        "217heidai 高速去广告过滤规则 (ads_domain.mrs)",
+		Name:        "官方全量 GeoIP 数据库 (GeoIP.dat)",
+		Filename:    "GeoIP.dat",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/GeoIP.dat",
+		Category:    "基础数据库",
+		Description: "全量全球 IP 数据库 (MaxMind MMDB 兼容格式)",
+		Engine:      "双核通用",
+		Group:       "双核基础IP库",
+	},
+
+	// ── 2. 广告与恶意追踪拦截 (双核对齐) ──
+	{
+		Name:        "217heidai Mihomo 专享去广告规则 (ads_domain.mrs)",
 		Filename:    "rules/ads_domain.mrs",
 		URL:         "https://gcore.jsdelivr.net/gh/217heidai/adblockfilters@main/rules/adblockmihomo.mrs",
 		Category:    "广告与恶意追踪拦截",
-		Description: "217heidai 权威全网合并过滤，过滤广告、遥测追踪、弹窗及恶意域名",
+		Description: "Mihomo (Clash Meta) 专用 MRS 格式 217heidai 全网去广告与恶意追踪过滤",
+		Engine:      "Mihomo",
+		Group:       "🛑 全网广告拦截",
 	},
 	{
-		Name:        "217heidai sing-box 独占去广告规则 (adblocksingbox.srs)",
+		Name:        "217heidai sing-box 专享去广告规则 (adblocksingbox.srs)",
 		Filename:    "rules/adblocksingbox.srs",
 		URL:         "https://gcore.jsdelivr.net/gh/217heidai/adblockfilters@main/rules/adblocksingbox.srs",
 		Category:    "广告与恶意追踪拦截",
-		Description: "sing-box 专用 SRS 格式 217heidai 独占去广告二进制规则集",
+		Description: "sing-box 1.14+ 专用 SRS 格式 217heidai 全网去广告与恶意追踪过滤",
+		Engine:      "sing-box",
+		Group:       "🛑 全网广告拦截",
 	},
 	{
 		Name:        "局域网与私网保留规则集 (privacy_domain.mrs)",
 		Filename:    "rules/privacy_domain.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/private.mrs",
-		Category:    "基础路由分流",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs",
+		Category:    "广告与恶意追踪拦截",
 		Description: "局域网保留 IP、本地私有子网、mDNS 及路由管理网段直连直出",
+		Engine:      "Mihomo",
+		Group:       "🛑 全网广告拦截",
 	},
+	{
+		Name:        "局域网反追踪规则集 (privacy.srs)",
+		Filename:    "rules/privacy.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/private.srs",
+		Category:    "广告与恶意追踪拦截",
+		Description: "sing-box 专用反指纹嗅探与本地隐私保护二进制规则",
+		Engine:      "sing-box",
+		Group:       "🛑 全网广告拦截",
+	},
+
+	// ── 3. 基础路由分流 (双核对齐) ──
 	{
 		Name:        "国内直连域名规则集 (cn_domain.mrs)",
 		Filename:    "rules/cn_domain.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/cn.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.mrs",
 		Category:    "基础路由分流",
 		Description: "中国大陆各大互联网公司、政企官网、银行及云服务器直连直出",
+		Engine:      "Mihomo",
+		Group:       "🎯 国内流量",
+	},
+	{
+		Name:        "国内直连域名规则集 (cn_domain.srs)",
+		Filename:    "rules/cn_domain.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/cn.srs",
+		Category:    "基础路由分流",
+		Description: "中国大陆各大互联网公司、政企官网、银行及云服务器直连直出 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "🎯 国内流量",
 	},
 	{
 		Name:        "国内 IP 分流规则集 (cn_ip.mrs)",
 		Filename:    "rules/cn_ip.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/cn.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.mrs",
 		Category:    "基础路由分流",
 		Description: "中国电信/联通/移动/广电真实公网 IP 地址段零延迟物理直连",
+		Engine:      "Mihomo",
+		Group:       "🎯 国内流量",
+	},
+	{
+		Name:        "国内 IP 分流规则集 (cn_ip.srs)",
+		Filename:    "rules/cn_ip.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/cn.srs",
+		Category:    "基础路由分流",
+		Description: "中国电信/联通/移动/广电真实公网 IP 地址段零延迟物理直连 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "🎯 国内流量",
 	},
 	{
 		Name:        "国外加速域名规则集 (cn_not_domain.mrs)",
 		Filename:    "rules/cn_not_domain.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/geolocation-!cn.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.mrs",
 		Category:    "基础路由分流",
 		Description: "非国内境外网站与全球互联网节点加速分流矩阵",
+		Engine:      "Mihomo",
+		Group:       "🌐 国外流量",
+	},
+	{
+		Name:        "国外加速域名规则集 (cn_not_domain.srs)",
+		Filename:    "rules/cn_not_domain.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/geolocation-!cn.srs",
+		Category:    "基础路由分流",
+		Description: "非国内境外网站与全球互联网节点加速分流矩阵 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "🌐 国外流量",
 	},
 	{
 		Name:        "GFW 拦截域名规则集 (gfw_domain.mrs)",
 		Filename:    "rules/gfw_domain.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/gfw.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/gfw.mrs",
 		Category:    "基础路由分流",
 		Description: "GFW 精准匹配走代理出站，确保敏感受限网站秒级穿透",
+		Engine:      "Mihomo",
+		Group:       "🌐 国外流量",
+	},
+	{
+		Name:        "GFW 拦截域名规则集 (gfw.srs)",
+		Filename:    "rules/gfw.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/gfw.srs",
+		Category:    "基础路由分流",
+		Description: "GFW 精准匹配走代理出站，确保敏感受限网站秒级穿透 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "🌐 国外流量",
 	},
 	{
 		Name:        "Telegram 全球专有 IP 段规则集 (telegram_ip.mrs)",
 		Filename:    "rules/telegram_ip.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/telegram.mrs",
-		Category:    "应用专线分流",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.mrs",
+		Category:    "基础路由分流",
 		Description: "Telegram 官方 DC1~DC5 全球数据中心专有网段秒级路由",
+		Engine:      "Mihomo",
+		Group:       "Telegram",
 	},
+	{
+		Name:        "Telegram 全球专有 IP 段规则集 (telegram_ip.srs)",
+		Filename:    "rules/telegram_ip.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/telegram.srs",
+		Category:    "基础路由分流",
+		Description: "Telegram 官方 DC1~DC5 全球数据中心专有网段秒级路由 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "Telegram",
+	},
+
+	// ── 4. 业务策略组双核对齐 ──
+	// 🤖 AI 智算平台
 	{
 		Name:        "OpenAI / ChatGPT (openai.mrs)",
 		Filename:    "rules/openai.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/openai.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/openai.mrs",
 		Category:    "应用专线分流",
 		Description: "ChatGPT、Codex、Whisper、Sora 及 OpenAI 官方 API 智能分流",
+		Engine:      "Mihomo",
+		Group:       "AI",
 	},
 	{
-		Name:        "Claude / Anthropic (claude.mrs)",
-		Filename:    "rules/claude.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/claude.mrs",
+		Name:        "OpenAI / ChatGPT (openai.srs)",
+		Filename:    "rules/openai.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/openai.srs",
 		Category:    "应用专线分流",
-		Description: "Anthropic Claude 3.5 Sonnet / Opus 大模型服务官方域名",
+		Description: "ChatGPT、Codex、Whisper、Sora 及 OpenAI 官方 API 智能分流 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "AI",
 	},
+	// 🎬 YouTube 视频
 	{
 		Name:        "YouTube 视频流 (youtube.mrs)",
 		Filename:    "rules/youtube.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/youtube.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.mrs",
 		Category:    "应用专线分流",
 		Description: "YouTube 官方主站、Googlevideo 4K/8K 视频分流与 SponsorBlock",
+		Engine:      "Mihomo",
+		Group:       "YouTube",
 	},
 	{
-		Name:        "Netflix 流媒体 (netflix.mrs)",
-		Filename:    "rules/netflix.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/netflix.mrs",
+		Name:        "YouTube 视频流 (youtube.srs)",
+		Filename:    "rules/youtube.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/youtube.srs",
 		Category:    "应用专线分流",
-		Description: "奈飞全球原生流媒体与 CDN 节点定向解锁分流",
+		Description: "YouTube 官方主站、Googlevideo 4K/8K 视频分流 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "YouTube",
 	},
-	{
-		Name:        "Disney+ 流媒体 (disney.mrs)",
-		Filename:    "rules/disney.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/disney.mrs",
-		Category:    "应用专线分流",
-		Description: "迪士尼 Disney+、Star+ 全球专线加速分流",
-	},
+	// 🌐 Google 服务
 	{
 		Name:        "Google 核心服务 (google.mrs)",
 		Filename:    "rules/google.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/google.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.mrs",
 		Category:    "应用专线分流",
 		Description: "Google 搜索、Gmail、Drive、Play 商店及全球基础设施分流",
+		Engine:      "Mihomo",
+		Group:       "Google",
 	},
 	{
-		Name:        "GitHub & 开发者 (github.mrs)",
-		Filename:    "rules/github.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/github.mrs",
+		Name:        "Google 核心服务 (google.srs)",
+		Filename:    "rules/google.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/google.srs",
 		Category:    "应用专线分流",
-		Description: "GitHub 代码仓库、Raw 内容及 Releases 极速分流加速",
+		Description: "Google 搜索、Gmail、Drive、Play 商店分流 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "Google",
 	},
-	{
-		Name:        "Telegram 域名 (telegram.mrs)",
-		Filename:    "rules/telegram.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/telegram.mrs",
-		Category:    "应用专线分流",
-		Description: "Telegram 官方域名与 Web/移动端 API 加速分流",
-	},
-	{
-		Name:        "Twitter (X) (twitter.mrs)",
-		Filename:    "rules/twitter.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/twitter.mrs",
-		Category:    "应用专线分流",
-		Description: "X (原 Twitter) 社交网络、推文流媒体与图片加速",
-	},
-	{
-		Name:        "Spotify 音乐 (spotify.mrs)",
-		Filename:    "rules/spotify.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/spotify.mrs",
-		Category:    "应用专线分流",
-		Description: "Spotify 全球无损音乐流、播客与认证服务分流",
-	},
-	{
-		Name:        "Steam 游戏专线 (steam.mrs)",
-		Filename:    "rules/steam.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/steam.mrs",
-		Category:    "应用专线分流",
-		Description: "Steam 商店浏览、社区访问及游戏服务器低延迟路由",
-	},
-	{
-		Name:        "TikTok 海外版 (tiktok.mrs)",
-		Filename:    "rules/tiktok.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/tiktok.mrs",
-		Category:    "应用专线分流",
-		Description: "字节跳动 TikTok 全球视频节点与 API 分流",
-	},
-	{
-		Name:        "Bilibili 视频 (bilibili.mrs)",
-		Filename:    "rules/bilibili.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/bilibili.mrs",
-		Category:    "应用专线分流",
-		Description: "哔哩哔哩港澳台番剧解锁与大陆 CDN 智能直连",
-	},
-	{
-		Name:        "Discord 语音社区 (discord.mrs)",
-		Filename:    "rules/discord.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/discord.mrs",
-		Category:    "应用专线分流",
-		Description: "Discord 全球音视频通话、服务器频道实时加速",
-	},
-	{
-		Name:        "Bahamut 巴哈姆特 (bahamut.mrs)",
-		Filename:    "rules/bahamut.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/bahamut.mrs",
-		Category:    "应用专线分流",
-		Description: "台湾巴哈姆特电玩疯动漫无广告 1080P/4K 解锁分流",
-	},
-	{
-		Name:        "Emby 私有影音 (emby.mrs)",
-		Filename:    "rules/emby.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/emby.mrs",
-		Category:    "应用专线分流",
-		Description: "Emby / Jellyfin 公益与私有媒体库加速分流",
-	},
-	{
-		Name:        "Epic Games 游戏 (epicgames.mrs)",
-		Filename:    "rules/epicgames.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/epicgames.mrs",
-		Category:    "应用专线分流",
-		Description: "Epic Games 商城特惠、云存档及游戏联机加速",
-	},
-	{
-		Name:        "PlayStation 主机 (playstation.mrs)",
-		Filename:    "rules/playstation.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/playstation.mrs",
-		Category:    "应用专线分流",
-		Description: "索尼 PSN 商店、PS5 联机加速与游戏下载分流",
-	},
-	{
-		Name:        "Nintendo Switch (nintendo.mrs)",
-		Filename:    "rules/nintendo.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/nintendo.mrs",
-		Category:    "应用专线分流",
-		Description: "任天堂 eShop 商店、Switch Online 联机专线",
-	},
-	{
-		Name:        "Amazon 亚马逊 (amazon.mrs)",
-		Filename:    "rules/amazon.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/amazon.mrs",
-		Category:    "应用专线分流",
-		Description: "Amazon 国际商城与 Prime Video 流媒体分流",
-	},
-	{
-		Name:        "PayPal 国际支付 (paypal.mrs)",
-		Filename:    "rules/paypal.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/paypal.mrs",
-		Category:    "应用专线分流",
-		Description: "PayPal 国际跨境支付风控安全专线分流",
-	},
-	{
-		Name:        "Speedtest 测速 (speedtest.mrs)",
-		Filename:    "rules/speedtest.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/speedtest.mrs",
-		Category:    "应用专线分流",
-		Description: "Ookla Speedtest 全球测速节点与带宽压测分流",
-	},
-	{
-		Name:        "Reddit 社区 (reddit.mrs)",
-		Filename:    "rules/reddit.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/reddit.mrs",
-		Category:    "应用专线分流",
-		Description: "Reddit 国际论坛社区发帖与多媒体流加速",
-	},
-	{
-		Name:        "Notion 知识库 (notion.mrs)",
-		Filename:    "rules/notion.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/notion.mrs",
-		Category:    "应用专线分流",
-		Description: "Notion 个人与团队知识库实时同步加速",
-	},
-	{
-		Name:        "Binance 币安 (binance.mrs)",
-		Filename:    "rules/binance.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/binance.mrs",
-		Category:    "应用专线分流",
-		Description: "全球加密货币行情、WebSocket 实时推送与交易分流",
-	},
+	// 🍎 Apple 官方服务
 	{
 		Name:        "Apple 官方服务 (apple.mrs)",
 		Filename:    "rules/apple.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/apple.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/apple.mrs",
 		Category:    "应用专线分流",
 		Description: "Apple 固件更新、iCloud 同步与 App Store 官方分流",
+		Engine:      "Mihomo",
+		Group:       "Apple 服务",
 	},
+	{
+		Name:        "Apple 官方服务 (apple.srs)",
+		Filename:    "rules/apple.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/apple.srs",
+		Category:    "应用专线分流",
+		Description: "Apple 固件更新、iCloud 同步与 App Store 官方分流 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "Apple 服务",
+	},
+	// 🪟 Microsoft 微软服务
 	{
 		Name:        "Microsoft 微软 (microsoft.mrs)",
 		Filename:    "rules/microsoft.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/microsoft.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/microsoft.mrs",
 		Category:    "应用专线分流",
 		Description: "Windows Update、Office 365 及 Azure 云服务分流",
+		Engine:      "Mihomo",
+		Group:       "Microsoft",
+	},
+	{
+		Name:        "Microsoft 微软 (microsoft.srs)",
+		Filename:    "rules/microsoft.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/microsoft.srs",
+		Category:    "应用专线分流",
+		Description: "Windows Update、Office 365 及 Azure 云服务分流 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "Microsoft",
 	},
 	{
 		Name:        "OneDrive 云盘 (onedrive.mrs)",
 		Filename:    "rules/onedrive.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/onedrive.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/onedrive.mrs",
 		Category:    "应用专线分流",
 		Description: "微软 OneDrive 个人与企业版大文件极速同步分流",
+		Engine:      "Mihomo",
+		Group:       "Microsoft",
 	},
 	{
-		Name:        "Zoom 视频会议 (zoom.mrs)",
-		Filename:    "rules/zoom.mrs",
-		URL:         "https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/zoom.mrs",
+		Name:        "OneDrive 云盘 (onedrive.srs)",
+		Filename:    "rules/onedrive.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/onedrive.srs",
 		Category:    "应用专线分流",
-		Description: "Zoom 全球音视频远程会议与屏幕共享低延迟路由",
+		Description: "微软 OneDrive 个人与企业版大文件极速同步分流 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "Microsoft",
+	},
+	// 🐙 GitHub & Docker
+	{
+		Name:        "GitHub 开发协同 (github.mrs)",
+		Filename:    "rules/github.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/github.mrs",
+		Category:    "应用专线分流",
+		Description: "GitHub 代码托管、Git Clone、Releases 极速加速下载",
+		Engine:      "Mihomo",
+		Group:       "GitHub & Docker",
+	},
+	{
+		Name:        "GitHub 开发协同 (github.srs)",
+		Filename:    "rules/github.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/github.srs",
+		Category:    "应用专线分流",
+		Description: "GitHub 代码托管、Git Clone 极速加速 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "GitHub & Docker",
+	},
+	// ✈️ Telegram
+	{
+		Name:        "Telegram 官方域名 (telegram.mrs)",
+		Filename:    "rules/telegram.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.mrs",
+		Category:    "应用专线分流",
+		Description: "Telegram 官方网页端、API 节点及文件直连分流",
+		Engine:      "Mihomo",
+		Group:       "Telegram",
+	},
+	{
+		Name:        "Telegram 官方域名 (telegram.srs)",
+		Filename:    "rules/telegram.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/telegram.srs",
+		Category:    "应用专线分流",
+		Description: "Telegram 官方网页端、API 节点分流 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "Telegram",
+	},
+	// 🐦 Twitter (X)
+	{
+		Name:        "Twitter / X (twitter.mrs)",
+		Filename:    "rules/twitter.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/twitter.mrs",
+		Category:    "应用专线分流",
+		Description: "Twitter 社交平台、X 媒体流及 Twimg 资源加速分流",
+		Engine:      "Mihomo",
+		Group:       "Twitter (X)",
+	},
+	{
+		Name:        "Twitter / X (twitter.srs)",
+		Filename:    "rules/twitter.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/twitter.srs",
+		Category:    "应用专线分流",
+		Description: "Twitter 社交平台、X 媒体流资源加速 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "Twitter (X)",
+	},
+	// 🍿 Netflix & 流媒体
+	{
+		Name:        "Netflix 流媒体 (netflix.mrs)",
+		Filename:    "rules/netflix.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/netflix.mrs",
+		Category:    "应用专线分流",
+		Description: "奈飞全球原生流媒体与 CDN 节点定向解锁分流",
+		Engine:      "Mihomo",
+		Group:       "Netflix & 流媒体",
+	},
+	{
+		Name:        "Netflix 流媒体 (netflix.srs)",
+		Filename:    "rules/netflix.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/netflix.srs",
+		Category:    "应用专线分流",
+		Description: "奈飞全球原生流媒体定向解锁分流 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "Netflix & 流媒体",
+	},
+	{
+		Name:        "Disney+ 流媒体 (disney.mrs)",
+		Filename:    "rules/disney.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/disney.mrs",
+		Category:    "应用专线分流",
+		Description: "迪士尼 Disney+、Star+ 全球专线加速分流",
+		Engine:      "Mihomo",
+		Group:       "Netflix & 流媒体",
+	},
+	{
+		Name:        "Disney+ 流媒体 (disney.srs)",
+		Filename:    "rules/disney.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/disney.srs",
+		Category:    "应用专线分流",
+		Description: "迪士尼 Disney+、Star+ 全球专线加速分流 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "Netflix & 流媒体",
+	},
+	// 🎵 Spotify
+	{
+		Name:        "Spotify 音乐 (spotify.mrs)",
+		Filename:    "rules/spotify.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/spotify.mrs",
+		Category:    "应用专线分流",
+		Description: "Spotify 高品质流媒体音乐与歌曲数据加载分流",
+		Engine:      "Mihomo",
+		Group:       "Spotify",
+	},
+	{
+		Name:        "Spotify 音乐 (spotify.srs)",
+		Filename:    "rules/spotify.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/spotify.srs",
+		Category:    "应用专线分流",
+		Description: "Spotify 高品质流媒体音乐分流 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "Spotify",
+	},
+	// 🎮 Steam 游戏
+	{
+		Name:        "Steam 游戏平台 (steam.mrs)",
+		Filename:    "rules/steam.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/steam.mrs",
+		Category:    "应用专线分流",
+		Description: "Steam 商店、社区讨论区及游戏下载 CDN 分流",
+		Engine:      "Mihomo",
+		Group:       "Steam 游戏",
+	},
+	{
+		Name:        "Steam 游戏平台 (steam.srs)",
+		Filename:    "rules/steam.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/steam.srs",
+		Category:    "应用专线分流",
+		Description: "Steam 商店、社区讨论区及游戏下载分流 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "Steam 游戏",
+	},
+	{
+		Name:        "Epic Games (epicgames.mrs)",
+		Filename:    "rules/epicgames.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/epicgames.mrs",
+		Category:    "应用专线分流",
+		Description: "Epic 游戏平台、虚幻引擎商城及周免游戏极速领取代连",
+		Engine:      "Mihomo",
+		Group:       "Steam 游戏",
+	},
+	{
+		Name:        "Epic Games (epicgames.srs)",
+		Filename:    "rules/epicgames.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/epicgames.srs",
+		Category:    "应用专线分流",
+		Description: "Epic 游戏平台、虚幻引擎商城分流 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "Steam 游戏",
+	},
+	// 📺 Bilibili 哔哩哔哩
+	{
+		Name:        "Bilibili 哔哩哔哩 (bilibili.mrs)",
+		Filename:    "rules/bilibili.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/bilibili.mrs",
+		Category:    "应用专线分流",
+		Description: "哔哩哔哩主站视频流与海外番剧解锁定向路由",
+		Engine:      "Mihomo",
+		Group:       "🎯 国内流量",
+	},
+	{
+		Name:        "Bilibili 哔哩哔哩 (bilibili.srs)",
+		Filename:    "rules/bilibili.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/bilibili.srs",
+		Category:    "应用专线分流",
+		Description: "哔哩哔哩主站视频流定向路由 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "🎯 国内流量",
+	},
+	// 社区与流媒体专线
+	{
+		Name:        "Reddit 社区 (reddit.mrs)",
+		Filename:    "rules/reddit.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/reddit.mrs",
+		Category:    "应用专线分流",
+		Description: "Reddit 全球极客社区、论坛帖子与图片视频高速加载",
+		Engine:      "Mihomo",
+		Group:       "🌐 国外流量",
+	},
+	{
+		Name:        "Reddit 社区 (reddit.srs)",
+		Filename:    "rules/reddit.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/reddit.srs",
+		Category:    "应用专线分流",
+		Description: "Reddit 全球极客社区、论坛高速加载 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "🌐 国外流量",
+	},
+	{
+		Name:        "TikTok 国际版 (tiktok.mrs)",
+		Filename:    "rules/tiktok.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/tiktok.mrs",
+		Category:    "应用专线分流",
+		Description: "字节跳动 TikTok 全球短视频、直播与海外电商专线",
+		Engine:      "Mihomo",
+		Group:       "🌐 国外流量",
+	},
+	{
+		Name:        "TikTok 国际版 (tiktok.srs)",
+		Filename:    "rules/tiktok.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/tiktok.srs",
+		Category:    "应用专线分流",
+		Description: "TikTok 全球短视频与直播加速 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "🌐 国外流量",
+	},
+	{
+		Name:        "Speedtest 测速节点 (speedtest.mrs)",
+		Filename:    "rules/speedtest.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/speedtest.mrs",
+		Category:    "应用专线分流",
+		Description: "Ookla Speedtest 全球网络测速服务器分流",
+		Engine:      "Mihomo",
+		Group:       "🌐 国外流量",
+	},
+	{
+		Name:        "Speedtest 测速节点 (speedtest.srs)",
+		Filename:    "rules/speedtest.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/speedtest.srs",
+		Category:    "应用专线分流",
+		Description: "Ookla Speedtest 全球网络测速分流 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "🌐 国外流量",
+	},
+	{
+		Name:        "Bahamut 动画疯 (bahamut.mrs)",
+		Filename:    "rules/bahamut.mrs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/bahamut.mrs",
+		Category:    "应用专线分流",
+		Description: "巴哈姆特动画疯台湾地区独占动漫番剧解锁分流",
+		Engine:      "Mihomo",
+		Group:       "Netflix & 流媒体",
+	},
+	{
+		Name:        "Bahamut 动画疯 (bahamut.srs)",
+		Filename:    "rules/bahamut.srs",
+		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/bahamut.srs",
+		Category:    "应用专线分流",
+		Description: "巴哈姆特动画疯动漫番剧解锁分流 (sing-box 专享)",
+		Engine:      "sing-box",
+		Group:       "Netflix & 流媒体",
 	},
 }
 
@@ -2118,6 +2383,8 @@ func (m *Manager) GetGeoDataStatus() *GeoDataStatus {
 			Filename:    filepath.Base(def.Filename),
 			Category:    def.Category,
 			Description: def.Description,
+			Engine:      def.Engine,
+			Group:       def.Group,
 		}
 		if fi, err := os.Stat(targetPath); err == nil {
 			rf.SizeBytes = fi.Size()

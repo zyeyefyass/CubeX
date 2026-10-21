@@ -1,6 +1,15 @@
 #!/bin/sh
 set -e
 
+# Ensure glibc dynamic linker compatibility for sing-box on musl/Alpine
+mkdir -p /lib64 2>/dev/null || true
+if [ ! -e /lib64/ld-linux-x86-64.so.2 ] && [ -f /lib/ld-musl-x86_64.so.1 ]; then
+    ln -s /lib/ld-musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2 2>/dev/null || true
+fi
+if [ ! -e /lib64/ld-linux-aarch64.so.1 ] && [ -f /lib/ld-musl-aarch64.so.1 ]; then
+    ln -s /lib/ld-musl-aarch64.so.1 /lib64/ld-linux-aarch64.so.1 2>/dev/null || true
+fi
+
 echo "🚀 [CubeX] Starting CubeX Container Initialization..."
 
 # 1. Initialize /app/etc if empty or missing critical geodata / rules

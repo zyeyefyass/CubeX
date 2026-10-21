@@ -6,6 +6,8 @@ import (
 	"log"
 	"net"
 	"net/url"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -76,6 +78,22 @@ func makeSingboxDNSServer(tag, rawAddr, detour string) map[string]any {
 		serverMap["server_port"] = 53
 	}
 	return serverMap
+}
+
+// isSRSAvailable checks whether a compiled binary sing-box rule set exists on disk.
+func isSRSAvailable(ruleFilename string) bool {
+	candidates := []string{
+		filepath.Join("/cubex/app/etc", ruleFilename),
+		filepath.Join("etc", ruleFilename),
+		ruleFilename,
+		filepath.Join("..", "etc", ruleFilename),
+	}
+	for _, c := range candidates {
+		if fi, err := os.Stat(c); err == nil && fi.Size() > 100 {
+			return true
+		}
+	}
+	return false
 }
 
 // BuildSingBox transcompiles CubeX Universal IR to sing-box v1.14.3+ config.json
@@ -749,6 +767,45 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		},
 	}
 
+	// Dynamically register available business strategy SRS rule sets
+	bizSRSMappings := []struct {
+		tag      string
+		filename string
+		outbound string
+	}{
+		{"openai-srs", "rules/openai.srs", "AI"},
+		{"youtube-srs", "rules/youtube.srs", "YouTube"},
+		{"google-srs", "rules/google.srs", "Google"},
+		{"github-srs", "rules/github.srs", "GitHub & Docker"},
+		{"telegram-srs", "rules/telegram.srs", "Telegram"},
+		{"telegram_ip-srs", "rules/telegram_ip.srs", "Telegram"},
+		{"twitter-srs", "rules/twitter.srs", "Twitter (X)"},
+		{"netflix-srs", "rules/netflix.srs", "Netflix & 流媒体"},
+		{"disney-srs", "rules/disney.srs", "Netflix & 流媒体"},
+		{"apple-srs", "rules/apple.srs", "Apple 服务"},
+		{"microsoft-srs", "rules/microsoft.srs", "Microsoft"},
+		{"onedrive-srs", "rules/onedrive.srs", "Microsoft"},
+		{"spotify-srs", "rules/spotify.srs", "Spotify"},
+		{"steam-srs", "rules/steam.srs", "Steam 游戏"},
+		{"epicgames-srs", "rules/epicgames.srs", "Steam 游戏"},
+		{"gfw-srs", "rules/gfw.srs", "🌐 国外流量"},
+		{"cn_domain-srs", "rules/cn_domain.srs", "🎯 国内流量"},
+		{"cn_ip-srs", "rules/cn_ip.srs", "🎯 国内流量"},
+	}
+
+	activeSRSByGroup := make(map[string][]string)
+	for _, b := range bizSRSMappings {
+		if isSRSAvailable(b.filename) {
+			ruleSets = append(ruleSets, map[string]any{
+				"tag":    b.tag,
+				"type":   "local",
+				"format": "binary",
+				"path":   b.filename,
+			})
+			activeSRSByGroup[b.outbound] = append(activeSRSByGroup[b.outbound], b.tag)
+		}
+	}
+
 	routeRules := make([]map[string]any, 0)
 
 	// A. Global Sniff & DNS Hijack (sing-box 1.14+ action format)
@@ -861,8 +918,14 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"action":   "reject",
 	})
 
-	// H. 11 Major Business Strategy Groups (Comprehensive Domain Matching)
+	// H. 11 Major Business Strategy Groups (Comprehensive Domain & SRS Matching)
 	if validOutbounds["AI"] {
+		if tags, ok := activeSRSByGroup["AI"]; ok && len(tags) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"rule_set": tags,
+				"outbound": "AI",
+			})
+		}
 		routeRules = append(routeRules, map[string]any{
 			"domain": []string{
 				"antigravity-unleash.goog",
@@ -898,6 +961,12 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		})
 	}
 	if validOutbounds["YouTube"] {
+		if tags, ok := activeSRSByGroup["YouTube"]; ok && len(tags) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"rule_set": tags,
+				"outbound": "YouTube",
+			})
+		}
 		routeRules = append(routeRules, map[string]any{
 			"domain_suffix":  []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com", "yt3.ggpht.com", "yt4.ggpht.com", "gvt1.com", "1e100.net", "googleusercontent.com"},
 			"domain_keyword": []string{"googlevideo", "sponsorblock"},
@@ -905,54 +974,108 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		})
 	}
 	if validOutbounds["Google"] {
+		if tags, ok := activeSRSByGroup["Google"]; ok && len(tags) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"rule_set": tags,
+				"outbound": "Google",
+			})
+		}
 		routeRules = append(routeRules, map[string]any{
 			"domain_suffix": []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com", "antigravity.dev", "goog", "run.app", "1e100.net", "gvt1.com"},
 			"outbound":      "Google",
 		})
 	}
 	if validOutbounds["GitHub & Docker"] {
+		if tags, ok := activeSRSByGroup["GitHub & Docker"]; ok && len(tags) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"rule_set": tags,
+				"outbound": "GitHub & Docker",
+			})
+		}
 		routeRules = append(routeRules, map[string]any{
 			"domain_suffix": []string{"github.com", "githubusercontent.com", "docker.com", "docker.io", "ghcr.io"},
 			"outbound":      "GitHub & Docker",
 		})
 	}
 	if validOutbounds["Telegram"] {
+		if tags, ok := activeSRSByGroup["Telegram"]; ok && len(tags) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"rule_set": tags,
+				"outbound": "Telegram",
+			})
+		}
 		routeRules = append(routeRules, map[string]any{
 			"domain_suffix": []string{"telegram.org", "t.me", "telegram.me", "telegra.ph"},
 			"outbound":      "Telegram",
 		})
 	}
 	if validOutbounds["Twitter (X)"] {
+		if tags, ok := activeSRSByGroup["Twitter (X)"]; ok && len(tags) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"rule_set": tags,
+				"outbound": "Twitter (X)",
+			})
+		}
 		routeRules = append(routeRules, map[string]any{
 			"domain_suffix": []string{"twitter.com", "x.com", "twimg.com", "t.co"},
 			"outbound":      "Twitter (X)",
 		})
 	}
 	if validOutbounds["Netflix & 流媒体"] {
+		if tags, ok := activeSRSByGroup["Netflix & 流媒体"]; ok && len(tags) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"rule_set": tags,
+				"outbound": "Netflix & 流媒体",
+			})
+		}
 		routeRules = append(routeRules, map[string]any{
 			"domain_suffix": []string{"netflix.com", "netflix.net", "nflximg.net", "nflxvideo.net", "nflxso.net", "nflxext.com", "disneyplus.com", "hbo.com"},
 			"outbound":      "Netflix & 流媒体",
 		})
 	}
 	if validOutbounds["Apple 服务"] {
+		if tags, ok := activeSRSByGroup["Apple 服务"]; ok && len(tags) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"rule_set": tags,
+				"outbound": "Apple 服务",
+			})
+		}
 		routeRules = append(routeRules, map[string]any{
 			"domain_suffix": []string{"apple.com", "icloud.com", "aaplimg.com", "itunes.com"},
 			"outbound":      "Apple 服务",
 		})
 	}
 	if validOutbounds["Microsoft"] {
+		if tags, ok := activeSRSByGroup["Microsoft"]; ok && len(tags) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"rule_set": tags,
+				"outbound": "Microsoft",
+			})
+		}
 		routeRules = append(routeRules, map[string]any{
 			"domain_suffix": []string{"microsoft.com", "windows.com", "live.com", "office.com", "azure.com", "msftconnecttest.com"},
 			"outbound":      "Microsoft",
 		})
 	}
 	if validOutbounds["Spotify"] {
+		if tags, ok := activeSRSByGroup["Spotify"]; ok && len(tags) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"rule_set": tags,
+				"outbound": "Spotify",
+			})
+		}
 		routeRules = append(routeRules, map[string]any{
 			"domain_suffix": []string{"spotify.com", "scdn.co", "spoti.fi"},
 			"outbound":      "Spotify",
 		})
 	}
 	if validOutbounds["Steam 游戏"] {
+		if tags, ok := activeSRSByGroup["Steam 游戏"]; ok && len(tags) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"rule_set": tags,
+				"outbound": "Steam 游戏",
+			})
+		}
 		routeRules = append(routeRules, map[string]any{
 			"domain_suffix": []string{"steampowered.com", "steamcommunity.com", "steamgames.com", "steamusercontent.com", "steamcontent.com"},
 			"outbound":      "Steam 游戏",
@@ -963,6 +1086,12 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	domesticTarget := "direct"
 	if validOutbounds["🎯 国内流量"] {
 		domesticTarget = "🎯 国内流量"
+	}
+	if tags, ok := activeSRSByGroup["🎯 国内流量"]; ok && len(tags) > 0 {
+		routeRules = append(routeRules, map[string]any{
+			"rule_set": tags,
+			"outbound": domesticTarget,
+		})
 	}
 	routeRules = append(routeRules, map[string]any{
 		"rule_set": []string{"geosite-cn"},
