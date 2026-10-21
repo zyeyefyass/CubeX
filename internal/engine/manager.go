@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -45,6 +46,7 @@ type Manager struct {
 	workDir      string
 	activeEngine schema.EngineType
 	currentProc  *os.Process
+	procDone     chan struct{}
 	clashAPI     string
 	httpClient   *http.Client
 	lastResult   *SwitchResult
@@ -241,14 +243,21 @@ func (m *Manager) SnapshotClashState() map[string]string {
 func (m *Manager) RestoreClashState(snapshot map[string]string) int {
 	restored := 0
 	for groupName, targetNode := range snapshot {
-		url := fmt.Sprintf("%s/proxies/%s", m.clashAPI, groupName)
+		escapedGroup := url.PathEscape(groupName)
+		u := fmt.Sprintf("%s/proxies/%s", m.clashAPI, escapedGroup)
 		payload, _ := json.Marshal(map[string]string{"name": targetNode})
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodPut, url, bytes.NewReader(payload))
+		ctx, cancel := context.WithTimeout(context.Background(), 350*time.Millisecond)
+		req, err := http.NewRequestWithContext(ctx, http.MethodPut, u, bytes.NewReader(payload))
 		if err != nil {
+			cancel()
 			continue
 		}
 		req.Header.Set("Content-Type", "application/json")
+		if m.ir != nil && m.ir.Network.ClashSecret != "" {
+			req.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
+		}
 		resp, err := m.httpClient.Do(req)
+		cancel()
 		if err == nil {
 			resp.Body.Close()
 			if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
@@ -423,31 +432,38 @@ func (m *Manager) stopCurrentCore(binName string) {
 	if m.currentProc != nil && m.currentProc.Pid > 0 {
 		pid := m.currentProc.Pid
 		log.Printf("🛑 [Engine] Gracefully stopping active core (PID %d)...", pid)
+		done := m.procDone
 		if runtime.GOOS != "windows" {
 			_ = m.currentProc.Signal(syscall.SIGTERM)
-			done := make(chan struct{})
-			go func() {
-				_, _ = m.currentProc.Wait()
-				close(done)
-			}()
-			select {
-			case <-done:
-				log.Printf("✅ [Engine] Core (PID %d) gracefully exited", pid)
-			case <-time.After(500 * time.Millisecond):
-				log.Printf("⚠️ [Engine] Core (PID %d) did not terminate in 500ms, force killing...", pid)
-				_ = m.currentProc.Kill()
-				<-done
+			if done != nil {
+				select {
+				case <-done:
+					log.Printf("✅ [Engine] Core (PID %d) gracefully exited", pid)
+				case <-time.After(500 * time.Millisecond):
+					log.Printf("⚠️ [Engine] Core (PID %d) did not terminate in 500ms, force killing...", pid)
+					_ = m.currentProc.Kill()
+					select {
+					case <-done:
+					case <-time.After(300 * time.Millisecond):
+					}
+				}
 			}
 		} else {
 			_ = m.currentProc.Kill()
-			_, _ = m.currentProc.Wait()
+			if done != nil {
+				select {
+				case <-done:
+				case <-time.After(500 * time.Millisecond):
+				}
+			}
 		}
 		m.currentProc = nil
+		m.procDone = nil
 	}
 	if runtime.GOOS != "windows" && binName != "" {
-		_ = exec.Command("pkill", "-15", binName).Run()
+		_ = exec.Command("pkill", "-9", binName).Run()
 	}
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 }
 
 func (m *Manager) probeCoreHealth(target schema.EngineType, maxWait time.Duration) bool {
@@ -489,11 +505,14 @@ func (m *Manager) rollback(eng schema.EngineType, etcDir string, snapshot map[st
 	cmd := m.buildCmd(eng, binPath, etcDir, configPath)
 	if err := m.startEngineProcess(eng, cmd); err == nil {
 		m.currentProc = cmd.Process
+		done := make(chan struct{})
+		m.procDone = done
 		log.Printf("🛡️ [Engine] Rollback process for %s started with PID %d", eng, cmd.Process.Pid)
-		go func(proc *os.Process, e schema.EngineType) {
+		go func(proc *os.Process, e schema.EngineType, d chan struct{}) {
 			state, err := proc.Wait()
 			log.Printf("⚠️ [Engine] Rollback core %s (PID %d) exited: %v (state: %v)", e, proc.Pid, err, state)
-		}(cmd.Process, eng)
+			close(d)
+		}(cmd.Process, eng, done)
 		if m.probeCoreHealth(eng, 3*time.Second) {
 			m.RestoreClashState(snapshot)
 			m.activeEngine = eng
@@ -600,11 +619,14 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	}
 
 	m.currentProc = cmd.Process
+	done := make(chan struct{})
+	m.procDone = done
 	log.Printf("🚀 [Engine] Core engine %s started with PID %d", target, cmd.Process.Pid)
-	go func(proc *os.Process, eng schema.EngineType) {
+	go func(proc *os.Process, eng schema.EngineType, d chan struct{}) {
 		state, err := proc.Wait()
 		log.Printf("⚠️ [Engine] Core process %s (PID %d) exited: %v (state: %v)", eng, proc.Pid, err, state)
-	}(cmd.Process, target)
+		close(d)
+	}(cmd.Process, target, done)
 
 	// Step 6: Active Health Probe (verify Clash API and DNS readiness within 3s)
 	if !m.probeCoreHealth(target, 3*time.Second) {

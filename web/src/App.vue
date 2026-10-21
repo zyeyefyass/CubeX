@@ -6123,15 +6123,21 @@ async function downloadDiagnosticReport() {
   exportingDiagnose.value = true
   showToast('正在全维采集并脱敏生成诊断包...')
   try {
+    const res = await fetch('/api/v1/system/diagnose/export')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = '/api/v1/system/diagnose/export'
+    a.style.display = 'none'
+    a.href = url
     a.download = `cubex_diagnostic_${new Date().toISOString().slice(0, 10)}.json`
     document.body.appendChild(a)
     a.click()
+    window.URL.revokeObjectURL(url)
     document.body.removeChild(a)
     showToast('🎉 安全脱敏诊断包已导出到本地下载目录！')
   } catch (e) {
-    showToast('导出诊断包失败', true)
+    showToast('导出诊断包失败: ' + e.message, true)
   } finally {
     exportingDiagnose.value = false
   }

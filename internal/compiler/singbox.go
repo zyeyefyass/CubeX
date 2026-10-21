@@ -287,8 +287,8 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	tunStack := net.TunStack
-	if tunStack == "" {
-		tunStack = "mixed"
+	if tunStack == "" || tunStack == "system" || tunStack == "mixed" {
+		tunStack = "gvisor"
 	}
 
 	tproxyPort := net.TProxyPort
@@ -308,14 +308,14 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	if runtime.GOOS != "windows" {
 		inbounds = append(inbounds,
 			map[string]any{
-				"type":           "tun",
-				"tag":            "tun-in",
-				"interface_name": net.TunInterface,
-				"address":        []string{net.TunIPv4},
-				"mtu":            tunMTU,
-				"auto_route":     true,
-				"auto_redirect":  false,
-				"strict_route":   false,
+				"type":                      "tun",
+				"tag":                       "tun-in",
+				"interface_name":            net.TunInterface,
+				"address":                   []string{net.TunIPv4},
+				"mtu":                       tunMTU,
+				"auto_route":                true,
+				"auto_redirect":             false,
+				"strict_route":              false,
 				"stack":                     tunStack,
 				"udp_timeout":               "60s",
 				"endpoint_independent_nat":  true,
