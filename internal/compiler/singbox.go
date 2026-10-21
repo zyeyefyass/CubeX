@@ -317,6 +317,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"auto_redirect":             false,
 				"strict_route":              false,
 				"stack":                     tunStack,
+				"gso":                       false,
 				"udp_timeout":               "60s",
 				"endpoint_independent_nat":  true,
 				"route_exclude_address": []string{
@@ -887,7 +888,19 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		})
 	}
 
-	// B. QUIC & Media UDP passes through proxy tunnel without unprivileged ICMP stalls
+		// B. Reject foreign UDP 443/8443 (QUIC) so YouTube / Google automatically use line-speed TCP (xtls-reality/BBR)
+	// Domestic CN UDP 443 (e.g. Bilibili, Tencent Video) is allowed direct
+	routeRules = append(routeRules, map[string]any{
+		"network":  []string{"udp"},
+		"port":     []int{443, 8443},
+		"rule_set": []string{"geosite-cn"},
+		"outbound": "direct",
+	})
+	routeRules = append(routeRules, map[string]any{
+		"network":  []string{"udp"},
+		"port":     []int{443, 8443},
+		"outbound": "block",
+	})
 
 	// C. Direct Private IP & NTP (Port 123)
 	routeRules = append(routeRules, map[string]any{

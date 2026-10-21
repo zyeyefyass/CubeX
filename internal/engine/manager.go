@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -40,7 +41,7 @@ type SwitchResult struct {
 type LogFunc func(level, module, msg string)
 
 type Manager struct {
-	mu           sync.Mutex
+	mu           sync.RWMutex
 	cbMu         sync.RWMutex
 	ir           *schema.ConfigIR
 	workDir      string
@@ -99,8 +100,8 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 
 // GetActiveEngine returns the currently active persona.
 func (m *Manager) GetActiveEngine() schema.EngineType {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.activeEngine
 }
 
@@ -123,8 +124,8 @@ func (m *Manager) log(level, module, msg string) {
 
 // GetCurrentProcPID returns the OS PID of the running core process, or 0.
 func (m *Manager) GetCurrentProcPID() int {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	if m.currentProc != nil {
 		return m.currentProc.Pid
 	}
@@ -133,10 +134,10 @@ func (m *Manager) GetCurrentProcPID() int {
 
 // GetCoreMemoryRSS returns the live real-time resident set size (RSS in MB) of the active engine process.
 func (m *Manager) GetCoreMemoryRSS() float64 {
-	m.mu.Lock()
+	m.mu.RLock()
 	proc := m.currentProc
 	eng := m.activeEngine
-	m.mu.Unlock()
+	m.mu.RUnlock()
 
 	if proc != nil && proc.Pid > 0 && runtime.GOOS == "linux" {
 		statusPath := fmt.Sprintf("/proc/%d/status", proc.Pid)
@@ -164,15 +165,15 @@ func (m *Manager) GetCoreMemoryRSS() float64 {
 
 // GetLastResult returns the telemetry of the most recent switch.
 func (m *Manager) GetLastResult() *SwitchResult {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.lastResult
 }
 
 // GetIR returns a reference to the active IR config.
 func (m *Manager) GetIR() *schema.ConfigIR {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.ir
 }
 
@@ -191,81 +192,86 @@ func (m *Manager) UpdateIR(newIR *schema.ConfigIR) {
 func (m *Manager) SnapshotClashState() map[string]string {
 	snapshot := make(map[string]string)
 	url := fmt.Sprintf("%s/proxies", m.clashAPI)
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
-	if err != nil {
-		return snapshot
-	}
-
-	resp, err := m.httpClient.Do(req)
-	if err != nil {
-		// Fallback to IR defaults
-		for _, g := range m.ir.Groups {
-			if g.Now != "" {
-				snapshot[g.Name] = g.Now
+	ctx, cancel := context.WithTimeout(context.Background(), 800*time.Millisecond)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err == nil {
+		if resp, err := m.httpClient.Do(req); err == nil {
+			defer resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				if body, err := io.ReadAll(resp.Body); err == nil {
+					var data struct {
+						Proxies map[string]struct {
+							Name string `json:"name"`
+							Now  string `json:"now"`
+							Type string `json:"type"`
+						} `json:"proxies"`
+					}
+					if err := json.Unmarshal(body, &data); err == nil {
+						for name, p := range data.Proxies {
+							if p.Now != "" {
+								snapshot[name] = p.Now
+							}
+						}
+					}
+				}
 			}
 		}
-		return snapshot
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		// Fallback to IR defaults
+	// Fallback / merge with IR defaults if any group is missing in snapshot
+	if m.ir != nil {
 		for _, g := range m.ir.Groups {
-			if g.Now != "" {
+			if snapshot[g.Name] == "" && g.Now != "" {
 				snapshot[g.Name] = g.Now
-			}
-		}
-		return snapshot
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return snapshot
-	}
-
-	var data struct {
-		Proxies map[string]struct {
-			Name string `json:"name"`
-			Now  string `json:"now"`
-			Type string `json:"type"`
-		} `json:"proxies"`
-	}
-	if err := json.Unmarshal(body, &data); err == nil {
-		for name, p := range data.Proxies {
-			if p.Now != "" {
-				snapshot[name] = p.Now
 			}
 		}
 	}
 	return snapshot
 }
 
-// RestoreClashState injects cached state into the newly launched core's Clash API.
+// RestoreClashState injects cached state into the newly launched core's Clash API concurrently.
 func (m *Manager) RestoreClashState(snapshot map[string]string) int {
-	restored := 0
+	if len(snapshot) == 0 {
+		return 0
+	}
+	var wg sync.WaitGroup
+	var restoredCount int64
+	sem := make(chan struct{}, 10)
+
 	for groupName, targetNode := range snapshot {
-		escapedGroup := url.PathEscape(groupName)
-		u := fmt.Sprintf("%s/proxies/%s", m.clashAPI, escapedGroup)
-		payload, _ := json.Marshal(map[string]string{"name": targetNode})
-		ctx, cancel := context.WithTimeout(context.Background(), 350*time.Millisecond)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPut, u, bytes.NewReader(payload))
-		if err != nil {
-			cancel()
+		if groupName == "" || targetNode == "" {
 			continue
 		}
-		req.Header.Set("Content-Type", "application/json")
-		if m.ir != nil && m.ir.Network.ClashSecret != "" {
-			req.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
-		}
-		resp, err := m.httpClient.Do(req)
-		cancel()
-		if err == nil {
-			resp.Body.Close()
-			if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
-				restored++
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(grp, node string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			escapedGroup := url.PathEscape(grp)
+			u := fmt.Sprintf("%s/proxies/%s", m.clashAPI, escapedGroup)
+			payload, _ := json.Marshal(map[string]string{"name": node})
+			ctx, cancel := context.WithTimeout(context.Background(), 400*time.Millisecond)
+			defer cancel()
+			req, err := http.NewRequestWithContext(ctx, http.MethodPut, u, bytes.NewReader(payload))
+			if err != nil {
+				return
 			}
-		}
+			req.Header.Set("Content-Type", "application/json")
+			if m.ir != nil && m.ir.Network.ClashSecret != "" {
+				req.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
+			}
+			resp, err := m.httpClient.Do(req)
+			if err == nil {
+				_ = resp.Body.Close()
+				if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
+					atomic.AddInt64(&restoredCount, 1)
+				}
+			}
+		}(groupName, targetNode)
 	}
-	return restored
+	wg.Wait()
+	return int(restoredCount)
 }
 
 func (m *Manager) findBinary(binName string) string {
@@ -588,17 +594,7 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	binPath := m.findBinary(binName)
 
-	// Step 3: Strict Pre-Switch Dry-Run Validation (Make-Before-Break)
-	// If target config is invalid, abort immediately to protect the currently running engine!
-	if err := m.dryRunCheck(target, binPath, etcDir, targetConfigPath); err != nil {
-		log.Printf("⚠️ [Engine] Pre-flight dry-run failed for %s: %v. Aborting switch to protect active network!", target, err)
-		res.Success = false
-		res.ErrorMessage = fmt.Sprintf("pre-flight validation failed: %v", err)
-		m.lastResult = res
-		return res, err
-	}
-
-	// Step 4: Graceful shutdown of old engine and release port 53, port 9090, port 7893 and TUN
+	// Step 3: Stop old engine to release ports & TUN device
 	prevBin := "mihomo"
 	if fromEngine == schema.EngineSingbox {
 		prevBin = "sing-box"

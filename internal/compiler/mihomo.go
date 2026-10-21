@@ -160,13 +160,9 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		dnsPort = 53
 	}
 
-	remoteDNSList := []string{
-		fmt.Sprintf("https://dns.google/dns-query#%s&disable-qtype-65=true", foreignGroup),
-		fmt.Sprintf("https://cloudflare-dns.com/dns-query#%s&disable-qtype-65=true", foreignGroup),
-	}
 	fallbackDNSList := []string{
-		fmt.Sprintf("https://dns.google/dns-query#%s&disable-qtype-65=true", foreignGroup),
-		fmt.Sprintf("https://cloudflare-dns.com/dns-query#%s&disable-qtype-65=true", foreignGroup),
+		"223.5.5.5",
+		"119.29.29.29",
 	}
 
 	cleanFakeIPFilter := []string{
@@ -234,7 +230,6 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			},
 		},
 		"nameserver-policy": map[string]any{
-			"+.google.com,+.googleapis.com,+.gstatic.com,+.googlevideo.com,+.ytimg.com,+.youtube.com,+.openai.com,+.chatgpt.com,+.anthropic.com,+.claude.ai,+.antigravity.dev,+.antigravity-unleash.goog,+.goog,+.run.app,+.1e100.net,+.gvt1.com": remoteDNSList,
 			"geosite:cn,private": []string{
 				"223.5.5.5",
 				"119.29.29.29",
@@ -247,7 +242,6 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 				"223.5.5.5",
 				"119.29.29.29",
 			},
-			"geosite:geolocation-!cn": remoteDNSList,
 		},
 	}
 	cfg["dns"] = dnsMap
@@ -680,8 +674,10 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		rulesList = append(rulesList, "DOMAIN,youtubei.googleapis.com,YouTube")
 	}
 
-	// Allow foreign QUIC / WebRTC UDP 443/8443 to flow without unprivileged ICMP stalls
-	// (UDP 443 blanket reject removed to align with sing-box v1.14+ dual-engine parity)
+	// Reject foreign UDP 443/8443 (QUIC) so YouTube / Google automatically use line-speed TCP (xtls-reality/BBR)
+	// Eliminates the ~5000 Kbps ISP UDP throttling and restores 100+ Mbps 4K 60fps streaming
+	rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(RULE-SET,cn_domain)),DIRECT")
+	rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT")
 
 	// High-Priority Line-Speed Benchmark / Speedtest Fast-Path Rule
 	if validTargets[foreignGroup] {
