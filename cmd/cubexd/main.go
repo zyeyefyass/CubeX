@@ -2485,6 +2485,14 @@ func (s *Server) handleHostConfig(w http.ResponseWriter, r *http.Request) {
 			sendJSON(w, map[string]any{"error": err.Error()})
 			return
 		}
+		if cfg.Host != "" && cfg.User != "" {
+			_ = s.rosMgr.SaveConfig(map[string]string{
+				"host":     cfg.Host,
+				"port":     strconv.Itoa(cfg.Port),
+				"user":     cfg.User,
+				"password": cfg.Password,
+			})
+		}
 		sendJSON(w, map[string]any{"ok": true, "config": s.hostMgr.GetConfig()})
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -2625,6 +2633,19 @@ func (s *Server) handleROSConfig(w http.ResponseWriter, r *http.Request) {
 		if err := s.rosMgr.SaveConfig(cfg); err != nil {
 			sendJSON(w, map[string]any{"error": err.Error()})
 			return
+		}
+		if cfg["host"] != "" && cfg["user"] != "" {
+			port := 80
+			if p, err := strconv.Atoi(cfg["port"]); err == nil && p > 0 {
+				port = p
+			}
+			_ = s.hostMgr.SaveConfig(host.HostConfig{
+				Enabled:  true,
+				Host:     cfg["host"],
+				Port:     port,
+				User:     cfg["user"],
+				Password: cfg["password"],
+			})
 		}
 		sendJSON(w, map[string]any{"status": "saved"})
 	default:

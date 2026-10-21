@@ -103,6 +103,9 @@ func (m *Manager) SaveConfig(cfg HostConfig) error {
 	if cfg.User == "" {
 		cfg.User = "root"
 	}
+	if cfg.Host != "" {
+		cfg.Enabled = true
+	}
 	m.config = cfg
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
@@ -212,10 +215,24 @@ func parseROSResourcePrint(outStr string) (ver, arch string, cores int, load, me
 }
 
 func (m *Manager) testRouterOSRest(cfg HostConfig) (map[string]any, error) {
-	ports := []string{"80", "443"}
+	var ports []string
 	if cfg.Port > 0 && cfg.Port != 22 {
-		ports = []string{strconv.Itoa(cfg.Port), "80", "443"}
+		ports = append(ports, strconv.Itoa(cfg.Port))
 	}
+	for _, p := range []string{"80", "443"} {
+		found := false
+		for _, ep := range ports {
+			if ep == p {
+				found = true
+				break
+			}
+		}
+		if !found {
+			ports = append(ports, p)
+		}
+	}
+
+	var lastErr error
 	for _, p := range ports {
 		scheme := "http"
 		if p == "443" {
@@ -224,20 +241,28 @@ func (m *Manager) testRouterOSRest(cfg HostConfig) (map[string]any, error) {
 		url := fmt.Sprintf("%s://%s:%s/rest/system/resource", scheme, cfg.Host, p)
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
+			lastErr = err
 			continue
 		}
 		req.SetBasicAuth(cfg.User, cfg.Password)
 		client := &http.Client{
-			Timeout: 3 * time.Second,
+			Timeout: 4 * time.Second,
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			},
 		}
 		resp, err := client.Do(req)
-		if err != nil || resp.StatusCode >= 400 {
-			if resp != nil {
-				_ = resp.Body.Close()
-			}
+		if err != nil {
+			lastErr = fmt.Errorf("无法连接至 RouterOS REST API (端口 %s): %w", p, err)
+			continue
+		}
+		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+			_ = resp.Body.Close()
+			return nil, fmt.Errorf("RouterOS 鉴权失败: 用户名或密码错误 (HTTP %d Unauthorized)", resp.StatusCode)
+		}
+		if resp.StatusCode >= 400 {
+			_ = resp.Body.Close()
+			lastErr = fmt.Errorf("RouterOS 返回错误状态 (HTTP %d)", resp.StatusCode)
 			continue
 		}
 		defer resp.Body.Close()
@@ -290,19 +315,19 @@ func (m *Manager) testRouterOSRest(cfg HostConfig) (map[string]any, error) {
 			}
 
 			result := map[string]any{
-				"ok":                 true,
-				"connected":          true,
-				"os_pretty":          fmt.Sprintf("MikroTik RouterOS %s", res.Version),
-				"os_name":            "MikroTik RouterOS",
-				"arch":               res.ArchitectureName,
-				"platform_id":        "routeros",
-				"ip_forward":         true,
-				"kernel":             res.Version,
-				"cpu_cores":          cores,
-				"cpu_load":           loadStr,
-				"memory_used":        memUsedStr,
-				"memory_total":       memTotalStr,
-				"uptime":             res.Uptime,
+				"ok":                  true,
+				"connected":           true,
+				"os_pretty":           fmt.Sprintf("MikroTik RouterOS %s", res.Version),
+				"os_name":             "MikroTik RouterOS",
+				"arch":                res.ArchitectureName,
+				"platform_id":         "routeros",
+				"ip_forward":          true,
+				"kernel":              res.Version,
+				"cpu_cores":           cores,
+				"cpu_load":            loadStr,
+				"memory_used":         memUsedStr,
+				"memory_total":        memTotalStr,
+				"uptime":              res.Uptime,
 				"firewall_configured": true,
 			}
 
@@ -326,6 +351,9 @@ func (m *Manager) testRouterOSRest(cfg HostConfig) (map[string]any, error) {
 
 			return result, nil
 		}
+	}
+	if lastErr != nil {
+		return nil, lastErr
 	}
 	return nil, fmt.Errorf("RouterOS REST API 连接失败 (尝试端口 80/443)")
 }
@@ -388,28 +416,7 @@ func (m *Manager) testIKuaiRPC(cfg HostConfig) (map[string]any, error) {
 	return nil, fmt.Errorf("爱快 iKuai Web-RPC 连接失败 (尝试端口 80/443)")
 }
 
-// TestSSH tests the SSH credentials, auto-detecting MikroTik RouterOS or standard Linux hosts.
-func (m *Manager) TestSSH(cfg HostConfig) (map[string]any, error) {
-	// If explicitly set to ikuai, test iKuai directly
-	if cfg.PlatformType == "ikuai" {
-		return m.testIKuaiRPC(cfg)
-	}
-
-	client, err := m.getSSHClient(cfg)
-	if err != nil {
-		// Fallback 1: RouterOS REST API check (port 80 / 443)
-		if restRes, restErr := m.testRouterOSRest(cfg); restErr == nil && restRes != nil {
-			_ = m.syncToROSConfig(cfg)
-			return restRes, nil
-		}
-		// Fallback 2: iKuai Web-RPC check (port 80 / 443)
-		if ikRes, ikErr := m.testIKuaiRPC(cfg); ikErr == nil && ikRes != nil {
-			return ikRes, nil
-		}
-		return nil, fmt.Errorf("宿主连接失败 (已自动尝试 SSH 22、RouterOS REST API 及 爱快 Web-RPC): %w", err)
-	}
-	defer client.Close()
-
+func (m *Manager) testSSHClientSession(client *ssh.Client, cfg HostConfig) (map[string]any, error) {
 	// 1. Try RouterOS CLI first
 	session, err := client.NewSession()
 	if err == nil {
@@ -422,18 +429,18 @@ func (m *Manager) TestSSH(cfg HostConfig) (map[string]any, error) {
 		if rErr == nil && (strings.Contains(outStr, "platform: MikroTik") || strings.Contains(outStr, "version:") || strings.Contains(outStr, "uptime:")) {
 			ver, arch, cores, load, memUsed, memTotal := parseROSResourcePrint(outStr)
 			res := map[string]any{
-				"ok":                 true,
-				"connected":          true,
-				"os_pretty":          fmt.Sprintf("MikroTik RouterOS %s", ver),
-				"os_name":            "MikroTik RouterOS",
-				"arch":               arch,
-				"platform_id":        "routeros",
-				"ip_forward":         true,
-				"kernel":             ver,
-				"cpu_cores":          cores,
-				"cpu_load":           load,
-				"memory_used":        memUsed,
-				"memory_total":       memTotal,
+				"ok":                  true,
+				"connected":           true,
+				"os_pretty":           fmt.Sprintf("MikroTik RouterOS %s", ver),
+				"os_name":             "MikroTik RouterOS",
+				"arch":                arch,
+				"platform_id":         "routeros",
+				"ip_forward":          true,
+				"kernel":              ver,
+				"cpu_cores":           cores,
+				"cpu_load":            load,
+				"memory_used":         memUsed,
+				"memory_total":        memTotal,
 				"firewall_configured": true,
 			}
 			_ = m.syncToROSConfig(cfg)
@@ -489,6 +496,66 @@ func (m *Manager) TestSSH(cfg HostConfig) (map[string]any, error) {
 	}, nil
 }
 
+// TestSSH tests the host credentials, auto-detecting MikroTik RouterOS REST API, iKuai Web-RPC, or standard Linux SSH.
+func (m *Manager) TestSSH(cfg HostConfig) (map[string]any, error) {
+	// 1. If explicitly set to ikuai, test iKuai directly
+	if cfg.PlatformType == "ikuai" {
+		return m.testIKuaiRPC(cfg)
+	}
+
+	// 2. If port is 80 or 443, or platform is explicitly routeros: this is an HTTP / REST API port!
+	if cfg.Port == 80 || cfg.Port == 443 || cfg.PlatformType == "routeros" {
+		// Priority 1: RouterOS REST API
+		restRes, restErr := m.testRouterOSRest(cfg)
+		if restErr == nil && restRes != nil {
+			_ = m.syncToROSConfig(cfg)
+			return restRes, nil
+		}
+		// If RouterOS REST API returned an explicit authentication error, return it directly!
+		if restErr != nil && strings.Contains(restErr.Error(), "鉴权失败") {
+			return nil, restErr
+		}
+
+		// Priority 2: iKuai Web-RPC (on port 80/443)
+		if ikRes, ikErr := m.testIKuaiRPC(cfg); ikErr == nil && ikRes != nil {
+			return ikRes, nil
+		}
+
+		// Fallback: Check if SSH port 22 is open on that host
+		sshCfg := cfg
+		sshCfg.Port = 22
+		if client, err := m.getSSHClient(sshCfg); err == nil {
+			defer client.Close()
+			return m.testSSHClientSession(client, sshCfg)
+		}
+
+		if restErr != nil {
+			return nil, fmt.Errorf("宿主连接失败 (REST API 端口 %d): %w", cfg.Port, restErr)
+		}
+		return nil, fmt.Errorf("宿主连接失败: 无法连接至 80/443 端口")
+	}
+
+	// 3. Port 22 or standard SSH
+	client, err := m.getSSHClient(cfg)
+	if err != nil {
+		// Fallback 1: RouterOS REST API check (port 80 / 443)
+		if restRes, restErr := m.testRouterOSRest(cfg); restErr == nil && restRes != nil {
+			_ = m.syncToROSConfig(cfg)
+			return restRes, nil
+		} else if restErr != nil && strings.Contains(restErr.Error(), "鉴权失败") {
+			return nil, restErr
+		}
+		// Fallback 2: iKuai Web-RPC check (port 80 / 443)
+		if ikRes, ikErr := m.testIKuaiRPC(cfg); ikErr == nil && ikRes != nil {
+			return ikRes, nil
+		}
+		return nil, fmt.Errorf("宿主 SSH 连接失败 (端口 %d): %w", cfg.Port, err)
+	}
+	defer client.Close()
+
+	return m.testSSHClientSession(client, cfg)
+}
+
 func (m *Manager) syncToROSConfig(cfg HostConfig) error {
 	rosFile := filepath.Join(m.rootDir, "data", "ros-config.json")
 	var rosCfg map[string]string
@@ -500,7 +567,11 @@ func (m *Manager) syncToROSConfig(cfg HostConfig) error {
 		rosCfg = make(map[string]string)
 	}
 	rosCfg["host"] = cfg.Host
-	rosCfg["port"] = "80"
+	portStr := "80"
+	if cfg.Port > 0 {
+		portStr = strconv.Itoa(cfg.Port)
+	}
+	rosCfg["port"] = portStr
 	rosCfg["user"] = cfg.User
 	rosCfg["password"] = cfg.Password
 	outBytes, _ := json.MarshalIndent(rosCfg, "", "  ")
@@ -544,21 +615,25 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 	}
 
 	targetHost := cfg.Host
+	targetPort := cfg.Port
 	targetUser := cfg.User
 	targetPass := cfg.Password
-	if targetHost == "" {
+	if targetHost == "" || targetHost == "172.17.0.1" {
 		rosFile := filepath.Join(m.rootDir, "data", "ros-config.json")
 		if data, err := os.ReadFile(rosFile); err == nil {
 			var rosCfg map[string]string
-			if json.Unmarshal(data, &rosCfg) == nil && rosCfg["host"] != "" {
+			if json.Unmarshal(data, &rosCfg) == nil && rosCfg["host"] != "" && rosCfg["user"] != "" && rosCfg["user"] != "admin" {
 				targetHost = rosCfg["host"]
 				targetUser = rosCfg["user"]
 				targetPass = rosCfg["password"]
+				if p, err := strconv.Atoi(rosCfg["port"]); err == nil && p > 0 {
+					targetPort = p
+				}
 			}
 		}
 	}
-	if targetHost != "" {
-		if restRes, err := m.testRouterOSRest(HostConfig{Host: targetHost, User: targetUser, Password: targetPass}); err == nil && restRes != nil {
+	if cfg.Enabled && targetHost != "" && targetUser != "" {
+		if restRes, err := m.testRouterOSRest(HostConfig{Host: targetHost, Port: targetPort, User: targetUser, Password: targetPass}); err == nil && restRes != nil {
 			info.Connected = true
 			info.PlatformID = "routeros"
 			info.OSName = restRes["os_pretty"].(string)

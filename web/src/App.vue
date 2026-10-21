@@ -5491,7 +5491,7 @@ const isIKuai = computed(() => {
 const hostConfig = ref({
   host: '10.0.0.1',
   port: 80,
-  user: 'admin',
+  user: '',
   password: ''
 })
 
@@ -6604,7 +6604,7 @@ async function fetchHostConfig() {
       hostConfig.value = {
         host: data.host || '',
         port: data.port || 80,
-        user: data.user || 'admin',
+        user: data.user || '',
         password: data.password || ''
       }
     }
@@ -6631,7 +6631,7 @@ async function saveCredentialsAndLinkHost() {
       return
     }
 
-    // 2. Persist credentials to host config and ros config
+    // 2. Persist credentials to host config and ros config (with enabled: true)
     const creds = {
       host: hostConfig.value.host,
       port: String(hostConfig.value.port),
@@ -6643,7 +6643,7 @@ async function saveCredentialsAndLinkHost() {
       fetch('/api/v1/host/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(hostConfig.value)
+        body: JSON.stringify({ ...hostConfig.value, enabled: true })
       }),
       fetch('/api/v1/ros/config', {
         method: 'POST',
@@ -6651,6 +6651,22 @@ async function saveCredentialsAndLinkHost() {
         body: JSON.stringify(creds)
       })
     ])
+
+    // Immediately reflect active host info
+    if (testData.os_name || testData.platform_id || testData.os_pretty) {
+      hostInfo.value = {
+        ...hostInfo.value,
+        connected: true,
+        os_name: testData.os_name || hostInfo.value.os_name,
+        platform_id: testData.platform_id || hostInfo.value.platform_id,
+        kernel_version: testData.kernel || hostInfo.value.kernel_version,
+        arch: testData.arch || hostInfo.value.arch,
+        cpu_cores: testData.cpu_cores || hostInfo.value.cpu_cores,
+        cpu_load: testData.cpu_load || hostInfo.value.cpu_load,
+        memory_used: testData.memory_used || hostInfo.value.memory_used,
+        memory_total: testData.memory_total || hostInfo.value.memory_total,
+      }
+    }
 
     // 3. Trigger auto setup host platform (routing / firewall / ip_forward)
     showToast('⚡ 凭据测试通过，正在全自动编排宿主策略路由与网络转发...')

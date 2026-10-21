@@ -84,7 +84,7 @@ func NewManager(rootDir string) *Manager {
 		dataDir:    filepath.Join(rootDir, "data"),
 		metaFile:   filepath.Join(rootDir, "meta.json"),
 		configFile: filepath.Join(rootDir, "data", "ros-config.json"),
-		config:     ROSConfig{Host: "10.0.0.1", Port: "443", User: "admin", Password: ""},
+		config:     ROSConfig{Host: "10.0.0.1", Port: "80", User: "", Password: ""},
 	}
 	m.loadConfig()
 
@@ -972,7 +972,7 @@ func (m *Manager) fetchLatestSingboxVersion() (string, error) {
 }
 
 func (m *Manager) checkROSConnection() (connected bool, version string) {
-	if m.config.Host == "" {
+	if m.config.Host == "" || m.config.User == "" {
 		return false, ""
 	}
 

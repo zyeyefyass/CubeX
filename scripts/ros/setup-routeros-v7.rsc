@@ -75,7 +75,10 @@ $printMsg ("✅ [1/5 硬件架构识别] 识别到当前平台: " . $arch . " �
 }
 
 # 检查设备模式 Device Mode (RouterOS v7.4+ 安全限制)
-:local dmContainer [/system device-mode get container];
+:local dmContainer true;
+:do {
+    :set dmContainer [/system device-mode get container];
+} on-error={};
 :if ($dmContainer = false) do={
     $printWarn "[CubeX] 当前 RouterOS 设备模式未激活 container 容器功能，正在尝试自动开启...";
     :do { /system device-mode update container=yes; } on-error={};
