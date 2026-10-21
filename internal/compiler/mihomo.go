@@ -3,11 +3,32 @@ package compiler
 import (
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/zyeyefyass/CubeX/internal/schema"
 	"gopkg.in/yaml.v3"
 )
+
+// isMRSAvailable checks whether a compiled binary Mihomo rule set exists on disk.
+func isMRSAvailable(ruleFilename string) bool {
+	clean := strings.TrimPrefix(ruleFilename, "./")
+	clean = strings.TrimPrefix(clean, "/")
+	candidates := []string{
+		filepath.Join("/cubex/app/etc", clean),
+		filepath.Join("etc", clean),
+		clean,
+		ruleFilename,
+		filepath.Join("..", "etc", clean),
+	}
+	for _, c := range candidates {
+		if fi, err := os.Stat(c); err == nil && fi.Size() > 50 {
+			return true
+		}
+	}
+	return false
+}
 
 // BuildMihomo transcompiles CubeX Universal IR to production Mihomo config.yaml
 func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
@@ -464,7 +485,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 	cfg["proxy-groups"] = groupsList
 
-	// 217heidai MRS Adaptive Rule Providers for Mihomo
+	// 217heidai MRS Adaptive Rule Providers for Mihomo (Full Dual-Engine Coverage)
 	ruleProviders := map[string]any{
 		"217heidai_ads": map[string]any{
 			"type":     "file",
@@ -492,6 +513,78 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		},
 	}
 
+	domesticGroup := "DIRECT"
+	if validTargets["🎯 国内流量"] {
+		domesticGroup = "🎯 国内流量"
+	} else if validTargets["🎯 全球直连"] {
+		domesticGroup = "🎯 全球直连"
+	}
+
+	bizMRSMappings := []struct {
+		tag      string
+		filename string
+		behavior string
+		outbound string
+	}{
+		{"openai_mrs", "./rules/openai.mrs", "domain", "AI"},
+		{"youtube_mrs", "./rules/youtube.mrs", "domain", "YouTube"},
+		{"google_mrs", "./rules/google.mrs", "domain", "Google"},
+		{"github_mrs", "./rules/github.mrs", "domain", "GitHub & Docker"},
+		{"telegram_mrs", "./rules/telegram.mrs", "domain", "Telegram"},
+		{"telegram_ip_mrs", "./rules/telegram_ip.mrs", "ipcidr", "Telegram"},
+		{"twitter_mrs", "./rules/twitter.mrs", "domain", "Twitter (X)"},
+		{"netflix_mrs", "./rules/netflix.mrs", "domain", "Netflix & 流媒体"},
+		{"disney_mrs", "./rules/disney.mrs", "domain", "Netflix & 流媒体"},
+		{"apple_mrs", "./rules/apple.mrs", "domain", "Apple 服务"},
+		{"microsoft_mrs", "./rules/microsoft.mrs", "domain", "Microsoft"},
+		{"onedrive_mrs", "./rules/onedrive.mrs", "domain", "Microsoft"},
+		{"spotify_mrs", "./rules/spotify.mrs", "domain", "Spotify"},
+		{"steam_mrs", "./rules/steam.mrs", "domain", "Steam 游戏"},
+		{"epicgames_mrs", "./rules/epicgames.mrs", "domain", "Steam 游戏"},
+		{"gfw_mrs", "./rules/gfw_domain.mrs", "domain", foreignGroup},
+		{"cn_not_domain_mrs", "./rules/cn_not_domain.mrs", "domain", foreignGroup},
+		// Extended common ecosystems
+		{"tencent_mrs", "./rules/tencent.mrs", "domain", domesticGroup},
+		{"alibaba_mrs", "./rules/alibaba.mrs", "domain", domesticGroup},
+		{"baidu_mrs", "./rules/baidu.mrs", "domain", domesticGroup},
+		{"bytedance_mrs", "./rules/bytedance.mrs", "domain", domesticGroup},
+		{"netease_mrs", "./rules/netease.mrs", "domain", domesticGroup},
+		{"bilibili_mrs", "./rules/bilibili.mrs", "domain", domesticGroup},
+		{"discord_mrs", "./rules/discord.mrs", "domain", foreignGroup},
+		{"whatsapp_mrs", "./rules/whatsapp.mrs", "domain", "Telegram"},
+		{"line_mrs", "./rules/line.mrs", "domain", "Telegram"},
+		{"signal_mrs", "./rules/signal.mrs", "domain", "Telegram"},
+		{"primevideo_mrs", "./rules/primevideo.mrs", "domain", "Netflix & 流媒体"},
+		{"hbo_mrs", "./rules/hbo.mrs", "domain", "Netflix & 流媒体"},
+		{"twitch_mrs", "./rules/twitch.mrs", "domain", "Netflix & 流媒体"},
+		{"bahamut_mrs", "./rules/bahamut.mrs", "domain", "Netflix & 流媒体"},
+		{"playstation_mrs", "./rules/playstation.mrs", "domain", "Steam 游戏"},
+		{"nintendo_mrs", "./rules/nintendo.mrs", "domain", "Steam 游戏"},
+		{"ea_mrs", "./rules/ea.mrs", "domain", "Steam 游戏"},
+		{"blizzard_mrs", "./rules/blizzard.mrs", "domain", "Steam 游戏"},
+		{"binance_mrs", "./rules/binance.mrs", "domain", foreignGroup},
+		{"okx_mrs", "./rules/okx.mrs", "domain", foreignGroup},
+		{"paypal_mrs", "./rules/paypal.mrs", "domain", foreignGroup},
+		{"gitlab_mrs", "./rules/gitlab.mrs", "domain", "GitHub & Docker"},
+		{"notion_mrs", "./rules/notion.mrs", "domain", "Microsoft"},
+		{"zoom_mrs", "./rules/zoom.mrs", "domain", "Microsoft"},
+		{"amazon_mrs", "./rules/amazon.mrs", "domain", foreignGroup},
+		{"speedtest_mrs", "./rules/speedtest.mrs", "domain", foreignGroup},
+		{"tiktok_mrs", "./rules/tiktok.mrs", "domain", foreignGroup},
+		{"reddit_mrs", "./rules/reddit.mrs", "domain", foreignGroup},
+	}
+
+	for _, m := range bizMRSMappings {
+		if isMRSAvailable(m.filename) {
+			ruleProviders[m.tag] = map[string]any{
+				"type":     "file",
+				"behavior": m.behavior,
+				"format":   "mrs",
+				"path":     m.filename,
+			}
+		}
+	}
+
 	cfg["rule-providers"] = ruleProviders
 
 	// Rules compilation with device policies top-priority prepending
@@ -513,6 +606,23 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	// 2. 217heidai MRS High-Performance Interception Rules (Mihomo Adaptive)
 	rulesList = append(rulesList, "RULE-SET,217heidai_ads,REJECT")
 	rulesList = append(rulesList, "RULE-SET,privacy_domain,REJECT")
+
+	// High-Performance Dynamic MRS Business Rules (Dual-Engine Symmetrical Acceleration)
+	for _, m := range bizMRSMappings {
+		if _, ok := ruleProviders[m.tag]; ok {
+			targetOut := m.outbound
+			if !validTargets[targetOut] {
+				if targetOut == "Telegram" && validTargets[foreignGroup] {
+					targetOut = foreignGroup
+				} else if validTargets[foreignGroup] {
+					targetOut = foreignGroup
+				} else {
+					targetOut = "DIRECT"
+				}
+			}
+			rulesList = append(rulesList, fmt.Sprintf("RULE-SET,%s,%s", m.tag, targetOut))
+		}
+	}
 
 	// Intercept foreign UDP 443/8443 (QUIC) to prevent ISP UDP QoS throttling and force BBR TCP
 	rulesList = append(rulesList, "AND,((NETWORK,udp),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT")

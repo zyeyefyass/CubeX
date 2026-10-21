@@ -789,6 +789,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		{"steam-srs", "rules/steam.srs", "Steam 游戏"},
 		{"epicgames-srs", "rules/epicgames.srs", "Steam 游戏"},
 		{"gfw-srs", "rules/gfw.srs", "🌐 国外流量"},
+		{"cn_not_domain-srs", "rules/cn_not_domain.srs", "🌐 国外流量"},
 		{"cn_domain-srs", "rules/cn_domain.srs", "🎯 国内流量"},
 		{"cn_ip-srs", "rules/cn_ip.srs", "🎯 国内流量"},
 		// Extended common ecosystems

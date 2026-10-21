@@ -1,6 +1,6 @@
 # ═════════════════════════════════════════════════════════════════════════════
 # CubeX Release Packaging Script (Bundles Dual Cores + Geodata + Rules + Config)
-# Target Version: Test v1.5
+# Target Version: Test v1.6
 # Formats: Native .zip for General Releases + Uncompressed .tar for RouterOS
 # ═════════════════════════════════════════════════════════════════════════════
 param(
@@ -8,12 +8,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Version = "Test-v1.5"
+$Version = "Test-v1.6"
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 $DistDir = "$RootDir\dist"
 $ReleaseDir = "$DistDir\release"
 
-Write-Host "📦 Starting CubeX Test v1.5 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
+Write-Host "📦 Starting CubeX Test v1.6 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
 if (-not $IncludeWindows) {
     Write-Host "ℹ️  Windows 平台包发布已按策略暂停 (可通过 -IncludeWindows 显式启用)" -ForegroundColor DarkCyan
 }
@@ -147,6 +147,9 @@ function Assemble-RosContainer($TargetName, $GatewayBinary, $ArchType) {
 
 Assemble-RosContainer "CubeX-$Version-ros-amd64" "$DistDir\cubexd-linux-amd64" "amd64" | Out-Null
 Assemble-RosContainer "CubeX-$Version-ros-arm64" "$DistDir\cubexd-linux-arm64" "arm64" | Out-Null
+
+# Build true OCI images for RouterOS container engine
+python "$RootDir\scripts\build_v16_ros_containers.py" | Out-Host
 
 # Copy standalone cubexd gateway binaries for 1-click in-place hot-upgrade
 Copy-Item -Path "$DistDir\cubexd-linux-amd64" -Destination "$ReleaseDir\cubexd-linux-amd64" -Force

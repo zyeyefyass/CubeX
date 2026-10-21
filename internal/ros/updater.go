@@ -161,7 +161,7 @@ func (m *Manager) GetOverview() map[string]any {
 	}
 	latestPanel := m.cachedLatestPanel
 	if latestPanel == "" {
-		latestPanel = "Test v1.5"
+		latestPanel = "Test v1.6"
 	}
 	latestSingbox := m.cachedLatestSingbox
 	if latestSingbox == "" {
@@ -674,13 +674,13 @@ func (m *Manager) getLocalPanelVersion() string {
 		}
 		if json.Unmarshal(data, &meta) == nil && meta.Version != "" {
 			if normalizeVersion(meta.Version) == "testv1.3" || normalizeVersion(meta.Version) == "testv0.999" {
-				m.updateLocalMetaVersion("Test v1.5")
-				return "Test v1.5"
+				m.updateLocalMetaVersion("Test v1.6")
+				return "Test v1.6"
 			}
 			return meta.Version
 		}
 	}
-	return "Test v1.5"
+	return "Test v1.6"
 }
 
 // IsConnected returns whether the RouterOS host is currently reachable and authenticated.
@@ -714,7 +714,7 @@ func normalizeVersion(v string) string {
 	return v
 }
 
-// extractVersionNumbers parses major, minor, patch, prerelease from strings like "Test v1.5", "Test-v1.4", "v1.19.0".
+// extractVersionNumbers parses major, minor, patch, prerelease from strings like "Test v1.6", "Test-v1.4", "v1.19.0".
 func extractVersionNumbers(v string) []int {
 	v = strings.ToLower(v)
 	var b strings.Builder
