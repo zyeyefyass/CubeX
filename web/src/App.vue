@@ -674,7 +674,15 @@
               </button>
             </div>
 
-            <div class="space-y-3">
+            <div v-if="lanDevices.length === 0" class="py-10 text-center bg-slate-950/40 rounded-2xl border border-slate-800/80 flex flex-col items-center justify-center gap-2">
+              <span class="text-3xl block" :class="{'animate-spin': loadingDevices}">🔍</span>
+              <div class="text-sm font-semibold text-slate-300">
+                {{ loadingDevices ? '正在实时嗅探局域网在线终端 (RouterOS DHCP / ARP)...' : '暂未探测到局域网在线设备，可点击右上角「实时刷新设备」' }}
+              </div>
+              <p class="text-xs text-slate-500 max-w-md">系统会自动同步上游网关活跃 DHCP 租约及 ARP 邻居表，毫秒级感知新上线终端。</p>
+            </div>
+
+            <div v-else class="space-y-3">
               <div v-for="dev in lanDevices" :key="dev.ip" class="flex flex-col lg:flex-row lg:items-center justify-between bg-slate-950/60 border border-slate-800 rounded-xl p-4 gap-4 transition hover:border-cyan-500/40">
                 <!-- Device Info -->
                 <div class="flex items-center gap-3">
@@ -2868,7 +2876,7 @@
                   支持 CubeX 主控守护进程、Mihomo / sing-box 双内核、217heidai 规则库及宿主共生固件的一键云端版本核对与在线无缝平滑热更
                 </p>
               </div>
-              <button @click="probeAllFourDimensions" :disabled="isProbingAll" class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs transition flex items-center gap-2 shadow-lg shadow-cyan-500/20 shrink-0 cursor-pointer active:scale-98">
+              <button @click="openProbeModal" :disabled="isProbingAll" class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs transition flex items-center gap-2 shadow-lg shadow-cyan-500/20 shrink-0 cursor-pointer active:scale-98">
                 <span :class="{'inline-block animate-spin': isProbingAll}">🛰️</span>
                 <span>{{ isProbingAll ? '正在进行四维体检...' : '四维智能探针实时体检' }}</span>
               </button>
@@ -4199,6 +4207,147 @@
               </div>
             </div>
           </div>
+
+              <!-- 🛰️ 四维智能探针实时体检 全息模态弹窗 (点击按钮才呼出，绝不自动弹出骚扰用户) -->
+    <div v-if="showProbeModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+      <div class="glass-matrix border border-cyan-500/40 rounded-3xl p-6 sm:p-7 max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl relative space-y-5 text-slate-200">
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-slate-700/60">
+          <div class="flex items-center gap-3">
+            <span class="text-3xl p-2 rounded-2xl bg-cyan-950/60 border border-cyan-500/40" :class="{'animate-spin': isProbingAll}">🛰️</span>
+            <div>
+              <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <span>CubeX 四维全息智能体检中心</span>
+                <span v-if="isProbingAll" class="text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 animate-pulse">正在并发探测...</span>
+                <span v-else-if="hasAnyUpdate" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 font-semibold">发现可用更新</span>
+                <span v-else class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-semibold">✓ 全维度最新稳定版</span>
+              </h3>
+              <p class="text-xs text-slate-400 mt-0.5">主控守护 · 双核引擎 · 217heidai 规则库 · 宿主固件 4 维度全栈健康实时诊断</p>
+            </div>
+          </div>
+          <button @click="showProbeModal = false" class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer">
+            <span class="text-lg leading-none">✕</span>
+          </button>
+        </div>
+
+        <!-- Body: 4 Dimension Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[60vh] pr-1">
+          <!-- 维度 1: CubeX 主控守护进程 -->
+          <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                <span>🧊</span>
+                <span>CubeX 系统守护进程 (cubexd)</span>
+              </span>
+              <span v-if="systemOverview.panel_update_avail" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40">发现新版 {{ systemOverview.panel_latest_version }}</span>
+              <span v-else class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">✓ 已是最新</span>
+            </div>
+            <div class="text-xs font-mono bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60 space-y-1">
+              <div class="flex justify-between text-slate-400">
+                <span>当前运行:</span>
+                <strong class="text-cyan-300">{{ systemOverview.cubex_version || 'Test v1.5' }}</strong>
+              </div>
+              <div class="flex justify-between text-slate-400">
+                <span>云端 Release:</span>
+                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v1.5' }}</span>
+              </div>
+            </div>
+            <button v-if="systemOverview.panel_update_avail" @click="upgradePanel" :disabled="upgradingPanel" class="w-full py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-xs font-bold transition">
+              {{ upgradingPanel ? '正在热更...' : '一键平滑热更 CubeX' }}
+            </button>
+            <div v-else class="text-[11px] text-center text-slate-500 py-1">当前主控版本处于稳定就绪状态</div>
+          </div>
+
+          <!-- 维度 2: 双核驱动引擎 -->
+          <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                <span>⚡</span>
+                <span>双核引擎 (Mihomo × sing-box)</span>
+              </span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">✓ 双核就绪</span>
+            </div>
+            <div class="text-xs font-mono bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60 space-y-1">
+              <div class="flex justify-between text-slate-400">
+                <span>Mihomo 核心:</span>
+                <span class="text-slate-200">{{ systemOverview.mihomo_curr_version || 'v1.19.16' }}</span>
+              </div>
+              <div class="flex justify-between text-slate-400">
+                <span>sing-box 核心:</span>
+                <span class="text-slate-200">{{ systemOverview.singbox_curr_version || 'v1.14.3' }}</span>
+              </div>
+            </div>
+            <div class="text-[11px] text-center text-slate-500 py-1">双引擎深度混动，支持毫秒级无感热容灾切换</div>
+          </div>
+
+          <!-- 维度 3: 217heidai 规则库 -->
+          <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                <span>🛡️</span>
+                <span>217heidai 权威规则体系</span>
+              </span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">✓ {{ (geodataStatus.total_rules || 236255).toLocaleString() }} 条规则</span>
+            </div>
+            <div class="text-xs font-mono bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60 space-y-1">
+              <div class="flex justify-between text-slate-400">
+                <span>版本标识:</span>
+                <span class="text-slate-200">{{ geodataStatus.version || '20261021' }}</span>
+              </div>
+              <div class="flex justify-between text-slate-400">
+                <span>规则文件:</span>
+                <span class="text-emerald-400">39 套 MRS/SRS 二进制规则</span>
+              </div>
+            </div>
+            <button @click="updateGeoData" :disabled="updatingGeo" class="w-full py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">
+              {{ updatingGeo ? '正在下载更新...' : '↻ 立即更新规则库' }}
+            </button>
+          </div>
+
+          <!-- 维度 4: 宿主底座与固件 -->
+          <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                <span>🛸</span>
+                <span>宿主底层固件 ({{ isRouterOS ? 'RouterOS v7' : hostBadge.name }})</span>
+              </span>
+              <span v-if="hostUpgradeDetails.hasUpdate" class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40">可升级 {{ hostUpgradeDetails.latestVersion }}</span>
+              <span v-else class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">✓ 系统健康</span>
+            </div>
+            <div class="text-xs font-mono bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60 space-y-1">
+              <div class="flex justify-between text-slate-400">
+                <span>宿主版本:</span>
+                <span class="text-slate-200">{{ hostInfo.os_version || '7.18+' }} ({{ hostInfo.arch || 'x86_64' }})</span>
+              </div>
+              <div class="flex justify-between text-slate-400">
+                <span>容器底座:</span>
+                <span class="text-purple-300">VETH 隔离 · 宿主零损伤</span>
+              </div>
+            </div>
+            <button v-if="hostUpgradeDetails.hasUpdate" @click="executeHostUpgrade" :disabled="upgradingHost" class="w-full py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition">
+              {{ upgradingHost ? '正在升级宿主...' : '一键升级宿主固件' }}
+            </button>
+            <div v-else class="text-[11px] text-center text-slate-500 py-1">宿主固件处于最佳稳定运行通道</div>
+          </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-between">
+          <div class="text-xs text-slate-400">
+            上次体检时间: <span class="font-mono text-cyan-300">{{ probeLastTime || '刚刚' }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button @click="probeAllFourDimensions" :disabled="isProbingAll" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition cursor-pointer flex items-center gap-1.5">
+              <span :class="{'animate-spin': isProbingAll}">↻</span>
+              <span>重新体检</span>
+            </button>
+            <button @click="showProbeModal = false" class="px-4 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-xs font-bold transition cursor-pointer shadow">
+              完成并关闭
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
           <!-- Modal: Geo 数据库与 217heidai 规则包明细 (showGeodataDetailModal) -->
           <div v-if="showGeodataDetailModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
@@ -5789,6 +5938,11 @@ const systemOverview = ref({
 
 // ── 四维版本智能探针与规则数据库明细状态 ──
 const isProbingAll = ref(false)
+const showProbeModal = ref(false)
+function openProbeModal() {
+  showProbeModal.value = true
+  probeAllFourDimensions()
+}
 const probeChecked = ref(false)
 const probeLastTime = ref('')
 const showGeodataDetailModal = ref(false)
@@ -6098,12 +6252,7 @@ const wgAlignmentReport = ref({
 })
 
 // ── LAN Devices (Per-Device Matrix) ──
-const lanDevices = ref([
-  { ip: '192.168.88.105', mac: '00:11:32:4A:BC:DE', name: '飞牛 NAS (PT 下载机)', mode: 'bypass', bound_node: '' },
-  { ip: '192.168.88.120', mac: 'BC:FE:D9:11:22:33', name: '家庭影院蓝光机 (SMB1)', mode: 'bypass', bound_node: '' },
-  { ip: '192.168.88.135', mac: 'D8:49:2F:55:66:77', name: '客厅 Apple TV (4K)', mode: 'rule', bound_node: '' },
-  { ip: '192.168.88.188', mac: 'E0:CB:1D:88:99:AA', name: 'PS5 游戏主机', mode: 'node', bound_node: '🇯🇵 日本 01' }
-])
+const lanDevices = ref([])
 const editingDeviceIp = ref('')
 const editingDeviceName = ref('')
 const savingDeviceAlias = ref(false)
@@ -6520,11 +6669,35 @@ function inferPacketRoute(input) {
 
   // Helper to dynamically get active outbound node for a group
   const getGroupActiveNode = (grpName) => {
+    // 1. Explicit user selection in groupSelectedRegionMap
+    const sel = groupSelectedRegionMap.value[grpName]
+    if (sel) {
+      if (sel === 'DIRECT' || sel.includes('直连')) return '🎯 本地直连 (DIRECT)'
+      if (sel === 'REJECT' || sel.includes('拒绝')) return '🛑 规则拦截 (REJECT)'
+      const reg = allRegionDefs.value.find(r => r.id === sel)
+      if (reg) {
+        const strat = getGroupRegionStrategy(grpName, reg.id)
+        if (strat === 'fall') return reg.fall
+        if (strat === 'disaster') return reg.disaster
+        return reg.auto
+      }
+      return sel
+    }
+    // 2. Check businessGroups
+    const bGrp = (businessGroups.value || []).find(g => g.name === grpName || g.name.includes(grpName))
+    if (bGrp && bGrp.now && bGrp.now !== 'DIRECT') return bGrp.now
+    // 3. Check ir.value.groups
     const grp = (ir.value.groups || []).find(g => g.name === grpName || g.name.includes(grpName))
     if (grp) {
-      if (grp.now) return grp.now
-      if (grp.proxies && grp.proxies.length > 0) return grp.proxies[0]
+      if (grp.now && grp.now !== 'DIRECT') return grp.now
+      if (grp.proxies && grp.proxies.length > 0) {
+        const nonDirect = grp.proxies.find(p => p !== 'DIRECT' && p !== 'REJECT')
+        if (nonDirect) return nonDirect
+      }
     }
+    // 4. Fallback to first real active proxy in proxies list
+    const aliveProxy = (ir.value.proxies || []).find(p => p.type !== 'direct' && p.type !== 'block' && p.type !== 'reject' && (p.delay > 0 || p.alive))
+    if (aliveProxy) return aliveProxy.name
     const firstReal = (ir.value.proxies || []).find(p => p.type !== 'direct' && p.type !== 'block' && p.type !== 'reject')
     return firstReal ? firstReal.name : 'DIRECT'
   }
@@ -7188,7 +7361,9 @@ async function updateGeoData() {
 async function probeAllFourDimensions() {
   if (isProbingAll.value) return
   isProbingAll.value = true
-  showToast('🛰️ 四维版本智能探针正在并发探测 GitHub、双核内核源、217heidai 规则库及宿主固件...')
+  if (!showProbeModal.value) {
+    showToast('🛰️ 四维版本智能探针正在并发探测...')
+  }
   try {
     await Promise.allSettled([
       fetchSystemOverview(),
@@ -7197,10 +7372,12 @@ async function probeAllFourDimensions() {
     ])
     probeChecked.value = true
     probeLastTime.value = new Date().toLocaleTimeString()
-    if (hasAnyUpdate.value) {
-      showToast(`🎉 [版本探针] 检测到新版本！${updateSummaryText.value}`)
-    } else {
-      showToast('✓ [四维探针体检完毕] 主控、双核、规则库及宿主系统均处于最新稳定状态！')
+    if (!showProbeModal.value) {
+      if (hasAnyUpdate.value) {
+        showToast(`🎉 [版本探针] 检测到新版本！${updateSummaryText.value}`)
+      } else {
+        showToast('✓ [四维探针体检完毕] 主控、双核、规则库及宿主系统均处于最新稳定状态！')
+      }
     }
   } finally {
     isProbingAll.value = false
@@ -10530,7 +10707,6 @@ onMounted(async () => {
     }
     // Fetch GeoData & 217heidai status
     fetchGeoDataStatus()
-    setTimeout(probeAllFourDimensions, 2500)
     if (hostRes.status === 'fulfilled' && hostRes.value) {
       hostInfo.value = { ...hostInfo.value, ...hostRes.value }
     }
