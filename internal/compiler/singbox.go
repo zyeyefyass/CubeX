@@ -33,6 +33,10 @@ func detectDefaultInterface() string {
 	return "veth-cubex"
 }
 
+func isIPAddress(s string) bool {
+	return net.ParseIP(s) != nil
+}
+
 func makeSingboxDNSServer(tag, rawAddr, detour string) map[string]any {
 	serverMap := map[string]any{
 		"tag": tag,
@@ -58,12 +62,18 @@ func makeSingboxDNSServer(tag, rawAddr, detour string) map[string]any {
 	} else if strings.HasPrefix(rawAddr, "tls://") {
 		serverMap["type"] = "tls"
 		serverMap["server"] = strings.TrimPrefix(rawAddr, "tls://")
+		serverMap["server_port"] = 853
 	} else if strings.HasPrefix(rawAddr, "tcp://") {
 		serverMap["type"] = "tcp"
 		serverMap["server"] = strings.TrimPrefix(rawAddr, "tcp://")
+		serverMap["server_port"] = 53
 	} else {
 		serverMap["type"] = "udp"
+		if detour != "" && detour != "direct" && detour != "DIRECT" {
+			serverMap["type"] = "tcp"
+		}
 		serverMap["server"] = rawAddr
+		serverMap["server_port"] = 53
 	}
 	return serverMap
 }
@@ -77,10 +87,18 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	net := ir.Network
 	dns := ir.DNS
 
-	// Root config map
+	// Root config map with optimized log throttling
+	// Default to "warn" to eliminate per-packet and per-DNS stdout flood that exhausts RouterOS container log ring buffer
+	singboxLogLevel := "warn"
+	if ir.Meta.LogLevel == "debug" || ir.Meta.LogLevel == "trace" {
+		singboxLogLevel = ir.Meta.LogLevel
+	} else if ir.Meta.LogLevel == "error" || ir.Meta.LogLevel == "fatal" || ir.Meta.LogLevel == "panic" {
+		singboxLogLevel = ir.Meta.LogLevel
+	}
+
 	cfg := map[string]any{
 		"log": map[string]any{
-			"level":     ir.Meta.LogLevel,
+			"level":     singboxLogLevel,
 			"timestamp": true,
 		},
 	}
@@ -90,7 +108,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	if len(dns.DirectDNS) > 0 {
 		directDNSAddr = dns.DirectDNS[0]
 	}
-	remoteDNSAddr := "https://1.1.1.1/dns-query"
+	remoteDNSAddr := "tcp://1.1.1.1"
 	if len(dns.RemoteDNS) > 0 {
 		remoteDNSAddr = dns.RemoteDNS[0]
 	}
@@ -113,6 +131,20 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		remoteServer["server_port"] = 443
 	}
 
+	// Collect all proxy server domains & camouflage SNIs so they NEVER resolve to Fake-IP
+	proxyDirectDomains := make([]string, 0)
+	proxyDirectDomainMap := make(map[string]bool)
+	for _, p := range ir.Proxies {
+		if p.Server != "" && !isIPAddress(p.Server) && !proxyDirectDomainMap[p.Server] {
+			proxyDirectDomainMap[p.Server] = true
+			proxyDirectDomains = append(proxyDirectDomains, p.Server)
+		}
+		if p.SNI != "" && !isIPAddress(p.SNI) && !proxyDirectDomainMap[p.SNI] {
+			proxyDirectDomainMap[p.SNI] = true
+			proxyDirectDomains = append(proxyDirectDomains, p.SNI)
+		}
+	}
+
 	cfg["dns"] = map[string]any{
 		"servers": []map[string]any{
 			{
@@ -131,6 +163,14 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 					"8.8.8.8":            []string{"8.8.8.8"},
 				},
 			},
+			{
+				"tag":         "dns-bootstrap",
+				"type":        "https",
+				"server":      "dns.alidns.com",
+				"server_port": 443,
+				"path":        "/dns-query",
+				"detour":      "direct",
+			},
 			directServer,
 			remoteServer,
 			{
@@ -147,6 +187,10 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			{
 				"domain_regex": []string{"^[^.]+$"},
 				"server":       "dns-local",
+			},
+			{
+				"domain": proxyDirectDomains,
+				"server": "dns-bootstrap",
 			},
 			{
 				"query_type": []string{"HTTPS", "SVCB"},
@@ -179,6 +223,12 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 					"anthropic.com",
 					"claude.ai",
 					"deepmind.google",
+					"antigravity-unleash.goog",
+					"antigravity.dev",
+					"goog",
+					"run.app",
+					"1e100.net",
+					"gvt1.com",
 				},
 				"server": "dns-fakeip",
 			},
@@ -353,6 +403,8 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			nodeMap["uuid"] = p.UUID
 			if p.Flow != "" {
 				nodeMap["flow"] = p.Flow
+			} else {
+				nodeMap["packet_encoding"] = "xudp"
 			}
 		case "vmess":
 			if p.UUID == "" {
@@ -382,14 +434,76 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				nodeMap["method"] = p.Cipher
 				nodeMap["password"] = p.Password
 			}
+
+			// Shadow-TLS plugin support in Sing-box (via detour to companion shadowtls outbound)
+			if valid && p.RawConfig != nil {
+				if plugin, ok := p.RawConfig["plugin"].(string); ok && plugin == "shadow-tls" {
+					if pluginOpts, ok := p.RawConfig["plugin-opts"].(map[string]any); ok {
+						stlsTag := p.Name + "-shadowtls"
+						stlsMap := map[string]any{
+							"type":        "shadowtls",
+							"tag":         stlsTag,
+							"server":      p.Server,
+							"server_port": p.Port,
+						}
+						if pwd, ok := pluginOpts["password"].(string); ok {
+							stlsMap["password"] = pwd
+						}
+						if ver, ok := pluginOpts["version"].(int); ok {
+							stlsMap["version"] = ver
+						} else {
+							stlsMap["version"] = 3
+						}
+						stlsHost := p.Server
+						if h, ok := pluginOpts["host"].(string); ok && h != "" {
+							stlsHost = h
+						}
+						tlsObj := map[string]any{
+							"enabled":     true,
+							"server_name": stlsHost,
+						}
+						if fp, ok := p.RawConfig["client-fingerprint"].(string); ok && fp != "" {
+							tlsObj["utls"] = map[string]any{
+								"enabled":     true,
+								"fingerprint": fp,
+							}
+						}
+						stlsMap["tls"] = tlsObj
+						outbounds = append(outbounds, stlsMap)
+
+						nodeMap["detour"] = stlsTag
+						delete(nodeMap, "server")
+						delete(nodeMap, "server_port")
+					}
+				}
+			}
 		case "hysteria2", "hy2":
 			nodeMap["type"] = "hysteria2"
 			nodeMap["password"] = p.Password
+			if p.RawConfig != nil {
+				if up := parseBandwidthMbps(p.RawConfig["up"]); up > 0 {
+					nodeMap["up_mbps"] = up
+				}
+				if down := parseBandwidthMbps(p.RawConfig["down"]); down > 0 {
+					nodeMap["down_mbps"] = down
+				}
+			}
 		case "tuic":
 			nodeMap["type"] = "tuic"
 			nodeMap["uuid"] = p.UUID
 			nodeMap["password"] = p.Password
 			nodeMap["congestion_control"] = "bbr"
+			if p.RawConfig != nil {
+				if cc, ok := p.RawConfig["congestion-controller"].(string); ok && cc != "" {
+					nodeMap["congestion_control"] = cc
+				}
+				if urm, ok := p.RawConfig["udp-relay-mode"].(string); ok && urm != "" {
+					nodeMap["udp_relay_mode"] = urm
+				}
+				if rtt, ok := p.RawConfig["reduce-rtt"].(bool); ok {
+					nodeMap["zero_rtt_handshake"] = rtt
+				}
+			}
 		case "anytls":
 			nodeMap["type"] = "anytls"
 			nodeMap["password"] = p.Password
@@ -422,8 +536,26 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			if p.SkipCertVerify {
 				tlsMap["insecure"] = true
 			}
+			// ALPN handling
+			var alpnList []string
 			if len(p.ALPN) > 0 {
-				tlsMap["alpn"] = p.ALPN
+				alpnList = p.ALPN
+			} else if p.RawConfig != nil {
+				if rawAlpn, ok := p.RawConfig["alpn"].([]any); ok {
+					for _, a := range rawAlpn {
+						if as, ok := a.(string); ok && as != "" {
+							alpnList = append(alpnList, as)
+						}
+					}
+				} else if rawAlpnStr, ok := p.RawConfig["alpn"].([]string); ok {
+					alpnList = rawAlpnStr
+				}
+			}
+			if len(alpnList) == 0 && (pType == "tuic" || pType == "hysteria2" || pType == "hy2") {
+				alpnList = []string{"h3"}
+			}
+			if len(alpnList) > 0 {
+				tlsMap["alpn"] = alpnList
 			}
 
 			// Reality opts
@@ -440,28 +572,76 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				tlsMap["reality"] = realityMap
 			}
 
-			// Client fingerprint (uTLS)
-			if fp, ok := p.RawConfig["client-fingerprint"].(string); ok && fp != "" {
+			// 1. Client fingerprint (uTLS)
+			clientFp := ""
+			if val, ok := p.RawConfig["client-fingerprint"].(string); ok && val != "" {
+				clientFp = val
+			} else if val, ok := p.RawConfig["fingerprint"].(string); ok && val != "" {
+				if !strings.Contains(val, ":") && len(val) != 64 {
+					clientFp = val
+				}
+			}
+			if clientFp != "" {
 				tlsMap["utls"] = map[string]any{
 					"enabled":     true,
-					"fingerprint": fp,
+					"fingerprint": clientFp,
 				}
+			}
+
+			// 2. Certificate Fingerprint Pinning / Self-Signed Bypass
+			certFp := ""
+			if val, ok := p.RawConfig["fingerprint"].(string); ok && val != "" {
+				if strings.Contains(val, ":") || len(val) == 64 {
+					certFp = val
+				}
+			} else if val, ok := p.RawConfig["certificate-sha256"].(string); ok && val != "" {
+				certFp = val
+			}
+			if certFp != "" {
+				// Custom / self-signed certificate fingerprint detected in subscription.
+				// In sing-box, certificate_public_key_sha256 expects SPKI hash (not x509 cert hash).
+				// We set insecure=true so sing-box accepts the custom certificate without error.
+				tlsMap["insecure"] = true
 			}
 
 			nodeMap["tls"] = tlsMap
 		}
 
 		if p.Network == "ws" {
-			nodeMap["transport"] = map[string]any{
+			wsMap := map[string]any{
 				"type": "ws",
-				"path": p.Path,
 			}
+			wsPath := p.Path
+			if wsOpts, ok := p.RawConfig["ws-opts"].(map[string]any); ok {
+				if path, ok := wsOpts["path"].(string); ok && path != "" {
+					wsPath = path
+				}
+				if headers, ok := wsOpts["headers"].(map[string]any); ok && len(headers) > 0 {
+					wsHeaders := make(map[string]string)
+					for k, v := range headers {
+						wsHeaders[k] = fmt.Sprintf("%v", v)
+					}
+					wsMap["headers"] = wsHeaders
+				}
+			}
+			if wsPath != "" {
+				wsMap["path"] = wsPath
+			}
+			nodeMap["transport"] = wsMap
 		} else if p.Network == "grpc" {
 			grpcMap := map[string]any{
 				"type": "grpc",
 			}
-			if p.Path != "" {
-				grpcMap["service_name"] = p.Path
+			serviceName := p.Path
+			if serviceName == "" {
+				if grpcOpts, ok := p.RawConfig["grpc-opts"].(map[string]any); ok {
+					if sn, ok := grpcOpts["grpc-service-name"].(string); ok {
+						serviceName = sn
+					}
+				}
+			}
+			if serviceName != "" {
+				grpcMap["service_name"] = serviceName
 			}
 			nodeMap["transport"] = grpcMap
 		}
@@ -475,8 +655,10 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	validOutbounds["DIRECT"] = true
 	validOutbounds["block"] = true
 	validOutbounds["REJECT"] = true
-	for _, tag := range nodeTags {
-		validOutbounds[tag] = true
+	for _, ob := range outbounds {
+		if tag, ok := ob["tag"].(string); ok && tag != "" {
+			validOutbounds[tag] = true
+		}
 	}
 	for _, g := range ir.Groups {
 		validOutbounds[g.Name] = true
@@ -637,6 +819,9 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		} else {
 			nodeDomains = append(nodeDomains, p.Server)
 		}
+		if p.SNI != "" && !isIPAddress(p.SNI) {
+			nodeDomains = append(nodeDomains, p.SNI)
+		}
 	}
 	if len(nodeDomains) > 0 || len(nodeIPs) > 0 {
 		nodeRule := map[string]any{
@@ -676,35 +861,12 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"action":   "reject",
 	})
 
-	// F. Domestic Direct Routing (geosite-cn + Pure-IP GeoIP Isolation)
-	domesticTarget := "direct"
-	if validOutbounds["🎯 国内流量"] {
-		domesticTarget = "🎯 国内流量"
-	}
-	routeRules = append(routeRules, map[string]any{
-		"rule_set": []string{"geosite-cn"},
-		"outbound": domesticTarget,
-	})
-	routeRules = append(routeRules, map[string]any{
-		"type":   "logical",
-		"mode":   "and",
-		"invert": false,
-		"rules": []map[string]any{
-			{
-				"domain_regex": []string{"^[^:]*[a-z][^:]*$"},
-				"invert":       true,
-			},
-			{
-				"rule_set": []string{"geoip-cn"},
-			},
-		},
-		"outbound": domesticTarget,
-	})
-
 	// H. 11 Major Business Strategy Groups (Comprehensive Domain Matching)
 	if validOutbounds["AI"] {
 		routeRules = append(routeRules, map[string]any{
 			"domain": []string{
+				"antigravity-unleash.goog",
+				"antigravity.dev",
 				"generativelanguage.googleapis.com",
 				"daily-cloudcode-pa.googleapis.com",
 				"cloudcode-pa.googleapis.com",
@@ -717,6 +879,9 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"deepmind.google",
 			},
 			"domain_suffix": []string{
+				"antigravity.dev",
+				"goog",
+				"run.app",
 				"openai.com",
 				"chatgpt.com",
 				"anthropic.com",
@@ -734,14 +899,14 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 	if validOutbounds["YouTube"] {
 		routeRules = append(routeRules, map[string]any{
-			"domain_suffix":  []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com", "yt3.ggpht.com"},
+			"domain_suffix":  []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com", "yt3.ggpht.com", "yt4.ggpht.com", "gvt1.com", "1e100.net", "googleusercontent.com"},
 			"domain_keyword": []string{"googlevideo", "sponsorblock"},
 			"outbound":       "YouTube",
 		})
 	}
 	if validOutbounds["Google"] {
 		routeRules = append(routeRules, map[string]any{
-			"domain_suffix": []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com"},
+			"domain_suffix": []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com", "antigravity.dev", "goog", "run.app", "1e100.net", "gvt1.com"},
 			"outbound":      "Google",
 		})
 	}
@@ -793,6 +958,31 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			"outbound":      "Steam 游戏",
 		})
 	}
+
+	// F. Domestic Direct Routing (geosite-cn + Pure-IP GeoIP Isolation)
+	domesticTarget := "direct"
+	if validOutbounds["🎯 国内流量"] {
+		domesticTarget = "🎯 国内流量"
+	}
+	routeRules = append(routeRules, map[string]any{
+		"rule_set": []string{"geosite-cn"},
+		"outbound": domesticTarget,
+	})
+	routeRules = append(routeRules, map[string]any{
+		"type":   "logical",
+		"mode":   "and",
+		"invert": false,
+		"rules": []map[string]any{
+			{
+				"domain_regex": []string{"^[^:]*[a-z][^:]*$"},
+				"invert":       true,
+			},
+			{
+				"rule_set": []string{"geoip-cn"},
+			},
+		},
+		"outbound": domesticTarget,
+	})
 
 	// I. Custom / User Defined Generic Rules (Deduplicated)
 	for _, r := range ir.Rules {
@@ -878,4 +1068,27 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	return json.MarshalIndent(cfg, "", "  ")
+}
+
+
+func parseBandwidthMbps(val any) int {
+	if val == nil {
+		return 0
+	}
+	switch v := val.(type) {
+	case int:
+		return v
+	case float64:
+		return int(v)
+	case string:
+		v = strings.TrimSpace(strings.ToLower(v))
+		v = strings.TrimSuffix(v, "mbps")
+		v = strings.TrimSuffix(v, "mb/s")
+		v = strings.TrimSuffix(v, "m")
+		v = strings.TrimSpace(v)
+		var n int
+		fmt.Sscanf(v, "%d", &n)
+		return n
+	}
+	return 0
 }

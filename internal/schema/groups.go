@@ -372,6 +372,14 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 					break
 				}
 			}
+		} else {
+			// All other foreign groups (🌐 国外流量, 🐟 漏网之鱼, Telegram, Twitter, GitHub, etc.)
+			for _, pref := range []string{"🇭🇰 香港自动", "🇯🇵 日本自动", "🇸🇬 新加坡自动", "🇹🇼 台湾自动", "🇺🇸 美国自动"} {
+				if containsString(candidates, pref) {
+					defaultNow = pref
+					break
+				}
+			}
 		}
 
 		bizGrp := StrategyGroup{

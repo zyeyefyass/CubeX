@@ -178,7 +178,7 @@ func (ks *KSpeeder) TestGitHubProxies() []ProxyNode {
 				testMu.Unlock()
 				return
 			}
-			req.Header.Set("User-Agent", "MiCube-KSpeeder/1.0")
+			req.Header.Set("User-Agent", "CubeX-KSpeeder/1.0")
 
 			resp, err := ks.httpClient.Do(req)
 			latency := int(time.Since(start).Milliseconds())
@@ -251,7 +251,7 @@ func (ks *KSpeeder) TestDockerMirrors() []ProxyNode {
 				testMu.Unlock()
 				return
 			}
-			req.Header.Set("User-Agent", "MiCube-KSpeeder/1.0")
+			req.Header.Set("User-Agent", "CubeX-KSpeeder/1.0")
 
 			resp, err := ks.httpClient.Do(req)
 			latency := int(time.Since(start).Milliseconds())

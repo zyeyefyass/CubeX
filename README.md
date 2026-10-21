@@ -674,7 +674,7 @@ CubeX 默认预置了亚太与欧美最常用的 6 大核心国家/地区，加�
 1. **清道夫扫描**：自动拔除所有带有暴力劫持倾向的旧版 Mangle 抢流规则与 DNS 53 强制 NAT 劫持；
 2. **全网段路由重铸**：自动写入 RFC 2544 完整网段 `198.18.0.0/15 -> CubeX IP`，清除残留冲突的旧网关条目；
 3. **关闭二层重定向**：自动执行 `/ip/settings/set send-redirects=no`，彻底消除局域网 TCP 握手停顿；
-4. **注入安全哨兵**：自动为 FastTrack 添加 `!MICUBE_BYPASS` 白名单、配置 Forward 丢弃前放行规则，锁定 `advertise-dns=no` 掐死运营商 IPv6 DNS 广播，并注入 3 秒极速心跳 Netwatch 逃生探针！
+4. **注入安全哨兵**：自动为 FastTrack 添加 `!CUBEX_BYPASS` 白名单、配置 Forward 丢弃前放行规则，锁定 `advertise-dns=no` 掐死运营商 IPv6 DNS 广播，并注入 3 秒极速心跳 Netwatch 逃生探针！
 
 ### 2. 轨道 B（针对 飞牛 fnOS / Linux 宿主机）的底层调优：
 1. **内核全开**：自动写入 `net.ipv4.ip_forward=1` 与 `net.ipv4.conf.all.forwarding=1`，打通旁路软网关数据包跨网卡穿透；

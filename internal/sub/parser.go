@@ -144,6 +144,16 @@ func parseClashNode(p map[string]any) schema.ProxyNode {
 		node.SNI = getString("sni")
 	}
 
+	if rawAlpn, ok := p["alpn"].([]any); ok {
+		for _, a := range rawAlpn {
+			if as, ok := a.(string); ok && as != "" {
+				node.ALPN = append(node.ALPN, as)
+			}
+		}
+	} else if rawAlpnStr, ok := p["alpn"].([]string); ok {
+		node.ALPN = rawAlpnStr
+	}
+
 	// Auto-enable TLS for protocols that inherently require TLS
 	if node.Type == "hysteria2" || node.Type == "hy2" || node.Type == "tuic" || node.Type == "trojan" || node.Type == "anytls" {
 		node.TLS = true
@@ -205,6 +215,11 @@ func parseSingboxNode(ob map[string]any) schema.ProxyNode {
 		Flow:     getString("flow"),
 	}
 
+	raw := make(map[string]any)
+	for k, v := range ob {
+		raw[k] = v
+	}
+
 	if tlsMap, ok := ob["tls"].(map[string]any); ok {
 		node.TLS = true
 		if sni, ok := tlsMap["server_name"].(string); ok {
@@ -212,6 +227,30 @@ func parseSingboxNode(ob map[string]any) schema.ProxyNode {
 		}
 		if insecure, ok := tlsMap["insecure"].(bool); ok {
 			node.SkipCertVerify = insecure
+		}
+		if rawAlpn, ok := tlsMap["alpn"].([]any); ok {
+			for _, a := range rawAlpn {
+				if as, ok := a.(string); ok && as != "" {
+					node.ALPN = append(node.ALPN, as)
+				}
+			}
+		} else if rawAlpnStr, ok := tlsMap["alpn"].([]string); ok {
+			node.ALPN = rawAlpnStr
+		}
+		if realityMap, ok := tlsMap["reality"].(map[string]any); ok {
+			realityOpts := make(map[string]any)
+			if pk, ok := realityMap["public_key"].(string); ok {
+				realityOpts["public-key"] = pk
+			}
+			if sid, ok := realityMap["short_id"].(string); ok {
+				realityOpts["short-id"] = sid
+			}
+			raw["reality-opts"] = realityOpts
+		}
+		if utlsMap, ok := tlsMap["utls"].(map[string]any); ok {
+			if fp, ok := utlsMap["fingerprint"].(string); ok {
+				raw["client-fingerprint"] = fp
+			}
 		}
 	}
 
@@ -224,6 +263,7 @@ func parseSingboxNode(ob map[string]any) schema.ProxyNode {
 		}
 	}
 
+	node.RawConfig = raw
 	return node
 }
 
@@ -268,6 +308,38 @@ func ParseURILink(link string) (schema.ProxyNode, error) {
 		if node.SNI == "" {
 			node.SNI = v.Host
 		}
+		raw := map[string]any{
+			"name":    node.Name,
+			"type":    "vmess",
+			"server":  node.Server,
+			"port":    node.Port,
+			"uuid":    node.UUID,
+			"alterId": 0,
+			"cipher":  "auto",
+			"udp":     true,
+		}
+		if node.TLS {
+			raw["tls"] = true
+			if node.SNI != "" {
+				raw["servername"] = node.SNI
+			}
+		}
+		if node.Network == "ws" {
+			raw["network"] = "ws"
+			wsOpts := map[string]any{
+				"path": node.Path,
+			}
+			if v.Host != "" {
+				wsOpts["headers"] = map[string]any{"Host": v.Host}
+			}
+			raw["ws-opts"] = wsOpts
+		} else if node.Network == "grpc" {
+			raw["network"] = "grpc"
+			raw["grpc-opts"] = map[string]any{
+				"grpc-service-name": node.Path,
+			}
+		}
+		node.RawConfig = raw
 		return node, nil
 	}
 
@@ -355,9 +427,13 @@ func ParseURILink(link string) (schema.ProxyNode, error) {
 			}
 		} else if node.Network == "ws" {
 			raw["network"] = "ws"
-			raw["ws-opts"] = map[string]any{
+			wsOpts := map[string]any{
 				"path": node.Path,
 			}
+			if host := q.Get("host"); host != "" {
+				wsOpts["headers"] = map[string]any{"Host": host}
+			}
+			raw["ws-opts"] = wsOpts
 		}
 		node.RawConfig = raw
 	case "anytls":
@@ -421,6 +497,30 @@ func ParseURILink(link string) (schema.ProxyNode, error) {
 		}
 		node.SNI = u.Query().Get("sni")
 		node.TLS = true
+		raw := map[string]any{
+			"name":                  node.Name,
+			"type":                  "tuic",
+			"server":                node.Server,
+			"port":                  node.Port,
+			"uuid":                  node.UUID,
+			"password":              node.Password,
+			"sni":                   node.SNI,
+			"tls":                   true,
+			"udp":                   true,
+			"congestion-controller": "bbr",
+			"reduce-rtt":            true,
+		}
+		if cc := u.Query().Get("congestion_control"); cc != "" {
+			raw["congestion-controller"] = cc
+		}
+		if urm := u.Query().Get("udp_relay_mode"); urm != "" {
+			raw["udp-relay-mode"] = urm
+		}
+		if alpn := u.Query().Get("alpn"); alpn != "" {
+			node.ALPN = strings.Split(alpn, ",")
+			raw["alpn"] = node.ALPN
+		}
+		node.RawConfig = raw
 	case "ss":
 		node.Type = "shadowsocks"
 		// ss://base64(method:password)@server:port

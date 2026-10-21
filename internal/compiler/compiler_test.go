@@ -267,6 +267,14 @@ func TestDefensiveNodeSanitation(t *testing.T) {
 			Password: "MjAyNjJrNXN6WWtHQVZPeA==:NkJGM0FGOTAtQURCRS00Mw==",
 		},
 		{
+			Name: "Valid-SS-MultiUser",
+			Type: "shadowsocks",
+			Server: "1.1.1.20",
+			Port: 8388,
+			Cipher: "2022-blake3-aes-128-gcm",
+			Password: "MjAyNjJrNXN6WWtHQVZPeA==:NkJGM0FGOTAtQURCRS00Mw==",
+		},
+		{
 			Name: "URLSafe-SS2022",
 			Type: "shadowsocks",
 			Server: "1.1.1.3",
@@ -320,9 +328,14 @@ func TestDefensiveNodeSanitation(t *testing.T) {
 		}
 	}
 
-	// Multi-user SS-2022 must be excluded
+	// Invalid Multi-user SS-2022 must be excluded
 	if _, ok := sbOutbounds["Invalid-SS-MultiUser"]; ok {
 		t.Errorf("Invalid-SS-MultiUser must NOT be present in Sing-box outbounds")
+	}
+
+	// Valid Multi-user SS-2022 must be included
+	if _, ok := sbOutbounds["Valid-SS-MultiUser"]; !ok {
+		t.Errorf("Valid-SS-MultiUser must be present in Sing-box outbounds")
 	}
 
 	// Empty type node must be excluded
@@ -376,9 +389,14 @@ func TestDefensiveNodeSanitation(t *testing.T) {
 		}
 	}
 
-	// Multi-user SS-2022 must be excluded
+	// Invalid Multi-user SS-2022 must be excluded
 	if _, ok := mhProxies["Invalid-SS-MultiUser"]; ok {
 		t.Errorf("Invalid-SS-MultiUser must NOT be present in Mihomo proxies")
+	}
+
+	// Valid Multi-user SS-2022 must be included
+	if _, ok := mhProxies["Valid-SS-MultiUser"]; !ok {
+		t.Errorf("Valid-SS-MultiUser must be present in Mihomo proxies")
 	}
 
 	// Empty type node must be excluded

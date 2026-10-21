@@ -130,7 +130,8 @@ func (f *Fetcher) doFetch(urlStr string, client *http.Client) (*FetchResult, err
 		return nil, fmt.Errorf("subscription server returned HTTP status %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	// Guard against memory explosion with 15MB limit reader
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 15*1024*1024))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}

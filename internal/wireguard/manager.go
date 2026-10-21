@@ -61,7 +61,7 @@ type WGCheckItem struct {
 	Advice  string `json:"advice"`
 }
 
-// WGAlignmentReport represents the result of checking WireGuard alignment between MiCube and ROS.
+// WGAlignmentReport represents the result of checking WireGuard alignment between CubeX and ROS.
 type WGAlignmentReport struct {
 	Connected   bool          `json:"connected"`
 	ROSHost     string        `json:"ros_host"`

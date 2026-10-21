@@ -139,13 +139,14 @@ type Server struct {
 	logBuffer     *RingLogBuffer
 	liveUpSpeed   atomic.Int64
 	liveDownSpeed atomic.Int64
+	httpClient    *http.Client
 }
 
 
 func configureAdaptiveMemoryLimit() {
-	// Base fallback
-	limit := int64(64 * 1024 * 1024)
-	gcPercent := 60
+	// Base fallback: 32MiB default ceiling for cubexd control plane
+	limit := int64(32 * 1024 * 1024)
+	gcPercent := 50
 
 	// Check total system RAM on Linux via /proc/meminfo
 	if data, err := os.ReadFile("/proc/meminfo"); err == nil {
@@ -156,14 +157,17 @@ func configureAdaptiveMemoryLimit() {
 					if totalKb, err := strconv.ParseInt(fields[1], 10, 64); err == nil {
 						totalMb := totalKb / 1024
 						if totalMb <= 512 {
-							limit = 120 * 1024 * 1024 // CHR 448MB: Safe 120MiB ceiling preventing cgroup OOM
-							gcPercent = 100
+							limit = 24 * 1024 * 1024 // 512M CHR: 24MiB
+							gcPercent = 40
 						} else if totalMb <= 1024 {
-							limit = 256 * 1024 * 1024 // 1GB router: 256MiB
-							gcPercent = 100
+							limit = 32 * 1024 * 1024 // 1GB router: 32MiB
+							gcPercent = 50
+						} else if totalMb <= 2048 {
+							limit = 40 * 1024 * 1024 // 2GB host: 40MiB
+							gcPercent = 50
 						} else {
-							limit = 512 * 1024 * 1024 // 2GB+ PVE/fnOS: 512MiB
-							gcPercent = 100
+							limit = 64 * 1024 * 1024 // 4GB+ PVE/fnOS: 64MiB
+							gcPercent = 60
 						}
 					}
 				}
@@ -179,6 +183,16 @@ func configureAdaptiveMemoryLimit() {
 func main() {
 	// OOM Defense & Adaptive Garbage Collection tuning
 	configureAdaptiveMemoryLimit()
+
+	// Periodic OOM Defense & Memory Scavenger: Reclaims idle heap pages back to OS
+	go func() {
+		ticker := time.NewTicker(2 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			runtime.GC()
+			debug.FreeOSMemory()
+		}
+	}()
 
 	listenAddr := flag.String("listen", ":2026", "Listen address (e.g. :2026 or 0.0.0.0:2026)")
 	workDir := flag.String("dir", "", "Working directory (defaults to current dir or /opt/CubeX)")
@@ -276,6 +290,14 @@ func main() {
 		kspeeder:    kspeeder,
 		easyTierMgr: easyTierMgr,
 		logBuffer:   logBuffer,
+		httpClient: &http.Client{
+			Transport: &http.Transport{
+				MaxIdleConns:        20,
+				MaxIdleConnsPerHost: 10,
+				IdleConnTimeout:     30 * time.Second,
+			},
+			Timeout: 2 * time.Second,
+		},
 	}
 	srv.startTrafficCollector()
 
@@ -1235,19 +1257,37 @@ func (s *Server) handleSubRename(w http.ResponseWriter, r *http.Request) {
 		Name string `json:"name"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&req)
+	req.Name = strings.TrimSpace(req.Name)
 	if req.ID == "" || req.Name == "" {
 		http.Error(w, "id and name required", http.StatusBadRequest)
 		return
 	}
 	ir := s.engMgr.GetIR()
+	var oldName string
 	for i := range ir.Subscriptions {
 		if ir.Subscriptions[i].ID == req.ID {
+			oldName = ir.Subscriptions[i].Name
 			ir.Subscriptions[i].Name = req.Name
 			break
 		}
 	}
-	s.engMgr.UpdateIR(ir)
-	sendJSON(w, map[string]any{"ok": true})
+	if oldName != "" && oldName != req.Name {
+		oldPrefix := fmt.Sprintf("[%s]", oldName)
+		newPrefix := fmt.Sprintf("[%s]", req.Name)
+		for j := range ir.Proxies {
+			if ir.Proxies[j].SubID == req.ID {
+				if strings.HasPrefix(ir.Proxies[j].Name, oldPrefix) {
+					ir.Proxies[j].Name = newPrefix + strings.TrimPrefix(ir.Proxies[j].Name, oldPrefix)
+				}
+			}
+		}
+		schema.SyncAllStrategyGroups(ir)
+		s.engMgr.UpdateIR(ir)
+		_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+	} else {
+		s.engMgr.UpdateIR(ir)
+	}
+	sendJSON(w, map[string]any{"ok": true, "name": req.Name})
 }
 
 func (s *Server) handleNodeAdd(w http.ResponseWriter, r *http.Request) {
@@ -1484,12 +1524,16 @@ func (s *Server) handleGroupSelect(w http.ResponseWriter, r *http.Request) {
 			cReq, err := http.NewRequest(http.MethodPut, reqURL, bytes.NewBuffer(payload))
 			if err == nil {
 				cReq.Header.Set("Content-Type", "application/json")
-				_, _ = client.Do(cReq)
+				if resp, err := client.Do(cReq); err == nil && resp != nil {
+					_ = resp.Body.Close()
+				}
 			}
 			// Terminate active HTTP/2 and keep-alive sockets so new traffic immediately routes through the new node
 			delReq, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("http://127.0.0.1:%d/connections", ir.Network.ClashAPIPort), nil)
 			if err == nil {
-				_, _ = client.Do(delReq)
+				if resp, err := client.Do(delReq); err == nil && resp != nil {
+					_ = resp.Body.Close()
+				}
 			}
 		}()
 	}
@@ -1687,6 +1731,10 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 	// Re-trigger compilation
 	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
 
+	// Reclaim subscription download buffers and JSON heaps
+	runtime.GC()
+	debug.FreeOSMemory()
+
 	sendJSON(w, map[string]any{
 		"ok":          true,
 		"status":      "updated",
@@ -1703,15 +1751,24 @@ func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSe
 	escaped = strings.ReplaceAll(escaped, "[", "%5B")
 	escaped = strings.ReplaceAll(escaped, "]", "%5D")
 
+	// Use 2 reliable HTTPS probes with short timeout to prevent goroutine hang
 	probeURLs := []string{
-		"http://www.gstatic.com/generate_204",
-		"http://cp.cloudflare.com/generate_204",
+		"https://cp.cloudflare.com/generate_204",
+		"https://www.gstatic.com/generate_204",
 	}
 
-	client := &http.Client{Timeout: 3500 * time.Millisecond}
+	// Transport with DisableKeepAlives to prevent socket hoarding during speedtests
+	tr := &http.Transport{
+		DisableKeepAlives: true,
+		MaxIdleConns:      0,
+	}
+	client := &http.Client{
+		Transport: tr,
+		Timeout:   2800 * time.Millisecond,
+	}
 
 	for _, probe := range probeURLs {
-		testURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?url=%s&timeout=3000",
+		testURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?url=%s&timeout=2500",
 			clashPort, escaped, url.QueryEscape(probe))
 		req, err := http.NewRequest(http.MethodGet, testURL, nil)
 		if err != nil {
@@ -1724,14 +1781,13 @@ func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSe
 		if err != nil {
 			continue
 		}
-		defer resp.Body.Close()
-		if resp.StatusCode == http.StatusOK {
-			var result struct {
-				Delay int `json:"delay"`
-			}
-			if err := json.NewDecoder(resp.Body).Decode(&result); err == nil && result.Delay > 0 {
-				return result.Delay
-			}
+		var result struct {
+			Delay int `json:"delay"`
+		}
+		decodeErr := json.NewDecoder(resp.Body).Decode(&result)
+		resp.Body.Close() // ALWAYS close immediately, never defer inside loop
+		if decodeErr == nil && result.Delay > 0 {
+			return result.Delay
 		}
 	}
 
@@ -1840,7 +1896,8 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var wg sync.WaitGroup
-	semaphore := make(chan struct{}, 15)
+	// Throttle to 8 concurrent tests to protect router memory
+	semaphore := make(chan struct{}, 8)
 	var mu sync.Mutex
 	onlineCount := 0
 	totalDelay := int64(0)
@@ -1867,6 +1924,10 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 		}(it)
 	}
 	wg.Wait()
+
+	// Immediate memory reclamation after sub test
+	runtime.GC()
+	debug.FreeOSMemory()
 
 	avgDelay := 0
 	if onlineCount > 0 {
@@ -1947,7 +2008,8 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var wg sync.WaitGroup
-	semaphore := make(chan struct{}, 25)
+	// Throttle concurrency to 8 to avoid memory explosion and TLS socket exhaustion on routers
+	semaphore := make(chan struct{}, 8)
 	var mu sync.Mutex
 	onlineCount := 0
 	totalDelay := int64(0)
@@ -1982,6 +2044,10 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 	}
 	wg.Wait()
 
+	// Immediate memory reclamation after batch node test
+	runtime.GC()
+	debug.FreeOSMemory()
+
 	avgDelay := 0
 	if onlineCount > 0 {
 		avgDelay = int(totalDelay / int64(onlineCount))
@@ -1994,9 +2060,11 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 	if req.Group != "" && ir.Network.ClashAPIPort > 0 {
 		go func(grp string, port int) {
 			escaped := url.PathEscape(grp)
-			u := fmt.Sprintf("http://127.0.0.1:%d/group/%s/delay?url=http://www.gstatic.com/generate_204&timeout=1500", port, escaped)
+			u := fmt.Sprintf("http://127.0.0.1:%d/group/%s/delay?url=https://cp.cloudflare.com/generate_204&timeout=2500", port, escaped)
 			client := http.Client{Timeout: 3 * time.Second}
-			_, _ = client.Get(u)
+			if resp, err := client.Get(u); err == nil && resp != nil {
+				_ = resp.Body.Close()
+			}
 		}(req.Group, ir.Network.ClashAPIPort)
 	}
 
@@ -2189,15 +2257,15 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 	}
 
 	connCount := 9
-	client := &http.Client{Timeout: 600 * time.Millisecond}
-	resp, err := client.Get(fmt.Sprintf("http://127.0.0.1:%d/connections", clashPort))
 	var uploadTotal, downloadTotal int64 = 840974336, 82208358 // ~802MB out, ~78.4MB in
 	var upSpeed, downSpeed int64 = 0, 0
+
+	resp, err := s.httpClient.Get(fmt.Sprintf("http://127.0.0.1:%d/connections", clashPort))
 	if err == nil && resp.StatusCode == http.StatusOK {
 		var connResp struct {
-			DownloadTotal int64 `json:"downloadTotal"`
-			UploadTotal   int64 `json:"uploadTotal"`
-			Connections   []any `json:"connections"`
+			DownloadTotal int64      `json:"downloadTotal"`
+			UploadTotal   int64      `json:"uploadTotal"`
+			Connections   []struct{} `json:"connections"`
 		}
 		if json.NewDecoder(resp.Body).Decode(&connResp) == nil {
 			if len(connResp.Connections) > 0 {

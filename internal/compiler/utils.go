@@ -17,37 +17,20 @@ var ValidSSCiphers = map[string]bool{
 	"none": true, "dummy": true,
 }
 
-// CleanSS2022Password validates and normalizes Shadowsocks-2022 keys.
-// If the key is invalid or an unsupported multi-user string with ':', it returns ("", false).
-// If URL-safe base64 is detected, it converts it to standard base64 and verifies exact byte length.
-func CleanSS2022Password(cipher, rawPwd string) (string, bool) {
-	cipher = strings.ToLower(cipher)
-	if !strings.HasPrefix(cipher, "2022-") {
-		return rawPwd, true
-	}
-	// Multi-user format (<server_key>:<user_key>) is rejected by standard client outbounds
-	if strings.Contains(rawPwd, ":") {
+// cleanSingleSSKey decodes and validates a single base64 key against expectedLen.
+func cleanSingleSSKey(rawKey string, expectedLen int) (string, bool) {
+	rawKey = strings.TrimSpace(rawKey)
+	if rawKey == "" {
 		return "", false
 	}
-
-	expectedLen := 0
-	switch cipher {
-	case "2022-blake3-aes-128-gcm":
-		expectedLen = 16
-	case "2022-blake3-aes-256-gcm", "2022-blake3-chacha20-poly1305":
-		expectedLen = 32
-	default:
-		return "", false
-	}
-
 	// Try standard decoding first
-	decoded, err := base64.StdEncoding.DecodeString(rawPwd)
+	decoded, err := base64.StdEncoding.DecodeString(rawKey)
 	if err == nil && len(decoded) == expectedLen {
 		return base64.StdEncoding.EncodeToString(decoded), true
 	}
 
 	// Try normalizing URL-safe base64 and missing padding
-	padded := strings.ReplaceAll(rawPwd, "-", "+")
+	padded := strings.ReplaceAll(rawKey, "-", "+")
 	padded = strings.ReplaceAll(padded, "_", "/")
 	pad := len(padded) % 4
 	if pad > 0 {
@@ -60,4 +43,40 @@ func CleanSS2022Password(cipher, rawPwd string) (string, bool) {
 	}
 
 	return "", false
+}
+
+// CleanSS2022Password validates and normalizes Shadowsocks-2022 keys.
+// Supports both single-key and multi-user format (<server_key>:<user_key>).
+// If URL-safe base64 is detected, it converts it to standard base64 and verifies exact byte length.
+func CleanSS2022Password(cipher, rawPwd string) (string, bool) {
+	cipher = strings.ToLower(cipher)
+	if !strings.HasPrefix(cipher, "2022-") {
+		return rawPwd, true
+	}
+
+	expectedLen := 0
+	switch cipher {
+	case "2022-blake3-aes-128-gcm":
+		expectedLen = 16
+	case "2022-blake3-aes-256-gcm", "2022-blake3-chacha20-poly1305":
+		expectedLen = 32
+	default:
+		return "", false
+	}
+
+	// Multi-user format (<server_key>:<user_key>)
+	if strings.Contains(rawPwd, ":") {
+		parts := strings.Split(rawPwd, ":")
+		if len(parts) != 2 {
+			return "", false
+		}
+		k1, ok1 := cleanSingleSSKey(parts[0], expectedLen)
+		k2, ok2 := cleanSingleSSKey(parts[1], expectedLen)
+		if !ok1 || !ok2 {
+			return "", false
+		}
+		return k1 + ":" + k2, true
+	}
+
+	return cleanSingleSSKey(rawPwd, expectedLen)
 }

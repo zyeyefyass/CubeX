@@ -30,7 +30,7 @@ __pycache__/
 # Local test scratch
 scratch/
 test_screen*.png
-openbox_screen.png
+cubex_screen.png
 benchmark_results.json
 scripts/benchmark_*.json
 scripts/hhost_*.json

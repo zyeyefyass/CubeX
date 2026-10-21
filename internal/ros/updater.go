@@ -25,7 +25,7 @@ import (
 )
 
 // Manager handles RouterOS connectivity, Mihomo core upgrades,
-// MiCube web panel upgrades, and firmware upgrade triggers.
+// CubeX web panel upgrades, and firmware upgrade triggers.
 type Manager struct {
 	rootDir    string
 	binDir     string
@@ -49,6 +49,23 @@ type Manager struct {
 	cachedVerTime       time.Time
 	lastContainerMem    float64
 	lastContainerMemAt  time.Time
+	httpClient          *http.Client
+}
+
+func (m *Manager) getHTTPClient() *http.Client {
+	if m.httpClient == nil {
+		tr := &http.Transport{
+			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+			MaxIdleConns:        10,
+			MaxIdleConnsPerHost: 5,
+			IdleConnTimeout:     30 * time.Second,
+		}
+		m.httpClient = &http.Client{
+			Transport: tr,
+			Timeout:   8 * time.Second,
+		}
+	}
+	return m.httpClient
 }
 
 // ROSConfig stores the RouterOS connection settings.
@@ -147,17 +164,9 @@ func (m *Manager) GetOverview() map[string]any {
 		latestSingbox = "v1.14.3"
 	}
 
-	normLatestPanel := normalizeVersion(latestPanel)
-	normCurrPanel := normalizeVersion(panelVer)
-	panelUpdateAvail := latestPanel != "" && normLatestPanel != normCurrPanel
-
-	normLatestMihomo := normalizeVersion(latestMihomo)
-	normCurrMihomo := normalizeVersion(mihomoVer)
-	mihomoUpdateAvail := latestMihomo != "" && normLatestMihomo != normCurrMihomo
-
-	normLatestSingbox := normalizeVersion(latestSingbox)
-	normCurrSingbox := normalizeVersion(singboxVer)
-	singboxUpdateAvail := latestSingbox != "" && normLatestSingbox != normCurrSingbox
+	panelUpdateAvail := isVersionNewer(latestPanel, panelVer)
+	mihomoUpdateAvail := isVersionNewer(latestMihomo, mihomoVer)
+	singboxUpdateAvail := isVersionNewer(latestSingbox, singboxVer)
 
 	result := map[string]any{
 		"ros_connected":          rosConnected,
@@ -200,10 +209,8 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 	}
 
 	currTag := m.getLocalPanelVersion()
-	normLatest := normalizeVersion(latestTag)
-	normCurr := normalizeVersion(currTag)
-	if !force && normLatest == normCurr && latestTag != "" {
-		return currTag, fmt.Errorf("panel is already at the latest version %s", currTag)
+	if !force && !isVersionNewer(latestTag, currTag) {
+		return currTag, fmt.Errorf("当前版本 (%s) 已是最新或高于云端版本 (%s)，无需升级", currTag, latestTag)
 	}
 
 	log.Printf("[Upgrade] Starting CubeX panel upgrade: %s -> %s", currTag, latestTag)
@@ -569,7 +576,7 @@ func (m *Manager) CheckROSFirmwareUpgradeDetails() (*ROSFirmwareCheckResult, err
 		latest = installed
 	}
 
-	hasUpdate := latest != "" && installed != "" && latest != installed
+	hasUpdate := isVersionNewer(latest, installed)
 	msg := ""
 	if hasUpdate {
 		msg = fmt.Sprintf("发现 RouterOS 官方新固件: %s (当前版本: %s, 升级通道: %s, 状态: %s)", latest, installed, channel, status)
@@ -701,6 +708,71 @@ func normalizeVersion(v string) string {
 	v = strings.ReplaceAll(v, "-", "")
 	v = strings.ReplaceAll(v, "_", "")
 	return v
+}
+
+// extractVersionNumbers parses major, minor, patch, prerelease from strings like "Test v1.5", "Test-v1.4", "v1.19.0".
+func extractVersionNumbers(v string) []int {
+	v = strings.ToLower(v)
+	var b strings.Builder
+	for _, r := range v {
+		if (r >= '0' && r <= '9') || r == '.' {
+			b.WriteRune(r)
+		} else {
+			b.WriteRune(' ')
+		}
+	}
+	parts := strings.Fields(b.String())
+	if len(parts) == 0 {
+		return nil
+	}
+	verStr := parts[len(parts)-1]
+	segStrs := strings.Split(verStr, ".")
+	nums := make([]int, 0, len(segStrs))
+	for _, s := range segStrs {
+		n, err := strconv.Atoi(s)
+		if err == nil {
+			nums = append(nums, n)
+		}
+	}
+	return nums
+}
+
+// isVersionNewer returns true only if candidate is strictly greater than current.
+func isVersionNewer(candidate, current string) bool {
+	candidate = strings.TrimSpace(candidate)
+	current = strings.TrimSpace(current)
+	if candidate == "" || current == "" {
+		return false
+	}
+	if strings.EqualFold(candidate, current) {
+		return false
+	}
+	cNums := extractVersionNumbers(candidate)
+	currNums := extractVersionNumbers(current)
+	if len(cNums) == 0 || len(currNums) == 0 {
+		return false
+	}
+	maxLen := len(cNums)
+	if len(currNums) > maxLen {
+		maxLen = len(currNums)
+	}
+	for i := 0; i < maxLen; i++ {
+		cVal := 0
+		if i < len(cNums) {
+			cVal = cNums[i]
+		}
+		currVal := 0
+		if i < len(currNums) {
+			currVal = currNums[i]
+		}
+		if cVal > currVal {
+			return true
+		}
+		if cVal < currVal {
+			return false
+		}
+	}
+	return false
 }
 
 func fetchGitHubLatestTag(repo string) (string, error) {
@@ -1352,12 +1424,7 @@ func (m *Manager) QueryROS(path string) ([]byte, error) {
 		return nil, err
 	}
 	req.SetBasicAuth(m.config.User, m.config.Password)
-	client := &http.Client{
-		Timeout: 4 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
+	client := m.getHTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -1391,12 +1458,7 @@ func (m *Manager) PatchROS(path string, body any) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.SetBasicAuth(m.config.User, m.config.Password)
-	client := &http.Client{
-		Timeout: 4 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
+	client := m.getHTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
@@ -1435,12 +1497,7 @@ func (m *Manager) PutROS(path string, body any) ([]byte, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.SetBasicAuth(m.config.User, m.config.Password)
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
+	client := m.getHTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -1470,12 +1527,7 @@ func (m *Manager) DeleteROS(path string) error {
 		return err
 	}
 	req.SetBasicAuth(m.config.User, m.config.Password)
-	client := &http.Client{
-		Timeout: 4 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
+	client := m.getHTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
@@ -1514,12 +1566,7 @@ func (m *Manager) PostROS(path string, body any) ([]byte, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.SetBasicAuth(m.config.User, m.config.Password)
-	client := &http.Client{
-		Timeout: 6 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
+	client := m.getHTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -1596,12 +1643,7 @@ func (m *Manager) GetROS(path string) ([]byte, error) {
 		return nil, err
 	}
 	req.SetBasicAuth(m.config.User, m.config.Password)
-	client := &http.Client{
-		Timeout: 6 * time.Second,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
+	client := m.getHTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err

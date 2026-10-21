@@ -116,7 +116,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	cleanFakeIPFilter := []string{
 		"geosite:private",
-		"rule-set:cn_domain",
+		"geosite:cn",
 		"*.lan",
 		"*.local",
 		"*.home",
@@ -177,12 +177,8 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			},
 		},
 		"nameserver-policy": map[string]any{
-			"+.google.com,+.googleapis.com,+.gstatic.com,+.googlevideo.com,+.ytimg.com,+.youtube.com,+.openai.com,+.chatgpt.com,+.anthropic.com,+.claude.ai": remoteDNSList,
+			"+.google.com,+.googleapis.com,+.gstatic.com,+.googlevideo.com,+.ytimg.com,+.youtube.com,+.openai.com,+.chatgpt.com,+.anthropic.com,+.claude.ai,+.antigravity.dev,+.antigravity-unleash.goog,+.goog,+.run.app,+.1e100.net,+.gvt1.com": remoteDNSList,
 			"geosite:cn,private": []string{
-				"https://dns.alidns.com/dns-query#disable-qtype-65=true",
-				"https://doh.pub/dns-query#disable-qtype-65=true",
-			},
-			"rule-set:cn_domain,privacy_domain": []string{
 				"https://dns.alidns.com/dns-query#disable-qtype-65=true",
 				"https://doh.pub/dns-query#disable-qtype-65=true",
 			},
@@ -255,12 +251,24 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			if p.Network != "" {
 				pMap["network"] = p.Network
 			}
-			if p.Path != "" {
-				if p.Network == "grpc" {
-					pMap["grpc-opts"] = map[string]any{"grpc-service-name": p.Path}
-				} else {
-					pMap["ws-opts"] = map[string]any{"path": p.Path}
+			if p.Network == "grpc" {
+				grpcOpts, ok := pMap["grpc-opts"].(map[string]any)
+				if !ok {
+					grpcOpts = make(map[string]any)
 				}
+				if p.Path != "" && grpcOpts["grpc-service-name"] == nil {
+					grpcOpts["grpc-service-name"] = p.Path
+				}
+				pMap["grpc-opts"] = grpcOpts
+			} else if p.Network == "ws" {
+				wsOpts, ok := pMap["ws-opts"].(map[string]any)
+				if !ok {
+					wsOpts = make(map[string]any)
+				}
+				if p.Path != "" && wsOpts["path"] == nil {
+					wsOpts["path"] = p.Path
+				}
+				pMap["ws-opts"] = wsOpts
 			}
 			if p.Flow != "" {
 				pMap["flow"] = p.Flow
@@ -377,7 +385,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		if gType == "url-test" || gType == "fallback" || gType == "load-balance" {
 			gMap["url"] = g.URL
 			if gMap["url"] == nil || gMap["url"] == "" {
-				gMap["url"] = "http://www.gstatic.com/generate_204"
+				gMap["url"] = "https://cp.cloudflare.com/generate_204"
 			}
 			gMap["interval"] = g.Interval
 			if g.Interval == 0 {
@@ -443,12 +451,6 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	// 2. 217heidai MRS High-Performance Interception Rules (Mihomo Adaptive)
 	rulesList = append(rulesList, "RULE-SET,217heidai_ads,REJECT")
 	rulesList = append(rulesList, "RULE-SET,privacy_domain,REJECT")
-	cnOutbound := "DIRECT"
-	if validTargets["🎯 国内流量"] {
-		cnOutbound = "🎯 国内流量"
-	}
-	rulesList = append(rulesList, fmt.Sprintf("RULE-SET,cn_domain,%s", cnOutbound))
-	rulesList = append(rulesList, fmt.Sprintf("RULE-SET,cn_ip,%s", cnOutbound))
 
 	// Intercept foreign UDP 443/8443 (QUIC) to prevent ISP UDP QoS throttling and force BBR TCP
 	rulesList = append(rulesList, "AND,((NETWORK,udp),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT")
@@ -476,6 +478,8 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	// 2a-2. AI (OpenAI / Claude / Google Gemini / Antigravity / DeepMind)
 	if validTargets["AI"] {
+		rulesList = append(rulesList, "DOMAIN,antigravity-unleash.goog,AI")
+		rulesList = append(rulesList, "DOMAIN,antigravity.dev,AI")
 		rulesList = append(rulesList, "DOMAIN,generativelanguage.googleapis.com,AI")
 		rulesList = append(rulesList, "DOMAIN,daily-cloudcode-pa.googleapis.com,AI")
 		rulesList = append(rulesList, "DOMAIN,cloudcode-pa.googleapis.com,AI")
@@ -493,9 +497,9 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		suffixes []string
 		geosite  string
 	}{
-		{"AI", []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "oaistatic.com", "oaiusercontent.com", "perplexity.ai", "gemini.google.com", "deepmind.google", "x.ai", "grok.com"}, "openai"},
-		{"YouTube", []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com"}, "youtube"},
-		{"Google", []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com"}, "google"},
+		{"AI", []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "oaistatic.com", "oaiusercontent.com", "perplexity.ai", "gemini.google.com", "deepmind.google", "x.ai", "grok.com", "antigravity.dev", "goog", "run.app"}, "openai"},
+		{"YouTube", []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com", "yt3.ggpht.com", "yt4.ggpht.com", "gvt1.com", "1e100.net", "googleusercontent.com"}, "youtube"},
+		{"Google", []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com", "antigravity.dev", "goog", "run.app", "1e100.net", "gvt1.com"}, "google"},
 		{"GitHub & Docker", []string{"github.com", "githubusercontent.com", "docker.com", "docker.io", "ghcr.io"}, "github"},
 		{"Telegram", []string{"telegram.org", "t.me", "telegram.me", "telegra.ph"}, "telegram"},
 		{"Twitter (X)", []string{"twitter.com", "x.com", "twimg.com", "t.co"}, "twitter"},
@@ -519,6 +523,15 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			}
 		}
 	}
+
+	// 2c. Domestic Direct Routing (China Domain & IP - Prioritized after business strategies)
+	cnOutbound := "DIRECT"
+	if validTargets["🎯 国内流量"] {
+		cnOutbound = "🎯 国内流量"
+	}
+	rulesList = append(rulesList, fmt.Sprintf("RULE-SET,cn_domain,%s", cnOutbound))
+	rulesList = append(rulesList, fmt.Sprintf("RULE-SET,cn_ip,%s", cnOutbound))
+	rulesList = append(rulesList, fmt.Sprintf("GEOIP,CN,%s", cnOutbound))
 
 	// 3. Generic Rules
 	for _, r := range ir.Rules {

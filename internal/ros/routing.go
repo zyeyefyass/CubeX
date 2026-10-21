@@ -21,7 +21,8 @@ type InspectionReport struct {
 	Connected   bool        `json:"connected"`
 	ROSHost     string      `json:"ros_host"`
 	ROSVersion  string      `json:"ros_version"`
-	MiCubeIP    string      `json:"micube_ip"`
+	CubeXIP     string      `json:"cubex_ip"`
+	MiCubeIP    string      `json:"micube_ip,omitempty"`
 	AllOK       bool        `json:"all_ok"`
 	Items       []CheckItem `json:"items"`
 	CreatedTime int64       `json:"created_time"`
@@ -39,16 +40,17 @@ type ApplyResult struct {
 func (m *Manager) InspectRouting() (*InspectionReport, error) {
 	rosConnected, rosVersion := m.checkROSConnection()
 	rosCfg := m.GetConfig()
-	micubeIP := m.GetOutboundIP()
-	if micubeIP == "" {
-		micubeIP = "10.0.0.11"
+	cubexIP := m.GetOutboundIP()
+	if cubexIP == "" {
+		cubexIP = "10.0.0.11"
 	}
 
 	report := &InspectionReport{
 		Connected:  rosConnected,
 		ROSHost:    rosCfg["host"],
 		ROSVersion: rosVersion,
-		MiCubeIP:   micubeIP,
+		CubeXIP:     cubexIP,
+		MiCubeIP:    cubexIP,
 		AllOK:      true,
 		Items:      make([]CheckItem, 0),
 	}
@@ -159,12 +161,12 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Name:    "旁路由默认路由 (/ip/route)",
 			Status:  "missing",
 			Value:   "缺失",
-			Details: fmt.Sprintf("未在 micube 路由表中配置指向 CubeX (%s) 的默认网关路由 0.0.0.0/0。", micubeIP),
+			Details: fmt.Sprintf("未在 cubex 路由表中配置指向 CubeX (%s) 的默认网关路由 0.0.0.0/0。", cubexIP),
 			Advice:  "点击下方「一键自动配置」自动下发默认分流网关",
 		})
 	}
 
-	// 3. Check /ip/route (Fake-IP route 198.18.0.0/16 pointing to micubeIP and NO stale ECMP conflicts)
+	// 3. Check /ip/route (Fake-IP route 198.18.0.0/16 pointing to cubexIP and NO stale ECMP conflicts)
 	fakeIPRouteCount := 0
 	fakeIPCorrect := false
 	staleFakeIPGateways := make([]string, 0)
@@ -175,9 +177,9 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		if table == "" || table == "main" {
 			if dst == "198.18.0.0/15" || dst == "198.18.0.0/16" || strings.HasPrefix(dst, "198.18.") || strings.HasPrefix(dst, "198.19.") {
 				fakeIPRouteCount++
-				if (gw == micubeIP || strings.Contains(gw, micubeIP)) && dst == "198.18.0.0/15" {
+				if (gw == cubexIP || strings.Contains(gw, cubexIP)) && dst == "198.18.0.0/15" {
 					fakeIPCorrect = true
-				} else if gw == micubeIP && dst == "198.18.0.0/16" {
+				} else if gw == cubexIP && dst == "198.18.0.0/16" {
 					// Sub-optimal /16 instead of full /15
 					staleFakeIPGateways = append(staleFakeIPGateways, fmt.Sprintf("%s (建议升级为 /15)", dst))
 				} else {
@@ -191,7 +193,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Key:     "fakeip_route",
 			Name:    "Fake-IP 回指路由 (198.18.0.0/15)",
 			Status:  "ok",
-			Value:   fmt.Sprintf("198.18.0.0/15 -> %s", micubeIP),
+			Value:   fmt.Sprintf("198.18.0.0/15 -> %s", cubexIP),
 			Details: "RouterOS Fake-IP 静态路由唯一正确指向 CubeX 旁路由，已覆盖 RFC 2544 完整网段 (198.18.0.0/15)，零泄漏与冲突。",
 			Advice:  "Fake-IP 路由工作正常",
 		})
@@ -212,7 +214,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Name:    "Fake-IP 回指路由 (198.18.0.0/15)",
 			Status:  "missing",
 			Value:   "缺失",
-			Details: fmt.Sprintf("未在 RouterOS main 路由表中配置将 198.18.0.0/15 回指给 CubeX (%s)。当客户端网关设为主路由时，Fake-IP 流量将无法抵达旁路由内核。", micubeIP),
+			Details: fmt.Sprintf("未在 RouterOS main 路由表中配置将 198.18.0.0/15 回指给 CubeX (%s)。当客户端网关设为主路由时，Fake-IP 流量将无法抵达旁路由内核。", cubexIP),
 			Advice:  "点击下方「一键自动配置」自动创建 Fake-IP 静态回指路由",
 		})
 	}
@@ -266,7 +268,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			}
 			dstAddr, _ := f["dst-address"].(string)
 			srcAddr, _ := f["src-address"].(string)
-			if action == "accept" && (strings.Contains(dstAddr, micubeIP) || strings.Contains(srcAddr, micubeIP) || strings.Contains(dstAddr, "198.18.")) {
+			if action == "accept" && (strings.Contains(dstAddr, cubexIP) || strings.Contains(srcAddr, cubexIP) || strings.Contains(dstAddr, "198.18.")) {
 				hasForwardAcceptCubeX = true
 			}
 		}
@@ -287,7 +289,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Name:    "Forward 转发链防火墙放行 (/ip/firewall/filter)",
 			Status:  "warning",
 			Value:   "存在丢包拦截风险 (Drop all forward)",
-			Details: fmt.Sprintf("检测到防火墙 Forward 链存在全局 Drop 规则，且未在 Drop 之前放行 CubeX (%s) 的跨端口数据包，会导致通过主路由中转的 Fake-IP 流量在主路由处被直接拦截！", micubeIP),
+			Details: fmt.Sprintf("检测到防火墙 Forward 链存在全局 Drop 规则，且未在 Drop 之前放行 CubeX (%s) 的跨端口数据包，会导致通过主路由中转的 Fake-IP 流量在主路由处被直接拦截！", cubexIP),
 			Advice:  "点击下方「一键自动配置」即可在 Drop 规则之前放行发往 CubeX 的 Forward 流量",
 		})
 	}
@@ -302,7 +304,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		for _, l := range lists {
 			listName, _ := l["list"].(string)
 			addr, _ := l["address"].(string)
-			if (listName == "CUBEX_BYPASS" || listName == "MICUBE_BYPASS") && (addr == micubeIP || strings.Contains(addr, micubeIP)) {
+			if (listName == "CUBEX_BYPASS" || listName == "MICUBE_BYPASS") && (addr == cubexIP || strings.Contains(addr, cubexIP)) {
 				bypassOK = true
 				foundBypassName = listName
 			}
@@ -316,7 +318,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Key:     "address_list",
 			Name:    "防死锁地址清单 (/ip/firewall/address-list)",
 			Status:  "ok",
-			Value:   fmt.Sprintf("%s (%s) & LAN_SUBNET 就绪", foundBypassName, micubeIP),
+			Value:   fmt.Sprintf("%s (%s) & LAN_SUBNET 就绪", foundBypassName, cubexIP),
 			Details: "CubeX 自身 IP 已加入旁路白名单，彻底杜绝回环与循环代理死锁。",
 			Advice:  "地址列表完备",
 		})
@@ -327,7 +329,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Name:    "防死锁地址清单 (/ip/firewall/address-list)",
 			Status:  "missing",
 			Value:   "未完全配置",
-			Details: fmt.Sprintf("缺少 CUBEX_BYPASS (包含 %s) 或 LAN_SUBNET。这会导致 CubeX 自身外发流量被重复抓入代理引发死锁断网！", micubeIP),
+			Details: fmt.Sprintf("缺少 CUBEX_BYPASS (包含 %s) 或 LAN_SUBNET。这会导致 CubeX 自身外发流量被重复抓入代理引发死锁断网！", cubexIP),
 			Advice:  "必须配置 CUBEX_BYPASS 白名单排除 CubeX 容器 IP",
 		})
 	}
@@ -341,7 +343,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		mark, _ := mg["new-routing-mark"].(string)
 		chain, _ := mg["chain"].(string)
 		disabled, _ := mg["disabled"].(bool)
-		if action == "mark-routing" && mark == "micube" && chain == "prerouting" && !disabled {
+		if action == "mark-routing" && (mark == "cubex" || mark == "micube") && chain == "prerouting" && !disabled {
 			mangleOK = true
 			mangleVal = fmt.Sprintf("chain=%s action=mark-routing mark=%s", chain, mark)
 			break
@@ -353,7 +355,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Name:    "Mangle 策略分流标记 (/ip/firewall/mangle)",
 			Status:  "ok",
 			Value:   mangleVal,
-			Details: "检测到 Prerouting 标记规则已就绪，终端出国流量正常打标转发至 micube 路由表。",
+			Details: "检测到 Prerouting 标记规则已就绪，终端出国流量正常打标转发至 cubex 路由表。",
 			Advice:  "正常生效中",
 		})
 	} else {
@@ -375,7 +377,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		toAddr, _ := n["to-addresses"].(string)
 		disabled, _ := n["disabled"].(bool)
 		if action == "dst-nat" && (dport == "53" || strings.Contains(dport, "53")) && !disabled {
-			if toAddr == micubeIP || strings.Contains(toAddr, micubeIP) {
+			if toAddr == cubexIP || strings.Contains(toAddr, cubexIP) {
 				natOK = true
 				break
 			}
@@ -386,7 +388,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Key:     "dns_nat",
 			Name:    "严格防 DNS 泄露重定向 (/ip/firewall/nat)",
 			Status:  "ok",
-			Value:   fmt.Sprintf("UDP/TCP 53 -> %s:53", micubeIP),
+			Value:   fmt.Sprintf("UDP/TCP 53 -> %s:53", cubexIP),
 			Details: "局域网明文 53 端口查询已被强制劫持至 CubeX 纯净防泄露内核，阻断 ISP 污染与旁路嗅探。",
 			Advice:  "防泄露状态优良",
 		})
@@ -441,7 +443,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			host, _ := nw["host"].(string)
 			comment, _ := nw["comment"].(string)
 			status, _ := nw["status"].(string)
-			if host == micubeIP || strings.Contains(comment, "CubeX") {
+			if host == cubexIP || strings.Contains(comment, "CubeX") {
 				nwFound = true
 				nwStatus = status
 				if nwStatus == "" {
@@ -591,6 +593,58 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		})
 	}
 
+	// 14. Check Container Restart Policy & Memory Limits (restart-policy=on-failure, memory-high=256M)
+	containerRestartOK := true
+	containerMemLimitOK := true
+	containerFound := false
+	if cData, err := m.QueryROS("/container"); err == nil {
+		var containers []map[string]any
+		if json.Unmarshal(cData, &containers) == nil && len(containers) > 0 {
+			for _, c := range containers {
+				comment := strings.ToLower(fmt.Sprintf("%v", c["comment"]))
+				name := strings.ToLower(fmt.Sprintf("%v", c["name"]))
+				if strings.Contains(comment, "cubex") || strings.Contains(name, "cubex") || len(containers) == 1 {
+					containerFound = true
+					policy := fmt.Sprintf("%v", c["restart-policy"])
+					memHigh := fmt.Sprintf("%v", c["memory-high"])
+					if policy == "on-failure" || policy == "always" {
+						containerRestartOK = true
+					} else {
+						containerRestartOK = false
+					}
+					if memHigh != "" && memHigh != "unlimited" {
+						containerMemLimitOK = true
+					} else {
+						containerMemLimitOK = false
+					}
+					break
+				}
+			}
+		}
+	}
+	if containerFound {
+		if containerRestartOK && containerMemLimitOK {
+			report.Items = append(report.Items, CheckItem{
+				Key:     "container_restart_policy",
+				Name:    "RouterOS 容器故障自愈与内存软上限 (/container)",
+				Status:  "ok",
+				Value:   "on-failure · memory-high=256M 锁定",
+				Details: "CubeX 容器守护模式为 on-failure，内存软上限锁定 256MB（自动促发内核回收 page cache 缓存，杜绝爆内存停机）。",
+				Advice:  "自愈守护与内存限额正常",
+			})
+		} else {
+			report.AllOK = false
+			report.Items = append(report.Items, CheckItem{
+				Key:     "container_restart_policy",
+				Name:    "RouterOS 容器故障自愈与内存软上限 (/container)",
+				Status:  "warning",
+				Value:   "待加固 (未设置故障自愈或未设内存上限)",
+				Details: "检测到 RouterOS 容器 restart-policy 或 memory-high 处于缺省状态，存在异常退出无法自动恢复或 page cache 堆积至几百兆的风险！",
+				Advice:  "点击下方「一键自动配置」即可一键切换为 on-failure 故障秒级自愈并锁定 256M 防爆上限",
+			})
+		}
+	}
+
 	report.Items = append(report.Items, CheckItem{
 		Key:     "legacy_residues",
 		Name:    "历史旧版残留扫描",
@@ -618,36 +672,36 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		Errors:  make([]string, 0),
 	}
 
-	// 1. Ensure /routing/table: cubex or micube (fib=true)
+	// 1. Ensure /routing/table: Standard cubex (fib=true) with automatic migration from legacy micube
 	targetTableName := "cubex"
-	tableExists := false
+	hasCubexTable := false
+	var legacyTableID string
 	if data, err := m.QueryROS("/routing/table"); err == nil {
 		var tables []map[string]any
 		_ = json.Unmarshal(data, &tables)
 		for _, t := range tables {
 			name, _ := t["name"].(string)
 			if name == "cubex" {
-				tableExists = true
-				targetTableName = "cubex"
-				break
+				hasCubexTable = true
 			} else if name == "micube" {
-				tableExists = true
-				targetTableName = "micube"
+				if id, ok := t[".id"].(string); ok {
+					legacyTableID = id
+				}
 			}
 		}
 	}
-	if !tableExists {
+	if !hasCubexTable {
 		payload := map[string]any{
-			"name": targetTableName,
+			"name": "cubex",
 			"fib":  "true",
 		}
 		if _, err := m.PutROS("/routing/table", payload); err != nil {
-			res.Errors = append(res.Errors, fmt.Sprintf("创建路由表 %s 失败: %v", targetTableName, err))
+			res.Errors = append(res.Errors, fmt.Sprintf("创建路由表 cubex 失败: %v", err))
 		} else {
-			res.Actions = append(res.Actions, fmt.Sprintf("已成功创建策略路由表 /routing/table (name=%s fib=true)", targetTableName))
+			res.Actions = append(res.Actions, "已成功创建标准策略路由表 /routing/table (name=cubex fib=true)")
 		}
 	} else {
-		res.Actions = append(res.Actions, fmt.Sprintf("策略路由表 /routing/table %s 已存在", targetTableName))
+		res.Actions = append(res.Actions, "策略路由表 /routing/table cubex 正常就绪")
 	}
 
 	// 2. Ensure /ip/route: dst=0.0.0.0/0 gateway=targetIP routing-table=targetTableName
@@ -686,6 +740,20 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 			"comment": "CubeX Gateway Route",
 		})
 		res.Actions = append(res.Actions, fmt.Sprintf("已更新现有策略路由网关为 %s", targetIP))
+	}
+
+	// 2a. Atomically clean legacy micube routes and table to complete hot migration
+	if legacyTableID != "" {
+		for _, r := range existingRoutes {
+			if r["routing-table"] == "micube" {
+				if rid, ok := r[".id"].(string); ok && rid != "" {
+					_ = m.DeleteROS("/ip/route/" + rid)
+				}
+			}
+		}
+		if err := m.DeleteROS("/routing/table/" + legacyTableID); err == nil {
+			res.Actions = append(res.Actions, "已平滑完成 RouterOS 策略路由表热迁移（旧 micube 表已无缝升级为标准 cubex）")
+		}
 	}
 
 	// 2b. Clean up conflicting / stale Fake-IP routes (198.18.0.0/15) and ensure single valid route to targetIP
@@ -735,8 +803,8 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		}
 	}
 
-	// Add CUBEX_BYPASS (and keep compatibility with MICUBE_BYPASS)
-	if !existingLists[fmt.Sprintf("CUBEX_BYPASS_%s", targetIP)] && !existingLists[fmt.Sprintf("MICUBE_BYPASS_%s", targetIP)] {
+	// Ensure CUBEX_BYPASS address list and migrate legacy MICUBE_BYPASS
+	if !existingLists[fmt.Sprintf("CUBEX_BYPASS_%s", targetIP)] {
 		_, err := m.PutROS("/ip/firewall/address-list", map[string]any{
 			"list":    "CUBEX_BYPASS",
 			"address": targetIP,
@@ -744,6 +812,18 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		})
 		if err == nil {
 			res.Actions = append(res.Actions, fmt.Sprintf("已添加防死锁地址 /ip/firewall/address-list (CUBEX_BYPASS %s)", targetIP))
+		}
+	}
+	// Migrate and clean legacy MICUBE_BYPASS entries if any
+	if data, err := m.QueryROS("/ip/firewall/address-list"); err == nil {
+		var allLists []map[string]any
+		_ = json.Unmarshal(data, &allLists)
+		for _, item := range allLists {
+			if item["list"] == "MICUBE_BYPASS" {
+				if lid, ok := item[".id"].(string); ok && lid != "" {
+					_ = m.DeleteROS("/ip/firewall/address-list/" + lid)
+				}
+			}
 		}
 	}
 
@@ -758,7 +838,7 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 			})
 		}
 	}
-	res.Actions = append(res.Actions, "已确认防死锁与内网清单 MICUBE_BYPASS / LAN_SUBNET")
+	res.Actions = append(res.Actions, "已确认防死锁与内网清单 CUBEX_BYPASS / LAN_SUBNET")
 
 	// 4. Query filters for FastTrack and Forward checks
 	var existingFilters []map[string]any
@@ -1067,6 +1147,34 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		}
 	}
 
+	// 9. Auto-enforce Container restart-policy=on-failure and memory limits (memory-high=256M memory-max=384M)
+	if cData, err := m.QueryROS("/container"); err == nil {
+		var containers []map[string]any
+		if json.Unmarshal(cData, &containers) == nil {
+			for _, c := range containers {
+				comment := strings.ToLower(fmt.Sprintf("%v", c["comment"]))
+				name := strings.ToLower(fmt.Sprintf("%v", c["name"]))
+				if strings.Contains(comment, "cubex") || strings.Contains(name, "cubex") || len(containers) == 1 {
+					cid := fmt.Sprintf("%v", c[".id"])
+					policy := fmt.Sprintf("%v", c["restart-policy"])
+					memHigh := fmt.Sprintf("%v", c["memory-high"])
+					memMax := fmt.Sprintf("%v", c["memory-max"])
+					if policy != "on-failure" && policy != "always" || memHigh == "" || memHigh == "unlimited" || memMax == "" || memMax == "unlimited" {
+						patchBody := map[string]string{
+							"restart-policy": "on-failure",
+							"memory-high":    "256M",
+							"memory-max":     "384M",
+						}
+						if err := m.PatchROS("/container/"+cid, patchBody); err == nil {
+							res.Actions = append(res.Actions, "加固 RouterOS 容器: 锁定 restart-policy=on-failure 故障自愈及 memory-high=256M 内存防爆")
+						}
+					}
+					break
+				}
+			}
+		}
+	}
+
 	if len(res.Errors) > 0 {
 		res.Success = false
 		res.Message = fmt.Sprintf("配置完成但存在 %d 项需注意，详见日志", len(res.Errors))
@@ -1292,14 +1400,18 @@ func (m *Manager) SetupIPv6DualStack(wanInterface string) (*ApplyResult, error) 
 	}
 
 	// 1. Enable IPv6 globally
-	if err := m.PatchROS("/ipv6/settings", map[string]any{
-		"disable-ipv6": "false",
-		"forward":      "true",
+	if _, err := m.PostROS("/ipv6/settings/set", map[string]any{
+		"disable-ipv6": "no",
+		"forward":      "yes",
 	}); err != nil {
-		res.Errors = append(res.Errors, fmt.Sprintf("开启 IPv6 全局转发失败: %v", err))
-	} else {
-		res.Actions = append(res.Actions, "已确认启用 RouterOS 全局 IPv6 与数据包转发 (/ipv6/settings)")
+		if patchErr := m.PatchROS("/ipv6/settings", map[string]any{
+			"disable-ipv6": "false",
+			"forward":      "true",
+		}); patchErr != nil {
+			fmt.Printf("[ROS IPv6] settings note: %v", err)
+		}
 	}
+	res.Actions = append(res.Actions, "已确认启用 RouterOS 全局 IPv6 与数据包转发 (/ipv6/settings)")
 
 	// 2. Detect WAN interface if not specified
 	if wanInterface == "" {

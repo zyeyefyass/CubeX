@@ -172,7 +172,7 @@ func (m *Manager) SnapshotClashState() map[string]string {
 	}
 
 	resp, err := m.httpClient.Do(req)
-	if err != nil || resp.StatusCode != http.StatusOK {
+	if err != nil {
 		// Fallback to IR defaults
 		for _, g := range m.ir.Groups {
 			if g.Now != "" {
@@ -182,6 +182,15 @@ func (m *Manager) SnapshotClashState() map[string]string {
 		return snapshot
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		// Fallback to IR defaults
+		for _, g := range m.ir.Groups {
+			if g.Now != "" {
+				snapshot[g.Name] = g.Now
+			}
+		}
+		return snapshot
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -256,7 +265,7 @@ func (m *Manager) findBinary(binName string) string {
 }
 
 func getAdaptiveGOMEMLIMIT() string {
-	limitMb := 120
+	limitMb := 90
 	if data, err := os.ReadFile("/proc/meminfo"); err == nil {
 		for _, line := range strings.Split(string(data), "\n") {
 			if strings.HasPrefix(line, "MemTotal:") {
@@ -265,13 +274,13 @@ func getAdaptiveGOMEMLIMIT() string {
 					if totalKb, err := strconv.ParseInt(fields[1], 10, 64); err == nil {
 						totalMb := totalKb / 1024
 						if totalMb <= 512 {
-							limitMb = 80 // 512M CHR / router: 80MiB ceiling prevents OOM
+							limitMb = 70 // 512M CHR / router: 70MiB ceiling prevents OOM
 						} else if totalMb <= 1024 {
-							limitMb = 120 // 1GB host: 120MiB
+							limitMb = 85 // 1GB host: 85MiB
 						} else if totalMb <= 2048 {
-							limitMb = 180 // 2GB host: 180MiB
+							limitMb = 96 // 2GB host: 96MiB ceiling prevents container OOM
 						} else {
-							limitMb = 256 // 4GB+ fnOS / PVE: 256MiB for line-speed multi-gigabit
+							limitMb = 160 // 4GB+ fnOS / PVE: 160MiB for line-speed multi-gigabit
 						}
 					}
 				}
@@ -294,11 +303,11 @@ func (m *Manager) buildCmd(eng schema.EngineType, binPath, etcDir, configPath st
 	cmd.Stderr = os.Stderr
 
 	// High-Performance Go Runtime & GC tuning:
-	// Generous GOMEMLIMIT (160MiB) eliminates GC pacing stalls during burst transfers,
-	// while keeping GOGC=100 for standard efficient garbage collection cycles without CPU thrashing.
+	// Adaptive GOMEMLIMIT ensures tight memory ceiling on routers and containers,
+	// with GOGC=50 for prompt garbage reclamation of network packets and TLS buffers.
 	cmd.Env = append(os.Environ(),
 		getAdaptiveGOMEMLIMIT(),
-		"GOGC=80",
+		"GOGC=50",
 		"GODEBUG=madvdontneed=1",
 	)
 	return cmd

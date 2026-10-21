@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-// Copilot provides an AI-powered assistant for MiCube, capable of answering
+// Copilot provides an AI-powered assistant for CubeX, capable of answering
 // network configuration questions, diagnosing routing issues, and suggesting
 // optimisations. It supports both OpenAI-compatible and Google Gemini APIs.
 type Copilot struct {
@@ -41,7 +41,7 @@ type CopilotConfig struct {
 }
 
 // SystemPrompt defines the AI persona.
-const BaseSystemPrompt = `你是 MiCube 智能网关 Copilot，由阿里云通义千问（Qwen）大模型驱动的软路由网络运维专家。
+const BaseSystemPrompt = `你是 CubeX 智能网关 Copilot，由阿里云通义千问（Qwen）大模型驱动的软路由网络运维专家。
 你的职责：
 1. 回答关于 RouterOS、Mihomo、Clash Meta 旁路由网关配置与策略路由的问题；
 2. 帮助用户诊断 DNS 泄露、WireGuard 移动穿透、分流规则命中与网络延迟故障；
@@ -81,7 +81,7 @@ func (c *Copilot) getFullSystemPrompt() string {
 	if ContextBuilderFunc != nil {
 		liveCtx := ContextBuilderFunc()
 		if liveCtx != "" {
-			return BaseSystemPrompt + "\n\n【当前 MiCube 软路由实时运行时上下文】：\n" + liveCtx
+			return BaseSystemPrompt + "\n\n【当前 CubeX 软路由实时运行时上下文】：\n" + liveCtx
 		}
 	}
 	return BaseSystemPrompt
@@ -147,7 +147,7 @@ func (c *Copilot) Chat(prompt string) (string, error) {
 
 // Diagnose gathers real-time system metrics and asks Qwen for a comprehensive health report.
 func (c *Copilot) Diagnose() (string, error) {
-	prompt := "请根据当前 MiCube 软路由网关的系统状态、DNS 解析模式、节点测速延迟及策略组配置，进行一次全维度的「AI 网络体检」。请输出：1. 当前健康评分 (0-100)；2. 网络隐患与风险点分析；3. 优化与加速建议清单。"
+	prompt := "请根据当前 CubeX 软路由网关的系统状态、DNS 解析模式、节点测速延迟及策略组配置，进行一次全维度的「AI 网络体检」。请输出：1. 当前健康评分 (0-100)；2. 网络隐患与风险点分析；3. 优化与加速建议清单。"
 	return c.Chat(prompt)
 }
 
@@ -296,7 +296,7 @@ func (c *Copilot) chatOpenCodeZen(cfg CopilotConfig, prompt string) (string, err
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "opencode/1.1.18/cli")
 	req.Header.Set("x-opencode-client", "cli")
-	req.Header.Set("x-opencode-session", fmt.Sprintf("micube-%d", time.Now().UnixNano()))
+	req.Header.Set("x-opencode-session", fmt.Sprintf("cubex-%d", time.Now().UnixNano()))
 	req.Header.Set("x-opencode-request", fmt.Sprintf("req-%d", time.Now().UnixNano()))
 
 	if cfg.APIKey != "" {
@@ -353,7 +353,7 @@ func (c *Copilot) offlineResponse(prompt string) string {
 		return "⚡ 【节点延迟矩阵与策略组优化建议】\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 推荐策略算法：URL-Test（自动最低延迟优选）\n• 测速目标 URL：http://www.gstatic.com/generate_204\n• 建议测速容差（Tolerance）：50ms（平衡选路平稳性，防止节点频繁跳变导致短时断流）\n• 建议测速间隔：300 秒（降低订阅服务器测速压力并保证准确性）\n• 游戏优化技巧：在配置沙盒中切换至「电竞极速」方案，容差调至 20ms，可获得极致对战延迟表现。"
 
 	case strings.Contains(lower, "体检") || strings.Contains(lower, "诊断") || strings.Contains(lower, "评分") || strings.Contains(lower, "报告"):
-		report := "🩺 【MiCube AI 软路由全维度网络体检报告】\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+		report := "🩺 【CubeX AI 软路由全维度网络体检报告】\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
 		report += "📊 综合健康评分：98 / 100（优秀·系统健康平稳）\n\n"
 		if liveCtx != "" {
 			report += "🔍 实时运行时遥测数据：\n" + liveCtx + "\n"
@@ -367,11 +367,11 @@ func (c *Copilot) offlineResponse(prompt string) string {
 		report += "1. 建议在「订阅配置」中开启「最低延迟 (url-test)」，系统将自动探测并切换最优节点；\n"
 		report += "2. 如需在手机移动端穿透家庭局域网，可在「WireGuard 穿透」直接扫码添加设备；\n"
 		report += "3. 国内拉取 Docker 镜像或更新规则缓慢时，可在「下载加速」中一键启用 KSpeeder 镜像加速通道。\n\n"
-		report += "💡 提示：当前由 MiCube 内置零折腾智能专家引擎实时生成。您也可以在右上角配置 OpenCode Zen 或通义千问 API Key 启用云端深度推理。"
+		report += "💡 提示：当前由 CubeX 内置零折腾智能专家引擎实时生成。您也可以在右上角配置 OpenCode Zen 或通义千问 API Key 启用云端深度推理。"
 		return report
 
 	default:
-		return "🤖 【MiCube AI Copilot 软路由智能运维专家】\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n我是您的软路由专属运维顾问，已全量掌握当前的 RouterOS 运行状态、策略组与 DNS 分流指标。\n\n您可以随时问我：\n• 「一键网络体检」：查看评分、隐患排查与优化建议\n• 「DNS 防泄露诊断」：检查分流模式与 Fake-IP 解析状态\n• 「节点延迟与选路调优」：优化容差与加速方案\n• 「WireGuard 穿透巡检」：移动端远程组网与安全审查\n\n💡 免折腾提示：当前运行在【零折腾本地自愈引擎】下，无需注册任何 API Key 即可全功能使用！如需接入 OpenCode Zen 或通义千问云端大模型，可在右上角设置。"
+		return "🤖 【CubeX AI Copilot 软路由智能运维专家】\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n我是您的软路由专属运维顾问，已全量掌握当前的 RouterOS 运行状态、策略组与 DNS 分流指标。\n\n您可以随时问我：\n• 「一键网络体检」：查看评分、隐患排查与优化建议\n• 「DNS 防泄露诊断」：检查分流模式与 Fake-IP 解析状态\n• 「节点延迟与选路调优」：优化容差与加速方案\n• 「WireGuard 穿透巡检」：移动端远程组网与安全审查\n\n💡 免折腾提示：当前运行在【零折腾本地自愈引擎】下，无需注册任何 API Key 即可全功能使用！如需接入 OpenCode Zen 或通义千问云端大模型，可在右上角设置。"
 	}
 }
 
