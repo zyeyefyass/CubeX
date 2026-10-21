@@ -35,7 +35,7 @@ type Manager struct {
 	binDir     string
 	dataDir    string
 	metaFile   string
-	mu         sync.Mutex
+	mu         sync.RWMutex
 	config     ROSConfig
 	configFile string
 
@@ -161,7 +161,7 @@ func (m *Manager) GetOverview() map[string]any {
 	}
 	latestPanel := m.cachedLatestPanel
 	if latestPanel == "" {
-		latestPanel = "Test v1.6"
+		latestPanel = "Test v1.7"
 	}
 	latestSingbox := m.cachedLatestSingbox
 	if latestSingbox == "" {
@@ -674,13 +674,13 @@ func (m *Manager) getLocalPanelVersion() string {
 		}
 		if json.Unmarshal(data, &meta) == nil && meta.Version != "" {
 			if normalizeVersion(meta.Version) == "testv1.3" || normalizeVersion(meta.Version) == "testv0.999" {
-				m.updateLocalMetaVersion("Test v1.6")
-				return "Test v1.6"
+				m.updateLocalMetaVersion("Test v1.7")
+				return "Test v1.7"
 			}
 			return meta.Version
 		}
 	}
-	return "Test v1.6"
+	return "Test v1.7"
 }
 
 // IsConnected returns whether the RouterOS host is currently reachable and authenticated.
@@ -714,7 +714,7 @@ func normalizeVersion(v string) string {
 	return v
 }
 
-// extractVersionNumbers parses major, minor, patch, prerelease from strings like "Test v1.6", "Test-v1.4", "v1.19.0".
+// extractVersionNumbers parses major, minor, patch, prerelease from strings like "Test v1.7", "Test-v1.4", "v1.19.0".
 func extractVersionNumbers(v string) []int {
 	v = strings.ToLower(v)
 	var b strings.Builder
@@ -1441,21 +1441,26 @@ func (m *Manager) saveConfigLocked() error {
 
 // QueryROS executes an authenticated GET request against RouterOS REST API.
 func (m *Manager) QueryROS(path string) ([]byte, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.config.Host == "" {
+	m.mu.RLock()
+	host := m.config.Host
+	port := m.config.Port
+	user := m.config.User
+	pass := m.config.Password
+	m.mu.RUnlock()
+
+	if host == "" {
 		return nil, fmt.Errorf("RouterOS not configured")
 	}
 	scheme := "https"
-	if m.config.Port == "80" {
+	if port == "80" {
 		scheme = "http"
 	}
-	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, m.config.Host, m.config.Port, strings.TrimPrefix(path, "/"))
+	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, host, port, strings.TrimPrefix(path, "/"))
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.SetBasicAuth(m.config.User, m.config.Password)
+	req.SetBasicAuth(user, pass)
 	client := m.getHTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
@@ -1470,16 +1475,21 @@ func (m *Manager) QueryROS(path string) ([]byte, error) {
 
 // PatchROS executes an authenticated PATCH request against RouterOS REST API.
 func (m *Manager) PatchROS(path string, body any) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.config.Host == "" {
+	m.mu.RLock()
+	host := m.config.Host
+	port := m.config.Port
+	user := m.config.User
+	pass := m.config.Password
+	m.mu.RUnlock()
+
+	if host == "" {
 		return fmt.Errorf("RouterOS not configured")
 	}
 	scheme := "https"
-	if m.config.Port == "80" {
+	if port == "80" {
 		scheme = "http"
 	}
-	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, m.config.Host, m.config.Port, strings.TrimPrefix(path, "/"))
+	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, host, port, strings.TrimPrefix(path, "/"))
 	data, err := json.Marshal(body)
 	if err != nil {
 		return err
@@ -1489,7 +1499,7 @@ func (m *Manager) PatchROS(path string, body any) error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth(m.config.User, m.config.Password)
+	req.SetBasicAuth(user, pass)
 	client := m.getHTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
@@ -1505,16 +1515,21 @@ func (m *Manager) PatchROS(path string, body any) error {
 // PutROS executes an authenticated PUT request against RouterOS REST API.
 // In RouterOS REST API, PUT maps directly to the CLI "add" command to create a new item.
 func (m *Manager) PutROS(path string, body any) ([]byte, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.config.Host == "" {
+	m.mu.RLock()
+	host := m.config.Host
+	port := m.config.Port
+	user := m.config.User
+	pass := m.config.Password
+	m.mu.RUnlock()
+
+	if host == "" {
 		return nil, fmt.Errorf("RouterOS not configured")
 	}
 	scheme := "https"
-	if m.config.Port == "80" {
+	if port == "80" {
 		scheme = "http"
 	}
-	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, m.config.Host, m.config.Port, strings.TrimPrefix(path, "/"))
+	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, host, port, strings.TrimPrefix(path, "/"))
 	var reader io.Reader
 	if body != nil {
 		data, err := json.Marshal(body)
@@ -1528,7 +1543,7 @@ func (m *Manager) PutROS(path string, body any) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth(m.config.User, m.config.Password)
+	req.SetBasicAuth(user, pass)
 	client := m.getHTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
@@ -1544,21 +1559,26 @@ func (m *Manager) PutROS(path string, body any) ([]byte, error) {
 
 // DeleteROS executes an authenticated DELETE request against RouterOS REST API.
 func (m *Manager) DeleteROS(path string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.config.Host == "" {
+	m.mu.RLock()
+	host := m.config.Host
+	port := m.config.Port
+	user := m.config.User
+	pass := m.config.Password
+	m.mu.RUnlock()
+
+	if host == "" {
 		return fmt.Errorf("RouterOS not configured")
 	}
 	scheme := "https"
-	if m.config.Port == "80" {
+	if port == "80" {
 		scheme = "http"
 	}
-	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, m.config.Host, m.config.Port, strings.TrimPrefix(path, "/"))
+	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, host, port, strings.TrimPrefix(path, "/"))
 	req, err := http.NewRequest(http.MethodDelete, url, nil)
 	if err != nil {
 		return err
 	}
-	req.SetBasicAuth(m.config.User, m.config.Password)
+	req.SetBasicAuth(user, pass)
 	client := m.getHTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
@@ -1574,16 +1594,21 @@ func (m *Manager) DeleteROS(path string) error {
 
 // PostROS executes an authenticated POST command request against RouterOS REST API.
 func (m *Manager) PostROS(path string, body any) ([]byte, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.config.Host == "" {
+	m.mu.RLock()
+	host := m.config.Host
+	port := m.config.Port
+	user := m.config.User
+	pass := m.config.Password
+	m.mu.RUnlock()
+
+	if host == "" {
 		return nil, fmt.Errorf("RouterOS not configured")
 	}
 	scheme := "https"
-	if m.config.Port == "80" {
+	if port == "80" {
 		scheme = "http"
 	}
-	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, m.config.Host, m.config.Port, strings.TrimPrefix(path, "/"))
+	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, host, port, strings.TrimPrefix(path, "/"))
 	var reader io.Reader
 	if body != nil {
 		data, err := json.Marshal(body)
@@ -1597,7 +1622,7 @@ func (m *Manager) PostROS(path string, body any) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth(m.config.User, m.config.Password)
+	req.SetBasicAuth(user, pass)
 	client := m.getHTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
@@ -1615,20 +1640,27 @@ func (m *Manager) PostROS(path string, body any) ([]byte, error) {
 
 // GetContainerMemoryCurrent returns the live memory-current (in MB) of the CubeX container as reported by RouterOS.
 func (m *Manager) GetContainerMemoryCurrent() (float64, error) {
-	m.mu.Lock()
-	if time.Since(m.lastContainerMemAt) < 1200*time.Millisecond && m.lastContainerMem > 0 {
+	m.mu.RLock()
+	if time.Since(m.lastContainerMemAt) < 5*time.Second && m.lastContainerMem > 0 {
 		cached := m.lastContainerMem
-		m.mu.Unlock()
+		m.mu.RUnlock()
 		return cached, nil
 	}
-	m.mu.Unlock()
+	cached := m.lastContainerMem
+	m.mu.RUnlock()
 
 	data, err := m.GetROS("/container")
 	if err != nil {
+		if cached > 0 {
+			return cached, nil
+		}
 		return 0, err
 	}
 	var containers []map[string]any
 	if err := json.Unmarshal(data, &containers); err != nil {
+		if cached > 0 {
+			return cached, nil
+		}
 		return 0, err
 	}
 	for _, c := range containers {
@@ -1656,25 +1688,33 @@ func (m *Manager) GetContainerMemoryCurrent() (float64, error) {
 			}
 		}
 	}
+	if cached > 0 {
+		return cached, nil
+	}
 	return 0, fmt.Errorf("container memory-current not found")
 }
 
 func (m *Manager) GetROS(path string) ([]byte, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	if m.config.Host == "" {
+	m.mu.RLock()
+	host := m.config.Host
+	port := m.config.Port
+	user := m.config.User
+	pass := m.config.Password
+	m.mu.RUnlock()
+
+	if host == "" {
 		return nil, fmt.Errorf("RouterOS not configured")
 	}
 	scheme := "https"
-	if m.config.Port == "80" {
+	if port == "80" {
 		scheme = "http"
 	}
-	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, m.config.Host, m.config.Port, strings.TrimPrefix(path, "/"))
+	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, host, port, strings.TrimPrefix(path, "/"))
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.SetBasicAuth(m.config.User, m.config.Password)
+	req.SetBasicAuth(user, pass)
 	client := m.getHTTPClient()
 	resp, err := client.Do(req)
 	if err != nil {
