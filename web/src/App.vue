@@ -1,7 +1,7 @@
 <template>
   <div :class="[
     'min-h-screen font-sans antialiased transition-colors duration-700 selection:bg-cyan-500/30 selection:text-cyan-200 flex flex-col md:flex-row overflow-hidden safe-h-screen h-[100dvh]',
-    activeEngine === 'singbox' ? 'bg-[#090714] text-slate-100' : 'bg-[#001222] text-slate-100'
+    rootBgClass
   ]">
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
@@ -13,7 +13,7 @@
     <aside
       :class="[
         'hidden md:flex md:flex-shrink-0 flex-col md:w-64 border-r transition-colors duration-300 z-30 select-none h-full overflow-hidden',
-        activeEngine === 'singbox' ? 'bg-[#0f0a20]/95 border-purple-900/40 backdrop-blur-xl' : 'bg-[#00172e]/95 border-sky-900/40 backdrop-blur-xl'
+        sidebarBgClass
       ]">
       
       <!-- Top Section: Brand Hero & Navigation -->
@@ -23,8 +23,8 @@
           <!-- Brand Logo (视觉核心醒目居中) -->
           <div class="relative mx-auto flex items-center justify-center group cursor-pointer transition-all duration-300 w-24 h-24 mb-2.5"
             @click="activeMasterTab = 'overview'" title="CubeX - 宿主共生零感网络系统">
-            <div class="absolute inset-0 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700 animate-pulse bg-cyan-500/35"></div>
-            <img src="/logo-cubex.svg" class="relative z-10 drop-shadow-[0_0_32px_rgba(0,210,255,0.85)] filter transition-all duration-500 group-hover:scale-105 active:scale-95 w-24 h-24" alt="CubeX Logo" />
+            <div class="absolute inset-0 rounded-full blur-xl group-hover:scale-110 transition-transform duration-700 bg-cyan-500/15"></div>
+            <img src="/logo-cubex.svg" class="relative z-10 drop-shadow-[0_0_16px_rgba(0,210,255,0.35)] filter transition-all duration-500 group-hover:scale-105 active:scale-95 w-24 h-24" alt="CubeX Logo" />
           </div>
           
           <!-- Brand Typography -->
@@ -56,9 +56,31 @@
             ]">
             <span class="shrink-0 transition-transform group-hover:scale-110 text-xl">{{ item.icon }}</span>
             <span class="truncate">{{ item.label }}</span>
-            <span v-if="activeMasterTab === item.id" class="ml-auto w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee] animate-pulse"></span>
+            <span v-if="activeMasterTab === item.id" class="ml-auto w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee]"></span>
           </button>
         </nav>
+
+        <!-- Bottom Eye-Care / Theme Control Hub (柔和护眼 · 防眩光调色) -->
+        <div class="p-3 border-t border-slate-800/60 mt-auto select-none">
+          <div class="flex items-center justify-between text-xs text-slate-400 mb-2 px-1">
+            <span class="flex items-center gap-1 font-mono text-[11px]">🎨 <span>视觉模式</span></span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 font-mono">舒适防眩光</span>
+          </div>
+          <div class="grid grid-cols-3 gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800/80">
+            <button v-for="thm in availableThemes" :key="thm.id"
+              @click="setTheme(thm.id)"
+              :class="[
+                'py-1.5 px-1 rounded-lg text-[10px] font-bold transition flex flex-col items-center gap-0.5 cursor-pointer',
+                currentTheme === thm.id
+                  ? 'bg-slate-800 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 border border-transparent'
+              ]"
+              :title="thm.name">
+              <span class="text-xs">{{ thm.icon }}</span>
+              <span class="truncate max-w-full tracking-tight">{{ thm.shortName }}</span>
+            </button>
+          </div>
+        </div>
       </div>
 
     </aside>
@@ -70,7 +92,7 @@
       
       <!-- Top Holographic Bar (Mobile & Desktop Adaptive, Generous Line-Height & Symmetrical Capsules) -->
       <header class="w-full px-3.5 sm:px-6 lg:px-8 py-3.5 sm:py-4 min-h-[66px] sm:min-h-[74px] border-b backdrop-blur-xl flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-20 transition-colors duration-500"
-        :class="activeEngine === 'singbox' ? 'bg-[#090714]/90 border-purple-800/40' : 'bg-[#001222]/90 border-sky-800/40'">
+        :class="headerBgClass">
         
         <!-- Left: Mobile Menu Trigger + Unified Control Plane Capsule (与右侧宿主胶囊高度完全一致，竖向居中，全局主题适配) -->
         <div class="flex items-center gap-2 shrink-0">
@@ -104,59 +126,59 @@
             <!-- 当前模块名 -->
             <h2 class="text-xs sm:text-[13px] font-bold text-white tracking-wide truncate max-w-[90px] xs:max-w-none leading-none">{{ currentTabTitle }}</h2>
             
-            <!-- 控制面运行状态呼吸灯 (双引擎主题色自适配) -->
-            <span class="w-2 h-2 rounded-full animate-pulse shrink-0"
-              :class="activeEngine === 'singbox' ? 'bg-fuchsia-400 shadow-[0_0_8px_#e879f9]' : 'bg-cyan-400 shadow-[0_0_8px_#22d3ee]'"
+            <!-- 控制面运行状态指示灯 (稳态微光 · 双引擎主题自适配) -->
+            <span class="w-2 h-2 rounded-full shrink-0"
+              :class="activeEngine === 'singbox' ? 'bg-fuchsia-400 shadow-[0_0_6px_#e879f9]' : 'bg-cyan-400 shadow-[0_0_6px_#22d3ee]'"
               title="CubeX 控制面正常运行"></span>
           </div>
         </div>
 
-        <!-- Center: Dual-Engine Capsule (Mihomo ⇄ sing-box 毫秒级热切) -->
-        <div class="flex items-center p-1 sm:p-1.5 rounded-2xl border shadow-2xl backdrop-blur-2xl transition-all duration-500 relative gap-1 sm:gap-1.5"
-          :class="activeEngine === 'singbox' ? 'bg-[#120a26]/90 border-purple-500/70 shadow-purple-500/20' : 'bg-[#00172e]/90 border-cyan-500/70 shadow-cyan-500/20'">
+        <!-- Center: Dual-Engine Capsule (Mihomo ⇄ sing-box 毫秒级热切 · 柔和防眩光微光) -->
+        <div class="flex items-center p-1 sm:p-1.5 rounded-2xl border shadow-xl backdrop-blur-2xl transition-all duration-500 relative gap-1 sm:gap-1.5"
+          :class="activeEngine === 'singbox' ? 'bg-slate-950/85 border-purple-500/35 shadow-purple-950/30' : 'bg-slate-950/85 border-cyan-500/35 shadow-cyan-950/30'">
           
-          <!-- sing-box Button -->
+          <!-- sing-box Button (柔和暗紫黑晶质感) -->
           <button @click="switchEngine('singbox')" :disabled="switchingEngine"
             :class="[
               'px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-2.5 sm:gap-3 active:scale-95 border select-none',
               activeEngine === 'singbox'
-                ? 'bg-gradient-to-r from-purple-700 via-fuchsia-600 to-indigo-600 text-white shadow-xl shadow-purple-600/50 border-fuchsia-300 scale-102 ring-2 ring-fuchsia-400/60'
-                : 'text-slate-300 hover:text-white border-slate-700/60 hover:border-purple-500/50 hover:bg-purple-950/40 bg-slate-900/60'
+                ? 'bg-gradient-to-r from-purple-950/90 via-slate-900/80 to-indigo-950/90 text-purple-100 shadow-md shadow-purple-950/60 border-purple-400/50 ring-1 ring-purple-400/30'
+                : 'text-slate-400 hover:text-white border-slate-800 hover:border-purple-500/40 hover:bg-purple-950/30 bg-slate-900/50'
             ]">
             <!-- Sing-box Official 3D Neon Logo (无背景黑框) -->
-            <img src="/logo-singbox.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_10px_rgba(240,171,252,0.9)] transition-transform duration-300" :class="activeEngine === 'singbox' ? 'scale-110' : ''" alt="sing-box" />
+            <img src="/logo-singbox.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(240,171,252,0.6)] transition-transform duration-300" :class="activeEngine === 'singbox' ? 'scale-105' : ''" alt="sing-box" />
             <div class="text-left leading-snug">
               <div class="flex items-center gap-1.5">
                 <span class="tracking-wide text-xs sm:text-sm font-black text-white">sing-box</span>
-                <span v-if="activeEngine === 'singbox'" class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></span>
+                <span v-if="activeEngine === 'singbox'" class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>
               </div>
               <div :class="[
-                'hidden md:block text-[10px] sm:text-[11px] font-black font-sans tracking-wider transition-colors',
-                activeEngine === 'singbox' ? 'text-fuchsia-100 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : 'text-purple-300/80'
+                'hidden md:block text-[10px] sm:text-[11px] font-sans tracking-wider transition-colors',
+                activeEngine === 'singbox' ? 'text-purple-200' : 'text-purple-300/70'
               ]">
                 极致轻量 · 极速并发
               </div>
             </div>
           </button>
 
-          <!-- Mihomo Button -->
+          <!-- Mihomo Button (柔和深墨蓝黑晶质感 · 告别刺眼白炽灯) -->
           <button @click="switchEngine('mihomo')" :disabled="switchingEngine"
             :class="[
               'px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-2.5 sm:gap-3 active:scale-95 border select-none',
               activeEngine === 'mihomo'
-                ? 'bg-gradient-to-r from-sky-400 via-cyan-400 to-teal-300 text-slate-950 shadow-xl shadow-cyan-500/60 border-cyan-100 scale-102 ring-2 ring-cyan-300/70'
-                : 'text-slate-300 hover:text-white border-slate-700/60 hover:border-cyan-500/50 hover:bg-cyan-950/40 bg-slate-900/60'
+                ? 'bg-gradient-to-r from-cyan-950/90 via-sky-950/80 to-slate-900/90 text-cyan-100 shadow-md shadow-cyan-950/60 border-cyan-400/50 ring-1 ring-cyan-400/30'
+                : 'text-slate-400 hover:text-white border-slate-800 hover:border-cyan-500/40 hover:bg-cyan-950/30 bg-slate-900/50'
             ]">
             <!-- Mihomo Official Mascot Logo (无背景黑框) -->
-            <img src="/logo-mihomo.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_10px_rgba(56,189,248,0.95)] transition-transform duration-300" :class="activeEngine === 'mihomo' ? 'scale-110' : ''" alt="Mihomo" />
+            <img src="/logo-mihomo.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(56,189,248,0.6)] transition-transform duration-300" :class="activeEngine === 'mihomo' ? 'scale-105' : ''" alt="Mihomo" />
             <div class="text-left leading-snug">
               <div class="flex items-center gap-1.5">
-                <span :class="['tracking-wide text-xs sm:text-sm font-black', activeEngine === 'mihomo' ? 'text-slate-950' : 'text-white']">Mihomo</span>
-                <span v-if="activeEngine === 'mihomo'" class="w-2 h-2 rounded-full bg-slate-950 shadow-[0_0_8px_#06b6d4] animate-pulse"></span>
+                <span class="tracking-wide text-xs sm:text-sm font-black text-white">Mihomo</span>
+                <span v-if="activeEngine === 'mihomo'" class="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#38bdf8]"></span>
               </div>
               <div :class="[
-                'hidden md:block text-[10px] sm:text-[11px] font-black font-sans tracking-wider transition-colors',
-                activeEngine === 'mihomo' ? 'text-slate-900' : 'text-cyan-300/80'
+                'hidden md:block text-[10px] sm:text-[11px] font-sans tracking-wider transition-colors',
+                activeEngine === 'mihomo' ? 'text-cyan-200' : 'text-cyan-300/70'
               ]">
                 多协议 · 全生态
               </div>
@@ -168,8 +190,16 @@
           </div>
         </div>
 
-        <!-- Right: 宿主机官方矢量 Logo + 型号版本 + 在线心跳胶囊 -->
+        <!-- Right: 视觉调色/护眼模式 + 宿主机官方矢量 Logo + 在线心跳胶囊 -->
         <div class="flex items-center gap-2 shrink-0">
+          <!-- Eye-Care & Aesthetic Mode Capsule (柔和护眼 · 极光微光 · 科技冷灰 一键随心换) -->
+          <button @click="cycleTheme"
+            class="h-[42px] sm:h-[46px] inline-flex items-center gap-1.5 px-3 sm:px-3.5 rounded-2xl bg-gradient-to-r from-slate-900/95 via-sky-950/40 to-slate-900/95 border border-slate-700/60 hover:border-cyan-400/50 shadow-md text-xs select-none transition cursor-pointer active:scale-95"
+            :title="'当前配色: ' + currentThemeMeta.name + ' (点击切换视觉模式)'">
+            <span class="text-sm">{{ currentThemeMeta.icon }}</span>
+            <span class="hidden sm:inline font-mono font-bold" :class="currentThemeMeta.textColor">{{ currentThemeMeta.shortName }}</span>
+          </button>
+
           <!-- Fixed Height h-[42px] sm:h-[46px] for absolute symmetry with left capsule -->
           <div class="h-[42px] sm:h-[46px] inline-flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 rounded-2xl bg-gradient-to-r from-slate-900/95 via-sky-950/60 to-slate-900/95 border border-cyan-500/40 shadow-lg shadow-cyan-950/40 group select-none transition-colors duration-500">
             <!-- 宿主官方矢量 Logo (无背景黑框) -->
@@ -179,7 +209,7 @@
             <span class="text-xs sm:text-[13px] font-bold font-mono text-cyan-200 whitespace-nowrap truncate max-w-[160px] sm:max-w-[220px] leading-none" :title="hostBadge.name">
               {{ hostBadge.name }}
             </span>
-            <span :class="['w-2 h-2 rounded-full shrink-0', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse' : 'bg-amber-400']" :title="hostBadge.online ? '宿主平台在线联动' : '未连接'"></span>
+            <span :class="['w-2 h-2 rounded-full shrink-0', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]' : 'bg-amber-400']" :title="hostBadge.online ? '宿主平台在线联动' : '未连接'"></span>
           </div>
         </div>
       </header>
@@ -190,47 +220,47 @@
     <transition-group name="speedtest-toast" tag="div"
       class="fixed top-5 right-5 z-[9999] flex flex-col gap-2.5 max-w-[240px] pointer-events-none">
       <div v-for="task in speedtestTasks" :key="task.id"
-        class="pointer-events-auto w-[210px] sm:w-[230px] rounded-2xl bg-[#00e5ff] text-slate-950 px-3.5 py-2.5 shadow-2xl shadow-cyan-500/40 border border-cyan-200/90 transition-all duration-300 flex flex-col gap-1 select-none animate-in slide-in-from-right fade-in">
+        class="pointer-events-auto w-[210px] sm:w-[230px] rounded-2xl bg-slate-900/95 backdrop-blur-xl text-slate-100 px-3.5 py-2.5 shadow-2xl shadow-cyan-950/60 border border-cyan-500/40 ring-1 ring-cyan-400/20 transition-all duration-300 flex flex-col gap-1 select-none animate-in slide-in-from-right fade-in">
         
         <!-- Top row: Group Name + Close '✕' Button -->
         <div class="flex items-center justify-between">
-          <span class="font-black text-sm tracking-wide text-slate-950 truncate max-w-[160px]">{{ task.name }}</span>
+          <span class="font-bold text-sm tracking-wide text-white truncate max-w-[160px]">{{ task.name }}</span>
           <button @click.stop="dismissSpeedtestToast(task.id)"
-            class="w-5 h-5 flex items-center justify-center rounded-lg hover:bg-black/15 text-slate-900 hover:text-black font-black text-xs transition cursor-pointer"
+            class="w-5 h-5 flex items-center justify-center rounded-lg hover:bg-white/15 text-slate-400 hover:text-white font-bold text-xs transition cursor-pointer"
             title="关闭">
             ✕
           </button>
         </div>
 
         <!-- Bottom row: Status Text -->
-        <div class="text-xs font-mono font-bold flex items-center justify-between text-slate-900">
+        <div class="text-xs font-mono font-medium flex items-center justify-between text-slate-300">
           <template v-if="task.status === 'queued'">
-            <span class="flex items-center gap-1.5 opacity-80">
-              <span class="w-2 h-2 rounded-full bg-slate-800 animate-ping"></span>
+            <span class="flex items-center gap-1.5 opacity-80 text-slate-400">
+              <span class="w-2 h-2 rounded-full bg-slate-500"></span>
               排队等待中...
             </span>
             <span class="text-[11px] opacity-75 font-normal">{{ task.totalCount }} 节点</span>
           </template>
 
           <template v-else-if="task.status === 'testing'">
-            <span class="flex items-center gap-1.5 text-slate-950 font-black">
-              <span class="w-3 h-3 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></span>
+            <span class="flex items-center gap-1.5 text-cyan-300 font-bold">
+              <span class="w-3 h-3 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></span>
               测速中...
             </span>
-            <span class="text-[11px] font-bold">{{ task.totalCount }} 节点</span>
+            <span class="text-[11px] font-bold text-slate-300">{{ task.totalCount }} 节点</span>
           </template>
 
           <template v-else-if="task.status === 'completed'">
-            <span class="font-black text-slate-950">
-              {{ task.onlineCount }}/{{ task.totalCount }} 测试完成
+            <span class="font-bold text-slate-200">
+              {{ task.onlineCount }}/{{ task.totalCount }} 完成
             </span>
-            <span v-if="task.winnerDelay > 0" class="text-[11px] font-mono text-emerald-950 font-black">
+            <span v-if="task.winnerDelay > 0" class="text-[11px] font-mono text-emerald-400 font-bold">
               {{ task.winnerDelay }}ms
             </span>
           </template>
 
           <template v-else>
-            <span class="text-rose-950 font-bold">测速异常</span>
+            <span class="text-rose-400 font-bold">测速异常</span>
           </template>
         </div>
       </div>
@@ -277,7 +307,7 @@
                 <div class="flex items-center justify-between">
                   <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">双擎热备与自愈</span>
                   <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-medium flex items-center gap-1 shrink-0">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>双核就绪
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>双核就绪
                   </span>
                 </div>
 
@@ -312,7 +342,7 @@
                 <div class="flex items-center justify-between">
                   <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">宿主硬件负载</span>
                   <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-bold flex items-center gap-1 shrink-0">
-                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>CubeX 仅 {{ currentHostRealMemory.toFixed(0) }}MB
+                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#38bdf8]"></span>CubeX 仅 {{ currentHostRealMemory.toFixed(0) }}MB
                   </span>
                 </div>
 
@@ -348,7 +378,7 @@
                 <div class="flex items-center justify-between">
                   <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">DNS 智能解析</span>
                   <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-medium flex items-center gap-1 shrink-0">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>0 泄露
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>0 泄露
                   </span>
                 </div>
                 <div class="text-sm sm:text-base font-bold text-emerald-400 font-mono flex items-baseline gap-1 py-0.5">
@@ -372,7 +402,7 @@
                 <div class="flex items-center justify-between">
                   <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">核心网络协议栈</span>
                   <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 font-medium flex items-center gap-1 shrink-0">
-                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>TUN 模式
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_#f59e0b]"></span>TUN 模式
                   </span>
                 </div>
                 <div class="text-sm sm:text-base font-bold text-amber-300 font-mono truncate py-0.5">{{ ir.network?.tun_interface || 'cubex-tun' }}</div>
@@ -4230,7 +4260,10 @@
                       基础路由 ({{ geodataStatus.files?.filter(f => f.category === '基础路由分流').length || 0 }})
                     </button>
                     <button @click="geodataFilterCategory = '应用专线分流'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '应用专线分流' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
-                      应用专线 ({{ geodataStatus.files?.filter(f => f.category === '应用专线分流').length || 0 }})
+                      核心专线 ({{ geodataStatus.files?.filter(f => f.category === '应用专线分流').length || 0 }})
+                    </button>
+                    <button @click="geodataFilterCategory = '常用生态与自定义扩展'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '常用生态与自定义扩展' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
+                      常用生态扩展 ({{ geodataStatus.files?.filter(f => f.category === '常用生态与自定义扩展').length || 0 }})
                     </button>
                   </div>
 
@@ -4731,6 +4764,60 @@ function openExecutionModalFromLast() {
     timestamp: hostLastExecution.value.time
   }
 }
+
+// ── Visual Comfort & Eye-Care Modes (柔和护眼 · 质感升维) ──
+const availableThemes = [
+  { id: 'eyecare', shortName: '柔和护眼', name: '柔和护眼 (Eye-Care Calm)', icon: '🌿', textColor: 'text-emerald-300' },
+  { id: 'aurora', shortName: '赛博极光', name: '赛博微光 (Silent Aurora)', icon: '🌌', textColor: 'text-cyan-300' },
+  { id: 'slate', shortName: '科技冷灰', name: '科技冷灰 (MikroTik Slate)', icon: '🎛️', textColor: 'text-sky-300' },
+]
+const currentTheme = ref(localStorage.getItem('cubex_ui_theme') || 'eyecare')
+
+function setTheme(id) {
+  currentTheme.value = id
+  try { localStorage.setItem('cubex_ui_theme', id) } catch (e) {}
+}
+
+function cycleTheme() {
+  const ids = ['eyecare', 'aurora', 'slate']
+  const idx = ids.indexOf(currentTheme.value)
+  const nextId = ids[(idx + 1) % ids.length]
+  setTheme(nextId)
+}
+
+const currentThemeMeta = computed(() => {
+  return availableThemes.find(t => t.id === currentTheme.value) || availableThemes[0]
+})
+
+const rootBgClass = computed(() => {
+  if (currentTheme.value === 'eyecare') {
+    return activeEngine.value === 'singbox' ? 'bg-[#0e0f1a] text-slate-200' : 'bg-[#0b1120] text-slate-200'
+  } else if (currentTheme.value === 'slate') {
+    return activeEngine.value === 'singbox' ? 'bg-[#0f172a] text-slate-200' : 'bg-[#090d16] text-slate-200'
+  } else {
+    return activeEngine.value === 'singbox' ? 'bg-[#0d091a] text-slate-100' : 'bg-[#001428] text-slate-100'
+  }
+})
+
+const sidebarBgClass = computed(() => {
+  if (currentTheme.value === 'eyecare') {
+    return 'bg-[#080d19]/95 border-slate-800/80 backdrop-blur-xl'
+  } else if (currentTheme.value === 'slate') {
+    return 'bg-[#050811]/95 border-slate-800 backdrop-blur-xl'
+  } else {
+    return activeEngine.value === 'singbox' ? 'bg-[#0d081f]/95 border-purple-900/30 backdrop-blur-xl' : 'bg-[#00172e]/95 border-sky-900/30 backdrop-blur-xl'
+  }
+})
+
+const headerBgClass = computed(() => {
+  if (currentTheme.value === 'eyecare') {
+    return 'bg-[#080d19]/90 border-slate-800/80'
+  } else if (currentTheme.value === 'slate') {
+    return 'bg-[#050811]/90 border-slate-800'
+  } else {
+    return activeEngine.value === 'singbox' ? 'bg-[#0d081f]/90 border-purple-900/30' : 'bg-[#001428]/90 border-sky-900/30'
+  }
+})
 
 const activeEngine = ref('singbox')
 const switchingEngine = ref(false)

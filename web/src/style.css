@@ -9,56 +9,56 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #0b0914;
+  background-color: #0b1120;
   overflow-x: hidden;
 }
 
-/* Cyber Aurora Glass Card */
+/* Cyber Aurora Glass Card - Glare-Free & Eye-Care Tuned */
 .glass-aurora {
-  background: rgba(22, 16, 42, 0.72);
+  background: rgba(18, 14, 30, 0.78);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(123, 44, 191, 0.35);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(168, 85, 247, 0.22);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
 }
 
 .glass-aurora:hover {
-  border-color: rgba(0, 245, 212, 0.45);
+  border-color: rgba(168, 85, 247, 0.38);
 }
 
-/* CubeX Matrix Blue Glass Card (Theme Morphing) */
+/* CubeX Matrix Blue Glass Card (Theme Morphing) - Gentle Eye-Care Tint */
 .glass-matrix {
-  background: rgba(0, 34, 68, 0.75);
+  background: rgba(10, 22, 40, 0.82);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(0, 210, 255, 0.35);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(56, 189, 248, 0.20);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
 }
 
 .glass-matrix:hover {
-  border-color: rgba(251, 191, 36, 0.5);
+  border-color: rgba(56, 189, 248, 0.35);
 }
 
 /* Novice Emerald Glass Card */
 .glass-novice {
-  background: rgba(6, 30, 22, 0.75);
+  background: rgba(8, 26, 20, 0.80);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
 }
 
 .glass-novice:hover {
-  border-color: rgba(52, 211, 153, 0.55);
+  border-color: rgba(52, 211, 153, 0.45);
 }
 
-/* Glow Keyframes */
+/* Glow Keyframes - Smooth, Subdued Micro-Glow */
 @keyframes neon-pulse {
   0%, 100% {
-    box-shadow: 0 0 15px rgba(0, 245, 212, 0.4);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
   }
   50% {
-    box-shadow: 0 0 30px rgba(0, 245, 212, 0.8), 0 0 45px rgba(123, 44, 191, 0.5);
+    box-shadow: 0 0 18px rgba(56, 189, 248, 0.45), 0 0 24px rgba(168, 85, 247, 0.25);
   }
 }
 
@@ -66,20 +66,20 @@ body {
   animation: neon-pulse 2.2s infinite ease-in-out;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - Subdued */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(11, 9, 20, 0.8);
+  background: rgba(11, 17, 32, 0.8);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(123, 44, 191, 0.4);
+  background: rgba(148, 163, 184, 0.25);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 245, 212, 0.6);
+  background: rgba(56, 189, 248, 0.45);
 }
 
 /* Safe area utilities for modern mobile edge-to-edge screens */
@@ -93,4 +93,3 @@ body {
   height: 100vh;
   height: 100dvh;
 }
-
