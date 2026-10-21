@@ -216,12 +216,23 @@ set memory-high=256M registry-url="https://registry-1.docker.io" tmpdir=$pullDir
 
 /container
 :if ([:len [find name="cubex"]] = 0 and [:len [find name~"CubeX"]] = 0) do={
-    :local localTar ("cubex-ros-" . $tarArch . ".tar");
-    :if ([:len [/file find name=$localTar]] > 0) do={
-        :log info ("📦 [CubeX] 发现本地离线包: " . $localTar . "，正在快速部署...");
-        add file=$localTar interface=veth-cubex root-dir=$storeDir start-on-boot=yes restart-policy=on-failure memory-high=256M memory-max=384M comment="CubeX-Gateway"
+    :local foundTar "";
+    :local defaultTar ("cubex-ros-" . $tarArch . ".tar");
+    :if ([:len [/file find name=$defaultTar]] > 0) do={
+        :set foundTar $defaultTar;
     } else={
-        :log info ("🌐 [CubeX] 正在从 Docker Hub 云端直接拉取镜像: " . $imageTag);
+        :foreach f in=[/file find] do={
+            :local fName [/file get $f name];
+            :if (([:typeof [:find $fName $tarArch]] != "nil") and ([:typeof [:find $fName ".tar"]] != "nil")) do={
+                :set foundTar $fName;
+            }
+        }
+    }
+    :if ($foundTar != "") do={
+        :log info ("📦 [CubeX] 发现本地离线包: " . $foundTar . "，正在快速部署...");
+        add file=$foundTar interface=veth-cubex root-dir=$storeDir start-on-boot=yes restart-policy=on-failure memory-high=256M memory-max=384M comment="CubeX-Gateway"
+    } else={
+        :log info ("🌐 [CubeX] 未检测到离线 .tar 包，正在从 Docker 镜像源直接拉取: " . $imageTag);
         add remote-image=$imageTag interface=veth-cubex root-dir=$storeDir start-on-boot=yes restart-policy=on-failure memory-high=256M memory-max=384M comment="CubeX-Gateway"
     }
     :log info "⏳ 容器创建指令已下发，请在 WinBox [Containers] 中观察状态，解压完成后将自动启动！";
