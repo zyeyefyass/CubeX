@@ -2661,9 +2661,20 @@ func (s *Server) handleSystemOverview(w http.ResponseWriter, r *http.Request) {
 	overview := s.rosMgr.GetOverview()
 	overview["cubex_version"] = version
 	overview["panel_curr_version"] = version
-	if overview["panel_latest_version"] == nil || overview["panel_latest_version"] == "" || overview["panel_latest_version"] == "Test-v1.3" {
+
+	latestVer, _ := overview["panel_latest_version"].(string)
+	if latestVer == "" || latestVer == "Test-v1.3" || !ros.IsVersionNewer(latestVer, version) {
 		overview["panel_latest_version"] = version
+		overview["panel_update_avail"] = false
+	} else {
+		overview["panel_update_avail"] = true
 	}
+
+	mihomoAvail, _ := overview["mihomo_update_avail"].(bool)
+	singboxAvail, _ := overview["singbox_update_avail"].(bool)
+	panelAvail, _ := overview["panel_update_avail"].(bool)
+	overview["update_available"] = mihomoAvail || singboxAvail || panelAvail
+
 	overview["active_engine"] = s.engMgr.GetActiveEngine()
 	overview["uptime_seconds"] = int64(time.Since(startTime).Seconds())
 	cachedHost := s.hostMgr.GetCachedHostInfo()

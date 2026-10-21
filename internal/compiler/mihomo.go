@@ -35,6 +35,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	if ir == nil {
 		return nil, fmt.Errorf("config IR is nil")
 	}
+	SanitizeIR(ir)
 
 	net := ir.Network
 	dns := ir.DNS
@@ -624,6 +625,18 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		}
 	}
 
+	// 2a. YouTube Video Streaming High-Speed Direct Rules
+	if validTargets["YouTube"] {
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,googlevideo.com,YouTube")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,ytimg.com,YouTube")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,youtube.com,YouTube")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,youtu.be,YouTube")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,ggpht.com,YouTube")
+		rulesList = append(rulesList, "DOMAIN-KEYWORD,googlevideo,YouTube")
+		rulesList = append(rulesList, "DOMAIN-KEYWORD,sponsorblock,YouTube")
+		rulesList = append(rulesList, "DOMAIN,youtubei.googleapis.com,YouTube")
+	}
+
 	// Intercept foreign UDP 443/8443 (QUIC) to prevent ISP UDP QoS throttling and force BBR TCP
 	rulesList = append(rulesList, "AND,((NETWORK,udp),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT")
 
@@ -636,17 +649,6 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,ooklaserver.net,%s", foreignGroup))
 	}
 
-	// 2a. YouTube Video Streaming High-Speed Direct Rules
-	if validTargets["YouTube"] {
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,googlevideo.com,YouTube")
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,ytimg.com,YouTube")
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,youtube.com,YouTube")
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,youtu.be,YouTube")
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,ggpht.com,YouTube")
-		rulesList = append(rulesList, "DOMAIN-KEYWORD,googlevideo,YouTube")
-		rulesList = append(rulesList, "DOMAIN-KEYWORD,sponsorblock,YouTube")
-		rulesList = append(rulesList, "DOMAIN,youtubei.googleapis.com,YouTube")
-	}
 
 	// 2a-2. AI (OpenAI / Claude / Google Gemini / Antigravity / DeepMind)
 	if validTargets["AI"] {

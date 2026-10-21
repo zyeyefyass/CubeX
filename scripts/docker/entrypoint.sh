@@ -44,6 +44,13 @@ fi
 # 3. Enable IP Forwarding and NAT Masquerade for Gateway / Secondary Router Mode
 sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || ( [ -w /proc/sys/net/ipv4/ip_forward ] && echo 1 > /proc/sys/net/ipv4/ip_forward 2>/dev/null ) || true
 iptables -P FORWARD ACCEPT 2>/dev/null || true
+# 3.1 Fast-Path PREROUTING Bypass for Local & Private Subnets (Minimizes CPU on fnOS / Docker / PVE)
+iptables -t mangle -C PREROUTING -d 10.0.0.0/8 -j RETURN 2>/dev/null || iptables -t mangle -I PREROUTING 1 -d 10.0.0.0/8 -j RETURN 2>/dev/null || true
+iptables -t mangle -C PREROUTING -d 172.16.0.0/12 -j RETURN 2>/dev/null || iptables -t mangle -I PREROUTING 2 -d 172.16.0.0/12 -j RETURN 2>/dev/null || true
+iptables -t mangle -C PREROUTING -d 192.168.0.0/16 -j RETURN 2>/dev/null || iptables -t mangle -I PREROUTING 3 -d 192.168.0.0/16 -j RETURN 2>/dev/null || true
+iptables -t mangle -C PREROUTING -d 127.0.0.0/8 -j RETURN 2>/dev/null || iptables -t mangle -I PREROUTING 4 -d 127.0.0.0/8 -j RETURN 2>/dev/null || true
+iptables -t mangle -C PREROUTING -d 224.0.0.0/4 -j RETURN 2>/dev/null || iptables -t mangle -I PREROUTING 5 -d 224.0.0.0/4 -j RETURN 2>/dev/null || true
+
 iptables -t nat -A POSTROUTING -j MASQUERADE 2>/dev/null || true
 
 # Asymmetric bypass routing, ARP storm defense & ICMP redirect suppression (Essential for iKuai / ROS / PVE / fnOS)

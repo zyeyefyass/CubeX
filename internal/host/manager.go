@@ -911,6 +911,10 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 			struct {
 				desc string
 				cmd  string
+			}{"前置 PREROUTING 内网直连白名单 (降低 Linux/飞牛单臂 CPU 消耗)", "iptables -t mangle -C PREROUTING -d 10.0.0.0/8 -j RETURN 2>/dev/null || iptables -t mangle -I PREROUTING 1 -d 10.0.0.0/8 -j RETURN 2>/dev/null || true; iptables -t mangle -C PREROUTING -d 172.16.0.0/12 -j RETURN 2>/dev/null || iptables -t mangle -I PREROUTING 2 -d 172.16.0.0/12 -j RETURN 2>/dev/null || true; iptables -t mangle -C PREROUTING -d 192.168.0.0/16 -j RETURN 2>/dev/null || iptables -t mangle -I PREROUTING 3 -d 192.168.0.0/16 -j RETURN 2>/dev/null || true; iptables -t mangle -C PREROUTING -d 127.0.0.0/8 -j RETURN 2>/dev/null || iptables -t mangle -I PREROUTING 4 -d 127.0.0.0/8 -j RETURN 2>/dev/null || true; iptables -t mangle -C PREROUTING -d 224.0.0.0/4 -j RETURN 2>/dev/null || iptables -t mangle -I PREROUTING 5 -d 224.0.0.0/4 -j RETURN 2>/dev/null || true"},
+			struct {
+				desc string
+				cmd  string
 			}{"放行 CubeX Web 面板 TCP 2026 端口", "iptables -C INPUT -p tcp --dport 2026 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 2026 -j ACCEPT"},
 			struct {
 				desc string

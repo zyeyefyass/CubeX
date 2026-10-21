@@ -101,6 +101,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	if ir == nil {
 		return nil, fmt.Errorf("config IR is nil")
 	}
+	SanitizeIR(ir)
 
 	net := ir.Network
 	dns := ir.DNS
@@ -212,7 +213,8 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			},
 			{
 				"query_type": []string{"HTTPS", "SVCB"},
-				"action":     "reject",
+				"action":     "predefined",
+				"rcode":      "NOERROR",
 			},
 			{
 				"clash_mode": "direct",
@@ -840,7 +842,8 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 	// A. Global Sniff & DNS Hijack (sing-box 1.14+ action format)
 	routeRules = append(routeRules, map[string]any{
-		"action": "sniff",
+		"action":  "sniff",
+		"timeout": "300ms",
 	})
 	routeRules = append(routeRules, map[string]any{
 		"inbound": []string{"dns-in"},
@@ -855,12 +858,39 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"action":   "hijack-dns",
 	})
 
-	// B. QUIC & STUN Fast Reject (Immediate RST/ICMP rejection without packet drop stall)
+	// YouTube & Google Video Fast-Path (Native HTTP/3 0-RTT QUIC Support)
+	if validOutbounds["YouTube"] {
+		if tags, ok := activeSRSByGroup["YouTube"]; ok && len(tags) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"rule_set": tags,
+				"outbound": "YouTube",
+			})
+		}
+		routeRules = append(routeRules, map[string]any{
+			"domain_suffix":  []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com", "yt3.ggpht.com", "yt4.ggpht.com", "gvt1.com", "1e100.net", "googleusercontent.com"},
+			"domain_keyword": []string{"googlevideo", "sponsorblock"},
+			"outbound":       "YouTube",
+		})
+	}
+	if validOutbounds["Google"] {
+		if tags, ok := activeSRSByGroup["Google"]; ok && len(tags) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"rule_set": tags,
+				"outbound": "Google",
+			})
+		}
+		routeRules = append(routeRules, map[string]any{
+			"domain_suffix": []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com", "antigravity.dev", "goog", "run.app", "1e100.net", "gvt1.com"},
+			"outbound":      "Google",
+		})
+	}
+
+	// B. Generic Foreign QUIC & STUN Fast Reject (Immediate RST/ICMP rejection for non-media foreign traffic)
 	routeRules = append(routeRules, map[string]any{
-		"port":     []int{443, 8443, 853},
-		"network":  []string{"udp"},
-		"action":   "reject",
-		"no_drop":  true,
+		"port":    []int{443, 8443, 853},
+		"network": []string{"udp"},
+		"action":  "reject",
+		"method":  "default",
 	})
 
 	// C. Direct Private IP & NTP (Port 123)
@@ -988,31 +1018,6 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"grok.com",
 			},
 			"outbound": "AI",
-		})
-	}
-	if validOutbounds["YouTube"] {
-		if tags, ok := activeSRSByGroup["YouTube"]; ok && len(tags) > 0 {
-			routeRules = append(routeRules, map[string]any{
-				"rule_set": tags,
-				"outbound": "YouTube",
-			})
-		}
-		routeRules = append(routeRules, map[string]any{
-			"domain_suffix":  []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com", "yt3.ggpht.com", "yt4.ggpht.com", "gvt1.com", "1e100.net", "googleusercontent.com"},
-			"domain_keyword": []string{"googlevideo", "sponsorblock"},
-			"outbound":       "YouTube",
-		})
-	}
-	if validOutbounds["Google"] {
-		if tags, ok := activeSRSByGroup["Google"]; ok && len(tags) > 0 {
-			routeRules = append(routeRules, map[string]any{
-				"rule_set": tags,
-				"outbound": "Google",
-			})
-		}
-		routeRules = append(routeRules, map[string]any{
-			"domain_suffix": []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com", "antigravity.dev", "goog", "run.app", "1e100.net", "gvt1.com"},
-			"outbound":      "Google",
 		})
 	}
 	if validOutbounds["GitHub & Docker"] {

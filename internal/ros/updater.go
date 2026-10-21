@@ -1,6 +1,7 @@
 package ros
 
 import (
+	"context"
 	"math"
 	"archive/tar"
 	"archive/zip"
@@ -58,7 +59,27 @@ type Manager struct {
 
 func (m *Manager) getHTTPClient() *http.Client {
 	if m.httpClient == nil {
+		dialer := &net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 30 * time.Second,
+			Resolver: &net.Resolver{
+				PreferGo: true,
+				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+					d := net.Dialer{Timeout: 3 * time.Second}
+					conn, err := d.DialContext(ctx, "udp", "223.5.5.5:53")
+					if err != nil {
+						conn, err = d.DialContext(ctx, "udp", "119.29.29.29:53")
+						if err != nil {
+							return d.DialContext(ctx, "udp", "1.1.1.1:53")
+						}
+					}
+					return conn, nil
+				},
+			},
+		}
 		tr := &http.Transport{
+			Proxy:               http.ProxyFromEnvironment,
+			DialContext:         dialer.DialContext,
 			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
 			MaxIdleConns:        10,
 			MaxIdleConnsPerHost: 5,
@@ -66,7 +87,7 @@ func (m *Manager) getHTTPClient() *http.Client {
 		}
 		m.httpClient = &http.Client{
 			Transport: tr,
-			Timeout:   8 * time.Second,
+			Timeout:   15 * time.Second,
 		}
 	}
 	return m.httpClient
@@ -168,9 +189,9 @@ func (m *Manager) GetOverview() map[string]any {
 		latestSingbox = "v1.14.3"
 	}
 
-	panelUpdateAvail := isVersionNewer(latestPanel, panelVer)
-	mihomoUpdateAvail := isVersionNewer(latestMihomo, mihomoVer)
-	singboxUpdateAvail := isVersionNewer(latestSingbox, singboxVer)
+	panelUpdateAvail := IsVersionNewer(latestPanel, panelVer)
+	mihomoUpdateAvail := IsVersionNewer(latestMihomo, mihomoVer)
+	singboxUpdateAvail := IsVersionNewer(latestSingbox, singboxVer)
 
 	result := map[string]any{
 		"ros_connected":          rosConnected,
@@ -213,7 +234,7 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 	}
 
 	currTag := m.getLocalPanelVersion()
-	if !force && !isVersionNewer(latestTag, currTag) {
+	if !force && !IsVersionNewer(latestTag, currTag) {
 		return currTag, fmt.Errorf("当前版本 (%s) 已是最新或高于云端版本 (%s)，无需升级", currTag, latestTag)
 	}
 
@@ -580,7 +601,7 @@ func (m *Manager) CheckROSFirmwareUpgradeDetails() (*ROSFirmwareCheckResult, err
 		latest = installed
 	}
 
-	hasUpdate := isVersionNewer(latest, installed)
+	hasUpdate := IsVersionNewer(latest, installed)
 	msg := ""
 	if hasUpdate {
 		msg = fmt.Sprintf("发现 RouterOS 官方新固件: %s (当前版本: %s, 升级通道: %s, 状态: %s)", latest, installed, channel, status)
@@ -667,19 +688,6 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 // ──────────────────────────────────────────────
 
 func (m *Manager) getLocalPanelVersion() string {
-	data, err := os.ReadFile(m.metaFile)
-	if err == nil {
-		var meta struct {
-			Version string `json:"version"`
-		}
-		if json.Unmarshal(data, &meta) == nil && meta.Version != "" {
-			if normalizeVersion(meta.Version) == "testv1.3" || normalizeVersion(meta.Version) == "testv0.999" {
-				m.updateLocalMetaVersion("Test v1.7")
-				return "Test v1.7"
-			}
-			return meta.Version
-		}
-	}
 	return "Test v1.7"
 }
 
@@ -742,7 +750,7 @@ func extractVersionNumbers(v string) []int {
 }
 
 // isVersionNewer returns true only if candidate is strictly greater than current.
-func isVersionNewer(candidate, current string) bool {
+func IsVersionNewer(candidate, current string) bool {
 	candidate = strings.TrimSpace(candidate)
 	current = strings.TrimSpace(current)
 	if candidate == "" || current == "" {
