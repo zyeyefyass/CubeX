@@ -186,8 +186,16 @@ func (m *Manager) FetchLiveRuleCount() int {
 	if ads, ok := data.Providers["ads_domain"]; ok {
 		total += ads.RuleCount
 	}
+	if ads, ok := data.Providers["217heidai_ads"]; ok {
+		total += ads.RuleCount
+	}
 	if priv, ok := data.Providers["privacy_domain"]; ok {
 		total += priv.RuleCount
+	}
+	for _, p := range data.Providers {
+		if p.RuleCount > 0 {
+			total += p.RuleCount
+		}
 	}
 
 	if total > 0 {
@@ -199,6 +207,17 @@ func (m *Manager) FetchLiveRuleCount() int {
 	}
 
 	return m.cachedRules
+}
+
+// SetCachedRules explicitly updates the total rule count (e.g. from 217heidai updater)
+func (m *Manager) SetCachedRules(total int) {
+	if total <= 0 {
+		return
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.cachedRules = total
+	m.lastCheck = time.Now()
 }
 
 // GetStats returns the current statistics and recent blocked list.

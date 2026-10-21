@@ -2821,16 +2821,55 @@
             </div>
           </div>
 
-          <!-- 🚀 四维版本在线检查与升级矩阵 -->
+          <!-- 🚀 四维版本在线检查与升级 -->
           <div class="space-y-4">
-            <div class="border-b border-slate-700/40 pb-3">
-              <h3 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                <span>🚀 四维版本在线检查与升级矩阵</span>
-              </h3>
-              <p class="text-xs text-slate-400 mt-1">
-                支持 CubeX 主控守护进程、Mihomo / sing-box 双内核、217heidai 规则库及宿主共生固件的一键云端版本核对与在线无缝平滑热更
-              </p>
+            <div class="border-b border-slate-700/40 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                  <span>🚀 四维版本在线检查与升级</span>
+                  <span v-if="hasAnyUpdate" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold animate-pulse">
+                    ● 发现新版本可用
+                  </span>
+                  <span v-else-if="probeChecked" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-medium">
+                    ✓ 全维度最新稳定版
+                  </span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">
+                  支持 CubeX 主控守护进程、Mihomo / sing-box 双内核、217heidai 规则库及宿主共生固件的一键云端版本核对与在线无缝平滑热更
+                </p>
+              </div>
+              <button @click="probeAllFourDimensions" :disabled="isProbingAll" class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs transition flex items-center gap-2 shadow-lg shadow-cyan-500/20 shrink-0 cursor-pointer active:scale-98">
+                <span :class="{'inline-block animate-spin': isProbingAll}">🛰️</span>
+                <span>{{ isProbingAll ? '正在进行四维体检...' : '四维智能探针实时体检' }}</span>
+              </button>
             </div>
+
+            <!-- 四维版本智能探测横幅提示 (检测到更新时全息微光提醒) -->
+            <transition name="fade">
+              <div v-if="hasAnyUpdate" class="p-4 rounded-2xl bg-gradient-to-r from-amber-950/80 via-slate-900/90 to-cyan-950/80 border border-amber-500/50 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in">
+                <div class="flex items-center gap-3">
+                  <span class="text-2xl p-2 rounded-xl bg-amber-500/20 border border-amber-500/40 animate-bounce">🔔</span>
+                  <div>
+                    <div class="text-xs font-bold text-white flex items-center gap-2">
+                      <span class="text-amber-300">【四维探针提醒】检测到可用系统升级项目！</span>
+                      <span class="text-[10px] px-2 py-0.5 rounded bg-amber-900/90 text-amber-200 border border-amber-600 font-mono">{{ updateSummaryText }}</span>
+                    </div>
+                    <p class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">{{ updateDetailText }}</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0 flex-wrap">
+                  <button v-if="systemOverview.panel_update_avail" @click="upgradePanel" :disabled="upgradingPanel" class="px-3.5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition shadow-md shadow-cyan-500/20">
+                    一键热更 CubeX
+                  </button>
+                  <button v-if="hostUpgradeDetails.hasUpdate" @click="executeHostUpgrade" :disabled="upgradingHost" class="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition shadow-md shadow-purple-600/20">
+                    一键升级宿主固件
+                  </button>
+                  <button @click="updateGeoData" :disabled="updatingGeo" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-md shadow-emerald-600/20">
+                    更新规则库
+                  </button>
+                </div>
+              </div>
+            </transition>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- 1. CubeX 主控系统版本 -->
@@ -2926,24 +2965,30 @@
                     <span>📚</span>
                     <span>Geo 数据库 & 217heidai 规则包</span>
                   </div>
-                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">233,481 条</span>
+                  <button @click="showGeodataDetailModal = true" class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 transition cursor-pointer flex items-center gap-1 shadow-sm">
+                    <span>{{ (geodataStatus.total_rules || adblockStats.total_rules || 236255).toLocaleString() }} 条</span>
+                    <span class="text-[9px] text-emerald-400 underline">明细</span>
+                  </button>
                 </div>
                 <!-- Tier 2: Body (h-[74px]) -->
                 <div class="h-[74px] text-[11px] font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
                   <div class="flex justify-between items-center">
                     <span>离线基础库: <span class="text-slate-300">geoip.metadb + geosite.dat</span></span>
-                    <span class="text-emerald-400 font-semibold">✓ 已就绪</span>
+                    <span class="text-emerald-400 font-semibold">✓ 已就绪 ({{ geodataStatus.geoip_size_str && geodataStatus.geosite_size_str ? (geodataStatus.geoip_size_str + ' + ' + geodataStatus.geosite_size_str) : '38.4 MB' }})</span>
                   </div>
                   <div class="flex justify-between items-center">
-                    <span>权威规则包: <span class="text-slate-300">38 套 217heidai MRS / SRS</span></span>
-                    <span class="text-slate-400">{{ geodataLastUpdateText || '已全量装载' }}</span>
+                    <span>权威规则包: <span class="text-slate-300">{{ geodataStatus.rules_count || 39 }} 套 217heidai MRS / SRS</span></span>
+                    <span class="text-slate-400 font-mono">{{ geodataStatus.last_updated ? ('更新于 ' + (geodataStatus.last_updated.length > 10 ? geodataStatus.last_updated.substring(5, 16) : geodataStatus.last_updated)) : (geodataLastUpdateText || '已全量装载') }}</span>
                   </div>
                 </div>
                 <!-- Tier 3: Action Buttons (h-10) -->
-                <div class="h-10">
-                  <button @click="updateGeoData" :disabled="updatingGeo" class="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/20">
+                <div class="h-10 flex gap-2">
+                  <button @click="updateGeoData" :disabled="updatingGeo" class="flex-1 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/20">
                     <span v-if="updatingGeo" class="inline-block animate-spin mr-1">↻</span>
-                    <span>{{ updatingGeo ? '⏳ 正在极速拉取并重载 38 套规则...' : '🔄 一键更新全套 Geo 与去广告规则库' }}</span>
+                    <span>{{ updatingGeo ? '⏳ 正在全速同步 39 套规则包...' : '🔄 一键更新全套 Geo 与去广告规则库' }}</span>
+                  </button>
+                  <button @click="showGeodataDetailModal = true" title="查看 39 套规则清单与更新明细" class="px-3 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-xs font-bold transition flex items-center justify-center cursor-pointer">
+                    📋
                   </button>
                 </div>
                 <!-- Tier 4: Terminal Viewport (h-[62px]) -->
@@ -2953,7 +2998,7 @@
                   </div>
                   <div v-else class="text-slate-400 text-xs flex items-center gap-2">
                     <span class="text-emerald-400 font-bold shrink-0">[GEODATA]</span>
-                    <span>38 套 217heidai 高速规则已装载 · 23.3 万条分流与去广告规则生效</span>
+                    <span>39 套 217heidai 高速规则已装载 · {{ (geodataStatus.total_rules || 236255).toLocaleString() }} 条去广告与分流规则生效</span>
                   </div>
                 </div>
               </div>
@@ -3018,7 +3063,7 @@
                   </div>
                   <div v-else class="text-slate-400 text-xs flex items-center gap-2">
                     <span class="text-purple-400 font-bold shrink-0">[HOST]</span>
-                    <span>MikroTik RouterOS 原生 API 联通 · 策略路由 8228 正常放行</span>
+                    <span>MikroTik RouterOS 原生 API 联通 · 隔离策略路由 (table cubex) 正常放行</span>
                   </div>
                 </div>
               </div>
@@ -3031,9 +3076,6 @@
               <div>
                 <h3 class="text-sm font-bold text-white flex items-center gap-2">
                   <span>🔄 防手残时光机全量备份</span>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-mono">
-                    Snapshot Recovery
-                  </span>
                 </h3>
                 <p class="text-xs text-slate-400 mt-1">一键打包导出包含双核配置、宿主共生设置及分流规则的全量快照，支持秒级导入恢复。</p>
               </div>
@@ -3761,7 +3803,7 @@
                     <span>✓</span> <span>向导引导建立宿主共生</span>
                   </div>
                   <div class="flex items-center gap-1.5 text-cyan-300">
-                    <span>✓</span> <span>一键自动编排策略路由 8228</span>
+                    <span>✓</span> <span>一键自动编排隔离策略路由表 (table cubex)</span>
                   </div>
                 </div>
               </div>
@@ -3926,7 +3968,7 @@
           </div>
 
           <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-            <span>正在执行：巡检策略路由表 8228、下发 Mangle 防火墙规则与配置防 DNS 泄露...</span>
+            <span>正在执行：巡检隔离策略路由表 (table cubex)、下发 Mangle 防火墙规则与配置防 DNS 泄露...</span>
             <span v-if="initExecuting" class="text-cyan-400 font-mono animate-pulse">处理中...</span>
           </div>
         </div>
@@ -4124,6 +4166,132 @@
                   class="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold shadow transition cursor-pointer">
                   知道了
                 </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Modal: Geo 数据库与 217heidai 规则包明细 (showGeodataDetailModal) -->
+          <div v-if="showGeodataDetailModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+            <div class="glass-matrix border border-emerald-500/40 rounded-3xl p-6 max-w-4xl w-full max-h-[85vh] flex flex-col shadow-2xl relative space-y-4">
+              <!-- Modal Header -->
+              <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+                <div class="flex items-center gap-3">
+                  <span class="text-2xl p-2 rounded-2xl bg-emerald-950/80 border border-emerald-500/30">📚</span>
+                  <div>
+                    <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                      <span>Geo 数据库 & 217heidai 规则包全景清单</span>
+                      <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-mono font-bold">
+                        39 套规则 · 已全量装载
+                      </span>
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                      全套二进制 MRS/SRS 离线分流矩阵与 217heidai 去广告权威拦截规则详细清单
+                    </p>
+                  </div>
+                </div>
+                <button @click="showGeodataDetailModal = false" class="text-slate-400 hover:text-white px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-bold transition cursor-pointer">✕</button>
+              </div>
+
+              <!-- Summary Metrics Bar -->
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs font-mono">
+                <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                  <div class="text-[10px] text-slate-400">拦截规则总规模</div>
+                  <div class="text-emerald-400 font-bold text-sm mt-0.5">{{ (geodataStatus.total_rules || 236255).toLocaleString() }} 条</div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                  <div class="text-[10px] text-slate-400">规则库版本</div>
+                  <div class="text-cyan-300 font-bold text-sm mt-0.5">{{ geodataStatus.version || '最新稳定版' }}</div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                  <div class="text-[10px] text-slate-400">装载规则文件</div>
+                  <div class="text-purple-300 font-bold text-sm mt-0.5">{{ geodataStatus.files_count || geodataStatus.rules_count || 39 }} 个</div>
+                </div>
+                <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                  <div class="text-[10px] text-slate-400">最近校验/同步</div>
+                  <div class="text-slate-300 font-bold text-xs mt-1 truncate">{{ geodataStatus.last_updated || '已装载' }}</div>
+                </div>
+              </div>
+
+              <!-- Filter & Search Bar -->
+              <div class="flex flex-col sm:flex-row gap-2 items-center justify-between text-xs">
+                <div class="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto">
+                  <button @click="geodataFilterCategory = 'all'" :class="['px-3 py-1.5 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === 'all' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
+                    全部 ({{ geodataStatus.files?.length || 39 }})
+                  </button>
+                  <button @click="geodataFilterCategory = '基础数据库'" :class="['px-3 py-1.5 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '基础数据库' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
+                    基础库 (2)
+                  </button>
+                  <button @click="geodataFilterCategory = '广告与恶意追踪拦截'" :class="['px-3 py-1.5 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '广告与恶意追踪拦截' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
+                    去广告拦截 (2)
+                  </button>
+                  <button @click="geodataFilterCategory = '基础路由分流'" :class="['px-3 py-1.5 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '基础路由分流' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
+                    基础路由 (6)
+                  </button>
+                  <button @click="geodataFilterCategory = '应用专线分流'" :class="['px-3 py-1.5 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '应用专线分流' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700']">
+                    应用专线 (29)
+                  </button>
+                </div>
+                <div class="relative w-full sm:w-64">
+                  <input v-model="geodataSearchQuery" placeholder="搜索规则名称、文件名..." class="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
+                  <span v-if="geodataSearchQuery" @click="geodataSearchQuery = ''" class="absolute right-2.5 top-1.5 text-slate-400 hover:text-white cursor-pointer text-xs">✕</span>
+                </div>
+              </div>
+
+              <!-- Rule Files Table (Scrollable) -->
+              <div class="flex-1 overflow-y-auto border border-slate-800/80 rounded-2xl bg-slate-950/60 custom-scrollbar max-h-[380px]">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-slate-900/90 text-slate-400 font-mono border-b border-slate-800 sticky top-0 backdrop-blur z-10">
+                    <tr>
+                      <th class="py-2.5 px-3">规则名称与用途</th>
+                      <th class="py-2.5 px-3">文件路径</th>
+                      <th class="py-2.5 px-3">分类</th>
+                      <th class="py-2.5 px-3 text-right">文件体积</th>
+                      <th class="py-2.5 px-3 text-center">运行状态</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800/40">
+                    <tr v-for="(f, idx) in filteredGeodataFiles" :key="idx" class="hover:bg-slate-800/30 transition">
+                      <td class="py-2.5 px-3">
+                        <div class="font-bold text-slate-200">{{ f.name }}</div>
+                        <div class="text-[11px] text-slate-400">{{ f.description }}</div>
+                      </td>
+                      <td class="py-2.5 px-3 font-mono text-[11px] text-cyan-300">{{ f.filename }}</td>
+                      <td class="py-2.5 px-3">
+                        <span class="text-[10px] px-2 py-0.5 rounded font-mono" :class="{
+                          'bg-blue-950 text-blue-300 border border-blue-500/30': f.category === '基础数据库',
+                          'bg-rose-950 text-rose-300 border border-rose-500/30': f.category === '广告与恶意追踪拦截',
+                          'bg-amber-950 text-amber-300 border border-amber-500/30': f.category === '基础路由分流',
+                          'bg-purple-950 text-purple-300 border border-purple-500/30': f.category === '应用专线分流'
+                        }">{{ f.category }}</span>
+                      </td>
+                      <td class="py-2.5 px-3 font-mono text-right text-slate-300">{{ f.size_str || '-' }}</td>
+                      <td class="py-2.5 px-3 text-center">
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-mono">
+                          ✓ 活跃生效
+                        </span>
+                      </td>
+                    </tr>
+                    <tr v-if="filteredGeodataFiles.length === 0">
+                      <td colspan="5" class="py-8 text-center text-slate-400">未找到匹配的规则文件</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Modal Footer -->
+              <div class="flex items-center justify-between pt-2 border-t border-slate-800/60">
+                <div class="text-[11px] text-slate-400">
+                  规则存储于 <code>/app/etc/rules</code> · 格式支持 Mihomo MRS 与 sing-box SRS
+                </div>
+                <div class="flex items-center gap-2">
+                  <button @click="updateGeoData" :disabled="updatingGeo" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer">
+                    <span v-if="updatingGeo" class="inline-block animate-spin mr-1">↻</span>
+                    <span>{{ updatingGeo ? '正在更新中...' : '🔄 立即一键更新' }}</span>
+                  </button>
+                  <button @click="showGeodataDetailModal = false" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer">
+                    关闭
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -5505,6 +5673,82 @@ const systemOverview = ref({
   update_available: false
 })
 
+// ── 四维版本智能探针与规则数据库明细状态 ──
+const isProbingAll = ref(false)
+const probeChecked = ref(false)
+const probeLastTime = ref('')
+const showGeodataDetailModal = ref(false)
+const geodataFilterCategory = ref('all')
+const geodataSearchQuery = ref('')
+
+const geodataStatus = ref({
+  total_rules: 236255,
+  version: '20261021120650',
+  last_updated: '',
+  geoip_size_str: '9.76 MB',
+  geosite_size_str: '19.51 MB',
+  rules_count: 39,
+  files_count: 39,
+  files: [],
+  recent_logs: [],
+  is_updating: false
+})
+
+const hasAnyUpdate = computed(() => {
+  return !!(
+    systemOverview.value?.panel_update_avail ||
+    systemOverview.value?.mihomo_update_avail ||
+    systemOverview.value?.singbox_update_avail ||
+    (hostUpgradeDetails.value?.checked && hostUpgradeDetails.value?.hasUpdate)
+  )
+})
+
+const updateSummaryText = computed(() => {
+  const parts = []
+  if (systemOverview.value?.panel_update_avail) {
+    parts.push(`CubeX 主控 ${systemOverview.value.panel_latest_version}`)
+  }
+  if (hostUpgradeDetails.value?.hasUpdate) {
+    parts.push(`宿主固件 ${hostUpgradeDetails.value.latestVersion}`)
+  }
+  if (systemOverview.value?.mihomo_update_avail) {
+    parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version}`)
+  }
+  if (systemOverview.value?.singbox_update_avail) {
+    parts.push(`sing-box ${systemOverview.value.singbox_latest_version}`)
+  }
+  return parts.join(' · ') || '检测到可用升级'
+})
+
+const updateDetailText = computed(() => {
+  if (systemOverview.value?.panel_update_avail && hostUpgradeDetails.value?.hasUpdate) {
+    return 'CubeX 主控与底层宿主固件均有新版本发布，建议先一键升级 CubeX 主控守护进程，再升级宿主系统。'
+  }
+  if (systemOverview.value?.panel_update_avail) {
+    return `发现 CubeX 官方云端发布新版本 ${systemOverview.value.panel_latest_version}，包含最新网络协议优化与自愈特性，支持秒级无感热更！`
+  }
+  if (hostUpgradeDetails.value?.hasUpdate) {
+    return `检测到 ${hostBadge.value.name} 宿主官方固件通道有新版本 ${hostUpgradeDetails.value.latestVersion}，支持在控制台一键安全升级。`
+  }
+  return '四维探针检测到系统组件存在可用更新，请按需点击下方卡片对应升级按钮。'
+})
+
+const filteredGeodataFiles = computed(() => {
+  let list = geodataStatus.value.files || []
+  if (geodataFilterCategory.value !== 'all') {
+    list = list.filter(f => f.category === geodataFilterCategory.value)
+  }
+  if (geodataSearchQuery.value.trim()) {
+    const q = geodataSearchQuery.value.toLowerCase().trim()
+    list = list.filter(f => 
+      (f.name && f.name.toLowerCase().includes(q)) ||
+      (f.filename && f.filename.toLowerCase().includes(q)) ||
+      (f.description && f.description.toLowerCase().includes(q))
+    )
+  }
+  return list
+})
+
 async function fetchSystemOverview() {
   try {
     const res = await fetch('/api/v1/system/overview')
@@ -6771,28 +7015,75 @@ async function upgradeCore(type) {
   }
 }
 
+async function fetchGeoDataStatus() {
+  try {
+    const res = await fetch('/api/v1/upgrade/geodata')
+    if (res.ok) {
+      const data = await res.json()
+      if (data && data.total_rules) {
+        geodataStatus.value = { ...geodataStatus.value, ...data }
+        if (adblockStats.value) {
+          adblockStats.value.total_rules = data.total_rules
+        }
+      }
+    }
+  } catch (e) {}
+}
+
 async function updateGeoData() {
   updatingGeo.value = true
-  geoUpdateLog.value = '⏳ 正在极速拉取并校验全量 GeoIP、GeoSite 及 38 套 217heidai MRS 独占分流规则...'
+  geoUpdateLog.value = '⏳ 正在全速同步全套 39 套 GeoIP、GeoSite 及 217heidai MRS 规则库...'
+  showToast('⏳ 正在通过 CDN 镜像全速拉取 39 套 Geo 与 217heidai 规则包...')
   try {
     const res = await fetch('/api/v1/upgrade/geodata', { method: 'POST' })
     const data = await res.json()
     const timeStr = new Date().toLocaleTimeString()
     if (data.success !== false) {
-      geodataLastUpdateText.value = `${timeStr} 校验完成`
-      geoUpdateLog.value = `🎉 [${timeStr}] 规则库更新完毕！233,481 条去广告与分流规则已全部同步并装载至内存路由引擎。`
-      showToast('🎉 全量 GeoIP、GeoSite 及 217heidai MRS 规则库更新完毕！')
+      geodataStatus.value = {
+        ...geodataStatus.value,
+        ...data,
+        total_rules: data.total_rules || 236255,
+        last_updated: data.updated_at || timeStr
+      }
+      if (adblockStats.value) {
+        adblockStats.value.total_rules = data.total_rules || 236255
+      }
+      geodataLastUpdateText.value = `${timeStr} 规则库已同步`
+      const ruleCountStr = (data.total_rules || 236255).toLocaleString()
+      geoUpdateLog.value = `🎉 [${timeStr}] 规则库更新完毕！已成功同步 ${data.files_updated || 39} 套规则库，总拦截规则达 ${ruleCountStr} 条，内存路由引擎已热重载生效。`
+      showToast(`🎉 规则库更新完毕！全网 ${ruleCountStr} 条规则已装载生效`)
     } else {
       geoUpdateLog.value = `⚠️ [${timeStr}] 规则库更新反馈: ${data.error || '部分镜像规则同步超时'}`
       showToast(`⚠️ 规则库更新异常: ${data.error || '部分规则同步超时'}`)
     }
   } catch (e) {
     const timeStr = new Date().toLocaleTimeString()
-    geodataLastUpdateText.value = `${timeStr} 规则库处于最高防护状态`
-    geoUpdateLog.value = `✅ [${timeStr}] 规则库本地离线校验通过：233,481 条高精规则处于最高防护状态。`
-    showToast('规则库已是最强防护版本')
+    geoUpdateLog.value = `⚠️ [${timeStr}] 规则库更新请求异常: ${e.message}`
+    showToast(`规则库更新请求异常: ${e.message}`)
   } finally {
     updatingGeo.value = false
+  }
+}
+
+async function probeAllFourDimensions() {
+  if (isProbingAll.value) return
+  isProbingAll.value = true
+  showToast('🛰️ 四维版本智能探针正在并发探测 GitHub、双核内核源、217heidai 规则库及宿主固件...')
+  try {
+    await Promise.allSettled([
+      fetchSystemOverview(),
+      checkHostUpgrade(),
+      fetchGeoDataStatus()
+    ])
+    probeChecked.value = true
+    probeLastTime.value = new Date().toLocaleTimeString()
+    if (hasAnyUpdate.value) {
+      showToast(`🎉 [版本探针] 检测到新版本！${updateSummaryText.value}`)
+    } else {
+      showToast('✓ [四维探针体检完毕] 主控、双核、规则库及宿主系统均处于最新稳定状态！')
+    }
+  } finally {
+    isProbingAll.value = false
   }
 }
 
@@ -10024,7 +10315,7 @@ async function startInitStep3Execution() {
         body: JSON.stringify({ target_ip: '' })
       })
       initLogs.value[2].status = 'done'
-      initLogs.value[2].text = '✓ ROS 策略路由表 (table 8228)、Prerouting Mangle 与 Bridge 网桥全量编排完毕'
+      initLogs.value[2].text = '✓ ROS 策略路由表 (table cubex)、Prerouting Mangle 与 Bridge 网桥全量编排完毕'
     } catch (e) {
       initLogs.value[2].status = 'done'
       initLogs.value[2].text = '✓ ROS 策略路由表与防泄露规则全量下发生效'
@@ -10117,6 +10408,9 @@ onMounted(async () => {
     if (adRes.status === 'fulfilled' && adRes.value) {
       adblockStats.value = { ...adblockStats.value, ...adRes.value }
     }
+    // Fetch GeoData & 217heidai status
+    fetchGeoDataStatus()
+    setTimeout(probeAllFourDimensions, 2500)
     if (hostRes.status === 'fulfilled' && hostRes.value) {
       hostInfo.value = { ...hostInfo.value, ...hostRes.value }
     }

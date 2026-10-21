@@ -279,6 +279,68 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		pMap["port"] = p.Port
 		pMap["udp"] = true
 
+		// Sanitize sing-box / raw config artifacts for Mihomo
+		if tlsMap, ok := pMap["tls"].(map[string]any); ok {
+			pMap["tls"] = true
+			if en, exists := tlsMap["enabled"].(bool); exists && !en {
+				delete(pMap, "tls")
+			}
+			if sni, exists := tlsMap["server_name"].(string); exists && sni != "" {
+				pMap["servername"] = sni
+			}
+			if insec, exists := tlsMap["insecure"].(bool); exists && insec {
+				pMap["skip-cert-verify"] = true
+			}
+			if alpn, exists := tlsMap["alpn"].([]any); exists && len(alpn) > 0 {
+				pMap["alpn"] = alpn
+			}
+			if reality, exists := tlsMap["reality"].(map[string]any); exists {
+				if rEn, ok := reality["enabled"].(bool); ok && rEn {
+					realityOpts := make(map[string]any)
+					if pk, ok := reality["public_key"].(string); ok && pk != "" {
+						realityOpts["public-key"] = pk
+					}
+					if sid, ok := reality["short_id"].(string); ok && sid != "" {
+						realityOpts["short-id"] = sid
+					}
+					pMap["reality-opts"] = realityOpts
+				}
+			}
+			if utls, exists := tlsMap["utls"].(map[string]any); exists {
+				if fp, ok := utls["fingerprint"].(string); ok && fp != "" {
+					pMap["client-fingerprint"] = fp
+				}
+			}
+		} else if _, ok := pMap["tls"].(bool); !ok {
+			if p.TLS {
+				pMap["tls"] = true
+			} else {
+				delete(pMap, "tls")
+			}
+		}
+
+		if transport, ok := pMap["transport"].(map[string]any); ok {
+			if tType, ok := transport["type"].(string); ok && tType != "" {
+				pMap["network"] = tType
+				if tType == "ws" {
+					wsOpts := make(map[string]any)
+					if path, ok := transport["path"].(string); ok && path != "" {
+						wsOpts["path"] = path
+					}
+					if headers, ok := transport["headers"].(map[string]any); ok {
+						wsOpts["headers"] = headers
+					}
+					pMap["ws-opts"] = wsOpts
+				}
+			}
+			delete(pMap, "transport")
+		}
+
+		// Clean sing-box specific outbounds keys that crash Mihomo
+		delete(pMap, "tag")
+		delete(pMap, "server_port")
+		delete(pMap, "utls")
+
 		// Normalize Type for Mihomo (Clash Meta)
 		if ptype == "shadowsocks" {
 			ptype = "ss"

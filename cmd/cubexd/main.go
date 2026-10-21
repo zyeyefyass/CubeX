@@ -2717,6 +2717,11 @@ func (s *Server) handleUpgradeCore(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleUpgradeGeoData(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		status := s.rosMgr.GetGeoDataStatus()
+		sendJSON(w, status)
+		return
+	}
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -2728,6 +2733,9 @@ func (s *Server) handleUpgradeGeoData(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		sendJSON(w, map[string]any{"success": false, "error": err.Error()})
 		return
+	}
+	if res.TotalRules > 0 {
+		s.adblockMgr.SetCachedRules(res.TotalRules)
 	}
 	sendJSON(w, res)
 }
