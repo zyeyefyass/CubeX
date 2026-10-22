@@ -412,3 +412,81 @@ func TestDefensiveNodeSanitation(t *testing.T) {
 	}
 }
 
+
+
+func TestDNSRewriteCompilers(t *testing.T) {
+	ir := schema.NewDefaultIR()
+	ir.DNSRewriteEnabled = true
+	ir.DNSRewrites = []schema.DNSRewriteRule{
+		{
+			ID:      "rw_1",
+			Domain:  "services.googleapis.cn",
+			Type:    schema.DNSRewriteTypeCNAME,
+			Target:  "services.googleapis.com",
+			Enabled: true,
+		},
+		{
+			ID:      "rw_2",
+			Domain:  "nas.lan",
+			Type:    schema.DNSRewriteTypeA,
+			Target:  "10.0.0.100",
+			Enabled: true,
+		},
+	}
+
+	// 1. Mihomo Verification
+	mihomoYAML, err := compiler.BuildMihomo(ir)
+	if err != nil {
+		t.Fatalf("CompileMihomo failed: %v", err)
+	}
+	var mihomoMap map[string]any
+	if err := yaml.Unmarshal(mihomoYAML, &mihomoMap); err != nil {
+		t.Fatalf("Unmarshal mihomoYAML failed: %v", err)
+	}
+	hosts, ok := mihomoMap["hosts"].(map[string]any)
+	if !ok {
+		t.Fatalf("Mihomo hosts map missing")
+	}
+	if hosts["services.googleapis.cn"] != "services.googleapis.com" {
+		t.Errorf("Mihomo missing services.googleapis.cn rewrite: got %v", hosts["services.googleapis.cn"])
+	}
+	if hosts["nas.lan"] != "10.0.0.100" {
+		t.Errorf("Mihomo missing nas.lan rewrite: got %v", hosts["nas.lan"])
+	}
+
+	// 2. Sing-box Verification
+	singboxJSON, err := compiler.BuildSingBox(ir)
+	if err != nil {
+		t.Fatalf("CompileSingBox failed: %v", err)
+	}
+	var singboxMap map[string]any
+	if err := json.Unmarshal(singboxJSON, &singboxMap); err != nil {
+		t.Fatalf("Unmarshal singboxJSON failed: %v", err)
+	}
+	dnsSec, _ := singboxMap["dns"].(map[string]any)
+	dnsRules, _ := dnsSec["rules"].([]any)
+
+	foundCNAME := false
+	foundA := false
+	for _, r := range dnsRules {
+		rMap, _ := r.(map[string]any)
+		if rMap["action"] == "predefined" {
+			ansList, _ := rMap["answer"].([]any)
+			for _, ans := range ansList {
+				ansStr, _ := ans.(string)
+				if strings.Contains(ansStr, "services.googleapis.cn. 300 IN CNAME services.googleapis.com.") {
+					foundCNAME = true
+				}
+				if strings.Contains(ansStr, "nas.lan. 300 IN A 10.0.0.100") {
+					foundA = true
+				}
+			}
+		}
+	}
+	if !foundCNAME {
+		t.Errorf("Sing-box missing CNAME rewrite rule")
+	}
+	if !foundA {
+		t.Errorf("Sing-box missing A rewrite rule")
+	}
+}

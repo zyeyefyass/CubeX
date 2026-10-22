@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -26,6 +27,7 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/ai"
 	"github.com/zyeyefyass/CubeX/internal/backup"
 	"github.com/zyeyefyass/CubeX/internal/device"
+	"github.com/zyeyefyass/CubeX/internal/dnsrewrite"
 	"github.com/zyeyefyass/CubeX/internal/easytier"
 	"github.com/zyeyefyass/CubeX/internal/engine"
 	"github.com/zyeyefyass/CubeX/internal/host"
@@ -40,7 +42,7 @@ import (
 )
 
 var (
-	version   = "Test v2.2"
+	version   = "Test v2.3"
 	startTime = time.Now()
 )
 
@@ -127,9 +129,15 @@ type LogBufferWriter struct {
 	buf *RingLogBuffer
 }
 
+var ansiStripRegexGlobal = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07`)
+
+func stripANSILog(s string) string {
+	return ansiStripRegexGlobal.ReplaceAllString(s, "")
+}
+
 func (w *LogBufferWriter) Write(p []byte) (n int, err error) {
 	n = len(p)
-	raw := strings.TrimSpace(string(p))
+	raw := stripANSILog(strings.TrimSpace(string(p)))
 	if raw == "" || w.buf == nil {
 		return n, nil
 	}
@@ -178,6 +186,7 @@ type Server struct {
 	subCenter   *sub.Center
 	wgMgr       *wireguard.Manager
 	adblockMgr  *adblock.Manager
+	dnsRewriteMgr *dnsrewrite.Manager
 	backupMgr   *backup.Manager
 	aiCopilot   *ai.Copilot
 	hostMgr     *host.Manager
@@ -305,6 +314,12 @@ func main() {
 	cfgIR.AdBlockEnabled = filterCfg.Enabled
 	cfgIR.AdBlockWhitelist = filterCfg.WhitelistDomains
 
+	// DNS Rewrite Manager (CNAME & Static A Mapping)
+	dnsRewriteMgr := dnsrewrite.NewManager(dir)
+	rwCfg := dnsRewriteMgr.GetConfig()
+	cfgIR.DNSRewriteEnabled = rwCfg.Enabled
+	cfgIR.DNSRewrites = rwCfg.Rules
+
 	// Backup Time Machine Manager
 	backupMgr := backup.NewManager(dir)
 
@@ -340,6 +355,7 @@ func main() {
 		subCenter:   subCenter,
 		wgMgr:       wgMgr,
 		adblockMgr:  adblockMgr,
+		dnsRewriteMgr: dnsRewriteMgr,
 		backupMgr:   backupMgr,
 		aiCopilot:   aiCopilot,
 		hostMgr:     hostMgr,
@@ -465,6 +481,15 @@ func main() {
 	mux.HandleFunc("/api/v1/adblock/source/refresh", srv.handleAdblockSourceRefresh)
 	mux.HandleFunc("/api/v1/adblock/whitelist/add", srv.handleAdblockWhitelistAdd)
 	mux.HandleFunc("/api/v1/adblock/whitelist/delete", srv.handleAdblockWhitelistDelete)
+
+	// 8.1. DNS Rewrite (CNAME & Static A Record Mapping)
+	mux.HandleFunc("/api/v1/dns/rewrite/config", srv.handleDNSRewriteConfig)
+	mux.HandleFunc("/api/v1/dns/rewrite/toggle", srv.handleDNSRewriteToggle)
+	mux.HandleFunc("/api/v1/dns/rewrite/rule/add", srv.handleDNSRewriteRuleAdd)
+	mux.HandleFunc("/api/v1/dns/rewrite/rule/update", srv.handleDNSRewriteRuleUpdate)
+	mux.HandleFunc("/api/v1/dns/rewrite/rule/delete", srv.handleDNSRewriteRuleDelete)
+	mux.HandleFunc("/api/v1/dns/rewrite/rule/toggle", srv.handleDNSRewriteRuleToggle)
+	mux.HandleFunc("/api/v1/dns/rewrite/reset", srv.handleDNSRewriteReset)
 
 	// 9. Time Machine Backup & Restore
 	mux.HandleFunc("/api/v1/backup/export", srv.handleBackupExport)
@@ -2461,6 +2486,161 @@ func (s *Server) syncAdblockToEngines() {
 		}()
 	}
 }
+
+func (s *Server) syncDNSRewriteToEngines() {
+	if s.dnsRewriteMgr == nil || s.engMgr == nil {
+		return
+	}
+	cfg := s.dnsRewriteMgr.GetConfig()
+	ir := s.engMgr.GetIR()
+	if ir != nil {
+		ir.DNSRewriteEnabled = cfg.Enabled
+		ir.DNSRewrites = cfg.Rules
+		go func() {
+			_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+		}()
+	}
+}
+
+func (s *Server) handleDNSRewriteConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		sendJSON(w, s.dnsRewriteMgr.GetConfig())
+		return
+	}
+	if r.Method == http.MethodPost {
+		var cfg dnsrewrite.Config
+		if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := s.dnsRewriteMgr.SaveConfig(cfg); err != nil {
+			sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		s.syncDNSRewriteToEngines()
+		sendJSON(w, map[string]any{"ok": true, "config": s.dnsRewriteMgr.GetConfig()})
+		return
+	}
+	http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+}
+
+func (s *Server) handleDNSRewriteToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	_ = s.dnsRewriteMgr.SetEnabled(req.Enabled)
+	s.syncDNSRewriteToEngines()
+	stateStr := "已启用"
+	if !req.Enabled {
+		stateStr = "已关闭"
+	}
+	s.logBuffer.Add("INFO", "DNS_REWRITE", fmt.Sprintf("DNS重写引擎全局开关: %s", stateStr))
+	sendJSON(w, map[string]any{"ok": true, "enabled": req.Enabled, "config": s.dnsRewriteMgr.GetConfig()})
+}
+
+func (s *Server) handleDNSRewriteRuleAdd(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req schema.DNSRewriteRule
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	rule, err := s.dnsRewriteMgr.AddRule(req.Domain, req.Type, req.Target, req.Comment)
+	if err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	s.syncDNSRewriteToEngines()
+	s.logBuffer.Add("INFO", "DNS_REWRITE", fmt.Sprintf("新增DNS重写规则: %s -> %s (%s)", req.Domain, req.Target, req.Type))
+	sendJSON(w, map[string]any{"ok": true, "rule": rule, "config": s.dnsRewriteMgr.GetConfig()})
+}
+
+func (s *Server) handleDNSRewriteRuleUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req schema.DNSRewriteRule
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := s.dnsRewriteMgr.UpdateRule(req.ID, req.Domain, req.Type, req.Target, req.Comment, req.Enabled); err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	s.syncDNSRewriteToEngines()
+	s.logBuffer.Add("INFO", "DNS_REWRITE", fmt.Sprintf("更新DNS重写规则: %s -> %s (%s)", req.Domain, req.Target, req.Type))
+	sendJSON(w, map[string]any{"ok": true, "config": s.dnsRewriteMgr.GetConfig()})
+}
+
+func (s *Server) handleDNSRewriteRuleDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := s.dnsRewriteMgr.DeleteRule(req.ID); err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	s.syncDNSRewriteToEngines()
+	s.logBuffer.Add("INFO", "DNS_REWRITE", fmt.Sprintf("删除DNS重写规则: ID=%s", req.ID))
+	sendJSON(w, map[string]any{"ok": true, "config": s.dnsRewriteMgr.GetConfig()})
+}
+
+func (s *Server) handleDNSRewriteRuleToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID      string `json:"id"`
+		Enabled bool   `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := s.dnsRewriteMgr.ToggleRule(req.ID, req.Enabled); err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	s.syncDNSRewriteToEngines()
+	sendJSON(w, map[string]any{"ok": true, "config": s.dnsRewriteMgr.GetConfig()})
+}
+
+func (s *Server) handleDNSRewriteReset(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := s.dnsRewriteMgr.ResetDefaults(); err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	s.syncDNSRewriteToEngines()
+	s.logBuffer.Add("INFO", "DNS_REWRITE", "DNS重写规则已恢复默认设置 (Google Play重写生效)")
+	sendJSON(w, map[string]any{"ok": true, "config": s.dnsRewriteMgr.GetConfig()})
+}
+
 
 func getProcessRSS() float64 {
 	// On Linux, read /proc/self/status for VmRSS to report real physical resident memory

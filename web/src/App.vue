@@ -60,27 +60,7 @@
           </button>
         </nav>
 
-        <!-- Bottom Eye-Care / Theme Control Hub (柔和护眼 · 防眩光调色) -->
-        <div class="p-3 border-t border-slate-800/60 mt-auto select-none">
-          <div class="flex items-center justify-between text-xs text-slate-400 mb-2 px-1">
-            <span class="flex items-center gap-1 font-mono text-[11px]">🎨 <span>视觉模式</span></span>
-            <span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 font-mono">舒适防眩光</span>
-          </div>
-          <div class="grid grid-cols-3 gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800/80">
-            <button v-for="thm in availableThemes" :key="thm.id"
-              @click="setTheme(thm.id)"
-              :class="[
-                'py-1.5 px-1 rounded-lg text-[10px] font-bold transition flex flex-col items-center gap-0.5 cursor-pointer',
-                currentTheme === thm.id
-                  ? 'bg-slate-800 text-cyan-300 border border-cyan-500/40 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 border border-transparent'
-              ]"
-              :title="thm.name">
-              <span class="text-xs">{{ thm.icon }}</span>
-              <span class="truncate max-w-full tracking-tight">{{ thm.shortName }}</span>
-            </button>
-          </div>
-        </div>
+
       </div>
 
     </aside>
@@ -117,7 +97,7 @@
               </span>
               <span class="font-bold tracking-tight"
                 :class="activeEngine === 'singbox' ? 'text-purple-200' : 'text-cyan-300'">
-                {{ systemStatus.version || 'Test v2.2' }}
+                {{ systemStatus.version || 'Test v2.3' }}
               </span>
             </div>
 
@@ -2675,6 +2655,85 @@
               </div>
             </div>
 
+            <!-- ════════════════════════════════════════════════════════════════ -->
+            <!-- 🔀 DNS 重写 (域名别名重定向 & 静态 IP 映射)                        -->
+            <!-- ════════════════════════════════════════════════════════════════ -->
+            <div class="rounded-3xl bg-slate-900/90 border border-slate-800/90 hover:border-cyan-500/30 transition-all duration-300 p-5 space-y-4 shadow-xl backdrop-blur-xl">
+              <!-- Top Row: Title, Master Toggle, Status Badge, Action Buttons -->
+              <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-800/80">
+                <div class="flex items-center gap-3">
+                  <h3 class="text-base font-bold text-white tracking-wide flex items-center gap-2">
+                    <span class="text-cyan-400">🔀</span>
+                    <span>DNS 重写</span>
+                  </h3>
+                  <!-- Master Switch -->
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" v-model="dnsRewriteConfig.enabled" @change="toggleDnsRewriteMaster" class="sr-only peer">
+                    <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500 shadow-inner"></div>
+                  </label>
+                  <span :class="['text-xs px-2.5 py-0.5 rounded-full font-bold border transition', dnsRewriteConfig.enabled ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' : 'bg-slate-800 text-slate-400 border-slate-700']">
+                    {{ dnsRewriteConfig.enabled ? '已生效' : '已暂停' }}
+                  </span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <button @click="resetDnsRewriteDefaults" title="恢复默认 Google Play 重写规则" class="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 active:scale-95 transition cursor-pointer text-xs flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <span>重置默认</span>
+                  </button>
+                  <button @click="openAddDnsRewriteModal" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-cyan-500/20 active:scale-95 transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                    <span>添加重写</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Note / Description matching user screenshot -->
+              <p class="text-xs text-slate-400 leading-relaxed">
+                把某个域名的解析结果改成另一个域名或固定 IP；默认带两条 Google 的重写（解决 Google Play 无法下载 App 问题）。
+              </p>
+
+              <!-- Rules List -->
+              <div class="space-y-2.5">
+                <div v-for="rule in dnsRewriteConfig.rules" :key="rule.id"
+                     class="rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-cyan-500/30 transition-all p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div class="flex-1 min-w-0 space-y-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="font-mono text-xs font-bold text-white tracking-wide bg-slate-900 px-2 py-0.5 rounded border border-slate-800">{{ rule.domain }}</span>
+                      <span class="text-cyan-400 text-xs">➔</span>
+                      <span class="font-mono text-xs font-bold text-cyan-300 tracking-wide bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-800/50">{{ rule.target }}</span>
+                      <span :class="['text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider', rule.type === 'CNAME' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30' : 'bg-purple-500/10 text-purple-400 border border-purple-500/30']">
+                        {{ rule.type === 'CNAME' ? 'CNAME 别名' : 'A 静态记录' }}
+                      </span>
+                    </div>
+                    <div v-if="rule.comment" class="text-[11px] text-slate-400 flex items-center gap-1.5">
+                      <span class="text-slate-600">💬</span>
+                      <span>{{ rule.comment }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Actions & Toggle -->
+                  <div class="flex items-center gap-2.5 self-end md:self-auto shrink-0">
+                    <label class="relative inline-flex items-center cursor-pointer" title="启用/停用单条规则">
+                      <input type="checkbox" v-model="rule.enabled" @change="toggleDnsRewriteRule(rule)" class="sr-only peer">
+                      <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
+                    </label>
+
+                    <button @click="openEditDnsRewriteModal(rule)" title="编辑规则" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    </button>
+                    <button @click="deleteDnsRewriteRule(rule)" title="删除规则" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-950 text-slate-400 hover:text-rose-300 border border-transparent hover:border-rose-800 transition cursor-pointer">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="!dnsRewriteConfig.rules || dnsRewriteConfig.rules.length === 0" class="text-center py-6 text-xs text-slate-500 italic bg-slate-950/40 rounded-2xl border border-dashed border-slate-800">
+                  暂无 DNS 重写规则，点击右上角【添加重写】或【重置默认】快速恢复 Google Play 官方加速重写
+                </div>
+              </div>
+            </div>
+
             <!-- 4-Card 2x2 Grid with 24h Area Charts and Rank -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- Card 1: 平均解析耗时 -->
@@ -3059,8 +3118,8 @@
                 <!-- Tier 2: Body (h-[74px]) -->
                 <div class="h-[74px] text-xs font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
                   <div class="flex items-center justify-between">
-                    <span>当前运行: <strong class="text-cyan-400 font-bold">{{ systemOverview.cubex_version || 'Test v2.2' }}</strong></span>
-                    <span class="text-slate-500">云端最新: <span class="text-slate-300">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v2.2' }}</span></span>
+                    <span>当前运行: <strong class="text-cyan-400 font-bold">{{ systemOverview.cubex_version || 'Test v2.3' }}</strong></span>
+                    <span class="text-slate-500">云端最新: <span class="text-slate-300">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v2.3' }}</span></span>
                   </div>
                   <div class="flex items-center justify-between text-[11px]">
                     <span class="text-slate-400">运行底座: <span class="text-slate-300">{{ hostBadge.name || 'MikroTik RouterOS' }} ({{ hostInfo.architecture || 'amd64' }})</span></span>
@@ -3589,7 +3648,7 @@
         <!-- Drawer Footer -->
         <div class="pt-4 border-t border-sky-900/40 space-y-2">
           <div class="text-[9px] text-slate-500 text-center font-mono">
-            CubeX {{ systemStatus.version || 'Test v2.2' }}
+            CubeX {{ systemStatus.version || 'Test v2.3' }}
           </div>
         </div>
       </div>
@@ -4395,11 +4454,11 @@
             <div class="text-xs font-mono bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60 space-y-1">
               <div class="flex justify-between text-slate-400">
                 <span>当前运行:</span>
-                <strong class="text-cyan-300">{{ systemOverview.cubex_version || 'Test v2.2' }}</strong>
+                <strong class="text-cyan-300">{{ systemOverview.cubex_version || 'Test v2.3' }}</strong>
               </div>
               <div class="flex justify-between text-slate-400">
                 <span>云端 Release:</span>
-                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v2.2' }}</span>
+                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v2.3' }}</span>
               </div>
             </div>
             <button v-if="systemOverview.panel_update_avail" @click="upgradePanel" :disabled="upgradingPanel" class="w-full py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-xs font-bold transition">
@@ -4721,6 +4780,46 @@
 
   </div>
 
+    <!-- Modal: Add / Edit DNS Rewrite Rule -->
+    <div v-if="showDnsRewriteModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
+      <div class="w-full max-w-md rounded-3xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl relative">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <span class="text-cyan-400">🔀</span>
+            <span>{{ editingDnsRewriteRule.id ? '编辑 DNS 重写规则' : '新增 DNS 重写规则' }}</span>
+          </h3>
+          <button @click="showDnsRewriteModal = false" class="text-slate-400 hover:text-white text-lg cursor-pointer">&times;</button>
+        </div>
+
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">原始域名 (Domain)</label>
+            <input type="text" v-model="editingDnsRewriteRule.domain" placeholder="例: services.googleapis.cn 或 nas.lan" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">重写类型 (Rewrite Type)</label>
+            <select v-model="editingDnsRewriteRule.type" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500">
+              <option value="CNAME">CNAME 域名别名重定向 (如 services.googleapis.com)</option>
+              <option value="A">A 记录静态 IP 映射 (如 10.0.0.100)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">重写目标 (Target Domain / IP)</label>
+            <input type="text" v-model="editingDnsRewriteRule.target" placeholder="例: services.googleapis.com 或 10.0.0.100" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">说明备注 (Comment)</label>
+            <input type="text" v-model="editingDnsRewriteRule.comment" placeholder="例: 解决 Google Play 无法下载 App 问题" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500">
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+          <button @click="showDnsRewriteModal = false" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer">取消</button>
+          <button @click="saveDnsRewriteRule" class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold shadow-lg shadow-cyan-500/20 cursor-pointer">保存并立即生效</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal: Add / Edit Domain Filter Rule Source -->
     <div v-if="showRuleSourceModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
       <div class="w-full max-w-md rounded-3xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl relative">
@@ -4744,7 +4843,7 @@
             <label class="block text-slate-300 font-bold mb-1">规则语法格式</label>
             <select v-model="editingRuleSource.type" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
               <option value="adblock">Adblock 语法 / 文本规则 (adblockdns.txt)</option>
-              <option value="mrs">Meta Ruleset 原生二进制 (.mrs)</option>
+              <option value="mrs">Mihomo ruleset 原生二进制 (.mrs)</option>
               <option value="srs">sing-box 原生二进制 (.srs)</option>
               <option value="hosts">标准 Hosts 列表</option>
             </select>
@@ -6172,9 +6271,9 @@ const hostConfig = ref({
 })
 
 const systemOverview = ref({
-  cubex_version: 'Test v2.2',
-  panel_curr_version: 'Test v2.2',
-  panel_latest_version: 'Test v2.2',
+  cubex_version: 'Test v2.3',
+  panel_curr_version: 'Test v2.3',
+  panel_latest_version: 'Test v2.3',
   mihomo_curr_version: 'v1.19.33',
   singbox_curr_version: 'v1.14.3',
   panel_update_avail: false,
@@ -6548,7 +6647,7 @@ const aiLoading = ref(false)
 
 // ── System Status & Last Result ──
 const systemStatus = ref({
-  version: 'Test v2.2',
+  version: 'Test v2.3',
   uptime_seconds: 1420,
   active_engine: 'mihomo',
   tun_interface: 'cubex-tun',
@@ -6856,6 +6955,163 @@ const filterConfig = ref({
   whitelist_domains: ['apple.com']
 })
 
+// ── 🔀 DNS Rewrite State ──
+const dnsRewriteConfig = ref({
+  enabled: true,
+  rules: [
+    {
+      id: 'rw_google_play_services',
+      domain: 'services.googleapis.cn',
+      type: 'CNAME',
+      target: 'services.googleapis.com',
+      comment: '解决 Google Play 无法下载 App 问题 (0% 卡顿)',
+      enabled: true
+    },
+    {
+      id: 'rw_google_developers',
+      domain: 'developers.google.cn',
+      type: 'CNAME',
+      target: 'developers.google.com',
+      comment: '重定向至 Google 开发者海外官方全功能域',
+      enabled: true
+    }
+  ]
+})
+
+const showDnsRewriteModal = ref(false)
+const editingDnsRewriteRule = ref({
+  id: '',
+  domain: '',
+  type: 'CNAME',
+  target: '',
+  comment: '',
+  enabled: true
+})
+
+const fetchDnsRewriteConfig = async () => {
+  try {
+    const res = await fetch('/api/v1/dns/rewrite/config')
+    if (res.ok) {
+      const data = await res.json()
+      if (data) dnsRewriteConfig.value = data
+    }
+  } catch (e) {
+    console.error('Fetch DNS rewrite failed:', e)
+  }
+}
+
+const toggleDnsRewriteMaster = async () => {
+  try {
+    const res = await fetch('/api/v1/dns/rewrite/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: dnsRewriteConfig.value.enabled })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast(dnsRewriteConfig.value.enabled ? '🔀 DNS 重写已生效' : '⚠️ DNS 重写已暂停')
+      if (data.config) dnsRewriteConfig.value = data.config
+    }
+  } catch (e) {
+    showToast('切换失败: ' + e.message, 'error')
+  }
+}
+
+const toggleDnsRewriteRule = async (rule) => {
+  try {
+    const res = await fetch('/api/v1/dns/rewrite/rule/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: rule.id, enabled: rule.enabled })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast(`规则 [${rule.domain}] 已${rule.enabled ? '启用' : '停用'}`)
+      if (data.config) dnsRewriteConfig.value = data.config
+    }
+  } catch (e) {
+    showToast('操作失败: ' + e.message, 'error')
+  }
+}
+
+const resetDnsRewriteDefaults = async () => {
+  if (!confirm('确定要恢复默认 DNS 重写设置吗？将重置为两条官方 Google Play 重写规则。')) return
+  try {
+    const res = await fetch('/api/v1/dns/rewrite/reset', { method: 'POST' })
+    const data = await res.json()
+    if (data.ok) {
+      showToast('🎉 DNS 重写规则已恢复默认！Google Play 0% 问题已修复')
+      if (data.config) dnsRewriteConfig.value = data.config
+    }
+  } catch (e) {
+    showToast('重置失败: ' + e.message, 'error')
+  }
+}
+
+const openAddDnsRewriteModal = () => {
+  editingDnsRewriteRule.value = {
+    id: '',
+    domain: '',
+    type: 'CNAME',
+    target: '',
+    comment: '',
+    enabled: true
+  }
+  showDnsRewriteModal.value = true
+}
+
+const openEditDnsRewriteModal = (rule) => {
+  editingDnsRewriteRule.value = { ...rule }
+  showDnsRewriteModal.value = true
+}
+
+const saveDnsRewriteRule = async () => {
+  const d = editingDnsRewriteRule.value.domain?.trim()
+  const t = editingDnsRewriteRule.value.target?.trim()
+  if (!d || !t) {
+    showToast('请完整填写原始域名与重写目标', 'error')
+    return
+  }
+  const isEdit = !!editingDnsRewriteRule.value.id
+  const endpoint = isEdit ? '/api/v1/dns/rewrite/rule/update' : '/api/v1/dns/rewrite/rule/add'
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editingDnsRewriteRule.value)
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast(isEdit ? 'DNS 重写规则修改成功' : '新增 DNS 重写规则成功')
+      if (data.config) dnsRewriteConfig.value = data.config
+      showDnsRewriteModal.value = false
+    } else {
+      showToast(`⚠️ ${data.error || '保存失败'}`, 'warn')
+    }
+  } catch (e) {
+    showToast('保存异常: ' + e.message, 'error')
+  }
+}
+
+const deleteDnsRewriteRule = async (rule) => {
+  if (!confirm(`确定要删除规则 [${rule.domain} -> ${rule.target}] 吗？`)) return
+  try {
+    const res = await fetch('/api/v1/dns/rewrite/rule/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: rule.id })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast(`已删除重写规则: ${rule.domain}`)
+      if (data.config) dnsRewriteConfig.value = data.config
+    }
+  } catch (e) {
+    showToast('删除失败: ' + e.message, 'error')
+  }
+}
+
+
 const showWhitelistSection = ref(true)
 const newWhitelistDomain = ref('')
 const showRuleSourceModal = ref(false)
@@ -6881,6 +7137,7 @@ const toggleFilterMaster = async () => {
     if (data.ok) {
       showToast(filterConfig.value.enabled ? '🛡️ 域名过滤已开启' : '⚠️ 域名过滤已关闭')
       fetchDnsFilterStats()
+  fetchDnsRewriteConfig()
     }
   } catch (e) {
     showToast('切换失败: ' + e.message, 'error')
@@ -7763,7 +8020,7 @@ async function triggerOneClickHotUpgrade(force = true) {
       showToast(`🎉 恭喜！CubeX 控制面已平滑热更完成 (${data.version})，3秒后自动刷新网页...`)
       setTimeout(() => location.reload(), 3000)
     } else if (data.status === 'already_latest') {
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v2.2'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v2.3'})`)
     } else {
       showToast(`❌ 热更失败: ${data.error || data.message || '未知异常'}`)
     }
@@ -7787,7 +8044,7 @@ async function upgradePanel(force = false) {
       setTimeout(() => location.reload(), 3000)
     } else if (data.status === 'already_latest') {
       const timeStr = new Date().toLocaleTimeString()
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v2.2'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v2.3'})，无需重复更新。`
       showToast(data.message || 'CubeX 系统已是最新版本')
     } else {
       panelUpgradeLog.value = `❌ 热更反馈异常: ${data.error || data.message || '未知异常'}`

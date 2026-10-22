@@ -199,11 +199,34 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"inet6_range": "fc00::/18",
 			},
 		},
-		"rules": []map[string]any{
-			{
-				"domain_suffix": []string{".lan", ".local", ".home", ".internal", ".home.arpa"},
-				"server":        "dns-local",
-			},
+		"rules": func() []map[string]any {
+			rules := make([]map[string]any, 0)
+			if ir.DNSRewriteEnabled {
+				for _, rw := range ir.DNSRewrites {
+					if !rw.Enabled || rw.Domain == "" || rw.Target == "" {
+						continue
+					}
+					domainClean := strings.TrimSuffix(strings.ToLower(rw.Domain), ".")
+					targetClean := strings.TrimSuffix(rw.Target, ".")
+					var rr string
+					if rw.Type == schema.DNSRewriteTypeCNAME || (!isIPAddress(targetClean) && rw.Type != schema.DNSRewriteTypeA) {
+						rr = fmt.Sprintf("%s. 300 IN CNAME %s.", domainClean, targetClean)
+					} else {
+						rr = fmt.Sprintf("%s. 300 IN A %s", domainClean, targetClean)
+					}
+					rules = append(rules, map[string]any{
+						"domain": []string{domainClean},
+						"action": "predefined",
+						"rcode":  "NOERROR",
+						"answer": []string{rr},
+					})
+				}
+			}
+			baseRules := []map[string]any{
+				{
+					"domain_suffix": []string{".lan", ".local", ".home", ".internal", ".home.arpa"},
+					"server":        "dns-local",
+				},
 			{
 				"domain_regex": []string{"^[^.]+$"},
 				"server":       "dns-local",
@@ -286,7 +309,9 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"query_type": []string{"A", "AAAA"},
 				"server":     "dns-fakeip",
 			},
-		},
+			}
+			return append(rules, baseRules...)
+		}(),
 		"final":           "dns-remote",
 		"reverse_mapping": true,
 		"strategy":        "prefer_ipv4",

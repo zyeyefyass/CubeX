@@ -5,7 +5,7 @@
   # 🌌 CubeX · 宿主共生零感网络系统 (Host-Symbiotic Zero-Perception Gateway)
   ### *单二进制纯自研 · 告别传统重型虚机旁路 · 极致轻量低开销 · 300ms 冷启 · 宛如物理肉身直连全球互联网的终极共生体*
 
-  [![Version](https://img.shields.io/badge/Release-Test_v2.2-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
+  [![Version](https://img.shields.io/badge/Release-Test_v2.3-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
   [![License](https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield)](COPYRIGHT.md)
   [![Dual-Engine](https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go)](https://github.com/zyeyefyass/CubeX)
   [![Host Base](https://img.shields.io/badge/Host-RouterOS_v7_%7C_fnOS_%7C_PVE_%7C_Docker-3A86FF?style=for-the-badge)](#)
@@ -31,24 +31,26 @@
 
 <a id="announcement"></a>
 > [!TIP]
-> ### 📢 小伙伴们请立即一键平滑升级 Test v2.2（全新【域名过滤与规则订阅中枢】· 自定义规则源与放行白名单 · 自动化闲时静默热载 · DoT 853 侧漏封杀实战版）！
+> ### 📢 小伙伴们请立即一键平滑升级 Test v2.3（全新【DNS 重写中枢】· 域名别名 CNAME 重定向与 Google Play 0% 极速通解 · 静态 IP A 记录映射 · 纯净侧边栏与内核 ANSI 脱敏实战版）！
 > **致所有追求极致软路由稳定性、高并发吞吐与视觉体验的极客老铁们：**
 > 
-> 在经过多环境深度实机排查与业务分流架构演进后，**CubeX Test v2.2 正式重磅发布**！  
-> 本版本针对去广告防御中枢、自定义规则源订阅、连接跟踪治理、DoT 侧漏拦截与全栈架构进行了全面跃升与纯净化加固：
+> 在经过多环境深度实机排查与业务分流架构演进后，**CubeX Test v2.3 正式重磅发布**！  
+> 本版本针对 DNS 别名重写、局域网免 hosts 静态解析、左侧边栏高净空净化、终端日志 ANSI 深度脱敏与双核全栈架构进行了全面跃升与纯净化加固：
 > 
-> * 🛡️ **全新「域名过滤与广告防御中枢」重磅上线**：
->   * 支持多规则源订阅与自由开关，预置 217heidai 权威旗舰源，支持一键 `[+] 添加规则源`（完美支持 Adblock 语法、原生二进制 MRS/SRS、Hosts 格式）；
->   * 卡片流直观展示规则数统计、更新时间、查看详情、立即更新与编辑删除操作；
->   * 提供自动化闲时静默热重载调度器（每日/每周自选闲时如 `06:00`），内核自动加载新名单不重启；
->   * 增加 **「放行域名 (白名单)」** 折叠管理器，支持输入业务域名一键加白放行，双核（Mihomo × sing-box）顶层抢先直通，彻底消灭去广告误杀烦恼！
-> * 🧹 **Conntrack 清道夫后台守护协程与双核无感切换调和**：
->   * 启动、周期（每15分钟）及双核热切换后自动清算 RouterOS 连接跟踪表中的超时 `198.18.0.0/15` Fake-IP 僵尸连接；
->   * 开放 `/api/v1/ros/conntrack/clean` 接口，彻底解决旧连接超时心跳导致的 `missing fakeip record` 刷屏顽疾。
-> * 🔒 **DoT (TCP/UDP 853) 私有侧漏防线**：
->   * 在 RouterOS 防火墙生成脚本与初始化安装脚本中注入 853 端口 reject 规则，阻断 Chrome/Firefox/Android 私有 DNS 绕过 Fake-IP 直连的隐蔽泄露。
-> * 🧭 **主网关 + 旁路 DNS 黄金创新与原生折叠式快速直达目录全面固化**：
->   * 标杆性阐明「主网关 + 旁路 DNS」黄金解耦架构，全域 19 大章节配置原生折叠式快速直达目录，点击秒级定位。
+> * 🔀 **全新「DNS 重写中枢 (域名别名重定向 & 静态 IP 映射)」震撼上线**：
+>   * **CNAME 别名重定向**：支持将特定域名映射至海外全功能目标域名（预置 `services.googleapis.cn -> services.googleapis.com` 与 `developers.google.cn -> developers.google.com`），彻底根除 Android Google Play 商店应用下载与更新 0% 卡顿死锁问题（因国内节点不可用，强制重写至海外全球域后通过节点加速秒级直通下载）；
+>   * **A 记录静态 IP 映射**：支持将域名直接解析为固定 IP（如 `nas.lan -> 10.0.0.100`、`router.box -> 10.0.0.1`、`pve.home -> 10.0.0.2`），全屋局域网设备自建免 hosts 静态域名解析，免除逐台设备配置 hosts 的繁琐；
+>   * **双核引擎底层原生硬核加固**：Mihomo 顶层 `hosts` 动态编排，sing-box v1.14+ RFC 1035 标准 `action: predefined` 极速预定义拦截，秒级热重载生效，0 明文侧漏；
+>   * **可视化交互控制**：全局总控开关、状态徽章、一键 `[↺ 重置默认]`、`[➕ 添加重写]` 弹窗表单、单条规则启闭切换与编辑删除。
+> * 🛡️ **全新「域名过滤与广告防御中枢」持续优化**：
+>   * 支持多规则源订阅与自由开关，预置 217heidai 权威旗舰源（22+ 万条防御规则），完美支持 Adblock 语法、Mihomo ruleset 原生二进制 (.mrs)、sing-box 原生二进制 (.srs) 与 Hosts 格式；
+>   * 提供自动化闲时静默热重载调度器与智能白名单放行机制（如 `apple.com`），确保 0 误杀。
+> * 🎨 **左侧边栏高净空净化**：
+>   * 彻底移除左侧边栏底部占用空间的“视觉模式”冗余卡片，保持侧边栏导航的高净空与专注感；顶栏视效胶囊与快捷切换完整保留。
+> * 🛡️ **双核引擎实时日志终端 ANSI 深度脱敏与格式净化**：
+>   * 底层 Ring Buffer 引入全局 ANSI 终端控制符剥离引擎，彻底消除 `^[[33mWARN^[[0m` 字符乱码；针对 sing-box 容器环境日志自动剥离重复时间戳与等级前缀，实时日志看板清爽直观。
+> * 💬 **极客畅所欲言区规范修正**：
+>   * 文案精准修正为“CubeX 从一个单二进制雏形走到今天已发布最新版的双引擎融合共生体，离不开每一位极客玩家的测试与真实反馈。此版本已经完全达到了设计初衷与高可用指标，距离最终正式稳定版（Stable v1.0）仅有一步之遥！”
 > 
 ---
 
@@ -309,6 +311,43 @@
    - **底层防火墙开放度差异**：RouterOS 是一套完整开放的“工业级网络操作系统”，开放了对 Linux 内核 Netfilter（Raw/Mangle/Filter/NAT）的完全编排权限；而爱快是封闭式商业流控固件，不提供 Root Shell 终端，且防火墙为固定功能模块，**不支持由外部程序动态注入自定义 iptables 规则链**；
    - **IPv6 毫秒级拒答**：RouterOS 支持精准配置 `/ipv6/firewall/filter dst-address=2000::/3 action=reject`；而在爱快中，无法通过 API 注入这样一条精确的底座 reject 规则，防海外 IPv6 卡顿主要由 CubeX 容器内核的 Fake-IP 与 IPv4-First 机制完成；
    - **逃生机制差异**：RouterOS 拥有内置任务计划与 Netwatch 探针脚本，容器一旦假死，RouterOS 会在 3 秒内自动执行脚本剔除路由；而爱快没有可编程脚本引擎。**但幸运的是，由于 CubeX 采用「主网关 + 旁路 DNS」黄金解耦架构，终端网关始终是爱快物理路由，即使 CubeX 容器停止，爱快物理拨号与全家国内网络也永远 100% 畅通，绝不会像传统旁路由那样直接拉崩全家！**
+
+---
+
+
+<a id="dns-rewrite-hub"></a>
+## 🔀 DNS 重写中枢：域名别名 CNAME 重定向与 静态 IP 映射深度剖析
+
+CubeX 在 Test v2.3 中引入了划时代的 **DNS 重写中枢 (DNS Rewrite Hub)**，支持两类关键场景的秒级重定向：
+
+```
+                    ┌──────────────────────────────────────────────┐
+                    │          CubeX DNS 重写中枢 (双核驱动)        │
+                    └──────────────────────┬───────────────────────┘
+                                           │
+                ┌──────────────────────────┴──────────────────────────┐
+                ▼                                                     ▼
+    【模式 A：CNAME 域名别名重定向】                     【模式 B：A 记录静态 IP 映射】
+ ┌──────────────────────────────────────┐          ┌──────────────────────────────────────┐
+ │ services.googleapis.cn               │          │ nas.lan   ───────► 10.0.0.100        │
+ │            │                         │          │ router.box ──────► 10.0.0.1          │
+ │            ▼ (重写为)                │          │ pve.home  ───────► 10.0.0.2          │
+ │ services.googleapis.com (海外加速域)  │          ├──────────────────────────────────────┤
+ ├──────────────────────────────────────┤          │ 价值：全屋免配 hosts 静态局域网访问  │
+ │ 价值：彻底根除 Google Play 0% 死锁  │          │ 双核直出，局域网极速响应 <1ms       │
+ └──────────────────────────────────────┘          └──────────────────────────────────────┘
+```
+
+### 1. CNAME 域名别名重定向（彻底解决 Google Play 0% 卡死）
+* **痛点根源**：在国内网络环境中，Android 设备使用 Google Play 商店下载或更新 App 时，设备默认会查询 `services.googleapis.cn`。由于该域名解析出的国内 IP 无法直连 Google 官方下载 CDN，导致下载进度永久卡死在 0%！
+* **CubeX 解决之道**：DNS 重写中枢将 `services.googleapis.cn` 抢先重写为 `services.googleapis.com`。随后请求直接命中海外规则分流，经由高速加密代理节点直通全球 CDN，下载速度瞬间拉满！
+* **双核底层实现**：
+  * **Mihomo 引擎**：自动注入顶层 `hosts` 映射表，`services.googleapis.cn: services.googleapis.com` 原生 CNAME 递归解析；
+  * **sing-box v1.14+ 引擎**：在 `dns.rules` 顶层注入 RFC 1035 标准 `action: "predefined"`，返回 `services.googleapis.cn. 300 IN CNAME services.googleapis.com.`，毫秒级响应。
+
+### 2. A 记录静态 IP 映射（全屋局域网设备免 hosts 静态域名解析）
+* **应用场景**：在家庭或办公网络中，私有服务如 NAS、PVE、主路由 Web 管理端通常采用固定内网 IP。
+* **CubeX 解决之道**：用户可直接在 Web 面板添加 `nas.lan -> 10.0.0.100` 或 `pve.home -> 10.0.0.2`。无论手机、平板、电视或 PC，只要连接 CubeX 网关，即可通过自定义域名直接访问，免除在每台设备上繁琐修改 `/etc/hosts` 或 Windows hosts 文件的痛苦！
 
 ---
 
@@ -791,9 +830,9 @@ cubex restart   # 重新启动守护进程
 
 > [!IMPORTANT]
 > **“独行快，众行远。”**  
-> CubeX 从一个单二进制雏形走到今天 Test v1.1 的双引擎融合共生体，离不开每一位极客玩家的测试与真实反馈。
+> CubeX 从一个单二进制雏形走到今天已发布最新版的双引擎融合共生体，离不开每一位极客玩家的测试与真实反馈。
 
-此版本已经**完全达到了设计初衷与高可用指标**，距离最终正式稳定版（v1.0）仅有一步之遥！我们真诚地期待听到您的声音：
+此版本已经**完全达到了设计初衷与高可用指标**，距离最终正式稳定版（Stable v1.0）仅有一步之遥！我们真诚地期待听到您的声音：
 
 * 💡 **您在实际使用中遇到了哪些奇葩网络拓扑？**（例如：多 WAN 叠加、PPPoE 定时重拨、特定游戏主机 NAT 类型限制？）
 * 💡 **在 UI 交互与数据看板上，您还希望看到哪些维度的图表或快捷控制？**

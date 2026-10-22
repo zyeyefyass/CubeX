@@ -248,13 +248,21 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 	cfg["dns"] = dnsMap
 
-	// Static DNS bootstrap hosts mapping (avoids circular resolution dependency)
-	cfg["hosts"] = map[string]any{
+	// Static DNS bootstrap hosts mapping & DNS Rewrite rules
+	hostsMap := map[string]any{
 		"dns.google":         []string{"8.8.8.8", "8.8.4.4"},
 		"cloudflare-dns.com": []string{"1.1.1.1", "1.0.0.1"},
 		"dns.alidns.com":     []string{"223.5.5.5", "223.6.6.6"},
 		"doh.pub":            []string{"1.12.12.12", "120.53.53.53"},
 	}
+	if ir.DNSRewriteEnabled {
+		for _, rw := range ir.DNSRewrites {
+			if rw.Enabled && rw.Domain != "" && rw.Target != "" {
+				hostsMap[rw.Domain] = rw.Target
+			}
+		}
+	}
+	cfg["hosts"] = hostsMap
 
 	// Build map of disabled or exhausted subscriptions
 	disabledSubIDs := make(map[string]bool)

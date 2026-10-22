@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"regexp"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -360,6 +361,8 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 		module = "MIHOMO"
 	}
 
+	ansiStripRegex := regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07`)
+
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
@@ -371,8 +374,10 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 			fmt.Fprintln(os.Stdout, line)
 		}
 
+		cleanLine := ansiStripRegex.ReplaceAllString(line, "")
+
 		level := "INFO"
-		lower := strings.ToLower(line)
+		lower := strings.ToLower(cleanLine)
 		if strings.Contains(lower, "error") || strings.Contains(lower, "fatal") || strings.Contains(lower, "panic") || strings.Contains(lower, "fail") {
 			level = "ERROR"
 		} else if strings.Contains(lower, "warn") {
@@ -381,7 +386,19 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 			level = "DEBUG"
 		}
 
-		m.log(level, module, line)
+		// Strip redundant timestamp & level prefix from sing-box lines
+		displayMsg := cleanLine
+		if strings.HasPrefix(displayMsg, "+") && len(displayMsg) > 26 {
+			displayMsg = strings.TrimSpace(displayMsg[26:])
+		}
+		for _, pfx := range []string{"WARN ", "ERROR ", "INFO ", "DEBUG "} {
+			if strings.HasPrefix(strings.ToUpper(displayMsg), pfx) {
+				displayMsg = strings.TrimSpace(displayMsg[len(pfx):])
+				break
+			}
+		}
+
+		m.log(level, module, displayMsg)
 	}
 }
 

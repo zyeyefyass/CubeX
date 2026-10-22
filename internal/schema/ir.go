@@ -38,6 +38,8 @@ type ConfigIR struct {
 	Profiles       []Profile        `json:"profiles" yaml:"profiles"`
 	AdBlockWhitelist []string       `json:"adblock_whitelist,omitempty" yaml:"adblock_whitelist,omitempty"`
 	AdBlockEnabled   bool           `json:"adblock_enabled" yaml:"adblock_enabled"`
+	DNSRewriteEnabled bool          `json:"dns_rewrite_enabled" yaml:"dns_rewrite_enabled"`
+	DNSRewrites       []DNSRewriteRule `json:"dns_rewrites,omitempty" yaml:"dns_rewrites,omitempty"`
 	UpdatedAt      time.Time        `json:"updated_at" yaml:"updated_at"`
 }
 
@@ -313,3 +315,21 @@ func WriteFileAtomicSecure(destPath string, data []byte) error {
 	return os.Rename(tmpPath, destPath)
 }
 
+
+
+type DNSRewriteType string
+
+const (
+	DNSRewriteTypeCNAME DNSRewriteType = "CNAME"
+	DNSRewriteTypeA     DNSRewriteType = "A"
+)
+
+type DNSRewriteRule struct {
+	ID        string         `json:"id" yaml:"id"`
+	Domain    string         `json:"domain" yaml:"domain"`
+	Type      DNSRewriteType `json:"type" yaml:"type"`
+	Target    string         `json:"target" yaml:"target"`
+	Comment   string         `json:"comment" yaml:"comment"`
+	Enabled   bool           `json:"enabled" yaml:"enabled"`
+	CreatedAt string         `json:"created_at" yaml:"created_at"`
+}
