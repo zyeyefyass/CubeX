@@ -3165,34 +3165,50 @@
                     <span>⚙️</span>
                     <span>双代理内核 (Mihomo & sing-box)</span>
                   </div>
-                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40">双核合璧 · 秒级热备</span>
+                  <span v-if="upgradingCoreMihomo || upgradingCoreSingbox" class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40 flex items-center gap-1 shadow-sm">
+                    <span class="inline-block animate-spin text-[9px]">↻</span>
+                    <span>内核热更中...</span>
+                  </span>
+                  <span v-else-if="systemOverview.mihomo_update_avail || systemOverview.singbox_update_avail" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse flex items-center gap-1 shadow-sm">
+                    <span>⚠️ 发现新版本 (建议自决)</span>
+                  </span>
+                  <span v-else class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span>✓ 内核已是最新版</span>
+                  </span>
                 </div>
                 <!-- Tier 2: Body (h-[74px]) -->
                 <div class="h-[74px] text-[11px] font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
                   <div class="flex items-center justify-between">
                     <span>Mihomo 内核: <strong class="text-emerald-400 font-semibold">{{ systemOverview.mihomo_curr_version || 'v1.19.33' }}</strong></span>
-                    <span class="text-slate-500">官方最新: <span class="text-slate-300">{{ systemOverview.mihomo_latest_version || 'v1.19.33' }}</span></span>
+                    <span class="text-slate-500">官方最新: <span :class="systemOverview.mihomo_update_avail ? 'text-amber-400 font-bold' : 'text-slate-300'">{{ systemOverview.mihomo_latest_version || 'v1.19.33' }}</span></span>
                   </div>
                   <div class="flex items-center justify-between">
                     <span>sing-box 内核: <strong class="text-emerald-400 font-semibold">{{ systemOverview.singbox_curr_version || 'v1.14.3' }}</strong></span>
-                    <span class="text-slate-500">官方最新: <span class="text-slate-300">{{ systemOverview.singbox_latest_version || 'v1.14.3' }}</span></span>
+                    <span class="text-slate-500">官方最新: <span :class="systemOverview.singbox_update_avail ? 'text-amber-400 font-bold' : 'text-slate-300'">{{ systemOverview.singbox_latest_version || 'v1.14.3' }}</span></span>
                   </div>
                 </div>
                 <!-- Tier 3: Action Buttons (h-10) -->
                 <div class="h-10 grid grid-cols-2 gap-2">
-                  <button @click="upgradeCore('mihomo')" :disabled="upgradingCoreMihomo" class="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1">
+                  <button @click="upgradeCore('mihomo')" :disabled="upgradingCoreMihomo" class="h-10 rounded-xl border font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1"
+                    :class="systemOverview.mihomo_update_avail ? 'bg-amber-600/20 hover:bg-amber-600/30 border-amber-500/50 text-amber-200 shadow-sm' : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200'">
                     <span v-if="upgradingCoreMihomo" class="inline-block animate-spin mr-1">↻</span>
-                    <span>{{ upgradingCoreMihomo ? '核对中...' : '⬆ 升级 Mihomo' }}</span>
+                    <span>{{ upgradingCoreMihomo ? '核对中...' : (systemOverview.mihomo_update_avail ? '⬆ 升级 Mihomo (自决)' : '⬆ 升级 Mihomo') }}</span>
                   </button>
-                  <button @click="upgradeCore('singbox')" :disabled="upgradingCoreSingbox" class="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1">
+                  <button @click="upgradeCore('singbox')" :disabled="upgradingCoreSingbox" class="h-10 rounded-xl border font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1"
+                    :class="systemOverview.singbox_update_avail ? 'bg-amber-600/20 hover:bg-amber-600/30 border-amber-500/50 text-amber-200 shadow-sm' : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200'">
                     <span v-if="upgradingCoreSingbox" class="inline-block animate-spin mr-1">↻</span>
-                    <span>{{ upgradingCoreSingbox ? '核对中...' : '⬆ 升级 sing-box' }}</span>
+                    <span>{{ upgradingCoreSingbox ? '核对中...' : (systemOverview.singbox_update_avail ? '⬆ 升级 sing-box (自决)' : '⬆ 升级 sing-box') }}</span>
                   </button>
                 </div>
                 <!-- Tier 4: Terminal Viewport (h-[62px]) -->
                 <div class="h-[62px] p-2 rounded-xl bg-slate-950/80 border border-slate-700/60 text-[11px] font-mono text-slate-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center">
                   <div v-if="coreUpgradeLog" class="w-full break-words">
                     {{ coreUpgradeLog }}
+                  </div>
+                  <div v-else-if="systemOverview.mihomo_update_avail || systemOverview.singbox_update_avail" class="w-full text-amber-300 text-[11px] leading-snug flex items-start gap-1.5 bg-amber-950/40 p-1.5 rounded-lg border border-amber-500/30">
+                    <span class="text-amber-400 shrink-0 text-xs font-bold">⚠️ 提示:</span>
+                    <span>请自行决定是否更新到最新版，因为更新会由于配置文件语法、特性、功能等未对齐可能影响使用。</span>
                   </div>
                   <div v-else class="text-slate-400 text-xs flex items-center gap-2">
                     <span class="text-emerald-400 font-bold shrink-0">[CORE]</span>
@@ -3226,13 +3242,19 @@
                   </div>
                 </div>
                 <!-- Tier 3: Action Buttons (h-10) -->
-                <div class="h-10 flex gap-2">
-                  <button @click="updateGeoData" :disabled="updatingGeo" class="flex-1 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/20">
-                    <span v-if="updatingGeo" class="inline-block animate-spin mr-1">↻</span>
-                    <span>{{ updatingGeo ? `⏳ 正在全速同步 ${geodataStatus.rules_count || 101} 套规则包...` : '🔄 一键更新全套 Geo 与去广告规则库' }}</span>
+                <div class="h-10 grid grid-cols-[1.25fr_1fr] gap-2">
+                  <button @click="updateGeoData" :disabled="updatingGeo" class="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span v-if="updatingGeo" class="inline-block animate-spin mr-0.5">↻</span>
+                    <svg v-else class="w-3.5 h-3.5 text-emerald-200 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span class="truncate">{{ updatingGeo ? '正在全量同步...' : '一键更新全套规则' }}</span>
                   </button>
-                  <button @click="showGeodataDetailModal = true" :title="`查看 ${geodataStatus.rules_count || 101} 套规则清单与更新明细`" class="px-3 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-xs font-bold transition flex items-center justify-center cursor-pointer">
-                    📋
+                  <button @click="showGeodataDetailModal = true" :title="`查看全量 ${geodataStatus.rules_count || 101} 套 217heidai / MRS / SRS 离线规则清单与生效状态`" class="h-10 px-2 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 hover:text-cyan-300 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-98 group">
+                    <svg class="w-3.5 h-3.5 text-cyan-400 group-hover:text-cyan-300 shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span class="truncate">101 套规则清单</span>
                   </button>
                 </div>
                 <!-- Tier 4: Terminal Viewport (h-[62px]) -->
@@ -3256,10 +3278,16 @@
                     <span v-else>{{ hostBadge.icon }}</span>
                     <span>{{ isRouterOS ? 'MikroTik RouterOS 固件系统版本' : (hostBadge.name + ' 宿主系统版本') }}</span>
                   </div>
-                  <span v-if="hostUpgradeDetails.checked && hostUpgradeDetails.hasUpdate" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse">发现新固件 {{ hostUpgradeDetails.latestVersion }}</span>
-                  <span v-else-if="hostUpgradeDetails.checked && !hostUpgradeDetails.hasUpdate" class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">✓ 已是最新稳定版</span>
-                  <span v-else :class="['text-[10px] font-mono px-2 py-0.5 rounded border', isRouterOS ? 'bg-purple-950 text-purple-300 border-purple-500/40' : 'bg-cyan-950 text-cyan-300 border-cyan-500/40']">
-                    {{ isRouterOS ? 'ROS v7 官方升级通道' : (hostBadge.shortName + ' 系统通道') }}
+                  <span v-if="checkingHostUpgrade" class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40 flex items-center gap-1 shadow-sm">
+                    <span class="inline-block animate-spin text-[9px]">↻</span>
+                    <span>固件通道核对中...</span>
+                  </span>
+                  <span v-else-if="hostUpgradeDetails.hasUpdate" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse flex items-center gap-1 shadow-sm">
+                    <span>🚀 发现新固件 {{ hostUpgradeDetails.latestVersion }}</span>
+                  </span>
+                  <span v-else class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span>✓ 已是最新稳定版</span>
                   </span>
                 </div>
                 <!-- Tier 2: Body (h-[74px]) -->
@@ -7897,6 +7925,11 @@ async function upgradePanel(force = false) {
 }
 
 async function upgradeCore(type) {
+  const latestVer = type === 'mihomo' ? systemOverview.value?.mihomo_latest_version : systemOverview.value?.singbox_latest_version
+  const confirmMsg = `【内核升级自主决策确认】\n\n确定要升级 ${type} 内核吗？${latestVer ? `(最新目标版本: ${latestVer})` : ''}\n\n⚠️ 重要提示：请自行决定是否更新到最新版，因为更新会由于配置文件语法、特性、功能等未对齐可能影响使用。\n\n是否确认继续升级？`
+  if (!confirm(confirmMsg)) {
+    return
+  }
   if (type === 'mihomo') upgradingCoreMihomo.value = true
   if (type === 'singbox') upgradingCoreSingbox.value = true
   coreUpgradeLog.value = `🔍 正在核对 ${type} 官方 Release 最新稳定版与 musl 兼容架构...`
@@ -8003,19 +8036,23 @@ async function probeAllFourDimensions() {
   }
 }
 
-async function checkHostUpgrade() {
+async function checkHostUpgrade(silent = false) {
   checkingHostUpgrade.value = true
   hostUpgradeCheckTime.value = new Date().toLocaleTimeString()
   hostUpgradeResult.value = `⏳ 正在通过 ${isRouterOS.value ? 'RouterOS REST API' : hostBadge.value.name + ' 宿主底座'} 连线官方升级通道核对固件更新...`
   const hostLabel = isRouterOS.value ? 'RouterOS REST API' : (hostBadge.value.name + ' 宿主底座')
-  showToast(`正在通过 ${hostLabel} 检查系统与固件升级通道...`)
+  if (!silent) {
+    showToast(`正在通过 ${hostLabel} 检查系统与固件升级通道...`)
+  }
   try {
     const res = await fetch('/api/v1/host/upgrade/check')
     const data = await res.json()
     hostUpgradeCheckTime.value = new Date().toLocaleTimeString()
     if (data.error) {
       hostUpgradeResult.value = `⚠️ 检查反馈: ${data.error}`
-      showToast('⚠️ 检查反馈: ' + data.error)
+      if (!silent) {
+        showToast('⚠️ 检查反馈: ' + data.error)
+      }
       hostUpgradeDetails.value.checked = true
       hostUpgradeDetails.value.message = data.error
     } else {
@@ -8032,11 +8069,15 @@ async function checkHostUpgrade() {
         hostInfo.value.os_name = `MikroTik RouterOS ${data.installed_version} (${data.channel || 'stable'})`
       }
       hostUpgradeResult.value = data.output || (isRouterOS.value ? `RouterOS 固件已是最新稳定版本 (${data.installed_version || '7.24.5'} stable)` : hostBadge.value.shortName + ' 已是最新版本')
-      showToast(data.has_update ? `🎉 发现 RouterOS 新版本: ${data.latest_version}！` : `✓ 固件核对完成：已是最新稳定版本 (${data.installed_version || '7.24.5'})`)
+      if (!silent) {
+        showToast(data.has_update ? `🎉 发现 RouterOS 新版本: ${data.latest_version}！` : `✓ 固件核对完成：已是最新稳定版本 (${data.installed_version || '7.24.5'})`)
+      }
     }
   } catch (e) {
     hostUpgradeResult.value = `⚠️ 检查连接失败: ${e.message}`
-    showToast('⚠️ 检查连接失败: ' + e.message)
+    if (!silent) {
+      showToast('⚠️ 检查连接失败: ' + e.message)
+    }
   } finally {
     checkingHostUpgrade.value = false
   }
@@ -11463,6 +11504,8 @@ onMounted(async () => {
     }
     // Fetch GeoData & 217heidai status
     fetchGeoDataStatus()
+    // Fetch Host Firmware Update status in background (silent probe)
+    checkHostUpgrade(true)
     if (hostRes.status === 'fulfilled' && hostRes.value) {
       hostInfo.value = { ...hostInfo.value, ...hostRes.value }
     }
