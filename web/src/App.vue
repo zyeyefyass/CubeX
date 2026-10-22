@@ -3267,14 +3267,15 @@
               <!-- 3. Geo 规则数据库与离线分流体系 -->
               <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
                 <!-- Tier 1: Header (h-7) -->
-                <div class="h-7 flex justify-between items-center">
-                  <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                <div class="h-7 flex justify-between items-center gap-2">
+                  <div class="text-xs font-bold text-white flex items-center gap-1.5 shrink-0">
                     <span>📚</span>
-                    <span>Geo 规则库 & 离线智能分流</span>
+                    <span>Geo 规则体系</span>
                   </div>
-                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                    <span>{{ (geodataStatus.total_rules || adblockStats.total_rules || 240005).toLocaleString() }} 条规则生效</span>
+                  <span :title="`基础离线库 (geoip/geosite) + ${geodataStatus.rules_count || 105} 套策略规则集 + 217heidai 权威去广告已全量生效（共 ${(geodataStatus.total_rules || 240005).toLocaleString()} 条规则）`"
+                    class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm shrink-0 truncate">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                    <span class="truncate">基础库 · 策略规则集 · 去广告 全量生效</span>
                   </span>
                 </div>
                 <!-- Tier 2: Body (h-[74px]) -->
