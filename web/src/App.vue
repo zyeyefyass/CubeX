@@ -3270,38 +3270,38 @@
                 <div class="h-7 flex justify-between items-center">
                   <div class="text-xs font-bold text-white flex items-center gap-1.5">
                     <span>📚</span>
-                    <span>Geo 数据库 & 217heidai 规则包</span>
+                    <span>Geo 规则库 & 离线智能分流</span>
                   </div>
                   <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                    <span>{{ (geodataStatus.total_rules || adblockStats.total_rules || 236255).toLocaleString() }} 条规则生效</span>
+                    <span>{{ (geodataStatus.total_rules || adblockStats.total_rules || 240005).toLocaleString() }} 条规则生效</span>
                   </span>
                 </div>
                 <!-- Tier 2: Body (h-[74px]) -->
                 <div class="h-[74px] text-[11px] font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
                   <div class="flex justify-between items-center">
                     <span>离线基础库: <span class="text-slate-300">geoip.metadb + geosite.dat</span></span>
-                    <span class="text-emerald-400 font-semibold">✓ 已就绪 ({{ geodataStatus.geoip_size_str && geodataStatus.geosite_size_str ? (geodataStatus.geoip_size_str + ' + ' + geodataStatus.geosite_size_str) : '38.4 MB' }})</span>
+                    <span class="text-emerald-400 font-semibold">✓ 离线解析就绪 ({{ geodataStatus.geoip_size_str && geodataStatus.geosite_size_str ? (geodataStatus.geoip_size_str + ' + ' + geodataStatus.geosite_size_str) : '38.4 MB' }})</span>
                   </div>
                   <div class="flex justify-between items-center">
-                    <span>权威规则包: <span class="text-slate-300">{{ geodataStatus.rules_count || 101 }} 套 217heidai MRS / SRS</span></span>
+                    <span>权威分流包: <span class="text-slate-300"><strong class="text-cyan-300">{{ geodataStatus.rules_count || 105 }} 套</strong> MRS / SRS 规则集</span></span>
                     <span class="text-slate-400 font-mono">{{ geodataStatus.last_updated ? ('更新于 ' + (geodataStatus.last_updated.length > 10 ? geodataStatus.last_updated.substring(5, 16) : geodataStatus.last_updated)) : (geodataLastUpdateText || '已全量装载') }}</span>
                   </div>
                 </div>
                 <!-- Tier 3: Action Buttons (h-10) -->
-                <div class="h-10 grid grid-cols-[1.25fr_1fr] gap-2">
+                <div class="h-10 grid grid-cols-2 gap-2">
                   <button @click="updateGeoData" :disabled="updatingGeo" class="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed">
                     <span v-if="updatingGeo" class="inline-block animate-spin mr-0.5">↻</span>
                     <svg v-else class="w-3.5 h-3.5 text-emerald-200 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    <span class="truncate">{{ updatingGeo ? '正在全量同步...' : '一键更新全套规则' }}</span>
+                    <span class="truncate">{{ updatingGeo ? '正在全量同步...' : '一键全量更新' }}</span>
                   </button>
-                  <button @click="showGeodataDetailModal = true" :title="`查看全量 ${geodataStatus.rules_count || 101} 套 217heidai / MRS / SRS 离线规则清单与生效状态`" class="h-10 px-2 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 hover:text-cyan-300 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-98 group">
+                  <button @click="showGeodataDetailModal = true" :title="`查看全量 ${geodataStatus.rules_count || 105} 套分流与去广告规则清单与生效明细`" class="h-10 px-2 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 hover:text-cyan-300 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-98 group">
                     <svg class="w-3.5 h-3.5 text-cyan-400 group-hover:text-cyan-300 shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <span class="truncate">101 套规则清单</span>
+                    <span class="truncate">{{ geodataStatus.rules_count || 105 }} 套规则清单</span>
                   </button>
                 </div>
                 <!-- Tier 4: Terminal Viewport (h-[62px]) -->
@@ -3309,9 +3309,16 @@
                   <div v-if="geoUpdateLog" class="w-full break-words">
                     {{ geoUpdateLog }}
                   </div>
-                  <div v-else class="text-slate-400 text-xs flex items-center gap-2">
+                  <div v-else class="text-slate-300 text-xs flex items-center gap-2 w-full">
                     <span class="text-emerald-400 font-bold shrink-0">[GEODATA]</span>
-                    <span>{{ geodataStatus.rules_count || 101 }} 套 217heidai 高速规则已装载 · {{ (geodataStatus.total_rules || 236255).toLocaleString() }} 条去广告与分流规则生效</span>
+                    <div class="text-[11px] leading-tight space-y-0.5">
+                      <div>
+                        <span class="text-slate-300">已装载 </span><strong class="text-cyan-300">{{ geodataStatus.rules_count || 105 }} 套</strong><span class="text-slate-300"> 分流加速规则集</span><span class="text-slate-500">（国内直连 / 境外加速 / 专线流媒体）</span>
+                      </div>
+                      <div class="text-[10px] text-slate-400">
+                        <span>集成 </span><strong class="text-emerald-400">217heidai 权威去广告</strong><span> · 全库共 </span><strong class="text-white">{{ (geodataStatus.total_rules || 240005).toLocaleString() }}</strong><span> 条分流与拦截规则生效</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -4592,7 +4599,7 @@
               </div>
               <div class="flex justify-between text-slate-400">
                 <span>规则文件:</span>
-                <span class="text-emerald-400">{{ geodataStatus.rules_count || 101 }} 套 MRS/SRS 二进制规则</span>
+                <span class="text-emerald-400">{{ geodataStatus.rules_count || 105 }} 套 MRS/SRS 二进制规则</span>
               </div>
             </div>
             <button @click="updateGeoData" :disabled="updatingGeo" class="w-full py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">
@@ -4656,7 +4663,7 @@
                     <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                       <span>Geo 数据库 & 217heidai 规则包全景清单</span>
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-mono font-bold">
-                        {{ geodataStatus.rules_count || 101 }} 套规则 · 已全量装载
+                        {{ geodataStatus.rules_count || 105 }} 套规则 · 已全量装载
                       </span>
                     </h3>
                     <p class="text-xs text-slate-400 mt-0.5">
@@ -4671,7 +4678,7 @@
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs font-mono">
                 <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
                   <div class="text-[10px] text-slate-400">拦截规则总规模</div>
-                  <div class="text-emerald-400 font-bold text-sm mt-0.5">{{ (geodataStatus.total_rules || 236255).toLocaleString() }} 条</div>
+                  <div class="text-emerald-400 font-bold text-sm mt-0.5">{{ (geodataStatus.total_rules || 240005).toLocaleString() }} 条</div>
                 </div>
                 <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
                   <div class="text-[10px] text-slate-400">规则库版本</div>
@@ -4679,7 +4686,7 @@
                 </div>
                 <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
                   <div class="text-[10px] text-slate-400">装载规则文件</div>
-                  <div class="text-purple-300 font-bold text-sm mt-0.5">{{ geodataStatus.files_count || geodataStatus.rules_count || 101 }} 个</div>
+                  <div class="text-purple-300 font-bold text-sm mt-0.5">{{ geodataStatus.files_count || geodataStatus.rules_count || 105 }} 个</div>
                 </div>
                 <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
                   <div class="text-[10px] text-slate-400">最近校验/同步</div>
@@ -6365,13 +6372,13 @@ const geodataFilterEngine = ref('all')
 const geodataSearchQuery = ref('')
 
 const geodataStatus = ref({
-  total_rules: 236255,
-  version: '20261021120650',
+  total_rules: 240005,
+  version: '20261022213920',
   last_updated: '',
-  geoip_size_str: '9.76 MB',
-  geosite_size_str: '19.51 MB',
-  rules_count: 101,
-  files_count: 101,
+  geoip_size_str: '8.03 MB',
+  geosite_size_str: '4.10 MB',
+  rules_count: 105,
+  files_count: 105,
   files: [],
   recent_logs: [],
   is_updating: false
@@ -8068,8 +8075,8 @@ async function fetchGeoDataStatus() {
 
 async function updateGeoData() {
   updatingGeo.value = true
-  geoUpdateLog.value = `⏳ 正在全速同步全套 ${geodataStatus.value.rules_count || 101} 套 GeoIP、GeoSite 及 217heidai MRS 规则库...`
-  showToast(`⏳ 正在通过 CDN 镜像全速拉取 ${geodataStatus.value.rules_count || 101} 套 Geo 与 217heidai 规则包...`)
+  geoUpdateLog.value = `⏳ 正在全速同步全套 ${geodataStatus.value.rules_count || 105} 套 Geo 基础库及 MRS/SRS 分流规则集...`
+  showToast(`⏳ 正在通过 CDN 镜像全速拉取 ${geodataStatus.value.rules_count || 105} 套分流与去广告规则包...`)
   try {
     const res = await fetch('/api/v1/upgrade/geodata', { method: 'POST' })
     const data = await res.json()
@@ -8078,15 +8085,15 @@ async function updateGeoData() {
       geodataStatus.value = {
         ...geodataStatus.value,
         ...data,
-        total_rules: data.total_rules || 236255,
+        total_rules: data.total_rules || 240005,
         last_updated: data.updated_at || timeStr
       }
       if (adblockStats.value) {
-        adblockStats.value.total_rules = data.total_rules || 236255
+        adblockStats.value.total_rules = data.total_rules || 240005
       }
       geodataLastUpdateText.value = `${timeStr} 规则库已同步`
-      const ruleCountStr = (data.total_rules || 236255).toLocaleString()
-      geoUpdateLog.value = `🎉 [${timeStr}] 规则库更新完毕！已成功同步 ${data.files_updated || geodataStatus.value.rules_count || 101} 套规则库，总拦截规则达 ${ruleCountStr} 条，内存路由引擎已热重载生效。`
+      const ruleCountStr = (data.total_rules || 240005).toLocaleString()
+      geoUpdateLog.value = `🎉 [${timeStr}] 规则库更新完毕！已成功同步 ${data.files_updated || geodataStatus.value.rules_count || 105} 套规则库，全网生效规则达 ${ruleCountStr} 条，内存路由引擎已热重载生效。`
       showToast(`🎉 规则库更新完毕！全网 ${ruleCountStr} 条规则已装载生效`)
     } else {
       geoUpdateLog.value = `⚠️ [${timeStr}] 规则库更新反馈: ${data.error || '部分镜像规则同步超时'}`

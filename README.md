@@ -49,7 +49,7 @@
 >   * **规则排序精准前置**：在生成的 WinBox 终端脚本及 REST API 注入逻辑中，通过 `place-before` 机制确保 `2000::/3 reject` 严格注入于通用 `action=accept` 转发规则之前，彻底消除规则被后续 accept 截断失效的隐患；
 >   * **ND 邻居发现微创保护**：全面改为仅对 `/ipv6/nd` 打入增量补丁（`advertise-dns=false`），杜绝强行覆写用户的全局 `hop-limit` 与 `ra-interval` 参数，确保系统设置零侵入、可还原；
 >   * **DNS 侧 Fake-IP 剥离海外 AAAA 兜底**：明确依托双核 Fake-IP 机制在 DNS 阶段为海外分流域名直接下发 IPv4 Fake-IP，压根不向终端返回海外真实 AAAA，彻底避免 QUIC/HTTP3 与 WebRTC 遭遇 ICMP 硬拒答时的断流卡顿。
-> * 🔀 **DNS 重写中枢与 101 套 MRS/SRS 规则体系稳定运行**：
+> * 🔀 **DNS 重写中枢与 105 套 MRS/SRS 规则体系稳定运行**：
 >   * 预置 `services.googleapis.cn -> services.googleapis.com` 与 `developers.google.cn -> developers.google.com` 保证 Google Play 极速下载；
 >   * 局域网 A 记录静态 IP 映射秒级解析生效。
 > 
