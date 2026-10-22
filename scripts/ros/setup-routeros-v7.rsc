@@ -186,17 +186,21 @@ $printMsg ("✅ [3/5 网段与IP分配] 主路由IP: " . $bridgeIP . " | 局域�
     $printMsg ("✅ [4/5 网桥挂载] 已将 veth-cubex 挂载至主网桥 " . $lanBridge);
 }
 
-# 4.2 智能探查并安全挂载局域网物理 LAN 口至主网桥 (严密保护 WAN 口防广播风暴与断网)
+# 4.2 多维智能探查并安全挂载局域网 LAN 端口 (完全不依赖单一名称或特定接口清单)
 :local wanIfaces [:toarray ""];
 
-# 探查已知 WAN 口 (interface list WAN / DHCP Client / PPPoE Client / 默认路由出口)
+# ═════════════════════════════════════════════════════════════════════════════
+# 维度 1: 四维锁定上行 WAN 口 (严密保护 WAN 口防广播风暴与掉线)
+# ═════════════════════════════════════════════════════════════════════════════
+# 1.1 从 /interface list member 寻找具有 WAN 语义的清单成员 (WAN, wan, internet, isp, uplink等)
 :do {
-    :foreach m in=[/interface list member find where list="WAN" or list="wan"] do={
+    :foreach m in=[/interface list member find where list~"(?i)(wan|internet|isp|external|outside|uplink)"] do={
         :local wName [/interface list member get $m interface];
         :set wanIfaces ($wanIfaces, $wName);
     }
 } on-error={};
 
+# 1.2 从 /ip dhcp-client 寻找活动的 DHCP 客户端上行物理接口
 :do {
     :foreach dc in=[/ip dhcp-client find where disabled=no] do={
         :local dcIf [/ip dhcp-client get $dc interface];
@@ -204,13 +208,16 @@ $printMsg ("✅ [3/5 网段与IP分配] 主路由IP: " . $bridgeIP . " | 局域�
     }
 } on-error={};
 
+# 1.3 从 /interface pppoe-client 寻找宽带拨号上行接口及其绑定的底层物理口
 :do {
     :foreach pc in=[/interface pppoe-client find] do={
         :local pIf [/interface pppoe-client get $pc interface];
-        :set wanIfaces ($wanIfaces, $pIf);
+        :local pcName [/interface pppoe-client get $pc name];
+        :set wanIfaces ($wanIfaces, $pIf, $pcName);
     }
 } on-error={};
 
+# 1.4 从系统默认路由探测实际物理出口
 :do {
     :foreach r in=[/ip route find where dst-address="0.0.0.0/0" and active=yes and routing-table=main] do={
         :local rGate [/ip route get $r gateway];
@@ -220,50 +227,103 @@ $printMsg ("✅ [3/5 网段与IP分配] 主路由IP: " . $bridgeIP . " | 局域�
     }
 } on-error={};
 
-# 1) 如果存在 interface list LAN，将其中非 WAN 的物理成员口加入主网桥
+# 1.5 扫描接口名称或备注中包含 WAN/上行/公网/光猫等关键词的接口
 :do {
-    :foreach m in=[/interface list member find where list="LAN" or list="lan"] do={
+    :foreach i in=[/interface find where name~"(?i)(wan|internet|isp|modem|uplink)" or comment~"(?i)(wan|internet|isp|modem|uplink|光猫|上联|公网)"] do={
+        :local iName [/interface get $i name];
+        :set wanIfaces ($wanIfaces, $iName);
+    }
+} on-error={};
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 维度 2: 多维智能搜集所有局域网 LAN 端口 (完全不依赖接口是否叫 "LAN")
+# ═════════════════════════════════════════════════════════════════════════════
+:local lanCandidates [:toarray ""];
+
+# 2.1 扫描所有具有内网语义的接口清单 (LAN, local, inside, internal, trust, home, office, 局域网, 内网等)
+:do {
+    :foreach m in=[/interface list member find where list~"(?i)(lan|local|internal|inside|trust|home|office|client|user|局域网|内网)"] do={
         :local lName [/interface list member get $m interface];
-        :if ($lName != $lanBridge and $lName != "veth-cubex") do={
-            :local isWan false;
-            :foreach w in=$wanIfaces do={
-                :if ($w = $lName) do={ :set isWan true; }
-            }
-            :if ($isWan = false and [:len [/interface bridge port find where interface=$lName]] = 0) do={
-                :do {
-                    /interface bridge port add bridge=$lanBridge interface=$lName comment="CubeX-LAN-Port";
-                    $printMsg ("✅ [4/5 网桥挂载] 已将 LAN 接口清单成员 [" . $lName . "] 挂载至主网桥 " . $lanBridge);
-                } on-error={};
-            }
-        }
+        :set lanCandidates ($lanCandidates, $lName);
     }
 } on-error={};
 
-# 2) 智能扫描所有启用的物理以太网口 (ether2+ 或其它未桥接非 WAN 口)
+# 2.2 扫描绑定了本地 DHCP-Server 或私网服务的下行接口
 :do {
-    :local allEths [/interface ethernet find where disabled=no];
-    :foreach eth in=$allEths do={
-        :local eName [/interface ethernet get $eth name];
-        :local isWan false;
-        :foreach w in=$wanIfaces do={
-            :if ($w = $eName) do={ :set isWan true; }
-        }
-        # 若未探查到明确 WAN 且该口为 ether1 / sfp1，按默认习惯保护为上行 WAN
-        :if ([:len $wanIfaces] = 0 and ($eName = "ether1" or $eName = "sfp1" or $eName = "sfp-sfpplus1")) do={
-            :set isWan true;
-        }
-        
-        # 若非 WAN 且尚未加入任何网桥，则自动挂载至主网桥
-        :if ($isWan = false and [:len [/interface bridge port find where interface=$eName]] = 0) do={
-            :do {
-                /interface bridge port add bridge=$lanBridge interface=$eName comment="CubeX-LAN-Auto-Port";
-                $printMsg ("✅ [4/5 网桥挂载] 已自动将物理 LAN 口 [" . $eName . "] 挂载至主网桥 " . $lanBridge);
-            } on-error={};
-        }
+    :foreach ds in=[/ip dhcp-server find where disabled=no] do={
+        :local dsIf [/ip dhcp-server get $ds interface];
+        :set lanCandidates ($lanCandidates, $dsIf);
     }
 } on-error={};
 
-# 3) 确保主网桥自身加入 interface list LAN
+# 2.3 全量扫描所有物理以太网口 (不论叫 ether2、sfp2、LAN1、Trunk、Downlink 还是任意自定义名称)
+:do {
+    :foreach eth in=[/interface ethernet find where disabled=no] do={
+        :local eName [/interface ethernet get $eth name];
+        :set lanCandidates ($lanCandidates, $eName);
+    }
+} on-error={};
+
+# 2.4 扫描无线 Wi-Fi / WLAN 局域网接口 (RouterOS v7.13+ wifi 或 legacy wireless)
+:do {
+    :foreach w in=[/interface wifi find where disabled=no] do={
+        :local wName [/interface wifi get $w name];
+        :set lanCandidates ($lanCandidates, $wName);
+    }
+} on-error={};
+:do {
+    :foreach w in=[/interface wireless find where disabled=no] do={
+        :local wName [/interface wireless get $w name];
+        :set lanCandidates ($lanCandidates, $wName);
+    }
+} on-error={};
+
+# ═════════════════════════════════════════════════════════════════════════════
+# 维度 3: 安全去重并挂载纯净 LAN 候选口至主网桥 (严密过滤 WAN、网桥自身与既有桥端口)
+# ═════════════════════════════════════════════════════════════════════════════
+:local bridgedCount 0;
+:foreach iface in=$lanCandidates do={
+    :local skip false;
+    
+    # 排除主网桥自身与 veth-cubex
+    :if ($iface = $lanBridge or $iface = "veth-cubex") do={
+        :set skip true;
+    }
+    
+    # 严格排除确认为上行 WAN 的接口
+    :if ($skip = false) do={
+        :foreach w in=$wanIfaces do={
+            :if ($w = $iface) do={ :set skip true; }
+        }
+    }
+    
+    # 若设备无任何已知 WAN 标记且该口为首个物理口 ether1/sfp1，按行业标准保护首口为上行
+    :if ($skip = false and [:len $wanIfaces] = 0 and ($iface = "ether1" or $iface = "sfp1" or $iface = "sfp-sfpplus1")) do={
+        :set skip true;
+    }
+    
+    # 检查是否已加入任何网桥 (避免重复加入或破坏从口)
+    :if ($skip = false) do={
+        :if ([:len [/interface bridge port find where interface=$iface]] > 0) do={
+            :set skip true;
+        }
+    }
+    
+    # 确认为纯净局域网端口，安全挂载至主网桥
+    :if ($skip = false) do={
+        :do {
+            /interface bridge port add bridge=$lanBridge interface=$iface comment="CubeX-LAN-Auto-Bridge";
+            $printMsg ("✅ [4/5 网桥挂载] 已自动将局域网物理/无线接口 [" . $iface . "] 挂载至主网桥 " . $lanBridge);
+            :set bridgedCount ($bridgedCount + 1);
+        } on-error={};
+    }
+}
+
+:if ($bridgedCount = 0) do={
+    $printMsg ("ℹ️ [4/5 网桥挂载] 所有非 WAN 局域网端口已就绪挂载于主网桥 " . $lanBridge);
+}
+
+# 确保主网桥自身加入 interface list LAN (若存在该列表)
 :do {
     :if ([:len [/interface list find where name="LAN"]] > 0) do={
         :if ([:len [/interface list member find where list="LAN" and interface=$lanBridge]] = 0) do={
