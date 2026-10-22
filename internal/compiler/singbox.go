@@ -890,9 +890,10 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"outbound": "direct",
 	})
 	routeRules = append(routeRules, map[string]any{
-		"network":  []string{"udp"},
-		"port":     []int{443, 8443},
-		"outbound": "block",
+		"network": []string{"udp"},
+		"port":    []int{443, 8443},
+		"action":  "reject",
+		"method":  "drop",
 	})
 
 	// YouTube & Google Video Fast-Path (Line-speed TCP XTLS-Reality / BBR fallback)
@@ -1239,8 +1240,13 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			continue
 		}
 
-		ruleMap := map[string]any{
-			"outbound": targetOutbound,
+		isReject := strings.EqualFold(targetOutbound, "block") || strings.EqualFold(targetOutbound, "reject")
+		ruleMap := map[string]any{}
+		if isReject {
+			ruleMap["action"] = "reject"
+			ruleMap["method"] = "drop"
+		} else {
+			ruleMap["outbound"] = targetOutbound
 		}
 
 		switch rType {

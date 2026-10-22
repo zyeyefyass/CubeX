@@ -233,6 +233,10 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			if reg.ID == "CUSTOM" || reg.ID == "OTHERS" {
 				continue
 			}
+			// Strict isolation: HHost-JP node is strictly excluded from Taiwan groups
+			if (reg.ID == "TW" || strings.Contains(reg.Name, "台湾")) && strings.Contains(strings.ToLower(name), "hhost") && strings.Contains(strings.ToLower(name), "jp") {
+				continue
+			}
 			if reg.Regex != nil && reg.Regex.MatchString(name) {
 				regionNodes[reg.ID] = append(regionNodes[reg.ID], name)
 				matched = true
@@ -433,6 +437,23 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			// Skip corrupted names like '?? Spotify??' or empty
 			if strings.Contains(g.Name, "??") || strings.Contains(g.Name, "\ufffd") || strings.TrimSpace(g.Name) == "" {
 				continue
+			}
+			// Strict isolation: if custom group name contains "台湾", exclude HHost-JP
+			if strings.Contains(g.Name, "台湾") {
+				filteredProxies := make([]string, 0, len(g.Proxies))
+				for _, px := range g.Proxies {
+					pxLower := strings.ToLower(px)
+					if strings.Contains(pxLower, "hhost") && strings.Contains(pxLower, "jp") {
+						continue
+					}
+					filteredProxies = append(filteredProxies, px)
+				}
+				g.Proxies = filteredProxies
+				if strings.Contains(strings.ToLower(g.Now), "hhost") && strings.Contains(strings.ToLower(g.Now), "jp") {
+					if len(g.Proxies) > 0 {
+						g.Now = g.Proxies[0]
+					}
+				}
 			}
 			// Skip if already in newGroups
 			found := false

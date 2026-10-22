@@ -1299,20 +1299,13 @@
                         : 'border-slate-800/90 hover:border-emerald-500/50 shadow-sm',
                       isChinaGroup(grp) ? 'ring-1 ring-emerald-400/50 shadow-emerald-500/20' : ''
                     ]">
-                    <!-- Background: Radar Grid SVG Watermark + Bottom Shadow Veil (Bright & Vivid) -->
+                    <!-- Background: Full-Bleed 3:2 Chinese Flag SVG + Bottom Shadow Veil (Bright & Vivid) -->
                     <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none bg-slate-950">
-                      <svg viewBox="0 0 36 24" preserveAspectRatio="none"
+                      <RegionFlag country-code="CN" name="中国" as-background
                         :class="[
-                          'w-full h-full block transition-opacity duration-300',
-                          isDirectActive(grp) ? 'opacity-85' : 'opacity-65 group-hover:opacity-80'
-                        ]">
-                        <rect width="36" height="24" fill="#042f2e"/>
-                        <circle cx="18" cy="12" r="9" stroke="#059669" stroke-width="0.7" fill="none" opacity="0.35"/>
-                        <circle cx="18" cy="12" r="5" stroke="#10b981" stroke-width="0.7" fill="none" opacity="0.4"/>
-                        <line x1="18" y1="2" x2="18" y2="22" stroke="#10b981" stroke-width="0.6" stroke-dasharray="1 1" opacity="0.3"/>
-                        <line x1="8" y1="12" x2="28" y2="12" stroke="#10b981" stroke-width="0.6" stroke-dasharray="1 1" opacity="0.3"/>
-                        <polygon points="18,6 20,12 18,10.5 16,12" fill="#34d399" opacity="0.7"/>
-                      </svg>
+                          'w-full h-full object-cover transition-all duration-300',
+                          isDirectActive(grp) ? 'opacity-95 scale-[1.02]' : 'opacity-80 group-hover:opacity-95'
+                        ]" />
                       <div :class="[
                         'absolute inset-0 transition-opacity duration-300',
                         isDirectActive(grp)
@@ -1339,7 +1332,7 @@
                     <div class="relative z-10 flex items-center justify-between gap-1 pt-1">
                       <div class="flex items-center gap-1.5 min-w-0">
                         <span v-if="isDirectActive(grp)" class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)] animate-pulse shrink-0"></span>
-                        <span v-else class="text-xs shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">🎯</span>
+                        <RegionFlag v-else country-code="CN" name="中国" size-class="w-4 h-2.5" />
                         <span class="text-xs sm:text-[13px] font-black truncate text-white drop-shadow-[0_2px_4px_rgba(0,0,0,1)] drop-shadow-[0_0_2px_rgba(0,0,0,1)] tracking-wide"
                           :class="isDirectActive(grp) ? 'text-emerald-200' : 'group-hover:text-emerald-300'">
                           {{ isChinaGroup(grp) ? '直连 (独占)' : '直连' }}
@@ -1488,7 +1481,7 @@
                         @change="restoreCandidateToGroup(grp, $event.target.value); $event.target.value = ''"
                         class="w-full text-[10px] font-mono font-semibold py-1 px-1 rounded-lg bg-slate-900/90 border border-slate-700 text-cyan-300 appearance-none text-center cursor-pointer hover:border-cyan-500/40">
                         <option value="" disabled selected>增补出站</option>
-                        <option v-if="!isForeignGroup(grp) && isCandidateExcluded(grp.name, 'DIRECT')" value="DIRECT">🎯 直连</option>
+                        <option v-if="!isForeignGroup(grp) && isCandidateExcluded(grp.name, 'DIRECT')" value="DIRECT">🇨🇳 直连</option>
                         <option v-for="r in getExcludedRegionsForGroup(grp)" :key="r.id" :value="r.id">
                           {{ r.name }}
                         </option>
@@ -6762,8 +6755,8 @@ function inferPacketRoute(input) {
   if (isDomestic) {
     return {
       rule: 'GEOSITE, cn / GEOIP, CN, DIRECT (国内直连)',
-      group: '🎯 全球直连',
-      node: '🎯 本地直连出站 (DIRECT - 真实公网IP直出)'
+      group: '🇨🇳 国内直连',
+      node: '🇨🇳 本地直连出站 (DIRECT - 真实公网IP直出)'
     }
   }
 
@@ -6772,7 +6765,7 @@ function inferPacketRoute(input) {
     // 1. Explicit user selection in groupSelectedRegionMap
     const sel = groupSelectedRegionMap.value[grpName]
     if (sel) {
-      if (sel === 'DIRECT' || sel.includes('直连')) return '🎯 本地直连 (DIRECT)'
+      if (sel === 'DIRECT' || sel.includes('直连')) return '🇨🇳 本地直连 (DIRECT)'
       if (sel === 'REJECT' || sel.includes('拒绝')) return '🛑 规则拦截 (REJECT)'
       const reg = allRegionDefs.value.find(r => r.id === sel)
       if (reg) {
@@ -6860,7 +6853,7 @@ function resolveActualProxyNode(name, depth = 0) {
   if (!name || depth > 8) return ''
   const trimmed = name.trim()
   if (trimmed === 'DIRECT' || trimmed.includes('直连')) {
-    return '🎯 本地直连出站 (DIRECT)'
+    return '🇨🇳 本地直连出站 (DIRECT)'
   }
   if (trimmed === 'REJECT' || trimmed.includes('拦截')) {
     return '🛑 规则拦截 (REJECT)'
@@ -6898,7 +6891,7 @@ const currentBenchmarkRoute = computed(() => {
   
   let targetGroup = route.node || '自动优选'
   if (targetGroup === 'DIRECT' || targetGroup.includes('直连')) {
-    targetGroup = '🎯 本地直连 (DIRECT)'
+    targetGroup = '🇨🇳 本地直连 (DIRECT)'
   } else if (targetGroup === 'REJECT' || targetGroup.includes('拦截')) {
     targetGroup = '🛑 规则拦截 (REJECT)'
   }
@@ -8222,16 +8215,27 @@ function getRegionNodes(reg) {
                   {}
   const merged = { ...fullDef, ...reg }
 
+  // 严格隔离：台湾组及台湾多合一组（如台湾·日本）严禁混入 HHost-JP 节点
+  const isTaiwanGroup = (merged.name && (merged.name.includes('台湾') || merged.name.includes('TW'))) ||
+                        merged.id === 'TW' ||
+                        (merged.country_code && merged.country_code.includes('TW'))
+
   const proxies = (ir.value.proxies || []).filter(p => p.type !== 'direct' && p.type !== 'block' && p.type !== 'reject')
 
   // 1. Custom Group by Subscription (如把某个机场订阅单独添加为一组)
   if (merged.type === 'sub' && merged.sub_id) {
-    return proxies.filter(p => p.sub_id === merged.sub_id || (merged.sub_name && p.name.includes(`[${merged.sub_name}]`)))
+    return proxies.filter(p => {
+      if (isTaiwanGroup && /(hhost[-_ ]?jp)/i.test(p.name)) return false
+      return p.sub_id === merged.sub_id || (merged.sub_name && p.name.includes(`[${merged.sub_name}]`))
+    })
   }
 
   // 2. Custom Group by Selected Nodes
   if (merged.type === 'nodes' && Array.isArray(merged.node_names) && merged.node_names.length > 0) {
-    return proxies.filter(p => merged.node_names.includes(p.name))
+    return proxies.filter(p => {
+      if (isTaiwanGroup && /(hhost[-_ ]?jp)/i.test(p.name)) return false
+      return merged.node_names.includes(p.name)
+    })
   }
 
   // 3. Resolve regex from regex, regex_str, or country_code presets
@@ -8252,7 +8256,10 @@ function getRegionNodes(reg) {
 
   // 4. Custom Group by Regex
   if (merged.is_custom && regObj) {
-    return proxies.filter(p => regObj.test(p.name))
+    return proxies.filter(p => {
+      if (isTaiwanGroup && /(hhost[-_ ]?jp)/i.test(p.name)) return false
+      return regObj.test(p.name)
+    })
   }
 
   // 5. Default CUSTOM: 自建节点 (用户手动添加或标注自建的节点)
@@ -8264,6 +8271,7 @@ function getRegionNodes(reg) {
   if (merged.id === 'OTHERS') {
     return proxies.filter(p => {
       if (p.sub_id === 'custom' || p.name.startsWith('[自建]')) return false
+      if (isTaiwanGroup && /(hhost[-_ ]?jp)/i.test(p.name)) return false
       for (const r of allRegionDefs.value) {
         if (r.id !== 'OTHERS' && r.id !== 'CUSTOM') {
           if (r.type === 'sub' && (p.sub_id === r.sub_id || (r.sub_name && p.name.includes(`[${r.sub_name}]`)))) return false
@@ -8280,6 +8288,7 @@ function getRegionNodes(reg) {
   if (regObj) {
     return proxies.filter(p => {
       if (p.sub_id === 'custom' || p.name.startsWith('[自建]')) return false
+      if (isTaiwanGroup && /(hhost[-_ ]?jp)/i.test(p.name)) return false
       return regObj.test(p.name)
     })
   }
@@ -8291,6 +8300,7 @@ function getRegionNodes(reg) {
       const nameRegex = new RegExp(`(${kw})`, 'i')
       return proxies.filter(p => {
         if (p.sub_id === 'custom' || p.name.startsWith('[自建]')) return false
+        if (isTaiwanGroup && /(hhost[-_ ]?jp)/i.test(p.name)) return false
         return nameRegex.test(p.name)
       })
     } catch (e) {}
@@ -9011,7 +9021,7 @@ function getRegionLatencyById(id) {
 
 function getCandidateFlag(name) {
   if (!name) return '🌐'
-  if (name.includes('直连') || name === 'DIRECT') return '🎯'
+  if (name.includes('直连') || name === 'DIRECT') return '🇨🇳'
   if (name.includes('拒绝') || name === 'REJECT') return '🛑'
   if (name.includes('港') || /hk/i.test(name)) return '🇭🇰'
   if (name.includes('台') || /tw/i.test(name)) return '🇹🇼'
@@ -9769,7 +9779,7 @@ function getGroupIcon(name) {
   if (name.includes('媒体') || name.includes('视频') || name.includes('流媒体')) return '🎬'
   if (name.includes('游戏')) return '🎮'
   if (name.includes('AI') || name.includes('OpenAI')) return '🤖'
-  if (name.includes('直连')) return '🎯'
+  if (name.includes('直连')) return '🇨🇳'
   if (name.includes('漏网')) return '🐟'
   return '🌐'
 }
@@ -9792,7 +9802,11 @@ function setGroupFilter(groupName, tag) {
 }
 
 function getFilteredGroupProxies(grp) {
-  const proxies = (grp.proxies || []).filter(p => !p.endsWith('容灾'))
+  let proxies = (grp.proxies || []).filter(p => !p.endsWith('容灾'))
+  // 严格隔离：台湾组及台湾多合一组（如台湾·日本）严禁混入 HHost-JP 节点
+  if (grp.name && (grp.name.includes('台湾') || grp.name.includes('TW'))) {
+    proxies = proxies.filter(p => !/(hhost[-_ ]?jp)/i.test(p))
+  }
   const filter = groupFilters.value[grp.name] || ''
   if (!filter) return proxies
   if (filter === '直连') {
