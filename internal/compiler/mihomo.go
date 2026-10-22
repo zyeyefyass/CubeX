@@ -695,6 +695,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	if validTargets["AI"] {
 		rulesList = append(rulesList, "DOMAIN,antigravity-unleash.goog,AI")
 		rulesList = append(rulesList, "DOMAIN,antigravity.dev,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,antigravity.dev,AI")
 		rulesList = append(rulesList, "DOMAIN,generativelanguage.googleapis.com,AI")
 		rulesList = append(rulesList, "DOMAIN,daily-cloudcode-pa.googleapis.com,AI")
 		rulesList = append(rulesList, "DOMAIN,cloudcode-pa.googleapis.com,AI")
@@ -703,7 +704,31 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		rulesList = append(rulesList, "DOMAIN,aistudio.google.com,AI")
 		rulesList = append(rulesList, "DOMAIN,makersuite.google.com,AI")
 		rulesList = append(rulesList, "DOMAIN,bard.google.com,AI")
+		rulesList = append(rulesList, "DOMAIN,gemini.google.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,gemini.google.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,aistudio.google.com,AI")
 		rulesList = append(rulesList, "DOMAIN-SUFFIX,deepmind.google,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,deepmind.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,openai.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,chatgpt.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,oaistatic.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,oaiusercontent.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,sora.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,claude.ai,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,claude.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,anthropic.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,claudecdn.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,claudecontent.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,perplexity.ai,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,x.ai,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,grok.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,copilot.microsoft.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,sydney.bing.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,mistral.ai,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,poe.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,midjourney.com,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,huggingface.co,AI")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,civitai.com,AI")
 	}
 
 	// 2b. High-Speed Business Service Rules (Native Domain-Suffix & GEOSITE)
@@ -712,7 +737,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		suffixes []string
 		geosite  string
 	}{
-		{"AI", []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "oaistatic.com", "oaiusercontent.com", "perplexity.ai", "gemini.google.com", "deepmind.google", "x.ai", "grok.com", "antigravity.dev", "goog", "run.app"}, "openai"},
+		{"AI", []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "claude.com", "claudecdn.com", "claudecontent.com", "oaistatic.com", "oaiusercontent.com", "sora.com", "perplexity.ai", "gemini.google.com", "aistudio.google.com", "deepmind.google", "deepmind.com", "antigravity.dev", "x.ai", "grok.com", "copilot.microsoft.com", "sydney.bing.com", "mistral.ai", "poe.com", "midjourney.com", "huggingface.co", "civitai.com", "goog", "run.app"}, "openai"},
 		{"YouTube", []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com", "yt3.ggpht.com", "yt4.ggpht.com", "gvt1.com", "1e100.net", "googleusercontent.com"}, "youtube"},
 		{"Google", []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com", "antigravity.dev", "goog", "run.app", "1e100.net", "gvt1.com"}, "google"},
 		{"GitHub & Docker", []string{"github.com", "githubusercontent.com", "docker.com", "docker.io", "ghcr.io"}, "github"},
