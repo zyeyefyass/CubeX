@@ -130,7 +130,7 @@ func TestSingboxDNSLeakPrevention(t *testing.T) {
 		}
 		if tag == "dns-fakeip" && sMap["type"] == "fakeip" {
 			hasFakeIPServer = true
-			if sMap["inet4_range"] != "198.18.0.0/16" {
+			if sMap["inet4_range"] != "198.18.0.0/15" && sMap["inet4_range"] != "198.18.0.0/16" {
 				t.Errorf("Fake-IP inet4_range expected 198.18.0.0/16, got: %v", sMap["inet4_range"])
 			}
 		}

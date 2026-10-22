@@ -580,19 +580,19 @@
 
                     <!-- Custom Dropdown Popover Menu -->
                     <div v-if="activeProbeDropdown === bi"
-                      class="absolute top-full mt-2 w-56 max-h-72 overflow-y-auto bg-[#17202c]/98 backdrop-blur-2xl border border-slate-700/80 rounded-2xl shadow-2xl p-1.5 z-[60] text-slate-200 space-y-0.5 custom-scrollbar animate-in fade-in zoom-in-95"
-                      :class="bi >= 2 ? 'right-0' : 'left-0'">
+                      class="absolute top-full mt-2 w-44 max-h-72 overflow-y-auto bg-[#17202c]/98 backdrop-blur-2xl border border-slate-700/80 rounded-2xl shadow-2xl p-1.5 z-[60] text-slate-200 space-y-0.5 custom-scrollbar animate-in fade-in zoom-in-95"
+                      :class="bi >= 2 ? 'right-0 sm:left-0' : 'left-0'">
                       <div class="px-2.5 py-1 text-[10px] font-mono text-slate-400 uppercase tracking-wider border-b border-slate-700/60 mb-1 flex items-center justify-between">
                         <span>选择测速目标</span>
                         <span class="text-slate-500 font-sans">{{ availableProbeTargets.length }} 个站点</span>
                       </div>
                       <button v-for="target in availableProbeTargets" :key="target.id"
                         @click="selectProbeTarget(bi, target)"
-                        class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-xs transition text-left cursor-pointer"
+                        class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs transition text-left cursor-pointer"
                         :class="item.id === target.id ? 'bg-sky-500/20 text-sky-200 font-bold border border-sky-400/30' : 'hover:bg-slate-800 text-slate-300 hover:text-slate-100'">
                         <BrandLogo :name="target.logo" size="w-4 h-4" class="shrink-0" />
-                        <span class="truncate flex-1">{{ target.name }}</span>
-                        <span v-if="item.id === target.id" class="text-cyan-400 text-xs font-bold">✓</span>
+                        <span class="truncate flex-1 font-medium">{{ target.name }}</span>
+                        <span v-if="item.id === target.id" class="text-cyan-400 text-xs font-bold shrink-0">✓</span>
                       </button>
                     </div>
                   </div>
@@ -636,7 +636,6 @@
                 <div class="pt-2 sm:pt-0">
                   <div class="text-xs text-slate-400 font-medium">内存使用</div>
                   <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ telemetryMetrics.memoryMB.toFixed(1) }} MB</div>
-                  <div class="text-[10px] text-slate-500 font-mono mt-0.5">进程活跃 RSS</div>
                 </div>
                 <div class="pt-2 sm:pt-0">
                   <div class="text-xs text-slate-400 font-medium">进站流量</div>
@@ -5319,7 +5318,7 @@ const availableProbeTargets = [
   { id: 'youtube', name: 'YouTube', logo: 'youtube', url: 'https://www.youtube.com' },
   { id: 'github', name: 'GitHub', logo: 'github', url: 'https://github.com' },
   { id: 'gemini', name: 'Gemini', logo: 'gemini', url: 'https://gemini.google.com' },
-  { id: 'openai', name: 'OpenAI (ChatGPT)', logo: 'openai', url: 'https://chatgpt.com' },
+  { id: 'openai', name: 'ChatGPT', logo: 'openai', url: 'https://chatgpt.com' },
   { id: 'claude', name: 'Claude', logo: 'claude', url: 'https://claude.ai' },
   { id: 'google', name: 'Google', logo: 'google', url: 'https://www.google.com' },
   { id: 'cloudflare', name: 'Cloudflare', logo: 'cloudflare', url: 'https://www.cloudflare.com' },
@@ -5327,7 +5326,7 @@ const availableProbeTargets = [
   { id: 'disney', name: 'Disney+', logo: 'disney', url: 'https://www.disneyplus.com' },
   { id: 'microsoft', name: 'Microsoft', logo: 'microsoft', url: 'https://www.microsoft.com' },
   { id: 'telegram', name: 'Telegram', logo: 'telegram', url: 'https://telegram.org' },
-  { id: 'twitter', name: 'Twitter (X)', logo: 'twitter', url: 'https://twitter.com' },
+  { id: 'twitter', name: 'Twitter', logo: 'twitter', url: 'https://twitter.com' },
   { id: 'steam', name: 'Steam', logo: 'steam', url: 'https://store.steampowered.com' },
   { id: 'discord', name: 'Discord', logo: 'discord', url: 'https://discord.com' }
 ]

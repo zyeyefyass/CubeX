@@ -335,7 +335,7 @@ func (m *Manager) buildCmd(eng schema.EngineType, binPath, etcDir, configPath st
 	if eng == schema.EngineMihomo {
 		cmd = exec.Command(binPath, "-d", etcDir, "-f", configPath)
 	} else {
-		cmd = exec.Command(binPath, "run", "-c", configPath)
+		cmd = exec.Command(binPath, "run", "-c", configPath, "-D", etcDir)
 		cmd.Dir = etcDir
 	}
 
@@ -379,20 +379,32 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 		level := "INFO"
 		lower := strings.ToLower(cleanLine)
 		if strings.Contains(lower, "error") || strings.Contains(lower, "fatal") || strings.Contains(lower, "panic") || strings.Contains(lower, "fail") {
-			// Benign socket cancellation & routine external network timeouts (e.g. dead domain DNS lookup timeout, client closed socket)
-			if strings.Contains(lower, "operation was canceled") || strings.Contains(lower, "context canceled") || strings.Contains(lower, "context deadline exceeded") || strings.Contains(lower, "i/o timeout") {
+			// Benign socket cancellation & routine external network timeouts (e.g. dead domain DNS lookup timeout, client closed socket, closed network connection)
+			if strings.Contains(lower, "operation was canceled") ||
+				strings.Contains(lower, "context canceled") ||
+				strings.Contains(lower, "context deadline exceeded") ||
+				strings.Contains(lower, "i/o timeout") ||
+				strings.Contains(lower, "use of closed network connection") ||
+				strings.Contains(lower, "connection reset by peer") ||
+				strings.Contains(lower, "broken pipe") ||
+				strings.Contains(lower, "missing fakeip record") {
 				level = "DEBUG"
 			} else {
 				level = "ERROR"
 			}
 		} else if strings.Contains(lower, "warn") {
 			// Benign TUN driver capability probes (e.g. TUNSETOFFLOAD unsupported in container/RouterOS kernel) are routine fallbacks, demote to DEBUG
-			if strings.Contains(lower, "tunsetoffload") || strings.Contains(lower, "enable offload") {
+			if strings.Contains(lower, "tunsetoffload") || strings.Contains(lower, "enable offload") || strings.Contains(lower, "missing fakeip record") {
 				level = "DEBUG"
 			} else {
 				level = "WARN"
 			}
 		} else if strings.Contains(lower, "debug") {
+			level = "DEBUG"
+		}
+
+		// Stale Fake-IP packets from client DNS/socket cache are non-fatal, demote to DEBUG
+		if strings.Contains(lower, "missing fakeip record") {
 			level = "DEBUG"
 		}
 
@@ -440,7 +452,7 @@ func (m *Manager) dryRunCheck(eng schema.EngineType, binPath, etcDir, configPath
 	if eng == schema.EngineMihomo {
 		testCmd = exec.Command(binPath, "-t", "-d", etcDir, "-f", configPath)
 	} else {
-		testCmd = exec.Command(binPath, "check", "-c", configPath)
+		testCmd = exec.Command(binPath, "check", "-c", configPath, "-D", etcDir)
 		testCmd.Dir = etcDir
 	}
 	out, err := testCmd.CombinedOutput()
