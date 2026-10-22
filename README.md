@@ -52,6 +52,19 @@
 > * 💬 **极客畅所欲言区规范修正**：
 >   * 文案精准修正为“CubeX 从一个单二进制雏形走到今天已发布最新版的双引擎融合共生体，离不开每一位极客玩家的测试与真实反馈。此版本已经完全达到了设计初衷与高可用指标，距离最终正式稳定版（Stable v1.0）仅有一步之遥！”
 > 
+> <a id="release-assets"></a>
+> ### 📦 资产下载与校验清单 (Release Assets)
+> 
+> | 文件名 | 平台 / 底座 | 文件大小 | 说明 |
+> | :--- | :--- | :--- | :--- |
+> | `CubeX-Test-v2.3-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~147.7 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 一键导入） |
+> | `CubeX-Test-v2.3-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~95.0 MB | ROS 专有未压缩容器镜像 |
+> | `CubeX-Test-v2.3-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~68.8 MB | 包含双内核、规则集、配置与控制面的完整生产归档 |
+> | `CubeX-Test-v2.3-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~67.5 MB | 包含双内核、规则集、配置与控制面的完整生产归档 |
+> | `cubexd-linux-amd64` | Linux amd64 单二进制 | ~10.7 MB | 用于现有容器或系统的一键在线平滑热更执行文件 |
+> | `cubexd-linux-arm64` | Linux arm64 单二进制 | ~10.0 MB | 用于现有容器或系统的一键在线平滑热更执行文件 |
+> | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~26.9 KB | RouterOS v7 WinBox 终端复制即用一键自动编排脚本 |
+> 
 ---
 
 <details>
