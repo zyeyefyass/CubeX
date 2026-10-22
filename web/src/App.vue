@@ -95,7 +95,7 @@
                 CubeX
               </span>
               <span class="font-bold tracking-tight text-sky-300">
-                {{ systemStatus.version || 'Test v2.4' }}
+                {{ systemStatus.version || 'Test v2.5' }}
               </span>
             </div>
 
@@ -3130,8 +3130,8 @@
                 <!-- Tier 2: Body (h-[74px]) -->
                 <div class="h-[74px] text-xs font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
                   <div class="flex items-center justify-between">
-                    <span>当前运行: <strong class="text-cyan-400 font-bold">{{ systemOverview.cubex_version || 'Test v2.4' }}</strong></span>
-                    <span class="text-slate-500">云端最新: <span class="text-slate-300">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v2.4' }}</span></span>
+                    <span>当前运行: <strong class="text-cyan-400 font-bold">{{ systemOverview.cubex_version || 'Test v2.5' }}</strong></span>
+                    <span class="text-slate-500">云端最新: <span class="text-slate-300">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v2.5' }}</span></span>
                   </div>
                   <div class="flex items-center justify-between text-[11px]">
                     <span class="text-slate-400">运行底座: <span class="text-slate-300">{{ hostBadge.name || 'MikroTik RouterOS' }} ({{ hostInfo.architecture || 'amd64' }})</span></span>
@@ -3272,10 +3272,24 @@
                     <span>📚</span>
                     <span>Geo 规则体系</span>
                   </div>
-                  <span :title="`基础离线库 (geoip/geosite) + ${geodataStatus.rules_count || 105} 套策略规则集 + 217heidai 权威去广告已全量生效（共 ${(geodataStatus.total_rules || 240005).toLocaleString()} 条规则）`"
+                  <!-- Dynamic Top-Right Badge: Syncing / Checking / Has Update / All Latest -->
+                  <span v-if="updatingGeo" class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40 flex items-center gap-1 shadow-sm shrink-0">
+                    <span class="inline-block animate-spin text-[9px]">↻</span>
+                    <span>规则库同步中...</span>
+                  </span>
+                  <span v-else-if="checkingGeoUpgrade" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/50 flex items-center gap-1 shadow-sm shrink-0">
+                    <span class="inline-block animate-spin text-[9px]">↻</span>
+                    <span>规则通道核对中...</span>
+                  </span>
+                  <span v-else-if="geodataStatus.has_update" :title="`检测到新规则包已发布 (最新版本: ${geodataStatus.latest_version || '最新'})，点击下方【一键全量更新】即可同步`"
+                    class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse flex items-center gap-1 shadow-sm shrink-0 cursor-pointer"
+                    @click="updateGeoData">
+                    <span>🚀 发现规则更新 (待同步)</span>
+                  </span>
+                  <span v-else :title="`基础离线库 (geoip/geosite) + ${geodataStatus.rules_count || 105} 套策略规则集已全量装载生效（覆盖国内外全域路由分流加速）`"
                     class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm shrink-0 truncate">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
-                    <span class="truncate">基础库 · 策略规则集 · 去广告 全量生效</span>
+                    <span class="truncate">基础离线库 · 105 套分流策略集 全量生效</span>
                   </span>
                 </div>
                 <!-- Tier 2: Body (h-[74px]) -->
@@ -3291,14 +3305,15 @@
                 </div>
                 <!-- Tier 3: Action Buttons (h-10) -->
                 <div class="h-10 grid grid-cols-2 gap-2">
-                  <button @click="updateGeoData" :disabled="updatingGeo" class="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                  <button @click="updateGeoData" :disabled="updatingGeo" class="h-10 rounded-xl font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    :class="geodataStatus.has_update ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30 ring-1 ring-amber-400/50' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'">
                     <span v-if="updatingGeo" class="inline-block animate-spin mr-0.5">↻</span>
                     <svg v-else class="w-3.5 h-3.5 text-emerald-200 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    <span class="truncate">{{ updatingGeo ? '正在全量同步...' : '一键全量更新' }}</span>
+                    <span class="truncate">{{ updatingGeo ? '正在全量同步...' : (geodataStatus.has_update ? '一键全量更新 (新规则)' : '一键全量更新') }}</span>
                   </button>
-                  <button @click="showGeodataDetailModal = true" :title="`查看全量 ${geodataStatus.rules_count || 105} 套分流与去广告规则清单与生效明细`" class="h-10 px-2 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 hover:text-cyan-300 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-98 group">
+                  <button @click="showGeodataDetailModal = true" :title="`查看全量 ${geodataStatus.rules_count || 105} 套分流策略规则清单与生效明细`" class="h-10 px-2 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 hover:text-cyan-300 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-98 group">
                     <svg class="w-3.5 h-3.5 text-cyan-400 group-hover:text-cyan-300 shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
@@ -3306,18 +3321,44 @@
                   </button>
                 </div>
                 <!-- Tier 4: Terminal Viewport (h-[62px]) -->
-                <div class="h-[62px] p-2 rounded-xl bg-slate-950/80 border border-emerald-500/20 text-[11px] font-mono text-emerald-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center">
+                <div class="h-[62px] p-2 rounded-xl bg-slate-950/80 border text-[11px] font-mono leading-relaxed overflow-y-auto custom-scrollbar flex items-center"
+                  :class="geodataStatus.has_update ? 'border-amber-500/30 text-amber-300' : 'border-emerald-500/20 text-emerald-300'">
                   <div v-if="geoUpdateLog" class="w-full break-words">
                     {{ geoUpdateLog }}
                   </div>
+                  <div v-else-if="geodataStatus.has_update" class="text-amber-300 text-xs flex items-center justify-between gap-2 w-full">
+                    <div class="space-y-0.5 pr-1 flex-1 overflow-hidden leading-tight">
+                      <div class="flex items-center gap-1 font-bold text-amber-400 text-[11px]">
+                        <span class="text-amber-400 font-bold shrink-0">[UPDATE]</span>
+                        <span>发现官方规则库新版 ({{ geodataStatus.latest_version || '最新' }})</span>
+                      </div>
+                      <div class="text-[10px] text-amber-200/90 leading-tight">
+                        全量 MRS/SRS 规则源有新提交，点击上方【一键全量更新】即可秒级平滑同步！
+                      </div>
+                    </div>
+                  </div>
                   <div v-else class="text-slate-300 text-xs flex items-center gap-2 w-full">
                     <span class="text-emerald-400 font-bold shrink-0">[GEODATA]</span>
-                    <div class="text-[11px] leading-tight space-y-0.5">
-                      <div>
-                        <span class="text-slate-300">已装载 </span><strong class="text-cyan-300">{{ geodataStatus.rules_count || 105 }} 套</strong><span class="text-slate-300"> 分流加速规则集</span><span class="text-slate-500">（国内直连 / 境外加速 / 专线流媒体）</span>
+                    <div class="text-[11px] leading-tight space-y-1 w-full overflow-hidden">
+                      <div class="truncate">
+                        <span class="text-slate-300">已装载 </span><strong class="text-cyan-300">{{ geodataStatus.rules_count || 105 }} 套</strong><span class="text-slate-300"> 分流加速规则集</span><span class="text-slate-500">（覆盖国内直连 / 境外加速 / 专线流媒体）</span>
                       </div>
-                      <div class="text-[10px] text-slate-400">
-                        <span>集成 </span><strong class="text-emerald-400">217heidai 权威去广告</strong><span> · 全库共 </span><strong class="text-white">{{ (geodataStatus.total_rules || 240005).toLocaleString() }}</strong><span> 条分流与拦截规则生效</span>
+                      <div class="text-[10px] text-slate-400 flex items-center justify-between">
+                        <div class="flex items-center gap-1.5 truncate">
+                          <span class="text-emerald-400 font-semibold flex items-center gap-1 shrink-0">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>自动更新已守护</span>
+                          </span>
+                          <span class="text-slate-500">·</span>
+                          <span class="truncate">每日 04:00 智能静默同步</span>
+                          <span class="text-slate-500">·</span>
+                          <span class="text-slate-400 shrink-0">无感热重载</span>
+                        </div>
+                        <button @click="toggleGeoAutoUpdate" :title="geoAutoUpdateEnabled ? '点击暂停每日自动更新' : '点击启用每日自动更新'"
+                          class="shrink-0 text-[10px] px-1.5 py-0.5 rounded border transition cursor-pointer flex items-center gap-1 active:scale-95"
+                          :class="geoAutoUpdateEnabled ? 'bg-emerald-950 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'">
+                          <span>{{ geoAutoUpdateEnabled ? '已开启' : '已暂停' }}</span>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -3743,7 +3784,7 @@
         <!-- Drawer Footer -->
         <div class="pt-4 border-t border-sky-900/40 space-y-2">
           <div class="text-[9px] text-slate-500 text-center font-mono">
-            CubeX {{ systemStatus.version || 'Test v2.4' }}
+            CubeX {{ systemStatus.version || 'Test v2.5' }}
           </div>
         </div>
       </div>
@@ -4549,11 +4590,11 @@
             <div class="text-xs font-mono bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60 space-y-1">
               <div class="flex justify-between text-slate-400">
                 <span>当前运行:</span>
-                <strong class="text-cyan-300">{{ systemOverview.cubex_version || 'Test v2.4' }}</strong>
+                <strong class="text-cyan-300">{{ systemOverview.cubex_version || 'Test v2.5' }}</strong>
               </div>
               <div class="flex justify-between text-slate-400">
                 <span>云端 Release:</span>
-                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v2.4' }}</span>
+                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v2.5' }}</span>
               </div>
             </div>
             <button v-if="systemOverview.panel_update_avail" @click="upgradePanel" :disabled="upgradingPanel" class="w-full py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-xs font-bold transition">
@@ -6349,9 +6390,9 @@ const hostConfig = ref({
 })
 
 const systemOverview = ref({
-  cubex_version: 'Test v2.4',
-  panel_curr_version: 'Test v2.4',
-  panel_latest_version: 'Test v2.4',
+  cubex_version: 'Test v2.5',
+  panel_curr_version: 'Test v2.5',
+  panel_latest_version: 'Test v2.5',
   mihomo_curr_version: 'v1.19.33',
   singbox_curr_version: 'v1.14.3',
   panel_update_avail: false,
@@ -6375,6 +6416,9 @@ const geodataSearchQuery = ref('')
 const geodataStatus = ref({
   total_rules: 240005,
   version: '20261022213920',
+  latest_version: '',
+  has_update: false,
+  checked: false,
   last_updated: '',
   geoip_size_str: '8.03 MB',
   geosite_size_str: '4.10 MB',
@@ -6384,13 +6428,22 @@ const geodataStatus = ref({
   recent_logs: [],
   is_updating: false
 })
+const checkingGeoUpgrade = ref(false)
+const geoAutoUpdateEnabled = ref(localStorage.getItem('cubex_geo_autoupdate') !== 'false')
+
+function toggleGeoAutoUpdate() {
+  geoAutoUpdateEnabled.value = !geoAutoUpdateEnabled.value
+  localStorage.setItem('cubex_geo_autoupdate', geoAutoUpdateEnabled.value ? 'true' : 'false')
+  showToast(geoAutoUpdateEnabled.value ? '✅ 已开启 Geo 规则每日 04:00 智能静默自动更新！' : '⏸️ 已暂停 Geo 规则每日自动更新')
+}
 
 const hasAnyUpdate = computed(() => {
   return !!(
     systemOverview.value?.panel_update_avail ||
     (!coreUpgradeFrozen.value && systemOverview.value?.mihomo_update_avail) ||
     (!coreUpgradeFrozen.value && systemOverview.value?.singbox_update_avail) ||
-    (hostUpgradeDetails.value?.checked && hostUpgradeDetails.value?.hasUpdate)
+    (hostUpgradeDetails.value?.checked && hostUpgradeDetails.value?.hasUpdate) ||
+    geodataStatus.value?.has_update
   )
 })
 
@@ -6407,6 +6460,9 @@ const updateSummaryText = computed(() => {
   }
   if (!coreUpgradeFrozen.value && systemOverview.value?.singbox_update_avail) {
     parts.push(`sing-box ${systemOverview.value.singbox_latest_version}`)
+  }
+  if (geodataStatus.value?.has_update) {
+    parts.push(`Geo 规则库 ${geodataStatus.value.latest_version || '新版'}`)
   }
   return parts.join(' · ') || '检测到可用升级'
 })
@@ -6713,7 +6769,7 @@ const aiLoading = ref(false)
 
 // ── System Status & Last Result ──
 const systemStatus = ref({
-  version: 'Test v2.4',
+  version: 'Test v2.5',
   uptime_seconds: 1420,
   active_engine: 'mihomo',
   tun_interface: 'cubex-tun',
@@ -7941,7 +7997,7 @@ async function triggerOneClickHotUpgrade(force = true) {
       showToast(`🎉 恭喜！CubeX 控制面已平滑热更完成 (${data.version})，3秒后自动刷新网页...`)
       setTimeout(() => location.reload(), 3000)
     } else if (data.status === 'already_latest') {
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v2.4'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v2.5'})`)
     } else {
       showToast(`❌ 热更失败: ${data.error || data.message || '未知异常'}`)
     }
@@ -7965,7 +8021,7 @@ async function upgradePanel(force = false) {
       setTimeout(() => location.reload(), 3000)
     } else if (data.status === 'already_latest') {
       const timeStr = new Date().toLocaleTimeString()
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v2.4'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v2.5'})，无需重复更新。`
       showToast(data.message || 'CubeX 系统已是最新版本')
     } else {
       panelUpgradeLog.value = `❌ 热更反馈异常: ${data.error || data.message || '未知异常'}`
@@ -8008,7 +8064,7 @@ function openGitHubIssuePrompt() {
 
 **当前宿主环境**：
 - 系统架构：${systemOverview.value?.arch || 'amd64'}
-- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v2.4'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v2.5'}
 - 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
 
 **说明**：
@@ -8059,19 +8115,24 @@ async function upgradeCore(type) {
   }
 }
 
-async function fetchGeoDataStatus() {
+async function fetchGeoDataStatus(check = false) {
   try {
-    const res = await fetch('/api/v1/upgrade/geodata')
+    if (check) checkingGeoUpgrade.value = true
+    const url = check ? '/api/v1/upgrade/geodata?check=true' : '/api/v1/upgrade/geodata'
+    const res = await fetch(url)
     if (res.ok) {
       const data = await res.json()
-      if (data && data.total_rules) {
-        geodataStatus.value = { ...geodataStatus.value, ...data }
-        if (adblockStats.value) {
+      if (data && (data.total_rules || data.rules_count)) {
+        geodataStatus.value = { ...geodataStatus.value, ...data, checked: true }
+        if (adblockStats.value && data.total_rules) {
           adblockStats.value.total_rules = data.total_rules
         }
       }
     }
-  } catch (e) {}
+  } catch (e) {
+  } finally {
+    if (check) checkingGeoUpgrade.value = false
+  }
 }
 
 async function updateGeoData() {
@@ -8086,6 +8147,7 @@ async function updateGeoData() {
       geodataStatus.value = {
         ...geodataStatus.value,
         ...data,
+        has_update: false,
         total_rules: data.total_rules || 240005,
         last_updated: data.updated_at || timeStr
       }
@@ -8119,7 +8181,7 @@ async function probeAllFourDimensions() {
     await Promise.allSettled([
       fetchSystemOverview(),
       checkHostUpgrade(),
-      fetchGeoDataStatus()
+      fetchGeoDataStatus(true)
     ])
     probeChecked.value = true
     probeLastTime.value = new Date().toLocaleTimeString()
@@ -11601,8 +11663,8 @@ onMounted(async () => {
     if (adRes.status === 'fulfilled' && adRes.value) {
       adblockStats.value = { ...adblockStats.value, ...adRes.value }
     }
-    // Fetch GeoData & 217heidai status
-    fetchGeoDataStatus()
+    // Fetch GeoData & 217heidai status in background (silent probe)
+    fetchGeoDataStatus(true)
     // Fetch Host Firmware Update status in background (silent probe)
     checkHostUpgrade(true)
     if (hostRes.status === 'fulfilled' && hostRes.value) {

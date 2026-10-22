@@ -40,7 +40,7 @@ import (
 )
 
 var (
-	version   = "Test v2.4"
+	version   = "Test v2.5"
 	startTime = time.Now()
 )
 
@@ -2978,6 +2978,16 @@ func (s *Server) handleUpgradeCore(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleUpgradeGeoData(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
+		if r.URL.Query().Get("check") == "true" {
+			hasUpdate, ver, _ := s.rosMgr.CheckGeoDataUpdate()
+			status := s.rosMgr.GetGeoDataStatus()
+			status.HasUpdate = hasUpdate
+			if ver != "" {
+				status.LatestVersion = ver
+			}
+			sendJSON(w, status)
+			return
+		}
 		status := s.rosMgr.GetGeoDataStatus()
 		sendJSON(w, status)
 		return

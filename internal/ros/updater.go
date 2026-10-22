@@ -48,10 +48,12 @@ type Manager struct {
 	lastFreeHddSpace  int64
 	lastTotalHddSpace int64
 
-	cachedLatestMihomo  string
-	cachedLatestSingbox string
-	cachedLatestPanel   string
-	cachedVerTime       time.Time
+	cachedLatestMihomo   string
+	cachedLatestSingbox  string
+	cachedLatestPanel    string
+	cachedLatestGeoVer   string
+	cachedLatestGeoRules int
+	cachedVerTime        time.Time
 	lastContainerMem    float64
 	lastContainerMemAt  time.Time
 	httpClient          *http.Client
@@ -132,8 +134,10 @@ func (m *Manager) startAsyncVersionWorker() {
 func (m *Manager) refreshVersionsAsync() {
 	var wg sync.WaitGroup
 	var latestMihomo, latestPanel, latestSingbox string
+	var latestGeoRules int
+	var latestGeoVer string
 
-	wg.Add(3)
+	wg.Add(4)
 	go func() {
 		defer wg.Done()
 		latestMihomo, _ = m.fetchLatestMihomoVersion()
@@ -145,6 +149,10 @@ func (m *Manager) refreshVersionsAsync() {
 	go func() {
 		defer wg.Done()
 		latestSingbox, _ = m.fetchLatestSingboxVersion()
+	}()
+	go func() {
+		defer wg.Done()
+		latestGeoRules, latestGeoVer = m.fetch217HeidaiMeta()
 	}()
 	wg.Wait()
 
@@ -158,6 +166,12 @@ func (m *Manager) refreshVersionsAsync() {
 	}
 	if latestSingbox != "" {
 		m.cachedLatestSingbox = latestSingbox
+	}
+	if latestGeoVer != "" {
+		m.cachedLatestGeoVer = latestGeoVer
+	}
+	if latestGeoRules > 0 {
+		m.cachedLatestGeoRules = latestGeoRules
 	}
 	m.cachedVerTime = time.Now()
 }
@@ -182,7 +196,7 @@ func (m *Manager) GetOverview() map[string]any {
 	}
 	latestPanel := m.cachedLatestPanel
 	if latestPanel == "" {
-		latestPanel = "Test v2.4"
+		latestPanel = "Test v2.5"
 	}
 	latestSingbox := m.cachedLatestSingbox
 	if latestSingbox == "" {
@@ -192,6 +206,18 @@ func (m *Manager) GetOverview() map[string]any {
 	panelUpdateAvail := IsVersionNewer(latestPanel, panelVer)
 	mihomoUpdateAvail := IsVersionNewer(latestMihomo, mihomoVer)
 	singboxUpdateAvail := IsVersionNewer(latestSingbox, singboxVer)
+
+	// Geo rules update detection
+	latestGeo := m.cachedLatestGeoVer
+	geoVer := "20261021"
+	etcDir := filepath.Join(m.rootDir, "etc")
+	if metaBytes, err := os.ReadFile(filepath.Join(etcDir, "rules_meta.json")); err == nil {
+		var meta RulesMeta
+		if json.Unmarshal(metaBytes, &meta) == nil && meta.Version != "" {
+			geoVer = meta.Version
+		}
+	}
+	geoUpdateAvail := latestGeo != "" && geoVer != "" && latestGeo > geoVer
 
 	result := map[string]any{
 		"ros_connected":          rosConnected,
@@ -208,7 +234,9 @@ func (m *Manager) GetOverview() map[string]any {
 		"panel_curr_version":     panelVer,
 		"panel_latest_version":   latestPanel,
 		"panel_update_avail":     panelUpdateAvail,
-		"update_available":       mihomoUpdateAvail || singboxUpdateAvail || panelUpdateAvail,
+		"geodata_update_avail":   geoUpdateAvail,
+		"geodata_latest_version": latestGeo,
+		"update_available":       mihomoUpdateAvail || singboxUpdateAvail || panelUpdateAvail || geoUpdateAvail,
 		"arch":                   runtime.GOARCH,
 		"geodata": map[string]any{
 			"geoip_date":    "2026-10-15",
@@ -688,7 +716,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 // ──────────────────────────────────────────────
 
 func (m *Manager) getLocalPanelVersion() string {
-	return "Test v2.4"
+	return "Test v2.5"
 }
 
 // IsConnected returns whether the RouterOS host is currently reachable and authenticated.
@@ -1786,6 +1814,8 @@ type GeoRuleFile struct {
 type GeoDataStatus struct {
 	TotalRules     int           `json:"total_rules"`
 	Version        string        `json:"version"`
+	LatestVersion  string        `json:"latest_version"`
+	HasUpdate      bool          `json:"has_update"`
 	LastUpdated    string        `json:"last_updated"`
 	GeoIPSize      int64         `json:"geoip_size"`
 	GeoIPSizeStr   string        `json:"geoip_size_str"`
@@ -2880,7 +2910,44 @@ func (m *Manager) GetGeoDataStatus() *GeoDataStatus {
 	st.RulesCount = len(allGeoRuleDefs)
 	st.FilesCount = installedCount
 
+	m.mu.Lock()
+	cachedGeoVer := m.cachedLatestGeoVer
+	cachedGeoRules := m.cachedLatestGeoRules
+	m.mu.Unlock()
+
+	st.LatestVersion = cachedGeoVer
+	if st.LatestVersion == "" {
+		st.LatestVersion = st.Version
+	}
+	if cachedGeoVer != "" && st.Version != "" && cachedGeoVer > st.Version {
+		st.HasUpdate = true
+	} else if cachedGeoRules > 0 && st.TotalRules > 0 && cachedGeoRules != st.TotalRules {
+		st.HasUpdate = true
+	}
+
 	return st
+}
+
+// CheckGeoDataUpdate queries upstream metadata and updates cache
+func (m *Manager) CheckGeoDataUpdate() (bool, string, int) {
+	totalRules, ruleVer := m.fetch217HeidaiMeta()
+	m.mu.Lock()
+	if ruleVer != "" {
+		m.cachedLatestGeoVer = ruleVer
+	}
+	if totalRules > 0 {
+		m.cachedLatestGeoRules = totalRules
+	}
+	m.mu.Unlock()
+
+	st := m.GetGeoDataStatus()
+	hasUpdate := false
+	if ruleVer != "" && st.Version != "" && ruleVer > st.Version {
+		hasUpdate = true
+	} else if totalRules > 0 && st.TotalRules > 0 && totalRules != st.TotalRules {
+		hasUpdate = true
+	}
+	return hasUpdate, ruleVer, totalRules
 }
 
 // fetch217HeidaiMeta attempts to read Blocked domains and Version from 217heidai rules header.

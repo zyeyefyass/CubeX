@@ -5,7 +5,7 @@
   # 🌌 CubeX · 宿主共生零感网络系统 (Host-Symbiotic Zero-Perception Gateway)
   ### *单二进制纯自研 · 告别传统重型虚机旁路 · 极致轻量低开销 · 300ms 冷启 · 宛如物理肉身直连全球互联网的终极共生体*
 
-  [![Version](https://img.shields.io/badge/Release-Test_v2.4-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
+  [![Version](https://img.shields.io/badge/Release-Test_v2.5-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
   [![License](https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield)](COPYRIGHT.md)
   [![Dual-Engine](https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go)](https://github.com/zyeyefyass/CubeX)
   [![Host Base](https://img.shields.io/badge/Host-RouterOS_v7_%7C_fnOS_%7C_PVE_%7C_Docker-3A86FF?style=for-the-badge)](#)
@@ -31,37 +31,35 @@
 
 <a id="announcement"></a>
 > [!TIP]
-> ### 📢 小伙伴们请立即一键平滑升级 Test v2.4（已停用订阅全链路彻底剔除与节点下线平滑回退 · 消除常规网络断开与接口检测误报告警 · RouterOS 策略路由规则精准前置与微创保护 · 纯净实战版）！
+> ### 📢 小伙伴们请立即一键平滑升级 Test v2.5（代理内核升级自主决策与冻结锁定 · 全息控制台四卡片版面极致对称 · Geo 规则体系动态感知与静默自动更新守护架构 · RouterOS 固件并发静默探查 · 极客纯净版）！
 > **致所有追求极致软路由稳定性、高并发吞吐与视觉体验的极客老铁们：**
 > 
-> 在经过多环境深度实机排查与业务分流架构演进后，**CubeX Test v2.4 正式重磅发布**！  
-> 本版本重点针对已停用订阅节点彻底出圈治理、日常网络挥手/中断日志智能降级、RouterOS 原生策略路由规则精准前置与 IPv6 双栈微创防护进行了深度闭环与硬核优化：
+> 在经过多环境深度实机排查与业务分流架构演进后，**CubeX Test v2.5 正式重磅发布**！  
+> 本版本重点针对双代理内核自主升级与冻结防护、全息控制台四卡片极致对称重构、Geo 规则体系动态感知与静默自动更新守护进行了深度闭环与硬核优化：
 > 
-> * 🚫 **已停用订阅与节点严格彻底剔除与平滑下线**：
->   * 在策略组中枢（`SyncAllStrategyGroups`）中深度注入停用订阅黑名单过滤，无论是单个节点列表、地区自动/故转/容灾组还是全局业务分组候选池，均 100% 实时剔除已禁用或流量耗尽订阅的节点；
->   * 若分组当前选中的节点（`Now`）属于停用订阅，系统自动平滑回退至可用首选节点，杜绝任何死节点残留；
->   * `handleSubToggle` 开关切换即刻触发全量同步重编排并热重载双核内核。
-> * 🔍 **双核引擎实时日志智能降级与去噪**：
->   * 将日常网络连接挥手与客户端主动中断（如浏览器关闭 Tab/刷新网页引发的 `endpoint not connected`、`software caused connection abort`、`connection refused`、`connection download/upload closed`）以及 Mihomo 容器网关接口巡检（`default interface changed by monitor`）智能降级为 `DEBUG` 级；
->   * 彻底消除误报系统级 `ERROR` 或 `WARN` 的红黄色烦人告警徽章，保持系统错误看板纯净真实；
->   * 智能提取 Mihomo 日志信息体，消除日志冗余信封与重复时间戳。
-> * 🌐 **RouterOS 原生策略路由与 IPv6 双栈自愈规则进阶优化**：
->   * **规则排序精准前置**：在生成的 WinBox 终端脚本及 REST API 注入逻辑中，通过 `place-before` 机制确保 `2000::/3 reject` 严格注入于通用 `action=accept` 转发规则之前，彻底消除规则被后续 accept 截断失效的隐患；
->   * **ND 邻居发现微创保护**：全面改为仅对 `/ipv6/nd` 打入增量补丁（`advertise-dns=false`），杜绝强行覆写用户的全局 `hop-limit` 与 `ra-interval` 参数，确保系统设置零侵入、可还原；
->   * **DNS 侧 Fake-IP 剥离海外 AAAA 兜底**：明确依托双核 Fake-IP 机制在 DNS 阶段为海外分流域名直接下发 IPv4 Fake-IP，压根不向终端返回海外真实 AAAA，彻底避免 QUIC/HTTP3 与 WebRTC 遭遇 ICMP 硬拒答时的断流卡顿。
-> * 🔀 **DNS 重写中枢与 105 套 MRS/SRS 规则体系稳定运行**：
->   * 预置 `services.googleapis.cn -> services.googleapis.com` 与 `developers.google.cn -> developers.google.com` 保证 Google Play 极速下载；
->   * 局域网 A 记录静态 IP 映射秒级解析生效。
+> * 🔒 **双代理内核升级自主决策与冻结锁定中枢 (`Core Upgrade Freeze Protection & Urge`)**：
+>   * 支持用户在控制台自主冻结内核升级（`🔒 冻结升级`），锁定经过严格对齐测试的生产内核，防止上游官方语法与特性破坏性变更导致运行异常；
+>   * 解锁状态下若探针检测到新版内核，界面展示醒目风险提示与自主决策说明，并提供一键自动生成预填 Issue 模板直达 GitHub（`📮 催更 Issue`），全自动带入当前架构、CubeX 版本与宿主底座，催促作者对齐升级。
+> * 📐 **全息控制台四卡片版面极致对称与交互重构 (`Four-Card Grid Geometric Symmetry`)**：
+>   * 严格规范控制台顶部四大核心卡片（主控守护进程、双代理内核、Geo 规则体系、RouterOS/宿主固件版本）高度与布局契合；
+>   * 操作按钮统一采用 50% / 50% 完美对称双列设计（`grid grid-cols-2 gap-2`），视觉更开阔、现代且符合工控美学。
+> * 📚 **Geo 规则体系（105 套规则）动态感知与静默自动更新守护架构 (`Geo Rule Dynamic Update & Scheduled Sync`)**：
+>   * 彻底剥离去广告与基础分流规则混淆概念，右上角状态标识动态自适应：基础库与 105 套分流策略集生效 ➔ 发现新规则即刻脉冲提醒（`🚀 发现规则更新 (待同步)`）➔ 一键秒级同步；
+>   * 底部状态区新增智能定时自动更新守护状态（`每日 04:00 静默同步 · 内存热重载无需重启`），并支持一键快速开启/暂停，实现主动即时同步与后台定时守护完美共生。
+> * 📡 **RouterOS 固件通道智能并发静默探查 (`Silent Firmware Upgrade Probe`)**：
+>   * 宿主固件卡片加载时后台静默探查 RouterOS 官方升级通道，精准呈现 `↻ 固件通道核对中...` ➔ `🚀 发现新固件` 或 `✓ 已是最新稳定版`，消除用户认知滞后。
+> * 🚀 **双核秒级热切换全链路极速压测闭环验证 (`Dual-Engine Live Benchmark`)**：
+>   * 在实机 RouterOS CHR 网关上完成 sing-box ➔ Mihomo ➔ sing-box 双核来回热切换与 4K DASH 大带宽下行吞吐量压测（~80 Mbps 极速），直连与出海代理双通道毫秒级热更无感顺滑，0 明文 DNS 侧漏。
 > 
 > <a id="release-assets"></a>
 > ### 📦 资产下载与校验清单 (Release Assets)
 > 
 > | 文件名 | 平台 / 底座 | 文件大小 | 说明 |
 > | :--- | :--- | :--- | :--- |
-> | `CubeX-Test-v2.4-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~90.0 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 一键导入） |
-> | `CubeX-Test-v2.4-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~95.0 MB | ROS 专有未压缩容器镜像 |
-> | `CubeX-Test-v2.4-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~68.8 MB | 包含双内核、规则集、配置与控制面的完整生产归档 |
-> | `CubeX-Test-v2.4-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~67.5 MB | 包含双内核、规则集、配置与控制面的完整生产归档 |
+> | `CubeX-Test-v2.5-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~90.0 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 一键导入） |
+> | `CubeX-Test-v2.5-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~95.0 MB | ROS 专有未压缩容器镜像 |
+> | `CubeX-Test-v2.5-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~68.8 MB | 包含双内核、规则集、配置与控制面的完整生产归档 |
+> | `CubeX-Test-v2.5-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~67.5 MB | 包含双内核、规则集、配置与控制面的完整生产归档 |
 > | `cubexd-linux-amd64` | Linux amd64 单二进制 | ~10.7 MB | 用于现有容器或系统的一键在线平滑热更执行文件 |
 > | `cubexd-linux-arm64` | Linux arm64 单二进制 | ~10.0 MB | 用于现有容器或系统的一键在线平滑热更执行文件 |
 > | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~26.9 KB | RouterOS v7 WinBox 终端复制即用一键自动编排脚本 |
@@ -162,7 +160,7 @@
 ---
 
 <a id="benchmark"></a>
-## ⚡ 权威实测：CubeX Test v2.4 vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)
+## ⚡ 权威实测：CubeX Test v2.5 vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)
 
 > [!NOTE]
 > ### 📌 严格测试条件与控制变量声明 (Benchmark Prerequisites & Controls)
@@ -172,7 +170,7 @@
 > 3. **同一代理出站节点**：测试流量严格锁定于完全相同的落地专线 VPS（同一目标服务器、完全一致的加密传输协议配置）；
 > 4. **持续压力测试统计平均值**：所有延迟、吞吐与首包数据均经由**单流多轮交叉压测、4 线程高并发冲顶、YouTube 4K DASH 切片连续拉取**取多次实测的**严格统计平均值**，拒绝任何单次偶然误差与幸存者偏差。
 
-| 对比实测维度 | 🥊 某测评 (10.0.0.2)<br>某 Box 传统镜像 | 🌌 CubeX Test v2.4 (10.0.0.11)<br>深度优化威武版 | 🏆 优势与性能跃升 |
+| 对比实测维度 | 🥊 某测评 (10.0.0.2)<br>某 Box 传统镜像 | 🌌 CubeX Test v2.5 (10.0.0.11)<br>深度优化威武版 | 🏆 优势与性能跃升 |
 | :--- | :--- | :--- | :--- |
 | **🎬 YouTube 4K 首帧耗时** | `0.92 s` | **`0.37 s`** | **首帧加载快 59.8%（秒开起播）** |
 | **🎬 YouTube 4K 缓冲吞吐** | `123.88 Mbps` | **`248.06 Mbps`** | **视频持续缓冲速率翻倍 (+100.2%)** |
@@ -332,7 +330,7 @@
 <a id="dns-rewrite-hub"></a>
 ## 🔀 DNS 重写中枢：域名别名 CNAME 重定向与 静态 IP 映射深度剖析
 
-CubeX 在 Test v2.4 中引入了划时代的 **DNS 重写中枢 (DNS Rewrite Hub)**，支持两类关键场景的秒级重定向：
+CubeX 在 Test v2.5 中深度整合了划时代的 **DNS 重写中枢 (DNS Rewrite Hub)**，支持两类关键场景的秒级重定向：
 
 ```
                     ┌──────────────────────────────────────────────┐
@@ -400,11 +398,11 @@ CubeX 严格遵循专有闭源 EULA 合规准则与脱敏规范，发布包内**
 这是官方推荐的最快、最稳妥安装方式，完全免除在线拉取 Docker Hub 镜像受国内网络波动的困扰：
 
 ##### 步骤 1：获取发布资产
-前往 [GitHub Releases Test v2.4](https://github.com/zyeyefyass/CubeX/releases) 页面，下载两份文件：
-1. **全自动配置脚本**：[`setup-routeros-v7.rsc`](https://github.com/zyeyefyass/CubeX/releases/download/Test-v2.4/setup-routeros-v7.rsc)；
+前往 [GitHub Releases Test v2.5](https://github.com/zyeyefyass/CubeX/releases) 页面，下载两份文件：
+1. **全自动配置脚本**：[`setup-routeros-v7.rsc`](https://github.com/zyeyefyass/CubeX/releases/download/Test-v2.5/setup-routeros-v7.rsc)；
 2. **对应架构的离线容器镜像包**：
-   * **x86_64 / CHR 虚拟机**：下载 `CubeX-Test-v2.4-ros-amd64.tar`；
-   * **RB5009 / CCR2004 (ARM64)**：下载 `CubeX-Test-v2.4-ros-arm64.tar`。
+   * **x86_64 / CHR 虚拟机**：下载 `CubeX-Test-v2.5-ros-amd64.tar`；
+   * **RB5009 / CCR2004 (ARM64)**：下载 `CubeX-Test-v2.5-ros-arm64.tar`。
 
 ##### 步骤 2：鼠标拖拽上传至 WinBox
 1. 打开 WinBox，输入主路由 IP 与管理员账号密码登录；
@@ -431,7 +429,7 @@ CubeX 严格遵循专有闭源 EULA 合规准则与脱敏规范，发布包内**
 ✅ [5/5 策略路由] 已建立 table-cubex-8228 隔离策略路由表
 ✅ [5/5 默认下一跳] 已下发默认策略路由指向 10.0.0.11 (支持 ping 毫秒自愈逃生)
 ✅ [5/5 Mangle防火墙] 已配置防死锁豁免与内网直连放行
-📦 [CubeX] 发现本地离线包: CubeX-Test-v2.4-ros-amd64.tar，正在快速部署...
+📦 [CubeX] 发现本地离线包: CubeX-Test-v2.5-ros-amd64.tar，正在快速部署...
 ⏳ 容器部署指令已下发，正在等待 RouterOS 解压并自动启动 (约 5~10 秒)...
    ...正在解压部署中 (2s)
    ...正在解压部署中 (4s)
@@ -471,7 +469,7 @@ CubeX 严格遵循专有闭源 EULA 合规准则与脱敏规范，发布包内**
 针对无代理网络环境，推荐以下 3 种极简解决路径：
 
 * **💡 解法 1（最推荐）：走「二、极速一键离线安装」—— 100% 零外网依赖！**
-  * **为什么最推荐**：在电脑或手机上（无论通过手机流量、浏览器下载、迅雷、夸克/百度网盘等方式），只要把 Release 资产包里的 `CubeX-Test-v2.4-ros-amd64.tar`（或 arm64）和 `setup-routeros-v7.rsc` 下载到本地并拖入 WinBox Files，终端执行 `/import setup-routeros-v7.rsc`；
+  * **为什么最推荐**：在电脑或手机上（无论通过手机流量、浏览器下载、迅雷、夸克/百度网盘等方式），只要把 Release 资产包里的 `CubeX-Test-v2.5-ros-amd64.tar`（或 arm64）和 `setup-routeros-v7.rsc` 下载到本地并拖入 WinBox Files，终端执行 `/import setup-routeros-v7.rsc`；
   * **零联网消耗**：脚本已做智能泛匹配，会自动优先探测本地 `.tar` 离线包并完成解压拉起，**全程完全不需要访问任何外网，30 秒 100% 必成！**
 
 * **⚡ 解法 2：使用国内 GitHub 免翻加速直链 + 国内可用 Docker 镜像源**
@@ -852,7 +850,7 @@ cubex restart   # 重新启动守护进程
 * 💡 **在 UI 交互与数据看板上，您还希望看到哪些维度的图表或快捷控制？**
 * 💡 **对于 IPv6 双栈、严格防 DNS 泄露、多宿主极速部署等场景，您还有哪些进阶想法？**
 
-👉 **[点击这里直达 GitHub Issues 提交反馈与功能需求](https://github.com/zyeyefyass/CubeX/issues/new?title=%5BFeature+Request%2FFeedback%5D+Test+v2.4+%E4%BD%BF%E7%94%A8%E5%8F%8D%E9%A6%88)**
+👉 **[点击这里直达 GitHub Issues 提交反馈与功能需求](https://github.com/zyeyefyass/CubeX/issues/new?title=%5BFeature+Request%2FFeedback%5D+Test+v2.5+%E4%BD%BF%E7%94%A8%E5%8F%8D%E9%A6%88)**
 
 无论是一句肯定、一个 Bug 提交，还是一个天马行空的新功能脑洞，请在社区**畅所欲言**，与我们一起打造软路由领域最强悍的宿主共生网络系统！
 
