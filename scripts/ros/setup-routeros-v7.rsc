@@ -180,10 +180,97 @@ $printMsg ("✅ [3/5 网段与IP分配] 主路由IP: " . $bridgeIP . " | 局域�
 }
 
 /interface bridge port
+# 4.1 挂载 veth-cubex 虚拟通道至主网桥
 :if ([:len [find interface="veth-cubex"]] = 0) do={
     add bridge=$lanBridge interface=veth-cubex comment="CubeX-VETH-Bridge-Port"
     $printMsg ("✅ [4/5 网桥挂载] 已将 veth-cubex 挂载至主网桥 " . $lanBridge);
 }
+
+# 4.2 智能探查并安全挂载局域网物理 LAN 口至主网桥 (严密保护 WAN 口防广播风暴与断网)
+:local wanIfaces [:toarray ""];
+
+# 探查已知 WAN 口 (interface list WAN / DHCP Client / PPPoE Client / 默认路由出口)
+:do {
+    :foreach m in=[/interface list member find where list="WAN" or list="wan"] do={
+        :local wName [/interface list member get $m interface];
+        :set wanIfaces ($wanIfaces, $wName);
+    }
+} on-error={};
+
+:do {
+    :foreach dc in=[/ip dhcp-client find where disabled=no] do={
+        :local dcIf [/ip dhcp-client get $dc interface];
+        :set wanIfaces ($wanIfaces, $dcIf);
+    }
+} on-error={};
+
+:do {
+    :foreach pc in=[/interface pppoe-client find] do={
+        :local pIf [/interface pppoe-client get $pc interface];
+        :set wanIfaces ($wanIfaces, $pIf);
+    }
+} on-error={};
+
+:do {
+    :foreach r in=[/ip route find where dst-address="0.0.0.0/0" and active=yes and routing-table=main] do={
+        :local rGate [/ip route get $r gateway];
+        :if ([:typeof $rGate] = "str" and [:len $rGate] > 0) do={
+            :set wanIfaces ($wanIfaces, $rGate);
+        }
+    }
+} on-error={};
+
+# 1) 如果存在 interface list LAN，将其中非 WAN 的物理成员口加入主网桥
+:do {
+    :foreach m in=[/interface list member find where list="LAN" or list="lan"] do={
+        :local lName [/interface list member get $m interface];
+        :if ($lName != $lanBridge and $lName != "veth-cubex") do={
+            :local isWan false;
+            :foreach w in=$wanIfaces do={
+                :if ($w = $lName) do={ :set isWan true; }
+            }
+            :if ($isWan = false and [:len [/interface bridge port find where interface=$lName]] = 0) do={
+                :do {
+                    /interface bridge port add bridge=$lanBridge interface=$lName comment="CubeX-LAN-Port";
+                    $printMsg ("✅ [4/5 网桥挂载] 已将 LAN 接口清单成员 [" . $lName . "] 挂载至主网桥 " . $lanBridge);
+                } on-error={};
+            }
+        }
+    }
+} on-error={};
+
+# 2) 智能扫描所有启用的物理以太网口 (ether2+ 或其它未桥接非 WAN 口)
+:do {
+    :local allEths [/interface ethernet find where disabled=no];
+    :foreach eth in=$allEths do={
+        :local eName [/interface ethernet get $eth name];
+        :local isWan false;
+        :foreach w in=$wanIfaces do={
+            :if ($w = $eName) do={ :set isWan true; }
+        }
+        # 若未探查到明确 WAN 且该口为 ether1 / sfp1，按默认习惯保护为上行 WAN
+        :if ([:len $wanIfaces] = 0 and ($eName = "ether1" or $eName = "sfp1" or $eName = "sfp-sfpplus1")) do={
+            :set isWan true;
+        }
+        
+        # 若非 WAN 且尚未加入任何网桥，则自动挂载至主网桥
+        :if ($isWan = false and [:len [/interface bridge port find where interface=$eName]] = 0) do={
+            :do {
+                /interface bridge port add bridge=$lanBridge interface=$eName comment="CubeX-LAN-Auto-Port";
+                $printMsg ("✅ [4/5 网桥挂载] 已自动将物理 LAN 口 [" . $eName . "] 挂载至主网桥 " . $lanBridge);
+            } on-error={};
+        }
+    }
+} on-error={};
+
+# 3) 确保主网桥自身加入 interface list LAN
+:do {
+    :if ([:len [/interface list find where name="LAN"]] > 0) do={
+        :if ([:len [/interface list member find where list="LAN" and interface=$lanBridge]] = 0) do={
+            /interface list member add list="LAN" interface=$lanBridge comment="CubeX-Bridge-LAN-Member";
+        }
+    }
+} on-error={};
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 步骤 5: 配置容器存储、策略路由与自动部署启动 CubeX

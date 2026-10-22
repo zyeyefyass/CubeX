@@ -1,97 +1,74 @@
 <template>
   <div :class="asBackground ? 'w-full h-full block' : 'inline-flex items-center justify-center shrink-0'">
-    <!-- 0. 多国组合全息分流旗 (Multi-Country Alliance / Split Ensign) - 顶层最高优先判定！ -->
-    <!-- 2国组合：对角/左右极光双旗合璧 (Dual Country Split Flag) -->
-    <div v-if="multiCodes.length === 2 && asBackground" class="w-full h-full relative overflow-hidden flex bg-slate-950">
-      <div class="w-1/2 h-full overflow-hidden relative">
-        <RegionFlag :code="multiCodes[0]" as-background class="w-full h-full block" />
-      </div>
-      <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-gradient-to-b from-cyan-400 via-white to-cyan-400 shadow-[0_0_8px_rgba(0,245,212,0.9)] z-10 pointer-events-none"></div>
-      <div class="w-1/2 h-full overflow-hidden relative">
-        <RegionFlag :code="multiCodes[1]" as-background class="w-full h-full block" />
-      </div>
-    </div>
+    <!-- 0. 多国组合通用全息同盟旗 (Universal Cyber Aurora Multi-Country Alliance Ensign) - 优先判定！ -->
+    <!-- 彻底告别多旗挤压变形，全域多国组合 (2国、3国、多国) 统一采用尊贵自研同盟极光旗 -->
+    <svg v-if="multiCodes.length >= 2 && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
+      <defs>
+        <!-- Deep Navy Celestial Space Background -->
+        <linearGradient id="alliance-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#021124"/>
+          <stop offset="35%" stop-color="#042244"/>
+          <stop offset="70%" stop-color="#073a6a"/>
+          <stop offset="100%" stop-color="#094d8b"/>
+        </linearGradient>
+        <!-- Cyber Aurora Speed Band Gradient -->
+        <linearGradient id="aurora-band" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#7b2cbf"/>
+          <stop offset="50%" stop-color="#00d2ff"/>
+          <stop offset="100%" stop-color="#00f5d4"/>
+        </linearGradient>
+        <!-- Mini 5-Point Alliance Star -->
+        <g id="alliance-star-canton">
+          <polygon points="0,-0.9 0.27,-0.27 0.9,-0.27 0.36,0.09 0.54,0.72 0,0.36 -0.54,0.72 -0.36,0.09 -0.9,-0.27 -0.27,-0.27" fill="#00f5d4"/>
+        </g>
+      </defs>
 
-    <!-- 3国组合：三极联合全息旗 (Tri-Country Split Flag) -->
-    <div v-else-if="multiCodes.length === 3 && asBackground" class="w-full h-full relative overflow-hidden flex bg-slate-950">
-      <div class="w-1/3 h-full overflow-hidden relative">
-        <RegionFlag :code="multiCodes[0]" as-background class="w-full h-full block" />
-      </div>
-      <div class="absolute inset-y-0 left-1/3 -translate-x-1/2 w-0.5 bg-gradient-to-b from-cyan-400 via-white to-cyan-400 shadow-[0_0_6px_rgba(0,245,212,0.8)] z-10 pointer-events-none"></div>
-      <div class="w-1/3 h-full overflow-hidden relative">
-        <RegionFlag :code="multiCodes[1]" as-background class="w-full h-full block" />
-      </div>
-      <div class="absolute inset-y-0 left-2/3 -translate-x-1/2 w-0.5 bg-gradient-to-b from-cyan-400 via-white to-cyan-400 shadow-[0_0_6px_rgba(0,245,212,0.8)] z-10 pointer-events-none"></div>
-      <div class="w-1/3 h-full overflow-hidden relative">
-        <RegionFlag :code="multiCodes[2]" as-background class="w-full h-full block" />
-      </div>
-    </div>
+      <!-- Background: Deep Navy Void -->
+      <rect width="36" height="24" fill="url(#alliance-bg)"/>
 
-    <!-- 4国组合：四象联邦全息旗 (2x2 Quad Quadrant Alliance Flag) -->
-    <div v-else-if="multiCodes.length === 4 && asBackground" class="w-full h-full relative overflow-hidden grid grid-cols-2 grid-rows-2 bg-slate-950">
-      <div class="w-full h-full overflow-hidden relative">
-        <RegionFlag :code="multiCodes[0]" as-background class="w-full h-full block" />
-      </div>
-      <div class="w-full h-full overflow-hidden relative">
-        <RegionFlag :code="multiCodes[1]" as-background class="w-full h-full block" />
-      </div>
-      <div class="w-full h-full overflow-hidden relative">
-        <RegionFlag :code="multiCodes[2]" as-background class="w-full h-full block" />
-      </div>
-      <div class="w-full h-full overflow-hidden relative">
-        <RegionFlag :code="multiCodes[3]" as-background class="w-full h-full block" />
-      </div>
+      <!-- Diagonal Cyber Aurora Speed Bands (Connecting the Multi-Nation Network) -->
+      <path d="M-2 0 L14 0 L38 24 L22 24 Z" fill="url(#aurora-band)" opacity="0.22"/>
+      <line x1="14" y1="0" x2="38" y2="24" stroke="#00f5d4" stroke-width="0.6" opacity="0.8"/>
+      <line x1="-2" y1="0" x2="22" y2="24" stroke="#38bdf8" stroke-width="0.4" opacity="0.55"/>
 
-      <!-- Cyber Aurora Intersecting Cross Laser Seams -->
-      <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-gradient-to-b from-cyan-400 via-white to-cyan-400 shadow-[0_0_8px_rgba(0,245,212,0.9)] z-10 pointer-events-none"></div>
-      <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-gradient-to-r from-cyan-400 via-white to-cyan-400 shadow-[0_0_8px_rgba(0,245,212,0.9)] z-10 pointer-events-none"></div>
-      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_12px_#00f5d4] border border-cyan-300 z-20 pointer-events-none"></div>
-    </div>
+      <!-- Top-Left Canton: Triad Alliance Stars (Symbolizing Sovereign Coalition) -->
+      <use href="#alliance-star-canton" x="4.2" y="3.8"/>
+      <use href="#alliance-star-canton" x="7.4" y="3.8"/>
+      <use href="#alliance-star-canton" x="10.6" y="3.8"/>
 
-    <!-- 5~6国组合：六合矩阵全息旗 (2x3 Hex Matrix Alliance Flag) -->
-    <div v-else-if="(multiCodes.length === 5 || multiCodes.length === 6) && asBackground" class="w-full h-full relative overflow-hidden grid grid-cols-3 grid-rows-2 bg-slate-950">
-      <div v-for="(c, idx) in multiCodes.slice(0, 6)" :key="idx" class="w-full h-full overflow-hidden relative">
-        <RegionFlag :code="c" as-background class="w-full h-full block" />
-      </div>
-      <div v-if="multiCodes.length === 5" class="w-full h-full overflow-hidden relative bg-gradient-to-br from-slate-900 to-cyan-950/80 flex items-center justify-center">
-        <span class="text-[10px] font-mono font-bold text-cyan-300 drop-shadow-[0_0_4px_#00f5d4]">★ 5合1</span>
-      </div>
-      <!-- Laser Grid Lines -->
-      <div class="absolute inset-y-0 left-1/3 -translate-x-1/2 w-0.5 bg-cyan-400/70 shadow-[0_0_6px_rgba(0,245,212,0.7)] z-10 pointer-events-none"></div>
-      <div class="absolute inset-y-0 left-2/3 -translate-x-1/2 w-0.5 bg-cyan-400/70 shadow-[0_0_6px_rgba(0,245,212,0.7)] z-10 pointer-events-none"></div>
-      <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-cyan-400/70 shadow-[0_0_6px_rgba(0,245,212,0.7)] z-10 pointer-events-none"></div>
-    </div>
+      <!-- Dual Intertwined Orbital Rings (East-West Planetary Synthesis) -->
+      <ellipse cx="18" cy="12" rx="10.5" ry="4.2" stroke="#00f5d4" stroke-width="0.55" fill="none" opacity="0.75" transform="rotate(-22 18 12)" stroke-dasharray="2 0.8"/>
+      <ellipse cx="18" cy="12" rx="10.5" ry="4.2" stroke="#38bdf8" stroke-width="0.55" fill="none" opacity="0.75" transform="rotate(22 18 12)" stroke-dasharray="2 0.8"/>
 
-    <!-- 7国及以上海量集群：全球星环同盟旗 (Global Celestial Gateway Coalition Flag) -->
-    <div v-else-if="multiCodes.length > 6 && asBackground" class="w-full h-full relative overflow-hidden bg-slate-950 flex flex-col items-center justify-center">
-      <svg viewBox="0 0 36 24" preserveAspectRatio="none" class="absolute inset-0 w-full h-full block pointer-events-none">
-        <defs>
-          <linearGradient id="multi-bg-nexus" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#051937"/>
-            <stop offset="35%" stop-color="#003865"/>
-            <stop offset="70%" stop-color="#006b88"/>
-            <stop offset="100%" stop-color="#00b48a"/>
-          </linearGradient>
-        </defs>
-        <rect width="36" height="24" fill="url(#multi-bg-nexus)"/>
-        <!-- Orbital Rings -->
-        <ellipse cx="18" cy="12" rx="14" ry="5.5" stroke="#00f5d4" stroke-width="0.5" fill="none" opacity="0.6" stroke-dasharray="2 1"/>
-        <ellipse cx="18" cy="12" rx="14" ry="5.5" stroke="#38bdf8" stroke-width="0.5" fill="none" opacity="0.6" transform="rotate(-25 18 12)"/>
-        <!-- Center Nexus -->
-        <circle cx="18" cy="12" r="2.8" fill="#00f5d4" opacity="0.25"/>
-        <circle cx="18" cy="12" r="1.6" fill="#ffffff" stroke="#00d2ff" stroke-width="0.6"/>
-      </svg>
-      <!-- Overlapping Flag Badges on top -->
-      <div class="relative z-10 flex items-center -space-x-1 px-2.5 py-1 rounded-full bg-slate-900/85 border border-cyan-500/50 backdrop-blur-md shadow-lg shadow-cyan-500/30">
-        <RegionFlag v-for="c in multiCodes.slice(0, 4)" :key="c" :code="c" size-class="w-4 h-2.5" class="rounded-xs ring-1 ring-slate-950 shadow-xs" />
-        <span class="text-[9.5px] font-mono font-bold text-cyan-300 ml-2 tracking-tighter drop-shadow-[0_0_4px_#00f5d4]">+{{ multiCodes.length - 4 }}国</span>
-      </div>
-    </div>
+      <!-- Multi-Nation Node Coordinates on the Rings -->
+      <circle cx="8.5" cy="8.2" r="0.8" fill="#00f5d4" stroke="#ffffff" stroke-width="0.3"/>
+      <circle cx="27.5" cy="15.8" r="0.8" fill="#00f5d4" stroke="#ffffff" stroke-width="0.3"/>
+      <circle cx="8.5" cy="15.8" r="0.8" fill="#38bdf8" stroke="#ffffff" stroke-width="0.3"/>
+      <circle cx="27.5" cy="8.2" r="0.8" fill="#38bdf8" stroke="#ffffff" stroke-width="0.3"/>
 
-    <!-- 非背景小图标模式：全能自适应徽章级联 (Adaptive Multi-Flag Stack) -->
-    <div v-else-if="multiCodes.length >= 2" class="inline-flex items-center -space-x-1 shrink-0">
-      <RegionFlag v-for="c in multiCodes.slice(0, 4)" :key="c" :code="c" :size-class="sizeClass" class="rounded-xs ring-1 ring-slate-900/80 shadow-xs" />
-      <span v-if="multiCodes.length > 4" class="text-[9px] font-mono text-cyan-300 font-bold ml-1.5">+{{ multiCodes.length - 4 }}</span>
+      <!-- Center Radiant Core -->
+      <circle cx="18" cy="12" r="4.5" fill="#00f5d4" opacity="0.15"/>
+      <circle cx="18" cy="12" r="3.2" fill="#062244" stroke="#00f5d4" stroke-width="0.6"/>
+
+      <!-- 8-Point Sovereign Alliance Compass Star (Majestic & High-Tech) -->
+      <polygon points="18,5.2 19.1,10.8 16.9,10.8" fill="#ffffff"/>
+      <polygon points="18,18.8 19.1,13.2 16.9,13.2" fill="#ffffff"/>
+      <polygon points="24.8,12 19.2,10.9 19.2,13.1" fill="#ffffff"/>
+      <polygon points="11.2,12 16.8,10.9 16.8,13.1" fill="#ffffff"/>
+
+      <polygon points="22.8,7.2 19,11 18,10" fill="#00f5d4"/>
+      <polygon points="13.2,7.2 18,10 17,11" fill="#00f5d4"/>
+      <polygon points="22.8,16.8 18,14 19,13" fill="#00f5d4"/>
+      <polygon points="13.2,16.8 17,13 18,14" fill="#00f5d4"/>
+
+      <!-- Center Star Nexus Gem -->
+      <circle cx="18" cy="12" r="1.4" fill="#ffffff" stroke="#00d2ff" stroke-width="0.5"/>
+      <polygon points="18,10.9 19.1,12 18,13.1 16.9,12" fill="#00f5d4"/>
+    </svg>
+
+    <!-- 非背景小图标模式：全能同盟徽章 (Universal Alliance Mini Badge) -->
+    <div v-else-if="multiCodes.length >= 2" class="text-sm shrink-0 select-none">
+      🌐⚡
     </div>
 
     <!-- 1. 香港 (香港特别行政区区旗: 法定标准洋紫荆五瓣带五星矢量) -->
