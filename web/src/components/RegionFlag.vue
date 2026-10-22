@@ -1,7 +1,68 @@
 <template>
   <div :class="asBackground ? 'w-full h-full block' : 'inline-flex items-center justify-center shrink-0'">
+    <!-- 0. 多国组合全息分流旗 (Multi-Country Alliance / Split Ensign) - 优先判定！ -->
+    <!-- 2国组合：对角/左右极光双旗合璧 (Dual Country Split Flag) -->
+    <div v-if="multiCodes.length === 2 && asBackground" class="w-full h-full relative overflow-hidden flex bg-slate-950">
+      <div class="w-1/2 h-full overflow-hidden relative">
+        <RegionFlag :code="multiCodes[0]" as-background class="w-full h-full block" />
+      </div>
+      <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-gradient-to-b from-cyan-400 via-white to-cyan-400 shadow-[0_0_8px_rgba(0,245,212,0.9)] z-10 pointer-events-none"></div>
+      <div class="w-1/2 h-full overflow-hidden relative">
+        <RegionFlag :code="multiCodes[1]" as-background class="w-full h-full block" />
+      </div>
+    </div>
+    <div v-else-if="multiCodes.length === 2" class="inline-flex items-center gap-0.5 shrink-0">
+      <RegionFlag :code="multiCodes[0]" :size-class="sizeClass" />
+      <RegionFlag :code="multiCodes[1]" :size-class="sizeClass" />
+    </div>
+
+    <!-- 3国组合：三极联合全息旗 (Tri-Country Split Flag) -->
+    <div v-else-if="multiCodes.length === 3 && asBackground" class="w-full h-full relative overflow-hidden flex bg-slate-950">
+      <div class="w-1/3 h-full overflow-hidden relative">
+        <RegionFlag :code="multiCodes[0]" as-background class="w-full h-full block" />
+      </div>
+      <div class="absolute inset-y-0 left-1/3 -translate-x-1/2 w-0.5 bg-gradient-to-b from-cyan-400 via-white to-cyan-400 shadow-[0_0_6px_rgba(0,245,212,0.8)] z-10 pointer-events-none"></div>
+      <div class="w-1/3 h-full overflow-hidden relative">
+        <RegionFlag :code="multiCodes[1]" as-background class="w-full h-full block" />
+      </div>
+      <div class="absolute inset-y-0 left-2/3 -translate-x-1/2 w-0.5 bg-gradient-to-b from-cyan-400 via-white to-cyan-400 shadow-[0_0_6px_rgba(0,245,212,0.8)] z-10 pointer-events-none"></div>
+      <div class="w-1/3 h-full overflow-hidden relative">
+        <RegionFlag :code="multiCodes[2]" as-background class="w-full h-full block" />
+      </div>
+    </div>
+    <div v-else-if="multiCodes.length === 3" class="inline-flex items-center gap-0.5 shrink-0">
+      <RegionFlag :code="multiCodes[0]" :size-class="sizeClass" />
+      <RegionFlag :code="multiCodes[1]" :size-class="sizeClass" />
+      <RegionFlag :code="multiCodes[2]" :size-class="sizeClass" />
+    </div>
+
+    <!-- 4国及以上多极联合旗 (Multi-Region Celestial Gateway Coalition Flag) -->
+    <svg v-else-if="multiCodes.length > 3 && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
+      <defs>
+        <linearGradient id="multi-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#051937"/>
+          <stop offset="40%" stop-color="#004d7a"/>
+          <stop offset="75%" stop-color="#008793"/>
+          <stop offset="100%" stop-color="#00bf72"/>
+        </linearGradient>
+      </defs>
+      <rect width="36" height="24" fill="url(#multi-bg)"/>
+      <path d="M-4 12 Q 18 -4 40 12" stroke="#ffffff" stroke-width="0.7" fill="none" opacity="0.6"/>
+      <path d="M-4 12 Q 18 28 40 12" stroke="#38bdf8" stroke-width="0.7" fill="none" opacity="0.6"/>
+      <circle cx="8" cy="9" r="1.6" fill="#f43f5e" stroke="#ffffff" stroke-width="0.6"/>
+      <circle cx="18" cy="12" r="2.2" fill="#00f5d4" stroke="#ffffff" stroke-width="0.8"/>
+      <circle cx="28" cy="15" r="1.6" fill="#fbbf24" stroke="#ffffff" stroke-width="0.6"/>
+      <line x1="8" y1="9" x2="18" y2="12" stroke="#ffffff" stroke-width="0.8" opacity="0.8"/>
+      <line x1="18" y1="12" x2="28" y2="15" stroke="#ffffff" stroke-width="0.8" opacity="0.8"/>
+      <polygon points="2,22 5,19 7,19 4,22" fill="#ffffff" opacity="0.5"/>
+      <polygon points="6,22 9,19 11,19 8,22" fill="#00f5d4" opacity="0.7"/>
+    </svg>
+    <div v-else-if="multiCodes.length > 3" class="text-sm shrink-0">
+      🌐⚡
+    </div>
+
     <!-- 1. 香港 (香港特别行政区区旗: 法定标准洋紫荆五瓣带五星矢量) -->
-    <svg v-if="code === 'HK'" viewBox="0 0 900 600" preserveAspectRatio="none" :class="asBackground ? 'w-full h-full block' : [sizeClass, 'rounded-xs shadow-sm shrink-0']">
+    <svg v-else-if="code === 'HK'" viewBox="0 0 900 600" preserveAspectRatio="none" :class="asBackground ? 'w-full h-full block' : [sizeClass, 'rounded-xs shadow-sm shrink-0']">
       <rect width="900" height="600" fill="#DE2910"/>
       <g id="hk-p">
         <path d="M492.936022 125.19583a27.917245 27.917245 0 0 0-14.901582 41.791893 45.171052 45.171052 0 0 1-20.289932 66.204239 38.650583 38.650583 0 0 0-10.816469 64.313021 68.374981 68.374981 0 0 1-17.067835-93.913589 15.809868 15.809868 0 0 1-1.109109-1.047777 69.880683 69.880683 0 0 0 16.754434 95.793146 90.342104 90.342104 0 0 1 47.430493-173.140933" fill="#ffffff"/>
@@ -493,67 +554,6 @@
       🛑
     </div>
 
-    <!-- 36. 多国组合全息分流旗 (Multi-Country Alliance / Split Ensign) -->
-    <!-- 2国组合：对角极光双旗合璧 (Dual Country Split Flag) -->
-    <div v-else-if="multiCodes.length === 2 && asBackground" class="w-full h-full relative overflow-hidden flex bg-slate-950">
-      <div class="w-1/2 h-full overflow-hidden relative">
-        <RegionFlag :code="multiCodes[0]" as-background class="w-full h-full block" />
-      </div>
-      <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-gradient-to-b from-cyan-400 via-white to-cyan-400 shadow-[0_0_8px_rgba(0,245,212,0.9)] z-10 pointer-events-none"></div>
-      <div class="w-1/2 h-full overflow-hidden relative">
-        <RegionFlag :code="multiCodes[1]" as-background class="w-full h-full block" />
-      </div>
-    </div>
-    <div v-else-if="multiCodes.length === 2" class="inline-flex items-center gap-0.5 shrink-0">
-      <RegionFlag :code="multiCodes[0]" :size-class="sizeClass" />
-      <RegionFlag :code="multiCodes[1]" :size-class="sizeClass" />
-    </div>
-
-    <!-- 3国组合：三极联合全息旗 (Tri-Country Split Flag) -->
-    <div v-else-if="multiCodes.length === 3 && asBackground" class="w-full h-full relative overflow-hidden flex bg-slate-950">
-      <div class="w-1/3 h-full overflow-hidden relative">
-        <RegionFlag :code="multiCodes[0]" as-background class="w-full h-full block" />
-      </div>
-      <div class="absolute inset-y-0 left-1/3 -translate-x-1/2 w-0.5 bg-gradient-to-b from-cyan-400 via-white to-cyan-400 shadow-[0_0_6px_rgba(0,245,212,0.8)] z-10 pointer-events-none"></div>
-      <div class="w-1/3 h-full overflow-hidden relative">
-        <RegionFlag :code="multiCodes[1]" as-background class="w-full h-full block" />
-      </div>
-      <div class="absolute inset-y-0 left-2/3 -translate-x-1/2 w-0.5 bg-gradient-to-b from-cyan-400 via-white to-cyan-400 shadow-[0_0_6px_rgba(0,245,212,0.8)] z-10 pointer-events-none"></div>
-      <div class="w-1/3 h-full overflow-hidden relative">
-        <RegionFlag :code="multiCodes[2]" as-background class="w-full h-full block" />
-      </div>
-    </div>
-    <div v-else-if="multiCodes.length === 3" class="inline-flex items-center gap-0.5 shrink-0">
-      <RegionFlag :code="multiCodes[0]" :size-class="sizeClass" />
-      <RegionFlag :code="multiCodes[1]" :size-class="sizeClass" />
-      <RegionFlag :code="multiCodes[2]" :size-class="sizeClass" />
-    </div>
-
-    <!-- 4国及以上多极联合旗 (Multi-Region Celestial Gateway Coalition Flag) -->
-    <svg v-else-if="multiCodes.length > 3 && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
-      <defs>
-        <linearGradient id="multi-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#051937"/>
-          <stop offset="40%" stop-color="#004d7a"/>
-          <stop offset="75%" stop-color="#008793"/>
-          <stop offset="100%" stop-color="#00bf72"/>
-        </linearGradient>
-      </defs>
-      <rect width="36" height="24" fill="url(#multi-bg)"/>
-      <path d="M-4 12 Q 18 -4 40 12" stroke="#ffffff" stroke-width="0.7" fill="none" opacity="0.6"/>
-      <path d="M-4 12 Q 18 28 40 12" stroke="#38bdf8" stroke-width="0.7" fill="none" opacity="0.6"/>
-      <circle cx="8" cy="9" r="1.6" fill="#f43f5e" stroke="#ffffff" stroke-width="0.6"/>
-      <circle cx="18" cy="12" r="2.2" fill="#00f5d4" stroke="#ffffff" stroke-width="0.8"/>
-      <circle cx="28" cy="15" r="1.6" fill="#fbbf24" stroke="#ffffff" stroke-width="0.6"/>
-      <line x1="8" y1="9" x2="18" y2="12" stroke="#ffffff" stroke-width="0.8" opacity="0.8"/>
-      <line x1="18" y1="12" x2="28" y2="15" stroke="#ffffff" stroke-width="0.8" opacity="0.8"/>
-      <polygon points="2,22 5,19 7,19 4,22" fill="#ffffff" opacity="0.5"/>
-      <polygon points="6,22 9,19 11,19 8,22" fill="#00f5d4" opacity="0.7"/>
-    </svg>
-    <div v-else-if="multiCodes.length > 3" class="text-sm shrink-0">
-      🌐⚡
-    </div>
-
     <!-- 35. 其它通用国旗/区旗后备 (带大号 Emoji 全息居中展示) -->
     <div v-else-if="asBackground" class="w-full h-full bg-[#0a1626] flex items-center justify-center relative overflow-hidden">
       <div class="absolute inset-0 bg-gradient-to-br from-cyan-950/40 via-slate-900/60 to-slate-950/90"></div>
@@ -640,6 +640,10 @@ const code = computed(() => {
 })
 
 const multiCodes = computed(() => {
+  // If props.code is a single 2-letter country code, never treat as multi
+  if (props.code && /^[A-Za-z]{2}$/.test(props.code.trim())) {
+    return []
+  }
   if (props.code && props.code.includes(',')) {
     const parts = props.code.split(',').map(c => c.trim().toUpperCase()).filter(c => /^[A-Z]{2}$/.test(c))
     if (parts.length > 1) return parts
@@ -651,32 +655,37 @@ const multiCodes = computed(() => {
   const name = props.name || ''
   if (!name || name.length < 2) return []
 
-  const found = []
-  const seen = new Set()
-
-  const checkAdd = (c) => {
-    if (c && !seen.has(c)) {
-      seen.add(c)
-      found.push(c)
+  // Extract all matched countries with their appearance index in the string
+  const positions = []
+  for (const [k, code] of Object.entries(CHINESE_NAME_MAP)) {
+    const idx = name.indexOf(k)
+    if (idx !== -1) {
+      positions.push({ idx, code })
     }
   }
 
-  for (const [k, code] of Object.entries(CHINESE_NAME_MAP)) {
-    if (name.includes(k)) checkAdd(code)
+  const shortAbbrs = [
+    { k: '港', code: 'HK' }, { k: '台', code: 'TW' }, { k: '日', code: 'JP' },
+    { k: '韩', code: 'KR' }, { k: '新', code: 'SG' }, { k: '美', code: 'US' },
+    { k: '英', code: 'GB' }, { k: '德', code: 'DE' }, { k: '法', code: 'FR' },
+    { k: '加', code: 'CA' }, { k: '澳', code: 'AU' }
+  ]
+  for (const item of shortAbbrs) {
+    const idx = name.indexOf(item.k)
+    if (idx !== -1 && !positions.some(p => p.code === item.code)) {
+      positions.push({ idx, code: item.code })
+    }
   }
 
-  if (found.length < 2) {
-    if (name.includes('港')) checkAdd('HK')
-    if (name.includes('台')) checkAdd('TW')
-    if (name.includes('日')) checkAdd('JP')
-    if (name.includes('韩')) checkAdd('KR')
-    if (name.includes('新')) checkAdd('SG')
-    if (name.includes('美')) checkAdd('US')
-    if (name.includes('英')) checkAdd('GB')
-    if (name.includes('德')) checkAdd('DE')
-    if (name.includes('法')) checkAdd('FR')
-    if (name.includes('加')) checkAdd('CA')
-    if (name.includes('澳')) checkAdd('AU')
+  // Sort strictly by appearance order in name (e.g. 台湾·日本·韩国 -> TW, JP, KR)
+  positions.sort((a, b) => a.idx - b.idx)
+  const found = []
+  const seen = new Set()
+  for (const p of positions) {
+    if (!seen.has(p.code)) {
+      seen.add(p.code)
+      found.push(p.code)
+    }
   }
 
   return found.length > 1 ? found : []
