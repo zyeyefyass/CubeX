@@ -58,7 +58,7 @@
 > 
 > | 文件名 | 平台 / 底座 | 文件大小 | 说明 |
 > | :--- | :--- | :--- | :--- |
-> | `CubeX-Test-v2.4-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~147.7 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 一键导入） |
+> | `CubeX-Test-v2.4-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~90.0 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 一键导入） |
 > | `CubeX-Test-v2.4-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~95.0 MB | ROS 专有未压缩容器镜像 |
 > | `CubeX-Test-v2.4-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~68.8 MB | 包含双内核、规则集、配置与控制面的完整生产归档 |
 > | `CubeX-Test-v2.4-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~67.5 MB | 包含双内核、规则集、配置与控制面的完整生产归档 |

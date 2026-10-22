@@ -3196,7 +3196,7 @@
                   </div>
                   <div v-else class="text-slate-400 text-xs flex items-center gap-2">
                     <span class="text-emerald-400 font-bold shrink-0">[CORE]</span>
-                    <span>双引擎无感热重载就绪 · Mihomo 主控调度 · sing-box 待命热备</span>
+                    <span>双引擎无感热重载就绪 · {{ (activeEngine === 'singbox' || activeEngine === 'sing-box') ? 'sing-box' : 'Mihomo' }} 主控调度 · {{ (activeEngine === 'singbox' || activeEngine === 'sing-box') ? 'Mihomo' : 'sing-box' }} 待命热备</span>
                   </div>
                 </div>
               </div>
