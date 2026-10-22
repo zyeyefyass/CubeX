@@ -575,21 +575,7 @@ func (s *Server) getLiveMemoryMetrics() (appRSS float64, coreRSS float64, totalO
 		coreRSS = 18.2
 	}
 
-	// 1. Priority: RouterOS host container live telemetry (matches RouterOS WinBox "Memory Current" exactly)
-	if s.rosMgr != nil && s.rosMgr.IsConnected() {
-		if rosMem, err := s.rosMgr.GetContainerMemoryCurrent(); err == nil && rosMem > 0 {
-			totalOverhead = rosMem
-			return
-		}
-	}
-
-	// 2. Linux / Docker / fnOS / PVE host cgroup container memory
-	if cgroupMem := getCgroupMemoryMB(); cgroupMem > 0 {
-		totalOverhead = cgroupMem
-		return
-	}
-
-	// 3. Fallback: sum of process physical resident memory
+	// Total resident overhead is strictly the sum of active proxy engine core RSS and cubexd control plane RSS
 	totalOverhead = appRSS + coreRSS
 	return
 }

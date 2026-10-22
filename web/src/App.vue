@@ -358,13 +358,13 @@
                     <span class="text-slate-400 text-[11px] whitespace-nowrap">CubeX 专属常驻</span>
                     <span class="text-sm font-bold text-cyan-300 font-mono">{{ currentHostRealMemory.toFixed(1) }} MB <span class="text-[10px] text-emerald-400 font-sans font-normal">(超轻量)</span></span>
                   </div>
-                  <!-- 专属常驻细分拆解: 内核占用 + 主控占用 与 容器整机开销 -->
+                  <!-- 专属常驻细分拆解: 内核独立常驻内存 + 主控 和 总计 -->
                   <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono px-2 py-0.5 rounded-md bg-slate-900/80 border border-slate-800/80">
                     <span>内核: <strong class="text-purple-300 font-bold">{{ liveCoreMemoryMB.toFixed(1) }}M</strong> <span class="text-slate-500">({{ activeEngine === 'singbox' ? 'sing-box' : 'mihomo' }})</span></span>
                     <span class="text-slate-600">+</span>
                     <span>主控: <strong class="text-cyan-300 font-bold">{{ liveAppMemoryMB.toFixed(1) }}M</strong> <span class="text-slate-500">(cubexd)</span></span>
-                    <span class="text-slate-600">|</span>
-                    <span>容器总计: <strong class="text-indigo-300 font-bold">{{ liveContainerOverheadMB.toFixed(1) }}M</strong></span>
+                    <span class="text-slate-600">=</span>
+                    <span>总计: <strong class="text-emerald-400 font-bold">{{ liveTotalResidentMB.toFixed(1) }}M</strong></span>
                   </div>
                   <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
                     <span class="truncate">宿主整机已用 {{ hostInfo.memory_used || '343MiB' }} (含系统)</span>
