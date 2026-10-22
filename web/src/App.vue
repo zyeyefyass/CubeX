@@ -2654,39 +2654,21 @@
         </div>
 
         <!-- ════════════════════════════════════════════════════════════════ -->
+        <!-- ════════════════════════════════════════════════════════════════ -->
         <!-- TAB 6: 宿主共生 (System & Host Base & Diagnostics)                 -->
         <!-- ════════════════════════════════════════════════════════════════ -->
         <div v-else-if="activeMasterTab === 'system'" class="space-y-6 animate-in fade-in">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-800/40 pb-4">
             <div>
               <h2 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                <span>⚙️ 宿主原生共生与系统诊断中枢</span>
+                <span>⚙️ 宿主原生共生与系统运维中枢</span>
               </h2>
-              <p class="text-xs text-slate-400 mt-1">自动识别 RouterOS / Linux / 飞牛底座 · 四维在线无缝热更 · 环形日志与安全脱敏诊断</p>
-            </div>
-
-            <!-- Sub-tab Pills Switcher (宿主共生与升级 vs 日志与诊断包) -->
-            <div class="flex items-center gap-1.5 p-1 rounded-2xl bg-slate-900/90 border border-sky-800/40 self-start sm:self-auto shrink-0">
-              <button @click="systemSubTab = 'host'"
-                :class="[
-                  'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer select-none',
-                  systemSubTab === 'host' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20' : 'text-slate-300 hover:text-white'
-                ]">
-                <span>🖥️ 宿主共生与四维升级</span>
-              </button>
-              <button @click="systemSubTab = 'diagnostics'; fetchSystemLogs(true)"
-                :class="[
-                  'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer select-none',
-                  systemSubTab === 'diagnostics' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20' : 'text-slate-300 hover:text-white'
-                ]">
-                <span>📜 日志和诊断包</span>
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-              </button>
+              <p class="text-xs text-slate-400 mt-1">自动识别 RouterOS / Linux / 飞牛底座 · 策略路由与防火墙自愈 · 四维在线无缝热更</p>
             </div>
           </div>
 
-          <!-- ── SUB-TAB 1: 宿主底座与四维升级 ── -->
-          <div v-if="systemSubTab === 'host'" class="space-y-6 animate-in fade-in">
+          <!-- 宿主底座与四维升级主视窗 -->
+          <div class="space-y-6">
 
           <!-- ✨ 系统初始化与宿主引导专属横幅 -->
           <div class="p-5 rounded-3xl bg-gradient-to-r from-cyan-950/90 via-slate-900 to-indigo-950/80 border border-cyan-500/40 flex items-center justify-between flex-wrap gap-4 shadow-xl">
@@ -3127,9 +3109,25 @@
           </div>
 
           </div>
+        </div>
 
-          <!-- ── SUB-TAB 2: 日志和诊断包 (一键上传) ── -->
-          <div v-else-if="systemSubTab === 'diagnostics'" class="space-y-6 animate-in fade-in">
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <!-- TAB: 日志和诊断 (Logs & Diagnostics - 左侧主项目区独立模块)         -->
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <div v-else-if="activeMasterTab === 'diagnostics'" class="space-y-6 animate-in fade-in">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-800/40 pb-4">
+            <div>
+              <h2 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                <span>📜 日志和诊断</span>
+              </h2>
+              <p class="text-xs text-slate-400 mt-1">环形实时日志流捕获 · 关键词检索与模块过滤 · 一键安全脱敏诊断包导出与 Issue 协同</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button @click="fetchSystemLogs(true)" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-300 hover:text-white flex items-center gap-1.5 cursor-pointer active:scale-95 transition">
+                <span>🔄 刷新日志</span>
+              </button>
+            </div>
+          </div>
 
           <!-- 🛡️ 一键安全脱敏诊断包 & GitHub Issue 一键上传直通车 Hero Bento -->
           <div class="glass-matrix rounded-3xl p-5 sm:p-6 space-y-5 border-l-4 border-l-cyan-400 shadow-2xl relative overflow-hidden">
@@ -3354,7 +3352,6 @@
           </div>
         </div>
 
-      </div>
 
       </main>
 
@@ -4577,7 +4574,7 @@ import LogoPicker from './components/LogoPicker.vue'
 import RegionFlag from './components/RegionFlag.vue'
 
 // ── Master Navigation Hubs (核心模块导航 - 支持全状态记忆与 F5 刷新锁定) ──
-const VALID_TABS = ['overview', 'routing', 'rules', 'kspeeder', 'system']
+const VALID_TABS = ['overview', 'routing', 'rules', 'kspeeder', 'diagnostics', 'system']
 
 function getInitialTab() {
   try {
@@ -4623,7 +4620,7 @@ watch(activeMasterTab, (newTab) => {
       }
     } catch (e) {}
   }
-  if (newTab === 'system' && systemSubTab.value === 'diagnostics') {
+  if (newTab === 'diagnostics') {
     fetchSystemLogs(true)
   }
 }, { immediate: true })
@@ -4634,6 +4631,7 @@ const navItems = [
   { id: 'routing', label: '应用分流', icon: '🧭' },
   { id: 'rules', label: '安全防护', icon: '🛡️' },
   { id: 'kspeeder', label: '容器加速', icon: '🚀' },
+  { id: 'diagnostics', label: '日志和诊断', icon: '📜' },
   { id: 'system', label: '宿主共生', icon: '⚙️' }
 ]
 

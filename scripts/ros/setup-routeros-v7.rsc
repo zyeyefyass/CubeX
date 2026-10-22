@@ -236,45 +236,80 @@ $printMsg ("✅ [3/5 网段与IP分配] 主路由IP: " . $bridgeIP . " | 局域�
 } on-error={};
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 维度 2: 多维智能搜集所有局域网 LAN 端口 (完全不依赖接口是否叫 "LAN")
+# 维度 2: 严格先行排除 WAN 口，只将纯净局域网端口搜集进候选池 (严禁搜集任何 WAN 口)
 # ═════════════════════════════════════════════════════════════════════════════
 :local lanCandidates [:toarray ""];
 
-# 2.1 扫描所有具有内网语义的接口清单 (LAN, local, inside, internal, trust, home, office, 局域网, 内网等)
+# 2.1 扫描内网语义接口清单 (LAN, local, inside, internal, trust, home, 局域网, 内网等) - 严格排除 WAN
 :do {
     :foreach m in=[/interface list member find where list~"(?i)(lan|local|internal|inside|trust|home|office|client|user|局域网|内网)"] do={
         :local lName [/interface list member get $m interface];
-        :set lanCandidates ($lanCandidates, $lName);
+        :local isWan false;
+        :foreach w in=$wanIfaces do={
+            :if ($w = $lName) do={ :set isWan true; }
+        }
+        :if ($isWan = false and $lName != $lanBridge and $lName != "veth-cubex") do={
+            :set lanCandidates ($lanCandidates, $lName);
+        }
     }
 } on-error={};
 
-# 2.2 扫描绑定了本地 DHCP-Server 或私网服务的下行接口
+# 2.2 扫描绑定了本地下行 DHCP-Server 服务的业务接口 - 严格排除 WAN
 :do {
     :foreach ds in=[/ip dhcp-server find where disabled=no] do={
         :local dsIf [/ip dhcp-server get $ds interface];
-        :set lanCandidates ($lanCandidates, $dsIf);
+        :local isWan false;
+        :foreach w in=$wanIfaces do={
+            :if ($w = $dsIf) do={ :set isWan true; }
+        }
+        :if ($isWan = false and $dsIf != $lanBridge and $dsIf != "veth-cubex") do={
+            :set lanCandidates ($lanCandidates, $dsIf);
+        }
     }
 } on-error={};
 
-# 2.3 全量扫描所有物理以太网口 (不论叫 ether2、sfp2、LAN1、Trunk、Downlink 还是任意自定义名称)
+# 2.3 全量扫描物理以太网口 (不论叫 ether2、sfp2、LAN1、Trunk、Downlink 还是自定义名) - 严格排除 WAN 绝不误入
 :do {
     :foreach eth in=[/interface ethernet find where disabled=no] do={
         :local eName [/interface ethernet get $eth name];
-        :set lanCandidates ($lanCandidates, $eName);
+        :local isWan false;
+        :foreach w in=$wanIfaces do={
+            :if ($w = $eName) do={ :set isWan true; }
+        }
+        # 若未探查到明确 WAN 且该口为 ether1 / sfp1，按默认习惯保护为上行 WAN 严禁搜集
+        :if ([:len $wanIfaces] = 0 and ($eName = "ether1" or $eName = "sfp1" or $eName = "sfp-sfpplus1")) do={
+            :set isWan true;
+        }
+        # 严格只将非 WAN 物理口搜集进候选池
+        :if ($isWan = false and $eName != $lanBridge and $eName != "veth-cubex") do={
+            :set lanCandidates ($lanCandidates, $eName);
+        }
     }
 } on-error={};
 
-# 2.4 扫描无线 Wi-Fi / WLAN 局域网接口 (RouterOS v7.13+ wifi 或 legacy wireless)
+# 2.4 扫描无线 Wi-Fi / WLAN 局域网接口 (RouterOS v7.13+ wifi 或 legacy wireless) - 严格排除 WAN
 :do {
     :foreach w in=[/interface wifi find where disabled=no] do={
         :local wName [/interface wifi get $w name];
-        :set lanCandidates ($lanCandidates, $wName);
+        :local isWan false;
+        :foreach wan in=$wanIfaces do={
+            :if ($wan = $wName) do={ :set isWan true; }
+        }
+        :if ($isWan = false and $wName != $lanBridge and $wName != "veth-cubex") do={
+            :set lanCandidates ($lanCandidates, $wName);
+        }
     }
 } on-error={};
 :do {
     :foreach w in=[/interface wireless find where disabled=no] do={
         :local wName [/interface wireless get $w name];
-        :set lanCandidates ($lanCandidates, $wName);
+        :local isWan false;
+        :foreach wan in=$wanIfaces do={
+            :if ($wan = $wName) do={ :set isWan true; }
+        }
+        :if ($isWan = false and $wName != $lanBridge and $wName != "veth-cubex") do={
+            :set lanCandidates ($lanCandidates, $wName);
+        }
     }
 } on-error={};
 
