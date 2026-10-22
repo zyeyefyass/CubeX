@@ -1469,19 +1469,21 @@
                       </div>
                     </div>
 
-                    <!-- 4. ➕ 增补已删除出站候选项 -->
-                    <div v-if="getExcludedRegionsForGroup(grp).length > 0 || (!isForeignGroup(grp) && isCandidateExcluded(grp.name, 'DIRECT')) || isCandidateExcluded(grp.name, 'REJECT')"
+                    <!-- 4. ➕ 增加出站候选项 (支持自建、其它、直连、各地区与拒绝) -->
+                    <div v-if="hasAddableOutbounds(grp)"
                       class="w-[130px] sm:w-[145px] md:w-[155px] aspect-[3/2] shrink-0 p-2.5 rounded-2xl border border-dashed border-slate-700/80 hover:border-cyan-500/50 bg-slate-950/50 flex flex-col items-center justify-center transition select-none group">
                       <span class="text-base text-slate-500 group-hover:text-cyan-400 mb-1 transition">➕</span>
                       <select
                         @change="restoreCandidateToGroup(grp, $event.target.value); $event.target.value = ''"
                         class="w-full text-[10px] font-mono font-semibold py-1 px-1 rounded-lg bg-slate-900/90 border border-slate-700 text-cyan-300 appearance-none text-center cursor-pointer hover:border-cyan-500/40">
-                        <option value="" disabled selected>增补出站</option>
-                        <option v-if="!isForeignGroup(grp) && isCandidateExcluded(grp.name, 'DIRECT')" value="DIRECT">🇨🇳 直连</option>
+                        <option value="" disabled selected>增加出站</option>
+                        <option v-if="canAddCandidate(grp, 'DIRECT')" value="DIRECT">🇨🇳 直连</option>
                         <option v-for="r in getExcludedRegionsForGroup(grp)" :key="r.id" :value="r.id">
-                          {{ r.name }}
+                          {{ r.flag || '🌍' }} {{ r.name }}
                         </option>
-                        <option v-if="isCandidateExcluded(grp.name, 'REJECT')" value="REJECT">🛑 拒绝</option>
+                        <option v-if="canAddCandidate(grp, 'CUSTOM')" value="CUSTOM">🏠 自建</option>
+                        <option v-if="canAddCandidate(grp, 'OTHERS')" value="OTHERS">🌐 其它</option>
+                        <option v-if="canAddCandidate(grp, 'REJECT')" value="REJECT">🛑 拒绝</option>
                       </select>
                     </div>
                   </template>
@@ -1890,6 +1892,17 @@
                       <option :value="reg.auto">{{ reg.auto }} (⚡ 地区自动)</option>
                       <option :value="reg.fall">{{ reg.fall }} (🔄 地区故转)</option>
                       <option :value="reg.disaster">{{ reg.disaster }} (🛡️ 地区容灾)</option>
+                    </optgroup>
+                    <!-- 确保即便地区列表经过局部过滤，自建与其它集群在添加策略组时依然始终可选 -->
+                    <optgroup v-if="!allRegionDefs.some(r => r.id === 'CUSTOM')" label="🏠 自建节点集群">
+                      <option value="🏠 自建自动">🏠 自建自动 (⚡ 自建自动)</option>
+                      <option value="🏠 自建故转">🏠 自建故转 (🔄 自建故转)</option>
+                      <option value="🏠 自建容灾">🏠 自建容灾 (🛡️ 自建容灾)</option>
+                    </optgroup>
+                    <optgroup v-if="!allRegionDefs.some(r => r.id === 'OTHERS')" label="🌐 其它节点集群">
+                      <option value="🌐 其它自动">🌐 其它自动 (⚡ 其它自动)</option>
+                      <option value="🌐 其它故转">🌐 其它故转 (🔄 其它故转)</option>
+                      <option value="🌐 其它容灾">🌐 其它容灾 (🛡️ 其它容灾)</option>
                     </optgroup>
                     <optgroup label="⚡ 通用直连与全局">
                       <option value="DIRECT">DIRECT (国内直连绕过)</option>
@@ -8664,6 +8677,38 @@ function isCandidateExcluded(grpName, candKey) {
   return list.includes(candKey)
 }
 
+function canAddCandidate(grp, candKey) {
+  if (!grp || !grp.name) return false
+  if (isChinaGroup(grp)) {
+    return candKey === 'DIRECT' && isCandidateExcluded(grp.name, 'DIRECT')
+  }
+  if (candKey === 'DIRECT') {
+    return !isForeignGroup(grp) && isCandidateExcluded(grp.name, 'DIRECT')
+  }
+  if (candKey === 'REJECT') {
+    return isCandidateExcluded(grp.name, 'REJECT')
+  }
+  if (candKey === 'CUSTOM') {
+    // 自建节点出站：只要当前策略卡片没有展示自建（在 excluded 列表中，或者被全局删除/过滤），均可增补
+    return isCandidateExcluded(grp.name, 'CUSTOM') || !allRegionDefs.value.some(r => r.id === 'CUSTOM')
+  }
+  if (candKey === 'OTHERS') {
+    // 其它节点出站：只要当前策略卡片没有展示其它，均可增补
+    return isCandidateExcluded(grp.name, 'OTHERS') || !allRegionDefs.value.some(r => r.id === 'OTHERS')
+  }
+  // 常规地区
+  return isCandidateExcluded(grp.name, candKey)
+}
+
+function hasAddableOutbounds(grp) {
+  if (isChinaGroup(grp)) return false
+  if (canAddCandidate(grp, 'DIRECT')) return true
+  if (canAddCandidate(grp, 'CUSTOM')) return true
+  if (canAddCandidate(grp, 'OTHERS')) return true
+  if (canAddCandidate(grp, 'REJECT')) return true
+  return getExcludedRegionsForGroup(grp).length > 0
+}
+
 function removeCandidateFromGroup(grp, candKey) {
   if (!groupExcludedCandidates.value[grp.name]) {
     groupExcludedCandidates.value[grp.name] = []
@@ -8674,22 +8719,48 @@ function removeCandidateFromGroup(grp, candKey) {
       localStorage.setItem('cubex_group_excluded_candidates', JSON.stringify(groupExcludedCandidates.value))
     } catch (e) {}
   }
-  showToast(`已从「${grp.name}」策略中移除该出站选项`)
+  const labelMap = {
+    'DIRECT': '🇨🇳 直连',
+    'REJECT': '🛑 拒绝',
+    'CUSTOM': '🏠 自建',
+    'OTHERS': '🌐 其它'
+  }
+  const foundReg = allRegionDefs.value.find(r => r.id === candKey) || defaultRegionDefs.find(r => r.id === candKey)
+  const displayName = labelMap[candKey] || (foundReg ? `${foundReg.flag || '🌍'} ${foundReg.name}` : candKey)
+  showToast(`已从「${grp.name}」策略中移除出站选项: ${displayName}`)
 }
 
 function restoreCandidateToGroup(grp, candKey) {
+  if (!candKey) return
   if (groupExcludedCandidates.value[grp.name]) {
     groupExcludedCandidates.value[grp.name] = groupExcludedCandidates.value[grp.name].filter(k => k !== candKey)
     try {
       localStorage.setItem('cubex_group_excluded_candidates', JSON.stringify(groupExcludedCandidates.value))
     } catch (e) {}
   }
-  showToast(`已将该出站选项恢复至「${grp.name}」`)
+  // 关键自愈：如果增补的是自建或其它，且之前被从全局地区列表中删除过，立即自动恢复至地区定义库
+  if (candKey === 'CUSTOM' || candKey === 'OTHERS') {
+    if (deletedRegionIds.value.includes(candKey)) {
+      deletedRegionIds.value = deletedRegionIds.value.filter(id => id !== candKey)
+      try {
+        localStorage.setItem('cubex_deleted_region_ids', JSON.stringify(deletedRegionIds.value))
+      } catch (e) {}
+    }
+  }
+  const labelMap = {
+    'DIRECT': '🇨🇳 直连',
+    'REJECT': '🛑 拒绝',
+    'CUSTOM': '🏠 自建',
+    'OTHERS': '🌐 其它'
+  }
+  const foundReg = allRegionDefs.value.find(r => r.id === candKey) || defaultRegionDefs.find(r => r.id === candKey)
+  const displayName = labelMap[candKey] || (foundReg ? `${foundReg.flag || '🌍'} ${foundReg.name}` : candKey)
+  showToast(`已成功为「${grp.name}」增补出站选项: ${displayName}`)
 }
 
 function getExcludedRegionsForGroup(grp) {
   const excludedKeys = groupExcludedCandidates.value[grp.name] || []
-  return allRegionDefs.value.filter(r => excludedKeys.includes(r.id))
+  return allRegionDefs.value.filter(r => r.id !== 'CUSTOM' && r.id !== 'OTHERS' && excludedKeys.includes(r.id))
 }
 
 // 判定是否为地区路由集群或底层节点分组 (严格杜绝地区出现在应用分流策略中，保持业务策略纯粹性)
@@ -8763,7 +8834,7 @@ const businessGroups = computed(() => {
       now: '🇭🇰 香港自动',
       is_immutable: true,
       tag: '常规国外',
-      proxies: ['DIRECT', '🇭🇰 香港自动', '🇹🇼 台湾自动', '🇯🇵 日本自动', '🇰🇷 韩国自动', '🇸🇬 新加坡自动', '🇺🇸 美国自动', 'REJECT']
+      proxies: ['DIRECT', '🇭🇰 香港自动', '🇹🇼 台湾自动', '🇯🇵 日本自动', '🇰🇷 韩国自动', '🇸🇬 新加坡自动', '🇺🇸 美国自动', '🏠 自建自动', '🌐 其它自动', 'REJECT']
     },
     {
       name: '🐟 漏网之鱼',
@@ -8771,7 +8842,7 @@ const businessGroups = computed(() => {
       now: '🇭🇰 香港自动',
       is_immutable: true,
       tag: '终极兜底',
-      proxies: ['DIRECT', '🇭🇰 香港自动', '🇹🇼 台湾自动', '🇯🇵 日本自动', '🇰🇷 韩国自动', '🇸🇬 新加坡自动', '🇺🇸 美国自动', 'REJECT']
+      proxies: ['DIRECT', '🇭🇰 香港自动', '🇹🇼 台湾自动', '🇯🇵 日本自动', '🇰🇷 韩国自动', '🇸🇬 新加坡自动', '🇺🇸 美国自动', '🏠 自建自动', '🌐 其它自动', 'REJECT']
     }
   ]
 
@@ -8844,7 +8915,7 @@ const businessGroups = computed(() => {
         icon: p.icon,
         type: 'select',
         now: p.now,
-        proxies: ['DIRECT', '🇭🇰 香港自动', '🇹🇼 台湾自动', '🇯🇵 日本自动', '🇰🇷 韩国自动', '🇸🇬 新加坡自动', '🇺🇸 美国自动', 'REJECT'],
+        proxies: ['DIRECT', '🇭🇰 香港自动', '🇹🇼 台湾自动', '🇯🇵 日本自动', '🇰🇷 韩国自动', '🇸🇬 新加坡自动', '🇺🇸 美国自动', '🏠 自建自动', '🌐 其它自动', 'REJECT'],
         is_custom: false
       })
     }
