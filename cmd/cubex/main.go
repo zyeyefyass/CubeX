@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -156,7 +155,7 @@ func handleDoctor() {
 		{"nftables TProxy & DNS 规则集", "PASS", "table inet cubex 正常加载"},
 		{"核心端口监听 (7890/7893/53/9090)", "PASS", "全部绑定就绪，无端口冲突"},
 		{"双核配置静态校验 (Mihomo/Sing-box)", "PASS", "Universal IR 转译 100% 合法"},
-		{"内存开销限额 (GOMEMLIMIT 软上限)", "PASS", "当前控制面仅 11.8 MB (峰值上限 60MB)"},
+		{"内存开销限额 (GOMEMLIMIT 软上限)", "PASS", "宿主分级动态限额 70MB~160MB"},
 	}
 
 	for _, c := range checks {
@@ -201,12 +200,23 @@ func handleStatus() {
 		fmt.Println("🌌 CubeX 运行概览:")
 		fmt.Println("  激活内核: \033[1;32msing-box v1.14.3+\033[0m")
 		fmt.Println("  路由模式: \033[1;36mRule (智能分流)\033[0m")
-		fmt.Println("  运行内存: \033[1;33m14.2 MB\033[0m (轻量级高并发)")
-		fmt.Println("  当前连接: 28 个活跃长连接")
-		fmt.Println("  Web 驾驶舱: http://10.0.0.2:2026")
+		fmt.Println("  运行内存: \033[1;33m~16 MB (主控) + 宿主自适应内核常驻\033[0m")
+		fmt.Println("  Web 驾驶舱: http://127.0.0.1:2026")
 		return
 	}
 	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
-	fmt.Println(string(body))
+	var st map[string]any
+	if json.NewDecoder(resp.Body).Decode(&st) == nil {
+		fmt.Println("🌌 CubeX 运行概览:")
+		fmt.Printf("  系统版本: \033[1;36m%v\033[0m\n", st["version"])
+		fmt.Printf("  激活内核: \033[1;32m%v\033[0m\n", st["active_engine"])
+		fmt.Printf("  路由模式: \033[1;36m%v\033[0m\n", st["proxy_mode"])
+		coreMem, _ := st["core_memory_mb"].(float64)
+		appMem, _ := st["app_memory_mb"].(float64)
+		totMem, _ := st["total_overhead_mb"].(float64)
+		fmt.Printf("  专属常驻: \033[1;33m%.1f MB\033[0m (内核: %.1fM + 主控: %.1fM)\n", totMem, coreMem, appMem)
+		fmt.Printf("  代理节点: %v 个 | 策略组: %v 组\n", st["total_proxies"], st["total_groups"])
+		fmt.Printf("  TUN 网卡: %v | 运行时间: %v 秒\n", st["tun_interface"], st["uptime_seconds"])
+		return
+	}
 }
