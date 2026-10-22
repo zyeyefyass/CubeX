@@ -29,6 +29,7 @@
 
 ---
 
+<a id="announcement"></a>
 > [!TIP]
 > ### 📢 小伙伴们请立即一键平滑升级 Test v2.1（双核架构深度纯净化 · 独立【日志诊断】中枢 · 七维 WAN 口智能锁定 · 僵尸连接自动清算实战版）！
 > **致所有追求极致软路由稳定性、高并发吞吐与视觉体验的极客老铁们：**
@@ -52,6 +53,100 @@
 > 
 ---
 
+<details>
+<summary><b>📚 快速直达目录 (点击展开 / 折叠 · 全维度架构与部署导航)</b></summary>
+
+<br>
+
+- [📢 最新版本升级通知](#announcement)
+- [🧭 架构决胜：为什么坚定采用「主网关 + 旁路 DNS」黄金解耦与创新？](#architecture-golden)
+  - [❌ 传统“全包型”旁路由（网关指旁路）的三大死穴](#pain-points-traditional)
+  - [✅ CubeX「主网关 + 旁路 DNS」的降维打击机制与数据流向拓扑](#topology-flow)
+  - [🥊 传统旁路由的“五大死穴”与 CubeX 降维打击对照表](#table-five-lethal)
+- [⚡ 权威实测：CubeX vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)](#benchmark)
+- [🧹 一键自愈与深度巡检重器：拯救网络的降压药](#auto-healing)
+  - [1. 轨道 A（针对 RouterOS 宿主 / 主路由）的四层救赎](#healing-track-ros)
+  - [2. 轨道 B（针对 飞牛 fnOS / Linux 宿主机）的底层调优](#healing-track-linux)
+  - [3. 🌐 原生 IPv6 双栈自愈与加固深度剖析（防火墙如何运作）](#healing-ipv6-dualstack)
+  - [4. 🔍 爱快 iKuai 作为宿主时的联动与回指剖析](#healing-ikuai-synergy)
+- [🚀 极速部署指南 (RouterOS / 爱快 iKuai / 飞牛 fnOS / PVE / Linux)](#deployment-guides)
+  - [方式 A：MikroTik RouterOS v7 容器一键极速安装指南 (官方强烈推荐 · 工业级共生)](#deploy-ros)
+  - [方式 B：爱快 iKuai 64位 主路由 Docker 原生轻量部署 (保姆级教程)](#deploy-ikuai)
+  - [方式 C：飞牛 fnOS 与通用 Linux Docker 部署](#deploy-fnos-linux)
+  - [方式 D：Proxmox VE (PVE) CT 容器 (LXC) 极速部署](#deploy-pve)
+  - [方式 E：通用 Linux 终端一键全自动安装](#deploy-linux-cli)
+- [💬 极客畅所欲言：意见征集与需求大厅](#community-feedback)
+- [📜 净室合规与免责声明](#compliance-statement)
+
+<br>
+
+</details>
+
+---
+
+<a id="architecture-golden"></a>
+## 🧭 架构决胜：为什么坚定采用「主网关 + 旁路 DNS」黄金解耦与创新？
+
+这是所有追求极致性能与高可用软路由玩家必须认清的最关键网络命题：**为什么 CubeX 绝不推荐粗暴地把终端网关指向旁路由，而是坚决采用「主网关 + 旁路 DNS」的黄金解耦架构？**
+
+<a id="pain-points-traditional"></a>
+### ❌ 传统“全包型”旁路由（网关指旁路）的三大死穴：
+1. **网卡双向折返跑，千兆/万兆带宽直接腰斩**：  
+   在传统的全包旁路拓扑中，终端哪怕看个国内腾讯视频或访问局域网 NAS，所有数据包也必须经历：`终端 -> 交换机 -> 旁路由网卡 -> 交换机 -> 主路由 -> 光猫`。单网口全双工带宽被双向重叠流量挤爆，软路由 CPU 100% 满载烤鸡蛋，千兆宽带实测往往不到 500Mbps！
+2. **单点暴毙，全家瞬间失联“升仙”**：  
+   大订阅加载突发内存尖刺导致容器崩溃，或者手残改错一个出站规则导致代理重启，全家所有设备瞬间断网。不仅上不了网，甚至连主路由的管理后台都进不去，智能家居设备集体失联！
+3. **ICMP Send-Redirects 三角重定向风暴**：  
+   终端、主路由与旁路由同在二层局域网，主路由默认发送 ICMP 重定向，导致 Windows / iOS 频繁出现 TCP 握手停顿、无故掉线与重传。
+
+---
+
+<a id="topology-flow"></a>
+### ✅ CubeX「主网关 + 旁路 DNS」的降维打击机制与数据流向拓扑：
+
+在 CubeX 体系中，局域网终端的 **默认网关始终保持指向硬件主路由（如 10.0.0.1）**，而 **DNS 服务器单向指向 CubeX（如 10.0.0.11）**：
+
+```text
+【终端发起网络请求】
+         │
+         ▼
+[1. DNS 查询] ───────────────────────────► 【CubeX 旁路 DNS (10.0.0.11)】
+                                                      │
+                       ┌──────────────────────────────┴──────────────────────────────┐
+                       ▼                                                             ▼
+              [🇨🇳 国内域名 (如百度/微信/B站)]                               [🌐 国外/加速域名 (如 Google/GitHub/YouTube)]
+                       │                                                             │
+             返回真实公网 IP (直连)                                          返回 Fake-IP (198.18.0.0/15)
+                       │                                                             │
+                       ▼                                                             ▼
+         【主路由网关 (10.0.0.1)】                                      【主路由网关 (10.0.0.1)】
+                       │                                                             │
+         主路由 FastTrack 硬件加速                                     命中静态路由: 198.18.0.0/15 -> 10.0.0.11
+                       │                                                             │
+                       ▼                                                             ▼
+              【⚡ 满速直出光猫】                                           【🚀 转入 CubeX 容器双引擎代理出海】
+         (跑满千兆/万兆，主路由 CPU 仅 ~1%)                                (Mihomo × sing-box 秒级混动出海)
+```
+
+- ⚡ **国内大流量 100% 物理线速直出**：国内流量与局域网内网传输**根本不走 CubeX 容器网卡**，直接被主路由器芯片硬件加速（FastTrack）线速转发，主路由 CPU 仅 ~1%，无论局域网跑 2.5G 还是 10G 满带宽，毫无一丝衰减与发热！
+- 🎯 **国外流量 Fake-IP 精准截获**：只有命中 `198.18.0.0/15` 的真正出海流量，才经由主路由一条轻量静态路由递交给 CubeX，零浪费、零折返！
+- 🛡️ **宕机零感逃生机制 (Zero-Downtime Escape)**：就算 CubeX 容器宕机或重启，主网关依然健在，国内访问、微信与智能家居完全无感；配套 3 秒 Netwatch 探针自动切换备用 DNS，全家绝不断网！
+
+---
+
+<a id="table-five-lethal"></a>
+### 🥊 传统旁路由的“五大死穴”与 CubeX 降维打击对照表
+
+| 传统旁路由痛点 | 发生原理与后果 | CubeX 降维打击破局解法 |
+| :--- | :--- | :--- |
+| **死穴 ①：直连测速不到带宽一半** | 终端网关强指旁路由，导致去往百度的国内大流量在单网口上双向折返跑，软路由 CPU 爆满掉速。 | **架构解耦**：终端网关指主路由，DNS 指 CubeX。国内真实 IP 直接由主路由硬件 FastTrack 满速直通，主路由 CPU 仅 ~1%！ |
+| **死穴 ②：莫名其妙卡顿重传** | 旁路与主路由同处于一个网桥（如 `bridge1`），主路由默认发出 ICMP 重定向包，引发 Windows/iOS 频繁 TCP 停顿。 | **自动封穴**：CubeX 巡检引擎自动设置 `/ip/settings set send-redirects=no`，彻底掐死三角重定向丢包！ |
+| **死穴 ③：假 IP 漏往公网证书报错** | 传统教程只写 `198.18.0.0/16`，漏掉了 `198.19.x.x`，被分配到该网段的 Gemini/Google 流量漏到外网光猫报证书错误。 | **完整 /15 回指**：全面升级为 RFC 2544 标准 `198.18.0.0/15` 回指路由，并开启双引擎强域名逆向恢复与 IPv6 ULA 映射！ |
+| **死穴 ④：内核崩溃拉崩全家网** | 大订阅加载时突发内存尖刺，Linux 内核 OOM Killer 强杀代理进程，全家断网，电话被打爆。 | **双保险熔断**：为双引擎注入软上限守护与 cgroup 内存墙，并配备 3 秒 Netwatch 宕机零感直连逃生！ |
+| **死穴 ⑤：VLESS Reality 协议暴毙** | 很多旧工具解析 URL 时丢掉了 `pbk`、`sid` 或 `fingerprint`，导致握手直接报 `unexpected response version`。 | **全协议纯自研解析器**：完整提取并编排 Reality/gRPC/H2 参数，双核握手 100% 成功，延迟降低 30%。 |
+
+---
+
+<a id="benchmark"></a>
 ## ⚡ 权威实测：CubeX Test v2.1 vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)
 
 > [!NOTE]
@@ -79,6 +174,7 @@
 
 ---
 
+<a id="auto-healing"></a>
 ## 🧹 一键自愈与深度巡检重器：拯救网络的降压药
 
 很多朋友疑惑：**“一键深度巡检与全量重配功能是仅针对 RouterOS 吗？在飞牛 fnOS 或 Linux Docker 上这个功能是干嘛的？”**
@@ -107,12 +203,14 @@
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
+<a id="healing-track-ros"></a>
 ### 1. 轨道 A（针对 RouterOS 宿主 / 主路由）的四层救赎：
 1. **清道夫扫描**：自动拔除所有带有暴力劫持倾向的旧版 Mangle 抢流规则与 DNS 53 强制 NAT 劫持；
 2. **全网段路由重铸**：自动写入 RFC 2544 完整网段 `198.18.0.0/15 -> CubeX IP`，清除残留冲突的旧网关条目；
 3. **关闭二层重定向**：自动执行 `/ip/settings/set send-redirects=no`，彻底消除局域网 TCP 握手停顿；
 4. **注入安全哨兵**：自动为 FastTrack 添加 `!CUBEX_BYPASS` 白名单、配置 Forward 丢弃前放行规则，锁定 `advertise-dns=no` 掐死运营商 IPv6 DNS 广播，并注入 3 秒极速心跳 Netwatch 逃生探针！
 
+<a id="healing-track-linux"></a>
 ### 2. 轨道 B（针对 飞牛 fnOS / Linux 宿主机）的底层调优：
 1. **内核全开**：自动写入 `net.ipv4.ip_forward=1` 与 `net.ipv4.conf.all.forwarding=1`，打通旁路软网关数据包跨网卡穿透；
 2. **防火墙放行**：自动置顶注入 `iptables -I FORWARD 1 -j ACCEPT`，放行 Web 面板 TCP 2026 与 DNS 53 端口；
@@ -121,6 +219,7 @@
 
 ---
 
+<a id="healing-ipv6-dualstack"></a>
 ### 3. 【🌐 原生 IPv6 双栈自愈与加固】深度剖析（到底配置了什么？防火墙如何运作？）
 
 在控制台【系统升级与联动】中，点击 **`【🌐 一键自愈并加固 RouterOS 原生 IPv6 双栈 (防 DNS 泄露 · 毫秒级海外快速回退)】`**，很多极客朋友非常关心：**“它在 RouterOS 内部到底帮我配了哪些项目？是不是也启用了 IPv6 并配置了 IPv6 防火墙？”**
@@ -174,6 +273,7 @@
 
 ---
 
+<a id="healing-ikuai-synergy"></a>
 ### 4. 【🔍 极客深究：爱快 iKuai 作为宿主时，能否实现同 RouterOS 一样的一键巡检自愈与全量重配？】
 
 许多同时玩爱快与软路由的极客朋友发问：**“如果我家里的主路由/宿主是爱快（iKuai），CubeX 能否像在 RouterOS 里那样，直接在 Web 控制台点击「一键巡检自愈与全量重配」？”**
@@ -213,12 +313,14 @@
 
 ---
 
+<a id="deployment-guides"></a>
 ## 🚀 极速部署指南 (RouterOS / 爱快 iKuai / 飞牛 fnOS / PVE / Linux)
 
 CubeX 严格遵循专有闭源 EULA 合规准则与脱敏规范，发布包内**绝不包含任何作者私钥、生产 Token 或个人订阅**。
 
 ---
 
+<a id="deploy-ros"></a>
 ### 方式 A：MikroTik RouterOS v7 容器一键极速安装指南 (官方强烈推荐 · 工业级共生)
 
 > [!TIP]
@@ -365,6 +467,7 @@ RouterOS 为了设备安全，首次开启容器功能时要求进行物理所�
 
 ---
 
+<a id="deploy-ikuai"></a>
 ### 方式 B：爱快 iKuai 64位 主路由 Docker 原生轻量部署 (保姆级教程)
 
 > [!NOTE]
@@ -463,6 +566,10 @@ RouterOS 为了设备安全，首次开启容器功能时要求进行物理所�
 * 进入【宿主共生】设置，填入爱快管理后台账号密码并点击【保存并下发联动】；
 * CubeX 将通过自研纯 Go 原生 Web-RPC 驱动，自动对齐爱快当前活跃网卡与回指路由，并在控制台实时呈现静态路由与 DHCP 联动健康度！
 * 此时局域网内任意手机或 PC 访问海外网站即刻丝滑秒开，国内所有大文件下载与测速全部由爱快硬件加速满血狂飙！
+
+---
+
+<a id="deploy-fnos-linux"></a>
 ### 方式 C：飞牛 fnOS 与通用 Linux Docker 部署
 
 CubeX 容器镜像原生支持飞牛 fnOS、群晖 Synology、QNAP 威联通及各类通用 Linux（Ubuntu/Debian/Alpine/CentOS）底座。**默认持久化存储路径严格对齐飞牛官方规范 `/vol1/1000/cubex`，通用 Linux 默认推荐 `/etc/cubex`**。
@@ -623,6 +730,7 @@ docker run -d \
 
 ---
 
+<a id="deploy-pve"></a>
 ### 方式 D：Proxmox VE (PVE) CT 容器 (LXC) 极速部署
 
 相比笨重的 KVM 完整虚拟机（动辄占用 2G~4G 内存与大量 CPU 损耗），在 PVE 中采用 **LXC 轻量级 CT 容器** 是极客运行 CubeX 的终极优雅姿态——**基础常驻仅 ~25MB~35MB，百级节点全量生产仅约百兆，零虚拟化损耗**！
@@ -659,6 +767,7 @@ sudo bash install.sh
 
 ---
 
+<a id="deploy-linux-cli"></a>
 ### 方式 E：通用 Linux 终端一键全自动安装
 
 适用于 Ubuntu / Debian / CentOS / Alpine 等任何标准 Linux 发行版：
@@ -678,6 +787,7 @@ cubex restart   # 重新启动守护进程
 
 ---
 
+<a id="community-feedback"></a>
 ## 💬 极客畅所欲言：意见征集与需求大厅
 
 > [!IMPORTANT]
@@ -696,6 +806,7 @@ cubex restart   # 重新启动守护进程
 
 ---
 
+<a id="compliance-statement"></a>
 ## 📜 净室合规与免责声明
 
 1. **纯学术与工程探索**：本项目为网络协议栈、双引擎动态调度与容器伴生路由技术的工程探索与学术交流产物；
