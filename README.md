@@ -31,36 +31,37 @@
 
 <a id="announcement"></a>
 > [!TIP]
-> ### 📢 小伙伴们请立即一键平滑升级 Test v2.3（全新【DNS 重写中枢】· 域名别名 CNAME 重定向与 Google Play 0% 极速通解 · 静态 IP A 记录映射 · 纯净侧边栏与内核 ANSI 脱敏实战版）！
+> ### 📢 小伙伴们请立即一键平滑升级 Test v2.4（已停用订阅全链路彻底剔除与节点下线平滑回退 · 消除常规网络断开与接口检测误报告警 · RouterOS 策略路由规则精准前置与微创保护 · 纯净实战版）！
 > **致所有追求极致软路由稳定性、高并发吞吐与视觉体验的极客老铁们：**
 > 
-> 在经过多环境深度实机排查与业务分流架构演进后，**CubeX Test v2.3 正式重磅发布**！  
-> 本版本针对 DNS 别名重写、局域网免 hosts 静态解析、左侧边栏高净空净化、终端日志 ANSI 深度脱敏与双核全栈架构进行了全面跃升与纯净化加固：
+> 在经过多环境深度实机排查与业务分流架构演进后，**CubeX Test v2.4 正式重磅发布**！  
+> 本版本重点针对已停用订阅节点彻底出圈治理、日常网络挥手/中断日志智能降级、RouterOS 原生策略路由规则精准前置与 IPv6 双栈微创防护进行了深度闭环与硬核优化：
 > 
-> * 🔀 **全新「DNS 重写中枢 (域名别名重定向 & 静态 IP 映射)」震撼上线**：
->   * **CNAME 别名重定向**：支持将特定域名映射至海外全功能目标域名（预置 `services.googleapis.cn -> services.googleapis.com` 与 `developers.google.cn -> developers.google.com`），彻底根除 Android Google Play 商店应用下载与更新 0% 卡顿死锁问题（因国内节点不可用，强制重写至海外全球域后通过节点加速秒级直通下载）；
->   * **A 记录静态 IP 映射**：支持将域名直接解析为固定 IP（如 `nas.lan -> 10.0.0.100`、`router.box -> 10.0.0.1`、`pve.home -> 10.0.0.2`），全屋局域网设备自建免 hosts 静态域名解析，免除逐台设备配置 hosts 的繁琐；
->   * **双核引擎底层原生硬核加固**：Mihomo 顶层 `hosts` 动态编排，sing-box v1.14+ RFC 1035 标准 `action: predefined` 极速预定义拦截，秒级热重载生效，0 明文侧漏；
->   * **可视化交互控制**：全局总控开关、状态徽章、一键 `[↺ 重置默认]`、`[➕ 添加重写]` 弹窗表单、单条规则启闭切换与编辑删除。
-> * 🛡️ **全新「域名过滤与广告防御中枢」持续优化**：
->   * 支持多规则源订阅与自由开关，预置 217heidai 权威旗舰源（22+ 万条防御规则），完美支持 Adblock 语法、Mihomo ruleset 原生二进制 (.mrs)、sing-box 原生二进制 (.srs) 与 Hosts 格式；
->   * 提供自动化闲时静默热重载调度器与智能白名单放行机制（如 `apple.com`），确保 0 误杀。
-> * 🎨 **左侧边栏高净空净化**：
->   * 彻底移除左侧边栏底部占用空间的“视觉模式”冗余卡片，保持侧边栏导航的高净空与专注感；顶栏视效胶囊与快捷切换完整保留。
-> * 🛡️ **双核引擎实时日志终端 ANSI 深度脱敏与格式净化**：
->   * 底层 Ring Buffer 引入全局 ANSI 终端控制符剥离引擎，彻底消除 `^[[33mWARN^[[0m` 字符乱码；针对 sing-box 容器环境日志自动剥离重复时间戳与等级前缀，实时日志看板清爽直观。
-> * 💬 **极客畅所欲言区规范修正**：
->   * 文案精准修正为“CubeX 从一个单二进制雏形走到今天已发布最新版的双引擎融合共生体，离不开每一位极客玩家的测试与真实反馈。此版本已经完全达到了设计初衷与高可用指标，距离最终正式稳定版（Stable v1.0）仅有一步之遥！”
+> * 🚫 **已停用订阅与节点严格彻底剔除与平滑下线**：
+>   * 在策略组中枢（`SyncAllStrategyGroups`）中深度注入停用订阅黑名单过滤，无论是单个节点列表、地区自动/故转/容灾组还是全局业务分组候选池，均 100% 实时剔除已禁用或流量耗尽订阅的节点；
+>   * 若分组当前选中的节点（`Now`）属于停用订阅，系统自动平滑回退至可用首选节点，杜绝任何死节点残留；
+>   * `handleSubToggle` 开关切换即刻触发全量同步重编排并热重载双核内核。
+> * 🔍 **双核引擎实时日志智能降级与去噪**：
+>   * 将日常网络连接挥手与客户端主动中断（如浏览器关闭 Tab/刷新网页引发的 `endpoint not connected`、`software caused connection abort`、`connection refused`、`connection download/upload closed`）以及 Mihomo 容器网关接口巡检（`default interface changed by monitor`）智能降级为 `DEBUG` 级；
+>   * 彻底消除误报系统级 `ERROR` 或 `WARN` 的红黄色烦人告警徽章，保持系统错误看板纯净真实；
+>   * 智能提取 Mihomo 日志信息体，消除日志冗余信封与重复时间戳。
+> * 🌐 **RouterOS 原生策略路由与 IPv6 双栈自愈规则进阶优化**：
+>   * **规则排序精准前置**：在生成的 WinBox 终端脚本及 REST API 注入逻辑中，通过 `place-before` 机制确保 `2000::/3 reject` 严格注入于通用 `action=accept` 转发规则之前，彻底消除规则被后续 accept 截断失效的隐患；
+>   * **ND 邻居发现微创保护**：全面改为仅对 `/ipv6/nd` 打入增量补丁（`advertise-dns=false`），杜绝强行覆写用户的全局 `hop-limit` 与 `ra-interval` 参数，确保系统设置零侵入、可还原；
+>   * **DNS 侧 Fake-IP 剥离海外 AAAA 兜底**：明确依托双核 Fake-IP 机制在 DNS 阶段为海外分流域名直接下发 IPv4 Fake-IP，压根不向终端返回海外真实 AAAA，彻底避免 QUIC/HTTP3 与 WebRTC 遭遇 ICMP 硬拒答时的断流卡顿。
+> * 🔀 **DNS 重写中枢与 101 套 MRS/SRS 规则体系稳定运行**：
+>   * 预置 `services.googleapis.cn -> services.googleapis.com` 与 `developers.google.cn -> developers.google.com` 保证 Google Play 极速下载；
+>   * 局域网 A 记录静态 IP 映射秒级解析生效。
 > 
 > <a id="release-assets"></a>
 > ### 📦 资产下载与校验清单 (Release Assets)
 > 
 > | 文件名 | 平台 / 底座 | 文件大小 | 说明 |
 > | :--- | :--- | :--- | :--- |
-> | `CubeX-Test-v2.3-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~147.7 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 一键导入） |
-> | `CubeX-Test-v2.3-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~95.0 MB | ROS 专有未压缩容器镜像 |
-> | `CubeX-Test-v2.3-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~68.8 MB | 包含双内核、规则集、配置与控制面的完整生产归档 |
-> | `CubeX-Test-v2.3-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~67.5 MB | 包含双内核、规则集、配置与控制面的完整生产归档 |
+> | `CubeX-Test-v2.4-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~147.7 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 一键导入） |
+> | `CubeX-Test-v2.4-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~95.0 MB | ROS 专有未压缩容器镜像 |
+> | `CubeX-Test-v2.4-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~68.8 MB | 包含双内核、规则集、配置与控制面的完整生产归档 |
+> | `CubeX-Test-v2.4-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~67.5 MB | 包含双内核、规则集、配置与控制面的完整生产归档 |
 > | `cubexd-linux-amd64` | Linux amd64 单二进制 | ~10.7 MB | 用于现有容器或系统的一键在线平滑热更执行文件 |
 > | `cubexd-linux-arm64` | Linux arm64 单二进制 | ~10.0 MB | 用于现有容器或系统的一键在线平滑热更执行文件 |
 > | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~26.9 KB | RouterOS v7 WinBox 终端复制即用一键自动编排脚本 |
@@ -331,7 +332,7 @@
 <a id="dns-rewrite-hub"></a>
 ## 🔀 DNS 重写中枢：域名别名 CNAME 重定向与 静态 IP 映射深度剖析
 
-CubeX 在 Test v2.3 中引入了划时代的 **DNS 重写中枢 (DNS Rewrite Hub)**，支持两类关键场景的秒级重定向：
+CubeX 在 Test v2.4 中引入了划时代的 **DNS 重写中枢 (DNS Rewrite Hub)**，支持两类关键场景的秒级重定向：
 
 ```
                     ┌──────────────────────────────────────────────┐

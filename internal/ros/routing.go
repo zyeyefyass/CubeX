@@ -1420,8 +1420,9 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 
 	sb.WriteString("# 10. 注入抗封锁与防断流: IPv6 海外泄露阻断与 0ms 瞬间回退至 IPv4 极速代理 (杜绝 Happy Eyeballs 3秒卡死与公网 IP 泄漏)\n")
 	sb.WriteString("/ipv6 settings set disable-ipv6=no forward=yes\n")
-	sb.WriteString("/ipv6 nd set [find default=yes] advertise-dns=no hop-limit=64 other-configuration=yes\n")
-	sb.WriteString("/ipv6 firewall filter add chain=forward dst-address=2000::/3 action=reject reject-with=icmp-admin-prohibited comment=\"CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak\"\n\n")
+	sb.WriteString("/ipv6 nd set [find default=yes] advertise-dns=no\n")
+	sb.WriteString("/ipv6 firewall filter remove [find comment~\"CubeX Anti-Block IPv6\"]\n")
+	sb.WriteString(":local fwdAccept [/ipv6 firewall filter find chain=forward and action=accept and in-interface=bridge]; :if ([:len $fwdAccept] > 0) do={ /ipv6 firewall filter add chain=forward dst-address=2000::/3 action=reject reject-with=icmp-admin-prohibited place-before=($fwdAccept->0) comment=\"CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak\" } else={ /ipv6 firewall filter add chain=forward dst-address=2000::/3 action=reject reject-with=icmp-admin-prohibited comment=\"CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak\" }\n\n")
 
 	sb.WriteString("# 11. 注入 Netwatch 毫秒级心跳高可用逃生 (旁路由重启或宕机时全网自动 0秒直连与原生 DNS)\n")
 	sb.WriteString("/tool/netwatch remove [find comment~\"CubeX\"]\n")
@@ -1583,20 +1584,18 @@ func (m *Manager) SetupIPv6DualStack(wanInterface string) (*ApplyResult, error) 
 				id, _ := nd[".id"].(string)
 				if id != "" {
 					_ = m.PatchROS("/ipv6/nd/"+id, map[string]any{
-						"advertise-dns":       "false",
-						"other-configuration": "true",
-						"hop-limit":           "64",
+						"advertise-dns": "false",
 					})
 				}
 			}
-			res.Actions = append(res.Actions, "已锁定所有 IPv6 邻居发现接口: advertise-dns=no (杜绝运营商 DNS 污染与泄露)")
+			res.Actions = append(res.Actions, "已微创锁定所有 IPv6 邻居发现接口: advertise-dns=no (杜绝运营商 DNS 污染与泄露，保留原有 hop-limit 与 ND 参数)")
 		}
 	}
 
 	// 6. Ensure /ipv6/firewall/filter: 2000::/3 reject
 	hasRejectRule := false
+	var fList []map[string]any
 	if fData, err := m.QueryROS("/ipv6/firewall/filter"); err == nil {
-		var fList []map[string]any
 		if json.Unmarshal(fData, &fList) == nil {
 			for _, f := range fList {
 				dst := fmt.Sprintf("%v", f["dst-address"])
@@ -1609,15 +1608,24 @@ func (m *Manager) SetupIPv6DualStack(wanInterface string) (*ApplyResult, error) 
 		}
 	}
 	if !hasRejectRule {
-		_, err := m.PutROS("/ipv6/firewall/filter", map[string]any{
+		payload := map[string]any{
 			"chain":       "forward",
 			"dst-address": "2000::/3",
 			"action":      "reject",
 			"reject-with": "icmp-admin-prohibited",
 			"comment":     "CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak",
-		})
+		}
+		for _, f := range fList {
+			if f["chain"] == "forward" && f["action"] == "accept" {
+				if id, ok := f[".id"].(string); ok && id != "" {
+					payload["place-before"] = id
+					break
+				}
+			}
+		}
+		_, err := m.PutROS("/ipv6/firewall/filter", payload)
 		if err == nil {
-			res.Actions = append(res.Actions, "已注入 2000::/3 极速拒答防断流规则 (海外流量 0ms 回退 IPv4 极速代理)")
+			res.Actions = append(res.Actions, "已在前置放行规则前精准注入 2000::/3 极速拒答防断流规则 (海外流量 0ms 回退 IPv4 极速代理)")
 		}
 	} else {
 		res.Actions = append(res.Actions, "2000::/3 海外防断流与快速回退规则已生效")
