@@ -378,33 +378,36 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 
 		level := "INFO"
 		lower := strings.ToLower(cleanLine)
-		if strings.Contains(lower, "error") || strings.Contains(lower, "fatal") || strings.Contains(lower, "panic") || strings.Contains(lower, "fail") {
-			// Benign socket cancellation & routine external network timeouts (e.g. dead domain DNS lookup timeout, client closed socket, closed network connection)
-			if strings.Contains(lower, "operation was canceled") ||
-				strings.Contains(lower, "context canceled") ||
-				strings.Contains(lower, "context deadline exceeded") ||
-				strings.Contains(lower, "i/o timeout") ||
-				strings.Contains(lower, "use of closed network connection") ||
-				strings.Contains(lower, "connection reset by peer") ||
-				strings.Contains(lower, "broken pipe") ||
-				strings.Contains(lower, "missing fakeip record") {
-				level = "DEBUG"
-			} else {
-				level = "ERROR"
-			}
-		} else if strings.Contains(lower, "warn") {
-			// Benign TUN driver capability probes (e.g. TUNSETOFFLOAD unsupported in container/RouterOS kernel) are routine fallbacks, demote to DEBUG
-			if strings.Contains(lower, "tunsetoffload") || strings.Contains(lower, "enable offload") || strings.Contains(lower, "missing fakeip record") {
-				level = "DEBUG"
-			} else {
-				level = "WARN"
-			}
-		} else if strings.Contains(lower, "debug") {
-			level = "DEBUG"
-		}
 
-		// Stale Fake-IP packets from client DNS/socket cache are non-fatal, demote to DEBUG
-		if strings.Contains(lower, "missing fakeip record") {
+		// Benign socket cancellation & routine external network timeouts, client aborts, 
+		// connection resets, or container interface monitor events that should be categorized as DEBUG
+		isBenign := strings.Contains(lower, "operation was canceled") ||
+			strings.Contains(lower, "context canceled") ||
+			strings.Contains(lower, "context deadline exceeded") ||
+			strings.Contains(lower, "i/o timeout") ||
+			strings.Contains(lower, "use of closed network connection") ||
+			strings.Contains(lower, "connection reset by peer") ||
+			strings.Contains(lower, "broken pipe") ||
+			strings.Contains(lower, "missing fakeip record") ||
+			strings.Contains(lower, "endpoint not connected") ||
+			strings.Contains(lower, "software caused connection abort") ||
+			strings.Contains(lower, "connection refused") ||
+			strings.Contains(lower, "connection download closed") ||
+			strings.Contains(lower, "connection upload closed") ||
+			strings.Contains(lower, "network is unreachable") ||
+			strings.Contains(lower, "no route to host") ||
+			strings.Contains(lower, "default interface changed by monitor") ||
+			strings.Contains(lower, "tunsetoffload") ||
+			strings.Contains(lower, "enable offload") ||
+			strings.Contains(lower, "tls: first record does not look like a tls handshake")
+
+		if isBenign {
+			level = "DEBUG"
+		} else if strings.Contains(lower, "error") || strings.Contains(lower, "fatal") || strings.Contains(lower, "panic") || strings.Contains(lower, "fail") {
+			level = "ERROR"
+		} else if strings.Contains(lower, "warn") {
+			level = "WARN"
+		} else if strings.Contains(lower, "debug") {
 			level = "DEBUG"
 		}
 
@@ -413,10 +416,22 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 		if strings.HasPrefix(displayMsg, "+") && len(displayMsg) > 26 {
 			displayMsg = strings.TrimSpace(displayMsg[26:])
 		}
-		for _, pfx := range []string{"WARN ", "ERROR ", "INFO ", "DEBUG "} {
+		for _, pfx := range []string{"WARN ", "ERROR ", "INFO ", "DEBUG ", "FATAL ", "WARN: ", "ERROR: ", "INFO: ", "DEBUG: "} {
 			if strings.HasPrefix(strings.ToUpper(displayMsg), pfx) {
 				displayMsg = strings.TrimSpace(displayMsg[len(pfx):])
 				break
+			}
+		}
+
+		// Clean Mihomo logfmt envelope: time="..." level=... msg="..."
+		if eng == schema.EngineMihomo && strings.Contains(displayMsg, "msg=\"") {
+			if idx := strings.Index(displayMsg, "msg=\""); idx != -1 {
+				mPart := displayMsg[idx+5:]
+				if endIdx := strings.LastIndex(mPart, "\""); endIdx != -1 {
+					displayMsg = mPart[:endIdx]
+				} else {
+					displayMsg = mPart
+				}
 			}
 		}
 

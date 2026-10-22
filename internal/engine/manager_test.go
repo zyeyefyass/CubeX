@@ -3,6 +3,7 @@ package engine
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/zyeyefyass/CubeX/internal/compiler"
@@ -50,5 +51,92 @@ func TestManagerPreFlightAndBinaryDiscovery(t *testing.T) {
 
 	if err := mgr.dryRunCheck(schema.EngineSingbox, singboxBin, etcDir, singboxConfig); err != nil {
 		t.Errorf("sing-box dry-run validation failed: %v", err)
+	}
+}
+
+func TestStreamLogPipeClassification(t *testing.T) {
+	mgr := NewManager(".", schema.NewDefaultIR())
+
+	var captured []struct {
+		Level   string
+		Module  string
+		Message string
+	}
+
+	mgr.SetLogCallback(func(level, module, msg string) {
+		captured = append(captured, struct {
+			Level   string
+			Module  string
+			Message string
+		}{Level: level, Module: module, Message: msg})
+	})
+
+	tests := []struct {
+		engine      schema.EngineType
+		input       string
+		wantLevel   string
+		wantModule  string
+		wantMsgSub  string
+	}{
+		{
+			engine:     schema.EngineSingbox,
+			input:      "ERROR [2876942641 3.87s] connection: connection download closed: close tcp 172.19.0.1:59936->198.18.0.73:443: endpoint not connected\n",
+			wantLevel:  "DEBUG",
+			wantModule: "SINGBOX",
+			wantMsgSub: "endpoint not connected",
+		},
+		{
+			engine:     schema.EngineSingbox,
+			input:      "ERROR [1276080763 267ms] connection: report handshake success: connection refused\n",
+			wantLevel:  "DEBUG",
+			wantModule: "SINGBOX",
+			wantMsgSub: "connection refused",
+		},
+		{
+			engine:     schema.EngineSingbox,
+			input:      "ERROR [1742375921 17.86s] connection: connection upload closed: read tcp 172.19.0.1:16956->198.18.0.13:443: software caused connection abort\n",
+			wantLevel:  "DEBUG",
+			wantModule: "SINGBOX",
+			wantMsgSub: "software caused connection abort",
+		},
+		{
+			engine:     schema.EngineMihomo,
+			input:      `time="2026-10-22T21:47:09.917846991+08:00" level=warning msg="[TUN] default interface changed by monitor, => veth-cubex"` + "\n",
+			wantLevel:  "DEBUG",
+			wantModule: "MIHOMO",
+			wantMsgSub: "[TUN] default interface changed by monitor, => veth-cubex",
+		},
+		{
+			engine:     schema.EngineSingbox,
+			input:      "FATAL sing-box crashed: cannot parse configuration json\n",
+			wantLevel:  "ERROR",
+			wantModule: "SINGBOX",
+			wantMsgSub: "sing-box crashed",
+		},
+		{
+			engine:     schema.EngineMihomo,
+			input:      `time="2026-10-22T21:47:09.917846991+08:00" level=warning msg="deprecated rule set format"` + "\n",
+			wantLevel:  "WARN",
+			wantModule: "MIHOMO",
+			wantMsgSub: "deprecated rule set format",
+		},
+	}
+
+	for _, tc := range tests {
+		captured = nil
+		mgr.streamLogPipe(tc.engine, "stdout", strings.NewReader(tc.input))
+		if len(captured) != 1 {
+			t.Fatalf("expected 1 log captured for input %q, got %d", tc.input, len(captured))
+		}
+		got := captured[0]
+		if got.Level != tc.wantLevel {
+			t.Errorf("input %q: got Level %s, want %s", tc.input, got.Level, tc.wantLevel)
+		}
+		if got.Module != tc.wantModule {
+			t.Errorf("input %q: got Module %s, want %s", tc.input, got.Module, tc.wantModule)
+		}
+		if !strings.Contains(got.Message, tc.wantMsgSub) {
+			t.Errorf("input %q: got Message %q, expected to contain %q", tc.input, got.Message, tc.wantMsgSub)
+		}
 	}
 }

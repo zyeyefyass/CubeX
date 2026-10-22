@@ -163,7 +163,23 @@ func (w *LogBufferWriter) Write(p []byte) (n int, err error) {
 
 		level := "INFO"
 		lower := strings.ToLower(line)
-		if strings.Contains(msg, "🚨") || strings.Contains(lower, "error") || strings.Contains(lower, "critical") || strings.Contains(lower, "fatal") {
+		isBenign := strings.Contains(lower, "operation was canceled") ||
+			strings.Contains(lower, "context canceled") ||
+			strings.Contains(lower, "context deadline exceeded") ||
+			strings.Contains(lower, "i/o timeout") ||
+			strings.Contains(lower, "use of closed network connection") ||
+			strings.Contains(lower, "connection reset by peer") ||
+			strings.Contains(lower, "broken pipe") ||
+			strings.Contains(lower, "endpoint not connected") ||
+			strings.Contains(lower, "software caused connection abort") ||
+			strings.Contains(lower, "connection refused") ||
+			strings.Contains(lower, "connection download closed") ||
+			strings.Contains(lower, "connection upload closed") ||
+			strings.Contains(lower, "missing fakeip record") ||
+			strings.Contains(lower, "default interface changed by monitor")
+		if isBenign {
+			level = "DEBUG"
+		} else if strings.Contains(msg, "🚨") || strings.Contains(lower, "error") || strings.Contains(lower, "critical") || strings.Contains(lower, "fatal") {
 			level = "ERROR"
 		} else if strings.Contains(msg, "⚠️") || strings.Contains(lower, "warn") {
 			level = "WARN"
