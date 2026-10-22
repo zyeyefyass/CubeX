@@ -341,14 +341,14 @@
               <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-purple-500/30 relative overflow-hidden shadow-lg transition hover:border-purple-400/60 flex flex-col justify-between min-h-[148px]">
                 <div class="flex items-center justify-between">
                   <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">宿主硬件负载</span>
-                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-bold flex items-center gap-1 shrink-0">
-                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#38bdf8]"></span>CubeX 仅 {{ currentHostRealMemory.toFixed(0) }}MB
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-950/90 text-purple-300 border border-purple-500/40 font-bold flex items-center gap-1 shrink-0">
+                    <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>{{ hostInfo.cpu_cores ? hostInfo.cpu_cores + '核 CPU' : '4核 CPU' }}
                   </span>
                 </div>
 
-                <!-- 行 1: CPU 占用率 -->
+                <!-- 行 1: CPU 实时负载 -->
                 <div class="flex items-center justify-between text-xs font-mono py-0.5">
-                  <span class="text-slate-400 text-[11px] whitespace-nowrap">CPU 占用率 ({{ hostInfo.cpu_cores || 4 }}核)</span>
+                  <span class="text-slate-400 text-[11px] whitespace-nowrap">CPU 实时负载</span>
                   <span class="text-sm font-bold text-purple-300 font-mono">{{ hostInfo.cpu_load || '0%' }}</span>
                 </div>
 
@@ -10826,6 +10826,19 @@ onMounted(async () => {
       }
     } catch (e) {}
   }, 2500)
+
+  // Periodic host telemetry refresh (every 5s for live CPU & hardware stats)
+  setInterval(async () => {
+    try {
+      const res = await fetch('/api/v1/host/info')
+      if (res.ok) {
+        const data = await res.json()
+        if (data) {
+          hostInfo.value = { ...hostInfo.value, ...data }
+        }
+      }
+    } catch (e) {}
+  }, 5000)
 
   // Periodic DNS filter stats refresh (every 10s)
   setInterval(fetchDnsFilterStats, 10000)
