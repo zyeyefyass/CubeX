@@ -1312,6 +1312,7 @@ func (s *Server) handleSubToggle(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+	schema.SyncAllStrategyGroups(ir)
 	s.engMgr.UpdateIR(ir)
 	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
 	sendJSON(w, map[string]any{"ok": true})

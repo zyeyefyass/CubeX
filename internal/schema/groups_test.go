@@ -159,3 +159,72 @@ func TestRegionAndBusinessGroupsSync(t *testing.T) {
 		t.Fatalf("expected %d region stats, got %d", len(StandardRegions), len(stats))
 	}
 }
+
+func TestDisabledSubscriptionExclusion(t *testing.T) {
+	ir := NewDefaultIR()
+	ir.Subscriptions = []Subscription{
+		{
+			ID:      "sub-active",
+			Name:    "高速云",
+			Enabled: true,
+		},
+		{
+			ID:      "sub-disabled",
+			Name:    "极速云",
+			Enabled: false,
+		},
+	}
+
+	ir.Proxies = []ProxyNode{
+		{Name: "[高速云] 🇯🇵 日本01", Type: "ss", Server: "1.1.1.1", Port: 8388, SubID: "sub-active"},
+		{Name: "[极速云] 🇯🇵 日本02", Type: "ss", Server: "1.1.1.2", Port: 8388, SubID: "sub-disabled"},
+		{Name: "[极速云] 🇺🇸 美国01", Type: "ss", Server: "1.1.1.3", Port: 8388, SubID: "sub-disabled"},
+	}
+
+	// Pre-populate group with Now pointing to disabled sub node
+	ir.Groups = []StrategyGroup{
+		{
+			Name:    "Gemini & Antigravity",
+			Type:    "select",
+			Proxies: []string{"[高速云] 🇯🇵 日本01", "[极速云] 🇯🇵 日本02"},
+			Now:     "[极速云] 🇯🇵 日本02",
+		},
+	}
+
+	SyncAllStrategyGroups(ir)
+
+	// Check Gemini & Antigravity group
+	var geminiGroup *StrategyGroup
+	for i := range ir.Groups {
+		if ir.Groups[i].Name == "Gemini & Antigravity" {
+			geminiGroup = &ir.Groups[i]
+			break
+		}
+	}
+	if geminiGroup == nil {
+		t.Fatalf("Gemini & Antigravity group not found")
+	}
+
+	// Now should have fallen back away from the disabled node
+	if geminiGroup.Now == "[极速云] 🇯🇵 日本02" {
+		t.Errorf("expected Now to fall back from disabled sub node, but got %s", geminiGroup.Now)
+	}
+
+	// Proxies should not contain any nodes from sub-disabled
+	for _, p := range geminiGroup.Proxies {
+		if p == "[极速云] 🇯🇵 日本02" || p == "[极速云] 🇺🇸 美国01" {
+			t.Errorf("found disabled sub node %s in group proxies", p)
+		}
+	}
+
+	// Regional Japan group should only have [高速云] 🇯🇵 日本01
+	for _, g := range ir.Groups {
+		if g.Name == "🇯🇵 日本自动" {
+			for _, p := range g.Proxies {
+				if p == "[极速云] 🇯🇵 日本02" {
+					t.Errorf("found disabled sub node in 🇯🇵 日本自动: %s", p)
+				}
+			}
+		}
+	}
+}

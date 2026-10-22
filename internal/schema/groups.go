@@ -207,6 +207,41 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 	// 1. Ensure all nodes have airport prefixes
 	AlignNodeAirportPrefixes(ir)
 
+	// Build map of disabled or exhausted subscriptions
+	disabledSubIDs := make(map[string]bool)
+	disabledSubPrefixes := make([]string, 0)
+	for _, sub := range ir.Subscriptions {
+		if !sub.Enabled || (sub.TotalBytes > 0 && sub.UsedBytes >= sub.TotalBytes) {
+			if sub.ID != "" {
+				disabledSubIDs[sub.ID] = true
+			}
+			if sub.Name != "" {
+				disabledSubPrefixes = append(disabledSubPrefixes, fmt.Sprintf("[%s]", sub.Name))
+			}
+		}
+	}
+
+	isProxyDisabled := func(p *ProxyNode) bool {
+		if p.SubID != "" && disabledSubIDs[p.SubID] {
+			return true
+		}
+		for _, pfx := range disabledSubPrefixes {
+			if strings.HasPrefix(p.Name, pfx) {
+				return true
+			}
+		}
+		return false
+	}
+
+	isTagDisabled := func(tag string) bool {
+		for _, pfx := range disabledSubPrefixes {
+			if strings.HasPrefix(tag, pfx) {
+				return true
+			}
+		}
+		return false
+	}
+
 	// 1. Classify all proxies into regional buckets
 	regionNodes := make(map[string][]string)
 	for _, reg := range StandardRegions {
@@ -214,7 +249,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 	}
 
 	for _, p := range ir.Proxies {
-		if p.Type == "direct" || p.Type == "block" || p.Type == "reject" {
+		if p.Type == "direct" || p.Type == "block" || p.Type == "reject" || isProxyDisabled(&p) {
 			continue
 		}
 		name := p.Name
@@ -351,7 +386,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 	}
 	// Append concrete proxy nodes as well for granular manual override
 	for _, p := range ir.Proxies {
-		if p.Type != "direct" && p.Type != "block" && p.Type != "reject" {
+		if p.Type != "direct" && p.Type != "block" && p.Type != "reject" && !isProxyDisabled(&p) {
 			allRegionalCandidateProxies = append(allRegionalCandidateProxies, p.Name)
 		}
 	}
@@ -397,8 +432,13 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			IsCustom: false,
 		}
 
+		validCandidateMap := make(map[string]bool)
+		for _, c := range candidates {
+			validCandidateMap[c] = true
+		}
+
 		if eg, exists := existingMap[bg.Name]; exists {
-			if eg.Now != "" && containsString(candidates, eg.Now) {
+			if eg.Now != "" && containsString(candidates, eg.Now) && !isTagDisabled(eg.Now) {
 				if eg.Now == "DIRECT" && bg.Name != "Apple 服务" && bg.Name != "Microsoft" && bg.Name != "🎯 国内流量" {
 					bizGrp.Now = defaultNow
 				} else if (bg.Name == "AI" || bg.Name == "Gemini & Antigravity") && (eg.Now == "🇭🇰 香港自动" || eg.Now == "🇭🇰 香港故转" || eg.Now == "🇭🇰 香港容灾") {
@@ -409,7 +449,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 				}
 			}
 			if len(eg.Proxies) > 0 {
-				bizGrp.Proxies = mergeProxiesUnique(candidates, eg.Proxies)
+				bizGrp.Proxies = mergeProxiesFiltered(validCandidateMap, candidates, eg.Proxies)
 			}
 		} else if bg.Name == "AI" || bg.Name == "Gemini & Antigravity" {
 			for _, oldName := range []string{"OpenAI & AI", "OpenAI / Claude", "OpenAI", "ChatGPT"} {
@@ -547,6 +587,30 @@ func mergeProxiesUnique(base, extra []string) []string {
 			continue
 		}
 		if !seen[item] {
+			seen[item] = true
+			res = append(res, item)
+		}
+	}
+	return res
+}
+
+func mergeProxiesFiltered(validCandidates map[string]bool, base, extra []string) []string {
+	seen := make(map[string]bool)
+	res := make([]string, 0, len(base)+len(extra))
+	for _, item := range base {
+		if strings.HasSuffix(item, "容灾") {
+			continue
+		}
+		if !seen[item] {
+			seen[item] = true
+			res = append(res, item)
+		}
+	}
+	for _, item := range extra {
+		if strings.HasSuffix(item, "容灾") {
+			continue
+		}
+		if validCandidates[item] && !seen[item] {
 			seen[item] = true
 			res = append(res, item)
 		}
