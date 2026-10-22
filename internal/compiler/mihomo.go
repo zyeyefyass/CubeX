@@ -567,6 +567,8 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		outbound string
 	}{
 		{"openai_mrs", "./rules/openai.mrs", "domain", "AI"},
+		{"google_gemini_mrs", "./rules/google-gemini.mrs", "domain", "Gemini & Antigravity"},
+		{"google_deepmind_mrs", "./rules/google-deepmind.mrs", "domain", "Gemini & Antigravity"},
 		{"youtube_mrs", "./rules/youtube.mrs", "domain", "YouTube"},
 		{"google_mrs", "./rules/google.mrs", "domain", "Google"},
 		{"github_mrs", "./rules/github.mrs", "domain", "GitHub & Docker"},
@@ -691,24 +693,8 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 
-	// 2a-2. AI (OpenAI / Claude / Google Gemini / Antigravity / DeepMind)
+	// 2a-2. AI (OpenAI / Claude / Perplexity / Copilot / Grok / LLMs)
 	if validTargets["AI"] {
-		rulesList = append(rulesList, "DOMAIN,antigravity-unleash.goog,AI")
-		rulesList = append(rulesList, "DOMAIN,antigravity.dev,AI")
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,antigravity.dev,AI")
-		rulesList = append(rulesList, "DOMAIN,generativelanguage.googleapis.com,AI")
-		rulesList = append(rulesList, "DOMAIN,daily-cloudcode-pa.googleapis.com,AI")
-		rulesList = append(rulesList, "DOMAIN,cloudcode-pa.googleapis.com,AI")
-		rulesList = append(rulesList, "DOMAIN,aiplatform.googleapis.com,AI")
-		rulesList = append(rulesList, "DOMAIN,alkalimakersuite-pa.clients6.google.com,AI")
-		rulesList = append(rulesList, "DOMAIN,aistudio.google.com,AI")
-		rulesList = append(rulesList, "DOMAIN,makersuite.google.com,AI")
-		rulesList = append(rulesList, "DOMAIN,bard.google.com,AI")
-		rulesList = append(rulesList, "DOMAIN,gemini.google.com,AI")
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,gemini.google.com,AI")
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,aistudio.google.com,AI")
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,deepmind.google,AI")
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,deepmind.com,AI")
 		rulesList = append(rulesList, "DOMAIN-SUFFIX,openai.com,AI")
 		rulesList = append(rulesList, "DOMAIN-SUFFIX,chatgpt.com,AI")
 		rulesList = append(rulesList, "DOMAIN-SUFFIX,oaistatic.com,AI")
@@ -731,13 +717,40 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		rulesList = append(rulesList, "DOMAIN-SUFFIX,civitai.com,AI")
 	}
 
+	// 2a-3. Gemini & Antigravity (Google Gemini / Antigravity / AI Studio / DeepMind)
+	if validTargets["Gemini & Antigravity"] {
+		rulesList = append(rulesList, "DOMAIN,antigravity-unleash.goog,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN,antigravity.dev,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,antigravity.dev,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,antigravity.google,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN,generativelanguage.googleapis.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN,daily-cloudcode-pa.googleapis.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN,cloudcode-pa.googleapis.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN,aiplatform.googleapis.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN,alkalimakersuite-pa.clients6.google.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN,aistudio.google.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN,makersuite.google.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN,bard.google.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN,gemini.google.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN,gemini.google,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,gemini.google.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,gemini.google,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,aistudio.google.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,ai.studio,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,deepmind.google,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,deepmind.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,notebooklm.google,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,notebooklm.google.com,Gemini & Antigravity")
+	}
+
 	// 2b. High-Speed Business Service Rules (Native Domain-Suffix & GEOSITE)
 	bizRules := []struct {
 		group    string
 		suffixes []string
 		geosite  string
 	}{
-		{"AI", []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "claude.com", "claudecdn.com", "claudecontent.com", "oaistatic.com", "oaiusercontent.com", "sora.com", "perplexity.ai", "gemini.google.com", "aistudio.google.com", "deepmind.google", "deepmind.com", "antigravity.dev", "x.ai", "grok.com", "copilot.microsoft.com", "sydney.bing.com", "mistral.ai", "poe.com", "midjourney.com", "huggingface.co", "civitai.com", "goog", "run.app"}, "openai"},
+		{"AI", []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "claude.com", "claudecdn.com", "claudecontent.com", "oaistatic.com", "oaiusercontent.com", "sora.com", "perplexity.ai", "x.ai", "grok.com", "copilot.microsoft.com", "sydney.bing.com", "mistral.ai", "poe.com", "midjourney.com", "huggingface.co", "civitai.com"}, "openai"},
+		{"Gemini & Antigravity", []string{"gemini.google.com", "gemini.google", "aistudio.google.com", "ai.studio", "deepmind.google", "deepmind.com", "antigravity.dev", "antigravity.google", "notebooklm.google"}, "google-gemini"},
 		{"YouTube", []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com", "yt3.ggpht.com", "yt4.ggpht.com", "gvt1.com", "1e100.net", "googleusercontent.com"}, "youtube"},
 		{"Google", []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com", "antigravity.dev", "goog", "run.app", "1e100.net", "gvt1.com"}, "google"},
 		{"GitHub & Docker", []string{"github.com", "githubusercontent.com", "docker.com", "docker.io", "ghcr.io"}, "github"},

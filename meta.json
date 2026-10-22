@@ -29,5 +29,5 @@
   },
   "memory_limit_mb": 60,
   "license": "MIT",
-  "description": "🌌 CubeX (极光魔方) · 宿主共生零感网络系统 (Host-Symbiotic Gateway) · 双引擎混动 (Mihomo × sing-box v1.14+) / 物理芯片满血直通 / 宿主实时开销仅 ~39MB (同类最优) / 0 明文 DNS 泄露 / RFC 2544 完整网段回指 / 全链路智能自愈"
+  "description": "🌌 CubeX (极光魔方) · 宿主共生零感网络系统 (Host-Symbiotic Gateway) · 双引擎混动 (Mihomo × sing-box v1.14+) / 物理芯片满血直通 / 极轻开销 (~35MB 起步 · 较传统旁路由省 70%+) / 0 明文 DNS 泄露 / 国内流量零绕路直出 / 全链路智能自愈"
 }

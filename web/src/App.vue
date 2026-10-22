@@ -8807,6 +8807,7 @@ const businessGroups = computed(() => {
   // 官方标准默认 11 大业务分流策略组 (加上三大基石总共 14 个，与 groups.go 严格对齐)
   const standardBusinessPresets = [
     { name: 'AI', icon: 'openai', now: '🇯🇵 日本自动' },
+    { name: 'Gemini & Antigravity', icon: 'google', now: '🇺🇸 美国自动' },
     { name: 'YouTube', icon: 'youtube', now: '🇭🇰 香港自动' },
     { name: 'Google', icon: 'google', now: '🇭🇰 香港自动' },
     { name: 'GitHub & Docker', icon: 'github', now: '🇭🇰 香港自动' },
@@ -8824,7 +8825,8 @@ const businessGroups = computed(() => {
     const exists = filtered.find(g => {
       const gName = (g.name || '').toLowerCase()
       if (gName === p.name.toLowerCase()) return true
-      if (p.name === 'AI' && (gName.includes('ai') || gName.includes('openai') || gName.includes('chatgpt'))) return true
+      if (p.name === 'Gemini & Antigravity' && (gName.includes('gemini') || gName.includes('antigravity'))) return true
+      if (p.name === 'AI' && (gName === 'ai' || gName.includes('openai') || gName.includes('chatgpt'))) return true
       if (p.name.includes('Netflix') && (gName.includes('netflix') || gName.includes('流媒体'))) return true
       if (p.name.includes('GitHub') && (gName.includes('github') || gName.includes('docker'))) return true
       if (p.name.includes('Twitter') && (gName.includes('twitter') || gName === 'x')) return true
@@ -8907,18 +8909,6 @@ const defaultRuleMap = {
     'GEOSITE, claude',
     'GEOSITE, anthropic',
     'GEOSITE, perplexity',
-    'DOMAIN-SUFFIX, antigravity.dev',
-    'DOMAIN, antigravity-unleash.goog',
-    'DOMAIN, gemini.google.com',
-    'DOMAIN-SUFFIX, gemini.google.com',
-    'DOMAIN, aistudio.google.com',
-    'DOMAIN-SUFFIX, aistudio.google.com',
-    'DOMAIN, makersuite.google.com',
-    'DOMAIN, generativelanguage.googleapis.com',
-    'DOMAIN, alkalimakersuite-pa.clients6.google.com',
-    'DOMAIN, bard.google.com',
-    'DOMAIN-SUFFIX, deepmind.google',
-    'DOMAIN-SUFFIX, deepmind.com',
     'DOMAIN-SUFFIX, openai.com',
     'DOMAIN-SUFFIX, chatgpt.com',
     'DOMAIN-SUFFIX, oaistatic.com',
@@ -8940,6 +8930,29 @@ const defaultRuleMap = {
     'DOMAIN-SUFFIX, huggingface.co',
     'DOMAIN-SUFFIX, civitai.com'
   ],
+  gemini: [
+    'GEOSITE, google-gemini',
+    'GEOSITE, google-deepmind',
+    'DOMAIN, antigravity-unleash.goog',
+    'DOMAIN, antigravity.dev',
+    'DOMAIN-SUFFIX, antigravity.dev',
+    'DOMAIN-SUFFIX, antigravity.google',
+    'DOMAIN, gemini.google.com',
+    'DOMAIN, gemini.google',
+    'DOMAIN-SUFFIX, gemini.google.com',
+    'DOMAIN-SUFFIX, gemini.google',
+    'DOMAIN, aistudio.google.com',
+    'DOMAIN-SUFFIX, aistudio.google.com',
+    'DOMAIN-SUFFIX, ai.studio',
+    'DOMAIN, makersuite.google.com',
+    'DOMAIN, generativelanguage.googleapis.com',
+    'DOMAIN, alkalimakersuite-pa.clients6.google.com',
+    'DOMAIN, bard.google.com',
+    'DOMAIN-SUFFIX, deepmind.google',
+    'DOMAIN-SUFFIX, deepmind.com',
+    'DOMAIN-SUFFIX, notebooklm.google',
+    'DOMAIN-SUFFIX, notebooklm.google.com'
+  ],
   stream: ['GEOSITE, netflix', 'GEOSITE, disney', 'GEOSITE, youtube', 'GEOSITE, hbo', 'DOMAIN-SUFFIX, nflxvideo.net', 'DOMAIN-SUFFIX, disneyplus.com'],
   youtube: ['GEOSITE, youtube', 'DOMAIN-SUFFIX, youtube.com', 'DOMAIN-SUFFIX, googlevideo.com', 'DOMAIN-SUFFIX, ytimg.com'],
   google: ['GEOSITE, google', 'DOMAIN-SUFFIX, google.com', 'DOMAIN-SUFFIX, googleapis.com', 'DOMAIN-SUFFIX, gstatic.com'],
@@ -8960,6 +8973,17 @@ const defaultRuleMap = {
 
 function getPolicyRules(grp) {
   const name = (grp.name || '').toLowerCase()
+  if (name.includes('gemini') || name.includes('antigravity')) {
+    const list = [...(defaultRuleMap.gemini || [])]
+    if (grp.rule_value) {
+      grp.rule_value.split(',').forEach(r => {
+        const clean = r.trim()
+        if (clean) list.push(clean.toUpperCase().startsWith('GEOSITE') || clean.toUpperCase().startsWith('DOMAIN') ? clean : `GEOSITE, ${clean}`)
+      })
+    }
+    const unique = Array.from(new Set(list))
+    return unique.length > 0 ? unique : [`RULESET, google-gemini`, `MATCH, ${grp.name}`]
+  }
   const list = []
   if (grp.rule_value) {
     grp.rule_value.split(',').forEach(r => {
@@ -9701,6 +9725,7 @@ function getGroupLogoType(item) {
     name = item.toLowerCase()
   }
   if (icon && icon !== 'default') return icon
+  if (name.includes('gemini') || name.includes('antigravity')) return 'google'
   if (name.includes('claude') || name.includes('anthropic')) return 'claude'
   if (name.includes('openai') || name.includes('chatgpt') || name.includes('gpt')) return 'openai'
   if (name.includes('ai') || name.includes('人工智能')) return 'openai'

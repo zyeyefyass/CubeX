@@ -796,6 +796,8 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		outbound string
 	}{
 		{"openai-srs", "rules/openai.srs", "AI"},
+		{"google-gemini-srs", "rules/google-gemini.srs", "Gemini & Antigravity"},
+		{"google-deepmind-srs", "rules/google-deepmind.srs", "Gemini & Antigravity"},
 		{"youtube-srs", "rules/youtube.srs", "YouTube"},
 		{"google-srs", "rules/google.srs", "Google"},
 		{"github-srs", "rules/github.srs", "GitHub & Docker"},
@@ -1014,24 +1016,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			})
 		}
 		routeRules = append(routeRules, map[string]any{
-			"domain": []string{
-				"antigravity-unleash.goog",
-				"antigravity.dev",
-				"generativelanguage.googleapis.com",
-				"daily-cloudcode-pa.googleapis.com",
-				"cloudcode-pa.googleapis.com",
-				"aiplatform.googleapis.com",
-				"alkalimakersuite-pa.clients6.google.com",
-				"aistudio.google.com",
-				"makersuite.google.com",
-				"bard.google.com",
-				"gemini.google.com",
-				"deepmind.google",
-			},
 			"domain_suffix": []string{
-				"antigravity.dev",
-				"goog",
-				"run.app",
 				"openai.com",
 				"chatgpt.com",
 				"anthropic.com",
@@ -1043,10 +1028,6 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"oaiusercontent.com",
 				"sora.com",
 				"perplexity.ai",
-				"gemini.google.com",
-				"aistudio.google.com",
-				"deepmind.google",
-				"deepmind.com",
 				"x.ai",
 				"grok.com",
 				"copilot.microsoft.com",
@@ -1059,6 +1040,48 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"civitai.com",
 			},
 			"outbound": "AI",
+		})
+	}
+	if validOutbounds["Gemini & Antigravity"] {
+		if tags, ok := activeSRSByGroup["Gemini & Antigravity"]; ok && len(tags) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"rule_set": tags,
+				"outbound": "Gemini & Antigravity",
+			})
+		}
+		routeRules = append(routeRules, map[string]any{
+			"domain": []string{
+				"antigravity-unleash.goog",
+				"antigravity.dev",
+				"generativelanguage.googleapis.com",
+				"daily-cloudcode-pa.googleapis.com",
+				"cloudcode-pa.googleapis.com",
+				"aiplatform.googleapis.com",
+				"alkalimakersuite-pa.clients6.google.com",
+				"aistudio.google.com",
+				"makersuite.google.com",
+				"bard.google.com",
+				"gemini.google.com",
+				"gemini.google",
+				"deepmind.google",
+				"deepmind.com",
+				"ai.studio",
+				"notebooklm.google",
+				"notebooklm.google.com",
+			},
+			"domain_suffix": []string{
+				"antigravity.dev",
+				"antigravity.google",
+				"gemini.google.com",
+				"gemini.google",
+				"aistudio.google.com",
+				"ai.studio",
+				"deepmind.google",
+				"deepmind.com",
+				"notebooklm.google",
+				"notebooklm.google.com",
+			},
+			"outbound": "Gemini & Antigravity",
 		})
 	}
 	if validOutbounds["GitHub & Docker"] {

@@ -114,6 +114,7 @@ var StandardBusinessGroups = []struct {
 	{Name: "🎯 国内流量", Icon: "direct"},
 	{Name: "🌐 国外流量", Icon: "globe"},
 	{Name: "AI", Icon: "openai"},
+	{Name: "Gemini & Antigravity", Icon: "google"},
 	{Name: "YouTube", Icon: "youtube"},
 	{Name: "Google", Icon: "google"},
 	{Name: "GitHub & Docker", Icon: "github"},
@@ -358,7 +359,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 		defaultNow := candidates[0]
 		if bg.Name == "Apple 服务" || bg.Name == "Microsoft" || bg.Name == "🎯 国内流量" {
 			defaultNow = "DIRECT"
-		} else if bg.Name == "AI" {
+		} else if bg.Name == "AI" || bg.Name == "Gemini & Antigravity" {
 			for _, pref := range []string{"🇺🇸 美国自动", "🇯🇵 日本自动", "🇹🇼 台湾自动", "🇸🇬 新加坡自动"} {
 				if containsString(candidates, pref) {
 					defaultNow = pref
@@ -396,7 +397,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			if eg.Now != "" && containsString(candidates, eg.Now) {
 				if eg.Now == "DIRECT" && bg.Name != "Apple 服务" && bg.Name != "Microsoft" && bg.Name != "🎯 国内流量" {
 					bizGrp.Now = defaultNow
-				} else if bg.Name == "AI" && (eg.Now == "🇭🇰 香港自动" || eg.Now == "🇭🇰 香港故转" || eg.Now == "🇭🇰 香港容灾") {
+				} else if (bg.Name == "AI" || bg.Name == "Gemini & Antigravity") && (eg.Now == "🇭🇰 香港自动" || eg.Now == "🇭🇰 香港故转" || eg.Now == "🇭🇰 香港容灾") {
 					bizGrp.Now = defaultNow
 
 				} else {
@@ -406,7 +407,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			if len(eg.Proxies) > 0 {
 				bizGrp.Proxies = mergeProxiesUnique(candidates, eg.Proxies)
 			}
-		} else if bg.Name == "AI" {
+		} else if bg.Name == "AI" || bg.Name == "Gemini & Antigravity" {
 			for _, oldName := range []string{"OpenAI & AI", "OpenAI / Claude", "OpenAI", "ChatGPT"} {
 				if eg, ok := existingMap[oldName]; ok {
 					if eg.Now != "" && containsString(candidates, eg.Now) {

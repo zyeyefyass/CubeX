@@ -133,6 +133,7 @@ func TestRegionAndBusinessGroupsSync(t *testing.T) {
 		"🎯 国内流量",
 		"🌐 国外流量",
 		"AI",
+		"Gemini & Antigravity",
 		"YouTube",
 		"Google",
 		"GitHub & Docker",
