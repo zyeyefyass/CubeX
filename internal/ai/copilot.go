@@ -350,7 +350,7 @@ func (c *Copilot) offlineResponse(prompt string) string {
 		return "🛡️ 【DNS 场景与防泄露专项体检报告】\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 当前运行模式：Fake-IP 智能剥离（198.18.0.0/15 虚拟地址池）\n• 核心拦截代理：本地 7853 端口由 Mihomo 专有处理\n• 国内直连优化：已启用真实 IP 直连直出，国内 CDN 精准调度无减速\n• 故障应急兜底：SmartRelay 自动监视，核心未启动时秒级回退至 223.5.5.5 / 119.29.29.29\n• 安全评估结论：✅ 0 明文回退，0 泄露风险，完全杜绝运营商劫持。\n\n如需测试具体域名分流，可在「路由探测」输入网址直接验证。"
 
 	case strings.Contains(lower, "延迟") || strings.Contains(lower, "选路") || strings.Contains(lower, "节点") || strings.Contains(lower, "测速") || strings.Contains(lower, "容差"):
-		return "⚡ 【节点延迟矩阵与策略组优化建议】\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 推荐策略算法：URL-Test（自动最低延迟优选）\n• 测速目标 URL：http://www.gstatic.com/generate_204\n• 建议测速容差（Tolerance）：50ms（平衡选路平稳性，防止节点频繁跳变导致短时断流）\n• 建议测速间隔：300 秒（降低订阅服务器测速压力并保证准确性）\n• 游戏优化技巧：在配置沙盒中切换至「电竞极速」方案，容差调至 20ms，可获得极致对战延迟表现。"
+		return "⚡ 【节点延迟与策略组优化建议】\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 推荐策略算法：URL-Test（自动最低延迟优选）\n• 测速目标 URL：http://www.gstatic.com/generate_204\n• 建议测速容差（Tolerance）：50ms（平衡选路平稳性，防止节点频繁跳变导致短时断流）\n• 建议测速间隔：300 秒（降低订阅服务器测速压力并保证准确性）\n• 游戏优化技巧：在配置沙盒中切换至「电竞极速」方案，容差调至 20ms，可获得极致对战延迟表现。"
 
 	case strings.Contains(lower, "体检") || strings.Contains(lower, "诊断") || strings.Contains(lower, "评分") || strings.Contains(lower, "报告"):
 		report := "🩺 【CubeX AI 软路由全维度网络体检报告】\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n"

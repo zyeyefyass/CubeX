@@ -1932,7 +1932,7 @@ var allGeoRuleDefs = []ruleItemDef{
 		Filename:    "rules/cn_not_domain.mrs",
 		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/cn_not_domain.mrs",
 		Category:    "基础路由分流",
-		Description: "非国内境外网站与全球互联网节点加速分流矩阵",
+		Description: "非国内境外网站与全球互联网节点加速分流",
 		Engine:      "Mihomo",
 		Group:       "🌐 国外流量",
 	},
@@ -1941,7 +1941,7 @@ var allGeoRuleDefs = []ruleItemDef{
 		Filename:    "rules/cn_not_domain.srs",
 		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/cn_not_domain.srs",
 		Category:    "基础路由分流",
-		Description: "非国内境外网站与全球互联网节点加速分流矩阵 (sing-box 专享)",
+		Description: "非国内境外网站与全球互联网节点加速分流 (sing-box 专享)",
 		Engine:      "sing-box",
 		Group:       "🌐 国外流量",
 	},
@@ -3033,7 +3033,7 @@ func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, er
 			if err := reloadCoreFn(); err != nil {
 				res.Logs = append(res.Logs, fmt.Sprintf("⚠️ 路由内核热重载提示: %v", err))
 			} else {
-				res.Logs = append(res.Logs, "✨ 路由内核已热重载最新 Geo 数据库与 217heidai 规则矩阵！")
+				res.Logs = append(res.Logs, "✨ 路由内核已热重载最新 Geo 数据库与 217heidai 规则体系！")
 			}
 		}
 	} else {

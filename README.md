@@ -124,11 +124,11 @@
 > *全站 UI 采用 100% 独立构建的 **Cyber Aurora 赛博极光 × MikroTik 科技深蓝美学**，高质感全息毛玻璃 (`backdrop-blur-xl`)，彻底告别粗糙古董的前端陈旧感！*  
 > *所有展示截图均已通过自动化脱敏引擎审计，敏感订阅、私有节点与密钥信息均已抹除。*
 
-### 1. 应用分流矩阵 · 14 大官方标准策略分流与单选互斥
+### 1. 应用分流 · 14 大官方标准策略分流与单选互斥
 全景呈现专为现代应用而生的 14 大官方标准分流策略：涵盖 AI（ChatGPT/Claude/Gemini）、YouTube、Google、GitHub、Docker、Telegram、Netflix、Steam、🎯 国内流量、🌐 国外流量、🐟 漏网之鱼等。各策略卡片下方提供直观的出口候选卡片，实行严格单选高亮（Radio Selection），支持一键调度至各区域集群或直连直出。
 
 <div align="center">
-  <img src="docs/assets/screenshots/cubex-live-routing-matrix.png" alt="CubeX 应用分流矩阵与策略调度" width="95%" />
+  <img src="docs/assets/screenshots/cubex-live-routing-matrix.png" alt="CubeX 应用分流与策略调度" width="95%" />
 </div>
 
 ---
@@ -181,7 +181,7 @@
    - **毫秒直出**：CubeX 自动分析 URL 并调用国内延迟最低的高速 CDN 通道，瞬间生成免翻直连加速直链；
    - **双模极速获取**：支持【📋 一键复制加速直链】（方便在终端执行 `wget`/`curl`），或直接点击【⬇️ 浏览器直接打开下载】，跑满千兆物理带宽！
 
-2. **🐙 5 大 GitHub CDN 优选镜像源矩阵 (智能并发测速与动态优选)**
+2. **🐙 5 大 GitHub CDN 优选镜像源 (智能并发测速与动态优选)**
    - 聚合当前网络环境下最高速的 5 大国内高可用 Anycast CDN 通道；
    - 支持【⚡ 仅测速 GitHub 源】与【⚡ 全节点并发测速】，实时展示每个镜像站的真实毫秒级 RTT 延迟与健康状态（`极速可用` / `延迟稍高` / `暂时离线`）；
    - 支持鼠标单击任意卡片，实时一键锁定为全局默认加速出站源。
@@ -197,14 +197,14 @@
 
 #### 📸 多角度实机大赏 (Rich Visual Showcase)：
 
-##### ① 容器极速加速引擎全局驾驶舱与 5 大 CDN / Docker 优选矩阵
+##### ① 容器极速加速引擎全局驾驶舱与 5 大 CDN / Docker 优选
 <div align="center">
   <img src="docs/assets/screenshots/cubex-live-kspeeder-cdn.png" alt="CubeX 容器加速引擎与镜像源优选全景" width="95%" />
 </div>
 
 ##### ② GitHub 极速下载链接转换器 · 直链毫秒级就绪与多源并发测速
 <div align="center">
-  <img src="docs/assets/screenshots/cubex-kspeeder-full-matrix.png" alt="GitHub 极速免翻直链转换器与 CDN 优选矩阵" width="95%" />
+  <img src="docs/assets/screenshots/cubex-kspeeder-full-matrix.png" alt="GitHub 极速免翻直链转换器与 CDN 优选" width="95%" />
 </div>
 
 ##### ③ Docker Registry 镜像加速多源状态与 RouterOS / 飞牛宿主一键注入核验看板
@@ -503,7 +503,7 @@ CubeX 默认预置了亚太与欧美最常用的 6 大核心国家/地区，加�
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
-│                   🛡️ CubeX 三维高可用智能分流调度矩阵                 │
+│                   🛡️ CubeX 三维高可用智能分流调度体系                 │
 ├────────────────────────────────────────────────────────────────────────┤
 │  🟢 1. 地区自动 (Auto / url-test)                                      │
 │     ↳ 机制：高频 204 极速测速探活，毫秒级动态锁定延迟最低、速度最快节点   │
@@ -948,7 +948,7 @@ RouterOS 为了设备安全，首次开启容器功能时要求进行物理所�
 #### 🎯 五、 进入 Web 驾驶舱体验与健康巡检
 
 1. **访问控制台**：在局域网内任意手机、平板或 PC 浏览器打开：`http://<CubeX_IP>:2026`（例如 `http://10.0.0.11:2026`，请以安装脚本终端输出的 IP 为准）；
-2. **首次配置向导**：根据 Cyber Aurora 全息向导填入机场订阅或私有节点，一键生成分流矩阵并启动透明代理；
+2. **首次配置向导**：根据 Cyber Aurora 全息向导填入机场订阅或私有节点，一键生成分流策略并启动透明代理；
 3. **一键巡检与加固**：控制台顶部常驻 **【一键深度巡检 RouterOS 策略路由及全量重配 (含 Netwatch 0秒逃生)】** 按钮，点击即可对 FastTrack 白名单、Mangle 防死锁规则、VETH 链路进行全自动自愈与体检！
 
 ---

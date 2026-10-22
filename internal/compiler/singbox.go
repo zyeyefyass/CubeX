@@ -196,6 +196,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"tag":         "dns-fakeip",
 				"type":        "fakeip",
 				"inet4_range": "198.18.0.0/16",
+				"inet6_range": "fc00::/18",
 			},
 		},
 		"rules": []map[string]any{
@@ -1291,9 +1292,9 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	cfg["experimental"] = map[string]any{
 		"cache_file": map[string]any{
 			"enabled":      true,
-			"path":         "cache.db",
+			"path":         "singbox_cache.db",
 			"store_fakeip": true,
-			"store_dns":    true,
+			"store_rdrc":   true,
 		},
 		"clash_api": map[string]any{
 			"external_controller": fmt.Sprintf("0.0.0.0:%d", net.ClashAPIPort),

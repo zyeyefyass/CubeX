@@ -70,7 +70,7 @@ func printBanner() {
 func printMenu() {
 	fmt.Println("\033[1;37m快捷指令集 (Quick Commands):\033[0m")
 	fmt.Println("  \033[36mcubex switch sing\033[0m    - 毫秒级秒切至 Sing-box 极光内核")
-	fmt.Println("  \033[36mcubex switch mihomo\033[0m  - 毫秒级秒切至 Mihomo 矩阵内核")
+	fmt.Println("  \033[36mcubex switch mihomo\033[0m  - 毫秒级秒切至 Mihomo 内核")
 	fmt.Println("  \033[36mcubex mode hybrid\033[0m    - 开启双核混动模式")
 	fmt.Println("  \033[36mcubex doctor\033[0m         - 运行系统环境自检与自动诊断")
 	fmt.Println("  \033[36mcubex trace <domain>\033[0m - 命令行全链路分流推演 (沙盒模拟)")

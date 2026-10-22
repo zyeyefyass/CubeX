@@ -665,7 +665,7 @@
             </div>
           </section>
 
-          <!-- 🎛️ 局域网设备分流控制矩阵 (Per-Device Matrix) -->
+          <!-- 🎛️ 局域网设备分流控制 (Per-Device Matrix) -->
           <div class="glass-matrix rounded-2xl p-5 space-y-4 border-l-4 border-l-purple-500 shadow-xl">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-900/30 pb-3">
               <div>
@@ -1666,7 +1666,7 @@
                 <span class="text-3xl block">✈️</span>
                 <div class="text-sm font-bold text-white">尚未接入机场订阅或无匹配项</div>
                 <p class="text-xs text-slate-400 max-w-md mx-auto">
-                  CubeX 支持一键直连导入 Clash、Sing-box、V2Ray 等全协议通用订阅链接，智能解析节点并自动分配至各地测速矩阵。
+                  CubeX 支持一键直连导入 Clash、Sing-box、V2Ray 等全协议通用订阅链接，智能解析节点并自动分配至各地测速分组。
                 </p>
                 <button @click="openImportModal('sub')"
                   class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-teal-400 to-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 active:scale-95 transition inline-flex items-center gap-1.5">
@@ -2108,14 +2108,14 @@
         </div>
 
         <!-- ════════════════════════════════════════════════════════════════ -->
-        <!-- TAB: 极速下载与国内镜像加速矩阵 (KSpeeder Dedicated Workspace)    -->
+        <!-- TAB: 极速下载与国内镜像加速 (KSpeeder Dedicated Workspace)    -->
         <!-- ════════════════════════════════════════════════════════════════ -->
         <div v-else-if="activeMasterTab === 'kspeeder'" class="space-y-6 animate-in fade-in">
           <!-- Page Header -->
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-800/40 pb-4">
             <div>
               <h2 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                <span>🚀 容器加速与国内镜像矩阵</span>
+                <span>🚀 容器加速与国内镜像</span>
                 <span class="text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-mono whitespace-nowrap">
                   {{ kspeederConfig.enabled ? '🟢 加速引擎就绪' : '⚪ 已暂停' }}
                 </span>
@@ -2182,7 +2182,7 @@
             </div>
           </div>
 
-          <!-- Section 2: GitHub CDN 优选镜像源矩阵 (5大高速节点) -->
+          <!-- Section 2: GitHub CDN 优选镜像源 (5大高速节点) -->
           <div class="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-4 shadow-xl">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
               <div class="flex items-center gap-2">
@@ -2432,7 +2432,7 @@
           </div>
 
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <!-- 3. 六大硬核安全测试矩阵 (6-Vector Hardcore Test Matrix)           -->
+          <!-- 3. 六大硬核安全测试 (6-Vector Hardcore Test Matrix)           -->
           <!-- ════════════════════════════════════════════════════════════════ -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div v-for="item in (securityAudit.report?.items || [])" :key="item.id"
@@ -2974,7 +2974,7 @@
                 </div>
               </div>
 
-              <!-- 3. Geo 规则数据库与离线分流矩阵 -->
+              <!-- 3. Geo 规则数据库与离线分流体系 -->
               <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
                 <!-- Tier 1: Header (h-7) -->
                 <div class="h-7 flex justify-between items-center">
@@ -4358,7 +4358,7 @@
                       </span>
                     </h3>
                     <p class="text-xs text-slate-400 mt-0.5">
-                      全套二进制 MRS/SRS 离线分流矩阵与 217heidai 去广告权威拦截规则详细清单
+                      全套二进制 MRS/SRS 离线分流体系与 217heidai 去广告权威拦截规则详细清单
                     </p>
                   </div>
                 </div>
