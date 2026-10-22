@@ -175,6 +175,6 @@ if ($LASTEXITCODE -ne 0) {
 
 # # ═════════════════════════════════════════════════════════════════════════════
 # CubeX Release Packaging Script (Bundles Dual Cores + Geodata + Rules + Config)
-# Target Version: Test v2.1
+# Target Version: Test v2.4
 # Formats: Native .zip for General Releases + Uncompressed .tar for RouterOS
 # ═════════════════════════════════════════════════════════════════════════════
