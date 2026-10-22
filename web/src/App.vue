@@ -293,7 +293,7 @@
                   <h2 class="text-base sm:text-lg font-bold text-white tracking-wide">双擎主控驾驶舱</h2>
                   <span class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 flex items-center gap-1.5 shrink-0">
                     <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                    当前内核: {{ activeEngine === 'singbox' ? 'sing-box (v1.14.3)' : 'mihomo (v1.19.32)' }}
+                    当前内核: {{ activeEngine === 'singbox' ? 'sing-box (v1.14.3)' : 'mihomo (v1.19.33)' }}
                   </span>
                 </div>
                 <p class="text-xs text-slate-400 mt-1">CubeX Universal IR 统一中间表示层驱动 · 支持 TProxy 与原生 TUN 协议栈秒级热切换与内核崩溃无感自愈</p>
@@ -357,6 +357,14 @@
                   <div class="flex items-center justify-between">
                     <span class="text-slate-400 text-[11px] whitespace-nowrap">CubeX 专属常驻</span>
                     <span class="text-sm font-bold text-cyan-300 font-mono">{{ currentHostRealMemory.toFixed(1) }} MB <span class="text-[10px] text-emerald-400 font-sans font-normal">(超轻量)</span></span>
+                  </div>
+                  <!-- 专属常驻细分拆解: 内核占用 + 主控占用 与 容器整机开销 -->
+                  <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono px-2 py-0.5 rounded-md bg-slate-900/80 border border-slate-800/80">
+                    <span>内核: <strong class="text-purple-300 font-bold">{{ liveCoreMemoryMB.toFixed(1) }}M</strong> <span class="text-slate-500">({{ activeEngine === 'singbox' ? 'sing-box' : 'mihomo' }})</span></span>
+                    <span class="text-slate-600">+</span>
+                    <span>主控: <strong class="text-cyan-300 font-bold">{{ liveAppMemoryMB.toFixed(1) }}M</strong> <span class="text-slate-500">(cubexd)</span></span>
+                    <span class="text-slate-600">|</span>
+                    <span>容器总计: <strong class="text-indigo-300 font-bold">{{ liveContainerOverheadMB.toFixed(1) }}M</strong></span>
                   </div>
                   <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
                     <span class="truncate">宿主整机已用 {{ hostInfo.memory_used || '343MiB' }} (含系统)</span>
@@ -2964,8 +2972,8 @@
                 <!-- Tier 2: Body (h-[74px]) -->
                 <div class="h-[74px] text-[11px] font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
                   <div class="flex items-center justify-between">
-                    <span>Mihomo 内核: <strong class="text-emerald-400 font-semibold">{{ systemOverview.mihomo_curr_version || 'v1.19.32' }}</strong></span>
-                    <span class="text-slate-500">官方最新: <span class="text-slate-300">{{ systemOverview.mihomo_latest_version || 'v1.19.32' }}</span></span>
+                    <span>Mihomo 内核: <strong class="text-emerald-400 font-semibold">{{ systemOverview.mihomo_curr_version || 'v1.19.33' }}</strong></span>
+                    <span class="text-slate-500">官方最新: <span class="text-slate-300">{{ systemOverview.mihomo_latest_version || 'v1.19.33' }}</span></span>
                   </div>
                   <div class="flex items-center justify-between">
                     <span>sing-box 内核: <strong class="text-emerald-400 font-semibold">{{ systemOverview.singbox_curr_version || 'v1.14.3' }}</strong></span>
@@ -5958,7 +5966,7 @@ const systemOverview = ref({
   cubex_version: 'Test v1.7',
   panel_curr_version: 'Test v1.7',
   panel_latest_version: 'Test v1.7',
-  mihomo_curr_version: 'v1.19.32',
+  mihomo_curr_version: 'v1.19.33',
   singbox_curr_version: 'v1.14.3',
   panel_update_avail: false,
   update_available: false
@@ -6400,15 +6408,35 @@ const benchmarkResult = ref({
   mihomo: null
 })
 
-// Unified single source of truth for CubeX live host container memory overhead
-const currentHostRealMemory = computed(() => {
-  if (telemetryMetrics.value?.memoryMB && telemetryMetrics.value.memoryMB > 0) {
-    return Number(telemetryMetrics.value.memoryMB)
+// Granular memory breakdown: Core Process RSS + Control Plane RSS = Exclusive Resident (专属常驻)
+const liveCoreMemoryMB = computed(() => {
+  if (systemStatus.value?.core_memory_mb && systemStatus.value.core_memory_mb > 0) {
+    return Number(systemStatus.value.core_memory_mb)
   }
+  return 18.2
+})
+
+const liveAppMemoryMB = computed(() => {
+  if (systemStatus.value?.app_memory_mb && systemStatus.value.app_memory_mb > 0) {
+    return Number(systemStatus.value.app_memory_mb)
+  }
+  return 15.5
+})
+
+const liveTotalResidentMB = computed(() => {
+  return Number((liveCoreMemoryMB.value + liveAppMemoryMB.value).toFixed(1))
+})
+
+const liveContainerOverheadMB = computed(() => {
   if (systemStatus.value?.total_overhead_mb && systemStatus.value.total_overhead_mb > 0) {
     return Number(systemStatus.value.total_overhead_mb)
   }
-  return 49.5
+  return liveTotalResidentMB.value
+})
+
+// Unified single source of truth for CubeX live host container memory overhead
+const currentHostRealMemory = computed(() => {
+  return liveTotalResidentMB.value
 })
 
 const isSingboxActive = computed(() => {

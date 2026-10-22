@@ -102,6 +102,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"auto-redirect":            false,
 		"auto-detect-interface":    true,
 		"strict-route":             false,
+		"dns-mode":                 "hijack",
 		"mtu":                      tunMTU,
 		"gso":                      false,
 		"endpoint-independent-nat": true,
@@ -132,8 +133,9 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			"QUIC": map[string]any{"ports": []int{443, 8443}},
 		},
 		"skip-domain": []string{
-			"Mijia Cloud",
 			"dlg.io.mi.com",
+			"+.mijia.tech",
+			"+.io.mi.com",
 			"+.apple.com",
 			"+.push.apple.com",
 		},

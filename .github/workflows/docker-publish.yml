@@ -58,9 +58,9 @@ jobs:
         run: |
           mkdir -p bin/amd64 bin/arm64 etc/rules data
 
-          echo "Downloading official Mihomo v1.19.32 binaries..."
-          curl -sL https://github.com/MetaCubeX/mihomo/releases/download/v1.19.32/mihomo-linux-amd64-v1.19.32.gz | gzip -d > bin/amd64/mihomo
-          curl -sL https://github.com/MetaCubeX/mihomo/releases/download/v1.19.32/mihomo-linux-arm64-v1.19.32.gz | gzip -d > bin/arm64/mihomo
+          echo "Downloading official Mihomo v1.19.33 binaries..."
+          curl -sL https://github.com/MetaCubeX/mihomo/releases/download/v1.19.33/mihomo-linux-amd64-v1.19.33.gz | gzip -d > bin/amd64/mihomo
+          curl -sL https://github.com/MetaCubeX/mihomo/releases/download/v1.19.33/mihomo-linux-arm64-v1.19.33.gz | gzip -d > bin/arm64/mihomo
           chmod +x bin/amd64/mihomo bin/arm64/mihomo
 
           echo "Downloading official sing-box v1.14.3 binaries..."

@@ -178,7 +178,7 @@ func (m *Manager) GetOverview() map[string]any {
 
 	latestMihomo := m.cachedLatestMihomo
 	if latestMihomo == "" {
-		latestMihomo = "v1.19.32"
+		latestMihomo = "v1.19.33"
 	}
 	latestPanel := m.cachedLatestPanel
 	if latestPanel == "" {
@@ -941,7 +941,7 @@ func (m *Manager) getLocalMihomoVersion() string {
 	mihomoPath := filepath.Join(m.binDir, "mihomo")
 	out, err := exec.Command(mihomoPath, "-v").CombinedOutput()
 	if err != nil {
-		return "v1.19.32"
+		return "v1.19.33"
 	}
 	s := string(out)
 	for _, field := range strings.Fields(s) {
@@ -949,13 +949,13 @@ func (m *Manager) getLocalMihomoVersion() string {
 			return field
 		}
 	}
-	return "v1.19.32"
+	return "v1.19.33"
 }
 
 func (m *Manager) fetchLatestMihomoVersion() (string, error) {
 	tag, err := fetchGitHubLatestTag("MetaCubeX/mihomo")
 	if err != nil || tag == "" {
-		return "v1.19.32", err
+		return "v1.19.33", err
 	}
 	return tag, nil
 }
