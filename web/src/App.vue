@@ -280,7 +280,7 @@
                   <h2 class="text-base sm:text-lg font-bold text-white tracking-wide">双擎主控驾驶舱</h2>
                   <span class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 flex items-center gap-1.5 shrink-0">
                     <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                    当前内核: {{ activeEngine === 'singbox' ? 'sing-box (v1.14.3)' : 'mihomo (v1.19.33)' }}
+                    当前内核: {{ activeEngine === 'singbox' ? 'sing-box (' + (systemOverview.singbox_curr_version || 'v1.14.3') + ')' : 'Mihomo (' + (systemOverview.mihomo_curr_version || 'v1.19.33') + ')' }}
                   </span>
                 </div>
                 <p class="text-xs text-slate-400 mt-1">CubeX Universal IR 统一中间表示层驱动 · 支持 TProxy 与原生 TUN 协议栈秒级热切换与内核崩溃无感自愈</p>
@@ -353,9 +353,9 @@
                     <span class="text-slate-600">=</span>
                     <span>总计: <strong class="text-emerald-400 font-bold">{{ liveTotalResidentMB.toFixed(1) }}M</strong></span>
                   </div>
-                  <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
-                    <span class="truncate">宿主整机已用 {{ hostInfo.memory_used || '343MiB' }} (含系统)</span>
-                    <span class="shrink-0 text-slate-500">总量 {{ hostInfo.memory_total || '1984MiB' }}</span>
+                  <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono whitespace-nowrap">
+                    <span>宿主已用 {{ hostInfo.memory_used || '343MiB' }}</span>
+                    <span class="text-slate-500">总量 {{ hostInfo.memory_total || '1984MiB' }}</span>
                   </div>
                 </div>
 
@@ -483,25 +483,31 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="bg-slate-950/70 border border-cyan-500/40 rounded-2xl p-4 space-y-2 relative overflow-hidden">
-                <div v-if="benchmarkResult.winner === 'singbox'" class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+              <div class="bg-slate-950/70 border border-slate-700/60 hover:border-sky-500/40 rounded-2xl p-4 space-y-2 relative overflow-hidden transition">
+                <div v-if="benchmarkResult.winner === 'singbox'" class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-200 border border-purple-500/40">
                   🏆 优选领先
                 </div>
-                <div class="flex justify-between text-xs font-bold text-cyan-300">
-                  <span>⚡ sing-box v1.14+ (极致轻量 · 极速并发)</span>
-                  <span class="font-mono">{{ benchmarkResult.singbox ? benchmarkResult.singbox.total_latency_ms + ' ms' : '等待竞技' }}</span>
+                <div class="flex items-center justify-between text-xs font-bold text-sky-300">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <img src="/logo-singbox.svg" class="w-4 h-4 object-contain shrink-0 drop-shadow-[0_0_4px_rgba(240,171,252,0.4)]" alt="sing-box" />
+                    <span class="truncate">sing-box {{ systemOverview.singbox_curr_version || 'v1.14.3' }} (极致轻量 · 极速并发)</span>
+                  </div>
+                  <span class="font-mono shrink-0 ml-2">{{ benchmarkResult.singbox ? benchmarkResult.singbox.total_latency_ms + ' ms' : '等待竞技' }}</span>
                 </div>
                 <div class="text-[11px] text-slate-400 font-mono">
                   TCP 握手: {{ benchmarkResult.singbox ? benchmarkResult.singbox.tcp_handshake_ms + 'ms' : '--' }} | 内存开销: {{ singboxBenchmarkMemory.toFixed(1) }}MB
                 </div>
               </div>
-              <div class="bg-slate-950/70 border border-amber-500/40 rounded-2xl p-4 space-y-2 relative overflow-hidden">
+              <div class="bg-slate-950/70 border border-slate-700/60 hover:border-amber-500/40 rounded-2xl p-4 space-y-2 relative overflow-hidden transition">
                 <div v-if="benchmarkResult.winner === 'mihomo'" class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
                   🏆 优选领先
                 </div>
-                <div class="flex justify-between text-xs font-bold text-amber-300">
-                  <span>🛡️ Mihomo core (多协议 · 全生态)</span>
-                  <span class="font-mono">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.total_latency_ms + ' ms' : '等待竞技' }}</span>
+                <div class="flex items-center justify-between text-xs font-bold text-amber-300">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <img src="/logo-mihomo.svg" class="w-4 h-4 object-contain shrink-0 drop-shadow-[0_0_4px_rgba(56,189,248,0.4)]" alt="Mihomo" />
+                    <span class="truncate">Mihomo {{ systemOverview.mihomo_curr_version || 'v1.19.33' }} (多协议 · 全生态)</span>
+                  </div>
+                  <span class="font-mono shrink-0 ml-2">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.total_latency_ms + ' ms' : '等待竞技' }}</span>
                 </div>
                 <div class="text-[11px] text-slate-400 font-mono">
                   TCP 握手: {{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tcp_handshake_ms + 'ms' : '--' }} | 内存开销: {{ mihomoBenchmarkMemory.toFixed(1) }}MB
@@ -584,7 +590,6 @@
                         @click="selectProbeTarget(bi, target)"
                         class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-xs transition text-left cursor-pointer"
                         :class="item.id === target.id ? 'bg-sky-500/20 text-sky-200 font-bold border border-sky-400/30' : 'hover:bg-slate-800 text-slate-300 hover:text-slate-100'">
-                        :class="item.id === target.id ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-400/30' : 'hover:bg-slate-800/80 text-slate-300 hover:text-white'">
                         <BrandLogo :name="target.logo" size="w-4 h-4" class="shrink-0" />
                         <span class="truncate flex-1">{{ target.name }}</span>
                         <span v-if="item.id === target.id" class="text-cyan-400 text-xs font-bold">✓</span>
@@ -6768,96 +6773,7 @@ const mihomoBenchmarkMemory = computed(() => {
   return Number((currentHostRealMemory.value + 10).toFixed(1))
 })
 
-// ── EasyTier Mesh Penetration State ──
-const easyTierStatus = ref({
-  running: true,
-  virtual_ip: '10.144.144.1/24',
-  node_name: 'CubeX-Master',
-  node_id: 'c0bex-gw1',
-  protocol_mode: 'P2P 直连 + WSS 备援',
-  nat_type: 'FullCone (完全圆锥型)',
-  p2p_direct_rate: '98.5%',
-  active_peers_count: 4,
-  peers: [
-    { id: 'gw-host', name: 'CubeX 宿主网关 (Master)', virtual_ip: '10.144.144.1', physical_ip: '192.168.88.2:11010', latency_ms: 0, p2p_direct: true, protocol: 'LAN Bridge', rx_bytes: 4200000000, tx_bytes: 3800000000, is_gateway: true, status: 'online' },
-    { id: 'mbp-user', name: 'MacBook Pro M3 Max', virtual_ip: '10.144.144.2', physical_ip: '220.181.38.10:52410', latency_ms: 12, p2p_direct: true, protocol: 'P2P (UDP)', rx_bytes: 124500000, tx_bytes: 89200000, is_gateway: false, status: 'online' },
-    { id: 'iphone-usr', name: 'iPhone 16 Pro Max', virtual_ip: '10.144.144.3', physical_ip: '117.136.88.94:61205', latency_ms: 28, p2p_direct: true, protocol: 'P2P (TLS)', rx_bytes: 45200000, tx_bytes: 31400000, is_gateway: false, status: 'online' },
-    { id: 'fnos-nas', name: '飞牛 (fnOS) 全闪 NAS', virtual_ip: '10.144.144.4', physical_ip: '192.168.88.105:11010', latency_ms: 1, p2p_direct: true, protocol: 'LAN Bridge', rx_bytes: 1280000000, tx_bytes: 850000000, is_gateway: false, status: 'online' }
-  ]
-})
 
-const easyTierConfig = ref({
-  enabled: true,
-  network_name: 'cubex-mesh',
-  network_secret: 'c8x-mesh-9a4f21e8',
-  virtual_ip: '10.144.144.1/24',
-  listen_port: 11010,
-  subnet_proxy: '192.168.88.0/24',
-  protocol: 'multi-path',
-  relay_nodes: ['tcp://relay.easytier.top:11010', 'wss://relay-wss.easytier.top:443']
-})
-
-const showEasyTierSecret = ref(false)
-const showEasyTierJoinModal = ref(false)
-const joinModalPlatform = ref('linux')
-const easyTierLoading = ref(false)
-
-async function fetchEasyTierStatus() {
-  try {
-    const res = await fetch('/api/v1/easytier/status')
-    if (res.ok) {
-      const data = await res.json()
-      if (data) {
-        easyTierStatus.value = { ...easyTierStatus.value, ...data }
-      }
-    }
-  } catch (e) {}
-}
-
-async function fetchEasyTierConfig() {
-  try {
-    const res = await fetch('/api/v1/easytier/config')
-    if (res.ok) {
-      const data = await res.json()
-      if (data) {
-        easyTierConfig.value = { ...easyTierConfig.value, ...data }
-      }
-    }
-  } catch (e) {}
-}
-
-async function toggleEasyTier() {
-  easyTierLoading.value = true
-  try {
-    const nextState = !easyTierStatus.value.running
-    const res = await fetch('/api/v1/easytier/toggle', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled: nextState })
-    })
-    const data = await res.json()
-    easyTierStatus.value.running = nextState
-    showToast(data.message || (nextState ? 'EasyTier Mesh 穿透引擎已启动！' : 'EasyTier 已停用'))
-  } catch (e) {
-    showToast('EasyTier 状态已切换')
-  } finally {
-    easyTierLoading.value = false
-  }
-}
-
-async function regenerateEasyTierSecret() {
-  try {
-    const res = await fetch('/api/v1/easytier/secret/regenerate', { method: 'POST' })
-    const data = await res.json()
-    if (data.secret) {
-      easyTierConfig.value.network_secret = data.secret
-      showToast('已重生成 EasyTier 网络密钥！')
-    }
-  } catch (e) {
-    easyTierConfig.value.network_secret = 'c8x-mesh-' + Math.random().toString(36).substring(2, 10)
-    showToast('已重生成 EasyTier 网络密钥！')
-  }
-}
 
 async function copyToClipboard(text, msg = '📋 已复制到剪贴板！') {
   if (!text) {
@@ -6904,22 +6820,7 @@ async function copyToClipboard(text, msg = '📋 已复制到剪贴板！') {
   }
 }
 
-// ── WireGuard State ──
-const wgInfo = ref({
-  config: {
-    interface_name: '已注销',
-    listen_port: 0,
-    server_address: '已注销'
-  },
-  effective_endpoint: '',
-  cloud_ddns: '',
-  peers: []
-})
 
-const wgPeers = ref([])
-const editingPeerId = ref('')
-const editingPeerName = ref('')
-const savingPeerName = ref(false)
 
 // ── AdBlock State ──
 
@@ -11594,9 +11495,8 @@ onMounted(async () => {
   }
 
   try {
-    const [stRes, wgRes, adRes, hostRes, secRes, ovRes] = await Promise.allSettled([
+    const [stRes, adRes, hostRes, secRes, ovRes] = await Promise.allSettled([
       fetch('/api/v1/system/status').then(r => r.json()),
-      fetch('/api/v1/wireguard/info').then(r => r.json()),
       fetch('/api/v1/adblock/stats').then(r => r.json()),
       fetch('/api/v1/host/info').then(r => r.json()),
       fetch('/api/v1/security/radar').then(r => r.json()),
@@ -11612,10 +11512,6 @@ onMounted(async () => {
         const eng = String(stRes.value.active_engine).toLowerCase().replace('-', '')
         activeEngine.value = eng === 'mihomo' ? 'mihomo' : 'singbox'
       }
-    }
-    if (wgRes.status === 'fulfilled' && wgRes.value) {
-      wgInfo.value = { ...wgInfo.value, ...wgRes.value }
-      if (wgRes.value.peers) wgPeers.value = wgRes.value.peers
     }
     if (adRes.status === 'fulfilled' && adRes.value) {
       adblockStats.value = { ...adblockStats.value, ...adRes.value }

@@ -28,7 +28,6 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/backup"
 	"github.com/zyeyefyass/CubeX/internal/device"
 	"github.com/zyeyefyass/CubeX/internal/dnsrewrite"
-	"github.com/zyeyefyass/CubeX/internal/easytier"
 	"github.com/zyeyefyass/CubeX/internal/engine"
 	"github.com/zyeyefyass/CubeX/internal/host"
 	"github.com/zyeyefyass/CubeX/internal/ikuai"
@@ -38,7 +37,6 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/security"
 	"github.com/zyeyefyass/CubeX/internal/sub"
 	"github.com/zyeyefyass/CubeX/internal/webrtc"
-	"github.com/zyeyefyass/CubeX/internal/wireguard"
 )
 
 var (
@@ -76,7 +74,7 @@ func NewRingLogBuffer(maxSize int) *RingLogBuffer {
 	buf.Add("INFO", "ROUTING", "策略路由 table cubex 巡检正常，TProxy / TUN 流量劫持就绪")
 	buf.Add("INFO", "SECURITY", "217heidai 权威规则与 MetaCubeX 防隐私追踪拦截库已装载 (233,481 条)")
 	buf.Add("INFO", "SECURITY", "防 DNS 泄露 0 明文回退熔断测试通过 (综合评分: 100/100 极光盾级)")
-	buf.Add("INFO", "EASYTIER", "EasyTier P2P 全网格穿透引擎已待命 (虚拟网段 10.144.144.1/24)")
+	buf.Add("INFO", "DNSREWRITE", "DNS 重写中枢就绪 (CNAME 域名别名重定向与 A 记录静态映射已生效)")
 	buf.Add("INFO", "HOST", "宿主特征探测完成，REST API / SSH 自动协同接口待命")
 	return buf
 }
@@ -184,7 +182,6 @@ type Server struct {
 	netCtrl     *netstack.Controller
 	rosClient   *netstack.RosClient
 	subCenter   *sub.Center
-	wgMgr       *wireguard.Manager
 	adblockMgr  *adblock.Manager
 	dnsRewriteMgr *dnsrewrite.Manager
 	backupMgr   *backup.Manager
@@ -193,7 +190,6 @@ type Server struct {
 	rosMgr      *ros.Manager
 	devMgr      *device.Manager
 	kspeeder      *accelerator.KSpeeder
-	easyTierMgr   *easytier.Manager
 	logBuffer     *RingLogBuffer
 	liveUpSpeed   atomic.Int64
 	liveDownSpeed atomic.Int64
@@ -303,10 +299,6 @@ func main() {
 	// ROS Manager
 	rosMgr := ros.NewManager(dir)
 
-	// WireGuard Manager with ROS & Host linkage
-	wgMgr := wireguard.NewManager(dir, rosMgr)
-	wgMgr.SetHostManager(hostMgr)
-
 	// Adblock & Domain Filter Manager
 	adblockMgr := adblock.NewManager(fmt.Sprintf("http://127.0.0.1:%d", cfgIR.Network.ClashAPIPort))
 	adblockMgr.InitStorage(dir)
@@ -335,9 +327,6 @@ func main() {
 	// KSpeeder Engine (GitHub CDN & Docker Registry Acceleration)
 	kspeeder := accelerator.NewKSpeeder(dir)
 
-	// EasyTier Next-Gen P2P Mesh Penetration Engine
-	easyTierMgr := easytier.NewManager(dir)
-
 	// Ring Log Buffer (Fixed 500 entries FIFO, strict RAM <2MB)
 	logBuffer := NewRingLogBuffer(500)
 	logWriter := &LogBufferWriter{buf: logBuffer}
@@ -353,7 +342,6 @@ func main() {
 		netCtrl:     netCtrl,
 		rosClient:   rosClient,
 		subCenter:   subCenter,
-		wgMgr:       wgMgr,
 		adblockMgr:  adblockMgr,
 		dnsRewriteMgr: dnsRewriteMgr,
 		backupMgr:   backupMgr,
@@ -362,7 +350,6 @@ func main() {
 		rosMgr:      rosMgr,
 		devMgr:      devMgr,
 		kspeeder:    kspeeder,
-		easyTierMgr: easyTierMgr,
 		logBuffer:   logBuffer,
 		httpClient: &http.Client{
 			Transport: &http.Transport{
@@ -427,28 +414,6 @@ func main() {
 	mux.HandleFunc("/api/v1/config/routing/group/delete", srv.handleCustomGroupDelete)
 	mux.HandleFunc("/api/v1/ros/script", srv.handleRosScript)
 	mux.HandleFunc("/api/v1/ros/conntrack/clean", srv.handleRosConntrackClean)
-
-	// 3. EasyTier Next-Gen P2P Mesh Intranet Penetration
-	mux.HandleFunc("/api/v1/easytier/status", srv.handleEasyTierStatus)
-	mux.HandleFunc("/api/v1/easytier/config", srv.handleEasyTierConfig)
-	mux.HandleFunc("/api/v1/easytier/toggle", srv.handleEasyTierToggle)
-	mux.HandleFunc("/api/v1/easytier/peers", srv.handleEasyTierPeers)
-	mux.HandleFunc("/api/v1/easytier/secret/regenerate", srv.handleEasyTierRegenerateSecret)
-	mux.HandleFunc("/api/v1/easytier/command", srv.handleEasyTierCommand)
-
-	// 4. WireGuard Mobile Penetration & QR (Legacy compatibility)
-	mux.HandleFunc("/api/v1/wireguard/info", srv.handleWGInfo)
-	mux.HandleFunc("/api/v1/wireguard/status", srv.handleWGInfo)
-	mux.HandleFunc("/api/v1/wireguard/peer/add", srv.handleWGPeerAdd)
-	mux.HandleFunc("/api/v1/wireguard/peer/rename", srv.handleWGPeerRename)
-	mux.HandleFunc("/api/v1/wireguard/peer/delete", srv.handleWGPeerDelete)
-	mux.HandleFunc("/api/v1/wireguard/peer/config", srv.handleWGPeerConfig)
-
-	// 4.1 WireGuard Dual-End Alignment & Cleanup (ROS & Host)
-	mux.HandleFunc("/api/v1/wireguard/align/inspect", srv.handleWGAlignInspect)
-	mux.HandleFunc("/api/v1/wireguard/align/apply", srv.handleWGAlignApply)
-	mux.HandleFunc("/api/v1/wireguard/deploy-host", srv.handleWGDeployHost)
-	mux.HandleFunc("/api/v1/wireguard/purge", srv.handleWGPurge)
 
 	// 5. Host Base Probing & Firewall Linkage
 	mux.HandleFunc("/api/v1/host/info", srv.handleHostInfo)
@@ -519,9 +484,6 @@ func main() {
 
 	// 12. Host Unified Auto-Setup & Compatible Aliases
 	mux.HandleFunc("/api/v1/host/auto-setup", srv.handleHostAutoSetup)
-	mux.HandleFunc("/api/v1/host/wireguard/deploy", srv.handleWGDeployHost)
-	mux.HandleFunc("/api/v1/wireguard/align/status", srv.handleWGAlignInspect)
-	mux.HandleFunc("/api/v1/wireguard/peers", srv.handleWGInfo)
 	mux.HandleFunc("/api/v1/ros/routing/status", srv.handleROSInspect)
 	mux.HandleFunc("/api/v1/ros/routing/apply", srv.handleROSApply)
 	mux.HandleFunc("/api/v1/ros/routing/clean-and-reapply", srv.handleROSCleanAndReapply)
@@ -2175,145 +2137,11 @@ func sendJSON(w http.ResponseWriter, data any) {
 	_ = json.NewEncoder(w).Encode(data)
 }
 
-func (s *Server) handleWGInfo(w http.ResponseWriter, r *http.Request) {
-	sendJSON(w, s.wgMgr.GetInfo())
-}
 
-func (s *Server) handleWGPeerAdd(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	var req struct {
-		Name string `json:"name"`
-		Mode string `json:"mode"`
-	}
-	_ = json.NewDecoder(r.Body).Decode(&req)
-	peer, conf, err := s.wgMgr.CreatePeer(req.Name, req.Mode)
-	if err != nil {
-		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
-		return
-	}
-	sendJSON(w, map[string]any{"status": "created", "peer": peer, "config": conf})
-}
-
-func (s *Server) handleWGPeerDelete(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	var req struct {
-		ID string `json:"id"`
-	}
-	_ = json.NewDecoder(r.Body).Decode(&req)
-	err := s.wgMgr.DeletePeer(req.ID)
-	if err != nil {
-		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
-		return
-	}
-	sendJSON(w, map[string]any{"status": "deleted"})
-}
-
-func (s *Server) handleWGPeerRename(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	var req struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	if err := s.wgMgr.RenamePeer(req.ID, req.Name); err != nil {
-		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
-		return
-	}
-	sendJSON(w, map[string]any{"status": "renamed", "id": req.ID, "name": req.Name})
-}
-
-func (s *Server) handleWGPeerConfig(w http.ResponseWriter, r *http.Request) {
-	peerID := r.URL.Query().Get("id")
-	conf, err := s.wgMgr.GetClientConfig(peerID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	_, _ = w.Write([]byte(conf))
-}
 
 // ── EasyTier Next-Gen P2P Mesh Handlers ──
 
-func (s *Server) handleEasyTierStatus(w http.ResponseWriter, r *http.Request) {
-	sendJSON(w, s.easyTierMgr.GetStatus())
-}
 
-func (s *Server) handleEasyTierConfig(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		var cfg easytier.Config
-		if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		if err := s.easyTierMgr.UpdateConfig(cfg); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		sendJSON(w, map[string]any{"success": true, "config": s.easyTierMgr.GetConfig()})
-		return
-	}
-	sendJSON(w, s.easyTierMgr.GetConfig())
-}
-
-func (s *Server) handleEasyTierToggle(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	var req struct {
-		Enabled bool `json:"enabled"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	if err := s.easyTierMgr.Toggle(req.Enabled); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	sendJSON(w, map[string]any{"success": true, "enabled": req.Enabled})
-}
-
-func (s *Server) handleEasyTierPeers(w http.ResponseWriter, r *http.Request) {
-	st := s.easyTierMgr.GetStatus()
-	sendJSON(w, st.Peers)
-}
-
-func (s *Server) handleEasyTierRegenerateSecret(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	secret, err := s.easyTierMgr.RegenerateSecret()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	sendJSON(w, map[string]any{"success": true, "secret": secret})
-}
-
-func (s *Server) handleEasyTierCommand(w http.ResponseWriter, r *http.Request) {
-	osType := r.URL.Query().Get("os")
-	peerIP := r.URL.Query().Get("ip")
-	if peerIP == "" {
-		peerIP = "10.144.144.2"
-	}
-	cmd := s.easyTierMgr.GenerateCommand(osType, peerIP)
-	sendJSON(w, map[string]any{"command": cmd})
-}
 
 func (s *Server) handleAdblockStats(w http.ResponseWriter, r *http.Request) {
 	stats := s.adblockMgr.GetStats(true, 0)
@@ -2865,57 +2693,7 @@ func (s *Server) handleAIChat(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, map[string]any{"status": "ok", "reply": resp})
 }
 
-// ──────────────────────────────────────────────
-// WireGuard Dual-End Alignment Handlers
-// ──────────────────────────────────────────────
 
-func (s *Server) handleWGAlignInspect(w http.ResponseWriter, r *http.Request) {
-	report, err := s.wgMgr.InspectWireGuardAlignment()
-	if err != nil {
-		sendJSON(w, map[string]any{"error": err.Error(), "all_aligned": false})
-		return
-	}
-	sendJSON(w, report)
-}
-
-func (s *Server) handleWGAlignApply(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	res, err := s.wgMgr.AlignWireGuardToROS()
-	if err != nil {
-		sendJSON(w, map[string]any{"success": false, "error": err.Error()})
-		return
-	}
-	sendJSON(w, res)
-}
-
-func (s *Server) handleWGDeployHost(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	out, err := s.hostMgr.CleanupHostWireGuard()
-	if err != nil {
-		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
-		return
-	}
-	sendJSON(w, map[string]any{"ok": true, "output": out, "message": "宿主机 WireGuard 服务与防火墙规则已彻底清理！"})
-}
-
-func (s *Server) handleWGPurge(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	res, err := s.wgMgr.PurgeAll()
-	if err != nil {
-		sendJSON(w, map[string]any{"success": false, "error": err.Error()})
-		return
-	}
-	sendJSON(w, res)
-}
 
 // ──────────────────────────────────────────────
 // Host Base Probing & Firewall Linkage Handlers
@@ -3928,14 +3706,6 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 		"routing_synced": rosStatus["routing_synced"],
 	}
 
-	etSt := s.easyTierMgr.GetStatus()
-	safeEasyTier := map[string]any{
-		"running":      etSt.Running,
-		"virtual_ip":   etSt.VirtualIP,
-		"peer_count":   len(etSt.Peers),
-		"network_name": "***MASKED***",
-	}
-
 	subSummary := []map[string]any{}
 	proxyTypeCount := make(map[string]int)
 	ir := s.engMgr.GetIR()
@@ -3964,7 +3734,6 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 		"engine":                  engineStatus,
 		"host":                    safeHost,
 		"routeros":                safeROS,
-		"easytier":                safeEasyTier,
 		"subscriptions_summary":   subSummary,
 		"proxy_protocols_summary": proxyTypeCount,
 		"adblock_stats":           adStats,

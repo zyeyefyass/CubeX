@@ -379,14 +379,19 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 		level := "INFO"
 		lower := strings.ToLower(cleanLine)
 		if strings.Contains(lower, "error") || strings.Contains(lower, "fatal") || strings.Contains(lower, "panic") || strings.Contains(lower, "fail") {
-			// Benign socket cancellation noise (e.g. probe canceled, client closed socket) is routine lifecycle, demote to DEBUG
-			if strings.Contains(lower, "operation was canceled") || strings.Contains(lower, "context canceled") {
+			// Benign socket cancellation & routine external network timeouts (e.g. dead domain DNS lookup timeout, client closed socket)
+			if strings.Contains(lower, "operation was canceled") || strings.Contains(lower, "context canceled") || strings.Contains(lower, "context deadline exceeded") || strings.Contains(lower, "i/o timeout") {
 				level = "DEBUG"
 			} else {
 				level = "ERROR"
 			}
 		} else if strings.Contains(lower, "warn") {
-			level = "WARN"
+			// Benign TUN driver capability probes (e.g. TUNSETOFFLOAD unsupported in container/RouterOS kernel) are routine fallbacks, demote to DEBUG
+			if strings.Contains(lower, "tunsetoffload") || strings.Contains(lower, "enable offload") {
+				level = "DEBUG"
+			} else {
+				level = "WARN"
+			}
 		} else if strings.Contains(lower, "debug") {
 			level = "DEBUG"
 		}
