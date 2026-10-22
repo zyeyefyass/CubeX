@@ -5,6 +5,22 @@
       <path d="M22.28 9.53a5.98 5.98 0 0 0-.52-4.91 6.05 6.05 0 0 0-6.51-2.9 6.06 6.06 0 0 0-4.88-2.43 6.05 6.05 0 0 0-5.76 4.19 6.05 6.05 0 0 0-4.08 2.96 6.05 6.05 0 0 0 .76 7.07 5.98 5.98 0 0 0 .52 4.91 6.05 6.05 0 0 0 6.51 2.9 6.06 6.06 0 0 0 4.88 2.43 6.05 6.05 0 0 0 5.76-4.19 6.05 6.05 0 0 0 4.08-2.96 6.05 6.05 0 0 0-.76-7.07zm-7.6 11.23a4.54 4.54 0 0 1-3.08-1.22l.14-.08 5.09-2.94a.78.78 0 0 0 .39-.68v-7.18l2.15 1.24a.07.07 0 0 1 .04.05v6.23a4.56 4.56 0 0 1-4.73 4.58zm-9.35-4.04a4.54 4.54 0 0 1-.58-3.26l.14.08 5.09 2.94a.78.78 0 0 0 .78 0l6.22-3.59v2.48a.07.07 0 0 1-.03.06l-5.4 3.12a4.56 4.56 0 0 1-6.22-1.83zm-1.74-9.52a4.54 4.54 0 0 1 2.5-2.04v6.13a.78.78 0 0 0 .39.68l6.22 3.59-2.15 1.24a.07.07 0 0 1-.07 0l-5.4-3.12a4.56 4.56 0 0 1-1.49-6.48zm12.33 2.65l-6.22-3.59 2.15-1.24a.07.07 0 0 1 .07 0l5.4 3.12a4.56 4.56 0 0 1 1.49 6.48 4.54 4.54 0 0 1-2.5 2.04v-6.13a.78.78 0 0 0-.39-.68zm3.03-1.63l-.14-.08-5.09-2.94a.78.78 0 0 0-.78 0l-6.22 3.59v-2.48a.07.07 0 0 1 .03-.06l5.4-3.12a4.56 4.56 0 0 1 6.8 5.09zm-8.95 5.17l-2.76-1.59 2.76-1.59 2.76 1.59-2.76 1.59z"/>
     </svg>
 
+    <!-- Antigravity / Gemini & Antigravity (Official Google Antigravity Vector Logo) -->
+    <svg v-else-if="logoKey === 'antigravity'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(59,130,246,0.5)]" viewBox="0 0 100 100" fill="none">
+      <defs>
+        <linearGradient id="agBrandGrad" x1="12%" y1="90%" x2="88%" y2="90%">
+          <stop offset="0%" stop-color="#3B82F6" />
+          <stop offset="18%" stop-color="#10B981" />
+          <stop offset="42%" stop-color="#F59E0B" />
+          <stop offset="52%" stop-color="#F97316" />
+          <stop offset="70%" stop-color="#EF4444" />
+          <stop offset="85%" stop-color="#6366F1" />
+          <stop offset="100%" stop-color="#3B82F6" />
+        </linearGradient>
+      </defs>
+      <path d="M 50 14 C 41.5 14 34.5 21 28 34 C 22.5 45 18 61 14.5 76 C 12.5 84 9 91 14 93 C 18 94.5 22 89 25 82 C 28 75 32 63 38 54 C 42 48 46 45 50 45 C 54 45 58 48 62 54 C 68 63 72 75 75 82 C 78 89 82 94.5 86 93 C 91 91 87.5 84 85.5 76 C 82 61 77.5 45 72 34 C 65.5 21 58.5 14 50 14 Z" fill="url(#agBrandGrad)" />
+    </svg>
+
     <!-- Gemini -->
     <svg v-else-if="logoKey === 'gemini'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(59,130,246,0.5)]" viewBox="0 0 24 24" fill="none">
       <path d="M12 0C12 6.627 6.627 12 0 12C6.627 12 12 17.373 12 24C12 17.373 17.373 12 24 12C17.373 12 12 6.627 12 0Z" fill="url(#geminiGrad)" />
@@ -234,6 +250,7 @@ const logoKey = computed(() => {
     str += (props.name.name || '').toLowerCase() + ' ' + (props.name.icon || '').toLowerCase()
   }
 
+  if (str.includes('antigravity') || str.includes('gemini & antigravity') || str.includes('gemini&antigravity')) return 'antigravity'
   if (str.includes('openai') || str.includes('chatgpt')) return 'openai'
   if (str.includes('gemini')) return 'gemini'
   if (str.includes('claude') || str.includes('anthropic')) return 'claude'

@@ -83,6 +83,8 @@ const searchQuery = ref('')
 const pickerRef = ref(null)
 
 const options = [
+  { id: 'antigravity', name: 'Antigravity / Google 官方全息矢量' },
+  { id: 'gemini', name: 'Gemini / 谷歌人工智能' },
   { id: 'openai', name: 'OpenAI / ChatGPT' },
   { id: 'claude', name: 'Claude / Anthropic' },
   { id: 'youtube', name: 'YouTube / 视频流媒体' },

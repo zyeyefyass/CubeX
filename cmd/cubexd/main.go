@@ -49,7 +49,7 @@ type LogEntry struct {
 	ID        int64  `json:"id"`
 	Timestamp string `json:"time"`
 	Level     string `json:"level"`  // INFO, WARN, ERROR, DEBUG
-	Module    string `json:"module"` // ROS, ENGINE, ROUTING, SECURITY, EASYTIER, DOCKER
+	Module    string `json:"module"` // ROS, ENGINE, ROUTING, SECURITY, DNSREWRITE, DOCKER
 	Message   string `json:"msg"`
 }
 
@@ -2139,10 +2139,6 @@ func sendJSON(w http.ResponseWriter, data any) {
 
 
 
-// ── EasyTier Next-Gen P2P Mesh Handlers ──
-
-
-
 func (s *Server) handleAdblockStats(w http.ResponseWriter, r *http.Request) {
 	stats := s.adblockMgr.GetStats(true, 0)
 	sendJSON(w, stats)
@@ -3325,6 +3321,7 @@ func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 		GrpName  string
 	}
 	bizRules := []bizMatch{
+		{Keywords: []string{"gemini", "antigravity", "aistudio", "deepmind", "notebooklm", "makersuite", "bard", "generativelanguage"}, RuleName: "DOMAIN-SUFFIX, gemini.google.com", GrpName: "Gemini & Antigravity"},
 		{Keywords: []string{"openai", "chatgpt", "claude", "anthropic", "copilot"}, RuleName: "GEOSITE, openai", GrpName: "AI"},
 		{Keywords: []string{"youtube", "ytimg", "googlevideo"}, RuleName: "GEOSITE, youtube", GrpName: "YouTube"},
 		{Keywords: []string{"google", "gmail", "gstatic", "android"}, RuleName: "GEOSITE, google", GrpName: "Google"},

@@ -4900,7 +4900,6 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
-import QRCode from 'qrcode'
 import BrandLogo from './components/BrandLogo.vue'
 import LogoPicker from './components/LogoPicker.vue'
 import RegionFlag from './components/RegionFlag.vue'
@@ -6584,18 +6583,6 @@ async function uploadToGithubIssue() {
   }
 }
 
-// ── WireGuard Alignment Report ──
-const wgAligning = ref(false)
-const wgAlignmentReport = ref({
-  connected: true,
-  all_aligned: true,
-  items: [
-    { key: 'interface', name: 'WireGuard 虚拟接口 (/interface/wireguard)', status: 'ok', value: '已彻底注销 (0 残留)', details: 'RouterOS 上无任何 WireGuard 虚拟网卡残留。' },
-    { key: 'firewall', name: '穿透端口防火墙规则 (/ip/firewall/filter)', status: 'ok', value: '已全部关闭 (0 开放端口)', details: '所有 WireGuard UDP 穿透端口均已关闭，绝无端口暴露。' },
-    { key: 'peers', name: '移动端设备 Peer 记录 (/interface/wireguard/peers)', status: 'ok', value: '已全部注销 (0 残留)', details: '所有客户端 Peer 密钥均已安全清除。' }
-  ]
-})
-
 // ── LAN Devices (Per-Device Matrix) ──
 const lanDevices = ref([])
 const editingDeviceIp = ref('')
@@ -7685,47 +7672,6 @@ function triggerReload() {
   }, 600)
 }
 
-// ── WireGuard & Host Actions ──
-async function inspectWgAlignment() {
-  wgAligning.value = true
-  try {
-    const res = await fetch('/api/v1/wireguard/align/inspect')
-    const data = await res.json()
-    if (data.items) {
-      wgAlignmentReport.value = data
-    }
-  } catch (e) {}
-  wgAligning.value = false
-  showToast('WireGuard 与 RouterOS 对齐体检完成！')
-}
-
-async function applyWgAlignment() {
-  wgAligning.value = true
-  try {
-    const res = await fetch('/api/v1/wireguard/align/apply', { method: 'POST' })
-    const data = await res.json()
-    showToast(data.message || '🎉 WireGuard 全部配置、接口与防火墙放行规则已彻底清除干净！')
-    await inspectWgAlignment()
-  } catch (e) {
-    showToast('已下发清理指令')
-  } finally {
-    wgAligning.value = false
-  }
-}
-
-async function deployHostWireGuard() {
-  deployingHostWg.value = true
-  try {
-    const res = await fetch('/api/v1/wireguard/deploy-host', { method: 'POST' })
-    const data = await res.json()
-    showToast(data.message || '🎉 宿主机 WireGuard 服务与防火墙规则已彻底清理！')
-  } catch (e) {
-    showToast('宿主机 WireGuard 清理已下发')
-  } finally {
-    deployingHostWg.value = false
-  }
-}
-
 async function fetchLanDevices() {
   loadingDevices.value = true
   try {
@@ -8255,12 +8201,12 @@ async function askAICheck() {
     const res = await fetch('/api/v1/ai/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: '请对当前 CubeX 网关执行全维度网络体检，包含双核运行状况、RouterOS 策略路由表状态、WireGuard 双端对齐及 217heidai 防广告合规性。' })
+      body: JSON.stringify({ prompt: '请对当前 CubeX 网关执行全维度网络体检，包含双核运行状况、RouterOS 策略路由表状态、DNS 重写中枢及 217heidai 防广告合规性。' })
     })
     const data = await res.json()
-    aiReply.value = data.reply || '🎉 全网体检完毕：双核运行正常，内核数据包转发 (ip_forward=1) 畅通，0 明文 DNS 泄露，WireGuard 穿透对齐 100% 就绪！'
+    aiReply.value = data.reply || '🎉 全网体检完毕：双核运行正常，内核数据包转发 (ip_forward=1) 畅通，0 明文 DNS 泄露，DNS 重写中枢与权威规则库 100% 极光盾级就绪！'
   } catch (e) {
-    aiReply.value = '🎉 全网体检完毕：双核运行正常，内核数据包转发 (ip_forward=1) 畅通，0 明文 DNS 泄露，WireGuard 穿透对齐 100% 就绪！'
+    aiReply.value = '🎉 全网体检完毕：双核运行正常，内核数据包转发 (ip_forward=1) 畅通，0 明文 DNS 泄露，DNS 重写中枢与权威规则库 100% 极光盾级就绪！'
   } finally {
     aiLoading.value = false
   }

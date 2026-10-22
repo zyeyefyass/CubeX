@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <defs>
+    <!-- Official Google Antigravity Spectral Gradient -->
+    <linearGradient id="antigravityGrad" x1="12%" y1="90%" x2="88%" y2="90%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="18%" stop-color="#10B981" />
+      <stop offset="42%" stop-color="#F59E0B" />
+      <stop offset="52%" stop-color="#F97316" />
+      <stop offset="70%" stop-color="#EF4444" />
+      <stop offset="85%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#3B82F6" />
+    </linearGradient>
+  </defs>
+  <path d="M 50 14 C 41.5 14 34.5 21 28 34 C 22.5 45 18 61 14.5 76 C 12.5 84 9 91 14 93 C 18 94.5 22 89 25 82 C 28 75 32 63 38 54 C 42 48 46 45 50 45 C 54 45 58 48 62 54 C 68 63 72 75 75 82 C 78 89 82 94.5 86 93 C 91 91 87.5 84 85.5 76 C 82 61 77.5 45 72 34 C 65.5 21 58.5 14 50 14 Z" fill="url(#antigravityGrad)" />
+</svg>

@@ -741,19 +741,27 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		rulesList = append(rulesList, "DOMAIN,antigravity.dev,Gemini & Antigravity")
 		rulesList = append(rulesList, "DOMAIN-SUFFIX,antigravity.dev,Gemini & Antigravity")
 		rulesList = append(rulesList, "DOMAIN-SUFFIX,antigravity.google,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,antigravity-unleash.goog,Gemini & Antigravity")
 		rulesList = append(rulesList, "DOMAIN,generativelanguage.googleapis.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,generativelanguage.googleapis.com,Gemini & Antigravity")
 		rulesList = append(rulesList, "DOMAIN,daily-cloudcode-pa.googleapis.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,daily-cloudcode-pa.googleapis.com,Gemini & Antigravity")
 		rulesList = append(rulesList, "DOMAIN,cloudcode-pa.googleapis.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,cloudcode-pa.googleapis.com,Gemini & Antigravity")
 		rulesList = append(rulesList, "DOMAIN,aiplatform.googleapis.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,aiplatform.googleapis.com,Gemini & Antigravity")
 		rulesList = append(rulesList, "DOMAIN,alkalimakersuite-pa.clients6.google.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,alkalimakersuite-pa.clients6.google.com,Gemini & Antigravity")
 		rulesList = append(rulesList, "DOMAIN,aistudio.google.com,Gemini & Antigravity")
-		rulesList = append(rulesList, "DOMAIN,makersuite.google.com,Gemini & Antigravity")
-		rulesList = append(rulesList, "DOMAIN,bard.google.com,Gemini & Antigravity")
-		rulesList = append(rulesList, "DOMAIN,gemini.google.com,Gemini & Antigravity")
-		rulesList = append(rulesList, "DOMAIN,gemini.google,Gemini & Antigravity")
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,gemini.google.com,Gemini & Antigravity")
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,gemini.google,Gemini & Antigravity")
 		rulesList = append(rulesList, "DOMAIN-SUFFIX,aistudio.google.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN,makersuite.google.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,makersuite.google.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN,bard.google.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,bard.google.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN,gemini.google.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,gemini.google.com,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN,gemini.google,Gemini & Antigravity")
+		rulesList = append(rulesList, "DOMAIN-SUFFIX,gemini.google,Gemini & Antigravity")
 		rulesList = append(rulesList, "DOMAIN-SUFFIX,ai.studio,Gemini & Antigravity")
 		rulesList = append(rulesList, "DOMAIN-SUFFIX,deepmind.google,Gemini & Antigravity")
 		rulesList = append(rulesList, "DOMAIN-SUFFIX,deepmind.com,Gemini & Antigravity")
@@ -770,7 +778,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		{"AI", []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "claude.com", "claudecdn.com", "claudecontent.com", "oaistatic.com", "oaiusercontent.com", "sora.com", "perplexity.ai", "x.ai", "grok.com", "copilot.microsoft.com", "sydney.bing.com", "mistral.ai", "poe.com", "midjourney.com", "huggingface.co", "civitai.com"}, "openai"},
 		{"Gemini & Antigravity", []string{"gemini.google.com", "gemini.google", "aistudio.google.com", "ai.studio", "deepmind.google", "deepmind.com", "antigravity.dev", "antigravity.google", "notebooklm.google"}, "google-gemini"},
 		{"YouTube", []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com", "yt3.ggpht.com", "yt4.ggpht.com", "gvt1.com", "1e100.net", "googleusercontent.com"}, "youtube"},
-		{"Google", []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com", "antigravity.dev", "goog", "run.app", "1e100.net", "gvt1.com"}, "google"},
+		{"Google", []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com", "goog", "run.app", "1e100.net", "gvt1.com"}, "google"},
 		{"GitHub & Docker", []string{"github.com", "githubusercontent.com", "docker.com", "docker.io", "ghcr.io"}, "github"},
 		{"Telegram", []string{"telegram.org", "t.me", "telegram.me", "telegra.ph"}, "telegram"},
 		{"Twitter (X)", []string{"twitter.com", "x.com", "twimg.com", "t.co"}, "twitter"},
