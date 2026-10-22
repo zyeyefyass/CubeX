@@ -1296,6 +1296,25 @@ func (m *Manager) CleanAndReapplyRouting(targetIP string) (*ApplyResult, error) 
 		}
 	}
 
+	// 3b. Clean stale Fake-IP connections in RouterOS connection tracking table (prevent missing fakeip record loop)
+	if data, err := m.QueryROS("/ip/firewall/connection"); err == nil {
+		var conns []map[string]any
+		_ = json.Unmarshal(data, &conns)
+		purged := 0
+		for _, c := range conns {
+			dst := fmt.Sprintf("%v", c["dst-address"])
+			id, _ := c[".id"].(string)
+			if (strings.HasPrefix(dst, "198.18.") || strings.HasPrefix(dst, "198.19.")) && id != "" {
+				if delErr := m.DeleteROS("/ip/firewall/connection/" + id); delErr == nil {
+					purged++
+				}
+			}
+		}
+		if purged > 0 {
+			res.Actions = append(res.Actions, fmt.Sprintf("已清理 RouterOS 连接跟踪表中 %d 条残留 Fake-IP 僵尸连接", purged))
+		}
+	}
+
 	// 4. Now perform full pristine reconfiguration
 	applyRes, err := m.ApplyRouting(targetIP)
 	if err != nil {

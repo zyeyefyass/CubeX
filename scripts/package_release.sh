@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 # ═════════════════════════════════════════════════════════════════════════════
 # CubeX Release Packaging Script (Bundles Dual Cores + Geodata + Rules + Config)
-# Target Version: Test v1.6
+# Target Version: Test v2.1
 # Formats: Native .zip for General Releases + Uncompressed .tar for RouterOS
 # ═════════════════════════════════════════════════════════════════════════════
 set -e
 
-VERSION="Test-v2.0"
+VERSION="Test-v2.1"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 RELEASE_DIR="$DIST_DIR/release"
 INCLUDE_WINDOWS="${INCLUDE_WINDOWS:-0}"
 
-echo "📦 Starting CubeX Test v1.6 Complete Release Packaging (Dual-Core Embedded)..."
+echo "📦 Starting CubeX Test v2.1 Complete Release Packaging (Dual-Core Embedded)..."
 if [ "$INCLUDE_WINDOWS" != "1" ]; then
     echo "ℹ️  Windows 平台包发布已按策略暂停 (未收到明确指令前绝不发布 Windows 版本)"
 fi

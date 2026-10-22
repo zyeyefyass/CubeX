@@ -1,19 +1,14 @@
-# ═════════════════════════════════════════════════════════════════════════════
-# CubeX Release Packaging Script (Bundles Dual Cores + Geodata + Rules + Config)
-# Target Version: Test v2.0
-# Formats: Native .zip for General Releases + Uncompressed .tar for RouterOS
-# ═════════════════════════════════════════════════════════════════════════════
 param(
     [switch]$IncludeWindows = $false
 )
 
 $ErrorActionPreference = "Stop"
-$Version = "Test-v2.0"
+$Version = "Test-v2.1"
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 $DistDir = "$RootDir\dist"
 $ReleaseDir = "$DistDir\release"
 
-Write-Host "📦 Starting CubeX Test v2.0 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
+Write-Host "📦 Starting CubeX Test v2.1 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
 if (-not $IncludeWindows) {
     Write-Host "ℹ️  Windows 平台包发布已按策略暂停 (可通过 -IncludeWindows 显式启用)" -ForegroundColor DarkCyan
 }
@@ -176,3 +171,10 @@ if ($LASTEXITCODE -ne 0) {
     Write-Error "🚨 Post-Packaging Desensitization Audit Failed! Release is blocked."
 }
 
+
+
+# # ═════════════════════════════════════════════════════════════════════════════
+# CubeX Release Packaging Script (Bundles Dual Cores + Geodata + Rules + Config)
+# Target Version: Test v2.1
+# Formats: Native .zip for General Releases + Uncompressed .tar for RouterOS
+# ═════════════════════════════════════════════════════════════════════════════

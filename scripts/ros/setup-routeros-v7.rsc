@@ -510,6 +510,13 @@ set memory-high=256M registry-url="https://registry-1.docker.io" tmpdir=$pullDir
     set [find comment~"CubeX"] start-on-boot=yes restart-policy=on-failure memory-high=256M memory-max=384M
 }
 
+# 自动清理旧内核/历史残留的 Fake-IP 僵尸连接跟踪 (彻底杜绝 missing fakeip record 刷屏)
+:do {
+    :foreach c in=[/ip/firewall/connection/find where dst-address in 198.18.0.0/15] do={
+        /ip/firewall/connection/remove $c
+    }
+} on-error={};
+
 $printMsg "=========================================================================";
 $printMsg "🎉 恭喜！CubeX 宿主共生零感网络系统全自动初始化已全部圆满完成！";
 $printMsg ("👉 控制台 Web 驾驶舱访问地址: http://" . $cubexIP . ":2026");
