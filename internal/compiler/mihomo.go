@@ -103,7 +103,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"auto-detect-interface":    true,
 		"strict-route":             false,
 		"mtu":                      tunMTU,
-		"gso":                      true,
+		"gso":                      false,
 		"endpoint-independent-nat": true,
 		"route-exclude-address": []string{
 			"10.0.0.0/8",
@@ -125,7 +125,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"enable":               true,
 		"force-dns-mapping":    true,
 		"parse-pure-ip":        true,
-		"override-destination": false,
+		"override-destination": true,
 		"sniff": map[string]any{
 			"HTTP": map[string]any{"ports": []any{80, "8080-8880"}},
 			"TLS":  map[string]any{"ports": []int{443, 8443}},
@@ -676,7 +676,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	// Reject foreign UDP 443/8443 (QUIC) so YouTube / Google automatically use line-speed TCP (xtls-reality/BBR)
 	// Eliminates the ~5000 Kbps ISP UDP throttling and restores 100+ Mbps 4K 60fps streaming
-	rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(RULE-SET,cn_domain)),DIRECT")
+	rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(GEOIP,CN)),DIRECT")
 	rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT")
 
 	// High-Priority Line-Speed Benchmark / Speedtest Fast-Path Rule

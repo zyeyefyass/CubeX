@@ -653,7 +653,32 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	default:
 	}
 
+	go m.prewarmEngine(target)
+
 	return res, nil
+}
+
+// prewarmEngine pre-heats active proxy groups immediately after engine start
+// to eliminate cold-start TLS latency and ensure instant traffic flow for LAN clients.
+func (m *Manager) prewarmEngine(target schema.EngineType) {
+	time.Sleep(150 * time.Millisecond)
+	warmGroups := []string{"🌐 国外流量", "YouTube", "Google", "AI"}
+	for _, g := range warmGroups {
+		escaped := url.PathEscape(g)
+		u := fmt.Sprintf("%s/group/%s/delay?url=%s&timeout=2000", m.clashAPI, escaped, url.QueryEscape("https://cp.cloudflare.com/generate_204"))
+		ctx, cancel := context.WithTimeout(context.Background(), 2500*time.Millisecond)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+		if err == nil {
+			if m.ir != nil && m.ir.Network.ClashSecret != "" {
+				req.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
+			}
+			resp, err := m.httpClient.Do(req)
+			if err == nil {
+				_ = resp.Body.Close()
+			}
+		}
+		cancel()
+	}
 }
 
 // StartSupervisor runs the 5s periodic health heartbeat & auto-healing state machine
