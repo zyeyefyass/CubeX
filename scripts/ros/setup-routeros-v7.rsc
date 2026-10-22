@@ -437,6 +437,14 @@ set memory-high=256M registry-url="https://registry-1.docker.io" tmpdir=$pullDir
     $printMsg "✅ [5/5 Mangle防火墙] 已配置防死锁豁免与内网直连放行";
 }
 
+# 防恶意/私有 DoT 侧漏阻断 (阻断外发 TCP/UDP 853，防止终端绕过 Fake-IP 进行直连明文/私有探测)
+/ip firewall filter
+:if ([:len [find comment="CubeX Block DoT TCP"]] = 0) do={
+    add chain=forward src-address=!$cubexIP protocol=tcp dst-port=853 action=reject reject-with=tcp-reset comment="CubeX Block DoT TCP"
+    add chain=forward src-address=!$cubexIP protocol=udp dst-port=853 action=reject reject-with=icmp-network-unreachable comment="CubeX Block DoT UDP"
+    $printMsg "✅ [5/5 Filter防火墙] 已配置 DoT (端口853) 侧漏防御阻断规则";
+}
+
 # 清理既有异常状态的容器残留 (若之前解压失败)
 /container
 :local failedContainers [find where (comment~"CubeX" or name~"CubeX") and (status="error" or status="failed")];

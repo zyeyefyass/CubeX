@@ -1230,6 +1230,30 @@ func (m *Manager) CleanRoutingRules() (*ApplyResult, error) {
 
 // CleanAndReapplyRouting performs a thorough cleanup of RouterOS firewall mangle/nat/filter rules,
 // purges conflicting Fake-IP routes, and fully reconfigures pristine subnet-wide gateway & DNS architecture.
+// PurgeStaleFakeIPConnections scans and removes lingering Fake-IP (198.18.0.0/15) connections
+// from the RouterOS connection tracking table.
+func (m *Manager) PurgeStaleFakeIPConnections() int {
+	data, err := m.QueryROS("/ip/firewall/connection")
+	if err != nil {
+		return 0
+	}
+	var conns []map[string]any
+	if err := json.Unmarshal(data, &conns); err != nil {
+		return 0
+	}
+	purged := 0
+	for _, c := range conns {
+		dst := fmt.Sprintf("%v", c["dst-address"])
+		id, _ := c[".id"].(string)
+		if (strings.HasPrefix(dst, "198.18.") || strings.HasPrefix(dst, "198.19.")) && id != "" {
+			if delErr := m.DeleteROS("/ip/firewall/connection/" + id); delErr == nil {
+				purged++
+			}
+		}
+	}
+	return purged
+}
+
 func (m *Manager) CleanAndReapplyRouting(targetIP string) (*ApplyResult, error) {
 	if targetIP == "" {
 		targetIP = m.GetOutboundIP()
@@ -1386,6 +1410,10 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 	sb.WriteString("# 8. 严格防 DNS 泄露重定向 (仅劫持目标为 RouterOS 本机 IP 的 53 查询，绝不干扰同网段其他网关/DNS)\n")
 	sb.WriteString(fmt.Sprintf("/ip/firewall/nat add chain=dstnat src-address-list=!CUBEX_BYPASS dst-address-type=local protocol=udp dst-port=53 action=dst-nat to-addresses=%s to-ports=53 comment=\"CubeX DNS UDP Hijack\"\n", targetIP))
 	sb.WriteString(fmt.Sprintf("/ip/firewall/nat add chain=dstnat src-address-list=!CUBEX_BYPASS dst-address-type=local protocol=tcp dst-port=53 action=dst-nat to-addresses=%s to-ports=53 comment=\"CubeX DNS TCP Hijack\"\n\n", targetIP))
+	sb.WriteString("# 8b. 防恶意/私有 DoT 侧漏阻断 (阻断外发 TCP/UDP 853，防止终端绕过 Fake-IP 进行直连明文/私有探测)\n")
+	sb.WriteString("/ip/firewall/filter remove [find comment~\"CubeX Block DoT\"]\n")
+	sb.WriteString("/ip/firewall/filter add chain=forward src-address-list=!CUBEX_BYPASS protocol=tcp dst-port=853 action=reject reject-with=tcp-reset comment=\"CubeX Block DoT TCP\"\n")
+	sb.WriteString("/ip/firewall/filter add chain=forward src-address-list=!CUBEX_BYPASS protocol=udp dst-port=853 action=reject reject-with=icmp-network-unreachable comment=\"CubeX Block DoT UDP\"\n\n")
 
 	sb.WriteString("# 9. 注入抗封锁与极限延迟优化: TCP MSS Clamping (消除 IP 分片黑洞，握手延迟降低 20%，杜绝 GFW 分片重组探测)\n")
 	sb.WriteString("/ip/firewall/mangle add chain=forward protocol=tcp tcp-flags=syn tcp-mss=1401-65535 action=change-mss new-mss=clamp-to-pmtu comment=\"CubeX Anti-Block TCP MSS Clamping\"\n\n")

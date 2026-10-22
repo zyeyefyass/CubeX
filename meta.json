@@ -2,7 +2,7 @@
   "name": "CubeX",
   "codename": "CyberAurora",
   "subtitle": "HOST-SYMBIOTIC ZERO-PERCEPTION GATEWAY",
-  "version": "Test v2.1",
+  "version": "Test v2.2",
   "engines": [
     "sing-box v1.14.3",
     "mihomo v1.19.32"

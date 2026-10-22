@@ -645,9 +645,19 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		}
 	}
 
+	// 1b. Domain Filter Whitelist (放行域名 / 优先直连放行，彻底消除误杀)
+	for _, d := range ir.AdBlockWhitelist {
+		d = strings.TrimSpace(d)
+		if d != "" {
+			rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,%s,DIRECT", d))
+		}
+	}
+
 	// 2. 217heidai MRS High-Performance Interception Rules (Mihomo Adaptive)
-	rulesList = append(rulesList, "RULE-SET,217heidai_ads,REJECT")
-	rulesList = append(rulesList, "RULE-SET,privacy_domain,REJECT")
+	if ir.AdBlockEnabled {
+		rulesList = append(rulesList, "RULE-SET,217heidai_ads,REJECT")
+		rulesList = append(rulesList, "RULE-SET,privacy_domain,REJECT")
+	}
 
 	// Reject foreign UDP 443/8443 (QUIC) BEFORE business rules so YouTube / Google automatically use line-speed TCP (xtls-reality/BBR)
 	// Eliminates the ~5000 Kbps ISP UDP throttling and restores 100+ Mbps 4K 60fps streaming

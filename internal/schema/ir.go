@@ -36,6 +36,8 @@ type ConfigIR struct {
 	Rules          []Rule           `json:"rules" yaml:"rules"`
 	DevicePolicies []DevicePolicy   `json:"device_policies" yaml:"device_policies"`
 	Profiles       []Profile        `json:"profiles" yaml:"profiles"`
+	AdBlockWhitelist []string       `json:"adblock_whitelist,omitempty" yaml:"adblock_whitelist,omitempty"`
+	AdBlockEnabled   bool           `json:"adblock_enabled" yaml:"adblock_enabled"`
 	UpdatedAt      time.Time        `json:"updated_at" yaml:"updated_at"`
 }
 

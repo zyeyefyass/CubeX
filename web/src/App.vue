@@ -117,7 +117,7 @@
               </span>
               <span class="font-bold tracking-tight"
                 :class="activeEngine === 'singbox' ? 'text-purple-200' : 'text-cyan-300'">
-                {{ systemStatus.version || 'Test v2.1' }}
+                {{ systemStatus.version || 'Test v2.2' }}
               </span>
             </div>
 
@@ -2532,6 +2532,149 @@
               </div>
             </div>
 
+
+            <!-- ════════════════════════════════════════════════════════════════ -->
+            <!-- 域名过滤与广告拦截中枢 (Domain Filter & AdBlock Hub)                 -->
+            <!-- ════════════════════════════════════════════════════════════════ -->
+            <div class="rounded-3xl bg-slate-900/90 border border-slate-800/90 hover:border-emerald-500/30 transition-all duration-300 p-5 space-y-4 shadow-xl backdrop-blur-xl">
+              <!-- Top Row: Title, Master Toggle, Status Badge, Action Buttons -->
+              <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-800/80">
+                <div class="flex items-center gap-3">
+                  <h3 class="text-base font-bold text-white tracking-wide flex items-center gap-2">
+                    <span>域名过滤</span>
+                  </h3>
+                  <!-- Master Switch -->
+                  <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" v-model="filterConfig.enabled" @change="toggleFilterMaster" class="sr-only peer">
+                    <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
+                  </label>
+                  <span :class="['text-xs px-2.5 py-0.5 rounded-full font-bold border transition', filterConfig.enabled ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-800 text-slate-400 border-slate-700']">
+                    {{ filterConfig.enabled ? '已生效' : '已暂停' }}
+                  </span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <button @click="fetchDnsFilterStats" title="刷新状态" class="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 active:scale-95 transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  </button>
+                  <button @click="openAddSourceModal" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                    <span>添加规则源</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Note / Description -->
+              <p class="text-xs text-slate-400 leading-relaxed">
+                默认开启。开启后，转发的 DNS 查询先经过过滤，通过后仍按照原 DNS 策略解析；白名单放行优先。支持原生二进制 MRS/SRS、域名、Hosts 和基础 Adblock 语法，不支持的条目会显示跳过数量。启用的名单按下面的自动更新计划更新，下载失败沿用上一次有效名单。
+              </p>
+
+              <!-- Rule Sources List -->
+              <div class="space-y-2.5">
+                <div v-for="src in filterConfig.rule_sources" :key="src.id"
+                     class="rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-emerald-500/30 transition-all p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div class="flex items-center gap-3 min-w-0 flex-1">
+                    <!-- Source Toggle -->
+                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input type="checkbox" v-model="src.enabled" @change="toggleSourceItem(src)" class="sr-only peer">
+                      <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
+                    </label>
+
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-xs font-bold text-white">{{ src.name }}</span>
+                        <span class="text-[11px] font-mono text-slate-400 truncate max-w-xs sm:max-w-md block" :title="src.url">{{ src.url }}</span>
+                      </div>
+                      <div class="flex items-center gap-3 mt-1 text-[11px] text-slate-400 font-mono">
+                        <span class="text-emerald-400 font-semibold">规则数 {{ (src.rules_count || 0).toLocaleString() }}</span>
+                        <span class="text-slate-500">上次更新 {{ src.updated_at || '刚刚' }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Actions -->
+                  <div class="flex items-center gap-1.5 shrink-0 self-end md:self-center">
+                    <button @click="openSourcePreview(src)" title="查看规则详情" class="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    </button>
+                    <button @click="refreshSourceItem(src)" :disabled="isUpdatingSource" title="立即更新" class="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-cyan-400 transition cursor-pointer disabled:opacity-50">
+                      <svg :class="['w-3.5 h-3.5', isUpdatingSource ? 'animate-spin text-cyan-400' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </button>
+                    <button @click="openEditSourceModal(src)" title="编辑规则源" class="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    </button>
+                    <button v-if="src.id !== '217heidai'" @click="deleteSourceItem(src)" title="删除规则源" class="p-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-950 text-slate-400 hover:text-rose-400 transition cursor-pointer">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Auto Update Scheduler Bar -->
+              <div class="rounded-2xl bg-slate-950/60 border border-slate-800/80 p-3.5 flex flex-wrap items-center gap-3 text-xs text-slate-300">
+                <span class="font-bold text-white flex items-center gap-1.5">
+                  <span>自动更新</span>
+                </span>
+                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input type="checkbox" v-model="filterConfig.auto_update.enabled" @change="saveFilterAutoUpdate" class="sr-only peer">
+                  <div class="w-8 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
+                </label>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span>每</span>
+                  <select v-model="filterConfig.auto_update.interval_days" @change="saveFilterAutoUpdate" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono cursor-pointer">
+                    <option :value="1">1 天</option>
+                    <option :value="3">3 天</option>
+                    <option :value="7">7 天</option>
+                  </select>
+                  <span>在</span>
+                  <select v-model="filterConfig.auto_update.update_time" @change="saveFilterAutoUpdate" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono cursor-pointer">
+                    <option value="04:00">04:00</option>
+                    <option value="06:00">06:00</option>
+                    <option value="08:00">08:00</option>
+                    <option value="12:00">12:00</option>
+                    <option value="18:00">18:00</option>
+                    <option value="00:00">00:00</option>
+                  </select>
+                  <span class="text-slate-400 text-[11px]">在选定时间更新一次；内核自己加载新名单，不重启。</span>
+                </div>
+              </div>
+
+              <!-- Whitelist (放行域名) Accordion -->
+              <div class="border-t border-slate-800/80 pt-3">
+                <button @click="showWhitelistSection = !showWhitelistSection" class="w-full flex items-center justify-between text-xs font-bold text-slate-300 hover:text-white transition cursor-pointer py-1">
+                  <span class="flex items-center gap-1.5">
+                    <svg :class="['w-3.5 h-3.5 transition-transform text-slate-400', showWhitelistSection ? 'rotate-180' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    <span>放行域名 ({{ filterConfig.whitelist_domains?.length || 0 }})</span>
+                  </span>
+                  <span class="text-[11px] text-slate-400 font-normal">优先直连放行 · 防误杀</span>
+                </button>
+
+                <div v-if="showWhitelistSection" class="mt-3 space-y-3 pl-4 border-l-2 border-emerald-500/40 animate-in fade-in">
+                  <!-- Tag Cloud -->
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span v-for="d in filterConfig.whitelist_domains" :key="d"
+                          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-slate-300 text-xs font-mono group hover:border-emerald-500/50">
+                      <span>{{ d }}</span>
+                      <button @click="removeWhitelistItem(d)" title="移除放行" class="text-slate-500 group-hover:text-rose-400 transition cursor-pointer">
+                        &times;
+                      </button>
+                    </span>
+                    <span v-if="!filterConfig.whitelist_domains || filterConfig.whitelist_domains.length === 0" class="text-xs text-slate-400 italic">
+                      暂无放行域名，可在下方添加特定业务域名以防误杀
+                    </span>
+                  </div>
+
+                  <!-- Add Form -->
+                  <div class="flex items-center gap-2 max-w-md">
+                    <input type="text" v-model="newWhitelistDomain" @keyup.enter="addWhitelistItem" placeholder="输入放行域名 (如 apple.com)" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-mono">
+                    <button @click="addWhitelistItem" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-xs border border-slate-700 active:scale-95 transition cursor-pointer">
+                      添加放行
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- 4-Card 2x2 Grid with 24h Area Charts and Rank -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <!-- Card 1: 平均解析耗时 -->
@@ -2916,8 +3059,8 @@
                 <!-- Tier 2: Body (h-[74px]) -->
                 <div class="h-[74px] text-xs font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
                   <div class="flex items-center justify-between">
-                    <span>当前运行: <strong class="text-cyan-400 font-bold">{{ systemOverview.cubex_version || 'Test v2.1' }}</strong></span>
-                    <span class="text-slate-500">云端最新: <span class="text-slate-300">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v2.1' }}</span></span>
+                    <span>当前运行: <strong class="text-cyan-400 font-bold">{{ systemOverview.cubex_version || 'Test v2.2' }}</strong></span>
+                    <span class="text-slate-500">云端最新: <span class="text-slate-300">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v2.2' }}</span></span>
                   </div>
                   <div class="flex items-center justify-between text-[11px]">
                     <span class="text-slate-400">运行底座: <span class="text-slate-300">{{ hostBadge.name || 'MikroTik RouterOS' }} ({{ hostInfo.architecture || 'amd64' }})</span></span>
@@ -3446,7 +3589,7 @@
         <!-- Drawer Footer -->
         <div class="pt-4 border-t border-sky-900/40 space-y-2">
           <div class="text-[9px] text-slate-500 text-center font-mono">
-            CubeX {{ systemStatus.version || 'Test v2.1' }}
+            CubeX {{ systemStatus.version || 'Test v2.2' }}
           </div>
         </div>
       </div>
@@ -4252,11 +4395,11 @@
             <div class="text-xs font-mono bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/60 space-y-1">
               <div class="flex justify-between text-slate-400">
                 <span>当前运行:</span>
-                <strong class="text-cyan-300">{{ systemOverview.cubex_version || 'Test v2.1' }}</strong>
+                <strong class="text-cyan-300">{{ systemOverview.cubex_version || 'Test v2.2' }}</strong>
               </div>
               <div class="flex justify-between text-slate-400">
                 <span>云端 Release:</span>
-                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v2.1' }}</span>
+                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v2.2' }}</span>
               </div>
             </div>
             <button v-if="systemOverview.panel_update_avail" @click="upgradePanel" :disabled="upgradingPanel" class="w-full py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-xs font-bold transition">
@@ -4577,7 +4720,72 @@
           </div>
 
   </div>
-</template>
+
+    <!-- Modal: Add / Edit Domain Filter Rule Source -->
+    <div v-if="showRuleSourceModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
+      <div class="w-full max-w-md rounded-3xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl relative">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <span>🛡️ {{ editingRuleSource.id ? '编辑规则源' : '添加域名过滤规则源' }}</span>
+          </h3>
+          <button @click="showRuleSourceModal = false" class="text-slate-400 hover:text-white text-lg cursor-pointer">&times;</button>
+        </div>
+
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">规则源名称</label>
+            <input type="text" v-model="editingRuleSource.name" placeholder="例如: 217heidai / Anti-AD" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">规则订阅 URL</label>
+            <input type="text" v-model="editingRuleSource.url" placeholder="https://.../adblockdns.txt 或 .mrs / .srs" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono text-xs">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">规则语法格式</label>
+            <select v-model="editingRuleSource.type" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
+              <option value="adblock">Adblock 语法 / 文本规则 (adblockdns.txt)</option>
+              <option value="mrs">Meta Ruleset 原生二进制 (.mrs)</option>
+              <option value="srs">sing-box 原生二进制 (.srs)</option>
+              <option value="hosts">标准 Hosts 列表</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+          <button @click="showRuleSourceModal = false" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer">取消</button>
+          <button @click="saveRuleSource" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/20 cursor-pointer">保存规则源</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Rule Source Preview / Information -->
+    <div v-if="showSourcePreviewModal && previewingSource" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
+      <div class="w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl relative">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <span>👁️ 规则源详情: {{ previewingSource.name }}</span>
+          </h3>
+          <button @click="showSourcePreviewModal = false" class="text-slate-400 hover:text-white text-lg cursor-pointer">&times;</button>
+        </div>
+        <div class="space-y-3 text-xs">
+          <div class="p-3 rounded-2xl bg-slate-950 border border-slate-800 font-mono space-y-1.5">
+            <div class="text-slate-400">ID: <span class="text-slate-200">{{ previewingSource.id }}</span></div>
+            <div class="text-slate-400">规则数: <span class="text-emerald-400 font-bold">{{ (previewingSource.rules_count || 0).toLocaleString() }} 条</span></div>
+            <div class="text-slate-400">更新时间: <span class="text-slate-200">{{ previewingSource.updated_at || '刚刚' }}</span></div>
+            <div class="text-slate-400 truncate">订阅链接: <span class="text-cyan-400">{{ previewingSource.url }}</span></div>
+            <div class="text-slate-400">状态: <span :class="previewingSource.enabled ? 'text-emerald-400 font-bold' : 'text-slate-500'">{{ previewingSource.enabled ? '已启用 (生效中)' : '已停用' }}</span></div>
+          </div>
+          <p class="text-slate-400 leading-relaxed text-[11px]">
+            {{ previewingSource.description || '全维度拦截各类视频前贴片、流氓开屏广告、运营商劫持与第三方隐私追踪探针。' }}
+          </p>
+        </div>
+        <div class="flex justify-end pt-2">
+          <button @click="showSourcePreviewModal = false" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer">关闭</button>
+        </div>
+      </div>
+    </div>
+
+  </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
@@ -5797,6 +6005,7 @@ async function fetchDnsFilterStats() {
       if (data.hourly_query_trend) dnsFilterStats.value.hourlyQueryTrend = data.hourly_query_trend
       if (data.hourly_blocked_trend) dnsFilterStats.value.hourlyBlockedTrend = data.hourly_blocked_trend
       if (data.top_blocked) dnsFilterStats.value.topBlocked = data.top_blocked
+      if (data.filter_config && data.filter_config.rule_sources) filterConfig.value = data.filter_config
     }
   } catch (e) {}
 }
@@ -5963,9 +6172,9 @@ const hostConfig = ref({
 })
 
 const systemOverview = ref({
-  cubex_version: 'Test v2.1',
-  panel_curr_version: 'Test v2.1',
-  panel_latest_version: 'Test v2.1',
+  cubex_version: 'Test v2.2',
+  panel_curr_version: 'Test v2.2',
+  panel_latest_version: 'Test v2.2',
   mihomo_curr_version: 'v1.19.33',
   singbox_curr_version: 'v1.14.3',
   panel_update_avail: false,
@@ -6339,7 +6548,7 @@ const aiLoading = ref(false)
 
 // ── System Status & Last Result ──
 const systemStatus = ref({
-  version: 'Test v2.1',
+  version: 'Test v2.2',
   uptime_seconds: 1420,
   active_engine: 'mihomo',
   tun_interface: 'cubex-tun',
@@ -6623,6 +6832,220 @@ const editingPeerName = ref('')
 const savingPeerName = ref(false)
 
 // ── AdBlock State ──
+
+// ── 🛡️ Domain Filter & AdBlock Hub State (Matching User Specification) ──
+const filterConfig = ref({
+  enabled: true,
+  rule_sources: [
+    {
+      id: '217heidai',
+      name: '217heidai',
+      url: 'https://gcore.jsdelivr.net/gh/217heidai/adblockfilters@main/rules/adblockdns.txt',
+      type: 'adblock',
+      enabled: true,
+      rules_count: 226026,
+      updated_at: '2026/10/22 18:00:00',
+      description: '217heidai 权威全域广告过滤与流氓隐私追踪拦截'
+    }
+  ],
+  auto_update: {
+    enabled: true,
+    interval_days: 1,
+    update_time: '06:00'
+  },
+  whitelist_domains: ['apple.com']
+})
+
+const showWhitelistSection = ref(true)
+const newWhitelistDomain = ref('')
+const showRuleSourceModal = ref(false)
+const editingRuleSource = ref({
+  id: '',
+  name: '',
+  url: '',
+  type: 'adblock',
+  enabled: true
+})
+const isUpdatingSource = ref(false)
+const showSourcePreviewModal = ref(false)
+const previewingSource = ref(null)
+
+const toggleFilterMaster = async () => {
+  try {
+    const res = await fetch('/api/v1/adblock/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: filterConfig.value.enabled })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast(filterConfig.value.enabled ? '🛡️ 域名过滤已开启' : '⚠️ 域名过滤已关闭')
+      fetchDnsFilterStats()
+    }
+  } catch (e) {
+    showToast('切换失败: ' + e.message, 'error')
+  }
+}
+
+const saveFilterAutoUpdate = async () => {
+  try {
+    const res = await fetch('/api/v1/adblock/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(filterConfig.value)
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast('✅ 自动更新调度计划已保存')
+    }
+  } catch (e) {
+    showToast('保存失败: ' + e.message, 'error')
+  }
+}
+
+const toggleSourceItem = async (src) => {
+  try {
+    const res = await fetch('/api/v1/adblock/source/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: src.id, enabled: src.enabled })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast(`规则源 [${src.name}] 已${src.enabled ? '启用' : '停用'}`)
+      fetchDnsFilterStats()
+    }
+  } catch (e) {
+    showToast('操作失败: ' + e.message, 'error')
+  }
+}
+
+const refreshSourceItem = async (src) => {
+  isUpdatingSource.value = true
+  showToast(`⏳ 正在同步更新规则源 [${src.name}]...`)
+  try {
+    const res = await fetch('/api/v1/adblock/source/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: src.id })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast(`🎉 规则源 [${src.name}] 更新成功！当前规则: ${data.rules_count?.toLocaleString()} 条`)
+      if (data.config) filterConfig.value = data.config
+      fetchDnsFilterStats()
+    } else {
+      showToast(`⚠️ ${data.error || '更新失败'}`, 'warn')
+    }
+  } catch (e) {
+    showToast('更新异常: ' + e.message, 'error')
+  } finally {
+    isUpdatingSource.value = false
+  }
+}
+
+const addWhitelistItem = async () => {
+  const d = newWhitelistDomain.value.trim().toLowerCase()
+  if (!d) return
+  try {
+    const res = await fetch('/api/v1/adblock/whitelist/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain: d })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      if (data.whitelist) filterConfig.value.whitelist_domains = data.whitelist
+      newWhitelistDomain.value = ''
+      showToast(`✅ 已放行域名: ${d}`)
+    }
+  } catch (e) {
+    showToast('添加放行域名失败: ' + e.message, 'error')
+  }
+}
+
+const removeWhitelistItem = async (d) => {
+  try {
+    const res = await fetch('/api/v1/adblock/whitelist/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain: d })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      if (data.whitelist) filterConfig.value.whitelist_domains = data.whitelist
+      showToast(`已移除放行域名: ${d}`)
+    }
+  } catch (e) {
+    showToast('移除失败: ' + e.message, 'error')
+  }
+}
+
+const openAddSourceModal = () => {
+  editingRuleSource.value = {
+    id: '',
+    name: '',
+    url: '',
+    type: 'adblock',
+    enabled: true
+  }
+  showRuleSourceModal.value = true
+}
+
+const openEditSourceModal = (src) => {
+  editingRuleSource.value = { ...src }
+  showRuleSourceModal.value = true
+}
+
+const saveRuleSource = async () => {
+  if (!editingRuleSource.value.name || !editingRuleSource.value.url) {
+    showToast('请完整填写规则源名称与 URL', 'error')
+    return
+  }
+  const isEdit = !!editingRuleSource.value.id
+  const endpoint = isEdit ? '/api/v1/adblock/source/update' : '/api/v1/adblock/source/add'
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editingRuleSource.value)
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast(isEdit ? '规则源修改成功' : '新增规则源成功')
+      if (data.config) filterConfig.value = data.config
+      showRuleSourceModal.value = false
+      fetchDnsFilterStats()
+    }
+  } catch (e) {
+    showToast('保存规则源失败: ' + e.message, 'error')
+  }
+}
+
+const deleteSourceItem = async (src) => {
+  if (!confirm(`确定删除规则源 [${src.name}] 吗？`)) return
+  try {
+    const res = await fetch('/api/v1/adblock/source/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: src.id })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast(`已删除规则源 [${src.name}]`)
+      if (data.config) filterConfig.value = data.config
+      fetchDnsFilterStats()
+    }
+  } catch (e) {
+    showToast('删除失败: ' + e.message, 'error')
+  }
+}
+
+const openSourcePreview = (src) => {
+  previewingSource.value = src
+  showSourcePreviewModal.value = true
+}
+
 const adblockStats = ref({
   total_rules: 233481,
   blocked_today: 1428,
@@ -7340,7 +7763,7 @@ async function triggerOneClickHotUpgrade(force = true) {
       showToast(`🎉 恭喜！CubeX 控制面已平滑热更完成 (${data.version})，3秒后自动刷新网页...`)
       setTimeout(() => location.reload(), 3000)
     } else if (data.status === 'already_latest') {
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v2.1'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v2.2'})`)
     } else {
       showToast(`❌ 热更失败: ${data.error || data.message || '未知异常'}`)
     }
@@ -7364,7 +7787,7 @@ async function upgradePanel(force = false) {
       setTimeout(() => location.reload(), 3000)
     } else if (data.status === 'already_latest') {
       const timeStr = new Date().toLocaleTimeString()
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v2.1'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v2.2'})，无需重复更新。`
       showToast(data.message || 'CubeX 系统已是最新版本')
     } else {
       panelUpgradeLog.value = `❌ 热更反馈异常: ${data.error || data.message || '未知异常'}`

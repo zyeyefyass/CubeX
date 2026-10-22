@@ -40,7 +40,7 @@ import (
 )
 
 var (
-	version   = "Test v2.1"
+	version   = "Test v2.2"
 	startTime = time.Now()
 )
 
@@ -298,8 +298,12 @@ func main() {
 	wgMgr := wireguard.NewManager(dir, rosMgr)
 	wgMgr.SetHostManager(hostMgr)
 
-	// Adblock Manager
+	// Adblock & Domain Filter Manager
 	adblockMgr := adblock.NewManager(fmt.Sprintf("http://127.0.0.1:%d", cfgIR.Network.ClashAPIPort))
+	adblockMgr.InitStorage(dir)
+	filterCfg := adblockMgr.GetFilterConfig()
+	cfgIR.AdBlockEnabled = filterCfg.Enabled
+	cfgIR.AdBlockWhitelist = filterCfg.WhitelistDomains
 
 	// Backup Time Machine Manager
 	backupMgr := backup.NewManager(dir)
@@ -354,6 +358,11 @@ func main() {
 		},
 	}
 	srv.startTrafficCollector()
+	srv.startConntrackSweeper()
+	adblockMgr.StartScheduler(func(msg string) {
+		srv.logBuffer.Add("INFO", "ADBLOCK", msg)
+		srv.syncAdblockToEngines()
+	})
 
 	mux := http.NewServeMux()
 
@@ -401,6 +410,7 @@ func main() {
 	mux.HandleFunc("/api/v1/config/routing/group/add", srv.handleCustomGroupAdd)
 	mux.HandleFunc("/api/v1/config/routing/group/delete", srv.handleCustomGroupDelete)
 	mux.HandleFunc("/api/v1/ros/script", srv.handleRosScript)
+	mux.HandleFunc("/api/v1/ros/conntrack/clean", srv.handleRosConntrackClean)
 
 	// 3. EasyTier Next-Gen P2P Mesh Intranet Penetration
 	mux.HandleFunc("/api/v1/easytier/status", srv.handleEasyTierStatus)
@@ -444,8 +454,17 @@ func main() {
 	mux.HandleFunc("/api/v1/host/upgrade/check", srv.handleHostUpgradeCheck)
 	mux.HandleFunc("/api/v1/host/upgrade/execute", srv.handleHostUpgradeExecute)
 
-	// 8. Adblock & 217heidai MRS
+	// 8. Adblock & Domain Filter Hub
 	mux.HandleFunc("/api/v1/adblock/stats", srv.handleAdblockStats)
+	mux.HandleFunc("/api/v1/adblock/config", srv.handleAdblockConfig)
+	mux.HandleFunc("/api/v1/adblock/toggle", srv.handleAdblockToggle)
+	mux.HandleFunc("/api/v1/adblock/source/add", srv.handleAdblockSourceAdd)
+	mux.HandleFunc("/api/v1/adblock/source/update", srv.handleAdblockSourceUpdate)
+	mux.HandleFunc("/api/v1/adblock/source/delete", srv.handleAdblockSourceDelete)
+	mux.HandleFunc("/api/v1/adblock/source/toggle", srv.handleAdblockSourceToggle)
+	mux.HandleFunc("/api/v1/adblock/source/refresh", srv.handleAdblockSourceRefresh)
+	mux.HandleFunc("/api/v1/adblock/whitelist/add", srv.handleAdblockWhitelistAdd)
+	mux.HandleFunc("/api/v1/adblock/whitelist/delete", srv.handleAdblockWhitelistDelete)
 
 	// 9. Time Machine Backup & Restore
 	mux.HandleFunc("/api/v1/backup/export", srv.handleBackupExport)
@@ -797,6 +816,14 @@ func (s *Server) handleEngineSwitch(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		sendJSON(w, map[string]any{"status": "error", "error": err.Error(), "result": result})
 		return
+	}
+	if s.rosMgr != nil {
+		go func() {
+			time.Sleep(150 * time.Millisecond)
+			if purged := s.rosMgr.PurgeStaleFakeIPConnections(); purged > 0 {
+				s.logBuffer.Add("INFO", "ENGINE", fmt.Sprintf("双核无感切换调和: 已清理 RouterOS 连接跟踪表中 %d 条残留 Fake-IP 僵尸连接", purged))
+			}
+		}()
 	}
 	sendJSON(w, map[string]any{"status": "switched", "result": result})
 }
@@ -2268,6 +2295,173 @@ func (s *Server) handleAdblockStats(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, stats)
 }
 
+func (s *Server) handleAdblockConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		sendJSON(w, s.adblockMgr.GetFilterConfig())
+		return
+	}
+	if r.Method == http.MethodPost {
+		var cfg adblock.FilterConfig
+		if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := s.adblockMgr.SaveFilterConfig(cfg); err != nil {
+			sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		s.syncAdblockToEngines()
+		sendJSON(w, map[string]any{"ok": true, "config": s.adblockMgr.GetFilterConfig()})
+		return
+	}
+	http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+}
+
+func (s *Server) handleAdblockToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	_ = s.adblockMgr.SetFilterEnabled(req.Enabled)
+	s.syncAdblockToEngines()
+	s.logBuffer.Add("INFO", "ADBLOCK", fmt.Sprintf("域名过滤总开关更新: %v", req.Enabled))
+	sendJSON(w, map[string]any{"ok": true, "enabled": req.Enabled})
+}
+
+func (s *Server) handleAdblockSourceAdd(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var src adblock.RuleSource
+	if err := json.NewDecoder(r.Body).Decode(&src); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := s.adblockMgr.AddRuleSource(src); err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	s.logBuffer.Add("INFO", "ADBLOCK", fmt.Sprintf("新增域名过滤规则源: %s (%s)", src.Name, src.URL))
+	sendJSON(w, map[string]any{"ok": true, "config": s.adblockMgr.GetFilterConfig()})
+}
+
+func (s *Server) handleAdblockSourceUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var src adblock.RuleSource
+	if err := json.NewDecoder(r.Body).Decode(&src); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := s.adblockMgr.UpdateRuleSource(src); err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{"ok": true, "config": s.adblockMgr.GetFilterConfig()})
+}
+
+func (s *Server) handleAdblockSourceDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	_ = s.adblockMgr.DeleteRuleSource(req.ID)
+	sendJSON(w, map[string]any{"ok": true, "config": s.adblockMgr.GetFilterConfig()})
+}
+
+func (s *Server) handleAdblockSourceToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID      string `json:"id"`
+		Enabled bool   `json:"enabled"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	_ = s.adblockMgr.ToggleRuleSource(req.ID, req.Enabled)
+	s.syncAdblockToEngines()
+	sendJSON(w, map[string]any{"ok": true, "config": s.adblockMgr.GetFilterConfig()})
+}
+
+func (s *Server) handleAdblockSourceRefresh(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID string `json:"id"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	count, err := s.adblockMgr.RefreshRuleSource(req.ID)
+	if err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error(), "rules_count": count})
+		return
+	}
+	s.logBuffer.Add("INFO", "ADBLOCK", fmt.Sprintf("规则源 [%s] 更新完成，当前规则数: %d 条", req.ID, count))
+	s.syncAdblockToEngines()
+	sendJSON(w, map[string]any{"ok": true, "rules_count": count, "config": s.adblockMgr.GetFilterConfig()})
+}
+
+func (s *Server) handleAdblockWhitelistAdd(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Domain string `json:"domain"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	if err := s.adblockMgr.AddWhitelistDomain(req.Domain); err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	s.syncAdblockToEngines()
+	s.logBuffer.Add("INFO", "ADBLOCK", fmt.Sprintf("域名过滤新增放行白名单: %s", req.Domain))
+	sendJSON(w, map[string]any{"ok": true, "whitelist": s.adblockMgr.GetWhitelistDomains()})
+}
+
+func (s *Server) handleAdblockWhitelistDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Domain string `json:"domain"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	_ = s.adblockMgr.DeleteWhitelistDomain(req.Domain)
+	s.syncAdblockToEngines()
+	s.logBuffer.Add("INFO", "ADBLOCK", fmt.Sprintf("域名过滤移除放行白名单: %s", req.Domain))
+	sendJSON(w, map[string]any{"ok": true, "whitelist": s.adblockMgr.GetWhitelistDomains()})
+}
+
+func (s *Server) syncAdblockToEngines() {
+	if s.adblockMgr == nil || s.engMgr == nil {
+		return
+	}
+	cfg := s.adblockMgr.GetFilterConfig()
+	ir := s.engMgr.GetIR()
+	if ir != nil {
+		ir.AdBlockEnabled = cfg.Enabled
+		ir.AdBlockWhitelist = cfg.WhitelistDomains
+		go func() {
+			_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+		}()
+	}
+}
+
 func getProcessRSS() float64 {
 	// On Linux, read /proc/self/status for VmRSS to report real physical resident memory
 	if data, err := os.ReadFile("/proc/self/status"); err == nil {
@@ -2381,6 +2575,50 @@ func (s *Server) startTrafficCollector() {
 			time.Sleep(1 * time.Second)
 		}
 	}()
+}
+
+// startConntrackSweeper periodically purges lingering Fake-IP (198.18.0.0/15) connections
+// from the RouterOS connection tracking table to keep the kernel network stack clean.
+func (s *Server) startConntrackSweeper() {
+	go func() {
+		// Initial purge 10 seconds after boot
+		time.Sleep(10 * time.Second)
+		if s.rosMgr != nil {
+			if purged := s.rosMgr.PurgeStaleFakeIPConnections(); purged > 0 {
+				s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("Conntrack 清道夫启动自愈: 已清算 RouterOS 连接跟踪表中 %d 条残留 Fake-IP 僵尸连接", purged))
+			}
+		}
+
+		// Periodic purge every 15 minutes
+		ticker := time.NewTicker(15 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			if s.rosMgr != nil {
+				if purged := s.rosMgr.PurgeStaleFakeIPConnections(); purged > 0 {
+					s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("Conntrack 清道夫周期巡检: 已静默清算 RouterOS 连接跟踪表中 %d 条残留 Fake-IP 僵尸连接", purged))
+				}
+			}
+		}
+	}()
+}
+
+func (s *Server) handleRosConntrackClean(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	purged := 0
+	if s.rosMgr != nil {
+		purged = s.rosMgr.PurgeStaleFakeIPConnections()
+	}
+	if purged > 0 {
+		s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("手动触发: 已清理 RouterOS 连接跟踪表中 %d 条残留 Fake-IP 僵尸连接", purged))
+	}
+	sendJSON(w, map[string]any{
+		"ok":     true,
+		"purged": purged,
+		"msg":    fmt.Sprintf("已成功清算 %d 条 Fake-IP 僵尸连接", purged),
+	})
 }
 
 

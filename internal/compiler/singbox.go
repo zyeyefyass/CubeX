@@ -1003,11 +1003,21 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		}
 	}
 
-	// E. Adaptive SRS Rule-Set Interception (Adblock & Anti-Tracking native sing-box)
-	routeRules = append(routeRules, map[string]any{
-		"rule_set": []string{"217heidai-ads", "privacy-tracking"},
-		"action":   "reject",
-	})
+	// E1. Domain Filter Whitelist (放行域名 / 优先直连放行，彻底消除误杀)
+	if len(ir.AdBlockWhitelist) > 0 {
+		routeRules = append(routeRules, map[string]any{
+			"domain_suffix": ir.AdBlockWhitelist,
+			"outbound":      "direct",
+		})
+	}
+
+	// E2. Adaptive SRS Rule-Set Interception (Adblock & Anti-Tracking native sing-box)
+	if ir.AdBlockEnabled {
+		routeRules = append(routeRules, map[string]any{
+			"rule_set": []string{"217heidai-ads", "privacy-tracking"},
+			"action":   "reject",
+		})
+	}
 
 	// H. 11 Major Business Strategy Groups (Comprehensive Domain & SRS Matching)
 	if validOutbounds["AI"] {
