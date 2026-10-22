@@ -645,6 +645,11 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	rulesList = append(rulesList, "RULE-SET,217heidai_ads,REJECT")
 	rulesList = append(rulesList, "RULE-SET,privacy_domain,REJECT")
 
+	// Reject foreign UDP 443/8443 (QUIC) BEFORE business rules so YouTube / Google automatically use line-speed TCP (xtls-reality/BBR)
+	// Eliminates the ~5000 Kbps ISP UDP throttling and restores 100+ Mbps 4K 60fps streaming
+	rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(GEOIP,CN)),DIRECT")
+	rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT")
+
 	// High-Performance Dynamic MRS Business Rules (Dual-Engine Symmetrical Acceleration)
 	for _, m := range bizMRSMappings {
 		if _, ok := ruleProviders[m.tag]; ok {
@@ -673,11 +678,6 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		rulesList = append(rulesList, "DOMAIN-KEYWORD,sponsorblock,YouTube")
 		rulesList = append(rulesList, "DOMAIN,youtubei.googleapis.com,YouTube")
 	}
-
-	// Reject foreign UDP 443/8443 (QUIC) so YouTube / Google automatically use line-speed TCP (xtls-reality/BBR)
-	// Eliminates the ~5000 Kbps ISP UDP throttling and restores 100+ Mbps 4K 60fps streaming
-	rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(GEOIP,CN)),DIRECT")
-	rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT")
 
 	// High-Priority Line-Speed Benchmark / Speedtest Fast-Path Rule
 	if validTargets[foreignGroup] {

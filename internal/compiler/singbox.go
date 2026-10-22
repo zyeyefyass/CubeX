@@ -413,6 +413,10 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			"server":      p.Server,
 			"server_port": p.Port,
 		}
+		switch pType {
+		case "vless", "vmess", "trojan", "shadowsocks", "ss", "socks", "http":
+			nodeMap["tcp_fast_open"] = true
+		}
 
 
 		valid := true
@@ -861,7 +865,21 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"action":   "hijack-dns",
 	})
 
-	// YouTube & Google Video Fast-Path (Native HTTP/3 0-RTT QUIC Support)
+	// B. Reject foreign UDP 443/8443 (QUIC) so YouTube / Google automatically use line-speed TCP (xtls-reality/BBR)
+	// Domestic CN UDP 443 (e.g. Bilibili, Tencent Video) is allowed direct
+	routeRules = append(routeRules, map[string]any{
+		"network":  []string{"udp"},
+		"port":     []int{443, 8443},
+		"rule_set": []string{"geosite-cn"},
+		"outbound": "direct",
+	})
+	routeRules = append(routeRules, map[string]any{
+		"network":  []string{"udp"},
+		"port":     []int{443, 8443},
+		"outbound": "block",
+	})
+
+	// YouTube & Google Video Fast-Path (Line-speed TCP XTLS-Reality / BBR fallback)
 	if validOutbounds["YouTube"] {
 		if tags, ok := activeSRSByGroup["YouTube"]; ok && len(tags) > 0 {
 			routeRules = append(routeRules, map[string]any{
@@ -887,20 +905,6 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			"outbound":      "Google",
 		})
 	}
-
-		// B. Reject foreign UDP 443/8443 (QUIC) so YouTube / Google automatically use line-speed TCP (xtls-reality/BBR)
-	// Domestic CN UDP 443 (e.g. Bilibili, Tencent Video) is allowed direct
-	routeRules = append(routeRules, map[string]any{
-		"network":  []string{"udp"},
-		"port":     []int{443, 8443},
-		"rule_set": []string{"geosite-cn"},
-		"outbound": "direct",
-	})
-	routeRules = append(routeRules, map[string]any{
-		"network":  []string{"udp"},
-		"port":     []int{443, 8443},
-		"outbound": "block",
-	})
 
 	// C. Direct Private IP & NTP (Port 123)
 	routeRules = append(routeRules, map[string]any{
