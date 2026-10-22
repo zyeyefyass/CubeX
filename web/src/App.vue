@@ -3165,17 +3165,28 @@
                     <span>⚙️</span>
                     <span>双代理内核 (Mihomo & sing-box)</span>
                   </div>
-                  <span v-if="upgradingCoreMihomo || upgradingCoreSingbox" class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40 flex items-center gap-1 shadow-sm">
-                    <span class="inline-block animate-spin text-[9px]">↻</span>
-                    <span>内核热更中...</span>
-                  </span>
-                  <span v-else-if="systemOverview.mihomo_update_avail || systemOverview.singbox_update_avail" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse flex items-center gap-1 shadow-sm">
-                    <span>⚠️ 发现新版本 (建议自决)</span>
-                  </span>
-                  <span v-else class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                    <span>✓ 内核已是最新版</span>
-                  </span>
+                  <div class="flex items-center gap-1.5">
+                    <!-- Freeze Toggle Pill -->
+                    <button @click="toggleCoreUpgradeFreeze" :title="coreUpgradeFrozen ? '当前已锁定内核版本，点击解除冻结' : '点击冻结内核升级，锁定当前稳定版本，防止语法与功能冲突'"
+                      :class="['text-[10px] font-mono px-2 py-0.5 rounded border transition cursor-pointer flex items-center gap-1 shadow-sm active:scale-95',
+                        coreUpgradeFrozen ? 'bg-blue-950 text-blue-300 border-blue-500/50 hover:bg-blue-900 hover:border-blue-400' : 'bg-slate-800/90 text-slate-300 hover:text-white border-slate-700 hover:border-blue-500/50']">
+                      <span>{{ coreUpgradeFrozen ? '🔒 已冻结升级 (点击解锁)' : '🔒 冻结升级' }}</span>
+                    </button>
+                    <!-- Status Badge (when not frozen) -->
+                    <template v-if="!coreUpgradeFrozen">
+                      <span v-if="upgradingCoreMihomo || upgradingCoreSingbox" class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40 flex items-center gap-1 shadow-sm">
+                        <span class="inline-block animate-spin text-[9px]">↻</span>
+                        <span>内核热更中...</span>
+                      </span>
+                      <span v-else-if="systemOverview.mihomo_update_avail || systemOverview.singbox_update_avail" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse flex items-center gap-1 shadow-sm">
+                        <span>⚠️ 待催更</span>
+                      </span>
+                      <span v-else class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        <span>✓ 已最新</span>
+                      </span>
+                    </template>
+                  </div>
                 </div>
                 <!-- Tier 2: Body (h-[74px]) -->
                 <div class="h-[74px] text-[11px] font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
@@ -3190,26 +3201,62 @@
                 </div>
                 <!-- Tier 3: Action Buttons (h-10) -->
                 <div class="h-10 grid grid-cols-2 gap-2">
-                  <button @click="upgradeCore('mihomo')" :disabled="upgradingCoreMihomo" class="h-10 rounded-xl border font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1"
+                  <button v-if="coreUpgradeFrozen" disabled class="h-10 rounded-xl border border-slate-700 bg-slate-900/60 text-slate-500 font-bold text-xs flex items-center justify-center gap-1 cursor-not-allowed opacity-60" title="内核升级已冻结锁定，请先解除冻结">
+                    <span>🔒 Mihomo (已冻结)</span>
+                  </button>
+                  <button v-else @click="upgradeCore('mihomo')" :disabled="upgradingCoreMihomo" class="h-10 rounded-xl border font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1"
                     :class="systemOverview.mihomo_update_avail ? 'bg-amber-600/20 hover:bg-amber-600/30 border-amber-500/50 text-amber-200 shadow-sm' : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200'">
                     <span v-if="upgradingCoreMihomo" class="inline-block animate-spin mr-1">↻</span>
                     <span>{{ upgradingCoreMihomo ? '核对中...' : (systemOverview.mihomo_update_avail ? '⬆ 升级 Mihomo (自决)' : '⬆ 升级 Mihomo') }}</span>
                   </button>
-                  <button @click="upgradeCore('singbox')" :disabled="upgradingCoreSingbox" class="h-10 rounded-xl border font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1"
+                  <button v-if="coreUpgradeFrozen" disabled class="h-10 rounded-xl border border-slate-700 bg-slate-900/60 text-slate-500 font-bold text-xs flex items-center justify-center gap-1 cursor-not-allowed opacity-60" title="内核升级已冻结锁定，请先解除冻结">
+                    <span>🔒 sing-box (已冻结)</span>
+                  </button>
+                  <button v-else @click="upgradeCore('singbox')" :disabled="upgradingCoreSingbox" class="h-10 rounded-xl border font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1"
                     :class="systemOverview.singbox_update_avail ? 'bg-amber-600/20 hover:bg-amber-600/30 border-amber-500/50 text-amber-200 shadow-sm' : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200'">
                     <span v-if="upgradingCoreSingbox" class="inline-block animate-spin mr-1">↻</span>
                     <span>{{ upgradingCoreSingbox ? '核对中...' : (systemOverview.singbox_update_avail ? '⬆ 升级 sing-box (自决)' : '⬆ 升级 sing-box') }}</span>
                   </button>
                 </div>
                 <!-- Tier 4: Terminal Viewport (h-[62px]) -->
-                <div class="h-[62px] p-2 rounded-xl bg-slate-950/80 border border-slate-700/60 text-[11px] font-mono text-slate-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center">
+                <div class="h-[62px] p-2 rounded-xl bg-slate-950/80 border text-[11px] font-mono leading-relaxed overflow-y-auto custom-scrollbar flex items-center"
+                  :class="coreUpgradeFrozen ? 'border-blue-500/30 text-blue-300' : (systemOverview.mihomo_update_avail || systemOverview.singbox_update_avail ? 'border-amber-500/30 text-amber-300' : 'border-slate-700/60 text-slate-300')">
                   <div v-if="coreUpgradeLog" class="w-full break-words">
                     {{ coreUpgradeLog }}
                   </div>
-                  <div v-else-if="systemOverview.mihomo_update_avail || systemOverview.singbox_update_avail" class="w-full text-amber-300 text-[11px] leading-snug flex items-start gap-1.5 bg-amber-950/40 p-1.5 rounded-lg border border-amber-500/30">
-                    <span class="text-amber-400 shrink-0 text-xs font-bold">⚠️ 提示:</span>
-                    <span>请自行决定是否更新到最新版，因为更新会由于配置文件语法、特性、功能等未对齐可能影响使用。</span>
+                  <!-- Case: Frozen -->
+                  <div v-else-if="coreUpgradeFrozen" class="w-full flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-1.5 truncate">
+                      <span class="text-blue-400 font-bold shrink-0">[LOCKED]</span>
+                      <span class="truncate">内核升级已冻结锁定，避免语法特性未对齐影响运行。</span>
+                    </div>
+                    <button @click="toggleCoreUpgradeFreeze" class="shrink-0 px-2 py-0.5 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 border border-blue-400/50 text-blue-200 hover:text-white text-[10px] font-bold transition active:scale-95 cursor-pointer flex items-center gap-1">
+                      <span>🔓 解除冻结</span>
+                    </button>
                   </div>
+                  <!-- Case: Unfrozen & Update Available -->
+                  <div v-else-if="systemOverview.mihomo_update_avail || systemOverview.singbox_update_avail" class="w-full flex items-center justify-between gap-2">
+                    <div class="space-y-0.5 pr-1 flex-1 overflow-hidden leading-tight">
+                      <div class="flex items-center gap-1 font-bold text-amber-400 text-[11px]">
+                        <span>⚠️ 发现新版官方内核</span>
+                      </div>
+                      <div class="text-[10px] text-amber-200/90 leading-tight">
+                        请自行决定是否更新到最新版（语法特性未对齐可能影响使用）。<span class="text-amber-300 font-semibold underline decoration-amber-400/60">请立即提交 issues 至 GitHub，催促作者进行对齐升级！</span>
+                      </div>
+                    </div>
+                    <div class="flex flex-col gap-1 shrink-0">
+                      <button @click="openGitHubIssuePrompt" class="px-2 py-0.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/60 text-cyan-300 hover:text-white text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer shadow-sm active:scale-95" title="立即在 GitHub 提交 Issue 催促作者对齐新内核版本">
+                        <svg class="w-2.5 h-2.5 text-cyan-400" viewBox="0 0 24 24" fill="currentColor">
+                          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                        </svg>
+                        <span>📮 催更 Issue</span>
+                      </button>
+                      <button @click="toggleCoreUpgradeFreeze" class="px-2 py-0.5 rounded-lg bg-blue-950/80 hover:bg-blue-900 border border-blue-500/50 text-blue-300 hover:text-white text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer active:scale-95" title="立即冻结锁定本卡片升级，保持生产稳定">
+                        <span>🔒 冻结升级</span>
+                      </button>
+                    </div>
+                  </div>
+                  <!-- Case: Default / All Latest -->
                   <div v-else class="text-slate-400 text-xs flex items-center gap-2">
                     <span class="text-emerald-400 font-bold shrink-0">[CORE]</span>
                     <span>双引擎无感热重载就绪 · {{ (activeEngine === 'singbox' || activeEngine === 'sing-box') ? 'sing-box' : 'Mihomo' }} 主控调度 · {{ (activeEngine === 'singbox' || activeEngine === 'sing-box') ? 'Mihomo' : 'sing-box' }} 待命热备</span>
@@ -6143,6 +6190,7 @@ const checkingHostUpgrade = ref(false)
 const executingHostUpgrade = ref(false)
 const upgradingCoreMihomo = ref(false)
 const upgradingCoreSingbox = ref(false)
+const coreUpgradeFrozen = ref(localStorage.getItem('cubex_core_upgrade_frozen') === 'true')
 const panelUpgradeLog = ref('')
 const coreUpgradeLog = ref('')
 const geoUpdateLog = ref('')
@@ -6332,8 +6380,8 @@ const geodataStatus = ref({
 const hasAnyUpdate = computed(() => {
   return !!(
     systemOverview.value?.panel_update_avail ||
-    systemOverview.value?.mihomo_update_avail ||
-    systemOverview.value?.singbox_update_avail ||
+    (!coreUpgradeFrozen.value && systemOverview.value?.mihomo_update_avail) ||
+    (!coreUpgradeFrozen.value && systemOverview.value?.singbox_update_avail) ||
     (hostUpgradeDetails.value?.checked && hostUpgradeDetails.value?.hasUpdate)
   )
 })
@@ -6346,10 +6394,10 @@ const updateSummaryText = computed(() => {
   if (hostUpgradeDetails.value?.hasUpdate) {
     parts.push(`宿主固件 ${hostUpgradeDetails.value.latestVersion}`)
   }
-  if (systemOverview.value?.mihomo_update_avail) {
+  if (!coreUpgradeFrozen.value && systemOverview.value?.mihomo_update_avail) {
     parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version}`)
   }
-  if (systemOverview.value?.singbox_update_avail) {
+  if (!coreUpgradeFrozen.value && systemOverview.value?.singbox_update_avail) {
     parts.push(`sing-box ${systemOverview.value.singbox_latest_version}`)
   }
   return parts.join(' · ') || '检测到可用升级'
@@ -7924,7 +7972,50 @@ async function upgradePanel(force = false) {
   }
 }
 
+function toggleCoreUpgradeFreeze() {
+  coreUpgradeFrozen.value = !coreUpgradeFrozen.value
+  localStorage.setItem('cubex_core_upgrade_frozen', coreUpgradeFrozen.value ? 'true' : 'false')
+  if (coreUpgradeFrozen.value) {
+    showToast('🔒 已成功开启内核升级冻结锁定，保持生产环境绝对稳定！')
+  } else {
+    showToast('🔓 已解除内核升级冻结锁定，现可按需升级内核')
+  }
+}
+
+function openGitHubIssuePrompt() {
+  const parts = []
+  if (systemOverview.value?.mihomo_update_avail) {
+    parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version} (当前: ${systemOverview.value.mihomo_curr_version || 'v1.19.33'})`)
+  }
+  if (systemOverview.value?.singbox_update_avail) {
+    parts.push(`sing-box ${systemOverview.value.singbox_latest_version} (当前: ${systemOverview.value.singbox_curr_version || 'v1.14.3'})`)
+  }
+  const coreStr = parts.join(' / ') || '双代理内核'
+  const title = encodeURIComponent(`【内核对齐升级催更】请求适配 ${coreStr}`)
+  const body = encodeURIComponent(
+`### 📌 代理内核对齐升级催更申请
+
+**检测到官方内核最新版本**：
+- ${parts.length ? parts.join('\n- ') : '官方发布了新版本'}
+
+**当前宿主环境**：
+- 系统架构：${systemOverview.value?.arch || 'amd64'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v2.4'}
+- 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
+
+**说明**：
+官方已发布上述内核新版。为保障 CubeX 配置文件语法（IR 编译器）、TUN 网卡内核栈、新特性参数及网络协议无缝对齐，特提交此 Issue 催促作者进行验证、配置对齐与构建发布！感谢作者的持续投入！`
+  )
+  const url = `https://github.com/zyeyefyass/CubeX/issues/new?title=${title}&body=${body}`
+  window.open(url, '_blank')
+  showToast('📮 已生成 GitHub Issue 催更模板，正在为您打开 GitHub 页面...')
+}
+
 async function upgradeCore(type) {
+  if (coreUpgradeFrozen.value) {
+    showToast('🔒 当前内核升级已被锁定冻结，如需升级请先解除冻结')
+    return
+  }
   const latestVer = type === 'mihomo' ? systemOverview.value?.mihomo_latest_version : systemOverview.value?.singbox_latest_version
   const confirmMsg = `【内核升级自主决策确认】\n\n确定要升级 ${type} 内核吗？${latestVer ? `(最新目标版本: ${latestVer})` : ''}\n\n⚠️ 重要提示：请自行决定是否更新到最新版，因为更新会由于配置文件语法、特性、功能等未对齐可能影响使用。\n\n是否确认继续升级？`
   if (!confirm(confirmMsg)) {
