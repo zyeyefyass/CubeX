@@ -62,6 +62,7 @@
 > | `CubeX-Test-v2.5-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~67.5 MB | 包含双内核、规则集、配置与控制面的完整生产归档 |
 > | `cubexd-linux-amd64` | Linux amd64 单二进制 | ~10.7 MB | 用于现有容器或系统的一键在线平滑热更执行文件 |
 > | `cubexd-linux-arm64` | Linux arm64 单二进制 | ~10.0 MB | 用于现有容器或系统的一键在线平滑热更执行文件 |
+> | `CubeX-Test-v2.5-docker-amd64.tar.gz` | 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | 飞牛与 Linux Docker 离线镜像导入包（支持 GUI 本地导入与 docker load） |
 > | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~26.9 KB | RouterOS v7 WinBox 终端复制即用一键自动编排脚本 |
 > 
 ---
