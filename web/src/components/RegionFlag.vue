@@ -1,6 +1,6 @@
 <template>
   <div :class="asBackground ? 'w-full h-full block' : 'inline-flex items-center justify-center shrink-0'">
-    <!-- 0. 多国组合全息分流旗 (Multi-Country Alliance / Split Ensign) - 优先判定！ -->
+    <!-- 0. 多国组合全息分流旗 (Multi-Country Alliance / Split Ensign) - 顶层最高优先判定！ -->
     <!-- 2国组合：对角/左右极光双旗合璧 (Dual Country Split Flag) -->
     <div v-if="multiCodes.length === 2 && asBackground" class="w-full h-full relative overflow-hidden flex bg-slate-950">
       <div class="w-1/2 h-full overflow-hidden relative">
@@ -10,10 +10,6 @@
       <div class="w-1/2 h-full overflow-hidden relative">
         <RegionFlag :code="multiCodes[1]" as-background class="w-full h-full block" />
       </div>
-    </div>
-    <div v-else-if="multiCodes.length === 2" class="inline-flex items-center gap-0.5 shrink-0">
-      <RegionFlag :code="multiCodes[0]" :size-class="sizeClass" />
-      <RegionFlag :code="multiCodes[1]" :size-class="sizeClass" />
     </div>
 
     <!-- 3国组合：三极联合全息旗 (Tri-Country Split Flag) -->
@@ -30,35 +26,72 @@
         <RegionFlag :code="multiCodes[2]" as-background class="w-full h-full block" />
       </div>
     </div>
-    <div v-else-if="multiCodes.length === 3" class="inline-flex items-center gap-0.5 shrink-0">
-      <RegionFlag :code="multiCodes[0]" :size-class="sizeClass" />
-      <RegionFlag :code="multiCodes[1]" :size-class="sizeClass" />
-      <RegionFlag :code="multiCodes[2]" :size-class="sizeClass" />
+
+    <!-- 4国组合：四象联邦全息旗 (2x2 Quad Quadrant Alliance Flag) -->
+    <div v-else-if="multiCodes.length === 4 && asBackground" class="w-full h-full relative overflow-hidden grid grid-cols-2 grid-rows-2 bg-slate-950">
+      <div class="w-full h-full overflow-hidden relative">
+        <RegionFlag :code="multiCodes[0]" as-background class="w-full h-full block" />
+      </div>
+      <div class="w-full h-full overflow-hidden relative">
+        <RegionFlag :code="multiCodes[1]" as-background class="w-full h-full block" />
+      </div>
+      <div class="w-full h-full overflow-hidden relative">
+        <RegionFlag :code="multiCodes[2]" as-background class="w-full h-full block" />
+      </div>
+      <div class="w-full h-full overflow-hidden relative">
+        <RegionFlag :code="multiCodes[3]" as-background class="w-full h-full block" />
+      </div>
+
+      <!-- Cyber Aurora Intersecting Cross Laser Seams -->
+      <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-gradient-to-b from-cyan-400 via-white to-cyan-400 shadow-[0_0_8px_rgba(0,245,212,0.9)] z-10 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-gradient-to-r from-cyan-400 via-white to-cyan-400 shadow-[0_0_8px_rgba(0,245,212,0.9)] z-10 pointer-events-none"></div>
+      <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white shadow-[0_0_12px_#00f5d4] border border-cyan-300 z-20 pointer-events-none"></div>
     </div>
 
-    <!-- 4国及以上多极联合旗 (Multi-Region Celestial Gateway Coalition Flag) -->
-    <svg v-else-if="multiCodes.length > 3 && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
-      <defs>
-        <linearGradient id="multi-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#051937"/>
-          <stop offset="40%" stop-color="#004d7a"/>
-          <stop offset="75%" stop-color="#008793"/>
-          <stop offset="100%" stop-color="#00bf72"/>
-        </linearGradient>
-      </defs>
-      <rect width="36" height="24" fill="url(#multi-bg)"/>
-      <path d="M-4 12 Q 18 -4 40 12" stroke="#ffffff" stroke-width="0.7" fill="none" opacity="0.6"/>
-      <path d="M-4 12 Q 18 28 40 12" stroke="#38bdf8" stroke-width="0.7" fill="none" opacity="0.6"/>
-      <circle cx="8" cy="9" r="1.6" fill="#f43f5e" stroke="#ffffff" stroke-width="0.6"/>
-      <circle cx="18" cy="12" r="2.2" fill="#00f5d4" stroke="#ffffff" stroke-width="0.8"/>
-      <circle cx="28" cy="15" r="1.6" fill="#fbbf24" stroke="#ffffff" stroke-width="0.6"/>
-      <line x1="8" y1="9" x2="18" y2="12" stroke="#ffffff" stroke-width="0.8" opacity="0.8"/>
-      <line x1="18" y1="12" x2="28" y2="15" stroke="#ffffff" stroke-width="0.8" opacity="0.8"/>
-      <polygon points="2,22 5,19 7,19 4,22" fill="#ffffff" opacity="0.5"/>
-      <polygon points="6,22 9,19 11,19 8,22" fill="#00f5d4" opacity="0.7"/>
-    </svg>
-    <div v-else-if="multiCodes.length > 3" class="text-sm shrink-0">
-      🌐⚡
+    <!-- 5~6国组合：六合矩阵全息旗 (2x3 Hex Matrix Alliance Flag) -->
+    <div v-else-if="(multiCodes.length === 5 || multiCodes.length === 6) && asBackground" class="w-full h-full relative overflow-hidden grid grid-cols-3 grid-rows-2 bg-slate-950">
+      <div v-for="(c, idx) in multiCodes.slice(0, 6)" :key="idx" class="w-full h-full overflow-hidden relative">
+        <RegionFlag :code="c" as-background class="w-full h-full block" />
+      </div>
+      <div v-if="multiCodes.length === 5" class="w-full h-full overflow-hidden relative bg-gradient-to-br from-slate-900 to-cyan-950/80 flex items-center justify-center">
+        <span class="text-[10px] font-mono font-bold text-cyan-300 drop-shadow-[0_0_4px_#00f5d4]">★ 5合1</span>
+      </div>
+      <!-- Laser Grid Lines -->
+      <div class="absolute inset-y-0 left-1/3 -translate-x-1/2 w-0.5 bg-cyan-400/70 shadow-[0_0_6px_rgba(0,245,212,0.7)] z-10 pointer-events-none"></div>
+      <div class="absolute inset-y-0 left-2/3 -translate-x-1/2 w-0.5 bg-cyan-400/70 shadow-[0_0_6px_rgba(0,245,212,0.7)] z-10 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-0.5 bg-cyan-400/70 shadow-[0_0_6px_rgba(0,245,212,0.7)] z-10 pointer-events-none"></div>
+    </div>
+
+    <!-- 7国及以上海量集群：全球星环同盟旗 (Global Celestial Gateway Coalition Flag) -->
+    <div v-else-if="multiCodes.length > 6 && asBackground" class="w-full h-full relative overflow-hidden bg-slate-950 flex flex-col items-center justify-center">
+      <svg viewBox="0 0 36 24" preserveAspectRatio="none" class="absolute inset-0 w-full h-full block pointer-events-none">
+        <defs>
+          <linearGradient id="multi-bg-nexus" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#051937"/>
+            <stop offset="35%" stop-color="#003865"/>
+            <stop offset="70%" stop-color="#006b88"/>
+            <stop offset="100%" stop-color="#00b48a"/>
+          </linearGradient>
+        </defs>
+        <rect width="36" height="24" fill="url(#multi-bg-nexus)"/>
+        <!-- Orbital Rings -->
+        <ellipse cx="18" cy="12" rx="14" ry="5.5" stroke="#00f5d4" stroke-width="0.5" fill="none" opacity="0.6" stroke-dasharray="2 1"/>
+        <ellipse cx="18" cy="12" rx="14" ry="5.5" stroke="#38bdf8" stroke-width="0.5" fill="none" opacity="0.6" transform="rotate(-25 18 12)"/>
+        <!-- Center Nexus -->
+        <circle cx="18" cy="12" r="2.8" fill="#00f5d4" opacity="0.25"/>
+        <circle cx="18" cy="12" r="1.6" fill="#ffffff" stroke="#00d2ff" stroke-width="0.6"/>
+      </svg>
+      <!-- Overlapping Flag Badges on top -->
+      <div class="relative z-10 flex items-center -space-x-1 px-2.5 py-1 rounded-full bg-slate-900/85 border border-cyan-500/50 backdrop-blur-md shadow-lg shadow-cyan-500/30">
+        <RegionFlag v-for="c in multiCodes.slice(0, 4)" :key="c" :code="c" size-class="w-4 h-2.5" class="rounded-xs ring-1 ring-slate-950 shadow-xs" />
+        <span class="text-[9.5px] font-mono font-bold text-cyan-300 ml-2 tracking-tighter drop-shadow-[0_0_4px_#00f5d4]">+{{ multiCodes.length - 4 }}国</span>
+      </div>
+    </div>
+
+    <!-- 非背景小图标模式：全能自适应徽章级联 (Adaptive Multi-Flag Stack) -->
+    <div v-else-if="multiCodes.length >= 2" class="inline-flex items-center -space-x-1 shrink-0">
+      <RegionFlag v-for="c in multiCodes.slice(0, 4)" :key="c" :code="c" :size-class="sizeClass" class="rounded-xs ring-1 ring-slate-900/80 shadow-xs" />
+      <span v-if="multiCodes.length > 4" class="text-[9px] font-mono text-cyan-300 font-bold ml-1.5">+{{ multiCodes.length - 4 }}</span>
     </div>
 
     <!-- 1. 香港 (香港特别行政区区旗: 法定标准洋紫荆五瓣带五星矢量) -->
@@ -605,18 +638,22 @@ function parseCountryCode(val) {
 
 const code = computed(() => {
   if (props.code) {
-    const uc = props.code.toUpperCase()
+    const uc = props.code.toUpperCase().trim()
     if (uc === 'REJECT' || uc === 'BLOCK') return 'REJECT'
     if (uc === 'CUSTOM') return 'CUSTOM'
     if (uc === 'OTHERS' || uc === 'OTHER') return 'OTHERS'
     if (uc === 'SUB') return 'SUB'
+    let c = parseCountryCode(uc)
+    if (c) return c
   }
   if (props.id === 'REJECT' || props.name === '拒绝' || props.name === 'REJECT') return 'REJECT'
   if (props.id === 'CUSTOM' || props.countryCode === 'CUSTOM') return 'CUSTOM'
   if (props.id === 'OTHERS' || props.countryCode === 'OTHERS') return 'OTHERS'
   if (props.type === 'sub' || props.flag === '✈️') return 'SUB'
 
-  let c = parseCountryCode(props.countryCode)
+  let c = parseCountryCode(props.code)
+  if (c) return c
+  c = parseCountryCode(props.countryCode)
   if (c) return c
   c = parseCountryCode(props.flag)
   if (c) return c
@@ -636,48 +673,94 @@ const code = computed(() => {
   if (props.name && (props.name.includes('专属') || props.name.includes('机场') || props.name.includes('HHost') || props.name.includes('Mtice'))) {
     return 'SUB'
   }
-  return (props.countryCode || props.id || '').toUpperCase()
+  return (props.countryCode || props.id || props.code || '').toUpperCase().trim()
 })
 
 const multiCodes = computed(() => {
-  // If props.code is a single 2-letter country code, never treat as multi
+  // If props.code is a single 2-letter country code, never treat as multi (terminates recursion)
   if (props.code && /^[A-Za-z]{2}$/.test(props.code.trim())) {
     return []
   }
-  if (props.code && props.code.includes(',')) {
-    const parts = props.code.split(',').map(c => c.trim().toUpperCase()).filter(c => /^[A-Z]{2}$/.test(c))
-    if (parts.length > 1) return parts
+
+  // 1. Check comma / dash / slash delimited 2-letter ISO codes in countryCode or code
+  const parseCodeList = (raw) => {
+    if (!raw) return []
+    const parts = raw.split(/[/,_ |、·•\-]+/).map(c => c.trim().toUpperCase()).filter(c => /^[A-Z]{2}$/.test(c))
+    return parts.length > 1 ? parts : []
   }
-  if (props.countryCode && props.countryCode.includes(',')) {
-    const parts = props.countryCode.split(',').map(c => c.trim().toUpperCase()).filter(c => /^[A-Z]{2}$/.test(c))
-    if (parts.length > 1) return parts
-  }
+  const fromCountryCode = parseCodeList(props.countryCode)
+  if (fromCountryCode.length > 1) return fromCountryCode
+  const fromCode = parseCodeList(props.code)
+  if (fromCode.length > 1) return fromCode
+
+  // 2. Parse from group name
   const name = props.name || ''
   if (!name || name.length < 2) return []
 
-  // Extract all matched countries with their appearance index in the string
-  const positions = []
-  for (const [k, code] of Object.entries(CHINESE_NAME_MAP)) {
-    const idx = name.indexOf(k)
-    if (idx !== -1) {
-      positions.push({ idx, code })
+  const positions = [] // { idx: number, len: number, code: string }
+
+  // 2.1 Pass 1: Match 2-letter ISO country codes in name (e.g. HK-TW-JP, [US/GB])
+  const isoRegex = /(?:^|[^A-Za-z])(HK|TW|JP|KR|SG|US|GB|UK|DE|FR|CA|AU|NL|RU|IN|MY|TH|VN|PH|ID|TR|AR|BR|CH|SE|IT|ES|MO|CN|AE|IE|UA)(?=$|[^A-Za-z])/gi
+  let m
+  while ((m = isoRegex.exec(name)) !== null) {
+    let c = m[1].toUpperCase()
+    if (c === 'UK') c = 'GB'
+    const matchIdx = m.index + (m[0].length - m[1].length)
+    positions.push({ idx: matchIdx, len: c.length, code: c })
+  }
+
+  // 2.2 Pass 2: Full Chinese names from CHINESE_NAME_MAP (sorted by length descending)
+  const sortedNames = Object.entries(CHINESE_NAME_MAP).sort((a, b) => b[0].length - a[0].length)
+  for (const [k, code] of sortedNames) {
+    let startIdx = 0
+    while ((startIdx = name.indexOf(k, startIdx)) !== -1) {
+      const endIdx = startIdx + k.length
+      const overlaps = positions.some(p => Math.max(p.idx, startIdx) < Math.min(p.idx + p.len, endIdx))
+      if (!overlaps) {
+        positions.push({ idx: startIdx, len: k.length, code })
+      }
+      startIdx = endIdx
     }
   }
 
-  const shortAbbrs = [
+  // 2.3 Pass 3: Chinese single-character abbreviations
+  // Smart disambiguation for '澳':
+  // '港澳', '港澳台', '澳台' -> MO (Macau)
+  // '澳新', '澳洲', '澳大利亚' -> AU (Australia)
+  // Default to MO if group also mentions 港 or 台, otherwise AU
+  let aoCode = 'AU'
+  if (name.includes('港澳') || name.includes('澳台') || (name.includes('港') && !name.includes('新') && !name.includes('澳洲'))) {
+    aoCode = 'MO'
+  } else if (name.includes('港') || name.includes('台')) {
+    aoCode = 'MO'
+  }
+
+  const singleCharAbbrs = [
     { k: '港', code: 'HK' }, { k: '台', code: 'TW' }, { k: '日', code: 'JP' },
-    { k: '韩', code: 'KR' }, { k: '新', code: 'SG' }, { k: '美', code: 'US' },
-    { k: '英', code: 'GB' }, { k: '德', code: 'DE' }, { k: '法', code: 'FR' },
-    { k: '加', code: 'CA' }, { k: '澳', code: 'AU' }
+    { k: '韩', code: 'KR' }, { k: '新', code: 'SG' }, { k: '马', code: 'MY' },
+    { k: '泰', code: 'TH' }, { k: '美', code: 'US' }, { k: '加', code: 'CA' },
+    { k: '英', code: 'GB' }, { k: '法', code: 'FR' }, { k: '德', code: 'DE' },
+    { k: '俄', code: 'RU' }, { k: '越', code: 'VN' }, { k: '菲', code: 'PH' },
+    { k: '土', code: 'TR' }, { k: '巴', code: 'BR' }, { k: '意', code: 'IT' },
+    { k: '西', code: 'ES' }, { k: '荷', code: 'NL' }, { k: '中', code: 'CN' },
+    { k: '华', code: 'CN' }, { k: '澳', code: aoCode }
   ]
-  for (const item of shortAbbrs) {
-    const idx = name.indexOf(item.k)
-    if (idx !== -1 && !positions.some(p => p.code === item.code)) {
-      positions.push({ idx, code: item.code })
+
+  for (const item of singleCharAbbrs) {
+    let startIdx = 0
+    while ((startIdx = name.indexOf(item.k, startIdx)) !== -1) {
+      const endIdx = startIdx + 1
+      // CRITICAL: Strictly avoid matching if this character index is ALREADY inside a longer matched country name!
+      // (e.g. '加' inside '新加坡' or '大' inside '加拿大' must NEVER create a spurious CA / AU match!)
+      const overlaps = positions.some(p => Math.max(p.idx, startIdx) < Math.min(p.idx + p.len, endIdx))
+      if (!overlaps) {
+        positions.push({ idx: startIdx, len: 1, code: item.code })
+      }
+      startIdx = endIdx
     }
   }
 
-  // Sort strictly by appearance order in name (e.g. 台湾·日本·韩国 -> TW, JP, KR)
+  // 2.4 Sort strictly by physical appearance order in name
   positions.sort((a, b) => a.idx - b.idx)
   const found = []
   const seen = new Set()

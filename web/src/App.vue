@@ -1459,12 +1459,12 @@
                           </span>
                         </div>
                         <span :class="[
-                          'text-[9.5px] font-mono font-bold px-2 py-0.5 rounded-full shadow-md transition shrink-0',
+                          'text-[9.5px] font-mono font-bold px-2 py-0.5 rounded-full shadow-md transition shrink-0 select-none',
                           isRejectActive(grp)
                             ? 'bg-rose-600 text-white shadow-rose-600/40 ring-1 ring-rose-400/50'
                             : 'bg-slate-950/90 text-rose-400 border border-rose-500/30 backdrop-blur-sm'
-                        ]">
-                          ⚡
+                        ]" title="静态规则直接阻断丢弃，无网络测速延迟">
+                          阻断
                         </span>
                       </div>
                     </div>
