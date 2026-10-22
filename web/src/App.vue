@@ -1,7 +1,8 @@
 <template>
   <div :class="[
-    'min-h-screen font-sans antialiased transition-colors duration-700 selection:bg-cyan-500/30 selection:text-cyan-200 flex flex-col md:flex-row overflow-hidden safe-h-screen h-[100dvh]',
-    rootBgClass
+    'min-h-screen font-sans antialiased transition-colors duration-500 selection:bg-teal-500/30 selection:text-teal-200 flex flex-col md:flex-row overflow-hidden safe-h-screen h-[100dvh]',
+    rootBgClass,
+    antiBlueLight ? 'anti-blue-active' : ''
   ]">
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
@@ -19,23 +20,23 @@
       <!-- Top Section: Brand Hero & Navigation -->
       <div class="flex flex-col overflow-y-auto flex-1 h-full">
         <!-- Brand Hero -->
-        <div class="text-center border-b p-5 border-sky-900/30 transition-all duration-300 relative">
-          <!-- Brand Logo (视觉核心醒目居中) -->
+        <div class="text-center border-b p-5 border-slate-700/40 transition-all duration-300 relative">
+          <!-- Brand Logo (视觉核心醒目居中 · 柔和温润微光) -->
           <div class="relative mx-auto flex items-center justify-center group cursor-pointer transition-all duration-300 w-24 h-24 mb-2.5"
             @click="activeMasterTab = 'overview'" title="CubeX - 宿主共生零感网络系统">
-            <div class="absolute inset-0 rounded-full blur-xl group-hover:scale-110 transition-transform duration-700 bg-cyan-500/15"></div>
-            <img src="/logo-cubex.svg" class="relative z-10 drop-shadow-[0_0_16px_rgba(0,210,255,0.35)] filter transition-all duration-500 group-hover:scale-105 active:scale-95 w-24 h-24" alt="CubeX Logo" />
+            <div class="absolute inset-0 rounded-full blur-xl group-hover:scale-110 transition-transform duration-700 bg-sky-500/10"></div>
+            <img src="/logo-cubex.svg" class="relative z-10 drop-shadow-[0_0_12px_rgba(56,189,248,0.25)] filter transition-all duration-500 group-hover:scale-105 active:scale-95 w-24 h-24" alt="CubeX Logo" />
           </div>
           
           <!-- Brand Typography -->
           <div class="space-y-1.5">
             <div class="flex items-center justify-center gap-1.5">
-              <h1 class="text-base sm:text-[18px] font-black tracking-widest bg-gradient-to-r bg-clip-text text-transparent from-cyan-300 via-sky-200 to-indigo-300">
+              <h1 class="text-base sm:text-[18px] font-black tracking-widest bg-gradient-to-r bg-clip-text text-transparent from-sky-300 via-slate-200 to-indigo-300">
                 CubeX
               </h1>
             </div>
             <div class="flex items-center justify-center pt-0.5">
-              <span class="inline-flex items-center text-xs sm:text-[13px] px-3 py-1 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/35 font-medium tracking-wide shadow-sm">
+              <span class="inline-flex items-center text-xs sm:text-[13px] px-3 py-1 rounded-full bg-slate-800/80 text-slate-300 border border-slate-700/60 font-medium tracking-wide shadow-sm">
                 宿主共生零感网络系统
               </span>
             </div>
@@ -51,12 +52,12 @@
             :class="[
               'w-full flex items-center rounded-2xl transition-all duration-200 select-none group relative gap-3.5 px-4 py-3 text-[15px] font-bold tracking-wide',
               activeMasterTab === item.id
-                ? 'bg-gradient-to-r from-cyan-500/25 via-sky-500/15 to-transparent text-cyan-200 border border-cyan-400/50 shadow-lg shadow-cyan-950/60'
-                : 'text-slate-300 hover:bg-white/5 hover:text-white border border-transparent'
+                ? 'bg-slate-800/90 text-sky-200 border border-slate-700/70 shadow-sm'
+                : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 border border-transparent'
             ]">
             <span class="shrink-0 transition-transform group-hover:scale-110 text-xl">{{ item.icon }}</span>
             <span class="truncate">{{ item.label }}</span>
-            <span v-if="activeMasterTab === item.id" class="ml-auto w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee]"></span>
+            <span v-if="activeMasterTab === item.id" class="ml-auto w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_5px_#38bdf8]"></span>
           </button>
         </nav>
 
@@ -84,19 +85,16 @@
           </button>
 
           <!-- Unified Control Plane Capsule: Fixed Height h-[42px] sm:h-[46px] for absolute symmetry with right capsule -->
-          <div class="h-[42px] sm:h-[46px] inline-flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 rounded-2xl border shadow-lg select-none transition-colors duration-500"
-            :class="activeEngine === 'singbox' ? 'bg-gradient-to-r from-slate-900/95 via-purple-950/60 to-slate-900/95 border-purple-500/40 shadow-purple-950/40' : 'bg-gradient-to-r from-slate-900/95 via-sky-950/60 to-slate-900/95 border-cyan-500/40 shadow-cyan-950/40'">
-            <!-- CubeX 3D Logo (无背景黑框，点击可快捷切换标识) -->
-            <img :src="activeLogoSrc" class="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(0,210,255,0.7)] cursor-pointer hover:scale-105 transition-transform" @click="showLogoGalleryModal = true" title="切换 CubeX 3D 标识" alt="CubeX" />
+          <div class="h-[42px] sm:h-[46px] inline-flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 rounded-2xl border shadow-md select-none transition-colors duration-300 bg-slate-900/80 border-slate-700/60">
+            <!-- CubeX 3D Logo (柔和微光，点击可快捷切换标识) -->
+            <img :src="activeLogoSrc" class="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(56,189,248,0.25)] cursor-pointer hover:scale-105 transition-transform" @click="showLogoGalleryModal = true" title="切换 CubeX 3D 标识" alt="CubeX" />
             
             <!-- CubeX 品牌与版本号 (全局主题自适配 · 字体行高基线对齐) -->
             <div class="inline-flex items-center gap-1.5 font-mono text-xs sm:text-[13px] leading-none whitespace-nowrap">
-              <span class="font-black tracking-wide"
-                :class="activeEngine === 'singbox' ? 'bg-gradient-to-r from-fuchsia-300 to-purple-200 bg-clip-text text-transparent' : 'bg-gradient-to-r from-cyan-300 to-sky-200 bg-clip-text text-transparent'">
+              <span class="font-black tracking-wide bg-gradient-to-r from-sky-300 to-indigo-200 bg-clip-text text-transparent">
                 CubeX
               </span>
-              <span class="font-bold tracking-tight"
-                :class="activeEngine === 'singbox' ? 'text-purple-200' : 'text-cyan-300'">
+              <span class="font-bold tracking-tight text-sky-300">
                 {{ systemStatus.version || 'Test v2.3' }}
               </span>
             </div>
@@ -104,37 +102,35 @@
             <span class="text-slate-600 font-mono text-xs leading-none">|</span>
 
             <!-- 当前模块名 -->
-            <h2 class="text-xs sm:text-[13px] font-bold text-white tracking-wide truncate max-w-[90px] xs:max-w-none leading-none">{{ currentTabTitle }}</h2>
+            <h2 class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide truncate max-w-[90px] xs:max-w-none leading-none">{{ currentTabTitle }}</h2>
             
-            <!-- 控制面运行状态指示灯 (稳态微光 · 双引擎主题自适配) -->
-            <span class="w-2 h-2 rounded-full shrink-0"
-              :class="activeEngine === 'singbox' ? 'bg-fuchsia-400 shadow-[0_0_6px_#e879f9]' : 'bg-cyan-400 shadow-[0_0_6px_#22d3ee]'"
+            <!-- 控制面运行状态指示灯 (稳态翡翠微光) -->
+            <span class="w-2 h-2 rounded-full shrink-0 bg-emerald-400 shadow-[0_0_5px_#34d399]"
               title="CubeX 控制面正常运行"></span>
           </div>
         </div>
 
         <!-- Center: Dual-Engine Capsule (Mihomo ⇄ sing-box 毫秒级热切 · 柔和防眩光微光) -->
-        <div class="flex items-center p-1 sm:p-1.5 rounded-2xl border shadow-xl backdrop-blur-2xl transition-all duration-500 relative gap-1 sm:gap-1.5"
-          :class="activeEngine === 'singbox' ? 'bg-slate-950/85 border-purple-500/35 shadow-purple-950/30' : 'bg-slate-950/85 border-cyan-500/35 shadow-cyan-950/30'">
+        <div class="flex items-center p-1 sm:p-1.5 rounded-2xl border shadow-md backdrop-blur-xl transition-all duration-300 relative gap-1 sm:gap-1.5 bg-slate-900/80 border-slate-700/60">
           
-          <!-- sing-box Button (柔和暗紫黑晶质感) -->
+          <!-- sing-box Button (柔和深墨微光质感) -->
           <button @click="switchEngine('singbox')" :disabled="switchingEngine"
             :class="[
               'px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-2.5 sm:gap-3 active:scale-95 border select-none',
               activeEngine === 'singbox'
-                ? 'bg-gradient-to-r from-purple-950/90 via-slate-900/80 to-indigo-950/90 text-purple-100 shadow-md shadow-purple-950/60 border-purple-400/50 ring-1 ring-purple-400/30'
-                : 'text-slate-400 hover:text-white border-slate-800 hover:border-purple-500/40 hover:bg-purple-950/30 bg-slate-900/50'
+                ? 'bg-slate-800 text-purple-200 shadow-sm border-purple-500/40 ring-1 ring-purple-400/20'
+                : 'text-slate-400 hover:text-slate-200 border-slate-800 hover:border-slate-700 bg-slate-900/50'
             ]">
-            <!-- Sing-box Official 3D Neon Logo (无背景黑框) -->
-            <img src="/logo-singbox.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(240,171,252,0.6)] transition-transform duration-300" :class="activeEngine === 'singbox' ? 'scale-105' : ''" alt="sing-box" />
+            <!-- Sing-box Official 3D Logo -->
+            <img src="/logo-singbox.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(240,171,252,0.35)] transition-transform duration-300" :class="activeEngine === 'singbox' ? 'scale-105' : ''" alt="sing-box" />
             <div class="text-left leading-snug">
               <div class="flex items-center gap-1.5">
-                <span class="tracking-wide text-xs sm:text-sm font-black text-white">sing-box</span>
-                <span v-if="activeEngine === 'singbox'" class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>
+                <span class="tracking-wide text-xs sm:text-sm font-black text-slate-100">sing-box</span>
+                <span v-if="activeEngine === 'singbox'" class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_5px_#10b981]"></span>
               </div>
               <div :class="[
                 'hidden md:block text-[10px] sm:text-[11px] font-sans tracking-wider transition-colors',
-                activeEngine === 'singbox' ? 'text-purple-200' : 'text-purple-300/70'
+                activeEngine === 'singbox' ? 'text-purple-300' : 'text-slate-500'
               ]">
                 极致轻量 · 极速并发
               </div>
@@ -146,50 +142,61 @@
             :class="[
               'px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-2.5 sm:gap-3 active:scale-95 border select-none',
               activeEngine === 'mihomo'
-                ? 'bg-gradient-to-r from-cyan-950/90 via-sky-950/80 to-slate-900/90 text-cyan-100 shadow-md shadow-cyan-950/60 border-cyan-400/50 ring-1 ring-cyan-400/30'
-                : 'text-slate-400 hover:text-white border-slate-800 hover:border-cyan-500/40 hover:bg-cyan-950/30 bg-slate-900/50'
+                ? 'bg-slate-800 text-sky-200 shadow-sm border-sky-500/40 ring-1 ring-sky-400/20'
+                : 'text-slate-400 hover:text-slate-200 border-slate-800 hover:border-slate-700 bg-slate-900/50'
             ]">
-            <!-- Mihomo Official Mascot Logo (无背景黑框) -->
-            <img src="/logo-mihomo.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(56,189,248,0.6)] transition-transform duration-300" :class="activeEngine === 'mihomo' ? 'scale-105' : ''" alt="Mihomo" />
+            <!-- Mihomo Official Mascot Logo -->
+            <img src="/logo-mihomo.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(56,189,248,0.35)] transition-transform duration-300" :class="activeEngine === 'mihomo' ? 'scale-105' : ''" alt="Mihomo" />
             <div class="text-left leading-snug">
               <div class="flex items-center gap-1.5">
-                <span class="tracking-wide text-xs sm:text-sm font-black text-white">Mihomo</span>
-                <span v-if="activeEngine === 'mihomo'" class="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#38bdf8]"></span>
+                <span class="tracking-wide text-xs sm:text-sm font-black text-slate-100">Mihomo</span>
+                <span v-if="activeEngine === 'mihomo'" class="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_5px_#38bdf8]"></span>
               </div>
               <div :class="[
                 'hidden md:block text-[10px] sm:text-[11px] font-sans tracking-wider transition-colors',
-                activeEngine === 'mihomo' ? 'text-cyan-200' : 'text-cyan-300/70'
+                activeEngine === 'mihomo' ? 'text-sky-300' : 'text-slate-500'
               ]">
                 多协议 · 全生态
               </div>
             </div>
           </button>
 
-          <div v-if="switchingEngine" class="absolute inset-0 bg-slate-950/90 rounded-2xl flex items-center justify-center text-xs text-cyan-300 font-mono animate-pulse z-10">
+          <div v-if="switchingEngine" class="absolute inset-0 bg-slate-900/95 rounded-2xl flex items-center justify-center text-xs text-sky-300 font-mono animate-pulse z-10">
             🔄 双核零断流热切中...
           </div>
         </div>
 
-        <!-- Right: 视觉调色/护眼模式 + 宿主机官方矢量 Logo + 在线心跳胶囊 -->
+        <!-- Right: 🌙 去蓝光护眼一键切换 + 宿主机官方矢量 Logo + 在线心跳胶囊 -->
         <div class="flex items-center gap-2 shrink-0">
-          <!-- Eye-Care & Aesthetic Mode Capsule (柔和护眼 · 极光微光 · 科技冷灰 一键随心换) -->
-          <button @click="cycleTheme"
-            class="h-[42px] sm:h-[46px] inline-flex items-center gap-1.5 px-3 sm:px-3.5 rounded-2xl bg-gradient-to-r from-slate-900/95 via-sky-950/40 to-slate-900/95 border border-slate-700/60 hover:border-cyan-400/50 shadow-md text-xs select-none transition cursor-pointer active:scale-95"
-            :title="'当前配色: ' + currentThemeMeta.name + ' (点击切换视觉模式)'">
-            <span class="text-sm">{{ currentThemeMeta.icon }}</span>
-            <span class="hidden sm:inline font-mono font-bold" :class="currentThemeMeta.textColor">{{ currentThemeMeta.shortName }}</span>
+          <!-- 🌙 去蓝光护眼 (Anti-Blue-Light Warm Spectrum Filter · 4500K 暖墨护眼) -->
+          <button @click="toggleAntiBlueLight"
+            :class="[
+              'h-[42px] sm:h-[46px] inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-2xl border text-xs select-none transition-all cursor-pointer active:scale-95',
+              antiBlueLight
+                ? 'bg-amber-950/60 border-amber-500/50 text-amber-200 shadow-md shadow-amber-950/50 ring-1 ring-amber-400/40'
+                : 'bg-slate-900/80 border-slate-700/60 text-slate-300 hover:text-amber-200 hover:border-amber-500/40 hover:bg-slate-800/80'
+            ]"
+            :title="antiBlueLight ? '去蓝光护眼模式: 已开启 (暖墨温润光谱 4500K · 点击关闭)' : '去蓝光护眼模式: 已关闭 (点击开启 · 滤除高能蓝光 · 缓解视疲劳)'">
+            <span class="text-sm transition-transform duration-300" :class="antiBlueLight ? 'scale-110' : ''">🌙</span>
+            <span class="hidden sm:inline font-mono font-bold tracking-tight">
+              {{ antiBlueLight ? '去蓝光 · 开启' : '去蓝光护眼' }}
+            </span>
+            <span :class="[
+              'w-2 h-2 rounded-full transition-all duration-300 shrink-0',
+              antiBlueLight ? 'bg-amber-400 shadow-[0_0_6px_#fbbf24]' : 'bg-slate-600'
+            ]"></span>
           </button>
 
           <!-- Fixed Height h-[42px] sm:h-[46px] for absolute symmetry with left capsule -->
-          <div class="h-[42px] sm:h-[46px] inline-flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 rounded-2xl bg-gradient-to-r from-slate-900/95 via-sky-950/60 to-slate-900/95 border border-cyan-500/40 shadow-lg shadow-cyan-950/40 group select-none transition-colors duration-500">
-            <!-- 宿主官方矢量 Logo (无背景黑框) -->
-            <img :src="hostBadge.svg" class="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(0,210,255,0.7)] group-hover:scale-105 transition-transform" :alt="hostBadge.shortName" />
+          <div class="h-[42px] sm:h-[46px] inline-flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 rounded-2xl bg-slate-900/80 border border-slate-700/60 shadow-md group select-none transition-colors duration-300">
+            <!-- 宿主官方矢量 Logo (柔和微光) -->
+            <img :src="hostBadge.svg" class="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(56,189,248,0.25)] group-hover:scale-105 transition-transform" :alt="hostBadge.shortName" />
             
             <!-- 宿主平台名称 (无 MikroTik 前缀，单行优雅展示，基线居中对齐) -->
-            <span class="text-xs sm:text-[13px] font-bold font-mono text-cyan-200 whitespace-nowrap truncate max-w-[160px] sm:max-w-[220px] leading-none" :title="hostBadge.name">
+            <span class="text-xs sm:text-[13px] font-bold font-mono text-sky-200 whitespace-nowrap truncate max-w-[160px] sm:max-w-[220px] leading-none" :title="hostBadge.name">
               {{ hostBadge.name }}
             </span>
-            <span :class="['w-2 h-2 rounded-full shrink-0', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]' : 'bg-amber-400']" :title="hostBadge.online ? '宿主平台在线联动' : '未连接'"></span>
+            <span :class="['w-2 h-2 rounded-full shrink-0', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_5px_#10b981]' : 'bg-amber-400']" :title="hostBadge.online ? '宿主平台在线联动' : '未连接'"></span>
           </div>
         </div>
       </header>
@@ -246,11 +253,11 @@
       </div>
     </transition-group>
 
-    <!-- Toast Feedback Notification Banner (Fixed Aurora Float at Top-Center) -->
-    <div v-if="toastMsg" class="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] max-w-xl w-[92%] sm:w-auto px-5 py-3.5 rounded-2xl border text-xs sm:text-sm font-mono flex items-center justify-between gap-4 shadow-[0_16px_50px_rgba(0,0,0,0.9)] backdrop-blur-2xl transition-all duration-300 animate-in fade-in slide-in-from-top-4"
-      :class="toastError ? 'bg-[#1a0006]/95 border-rose-500/80 text-rose-200 shadow-rose-950/50' : 'bg-[#00172e]/95 border-cyan-400/80 text-cyan-200 ring-1 ring-cyan-500/30 shadow-cyan-950/50'">
+    <!-- Toast Feedback Notification Banner (Fixed Eye-Care Float at Top-Center) -->
+    <div v-if="toastMsg" class="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] max-w-xl w-[92%] sm:w-auto px-5 py-3.5 rounded-2xl border text-xs sm:text-sm font-mono flex items-center justify-between gap-4 shadow-2xl backdrop-blur-2xl transition-all duration-300 animate-in fade-in slide-in-from-top-4"
+      :class="toastError ? 'bg-rose-950/95 border-rose-500/70 text-rose-200 shadow-rose-950/50' : 'bg-[#17202b]/95 border-emerald-500/50 text-slate-100 ring-1 ring-emerald-500/20 shadow-xl'">
       <div class="flex items-center gap-2.5">
-        <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="toastError ? 'bg-rose-400 animate-ping' : 'bg-cyan-400 animate-ping'"></span>
+        <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="toastError ? 'bg-rose-400 animate-ping' : 'bg-emerald-400 animate-ping'"></span>
         <span class="tracking-wide">{{ toastMsg }}</span>
       </div>
       <button @click="toastMsg = ''" class="text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-800/80 cursor-pointer transition">✕</button>
@@ -567,15 +574,16 @@
 
                     <!-- Custom Dropdown Popover Menu -->
                     <div v-if="activeProbeDropdown === bi"
-                      class="absolute top-full mt-2 w-56 max-h-72 overflow-y-auto bg-[#00172e]/98 backdrop-blur-2xl border border-cyan-500/60 rounded-2xl shadow-2xl p-1.5 z-[60] text-slate-200 space-y-0.5 custom-scrollbar animate-in fade-in zoom-in-95"
+                      class="absolute top-full mt-2 w-56 max-h-72 overflow-y-auto bg-[#17202c]/98 backdrop-blur-2xl border border-slate-700/80 rounded-2xl shadow-2xl p-1.5 z-[60] text-slate-200 space-y-0.5 custom-scrollbar animate-in fade-in zoom-in-95"
                       :class="bi >= 2 ? 'right-0' : 'left-0'">
-                      <div class="px-2.5 py-1 text-[10px] font-mono text-cyan-400 uppercase tracking-wider border-b border-slate-800/80 mb-1 flex items-center justify-between">
+                      <div class="px-2.5 py-1 text-[10px] font-mono text-slate-400 uppercase tracking-wider border-b border-slate-700/60 mb-1 flex items-center justify-between">
                         <span>选择测速目标</span>
                         <span class="text-slate-500 font-sans">{{ availableProbeTargets.length }} 个站点</span>
                       </div>
                       <button v-for="target in availableProbeTargets" :key="target.id"
                         @click="selectProbeTarget(bi, target)"
                         class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl text-xs transition text-left cursor-pointer"
+                        :class="item.id === target.id ? 'bg-sky-500/20 text-sky-200 font-bold border border-sky-400/30' : 'hover:bg-slate-800 text-slate-300 hover:text-slate-100'">
                         :class="item.id === target.id ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-400/30' : 'hover:bg-slate-800/80 text-slate-300 hover:text-white'">
                         <BrandLogo :name="target.logo" size="w-4 h-4" class="shrink-0" />
                         <span class="truncate flex-1">{{ target.name }}</span>
@@ -1206,7 +1214,7 @@
                 @dragstart="!grp.is_immutable && onDragStart($event, grpIdx)"
                 @dragover.prevent
                 @drop="onDrop($event, grpIdx)"
-                class="rounded-3xl bg-[#00172e]/80 border border-slate-800/80 hover:border-cyan-500/30 transition-all duration-300 shadow-xl relative p-4 sm:p-5 space-y-4">
+                class="rounded-3xl bg-[#161e27]/85 border border-slate-700/60 hover:border-slate-600 transition-all duration-300 shadow-xl relative p-4 sm:p-5 space-y-4">
                 
                 <!-- Card Header: Drag Handle, Brand Icon, Name, Badges, Outbound Route Breadcrumb, Top-Right Latency Badge -->
                 <div class="flex items-start justify-between gap-3">
@@ -1516,7 +1524,7 @@
                   @dragover="onRegionDragOver($event)"
                   @dragend="onRegionDragEnd"
                   @drop="onRegionDrop(reg.id, $event)"
-                  class="rounded-2xl bg-[#00172e]/85 border border-slate-800/80 hover:border-cyan-500/40 transition-all duration-200 shadow-md p-3.5 space-y-2.5 group">
+                  class="rounded-2xl bg-[#161e27]/85 border border-slate-700/60 hover:border-slate-600 transition-all duration-200 shadow-md p-3.5 space-y-2.5 group">
                   
                   <!-- ── Group Header (Tier 1: Identity, Badges, Latency & Fast Actions) ── -->
                   <div class="flex items-center justify-between gap-3">
@@ -1658,7 +1666,7 @@
 
               <!-- Subscription Cards -->
               <div v-for="sub in filteredSubscriptions" :key="sub.id"
-                class="rounded-3xl bg-[#00172e]/80 border border-slate-800/80 hover:border-cyan-500/30 transition-all duration-300 shadow-xl overflow-hidden p-5 space-y-4">
+                class="rounded-3xl bg-[#161e27]/85 border border-slate-700/60 hover:border-slate-600 transition-all duration-300 shadow-xl overflow-hidden p-5 space-y-4">
                 
                 <!-- Airport Header: Name, Update Info, Quota & Expiry, Progress Bar, Actions -->
                 <div class="space-y-2.5">
@@ -1775,8 +1783,8 @@
           <!-- Modal: 手动添加应用分流组 (Add Custom Routing Group Modal)         -->
           <!-- ════════════════════════════════════════════════════════════════ -->
           <div v-if="showAddGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in">
-            <div class="w-full max-w-lg rounded-3xl bg-[#00172e] border border-cyan-500/40 shadow-2xl p-6 space-y-4 text-slate-200">
-              <div class="flex items-center justify-between border-b border-sky-900/40 pb-3">
+            <div class="w-full max-w-lg rounded-3xl bg-[#161e27] border border-slate-700/70 shadow-2xl p-6 space-y-4 text-slate-200">
+              <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
                 <div class="flex items-center gap-2">
                   <span class="text-xl">➕</span>
                   <h3 class="text-base font-bold text-white">手动添加应用分流策略组</h3>
@@ -1913,8 +1921,8 @@
           <!-- MODAL: 添加自定义节点分组 (支持按机场订阅单独分组 / 地区正则 / 手动勾选) -->
           <!-- ════════════════════════════════════════════════════════════════ -->
           <div v-if="showAddCustomNodeGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in">
-            <div class="w-full max-w-lg rounded-3xl bg-[#00172e] border border-cyan-500/40 shadow-2xl p-6 space-y-4 text-slate-200">
-              <div class="flex items-center justify-between border-b border-sky-900/40 pb-3">
+            <div class="w-full max-w-lg rounded-3xl bg-[#161e27] border border-slate-700/70 shadow-2xl p-6 space-y-4 text-slate-200">
+              <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
                 <div class="flex items-center gap-2">
                   <span class="text-xl">➕</span>
                   <h3 class="text-base font-bold text-white">添加自定义节点分组</h3>
@@ -2364,17 +2372,17 @@
           <!-- ════════════════════════════════════════════════════════════════ -->
           <!-- 2. 安全总评与能量光环看板 (Security Radar Scorecard)               -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <div class="p-6 rounded-3xl bg-[#00172e]/90 border border-cyan-500/30 shadow-2xl backdrop-blur-xl relative overflow-hidden">
-            <div class="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none"></div>
+          <div class="p-6 rounded-3xl bg-[#161e27]/90 border border-slate-700/60 shadow-xl backdrop-blur-xl relative overflow-hidden">
+            <div class="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-sky-500/10 blur-3xl pointer-events-none"></div>
             <div class="flex flex-col lg:flex-row items-center justify-between gap-6 relative z-10">
               
               <!-- Left: Circular Score Gauge -->
               <div class="flex items-center gap-5">
                 <div class="relative w-24 h-24 flex items-center justify-center shrink-0">
-                  <div class="absolute inset-0 rounded-full border-4 border-cyan-500/20 animate-pulse"></div>
-                  <div class="absolute inset-1 rounded-full border-2 border-cyan-400/40"></div>
-                  <div class="w-20 h-20 rounded-full bg-gradient-to-br from-cyan-950/80 to-slate-900 border border-cyan-400/60 flex flex-col items-center justify-center shadow-inner shadow-cyan-500/30">
-                    <span class="text-2xl font-black font-mono text-cyan-300 tracking-tighter">
+                  <div class="absolute inset-0 rounded-full border-4 border-slate-700/40"></div>
+                  <div class="absolute inset-1 rounded-full border-2 border-emerald-500/40"></div>
+                  <div class="w-20 h-20 rounded-full bg-slate-900 border border-emerald-500/40 flex flex-col items-center justify-center shadow-inner">
+                    <span class="text-2xl font-black font-mono text-emerald-300 tracking-tighter">
                       {{ securityAudit.report?.total_score || 100 }}
                     </span>
                     <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest">/ 100 分</span>
@@ -2429,8 +2437,8 @@
           <!-- ════════════════════════════════════════════════════════════════ -->
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div v-for="item in (securityAudit.report?.items || [])" :key="item.id"
-              class="p-4 rounded-2xl bg-[#00172e]/80 border transition-all duration-300 hover:border-cyan-500/50 hover:bg-[#001c38] flex flex-col justify-between space-y-3"
-              :class="item.status === 'PASS' ? 'border-sky-900/40' : (item.status === 'WARN' ? 'border-amber-500/40' : 'border-rose-500/40')">
+              class="p-4 rounded-2xl bg-[#161e27]/80 border transition-all duration-300 hover:border-slate-600 hover:bg-[#1c2733] flex flex-col justify-between space-y-3"
+              :class="item.status === 'PASS' ? 'border-slate-700/60' : (item.status === 'WARN' ? 'border-amber-500/40' : 'border-rose-500/40')">
               
               <!-- Card Top -->
               <div class="space-y-2">
@@ -3573,13 +3581,13 @@
       <!-- ════════════════════════════════════════════════════════════════ -->
       <!-- 3. 移动端原生级底部导航栏 (Mobile Safe-Area Bottom Dock < 768px)  -->
       <!-- ════════════════════════════════════════════════════════════════ -->
-      <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#001428]/95 backdrop-blur-2xl border-t border-cyan-500/30 pb-safe shadow-[0_-4px_25px_rgba(0,0,0,0.6)]">
+      <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#151c25]/95 backdrop-blur-2xl border-t border-slate-700/60 pb-safe shadow-2xl">
         <div class="grid grid-cols-6 px-1 py-1.5 gap-0.5">
           <button v-for="item in navItems" :key="item.id" @click="activeMasterTab = item.id"
             :class="[
               'flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all select-none',
               activeMasterTab === item.id
-                ? 'text-cyan-300 font-bold bg-cyan-500/20 shadow-sm border border-cyan-400/40'
+                ? 'text-sky-200 font-bold bg-slate-800 shadow-sm border border-slate-700/80'
                 : 'text-slate-400 hover:text-slate-200 border border-transparent active:scale-95'
             ]">
             <span class="text-lg leading-none mb-1">{{ item.icon }}</span>
@@ -3594,7 +3602,7 @@
     <!-- 移动端侧滑/浮层抽屉导航 (Mobile Flyout Navigation Drawer)              -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <div v-if="showMobileDrawer" class="md:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex animate-in fade-in">
-      <div class="w-4/5 max-w-xs h-full bg-[#00172e] border-r border-cyan-500/40 p-5 flex flex-col justify-between overflow-y-auto">
+      <div class="w-4/5 max-w-xs h-full bg-[#151c25] border-r border-slate-700/60 p-5 flex flex-col justify-between overflow-y-auto">
         <div class="space-y-5">
           <!-- Drawer Header with Logo & Close Button -->
           <div class="flex items-center justify-between border-b border-sky-900/40 pb-4">
@@ -3657,10 +3665,10 @@
     </div>
 
     <!-- ── Multi-Airport & Custom Nodes Manager Modal ── -->
-    <div v-if="showImportModal" class="fixed inset-0 z-50 bg-[#070b14]/85 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
-      <div class="bg-[#00172e] border border-cyan-500/50 rounded-3xl p-6 sm:p-7 max-w-3xl w-full space-y-5 shadow-[0_0_50px_rgba(0,210,255,0.18)] max-h-[92vh] flex flex-col text-slate-200">
+    <div v-if="showImportModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
+      <div class="bg-[#161e27] border border-slate-700/70 rounded-3xl p-6 sm:p-7 max-w-3xl w-full space-y-5 shadow-2xl max-h-[92vh] flex flex-col text-slate-200">
         <!-- Modal Header -->
-        <div class="flex items-center justify-between border-b border-sky-800/40 pb-3.5">
+        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3.5">
           <div class="flex items-center gap-3">
             <span class="text-2xl p-2 rounded-2xl bg-cyan-950/80 border border-cyan-500/30">⚡</span>
             <div>
@@ -3972,7 +3980,7 @@
     <!-- Modal: 宿主共生系统初始化向导 (System Initialization Wizard Modal)    -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <div v-if="showInitWizardModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-2xl animate-in fade-in overflow-y-auto">
-      <div class="relative w-full max-w-3xl rounded-3xl bg-[#00172e] border border-cyan-500/50 shadow-[0_0_50px_rgba(0,210,255,0.25)] p-6 sm:p-8 space-y-6 text-slate-200 overflow-hidden">
+      <div class="relative w-full max-w-3xl rounded-3xl bg-[#161e27] border border-slate-700/70 shadow-2xl p-6 sm:p-8 space-y-6 text-slate-200 overflow-hidden">
         
         <!-- Canvas for Celebratory Aurora Fireworks -->
         <canvas v-show="initWizardStep === 4" id="init-fireworks-canvas" class="absolute inset-0 z-20 pointer-events-none w-full h-full"></canvas>
@@ -3981,7 +3989,7 @@
         <input type="file" ref="initBackupFileInput" @change="handleInitBackupUpload" accept=".json,.bak" class="hidden" />
 
         <!-- Modal Header -->
-        <div class="flex items-center justify-between border-b border-sky-800/40 pb-4 relative z-10">
+        <div class="flex items-center justify-between border-b border-slate-700/60 pb-4 relative z-10">
           <div class="flex items-center gap-3">
             <span class="text-2xl">✨</span>
             <div>
@@ -4358,8 +4366,8 @@
           <!-- Modal: 一键自愈与巡检执行明细报告 (Execution Report Modal)          -->
           <!-- ════════════════════════════════════════════════════════════════ -->
           <div v-if="executionModal.visible" class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-            <div class="w-full max-w-2xl rounded-3xl bg-[#00172e] border border-cyan-500/50 shadow-2xl p-6 sm:p-7 space-y-5 text-slate-200 max-h-[85vh] flex flex-col">
-              <div class="flex items-center justify-between border-b border-sky-800/40 pb-4 shrink-0">
+            <div class="w-full max-w-2xl rounded-3xl bg-[#161e27] border border-slate-700/70 shadow-2xl p-6 sm:p-7 space-y-5 text-slate-200 max-h-[85vh] flex flex-col">
+              <div class="flex items-center justify-between border-b border-slate-700/60 pb-4 shrink-0">
                 <div class="flex items-center gap-3">
                   <span class="text-2xl">{{ executionModal.status === 'success' ? '🛡️' : '⚠️' }}</span>
                   <div>
@@ -4717,8 +4725,8 @@
           <!-- Modal: 双子星 × 超立方 3大全新设计定稿大图展厅                     -->
           <!-- ════════════════════════════════════════════════════════════════ -->
           <div v-if="showLogoGalleryModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
-            <div class="w-full max-w-4xl rounded-3xl bg-[#00172e] border border-cyan-500/50 shadow-2xl p-6 sm:p-8 space-y-6 text-slate-200 max-h-[90vh] overflow-y-auto">
-              <div class="flex items-center justify-between border-b border-sky-800/40 pb-4">
+            <div class="w-full max-w-4xl rounded-3xl bg-[#161e27] border border-slate-700/70 shadow-2xl p-6 sm:p-8 space-y-6 text-slate-200 max-h-[90vh] overflow-y-auto">
+              <div class="flex items-center justify-between border-b border-slate-700/60 pb-4">
                 <div class="flex items-center gap-3">
                   <span class="text-2xl">✨</span>
                   <div>
@@ -4794,28 +4802,28 @@
         <div class="space-y-3 text-xs">
           <div>
             <label class="block text-slate-300 font-bold mb-1">原始域名 (Domain)</label>
-            <input type="text" v-model="editingDnsRewriteRule.domain" placeholder="例: services.googleapis.cn 或 nas.lan" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono">
+            <input type="text" v-model="editingDnsRewriteRule.domain" placeholder="例: services.googleapis.cn 或 nas.lan" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 font-mono">
           </div>
           <div>
             <label class="block text-slate-300 font-bold mb-1">重写类型 (Rewrite Type)</label>
-            <select v-model="editingDnsRewriteRule.type" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-cyan-500">
+            <select v-model="editingDnsRewriteRule.type" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500/60">
               <option value="CNAME">CNAME 域名别名重定向 (如 services.googleapis.com)</option>
               <option value="A">A 记录静态 IP 映射 (如 10.0.0.100)</option>
             </select>
           </div>
           <div>
             <label class="block text-slate-300 font-bold mb-1">重写目标 (Target Domain / IP)</label>
-            <input type="text" v-model="editingDnsRewriteRule.target" placeholder="例: services.googleapis.com 或 10.0.0.100" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono">
+            <input type="text" v-model="editingDnsRewriteRule.target" placeholder="例: services.googleapis.com 或 10.0.0.100" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 font-mono">
           </div>
           <div>
             <label class="block text-slate-300 font-bold mb-1">说明备注 (Comment)</label>
-            <input type="text" v-model="editingDnsRewriteRule.comment" placeholder="例: 解决 Google Play 无法下载 App 问题" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500">
+            <input type="text" v-model="editingDnsRewriteRule.comment" placeholder="例: 解决 Google Play 无法下载 App 问题" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/60">
           </div>
         </div>
 
         <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
           <button @click="showDnsRewriteModal = false" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer">取消</button>
-          <button @click="saveDnsRewriteRule" class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold shadow-lg shadow-cyan-500/20 cursor-pointer">保存并立即生效</button>
+          <button @click="saveDnsRewriteRule" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-950/40 cursor-pointer transition">保存并立即生效</button>
         </div>
       </div>
     </div>
@@ -5228,58 +5236,41 @@ function openExecutionModalFromLast() {
   }
 }
 
-// ── Visual Comfort & Eye-Care Modes (柔和护眼 · 质感升维) ──
-const availableThemes = [
-  { id: 'eyecare', shortName: '柔和护眼', name: '柔和护眼 (Eye-Care Calm)', icon: '🌿', textColor: 'text-emerald-300' },
-  { id: 'aurora', shortName: '赛博极光', name: '赛博微光 (Silent Aurora)', icon: '🌌', textColor: 'text-cyan-300' },
-  { id: 'slate', shortName: '科技冷灰', name: '科技冷灰 (MikroTik Slate)', icon: '🎛️', textColor: 'text-sky-300' },
-]
-const currentTheme = ref(localStorage.getItem('cubex_ui_theme') || 'eyecare')
+// ── Visual Comfort: 纯净柔和护眼底座 + 🌙 去蓝光护眼滤镜 (Anti-Blue-Light 4500K) ──
+const currentTheme = ref('eyecare')
+const currentThemeMeta = computed(() => ({
+  id: 'eyecare',
+  shortName: '柔和护眼',
+  name: '柔和护眼 (Eye-Care Calm)',
+  icon: '🌿',
+  textColor: 'text-emerald-300'
+}))
 
-function setTheme(id) {
-  currentTheme.value = id
-  try { localStorage.setItem('cubex_ui_theme', id) } catch (e) {}
+// 去蓝光护眼滤镜状态 (本地持久化存储 · 滤除 420-460nm 高能蓝光)
+const antiBlueLight = ref(localStorage.getItem('cubex_anti_blue') === 'true')
+
+function toggleAntiBlueLight() {
+  antiBlueLight.value = !antiBlueLight.value
+  try {
+    localStorage.setItem('cubex_anti_blue', antiBlueLight.value ? 'true' : 'false')
+  } catch (e) {}
+  showToast(
+    antiBlueLight.value
+      ? '🌙 已开启去蓝光护眼模式 (4500K 暖墨护眼 · 滤除短波蓝光)'
+      : '☀️ 已恢复标准柔和护眼模式'
+  )
 }
-
-function cycleTheme() {
-  const ids = ['eyecare', 'aurora', 'slate']
-  const idx = ids.indexOf(currentTheme.value)
-  const nextId = ids[(idx + 1) % ids.length]
-  setTheme(nextId)
-}
-
-const currentThemeMeta = computed(() => {
-  return availableThemes.find(t => t.id === currentTheme.value) || availableThemes[0]
-})
 
 const rootBgClass = computed(() => {
-  if (currentTheme.value === 'eyecare') {
-    return activeEngine.value === 'singbox' ? 'bg-[#0e0f1a] text-slate-200' : 'bg-[#0b1120] text-slate-200'
-  } else if (currentTheme.value === 'slate') {
-    return activeEngine.value === 'singbox' ? 'bg-[#0f172a] text-slate-200' : 'bg-[#090d16] text-slate-200'
-  } else {
-    return activeEngine.value === 'singbox' ? 'bg-[#0d091a] text-slate-100' : 'bg-[#001428] text-slate-100'
-  }
+  return activeEngine.value === 'singbox' ? 'bg-[#121620] text-slate-200' : 'bg-[#11171f] text-slate-200'
 })
 
 const sidebarBgClass = computed(() => {
-  if (currentTheme.value === 'eyecare') {
-    return 'bg-[#080d19]/95 border-slate-800/80 backdrop-blur-xl'
-  } else if (currentTheme.value === 'slate') {
-    return 'bg-[#050811]/95 border-slate-800 backdrop-blur-xl'
-  } else {
-    return activeEngine.value === 'singbox' ? 'bg-[#0d081f]/95 border-purple-900/30 backdrop-blur-xl' : 'bg-[#00172e]/95 border-sky-900/30 backdrop-blur-xl'
-  }
+  return 'bg-[#151c25]/95 border-slate-700/40 backdrop-blur-xl'
 })
 
 const headerBgClass = computed(() => {
-  if (currentTheme.value === 'eyecare') {
-    return 'bg-[#080d19]/90 border-slate-800/80'
-  } else if (currentTheme.value === 'slate') {
-    return 'bg-[#050811]/90 border-slate-800'
-  } else {
-    return activeEngine.value === 'singbox' ? 'bg-[#0d081f]/90 border-purple-900/30' : 'bg-[#001428]/90 border-sky-900/30'
-  }
+  return 'bg-[#151c25]/90 border-slate-700/40 backdrop-blur-xl'
 })
 
 const activeEngine = ref('singbox')

@@ -379,7 +379,12 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 		level := "INFO"
 		lower := strings.ToLower(cleanLine)
 		if strings.Contains(lower, "error") || strings.Contains(lower, "fatal") || strings.Contains(lower, "panic") || strings.Contains(lower, "fail") {
-			level = "ERROR"
+			// Benign socket cancellation noise (e.g. probe canceled, client closed socket) is routine lifecycle, demote to DEBUG
+			if strings.Contains(lower, "operation was canceled") || strings.Contains(lower, "context canceled") {
+				level = "DEBUG"
+			} else {
+				level = "ERROR"
+			}
 		} else if strings.Contains(lower, "warn") {
 			level = "WARN"
 		} else if strings.Contains(lower, "debug") {
