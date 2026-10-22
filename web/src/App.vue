@@ -1422,17 +1422,13 @@
                           ? 'border-rose-400 shadow-lg shadow-rose-500/25 ring-2 ring-rose-400/60'
                           : 'border-slate-800/90 hover:border-rose-500/50 shadow-sm'
                       ]">
-                      <!-- Background: Crimson Shield SVG Watermark + Bottom Shadow Veil (Bright & Vivid) -->
+                      <!-- Background: Crimson Aegis Sentinel Flag SVG + Bottom Shadow Veil (Bright & Vivid) -->
                       <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none bg-slate-950">
-                        <svg viewBox="0 0 36 24" preserveAspectRatio="none"
+                        <RegionFlag code="REJECT" name="拒绝" as-background
                           :class="[
-                            'w-full h-full block transition-opacity duration-300',
-                            isRejectActive(grp) ? 'opacity-85' : 'opacity-65 group-hover:opacity-80'
-                          ]">
-                          <rect width="36" height="24" fill="#310a12"/>
-                          <path d="M18 4 L28 8 V14 C28 18 18 21 18 21 C18 21 8 18 8 14 V8 Z" stroke="#e11d48" stroke-width="0.8" fill="#4c0519" opacity="0.4"/>
-                          <line x1="13" y1="8.5" x2="23" y2="16.5" stroke="#f43f5e" stroke-width="1.2" opacity="0.6"/>
-                        </svg>
+                            'w-full h-full object-cover transition-all duration-300',
+                            isRejectActive(grp) ? 'opacity-95 scale-[1.02]' : 'opacity-80 group-hover:opacity-95'
+                          ]" />
                         <div :class="[
                           'absolute inset-0 transition-opacity duration-300',
                           isRejectActive(grp)
@@ -1456,7 +1452,7 @@
                       <div class="relative z-10 flex items-center justify-between gap-1 pt-1">
                         <div class="flex items-center gap-1.5 min-w-0">
                           <span v-if="isRejectActive(grp)" class="w-1.5 h-1.5 rounded-full bg-rose-400 shadow-[0_0_6px_rgba(244,63,94,0.9)] animate-pulse shrink-0"></span>
-                          <span v-else class="text-rose-400 font-bold text-xs shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">✕</span>
+                          <span v-else class="text-xs shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">🛑</span>
                           <span class="text-xs sm:text-[13px] font-black truncate text-rose-200 drop-shadow-[0_2px_4px_rgba(0,0,0,1)] drop-shadow-[0_0_2px_rgba(0,0,0,1)] tracking-wide"
                             :class="isRejectActive(grp) ? 'text-rose-200' : 'group-hover:text-rose-300'">
                             拒绝

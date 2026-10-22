@@ -377,39 +377,181 @@
       <rect y="12" width="36" height="12" fill="#FFDD00"/>
     </svg>
 
-    <!-- 32. 自建 (CUSTOM) -->
+    <!-- 32. 自建节点主权旗 (Sovereign Cyber HomeLab Ensign) -->
     <svg v-else-if="code === 'CUSTOM' && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
-      <rect width="36" height="24" fill="#1b1035"/>
-      <path d="M18 4 L28 9 V15 C28 19 18 21 18 21 C18 21 8 19 8 15 V9 Z" stroke="#a855f7" stroke-width="0.8" fill="none" opacity="0.3"/>
-      <rect x="12" y="8" width="12" height="7" rx="1.5" stroke="#c084fc" stroke-width="0.8" fill="#2e1065" opacity="0.6"/>
-      <circle cx="15" cy="11.5" r="0.8" fill="#34d399"/>
-      <circle cx="18" cy="11.5" r="0.8" fill="#38bdf8"/>
+      <defs>
+        <linearGradient id="custom-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#180b2c"/>
+          <stop offset="60%" stop-color="#3b0764"/>
+          <stop offset="100%" stop-color="#581c87"/>
+        </linearGradient>
+      </defs>
+      <rect width="36" height="24" fill="url(#custom-bg)"/>
+      <rect x="0" y="9.5" width="36" height="5" fill="#0d041a"/>
+      <rect x="9.5" y="0" width="5" height="24" fill="#0d041a"/>
+      <rect x="0" y="10.8" width="36" height="2.4" fill="#a855f7" opacity="0.55"/>
+      <rect x="10.8" y="0" width="2.4" height="24" fill="#a855f7" opacity="0.55"/>
+      <g transform="translate(5, 5)">
+        <circle cx="0" cy="0" r="1.3" fill="#00f5d4"/>
+        <circle cx="3.5" cy="0" r="1.3" fill="#38bdf8"/>
+      </g>
+      <g transform="translate(22.5, 12)">
+        <polygon points="0,-5.8 5.2,-2.9 0,0 -5.2,-2.9" fill="#00f5d4" opacity="0.95"/>
+        <polygon points="-5.2,-2.9 0,0 0,5.8 -5.2,2.9" fill="#7b2cbf"/>
+        <polygon points="0,0 5.2,-2.9 5.2,2.9 0,5.8" fill="#38bdf8"/>
+        <circle cx="0" cy="0" r="1.2" fill="#ffffff"/>
+      </g>
     </svg>
-    <svg v-else-if="code === 'CUSTOM'" viewBox="0 0 24 24" class="w-5 h-5 text-purple-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-      <polyline points="9 22 9 12 15 12 15 22"/>
-    </svg>
+    <div v-else-if="code === 'CUSTOM'" class="text-sm shrink-0">
+      🏠
+    </div>
 
-    <!-- 33. 其它 (OTHERS) -->
+    <!-- 33. 全球公海 / 其它 (United Earth & Maritime Ensign) -->
     <svg v-else-if="code === 'OTHERS' && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
-      <rect width="36" height="24" fill="#081e36"/>
-      <circle cx="18" cy="12" r="9" stroke="#0284c7" stroke-width="0.8" fill="none" opacity="0.4"/>
-      <ellipse cx="18" cy="12" rx="4.5" ry="9" stroke="#0284c7" stroke-width="0.8" fill="none" opacity="0.4"/>
-      <line x1="9" y1="12" x2="27" y2="12" stroke="#0284c7" stroke-width="0.8" opacity="0.4"/>
+      <defs>
+        <linearGradient id="others-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#021c38"/>
+          <stop offset="50%" stop-color="#0284c7"/>
+          <stop offset="100%" stop-color="#082f49"/>
+        </linearGradient>
+      </defs>
+      <rect width="36" height="24" fill="url(#others-bg)"/>
+      <rect x="0" y="2.5" width="36" height="1.8" fill="#fbbf24" opacity="0.8"/>
+      <rect x="0" y="19.7" width="36" height="1.8" fill="#fbbf24" opacity="0.8"/>
+      <g transform="translate(6, 12)" fill="#ffffff" opacity="0.8">
+        <polygon points="0,-2 0.5,-0.5 2,0 0.5,0.5 0,2 -0.5,0.5 -2,0 -0.5,-0.5"/>
+      </g>
+      <g transform="translate(30, 12)" fill="#ffffff" opacity="0.8">
+        <polygon points="0,-2 0.5,-0.5 2,0 0.5,0.5 0,2 -0.5,0.5 -2,0 -0.5,-0.5"/>
+      </g>
+      <g transform="translate(18, 12)">
+        <circle cx="0" cy="0" r="6.8" fill="#0369a1" stroke="#ffffff" stroke-width="0.8"/>
+        <ellipse cx="0" cy="0" rx="3.4" ry="6.8" fill="none" stroke="#ffffff" stroke-width="0.6" opacity="0.85"/>
+        <line x1="-6.8" y1="0" x2="6.8" y2="0" stroke="#ffffff" stroke-width="0.6" opacity="0.85"/>
+        <ellipse cx="0" cy="0" rx="6.8" ry="3.4" fill="none" stroke="#38bdf8" stroke-width="0.5" opacity="0.65"/>
+        <ellipse cx="0" cy="0" rx="9.8" ry="3.6" fill="none" stroke="#fbbf24" stroke-width="0.75" stroke-dasharray="1.5 1" transform="rotate(-25)"/>
+      </g>
     </svg>
-    <svg v-else-if="code === 'OTHERS'" viewBox="0 0 24 24" class="w-5 h-5 text-cyan-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2">
-      <circle cx="12" cy="12" r="10"/>
-      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1 4-10z"/>
-    </svg>
+    <div v-else-if="code === 'OTHERS'" class="text-sm shrink-0">
+      🌐
+    </div>
 
-    <!-- 34. 机场订阅自定义 -->
-    <svg v-else-if="type === 'sub' && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
-      <rect width="36" height="24" fill="#0c1729"/>
-      <path d="M6 14 L30 6 L20 20 L15 15 Z" stroke="#38bdf8" stroke-width="0.8" fill="#0284c7" opacity="0.35"/>
-      <line x1="6" y1="14" x2="15" y2="15" stroke="#38bdf8" stroke-width="0.6" opacity="0.4"/>
+    <!-- 34. 机场订阅专属旗 (Supersonic Cyber Airway Ensign) -->
+    <svg v-else-if="(code === 'SUB' || type === 'sub') && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
+      <defs>
+        <linearGradient id="sub-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#0b1b36"/>
+          <stop offset="50%" stop-color="#0284c7"/>
+          <stop offset="100%" stop-color="#075985"/>
+        </linearGradient>
+        <linearGradient id="sub-gold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fef08a"/>
+          <stop offset="100%" stop-color="#ca8a04"/>
+        </linearGradient>
+      </defs>
+      <rect width="36" height="24" fill="url(#sub-bg)"/>
+      <path d="M0 24 L13 0 L17 0 L4 24 Z" fill="#ffffff" opacity="0.3"/>
+      <path d="M5 24 L18 0 L22 0 L9 24 Z" fill="#38bdf8" opacity="0.45"/>
+      <g transform="translate(6.5, 6)" fill="#ffffff" opacity="0.9">
+        <polygon points="0,-3.5 0.7,-0.7 3.5,0 0.7,0.7 0,3.5 -0.7,0.7 -3.5,0 -0.7,-0.7"/>
+        <circle cx="0" cy="0" r="0.7" fill="#facc15"/>
+      </g>
+      <g transform="translate(22, 12)">
+        <ellipse cx="-4.5" cy="0" rx="3.5" ry="1.4" fill="#00f5d4" opacity="0.7"/>
+        <path d="M6.5 0 L-6 -5 L-3 -1.5 L-6.5 0 L-3 1.5 L-6 5 Z" fill="#ffffff"/>
+        <path d="M6.5 0 L-2 -1.5 L-6.5 0 L-2 1.5 Z" fill="url(#sub-gold)"/>
+      </g>
     </svg>
-    <div v-else-if="type === 'sub'" class="text-sm shrink-0">
+    <div v-else-if="code === 'SUB' || type === 'sub'" class="text-sm shrink-0">
       ✈️
+    </div>
+
+    <!-- 35. 拒绝出站 / 规则拦截旗 (Sentinel Citadel & Aegis Defense Flag) -->
+    <svg v-else-if="code === 'REJECT' && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
+      <defs>
+        <linearGradient id="reject-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#4c0519"/>
+          <stop offset="50%" stop-color="#9f1239"/>
+          <stop offset="100%" stop-color="#2a030d"/>
+        </linearGradient>
+        <linearGradient id="reject-shield" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#fb7185"/>
+          <stop offset="100%" stop-color="#e11d48"/>
+        </linearGradient>
+      </defs>
+      <rect width="36" height="24" fill="url(#reject-bg)"/>
+      <path d="M0 0 L15 12 L0 24 Z" fill="#180208" opacity="0.55"/>
+      <line x1="0" y1="0" x2="15" y2="12" stroke="#f43f5e" stroke-width="0.9" opacity="0.7"/>
+      <line x1="0" y1="24" x2="15" y2="12" stroke="#f43f5e" stroke-width="0.9" opacity="0.7"/>
+      <g transform="translate(22, 12)">
+        <path d="M0 -6.5 L6.2 -3.3 V2 C6.2 5.8 0 8.2 0 8.2 C0 8.2 -6.2 5.8 -6.2 2 V-3.3 Z" fill="url(#reject-shield)" stroke="#ffffff" stroke-width="0.8"/>
+        <line x1="-3.2" y1="-3.2" x2="3.2" y2="3.2" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round"/>
+        <line x1="3.2" y1="-3.2" x2="-3.2" y2="3.2" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round"/>
+      </g>
+    </svg>
+    <div v-else-if="code === 'REJECT'" class="text-sm shrink-0">
+      🛑
+    </div>
+
+    <!-- 36. 多国组合全息分流旗 (Multi-Country Alliance / Split Ensign) -->
+    <!-- 2国组合：对角极光双旗合璧 (Dual Country Split Flag) -->
+    <div v-else-if="multiCodes.length === 2 && asBackground" class="w-full h-full relative overflow-hidden flex bg-slate-950">
+      <div class="w-1/2 h-full overflow-hidden relative">
+        <RegionFlag :code="multiCodes[0]" as-background class="w-full h-full block" />
+      </div>
+      <div class="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-gradient-to-b from-cyan-400 via-white to-cyan-400 shadow-[0_0_8px_rgba(0,245,212,0.9)] z-10 pointer-events-none"></div>
+      <div class="w-1/2 h-full overflow-hidden relative">
+        <RegionFlag :code="multiCodes[1]" as-background class="w-full h-full block" />
+      </div>
+    </div>
+    <div v-else-if="multiCodes.length === 2" class="inline-flex items-center gap-0.5 shrink-0">
+      <RegionFlag :code="multiCodes[0]" :size-class="sizeClass" />
+      <RegionFlag :code="multiCodes[1]" :size-class="sizeClass" />
+    </div>
+
+    <!-- 3国组合：三极联合全息旗 (Tri-Country Split Flag) -->
+    <div v-else-if="multiCodes.length === 3 && asBackground" class="w-full h-full relative overflow-hidden flex bg-slate-950">
+      <div class="w-1/3 h-full overflow-hidden relative">
+        <RegionFlag :code="multiCodes[0]" as-background class="w-full h-full block" />
+      </div>
+      <div class="absolute inset-y-0 left-1/3 -translate-x-1/2 w-0.5 bg-gradient-to-b from-cyan-400 via-white to-cyan-400 shadow-[0_0_6px_rgba(0,245,212,0.8)] z-10 pointer-events-none"></div>
+      <div class="w-1/3 h-full overflow-hidden relative">
+        <RegionFlag :code="multiCodes[1]" as-background class="w-full h-full block" />
+      </div>
+      <div class="absolute inset-y-0 left-2/3 -translate-x-1/2 w-0.5 bg-gradient-to-b from-cyan-400 via-white to-cyan-400 shadow-[0_0_6px_rgba(0,245,212,0.8)] z-10 pointer-events-none"></div>
+      <div class="w-1/3 h-full overflow-hidden relative">
+        <RegionFlag :code="multiCodes[2]" as-background class="w-full h-full block" />
+      </div>
+    </div>
+    <div v-else-if="multiCodes.length === 3" class="inline-flex items-center gap-0.5 shrink-0">
+      <RegionFlag :code="multiCodes[0]" :size-class="sizeClass" />
+      <RegionFlag :code="multiCodes[1]" :size-class="sizeClass" />
+      <RegionFlag :code="multiCodes[2]" :size-class="sizeClass" />
+    </div>
+
+    <!-- 4国及以上多极联合旗 (Multi-Region Celestial Gateway Coalition Flag) -->
+    <svg v-else-if="multiCodes.length > 3 && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
+      <defs>
+        <linearGradient id="multi-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#051937"/>
+          <stop offset="40%" stop-color="#004d7a"/>
+          <stop offset="75%" stop-color="#008793"/>
+          <stop offset="100%" stop-color="#00bf72"/>
+        </linearGradient>
+      </defs>
+      <rect width="36" height="24" fill="url(#multi-bg)"/>
+      <path d="M-4 12 Q 18 -4 40 12" stroke="#ffffff" stroke-width="0.7" fill="none" opacity="0.6"/>
+      <path d="M-4 12 Q 18 28 40 12" stroke="#38bdf8" stroke-width="0.7" fill="none" opacity="0.6"/>
+      <circle cx="8" cy="9" r="1.6" fill="#f43f5e" stroke="#ffffff" stroke-width="0.6"/>
+      <circle cx="18" cy="12" r="2.2" fill="#00f5d4" stroke="#ffffff" stroke-width="0.8"/>
+      <circle cx="28" cy="15" r="1.6" fill="#fbbf24" stroke="#ffffff" stroke-width="0.6"/>
+      <line x1="8" y1="9" x2="18" y2="12" stroke="#ffffff" stroke-width="0.8" opacity="0.8"/>
+      <line x1="18" y1="12" x2="28" y2="15" stroke="#ffffff" stroke-width="0.8" opacity="0.8"/>
+      <polygon points="2,22 5,19 7,19 4,22" fill="#ffffff" opacity="0.5"/>
+      <polygon points="6,22 9,19 11,19 8,22" fill="#00f5d4" opacity="0.7"/>
+    </svg>
+    <div v-else-if="multiCodes.length > 3" class="text-sm shrink-0">
+      🌐⚡
     </div>
 
     <!-- 35. 其它通用国旗/区旗后备 (带大号 Emoji 全息居中展示) -->
@@ -428,6 +570,7 @@ import { computed } from 'vue'
 
 const props = defineProps({
   id: { type: String, default: '' },
+  code: { type: String, default: '' },
   countryCode: { type: String, default: '' },
   name: { type: String, default: '' },
   type: { type: String, default: 'region' },
@@ -461,6 +604,18 @@ function parseCountryCode(val) {
 }
 
 const code = computed(() => {
+  if (props.code) {
+    const uc = props.code.toUpperCase()
+    if (uc === 'REJECT' || uc === 'BLOCK') return 'REJECT'
+    if (uc === 'CUSTOM') return 'CUSTOM'
+    if (uc === 'OTHERS' || uc === 'OTHER') return 'OTHERS'
+    if (uc === 'SUB') return 'SUB'
+  }
+  if (props.id === 'REJECT' || props.name === '拒绝' || props.name === 'REJECT') return 'REJECT'
+  if (props.id === 'CUSTOM' || props.countryCode === 'CUSTOM') return 'CUSTOM'
+  if (props.id === 'OTHERS' || props.countryCode === 'OTHERS') return 'OTHERS'
+  if (props.type === 'sub' || props.flag === '✈️') return 'SUB'
+
   let c = parseCountryCode(props.countryCode)
   if (c) return c
   c = parseCountryCode(props.flag)
@@ -469,8 +624,61 @@ const code = computed(() => {
   if (c) return c
   c = parseCountryCode(props.id)
   if (c) return c
-  if (props.id && props.id.toUpperCase().startsWith('CUSTOM')) return 'CUSTOM'
+
+  // Custom airport subscription groups or custom node groups
+  if (props.id && props.id.toUpperCase().startsWith('CUSTOM')) {
+    if (props.type === 'sub' || (props.name && (props.name.includes('专属') || props.name.includes('机场') || props.name.includes('Sub') || props.name.includes('HHost') || props.name.includes('Mtice')))) {
+      return 'SUB'
+    }
+    return 'CUSTOM'
+  }
   if (props.id && props.id.toUpperCase().startsWith('OTHER')) return 'OTHERS'
+  if (props.name && (props.name.includes('专属') || props.name.includes('机场') || props.name.includes('HHost') || props.name.includes('Mtice'))) {
+    return 'SUB'
+  }
   return (props.countryCode || props.id || '').toUpperCase()
+})
+
+const multiCodes = computed(() => {
+  if (props.code && props.code.includes(',')) {
+    const parts = props.code.split(',').map(c => c.trim().toUpperCase()).filter(c => /^[A-Z]{2}$/.test(c))
+    if (parts.length > 1) return parts
+  }
+  if (props.countryCode && props.countryCode.includes(',')) {
+    const parts = props.countryCode.split(',').map(c => c.trim().toUpperCase()).filter(c => /^[A-Z]{2}$/.test(c))
+    if (parts.length > 1) return parts
+  }
+  const name = props.name || ''
+  if (!name || name.length < 2) return []
+
+  const found = []
+  const seen = new Set()
+
+  const checkAdd = (c) => {
+    if (c && !seen.has(c)) {
+      seen.add(c)
+      found.push(c)
+    }
+  }
+
+  for (const [k, code] of Object.entries(CHINESE_NAME_MAP)) {
+    if (name.includes(k)) checkAdd(code)
+  }
+
+  if (found.length < 2) {
+    if (name.includes('港')) checkAdd('HK')
+    if (name.includes('台')) checkAdd('TW')
+    if (name.includes('日')) checkAdd('JP')
+    if (name.includes('韩')) checkAdd('KR')
+    if (name.includes('新')) checkAdd('SG')
+    if (name.includes('美')) checkAdd('US')
+    if (name.includes('英')) checkAdd('GB')
+    if (name.includes('德')) checkAdd('DE')
+    if (name.includes('法')) checkAdd('FR')
+    if (name.includes('加')) checkAdd('CA')
+    if (name.includes('澳')) checkAdd('AU')
+  }
+
+  return found.length > 1 ? found : []
 })
 </script>
