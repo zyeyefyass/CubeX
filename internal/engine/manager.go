@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -488,6 +489,24 @@ func (m *Manager) dryRunCheck(eng schema.EngineType, binPath, etcDir, configPath
 	return nil
 }
 
+func (m *Manager) waitForPortsRelease(ports []int, timeout time.Duration) {
+	deadline := time.Now().Add(timeout)
+	for _, port := range ports {
+		if port <= 0 {
+			continue
+		}
+		for time.Now().Before(deadline) {
+			addr := fmt.Sprintf("0.0.0.0:%d", port)
+			l, err := net.Listen("tcp", addr)
+			if err == nil {
+				_ = l.Close()
+				break
+			}
+			time.Sleep(30 * time.Millisecond)
+		}
+	}
+}
+
 func (m *Manager) stopCurrentCore(binName string) {
 	if m.currentProc != nil && m.currentProc.Pid > 0 {
 		pid := m.currentProc.Pid
@@ -499,8 +518,8 @@ func (m *Manager) stopCurrentCore(binName string) {
 				select {
 				case <-done:
 					log.Printf("✅ [Engine] Core (PID %d) gracefully exited", pid)
-				case <-time.After(500 * time.Millisecond):
-					log.Printf("⚠️ [Engine] Core (PID %d) did not terminate in 500ms, force killing...", pid)
+				case <-time.After(800 * time.Millisecond):
+					log.Printf("⚠️ [Engine] Core (PID %d) did not terminate in 800ms, force killing...", pid)
 					_ = m.currentProc.Kill()
 					select {
 					case <-done:
@@ -521,9 +540,26 @@ func (m *Manager) stopCurrentCore(binName string) {
 		m.procDone = nil
 	}
 	if runtime.GOOS != "windows" && binName != "" {
-		_ = exec.Command("pkill", "-9", binName).Run()
+		_ = exec.Command("pkill", "-9", "-f", binName).Run()
 	}
-	time.Sleep(50 * time.Millisecond)
+
+	// Active port release verification
+	ports := []int{7890, 7892, 7893, 9090}
+	if m.ir != nil {
+		if m.ir.Network.MixedPort > 0 {
+			ports = append(ports, m.ir.Network.MixedPort)
+		}
+		if m.ir.Network.TProxyPort > 0 {
+			ports = append(ports, m.ir.Network.TProxyPort)
+		}
+		if m.ir.Network.RedirPort > 0 {
+			ports = append(ports, m.ir.Network.RedirPort)
+		}
+		if m.ir.Network.ClashAPIPort > 0 {
+			ports = append(ports, m.ir.Network.ClashAPIPort)
+		}
+	}
+	m.waitForPortsRelease(ports, 1500*time.Millisecond)
 }
 
 func (m *Manager) probeCoreHealth(target schema.EngineType, maxWait time.Duration) bool {

@@ -89,8 +89,8 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	tunStack := net.TunStack
-	if tunStack == "" || tunStack == "system" {
-		tunStack = "gvisor"
+	if tunStack == "" {
+		tunStack = "mixed"
 	}
 
 	// TUN Configuration (Zero-copy gvisor/mixed stack with local subnet bypass)
@@ -104,7 +104,8 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"strict-route":             false,
 		"dns-mode":                 "hijack",
 		"mtu":                      tunMTU,
-		"gso":                      false,
+		"gso":                      true,
+		"gso-max-size":             65536,
 		"endpoint-independent-nat": true,
 		"route-exclude-address": []string{
 			"10.0.0.0/8",
@@ -347,6 +348,10 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		pMap["server"] = p.Server
 		pMap["port"] = p.Port
 		pMap["udp"] = true
+		ptypeLower := strings.ToLower(p.Type)
+		if ptypeLower == "vless" || ptypeLower == "vmess" || ptypeLower == "trojan" || ptypeLower == "shadowsocks" || ptypeLower == "ss" {
+			pMap["tfo"] = true
+		}
 
 		// Sanitize sing-box / raw config artifacts for Mihomo
 		if tlsMap, ok := pMap["tls"].(map[string]any); ok {

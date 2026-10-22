@@ -327,8 +327,8 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	tunStack := net.TunStack
-	if tunStack == "" || tunStack == "system" || tunStack == "mixed" {
-		tunStack = "gvisor"
+	if tunStack == "" {
+		tunStack = "mixed"
 	}
 
 	tproxyPort := net.TProxyPort
@@ -357,7 +357,6 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"auto_redirect":             false,
 				"strict_route":              false,
 				"stack":                     tunStack,
-				"gso":                       false,
 				"udp_timeout":               "60s",
 				"endpoint_independent_nat":  true,
 				"route_exclude_address": []string{
@@ -456,6 +455,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		switch pType {
 		case "vless", "vmess", "trojan", "shadowsocks", "ss", "socks", "http":
 			nodeMap["tcp_fast_open"] = true
+			nodeMap["tcp_multi_path"] = true
 		}
 
 

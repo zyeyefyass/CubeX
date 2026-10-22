@@ -3209,10 +3209,10 @@
                     <span>📚</span>
                     <span>Geo 数据库 & 217heidai 规则包</span>
                   </div>
-                  <button @click="showGeodataDetailModal = true" class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 transition cursor-pointer flex items-center gap-1 shadow-sm">
-                    <span>{{ (geodataStatus.total_rules || adblockStats.total_rules || 236255).toLocaleString() }} 条</span>
-                    <span class="text-[9px] text-emerald-400 underline">明细</span>
-                  </button>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span>{{ (geodataStatus.total_rules || adblockStats.total_rules || 236255).toLocaleString() }} 条规则生效</span>
+                  </span>
                 </div>
                 <!-- Tier 2: Body (h-[74px]) -->
                 <div class="h-[74px] text-[11px] font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
