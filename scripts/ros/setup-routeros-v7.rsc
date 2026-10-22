@@ -190,7 +190,7 @@ $printMsg ("✅ [3/5 网段与IP分配] 主路由IP: " . $bridgeIP . " | 局域�
 :local wanIfaces [:toarray ""];
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 维度 1: 四维锁定上行 WAN 口 (严密保护 WAN 口防广播风暴与掉线)
+# 维度 1: 七维多协议深度锁定上行 WAN 口 (严密保护 WAN 口防广播风暴与断网)
 # ═════════════════════════════════════════════════════════════════════════════
 # 1.1 从 /interface list member 寻找具有 WAN 语义的清单成员 (WAN, wan, internet, isp, uplink等)
 :do {
@@ -208,7 +208,7 @@ $printMsg ("✅ [3/5 网段与IP分配] 主路由IP: " . $bridgeIP . " | 局域�
     }
 } on-error={};
 
-# 1.3 从 /interface pppoe-client 寻找宽带拨号上行接口及其绑定的底层物理口
+# 1.3 从 /interface pppoe-client 寻找宽带拨号上行接口及其绑定的底层物理口 (穿透抓底层真实物理口)
 :do {
     :foreach pc in=[/interface pppoe-client find] do={
         :local pIf [/interface pppoe-client get $pc interface];
@@ -217,17 +217,45 @@ $printMsg ("✅ [3/5 网段与IP分配] 主路由IP: " . $bridgeIP . " | 局域�
     }
 } on-error={};
 
-# 1.4 从系统默认路由探测实际物理出口
+# 1.4 从系统默认路由探测实际物理出口 (深度解析 gateway 与 immediate-gw 物理接口)
 :do {
     :foreach r in=[/ip route find where dst-address="0.0.0.0/0" and active=yes and routing-table=main] do={
         :local rGate [/ip route get $r gateway];
         :if ([:typeof $rGate] = "str" and [:len $rGate] > 0) do={
             :set wanIfaces ($wanIfaces, $rGate);
         }
+        :local imm [/ip route get $r immediate-gw];
+        :if ([:typeof $imm] = "str" and [:len $imm] > 0) do={
+            :local pctPos [:find $imm "%"];
+            :if ([:typeof $pctPos] = "num") do={
+                :local ifName [:pick $imm ($pctPos + 1) [:len $imm]];
+                :set wanIfaces ($wanIfaces, $ifName);
+            } else={
+                :set wanIfaces ($wanIfaces, $imm);
+            }
+        }
     }
 } on-error={};
 
-# 1.5 扫描接口名称或备注中包含 WAN/上行/公网/光猫等关键词的接口
+# 1.5 从防火墙出向 NAT 伪装规则提取公网出口接口 (out-interface)
+:do {
+    :foreach nat in=[/ip firewall nat find where chain="srcnat" and action="masquerade" and disabled=no] do={
+        :local outIf [/ip firewall nat get $nat out-interface];
+        :if ([:typeof $outIf] = "str" and [:len $outIf] > 0) do={
+            :set wanIfaces ($wanIfaces, $outIf);
+        }
+    }
+} on-error={};
+
+# 1.6 扫描蜂窝移动宽带接口 (4G/5G LTE 独立调制解调器)
+:do {
+    :foreach lte in=[/interface lte find where disabled=no] do={
+        :local lName [/interface lte get $lte name];
+        :set wanIfaces ($wanIfaces, $lName);
+    }
+} on-error={};
+
+# 1.7 扫描接口名称或备注中包含 WAN/上行/公网/光猫等关键词的接口
 :do {
     :foreach i in=[/interface find where name~"(?i)(wan|internet|isp|modem|uplink)" or comment~"(?i)(wan|internet|isp|modem|uplink|光猫|上联|公网)"] do={
         :local iName [/interface get $i name];

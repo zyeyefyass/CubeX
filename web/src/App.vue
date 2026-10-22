@@ -3112,13 +3112,13 @@
         </div>
 
         <!-- ════════════════════════════════════════════════════════════════ -->
-        <!-- TAB: 日志和诊断 (Logs & Diagnostics - 左侧主项目区独立模块)         -->
+        <!-- TAB: 日志诊断 (Logs & Diagnostics - 左侧主项目区独立模块)         -->
         <!-- ════════════════════════════════════════════════════════════════ -->
         <div v-else-if="activeMasterTab === 'diagnostics'" class="space-y-6 animate-in fade-in">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-800/40 pb-4">
             <div>
               <h2 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                <span>📜 日志和诊断</span>
+                <span>📜 日志诊断</span>
               </h2>
               <p class="text-xs text-slate-400 mt-1">环形实时日志流捕获 · 关键词检索与模块过滤 · 一键安全脱敏诊断包导出与 Issue 协同</p>
             </div>
@@ -4631,8 +4631,8 @@ const navItems = [
   { id: 'routing', label: '应用分流', icon: '🧭' },
   { id: 'rules', label: '安全防护', icon: '🛡️' },
   { id: 'kspeeder', label: '容器加速', icon: '🚀' },
-  { id: 'diagnostics', label: '日志和诊断', icon: '📜' },
-  { id: 'system', label: '宿主共生', icon: '⚙️' }
+  { id: 'system', label: '宿主共生', icon: '⚙️' },
+  { id: 'diagnostics', label: '日志诊断', icon: '📜' }
 ]
 
 const currentTabTitle = computed(() => {
