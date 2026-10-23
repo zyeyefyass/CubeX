@@ -8435,22 +8435,22 @@ async function setupRosIpv6() {
     })
     const data = await res.json()
     const isErr = !!data.error
-    const msg = data.message || (isErr ? ('IPv6 配置提示: ' + data.error) : '🎉 RouterOS 原生 IPv6 双栈已配置完毕，DNS 广播已锁定！')
+    const msg = data.message || (isErr ? ('IPv6 配置提示: ' + data.error) : (isOw ? '🎉 OpenWrt 原生 IPv6 odhcpd 已永久锁定，彻底阻断运营商 DNS 泄露！' : '🎉 RouterOS 原生 IPv6 双栈已配置完毕，DNS 广播已锁定！'))
     showToast(msg, isErr)
 
     hostLastExecution.value = {
-      title: 'RouterOS 原生 IPv6 双栈防泄露加固',
+      title: isOw ? 'OpenWrt 原生 IPv6 锁定与防 DNS 泄露加固' : 'RouterOS 原生 IPv6 双栈防泄露加固',
       message: msg,
       success: !isErr,
       time: new Date().toLocaleTimeString(),
-      actions: data.actions || []
+      actions: data.actions || data.logs || []
     }
     executionModal.value = {
       visible: true,
-      title: 'RouterOS 原生 IPv6 双栈加固报告',
+      title: isOw ? 'OpenWrt 原生 IPv6 锁定与防泄露加固报告' : 'RouterOS 原生 IPv6 双栈加固报告',
       status: isErr ? 'warning' : 'success',
       message: msg,
-      actions: data.actions || [],
+      actions: data.actions || data.logs || [],
       errors: data.errors || (data.error ? [data.error] : []),
       timestamp: new Date().toLocaleTimeString()
     }
@@ -8479,18 +8479,18 @@ async function applyLinuxHostFirewall() {
     showToast(msg, isErr)
 
     hostLastExecution.value = {
-      title: isIk ? '爱快静态回指路由与 DHCP 联动加固' : `${hostBadge.value.name} 防火墙与内核转发配置`,
+      title: isOw ? 'OpenWrt 策略回指与 DHCP 逃生联动加固' : (isIk ? '爱快静态回指路由与 DHCP 联动加固' : `${hostBadge.value.name} 防火墙与内核转发配置`),
       message: msg,
       success: !isErr,
       time: new Date().toLocaleTimeString(),
-      actions: data.actions || []
+      actions: data.actions || data.logs || []
     }
     executionModal.value = {
       visible: true,
-      title: isIk ? '爱快静态回指路由与 DHCP 联动加固报告' : `${hostBadge.value.name} 底层网络加固报告`,
+      title: isOw ? 'OpenWrt 策略回指与底层网络加固报告' : (isIk ? '爱快静态回指路由与 DHCP 联动加固报告' : `${hostBadge.value.name} 底层网络加固报告`),
       status: isErr ? 'warning' : 'success',
       message: msg,
-      actions: data.actions || [],
+      actions: data.actions || data.logs || [],
       errors: data.errors || (data.error ? [data.error] : []),
       timestamp: new Date().toLocaleTimeString()
     }

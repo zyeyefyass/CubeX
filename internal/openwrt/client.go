@@ -248,7 +248,7 @@ func (c *Client) callUbus(obj, method string, params map[string]any) ([]byte, er
 // runSSHCommand executes a shell command over Dropbear/OpenSSH with standard credentials.
 func (c *Client) runSSHCommand(cmd string) (string, error) {
 	sshPort := 22
-	if c.cfg.Port == 22 || c.cfg.Port == 2222 {
+	if c.cfg.Port > 0 && c.cfg.Port != 80 && c.cfg.Port != 443 {
 		sshPort = c.cfg.Port
 	}
 
@@ -365,6 +365,7 @@ uci set network.cubex_fakeip.netmask='255.254.0.0'
 uci set network.cubex_fakeip.gateway='%s'
 uci commit network
 /etc/init.d/network reload >/dev/null 2>&1 || true
+ip route replace 198.18.0.0/15 via %s 2>/dev/null || true
 
 # 2. DHCP Option 6 (DNS) Injection to point directly to CubeX
 # Remove any existing option 6 list entry to prevent duplicate DNS
@@ -407,9 +408,10 @@ chmod +x /usr/bin/cubex-watchdog.sh
 # Install or ensure crontab heartbeat every minute (or loop daemon)
 if ! grep -q "cubex-watchdog.sh" /etc/crontabs/root 2>/dev/null; then
     echo "* * * * * /usr/bin/cubex-watchdog.sh" >> /etc/crontabs/root
+    /etc/init.d/cron enable >/dev/null 2>&1 || true
     /etc/init.d/cron restart >/dev/null 2>&1 || true
 fi
-`, cubexIP, cubexIP, cubexIP, cubexIP)
+`, cubexIP, cubexIP, cubexIP, cubexIP, cubexIP)
 
 	out, err := c.runSSHCommand(script)
 	if err != nil {
@@ -501,6 +503,7 @@ uci set dhcp.lan.ra='server'
 uci set dhcp.lan.dhcpv6='server'
 
 uci commit dhcp
+/etc/init.d/odhcpd enable >/dev/null 2>&1 || true
 /etc/init.d/odhcpd restart >/dev/null 2>&1 || true
 
 # 3. Intercept external DNS leaks on port 53 (redirect external port 53 to local/cubex)

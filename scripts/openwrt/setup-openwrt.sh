@@ -139,6 +139,7 @@ uci set network.cubex_fakeip.netmask='255.254.0.0'
 uci set network.cubex_fakeip.gateway="$CUBEX_IP"
 uci commit network
 /etc/init.d/network reload >/dev/null 2>&1 || true
+ip route replace 198.18.0.0/15 via "$CUBEX_IP" dev "$LAN_IF" 2>/dev/null || ip route replace 198.18.0.0/15 via "$CUBEX_IP" 2>/dev/null || true
 
 # 6.2 DHCP Option 6 指向 CubeX
 uci -q del_list dhcp.lan.dhcp_option="6,${CUBEX_IP}" || true
@@ -151,6 +152,7 @@ uci set dhcp.lan.dns_service='0'
 uci -q delete dhcp.lan.dns || true
 uci set dhcp.lan.ra_dns='0'
 uci commit dhcp
+/etc/init.d/odhcpd enable >/dev/null 2>&1 || true
 /etc/init.d/odhcpd restart >/dev/null 2>&1 || true
 
 # 6.4 防火墙转发放行与内核优化
@@ -190,6 +192,7 @@ chmod +x /usr/bin/cubex-watchdog.sh
 
 if ! grep -q "cubex-watchdog.sh" /etc/crontabs/root 2>/dev/null; then
     echo "* * * * * /usr/bin/cubex-watchdog.sh" >> /etc/crontabs/root
+    /etc/init.d/cron enable >/dev/null 2>&1 || true
     /etc/init.d/cron restart >/dev/null 2>&1 || true
 fi
 

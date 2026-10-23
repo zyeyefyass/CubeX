@@ -813,8 +813,12 @@ func (m *Manager) StartSupervisor() {
 				count := m.crashCount
 				m.mu.Unlock()
 
-				m.log("WARN", "SUPERVISOR", fmt.Sprintf("🚨 核心 %s (PID %d) 异常退出或无响应 (故障计数: %d)", active, proc.Pid, count))
-				log.Printf("🚨 [Supervisor] Detected active engine %s (PID %d) unhealthy/crashed! (Crash count: %d)", active, proc.Pid, count)
+				pid := 0
+				if proc != nil {
+					pid = proc.Pid
+				}
+				m.log("WARN", "SUPERVISOR", fmt.Sprintf("🚨 核心 %s (PID %d) 异常退出或无响应 (故障计数: %d)", active, pid, count))
+				log.Printf("🚨 [Supervisor] Detected active engine %s (PID %d) unhealthy/crashed! (Crash count: %d)", active, pid, count)
 
 				standby := schema.EngineSingbox
 				if active == schema.EngineSingbox {
