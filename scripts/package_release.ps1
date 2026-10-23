@@ -3,12 +3,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Version = "Test-v2.6"
+$Version = "Test-v2.7"
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 $DistDir = "$RootDir\dist"
 $ReleaseDir = "$DistDir\release"
 
-Write-Host "📦 Starting CubeX Test v2.6 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
+Write-Host "📦 Starting CubeX Test v2.7 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
 if (-not $IncludeWindows) {
     Write-Host "ℹ️  Windows 平台包发布已按策略暂停 (可通过 -IncludeWindows 显式启用)" -ForegroundColor DarkCyan
 }
@@ -147,14 +147,15 @@ Assemble-RosContainer "CubeX-$Version-ros-arm64" "$DistDir\cubexd-linux-arm64" "
 python "$RootDir\scripts\build_v20_ros_containers.py" | Out-Host
 
 # Build fnOS / Linux Docker offline image
-python "$RootDir\scripts\build_docker_tar_v26.py" | Out-Host
+python "$RootDir\scripts\build_docker_tar_v27.py" | Out-Host
 
 # Copy standalone cubexd gateway binaries for 1-click in-place hot-upgrade
 Copy-Item -Path "$DistDir\cubexd-linux-amd64" -Destination "$ReleaseDir\cubexd-linux-amd64" -Force
 Copy-Item -Path "$DistDir\cubexd-linux-arm64" -Destination "$ReleaseDir\cubexd-linux-arm64" -Force
 
-# Copy RouterOS WinBox 1-Click RSC Script
+# Copy RouterOS WinBox 1-Click RSC Script & OpenWrt 1-Click Shell Script
 Copy-Item -Path "$RootDir\scripts\ros\setup-routeros-v7.rsc" -Destination "$ReleaseDir\setup-routeros-v7.rsc" -Force
+Copy-Item -Path "$RootDir\scripts\openwrt\setup-openwrt.sh" -Destination "$ReleaseDir\setup-openwrt.sh" -Force
 
 # Clean up staging
 Remove-Item -Path "$DistDir\staging" -Recurse -Force
