@@ -110,53 +110,53 @@
           </div>
         </div>
 
-        <!-- Center: Dual-Engine Capsule (Mihomo ⇄ sing-box 毫秒级热切 · 柔和防眩光微光) -->
-        <div class="flex items-center p-1 sm:p-1.5 rounded-2xl border shadow-md backdrop-blur-xl transition-all duration-300 relative gap-1 sm:gap-1.5 bg-slate-900/80 border-slate-700/60">
+        <!-- Center: Dual-Engine Capsule (Mihomo ⇄ sing-box 毫秒级热切 · 严格等宽对称设计) -->
+        <div class="shrink-0 flex items-center p-1 sm:p-1.5 rounded-2xl border shadow-md backdrop-blur-xl transition-all duration-300 relative gap-1.5 sm:gap-2 bg-slate-900/80 border-slate-700/60 select-none">
           
-          <!-- sing-box Button (柔和深墨微光质感) -->
+          <!-- sing-box Button (严格等宽 · 极客对称 · 纯黑晶深紫质感) -->
           <button @click="switchEngine('singbox')" :disabled="switchingEngine"
             :class="[
-              'px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-2.5 sm:gap-3 active:scale-95 border select-none',
+              'w-[136px] sm:w-[148px] md:w-[158px] h-[38px] sm:h-[42px] px-2.5 sm:px-3 rounded-xl sm:rounded-2xl transition-all flex items-center gap-2 sm:gap-2.5 active:scale-95 border select-none shrink-0 group cursor-pointer',
               activeEngine === 'singbox'
-                ? 'bg-slate-800 text-purple-200 shadow-sm border-purple-500/40 ring-1 ring-purple-400/20'
-                : 'text-slate-400 hover:text-slate-200 border-slate-800 hover:border-slate-700 bg-slate-900/50'
+                ? 'bg-slate-800 text-purple-200 shadow-md border-purple-500/50 ring-1 ring-purple-400/30'
+                : 'text-slate-400 hover:text-slate-200 border-slate-800/80 hover:border-slate-700 bg-slate-900/60 hover:bg-slate-800/50'
             ]">
             <!-- Sing-box Official 3D Logo -->
             <img src="/logo-singbox.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(240,171,252,0.35)] transition-transform duration-300" :class="activeEngine === 'singbox' ? 'scale-105' : ''" alt="sing-box" />
-            <div class="text-left leading-snug">
-              <div class="flex items-center gap-1.5">
-                <span class="tracking-wide text-xs sm:text-sm font-black text-slate-100">sing-box</span>
-                <span v-if="activeEngine === 'singbox'" class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_5px_#10b981]"></span>
+            <div class="flex-1 min-w-0 text-left overflow-hidden flex flex-col justify-center leading-none">
+              <div class="flex items-center justify-between gap-1 leading-none">
+                <span class="tracking-wide text-xs sm:text-[13px] font-black text-slate-100 whitespace-nowrap">sing-box</span>
+                <span v-if="activeEngine === 'singbox'" class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_#10b981] shrink-0"></span>
               </div>
               <div :class="[
-                'hidden md:block text-[10px] sm:text-[11px] font-sans tracking-wider transition-colors',
-                activeEngine === 'singbox' ? 'text-purple-300' : 'text-slate-500'
+                'text-[10px] sm:text-[11px] font-sans tracking-tight whitespace-nowrap truncate mt-1 leading-none transition-colors',
+                activeEngine === 'singbox' ? 'text-purple-300' : 'text-slate-500 group-hover:text-slate-400'
               ]">
-                AnyTLS 原生 · 极速轻量
+                原生 · 极速轻量
               </div>
             </div>
           </button>
 
-          <!-- Mihomo Button (柔和深墨蓝黑晶质感 · 告别刺眼白炽灯) -->
+          <!-- Mihomo Button (严格等宽 · 极客对称 · 纯黑晶深蓝质感) -->
           <button @click="switchEngine('mihomo')" :disabled="switchingEngine"
             :class="[
-              'px-3 sm:px-4 py-1.5 sm:py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-2.5 sm:gap-3 active:scale-95 border select-none',
+              'w-[136px] sm:w-[148px] md:w-[158px] h-[38px] sm:h-[42px] px-2.5 sm:px-3 rounded-xl sm:rounded-2xl transition-all flex items-center gap-2 sm:gap-2.5 active:scale-95 border select-none shrink-0 group cursor-pointer',
               activeEngine === 'mihomo'
-                ? 'bg-slate-800 text-sky-200 shadow-sm border-sky-500/40 ring-1 ring-sky-400/20'
-                : 'text-slate-400 hover:text-slate-200 border-slate-800 hover:border-slate-700 bg-slate-900/50'
+                ? 'bg-slate-800 text-sky-200 shadow-md border-sky-500/50 ring-1 ring-sky-400/30'
+                : 'text-slate-400 hover:text-slate-200 border-slate-800/80 hover:border-slate-700 bg-slate-900/60 hover:bg-slate-800/50'
             ]">
             <!-- Mihomo Official Mascot Logo -->
             <img src="/logo-mihomo.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(56,189,248,0.35)] transition-transform duration-300" :class="activeEngine === 'mihomo' ? 'scale-105' : ''" alt="Mihomo" />
-            <div class="text-left leading-snug">
-              <div class="flex items-center gap-1.5">
-                <span class="tracking-wide text-xs sm:text-sm font-black text-slate-100">Mihomo</span>
-                <span v-if="activeEngine === 'mihomo'" class="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_5px_#38bdf8]"></span>
+            <div class="flex-1 min-w-0 text-left overflow-hidden flex flex-col justify-center leading-none">
+              <div class="flex items-center justify-between gap-1 leading-none">
+                <span class="tracking-wide text-xs sm:text-[13px] font-black text-slate-100 whitespace-nowrap">Mihomo</span>
+                <span v-if="activeEngine === 'mihomo'" class="w-1.5 h-1.5 rounded-full bg-sky-400 shadow-[0_0_5px_#38bdf8] shrink-0"></span>
               </div>
               <div :class="[
-                'hidden md:block text-[10px] sm:text-[11px] font-sans tracking-wider transition-colors',
-                activeEngine === 'mihomo' ? 'text-sky-300' : 'text-slate-500'
+                'text-[10px] sm:text-[11px] font-sans tracking-tight whitespace-nowrap truncate mt-1 leading-none transition-colors',
+                activeEngine === 'mihomo' ? 'text-sky-300' : 'text-slate-500 group-hover:text-slate-400'
               ]">
-                Clash 兼容 · 规则完备
+                兼容 · 规则完备
               </div>
             </div>
           </button>
@@ -501,7 +501,7 @@
                 <div class="flex items-center justify-between text-xs font-bold text-sky-300">
                   <div class="flex items-center gap-2 min-w-0">
                     <img src="/logo-singbox.svg" class="w-4 h-4 object-contain shrink-0 drop-shadow-[0_0_4px_rgba(240,171,252,0.4)]" alt="sing-box" />
-                    <span class="truncate">sing-box {{ systemOverview.singbox_curr_version || 'v1.14.3' }} (AnyTLS 原生 · 极速轻量)</span>
+                    <span class="truncate">sing-box {{ systemOverview.singbox_curr_version || 'v1.14.3' }} (原生 · 极速轻量)</span>
                   </div>
                   <span class="font-mono shrink-0 ml-2">{{ benchmarkResult.singbox ? benchmarkResult.singbox.total_latency_ms + ' ms' : '等待竞技' }}</span>
                 </div>
@@ -516,7 +516,7 @@
                 <div class="flex items-center justify-between text-xs font-bold text-amber-300">
                   <div class="flex items-center gap-2 min-w-0">
                     <img src="/logo-mihomo.svg" class="w-4 h-4 object-contain shrink-0 drop-shadow-[0_0_4px_rgba(56,189,248,0.4)]" alt="Mihomo" />
-                    <span class="truncate">Mihomo {{ systemOverview.mihomo_curr_version || 'v1.19.33' }} (Clash 兼容 · 规则完备)</span>
+                    <span class="truncate">Mihomo {{ systemOverview.mihomo_curr_version || 'v1.19.33' }} (兼容 · 规则完备)</span>
                   </div>
                   <span class="font-mono shrink-0 ml-2">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.total_latency_ms + ' ms' : '等待竞技' }}</span>
                 </div>
@@ -6424,7 +6424,7 @@ const hostBadge = computed(() => {
       clean = 'RouterOS ' + clean
     }
     if (clean.includes('7.25')) {
-      clean = 'RouterOS v7.25 · DAI Ready'
+      clean = 'RouterOS v7.25'
     }
     return {
       name: clean || 'RouterOS v7',
@@ -7826,7 +7826,7 @@ async function runDualCoreDiagnose() {
     const data = await res.json()
     if (data.all_healthy) {
       dualCoreHealthy.value = true
-      const rosTag = data.ros_version ? ` | 宿主: ROS v${data.ros_version} (DAI就绪)` : ''; showToast(`🎉【全息体检 100% 健康】核心: ${data.active_engine} | 直连: ${data.direct_latency_ms}ms | 代理: ${data.proxy_latency_ms}ms | DNS: ${data.fakeip_address} | 宿主回指: 正常就绪${rosTag}！`)
+      const rosTag = data.ros_version ? ` | 宿主: ROS v${data.ros_version}` : ''; showToast(`🎉【全息体检 100% 健康】核心: ${data.active_engine} | 直连: ${data.direct_latency_ms}ms | 代理: ${data.proxy_latency_ms}ms | DNS: ${data.fakeip_address} | 宿主回指: 正常就绪${rosTag}！`)
     } else {
       dualCoreHealthy.value = false
       const issues = []
