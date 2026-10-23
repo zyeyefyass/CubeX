@@ -1214,17 +1214,25 @@
               </div>
 
               <div v-for="(grp, grpIdx) in filteredPolicies" :key="grp.name"
-                :draggable="!grp.is_immutable"
+                :draggable="!grp.is_immutable && activeDraggableGroup === grp.name"
                 @dragstart="!grp.is_immutable && onDragStart($event, grpIdx)"
                 @dragover.prevent
+                @dragend="onDragEnd"
                 @drop="onDrop($event, grpIdx)"
                 class="rounded-3xl bg-[#161e27]/85 border border-slate-700/60 hover:border-slate-600 transition-all duration-300 shadow-xl relative p-4 sm:p-5 space-y-4">
                 
                 <!-- Card Header: Drag Handle, Brand Icon, Name, Badges, Outbound Route Breadcrumb, Top-Right Latency Badge -->
                 <div class="flex items-start justify-between gap-3">
                   <div class="flex items-center gap-3 min-w-0">
-                    <!-- Drag Handle (仅业务策略允许拖拽，核心基石常驻固定) -->
-                    <div v-if="!grp.is_immutable" class="text-slate-500 hover:text-cyan-400 cursor-grab active:cursor-grabbing p-1 transition select-none text-base shrink-0" title="按住拖拽排序分流策略">
+                    <!-- Drag Handle (仅业务策略允许拖拽，核心基石常驻固定，只有按住此把手区域才允许拖拽排序) -->
+                    <div v-if="!grp.is_immutable"
+                      class="text-slate-500 hover:text-cyan-300 cursor-grab active:cursor-grabbing px-1.5 py-1 rounded-lg hover:bg-cyan-500/10 transition select-none text-base shrink-0 border border-transparent hover:border-cyan-500/30"
+                      title="按住拖拽排序分流策略"
+                      @mouseenter="setDragHandleGroup(grp.name)"
+                      @mouseleave="clearDragHandleGroup()"
+                      @mousedown="setDragHandleGroup(grp.name)"
+                      @mouseup="clearDragHandleGroup()"
+                      @touchstart.passive="setDragHandleGroup(grp.name)">
                       ⠿
                     </div>
                     <div v-else class="text-amber-500/70 p-1 select-none text-xs shrink-0 font-mono" title="系统核心基石策略，位置常驻固定">
@@ -1523,7 +1531,7 @@
               <!-- Compact 2-Column Responsive Grid (No Excessive Blank Space) -->
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 <div v-for="(reg, idx) in regionalAutoGroups" :key="reg.id"
-                  draggable="true"
+                  :draggable="activeDraggableRegion === reg.id"
                   @dragstart="onRegionDragStart(reg.id, $event)"
                   @dragover="onRegionDragOver($event)"
                   @dragend="onRegionDragEnd"
@@ -1534,8 +1542,14 @@
                   <div class="flex items-center justify-between gap-3">
                     <!-- Left: Drag + Flag + Group Name + Type Badge + Count Badge -->
                     <div class="flex items-center gap-2.5 min-w-0">
-                      <!-- Drag Handle -->
-                      <div class="text-slate-500 hover:text-cyan-400 cursor-grab active:cursor-grabbing p-0.5 transition select-none text-base shrink-0" title="按住拖拽排序">
+                      <!-- Drag Handle (只有按住此把手区域才允许拖拽排序) -->
+                      <div class="text-slate-500 hover:text-cyan-300 cursor-grab active:cursor-grabbing px-1.5 py-1 rounded-lg hover:bg-cyan-500/10 transition select-none text-base shrink-0 border border-transparent hover:border-cyan-500/30"
+                        title="按住拖拽排序"
+                        @mouseenter="setDragHandleRegion(reg.id)"
+                        @mouseleave="clearDragHandleRegion()"
+                        @mousedown="setDragHandleRegion(reg.id)"
+                        @mouseup="clearDragHandleRegion()"
+                        @touchstart.passive="setDragHandleRegion(reg.id)">
                         ⠿
                       </div>
 
@@ -8697,9 +8711,22 @@ function toggleRegionExpand(id) {
 
 // ── Region Group Drag & Drop Sorting ──
 let draggedRegionId = null
+const activeDraggableRegion = ref(null)
+
+function setDragHandleRegion(id) {
+  if (!draggedRegionId) {
+    activeDraggableRegion.value = id
+  }
+}
+function clearDragHandleRegion() {
+  if (!draggedRegionId) {
+    activeDraggableRegion.value = null
+  }
+}
 
 function onRegionDragStart(id, e) {
   draggedRegionId = id
+  activeDraggableRegion.value = id
   if (e.dataTransfer) {
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', id)
@@ -8727,10 +8754,12 @@ function onRegionDrop(targetId, e) {
     showToast('节点分组顺序已更新')
   }
   draggedRegionId = null
+  activeDraggableRegion.value = null
 }
 
 function onRegionDragEnd() {
   draggedRegionId = null
+  activeDraggableRegion.value = null
 }
 
 // ── Custom Node Group Creation (e.g. Airport Subscription Dedicated Group & Multi-Country Presets) ──
@@ -9360,9 +9389,23 @@ try {
 } catch (e) {}
 
 let draggedGroupIndex = null
+const activeDraggableGroup = ref(null)
+
+function setDragHandleGroup(name) {
+  if (draggedGroupIndex === null) {
+    activeDraggableGroup.value = name
+  }
+}
+function clearDragHandleGroup() {
+  if (draggedGroupIndex === null) {
+    activeDraggableGroup.value = null
+  }
+}
 
 function onDragStart(event, index) {
   draggedGroupIndex = index
+  const grp = filteredPolicies.value?.[index]
+  if (grp) activeDraggableGroup.value = grp.name
   event.dataTransfer.effectAllowed = 'move'
 }
 
@@ -9408,11 +9451,13 @@ function onDrop(event, targetIndex) {
     localStorage.setItem('cubex_biz_order', JSON.stringify(newOrder))
   } catch (e) {}
   draggedGroupIndex = null
+  activeDraggableGroup.value = null
   showToast('应用分流策略已重新排序')
 }
 
 function onDragEnd() {
   draggedGroupIndex = null
+  activeDraggableGroup.value = null
 }
 
 // ── Policy Group Deletion & Candidate Region Customization ──
