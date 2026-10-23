@@ -24,7 +24,7 @@ var StandardRegions = []RegionDef{
 		ID:           "HK",
 		Name:         "香港",
 		Flag:         "🇭🇰",
-		Regex:        regexp.MustCompile(`(?i)(港|hk|hong kong)`),
+		Regex:        regexp.MustCompile(`(?i)(🇭🇰|港|hk|hong\s*kong|hkt|cmi)`),
 		AutoName:     "🇭🇰 香港自动",
 		FallName:     "🇭🇰 香港故转",
 		DisasterName: "🇭🇰 香港容灾",
@@ -33,7 +33,7 @@ var StandardRegions = []RegionDef{
 		ID:           "TW",
 		Name:         "台湾",
 		Flag:         "🇹🇼",
-		Regex:        regexp.MustCompile(`(?i)(台|tw|taiwan)`),
+		Regex:        regexp.MustCompile(`(?i)(🇹🇼|台|tw|taiwan|taipei|hinet|台北|新北|台中|高雄)`),
 		AutoName:     "🇹🇼 台湾自动",
 		FallName:     "🇹🇼 台湾故转",
 		DisasterName: "🇹🇼 台湾容灾",
@@ -42,7 +42,7 @@ var StandardRegions = []RegionDef{
 		ID:           "JP",
 		Name:         "日本",
 		Flag:         "🇯🇵",
-		Regex:        regexp.MustCompile(`(?i)(日|jp|japan|东京|大阪)`),
+		Regex:        regexp.MustCompile(`(?i)(🇯🇵|日|jp|japan|tokyo|osaka|saitama|yokohama|fukuoka|东京|大阪|埼玉|横滨|名古屋|福冈)`),
 		AutoName:     "🇯🇵 日本自动",
 		FallName:     "🇯🇵 日本故转",
 		DisasterName: "🇯🇵 日本容灾",
@@ -51,7 +51,7 @@ var StandardRegions = []RegionDef{
 		ID:           "KR",
 		Name:         "韩国",
 		Flag:         "🇰🇷",
-		Regex:        regexp.MustCompile(`(?i)(韩|kr|korea|首尔)`),
+		Regex:        regexp.MustCompile(`(?i)(🇰🇷|韩|kr|korea|seoul|incheon|首尔|仁川|春川)`),
 		AutoName:     "🇰🇷 韩国自动",
 		FallName:     "🇰🇷 韩国故转",
 		DisasterName: "🇰🇷 韩国容灾",
@@ -60,7 +60,7 @@ var StandardRegions = []RegionDef{
 		ID:           "SG",
 		Name:         "新加坡",
 		Flag:         "🇸🇬",
-		Regex:        regexp.MustCompile(`(?i)(新|sg|singapore|狮城)`),
+		Regex:        regexp.MustCompile(`(?i)(🇸🇬|新|sg|singapore|lion\s*city|狮城)`),
 		AutoName:     "🇸🇬 新加坡自动",
 		FallName:     "🇸🇬 新加坡故转",
 		DisasterName: "🇸🇬 新加坡容灾",
@@ -69,7 +69,7 @@ var StandardRegions = []RegionDef{
 		ID:           "US",
 		Name:         "美国",
 		Flag:         "🇺🇸",
-		Regex:        regexp.MustCompile(`(?i)(美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯)`),
+		Regex:        regexp.MustCompile(`(?i)(🇺🇸|美|us|usa|united\s*states|america|los\s*angeles|silicon\s*valley|seattle|dallas|new\s*york|san\s*jose|chicago|phoenix|atlanta|virginia|oregon|portland|miami|denver|boston|houston|洛杉矶|硅谷|西雅图|达拉斯|纽约|圣何塞|芝加哥|凤凰城|亚特兰大|弗吉尼亚|俄勒冈|波特兰|迈阿密|丹佛|波士顿|休斯顿)`),
 		AutoName:     "🇺🇸 美国自动",
 		FallName:     "🇺🇸 美国故转",
 		DisasterName: "🇺🇸 美国容灾",
@@ -406,8 +406,33 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 	}
 	allRegionalCandidateProxies = append(allRegionalCandidateProxies, "DIRECT")
 
+	isAIOrSensitiveGroup := func(name string) bool {
+		lower := strings.ToLower(name)
+		return strings.Contains(lower, "ai") || strings.Contains(lower, "gemini") || 
+		       strings.Contains(lower, "antigravity") || strings.Contains(lower, "openai") || 
+		       strings.Contains(lower, "claude") || strings.Contains(lower, "chatgpt") || 
+		       strings.Contains(lower, "tiktok")
+	}
+
 	for _, bg := range StandardBusinessGroups {
 		candidates := append([]string{}, allRegionalCandidateProxies...)
+
+		// 严格合规隔离：AI与敏感服务 (Gemini / Antigravity / OpenAI / Claude / TikTok) 严格禁止中国大陆、中国香港、中国澳门出站
+		if isAIOrSensitiveGroup(bg.Name) {
+			aiCandidates := make([]string, 0, len(candidates))
+			for _, c := range candidates {
+				cLower := strings.ToLower(c)
+				if strings.Contains(c, "香港") || strings.Contains(cLower, "hk") || strings.Contains(c, "🇭🇰") ||
+				   strings.Contains(c, "澳门") || strings.Contains(cLower, "macau") || strings.Contains(c, "🇲🇴") ||
+				   c == "DIRECT" {
+					continue
+				}
+				aiCandidates = append(aiCandidates, c)
+			}
+			if len(aiCandidates) > 0 {
+				candidates = aiCandidates
+			}
+		}
 
 		hasNativeNodes := func(groupName string) bool {
 			for _, reg := range StandardRegions {
@@ -540,6 +565,28 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 				}
 				g.Proxies = filteredProxies
 				if strings.Contains(strings.ToLower(g.Now), "hhost") && strings.Contains(strings.ToLower(g.Now), "jp") {
+					if len(g.Proxies) > 0 {
+						g.Now = g.Proxies[0]
+					}
+				}
+			}
+
+			// Strict compliance: if custom group is AI or TikTok, filter out HK, MO, and DIRECT outbounds
+			if isAIOrSensitiveGroup(g.Name) {
+				filteredProxies := make([]string, 0, len(g.Proxies))
+				for _, px := range g.Proxies {
+					pxLower := strings.ToLower(px)
+					if strings.Contains(px, "香港") || strings.Contains(pxLower, "hk") || strings.Contains(px, "🇭🇰") ||
+					   strings.Contains(px, "澳门") || strings.Contains(pxLower, "macau") || strings.Contains(px, "🇲🇴") ||
+					   px == "DIRECT" {
+						continue
+					}
+					filteredProxies = append(filteredProxies, px)
+				}
+				if len(filteredProxies) > 0 {
+					g.Proxies = filteredProxies
+				}
+				if strings.Contains(g.Now, "香港") || strings.Contains(strings.ToLower(g.Now), "hk") || strings.Contains(g.Now, "🇭🇰") || g.Now == "DIRECT" {
 					if len(g.Proxies) > 0 {
 						g.Now = g.Proxies[0]
 					}
