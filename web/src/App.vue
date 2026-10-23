@@ -1787,17 +1787,38 @@
           <!-- Modal: 手动添加应用分流组 (Add Custom Routing Group Modal)         -->
           <!-- ════════════════════════════════════════════════════════════════ -->
           <div v-if="showAddGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in">
-            <div class="w-full max-w-lg rounded-3xl bg-[#161e27] border border-slate-700/70 shadow-2xl p-6 space-y-4 text-slate-200">
+            <div class="w-full max-w-xl sm:max-w-2xl rounded-3xl bg-[#161e27] border border-slate-700/70 shadow-2xl p-6 space-y-4 text-slate-200">
               <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
                 <div class="flex items-center gap-2">
                   <span class="text-xl">➕</span>
                   <h3 class="text-base font-bold text-white">手动添加应用分流策略组</h3>
                 </div>
-                <button @click="showAddGroupModal = false" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+                <button @click="showAddGroupModal = false" class="text-slate-400 hover:text-white text-lg font-bold cursor-pointer">✕</button>
               </div>
 
-              <!-- 💡 日常高频预设库 (自动去重，支持一键直接添加、增加与删除) -->
-              <div class="space-y-1.5">
+              <!-- 🔀 双模选择器导航：常用高频推荐 vs 105套全量权威规则集库 -->
+              <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                <div class="flex items-center gap-2">
+                  <button type="button" @click="addGroupActiveTab = 'presets'"
+                    class="px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
+                    :class="addGroupActiveTab === 'presets' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-sm' : 'text-slate-400 hover:text-white bg-slate-900/60 border border-transparent'">
+                    <span>🔥 快捷常用应用</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300 font-mono">{{ availablePresetServices.length }}</span>
+                  </button>
+                  <button type="button" @click="addGroupActiveTab = 'georules'"
+                    class="px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
+                    :class="addGroupActiveTab === 'georules' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 shadow-sm' : 'text-slate-400 hover:text-white bg-slate-900/60 border border-transparent'">
+                    <span>📚 105 套全量规则集库</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-mono font-bold">{{ allUniqueGeoRules.length }} 套</span>
+                  </button>
+                </div>
+                <div class="text-[10px] font-mono text-slate-400 hidden sm:block">
+                  {{ addGroupActiveTab === 'presets' ? '自动过滤已添加项' : '点击任一规则智能填入表单' }}
+                </div>
+              </div>
+
+              <!-- 模式 A: 快捷选自日常高频应用 -->
+              <div v-if="addGroupActiveTab === 'presets'" class="space-y-1.5">
                 <div class="flex items-center justify-between text-xs">
                   <span class="text-slate-400 font-mono flex items-center gap-1">
                     <span>💡 快捷选自日常高频应用</span>
@@ -1805,11 +1826,11 @@
                   </span>
                   <div class="flex items-center gap-2">
                     <button type="button" @click="showAddCustomPresetForm = !showAddCustomPresetForm"
-                      class="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-0.5 hover:underline">
+                      class="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-0.5 hover:underline cursor-pointer">
                       ➕ 增加常用
                     </button>
                     <button type="button" @click="resetPresetsToDefault"
-                      class="text-[10px] text-slate-500 hover:text-slate-400 font-mono hover:underline">
+                      class="text-[10px] text-slate-500 hover:text-slate-400 font-mono hover:underline cursor-pointer">
                       🔄 恢复默认
                     </button>
                   </div>
@@ -1830,13 +1851,13 @@
                     <input v-model="newCustomPreset.rule_value" placeholder="规则/域名 (如: geosite:huggingface)"
                       class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-xs outline-none focus:border-emerald-400" />
                     <button type="button" @click="submitAddCustomPreset"
-                      class="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition active:scale-95">
+                      class="py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition active:scale-95 cursor-pointer">
                       保存至常用库
                     </button>
                   </div>
                 </div>
 
-                <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 rounded-xl bg-slate-950/80 border border-slate-800">
+                <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 rounded-xl bg-slate-950/80 border border-slate-800 custom-scrollbar">
                   <div v-for="preset in availablePresetServices" :key="preset.id"
                     class="group inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-mono bg-slate-900 hover:bg-cyan-950/70 border border-slate-800 hover:border-cyan-500/50 text-slate-300 transition select-none">
                     <!-- Brand Vector Logo -->
@@ -1847,19 +1868,63 @@
                     </span>
                     <!-- ⚡ 一键添加按钮 -->
                     <button type="button" @click.stop="quickAddPreset(preset)" :disabled="quickAddingId === preset.id"
-                      class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 transition active:scale-95 shadow-sm"
+                      class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 transition active:scale-95 shadow-sm cursor-pointer"
                       title="一键立即添加并自动生效">
                       {{ quickAddingId === preset.id ? '添加中...' : '⚡ 一键添加' }}
                     </button>
                     <!-- ✕ 删除按钮 -->
                     <button type="button" @click.stop="removeHighFreqPreset(preset.id)"
-                      class="text-slate-500 hover:text-rose-400 px-0.5 transition"
+                      class="text-slate-500 hover:text-rose-400 px-0.5 transition cursor-pointer"
                       title="从高频常用中删除此项">
                       ✕
                     </button>
                   </div>
                   <div v-if="availablePresetServices.length === 0" class="text-slate-500 text-[11px] py-1 px-1">
-                    🎉 所有推荐的日常高频分流组已全量就绪！点击上方「➕ 增加常用」可随时扩充。
+                    🎉 所有推荐的日常高频分流组已全量就绪！点击上方「📚 105 套全量规则集库」可挑选更多。
+                  </div>
+                </div>
+                <!-- 解释提示：消除用户认知困惑 -->
+                <div class="text-[10px] text-slate-400 flex items-center justify-between p-1 bg-slate-900/40 rounded-lg border border-slate-800/60">
+                  <span class="truncate">💡 看板已自动运行主流应用组。更多海量分流，请切换上方全量库：</span>
+                  <button type="button" @click="addGroupActiveTab = 'georules'" class="text-cyan-400 hover:text-cyan-300 font-bold hover:underline shrink-0 ml-1 cursor-pointer">
+                    切换至 105 套全量规则集 ➔
+                  </button>
+                </div>
+              </div>
+
+              <!-- 模式 B: 105 套全量规则集选择器 -->
+              <div v-else class="space-y-2">
+                <div class="flex items-center gap-2">
+                  <div class="relative flex-1">
+                    <input v-model="geoRulePickerSearch" placeholder="🔍 快速搜索 105 套规则库 (如 tiktok, discord, blizzard, binance, netease, gitlab, ea, zoom)..."
+                      class="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 focus:border-cyan-400 outline-none text-white font-mono text-xs shadow-inner" />
+                    <button v-if="geoRulePickerSearch" @click="geoRulePickerSearch = ''" class="absolute right-2.5 top-1.5 text-slate-400 hover:text-white text-xs cursor-pointer">✕</button>
+                  </div>
+                  <span class="text-[10px] font-mono text-slate-400 shrink-0">共 {{ filteredGeoRules.length }} / {{ allUniqueGeoRules.length }} 套</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-48 overflow-y-auto p-2 rounded-2xl bg-slate-950/80 border border-slate-800 custom-scrollbar">
+                  <div v-for="rule in filteredGeoRules" :key="rule.id"
+                    class="group flex items-center justify-between p-2 rounded-xl bg-slate-900/90 hover:bg-cyan-950/60 border border-slate-800/80 hover:border-cyan-500/40 transition">
+                    <div class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" @click="selectGeoRule(rule)" title="点击填入下方表单">
+                      <BrandLogo :icon="rule.icon" size="w-4 h-4" class="shrink-0" />
+                      <div class="min-w-0 flex-1">
+                        <div class="text-xs font-bold text-slate-200 group-hover:text-cyan-300 truncate">{{ rule.name }}</div>
+                        <div class="text-[10px] text-slate-400 font-mono truncate">{{ rule.base }}.mrs / .srs</div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0 ml-1">
+                      <button type="button" @click="selectGeoRule(rule)" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer">
+                        填入
+                      </button>
+                      <button type="button" @click="quickAddGeoRule(rule)" :disabled="quickAddingId === rule.id"
+                        class="px-2 py-1 rounded-lg text-[10px] font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-sm transition active:scale-95 cursor-pointer">
+                        {{ quickAddingId === rule.id ? '添加中...' : '⚡ 添加' }}
+                      </button>
+                    </div>
+                  </div>
+                  <div v-if="filteredGeoRules.length === 0" class="col-span-2 text-center text-slate-500 text-xs py-4">
+                    未找到匹配的规则，支持输入拼音或英文关键字搜索。
                   </div>
                 </div>
               </div>
@@ -1904,8 +1969,13 @@
                 </div>
 
                 <div>
-                  <label class="block text-slate-400 font-mono mb-1">绑定匹配规则集/域名 (可选)</label>
-                  <input v-model="newGroupForm.rule_value" placeholder="例: geosite:spotify 或 spotify.com"
+                  <div class="flex items-center justify-between mb-1">
+                    <label class="block text-slate-400 font-mono">绑定匹配规则集/域名 (可选)</label>
+                    <button type="button" @click="addGroupActiveTab = 'georules'" class="text-[11px] text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 hover:underline cursor-pointer">
+                      <span>📚 从 105 套规则库快速挑选 ▾</span>
+                    </button>
+                  </div>
+                  <input v-model="newGroupForm.rule_value" placeholder="例: rule-set:tiktok 或 geosite:spotify 或 spotify.com"
                     class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono" />
                 </div>
               </div>
@@ -10420,6 +10490,117 @@ const availablePresetServices = computed(() => {
     return !currentNames.some(cn => cn.includes(preset.id) || cn.includes(preset.name.toLowerCase().split(' ')[0]))
   })
 })
+
+// 📚 105 套全量权威规则集库多维挑选与一键装填
+const addGroupActiveTab = ref('presets') // 'presets' | 'georules'
+const geoRulePickerSearch = ref('')
+const geoRulePickerCategory = ref('all')
+
+const allUniqueGeoRules = computed(() => {
+  const files = geodataStatus.value.files || []
+  const map = new Map()
+  for (const f of files) {
+    const fn = f.filename || ''
+    if (fn.endsWith('.dat') || fn.endsWith('.metadb') || fn.includes('ads_domain') || fn.includes('adblocksingbox')) continue
+    const base = fn.replace(/\.(mrs|srs)$/, '')
+    if (!map.has(base)) {
+      let cleanName = (f.name || base).split('(')[0].trim()
+      let icon = base.toLowerCase()
+      if (icon.includes('bilibili')) icon = 'bilibili'
+      else if (icon.includes('telegram')) icon = 'telegram'
+      else if (icon.includes('twitter')) icon = 'twitter'
+      else if (icon.includes('google')) icon = 'google'
+      else if (icon.includes('openai') || icon.includes('chatgpt')) icon = 'openai'
+      else if (icon.includes('github') || icon.includes('gitlab')) icon = 'github'
+      else if (icon.includes('netflix')) icon = 'netflix'
+      else if (icon.includes('disney')) icon = 'disney'
+      else if (icon.includes('steam')) icon = 'steam'
+      else if (icon.includes('binance') || icon.includes('okx')) icon = 'binance'
+      else if (icon.includes('tiktok') || icon.includes('bytedance')) icon = 'tiktok'
+      else if (icon.includes('apple')) icon = 'apple'
+      else if (icon.includes('microsoft') || icon.includes('onedrive')) icon = 'microsoft'
+      else if (icon.includes('notion')) icon = 'notion'
+      else if (icon.includes('zoom')) icon = 'zoom'
+      else if (icon.includes('paypal')) icon = 'paypal'
+      else if (icon.includes('speedtest')) icon = 'speedtest'
+      else if (icon.includes('bahamut')) icon = 'bahamut'
+      else if (icon.includes('emby')) icon = 'emby'
+      else if (icon.includes('discord')) icon = 'discord'
+      else if (icon.includes('amazon') || icon.includes('primevideo')) icon = 'amazon'
+      else icon = 'default'
+
+      let target = '🇭🇰 香港自动'
+      if (base.includes('openai') || base.includes('claude') || base.includes('tiktok') || base.includes('amazon') || base.includes('reddit')) {
+        target = '🇺🇸 美国自动'
+      } else if (base.includes('netflix') || base.includes('disney') || base.includes('telegram') || base.includes('binance') || base.includes('discord')) {
+        target = '🇸🇬🇯🇵🇰🇷 新日韩自动'
+      } else if (base.includes('bahamut')) {
+        target = '🇹🇼 台湾自动'
+      } else if (base.includes('cn_') || base.includes('apple') || base.includes('speedtest') || base.includes('privacy')) {
+        target = 'DIRECT'
+      }
+
+      map.set(base, {
+        id: base,
+        base: base,
+        name: cleanName,
+        filename: fn,
+        category: f.category || '应用专线分流',
+        description: f.description || '',
+        icon: icon,
+        target: target
+      })
+    }
+  }
+  return Array.from(map.values())
+})
+
+const filteredGeoRules = computed(() => {
+  let list = allUniqueGeoRules.value
+  const q = (geoRulePickerSearch.value || '').trim().toLowerCase()
+  if (q) {
+    list = list.filter(r => r.name.toLowerCase().includes(q) || r.base.toLowerCase().includes(q) || r.filename.toLowerCase().includes(q) || (r.category && r.category.toLowerCase().includes(q)))
+  }
+  if (geoRulePickerCategory.value !== 'all') {
+    list = list.filter(r => r.category === geoRulePickerCategory.value)
+  }
+  return list
+})
+
+function selectGeoRule(rule) {
+  newGroupForm.value.name = rule.name
+  newGroupForm.value.icon = rule.icon
+  newGroupForm.value.target = rule.target
+  newGroupForm.value.rule_value = `rule-set:${rule.base}`
+  showToast(`已选入【${rule.name}】规则集 (${rule.base})`)
+}
+
+async function quickAddGeoRule(rule) {
+  quickAddingId.value = rule.id
+  try {
+    const res = await fetch('/api/v1/config/routing/group/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: rule.name,
+        icon: rule.icon,
+        now: rule.target,
+        rule_value: `rule-set:${rule.base}`
+      })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast(`🎉 规则分流组【${rule.name}】已成功添加并生效！`)
+      await fetchIR()
+    } else {
+      showToast(data.error || '添加失败', true)
+    }
+  } catch (e) {
+    showToast('一键添加规则分流异常', true)
+  } finally {
+    quickAddingId.value = ''
+  }
+}
 
 function applyPreset(preset) {
   newGroupForm.value.name = preset.name
