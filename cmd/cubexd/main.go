@@ -547,6 +547,15 @@ func main() {
 		} else {
 			log.Printf("🚀 [Engine] Core engine %s successfully started on boot\n", activeEng)
 		}
+		if rosMgr != nil {
+			go func() {
+				time.Sleep(500 * time.Millisecond)
+				_, _ = rosMgr.CleanAndReapplyRouting(cfgIR.Network.TunInterface)
+				if purged := rosMgr.PurgeStaleFakeIPConnections(); purged > 0 {
+					log.Printf("🧹 [ROS] Auto-boot: Purged %d stale conntrack entries\n", purged)
+				}
+			}()
+		}
 	}()
 
 	log.Printf("🌌 CubeX Daemon [%s] listening on %s (Engine: %s, Tuning: %s)\n", version, *listenAddr, cfgIR.Meta.ActiveEngine, cfgIR.Network.TunInterface)

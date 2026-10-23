@@ -756,11 +756,13 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 func (m *Manager) prewarmEngine(target schema.EngineType) {
 	time.Sleep(150 * time.Millisecond)
 	warmGroups := []string{"🌐 国外流量", "YouTube", "Google", "AI"}
+	testURL := "http://www.gstatic.com/generate_204"
 	for _, g := range warmGroups {
 		escaped := url.PathEscape(g)
-		u := fmt.Sprintf("%s/group/%s/delay?url=%s&timeout=2000", m.clashAPI, escaped, url.QueryEscape("https://cp.cloudflare.com/generate_204"))
-		ctx, cancel := context.WithTimeout(context.Background(), 2500*time.Millisecond)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+		// 1. Warm specific proxy
+		uProxy := fmt.Sprintf("%s/proxies/%s/delay?url=%s&timeout=2000", m.clashAPI, escaped, url.QueryEscape(testURL))
+		ctx, cancel := context.WithTimeout(context.Background(), 2200*time.Millisecond)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, uProxy, nil)
 		if err == nil {
 			if m.ir != nil && m.ir.Network.ClashSecret != "" {
 				req.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
@@ -771,6 +773,21 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 			}
 		}
 		cancel()
+
+		// 2. Pre-warm entire group
+		uGroup := fmt.Sprintf("%s/group/%s/delay?url=%s&timeout=2000", m.clashAPI, escaped, url.QueryEscape(testURL))
+		ctx2, cancel2 := context.WithTimeout(context.Background(), 2200*time.Millisecond)
+		req2, err2 := http.NewRequestWithContext(ctx2, http.MethodGet, uGroup, nil)
+		if err2 == nil {
+			if m.ir != nil && m.ir.Network.ClashSecret != "" {
+				req2.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
+			}
+			resp2, err2 := m.httpClient.Do(req2)
+			if err2 == nil {
+				_ = resp2.Body.Close()
+			}
+		}
+		cancel2()
 	}
 }
 

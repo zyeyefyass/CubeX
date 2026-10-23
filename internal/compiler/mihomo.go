@@ -177,6 +177,34 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"*.internal",
 		"localhost",
 		"+.cn",
+		// NTP Servers (Strict Real IP Direct to eliminate host reboot time sync lock)
+		"*.ntp.org",
+		"+.pool.ntp.org",
+		"pool.ntp.org",
+		"+.time.windows.com",
+		"time.windows.com",
+		"+.time.apple.com",
+		"time.apple.com",
+		"time.asia.apple.com",
+		"+.time.google.com",
+		"time.google.com",
+		"+.time.cloudflare.com",
+		"time.cloudflare.com",
+		"+.time.edu.cn",
+		"+.ntp.aliyun.com",
+		"+.ntp.tencent.com",
+		"time1.cloud.tencent.com",
+		"time.is",
+		"time.nist.gov",
+		// RouterOS & Network Connectivity Check
+		"+.routeros.com",
+		"+.mikrotik.com",
+		"+.cloud.mikrotik.com",
+		"+.msftconnecttest.com",
+		"+.msftncsi.com",
+		"+.connectivitycheck.gstatic.com",
+		"+.cp.cloudflare.com",
+		// Common Domestic Services
 		"+.baidu.com",
 		"+.qq.com",
 		"+.bilibili.com",
@@ -190,10 +218,6 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"+.aliyun.com",
 		"+.tencent.com",
 		"+.bytedance.com",
-		"+.msftconnecttest.com",
-		"+.msftncsi.com",
-		"+.routeros.com",
-		"+.mikrotik.com",
 	}
 
 	dnsMap := map[string]any{
@@ -534,13 +558,15 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		if gType == "url-test" || gType == "fallback" || gType == "load-balance" {
 			gMap["url"] = g.URL
 			if gMap["url"] == nil || gMap["url"] == "" {
-				gMap["url"] = "https://cp.cloudflare.com/generate_204"
+				gMap["url"] = "http://www.gstatic.com/generate_204"
 			}
 			gMap["interval"] = g.Interval
 			if g.Interval == 0 {
 				gMap["interval"] = 300
 			}
-			gMap["lazy"] = true
+			gMap["lazy"] = false
+			gMap["timeout"] = 2500
+			gMap["expected-status"] = "204"
 			if g.Tolerance > 0 {
 				gMap["tolerance"] = g.Tolerance
 			} else if gType == "url-test" {
@@ -678,6 +704,23 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,%s,DIRECT", d))
 		}
 	}
+
+	// 1c. Top-Priority Infrastructure Direct Rules (NTP, Private LAN, RouterOS Cloud - Prevents reboot deadlock)
+	rulesList = append(rulesList, "AND,((NETWORK,UDP),(DST-PORT,123)),DIRECT")
+	rulesList = append(rulesList, "DST-PORT,123,DIRECT")
+	rulesList = append(rulesList, "GEOIP,private,DIRECT,no-resolve")
+	rulesList = append(rulesList, "IP-CIDR,10.0.0.0/8,DIRECT,no-resolve")
+	rulesList = append(rulesList, "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve")
+	rulesList = append(rulesList, "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve")
+	rulesList = append(rulesList, "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve")
+	rulesList = append(rulesList, "IP-CIDR,169.254.0.0/16,DIRECT,no-resolve")
+	rulesList = append(rulesList, "DOMAIN-SUFFIX,pool.ntp.org,DIRECT")
+	rulesList = append(rulesList, "DOMAIN-SUFFIX,time.windows.com,DIRECT")
+	rulesList = append(rulesList, "DOMAIN-SUFFIX,time.apple.com,DIRECT")
+	rulesList = append(rulesList, "DOMAIN-SUFFIX,time.google.com,DIRECT")
+	rulesList = append(rulesList, "DOMAIN-SUFFIX,cloud.mikrotik.com,DIRECT")
+	rulesList = append(rulesList, "DOMAIN-SUFFIX,routeros.com,DIRECT")
+	rulesList = append(rulesList, "DOMAIN-SUFFIX,mikrotik.com,DIRECT")
 
 	// 2. 217heidai MRS High-Performance Interception Rules (Mihomo Adaptive)
 	if ir.AdBlockEnabled {
