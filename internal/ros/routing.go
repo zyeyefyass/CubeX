@@ -49,8 +49,8 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		Connected:  rosConnected,
 		ROSHost:    rosCfg["host"],
 		ROSVersion: rosVersion,
-		CubeXIP:     cubexIP,
-		MiCubeIP:    cubexIP,
+		CubeXIP:    cubexIP,
+		MiCubeIP:   cubexIP,
 		AllOK:      true,
 		Items:      make([]CheckItem, 0),
 	}
@@ -1230,6 +1230,40 @@ func (m *Manager) CleanRoutingRules() (*ApplyResult, error) {
 
 // CleanAndReapplyRouting performs a thorough cleanup of RouterOS firewall mangle/nat/filter rules,
 // purges conflicting Fake-IP routes, and fully reconfigures pristine subnet-wide gateway & DNS architecture.
+// PurgeConflictingFakeIPRoutes scans and removes any static routes for 198.18.0.0/15 or /16
+// that point to an invalid gateway other than targetIP (e.g. stale routes pointing to 10.0.0.2).
+func (m *Manager) PurgeConflictingFakeIPRoutes(targetIP string) int {
+	if targetIP == "" {
+		targetIP = m.GetOutboundIP()
+	}
+	if targetIP == "" {
+		targetIP = "10.0.0.11"
+	}
+	data, err := m.QueryROS("/ip/route")
+	if err != nil {
+		return 0
+	}
+	var routes []map[string]any
+	if err := json.Unmarshal(data, &routes); err != nil {
+		return 0
+	}
+	purged := 0
+	for _, r := range routes {
+		dst := fmt.Sprintf("%v", r["dst-address"])
+		gw := fmt.Sprintf("%v", r["gateway"])
+		id, _ := r[".id"].(string)
+		table, _ := r["routing-table"].(string)
+		if (table == "" || table == "main") && (dst == "198.18.0.0/15" || dst == "198.18.0.0/16" || strings.HasPrefix(dst, "198.18.") || strings.HasPrefix(dst, "198.19.")) {
+			if gw != targetIP && id != "" {
+				if delErr := m.DeleteROS("/ip/route/" + id); delErr == nil {
+					purged++
+				}
+			}
+		}
+	}
+	return purged
+}
+
 // PurgeStaleFakeIPConnections scans and removes lingering Fake-IP (198.18.0.0/15) connections
 // from the RouterOS connection tracking table.
 func (m *Manager) PurgeStaleFakeIPConnections() int {
@@ -1302,22 +1336,8 @@ func (m *Manager) CleanAndReapplyRouting(targetIP string) (*ApplyResult, error) 
 	}
 
 	// 3. Clean conflicting / stale Fake-IP routes
-	if data, err := m.QueryROS("/ip/route"); err == nil {
-		var routes []map[string]any
-		_ = json.Unmarshal(data, &routes)
-		for _, r := range routes {
-			dst := fmt.Sprintf("%v", r["dst-address"])
-			gw := fmt.Sprintf("%v", r["gateway"])
-			id, _ := r[".id"].(string)
-			table, _ := r["routing-table"].(string)
-			if (table == "" || table == "main") && (dst == "198.18.0.0/15" || dst == "198.18.0.0/16" || strings.HasPrefix(dst, "198.18.") || strings.HasPrefix(dst, "198.19.")) {
-				if gw != targetIP && id != "" {
-					if delErr := m.DeleteROS("/ip/route/" + id); delErr == nil {
-						res.Actions = append(res.Actions, fmt.Sprintf("已清理失效/冲突 Fake-IP 路由: %s -> %s", dst, gw))
-					}
-				}
-			}
-		}
+	if purgedRoutes := m.PurgeConflictingFakeIPRoutes(targetIP); purgedRoutes > 0 {
+		res.Actions = append(res.Actions, fmt.Sprintf("已自动清理 %d 条失效/冲突 Fake-IP 回指路由 (确保 100%% 指向当前容器)", purgedRoutes))
 	}
 
 	// 3b. Clean stale Fake-IP connections in RouterOS connection tracking table (prevent missing fakeip record loop)
@@ -1673,5 +1693,3 @@ func (m *Manager) GetContainerRegistryURL() (string, error) {
 	}
 	return "", nil
 }
-
-

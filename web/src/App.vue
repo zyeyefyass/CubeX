@@ -7813,7 +7813,9 @@ async function switchEngine(target) {
     const data = await res.json()
     activeEngine.value = target
     systemStatus.value.active_engine = target
-    showToast(`🎉 已成功无损热切换至 ${target === 'singbox' ? '⚡ sing-box' : '🛡️ mihomo'}！`)
+    const elapsed = data.result?.elapsed_ms || 800
+    const restored = data.result?.restored_groups || 0
+    showToast(`🎉 已成功无损热切换至 ${target === 'singbox' ? '⚡ sing-box' : '🛡️ mihomo'}（耗时 ${elapsed}ms，${restored} 个策略组恢复）！`)
     await fetchSystemStatus().catch(() => {})
     await fetchIR().catch(() => {})
   } catch (e) {

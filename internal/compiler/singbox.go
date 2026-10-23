@@ -227,95 +227,107 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 					"domain_suffix": []string{".lan", ".local", ".home", ".internal", ".home.arpa"},
 					"server":        "dns-local",
 				},
-			{
-				"domain_regex": []string{"^[^.]+$"},
-				"server":       "dns-local",
-			},
-			{
-				"domain": proxyDirectDomains,
-				"server": "dns-bootstrap",
-			},
-			{
-				"query_type": []string{"HTTPS", "SVCB"},
-				"action":     "predefined",
-				"rcode":      "NOERROR",
-			},
-			{
-				"clash_mode": "direct",
-				"server":     "dns-direct",
-			},
-			{
-				"clash_mode": "global",
-				"server":     "dns-fakeip",
-			},
-			// 1. Google / YouTube / GStatic / Media / AI Strict Fake-IP Protection (Overrides geosite-cn to prevent DNS leak/pollution)
-			{
-				"domain_suffix": []string{
-					"google.com",
-					"googleapis.com",
-					"gstatic.com",
-					"googleusercontent.com",
-					"googlevideo.com",
-					"ggpht.com",
-					"youtube.com",
-					"ytimg.com",
-					"youtu.be",
-					"youtubei.googleapis.com",
-					"cloudflare.com",
-					"openai.com",
-					"chatgpt.com",
-					"anthropic.com",
-					"claude.ai",
-					"deepmind.google",
-					"deepmind.com",
-					"antigravity-unleash.goog",
-					"antigravity.dev",
-					"gemini.google.com",
-					"aistudio.google.com",
-					"makersuite.google.com",
-					"generativelanguage.googleapis.com",
-					"sora.com",
-					"perplexity.ai",
-					"x.ai",
-					"grok.com",
-					"copilot.microsoft.com",
-					"mistral.ai",
-					"poe.com",
-					"midjourney.com",
-					"huggingface.co",
-					"goog",
-					"run.app",
-					"1e100.net",
-					"gvt1.com",
+				{
+					"domain_regex": []string{"^[^.]+$"},
+					"server":       "dns-local",
 				},
-				"server": "dns-fakeip",
-			},
-			{
-				"domain_suffix": []string{
-					".cn",
-					"bilibili.com",
-					"baidu.com",
-					"qq.com",
-					"taobao.com",
-					"jd.com",
-					"alipay.com",
-					"163.com",
-					"msftconnecttest.com",
+				{
+					"domain": proxyDirectDomains,
+					"server": "dns-bootstrap",
 				},
-				"rule_set": []string{"geosite-cn"},
-				"server":   "dns-direct",
-			},
-			{
-				"query_type": []string{"A", "AAAA"},
-				"server":     "dns-fakeip",
-			},
+				{
+					"query_type": []string{"HTTPS", "SVCB"},
+					"action":     "predefined",
+					"rcode":      "NOERROR",
+				},
+				{
+					"clash_mode": "direct",
+					"server":     "dns-direct",
+				},
+				{
+					"clash_mode": "global",
+					"server":     "dns-fakeip",
+				},
+				// 1. Google / YouTube / GStatic / Media / AI Strict Fake-IP Protection (Overrides geosite-cn to prevent DNS leak/pollution)
+				{
+					"domain_suffix": []string{
+						"google.com",
+						"googleapis.com",
+						"gstatic.com",
+						"googleusercontent.com",
+						"googlevideo.com",
+						"ggpht.com",
+						"youtube.com",
+						"ytimg.com",
+						"youtu.be",
+						"youtubei.googleapis.com",
+						"cloudflare.com",
+						"openai.com",
+						"chatgpt.com",
+						"anthropic.com",
+						"claude.ai",
+						"deepmind.google",
+						"deepmind.com",
+						"antigravity-unleash.goog",
+						"antigravity.dev",
+						"gemini.google.com",
+						"aistudio.google.com",
+						"makersuite.google.com",
+						"generativelanguage.googleapis.com",
+						"sora.com",
+						"perplexity.ai",
+						"x.ai",
+						"grok.com",
+						"copilot.microsoft.com",
+						"mistral.ai",
+						"poe.com",
+						"midjourney.com",
+						"huggingface.co",
+						"goog",
+						"run.app",
+						"1e100.net",
+						"gvt1.com",
+					},
+					"server": "dns-fakeip",
+				},
+				{
+					"domain_suffix": []string{
+						".cn",
+						"bilibili.com",
+						"baidu.com",
+						"qq.com",
+						"taobao.com",
+						"jd.com",
+						"alipay.com",
+						"163.com",
+						"msftconnecttest.com",
+						"ntp.org",
+						"pool.ntp.org",
+						"time.windows.com",
+						"time.apple.com",
+						"time.google.com",
+						"time.cloudflare.com",
+						"time.edu.cn",
+						"ntp.aliyun.com",
+						"ntp.tencent.com",
+						"cloud.mikrotik.com",
+						"routeros.com",
+						"mikrotik.com",
+					},
+					"rule_set": []string{"geosite-cn"},
+					"server":   "dns-direct",
+				},
+				{
+					"query_type": []string{"A", "AAAA"},
+					"server":     "dns-fakeip",
+				},
 			}
 			return append(rules, baseRules...)
 		}(),
 		"final":           "dns-remote",
 		"reverse_mapping": true,
 		"strategy":        "prefer_ipv4",
-		"cache_capacity":    8192,
+		"cache_capacity":  8192,
 		"optimistic": map[string]any{
 			"enabled": true,
 		},
@@ -348,17 +360,17 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	if runtime.GOOS != "windows" {
 		inbounds = append(inbounds,
 			map[string]any{
-				"type":                      "tun",
-				"tag":                       "tun-in",
-				"interface_name":            net.TunInterface,
-				"address":                   []string{net.TunIPv4},
-				"mtu":                       tunMTU,
-				"auto_route":                true,
-				"auto_redirect":             false,
-				"strict_route":              false,
-				"stack":                     tunStack,
-				"udp_timeout":               "60s",
-				"endpoint_independent_nat":  true,
+				"type":                     "tun",
+				"tag":                      "tun-in",
+				"interface_name":           net.TunInterface,
+				"address":                  []string{net.TunIPv4},
+				"mtu":                      tunMTU,
+				"auto_route":               true,
+				"auto_redirect":            false,
+				"strict_route":             false,
+				"stack":                    tunStack,
+				"udp_timeout":              "60s",
+				"endpoint_independent_nat": true,
 				"route_exclude_address": []string{
 					"10.0.0.0/8",
 					"100.64.0.0/10",
@@ -457,7 +469,6 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			nodeMap["tcp_fast_open"] = true
 			nodeMap["tcp_multi_path"] = true
 		}
-
 
 		valid := true
 		switch pType {
@@ -1023,6 +1034,23 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"port":     []int{123},
 		"outbound": "direct",
 	})
+	routeRules = append(routeRules, map[string]any{
+		"domain_suffix": []string{
+			"pool.ntp.org",
+			"ntp.org",
+			"time.windows.com",
+			"time.apple.com",
+			"time.google.com",
+			"time.cloudflare.com",
+			"time.edu.cn",
+			"ntp.aliyun.com",
+			"ntp.tencent.com",
+			"cloud.mikrotik.com",
+			"routeros.com",
+			"mikrotik.com",
+		},
+		"outbound": "direct",
+	})
 
 	// High-Priority Line-Speed Benchmark / Speedtest Rule
 	if foreignDetour != "" {
@@ -1368,7 +1396,6 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 	return json.MarshalIndent(cfg, "", "  ")
 }
-
 
 func parseBandwidthMbps(val any) int {
 	if val == nil {

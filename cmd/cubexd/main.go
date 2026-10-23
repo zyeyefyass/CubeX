@@ -10,10 +10,10 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"regexp"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"runtime/debug"
 	"strconv"
@@ -190,28 +190,26 @@ func (w *LogBufferWriter) Write(p []byte) (n int, err error) {
 	return n, nil
 }
 
-
 type Server struct {
-	workDir     string
-	ir          *schema.ConfigIR
-	engMgr      *engine.Manager
-	netCtrl     *netstack.Controller
-	rosClient   *netstack.RosClient
-	subCenter   *sub.Center
-	adblockMgr  *adblock.Manager
+	workDir       string
+	ir            *schema.ConfigIR
+	engMgr        *engine.Manager
+	netCtrl       *netstack.Controller
+	rosClient     *netstack.RosClient
+	subCenter     *sub.Center
+	adblockMgr    *adblock.Manager
 	dnsRewriteMgr *dnsrewrite.Manager
-	backupMgr   *backup.Manager
-	aiCopilot   *ai.Copilot
-	hostMgr     *host.Manager
-	rosMgr      *ros.Manager
-	devMgr      *device.Manager
+	backupMgr     *backup.Manager
+	aiCopilot     *ai.Copilot
+	hostMgr       *host.Manager
+	rosMgr        *ros.Manager
+	devMgr        *device.Manager
 	kspeeder      *accelerator.KSpeeder
 	logBuffer     *RingLogBuffer
 	liveUpSpeed   atomic.Int64
 	liveDownSpeed atomic.Int64
 	httpClient    *http.Client
 }
-
 
 func configureAdaptiveMemoryLimit() {
 	// Base fallback: 32MiB default ceiling for cubexd control plane
@@ -352,21 +350,21 @@ func main() {
 	})
 
 	srv := &Server{
-		workDir:     dir,
-		ir:          cfgIR,
-		engMgr:      engMgr,
-		netCtrl:     netCtrl,
-		rosClient:   rosClient,
-		subCenter:   subCenter,
-		adblockMgr:  adblockMgr,
+		workDir:       dir,
+		ir:            cfgIR,
+		engMgr:        engMgr,
+		netCtrl:       netCtrl,
+		rosClient:     rosClient,
+		subCenter:     subCenter,
+		adblockMgr:    adblockMgr,
 		dnsRewriteMgr: dnsRewriteMgr,
-		backupMgr:   backupMgr,
-		aiCopilot:   aiCopilot,
-		hostMgr:     hostMgr,
-		rosMgr:      rosMgr,
-		devMgr:      devMgr,
-		kspeeder:    kspeeder,
-		logBuffer:   logBuffer,
+		backupMgr:     backupMgr,
+		aiCopilot:     aiCopilot,
+		hostMgr:       hostMgr,
+		rosMgr:        rosMgr,
+		devMgr:        devMgr,
+		kspeeder:      kspeeder,
+		logBuffer:     logBuffer,
 		httpClient: &http.Client{
 			Transport: &http.Transport{
 				MaxIdleConns:        20,
@@ -491,8 +489,6 @@ func main() {
 
 	// 10.2 Realtime Telemetry & Traffic Speed (Overview Module)
 	mux.HandleFunc("/api/v1/telemetry/traffic", srv.handleTelemetryTraffic)
-
-
 
 	// 11. LAN Devices & Per-Device Policy Matrix
 	mux.HandleFunc("/api/v1/devices", srv.handleDevices)
@@ -622,28 +618,28 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 	appRSS, coreRSS, totalOverhead := s.getLiveMemoryMetrics()
 
 	resp := map[string]any{
-		"version":          version,
-		"uptime_seconds":   int64(time.Since(startTime).Seconds()),
-		"active_engine":    s.engMgr.GetActiveEngine(),
-		"edition":          ir.Meta.Edition,
-		"proxy_mode":       ir.Meta.ProxyMode,
-		"active_profile":   ir.Meta.ActiveProfile,
-		"memory_mb":        appRSS + coreRSS,
-		"app_memory_mb":    appRSS,
-		"memory_alloc_mb":  float64(m.Alloc) / 1024 / 1024,
-		"memory_sys_mb":    float64(m.Sys) / 1024 / 1024,
-		"core_memory_mb":   coreRSS,
+		"version":           version,
+		"uptime_seconds":    int64(time.Since(startTime).Seconds()),
+		"active_engine":     s.engMgr.GetActiveEngine(),
+		"edition":           ir.Meta.Edition,
+		"proxy_mode":        ir.Meta.ProxyMode,
+		"active_profile":    ir.Meta.ActiveProfile,
+		"memory_mb":         appRSS + coreRSS,
+		"app_memory_mb":     appRSS,
+		"memory_alloc_mb":   float64(m.Alloc) / 1024 / 1024,
+		"memory_sys_mb":     float64(m.Sys) / 1024 / 1024,
+		"core_memory_mb":    coreRSS,
 		"total_overhead_mb": totalOverhead,
-		"goroutines":       runtime.NumGoroutine(),
-		"os":               runtime.GOOS,
-		"arch":             runtime.GOARCH,
-		"last_switch_res":  lastRes,
-		"tun_interface":    ir.Network.TunInterface,
-		"tproxy_port":      ir.Network.TProxyPort,
-		"dns_port":         ir.Network.DNSPort,
-		"clash_api_port":   ir.Network.ClashAPIPort,
-		"total_proxies":    len(ir.Proxies),
-		"total_groups":     len(ir.Groups),
+		"goroutines":        runtime.NumGoroutine(),
+		"os":                runtime.GOOS,
+		"arch":              runtime.GOARCH,
+		"last_switch_res":   lastRes,
+		"tun_interface":     ir.Network.TunInterface,
+		"tproxy_port":       ir.Network.TProxyPort,
+		"dns_port":          ir.Network.DNSPort,
+		"clash_api_port":    ir.Network.ClashAPIPort,
+		"total_proxies":     len(ir.Proxies),
+		"total_groups":      len(ir.Groups),
 	}
 	sendJSON(w, resp)
 }
@@ -2197,8 +2193,6 @@ func sendJSON(w http.ResponseWriter, data any) {
 	_ = json.NewEncoder(w).Encode(data)
 }
 
-
-
 func (s *Server) handleAdblockStats(w http.ResponseWriter, r *http.Request) {
 	stats := s.adblockMgr.GetStats(true, 0)
 	sendJSON(w, stats)
@@ -2525,7 +2519,6 @@ func (s *Server) handleDNSRewriteReset(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, map[string]any{"ok": true, "config": s.dnsRewriteMgr.GetConfig()})
 }
 
-
 func getProcessRSS() float64 {
 	// On Linux, read /proc/self/status for VmRSS to report real physical resident memory
 	if data, err := os.ReadFile("/proc/self/status"); err == nil {
@@ -2645,21 +2638,25 @@ func (s *Server) startTrafficCollector() {
 // from the RouterOS connection tracking table to keep the kernel network stack clean.
 func (s *Server) startConntrackSweeper() {
 	go func() {
-		// Initial purge 10 seconds after boot
-		time.Sleep(10 * time.Second)
+		// Initial purge 5 seconds after boot
+		time.Sleep(5 * time.Second)
 		if s.rosMgr != nil {
-			if purged := s.rosMgr.PurgeStaleFakeIPConnections(); purged > 0 {
-				s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("Conntrack 清道夫启动自愈: 已清算 RouterOS 连接跟踪表中 %d 条残留 Fake-IP 僵尸连接", purged))
+			purgedConns := s.rosMgr.PurgeStaleFakeIPConnections()
+			purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes("")
+			if purgedConns > 0 || purgedRoutes > 0 {
+				s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("RouterOS 宿主启动自愈巡检: 已清算 %d 条僵尸连接与 %d 条失效回指路由", purgedConns, purgedRoutes))
 			}
 		}
 
-		// Periodic purge every 15 minutes
-		ticker := time.NewTicker(15 * time.Minute)
+		// Periodic silent self-healing every 10 minutes
+		ticker := time.NewTicker(10 * time.Minute)
 		defer ticker.Stop()
 		for range ticker.C {
 			if s.rosMgr != nil {
-				if purged := s.rosMgr.PurgeStaleFakeIPConnections(); purged > 0 {
-					s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("Conntrack 清道夫周期巡检: 已静默清算 RouterOS 连接跟踪表中 %d 条残留 Fake-IP 僵尸连接", purged))
+				purgedConns := s.rosMgr.PurgeStaleFakeIPConnections()
+				purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes("")
+				if purgedConns > 0 || purgedRoutes > 0 {
+					s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("RouterOS 宿主 10分钟静默周期自愈: 已清算 %d 条僵尸连接与 %d 条失效回指路由", purgedConns, purgedRoutes))
 				}
 			}
 		}
@@ -2684,7 +2681,6 @@ func (s *Server) handleRosConntrackClean(w http.ResponseWriter, r *http.Request)
 		"msg":    fmt.Sprintf("已成功清算 %d 条 Fake-IP 僵尸连接", purged),
 	})
 }
-
 
 func (s *Server) handleBackupExport(w http.ResponseWriter, r *http.Request) {
 	desensitize := r.URL.Query().Get("desensitize") == "true"
@@ -2755,8 +2751,6 @@ func (s *Server) handleAIChat(w http.ResponseWriter, r *http.Request) {
 	}
 	sendJSON(w, map[string]any{"status": "ok", "reply": resp})
 }
-
-
 
 // ──────────────────────────────────────────────
 // Host Base Probing & Firewall Linkage Handlers
@@ -3690,7 +3684,6 @@ func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.
 	})
 }
 
-
 func (s *Server) handleKSpeederROSRegistryApply(w http.ResponseWriter, r *http.Request) {
 	s.handleKSpeederHostRegistryApply(w, r)
 }
@@ -3729,16 +3722,16 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 	runtime.ReadMemStats(&memStats)
 
 	meta := map[string]any{
-		"brand":            "CubeX (极光魔方)",
-		"version":          version,
-		"export_time":      time.Now().Format(time.RFC3339),
-		"uptime_seconds":   int64(time.Since(startTime).Seconds()),
-		"os":               runtime.GOOS,
-		"arch":             runtime.GOARCH,
-		"num_cpu":          runtime.NumCPU(),
-		"goroutines":       runtime.NumGoroutine(),
-		"memory_alloc_mb":  float64(memStats.Alloc) / (1024 * 1024),
-		"memory_sys_mb":    float64(memStats.Sys) / (1024 * 1024),
+		"brand":           "CubeX (极光魔方)",
+		"version":         version,
+		"export_time":     time.Now().Format(time.RFC3339),
+		"uptime_seconds":  int64(time.Since(startTime).Seconds()),
+		"os":              runtime.GOOS,
+		"arch":            runtime.GOARCH,
+		"num_cpu":         runtime.NumCPU(),
+		"goroutines":      runtime.NumGoroutine(),
+		"memory_alloc_mb": float64(memStats.Alloc) / (1024 * 1024),
+		"memory_sys_mb":   float64(memStats.Sys) / (1024 * 1024),
 	}
 
 	lastRes := s.engMgr.GetLastResult()
@@ -3845,4 +3838,3 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 	enc.SetIndent("", "  ")
 	_ = enc.Encode(pack)
 }
-
