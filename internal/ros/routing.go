@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"runtime/debug"
 	"strings"
 )
 
@@ -1696,4 +1697,69 @@ func (m *Manager) GetContainerRegistryURL() (string, error) {
 		return strings.TrimSpace(reg), nil
 	}
 	return "", nil
+}
+
+// EnsureFakeIPRoute verifies that the static route 198.18.0.0/15 pointing to targetIP exists on RouterOS.
+// If missing or inactive, it re-creates it immediately and returns true (restored).
+func (m *Manager) EnsureFakeIPRoute(targetIP string) bool {
+	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
+		targetIP = m.GetOutboundIP()
+	}
+	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
+		targetIP = "10.0.0.11"
+	}
+	data, err := m.QueryROS("/ip/route")
+	if err != nil {
+		return false
+	}
+	var routes []map[string]any
+	if err := json.Unmarshal(data, &routes); err != nil {
+		return false
+	}
+	for _, r := range routes {
+		dst := fmt.Sprintf("%v", r["dst-address"])
+		gw := fmt.Sprintf("%v", r["gateway"])
+		table, _ := r["routing-table"].(string)
+		disabled, _ := r["disabled"].(bool)
+		if (table == "" || table == "main") && dst == "198.18.0.0/15" && (gw == targetIP || strings.Contains(gw, targetIP)) && !disabled {
+			return false // Already active and intact
+		}
+	}
+	body := map[string]string{
+		"dst-address":   "198.18.0.0/15",
+		"gateway":       targetIP,
+		"routing-table": "main",
+		"comment":       "CubeX Fake-IP Route",
+	}
+	if _, err := m.PostROS("/ip/route", body); err == nil {
+		return true
+	}
+	return false
+}
+
+// AdaptHostMemoryWatermark dynamically configures Go runtime memory limit based on host RAM.
+func (m *Manager) AdaptHostMemoryWatermark() {
+	data, err := m.QueryROS("/system/resource")
+	if err != nil {
+		return
+	}
+	var res map[string]any
+	if err := json.Unmarshal(data, &res); err != nil {
+		return
+	}
+	totalMemBytes, _ := res["total-memory"].(float64)
+	freeMemBytes, _ := res["free-memory"].(float64)
+	if totalMemBytes > 0 {
+		totalMB := totalMemBytes / (1024 * 1024)
+		freeMB := freeMemBytes / (1024 * 1024)
+		if totalMB <= 512 || freeMB < 64 {
+			// Low memory host (e.g. 256M/512M RouterOS): set GOMEMLIMIT soft cap to 48MB and force GC
+			debug.SetMemoryLimit(48 * 1024 * 1024)
+			debug.FreeOSMemory()
+		} else if totalMB <= 1024 {
+			debug.SetMemoryLimit(128 * 1024 * 1024)
+		} else {
+			debug.SetMemoryLimit(256 * 1024 * 1024)
+		}
+	}
 }

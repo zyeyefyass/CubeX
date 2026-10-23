@@ -514,6 +514,7 @@ func main() {
 	// 13. Ring Log Terminal & Desensitized Diagnostic Package Export
 	mux.HandleFunc("/api/v1/system/logs", srv.handleSystemLogs)
 	mux.HandleFunc("/api/v1/system/diagnose/export", srv.handleSystemDiagnoseExport)
+	mux.HandleFunc("/api/v1/system/diagnose/dual-core", srv.handleDualCoreDiagnose)
 
 	// 3. Static Web UI (Embedded with SPA fallback & strict anti-caching for HTML)
 	fileServer := http.FileServer(getFileSystem())
@@ -2766,26 +2767,149 @@ func (s *Server) startConntrackSweeper() {
 		// Initial purge 5 seconds after boot
 		time.Sleep(5 * time.Second)
 		if s.rosMgr != nil {
+			if restored := s.rosMgr.EnsureFakeIPRoute("10.0.0.11"); restored {
+				s.logBuffer.Add("INFO", "ROS", "RouterOS 宿主启动守护: 自动补齐 198.18.0.0/15 回指路由")
+			}
 			purgedConns := s.rosMgr.PurgeStaleFakeIPConnections()
 			purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes("10.0.0.11")
 			if purgedConns > 0 || purgedRoutes > 0 {
 				s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("RouterOS 宿主启动自愈巡检: 已清算 %d 条僵尸连接与 %d 条失效回指路由", purgedConns, purgedRoutes))
 			}
+			s.rosMgr.AdaptHostMemoryWatermark()
 		}
 
-		// Periodic silent self-healing every 10 minutes
-		ticker := time.NewTicker(10 * time.Minute)
+		// Fast route guard every 30 seconds & deep self-healing every 10 minutes
+		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
+		loopCount := 0
 		for range ticker.C {
+			loopCount++
 			if s.rosMgr != nil {
-				purgedConns := s.rosMgr.PurgeStaleFakeIPConnections()
-				purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes("10.0.0.11")
-				if purgedConns > 0 || purgedRoutes > 0 {
-					s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("RouterOS 宿主 10分钟静默周期自愈: 已清算 %d 条僵尸连接与 %d 条失效回指路由", purgedConns, purgedRoutes))
+				// 1. Route guard every 30s: ensure route exists
+				if restored := s.rosMgr.EnsureFakeIPRoute("10.0.0.11"); restored {
+					s.logBuffer.Add("WARN", "ROS", "RouterOS 路由常驻看门狗: 检测到 198.18.0.0/15 回指路由丢失，已全自动 0 秒自愈恢复！")
+				}
+
+				// 2. Conntrack sweeper and memory optimization every 10 minutes (30s * 20)
+				if loopCount%20 == 0 {
+					purgedConns := s.rosMgr.PurgeStaleFakeIPConnections()
+					purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes("10.0.0.11")
+					if purgedConns > 0 || purgedRoutes > 0 {
+						s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("RouterOS 宿主 10分钟静默周期自愈: 已清算 %d 条僵尸连接与 %d 条失效回指路由", purgedConns, purgedRoutes))
+					}
+					s.rosMgr.AdaptHostMemoryWatermark()
 				}
 			}
 		}
 	}()
+}
+
+func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) {
+	activeEngine := s.engMgr.GetActiveEngine()
+
+	// 1. Direct latency test (to baidu.com)
+	t0 := time.Now()
+	directClient := &http.Client{Timeout: 3 * time.Second}
+	directResp, directErr := directClient.Get("https://www.baidu.com")
+	directLatency := int(time.Since(t0).Milliseconds())
+	directOK := directErr == nil && directResp != nil && (directResp.StatusCode == 200 || directResp.StatusCode == 302)
+	if directResp != nil {
+		directResp.Body.Close()
+	}
+
+	// 2. Proxy latency test (via local proxy port 7890)
+	proxyURL, _ := url.Parse("http://127.0.0.1:7890")
+	proxyClient := &http.Client{
+		Timeout: 4 * time.Second,
+		Transport: &http.Transport{
+			Proxy: http.ProxyURL(proxyURL),
+		},
+	}
+	t1 := time.Now()
+	proxyResp, proxyErr := proxyClient.Get("https://www.google.com/generate_204")
+	proxyLatency := int(time.Since(t1).Milliseconds())
+	proxyOK := proxyErr == nil && proxyResp != nil && (proxyResp.StatusCode == 204 || proxyResp.StatusCode == 200)
+	if proxyResp != nil {
+		proxyResp.Body.Close()
+	}
+
+	// 3. Fake-IP DNS Check
+	dnsPort := s.engMgr.GetIR().Network.DNSPort
+	if dnsPort <= 0 {
+		dnsPort = 53
+	}
+	dnsOK := false
+	fakeIP := ""
+	probeTargets := []string{
+		fmt.Sprintf("10.0.0.11:%d", dnsPort),
+		fmt.Sprintf("127.0.0.1:%d", dnsPort),
+	}
+	if s.rosMgr != nil {
+		obIP := s.rosMgr.GetOutboundIP()
+		if obIP != "" && obIP != "10.0.0.11" {
+			probeTargets = append(probeTargets, fmt.Sprintf("%s:%d", obIP, dnsPort))
+		}
+	}
+	for _, target := range probeTargets {
+		if dnsConn, err := net.DialTimeout("udp", target, 1500*time.Millisecond); err == nil {
+			_ = dnsConn.SetDeadline(time.Now().Add(1500 * time.Millisecond))
+			var qBuf bytes.Buffer
+			qBuf.Write([]byte{0x12, 0x34, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+			for _, part := range strings.Split("www.google.com", ".") {
+				qBuf.WriteByte(byte(len(part)))
+				qBuf.WriteString(part)
+			}
+			qBuf.Write([]byte{0x00, 0x00, 0x01, 0x00, 0x01})
+			if _, wErr := dnsConn.Write(qBuf.Bytes()); wErr == nil {
+				resp := make([]byte, 512)
+				if n, rErr := dnsConn.Read(resp); rErr == nil && n >= 16 && (resp[3]&0x0F == 0) {
+					ip := fmt.Sprintf("%d.%d.%d.%d", resp[n-4], resp[n-3], resp[n-2], resp[n-1])
+					if strings.HasPrefix(ip, "198.18.") {
+						dnsOK = true
+						fakeIP = ip
+						dnsConn.Close()
+						break
+					}
+				}
+			}
+			dnsConn.Close()
+		}
+	}
+
+	// 4. RouterOS Route Check
+	rosRouteOK := false
+	rosGW := ""
+	if s.rosMgr != nil {
+		if data, err := s.rosMgr.QueryROS("/ip/route"); err == nil {
+			var routes []map[string]any
+			if json.Unmarshal(data, &routes) == nil {
+				for _, rt := range routes {
+					dst := fmt.Sprintf("%v", rt["dst-address"])
+					gw := fmt.Sprintf("%v", rt["gateway"])
+					if dst == "198.18.0.0/15" && strings.Contains(gw, "10.0.0.11") {
+						rosRouteOK = true
+						rosGW = gw
+						break
+					}
+				}
+			}
+		}
+	}
+
+	sendJSON(w, map[string]any{
+		"success":           true,
+		"active_engine":     activeEngine,
+		"direct_ok":         directOK,
+		"direct_latency_ms": directLatency,
+		"proxy_ok":          proxyOK,
+		"proxy_latency_ms":  proxyLatency,
+		"dns_fakeip_ok":     dnsOK,
+		"fakeip_address":    fakeIP,
+		"ros_route_ok":      rosRouteOK,
+		"ros_gateway":       rosGW,
+		"all_healthy":       directOK && proxyOK && dnsOK && rosRouteOK,
+		"timestamp":         time.Now().Unix(),
+	})
 }
 
 func (s *Server) handleRosConntrackClean(w http.ResponseWriter, r *http.Request) {
