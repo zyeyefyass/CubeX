@@ -13,6 +13,7 @@
   ],
   "platforms": [
     "RouterOS v7 Container (VETH)",
+    "OpenWrt Docker (Macvlan)",
     "Proxmox VE LXC",
     "fnOS Docker",
     "Synology DSM",

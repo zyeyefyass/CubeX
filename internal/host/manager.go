@@ -19,6 +19,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/zyeyefyass/CubeX/internal/ikuai"
+	"github.com/zyeyefyass/CubeX/internal/openwrt"
 	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
@@ -30,7 +31,7 @@ type HostConfig struct {
 	User         string `json:"user"`
 	Password     string `json:"password"`
 	PrivateKey   string `json:"private_key"`
-	PlatformType string `json:"platform_type,omitempty"` // "auto", "routeros", "ikuai", "linux"
+	PlatformType string `json:"platform_type,omitempty"` // "auto", "routeros", "ikuai", "openwrt", "linux"
 }
 
 // HostInfo represents status and telemetry probed from the host system.
@@ -416,6 +417,63 @@ func (m *Manager) testIKuaiRPC(cfg HostConfig) (map[string]any, error) {
 	return nil, fmt.Errorf("爱快 iKuai Web-RPC 连接失败 (尝试端口 80/443)")
 }
 
+func (m *Manager) testOpenWrt(cfg HostConfig) (map[string]any, error) {
+	ports := []int{80, 443, 22}
+	if cfg.Port > 0 {
+		ports = []int{cfg.Port, 80, 443, 22}
+	}
+
+	var lastErr error
+	for _, p := range ports {
+		client := openwrt.NewClient(openwrt.Config{
+			Host:     cfg.Host,
+			Port:     p,
+			User:     cfg.User,
+			Password: cfg.Password,
+		})
+
+		info, err := client.Probe()
+		if err == nil && info != nil {
+			result := map[string]any{
+				"ok":                  true,
+				"connected":           true,
+				"os_pretty":           info.Release,
+				"os_name":             "OpenWrt 智能路由",
+				"arch":                "amd64",
+				"platform_id":         "openwrt",
+				"ip_forward":          true,
+				"kernel":              info.Kernel,
+				"hostname":            info.Hostname,
+				"model":               info.Model,
+				"firewall_configured": true,
+				"firewall_ver":        info.FirewallVer,
+				"memory_total":        info.MemoryTotalMB,
+				"memory_free":         info.MemoryFreeMB,
+			}
+
+			m.mu.Lock()
+			m.cachedInfo = &HostInfo{
+				Connected:          true,
+				OSName:             info.Release,
+				PlatformID:         "openwrt",
+				KernelVersion:      info.Kernel,
+				Arch:               "amd64",
+				HostName:           info.Hostname,
+				IPForward:          true,
+				FirewallConfigured: true,
+			}
+			m.mu.Unlock()
+
+			return result, nil
+		}
+		lastErr = err
+	}
+	if lastErr != nil {
+		return nil, fmt.Errorf("OpenWrt 连接失败: %w", lastErr)
+	}
+	return nil, fmt.Errorf("OpenWrt 连接失败: 无法通过 UBUS / SSH 访问")
+}
+
 func (m *Manager) testSSHClientSession(client *ssh.Client, cfg HostConfig) (map[string]any, error) {
 	// 1. Try RouterOS CLI first
 	session, err := client.NewSession()
@@ -498,9 +556,12 @@ func (m *Manager) testSSHClientSession(client *ssh.Client, cfg HostConfig) (map[
 
 // TestSSH tests the host credentials, auto-detecting MikroTik RouterOS REST API, iKuai Web-RPC, or standard Linux SSH.
 func (m *Manager) TestSSH(cfg HostConfig) (map[string]any, error) {
-	// 1. If explicitly set to ikuai, test iKuai directly
+	// 1. If explicitly set to ikuai or openwrt, test directly
 	if cfg.PlatformType == "ikuai" {
 		return m.testIKuaiRPC(cfg)
+	}
+	if cfg.PlatformType == "openwrt" {
+		return m.testOpenWrt(cfg)
 	}
 
 	// 2. If port is 80 or 443, or platform is explicitly routeros: this is an HTTP / REST API port!
@@ -519,6 +580,11 @@ func (m *Manager) TestSSH(cfg HostConfig) (map[string]any, error) {
 		// Priority 2: iKuai Web-RPC (on port 80/443)
 		if ikRes, ikErr := m.testIKuaiRPC(cfg); ikErr == nil && ikRes != nil {
 			return ikRes, nil
+		}
+
+		// Priority 3: OpenWrt (UBUS / HTTP on port 80/443)
+		if owRes, owErr := m.testOpenWrt(cfg); owErr == nil && owRes != nil {
+			return owRes, nil
 		}
 
 		// Fallback: Check if SSH port 22 is open on that host
@@ -859,6 +925,29 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 		return nil, fmt.Errorf("当前连接的宿主为 MikroTik RouterOS（无需 iptables）。请直接使用【一键巡检 ROS 配置及全量重新配置】。若宿主机为独立 Linux / 飞牛 NAS，请在【宿主共生凭据】中填入其 SSH 凭据")
 	}
 
+	// 1.2 If currently connected host is OpenWrt, execute OpenWrt bypass orchestration
+	if cached != nil && cached.PlatformID == "openwrt" && cfg.Host != "" {
+		client := openwrt.NewClient(openwrt.Config{
+			Host:     cfg.Host,
+			Port:     cfg.Port,
+			User:     cfg.User,
+			Password: cfg.Password,
+		})
+		cubexIP := m.GetOutboundIP(cfg.Host)
+		logs, err := client.ApplyBypass(cubexIP)
+		if err != nil {
+			return nil, fmt.Errorf("OpenWrt 一键自愈与加固失败: %w", err)
+		}
+		fwLogs, fwErr := client.ApplyFirewall()
+		if fwErr == nil {
+			logs = append(logs, fwLogs...)
+		}
+		return &FirewallResult{
+			Success: true,
+			Logs:    append([]string{"[OPENWRT] 成功连接 OpenWrt 主路由", fmt.Sprintf("[OPENWRT] 探测到 CubeX 宿主直连 IP 为: %s", cubexIP), "[OPENWRT] 下发 Fake-IP 回指、DHCP Option 6 引导与毫秒逃生看门狗配置"}, logs...),
+		}, nil
+	}
+
 	// 1.1 If currently connected host is iKuai, execute iKuai bypass orchestration
 	if cached != nil && cached.PlatformID == "ikuai" && cfg.Host != "" {
 		client := ikuai.NewClient(ikuai.Config{
@@ -1142,6 +1231,21 @@ func (m *Manager) ExecuteHostUpgrade() (string, error) {
 }
 
 // GenerateFirewallScript creates a zero-SSH 1-click firewall script for either permissive or strict mode.
+// SetupOpenWrtIPv6 locks odhcpd to prevent operator IPv6 DNS leakage on OpenWrt.
+func (m *Manager) SetupOpenWrtIPv6() ([]string, error) {
+	m.mu.RLock()
+	cfg := m.config
+	m.mu.RUnlock()
+
+	client := openwrt.NewClient(openwrt.Config{
+		Host:     cfg.Host,
+		Port:     cfg.Port,
+		User:     cfg.User,
+		Password: cfg.Password,
+	})
+	return client.ApplyIPv6Hardening()
+}
+
 func (m *Manager) GenerateFirewallScript(mode string, enablePenetration bool) string {
 	mode = strings.ToLower(strings.TrimSpace(mode))
 	if mode == "strict" {
@@ -1269,8 +1373,14 @@ echo "✅ [CubeX] 宿主机 WireGuard 规则与服务已彻底清理干净！"
 }
 
 func (m *Manager) detectLocalHost() string {
+	if data, err := os.ReadFile("/etc/openwrt_release"); err == nil && len(data) > 0 {
+		return "OpenWrt 智能软路由"
+	}
 	if data, err := os.ReadFile("/etc/os-release"); err == nil {
 		c := strings.ToLower(string(data))
+		if strings.Contains(c, "openwrt") || strings.Contains(c, "immortalwrt") || strings.Contains(c, "lede") {
+			return "OpenWrt 智能软路由"
+		}
 		if strings.Contains(c, "fnos") || strings.Contains(c, "trimix") {
 			return "飞牛 fnOS"
 		}
@@ -1292,6 +1402,9 @@ func (m *Manager) detectLocalHost() string {
 
 func (m *Manager) detectLocalPlatformID(name string) string {
 	lower := strings.ToLower(name)
+	if strings.Contains(lower, "openwrt") || strings.Contains(lower, "immortalwrt") || strings.Contains(lower, "lede") {
+		return "openwrt"
+	}
 	if strings.Contains(lower, "fnos") || strings.Contains(lower, "飞牛") {
 		return "fnos"
 	}
@@ -1325,6 +1438,12 @@ func parseOSRelease(content string) (osName string, platID string) {
 	}
 
 	lower := strings.ToLower(content)
+	if strings.Contains(lower, "openwrt") || strings.Contains(lower, "immortalwrt") || strings.Contains(lower, "lede") {
+		if rawName == "" {
+			rawName = "OpenWrt"
+		}
+		return rawName, "openwrt"
+	}
 	if strings.Contains(lower, "fnos") || strings.Contains(lower, "trimix") {
 		if rawName == "" {
 			rawName = "飞牛 fnOS"

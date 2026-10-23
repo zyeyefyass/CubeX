@@ -8,7 +8,7 @@
   [![Version](https://img.shields.io/badge/Release-Test_v2.6-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
   [![License](https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield)](COPYRIGHT.md)
   [![Dual-Engine](https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go)](https://github.com/zyeyefyass/CubeX)
-  [![Host Base](https://img.shields.io/badge/Host-RouterOS_v7_%7C_fnOS_%7C_PVE_%7C_Docker-3A86FF?style=for-the-badge)](#)
+  [![Host Base](https://img.shields.io/badge/Host-RouterOS_v7_%7C_OpenWrt_%7C_fnOS_%7C_iKuai_%7C_Docker-3A86FF?style=for-the-badge)](#)
   [![Arch](https://img.shields.io/badge/Arch-amd64_%7C_arm64-FF007F?style=for-the-badge)](#)
 
   <p align="center">
@@ -87,9 +87,10 @@
 - [🚀 极速部署指南 (RouterOS / 爱快 iKuai / 飞牛 fnOS / PVE / Linux)](#deployment-guides)
   - [方式 A：MikroTik RouterOS v7 容器一键极速安装指南 (官方强烈推荐 · 工业级共生)](#deploy-ros)
   - [方式 B：爱快 iKuai 64位 主路由 Docker 原生轻量部署 (保姆级教程)](#deploy-ikuai)
-  - [方式 C：飞牛 fnOS 与通用 Linux Docker 部署](#deploy-fnos-linux)
-  - [方式 D：Proxmox VE (PVE) CT 容器 (LXC) 极速部署](#deploy-pve)
-  - [方式 E：通用 Linux 终端一键全自动安装](#deploy-linux-cli)
+  - [方式 C：OpenWrt 智能软路由 Docker 原生极速部署 (含 0 秒逃生与 IPv6 防泄露)](#deploy-openwrt)
+  - [方式 D：飞牛 fnOS 与通用 Linux Docker 部署](#deploy-fnos-linux)
+  - [方式 E：Proxmox VE (PVE) CT 容器 (LXC) 极速部署](#deploy-pve)
+  - [方式 F：通用 Linux 终端一键全自动安装](#deploy-linux-cli)
 - [💬 极客畅所欲言：意见征集与需求大厅](#community-feedback)
 - [📜 净室合规与免责声明](#compliance-statement)
 
@@ -621,8 +622,52 @@ RouterOS 为了设备安全，首次开启容器功能时要求进行物理所�
 
 ---
 
+---
+
+<a id="deploy-openwrt"></a>
+### 方式 C：OpenWrt 智能软路由 Docker 原生极速部署 (保姆级教程)
+
+> [!NOTE]
+> **适用环境**：OpenWrt 21.02 / 22.03 / 23.05 / 24.x、ImmortalWrt、LEDE（x86_64 软路由、RK3568/RK3588、NanoPi R2S/R4S/R5S/R6S、MT798x 等 ARM64 设备）。  
+> **前置条件**：OpenWrt 已安装并启动 Docker 插件（`dockerd` 与 `luci-app-dockerd`）。
+
+在 OpenWrt 路由器上，传统方案多采用侵入式全包插件或复杂的 iptables 重定向，往往导致内核负载飙升、与 dnsmasq 抢占 53 端口冲突、以及 odhcpd 广播运营商 IPv6 DNS 产生严重全局侧漏。  
+**CubeX 采用创新的「Macvlan 独立物理 IP + 主网关与旁路 DNS 黄金解耦 + 毫秒级逃生看门狗」架构，为 OpenWrt 用户带来 100% 零侵入、零冲突、极光级性能的终极共生体验！**
+
+---
+
+#### 🌟 路径 1：终端一行命令全自动部署（强烈推荐 · 30 秒全自主完成）
+
+在 OpenWrt Web 终端（或通过 SSH 登录 root 终端）粘贴并执行：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/scripts/openwrt/setup-openwrt.sh | sh
+```
+
+脚本将全自动完成以下 6 步编排：
+1. **智能识别架构**：自动探测当前芯片是 `x86_64 (amd64)` 还是 `aarch64 (arm64)`；
+2. **Docker 环境自检**：检测 dockerd 守护进程，缺失时自动通过 opkg 安装并启动；
+3. **网段自动探测与 IP 计算**：探测 LAN 网段（如 `192.168.1.0/24`），分配专属物理 IP `192.168.1.11`；
+4. **Macvlan 隔离与 Shim 打通**：创建 Macvlan 网络，并自动建立 `macvlan-shim` 解决宿主与容器二层隔离难题；
+5. **拉起 CubeX 容器**：分配独立网络命名空间，独占 53、7890、2026 端口，与 OpenWrt 官方服务 0 冲突；
+6. **三大一键加固自动下发**：
+   - 自动写入 Fake-IP 回指路由 `198.18.0.0/15 via 192.168.1.11`；
+   - 自动注入 DHCP Option 6 指向 CubeX；
+   - 自动锁定 `odhcpd`（`ra_dns=0, dns_service=0`）阻断运营商 IPv6 DNS 泄露；
+   - 自动注入 `/usr/bin/cubex-watchdog.sh` 毫秒看门狗，容器异常 0.5 秒无感逃生！
+
+---
+
+#### 🌐 路径 2：控制台一键全自动托管
+
+若您已在 OpenWrt 上启动了 Docker 并拉起了 CubeX 容器：
+1. 打开 CubeX Web 控制台驾驶舱（`http://192.168.1.11:2026`）；
+2. 页面右侧【运行底座】卡片自动识别出 **OpenWrt** 亮青科技徽标；
+3. 在【宿主共生凭据】填入 OpenWrt 后台 IP（`192.168.1.1`）与 root 密码，点击 **【⚡ 保存凭据并一键联动宿主】**；
+4. 控制台将自动通过 UBUS / SSH 联动，点击 **【一键深度巡检 OpenWrt 策略回指与 DHCP 联动】** 与 **【一键自愈并加固 OpenWrt 原生 IPv6 双栈】**，即刻完成全链路加固！
+
 <a id="deploy-fnos-linux"></a>
-### 方式 C：飞牛 fnOS 与通用 Linux Docker 部署
+### 方式 D：飞牛 fnOS 与通用 Linux Docker 部署
 
 CubeX 容器镜像原生支持飞牛 fnOS、群晖 Synology、QNAP 威联通及各类通用 Linux（Ubuntu/Debian/Alpine/CentOS）底座。**默认持久化存储路径严格对齐飞牛官方规范 `/vol1/1000/cubex`，通用 Linux 默认推荐 `/etc/cubex`**。
 
@@ -783,7 +828,7 @@ docker run -d \
 ---
 
 <a id="deploy-pve"></a>
-### 方式 D：Proxmox VE (PVE) CT 容器 (LXC) 极速部署
+### 方式 E：Proxmox VE (PVE) CT 容器 (LXC) 极速部署
 
 相比笨重的 KVM 完整虚拟机（动辄占用 2G~4G 内存与大量 CPU 损耗），在 PVE 中采用 **LXC 轻量级 CT 容器** 是极客运行 CubeX 的终极优雅姿态——**基础常驻仅 ~25MB~35MB，百级节点全量生产仅约百兆，零虚拟化损耗**！
 
@@ -820,7 +865,7 @@ sudo bash install.sh
 ---
 
 <a id="deploy-linux-cli"></a>
-### 方式 E：通用 Linux 终端一键全自动安装
+### 方式 F：通用 Linux 终端一键全自动安装
 
 适用于 Ubuntu / Debian / CentOS / Alpine 等任何标准 Linux 发行版：
 

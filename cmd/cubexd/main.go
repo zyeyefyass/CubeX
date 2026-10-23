@@ -2898,6 +2898,22 @@ func (s *Server) handleROSIpv6Setup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if s.hostMgr != nil {
+		cached := s.hostMgr.GetCachedHostInfo()
+		if cached != nil && cached.PlatformID == "openwrt" {
+			logs, err := s.hostMgr.SetupOpenWrtIPv6()
+			if err != nil {
+				sendJSON(w, map[string]any{"error": err.Error()})
+				return
+			}
+			sendJSON(w, map[string]any{
+				"success": true,
+				"logs":    logs,
+				"message": "OpenWrt 原生 IPv6 锁定与防 DNS 泄露配置完成",
+			})
+			return
+		}
+	}
 	var req struct {
 		WanInterface string `json:"wan_interface"`
 	}

@@ -3097,7 +3097,7 @@
               <div class="p-3 rounded-xl bg-cyan-950/40 border border-cyan-800/40 text-[11px] text-cyan-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
                   <span>💡</span>
-                  <span>对于 <b>MikroTik RouterOS</b>，用户名密码为 <b>WinBox</b> 账号；对于 <b>爱快 iKuai</b>，填入 Web 管理后台 IP、端口(默认 80)及密码（CubeX 自动通过 MD5 握手并下发 198.18.0.0/15 静态回指与 DHCP 联动）。</span>
+                  <span>对于 <b>MikroTik RouterOS</b>，用户名密码为 <b>WinBox</b> 账号；对于 <b>爱快 iKuai</b>，填入 Web 账号密码；对于 <b>OpenWrt</b>，填入后台 IP（默认 192.168.1.1）及 root 密码（CubeX 自动通过 UBUS/SSH 下发回指路由并锁定 odhcpd 防 DNS 泄露）。</span>
                 </div>
                 <button @click="saveCredentialsAndLinkHost" :disabled="savingAndLinkingHost" class="px-5 py-2 rounded-xl bg-gradient-to-r from-teal-400 to-cyan-500 hover:from-teal-300 hover:to-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 active:scale-95 transition shrink-0 flex items-center gap-1.5 disabled:opacity-50">
                   <span v-if="savingAndLinkingHost" class="inline-block animate-spin">↻</span>
@@ -3114,6 +3114,11 @@
                   <span v-if="cleaningRosFirewall" class="inline-block animate-spin">↻</span>
                   <span v-else>🧹</span>
                   <span>一键深度巡检 RouterOS 策略路由及全量重配 (含 Netwatch 0秒逃生)</span>
+                </button>
+                <button v-else-if="isOpenWrt" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-sky-950/80 to-blue-950/80 hover:from-sky-900/80 hover:to-blue-900/80 border border-sky-500/50 text-sky-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50">
+                  <span v-if="applyingLinuxFirewall" class="inline-block animate-spin">↻</span>
+                  <span v-else>📡</span>
+                  <span>一键深度巡检 OpenWrt 策略回指与 DHCP 联动 (含 0 秒逃生)</span>
                 </button>
                 <button v-else-if="isIKuai" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-950/80 to-teal-950/80 hover:from-emerald-900/80 hover:to-teal-900/80 border border-emerald-500/50 text-emerald-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50">
                   <span v-if="applyingLinuxFirewall" class="inline-block animate-spin">↻</span>
@@ -3135,12 +3140,12 @@
                 </button>
               </div>
 
-              <!-- RouterOS 原生 IPv6 双栈防泄露一键加固 -->
-              <div v-if="isRouterOS || isRosConnected" class="pt-1">
-                <button @click="setupRosIpv6" :disabled="settingUpRosIpv6" class="w-full py-2 rounded-xl bg-gradient-to-r from-emerald-950/70 via-teal-950/70 to-blue-950/70 hover:from-emerald-900/80 hover:to-teal-900/80 border border-emerald-500/40 text-emerald-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50" title="自动开启 RouterOS 全局 IPv6，自动下发 WAN 口 DHCP-PD 前缀获取，并永久锁定 advertise-dns=no 杜绝运营商 DNS 劫持">
+              <!-- RouterOS / OpenWrt 原生 IPv6 双栈防泄露一键加固 -->
+              <div v-if="isRouterOS || isRosConnected || isOpenWrt" class="pt-1">
+                <button @click="setupRosIpv6" :disabled="settingUpRosIpv6" class="w-full py-2 rounded-xl bg-gradient-to-r from-emerald-950/70 via-teal-950/70 to-blue-950/70 hover:from-emerald-900/80 hover:to-teal-900/80 border border-emerald-500/40 text-emerald-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50" :title="isOpenWrt ? '自动锁定 OpenWrt odhcpd RA 广播，彻底阻断运营商 IPv6 DNS 泄露，保留原生公网 IPv6 SLAAC 直连' : '自动开启 RouterOS 全局 IPv6，自动下发 WAN 口 DHCP-PD 前缀获取，并永久锁定 advertise-dns=no 杜绝运营商 DNS 劫持'">
                   <span v-if="settingUpRosIpv6" class="inline-block animate-spin">↻</span>
                   <span v-else>🌐</span>
-                  <span>一键自愈并加固 RouterOS 原生 IPv6 双栈 (防 DNS 泄露 · 毫秒级海外快速回退)</span>
+                  <span>一键自愈并加固 {{ isOpenWrt ? 'OpenWrt' : 'RouterOS' }} 原生 IPv6 双栈 (防 DNS 泄露 · 毫秒级海外快速回退)</span>
                 </button>
               </div>
 
@@ -6476,6 +6481,12 @@ const isIKuai = computed(() => {
   return plat === 'ikuai' || name.includes('ikuai') || name.includes('爱快')
 })
 
+const isOpenWrt = computed(() => {
+  const plat = (hostInfo.value.platform_id || '').toLowerCase()
+  const name = (hostInfo.value.os_name || '').toLowerCase()
+  return plat === 'openwrt' || name.includes('openwrt') || name.includes('immortalwrt') || name.includes('lede')
+})
+
 
 
 const hostConfig = ref({
@@ -8414,7 +8425,8 @@ const cleanAndReapplyRosFirewall = inspectAndCleanReapplyRos
 const settingUpRosIpv6 = ref(false)
 async function setupRosIpv6() {
   settingUpRosIpv6.value = true
-  showToast('🌐 正在一键编排并加固 RouterOS 原生 IPv6 双栈与防泄露规则...')
+  const isOw = isOpenWrt.value
+  showToast(isOw ? '🌐 正在一键加固 OpenWrt 原生 IPv6 并锁定 odhcpd 防 DNS 泄露...' : '🌐 正在一键编排并加固 RouterOS 原生 IPv6 双栈与防泄露规则...')
   try {
     const res = await fetch('/api/v1/ros/ipv6/setup', {
       method: 'POST',
@@ -8453,7 +8465,8 @@ async function setupRosIpv6() {
 async function applyLinuxHostFirewall() {
   applyingLinuxFirewall.value = true
   const isIk = isIKuai.value
-  showToast(isIk ? '🚀 正在下发爱快静态回指路由与 DHCP 联动...' : `⚡ 正在下发 ${hostBadge.value.name} 防火墙转发规则与内核参数...`)
+  const isOw = isOpenWrt.value
+  showToast(isOw ? '📡 正在下发 OpenWrt Fake-IP 静态回指、DHCP Option 6 引导与逃生看门狗...' : (isIk ? '🚀 正在下发爱快静态回指路由与 DHCP 联动...' : `⚡ 正在下发 ${hostBadge.value.name} 防火墙转发规则与内核参数...`))
   try {
     const res = await fetch('/api/v1/host/firewall/apply', {
       method: 'POST',
@@ -8462,7 +8475,7 @@ async function applyLinuxHostFirewall() {
     })
     const data = await res.json()
     const isErr = !data.success && !!data.error
-    const msg = data.message || (isIk ? '🎉 爱快静态回指路由 (198.18.0.0/15) 与 DHCP 首选 DNS 已全量配置加固！' : `🎉 ${hostBadge.value.name} 防火墙已全量配置就绪！内核转发与转发链放行生效！`)
+    const msg = data.message || (isOw ? '🎉 OpenWrt 策略回指 (198.18.0.0/15)、DHCP Option 6 DNS 引导与 0 秒逃生看门狗已全量配置加固！' : (isIk ? '🎉 爱快静态回指路由 (198.18.0.0/15) 与 DHCP 首选 DNS 已全量配置加固！' : `🎉 ${hostBadge.value.name} 防火墙已全量配置就绪！内核转发与转发链放行生效！`))
     showToast(msg, isErr)
 
     hostLastExecution.value = {
