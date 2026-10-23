@@ -491,7 +491,9 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 					bizGrp.Now = defaultNow
 				} else if (bg.Name == "AI" || bg.Name == "Gemini & Antigravity") && (eg.Now == "🇭🇰 香港自动" || eg.Now == "🇭🇰 香港故转" || eg.Now == "🇭🇰 香港容灾") {
 					bizGrp.Now = defaultNow
-
+				} else if !hasNativeNodes(eg.Now) && bg.Name != "Apple 服务" && bg.Name != "Microsoft" && bg.Name != "🎯 国内流量" {
+					// Self-healing: if selected region has no native nodes, automatically adopt defaultNow (the region with healthy nodes)
+					bizGrp.Now = defaultNow
 				} else {
 					bizGrp.Now = eg.Now
 				}

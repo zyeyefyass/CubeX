@@ -739,7 +739,20 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			}
 		}
 		if len(proxies) == 0 {
-			proxies = append(proxies, "direct")
+			// Multi-active disaster fallback: borrow healthy proxy nodes so the proxy group never degrades to direct
+			if g.Name != "🎯 国内流量" && g.Name != "Apple 服务" && g.Name != "Microsoft" {
+				for _, p := range ir.Proxies {
+					if p.Type != "direct" && p.Type != "block" && p.Type != "reject" && validOutbounds[p.Name] && p.Name != g.Name {
+						proxies = append(proxies, p.Name)
+						if len(proxies) >= 10 {
+							break
+						}
+					}
+				}
+			}
+			if len(proxies) == 0 {
+				proxies = append(proxies, "direct")
+			}
 		}
 
 		gType := "selector"
