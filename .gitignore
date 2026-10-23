@@ -38,6 +38,7 @@ scripts/update_sh.txt
 scripts/*.py
 !scripts/audit_release_artifacts.py
 !scripts/desensitize.py
+!scripts/verify_network_dual_core.py
 
 # OS & Editor files
 .DS_Store
