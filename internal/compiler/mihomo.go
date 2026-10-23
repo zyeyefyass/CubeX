@@ -821,6 +821,12 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	for _, r := range ir.Rules {
 		rType := strings.ToUpper(r.Type)
 		target := r.Target
+		for _, g := range ir.Groups {
+			if g.Name == target && g.Disabled {
+				target = "DIRECT"
+				break
+			}
+		}
 		if !validTargets[target] {
 			if strings.Contains(target, "拦截") || strings.Contains(target, "REJECT") || strings.Contains(target, "BLOCK") {
 				target = "REJECT"

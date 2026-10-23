@@ -78,7 +78,7 @@
         <!-- Left: Mobile Menu Trigger + Unified Control Plane Capsule (与右侧宿主胶囊高度完全一致，竖向居中，全局主题适配) -->
         <div class="flex items-center gap-2 shrink-0">
           <!-- Mobile Drawer Hamburger -->
-          <button @click="showMobileDrawer = true" class="md:hidden p-2 rounded-xl bg-slate-900/90 border border-cyan-500/40 text-cyan-300 hover:bg-slate-800 active:scale-95 transition" title="打开快捷抽屎">
+          <button @click="showMobileDrawer = true" class="md:hidden p-2 rounded-xl bg-slate-900/90 border border-cyan-500/40 text-cyan-300 hover:bg-slate-800 active:scale-95 transition" title="打开快捷抽屉">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
@@ -1786,8 +1786,8 @@
           <!-- ════════════════════════════════════════════════════════════════ -->
           <!-- Modal: 手动添加应用分流组 (Add Custom Routing Group Modal)         -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <div v-if="showAddGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in">
-            <div class="w-full max-w-xl sm:max-w-2xl rounded-3xl bg-[#161e27] border border-slate-700/70 shadow-2xl p-6 space-y-4 text-slate-200">
+          <div v-if="showAddGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in overflow-y-auto">
+            <div class="w-full max-w-xl sm:max-w-2xl max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-[#161e27] border border-slate-700/70 shadow-2xl p-4 sm:p-6 space-y-4 text-slate-200 custom-scrollbar">
               <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
                 <div class="flex items-center gap-2">
                   <span class="text-xl">➕</span>
@@ -1808,7 +1808,7 @@
                   <button type="button" @click="addGroupActiveTab = 'georules'"
                     class="px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
                     :class="addGroupActiveTab === 'georules' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 shadow-sm' : 'text-slate-400 hover:text-white bg-slate-900/60 border border-transparent'">
-                    <span>📚 105 套全量规则集库</span>
+                    <span>📚 官方应用规则库</span>
                     <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-mono font-bold">{{ allUniqueGeoRules.length }} 套</span>
                   </button>
                 </div>
@@ -1892,28 +1892,40 @@
                 </div>
               </div>
 
-              <!-- 模式 B: 105 套全量规则集选择器 -->
+              <!-- 模式 B: 官方应用规则库选择器 (纯应用专线，已过滤底层基础网络) -->
               <div v-else class="space-y-2">
+                <!-- 8 大领域分类筛选胶囊 (移动端支持横向滑动自适应) -->
+                <div class="flex items-center gap-1 overflow-x-auto py-0.5 custom-scrollbar pb-1">
+                  <button v-for="cat in geoRuleCategories" :key="cat.id" type="button"
+                    @click="geoRulePickerCategory = cat.id"
+                    class="px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-xs font-bold transition flex items-center gap-1 shrink-0 cursor-pointer select-none"
+                    :class="geoRulePickerCategory === cat.id ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-sm' : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700'">
+                    <span>{{ cat.icon }}</span>
+                    <span>{{ cat.name }}</span>
+                    <span class="text-[9px] px-1 py-0.2 rounded-full font-mono" :class="geoRulePickerCategory === cat.id ? 'bg-cyan-950 text-cyan-300' : 'bg-slate-950 text-slate-500'">{{ cat.count }}</span>
+                  </button>
+                </div>
+
                 <div class="flex items-center gap-2">
                   <div class="relative flex-1">
-                    <input v-model="geoRulePickerSearch" placeholder="🔍 快速搜索 105 套规则库 (如 tiktok, discord, blizzard, binance, netease, gitlab, ea, zoom)..."
+                    <input v-model="geoRulePickerSearch" placeholder="🔍 快速搜索应用规则 (如 tiktok, discord, blizzard, binance, netease, gitlab, ea, zoom)..."
                       class="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 focus:border-cyan-400 outline-none text-white font-mono text-xs shadow-inner" />
                     <button v-if="geoRulePickerSearch" @click="geoRulePickerSearch = ''" class="absolute right-2.5 top-1.5 text-slate-400 hover:text-white text-xs cursor-pointer">✕</button>
                   </div>
-                  <span class="text-[10px] font-mono text-slate-400 shrink-0">共 {{ filteredGeoRules.length }} / {{ allUniqueGeoRules.length }} 套</span>
+                  <span class="text-[10px] font-mono text-slate-400 shrink-0">显示 {{ filteredGeoRules.length }} / {{ allUniqueGeoRules.length }} 套</span>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-48 overflow-y-auto p-2 rounded-2xl bg-slate-950/80 border border-slate-800 custom-scrollbar">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-52 sm:max-h-60 overflow-y-auto p-1.5 sm:p-2 rounded-2xl bg-slate-950/80 border border-slate-800 custom-scrollbar">
                   <div v-for="rule in filteredGeoRules" :key="rule.id"
-                    class="group flex items-center justify-between p-2 rounded-xl bg-slate-900/90 hover:bg-cyan-950/60 border border-slate-800/80 hover:border-cyan-500/40 transition">
+                    class="group flex items-center justify-between p-2 rounded-xl bg-slate-900/90 hover:bg-cyan-950/60 border border-slate-800/80 hover:border-cyan-500/40 transition gap-1.5">
                     <div class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" @click="selectGeoRule(rule)" title="点击填入下方表单">
-                      <BrandLogo :icon="rule.icon" size="w-4 h-4" class="shrink-0" />
+                      <BrandLogo :icon="rule.icon" size="w-5 h-5" class="shrink-0" />
                       <div class="min-w-0 flex-1">
                         <div class="text-xs font-bold text-slate-200 group-hover:text-cyan-300 truncate">{{ rule.name }}</div>
-                        <div class="text-[10px] text-slate-400 font-mono truncate">{{ rule.base }}.mrs / .srs</div>
+                        <div class="text-[10px] text-slate-400 font-mono truncate">{{ rule.category }} · {{ rule.base }}.mrs / .srs</div>
                       </div>
                     </div>
-                    <div class="flex items-center gap-1.5 shrink-0 ml-1">
+                    <div class="flex items-center gap-1 shrink-0">
                       <button type="button" @click="selectGeoRule(rule)" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer">
                         填入
                       </button>
@@ -1923,8 +1935,8 @@
                       </button>
                     </div>
                   </div>
-                  <div v-if="filteredGeoRules.length === 0" class="col-span-2 text-center text-slate-500 text-xs py-4">
-                    未找到匹配的规则，支持输入拼音或英文关键字搜索。
+                  <div v-if="filteredGeoRules.length === 0" class="col-span-1 sm:col-span-2 text-center text-slate-500 text-xs py-4">
+                    未找到匹配的应用规则，支持输入拼音或英文关键字搜索。
                   </div>
                 </div>
               </div>
@@ -1994,8 +2006,8 @@
           <!-- ════════════════════════════════════════════════════════════════ -->
           <!-- MODAL: 添加自定义节点分组 (支持按机场订阅单独分组 / 地区正则 / 手动勾选) -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <div v-if="showAddCustomNodeGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in">
-            <div class="w-full max-w-lg rounded-3xl bg-[#161e27] border border-slate-700/70 shadow-2xl p-6 space-y-4 text-slate-200">
+          <div v-if="showAddCustomNodeGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in overflow-y-auto">
+            <div class="w-full max-w-lg max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-[#161e27] border border-slate-700/70 shadow-2xl p-4 sm:p-6 space-y-4 text-slate-200 custom-scrollbar">
               <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
                 <div class="flex items-center gap-2">
                   <span class="text-xl">➕</span>
@@ -3779,7 +3791,7 @@
       <!-- ════════════════════════════════════════════════════════════════ -->
       <!-- 3. 移动端原生级底部导航栏 (Mobile Safe-Area Bottom Dock < 768px)  -->
       <!-- ════════════════════════════════════════════════════════════════ -->
-      <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#151c25]/95 backdrop-blur-2xl border-t border-slate-700/60 pb-safe shadow-2xl">
+      <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#00172e]/95 backdrop-blur-2xl border-t border-slate-700/60 pb-safe shadow-2xl">
         <div class="grid grid-cols-6 px-1 py-1.5 gap-0.5">
           <button v-for="item in navItems" :key="item.id" @click="activeMasterTab = item.id"
             :class="[
@@ -3800,7 +3812,7 @@
     <!-- 移动端侧滑/浮层抽屉导航 (Mobile Flyout Navigation Drawer)              -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <div v-if="showMobileDrawer" class="md:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex animate-in fade-in">
-      <div class="w-4/5 max-w-xs h-full bg-[#151c25] border-r border-slate-700/60 p-5 flex flex-col justify-between overflow-y-auto">
+      <div class="w-4/5 max-w-xs h-full bg-[#00172e] border-r border-slate-700/60 p-5 flex flex-col justify-between overflow-y-auto">
         <div class="space-y-5">
           <!-- Drawer Header with Logo & Close Button -->
           <div class="flex items-center justify-between border-b border-sky-900/40 pb-4">
@@ -4987,8 +4999,8 @@
   </div>
 
     <!-- Modal: Add / Edit DNS Rewrite Rule -->
-    <div v-if="showDnsRewriteModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
-      <div class="w-full max-w-md rounded-3xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl relative">
+    <div v-if="showDnsRewriteModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+      <div class="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-slate-900 border border-slate-800 p-4 sm:p-6 space-y-4 shadow-2xl relative custom-scrollbar">
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span class="text-cyan-400">🔀</span>
@@ -5027,8 +5039,8 @@
     </div>
 
     <!-- Modal: Add / Edit Domain Filter Rule Source -->
-    <div v-if="showRuleSourceModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
-      <div class="w-full max-w-md rounded-3xl bg-slate-900 border border-slate-800 p-6 space-y-4 shadow-2xl relative">
+    <div v-if="showRuleSourceModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+      <div class="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-slate-900 border border-slate-800 p-4 sm:p-6 space-y-4 shadow-2xl relative custom-scrollbar">
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span>🛡️ {{ editingRuleSource.id ? '编辑规则源' : '添加域名过滤规则源' }}</span>
@@ -5463,11 +5475,11 @@ const rootBgClass = computed(() => {
 })
 
 const sidebarBgClass = computed(() => {
-  return 'bg-[#151c25]/95 border-slate-700/40 backdrop-blur-xl'
+  return 'bg-[#00172e]/95 border-slate-700/40 backdrop-blur-xl'
 })
 
 const headerBgClass = computed(() => {
-  return 'bg-[#151c25]/90 border-slate-700/40 backdrop-blur-xl'
+  return 'bg-[#00172e]/90 border-slate-700/40 backdrop-blur-xl'
 })
 
 const activeEngine = ref('singbox')
@@ -10499,10 +10511,23 @@ const geoRulePickerCategory = ref('all')
 const allUniqueGeoRules = computed(() => {
   const files = geodataStatus.value.files || []
   const map = new Map()
+
+  // 严格过滤底层基础设施路由规则集（局域网私网、国内直连、国外加速、GFW拦截、Telegram专用IP网段等已由系统内核接管）
+  const systemInfra = new Set([
+    'privacy_domain', 'privacy',
+    'cn_domain', 'cn_ip', 'cn_not_domain',
+    'gfw_domain', 'gfw',
+    'telegram_ip',
+    'ads_domain', 'adblocksingbox',
+    'geoip-cn', 'geosite-cn'
+  ])
+
   for (const f of files) {
     const fn = f.filename || ''
-    if (fn.endsWith('.dat') || fn.endsWith('.metadb') || fn.includes('ads_domain') || fn.includes('adblocksingbox')) continue
+    if (fn.endsWith('.dat') || fn.endsWith('.metadb')) continue
     const base = fn.replace(/\.(mrs|srs)$/, '')
+    if (systemInfra.has(base) || base.startsWith('cn_') || base.startsWith('gfw') || base.startsWith('privacy') || base === 'telegram_ip' || base.startsWith('geoip') || base.startsWith('geosite')) continue
+
     if (!map.has(base)) {
       let cleanName = (f.name || base).split('(')[0].trim()
       let icon = base.toLowerCase()
@@ -10517,7 +10542,7 @@ const allUniqueGeoRules = computed(() => {
       else if (icon.includes('apple')) icon = 'apple'
       else if (icon.includes('gitlab')) icon = 'gitlab'
       else if (icon.includes('github')) icon = 'github'
-      else if (icon.includes('telegram_ip') || icon.includes('telegram')) icon = 'telegram'
+      else if (icon.includes('telegram')) icon = 'telegram'
       else if (icon.includes('twitter')) icon = 'twitter'
       else if (icon.includes('netflix')) icon = 'netflix'
       else if (icon.includes('disney')) icon = 'disney'
@@ -10550,11 +10575,29 @@ const allUniqueGeoRules = computed(() => {
       else if (icon.includes('primevideo') || icon.includes('amazon')) icon = 'amazon'
       else if (icon.includes('bahamut')) icon = 'bahamut'
       else if (icon.includes('emby')) icon = 'emby'
-      else if (icon.includes('cn_not')) icon = 'cn_not'
-      else if (icon.includes('cn_domain') || icon.includes('cn_ip')) icon = 'cn'
-      else if (icon.includes('gfw')) icon = 'gfw'
-      else if (icon.includes('privacy')) icon = 'privacy'
       else icon = 'default'
+
+      let catId = 'tech'
+      let category = '科技与云'
+      if (['openai', 'google-gemini', 'google-deepmind', 'claude'].includes(base)) {
+        catId = 'ai'
+        category = 'AI大模型'
+      } else if (['youtube', 'netflix', 'disney', 'spotify', 'bilibili', 'bahamut', 'emby', 'netease', 'primevideo', 'hbo', 'twitch'].includes(base)) {
+        catId = 'media'
+        category = '影音流媒体'
+      } else if (['telegram', 'twitter', 'discord', 'whatsapp', 'line', 'signal', 'tiktok', 'bytedance'].includes(base)) {
+        catId = 'social'
+        category = '社交通信'
+      } else if (['steam', 'epicgames', 'playstation', 'nintendo', 'blizzard', 'ea'].includes(base)) {
+        catId = 'gaming'
+        category = '游戏平台'
+      } else if (['binance', 'okx', 'paypal'].includes(base)) {
+        catId = 'finance'
+        category = '金融支付'
+      } else if (['tencent', 'alibaba', 'baidu'].includes(base)) {
+        catId = 'cn'
+        category = '国内生态'
+      }
 
       let target = '🇭🇰 香港自动'
       if (base.includes('openai') || base.includes('claude') || base.includes('tiktok') || base.includes('amazon') || base.includes('reddit')) {
@@ -10563,7 +10606,7 @@ const allUniqueGeoRules = computed(() => {
         target = '🇸🇬🇯🇵🇰🇷 新日韩自动'
       } else if (base.includes('bahamut')) {
         target = '🇹🇼 台湾自动'
-      } else if (base.includes('cn_') || base.includes('apple') || base.includes('speedtest') || base.includes('privacy') || base.includes('tencent') || base.includes('alibaba') || base.includes('baidu') || base.includes('bytedance') || base.includes('netease')) {
+      } else if (base.includes('apple') || base.includes('speedtest') || base.includes('tencent') || base.includes('alibaba') || base.includes('baidu') || base.includes('bytedance') || base.includes('netease')) {
         target = 'DIRECT'
       }
 
@@ -10572,7 +10615,8 @@ const allUniqueGeoRules = computed(() => {
         base: base,
         name: cleanName,
         filename: fn,
-        category: f.category || '应用专线分流',
+        category: category,
+        catId: catId,
         description: f.description || '',
         icon: icon,
         target: target
@@ -10582,14 +10626,28 @@ const allUniqueGeoRules = computed(() => {
   return Array.from(map.values())
 })
 
+const geoRuleCategories = computed(() => {
+  const all = allUniqueGeoRules.value
+  return [
+    { id: 'all', name: '全部', icon: '🌐', count: all.length },
+    { id: 'ai', name: 'AI大模型', icon: '🤖', count: all.filter(r => r.catId === 'ai').length },
+    { id: 'media', name: '影音流媒体', icon: '🎬', count: all.filter(r => r.catId === 'media').length },
+    { id: 'social', name: '社交通信', icon: '💬', count: all.filter(r => r.catId === 'social').length },
+    { id: 'gaming', name: '游戏平台', icon: '🎮', count: all.filter(r => r.catId === 'gaming').length },
+    { id: 'tech', name: '科技与云', icon: '💻', count: all.filter(r => r.catId === 'tech').length },
+    { id: 'finance', name: '金融支付', icon: '💰', count: all.filter(r => r.catId === 'finance').length },
+    { id: 'cn', name: '国内生态', icon: '🇨🇳', count: all.filter(r => r.catId === 'cn').length },
+  ]
+})
+
 const filteredGeoRules = computed(() => {
   let list = allUniqueGeoRules.value
+  if (geoRulePickerCategory.value !== 'all') {
+    list = list.filter(r => r.catId === geoRulePickerCategory.value)
+  }
   const q = (geoRulePickerSearch.value || '').trim().toLowerCase()
   if (q) {
     list = list.filter(r => r.name.toLowerCase().includes(q) || r.base.toLowerCase().includes(q) || r.filename.toLowerCase().includes(q) || (r.category && r.category.toLowerCase().includes(q)))
-  }
-  if (geoRulePickerCategory.value !== 'all') {
-    list = list.filter(r => r.category === geoRulePickerCategory.value)
   }
   return list
 })

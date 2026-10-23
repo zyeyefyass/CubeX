@@ -78,6 +78,73 @@ func (m *Manager) ExportBackup(version string) (*BackupData, error) {
 	return b, nil
 }
 
+// ExportDesensitizedBackup exports the configuration with credentials, tokens, and private keys masked.
+func (m *Manager) ExportDesensitizedBackup(version string) (*BackupData, error) {
+	b, err := m.ExportBackup(version)
+	if err != nil {
+		return nil, err
+	}
+	// Desensitize IR/State
+	if len(b.IR) > 0 {
+		var irMap map[string]any
+		if json.Unmarshal(b.IR, &irMap) == nil {
+			if subs, ok := irMap["subscriptions"].([]any); ok {
+				for _, s := range subs {
+					if sm, ok := s.(map[string]any); ok {
+						if u, ok := sm["url"].(string); ok && len(u) > 12 {
+							sm["url"] = u[:8] + "****************" + u[len(u)-4:]
+						}
+					}
+				}
+			}
+			if proxies, ok := irMap["proxies"].([]any); ok {
+				for _, p := range proxies {
+					if pm, ok := p.(map[string]any); ok {
+						if _, ok := pm["password"]; ok {
+							pm["password"] = "******"
+						}
+						if _, ok := pm["uuid"]; ok {
+							pm["uuid"] = "********-****-****-****-************"
+						}
+						if _, ok := pm["private_key"]; ok {
+							pm["private_key"] = "********************************************"
+						}
+					}
+				}
+			}
+			if maskedBytes, err := json.Marshal(irMap); err == nil {
+				b.IR = json.RawMessage(maskedBytes)
+				b.State = json.RawMessage(maskedBytes)
+			}
+		}
+	}
+	// Desensitize ROS Config
+	if len(b.ROSConfig) > 0 {
+		var rosMap map[string]any
+		if json.Unmarshal(b.ROSConfig, &rosMap) == nil {
+			if _, ok := rosMap["password"]; ok {
+				rosMap["password"] = "******"
+			}
+			if maskedBytes, err := json.Marshal(rosMap); err == nil {
+				b.ROSConfig = json.RawMessage(maskedBytes)
+			}
+		}
+	}
+	// Desensitize Host Config
+	if len(b.HostConfig) > 0 {
+		var hostMap map[string]any
+		if json.Unmarshal(b.HostConfig, &hostMap) == nil {
+			if _, ok := hostMap["password"]; ok {
+				hostMap["password"] = "******"
+			}
+			if maskedBytes, err := json.Marshal(hostMap); err == nil {
+				b.HostConfig = json.RawMessage(maskedBytes)
+			}
+		}
+	}
+	return b, nil
+}
+
 // ImportBackup parses and restores configuration states from a BackupData struct.
 func (m *Manager) ImportBackup(b *BackupData) error {
 	if b == nil || (len(b.IR) == 0 && len(b.State) == 0) {

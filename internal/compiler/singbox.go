@@ -1262,6 +1262,12 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	for _, r := range ir.Rules {
 		rType := strings.ToLower(r.Type)
 		targetOutbound := r.Target
+		for _, g := range ir.Groups {
+			if g.Name == targetOutbound && g.Disabled {
+				targetOutbound = "direct"
+				break
+			}
+		}
 		if !validOutbounds[targetOutbound] {
 			if strings.Contains(targetOutbound, "拦截") || strings.EqualFold(targetOutbound, "REJECT") || strings.EqualFold(targetOutbound, "block") {
 				targetOutbound = "block"

@@ -428,6 +428,7 @@ func main() {
 	mux.HandleFunc("/api/v1/routing/regions", srv.handleRoutingRegions)
 	mux.HandleFunc("/api/v1/config/routing/group/add", srv.handleCustomGroupAdd)
 	mux.HandleFunc("/api/v1/config/routing/group/delete", srv.handleCustomGroupDelete)
+	mux.HandleFunc("/api/v1/config/routing/group/toggle", srv.handleCustomGroupToggle)
 	mux.HandleFunc("/api/v1/ros/script", srv.handleRosScript)
 	mux.HandleFunc("/api/v1/ros/conntrack/clean", srv.handleRosConntrackClean)
 
@@ -1735,6 +1736,39 @@ func (s *Server) handleCustomGroupDelete(w http.ResponseWriter, r *http.Request)
 	sendJSON(w, map[string]any{"ok": true, "deleted_group": req.Name})
 }
 
+func (s *Server) handleCustomGroupToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	ir := s.engMgr.GetIR()
+	found := false
+	var newState bool
+	for i := range ir.Groups {
+		if ir.Groups[i].Name == req.Name {
+			ir.Groups[i].Disabled = !ir.Groups[i].Disabled
+			newState = ir.Groups[i].Disabled
+			found = true
+			break
+		}
+	}
+	if !found {
+		sendJSON(w, map[string]any{"ok": false, "error": "未找到指定策略组"})
+		return
+	}
+	s.engMgr.UpdateIR(ir)
+	s.ir = ir
+	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+	sendJSON(w, map[string]any{"ok": true, "name": req.Name, "disabled": newState})
+}
+
 func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -2644,7 +2678,14 @@ func (s *Server) handleRosConntrackClean(w http.ResponseWriter, r *http.Request)
 
 
 func (s *Server) handleBackupExport(w http.ResponseWriter, r *http.Request) {
-	b, err := s.backupMgr.ExportBackup(version)
+	desensitize := r.URL.Query().Get("desensitize") == "true"
+	var b *backup.BackupData
+	var err error
+	if desensitize {
+		b, err = s.backupMgr.ExportDesensitizedBackup(version)
+	} else {
+		b, err = s.backupMgr.ExportBackup(version)
+	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

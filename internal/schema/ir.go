@@ -130,6 +130,7 @@ type StrategyGroup struct {
 	Region    string   `json:"region,omitempty" yaml:"region,omitempty"`       // HK, TW, SG, JPKR, US, OTHERS
 	Policy    string   `json:"policy,omitempty" yaml:"policy,omitempty"`       // auto, fallback, disaster
 	IsCustom  bool     `json:"is_custom,omitempty" yaml:"is_custom,omitempty"` // whether user manually added this
+	Disabled  bool     `json:"disabled,omitempty" yaml:"disabled,omitempty"`   // whether rule routing for this group is temporarily bypassed
 }
 
 type Rule struct {
