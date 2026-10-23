@@ -569,19 +569,22 @@ func (m *Manager) probeCoreHealth(target schema.EngineType, maxWait time.Duratio
 		if m.currentProc == nil {
 			return false
 		}
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, versionURL, nil)
+		ctx, cancel := context.WithTimeout(context.Background(), 800*time.Millisecond)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, versionURL, nil)
 		if err == nil {
-			if m.ir.Network.ClashSecret != "" {
+			if m.ir != nil && m.ir.Network.ClashSecret != "" {
 				req.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
 			}
 			resp, err := m.httpClient.Do(req)
 			if err == nil {
-				resp.Body.Close()
+				_ = resp.Body.Close()
+				cancel()
 				if resp.StatusCode == http.StatusOK {
 					return true
 				}
 			}
 		}
+		cancel()
 		time.Sleep(60 * time.Millisecond)
 	}
 	return false
@@ -771,11 +774,13 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 	}
 }
 
-// StartSupervisor runs the 5s periodic health heartbeat & auto-healing state machine
+// StartSupervisor runs the 2.5s periodic health heartbeat & auto-healing state machine
 func (m *Manager) StartSupervisor() {
 	go func() {
-		ticker := time.NewTicker(5 * time.Second)
+		ticker := time.NewTicker(2500 * time.Millisecond)
 		defer ticker.Stop()
+
+		var healthyConsecutive int
 
 		for range ticker.C {
 			m.mu.Lock()
@@ -798,42 +803,57 @@ func (m *Manager) StartSupervisor() {
 
 			// 2. Health API Probe
 			if isAlive {
-				isAlive = m.probeCoreHealth(active, 2*time.Second)
+				isAlive = m.probeCoreHealth(active, 1200*time.Millisecond)
 			}
 
 			if !isAlive {
+				healthyConsecutive = 0
 				m.mu.Lock()
 				m.crashCount++
 				count := m.crashCount
 				m.mu.Unlock()
 
+				m.log("WARN", "SUPERVISOR", fmt.Sprintf("🚨 核心 %s (PID %d) 异常退出或无响应 (故障计数: %d)", active, proc.Pid, count))
 				log.Printf("🚨 [Supervisor] Detected active engine %s (PID %d) unhealthy/crashed! (Crash count: %d)", active, proc.Pid, count)
 
-				if count <= 3 {
-					log.Printf("🛡️ [Supervisor] Auto-recovering %s (attempt %d/3) with backoff...", active, count)
-					time.Sleep(time.Duration(count) * time.Second)
+				standby := schema.EngineSingbox
+				if active == schema.EngineSingbox {
+					standby = schema.EngineMihomo
+				}
+
+				if count == 1 {
+					m.log("INFO", "SUPERVISOR", fmt.Sprintf("🛡️ 自愈中枢正在极速重启核心 %s...", active))
 					if _, err := m.SwitchEngine(active); err == nil {
-						log.Printf("✅ [Supervisor] Successfully revived engine %s on attempt %d", active, count)
+						m.log("INFO", "SUPERVISOR", fmt.Sprintf("✅ 核心 %s 快速复位自愈成功", active))
+						log.Printf("✅ [Supervisor] Successfully revived engine %s on quick restart", active)
+					} else {
+						m.log("WARN", "SUPERVISOR", fmt.Sprintf("⚠️ 核心 %s 快速复位失败，立即毫秒级容灾切换至备用核心 %s...", active, standby))
+						if res, sErr := m.SwitchEngine(standby); sErr == nil {
+							m.log("INFO", "SUPERVISOR", fmt.Sprintf("✅ 容灾切换成功: 当前主控平滑降级至 %s (耗时 %d ms)", standby, res.ElapsedMs))
+							m.mu.Lock()
+							m.crashCount = 0
+							m.mu.Unlock()
+						}
 					}
 				} else {
-					standby := schema.EngineSingbox
-					if active == schema.EngineSingbox {
-						standby = schema.EngineMihomo
-					}
-					log.Printf("🚨 [Supervisor] Engine %s failed 3 consecutive times! Auto failover to standby engine %s...", active, standby)
-					if _, err := m.SwitchEngine(standby); err == nil {
-						log.Printf("✅ [Supervisor] Auto-failover to %s succeeded! Network restored.", standby)
+					m.log("WARN", "SUPERVISOR", fmt.Sprintf("🚨 核心 %s 连续异常，启动双核容灾切换 ➔ %s...", active, standby))
+					if res, err := m.SwitchEngine(standby); err == nil {
+						m.log("INFO", "SUPERVISOR", fmt.Sprintf("✅ 双核容灾自愈完成: 已平滑切换至 %s (耗时 %d ms, 恢复策略组: %d)", standby, res.ElapsedMs, res.RestoredGroups))
+						log.Printf("✅ [Supervisor] Auto-failover to %s succeeded in %d ms", standby, res.ElapsedMs)
 						m.mu.Lock()
 						m.crashCount = 0
 						m.mu.Unlock()
 					}
 				}
 			} else {
-				m.mu.Lock()
-				if m.crashCount > 0 {
-					m.crashCount = 0
+				healthyConsecutive++
+				if healthyConsecutive >= 10 { // 25s continuous healthy operation
+					m.mu.Lock()
+					if m.crashCount > 0 {
+						m.crashCount = 0
+					}
+					m.mu.Unlock()
 				}
-				m.mu.Unlock()
 			}
 		}
 	}()
