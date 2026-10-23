@@ -29,10 +29,7 @@
 
 ---
 
-<details>
-<summary><b>📚 快速直达目录 (点击展开 / 折叠 · 全维度架构与部署导航)</b></summary>
-
-<br>
+### 📚 快速直达目录 (全维度架构与极速部署导航)
 
 - [📢 最新版本升级通知](#announcement)
 - [🧠 全局跨平台自适应与宿主深度定制优化体系 (Global Adaptive Architecture)](#global-adaptive)
@@ -54,10 +51,6 @@
   - [方式 F：通用 Linux 终端一键全自动安装](#deploy-linux-cli)
 - [💬 极客畅所欲言：意见征集与需求大厅](#community-feedback)
 - [📜 净室合规与免责声明](#compliance-statement)
-
-<br>
-
-</details>
 
 ---
 
