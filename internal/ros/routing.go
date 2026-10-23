@@ -175,7 +175,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		gw, _ := r["gateway"].(string)
 		table, _ := r["routing-table"].(string)
 		if table == "" || table == "main" {
-			if dst == "198.18.0.0/15" || dst == "198.18.0.0/16" || strings.HasPrefix(dst, "198.18.") || strings.HasPrefix(dst, "198.19.") {
+			if dst == "198.18.0.0/15" || dst == "198.18.0.0/16" {
 				fakeIPRouteCount++
 				if (gw == cubexIP || strings.Contains(gw, cubexIP)) && dst == "198.18.0.0/15" {
 					fakeIPCorrect = true
@@ -763,7 +763,7 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		dst := fmt.Sprintf("%v", r["dst-address"])
 		gw := fmt.Sprintf("%v", r["gateway"])
 		id, _ := r[".id"].(string)
-		if (table == "" || table == "main") && (dst == "198.18.0.0/15" || dst == "198.18.0.0/16" || strings.HasPrefix(dst, "198.18.") || strings.HasPrefix(dst, "198.19.")) {
+		if (table == "" || table == "main") && (dst == "198.18.0.0/15" || dst == "198.18.0.0/16") {
 			if (gw == targetIP || strings.Contains(gw, targetIP)) && dst == "198.18.0.0/15" {
 				hasCorrectFakeIPRoute = true
 			} else if id != "" {
@@ -1253,7 +1253,7 @@ func (m *Manager) PurgeConflictingFakeIPRoutes(targetIP string) int {
 		gw := fmt.Sprintf("%v", r["gateway"])
 		id, _ := r[".id"].(string)
 		table, _ := r["routing-table"].(string)
-		if (table == "" || table == "main") && (dst == "198.18.0.0/15" || dst == "198.18.0.0/16" || strings.HasPrefix(dst, "198.18.") || strings.HasPrefix(dst, "198.19.")) {
+		if (table == "" || table == "main") && (dst == "198.18.0.0/15" || dst == "198.18.0.0/16") {
 			if gw != targetIP && id != "" {
 				if delErr := m.DeleteROS("/ip/route/" + id); delErr == nil {
 					purged++
