@@ -112,19 +112,30 @@ LOCAL_TAR=$(ls CubeX-*-docker-*.tar.gz 2>/dev/null | head -n 1 || true)
 if [ -n "$LOCAL_TAR" ]; then
     echo -e "${GREEN}📦 [5/6 离线识别] 发现当前目录离线镜像包: ${LOCAL_TAR}，正在载入本地 Docker...${NC}"
     docker load -i "$LOCAL_TAR"
+    # 自动同步打标为 cubex:latest，消除版本号差异
+    TAGGED_ID=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^cubex:' | head -n 1)
+    if [ -n "$TAGGED_ID" ] && [ "$TAGGED_ID" != "cubex:latest" ]; then
+        docker tag "$TAGGED_ID" "cubex:latest" 2>/dev/null || true
+    fi
 fi
 
 IMAGE="cubex:latest"
 if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
-    if docker inspect "cubex:Test-v2.8" >/dev/null 2>&1; then
-        IMAGE="cubex:Test-v2.8"
-    elif docker inspect "zyeyefyass/cubex:latest" >/dev/null 2>&1; then
+    if docker inspect "zyeyefyass/cubex:latest" >/dev/null 2>&1; then
         IMAGE="zyeyefyass/cubex:latest"
     else
-        echo -e "${YELLOW}   -> 未检测到本地离线镜像，正在尝试在线拉取: ${IMAGE}...${NC}"
-        docker pull "$IMAGE" 2>/dev/null || docker pull "zyeyefyass/cubex:latest" || true
-        if docker inspect "zyeyefyass/cubex:latest" >/dev/null 2>&1; then
-            IMAGE="zyeyefyass/cubex:latest"
+        # 兼容匹配任何已载入的本地 cubex 镜像
+        EXISTING_TAG=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^(cubex|zyeyefyass/cubex):' | head -n 1)
+        if [ -n "$EXISTING_TAG" ]; then
+            IMAGE="$EXISTING_TAG"
+            docker tag "$EXISTING_TAG" "cubex:latest" 2>/dev/null || true
+            IMAGE="cubex:latest"
+        else
+            echo -e "${YELLOW}   -> 未检测到本地离线镜像，正在尝试在线拉取: ${IMAGE}...${NC}"
+            docker pull "$IMAGE" 2>/dev/null || docker pull "zyeyefyass/cubex:latest" || true
+            if docker inspect "zyeyefyass/cubex:latest" >/dev/null 2>&1; then
+                IMAGE="zyeyefyass/cubex:latest"
+            fi
         fi
     fi
 fi

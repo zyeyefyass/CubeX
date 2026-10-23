@@ -252,20 +252,20 @@
 | `CubeX-Test-v2.8-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~67.5 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
 | `cubexd-linux-amd64` | Linux amd64 单二进制 | ~10.7 MB | 用于现有容器或 Linux 宿主系统的一键在线平滑热更执行文件 |
 | `cubexd-linux-arm64` | Linux arm64 单二进制 | ~10.0 MB | 用于现有容器或 Linux 宿主系统的一键在线平滑热更执行文件 |
-| `CubeX-Test-v2.8-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（标签为 `cubex:Test-v2.8`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
+| `CubeX-Test-v2.8-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（导入后统一标记为 `cubex:latest`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
 | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~26.9 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（自动配置容器、网络、路由与 Netwatch 0秒逃生） |
 | `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~9.2 KB | OpenWrt 终端复制即用全自动初始化脚本（自动打通 Macvlan-Shim、配置 0秒看门狗与锁定 odhcpd 防泄露） |
 
 > [!TIP]
 > ### 🧭 各主流宿主底座极速安装与发布资产选用速查指引：
 > * 🟢 **爱快 iKuai 64位 主路由安装方式（极速 3 步完成）**：
->   1. **下载导入镜像**：在上方下载 `CubeX-Test-v2.8-docker-amd64.tar.gz`，进入爱快后台【高级应用】➔【插件营销】➔【Docker】➔【镜像管理】➔ 点击【导入镜像】并上传该文件（秒级导入成功，标签为 `cubex:Test-v2.8` 或 `cubex:latest`）；
->   2. **创建运行容器**：在【容器列表】点击【添加】，网络类型选择 Macvlan（分配独立静态 IP 如 `10.0.0.11`），挂载数据目录 `/docker/cubex/data -> /app/data` 与 `/docker/cubex/etc -> /app/etc`，**务必勾选【开机自启】与【特权模式】**并启动；
+>   1. **下载导入镜像**：在上方下载 Docker 离线镜像包（`CubeX-*-docker-amd64.tar.gz`），进入爱快后台【高级应用】➔【插件营销】➔【Docker】➔【镜像管理】➔ 点击【导入镜像】并上传该文件（秒级导入成功，标签统一为 `cubex:latest`）；
+>   2. **创建运行容器**：在【容器列表】点击【添加】，镜像直接选择 `cubex:latest`，网络类型选择 Macvlan（分配独立静态 IP 如 `10.0.0.11`），挂载数据目录 `/docker/cubex/data -> /app/data` 与 `/docker/cubex/etc -> /app/etc`，**务必勾选【开机自启】与【特权模式】**并启动；
 >   3. **主路由分流配置**：进入【静态路由】添加 `198.18.0.0/15 -> 下一跳指向 10.0.0.11`；进入【DHCP服务端】将下发首选 DNS 改为 `10.0.0.11`（**网关绝对保持爱快自身 IP `10.0.0.1` 不变**），即可达成国内满速芯片直连、出海毫秒自动接管！详细图文请点击直达：[方式 B：爱快 iKuai 原生轻量部署教程](#deploy-ikuai)。
-> * 🔵 **MikroTik RouterOS v7 安装方式**：通过 WinBox 上传 `CubeX-Test-v2.8-ros-amd64.tar` 或 `arm64.tar`，在终端粘贴运行 `setup-routeros-v7.rsc` 脚本，30秒全自动拉起共生容器。详细步骤请点击直达：[方式 A：RouterOS v7 极速安装指南](#deploy-ros)。
+> * 🔵 **MikroTik RouterOS v7 安装方式**：通过 WinBox 上传 ROS 镜像包 `CubeX-*-ros-amd64.tar` 或 `arm64.tar`，在终端粘贴运行 `setup-routeros-v7.rsc` 脚本，30秒全自动拉起共生容器。详细步骤请点击直达：[方式 A：RouterOS v7 极速安装指南](#deploy-ros)。
 > * 🟠 **OpenWrt 智能软路由安装方式**：SSH 登录 OpenWrt 终端执行复制 `setup-openwrt.sh` 脚本，全自动部署 Macvlan-Shim 容器与 0 秒逃生看门狗。详细步骤请点击直达：[方式 C：OpenWrt 原生极速部署](#deploy-openwrt)。
-> * 🟣 **飞牛 fnOS 与通用 Docker 安装方式**：在 Docker 界面导入 `CubeX-Test-v2.8-docker-amd64.tar.gz` 或执行 `docker compose up -d` 即可。详细步骤请点击直达：[方式 D：飞牛 fnOS 部署教程](#deploy-fnos-linux)。
-> * ⚪ **Proxmox VE (PVE) LXC 安装方式**：开箱透传 `/dev/net/tun` 并下载 `CubeX-Test-v2.8-linux-amd64.zip`。详细步骤请点击直达：[方式 E：Proxmox VE 部署教程](#deploy-pve)。
+> * 🟣 **飞牛 fnOS 与通用 Docker 安装方式**：在 Docker 界面导入离线包 `CubeX-*-docker-amd64.tar.gz`，或直接使用官方免配镜像 `image: zyeyefyass/cubex:latest` 执行 `docker compose up -d` 即可。详细步骤请点击直达：[方式 D：飞牛 fnOS 部署教程](#deploy-fnos-linux)。
+> * ⚪ **Proxmox VE (PVE) LXC 安装方式**：开箱透传 `/dev/net/tun` 并解压运行完整生产归档 `CubeX-*-linux-amd64.zip`。详细步骤请点击直达：[方式 E：Proxmox VE 部署教程](#deploy-pve)。
 
 ---
 
@@ -442,7 +442,7 @@ MikroTik RouterOS v7 原生支持容器（Container）技术。CubeX 打造了�
 
 <a id="ros-offline-install"></a>
 #### 🚀 二、 极速一键离线安装（国内网络强烈推荐 · 0 失败率）
-1. 在上方资产清单下载 ROS 镜像：`CubeX-Test-v2.8-ros-amd64.tar` 或 `arm64.tar`；
+1. 在上方资产清单下载 ROS 镜像：`CubeX-*-ros-amd64.tar` 或 `arm64.tar`；
 2. 打开 WinBox，将该 `.tar` 文件拖入 RouterOS 的【Files】目录（推荐存放在外部磁盘如 `disk1/`）；
 3. 打开 WinBox 的【Terminal】终端，复制并运行 `setup-routeros-v7.rsc` 脚本中的内容；
 4. 脚本将在 30 秒内全自动完成硬件识别、VETH 通道创建、策略路由与防火墙编排并拉起容器，输出 Web 控制台地址（如 `http://10.0.0.11:2026`）！
@@ -476,11 +476,11 @@ MikroTik RouterOS v7 原生支持容器（Container）技术。CubeX 打造了�
 
 <a id="ikuai-step-2"></a>
 #### 步骤 2：导入离线镜像与创建 CubeX 容器
-1. 在上方资产清单下载 `CubeX-Test-v2.8-docker-amd64.tar.gz` 离线包；
-2. 进入【Docker】➔【镜像管理】，点击【导入镜像】，选择刚刚下载的离线包上传导入，导入完成后镜像列表中会出现 `cubex:Test-v2.8`；
+1. 在上方资产清单下载 `CubeX-*-docker-amd64.tar.gz` 离线镜像包；
+2. 进入【Docker】➔【镜像管理】，点击【导入镜像】，选择刚刚下载的离线包上传导入，导入完成后镜像列表中统一识别为 `cubex:latest`；
 3. 进入【容器列表】，点击【添加】：
    - **容器名称**：填写 `cubex`；
-   - **选择镜像**：选择 `cubex:Test-v2.8`；
+   - **选择镜像**：选择 `cubex:latest`；
    - **网络类型**：选择 `cubex_macvlan`，**IPv4 地址**：填专属独立 IP（如 `10.0.0.11`）；
    - **开机自启**：务必勾选；**特权模式**：务必勾选；
    - **挂载目录**：添加两个挂载路径：
@@ -530,7 +530,7 @@ OpenWrt 作为最普及的开源软路由系统，拥有成熟的 Docker 环境�
 
 ##### 步骤 1：下载离线资产包
 在上方 [📦 资产下载清单](#release-assets) 中下载以下两个文件到电脑本地：
-1. **Docker 离线镜像包**：`CubeX-Test-v2.8-docker-amd64.tar.gz`（约 75.5 MB）
+1. **Docker 离线镜像包**：`CubeX-*-docker-amd64.tar.gz`（约 75.5 MB，下载对应硬件架构即可）
 2. **OpenWrt 编排脚本**：`setup-openwrt.sh`
 
 ##### 步骤 2：上传到 OpenWrt 并一键拉起
@@ -546,8 +546,8 @@ sh setup-openwrt.sh
 > [!TIP]
 > **您也可以手动单步导入**：
 > ```bash
-> # 手动载入镜像 (镜像列表中即刻出现 cubex:Test-v2.8 与 cubex:latest)
-> docker load -i CubeX-Test-v2.8-docker-amd64.tar.gz
+> # 手动载入镜像 (镜像列表中即刻统一呈现为 cubex:latest)
+> docker load -i CubeX-*-docker-amd64.tar.gz
 > 
 > # 运行编排脚本完成网络与路由自愈
 > sh setup-openwrt.sh
@@ -592,7 +592,7 @@ docker network create -d macvlan   --subnet=10.0.0.0/24   --gateway=10.0.0.1   -
 ##### 步骤 2：创建并运行 CubeX 容器
 进入 LuCI 后台【Docker】➔【容器】➔【添加】：
 - **容器名称**：`cubex`；
-- **镜像**：先在终端执行 `docker load -i CubeX-Test-v2.8-docker-amd64.tar.gz` 离线载入镜像，然后选择或填入 `cubex:latest`（或 `cubex:Test-v2.8`）；
+- **镜像**：先在终端执行 `docker load -i CubeX-*-docker-amd64.tar.gz` 离线载入镜像，然后选择或填入 `cubex:latest`；
 - **网络**：选择刚刚创建的 `cubex-macvlan`，IP 地址填入 `10.0.0.11`；
 - **特权模式 (Privileged)**：勾选；**自动重启 (Restart policy)**：选择 `Always`；
 - **设备映射**：添加 `/dev/net/tun` -> `/dev/net/tun`；
@@ -682,9 +682,9 @@ docker run -d   --name cubex   --restart always   --network host   --privileged 
    lxc.cgroup2.devices.allow: c 10:200 rwm
    lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
    ```
-3. **开箱运行**：进入 LXC 容器终端解压下载的 `CubeX-Test-v2.8-linux-amd64.zip`：
+3. **开箱运行**：进入 LXC 容器终端解压下载的 `CubeX-*-linux-amd64.zip` 归档包：
    ```bash
-   unzip CubeX-Test-v2.8-linux-amd64.zip -d /opt/cubex && cd /opt/cubex
+   unzip CubeX-*-linux-amd64.zip -d /opt/cubex && cd /opt/cubex
    ./cubex service install && ./cubex service start
    ```
    服务开机自启，浏览器直接访问 `http://10.0.0.11:2026`！

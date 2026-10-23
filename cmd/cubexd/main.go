@@ -376,6 +376,7 @@ func main() {
 	}
 	srv.startTrafficCollector()
 	srv.startConntrackSweeper()
+	srv.startDailySubscriptionAutoUpdate()
 	adblockMgr.StartScheduler(func(msg string) {
 		srv.logBuffer.Add("INFO", "ADBLOCK", msg)
 		srv.syncAdblockToEngines()
@@ -413,6 +414,7 @@ func main() {
 	mux.HandleFunc("/api/v1/config/subscriptions/add", srv.handleSubAdd)
 	mux.HandleFunc("/api/v1/config/subscriptions/batch-add", srv.handleSubBatchAdd)
 	mux.HandleFunc("/api/v1/config/subscriptions/update", srv.handleSubUpdate)
+	mux.HandleFunc("/api/v1/config/subscriptions/cron", srv.handleSubCronStatus)
 	mux.HandleFunc("/api/v1/config/subscriptions/speedtest", srv.handleSubSpeedTest)
 	mux.HandleFunc("/api/v1/config/proxies/speedtest", srv.handleProxiesSpeedTest)
 	mux.HandleFunc("/api/v1/config/subscriptions/delete", srv.handleSubDelete)
@@ -1785,26 +1787,39 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = json.NewDecoder(r.Body).Decode(&req)
 
+	if req.ID == "" {
+		subsUpdated, totalNodes, err := s.UpdateAllSubscriptions()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		sendJSON(w, map[string]any{
+			"ok":           true,
+			"status":       "updated",
+			"subs_updated": subsUpdated,
+			"total_nodes":  totalNodes,
+		})
+		return
+	}
+
 	ir := s.engMgr.GetIR()
 	fetcher := sub.NewFetcher()
 	totalNodes := 0
 
 	var updatedProxies []schema.ProxyNode
-	// Preserve direct, reject, and custom manual nodes
 	for _, p := range ir.Proxies {
 		if p.Type == "direct" || p.Type == "block" || p.Type == "reject" || p.SubID == "custom" {
 			updatedProxies = append(updatedProxies, p)
-		} else if req.ID != "" && p.SubID != req.ID {
-			// If updating single sub, keep other sub's nodes
+		} else if p.SubID != req.ID {
 			updatedProxies = append(updatedProxies, p)
 		}
 	}
 
 	for i := range ir.Subscriptions {
-		if !ir.Subscriptions[i].Enabled || ir.Subscriptions[i].URL == "" {
+		if ir.Subscriptions[i].ID != req.ID {
 			continue
 		}
-		if req.ID != "" && ir.Subscriptions[i].ID != req.ID {
+		if !ir.Subscriptions[i].Enabled || ir.Subscriptions[i].URL == "" {
 			continue
 		}
 		res, err := fetcher.Fetch(ir.Subscriptions[i].URL)
@@ -1832,6 +1847,7 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+		break
 	}
 
 	ir.Proxies = updatedProxies
@@ -1841,7 +1857,7 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 	// Re-trigger compilation
 	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
 
-	// Reclaim subscription download buffers and JSON heaps
+	// Reclaim memory
 	runtime.GC()
 	debug.FreeOSMemory()
 
@@ -1851,6 +1867,115 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 		"total_nodes": totalNodes,
 	})
 }
+// UpdateAllSubscriptions fetches all active enabled subscriptions, updates node counts and metadata,
+// re-syncs strategy groups, saves the IR to disk, and reloads the active proxy engine.
+func (s *Server) UpdateAllSubscriptions() (int, int, error) {
+	ir := s.engMgr.GetIR()
+	if ir == nil {
+		return 0, 0, fmt.Errorf("IR not initialized")
+	}
+
+	fetcher := sub.NewFetcher()
+	totalNodes := 0
+	subsUpdated := 0
+
+	var updatedProxies []schema.ProxyNode
+	// Preserve direct, reject, and custom manual nodes
+	for _, p := range ir.Proxies {
+		if p.Type == "direct" || p.Type == "block" || p.Type == "reject" || p.SubID == "custom" {
+			updatedProxies = append(updatedProxies, p)
+		}
+	}
+
+	for i := range ir.Subscriptions {
+		if !ir.Subscriptions[i].Enabled || ir.Subscriptions[i].URL == "" {
+			continue
+		}
+		res, err := fetcher.Fetch(ir.Subscriptions[i].URL)
+		if err == nil {
+			ir.Subscriptions[i].NodeCount = res.NodeCount
+			ir.Subscriptions[i].UsedBytes = res.Upload + res.Download
+			ir.Subscriptions[i].TotalBytes = res.Total
+			ir.Subscriptions[i].ExpireAt = res.Expire
+			ir.Subscriptions[i].UpdatedAt = time.Now()
+			for _, n := range res.Nodes {
+				n.SubID = ir.Subscriptions[i].ID
+				prefix := fmt.Sprintf("[%s]", ir.Subscriptions[i].Name)
+				if !strings.HasPrefix(n.Name, prefix) {
+					n.Name = fmt.Sprintf("%s %s", prefix, n.Name)
+				}
+				updatedProxies = append(updatedProxies, n)
+			}
+			totalNodes += res.NodeCount
+			subsUpdated++
+		} else {
+			log.Printf("⚠️ [Sub] Failed to fetch sub '%s' (%s): %v. Preserving existing nodes.", ir.Subscriptions[i].Name, ir.Subscriptions[i].URL, err)
+			for _, p := range ir.Proxies {
+				if p.SubID == ir.Subscriptions[i].ID {
+					updatedProxies = append(updatedProxies, p)
+					totalNodes++
+				}
+			}
+		}
+	}
+
+	ir.Proxies = updatedProxies
+	schema.SyncAllStrategyGroups(ir)
+	s.engMgr.UpdateIR(ir)
+
+	// Re-trigger compilation for active engine
+	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+
+	// Reclaim subscription download buffers and JSON heaps
+	runtime.GC()
+	debug.FreeOSMemory()
+
+	return subsUpdated, totalNodes, nil
+}
+
+// startDailySubscriptionAutoUpdate runs a continuous background cron loop that triggers
+// at exactly 00:00 (midnight local time) every day to keep all airport subscriptions fresh.
+func (s *Server) startDailySubscriptionAutoUpdate() {
+	go func() {
+		for {
+			now := time.Now()
+			// Calculate next midnight: tomorrow 00:00:05 (5 seconds buffer for clock sync)
+			nextMidnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 5, 0, now.Location())
+			durationUntil := nextMidnight.Sub(now)
+
+			log.Printf("⏰ [Sub-Cron] 每日 00:00 订阅自动同步就绪 (将在 %v 后触发，下次: %s)",
+				durationUntil.Round(time.Second), nextMidnight.Format("2006-01-02 15:04:05"))
+			s.logBuffer.Add("INFO", "SUB", fmt.Sprintf("定时任务: 每日 00:00 订阅自动同步就绪 (下次触发: %s)", nextMidnight.Format("2006-01-02 15:04:05")))
+
+			select {
+			case <-time.After(durationUntil):
+				log.Println("⏰ [Sub-Cron] 每日 00:00 定时已到达：正在全自动拉取更新所有订阅...")
+				subsCount, nodesCount, err := s.UpdateAllSubscriptions()
+				if err != nil {
+					log.Printf("⚠️ [Sub-Cron] 每日 00:00 自动同步异常: %v", err)
+					s.logBuffer.Add("WARN", "SUB", fmt.Sprintf("每日 00:00 订阅自动同步异常: %v", err))
+				} else {
+					msg := fmt.Sprintf("每日 00:00 定时同步完成: 成功同步 %d 个订阅，装载 %d 个节点，引擎热重载完毕", subsCount, nodesCount)
+					log.Println("✅ [Sub-Cron]", msg)
+					s.logBuffer.Add("INFO", "SUB", msg)
+				}
+			}
+		}
+	}()
+}
+
+func (s *Server) handleSubCronStatus(w http.ResponseWriter, r *http.Request) {
+	now := time.Now()
+	nextMidnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 5, 0, now.Location())
+	sendJSON(w, map[string]any{
+		"enabled":         true,
+		"schedule":        "daily_00_00",
+		"description":     "每天 00:00 自动拉取更新所有已启用的机场订阅",
+		"next_run":        nextMidnight.Format("2006-01-02 15:04:05"),
+		"seconds_to_next": int(nextMidnight.Sub(now).Seconds()),
+	})
+}
+
 
 func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSecret string) int {
 	if clashPort <= 0 || node.Name == "" {
