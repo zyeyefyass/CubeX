@@ -29,6 +29,38 @@
 
 ---
 
+<details>
+<summary><b>📚 快速直达目录 (点击展开 / 折叠 · 全维度架构与部署导航)</b></summary>
+
+<br>
+
+- [📢 最新版本升级通知](#announcement)
+- [🧠 全局跨平台自适应与宿主深度定制优化体系 (Global Adaptive Architecture)](#global-adaptive)
+- [🧭 架构决胜：为什么坚定采用「主网关 + 旁路 DNS」黄金解耦与创新？](#architecture-golden)
+  - [❌ 传统“全包型”旁路由的五大致命死穴与 CubeX 降维打击破局](#traditional-flaws-and-solution)
+  - [✅ CubeX「主网关 + 旁路 DNS」黄金解耦机制与数据流向拓扑](#topology-flow)
+- [⚡ 权威实测：CubeX vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)](#benchmark)
+- [🧹 一键自愈与深度巡检重器：拯救网络的降压药](#auto-healing)
+  - [1. 轨道 A（针对 RouterOS 宿主 / 主路由）的四层救赎](#healing-track-ros)
+  - [2. 轨道 B（针对 飞牛 fnOS / Linux 宿主机）的底层调优](#healing-track-linux)
+  - [3. 🌐 原生 IPv6 双栈自愈与加固深度剖析（防火墙如何运作）](#healing-ipv6-dualstack)
+  - [4. 🔍 爱快 iKuai 作为宿主时的联动与回指剖析](#healing-ikuai-synergy)
+- [🚀 极速部署指南 (RouterOS / 爱快 iKuai / 飞牛 fnOS / PVE / Linux)](#deployment-guides)
+  - [方式 A：MikroTik RouterOS v7 容器一键极速安装指南 (官方强烈推荐 · 工业级共生)](#deploy-ros)
+  - [方式 B：爱快 iKuai 64位 主路由 Docker 原生轻量部署 (保姆级教程)](#deploy-ikuai)
+  - [方式 C：OpenWrt 智能软路由 Docker 原生极速部署 (含 0 秒逃生与 IPv6 防泄露)](#deploy-openwrt)
+  - [方式 D：飞牛 fnOS 与通用 Linux Docker 部署](#deploy-fnos-linux)
+  - [方式 E：Proxmox VE (PVE) CT 容器 (LXC) 极速部署](#deploy-pve)
+  - [方式 F：通用 Linux 终端一键全自动安装](#deploy-linux-cli)
+- [💬 极客畅所欲言：意见征集与需求大厅](#community-feedback)
+- [📜 净室合规与免责声明](#compliance-statement)
+
+<br>
+
+</details>
+
+---
+
 <a id="announcement"></a>
 > [!TIP]
 > ### 📢 小伙伴们请立即一键平滑升级 Test v2.7（全面原生支持 OpenWrt Docker 宿主共生架构 · 全局跨平台硬件分级与内存自适应守护 · 0秒逃生与 odhcpd IPv6 泄露根治 · 极客纯净版）！
@@ -66,40 +98,7 @@
 > | `CubeX-Test-v2.7-docker-amd64.tar.gz` | 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | 飞牛与 Linux Docker 离线镜像导入包（支持 GUI 本地导入与 docker load） |
 > | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~26.9 KB | RouterOS v7 WinBox 终端复制即用一键自动编排脚本 |
 > | `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~9.2 KB | OpenWrt 终端复制即用全自动初始化、Macvlan与0秒逃生编排脚本 |
-> 
----
-
-<details>
-<summary><b>📚 快速直达目录 (点击展开 / 折叠 · 全维度架构与部署导航)</b></summary>
-
-<br>
-
-- [📢 最新版本升级通知](#announcement)
-- [🧠 全局跨平台自适应与宿主深度定制优化体系 (Global Adaptive Architecture)](#global-adaptive)
-- [🧭 架构决胜：为什么坚定采用「主网关 + 旁路 DNS」黄金解耦与创新？](#architecture-golden)
-  - [❌ 传统“全包型”旁路由的五大致命死穴与 CubeX 降维打击破局](#traditional-flaws-and-solution)
-  - [✅ CubeX「主网关 + 旁路 DNS」黄金解耦机制与数据流向拓扑](#topology-flow)
-- [⚡ 权威实测：CubeX vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)](#benchmark)
-- [🧹 一键自愈与深度巡检重器：拯救网络的降压药](#auto-healing)
-  - [1. 轨道 A（针对 RouterOS 宿主 / 主路由）的四层救赎](#healing-track-ros)
-  - [2. 轨道 B（针对 飞牛 fnOS / Linux 宿主机）的底层调优](#healing-track-linux)
-  - [3. 🌐 原生 IPv6 双栈自愈与加固深度剖析（防火墙如何运作）](#healing-ipv6-dualstack)
-  - [4. 🔍 爱快 iKuai 作为宿主时的联动与回指剖析](#healing-ikuai-synergy)
-- [🚀 极速部署指南 (RouterOS / 爱快 iKuai / 飞牛 fnOS / PVE / Linux)](#deployment-guides)
-  - [方式 A：MikroTik RouterOS v7 容器一键极速安装指南 (官方强烈推荐 · 工业级共生)](#deploy-ros)
-  - [方式 B：爱快 iKuai 64位 主路由 Docker 原生轻量部署 (保姆级教程)](#deploy-ikuai)
-  - [方式 C：OpenWrt 智能软路由 Docker 原生极速部署 (含 0 秒逃生与 IPv6 防泄露)](#deploy-openwrt)
-  - [方式 D：飞牛 fnOS 与通用 Linux Docker 部署](#deploy-fnos-linux)
-  - [方式 E：Proxmox VE (PVE) CT 容器 (LXC) 极速部署](#deploy-pve)
-  - [方式 F：通用 Linux 终端一键全自动安装](#deploy-linux-cli)
-- [💬 极客畅所欲言：意见征集与需求大厅](#community-feedback)
-- [📜 净室合规与免责声明](#compliance-statement)
-
-<br>
-
-</details>
-
----
+>
 
 <a id="global-adaptive"></a>
 ## 🧠 全局跨平台自适应与宿主深度定制优化体系 (Global Adaptive Architecture)
