@@ -252,7 +252,7 @@
 | `CubeX-Test-v2.8-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~67.5 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
 | `cubexd-linux-amd64` | Linux amd64 单二进制 | ~10.7 MB | 用于现有容器或 Linux 宿主系统的一键在线平滑热更执行文件 |
 | `cubexd-linux-arm64` | Linux arm64 单二进制 | ~10.0 MB | 用于现有容器或 Linux 宿主系统的一键在线平滑热更执行文件 |
-| `CubeX-Test-v2.8-docker-amd64.tar.gz` | **爱快 iKuai 64位** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | **爱快、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（标签为 `cubex:Test-v2.8`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
+| `CubeX-Test-v2.8-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（标签为 `cubex:Test-v2.8`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
 | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~26.9 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（自动配置容器、网络、路由与 Netwatch 0秒逃生） |
 | `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~9.2 KB | OpenWrt 终端复制即用全自动初始化脚本（自动打通 Macvlan-Shim、配置 0秒看门狗与锁定 odhcpd 防泄露） |
 
@@ -505,6 +505,8 @@ MikroTik RouterOS v7 原生支持容器（Container）技术。CubeX 打造了�
 
 OpenWrt 作为最普及的开源软路由系统，拥有成熟的 Docker 环境。CubeX 独创的 **Macvlan-Shim 与看门狗共生机制**，彻底消除了传统旁路由插件引发的 53 端口冲突与固件升级变砖痛点。
 
+针对国内网络环境，CubeX 提供 **🚀 极速一键离线安装（0 失败率推荐）** 与 **🌐 在线终端一行命令部署** 两种方式：
+
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                     🟠 CubeX ➔ OpenWrt Docker 原生共生拓扑架构                         │
@@ -521,8 +523,41 @@ OpenWrt 作为最普及的开源软路由系统，拥有成熟的 Docker 环境�
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+<a id="openwrt-offline"></a>
+#### 🚀 路径 1：极速一键离线安装（国内网络强烈推荐 · 0 失败率 · 2 步秒装）
+
+国内环境访问 Docker Hub 或 GitHub Releases 偶尔不稳定，使用**离线包载入**是 100% 成功、零断连的最优选择：
+
+##### 步骤 1：下载离线资产包
+在上方 [📦 资产下载清单](#release-assets) 中下载以下两个文件到电脑本地：
+1. **Docker 离线镜像包**：`CubeX-Test-v2.8-docker-amd64.tar.gz`（约 75.5 MB）
+2. **OpenWrt 编排脚本**：`setup-openwrt.sh`
+
+##### 步骤 2：上传到 OpenWrt 并一键拉起
+使用 WinSCP、SCP 或 U盘将下载的两个文件上传到 OpenWrt 的任意目录（推荐 `/tmp`）：
+```bash
+# 1. 进入存放目录 (如 /tmp)
+cd /tmp
+
+# 2. 直接执行编排脚本 (脚本会自动识别同目录下的离线镜像包，全自主完成镜像加载与配置编排！)
+sh setup-openwrt.sh
+```
+
+> [!TIP]
+> **您也可以手动单步导入**：
+> ```bash
+> # 手动载入镜像 (镜像列表中即刻出现 cubex:Test-v2.8 与 cubex:latest)
+> docker load -i CubeX-Test-v2.8-docker-amd64.tar.gz
+> 
+> # 运行编排脚本完成网络与路由自愈
+> sh setup-openwrt.sh
+> ```
+> 脚本将在 30 秒内全自动完成：Macvlan 独立网络创建、容器拉起、Macvlan-Shim 宿主二层隔离打通、`198.18.0.0/15` Fake-IP 回指路由下发、`odhcpd` 运营商 IPv6 DNS 侧漏根除、以及毫秒级看门狗逃生注入！
+
+---
+
 <a id="openwrt-cli"></a>
-#### 🌟 路径 1：终端一行命令全自动部署（强烈推荐 · 30 秒全自主完成）
+#### 🌐 路径 2：终端一行命令在线全自动部署（适合外网畅通网络）
 1. SSH 登录 OpenWrt 终端；
 2. 直接复制并运行以下命令（自动拉取脚本并全自主执行）：
 
@@ -544,7 +579,7 @@ curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/setup-openwrt
 > 8. **注入 0 秒逃生看门狗**：安装守护脚本至 `/usr/bin/cubex-watchdog.sh` 并配置每分钟自检。
 
 <a id="openwrt-luci"></a>
-#### 🌐 路径 2：OpenWrt LuCI Web 界面纯手动图形化配置 (保姆级步骤)
+#### 🖥️ 路径 3：OpenWrt LuCI Web 界面纯手动图形化配置 (保姆级步骤)
 
 如果您喜欢在 LuCI 网页后台手动操作，请严格按照以下步骤完成部署：
 
@@ -557,7 +592,7 @@ docker network create -d macvlan   --subnet=10.0.0.0/24   --gateway=10.0.0.1   -
 ##### 步骤 2：创建并运行 CubeX 容器
 进入 LuCI 后台【Docker】➔【容器】➔【添加】：
 - **容器名称**：`cubex`；
-- **镜像**：填入 `zyeyefyass/cubex:latest`（或通过离线包载入）；
+- **镜像**：先在终端执行 `docker load -i CubeX-Test-v2.8-docker-amd64.tar.gz` 离线载入镜像，然后选择或填入 `cubex:latest`（或 `cubex:Test-v2.8`）；
 - **网络**：选择刚刚创建的 `cubex-macvlan`，IP 地址填入 `10.0.0.11`；
 - **特权模式 (Privileged)**：勾选；**自动重启 (Restart policy)**：选择 `Always`；
 - **设备映射**：添加 `/dev/net/tun` -> `/dev/net/tun`；

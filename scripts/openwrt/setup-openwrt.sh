@@ -107,14 +107,28 @@ fi
 CONTAINER_NAME="cubex"
 docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
 
-IMAGE="zyeyefyass/cubex:latest"
-echo -e "${CYAN}📦 [5/6 容器拉起] 正在拉起 CubeX 容器 (${CONTAINER_NAME} @ ${CUBEX_IP})...${NC}"
-
-# 优先检查本地离线镜像
-if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
-    echo -e "${YELLOW}   -> 在线拉取镜像: ${IMAGE}...${NC}"
-    docker pull "$IMAGE" || true
+# 优先检查并自动载入同目录下的离线镜像包
+LOCAL_TAR=$(ls CubeX-*-docker-*.tar.gz 2>/dev/null | head -n 1 || true)
+if [ -n "$LOCAL_TAR" ]; then
+    echo -e "${GREEN}📦 [5/6 离线识别] 发现当前目录离线镜像包: ${LOCAL_TAR}，正在载入本地 Docker...${NC}"
+    docker load -i "$LOCAL_TAR"
 fi
+
+IMAGE="cubex:latest"
+if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
+    if docker inspect "cubex:Test-v2.8" >/dev/null 2>&1; then
+        IMAGE="cubex:Test-v2.8"
+    elif docker inspect "zyeyefyass/cubex:latest" >/dev/null 2>&1; then
+        IMAGE="zyeyefyass/cubex:latest"
+    else
+        echo -e "${YELLOW}   -> 未检测到本地离线镜像，正在尝试在线拉取: ${IMAGE}...${NC}"
+        docker pull "$IMAGE" 2>/dev/null || docker pull "zyeyefyass/cubex:latest" || true
+        if docker inspect "zyeyefyass/cubex:latest" >/dev/null 2>&1; then
+            IMAGE="zyeyefyass/cubex:latest"
+        fi
+    fi
+fi
+echo -e "${CYAN}📦 [5/6 容器拉起] 正在拉起 CubeX 容器 (${CONTAINER_NAME} @ ${CUBEX_IP} 使用镜像: ${IMAGE})...${NC}
 
 docker run -d \
     --name "$CONTAINER_NAME" \
