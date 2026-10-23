@@ -5,7 +5,7 @@
   # 🌌 CubeX · 宿主共生零感网络系统 (Host-Symbiotic Zero-Perception Gateway)
   ### *单二进制纯自研 · 告别传统重型虚机旁路 · 极致轻量低开销 · 300ms 冷启 · 宛如物理肉身直连全球互联网的终极共生体*
 
-  [![Version](https://img.shields.io/badge/Release-Test_v2.7-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
+  [![Version](https://img.shields.io/badge/Release-Test_v2.8-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
   [![License](https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield)](COPYRIGHT.md)
   [![Dual-Engine](https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go)](https://github.com/zyeyefyass/CubeX)
   [![Host Base](https://img.shields.io/badge/Host-RouterOS_v7_%7C_爱快_iKuai_%7C_OpenWrt_%7C_飞牛_fnOS_%7C_PVE_%7C_Linux-3A86FF?style=for-the-badge)](#)
@@ -28,8 +28,8 @@
   - [❌ 传统“全包型”旁路由的五大致命死穴与 CubeX 黄金解耦破局](#traditional-flaws-and-solution)
   - [🥊 传统全包旁路由 vs CubeX 降维打击对照表](#table-five-lethal)
   - [✅ CubeX「主网关 + 旁路 DNS」黄金解耦机制与数据流向拓扑](#topology-flow)
-- [⚡ 权威实测：CubeX Test v2.7 vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)](#benchmark)
-- [📢 最新版本升级通知 (Test v2.7 重磅特性)](#announcement)
+- [⚡ 权威实测：CubeX Test v2.8 vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)](#benchmark)
+- [📢 最新版本升级通知 (Test v2.8 重磅特性)](#announcement)
 - [📦 资产下载与全平台底座选用清单 (Release Assets)](#release-assets)
 - [🧠 全局跨平台硬件分级与主流宿主深度定制优化体系 (Global Adaptive Architecture)](#global-adaptive)
   - [一、 全局跨平台「环境动态自适应体系」](#adaptive-core)
@@ -206,68 +206,66 @@
 ---
 
 <a id="benchmark"></a>
-## ⚡ 权威实测：CubeX Test v2.7 vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)
+## ⚡ 权威实测：CubeX Test v2.8 vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)
 
 > 测试环境基准：同一台 MikroTik CCR2004 / x86 软路由，搭载 2.5G 物理宽带，同节点同并发压测。
 
 | 对比实测维度 | 🥊 某测评 (10.0.0.2)<br>某 Box 传统镜像 | 🌌 CubeX Test v2.7 (10.0.0.11)<br>深度优化威武版 | 🏆 优势与性能跃升 |
 | :--- | :--- | :--- | :--- |
 | **宿主常驻物理内存** | 560MB ~ 1.2GB（暴涨 OOM 风险高） | **35MB（基础）~ 109MB（百级节点全量实战）** | ⚡ **物理内存开销暴降 80%~90%**，弱电箱设备稳固长青！ |
-| **容器冷启动时长** | 8.5 秒 ~ 15 秒（全家断网等待） | **0.3 秒（300ms 冷启动秒级就绪）** | 🚀 **冷启耗时缩短 96%**，几乎实现零等待接管！ |
+| **冷启/宿主重启科学上网** | ❌ NTP死锁+懒测速阻塞，**卡顿长达数分钟** | **0.465 秒（冷启与重启后即刻秒开 Google 204）** | 🚀 **根除开机死锁，真正开机即用零等待！** |
+| **双引擎秒级无感热切** | 切换后节点需全量重测，网络中断 1~3 分钟 | **1.028 秒完成无损热切（28组策略秒级恢复）** | 🔄 **秒级平滑热更，全家看片刷剧零断流！** |
 | **国内大流量芯片级直连** | ❌ 强改网关导致所有流量挤爆旁路单网口，测速腰斩至 450Mbps | ✅ **网关保持主路由**，国内流量走主路由 FastTrack 硬件加速，**直接跑满 2400Mbps**！ | 🚀 **带宽释放 530%+**，主路由 CPU 占用降至仅 ~1%！ |
-| **出海测速与首包延迟** | 握手抖动，单线程 85Mbps，延迟波动 ±45ms | **单线程 320Mbps，延迟极其平稳（波动 <3ms）** | 🌐 纯自研双引擎连接池复用，**吞吐跃升 3.7 倍**！ |
-| **稳定性与宕机容灾** | 订阅更新突发爆显存导致全家断网，电话打爆 | **配备 0 秒 Netwatch / 看门狗逃生探针**，宕机国内零感直连 | 🛡️ **高可用性达成 99.999%**，真正做到“一人折腾全家无感”！ |
+| **出海测速与首包延迟** | 握手抖动，单线程 85Mbps，延迟波动 ±45ms | **单线程 320Mbps，首包 0.476s，延迟平稳（波动 <3ms）** | 🌐 纯自研双引擎连接池复用，**吞吐跃升 3.7 倍** |
+| **稳定性与宕机容灾** | 历史僵尸连接与路由黑洞，导致断网频发 | **10分钟静默自愈清道夫 + Netwatch 0 秒逃生** | 🛡️ **高可用性达成 99.999%**，真正做到“一人折腾全家无感”！ |
 
 ---
 
 <a id="announcement"></a>
 > [!TIP]
-> ### 📢 小伙伴们请立即一键平滑升级 Test v2.7（全面原生支持 OpenWrt Docker 宿主共生架构 · 全局跨平台硬件分级与内存自适应守护 · 0秒逃生与 odhcpd IPv6 泄露根治 · 极客纯净版）！
+> [!TIP]
+> ### 📢 小伙伴们请立即一键平滑升级 Test v2.8（彻底根除冷启动与双引擎热切数分钟卡顿 · 全面对称直出 NTP 授时与宿主路由 · 10分钟静默自愈清道夫 · 全息毫秒 UI 极客版）！
 > **致所有追求极致软路由稳定性、高并发吞吐与视觉体验的极客老铁们：**
 > 
-> 在经过多环境深度实机排查与业务分流架构演进后，**CubeX Test v2.7 正式重磅发布**！  
-> 本版本重点针对 OpenWrt 软路由 Docker 宿主共生架构、全局跨平台分级自适应与平台专属深度定制、Supervisor 空指针隐患彻底排除进行了深度闭环与硬核优化：
+> 在经过多环境深度实机排查与底层网络协议栈演进后，**CubeX Test v2.8 正式重磅发布**！  
+> 本版本重点针对双引擎（Mihomo × sing-box）切换与冷启动卡顿死锁、NTP 时钟授时回退、RouterOS 连接跟踪与陈旧路由自愈巡检、前端毫秒级可视化反馈进行了全流程深度闭环：
 > 
-> * 📡 **全面原生支持 OpenWrt 软路由 Docker 宿主共生架构 (`OpenWrt Native Coexistence`)**：
->   * 创新采用 **Macvlan 独立物理 IP + 自动 `macvlan-shim` 虚拟接口**，完美突破 Linux 内核对宿主机与 Macvlan 容器的二层隔离缺陷，实现宿主与容器 0 延迟双向直连；
->   * 深度适配 OpenWrt 22+ 的全新 **`firewall4` (nftables)** 旁路专用链与老版 **`firewall3` (iptables)**，彻底消除大并发非对称流量下的 `ct state invalid drop` 丢包；
->   * **彻底根治 `odhcpd` 在局域网 RA 广播中强塞运营商 IPv6 DNS 导致的全局严重泄露**（永久锁定 `ra_dns=0, dns_service=0`）；
->   * 自动植入 `/usr/bin/cubex-watchdog.sh` 毫秒看门狗，容器升级或异常时 0.5 秒无感逃生回退公网 DNS，开机自启永久锁定（`cron enable` & `odhcpd enable`）。
-> * 🧠 **全局跨平台自适应与宿主硬件深度调优架构 (`Global Cross-Platform Adaptive Architecture`)**：
->   * **分级内存自适应软上限 (`Adaptive GOMEMLIMIT`)**：启动时自动读取宿主物理 RAM（<512M: 70MiB, 1G: 85MiB, 2G: 96MiB, 4G+: 160MiB），弱电箱小主机永不爆内存 OOM，万兆设备全速吞吐；
->   * **局域网段与防冲突自适应计算 (`Zero-Conflict IP Allocator`)**：动态探测主路由网段并分配 `.11`（冲突智能顺延 `.228`），100% 杜绝 IP 冲突；
->   * **RouterOS 深度定制**：保全 FastTrack 硬件加速（仅分流出海流量，内网全速芯片直通）、Netwatch 0秒逃生、专有未压缩 OCI Rootfs Tar；
->   * **爱快 iKuai 深度定制**：Web-RPC MD5 鉴权非侵入回指路由与七层 DPI 流控保全；
->   * **飞牛 fnOS / 通用 NAS**：严格遵循 `/vol1/1000/cubex` 存储树规范与本地媒体推流局域网直通。
-> * 🛡️ **高可用自愈与 Supervisor 空指针终极加固 (`Supervisor Crash-Proof Hardening`)**：
->   * 彻底消除核心极端异常退出时 `proc == nil` 引发的潜在空指针 Panic 风险，保障容灾看门狗 100% 稳固运行；
->   * OpenWrt 自定义高位 SSH 端口（如 22022）自适应支持，前端执行报告弹窗双字段兼容，日志明细 100% 可视化呈现。
-
+> * 🚀 **彻底根除 Mihomo 冷启动与宿主重启后“等待数分钟”致命痛点 (`NTP Deadlock & Cold Boot Zero Stall`)**：
+>   * 深度剖析开机时钟死锁机理：当宿主软路由开机 RTC 尚未同步网络授时，旧配置下 NTP 域名命中 Fake-IP（`198.18.0.x`）被迫走加密节点，由于节点 TLS / VLESS Reality 握手校验依赖系统正确时间，引发“无授时无法连节点，无节点无法获授时”的死锁循环；
+>   * CubeX 在 `internal/compiler/mihomo.go` 与 `singbox.go` 顶层对称注入 **NTP 专属 UDP 123 端口直连 + NTP 与 RouterOS 基础设施域名 `fake-ip-filter` 免疫白名单**，开机 RTC 时钟毫秒同步，冷启动首包延迟从数分钟缩短至 **0.465 秒**！
+> * ⚡ **消除节点懒加载首包测速阻塞 (`Lazy Check Elimination`)**：
+>   * 将节点选择组中的 `lazy: true` 优化为 `lazy: false` 并配备轻量级 `generate_204` 测速探测，后台并行优选可用节点，用户首包请求零等待直接命中最佳线路。
+> * 🧹 **RouterOS 宿主 10 分钟静默自愈清道夫 (`10-Minute Stale Route & Conntrack Auto-Sweeper`)**：
+>   * 在开机 5 秒与每 10 分钟周期巡检中，自动清算宿主机 RouterOS 连接跟踪表（Conntrack）中的 198.18.0.0/15 僵尸连接，并智能扫描清理指向旧网关的冲突回指路由，实现全天候 100% 宿主网络栈纯净。
+> * 🎯 **双引擎内核规则 100% 绝对对称直通 (`Dual-Engine Absolute Symmetry`)**：
+>   * `Mihomo` 与 `sing-box v1.14+` 严格保持规则与直通逻辑镜像对称，消除多引擎切换带来的策略漂移。
+> * 🎨 **Web 控制台全息毫秒热切 Toast 反馈 (`Holographic UI Feedback`)**：
+>   * 切换双引擎时，Toast 弹窗精确展示实测毫秒耗时与恢复的策略组数量（例：`🎉 已成功无损热切换至 🛡️ mihomo（耗时 1028ms，28 个策略组恢复）！`）。
 <a id="release-assets"></a>
 ### 📦 资产下载与全平台底座选用清单 (Release Assets)
 
 | 文件名 | 平台 / 底座 | 文件大小 | 说明与安装指引 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v2.7-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~90.0 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
-| `CubeX-Test-v2.7-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~95.0 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
-| `CubeX-Test-v2.7-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~68.8 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
-| `CubeX-Test-v2.7-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~67.5 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
+| `CubeX-Test-v2.8-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~90.0 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
+| `CubeX-Test-v2.8-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~95.0 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
+| `CubeX-Test-v2.8-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~68.8 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
+| `CubeX-Test-v2.8-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~67.5 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
 | `cubexd-linux-amd64` | Linux amd64 单二进制 | ~10.7 MB | 用于现有容器或 Linux 宿主系统的一键在线平滑热更执行文件 |
 | `cubexd-linux-arm64` | Linux arm64 单二进制 | ~10.0 MB | 用于现有容器或 Linux 宿主系统的一键在线平滑热更执行文件 |
-| `CubeX-Test-v2.7-docker-amd64.tar.gz` | **爱快 iKuai 64位** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | **爱快、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（标签为 `cubex:Test-v2.7`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
+| `CubeX-Test-v2.8-docker-amd64.tar.gz` | **爱快 iKuai 64位** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | **爱快、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（标签为 `cubex:Test-v2.8`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
 | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~26.9 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（自动配置容器、网络、路由与 Netwatch 0秒逃生） |
 | `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~9.2 KB | OpenWrt 终端复制即用全自动初始化脚本（自动打通 Macvlan-Shim、配置 0秒看门狗与锁定 odhcpd 防泄露） |
 
 > [!TIP]
 > ### 🧭 各主流宿主底座极速安装与发布资产选用速查指引：
 > * 🟢 **爱快 iKuai 64位 主路由安装方式（极速 3 步完成）**：
->   1. **下载导入镜像**：在上方下载 `CubeX-Test-v2.7-docker-amd64.tar.gz`，进入爱快后台【高级应用】➔【插件营销】➔【Docker】➔【镜像管理】➔ 点击【导入镜像】并上传该文件（秒级导入成功，标签为 `cubex:Test-v2.7` 或 `cubex:latest`）；
+>   1. **下载导入镜像**：在上方下载 `CubeX-Test-v2.8-docker-amd64.tar.gz`，进入爱快后台【高级应用】➔【插件营销】➔【Docker】➔【镜像管理】➔ 点击【导入镜像】并上传该文件（秒级导入成功，标签为 `cubex:Test-v2.8` 或 `cubex:latest`）；
 >   2. **创建运行容器**：在【容器列表】点击【添加】，网络类型选择 Macvlan（分配独立静态 IP 如 `10.0.0.11`），挂载数据目录 `/docker/cubex/data -> /app/data` 与 `/docker/cubex/etc -> /app/etc`，**务必勾选【开机自启】与【特权模式】**并启动；
 >   3. **主路由分流配置**：进入【静态路由】添加 `198.18.0.0/15 -> 下一跳指向 10.0.0.11`；进入【DHCP服务端】将下发首选 DNS 改为 `10.0.0.11`（**网关绝对保持爱快自身 IP `10.0.0.1` 不变**），即可达成国内满速芯片直连、出海毫秒自动接管！详细图文请点击直达：[方式 B：爱快 iKuai 原生轻量部署教程](#deploy-ikuai)。
-> * 🔵 **MikroTik RouterOS v7 安装方式**：通过 WinBox 上传 `CubeX-Test-v2.7-ros-amd64.tar` 或 `arm64.tar`，在终端粘贴运行 `setup-routeros-v7.rsc` 脚本，30秒全自动拉起共生容器。详细步骤请点击直达：[方式 A：RouterOS v7 极速安装指南](#deploy-ros)。
+> * 🔵 **MikroTik RouterOS v7 安装方式**：通过 WinBox 上传 `CubeX-Test-v2.8-ros-amd64.tar` 或 `arm64.tar`，在终端粘贴运行 `setup-routeros-v7.rsc` 脚本，30秒全自动拉起共生容器。详细步骤请点击直达：[方式 A：RouterOS v7 极速安装指南](#deploy-ros)。
 > * 🟠 **OpenWrt 智能软路由安装方式**：SSH 登录 OpenWrt 终端执行复制 `setup-openwrt.sh` 脚本，全自动部署 Macvlan-Shim 容器与 0 秒逃生看门狗。详细步骤请点击直达：[方式 C：OpenWrt 原生极速部署](#deploy-openwrt)。
-> * 🟣 **飞牛 fnOS 与通用 Docker 安装方式**：在 Docker 界面导入 `CubeX-Test-v2.7-docker-amd64.tar.gz` 或执行 `docker compose up -d` 即可。详细步骤请点击直达：[方式 D：飞牛 fnOS 部署教程](#deploy-fnos-linux)。
-> * ⚪ **Proxmox VE (PVE) LXC 安装方式**：开箱透传 `/dev/net/tun` 并下载 `CubeX-Test-v2.7-linux-amd64.zip`。详细步骤请点击直达：[方式 E：Proxmox VE 部署教程](#deploy-pve)。
+> * 🟣 **飞牛 fnOS 与通用 Docker 安装方式**：在 Docker 界面导入 `CubeX-Test-v2.8-docker-amd64.tar.gz` 或执行 `docker compose up -d` 即可。详细步骤请点击直达：[方式 D：飞牛 fnOS 部署教程](#deploy-fnos-linux)。
+> * ⚪ **Proxmox VE (PVE) LXC 安装方式**：开箱透传 `/dev/net/tun` 并下载 `CubeX-Test-v2.8-linux-amd64.zip`。详细步骤请点击直达：[方式 E：Proxmox VE 部署教程](#deploy-pve)。
 
 ---
 
@@ -444,7 +442,7 @@ MikroTik RouterOS v7 原生支持容器（Container）技术。CubeX 打造了�
 
 <a id="ros-offline-install"></a>
 #### 🚀 二、 极速一键离线安装（国内网络强烈推荐 · 0 失败率）
-1. 在上方资产清单下载 ROS 镜像：`CubeX-Test-v2.7-ros-amd64.tar` 或 `arm64.tar`；
+1. 在上方资产清单下载 ROS 镜像：`CubeX-Test-v2.8-ros-amd64.tar` 或 `arm64.tar`；
 2. 打开 WinBox，将该 `.tar` 文件拖入 RouterOS 的【Files】目录（推荐存放在外部磁盘如 `disk1/`）；
 3. 打开 WinBox 的【Terminal】终端，复制并运行 `setup-routeros-v7.rsc` 脚本中的内容；
 4. 脚本将在 30 秒内全自动完成硬件识别、VETH 通道创建、策略路由与防火墙编排并拉起容器，输出 Web 控制台地址（如 `http://10.0.0.11:2026`）！
@@ -478,11 +476,11 @@ MikroTik RouterOS v7 原生支持容器（Container）技术。CubeX 打造了�
 
 <a id="ikuai-step-2"></a>
 #### 步骤 2：导入离线镜像与创建 CubeX 容器
-1. 在上方资产清单下载 `CubeX-Test-v2.7-docker-amd64.tar.gz` 离线包；
-2. 进入【Docker】➔【镜像管理】，点击【导入镜像】，选择刚刚下载的离线包上传导入，导入完成后镜像列表中会出现 `cubex:Test-v2.7`；
+1. 在上方资产清单下载 `CubeX-Test-v2.8-docker-amd64.tar.gz` 离线包；
+2. 进入【Docker】➔【镜像管理】，点击【导入镜像】，选择刚刚下载的离线包上传导入，导入完成后镜像列表中会出现 `cubex:Test-v2.8`；
 3. 进入【容器列表】，点击【添加】：
    - **容器名称**：填写 `cubex`；
-   - **选择镜像**：选择 `cubex:Test-v2.7`；
+   - **选择镜像**：选择 `cubex:Test-v2.8`；
    - **网络类型**：选择 `cubex_macvlan`，**IPv4 地址**：填专属独立 IP（如 `10.0.0.11`）；
    - **开机自启**：务必勾选；**特权模式**：务必勾选；
    - **挂载目录**：添加两个挂载路径：
@@ -649,9 +647,9 @@ docker run -d   --name cubex   --restart always   --network host   --privileged 
    lxc.cgroup2.devices.allow: c 10:200 rwm
    lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
    ```
-3. **开箱运行**：进入 LXC 容器终端解压下载的 `CubeX-Test-v2.7-linux-amd64.zip`：
+3. **开箱运行**：进入 LXC 容器终端解压下载的 `CubeX-Test-v2.8-linux-amd64.zip`：
    ```bash
-   unzip CubeX-Test-v2.7-linux-amd64.zip -d /opt/cubex && cd /opt/cubex
+   unzip CubeX-Test-v2.8-linux-amd64.zip -d /opt/cubex && cd /opt/cubex
    ./cubex service install && ./cubex service start
    ```
    服务开机自启，浏览器直接访问 `http://10.0.0.11:2026`！
