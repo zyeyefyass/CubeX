@@ -305,7 +305,21 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 	for _, reg := range StandardRegions {
 		nodes := regionNodes[reg.ID]
 		if len(nodes) == 0 {
-			nodes = []string{"DIRECT"}
+			// Multi-active cross-region failover: borrow healthy regional nodes rather than prematurely falling back to DIRECT
+			if failoverRegions, ok := RegionalFailoverOrder[reg.ID]; ok {
+				for _, fRegID := range failoverRegions {
+					if fNodes, fOk := regionNodes[fRegID]; fOk && len(fNodes) > 0 {
+						for _, fn := range fNodes {
+							if fn != "DIRECT" && !containsString(nodes, fn) {
+								nodes = append(nodes, fn)
+							}
+						}
+					}
+				}
+			}
+			if len(nodes) == 0 {
+				nodes = []string{"DIRECT"}
+			}
 		}
 
 		// (1) 地区自动 (url-test 最优延迟)
@@ -395,29 +409,63 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 	for _, bg := range StandardBusinessGroups {
 		candidates := append([]string{}, allRegionalCandidateProxies...)
 
+		hasNativeNodes := func(groupName string) bool {
+			for _, reg := range StandardRegions {
+				if reg.AutoName == groupName || reg.FallName == groupName || reg.DisasterName == groupName {
+					return len(regionNodes[reg.ID]) > 0
+				}
+			}
+			return true
+		}
+
 		defaultNow := candidates[0]
 		if bg.Name == "Apple 服务" || bg.Name == "Microsoft" || bg.Name == "🎯 国内流量" {
 			defaultNow = "DIRECT"
 		} else if bg.Name == "AI" || bg.Name == "Gemini & Antigravity" {
+			// Prefer regions that have native nodes first (e.g. US -> JP -> TW -> SG)
 			for _, pref := range []string{"🇺🇸 美国自动", "🇯🇵 日本自动", "🇹🇼 台湾自动", "🇸🇬 新加坡自动"} {
-				if containsString(candidates, pref) {
+				if containsString(candidates, pref) && hasNativeNodes(pref) {
 					defaultNow = pref
 					break
 				}
 			}
+			if defaultNow == candidates[0] {
+				for _, pref := range []string{"🇺🇸 美国自动", "🇯🇵 日本自动", "🇹🇼 台湾自动", "🇸🇬 新加坡自动"} {
+					if containsString(candidates, pref) {
+						defaultNow = pref
+						break
+					}
+				}
+			}
 		} else if bg.Name == "YouTube" || bg.Name == "Netflix & 流媒体" || bg.Name == "Google" {
 			for _, pref := range []string{"🇯🇵 日本自动", "🇭🇰 香港自动", "🇸🇬 新加坡自动", "🇹🇼 台湾自动"} {
-				if containsString(candidates, pref) {
+				if containsString(candidates, pref) && hasNativeNodes(pref) {
 					defaultNow = pref
 					break
+				}
+			}
+			if defaultNow == candidates[0] {
+				for _, pref := range []string{"🇯🇵 日本自动", "🇭🇰 香港自动", "🇸🇬 新加坡自动", "🇹🇼 台湾自动"} {
+					if containsString(candidates, pref) {
+						defaultNow = pref
+						break
+					}
 				}
 			}
 		} else {
 			// All other foreign groups (🌐 国外流量, 🐟 漏网之鱼, Telegram, Twitter, GitHub, etc.)
 			for _, pref := range []string{"🇭🇰 香港自动", "🇯🇵 日本自动", "🇸🇬 新加坡自动", "🇹🇼 台湾自动", "🇺🇸 美国自动"} {
-				if containsString(candidates, pref) {
+				if containsString(candidates, pref) && hasNativeNodes(pref) {
 					defaultNow = pref
 					break
+				}
+			}
+			if defaultNow == candidates[0] {
+				for _, pref := range []string{"🇭🇰 香港自动", "🇯🇵 日本自动", "🇸🇬 新加坡自动", "🇹🇼 台湾自动", "🇺🇸 美国自动"} {
+					if containsString(candidates, pref) {
+						defaultNow = pref
+						break
+					}
 				}
 			}
 		}

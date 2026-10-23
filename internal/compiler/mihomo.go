@@ -499,7 +499,20 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			}
 		}
 		if len(proxies) == 0 {
-			proxies = append(proxies, "DIRECT")
+			// Multi-active disaster fallback: borrow healthy proxy nodes if this group's nodes were unsupported in Mihomo (e.g. AnyTLS)
+			if g.Name != "🎯 国内流量" && g.Name != "Apple 服务" && g.Name != "Microsoft" {
+				for _, p := range proxiesList {
+					if n, ok := p["name"].(string); ok && n != "" && n != g.Name {
+						proxies = append(proxies, n)
+						if len(proxies) >= 10 {
+							break
+						}
+					}
+				}
+			}
+			if len(proxies) == 0 {
+				proxies = append(proxies, "DIRECT")
+			}
 		}
 
 		// If g.Now is specified, move it to the front of proxies list so Mihomo selects it by default
