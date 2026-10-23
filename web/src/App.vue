@@ -166,19 +166,8 @@
           </div>
         </div>
 
-        <!-- Right: 🩺 双核体检 + 🌙 去蓝光护眼一键切换 + 宿主机官方矢量 Logo + 在线心跳胶囊 -->
+        <!-- Right: 🌙 去蓝光护眼一键切换 + 宿主机官方矢量 Logo + 在线心跳胶囊 -->
         <div class="flex items-center gap-2 shrink-0">
-          <!-- 🩺 双核网络体检 (One-Click Dual-Core Network Health Check) -->
-          <button @click="runDualCoreDiagnose" :disabled="diagnosingDualCore"
-            class="h-[42px] sm:h-[46px] inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-2xl border text-xs select-none transition-all cursor-pointer active:scale-95 bg-slate-900/80 border-slate-700/60 text-slate-300 hover:text-emerald-300 hover:border-emerald-500/40 hover:bg-slate-800/80"
-            title="一键双核与网络全链路全息体检 (国内直连 · 境外代理 · DNS Fake-IP · 宿主路由)">
-            <span class="text-sm transition-transform duration-300" :class="diagnosingDualCore ? 'animate-spin' : ''">🩺</span>
-            <span class="hidden sm:inline font-mono font-bold tracking-tight">
-              {{ diagnosingDualCore ? '体检中...' : '双核体检' }}
-            </span>
-            <span class="w-2 h-2 rounded-full transition-all duration-300 shrink-0"
-              :class="dualCoreHealthy === true ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : (dualCoreHealthy === false ? 'bg-rose-400 shadow-[0_0_6px_#f87171]' : 'bg-slate-600')"></span>
-          </button>
           <!-- 🌙 去蓝光护眼 (Anti-Blue-Light Warm Spectrum Filter · 4500K 暖墨护眼) -->
           <button @click="toggleAntiBlueLight"
             :class="[
