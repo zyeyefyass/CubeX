@@ -39,6 +39,8 @@ scripts/*.py
 !scripts/audit_release_artifacts.py
 !scripts/desensitize.py
 !scripts/verify_network_dual_core.py
+!scripts/build_v21_ros_containers.py
+!scripts/build_docker_tar_v29.py
 
 # OS & Editor files
 .DS_Store

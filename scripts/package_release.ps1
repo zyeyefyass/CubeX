@@ -3,7 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Version = "Test-v2.8"
+$Version = "Test-v2.9"
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 $DistDir = "$RootDir\dist"
 $ReleaseDir = "$DistDir\release"
@@ -144,10 +144,10 @@ Assemble-RosContainer "CubeX-$Version-ros-amd64" "$DistDir\cubexd-linux-amd64" "
 Assemble-RosContainer "CubeX-$Version-ros-arm64" "$DistDir\cubexd-linux-arm64" "arm64" | Out-Null
 
 # Build true OCI images for RouterOS container engine
-python "$RootDir\scripts\build_v20_ros_containers.py" | Out-Host
+python "$RootDir\scripts\build_v21_ros_containers.py" | Out-Host
 
 # Build fnOS / Linux Docker offline image
-python "$RootDir\scripts\build_docker_tar_v28.py" | Out-Host
+python "$RootDir\scripts\build_docker_tar_v29.py" | Out-Host
 
 # Copy standalone cubexd gateway binaries for 1-click in-place hot-upgrade
 Copy-Item -Path "$DistDir\cubexd-linux-amd64" -Destination "$ReleaseDir\cubexd-linux-amd64" -Force

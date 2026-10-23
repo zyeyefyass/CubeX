@@ -40,7 +40,7 @@ import (
 )
 
 var (
-	version   = "Test v2.8"
+	version   = "Test v2.9"
 	startTime = time.Now()
 )
 
