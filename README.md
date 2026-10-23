@@ -88,10 +88,20 @@
 > | `CubeX-Test-v2.7-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~67.5 MB | 包含双内核、规则集、配置与控制面的完整生产归档 |
 > | `cubexd-linux-amd64` | Linux amd64 单二进制 | ~10.7 MB | 用于现有容器或系统的一键在线平滑热更执行文件 |
 > | `cubexd-linux-arm64` | Linux arm64 单二进制 | ~10.0 MB | 用于现有容器或系统的一键在线平滑热更执行文件 |
-> | `CubeX-Test-v2.7-docker-amd64.tar.gz` | 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | 飞牛与 Linux Docker 离线镜像导入包（支持 GUI 本地导入与 docker load） |
-> | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~26.9 KB | RouterOS v7 WinBox 终端复制即用一键自动编排脚本 |
-> | `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~9.2 KB | OpenWrt 终端复制即用全自动初始化、Macvlan与0秒逃生编排脚本 |
->
+> | `CubeX-Test-v2.7-docker-amd64.tar.gz` | **爱快 iKuai 64位** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | **爱快、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（标签为 `cubex:Test-v2.7`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
+> | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~26.9 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（自动配置容器、网络、路由与 Netwatch 0秒逃生） |
+> | `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~9.2 KB | OpenWrt 终端复制即用全自动初始化脚本（自动打通 Macvlan-Shim、配置 0秒看门狗与锁定 odhcpd 防泄露） |
+> 
+> > [!TIP]
+> > ### 🧭 各主流宿主底座极速安装与发布资产选用速查指引：
+> > * 🟢 **爱快 iKuai 64位 主路由安装方式（极速 3 步完成）**：
+> >   1. **下载导入镜像**：在上方下载 `CubeX-Test-v2.7-docker-amd64.tar.gz`，进入爱快后台【高级应用】➔【插件营销】➔【Docker】➔【镜像管理】➔ 点击【导入镜像】并上传该文件（秒级导入成功，标签为 `cubex:Test-v2.7` 或 `cubex:latest`）；
+> >   2. **创建运行容器**：在【容器列表】点击【添加】，网络类型选择 Macvlan（分配独立静态 IP 如 `10.0.0.11`），挂载数据目录 `/docker/cubex/data -> /app/data` 与 `/docker/cubex/etc -> /app/etc`，**务必勾选【开机自启】与【特权模式】**并启动；
+> >   3. **主路由分流配置**：进入【静态路由】添加 `198.18.0.0/15 -> 下一跳指向 10.0.0.11`；进入【DHCP服务端】将下发首选 DNS 改为 `10.0.0.11`（**网关绝对保持爱快自身 IP `10.0.0.1` 不变**），即可达成国内满速芯片直连、出海毫秒自动接管！详细图文请点击直达：[方式 B：爱快 iKuai 原生轻量部署教程](#deploy-ikuai)。
+> > * 🔵 **MikroTik RouterOS v7 安装方式**：通过 WinBox 上传 `CubeX-Test-v2.7-ros-amd64.tar` 或 `arm64.tar`，在终端粘贴运行 `setup-routeros-v7.rsc` 脚本，30秒全自动拉起共生容器。详细步骤请点击直达：[方式 A：RouterOS v7 极速安装指南](#deploy-ros)。
+> > * 🟠 **OpenWrt 智能软路由安装方式**：SSH 登录 OpenWrt 终端执行复制 `setup-openwrt.sh` 脚本，全自动部署 Macvlan-Shim 容器与 0 秒逃生看门狗。详细步骤请点击直达：[方式 C：OpenWrt 原生极速部署](#deploy-openwrt)。
+> > * 🟣 **飞牛 fnOS 与通用 Docker 安装方式**：在 Docker 界面导入 `CubeX-Test-v2.7-docker-amd64.tar.gz` 或执行 `docker compose up -d` 即可。详细步骤请点击直达：[方式 D：飞牛 fnOS 部署教程](#deploy-fnos-linux)。
+> > * ⚪ **Proxmox VE (PVE) LXC 安装方式**：开箱透传 `/dev/net/tun` 并下载 `CubeX-Test-v2.7-linux-amd64.zip`。详细步骤请点击直达：[方式 E：Proxmox VE 部署教程](#deploy-pve)。
 
 <a id="global-adaptive"></a>
 ## 🧠 全局跨平台自适应与宿主深度定制优化体系 (Global Adaptive Architecture)
@@ -629,12 +639,12 @@ RouterOS 为了设备安全，首次开启容器功能时要求进行物理所�
 #### 步骤 3：导入或拉取 CubeX 容器镜像
 提供以下两种方式：
 * **方式 1：离线镜像快速导入（国内网络推荐，免连外网 Docker Hub，0 失败率）**
-  1. 在 [GitHub Releases 最新发布页](https://github.com/zyeyefyass/CubeX/releases/latest) 下载 `CubeX-docker-amd64.tar.gz`；
+  1. 在 [GitHub Releases 最新发布页](https://github.com/zyeyefyass/CubeX/releases/latest) 下载 `CubeX-Test-v2.7-docker-amd64.tar.gz`（或最新版本的 `docker-amd64.tar.gz`）；
   2. 在爱快【Docker】➔【镜像管理】➔ 点击【导入镜像】；
-  3. 上传下载的 `.tar.gz` 文件，系统将在数秒内导入成功并标记为 `fyasshole/cubex:latest`。
+  3. 上传下载的 `.tar.gz` 文件，系统将在数秒内导入成功并标记为 `cubex:Test-v2.7`（或 `cubex:latest`）。
 * **方式 2：在线搜索下载**
   1. 在爱快【Docker】➔【镜像管理】➔【镜像搜索】；
-  2. 搜索 `fyasshole/cubex`，点击【下载镜像】，标签选择 `latest`。
+  2. 搜索 `zyeyefyass/cubex`，点击【下载镜像】，标签选择 `Test-v2.7` 或 `latest`。
 
 ---
 
@@ -642,7 +652,7 @@ RouterOS 为了设备安全，首次开启容器功能时要求进行物理所�
 1. 进入【Docker】➔【容器列表】➔ 点击右上角【添加】；
 2. 基础配置：
    - **容器名称**：`cubex`
-   - **镜像**：选择 `fyasshole/cubex:latest`
+   - **镜像**：选择 `cubex:Test-v2.7`（或导入的 `cubex:latest` / `zyeyefyass/cubex:latest`）
    - **网络类型**：选择刚刚创建的 **`cubex_macvlan`**
    - **IPv4 地址**：填入分配给 CubeX 的局域网专属独立静态 IP（例如 **`192.168.1.200`**，注意请避开爱快 DHCP 动态分配地址池）
    - **开机自启**：勾选【是】
@@ -773,7 +783,7 @@ version: '3.8'
 
 services:
   cubex:
-    image: fyasshole/cubex:latest  # 亦可使用 ghcr.io/zyeyefyass/cubex:latest
+    image: zyeyefyass/cubex:latest  # 亦可使用 ghcr.io/zyeyefyass/cubex:latest
     container_name: cubex
     restart: unless-stopped
     cap_add:
@@ -812,7 +822,7 @@ docker run -d \
   -e TZ=Asia/Shanghai \
   -e CUBEX_PORT=2026 \
   -e CUBEX_LISTEN=:2026 \
-  fyasshole/cubex:latest
+  zyeyefyass/cubex:latest
 ```
 
 ##### 步骤 3：网络配置与两套接入模式全景对照表
@@ -884,7 +894,7 @@ docker run -d \
   -e TZ=Asia/Shanghai \
   -e CUBEX_PORT=2026 \
   -e CUBEX_LISTEN=:2026 \
-  fyasshole/cubex:latest
+  zyeyefyass/cubex:latest
 ```
 浏览器访问：`http://<飞牛IP>:2026`。
 
