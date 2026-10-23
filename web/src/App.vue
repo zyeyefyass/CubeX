@@ -1219,7 +1219,10 @@
                 @dragover.prevent
                 @dragend="onDragEnd"
                 @drop="onDrop($event, grpIdx)"
-                class="rounded-3xl bg-[#161e27]/85 border border-slate-700/60 hover:border-slate-600 transition-all duration-300 shadow-xl relative p-4 sm:p-5 space-y-4">
+                :class="[
+                  'rounded-3xl bg-[#161e27]/85 border border-slate-700/60 hover:border-slate-600 transition-all duration-300 shadow-xl relative p-4 sm:p-5 space-y-4',
+                  draggedGroupIndex === grpIdx ? 'opacity-40 scale-[0.98] border-cyan-400 shadow-2xl shadow-cyan-500/20 ring-1 ring-cyan-400/50' : ''
+                ]">
                 
                 <!-- Card Header: Drag Handle, Brand Icon, Name, Badges, Outbound Route Breadcrumb, Top-Right Latency Badge -->
                 <div class="flex items-start justify-between gap-3">
@@ -1529,11 +1532,14 @@
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 <div v-for="(reg, idx) in regionalAutoGroups" :key="reg.id"
                   draggable="true"
-                  @dragstart="onRegionDragStart(reg.id, $event)"
-                  @dragover="onRegionDragOver($event)"
+                  @dragstart="onRegionDragStart($event, idx)"
+                  @dragover.prevent
                   @dragend="onRegionDragEnd"
-                  @drop="onRegionDrop(reg.id, $event)"
-                  class="rounded-2xl bg-[#161e27]/85 border border-slate-700/60 hover:border-slate-600 transition-all duration-200 shadow-md p-3.5 space-y-2.5 group">
+                  @drop="onRegionDrop($event, idx)"
+                  :class="[
+                    'rounded-2xl bg-[#161e27]/85 border border-slate-700/60 hover:border-slate-600 transition-all duration-200 shadow-md p-3.5 space-y-2.5 group',
+                    draggedRegionIndex === idx ? 'opacity-40 scale-[0.98] border-cyan-400 shadow-lg shadow-cyan-500/20 ring-1 ring-cyan-400/50' : ''
+                  ]">
                   
                   <!-- ── Group Header (Tier 1: Identity, Badges, Latency & Fast Actions) ── -->
                   <div class="flex items-center justify-between gap-3">
@@ -8704,7 +8710,7 @@ function toggleRegionExpand(id) {
 }
 
 // ── Region Group Drag & Drop Sorting ──
-let draggedRegionId = null
+let draggedRegionIndex = null
 let isGrabbingRegionHandle = false
 
 if (typeof window !== 'undefined') {
@@ -8713,50 +8719,42 @@ if (typeof window !== 'undefined') {
   })
 }
 
-function onRegionDragStart(id, e) {
+function onRegionDragStart(event, index) {
   if (!isGrabbingRegionHandle) {
-    e.preventDefault()
+    event.preventDefault()
     return false
   }
-  draggedRegionId = id
-  if (e.dataTransfer) {
-    e.dataTransfer.effectAllowed = 'move'
+  draggedRegionIndex = index
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
     try {
-      e.dataTransfer.setData('text/plain', id)
+      event.dataTransfer.setData('text/plain', String(index))
     } catch (err) {}
   }
-}
-
-function onRegionDragOver(e) {
-  e.preventDefault()
-  if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'
-}
-
-function onRegionDrop(targetId, e) {
-  e.preventDefault()
-  isGrabbingRegionHandle = false
-  if (!draggedRegionId || draggedRegionId === targetId) {
-    draggedRegionId = null
-    return
-  }
-  const currentIds = allRegionDefs.value.map(r => r.id)
-  const fromIdx = currentIds.indexOf(draggedRegionId)
-  const toIdx = currentIds.indexOf(targetId)
-  if (fromIdx !== -1 && toIdx !== -1) {
-    currentIds.splice(fromIdx, 1)
-    currentIds.splice(toIdx, 0, draggedRegionId)
-    regionGroupOrder.value = [...currentIds]
-    try {
-      localStorage.setItem('cubex_region_group_order', JSON.stringify(regionGroupOrder.value))
-    } catch (err) {}
-    showToast('节点分组顺序已更新')
-  }
-  draggedRegionId = null
 }
 
 function onRegionDragEnd() {
-  draggedRegionId = null
+  draggedRegionIndex = null
   isGrabbingRegionHandle = false
+}
+
+function onRegionDrop(event, targetIndex) {
+  event.preventDefault()
+  isGrabbingRegionHandle = false
+  if (draggedRegionIndex === null || draggedRegionIndex === targetIndex) {
+    draggedRegionIndex = null
+    return
+  }
+  const currentList = [...allRegionDefs.value]
+  const [moved] = currentList.splice(draggedRegionIndex, 1)
+  currentList.splice(targetIndex, 0, moved)
+  const newOrder = currentList.map(r => r.id)
+  regionGroupOrder.value = [...newOrder]
+  try {
+    localStorage.setItem('cubex_region_group_order', JSON.stringify(newOrder))
+  } catch (err) {}
+  draggedRegionIndex = null
+  showToast(`已成功将「${moved.name}」地区分组调整至新顺序`)
 }
 
 // ── Custom Node Group Creation (e.g. Airport Subscription Dedicated Group & Multi-Country Presets) ──
