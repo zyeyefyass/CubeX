@@ -3,6 +3,7 @@ package ros
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"strings"
 )
 
@@ -659,10 +660,10 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 
 // ApplyRouting automatically configures missing table, route, address-list, mangle, FastTrack, forward, and NAT rules on RouterOS.
 func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
-	if targetIP == "" {
+	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
 		targetIP = m.GetOutboundIP()
 	}
-	if targetIP == "" {
+	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
 		targetIP = "10.0.0.11"
 	}
 
@@ -1233,10 +1234,10 @@ func (m *Manager) CleanRoutingRules() (*ApplyResult, error) {
 // PurgeConflictingFakeIPRoutes scans and removes any static routes for 198.18.0.0/15 or /16
 // that point to an invalid gateway other than targetIP (e.g. stale routes pointing to 10.0.0.2).
 func (m *Manager) PurgeConflictingFakeIPRoutes(targetIP string) int {
-	if targetIP == "" {
+	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
 		targetIP = m.GetOutboundIP()
 	}
-	if targetIP == "" {
+	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
 		targetIP = "10.0.0.11"
 	}
 	data, err := m.QueryROS("/ip/route")
@@ -1254,7 +1255,10 @@ func (m *Manager) PurgeConflictingFakeIPRoutes(targetIP string) int {
 		id, _ := r[".id"].(string)
 		table, _ := r["routing-table"].(string)
 		if (table == "" || table == "main") && (dst == "198.18.0.0/15" || dst == "198.18.0.0/16") {
-			if gw != targetIP && id != "" {
+			if gw == targetIP || strings.Contains(gw, targetIP) {
+				continue
+			}
+			if id != "" {
 				if delErr := m.DeleteROS("/ip/route/" + id); delErr == nil {
 					purged++
 				}
@@ -1289,10 +1293,10 @@ func (m *Manager) PurgeStaleFakeIPConnections() int {
 }
 
 func (m *Manager) CleanAndReapplyRouting(targetIP string) (*ApplyResult, error) {
-	if targetIP == "" {
+	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
 		targetIP = m.GetOutboundIP()
 	}
-	if targetIP == "" {
+	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
 		targetIP = "10.0.0.11"
 	}
 

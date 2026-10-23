@@ -196,7 +196,6 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"tag":         "dns-fakeip",
 				"type":        "fakeip",
 				"inet4_range": "198.18.0.0/15",
-				"inet6_range": "fc00::/18",
 			},
 		},
 		"rules": func() []map[string]any {

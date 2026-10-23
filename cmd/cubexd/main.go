@@ -548,7 +548,7 @@ func main() {
 		if rosMgr != nil {
 			go func() {
 				time.Sleep(500 * time.Millisecond)
-				_, _ = rosMgr.CleanAndReapplyRouting(cfgIR.Network.TunInterface)
+				_, _ = rosMgr.CleanAndReapplyRouting("")
 				if purged := rosMgr.PurgeStaleFakeIPConnections(); purged > 0 {
 					log.Printf("🧹 [ROS] Auto-boot: Purged %d stale conntrack entries\n", purged)
 				}
@@ -2767,7 +2767,7 @@ func (s *Server) startConntrackSweeper() {
 		time.Sleep(5 * time.Second)
 		if s.rosMgr != nil {
 			purgedConns := s.rosMgr.PurgeStaleFakeIPConnections()
-			purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes("")
+			purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes("10.0.0.11")
 			if purgedConns > 0 || purgedRoutes > 0 {
 				s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("RouterOS 宿主启动自愈巡检: 已清算 %d 条僵尸连接与 %d 条失效回指路由", purgedConns, purgedRoutes))
 			}
@@ -2779,7 +2779,7 @@ func (s *Server) startConntrackSweeper() {
 		for range ticker.C {
 			if s.rosMgr != nil {
 				purgedConns := s.rosMgr.PurgeStaleFakeIPConnections()
-				purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes("")
+				purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes("10.0.0.11")
 				if purgedConns > 0 || purgedRoutes > 0 {
 					s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("RouterOS 宿主 10分钟静默周期自愈: 已清算 %d 条僵尸连接与 %d 条失效回指路由", purgedConns, purgedRoutes))
 				}
