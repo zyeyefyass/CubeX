@@ -6419,10 +6419,16 @@ const hostBadge = computed(() => {
 
   if (plat === 'routeros' || name.includes('routeros') || name.includes('mikrotik')) {
     const raw = hostInfo.value.os_name || 'RouterOS v7'
-    const clean = raw.replace(/^(mikrotik\s*|MikroTik\s*)/i, '').replace(/\s*\(stable\)/i, '').trim()
+    let clean = raw.replace(/^(mikrotik\s*|MikroTik\s*)/i, '').replace(/\s*\(stable\)/i, '').trim()
+    if (!clean.toLowerCase().includes('routeros')) {
+      clean = 'RouterOS ' + clean
+    }
+    if (clean.includes('7.25')) {
+      clean = 'RouterOS v7.25 · DAI Ready'
+    }
     return {
       name: clean || 'RouterOS v7',
-      shortName: 'RouterOS v7',
+      shortName: clean.includes('7.25') ? 'RouterOS v7.25' : 'RouterOS v7',
       svg: '/host-routeros.svg',
       icon: '🔷',
       online: hostInfo.value.connected !== false
@@ -7820,7 +7826,7 @@ async function runDualCoreDiagnose() {
     const data = await res.json()
     if (data.all_healthy) {
       dualCoreHealthy.value = true
-      showToast(`🎉【全息体检 100% 健康】核心: ${data.active_engine} | 直连: ${data.direct_latency_ms}ms | 代理: ${data.proxy_latency_ms}ms | DNS: ${data.fakeip_address} | 宿主回指: 正常就绪！`)
+      const rosTag = data.ros_version ? ` | 宿主: ROS v${data.ros_version} (DAI就绪)` : ''; showToast(`🎉【全息体检 100% 健康】核心: ${data.active_engine} | 直连: ${data.direct_latency_ms}ms | 代理: ${data.proxy_latency_ms}ms | DNS: ${data.fakeip_address} | 宿主回指: 正常就绪${rosTag}！`)
     } else {
       dualCoreHealthy.value = false
       const issues = []

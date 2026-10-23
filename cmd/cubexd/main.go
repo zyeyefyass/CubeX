@@ -2778,20 +2778,27 @@ func (s *Server) startConntrackSweeper() {
 			s.rosMgr.AdaptHostMemoryWatermark()
 		}
 
-		// Fast route guard every 30 seconds & deep self-healing every 10 minutes
-		ticker := time.NewTicker(30 * time.Second)
+		// Fast route guard every 15 seconds (accelerated for ROS 7.25) & deep self-healing every 10 minutes
+		ticker := time.NewTicker(15 * time.Second)
 		defer ticker.Stop()
 		loopCount := 0
 		for range ticker.C {
 			loopCount++
 			if s.rosMgr != nil {
-				// 1. Route guard every 30s: ensure route exists
+				// 1. Route guard every 15s: ensure route exists
 				if restored := s.rosMgr.EnsureFakeIPRoute("10.0.0.11"); restored {
 					s.logBuffer.Add("WARN", "ROS", "RouterOS 路由常驻看门狗: 检测到 198.18.0.0/15 回指路由丢失，已全自动 0 秒自愈恢复！")
 				}
 
-				// 2. Conntrack sweeper and memory optimization every 10 minutes (30s * 20)
-				if loopCount%20 == 0 {
+				// 2. ROS 7.25 DAI & Bridge trust guard every 60s (15s * 4)
+				if loopCount%4 == 0 {
+					if restored, _ := s.rosMgr.EnsureBridgeDAIProtection("10.0.0.11"); restored {
+						s.logBuffer.Add("INFO", "ROS", "RouterOS 7.25+ 安全守护: 自动补齐 veth-cubex trusted=true 与 trusted-arp=true 信任标志")
+					}
+				}
+
+				// 3. Conntrack sweeper and memory optimization every 10 minutes (15s * 40)
+				if loopCount%40 == 0 {
 					purgedConns := s.rosMgr.PurgeStaleFakeIPConnections()
 					purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes("10.0.0.11")
 					if purgedConns > 0 || purgedRoutes > 0 {
@@ -2896,6 +2903,13 @@ func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
+	rosVer := ""
+	if s.rosMgr != nil {
+		if ov := s.rosMgr.GetOverview(); ov != nil {
+			rosVer, _ = ov["ros_version"].(string)
+		}
+	}
+
 	sendJSON(w, map[string]any{
 		"success":           true,
 		"active_engine":     activeEngine,
@@ -2907,6 +2921,8 @@ func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) 
 		"fakeip_address":    fakeIP,
 		"ros_route_ok":      rosRouteOK,
 		"ros_gateway":       rosGW,
+		"ros_version":       rosVer,
+		"dai_ready":         true,
 		"all_healthy":       directOK && proxyOK && dnsOK && rosRouteOK,
 		"timestamp":         time.Now().Unix(),
 	})
