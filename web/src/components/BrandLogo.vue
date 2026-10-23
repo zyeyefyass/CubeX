@@ -202,6 +202,111 @@
       <path d="M12.002 12.87c-1.89 0-3.834.787-4.113 2.871-.237 1.77 1.096 3.86 2.724 4.545 1.156.486 2.83.473 3.842-.26 1.134-.823 1.66-2.502 1.393-3.903-.338-1.777-1.956-3.253-3.846-3.253zm-5.467-3.41c-1.127.135-2.073 1.34-2.112 2.69-.04 1.397.87 2.656 2.036 2.81 1.165.155 2.274-.897 2.476-2.35.202-1.455-.718-3.08-2.4-3.15zm10.934 0c-1.682.07-2.602 1.695-2.4 3.15.202 1.453 1.31 2.505 2.476 2.35 1.166-.154 2.076-1.413 2.036-2.81-.04-1.35-.985-2.555-2.112-2.69zm-7.69-5.45c-1.22.464-1.96 1.947-1.65 3.313.31 1.365 1.54 2.222 2.748 1.916 1.21-.305 1.944-1.745 1.637-3.158-.306-1.414-1.515-2.535-2.735-2.071zm4.444 0c-1.22-.464-2.43 0.657-2.736 2.07-.306 1.414.428 2.854 1.637 3.16 1.208.305 2.438-.552 2.748-1.917.31-1.366-.43-2.85-1.65-3.313z"/>
     </svg>
 
+    <!-- Blizzard (暴雪战网 Battle.net 官方漩涡) -->
+    <svg v-else-if="logoKey === 'blizzard'" class="w-full h-full text-cyan-400 filter drop-shadow-[0_0_6px_rgba(6,182,212,0.5)]" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.83 14.85l-1.63-1.33c.48-.86.75-1.85.75-2.89 0-.32-.03-.63-.07-.93H9.27c.3 2.32 2.27 4.1 4.7 4.1.72 0 1.41-.17 2.02-.47l.95 1.16c-.92.45-1.94.7-3.02.7-1.84 0-3.54-.73-4.81-1.97l-.38.35c2.05 2.13 4.96 3.47 8.18 3.47 1.83 0 3.53-.45 5.02-1.25l-4.1-3.13zM6.9 10.7c.07-.63.26-1.22.56-1.74l1.45 1.18c-.14.26-.23.54-.26.85L6.9 10.7zm4.27-3.48c.84-.5 1.82-.78 2.86-.78 1.94 0 3.68.86 4.88 2.22l-.4.36c-1.08-1.22-2.64-1.99-4.38-1.99-.95 0-1.84.23-2.63.65l-.33-2.46z"/>
+    </svg>
+
+    <!-- EA (Electronic Arts 官方经典标志) -->
+    <svg v-else-if="logoKey === 'ea'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(255,71,71,0.4)]" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="11" fill="#FF4747"/>
+      <path d="M5.5 15.5l3.2-3.5L5.5 8.5h4.2l1.6 1.8 1.6-1.8h4.2l-3.2 3.5 3.2 3.5h-4.2l-1.6-1.8-1.6 1.8H5.5z" fill="#FFFFFF"/>
+    </svg>
+
+    <!-- Twitch (Twitch 游戏直播官方标志) -->
+    <svg v-else-if="logoKey === 'twitch'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(145,70,255,0.5)]" viewBox="0 0 24 24" fill="#9146FF">
+      <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/>
+    </svg>
+
+    <!-- HBO (HBO Max / Max 官方标志) -->
+    <svg v-else-if="logoKey === 'hbo'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(157,78,221,0.5)]" viewBox="0 0 24 24" fill="none">
+      <rect width="24" height="24" rx="6" fill="#1C0D3F"/>
+      <path d="M4 8v8h2.2v-2.8h2.6V16H11V8H8.8v2.8H6.2V8H4zm8.2 0v8h3.8c1.8 0 3-1.1 3-2.6 0-.9-.5-1.7-1.4-2.1.7-.4 1.1-1.1 1.1-1.8 0-1.4-1.2-2.4-2.8-2.4h-3.7zm2.2 1.8h1.4c.5 0 .9.3.9.7 0 .5-.4.8-.9.8h-1.4V9.8zm0 3h1.6c.6 0 1 .3 1 .8 0 .5-.4.8-1 .8h-1.6v-2.4zm5.6-4.8c-2.3 0-4.2 1.8-4.2 4.1s1.9 4.1 4.2 4.1 4.2-1.8 4.2-4.1-1.9-4.1-4.2-4.1zm0 2.3c1 0 1.9.8 1.9 1.8s-.9 1.8-1.9 1.8-1.9-.8-1.9-1.8.9-1.8 1.9-1.8z" fill="#9D4EDD"/>
+    </svg>
+
+    <!-- WhatsApp (官方绿色语音气泡) -->
+    <svg v-else-if="logoKey === 'whatsapp'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(37,211,102,0.4)]" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="11" fill="#25D366"/>
+      <path d="M17.5 14.3c-.3-.2-1.8-.9-2-.9-.3-.1-.5-.2-.7.2-.2.3-.8.9-1 1.1-.2.2-.4.2-.7 0-.3-.2-1.3-.5-2.5-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.7.1-.1.3-.4.5-.5.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5-.1-.2-.7-1.7-1-2.3-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.2-1.2 2.9s1.2 3.4 1.4 3.6c.2.2 2.4 3.7 5.9 5.2.8.4 1.5.6 2 .7.8.3 1.6.2 2.2.1.7-.1 2.1-.9 2.4-1.7.3-.8.3-1.6.2-1.7-.1-.2-.3-.3-.6-.4z" fill="#FFFFFF"/>
+    </svg>
+
+    <!-- LINE (官方绿色通讯) -->
+    <svg v-else-if="logoKey === 'line'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(0,195,0,0.4)]" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="11" fill="#00C300"/>
+      <path d="M8.5 13.5H7.2V9.2h1.3v4.3zm2.5 0H9.7V9.2h1.3v4.3zm3.5 0h-1.3l-1.8-2.5v2.5h-1.2V9.2h1.3l1.8 2.5V9.2h1.2v4.3zm3.3-3.2h-2.1v.9h2.1v1.1h-2.1v1.2h2.2v1.1h-3.5V9.2h3.4v1.1z" fill="#FFFFFF"/>
+    </svg>
+
+    <!-- Signal (官方隐私通讯) -->
+    <svg v-else-if="logoKey === 'signal'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(58,118,240,0.5)]" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="11" fill="#3A76F0"/>
+      <path d="M12 4C7.6 4 4 7.6 4 12c0 1.8.6 3.4 1.6 4.7L4.5 20l3.6-1.1c1.2.7 2.5 1.1 3.9 1.1 4.4 0 8-3.6 8-8s-3.6-8-8-8zm0 13.5c-1.2 0-2.3-.3-3.3-.9l-.3-.2-2.1.6.6-2.1-.2-.3c-.6-1-1-2.2-1-3.6 0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5-3 6.5-6.7 6.5z" fill="#FFFFFF"/>
+    </svg>
+
+    <!-- Tencent / WeChat (腾讯生态 / 微信官方标志) -->
+    <svg v-else-if="logoKey === 'tencent'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(7,193,96,0.4)]" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="11" fill="#07C160"/>
+      <path d="M9.8 6.5c-3.1 0-5.6 2.1-5.6 4.8 0 1.5.8 2.9 2.1 3.7l-.5 1.6 1.9-.9c.7.2 1.4.3 2.1.3.2 0 .4 0 .6-.1-.2-.5-.3-1-.3-1.6 0-2.8 2.6-5.1 5.8-5.1.2 0 .4 0 .6.1C15.8 7.8 13 6.5 9.8 6.5zm-1.8 2.5c.4 0 .7.3.7.7s-.3.7-.7.7-.7-.3-.7-.7.3-.7.7-.7zm3.6 0c.4 0 .7.3.7.7s-.3.7-.7.7-.7-.3-.7-.7.3-.7.7-.7zm3.8 3.8c-2.6 0-4.7 1.8-4.7 4 0 1.3.7 2.4 1.8 3.1l-.4 1.3 1.6-.8c.5.2 1.1.3 1.7.3 2.6 0 4.7-1.8 4.7-4s-2.1-3.9-4.7-3.9zm-1.5 2.1c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6zm3 0c.3 0 .6.3.6.6s-.3.6-.6.6-.6-.3-.6-.6.3-.6.6-.6z" fill="#FFFFFF"/>
+    </svg>
+
+    <!-- Alibaba / Taobao (阿里 / 淘宝官方标志) -->
+    <svg v-else-if="logoKey === 'alibaba'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(255,106,0,0.4)]" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="11" fill="#FF6A00"/>
+      <path d="M12 5.5c-3.6 0-6.5 2.9-6.5 6.5s2.9 6.5 6.5 6.5c2.4 0 4.5-1.3 5.6-3.3l-1.8-1c-.7 1.3-2.1 2.2-3.8 2.2-2.3 0-4.2-1.9-4.2-4.2 0-2.3 1.9-4.2 4.2-4.2 1.6 0 3 .9 3.7 2.2l1.8-1c-1-2.1-3.1-3.7-5.4-3.7z" fill="#FFFFFF"/>
+      <circle cx="14" cy="10" r="1.5" fill="#FFFFFF"/>
+    </svg>
+
+    <!-- Netease (网易云音乐官方黑胶标志) -->
+    <svg v-else-if="logoKey === 'netease'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(230,0,38,0.4)]" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="11" fill="#E60026"/>
+      <path d="M12 6.5c-3 0-5.5 2.5-5.5 5.5s2.5 5.5 5.5 5.5c2.5 0 4.6-1.7 5.2-4h-2.1c-.5 1.2-1.7 2-3.1 2-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5c1.4 0 2.6.8 3.1 2h2.1c-.6-2.3-2.7-4-5.2-4zm0 3.5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" fill="#FFFFFF"/>
+    </svg>
+
+    <!-- OKX (欧易 OKX 官方几何方块标志) -->
+    <svg v-else-if="logoKey === 'okx'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(255,255,255,0.3)]" viewBox="0 0 24 24" fill="none">
+      <rect width="24" height="24" rx="6" fill="#000000"/>
+      <rect x="5" y="5" width="4" height="4" fill="#FFFFFF"/>
+      <rect x="15" y="5" width="4" height="4" fill="#FFFFFF"/>
+      <rect x="10" y="10" width="4" height="4" fill="#FFFFFF"/>
+      <rect x="5" y="15" width="4" height="4" fill="#FFFFFF"/>
+      <rect x="15" y="15" width="4" height="4" fill="#FFFFFF"/>
+    </svg>
+
+    <!-- GitLab (GitLab 官方折纸狐狸头标志) -->
+    <svg v-else-if="logoKey === 'gitlab'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(226,67,41,0.4)]" viewBox="0 0 24 24">
+      <path fill="#E24329" d="M12 21.5l3.8-11.7H8.2L12 21.5z"/>
+      <path fill="#FC6D26" d="M12 21.5l-3.8-11.7H1.5l10.5 11.7z"/>
+      <path fill="#FCA326" d="M1.5 9.8l-1.3 4c-.2.7 0 1.4.6 1.8L12 21.5 1.5 9.8z"/>
+      <path fill="#E24329" d="M1.5 9.8h6.7L5.5 1.5c-.3-.8-1.4-.8-1.7 0L1.5 9.8z"/>
+      <path fill="#FC6D26" d="M12 21.5l3.8-11.7h6.7L12 21.5z"/>
+      <path fill="#FCA326" d="M22.5 9.8l1.3 4c.2.7 0 1.4-.6 1.8L12 21.5l10.5-11.7z"/>
+      <path fill="#E24329" d="M22.5 9.8h-6.7l2.7-8.3c.3-.8 1.4-.8 1.7 0l2.3 8.3z"/>
+    </svg>
+
+    <!-- CN (中国国内直连专线徽章) -->
+    <svg v-else-if="logoKey === 'cn'" class="w-full h-full filter drop-shadow-[0_0_6px_rgba(222,41,16,0.4)]" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="11" fill="#DE2910"/>
+      <polygon points="7,8 8,11 11,11 8.5,12.8 9.5,15.5 7,13.8 4.5,15.5 5.5,12.8 3,11 6,11" fill="#FFDE00"/>
+      <polygon points="12,6 12.6,7.5 14,7.5 12.8,8.4 13.3,9.8 12,8.9 10.7,9.8 11.2,8.4 10,7.5 11.4,7.5" fill="#FFDE00"/>
+      <polygon points="14,9 14.5,10.2 15.8,10.2 14.8,11 15.2,12.2 14,11.5 12.8,12.2 13.2,11 12.2,10.2 13.5,10.2" fill="#FFDE00"/>
+      <polygon points="14,13 14.5,14.2 15.8,14.2 14.8,15 15.2,16.2 14,15.5 12.8,16.2 13.2,15 12.2,14.2 13.5,14.2" fill="#FFDE00"/>
+      <polygon points="12,16 12.6,17.2 14,17.2 12.8,18 13.3,19.2 12,18.5 10.7,19.2 11.2,18 10,17.2 11.4,17.2" fill="#FFDE00"/>
+    </svg>
+
+    <!-- CN_NOT (国外加速专线小火箭) -->
+    <svg v-else-if="logoKey === 'cn_not'" class="w-full h-full text-cyan-400 filter drop-shadow-[0_0_6px_rgba(6,182,212,0.5)]" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2.5s-4.5 4.5-4.5 9.5c0 2 .7 3.8 1.8 5.2L7 20.5l2.5-1c.8.4 1.6.5 2.5.5s1.7-.1 2.5-.5l2.5 1-2.3-3.3c1.1-1.4 1.8-3.2 1.8-5.2 0-5-4.5-9.5-4.5-9.5zm0 7c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+    </svg>
+
+    <!-- GFW (GFW 拦截穿透盾牌) -->
+    <svg v-else-if="logoKey === 'gfw'" class="w-full h-full text-amber-400 filter drop-shadow-[0_0_6px_rgba(245,158,11,0.5)]" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 6h2v3h-2V7zm0 5h2v6h-2v-6z"/>
+    </svg>
+
+    <!-- Privacy (局域网隐私与反追踪护盾) -->
+    <svg v-else-if="logoKey === 'privacy'" class="w-full h-full text-emerald-400 filter drop-shadow-[0_0_6px_rgba(16,185,129,0.5)]" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm0 8c2.67 0 5 1.33 5 3.5v1.2c-1.5 1.3-3.2 2.1-5 2.3-1.8-.2-3.5-1-5-2.3v-1.2c0-2.17 2.33-3.5 5-3.5z"/>
+    </svg>
+
     <!-- Direct (直连) -->
     <svg v-else-if="logoKey === 'direct'" class="w-full h-full text-emerald-400 filter drop-shadow-[0_0_6px_rgba(16,185,129,0.4)]" viewBox="0 0 24 24" fill="currentColor">
       <path d="M13 2L3 14h7v8l10-12h-7z"/>
@@ -250,13 +355,17 @@ const logoKey = computed(() => {
     str += (props.name.name || '').toLowerCase() + ' ' + (props.name.icon || '').toLowerCase()
   }
 
-  if (str.includes('antigravity') || str.includes('gemini & antigravity') || str.includes('gemini&antigravity')) return 'antigravity'
-  if (str.includes('openai') || str.includes('chatgpt')) return 'openai'
+  // Exact & Prefix Priority Matching
+  if (str.includes('antigravity') || str.includes('deepmind')) return 'antigravity'
   if (str.includes('gemini')) return 'gemini'
+  if (str.includes('openai') || str.includes('chatgpt')) return 'openai'
   if (str.includes('claude') || str.includes('anthropic')) return 'claude'
   if (str.includes('youtube')) return 'youtube'
+  if (str.includes('onedrive')) return 'onedrive'
+  if (str.includes('microsoft') || str.includes('微软')) return 'microsoft'
   if (str.includes('google')) return 'google'
   if (str.includes('cloudflare')) return 'cloudflare'
+  if (str.includes('gitlab')) return 'gitlab'
   if (str.includes('github') || str.includes('docker')) return 'github'
   if (str.includes('telegram')) return 'telegram'
   if (str.includes('twitter') || str.includes(' x ') || str.endsWith(' x') || str.includes('(x)')) return 'twitter'
@@ -265,25 +374,38 @@ const logoKey = computed(() => {
   if (str.includes('bahamut') || str.includes('巴哈姆特')) return 'bahamut'
   if (str.includes('emby')) return 'emby'
   if (str.includes('epic') || str.includes('epicgames')) return 'epicgames'
-  if (str.includes('playstation') || str.includes('psn')) return 'playstation'
+  if (str.includes('playstation') || str.includes('psn') || str.includes('索尼')) return 'playstation'
   if (str.includes('nintendo') || str.includes('switch') || str.includes('任天堂')) return 'nintendo'
-  if (str.includes('amazon') || str.includes('亚马逊') || str.includes('prime')) return 'amazon'
-  if (str.includes('paypal')) return 'paypal'
+  if (str.includes('blizzard') || str.includes('battle.net') || str.includes('暴雪') || str.includes('战网')) return 'blizzard'
+  if (str.includes(' ea') || str.startsWith('ea') || str.includes('origin') || str.includes('艺电')) return 'ea'
+  if (str.includes('twitch')) return 'twitch'
+  if (str.includes('hbo')) return 'hbo'
+  if (str.includes('whatsapp')) return 'whatsapp'
+  if (str.includes('line')) return 'line'
+  if (str.includes('signal')) return 'signal'
+  if (str.includes('tencent') || str.includes('wechat') || str.includes('微信') || str.includes('腾讯') || str.includes(' qq')) return 'tencent'
+  if (str.includes('alibaba') || str.includes('taobao') || str.includes('阿里') || str.includes('淘宝') || str.includes('支付宝')) return 'alibaba'
+  if (str.includes('netease') || str.includes('网易')) return 'netease'
+  if (str.includes('baidu') || str.includes('百度')) return 'baidu'
+  if (str.includes('okx') || str.includes('欧易')) return 'okx'
+  if (str.includes('binance') || str.includes('币安') || str.includes('加密货币')) return 'binance'
+  if (str.includes('paypal') || str.includes('贝宝')) return 'paypal'
   if (str.includes('speedtest') || str.includes('测速')) return 'speedtest'
   if (str.includes('reddit')) return 'reddit'
   if (str.includes('apple') || str.includes('苹果')) return 'apple'
-  if (str.includes('onedrive')) return 'onedrive'
-  if (str.includes('microsoft') || str.includes('微软')) return 'microsoft'
   if (str.includes('spotify')) return 'spotify'
   if (str.includes('steam')) return 'steam'
-  if (str.includes('tiktok')) return 'tiktok'
+  if (str.includes('tiktok') || str.includes('bytedance') || str.includes('抖音') || str.includes('字节')) return 'tiktok'
   if (str.includes('bilibili') || str.includes('哔哩哔哩')) return 'bilibili'
   if (str.includes('discord')) return 'discord'
   if (str.includes('zoom')) return 'zoom'
   if (str.includes('notion')) return 'notion'
-  if (str.includes('binance') || str.includes('okx') || str.includes('币安') || str.includes('加密货币')) return 'binance'
-  if (str.includes('baidu') || str.includes('百度')) return 'baidu'
-  if (str.includes('direct') || str.includes('直连') || str.includes('国内')) return 'direct'
+  if (str.includes('primevideo') || str.includes('amazon') || str.includes('亚马逊') || str.includes('prime') || str.includes('aws')) return 'amazon'
+  if (str.includes('cn_not') || str.includes('国外加速') || str.includes('境外加速')) return 'cn_not'
+  if (str.includes('cn_domain') || str.includes('cn_ip') || str.includes('china') || str.includes('中国') || str.includes('直连') || str.includes('direct')) return 'cn'
+  if (str.includes('gfw')) return 'gfw'
+  if (str.includes('privacy') || str.includes('局域网') || str.includes('私网')) return 'privacy'
+  if (str.includes('direct') || str.includes('直连')) return 'direct'
   if (str.includes('fish') || str.includes('漏网之鱼') || str.includes('兜底')) return 'fish'
   if (str.includes('globe') || str.includes('国外') || str.includes('海外')) return 'default'
 
