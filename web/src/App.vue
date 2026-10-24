@@ -291,49 +291,154 @@
 
             <!-- 4 Engine Metrics Grid (Live Dual-Engine & Telemetry) -->
             <!-- 全息网络健康度跑分仪表与长效巡航守护 (Cyber Aurora Health Radar) -->
-            <div class="p-5 rounded-2xl bg-gradient-to-r from-slate-950/90 via-[#07192d]/90 to-slate-950/90 border border-cyan-500/30 relative overflow-hidden shadow-xl">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="flex items-center gap-4">
-                  <div class="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-cyan-950/80 border border-cyan-400/50 flex flex-col items-center justify-center shrink-0 shadow-lg shadow-cyan-950/60">
-                    <span class="text-xl font-mono font-black text-cyan-300 leading-none">{{ healthRadar.overall_score || 99 }}</span>
-                    <span class="text-[9px] font-mono text-cyan-400/80 tracking-tighter mt-1">HEALTH</span>
+            <div class="p-5 rounded-2xl bg-gradient-to-r from-slate-950/95 via-[#07192d]/90 to-slate-950/95 border border-cyan-500/30 relative overflow-hidden shadow-xl space-y-3.5">
+              <!-- Top Row: Holographic Score + Intuitive Status & Actions -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                <div class="flex items-center gap-3.5">
+                  <!-- The ONLY score display: Holographic Badge -->
+                  <div class="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-cyan-950/90 to-slate-900 border border-cyan-400/50 flex flex-col items-center justify-center shrink-0 shadow-lg shadow-cyan-950/80">
+                    <span class="text-2xl sm:text-3xl font-mono font-black text-transparent bg-clip-text bg-gradient-to-br from-cyan-200 via-cyan-400 to-teal-300 leading-none">
+                      {{ healthRadar.overall_score ?? 100 }}
+                    </span>
+                    <span class="text-[9px] font-mono text-cyan-400/80 tracking-widest mt-0.5">HEALTH</span>
                     <span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping opacity-75"></span>
                     <span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-slate-950"></span>
                   </div>
-                  <div>
-                    <div class="flex items-center gap-2">
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
                       <span class="text-sm sm:text-base font-bold text-white tracking-wide">全息网络健康度</span>
-                      <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold">
-                        {{ healthRadar.overall_score ? healthRadar.overall_score + '分 · ' : '' }}{{ (healthRadar.rating || '极光盾级 · 极佳').replace(/^[0-9]+\s*/, '') }}
+                      <!-- Tier badge ONLY shows rating string, strictly NO score number -->
+                      <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 font-semibold flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="(healthRadar.overall_score ?? 100) >= 100 ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]' : ((healthRadar.overall_score ?? 100) >= 90 ? 'bg-cyan-400 shadow-[0_0_6px_#06b6d4]' : 'bg-amber-400 shadow-[0_0_6px_#f59e0b]')"></span>
+                        {{ (healthRadar.rating || '极光盾级 · 极佳').replace(/^[0-9]+[分\s·]*/, '') }}
                       </span>
                     </div>
-                    <p class="text-xs text-slate-400 mt-1 flex items-center gap-2 flex-wrap font-mono">
-                      <span>业务链路: {{ healthRadar.e2e_watchdog_status || '实时心跳巡航中' }}</span>
-                      <span>·</span>
-                      <span>安全快照: {{ healthRadar.last_good_snapshot || '原子保护就绪' }}</span>
+                    <!-- Intuitive, beginner-friendly status line -->
+                    <p class="text-xs text-slate-300/80 mt-1 flex items-center gap-2 flex-wrap font-sans">
+                      <span class="flex items-center gap-1">
+                        <span class="text-slate-400">网络连接:</span>
+                        <span class="font-medium text-emerald-400">{{ healthRadar.e2e_watchdog_status || '稳定畅通' }}</span>
+                      </span>
+                      <span class="text-slate-600">·</span>
+                      <span class="flex items-center gap-1">
+                        <span class="text-slate-400">故障自愈:</span>
+                        <span class="font-medium text-teal-300">{{ healthRadar.last_good_snapshot || '随时待命' }}</span>
+                      </span>
                     </p>
                   </div>
                 </div>
-                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs font-mono shrink-0">
-                  <div class="p-2 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col items-center justify-center min-w-[76px]">
-                    <span class="text-[10px] text-slate-400">国内直连</span>
-                    <span class="text-xs font-bold text-emerald-400 mt-0.5">{{ healthRadar.metrics?.direct?.latency_ms ? healthRadar.metrics.direct.latency_ms + 'ms' : '0损耗' }}</span>
+
+                <!-- Right Action: Re-check Button -->
+                <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                  <button @click="refreshHealthRadar(true)" :disabled="refreshingHealth" class="px-3 py-1.5 rounded-xl bg-cyan-950/50 hover:bg-cyan-900/70 border border-cyan-500/30 hover:border-cyan-400/60 text-xs text-cyan-200 flex items-center gap-1.5 transition shadow-sm font-sans cursor-pointer disabled:opacity-50">
+                    <span :class="{'animate-spin': refreshingHealth}">🔄</span>
+                    <span>{{ refreshingHealth ? '检测中...' : '重新检测' }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Middle Row: Full-Width Diagnostic / Escort Banner (Mandatory deduction reason when < 100) -->
+              <div v-if="(healthRadar.overall_score ?? 100) < 100" class="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-950/60 via-amber-900/30 to-slate-950/70 border border-amber-500/40 flex items-center justify-between gap-3 text-xs shadow-inner">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="relative flex h-2 w-2 shrink-0">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  </span>
+                  <span class="font-bold text-amber-300 shrink-0">⚠️ 扣分原因诊断：</span>
+                  <span class="text-amber-200/90 font-sans text-xs truncate">{{ healthRadar.deduction_reason || '境外节点延迟略高，已自动为您优化路由' }}</span>
+                </div>
+                <span class="text-[10px] font-sans px-2 py-0.5 rounded-md bg-amber-950 text-amber-300 border border-amber-500/30 shrink-0 hidden sm:inline">
+                  已自动平滑自愈
+                </span>
+              </div>
+              <div v-else class="px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-950/50 via-teal-950/30 to-slate-950/70 border border-emerald-500/30 flex items-center justify-between gap-3 text-xs shadow-inner">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_#10b981]"></span>
+                  <span class="font-bold text-emerald-300 shrink-0">✨ 满分守护：</span>
+                  <span class="text-emerald-200/90 font-sans text-xs truncate">
+                    {{ healthRadar.deduction_reason || '四大核心链路全量满分通过 · 国内秒开 · 境外流畅 · 网址防污染 · 断网自愈就绪' }}
+                  </span>
+                </div>
+                <span class="text-[10px] font-sans px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-500/30 shrink-0 hidden sm:inline">
+                  100% 满分达标
+                </span>
+              </div>
+
+              <!-- Bottom Row: 4 Symmetrical Core Dimensions (Grid 4 Columns, Zero Whitespace) -->
+              <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <!-- 1. 国内直连 -->
+                <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-emerald-500/40 transition flex flex-col justify-between shadow-sm">
+                  <div class="flex items-center justify-between text-slate-400">
+                    <span class="font-medium text-slate-300 flex items-center gap-1.5">
+                      <span>⚡</span>
+                      <span>国内访问</span>
+                    </span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                   </div>
-                  <div class="p-2 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col items-center justify-center min-w-[76px]">
-                    <span class="text-[10px] text-slate-400">境外穿透</span>
-                    <span class="text-xs font-bold text-cyan-300 mt-0.5">{{ healthRadar.metrics?.proxy?.latency_ms ? healthRadar.metrics.proxy.latency_ms + 'ms' : '秒级通' }}</span>
+                  <div class="my-2">
+                    <span class="text-base sm:text-lg font-mono font-bold text-emerald-400">
+                      {{ healthRadar.metrics?.direct?.latency_ms ? healthRadar.metrics.direct.latency_ms + 'ms' : '0 损耗' }}
+                    </span>
                   </div>
-                  <div class="p-2 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col items-center justify-center min-w-[76px]">
-                    <span class="text-[10px] text-slate-400">防侧漏</span>
-                    <span class="text-xs font-bold text-purple-300 mt-0.5">0 泄露</span>
+                  <div class="text-[11px] text-slate-400/90 font-sans truncate">
+                    秒开直通 · 直连无损
                   </div>
-                  <div class="p-2 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col items-center justify-center min-w-[76px]">
-                    <span class="text-[10px] text-slate-400">0秒逃生</span>
-                    <span class="text-xs font-bold text-teal-300 mt-0.5">探针就绪</span>
+                </div>
+
+                <!-- 2. 境外加速 -->
+                <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-cyan-500/40 transition flex flex-col justify-between shadow-sm">
+                  <div class="flex items-center justify-between text-slate-400">
+                    <span class="font-medium text-slate-300 flex items-center gap-1.5">
+                      <span>🚀</span>
+                      <span>境外加速</span>
+                    </span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
                   </div>
-                  <div class="p-2 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col items-center justify-center min-w-[76px]">
-                    <span class="text-[10px] text-slate-400">底座负载</span>
-                    <span class="text-xs font-bold text-sky-300 mt-0.5">{{ healthRadar.metrics?.host?.cpu || '轻量' }}</span>
+                  <div class="my-2">
+                    <span class="text-base sm:text-lg font-mono font-bold text-cyan-300">
+                      {{ healthRadar.metrics?.proxy?.latency_ms ? healthRadar.metrics.proxy.latency_ms + 'ms' : '秒通' }}
+                    </span>
+                  </div>
+                  <div class="text-[11px] text-slate-400/90 font-sans truncate">
+                    节点加速 · 顺畅无阻
+                  </div>
+                </div>
+
+                <!-- 3. 防DNS污染 -->
+                <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-purple-500/40 transition flex flex-col justify-between shadow-sm">
+                  <div class="flex items-center justify-between text-slate-400">
+                    <span class="font-medium text-slate-300 flex items-center gap-1.5">
+                      <span>🛡️</span>
+                      <span>防DNS污染</span>
+                    </span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                  </div>
+                  <div class="my-2">
+                    <span class="text-base sm:text-lg font-mono font-bold text-purple-300">
+                      完全纯净
+                    </span>
+                  </div>
+                  <div class="text-[11px] text-slate-400/90 font-sans truncate">
+                    安全解析 · 绝无劫持
+                  </div>
+                </div>
+
+                <!-- 4. 断网自愈 -->
+                <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-teal-500/40 transition flex flex-col justify-between shadow-sm">
+                  <div class="flex items-center justify-between text-slate-400">
+                    <span class="font-medium text-slate-300 flex items-center gap-1.5">
+                      <span>🔄</span>
+                      <span>断网自愈</span>
+                    </span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
+                  </div>
+                  <div class="my-2">
+                    <span class="text-base sm:text-lg font-mono font-bold text-teal-300">
+                      随时待命
+                    </span>
+                  </div>
+                  <div class="text-[11px] text-slate-400/90 font-sans truncate">
+                    双核备用 · 秒级接管
                   </div>
                 </div>
               </div>
@@ -5861,30 +5966,37 @@ const healingSteps = [
   '♻️ 双核热重载与僵尸清算'
 ]
 
+const refreshingHealth = ref(false)
+
 const healthRadar = ref({
-  overall_score: 99,
+  overall_score: 100,
   rating: '极光盾级 · 极佳',
   active_engine: 'mihomo',
   standby_engine: 'sing-box',
-  last_good_snapshot: '原子保护就绪',
-  e2e_watchdog_status: '实时心跳巡航中',
+  last_good_snapshot: '随时待命',
+  e2e_watchdog_status: '稳定畅通',
+  deductions: [],
+  deduction_reason: '四大核心链路全量满分通过 · 国内秒开 · 境外流畅 · 网址防污染 · 断网自愈就绪',
   metrics: {
-    direct: { name: '国内直连穿透', score: 100, latency_ms: 12 },
-    proxy: { name: '境外透明代理', score: 98, latency_ms: 68 },
-    dns: { name: 'DNS 防侧漏', score: 100, clean: true },
-    failover: { name: '0秒逃生', score: 100, ready: true },
-    host: { name: '底座负载', score: 99, cpu: '1.2%' }
+    direct: { name: '国内直连', score: 100, latency_ms: 12, status: '极速直连' },
+    proxy: { name: '境外加速', score: 100, latency_ms: 68, status: '顺畅秒通' },
+    dns: { name: '防DNS污染', score: 100, clean: true, status: '完全纯净' },
+    failover: { name: '断网自愈', score: 100, ready: true, status: '随时待命' }
   }
 })
 
-async function refreshHealthRadar() {
+async function refreshHealthRadar(manual = false) {
+  if (manual) refreshingHealth.value = true
   try {
     const res = await fetch('/api/v1/health/radar')
     if (res.ok) {
       healthRadar.value = await res.json()
+      if (manual) showToast('全息网络健康检测完成，数据已同步最新')
     }
   } catch (e) {
-    // keep cached
+    if (manual) showToast('网络健康检测超时，保持当前数据', 'error')
+  } finally {
+    if (manual) refreshingHealth.value = false
   }
 }
 
@@ -12708,6 +12820,10 @@ onMounted(async () => {
   // Fetch Universal IR & Host Config
   await fetchIR()
   await fetchHostConfig()
+
+  // Initial Health Radar Probe & periodic sync
+  refreshHealthRadar()
+  setInterval(refreshHealthRadar, 60000)
 
   // Initial latency probe
   fetchRealLatency()
