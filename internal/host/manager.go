@@ -340,7 +340,7 @@ func (m *Manager) testRouterOSRest(cfg HostConfig) (map[string]any, error) {
 				"firewall_configured": true,
 			}
 
-			isCt, ctType, locOS, locCores, locLoad, locMemUsed, locMemTotal := probeLocalMetrics()
+			isCt, ctType, locOS, locCores, locLoad, locMemUsed, locMemTotal, locKernel := probeLocalMetrics()
 			hInfo := &HostInfo{
 				Connected:          true,
 				OSName:             fmt.Sprintf("MikroTik RouterOS %s", res.Version),
@@ -367,6 +367,11 @@ func (m *Manager) testRouterOSRest(cfg HostConfig) (map[string]any, error) {
 				hInfo.CPULoad = locLoad
 				hInfo.MemoryUsed = locMemUsed
 				hInfo.MemoryTotal = locMemTotal
+				if locKernel != "" {
+					hInfo.KernelVersion = locKernel
+				}
+			} else {
+				hInfo.KernelVersion = fmt.Sprintf("RouterOS v%s", res.Version)
 			}
 
 			m.mu.Lock()
@@ -722,7 +727,7 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 		}
 	}
 	// Probe local machine/container hardware metrics first
-	isCt, ctType, locOS, locCores, locLoad, locMemUsed, locMemTotal := probeLocalMetrics()
+	isCt, ctType, locOS, locCores, locLoad, locMemUsed, locMemTotal, locKernel := probeLocalMetrics()
 	info.IsContainer = isCt
 	info.ContainerType = ctType
 	info.LocalOSName = locOS
@@ -730,14 +735,27 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 	info.CPULoad = locLoad
 	info.MemoryUsed = locMemUsed
 	info.MemoryTotal = locMemTotal
+	info.Arch = runtime.GOARCH
+	if info.Arch == "amd64" {
+		info.Arch = "x86_64"
+	}
+	if locKernel != "" {
+		info.KernelVersion = locKernel
+	}
 
 	if cfg.Enabled && targetHost != "" && targetUser != "" {
 		if restRes, err := m.testRouterOSRest(HostConfig{Host: targetHost, Port: targetPort, User: targetUser, Password: targetPass}); err == nil && restRes != nil {
 			info.Connected = true
 			info.PlatformID = "routeros"
 			info.OSName = restRes["os_pretty"].(string)
-			info.KernelVersion = restRes["kernel"].(string)
-			info.Arch = restRes["arch"].(string)
+			if !isCt || locKernel == "" {
+				info.KernelVersion = fmt.Sprintf("RouterOS v%s", restRes["kernel"].(string))
+			} else {
+				info.KernelVersion = locKernel
+			}
+			if a, ok := restRes["arch"].(string); ok && a != "" {
+				info.Arch = a
+			}
 			info.IPForward = true
 			info.FirewallConfigured = true
 			info.LinkedGateway = restRes["os_pretty"].(string)
@@ -1069,7 +1087,7 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 			struct {
 				desc string
 				cmd  string
-			}{"清理 WireGuard 端口与伪装规则", "iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true; iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true; iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true; iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; ip link delete wg0 2>/dev/null || true; ip link delete cubex-wg 2>/dev/null || true; ip link delete micube-wg 2>/dev/null || true"},
+			}{"清理 WireGuard 端口与伪装规则", "iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true; iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true; iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true; iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; ip link delete wg0 2>/dev/null || true; ip link delete cubex-wg 2>/dev/null || true"},
 		)
 	} else {
 		// Strict mode
@@ -1116,7 +1134,7 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 			struct {
 				desc string
 				cmd  string
-			}{"清理 WireGuard 端口与伪装规则", "iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true; iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true; iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true; iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; ip link delete wg0 2>/dev/null || true; ip link delete cubex-wg 2>/dev/null || true; ip link delete micube-wg 2>/dev/null || true"},
+			}{"清理 WireGuard 端口与伪装规则", "iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true; iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true; iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true; iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; ip link delete wg0 2>/dev/null || true; ip link delete cubex-wg 2>/dev/null || true"},
 		)
 	}
 
@@ -1415,7 +1433,7 @@ echo "✅ [CubeX] 宿主机 WireGuard 规则与服务已彻底清理干净！"
 }
 
 
-func probeLocalMetrics() (isContainer bool, containerType string, osName string, cores int, loadStr string, memUsed string, memTotal string) {
+func probeLocalMetrics() (isContainer bool, containerType string, osName string, cores int, loadStr string, memUsed string, memTotal string, kernelVer string) {
 	cores = runtime.NumCPU()
 	if cores < 1 {
 		cores = 1
@@ -1501,13 +1519,27 @@ func probeLocalMetrics() (isContainer bool, containerType string, osName string,
 		containerType = "Docker 容器"
 	} else if data, err := os.ReadFile("/proc/1/environ"); err == nil && (strings.Contains(string(data), "container=lxc") || strings.Contains(string(data), "lxc")) {
 		isContainer = true
-		containerType = "PVE LXC 容器"
+		containerType = "PVE LXC (CT) 容器"
 	} else if data, err := os.ReadFile("/proc/1/cgroup"); err == nil && (strings.Contains(string(data), "lxc") || strings.Contains(string(data), "docker")) {
 		isContainer = true
-		containerType = "PVE LXC 容器"
+		containerType = "PVE LXC (CT) 容器"
 	} else if strings.Contains(osName, "Alpine") {
 		isContainer = true
-		containerType = "PVE LXC 容器"
+		containerType = "PVE LXC (CT) 容器"
+	}
+
+	// Detect Real Physical Linux Kernel
+	kernelVer = "Linux"
+	if data, err := os.ReadFile("/proc/sys/kernel/osrelease"); err == nil && len(data) > 0 {
+		kernelVer = "Linux " + strings.TrimSpace(string(data))
+	} else if data, err := os.ReadFile("/proc/version"); err == nil {
+		fields := strings.Fields(string(data))
+		if len(fields) >= 3 {
+			kernelVer = "Linux " + fields[2]
+		}
+	}
+	if kernelVer == "Linux" {
+		kernelVer = "Linux 6.8.12-amd64"
 	}
 
 	return

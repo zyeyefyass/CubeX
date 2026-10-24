@@ -3178,8 +3178,10 @@
               <!-- 3. 沙盒内存负载 -->
               <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-between shadow-inner">
                 <div class="flex items-center justify-between">
-                  <span class="text-slate-400 text-[11px]">沙盒内存 / CPU</span>
-                  <span class="text-[10px] text-slate-400 font-mono">{{ hostInfo.cpu_cores || 1 }}核</span>
+                  <span class="text-slate-400 text-[11px] truncate pr-1" :title="hostInfo.is_container ? (hostInfo.container_type || 'PVE LXC (CT) 容器') : '宿主硬件负载'">
+                    {{ hostInfo.is_container ? (hostInfo.container_type || 'PVE LXC (CT) 容器') : '宿主硬件负载' }}
+                  </span>
+                  <span class="text-[10px] text-slate-400 font-mono shrink-0">{{ hostInfo.cpu_cores || 1 }}核</span>
                 </div>
                 <span class="text-emerald-400 font-extrabold text-xs sm:text-[13px] block mt-1 truncate">
                   {{ hostInfo.memory_used || '70MB' }} / {{ hostInfo.memory_total || '256MB' }}
@@ -3254,10 +3256,10 @@
                   <span v-else class="text-base text-cyan-400">⚡</span>
                   <span>一键全栈自愈 RouterOS</span>
                 </button>
-                <button v-else-if="isOpenWrt" @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
+                <button v-else-if="isOpenWrt" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall"
                   class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-sky-950/90 via-blue-950/90 to-teal-950/90 hover:from-sky-900/90 hover:to-teal-900/90 border border-sky-500/50 hover:border-sky-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-sky-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
                   title="一键全栈自愈：自动加固核心规则配置、OpenWrt 策略回指、DHCP 故障逃生与 IPv6 原生防泄露">
-                  <span v-if="cleaningRosFirewall" class="inline-block animate-spin text-sm">↻</span>
+                  <span v-if="applyingLinuxFirewall" class="inline-block animate-spin text-sm">↻</span>
                   <span v-else class="text-base text-sky-400">📡</span>
                   <span>一键全栈自愈 OpenWrt</span>
                 </button>
@@ -3281,7 +3283,7 @@
                   title="若旁路由运行于独立 Linux / 飞牛 NAS / PVE 宿主，可同时优化该宿主底层防火墙与内核转发">
                   <span v-if="applyingLinuxFirewall" class="inline-block animate-spin text-sm">↻</span>
                   <span v-else class="text-base">🐧</span>
-                  <span>联动伴生 Linux 防火墙</span>
+                  <span>联动 Linux 宿主防火墙</span>
                 </button>
                 <button v-else @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
                   class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-slate-900/90 to-slate-950/90 hover:from-slate-800/90 hover:to-slate-900/90 border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 hover:text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-md active:scale-98 cursor-pointer"
