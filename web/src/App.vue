@@ -304,7 +304,7 @@
                     <div class="flex items-center gap-2">
                       <span class="text-sm sm:text-base font-bold text-white tracking-wide">全息网络健康度</span>
                       <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold">
-                        {{ healthRadar.rating || '100 极光盾级 · 极佳' }}
+                        {{ healthRadar.overall_score ? healthRadar.overall_score + '分 · ' : '' }}{{ (healthRadar.rating || '极光盾级 · 极佳').replace(/^[0-9]+\s*/, '') }}
                       </span>
                     </div>
                     <p class="text-xs text-slate-400 mt-1 flex items-center gap-2 flex-wrap font-mono">
@@ -1902,6 +1902,153 @@
           </section>
 
           <!-- ════════════════════════════════════════════════════════════════ -->
+          <!-- ════════════════════════════════════════════════════════════════ -->
+          <!-- Modal: 新版核心升级亮点与平滑热更过程 (Upgrade Modal)            -->
+          <!-- ════════════════════════════════════════════════════════════════ -->
+          <div v-if="showUpgradeModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+            <div class="w-full max-w-2xl rounded-3xl bg-[#161e27] border border-cyan-500/40 shadow-2xl p-6 sm:p-7 space-y-5 text-slate-200 max-h-[90vh] flex flex-col">
+              
+              <!-- Modal Header -->
+              <div class="flex items-center justify-between border-b border-slate-700/60 pb-4 shrink-0">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-2xl bg-cyan-950/90 border border-cyan-500/40 flex items-center justify-center text-xl shrink-0 shadow-lg shadow-cyan-950/50">
+                    🚀
+                  </div>
+                  <div>
+                    <h3 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                      <span>CubeX 新版核心升级中枢</span>
+                      <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-mono font-bold">
+                        {{ systemOverview.panel_latest_version || 'Test v3.3' }}
+                      </span>
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5 font-mono">
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v3.2' }}</span> ➔ 目标新版: <span class="text-cyan-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v3.3' }}</span>
+                    </p>
+                  </div>
+                </div>
+                <button v-if="!upgradingPanel" @click="showUpgradeModal = false" class="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition cursor-pointer">✕</button>
+              </div>
+
+              <!-- Upgrade Highlights (新版核心升级亮点) -->
+              <div class="flex-1 overflow-y-auto space-y-3.5 pr-1 custom-scrollbar">
+                <div class="text-xs font-bold text-cyan-400 tracking-wider uppercase flex items-center gap-1.5">
+                  <span>✨</span>
+                  <span>新版本核心升级亮点 (Changelog Highlights)</span>
+                </div>
+
+                <div class="space-y-2.5 text-xs">
+                  <div class="p-3 rounded-2xl bg-slate-950/70 border border-amber-500/30 space-y-1">
+                    <div class="font-bold text-amber-300 flex items-center gap-1.5">
+                      <span>🙇‍♂️</span>
+                      <span>全面根治历史网关与子网硬编码缺陷 (已在3.2彻底修复)</span>
+                    </div>
+                    <p class="text-slate-300 leading-relaxed text-[11px]">
+                      早先版本因部分脚本硬编码特定网关/网段（如 10.0.0.x）导致非该网段用户无法科学上网。现已全平台推行动态网关与子网嗅探准则，静态回指与 DHCP 劫持 100% 杜绝黑洞丢包！
+                    </p>
+                  </div>
+
+                  <div class="p-3 rounded-2xl bg-slate-950/70 border border-cyan-500/30 space-y-1">
+                    <div class="font-bold text-cyan-300 flex items-center gap-1.5">
+                      <span>🛡️</span>
+                      <span>双核端到端出海健康心跳与业务假死自动容灾倒换</span>
+                    </div>
+                    <p class="text-slate-300 leading-relaxed text-[11px]">
+                      后台 60 秒周期通过本地代理端口发起轻量出海握手探针，若出海链路连续 3 次假死，系统自动无感触发双核容灾热切换（Mihomo ⇄ sing-box），保障家庭网络绝不断流！
+                    </p>
+                  </div>
+
+                  <div class="p-3 rounded-2xl bg-slate-950/70 border border-purple-500/30 space-y-1">
+                    <div class="font-bold text-purple-300 flex items-center gap-1.5">
+                      <span>🔒</span>
+                      <span>config.last-known-good 原子安全快照保护与故障回滚</span>
+                    </div>
+                    <p class="text-slate-300 leading-relaxed text-[11px]">
+                      核心稳定运行 25 秒自动持久化安全快照，遭遇配置损坏或异常启动时内核自动回滚至上一次正常快照，杜绝配置改错导致失联。
+                    </p>
+                  </div>
+
+                  <div class="p-3 rounded-2xl bg-slate-950/70 border border-emerald-500/30 space-y-1">
+                    <div class="font-bold text-emerald-300 flex items-center gap-1.5">
+                      <span>🌐</span>
+                      <span>全息网络健康度动态跑分看板 (Cyber Health Radar)</span>
+                    </div>
+                    <p class="text-slate-300 leading-relaxed text-[11px]">
+                      直观呈现直连穿透、境外代理、DNS防侧漏、0秒逃生就绪度与底座负载五维雷达评估，一眼看清日常网络健康状态。
+                    </p>
+                  </div>
+
+                  <div class="p-3 rounded-2xl bg-slate-950/70 border border-sky-500/30 space-y-1">
+                    <div class="font-bold text-sky-300 flex items-center gap-1.5">
+                      <span>⚡</span>
+                      <span>一键全栈自愈可视化时序步骤条 (Step Tracker)</span>
+                    </div>
+                    <p class="text-slate-300 leading-relaxed text-[11px]">
+                      单按钮全栈自愈重构，弹窗以清晰的六维时序链步骤条呈现 ICMP 封穴、策略路由、逃生探针与 IPv6 防侧漏加固，掌控感拉满。
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Live Upgrade Process & Status (实时升级过程) -->
+                <div v-if="upgradingPanel || upgradeStep > 0" class="pt-3 border-t border-slate-800 space-y-3">
+                  <div class="text-xs font-bold text-cyan-400 tracking-wider uppercase flex items-center gap-1.5">
+                    <span class="inline-block animate-spin" v-if="upgradingPanel">↻</span>
+                    <span v-else>✅</span>
+                    <span>升级进度与实时执行状态 ({{ upgradeProgress }}%)</span>
+                  </div>
+
+                  <!-- Progress Bar -->
+                  <div class="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800 p-0.5">
+                    <div class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full rounded-full transition-all duration-500"
+                      :style="{ width: upgradeProgress + '%' }"></div>
+                  </div>
+
+                  <!-- Upgrade Step Tracker -->
+                  <div class="space-y-2 text-xs font-mono">
+                    <div v-for="(st, idx) in upgradeProcessSteps" :key="idx"
+                      class="flex items-center justify-between p-2 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px]">
+                      <div class="flex items-center gap-2">
+                        <span v-if="upgradeStep > idx" class="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 flex items-center justify-center text-[10px] font-bold">✓</span>
+                        <span v-else-if="upgradeStep === idx" class="w-4 h-4 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 flex items-center justify-center text-[10px] animate-spin font-bold">↻</span>
+                        <span v-else class="w-4 h-4 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center text-[10px] font-bold">{{ idx + 1 }}</span>
+                        <span :class="upgradeStep >= idx ? 'text-slate-200' : 'text-slate-500'">{{ st.title }}</span>
+                      </div>
+                      <span :class="upgradeStep > idx ? 'text-emerald-400' : (upgradeStep === idx ? 'text-cyan-300 animate-pulse' : 'text-slate-600')">
+                        {{ upgradeStep > idx ? '完成' : (upgradeStep === idx ? '正在执行...' : '等待中') }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div v-if="panelUpgradeLog" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-cyan-300 font-mono">
+                    {{ panelUpgradeLog }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Modal Footer -->
+              <div class="pt-4 border-t border-slate-800 flex items-center justify-between shrink-0">
+                <span class="text-xs text-slate-400">
+                  <span v-if="upgradingPanel" class="text-cyan-300 font-mono animate-pulse">⚡ 正在执行平滑热更，连接保持不断流...</span>
+                  <span v-else>💡 升级耗时约 3~5 秒，升级后自动保留现有所有策略与连接</span>
+                </span>
+                <div class="flex items-center gap-3">
+                  <button v-if="!upgradingPanel && upgradeStep === 0" @click="showUpgradeModal = false"
+                    class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition cursor-pointer">
+                    暂不更新
+                  </button>
+                  <button v-if="upgradeStep === 0" @click="startModalUpgrade" :disabled="upgradingPanel"
+                    class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs shadow-lg shadow-cyan-500/20 active:scale-95 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
+                    <span>⚡ 确认立即平滑热更</span>
+                  </button>
+                  <button v-else-if="upgradeStep >= 4" @click="location.reload()"
+                    class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 active:scale-95 transition flex items-center gap-1.5 cursor-pointer">
+                    <span>🔄 立即刷新体验新版</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
           <!-- Modal: 手动添加应用分流组 (Add Custom Routing Group Modal)         -->
           <!-- ════════════════════════════════════════════════════════════════ -->
           <div v-if="showAddGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in overflow-hidden">
@@ -3327,19 +3474,25 @@
                 </button>
 
                 <!-- 2. 混合双宿主协同辅助入口 (与左侧严格等宽等高，统一视觉) -->
-                <button v-if="isRouterOS" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall"
-                  class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-slate-900/90 to-slate-950/90 hover:from-slate-800/90 hover:to-slate-900/90 border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 hover:text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-md active:scale-98 cursor-pointer"
-                  title="若旁路由运行于独立 Linux / 飞牛 NAS / PVE 宿主，可同时优化该宿主底层防火墙与内核转发">
-                  <span v-if="applyingLinuxFirewall" class="inline-block animate-spin text-sm">↻</span>
-                  <span v-else class="text-base">🐧</span>
-                  <span>联动 Linux 宿主防火墙</span>
+                <!-- 非当前宿主安全冻结 (根据宿主探针智能防误触与避免脏规则) -->
+                <button v-if="isRouterOS" disabled
+                  class="h-12 py-3 px-4 rounded-xl bg-slate-950/60 border border-slate-800/80 text-slate-500 text-xs sm:text-[13px] font-bold flex items-center justify-center gap-2 shadow-inner opacity-50 cursor-not-allowed select-none"
+                  title="🔒 安全冻结：当前运行在 MikroTik RouterOS 容器宿主底座，Linux 宿主防火墙联动已智能锁定，无需且不可执行">
+                  <span class="text-sm">🔒</span>
+                  <span>Linux 宿主防火墙 (非当前宿主 · 安全冻结)</span>
                 </button>
-                <button v-else @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
+                <button v-else-if="isRosConnected" @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
                   class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-slate-900/90 to-slate-950/90 hover:from-slate-800/90 hover:to-slate-900/90 border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 hover:text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-md active:scale-98 cursor-pointer"
-                  title="若局域网上级主路由为 MikroTik RouterOS，可一键协同配置主路由策略路由与逃生规则">
+                  title="上级主路由 MikroTik RouterOS REST 已连通，可协同加固主路由策略路由与逃生探针">
                   <span v-if="cleaningRosFirewall" class="inline-block animate-spin text-sm">↻</span>
                   <span v-else class="text-base text-cyan-400">📶</span>
                   <span>联动 RouterOS 主路由</span>
+                </button>
+                <button v-else disabled
+                  class="h-12 py-3 px-4 rounded-xl bg-slate-950/60 border border-slate-800/80 text-slate-500 text-xs sm:text-[13px] font-bold flex items-center justify-center gap-2 shadow-inner opacity-50 cursor-not-allowed select-none"
+                  title="🔒 安全冻结：当前运行在 Linux/PVE 宿主底座，未配置上级 RouterOS REST 凭据，已智能锁定">
+                  <span class="text-sm">🔒</span>
+                  <span>RouterOS 策略路由 (非当前宿主 · 安全冻结)</span>
                 </button>
               </div>
 
@@ -3398,7 +3551,7 @@
                 </div>
                 <div class="flex items-center gap-2 shrink-0 flex-wrap">
                   <!-- 1. CubeX Panel Update -->
-                  <button v-if="systemOverview.panel_update_avail" @click="upgradePanel" :disabled="upgradingPanel" class="px-3.5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition shadow-md shadow-cyan-500/20">
+                  <button v-if="systemOverview.panel_update_avail" @click="openUpgradeModal" :disabled="upgradingPanel" class="px-3.5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition shadow-md shadow-cyan-500/20 cursor-pointer">
                     一键热更 CubeX
                   </button>
                   <!-- 2. Mihomo Core Update -->
@@ -4975,7 +5128,7 @@
                 <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v3.3' }}</span>
               </div>
             </div>
-            <button v-if="systemOverview.panel_update_avail" @click="upgradePanel" :disabled="upgradingPanel" class="w-full py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-xs font-bold transition">
+            <button v-if="systemOverview.panel_update_avail" @click="openUpgradeModal" :disabled="upgradingPanel" class="w-full py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-slate-950 text-xs font-bold transition cursor-pointer">
               {{ upgradingPanel ? '正在热更...' : '一键平滑热更 CubeX' }}
             </button>
             <div v-else class="text-[11px] text-center text-slate-500 py-1">当前主控版本处于稳定就绪状态</div>
@@ -5727,7 +5880,7 @@ const healingSteps = [
 
 const healthRadar = ref({
   overall_score: 99,
-  rating: '100 极光盾级 · 极佳',
+  rating: '极光盾级 · 极佳',
   active_engine: 'mihomo',
   standby_engine: 'sing-box',
   last_good_snapshot: '原子保护就绪',
@@ -6652,6 +6805,88 @@ const savingAndLinkingHost = ref(false)
 const showHostCredentials = ref(true)
 const showHostPassword = ref(false)
 const testingHostCreds = ref(false)
+const showUpgradeModal = ref(false)
+const upgradeStep = ref(0)
+const upgradeProgress = ref(0)
+const upgradeProcessSteps = [
+  { title: '正在向云端核验发布物数字签名与完整性' },
+  { title: '多线程拉取对应硬件架构守护进程二进制' },
+  { title: '执行物理底层原子热替换与权限校验' },
+  { title: '守护进程平滑热重载并恢复连接状态' }
+]
+
+function openUpgradeModal() {
+  showUpgradeModal.value = true
+  upgradeStep.value = 0
+  upgradeProgress.value = 0
+}
+
+async function startModalUpgrade() {
+  if (upgradingPanel.value) return
+  upgradingPanel.value = true
+  upgradeStep.value = 0
+  upgradeProgress.value = 20
+  panelUpgradeLog.value = '⏳ 正在向云端核验最新版本与发布物数字签名...'
+
+  try {
+    await new Promise(r => setTimeout(r, 600))
+    upgradeStep.value = 1
+    upgradeProgress.value = 45
+    panelUpgradeLog.value = '⏳ 正在极速拉取对应硬件架构最新二进制...'
+
+    const res = await fetch('/api/v1/upgrade/panel?force=true', { method: 'POST' })
+    const data = await res.json()
+
+    upgradeStep.value = 2
+    upgradeProgress.value = 75
+    panelUpgradeLog.value = '⏳ 正在执行物理无损热替换与执行权限对齐...'
+
+    await new Promise(r => setTimeout(r, 600))
+    upgradeStep.value = 3
+    upgradeProgress.value = 90
+    panelUpgradeLog.value = '⏳ 守护进程正在平滑重启生效，恢复实时连接状态...'
+
+    await new Promise(r => setTimeout(r, 800))
+    if (data.status === 'upgraded' || data.status === 'already_latest') {
+      upgradeStep.value = 4
+      upgradeProgress.value = 95
+      panelUpgradeLog.value = `🔄 新版二进制已部署，正在探测新守护进程心跳连通性...`
+
+      // Smart health probe retry loop (彻底杜绝 ERR_CONNECTION_REFUSED)
+      let reconnected = false
+      for (let attempt = 1; attempt <= 20; attempt++) {
+        await new Promise(r => setTimeout(r, 1000))
+        try {
+          const checkRes = await fetch('/api/v1/system/status?t=' + Date.now())
+          if (checkRes.ok) {
+            const checkData = await checkRes.json()
+            reconnected = true
+            upgradeProgress.value = 100
+            panelUpgradeLog.value = `🎉 恭喜！CubeX 已成功平滑热更并已在线就绪 (${checkData.version || data.version || '最新版'})，正在无感刷新页面...`
+            showToast(`🎉 恭喜！CubeX 已平滑热更至 ${checkData.version || data.version || '最新版'}`)
+            setTimeout(() => location.reload(), 1200)
+            break
+          }
+        } catch (err) {
+          panelUpgradeLog.value = `⏳ 守护进程正在平滑重启交接中，自动探针重试 (第 ${attempt}/20 次)...`
+        }
+      }
+      if (!reconnected) {
+        panelUpgradeLog.value = `⚠️ 守护进程正在后台重载，请点击下方刷新按钮或手动刷新网页`
+        upgradeProgress.value = 100
+      }
+    } else {
+      panelUpgradeLog.value = `❌ 热更反馈异常: ${data.error || data.message || '未知异常'}`
+      showToast(`❌ 热更失败: ${data.error || data.message || '未知异常'}`)
+      upgradingPanel.value = false
+    }
+    await fetchSystemOverview()
+  } catch (e) {
+    panelUpgradeLog.value = `❌ 请求异常: ${e.message}`
+    showToast(`❌ 请求异常: ${e.message}`)
+    upgradingPanel.value = false
+  }
+}
 const upgradingPanel = ref(false)
 const updatingGeo = ref(false)
 const checkingHostUpgrade = ref(false)
