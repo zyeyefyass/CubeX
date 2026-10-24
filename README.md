@@ -1,50 +1,28 @@
 <div align="center">
 
+<img src="logo-cubex.svg" width="140" height="140" alt="CubeX 3D Cyber Aurora Crystal Logo" />
 
+# 🌌 CubeX · 宿主共生零感网络系统 (Host-Symbiotic Zero-Perception Gateway)
+### *单二进制纯自研 · 告别传统重型虚机旁路 · 极致轻量低开销 · 300ms 冷启 · 宛如物理肉身直连全球互联网的终极共生体*
 
-  <img src="logo-cubex.svg" width="140" height="140" alt="CubeX 3D Cyber Aurora Crystal Logo" />
+<p align="center">
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v3.5-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
+<a href="https://github.com/zyeyefyass/CubeX"><img src="https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go" alt="Dual-Engine" /></a>
+<a href="#"><img src="https://img.shields.io/badge/Host-RouterOS_v7_%7C_爱快_iKuai_%7C_OpenWrt_%7C_飞牛_fnOS_%7C_PVE_%7C_Linux-3A86FF?style=for-the-badge" alt="Host Base" /></a>
+<a href="#"><img src="https://img.shields.io/badge/Arch-amd64_%7C_arm64-FF007F?style=for-the-badge" alt="Arch" /></a>
+</p>
 
-
-
-  # 🌌 CubeX · 宿主共生零感网络系统 (Host-Symbiotic Zero-Perception Gateway)
-
-  ### *单二进制纯自研 · 告别传统重型虚机旁路 · 极致轻量低开销 · 300ms 冷启 · 宛如物理肉身直连全球互联网的终极共生体*
-
-
-
-  [![Version](https://img.shields.io/badge/Release-Test_v3.5-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
-
-  [![License](https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield)](COPYRIGHT.md)
-
-  [![Dual-Engine](https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go)](https://github.com/zyeyefyass/CubeX)
-
-  [![Host Base](https://img.shields.io/badge/Host-RouterOS_v7_%7C_爱快_iKuai_%7C_OpenWrt_%7C_飞牛_fnOS_%7C_PVE_%7C_Linux-3A86FF?style=for-the-badge)](#)
-
-  [![Arch](https://img.shields.io/badge/Arch-amd64_%7C_arm64-FF007F?style=for-the-badge)](#)
-
-
-
-  <p align="center">
-
-    <b>纯 Go 独立自研单二进制架构 · 宿主机实时物理常驻开销仅 ~35MB~109MB (同类最优) · 0 侵入 0 依赖 · 0 运营商 DNS 泄露 · 217heidai 权威去广告</b><br>
-
-    <i>小白八字真言闭眼用，老手挑不出半点刺！立志做软路由性能、安全、高可用与颜值的天花板！</i>
-
-  </p>
-
-
+<p align="center">
+<b>纯 Go 独立自研单二进制架构 · 宿主机实时物理常驻开销仅 ~35MB~109MB (同类最优) · 0 侵入 0 依赖 · 0 运营商 DNS 泄露 · 217heidai 权威去广告</b><br>
+<i>小白八字真言闭眼用，老手挑不出半点刺！立志做软路由性能、安全、高可用与颜值的天花板！</i>
+</p>
 
 </div>
 
-
-
 ---
 
-
-
 ### 📚 快速直达目录 (全维度架构与极速部署导航)
-
-
 
 - [📜 郑重声明与合规免责条款](#legal-statement)
 
@@ -98,11 +76,7 @@
 
 - [📜 净室合规与安全脱敏审计声明](#compliance-statement)
 
-
-
 ---
-
-
 
 <a id="legal-statement"></a>
 
@@ -118,17 +92,11 @@
 
 > 4. **免责与自律约定**：软件作者及维护者不对任何第三方非法违规使用本系统所导致的直接或间接法律责任承担连带责任。获取、编译、部署或运行本系统即代表完全知悉并承诺自觉遵守本条款。
 
-
-
 ---
-
-
 
 <a id="why-container-symbiosis"></a>
 
 ## 💎 终极破局：为什么“容器化部署旁路透明代理 · 主旁共生”才是最优解？
-
-
 
 在探索家庭与极客软路由网络的进阶之路上，几乎所有人都经历过这四种“折腾”流派的无情毒打：
 
@@ -140,15 +108,9 @@
 
 4. **把全家设备网关强行指向旁路由**：一人折腾全家升仙，大订阅加载内存尖刺导致旁路由崩溃，全屋立刻断网，智能家居集体失联，电话被打爆。
 
-
-
 **那么，为什么 CubeX 坚决主张并实现的「容器化部署旁路透明代理 · 主旁共生」才是终极破局的最优解？**
 
-
-
 我们用四组硬核维度的全息透视，彻底拆解这套架构的降维打击原理：
-
-
 
 ```text
 
@@ -188,13 +150,9 @@
 
 ```
 
-
-
 <a id="four-dimensions"></a>
 
 ### 🔬 四大维度的技术本质透视：
-
-
 
 1. **维度 ①：物理层面的极简共生（0 硬件成本 · 0 额外功耗）**
 
@@ -204,23 +162,17 @@
 
    - **最优解**：CubeX 采用纯自研 Go 单二进制容器化架构，**宿主机常驻物理内存仅 ~35MB（基础冷启）至 ~109MB（百级节点全量实战）**！它宛如一个幽灵伴生体，借用宿主机千万分之一的计算冗余，瞬间赋予整个局域网工业级透明代理能力，硬件投入为 0，电费为 0！
 
-
-
 2. **维度 ②：操作系统层的绝对沙盒隔离（0 侵入 · 0 依赖 · 宿主升级 0 损伤）**
 
    - 在传统的侵入式插件方案中，插件直接修改主路由的 `/etc/hosts`、改写系统 `dnsmasq` 配置并常驻系统 rootfs。主路由升级固件后，配置往往被覆盖清空，轻则分流失效，重则因内核库不匹配导致软路由无限重启变砖；
 
    - **最优解**：容器化让代理进程运行在**完全独立的 Linux Namespace（网络、挂载、进程空间隔离）中**。CubeX 独占 65535 个独立端口，绝不与宿主系统的 53、80、443 发生一丝争抢；所有数据卷持久化在独立存储目录中。无论主路由固件升到多新，CubeX 容器开机秒级自启，完好如初！
 
-
-
 3. **维度 ③：运行时代价与虚拟化层面的降维打击（300ms 冷启 · 共享内核 · 线速吞吐）**
 
    - 虚拟机（KVM / QEMU）需要模拟完整的虚拟 CPU、虚拟网卡驱动（virtio）、虚拟磁盘与 BIOS，大并发流量经过两次内核协议栈和频繁的虚拟化上下文切换（VM-Exit），单核吞吐量往往大幅缩水，首包延迟波动明显；
 
    - **最优解**：容器与宿主机**直接共享同一颗 Linux 内核**，没有虚拟化层任何中间商赚差价！CubeX 直接调用 Linux 物理协议栈与 TUN 字符设备，搭配自研分级内存软上限守护（`Adaptive GOMEMLIMIT`），冷启动仅需 **300ms**，单核就能冲顶 **3+ Gbps 物理线速**！
-
-
 
 4. **维度 ④：网络分流与生存哲学的终极解耦（各司其职 · 宕机零感逃生）**
 
@@ -236,8 +188,6 @@
 
      - **0 宕机风险（Zero-Downtime Escape）**：即便 CubeX 容器正在升级、重启或调试，主网关依然是物理主路由，国内网页、微信与智能家居 **100% 完全不受影响，全家老小毫无感知**！配合 0 秒 Netwatch / 看门狗探针秒切公共 DNS，全家网络固若金汤！
 
-
-
 > [!TIP]
 
 > ### 🏆 终极最优解总结金句：
@@ -246,21 +196,13 @@
 
 > 这就是为什么**「容器化部署旁路透明代理 · 主旁共生」**是软路由进化史上无法被超越的终极最优解！
 
-
-
 ---
-
-
 
 <a id="traditional-flaws-and-solution"></a><a id="pain-points-traditional"></a>
 
 ### ❌ 传统“全包型”旁路由的五大致命死穴与 CubeX 黄金解耦破局之道
 
-
-
 在传统的软路由教程中，博主们最喜欢教新手一招：*“把主路由 DHCP 网关直接改成旁路由 IP”*。这一步看似省事，实则是噩梦的开始：
-
-
 
 1. **死穴 ①：单网口双向折返跑，千兆/万兆带宽直接腰斩 (物理带宽与 CPU 瓶颈)**
 
@@ -268,15 +210,11 @@
 
    * **CubeX 破局解法**：**黄金解耦！网关坚决指向主路由，仅 DNS 指向 CubeX**。国内流量（占全网 90% 以上）由主路由芯片硬件直通，物理满速飙到 2.5G/10G，主路由 CPU 仅 ~1%！
 
-
-
 2. **死穴 ②：ICMP Send-Redirects 三角重定向风暴与非对称丢包 (莫名其妙卡顿重传)**
 
    * **致命缺陷**：终端、旁路由、主路由处于同一个二层广播域（如 `10.0.0.0/24`）。终端把包给旁路由，旁路由又丢给主路由，主路由内核发现“下一跳和源端在同一个网段”，便拼命向终端发送 ICMP Redirect。很多 Windows / iOS 终端处理重定向策略极其保守，直接引发 TCP 管道假死、游戏跳 ping 和频繁重传。
 
    * **CubeX 破局解法**：CubeX 深度巡检引擎自动通过 `/ip/settings set send-redirects=no` 彻底关闭主路由重定向，并在底座内核中强制放行非对称路由（`rp_filter=2`），数据流干净利落，彻底根治重传假死！
-
-
 
 3. **死穴 ③：假 IP (Fake-IP) 侧漏往公网导致证书报错 (回指路由网段残缺)**
 
@@ -284,15 +222,11 @@
 
    * **CubeX 破局解法**：全面遵循 RFC 2544 标准，主路由自动写入严谨的 **`198.18.0.0/15`** 完整回指路由，配合双引擎强域名逆向映射，0 假 IP 侧漏公网！
 
-
-
 4. **死穴 ④：内核崩溃拉崩全家网络，甚至无法进后台自救 (单点故障大面积失联)**
 
    * **致命缺陷**：传统全包旁路由一旦遇到大机场订阅节点瞬时爆内存被系统 OOM Killer 强杀，全家 Wi-Fi 立即瘫痪，智能家居掉线，电视黑屏，连主路由后台都进不去！
 
    * **CubeX 破局解法**：自研分级自适应软上限守护（`GOMEMLIMIT`）严格把内存锁死在安全线内；搭配 **0 秒看门狗 / Netwatch 探针**，即便容器重启，国内网页与微信也 100% 畅通，全家无感逃生！
-
-
 
 5. **死穴 ⑤：现代前沿出海协议解析残缺暴毙 (VLESS Reality / gRPC / H2 握手失败)**
 
@@ -300,17 +234,11 @@
 
    * **CubeX 破局解法**：自研新一代协议解析器，完整编排 Reality / gRPC / H2 指纹，双核握手 100% 成功，首包延迟降低 30% 以上！
 
-
-
 ---
-
-
 
 <a id="table-five-lethal"></a>
 
 #### 🥊 传统全包旁路由 vs CubeX 降维打击对照表
-
-
 
 | 传统旁路由致命死穴 | 发生原理与后果 | CubeX 降维打击破局解法 |
 
@@ -326,21 +254,13 @@
 
 | **死穴 ⑤：VLESS Reality 协议暴毙** | 很多旧工具解析 URL 时丢掉了 `pbk`、`sid` 或 `fingerprint`，导致握手直接报 `unexpected response version`。 | **全协议纯自研解析器**：完整提取并编排 Reality/gRPC/H2 参数，双核握手 100% 成功，首包延迟降低 30% 以上。 |
 
-
-
 ---
-
-
 
 <a id="topology-flow"></a>
 
 ### ✅ CubeX「主网关 + 旁路 DNS」黄金解耦机制与数据流向拓扑：
 
-
-
 在 CubeX 体系中，局域网终端的 **默认网关始终保持指向硬件主路由（如 10.0.0.1）**，而 **DNS 服务器单向指向 CubeX（如 10.0.0.11）**：
-
-
 
 ```
 
@@ -402,21 +322,13 @@
 
 ```
 
-
-
 ---
-
-
 
 <a id="benchmark"></a>
 
 ## ⚡ 权威实测：CubeX Test v2.8 vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)
 
-
-
 > 测试环境基准：同一台 MikroTik CCR2004 / x86 软路由，搭载 2.5G 物理宽带，同节点同并发压测。
-
-
 
 | 对比实测维度 | 🥊 某测评 (10.0.0.2)<br>某 Box 传统镜像 | 🌌 CubeX Test v2.7 (10.0.0.11)<br>深度优化威武版 | 🏆 优势与性能跃升 |
 
@@ -434,11 +346,7 @@
 
 | **稳定性与宕机容灾** | 历史僵尸连接与路由黑洞，导致断网频发 | **10分钟静默自愈清道夫 + Netwatch 0 秒逃生** | 🛡️ **高可用性达成 99.999%**，真正做到“一人折腾全家无感”！ |
 
-
-
 ---
-
-
 
 <a id="announcement"></a>
 
@@ -505,21 +413,13 @@
 
 > * ⚪ **Proxmox VE (PVE) LXC 安装方式**：开箱透传 `/dev/net/tun` 并解压运行完整生产归档 `CubeX-*-linux-amd64.zip`。详细步骤请点击直达：[方式 E：Proxmox VE 部署教程](#deploy-pve)。
 
-
-
 ---
-
-
 
 <a id="global-adaptive"></a>
 
 ## 🧠 全局跨平台硬件分级与主流宿主深度定制优化体系 (Global Adaptive Architecture)
 
-
-
 在面对千奇百怪的家庭软路由、企业硬路由与虚拟机宿主时，传统工具往往采用“一刀切”的配置，导致小机器爆内存死机、大机器吃不饱算力。CubeX 打造了一套全自动感知、分级适配与深度协同的**「环境自适应引擎」**：
-
-
 
 ```text
 
@@ -553,13 +453,9 @@
 
 ```
 
-
-
 <a id="adaptive-core"></a>
 
 ### 一、 全局跨平台「环境动态自适应体系」
-
-
 
 1. **分级内存自适应软上限守护 (`Adaptive GOMEMLIMIT & Memory Guard`)**：
 
@@ -579,17 +475,11 @@
 
    - 首选为 CubeX 容器分配专属 IP `.11`（如 `10.0.0.11`）；若网络中已有此 IP，则自动顺延分配 `.228`，并实时校验 ARP 缓存，**100% 杜绝因 IP 冲突导致的局域网广播风暴**。
 
-
-
 ---
-
-
 
 <a id="adaptive-platforms"></a>
 
 ### 二、 各主流宿主平台的「深度专项与针对性优化」剖析
-
-
 
 | 宿主平台 | 专属技术痛点 | CubeX 深度定制自适应方案 | 达成效果 |
 
@@ -605,11 +495,7 @@
 
 | **Proxmox VE (PVE) LXC** | 虚拟机开销大；LXC 容器默认不透传 TUN 设备 | 一键自动透传 `/dev/net/tun` 与嵌套虚拟化特权；开箱共享宿主 PVE 物理内核 | 0 虚拟化损耗，单核心跑满 3+ Gbps，冷启仅需 300ms |
 
-
-
 ---
-
-
 
 <a id="auto-healing"></a>
 
@@ -695,11 +581,7 @@
 
 ### 🌐 原生 IPv6 双栈自愈与防 DNS 泄露深度剖析 (到底配置了什么？防火墙如何运作？)
 
-
-
 很多玩家一开 IPv6 就发现出海规则形同虚设，这就是臭名昭著的 **“IPv6 旁路 DNS 侧漏之殇”**。CubeX 的自愈中枢是如何在底层实施铁血防御的？
-
-
 
 ```text
 
@@ -729,8 +611,6 @@
 
 ```
 
-
-
 <a id="healing-ipv6-details"></a>
 
 #### 🛠️ 6 大关键配置与防火墙技术细节：
@@ -747,21 +627,13 @@
 
 6. **零污染国内 IPv6 直通**：国内正规网站（腾讯、阿里、B站、知乎）正常解析并直连国内 IPv6 公网，享受运营商千兆 IPv6 带来的高速低延迟体验。
 
-
-
 ---
-
-
 
 <a id="dns-rewrite-hub"></a>
 
 ## 🔀 DNS 重写中枢：域名别名 CNAME 重定向与 静态 IP 映射
 
-
-
 CubeX 内置强大的本地 DNS 重写引擎，无需修改任何 hosts 文件，全局掌控内网设备访问：
-
-
 
 ```text
 
@@ -785,8 +657,6 @@ CubeX 内置强大的本地 DNS 重写引擎，无需修改任何 hosts 文件�
 
 ```
 
-
-
 1. **域名重写 (CNAME 重定向)**：
 
    * 将中国大陆版搜索引擎重定向至国际版；
@@ -797,37 +667,23 @@ CubeX 内置强大的本地 DNS 重写引擎，无需修改任何 hosts 文件�
 
    * 用户可在 Web 面板添加 `nas.lan -> 10.0.0.100` 或 `pve.home -> 10.0.0.2`。全家任意手机、电视或 PC 免去修改 hosts 文件的繁琐，直接通过自定义域名秒级访问！
 
-
-
 ---
-
-
 
 <a id="deployment-guides"></a>
 
 ## 🚀 六大主流宿主底座保姆级极速部署实战指南
 
-
-
 > [!NOTE]
 
 > 以下所有方案均遵循 **「主路由网关保持不变 + 终端 DNS 单向指向 CubeX 独立 IP」** 的黄金解耦法则，绝不损伤宿主网络，随时可无感撤回！
 
-
-
 ---
-
-
 
 <a id="deploy-ros"></a>
 
 ### 方式 A：MikroTik RouterOS v7 容器一键极速安装指南 (官方强烈推荐 · 工业级共生)
 
-
-
 MikroTik RouterOS v7 原生支持容器（Container）技术。CubeX 打造了深度适配 ROS 的宿主共生方案：
-
-
 
 <a id="ros-requirements"></a>
 
@@ -843,8 +699,6 @@ MikroTik RouterOS v7 原生支持容器（Container）技术。CubeX 打造了�
 
 3. **存储空间**：外接 USB 移动硬盘、M.2 NVMe SSD 或内置可用存储大于 256MB。
 
-
-
 <a id="ros-offline-install"></a>
 
 #### 🚀 二、 极速一键离线安装（国内网络强烈推荐 · 0 失败率）
@@ -856,8 +710,6 @@ MikroTik RouterOS v7 原生支持容器（Container）技术。CubeX 打造了�
 3. 打开 WinBox 的【Terminal】终端，复制并运行 `setup-routeros-v7.rsc` 脚本中的内容；
 
 4. 脚本将在 30 秒内全自动完成硬件识别、VETH 通道创建、策略路由与防火墙编排并拉起容器，输出 Web 控制台地址（如 `http://10.0.0.11:2026`）！
-
-
 
 <a id="ros-online-pull"></a>
 
@@ -879,21 +731,13 @@ MikroTik RouterOS v7 原生支持容器（Container）技术。CubeX 打造了�
 
 ```
 
-
-
 ---
-
-
 
 <a id="deploy-ikuai"></a>
 
 ### 方式 B：爱快 iKuai 64位 主路由 Docker 原生轻量部署 (保姆级教程)
 
-
-
 > 💡 **架构优势**：爱快系统拥有极强的七层流控与多线分流能力。通过 Docker Macvlan 模式部署 CubeX，爱快主路由的七层流控不仅毫发无损，而且国内大流量直接走爱快硬件芯片物理线速转发，CPU 占用低于 2%！
-
-
 
 <a id="ikuai-step-1"></a>
 
@@ -910,8 +754,6 @@ MikroTik RouterOS v7 原生支持容器（Container）技术。CubeX 打造了�
    - **绑定网卡**：选择内网 LAN 口（通常为 `lan1` 或 `eth0`）；
 
    - **IPv4 地址段**：填入局域网网段（如 `10.0.0.0/24`），**IPv4 网关**：填爱快自身 IP（如 `10.0.0.1`），保存。
-
-
 
 <a id="ikuai-step-2"></a>
 
@@ -939,8 +781,6 @@ MikroTik RouterOS v7 原生支持容器（Container）技术。CubeX 打造了�
 
 4. 点击保存并启动容器！在浏览器中输入 `http://10.0.0.11:2026` 即可进入 Cyber Aurora 赛博极光全息 Web 控制台！
 
-
-
 <a id="ikuai-step-3"></a>
 
 #### 步骤 3：爱快后台黄金解耦配置（两步搞定，国内全速，出海智能）
@@ -959,25 +799,15 @@ MikroTik RouterOS v7 原生支持容器（Container）技术。CubeX 打造了�
 
    - **首选 DNS**：填入 `10.0.0.11`（CubeX 独立 IP），备选 DNS 填 `223.5.5.5`，保存！终端重连 Wi-Fi 立即生效！
 
-
-
 ---
-
-
 
 <a id="deploy-openwrt"></a>
 
 ### 方式 C：OpenWrt 智能软路由 Docker 原生极速部署 (含 0秒逃生与 IPv6 防泄露)
 
-
-
 OpenWrt 作为最普及的开源软路由系统，拥有成熟的 Docker 环境。CubeX 独创的 **Macvlan-Shim 与看门狗共生机制**，彻底消除了传统旁路由插件引发的 53 端口冲突与固件升级变砖痛点。
 
-
-
 针对国内网络环境，CubeX 提供 **🚀 极速一键离线安装（0 失败率推荐）** 与 **🌐 在线终端一行命令部署** 两种方式：
-
-
 
 ```text
 
@@ -1009,17 +839,11 @@ OpenWrt 作为最普及的开源软路由系统，拥有成熟的 Docker 环境�
 
 ```
 
-
-
 <a id="openwrt-offline"></a>
 
 #### 🚀 路径 1：极速一键离线安装（国内网络强烈推荐 · 0 失败率 · 2 步秒装）
 
-
-
 国内环境访问 Docker Hub 或 GitHub Releases 偶尔不稳定，使用**离线包载入**是 100% 成功、零断连的最优选择：
-
-
 
 ##### 步骤 1：下载离线资产包
 
@@ -1028,8 +852,6 @@ OpenWrt 作为最普及的开源软路由系统，拥有成熟的 Docker 环境�
 1. **Docker 离线镜像包**：`CubeX-*-docker-amd64.tar.gz`（约 75.5 MB，下载对应硬件架构即可）
 
 2. **OpenWrt 编排脚本**：`setup-openwrt.sh`
-
-
 
 ##### 步骤 2：上传到 OpenWrt 并一键拉起
 
@@ -1048,8 +870,6 @@ cd /tmp
 sh setup-openwrt.sh
 
 ```
-
-
 
 > [!TIP]
 
@@ -1071,11 +891,7 @@ sh setup-openwrt.sh
 
 > 脚本将在 30 秒内全自动完成：Macvlan 独立网络创建、容器拉起、Macvlan-Shim 宿主二层隔离打通、`198.18.0.0/15` Fake-IP 回指路由下发、`odhcpd` 运营商 IPv6 DNS 侧漏根除、以及毫秒级看门狗逃生注入！
 
-
-
 ---
-
-
 
 <a id="openwrt-cli"></a>
 
@@ -1085,8 +901,6 @@ sh setup-openwrt.sh
 
 2. 直接复制并运行以下命令（自动拉取脚本并全自主执行）：
 
-
-
 ```bash
 
 # 官方一键智能嗅探脚本 (自动适配 amd64 / arm64)
@@ -1094,8 +908,6 @@ sh setup-openwrt.sh
 curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/setup-openwrt.sh -o setup-openwrt.sh && sh setup-openwrt.sh
 
 ```
-
-
 
 > **脚本全自动完成的核心工作**：
 
@@ -1119,17 +931,11 @@ curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/setup-openwrt
 
 > 8. **注入 0 秒逃生看门狗**：安装守护脚本至 `/usr/bin/cubex-watchdog.sh` 并配置每分钟自检。
 
-
-
 <a id="openwrt-luci"></a>
 
 #### 🖥️ 路径 3：OpenWrt LuCI Web 界面纯手动图形化配置 (保姆级步骤)
 
-
-
 如果您喜欢在 LuCI 网页后台手动操作，请严格按照以下步骤完成部署：
-
-
 
 ##### 步骤 1：创建 Macvlan 独立网络
 
@@ -1140,8 +946,6 @@ curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/setup-openwrt
 docker network create -d macvlan   --subnet=10.0.0.0/24   --gateway=10.0.0.1   -o parent=br-lan   cubex-macvlan
 
 ```
-
-
 
 ##### 步骤 2：创建并运行 CubeX 容器
 
@@ -1161,8 +965,6 @@ docker network create -d macvlan   --subnet=10.0.0.0/24   --gateway=10.0.0.1   -
 
 - 保存并启动容器！
 
-
-
 ##### 步骤 3：打通宿主机与容器的 Macvlan-Shim 互通 (破除二层隔离)
 
 进入【系统】➔【启动项】➔【本地启动脚本 (`/etc/rc.local`)】，在 `exit 0` 前追加以下指令并保存：
@@ -1181,8 +983,6 @@ ip route add 10.0.0.11/32 dev macvlan-shim
 
 ```
 
-
-
 ##### 步骤 4：添加 Fake-IP 静态回指路由
 
 进入 LuCI 后台【网络】➔【静态路由】➔ 点击【添加】：
@@ -1199,8 +999,6 @@ ip route add 10.0.0.11/32 dev macvlan-shim
 
 - 保存并应用。
 
-
-
 ##### 步骤 5：配置 DHCP 旁路 DNS 与锁定 odhcpd IPv6 防泄露
 
 1. 进入【网络】➔【DHCP/DNS】➔【常规设置】：
@@ -1215,8 +1013,6 @@ ip route add 10.0.0.11/32 dev macvlan-shim
 
    - **RA 标记 / 广播 DNS**：**取消勾选**（或在终端执行 `uci set dhcp.lan.ra_dns=0; uci commit dhcp; /etc/init.d/odhcpd restart`），彻底掐灭运营商 IPv6 污染！
 
-
-
 ##### 步骤 6：配置 0 秒逃生看门狗
 
 将脚本中的 `/usr/bin/cubex-watchdog.sh` 保存，并在【系统】➔【计划任务 (Crontab)】中添加：
@@ -1229,17 +1025,11 @@ ip route add 10.0.0.11/32 dev macvlan-shim
 
 大功告成！全网设备重连 Wi-Fi 即可享受极速零感出海加速体验！
 
-
-
 ---
-
-
 
 <a id="deploy-fnos-linux"></a>
 
 ### 方式 D：飞牛 fnOS 与通用 Linux Docker 部署
-
-
 
 <a id="fnos-macvlan"></a>
 
@@ -1295,8 +1085,6 @@ ip route add 10.0.0.11/32 dev macvlan-shim
 
 3. 在主路由添加静态路由 `198.18.0.0/15 -> 10.0.0.11`，DHCP DNS 改为 `10.0.0.11`（**网关保持主路由自身 IP**），全速狂飙！
 
-
-
 <a id="fnos-host"></a>
 
 #### ⚡ 途径 ②：Host 共享网络模式（单行命令拉起 · 免配 Macvlan）
@@ -1307,17 +1095,11 @@ docker run -d   --name cubex   --restart always   --network host   --privileged 
 
 ```
 
-
-
 ---
-
-
 
 <a id="deploy-pve"></a>
 
 ### ⭐ 特别推荐 · 方式 E：Proxmox VE (PVE) CT 容器 (LXC) 一键全自动部署 (零损耗极速首选)
-
-
 
 > [!TIP]
 
@@ -1333,8 +1115,6 @@ docker run -d   --name cubex   --restart always   --network host   --privileged 
 
 > 5. **秒级无感热快照**：可随时利用 PVE 内置备份机制秒级生成快照，无惧配置损坏。
 
-
-
 #### 1. PVE 宿主机终端一键全自动安装 (推荐)
 
 在 PVE 宿主机的 Shell 终端直接执行以下官方脚本，全自动完成 Alpine 升级、TUN 透传、容器创建与 CubeX 守护进程装配：
@@ -1344,8 +1124,6 @@ docker run -d   --name cubex   --restart always   --network host   --privileged 
 curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/scripts/install_pve_lxc.sh -o install_pve_lxc.sh && bash install_pve_lxc.sh
 
 ```
-
-
 
 #### 2. 手动创建与进阶配置 (备用)
 
@@ -1377,11 +1155,7 @@ curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/scripts/insta
 
    浏览器直接打开 Web 控制台：`http://<容器IP>:2026` 即可开始全自动共生编排！
 
-
-
 ---
-
-
 
 <a id="deploy-linux-cli"></a>
 
@@ -1395,17 +1169,11 @@ curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/scripts/insta
 
 ```
 
-
-
 ---
-
-
 
 <a id="community-feedback"></a>
 
 ## 💬 极客畅所欲言：意见征集与需求大厅
-
-
 
 CubeX 是一个立足于极客高可用网络实践的专有自研项目。如果您在实机部署过程中遇到：
 
@@ -1415,21 +1183,13 @@ CubeX 是一个立足于极客高可用网络实践的专有自研项目。如�
 
 3. Cyber Aurora 控制台界面或交互体验的审美改进建议。
 
-
-
 欢迎通过 GitHub Issues 畅所欲言。我们始终保持谦卑与专注，听取每一位网络极客的真知灼见，持续打磨软路由系统的终极形态！
 
-
-
 ---
-
-
 
 <a id="compliance-statement"></a>
 
 ## 📜 净室合规与安全脱敏审计声明
-
-
 
 1. **净室原创自研保证**：后端控制面完全基于 Go 语言原生闭环研发，前端基于 Vue 3 + Tailwind CSS 构建，拥有完全自主知识产权，严格遵循专有闭源 EULA 授权协议；
 
