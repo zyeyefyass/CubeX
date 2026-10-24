@@ -5,7 +5,7 @@
   # 🌌 CubeX · 宿主共生零感网络系统 (Host-Symbiotic Zero-Perception Gateway)
   ### *单二进制纯自研 · 告别传统重型虚机旁路 · 极致轻量低开销 · 300ms 冷启 · 宛如物理肉身直连全球互联网的终极共生体*
 
-  [![Version](https://img.shields.io/badge/Release-Test_v3.0-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
+  [![Version](https://img.shields.io/badge/Release-Test_v3.2-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
   [![License](https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield)](COPYRIGHT.md)
   [![Dual-Engine](https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go)](https://github.com/zyeyefyass/CubeX)
   [![Host Base](https://img.shields.io/badge/Host-RouterOS_v7_%7C_爱快_iKuai_%7C_OpenWrt_%7C_飞牛_fnOS_%7C_PVE_%7C_Linux-3A86FF?style=for-the-badge)](#)
@@ -34,13 +34,16 @@
 - [🧠 全局跨平台硬件分级与主流宿主深度定制优化体系 (Global Adaptive Architecture)](#global-adaptive)
   - [一、 全局跨平台「环境动态自适应体系」](#adaptive-core)
   - [二、 各主流宿主平台的「深度专项与针对性优化」全景图](#adaptive-platforms)
-- [🧹 一键自愈与深度巡检重器：拯救网络的降压药](#auto-healing)
-  - [🟢 轨道 A：针对 MikroTik RouterOS 宿主 / 主路由的四层救赎](#healing-track-ros)
-  - [🟣 轨道 B：针对 飞牛 fnOS / 通用 Linux 宿主机的底层调优](#healing-track-linux)
-  - [🟠 轨道 C：针对 OpenWrt 智能软路由的 Macvlan-Shim、firewall4 与看门狗自愈](#healing-track-openwrt)
-  - [🔵 轨道 D：针对 爱快 iKuai 64位 企业路由的 Web-RPC 联动与回指自愈](#healing-track-ikuai)
-  - [🌐 原生 IPv6 双栈自愈与防 DNS 泄露深度剖析 (Happy Eyeballs 毫秒拒答)](#healing-ipv6-dualstack)
-  - [🔀 DNS 重写中枢：域名别名 CNAME 重定向与 静态 IP 映射](#dns-rewrite-hub)
+- [⚡ 一键全栈自愈与宿主共生重器：拯救网络的降压药](#auto-healing)
+  - [⚡ 主按钮【一键全栈自愈】：彻底告别旧版三功能分散操作](#healing-master-button)
+  - [🟢 轨道 A：针对 MikroTik RouterOS 宿主 / 主路由的四层救赎](#healing-track-ros)
+  - [🟣 轨道 B：针对 飞牛 fnOS / 通用 Linux 宿主机的底层调优](#healing-track-linux)
+  - [🟠 轨道 C：针对 OpenWrt 智能软路由的 Macvlan-Shim、firewall4 与看门狗自愈](#healing-track-openwrt)
+  - [🔵 轨道 D：针对 爱快 iKuai 64位 企业路由的 Web-RPC 联动与回指自愈](#healing-track-ikuai)
+  - [🐧 伴生协同：【联动 Linux 宿主防火墙】混合宿主一键贯通](#healing-track-companion)
+  - [🌐 原生 IPv6 双栈自愈与防 DNS 泄露深度剖析 (Happy Eyeballs 毫秒拒答)](#healing-ipv6-dualstack)
+  - [🔀 DNS 重写中枢：域名别名 CNAME 重定向与 静态 IP 映射](#dns-rewrite-hub)
+
 - [🚀 六大主流宿主底座保姆级极速部署实战指南](#deployment-guides)
   - [方式 A：MikroTik RouterOS v7 容器一键极速安装指南 (官方强烈推荐 · 工业级共生)](#deploy-ros)
   - [方式 B：爱快 iKuai 64位 主路由 Docker 原生轻量部署 (保姆级教程)](#deploy-ikuai)
@@ -221,44 +224,44 @@
 
 ---
 
-<a id="announcement"></a>
-> [!TIP]
-> ### 📢 小伙伴们请立即一键平滑升级 Test v3.1（四维系统状态卡片精细排版与官方矢量 Logo 全面焕新 · 全息宿主自适应感知 · 开机极速冷启 · 地区拖拽排序 · 双核双循环闭环验证版）！
-> **致所有追求极致软路由稳定性、高并发吞吐与视觉体验的极客老铁们：**
-> 
-> **CubeX Test v3.1 正式全面发布**！本版本针对视觉质感、人机交互与底层冷启体验进行全方位精细化重构：
-> 
-> * 🎨 **四维系统状态卡片精细排版与官方矢量 Logo 全面焕新 (`UI Strict Vector Bounds & Unbreaking Typography`)**：
->   * **严格规范 SVG 矢量边界**：彻底解决因非标准 CSS 类名与未限制 ViewBox 导致的 SVG 图标异常放大撑爆卡片问题，强制显式约束尺寸边界（`20×20px` 与 `16×16px`），高精细腻不失真；
->   * **全端实施单行不折行版面重构**：为四大系统卡片（CubeX 守护进程、双引擎混动系统、Geo 规则体系、宿主固件系统版本）及四维模态框标题添加 `h-7`、`min-w-0` 与 `whitespace-nowrap truncate`，彻底杜绝在紧凑屏幕、高 DPI 缩放下的文字竖排折行；
->   * **官方矢量 Logo 统一对齐**：CubeX 3D 水晶微光动力立方体官方矢量标、MikroTik 官方 3D M-shaped 极客蓝网格标、Mihomo × sing-box 双核官方矢量图标全部严密对齐。
-> * 🛰️ **多宿主底层自适应感知与联动增强 (`Dynamic Multi-Host Recognition & Linkage`)**：
->   * 顶栏胶囊、四维体检与固件版本卡片深度集成宿主探针，根据实际底座动态自适应切换：
->     * **RouterOS**：MikroTik 官方矢量标 + REST API 固件版本 + 升级通道 + DAI / 15秒看门狗巡检；
->     * **飞牛 fnOS / Proxmox VE / 爱快 iKuai / OpenWrt / Linux**：动态按宿主真实平台自适应点亮官方徽标、渲染专属标题并下发底层防火墙与回指路由加固。
-> * ⚡ **开机极速冷启动深度优化 (`Accelerated Cold-Boot`)**：
->   * 优化宿主机重启开机流程，预载核心网络参数，非阻塞后台重载订阅与探针，大幅缩减宿主机重启后国内直连与科学上网的就绪等待时间。
-> * 🗂️ **地区节点分组拖拽排序交互加固 (`Region Groups Drag & Drop Sorting`)**：
->   * 完善地区分组拖拽排序交互与持久化，操作更顺滑。
-> * 🩺 **双核（sing-box v1.14.4 × Mihomo v1.19.33）双循环 4 次往返热切换压力测试 100% 满分闭环**：
->   * 历经 4 次引擎往返无缝热重载切换实机压测，国内真实直连、境外透明穿透与 DNS Fake-IP 纯净度达成 100% 满分通过，零路由丢失、零连接停顿。
-<a id="release-assets"></a>
-### 📦 资产下载与全平台底座选用清单 (Release Assets)
-
-| 文件名 | 平台 / 底座 | 文件大小 | 说明与安装指引 |
-| :--- | :--- | :--- | :--- |
-| `CubeX-Test-v3.1-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~95.0 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
-| `CubeX-Test-v3.1-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~95.1 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
-| `CubeX-Test-v3.1-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~70.4 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
-| `CubeX-Test-v3.1-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~64.4 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
-| `cubexd-linux-amd64` | Linux amd64 单二进制 | ~10.7 MB | 用于现有容器或 Linux 宿主系统的一键在线平滑热更执行文件 |
-| `cubexd-linux-arm64` | Linux arm64 单二进制 | ~9.9 MB | 用于现有容器或 Linux 宿主系统的一键在线平滑热更执行文件 |
-| `CubeX-Test-v3.1-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（导入后统一标记为 `cubex:latest`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
-| `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~27.4 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（自动配置容器、网络、路由与 Netwatch 0秒逃生） |
-| `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~9.9 KB | OpenWrt 终端复制即用全自动初始化脚本（自动打通 Macvlan-Shim、配置 0秒看门狗与锁定 odhcpd 防泄露） |
-
-
-> [!TIP]
+<a id="announcement"></a>
+
+> [!TIP]
+> ### 📢 小伙伴们请立即一键平滑升级 Test v3.2（特别推荐 PVE LXC 极速容器一键部署 · 全栈自愈单按钮重构 · 零硬编码全宿主网络自适应 · 100% 满分闭环版）！
+> **致所有追求极致软路由稳定性、高并发吞吐与视觉体验的极客老铁们：**
+> 
+> **CubeX Test v3.2 正式全面发布**！本版本立足于高可用实机运维与极客纯净体验，带来四项重磅突破与革新：
+> 
+> * ⭐ **特别推荐 · Proxmox VE (PVE) CT 容器 (LXC) 极速部署方案与官方一键安装脚本 (`scripts/install_pve_lxc.sh`)**：
+>   * **零虚拟化损耗**：原生共享 PVE 物理 Linux 内核，免去 QEMU/KVM 指令截获损耗，单核线速跑满 3+ Gbps，开机冷启耗时 **< 300ms**，整机运行内存仅占用 **30MB~70MB**；
+>   * **官方一键安装脚本**：PVE 宿主机执行单行命令全自动完成 Alpine 升级、`/dev/net/tun` 设备透传、`nesting=1` 特权隔离、容器创建与守护进程装配；
+> * ⚡ **自愈中枢重大进化：三大一键功能彻底整合为【⚡ 一键全栈自愈】单按钮闭环执行**：
+>   * **告别多按钮繁琐操作**：彻底废除分散的“一键规则加固”、“一键策略路由巡检”、“一键 IPv6 防泄露”三个旧按钮，进化为单按钮全栈闭环自愈矩阵；
+>   * **全自动原子级串行加固**：一键联动【三角重定向封穴】+【策略路由表 table cubex 深度补全】+【FastTrack 硬件加速白名单保全】+【Netwatch 0秒毫秒逃生探针编排】+【IPv6 RA advertise-dns=no 铁血防漏球】+【双核规则热重载与 Conntrack 僵尸连接清算】；
+>   * **混合宿主协同专属入口**：伴生提供【🐧 联动 Linux 宿主防火墙】按钮，双宿主架构下旁路底层内核转发与防火墙放行一键秒级调优；
+> * 🌐 **全版本与全宿主脚本动态网络探查准则 (Zero-Hardcode Network Policy)**：
+>   * 彻底封杀所有安装脚本与自愈总线中的静态硬编码 IP（绝不写死 `10.0.0.1`、`192.168.1.1` 等）；
+>   * 采用全自动原生动态探查机制嗅探真实默认网关、局域网段 CIDR 与物理网卡，杜绝跨网段引发的网络瘫痪与路由死锁；
+> * 🩺 **双核（sing-box v1.14.4 × Mihomo v1.19.33）双循环 4 次往返热切换压力测试 100% 满分闭环**：
+>   * 历经 4 次引擎往返无缝热重载切换实机压测，国内真实直连、境外透明穿透与 DNS Fake-IP 纯净度达成 100% 满分通过，零路由丢失、零连接停顿。
+
+<a id="release-assets"></a>
+
+### 📦 资产下载与全平台底座选用清单 (Release Assets)
+
+| 文件名 | 平台 / 底座 | 文件大小 | 说明与安装指引 |
+| :--- | :--- | :--- | :--- |
+| `CubeX-Test-v3.2-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~95.0 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
+| `CubeX-Test-v3.2-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~95.1 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
+| `CubeX-Test-v3.2-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~70.5 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
+| `CubeX-Test-v3.2-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~64.4 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
+| `cubexd-linux-amd64` | Linux amd64 单二进制 | ~10.7 MB | 用于现有容器或 Linux 宿主系统的一键在线平滑热更执行文件 |
+| `cubexd-linux-arm64` | Linux arm64 单二进制 | ~9.9 MB | 用于现有容器或 Linux 宿主系统的一键在线平滑热更执行文件 |
+| `CubeX-Test-v3.2-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（导入后统一标记为 `cubex:latest`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
+| `install_pve_lxc.sh` | Proxmox VE 官方安装脚本 | ~9.6 KB | PVE 宿主机终端一键全自动部署脚本（自动升级 Alpine、透传 TUN、创建 CT 容器与装配守护进程） |
+| `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~27.4 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（自动配置容器、网络、路由与 Netwatch 0秒逃生） |
+| `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~10.3 KB | OpenWrt 终端复制即用全自动初始化脚本（自动打通 Macvlan-Shim、配置 0秒看门狗与锁定 odhcpd 防泄露） |
+
 > ### 🧭 各主流宿主底座极速安装与发布资产选用速查指引：
 > * 🟢 **爱快 iKuai 64位 主路由安装方式（极速 3 步完成）**：
 >   1. **下载导入镜像**：在上方下载 Docker 离线镜像包（`CubeX-*-docker-amd64.tar.gz`），进入爱快后台【高级应用】➔【插件营销】➔【Docker】➔【镜像管理】➔ 点击【导入镜像】并上传该文件（秒级导入成功，标签统一为 `cubex:latest`）；
@@ -321,50 +324,86 @@
 
 ---
 
-<a id="auto-healing"></a>
-## 🧹 一键自愈与深度巡检重器：拯救网络的降压药
-
-小白不懂复杂的 Linux iptables 规则？老手排查非对称路由脱发？CubeX Web 控制台提供了**工业级一键自愈与宿主深度联动矩阵**：
-
-```text
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        🛡️ CubeX 全景自愈与四维巡检执行矩阵                             │
-├─────────────────────┬──────────────────────────────────────────────────────────────────┤
-│ 🟢 轨道 A: ROS 联动 │ /ip settings 封穴 ➔ table cubex 自愈 ➔ Netwatch 0秒逃生编排      │
-│ 🟣 轨道 B: Linux底座│ 内核 forwarding 开启 ➔ rp_filter 宽松 ➔ iptables/nftables 放行   │
-│ 🟠 轨道 C: OpenWrt  │ macvlan-shim 互通 ➔ firewall4 旁路链 ➔ odhcpd RA DNS 封杀 ➔ 看门狗│
-│ 🔵 轨道 D: 爱快RPC  │ 爱快 Web-RPC MD5 鉴权 ➔ 198.18.0.0/15 静态回指 ➔ DHCP DNS 校验   │
-└─────────────────────┴──────────────────────────────────────────────────────────────────┘
-```
-
-<a id="healing-track-ros"></a>
-### 🟢 轨道 A：针对 MikroTik RouterOS 宿主 / 主路由的四层救赎
-1. **封锁三角重定向**：自动写入 `/ip settings set send-redirects=no`，掐死因 ICMP 重定向引发的终端频繁 TCP 重传；
-2. **策略路由表重建**：精准校验 `routing table cubex` 与 `fib` 标记，确保 Fake-IP (`198.18.0.0/15`) 被严密送往旁路；
-3. **保全 FastTrack 硬件加速**：绝不粗暴关闭 FastTrack！仅针对标记流量绕行，保证国内流量依然享受 MikroTik 交换芯片硬件级满速转发；
-4. **0 秒逃生编排**：动态编排 `/tool netwatch` 探针，容器异常时 0 秒平滑将 DHCP DNS 切回公网网关，全家断网事故彻底清零。
-
-<a id="healing-track-linux"></a>
-### 🟣 轨道 B：针对 飞牛 fnOS / 通用 Linux 宿主机的底层调优
-1. **内核转发与路由松绑**：自动将 `net.ipv4.ip_forward` 设为 `1`，并将 `rp_filter` 设为 `2`（宽松模式），允许非对称流量合法穿透；
-2. **宿主防火墙无感放行**：自适应探测 iptables / nftables / ufw / firewalld，自动将 CubeX 容器网段与 TUN 流量加入白名单放行链；
-3. **ARP 风暴防护**：自动优化 `arp_ignore=1` 与 `arp_announce=2`，杜绝多网卡和 Macvlan 模式下的 ARP 污染与广播风暴。
-
-<a id="healing-track-openwrt"></a>
-### 🟠 轨道 C：针对 OpenWrt 智能软路由的 Macvlan-Shim、firewall4 与看门狗自愈
-1. **Macvlan-Shim 宿主互通驱动**：自动检测并创建 `macvlan-shim` 虚拟接口与静态路由，彻底破除 Linux 内核对宿主系统与自身 Macvlan 容器之间的二层隔离，让 OpenWrt 本机及自带服务可自由访问 CubeX；
-2. **适配 firewall4 (nftables) 旁路专用链**：OpenWrt 22+ 升级为 nftables 后，传统 iptables 规则经常导致 `ct state invalid drop`。自愈中枢自动注入专用规则链，确保透明代理非对称流量畅通无阻；
-3. **彻底根治 odhcpd RA IPv6 DNS 侧漏**：OpenWrt 默认会通过路由通告（RA）向全网广播运营商 IPv6 DNS，导致手机双栈终端绕过旁路由。自愈逻辑自动将 `/etc/config/dhcp` 的 `ra_dns` 与 `dns_service` 设为 `0`，彻底掐灭侧漏；
-4. **0.5 秒看门狗极速熔断**：写入 `/usr/bin/cubex-watchdog.sh` 并加入 crontab。每分钟探测容器健康状态，一旦发现容器停摆，0.5 秒内自动将 dnsmasq 上游回退至公共 DNS，恢复全网直连。
-
-<a id="healing-track-ikuai"></a>
-### 🔵 轨道 D：针对 爱快 iKuai 64位 企业路由的 Web-RPC 联动与回指自愈
-1. **Web-RPC MD5 鉴权非侵入联动**：用户在控制台输入爱快 Web 账号与密码后，CubeX 通过原生 RPC 接口自动握手；
-2. **回指路由深度校验与自动补全**：自动巡检爱快内部静态路由，若发现缺少 `198.18.0.0/15`（或掩码写错），秒级自动下发写入；
-3. **DHCP 首选 DNS 自动化核验**：自动核对爱快 DHCP 服务端参数，若未配置 CubeX IP，一键辅助写入并给出终端生效建议。
-
----
-
+<a id="auto-healing"></a>
+
+## ⚡ 一键全栈自愈与宿主共生重器：终极全链路网络降压药
+
+<a id="healing-master-button"></a>
+
+### ⚡ 主按钮【一键全栈自愈】：彻底告别旧版三功能分散操作
+
+> [!TIP]
+> ### 🌟 全新交互演进：三大一键功能彻底整合为单按钮工业级闭环！
+> 在 CubeX 早期版本中，控制台曾提供过三个分散的自愈按钮：`【一键自愈与规则加固】`、`【一键深度巡检 RouterOS 策略路由】` 以及 `【一键自愈并加固原生 IPv6 双栈】`。许多玩家反映：“三个按钮到底该按什么顺序点？漏按某一个会不会导致出海规则不生效或 DNS 侧漏？”
+> 
+> **在全新架构中，旧版的“三个一键功能”已彻底废除并合二为一！**  
+> 控制台【宿主共生】界面现已全面重构为**唯一的工业级全栈主控按钮 ——【⚡ 一键全栈自愈 [当前宿主名]】**（系统根据宿主探针智能动态命名为 `⚡ 一键全栈自愈 RouterOS`、`⚡ 一键全栈自愈 OpenWrt`、`⚡ 一键全栈自愈爱快主路由` 或 `⚡ 一键全栈自愈 Linux 宿主`），并列提供**【🐧 联动 Linux 宿主防火墙】**混合双宿主协同入口！
+> 
+> 用户**无需再纠结操作顺序，只需点击一次【⚡ 一键全栈自愈】**，系统底层全自动、原子级串行完成全链路加固：
+> 1. **全核策略与核心配置热重载**：Mihomo × sing-box 双核规则树无缝重载，自动清算内核 Conntrack 僵尸失效连接；
+> 2. **主路由策略路由表自愈与回指校准**：自动执行 `/ip settings set send-redirects=no` 封穴、重铸 `routing table cubex` 策略路由表、校验补全 `198.18.0.0/15` 回指；
+> 3. **Netwatch 0秒逃生毫秒编排**：动态植入故障监控探针，旁路异常瞬间自动平滑切回主路由公网 DNS，家庭断网事故彻底清零；
+> 4. **原生 IPv6 双栈防 DNS 侧漏铁血加固**：自动锁定 `/ipv6 nd set advertise-dns=no`，掐灭运营商 RA 广播 DNS 污染，开启 Happy Eyeballs 毫秒拒答。
+
+小白不懂复杂的 Linux iptables 规则？老手排查非对称路由脱发？CubeX Web 控制台提供了**工业级一键全栈自愈与宿主深度联动矩阵**：
+
+```text
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                        🛡️ CubeX 全景全栈自愈与四维巡检执行矩阵                         │
+├─────────────────────┬──────────────────────────────────────────────────────────────────┤
+│ 🟢 轨道 A: ROS 联动 │ /ip settings 封穴 ➔ table cubex 自愈 ➔ Netwatch 0秒逃生 ➔ IPv6加固│
+│ 🟣 轨道 B: Linux底座│ 内核 forwarding 开启 ➔ rp_filter 宽松 ➔ iptables/nftables 放行   │
+│ 🟠 轨道 C: OpenWrt  │ macvlan-shim 互通 ➔ firewall4 旁路链 ➔ odhcpd RA DNS 封杀 ➔ 看门狗│
+│ 🔵 轨道 D: 爱快RPC  │ 爱快 Web-RPC MD5 鉴权 ➔ 198.18.0.0/15 静态回指 ➔ DHCP DNS 校验   │
+└─────────────────────┴──────────────────────────────────────────────────────────────────┘
+```
+
+<a id="healing-track-ros"></a>
+
+### 🟢 轨道 A：针对 MikroTik RouterOS 宿主 / 主路由的四层救赎
+
+1. **封锁三角重定向**：自动写入 `/ip settings set send-redirects=no`，掐死因 ICMP 重定向引发的终端频繁 TCP 重传；
+2. **策略路由表重建**：精准校验 `routing table cubex` 与 `fib` 标记，确保 Fake-IP (`198.18.0.0/15`) 被严密送往旁路；
+3. **保全 FastTrack 硬件加速**：绝不粗暴关闭 FastTrack！仅针对标记流量绕行，保证国内流量依然享受 MikroTik 交换芯片硬件级满速转发；
+4. **0 秒逃生编排**：动态编排 `/tool netwatch` 探针，容器异常时 0 秒平滑将 DHCP DNS 切回公网网关，全家断网事故彻底清零。
+
+<a id="healing-track-linux"></a>
+
+### 🟣 轨道 B：针对 飞牛 fnOS / 通用 Linux 宿主机的底层调优
+
+1. **内核转发与路由松绑**：自动将 `net.ipv4.ip_forward` 设为 `1`，并将 `rp_filter` 设为 `2`（宽松模式），允许非对称流量合法穿透；
+2. **宿主防火墙无感放行**：自适应探测 iptables / nftables / ufw / firewalld，自动将 CubeX 容器网段与 TUN 流量加入白名单放行链；
+3. **ARP 风暴防护**：自动优化 `arp_ignore=1` 与 `arp_announce=2`，杜绝多网卡和 Macvlan 模式下的 ARP 污染与广播风暴。
+
+<a id="healing-track-openwrt"></a>
+
+### 🟠 轨道 C：针对 OpenWrt 智能软路由的 Macvlan-Shim、firewall4 与看门狗自愈
+
+1. **Macvlan-Shim 宿主互通驱动**：自动检测并创建 `macvlan-shim` 虚拟接口与静态路由，彻底破除 Linux 内核对宿主系统与自身 Macvlan 容器之间的二层隔离，让 OpenWrt 本机及自带服务可自由访问 CubeX；
+2. **适配 firewall4 (nftables) 旁路专用链**：OpenWrt 22+ 升级为 nftables 后，传统 iptables 规则经常导致 `ct state invalid drop`。自愈中枢自动注入专用规则链，确保透明代理非对称流量畅通无阻；
+3. **彻底根治 odhcpd RA IPv6 DNS 侧漏**：OpenWrt 默认会通过路由通告（RA）向全网广播运营商 IPv6 DNS，导致手机双栈终端绕过旁路由。自愈逻辑自动将 `/etc/config/dhcp` 的 `ra_dns` 与 `dns_service` 设为 `0`，彻底掐灭侧漏；
+4. **0.5 秒看门狗极速熔断**：写入 `/usr/bin/cubex-watchdog.sh` 并加入 crontab。每分钟探测容器健康状态，一旦发现容器停摆，0.5 秒内自动将 dnsmasq 上游回退至公共 DNS，恢复全网直连。
+
+<a id="healing-track-ikuai"></a>
+
+### 🔵 轨道 D：针对 爱快 iKuai 64位 企业路由的 Web-RPC 联动与回指自愈
+
+1. **Web-RPC MD5 鉴权非侵入联动**：用户在控制台输入爱快 Web 账号与密码后，CubeX 通过原生 RPC 接口自动握手；
+2. **回指路由深度校验与自动补全**：自动巡检爱快内部静态路由，若发现缺少 `198.18.0.0/15`（或掩码写错），秒级自动下发写入；
+3. **DHCP 首选 DNS 自动化核验**：自动核对爱快 DHCP 服务端参数，若未配置 CubeX IP，一键辅助写入并给出终端生效建议。
+
+<a id="healing-track-companion"></a>
+
+### 🐧 伴生协同：【联动 Linux 宿主防火墙】混合宿主一键贯通
+
+很多高阶玩家采用了**“混合双宿主组网”**（例如：上级主路由为 MikroTik RouterOS 或爱快 iKuai，而 CubeX 旁路由运行在独立的 Proxmox VE (PVE) LXC、飞牛 fnOS 或通用 Linux Docker 中）。  
+在此拓扑下，主按钮负责调度主路由策略路由与 IPv6 防火墙，而右侧伴生的**【🐧 联动 Linux 宿主防火墙】**按钮则专门用于一键调优旁路由宿主机自身的内核网络栈：
+1. **一键开启内核转发与松绑**：自动设置 `net.ipv4.ip_forward = 1`，并将 `rp_filter` 设为 `2`（宽松模式），消除多网卡非对称路由丢包；
+2. **一键放行底层防火墙**：自适应探测 iptables / nftables / ufw / firewalld，自动将旁路由 TUN 流量与容器网段加入白名单放行链；
+3. **一键规避 ARP 广播风暴**：自动将 `arp_ignore` 设为 `1`，`arp_announce` 设为 `2`，彻底杜绝局域网二层 Macvlan 广播风暴。
+
+---
+
 <a id="healing-ipv6-dualstack"></a>
 ### 🌐 原生 IPv6 双栈自愈与防 DNS 泄露深度剖析 (到底配置了什么？防火墙如何运作？)
 

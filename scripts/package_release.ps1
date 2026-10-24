@@ -3,12 +3,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Version = "Test-v3.1"
+$Version = "Test-v3.2"
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 $DistDir = "$RootDir\dist"
 $ReleaseDir = "$DistDir\release"
 
-Write-Host "📦 Starting CubeX Test v3.1 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
+Write-Host "📦 Starting CubeX Test v3.2 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
 if (-not $IncludeWindows) {
     Write-Host "ℹ️  Windows 平台包发布已按策略暂停 (可通过 -IncludeWindows 显式启用)" -ForegroundColor DarkCyan
 }
@@ -156,6 +156,7 @@ Copy-Item -Path "$DistDir\cubexd-linux-arm64" -Destination "$ReleaseDir\cubexd-l
 # Copy RouterOS WinBox 1-Click RSC Script & OpenWrt 1-Click Shell Script
 Copy-Item -Path "$RootDir\scripts\ros\setup-routeros-v7.rsc" -Destination "$ReleaseDir\setup-routeros-v7.rsc" -Force
 Copy-Item -Path "$RootDir\scripts\openwrt\setup-openwrt.sh" -Destination "$ReleaseDir\setup-openwrt.sh" -Force
+Copy-Item -Path "$RootDir\scripts\install_pve_lxc.sh" -Destination "$ReleaseDir\install_pve_lxc.sh" -Force
 
 # Clean up staging
 Remove-Item -Path "$DistDir\staging" -Recurse -Force
