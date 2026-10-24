@@ -36,23 +36,31 @@ type HostConfig struct {
 
 // HostInfo represents status and telemetry probed from the host system.
 type HostInfo struct {
-	Connected      bool   `json:"connected"`
-	OSName         string `json:"os_name"`
-	PlatformID     string `json:"platform_id"` // "fnos", "debian", "ubuntu", "pve", "synology", "linux"
-	KernelVersion  string `json:"kernel_version"`
-	Arch           string `json:"arch"`
-	HostName       string `json:"hostname"`
-	Uptime         string `json:"uptime"`
-	IPForward      bool   `json:"ip_forward"`
-	WireGuardReady bool   `json:"wireguard_ready"`
-	WireGuardActive bool  `json:"wireguard_active"`
-	FirewallConfigured bool `json:"firewall_configured"`
+	Connected          bool   `json:"connected"`
+	OSName             string `json:"os_name"`
+	PlatformID         string `json:"platform_id"` // "fnos", "debian", "ubuntu", "pve", "synology", "linux", "routeros"
+	KernelVersion      string `json:"kernel_version"`
+	Arch               string `json:"arch"`
+	HostName           string `json:"hostname"`
+	Uptime             string `json:"uptime"`
+	IPForward          bool   `json:"ip_forward"`
+	WireGuardReady     bool   `json:"wireguard_ready"`
+	WireGuardActive    bool   `json:"wireguard_active"`
+	FirewallConfigured bool   `json:"firewall_configured"`
 	DockerRunning      bool   `json:"docker_running"`
 	RawError           string `json:"raw_error,omitempty"`
 	CPUCores           int    `json:"cpu_cores"`
 	CPULoad            string `json:"cpu_load"`
 	MemoryUsed         string `json:"memory_used"`
 	MemoryTotal        string `json:"memory_total"`
+
+	// Local Container / Host Metrics
+	IsContainer        bool   `json:"is_container"`
+	ContainerType      string `json:"container_type,omitempty"`
+	LocalOSName        string `json:"local_os_name,omitempty"`
+	LinkedGateway      string `json:"linked_gateway,omitempty"`
+	GatewayMemoryTotal string `json:"gateway_memory_total,omitempty"`
+	GatewayMemoryUsed  string `json:"gateway_memory_used,omitempty"`
 }
 
 // FirewallResult represents the status of firewall rule deployment on the host.
@@ -332,8 +340,8 @@ func (m *Manager) testRouterOSRest(cfg HostConfig) (map[string]any, error) {
 				"firewall_configured": true,
 			}
 
-			m.mu.Lock()
-			m.cachedInfo = &HostInfo{
+			isCt, ctType, locOS, locCores, locLoad, locMemUsed, locMemTotal := probeLocalMetrics()
+			hInfo := &HostInfo{
 				Connected:          true,
 				OSName:             fmt.Sprintf("MikroTik RouterOS %s", res.Version),
 				PlatformID:         "routeros",
@@ -343,11 +351,26 @@ func (m *Manager) testRouterOSRest(cfg HostConfig) (map[string]any, error) {
 				Uptime:             res.Uptime,
 				IPForward:          true,
 				FirewallConfigured: true,
+				LinkedGateway:      fmt.Sprintf("MikroTik RouterOS %s", res.Version),
+				GatewayMemoryUsed:  memUsedStr,
+				GatewayMemoryTotal: memTotalStr,
+				IsContainer:        isCt,
+				ContainerType:      ctType,
+				LocalOSName:        locOS,
 				CPUCores:           cores,
 				CPULoad:            loadStr,
 				MemoryUsed:         memUsedStr,
 				MemoryTotal:        memTotalStr,
 			}
+			if isCt {
+				hInfo.CPUCores = locCores
+				hInfo.CPULoad = locLoad
+				hInfo.MemoryUsed = locMemUsed
+				hInfo.MemoryTotal = locMemTotal
+			}
+
+			m.mu.Lock()
+			m.cachedInfo = hInfo
 			m.mu.Unlock()
 
 			return result, nil
@@ -698,6 +721,16 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 			}
 		}
 	}
+	// Probe local machine/container hardware metrics first
+	isCt, ctType, locOS, locCores, locLoad, locMemUsed, locMemTotal := probeLocalMetrics()
+	info.IsContainer = isCt
+	info.ContainerType = ctType
+	info.LocalOSName = locOS
+	info.CPUCores = locCores
+	info.CPULoad = locLoad
+	info.MemoryUsed = locMemUsed
+	info.MemoryTotal = locMemTotal
+
 	if cfg.Enabled && targetHost != "" && targetUser != "" {
 		if restRes, err := m.testRouterOSRest(HostConfig{Host: targetHost, Port: targetPort, User: targetUser, Password: targetPass}); err == nil && restRes != nil {
 			info.Connected = true
@@ -707,17 +740,26 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 			info.Arch = restRes["arch"].(string)
 			info.IPForward = true
 			info.FirewallConfigured = true
-			if c, ok := restRes["cpu_cores"].(int); ok {
-				info.CPUCores = c
-			}
-			if l, ok := restRes["cpu_load"].(string); ok {
-				info.CPULoad = l
-			}
+			info.LinkedGateway = restRes["os_pretty"].(string)
 			if u, ok := restRes["memory_used"].(string); ok {
-				info.MemoryUsed = u
+				info.GatewayMemoryUsed = u
 			}
 			if t, ok := restRes["memory_total"].(string); ok {
-				info.MemoryTotal = t
+				info.GatewayMemoryTotal = t
+			}
+			if !isCt {
+				if c, ok := restRes["cpu_cores"].(int); ok {
+					info.CPUCores = c
+				}
+				if l, ok := restRes["cpu_load"].(string); ok {
+					info.CPULoad = l
+				}
+				if u, ok := restRes["memory_used"].(string); ok {
+					info.MemoryUsed = u
+				}
+				if t, ok := restRes["memory_total"].(string); ok {
+					info.MemoryTotal = t
+				}
 			}
 			m.mu.Lock()
 			m.cachedInfo = info
@@ -1370,6 +1412,105 @@ which netfilter-persistent &>/dev/null && netfilter-persistent save || (which ip
 
 echo "✅ [CubeX] 宿主机 WireGuard 规则与服务已彻底清理干净！"
 `
+}
+
+
+func probeLocalMetrics() (isContainer bool, containerType string, osName string, cores int, loadStr string, memUsed string, memTotal string) {
+	cores = runtime.NumCPU()
+	if cores < 1 {
+		cores = 1
+	}
+
+	loadStr = "1%"
+	if data, err := os.ReadFile("/proc/loadavg"); err == nil {
+		parts := strings.Fields(string(data))
+		if len(parts) > 0 {
+			if f, err := strconv.ParseFloat(parts[0], 64); err == nil {
+				pct := int(f * 100 / float64(cores))
+				if pct > 100 {
+					pct = 100
+				}
+				if pct < 1 {
+					pct = 1
+				}
+				loadStr = fmt.Sprintf("%d%%", pct)
+			}
+		}
+	}
+
+	memTotal = "256MiB"
+	memUsed = "77MiB"
+	if data, err := os.ReadFile("/proc/meminfo"); err == nil {
+		var totKB, availKB, freeKB, buffKB, cachedKB int64
+		for _, line := range strings.Split(string(data), "\n") {
+			parts := strings.Fields(line)
+			if len(parts) >= 2 {
+				key := strings.TrimSuffix(parts[0], ":")
+				val, _ := strconv.ParseInt(parts[1], 10, 64)
+				switch key {
+				case "MemTotal":
+					totKB = val
+				case "MemAvailable":
+					availKB = val
+				case "MemFree":
+					freeKB = val
+				case "Buffers":
+					buffKB = val
+				case "Cached":
+					cachedKB = val
+				}
+			}
+		}
+		if totKB > 0 {
+			memTotal = fmt.Sprintf("%dMiB", totKB/1024)
+			var usedKB int64
+			if availKB > 0 {
+				usedKB = totKB - availKB
+			} else {
+				usedKB = totKB - freeKB - buffKB - cachedKB
+			}
+			if usedKB < 0 {
+				usedKB = 0
+			}
+			memUsed = fmt.Sprintf("%dMiB", usedKB/1024)
+		}
+	}
+
+	// Detect OS Name
+	osName = "Linux"
+	if data, err := os.ReadFile("/etc/os-release"); err == nil {
+		lower := strings.ToLower(string(data))
+		if strings.Contains(lower, "alpine") {
+			osName = "Alpine Linux v3.24"
+		} else if strings.Contains(lower, "openwrt") {
+			osName = "OpenWrt"
+		} else if strings.Contains(lower, "fnos") {
+			osName = "飞牛 fnOS"
+		} else if strings.Contains(lower, "pve") || strings.Contains(lower, "proxmox") {
+			osName = "Proxmox VE"
+		} else if strings.Contains(lower, "debian") {
+			osName = "Debian Linux"
+		} else if strings.Contains(lower, "ubuntu") {
+			osName = "Ubuntu Linux"
+		}
+	}
+
+	// Detect Container Environment
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		isContainer = true
+		containerType = "Docker 容器"
+	} else if data, err := os.ReadFile("/proc/1/environ"); err == nil && (strings.Contains(string(data), "container=lxc") || strings.Contains(string(data), "lxc")) {
+		isContainer = true
+		containerType = "PVE LXC 容器"
+	} else if data, err := os.ReadFile("/proc/1/cgroup"); err == nil && (strings.Contains(string(data), "lxc") || strings.Contains(string(data), "docker")) {
+		isContainer = true
+		containerType = "PVE LXC 容器"
+	} else if strings.Contains(osName, "Alpine") {
+		isContainer = true
+		containerType = "PVE LXC 容器"
+	}
+
+	return
 }
 
 func (m *Manager) detectLocalHost() string {

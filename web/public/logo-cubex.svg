@@ -1,8 +1,8 @@
-<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="10 8 80 84" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <!-- Ultra High-Contrast Facet Shading (Cosmic Obsidian & Deep Cyber Prism) -->
     <linearGradient id="facetTop" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0f2b48" stop-opacity="0.95"/>
+      <stop offset="0%" stop-color="#14426e" stop-opacity="0.98"/>
       <stop offset="50%" stop-color="#091b30" stop-opacity="0.98"/>
       <stop offset="100%" stop-color="#040d1a" stop-opacity="1"/>
     </linearGradient>
@@ -121,7 +121,7 @@
   <!-- Cyan Planetary Ring (Clockwise, Tilted Orbit) -->
   <g class="orbit-cyan">
     <ellipse cx="50" cy="50" rx="43" ry="24" transform="rotate(-25 50 50)" 
-      stroke="url(#orbitCyanGrad)" stroke-width="1.2" stroke-dasharray="8 12 3 16" fill="none" opacity="0.85"/>
+      stroke="url(#orbitCyanGrad)" stroke-width="1.6" stroke-dasharray="8 12 3 16" fill="none" opacity="0.85"/>
     <!-- Orbiting Cyan Quantum Bead -->
     <circle cx="88" cy="40" r="2" fill="#00F5FF" filter="url(#hyperBloom)">
       <animate attributeName="r" values="1.6;2.5;1.6" dur="2s" repeatCount="indefinite"/>
@@ -148,13 +148,13 @@
     
     <!-- Isometric Facets with High-Contrast Cyber Gradients -->
     <!-- Top Facet (Cyan Luminescence) -->
-    <polygon points="50,14 82,32 50,50 18,32" fill="url(#facetTop)" stroke="#00F5FF" stroke-width="1.2" stroke-opacity="0.75" stroke-linejoin="round"/>
+    <polygon points="50,14 82,32 50,50 18,32" fill="url(#facetTop)" stroke="#00F5FF" stroke-width="1.6" stroke-opacity="0.75" stroke-linejoin="round"/>
     
     <!-- Left Facet (Magenta Luminescence) -->
-    <polygon points="18,32 50,50 50,86 18,68" fill="url(#facetLeft)" stroke="#FF007F" stroke-width="1.2" stroke-opacity="0.75" stroke-linejoin="round"/>
+    <polygon points="18,32 50,50 50,86 18,68" fill="url(#facetLeft)" stroke="#FF007F" stroke-width="1.6" stroke-opacity="0.75" stroke-linejoin="round"/>
     
     <!-- Right Facet (Deep Cosmic Void) -->
-    <polygon points="50,50 82,32 82,68 50,86" fill="url(#facetRight)" stroke="#38BDF8" stroke-width="1.2" stroke-opacity="0.7" stroke-linejoin="round"/>
+    <polygon points="50,50 82,32 82,68 50,86" fill="url(#facetRight)" stroke="#38BDF8" stroke-width="1.6" stroke-opacity="0.7" stroke-linejoin="round"/>
 
     <!-- Inner Circuit Detail Geometry on Facets for Sci-Fi Depth -->
     <path d="M50,18 L76,33 M24,33 L50,48" stroke="#00F5FF" stroke-width="0.5" stroke-opacity="0.4" stroke-dasharray="3 4"/>
@@ -175,7 +175,7 @@
     <!-- High-Speed Flowing Cyan Laser Beam -->
     <path class="flow-cyan-beam" d="M18,32 L50,50 L82,68" stroke="url(#laserCyan)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" filter="url(#hyperBloom)"/>
     <!-- Blazing Pure White Core Filament -->
-    <path d="M18,32 L50,50 L82,68" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+    <path d="M18,32 L50,50 L82,68" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
 
     <!-- Arm 2 Base Glow & High-Voltage Magenta Laser Stream (82,32 -> 50,50 -> 18,68) -->
     <!-- Deep Neon Underlay Track -->
@@ -185,7 +185,7 @@
     <!-- High-Speed Flowing Magenta Laser Beam -->
     <path class="flow-magenta-beam" d="M82,32 L50,50 L18,68" stroke="url(#laserMagenta)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" filter="url(#hyperBloom)"/>
     <!-- Blazing Pure White Core Filament -->
-    <path d="M82,32 L50,50 L18,68" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+    <path d="M82,32 L50,50 L18,68" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- 4. HIGH-ENERGY CORNER CAPACITORS (4 ANCHOR TERMINALS)              -->
@@ -232,7 +232,7 @@
       <animate attributeName="opacity" values="1;0" dur="1.8s" repeatCount="indefinite"/>
       <animate attributeName="stroke" values="#FFFFFF;#00F5FF;#FF007F" dur="1.8s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="50" cy="50" r="4" stroke="#00F5FF" stroke-width="1.2" fill="none" opacity="0.9">
+    <circle cx="50" cy="50" r="4" stroke="#00F5FF" stroke-width="1.6" fill="none" opacity="0.9">
       <animate attributeName="r" values="2;18" dur="1.8s" repeatCount="indefinite" begin="0.9s"/>
       <animate attributeName="opacity" values="1;0" dur="1.8s" repeatCount="indefinite" begin="0.9s"/>
       <animate attributeName="stroke" values="#FFFFFF;#FF007F;#00F5FF" dur="1.8s" repeatCount="indefinite" begin="0.9s"/>

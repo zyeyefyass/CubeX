@@ -86,8 +86,8 @@
 
           <!-- Unified Control Plane Capsule: Fixed Height h-[42px] sm:h-[46px] for absolute symmetry with right capsule -->
           <div class="h-[42px] sm:h-[46px] inline-flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 rounded-2xl border shadow-md select-none transition-colors duration-300 bg-slate-900/80 border-slate-700/60">
-            <!-- CubeX 3D Logo (柔和微光，点击可快捷切换标识) -->
-            <img :src="activeLogoSrc" class="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(56,189,248,0.25)] cursor-pointer hover:scale-105 transition-transform" @click="showLogoGalleryModal = true" title="切换 CubeX 3D 标识" alt="CubeX" />
+            <!-- CubeX 3D Logo (无黑底边框 · 柔和微光 · 尺寸与双核及宿主绝对对齐) -->
+            <img :src="activeLogoSrc" class="w-8 h-8 sm:w-9 sm:h-9 object-contain shrink-0 drop-shadow-[0_0_10px_rgba(56,189,248,0.55)] cursor-pointer hover:scale-110 transition-transform" @click="showLogoGalleryModal = true" title="切换 CubeX 3D 标识" alt="CubeX" />
             
             <!-- CubeX 品牌与版本号 (全局主题自适配 · 字体行高基线对齐) -->
             <div class="inline-flex items-center gap-1.5 font-mono text-xs sm:text-[13px] leading-none whitespace-nowrap">
@@ -191,8 +191,8 @@
           <button @click="activeMasterTab = 'system'"
             :title="'当前联动宿主: ' + hostBadge.name + ' (点击进入「宿主共生」控制台)'"
             class="h-[42px] sm:h-[46px] inline-flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 rounded-2xl bg-slate-900/80 hover:bg-slate-800/90 border border-slate-700/60 hover:border-cyan-500/50 shadow-md group select-none transition-all duration-300 cursor-pointer">
-            <!-- 宿主官方矢量 Logo (柔和微光) -->
-            <img :src="hostBadge.svg" class="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(56,189,248,0.25)] group-hover:scale-110 transition-transform" :alt="hostBadge.shortName" />
+            <!-- 宿主官方矢量 Logo (尺寸与双核对齐) -->
+            <img :src="hostBadge.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(56,189,248,0.35)] group-hover:scale-110 transition-transform" :alt="hostBadge.shortName" />
             
             <!-- 宿主平台名称 (无 MikroTik 前缀，单行优雅展示，基线居中对齐) -->
             <span class="text-xs sm:text-[13px] font-bold font-mono text-sky-200 group-hover:text-cyan-300 whitespace-nowrap truncate max-w-[160px] sm:max-w-[220px] leading-none transition-colors" :title="hostBadge.name">
@@ -326,22 +326,22 @@
                 </div>
               </div>
 
-              <!-- 2. Host System Telemetry -->
+              <!-- 2. Host System Telemetry (与 PVE / CT 107 容器设置完全对齐) -->
               <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-purple-500/30 relative overflow-hidden shadow-lg transition hover:border-purple-400/60 flex flex-col justify-between min-h-[148px]">
                 <div class="flex items-center justify-between">
-                  <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">宿主硬件负载</span>
+                  <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">{{ hostInfo.is_container ? '容器硬件负载' : '宿主硬件负载' }}</span>
                   <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-950/90 text-purple-300 border border-purple-500/40 font-bold flex items-center gap-1 shrink-0">
-                    <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>{{ hostInfo.cpu_cores ? hostInfo.cpu_cores + '核 CPU' : '4核 CPU' }}
+                    <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>{{ hostInfo.cpu_cores ? hostInfo.cpu_cores + '核 CPU' : '1核 CPU' }}
                   </span>
                 </div>
 
                 <!-- 行 1: CPU 实时负载 -->
                 <div class="flex items-center justify-between text-xs font-mono py-0.5">
-                  <span class="text-slate-400 text-[11px] whitespace-nowrap">CPU 实时负载</span>
-                  <span class="text-sm font-bold text-purple-300 font-mono">{{ hostInfo.cpu_load || '0%' }}</span>
+                  <span class="text-slate-400 text-[11px] whitespace-nowrap">{{ hostInfo.is_container ? '容器 CPU 负载' : 'CPU 实时负载' }}</span>
+                  <span class="text-sm font-bold text-purple-300 font-mono">{{ hostInfo.cpu_load || '1%' }}</span>
                 </div>
 
-                <!-- 行 2: 内存占用率与数值详情 (清晰区分 CubeX 专属常驻与宿主整机占用) -->
+                <!-- 行 2: 内存占用率与数值详情 (清晰区分 CubeX 专属常驻与容器/宿主占用) -->
                 <div class="space-y-1 text-xs font-mono">
                   <div class="flex items-center justify-between">
                     <span class="text-slate-400 text-[11px] whitespace-nowrap">CubeX 专属常驻</span>
@@ -356,8 +356,13 @@
                     <span>总计: <strong class="text-emerald-400 font-bold">{{ liveTotalResidentMB.toFixed(1) }}M</strong></span>
                   </div>
                   <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono whitespace-nowrap">
-                    <span>宿主已用 {{ hostInfo.memory_used || '343MiB' }}</span>
-                    <span class="text-slate-500">总量 {{ hostInfo.memory_total || '1984MiB' }}</span>
+                    <span>{{ hostInfo.is_container ? '容器已用' : '宿主已用' }} {{ hostInfo.memory_used || '77MiB' }}</span>
+                    <span class="text-slate-500">总量 {{ hostInfo.memory_total || '256MiB' }}</span>
+                  </div>
+                  <!-- 联动网关状态提示 (清晰提示与 RouterOS 网关的联动，杜绝数据困惑) -->
+                  <div v-if="hostInfo.is_container && hostInfo.linked_gateway" class="flex items-center justify-between text-[10px] text-slate-500 font-mono pt-1 border-t border-slate-800/60">
+                    <span class="truncate">联动路由: {{ hostInfo.linked_gateway }}</span>
+                    <span class="shrink-0 text-slate-400 font-semibold">{{ hostInfo.gateway_memory_used ? (hostInfo.gateway_memory_used + ' / ' + hostInfo.gateway_memory_total) : (hostInfo.gateway_memory_total || '448MiB') }}</span>
                   </div>
                 </div>
 
@@ -365,7 +370,7 @@
                 <div class="pt-1.5">
                   <div class="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden flex">
                     <div class="bg-gradient-to-r from-teal-400 to-cyan-400 h-full transition-all duration-500" :style="{ width: Math.min(100, Math.max(3, (currentHostRealMemory / Math.max(1, hostMemoryTotalNum)) * 100)) + '%' }" title="CubeX 专属常驻开销"></div>
-                    <div class="bg-gradient-to-r from-purple-500 to-indigo-500 h-full transition-all duration-500" :style="{ width: Math.min(100, Math.max(0, hostMemoryPercentNum - (currentHostRealMemory / Math.max(1, hostMemoryTotalNum)) * 100)) + '%' }" title="宿主整机其他系统开销"></div>
+                    <div class="bg-gradient-to-r from-purple-500 to-indigo-500 h-full transition-all duration-500" :style="{ width: Math.min(100, Math.max(0, hostMemoryPercentNum - (currentHostRealMemory / Math.max(1, hostMemoryTotalNum)) * 100)) + '%' }" title="系统其他占用开销"></div>
                   </div>
                 </div>
               </div>
@@ -484,37 +489,85 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="bg-slate-950/70 border border-slate-700/60 hover:border-sky-500/40 rounded-2xl p-4 space-y-2 relative overflow-hidden transition">
-                <div v-if="benchmarkResult.winner === 'singbox'" class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-200 border border-purple-500/40">
+            <!-- 双核同台极速竞技卡片 (高对比 Cyber Aurora 赛博极光视觉 · 醒目大 Logo 徽章排版) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+              
+              <!-- 1. sing-box 竞技卡片 (原生极速轻量) -->
+              <div class="rounded-2xl p-4 sm:p-4.5 bg-gradient-to-br from-purple-950/30 via-slate-900/80 to-slate-950/90 border border-purple-500/35 hover:border-purple-400/70 shadow-lg shadow-purple-950/20 hover:shadow-purple-900/40 transition-all duration-300 relative overflow-hidden group">
+                <div v-if="benchmarkResult.winner === 'singbox'" class="absolute top-2.5 right-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/25 text-purple-200 border border-purple-400/50 shadow-sm animate-pulse">
                   🏆 优选领先
                 </div>
-                <div class="flex items-center justify-between text-xs font-bold text-sky-300">
-                  <div class="flex items-center gap-2 min-w-0">
-                    <img src="/logo-singbox.svg" class="w-4 h-4 object-contain shrink-0 drop-shadow-[0_0_4px_rgba(240,171,252,0.4)]" alt="sing-box" />
-                    <span class="truncate">sing-box {{ systemOverview.singbox_curr_version || 'v1.14.4' }} (原生 · 极速轻量)</span>
+                <div class="flex items-center gap-3.5">
+                  <!-- sing-box 专属发光大徽章 -->
+                  <div class="w-12 h-12 rounded-xl bg-purple-950/60 border border-purple-500/40 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(168,85,247,0.3)] group-hover:scale-105 group-hover:shadow-[0_0_18px_rgba(168,85,247,0.5)] transition-all">
+                    <img src="/logo-singbox.svg" class="w-8 h-8 object-contain drop-shadow-[0_0_6px_rgba(240,171,252,0.6)]" alt="sing-box" />
                   </div>
-                  <span class="font-mono shrink-0 ml-2">{{ benchmarkResult.singbox ? benchmarkResult.singbox.total_latency_ms + ' ms' : '等待竞技' }}</span>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="flex items-baseline gap-1.5 min-w-0 truncate">
+                        <span class="text-sm sm:text-base font-black text-purple-200 tracking-wide">sing-box</span>
+                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.singbox_curr_version || 'v1.14.4' }}</span>
+                      </div>
+                      <span class="font-mono text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-lg bg-slate-950/80 border border-purple-500/30 text-purple-300 shrink-0">
+                        {{ benchmarkResult.singbox ? benchmarkResult.singbox.total_latency_ms + ' ms' : '等待竞技' }}
+                      </span>
+                    </div>
+                    <div class="text-[11px] text-purple-300/80 font-medium tracking-tight mt-0.5 truncate">
+                      原生 · 极速轻量低开销
+                    </div>
+                  </div>
                 </div>
-                <div class="text-[11px] text-slate-400 font-mono">
-                  TCP 握手: {{ benchmarkResult.singbox ? benchmarkResult.singbox.tcp_handshake_ms + 'ms' : '--' }} | 内存开销: {{ singboxBenchmarkMemory.toFixed(1) }}MB
+                <!-- 指标数据条 -->
+                <div class="mt-3 pt-2.5 border-t border-purple-500/20 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                  <span class="flex items-center gap-1">
+                    <span class="text-slate-500">⚡ 握手:</span>
+                    <strong class="text-slate-200">{{ benchmarkResult.singbox ? benchmarkResult.singbox.tcp_handshake_ms + ' ms' : '--' }}</strong>
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <span class="text-slate-500">💾 内存:</span>
+                    <strong class="text-purple-300">{{ singboxBenchmarkMemory.toFixed(1) }} MB</strong>
+                  </span>
                 </div>
               </div>
-              <div class="bg-slate-950/70 border border-slate-700/60 hover:border-amber-500/40 rounded-2xl p-4 space-y-2 relative overflow-hidden transition">
-                <div v-if="benchmarkResult.winner === 'mihomo'" class="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+
+              <!-- 2. Mihomo 竞技卡片 (兼容规则完备) -->
+              <div class="rounded-2xl p-4 sm:p-4.5 bg-gradient-to-br from-sky-950/30 via-slate-900/80 to-slate-950/90 border border-sky-500/35 hover:border-sky-400/70 shadow-lg shadow-sky-950/20 hover:shadow-sky-900/40 transition-all duration-300 relative overflow-hidden group">
+                <div v-if="benchmarkResult.winner === 'mihomo'" class="absolute top-2.5 right-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/25 text-amber-200 border border-amber-400/50 shadow-sm animate-pulse">
                   🏆 优选领先
                 </div>
-                <div class="flex items-center justify-between text-xs font-bold text-amber-300">
-                  <div class="flex items-center gap-2 min-w-0">
-                    <img src="/logo-mihomo.svg" class="w-4 h-4 object-contain shrink-0 drop-shadow-[0_0_4px_rgba(56,189,248,0.4)]" alt="Mihomo" />
-                    <span class="truncate">Mihomo {{ systemOverview.mihomo_curr_version || 'v1.19.33' }} (兼容 · 规则完备)</span>
+                <div class="flex items-center gap-3.5">
+                  <!-- Mihomo 专属发光大徽章 -->
+                  <div class="w-12 h-12 rounded-xl bg-sky-950/60 border border-sky-500/40 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(56,189,248,0.3)] group-hover:scale-105 group-hover:shadow-[0_0_18px_rgba(56,189,248,0.5)] transition-all">
+                    <img src="/logo-mihomo.svg" class="w-8 h-8 object-contain drop-shadow-[0_0_6px_rgba(56,189,248,0.6)]" alt="Mihomo" />
                   </div>
-                  <span class="font-mono shrink-0 ml-2">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.total_latency_ms + ' ms' : '等待竞技' }}</span>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="flex items-baseline gap-1.5 min-w-0 truncate">
+                        <span class="text-sm sm:text-base font-black text-sky-200 tracking-wide">Mihomo</span>
+                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.mihomo_curr_version || 'v1.19.33' }}</span>
+                      </div>
+                      <span class="font-mono text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-lg bg-slate-950/80 border border-sky-500/30 text-sky-300 shrink-0">
+                        {{ benchmarkResult.mihomo ? benchmarkResult.mihomo.total_latency_ms + ' ms' : '等待竞技' }}
+                      </span>
+                    </div>
+                    <div class="text-[11px] text-sky-300/80 font-medium tracking-tight mt-0.5 truncate">
+                      兼容 · 规则完备全协议
+                    </div>
+                  </div>
                 </div>
-                <div class="text-[11px] text-slate-400 font-mono">
-                  TCP 握手: {{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tcp_handshake_ms + 'ms' : '--' }} | 内存开销: {{ mihomoBenchmarkMemory.toFixed(1) }}MB
+                <!-- 指标数据条 -->
+                <div class="mt-3 pt-2.5 border-t border-sky-500/20 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                  <span class="flex items-center gap-1">
+                    <span class="text-slate-500">⚡ 握手:</span>
+                    <strong class="text-slate-200">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tcp_handshake_ms + ' ms' : '--' }}</strong>
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <span class="text-slate-500">💾 内存:</span>
+                    <strong class="text-sky-300">{{ mihomoBenchmarkMemory.toFixed(1) }} MB</strong>
+                  </span>
                 </div>
               </div>
+
             </div>
 
             <!-- Recommendation Alert if Available -->
@@ -3069,7 +3122,7 @@
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-800/40 pb-4">
             <div>
               <h2 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                <span>⚙️ 宿主原生共生与系统运维中枢</span>
+                <span>⚙️ 宿主共生与系统运维</span>
               </h2>
               <p class="text-xs text-slate-400 mt-1">自动识别 RouterOS / Linux / 飞牛底座 · 策略路由与防火墙自愈 · 四维在线无缝热更</p>
             </div>
@@ -3078,35 +3131,13 @@
           <!-- 宿主底座与四维升级主视窗 -->
           <div class="space-y-6">
 
-          <!-- ✨ 系统初始化与宿主引导专属横幅 -->
-          <div class="p-5 rounded-3xl bg-gradient-to-r from-cyan-950/90 via-slate-900 to-indigo-950/80 border border-cyan-500/40 flex items-center justify-between flex-wrap gap-4 shadow-xl">
-            <div class="flex items-center gap-3.5">
-              <div class="w-12 h-12 rounded-2xl bg-cyan-950 border border-cyan-400/50 flex items-center justify-center text-2xl shrink-0 shadow-[0_0_18px_rgba(0,210,255,0.35)]">
-                ✨
-              </div>
-              <div>
-                <div class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                  <span>宿主共生系统初始化向导</span>
-                  <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-bold">
-                    出厂重置 · 自动适配
-                  </span>
-                </div>
-                <p class="text-xs text-slate-400 mt-1 max-w-2xl">
-                  一键清除现有全部配置，引导填入宿主凭据，系统自动识别 RouterOS 或 Linux / 飞牛底座并全自动执行策略路由与防火墙编排
-                </p>
-              </div>
-            </div>
-            <button @click="confirmAndStartInitWizard" class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-teal-400 to-cyan-500 hover:from-teal-300 hover:to-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/25 active:scale-95 transition flex items-center gap-2">
-              <span>✨ 启动系统初始化向导</span>
-            </button>
-          </div>
 
-          <!-- 🖥️ 宿主共生底座与网络中枢 (Host Base Interconnect) -->
+          <!-- 🖥️ 宿主共生底座 (Host Base Interconnect) -->
           <div class="glass-matrix rounded-2xl p-5 space-y-4 border-l-4 border-l-cyan-400 shadow-xl">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-sky-900/30 pb-3">
               <div>
                 <div class="text-base font-bold text-white flex flex-wrap items-center gap-2">
-                  <span>🖥️ 宿主共生底座与网络中枢</span>
+                  <span>🖥️ 宿主共生底座</span>
                   <!-- Auto-Detected Host Badge -->
                   <span class="text-xs bg-sky-950 text-sky-300 border border-sky-400/50 px-2.5 py-1 rounded-full font-mono font-bold flex items-center gap-2 shadow-sm select-none whitespace-nowrap shrink-0">
                     <span class="w-2 h-2 rounded-full shrink-0" :class="hostBadge.online ? 'bg-emerald-400 shadow-[0_0_6px_#10b981] animate-pulse' : 'bg-amber-400'"></span>
@@ -3192,46 +3223,48 @@
               </div>
             </div>
 
-            <!-- 宿主防火墙与策略路由智能巡检与全量配置 -->
-            <div class="space-y-2 pt-2 border-t border-slate-800">
-              <div class="flex flex-col sm:flex-row gap-2">
-                <!-- 当前宿主专属一键巡检与配置主按钮 -->
-                <button v-if="isRouterOS" @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-cyan-950/80 to-blue-950/80 hover:from-cyan-900/80 hover:to-blue-900/80 border border-cyan-500/50 text-cyan-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50">
-                  <span v-if="cleaningRosFirewall" class="inline-block animate-spin">↻</span>
-                  <span v-else>🧹</span>
-                  <span>一键深度巡检 RouterOS 策略路由及全量重配 (含 Netwatch 0秒逃生)</span>
+            <!-- 宿主全栈策略自愈中枢 (巡检、策略路由、0秒逃生与 IPv6 双栈防泄露已合并为一体化极简操作) -->
+            <div class="pt-2 border-t border-slate-800">
+              <div class="flex flex-col sm:flex-row gap-2.5">
+                <!-- 1. 当前宿主专属全栈巡检自愈主按钮 (已全量合并 IPv4 + Netwatch + IPv6 双栈防泄露) -->
+                <button v-if="isRouterOS" @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
+                  class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-950/90 via-blue-950/90 to-emerald-950/90 hover:from-cyan-900/90 hover:to-emerald-900/90 border border-cyan-500/50 hover:border-cyan-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
+                  title="一键深度巡检 RouterOS 策略路由 (table cubex)、Netwatch 0秒毫秒逃生探针、FastTrack 兼容性及原生 IPv6 双栈防 DNS 泄露 (advertise-dns=no)">
+                  <span v-if="cleaningRosFirewall" class="inline-block animate-spin text-sm">↻</span>
+                  <span v-else class="text-base text-cyan-400">⚡</span>
+                  <span>一键全栈巡检与自愈 RouterOS (策略路由 · Netwatch 0秒逃生 · IPv6 全局防泄露)</span>
                 </button>
-                <button v-else-if="isOpenWrt" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-sky-950/80 to-blue-950/80 hover:from-sky-900/80 hover:to-blue-900/80 border border-sky-500/50 text-sky-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50">
-                  <span v-if="applyingLinuxFirewall" class="inline-block animate-spin">↻</span>
-                  <span v-else>📡</span>
-                  <span>一键深度巡检 OpenWrt 策略回指与 DHCP 联动 (含 0 秒逃生)</span>
+                <button v-else-if="isOpenWrt" @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
+                  class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-sky-950/90 via-blue-950/90 to-teal-950/90 hover:from-sky-900/90 hover:to-teal-900/90 border border-sky-500/50 hover:border-sky-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-sky-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
+                  title="一键深度巡检 OpenWrt UBUS 回指路由、DHCP 网关注入及 odhcpd 原生 IPv6 广播防泄露锁定">
+                  <span v-if="cleaningRosFirewall" class="inline-block animate-spin text-sm">↻</span>
+                  <span v-else class="text-base text-sky-400">📡</span>
+                  <span>一键全栈巡检与自愈 OpenWrt (策略回指 · DHCP 逃生 · IPv6 全局防泄露)</span>
                 </button>
-                <button v-else-if="isIKuai" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-950/80 to-teal-950/80 hover:from-emerald-900/80 hover:to-teal-900/80 border border-emerald-500/50 text-emerald-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50">
-                  <span v-if="applyingLinuxFirewall" class="inline-block animate-spin">↻</span>
-                  <span v-else>🚀</span>
-                  <span>一键深度巡检爱快静态回指路由与 DHCP 联动加固</span>
+                <button v-else-if="isIKuai" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall"
+                  class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-950/90 via-teal-950/90 to-cyan-950/90 hover:from-emerald-900/90 hover:to-cyan-900/90 border border-emerald-500/50 hover:border-emerald-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
+                  title="一键深度巡检爱快 Web-RPC 198.18.0.0/15 回指路由与 DHCP 联动加固">
+                  <span v-if="applyingLinuxFirewall" class="inline-block animate-spin text-sm">↻</span>
+                  <span v-else class="text-base text-emerald-400">⚡</span>
+                  <span>一键全栈巡检与自愈爱快 (静态回指 198.18.0.0/15 · DHCP 联动加固)</span>
                 </button>
-                <button v-else @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-purple-950/80 to-blue-950/80 hover:from-purple-900/80 hover:to-blue-900/80 border border-purple-500/50 text-purple-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50">
-                  <span v-if="applyingLinuxFirewall" class="inline-block animate-spin">↻</span>
-                  <span v-else>⚡</span>
-                  <span>一键深度巡检并配置 {{ hostBadge.name }} 防火墙与内核转发</span>
+                <button v-else @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall"
+                  class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-950/90 via-blue-950/90 to-indigo-950/90 hover:from-cyan-900/90 hover:to-indigo-900/90 border border-cyan-500/50 hover:border-cyan-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 active:scale-98 disabled:opacity-50 cursor-pointer">
+                  <span v-if="applyingLinuxFirewall" class="inline-block animate-spin text-sm">↻</span>
+                  <span v-else class="text-base text-cyan-400">⚡</span>
+                  <span>一键全栈巡检与自愈 {{ hostBadge.name }} 防火墙与内核转发</span>
                 </button>
 
-                <!-- 混合双宿主协同辅助入口 -->
-                <button v-if="isRouterOS" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall" class="py-2.5 px-3 rounded-xl bg-slate-900/60 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-medium transition flex items-center justify-center gap-1 shrink-0" title="若旁路由运行于独立 Linux/飞牛 NAS，可同时加固该宿主底层防火墙">
-                  <span>🐧 联动伴生 Linux/飞牛防火墙</span>
+                <!-- 2. 混合双宿主协同辅助入口 -->
+                <button v-if="isRouterOS" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall"
+                  class="py-3 px-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 shrink-0 shadow-sm active:scale-98 cursor-pointer"
+                  title="若旁路由运行于独立 Linux / 飞牛 NAS / PVE 宿主，可同时巡检与加固该宿主底层防火墙与内核转发">
+                  <span>🐧 联动伴生 Linux 防火墙</span>
                 </button>
-                <button v-else @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall" class="py-2.5 px-3 rounded-xl bg-slate-900/60 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-medium transition flex items-center justify-center gap-1 shrink-0" title="若局域网上级主路由为 MikroTik RouterOS，可一键协同配置主路由策略路由与逃生规则">
+                <button v-else @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
+                  class="py-3 px-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 shrink-0 shadow-sm active:scale-98 cursor-pointer"
+                  title="若局域网上级主路由为 MikroTik RouterOS，可一键协同配置主路由策略路由与逃生规则">
                   <span>📶 联动 RouterOS 主路由</span>
-                </button>
-              </div>
-
-              <!-- RouterOS / OpenWrt 原生 IPv6 双栈防泄露一键加固 -->
-              <div v-if="isRouterOS || isRosConnected || isOpenWrt" class="pt-1">
-                <button @click="setupRosIpv6" :disabled="settingUpRosIpv6" class="w-full py-2 rounded-xl bg-gradient-to-r from-emerald-950/70 via-teal-950/70 to-blue-950/70 hover:from-emerald-900/80 hover:to-teal-900/80 border border-emerald-500/40 text-emerald-200 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95 disabled:opacity-50" :title="isOpenWrt ? '自动锁定 OpenWrt odhcpd RA 广播，彻底阻断运营商 IPv6 DNS 泄露，保留原生公网 IPv6 SLAAC 直连' : '自动开启 RouterOS 全局 IPv6，自动下发 WAN 口 DHCP-PD 前缀获取，并永久锁定 advertise-dns=no 杜绝运营商 DNS 劫持'">
-                  <span v-if="settingUpRosIpv6" class="inline-block animate-spin">↻</span>
-                  <span v-else>🌐</span>
-                  <span>一键自愈并加固 {{ isOpenWrt ? 'OpenWrt' : 'RouterOS' }} 原生 IPv6 双栈 (防 DNS 泄露 · 毫秒级海外快速回退)</span>
                 </button>
               </div>
 
@@ -3322,7 +3355,7 @@
                 <!-- Tier 1: Header (min-h-[36px]) -->
                 <div class="min-h-[36px] flex justify-between items-center gap-3">
                   <div class="flex items-center gap-3 min-w-0">
-                    <img src="/logo-cubex.svg" class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] object-contain shrink-0 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)] transition-transform duration-300 group-hover:scale-105" alt="CubeX" />
+                    <img src="/logo-cubex.svg" class="w-8 h-8 sm:w-9 sm:h-9 min-w-[32px] sm:min-w-[36px] max-w-[36px] h-[32px] sm:h-[36px] max-h-[36px] object-contain shrink-0 drop-shadow-[0_0_12px_rgba(56,189,248,0.6)] transition-transform duration-300 group-hover:scale-110" alt="CubeX" />
                     <span class="text-sm sm:text-base font-extrabold text-white whitespace-nowrap truncate tracking-wide">CubeX 系统守护进程</span>
                   </div>
                   <span v-if="systemOverview.panel_update_avail" class="text-xs font-mono px-3 py-1 rounded-lg bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse whitespace-nowrap shrink-0 font-semibold shadow-sm">发现新版 {{ systemOverview.panel_latest_version }}</span>
@@ -3364,8 +3397,8 @@
                 <div class="min-h-[36px] flex justify-between items-center gap-3">
                   <div class="flex items-center gap-3 min-w-0">
                     <div class="flex items-center gap-2.5 shrink-0">
-                      <img src="/logo-mihomo.svg" class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] object-contain shrink-0 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)] transition-transform duration-300 group-hover:scale-105" alt="Mihomo" />
                       <img src="/logo-singbox.svg" class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] object-contain shrink-0 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)] transition-transform duration-300 group-hover:scale-105" alt="sing-box" />
+                      <img src="/logo-mihomo.svg" class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] object-contain shrink-0 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)] transition-transform duration-300 group-hover:scale-105" alt="Mihomo" />
                     </div>
                     <span class="text-sm sm:text-base font-extrabold text-white whitespace-nowrap truncate tracking-wide">双代理内核</span>
                   </div>
@@ -3392,27 +3425,20 @@
                     </template>
                   </div>
                 </div>
-                <!-- Tier 2: Body (min-h-[86px]) -->
+                <!-- Tier 2: Body (min-h-[86px] · singbox在mihomo上排) -->
                 <div class="min-h-[86px] text-xs sm:text-[13px] font-mono bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-center gap-2.5 shadow-inner">
-                  <div class="flex items-center justify-between">
-                    <span>Mihomo 内核: <strong class="text-emerald-400 font-bold text-sm">{{ systemOverview.mihomo_curr_version || 'v1.19.33' }}</strong></span>
-                    <span class="text-slate-400">官方最新: <span :class="systemOverview.mihomo_update_avail ? 'text-amber-400 font-bold' : 'text-slate-200 font-semibold'">{{ systemOverview.mihomo_latest_version || 'v1.19.33' }}</span></span>
-                  </div>
                   <div class="flex items-center justify-between">
                     <span>sing-box 内核: <strong class="text-emerald-400 font-bold text-sm">{{ systemOverview.singbox_curr_version || 'v1.14.4' }}</strong></span>
                     <span class="text-slate-400">官方最新: <span :class="systemOverview.singbox_update_avail ? 'text-amber-400 font-bold' : 'text-slate-200 font-semibold'">{{ systemOverview.singbox_latest_version || 'v1.14.4' }}</span></span>
                   </div>
+                  <div class="flex items-center justify-between">
+                    <span>Mihomo 内核: <strong class="text-emerald-400 font-bold text-sm">{{ systemOverview.mihomo_curr_version || 'v1.19.33' }}</strong></span>
+                    <span class="text-slate-400">官方最新: <span :class="systemOverview.mihomo_update_avail ? 'text-amber-400 font-bold' : 'text-slate-200 font-semibold'">{{ systemOverview.mihomo_latest_version || 'v1.19.33' }}</span></span>
+                  </div>
                 </div>
-                <!-- Tier 3: Action Buttons (h-11 sm:h-12) -->
+                <!-- Tier 3: Action Buttons (h-11 sm:h-12 · 对应按钮singbox在左侧) -->
                 <div class="h-11 sm:h-12 grid grid-cols-2 gap-2.5">
-                  <button v-if="coreUpgradeFrozen" disabled class="h-full rounded-xl border border-slate-700 bg-slate-900/60 text-slate-500 font-bold text-xs sm:text-sm flex items-center justify-center gap-1 cursor-not-allowed opacity-60" title="内核升级已冻结锁定，请先解除冻结">
-                    <span>🔒 Mihomo (已冻结)</span>
-                  </button>
-                  <button v-else @click="upgradeCore('mihomo')" :disabled="upgradingCoreMihomo" class="h-full rounded-xl border font-bold text-xs sm:text-sm transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-md"
-                    :class="systemOverview.mihomo_update_avail ? 'bg-amber-600/30 hover:bg-amber-600/40 border-amber-500/60 text-amber-200 shadow-amber-500/20' : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-100'">
-                    <span v-if="upgradingCoreMihomo" class="inline-block animate-spin mr-1">↻</span>
-                    <span>{{ upgradingCoreMihomo ? '核对中...' : (systemOverview.mihomo_update_avail ? '⬆ 升级 Mihomo (自决)' : '⬆ 升级 Mihomo') }}</span>
-                  </button>
+                  <!-- 1. sing-box 升级按钮 (左侧) -->
                   <button v-if="coreUpgradeFrozen" disabled class="h-full rounded-xl border border-slate-700 bg-slate-900/60 text-slate-500 font-bold text-xs sm:text-sm flex items-center justify-center gap-1 cursor-not-allowed opacity-60" title="内核升级已冻结锁定，请先解除冻结">
                     <span>🔒 sing-box (已冻结)</span>
                   </button>
@@ -3420,6 +3446,15 @@
                     :class="systemOverview.singbox_update_avail ? 'bg-amber-600/30 hover:bg-amber-600/40 border-amber-500/60 text-amber-200 shadow-amber-500/20' : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-100'">
                     <span v-if="upgradingCoreSingbox" class="inline-block animate-spin mr-1">↻</span>
                     <span>{{ upgradingCoreSingbox ? '核对中...' : (systemOverview.singbox_update_avail ? '⬆ 升级 sing-box (自决)' : '⬆ 升级 sing-box') }}</span>
+                  </button>
+                  <!-- 2. Mihomo 升级按钮 (右侧) -->
+                  <button v-if="coreUpgradeFrozen" disabled class="h-full rounded-xl border border-slate-700 bg-slate-900/60 text-slate-500 font-bold text-xs sm:text-sm flex items-center justify-center gap-1 cursor-not-allowed opacity-60" title="内核升级已冻结锁定，请先解除冻结">
+                    <span>🔒 Mihomo (已冻结)</span>
+                  </button>
+                  <button v-else @click="upgradeCore('mihomo')" :disabled="upgradingCoreMihomo" class="h-full rounded-xl border font-bold text-xs sm:text-sm transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-md"
+                    :class="systemOverview.mihomo_update_avail ? 'bg-amber-600/30 hover:bg-amber-600/40 border-amber-500/60 text-amber-200 shadow-amber-500/20' : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-100'">
+                    <span v-if="upgradingCoreMihomo" class="inline-block animate-spin mr-1">↻</span>
+                    <span>{{ upgradingCoreMihomo ? '核对中...' : (systemOverview.mihomo_update_avail ? '⬆ 升级 Mihomo (自决)' : '⬆ 升级 Mihomo') }}</span>
                   </button>
                 </div>
                 <!-- Tier 4: Terminal Viewport (h-[70px] sm:h-[76px]) -->
@@ -3473,9 +3508,17 @@
                 <!-- Tier 1: Header (min-h-[36px]) -->
                 <div class="min-h-[36px] flex justify-between items-center gap-3">
                   <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] flex items-center justify-center text-xl shrink-0 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
-                      🛡️
-                    </div>
+                    <svg class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] shrink-0 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-transform duration-300 group-hover:scale-105" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2L3 7V12C3 17.5 6.8 22.3 12 23.5C17.2 22.3 21 17.5 21 12V7L12 2Z" fill="url(#geoShieldGrad)" stroke="#34D399" stroke-width="1.6" stroke-linejoin="round"/>
+                      <path d="M9 12.5L11 14.5L15 9.5" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <defs>
+                        <linearGradient id="geoShieldGrad" x1="3" y1="2" x2="21" y2="23.5" gradientUnits="userSpaceOnUse">
+                          <stop stop-color="#059669"/>
+                          <stop offset="0.6" stop-color="#10B981"/>
+                          <stop offset="1" stop-color="#064E3B"/>
+                        </linearGradient>
+                      </defs>
+                    </svg>
                     <span class="text-sm sm:text-base font-extrabold text-white whitespace-nowrap truncate tracking-wide">Geo 规则体系 (MRS / SRS)</span>
                   </div>
                   <!-- Dynamic Top-Right Badge -->
@@ -3645,25 +3688,69 @@
             </div>
           </div>
 
-          <!-- 时光机全量备份与容灾恢复 -->
-          <div class="p-5 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-3">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <!-- 🛡️ 灾备恢复与系统维护中枢 (极客双栏对称设计 · 视觉统一沉浸) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 pt-2">
+            
+            <!-- 1. ✨ 系统出厂初始化向导 -->
+            <div class="p-6 sm:p-7 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#001c38]/95 via-[#00172e]/90 to-slate-950/95 border border-cyan-500/25 hover:border-cyan-400/50 shadow-2xl shadow-cyan-950/30 hover:shadow-cyan-900/40 transition-all duration-300 space-y-4 flex flex-col justify-between group">
               <div>
-                <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                  <span>🔄 防手残时光机全量备份</span>
-                </h3>
-                <p class="text-xs text-slate-400 mt-1">一键打包导出包含双核配置、宿主共生设置及分流规则的全量快照，支持秒级导入恢复。</p>
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-cyan-950/80 border border-cyan-400/50 flex items-center justify-center text-xl shrink-0 shadow-[0_0_14px_rgba(0,210,255,0.35)] group-hover:scale-105 transition-transform">
+                      ✨
+                    </div>
+                    <div>
+                      <h4 class="text-sm sm:text-base font-extrabold text-white tracking-wide">系统出厂初始化向导</h4>
+                      <span class="text-[11px] font-mono text-cyan-300 font-semibold">出厂重置 · 自动适配宿主底座</span>
+                    </div>
+                  </div>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-cyan-950/90 text-cyan-300 border border-cyan-500/40 font-bold shrink-0">
+                    一键引导
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400 mt-3.5 leading-relaxed">
+                  一键安全清空现有全部配置并重置出厂状态，交互式引导重新填入宿主凭据，自动嗅探 RouterOS / Linux / 飞牛底座并编排底层策略路由。
+                </p>
               </div>
-              <div class="flex items-center gap-2">
-                <button @click="exportBackup" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-bold transition">
-                  📥 导出系统配置快照
+              <div class="pt-2">
+                <button @click="confirmAndStartInitWizard" class="w-full py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-teal-400 to-cyan-500 hover:from-teal-300 hover:to-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/25 active:scale-98 transition flex items-center justify-center gap-2 cursor-pointer">
+                  <span>✨ 启动出厂初始化向导</span>
                 </button>
-                <label class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-cyan-300 text-xs font-bold text-center cursor-pointer transition">
-                  📤 导入恢复快照
+              </div>
+            </div>
+
+            <!-- 2. 🔄 防手残时光机全量备份 -->
+            <div class="p-6 sm:p-7 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#001c38]/95 via-[#00172e]/90 to-slate-950/95 border border-indigo-500/25 hover:border-indigo-400/50 shadow-2xl shadow-indigo-950/30 hover:shadow-indigo-900/40 transition-all duration-300 space-y-4 flex flex-col justify-between group">
+              <div>
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-950/80 border border-indigo-400/50 flex items-center justify-center text-xl shrink-0 shadow-[0_0_14px_rgba(129,140,248,0.35)] group-hover:scale-105 transition-transform">
+                      🔄
+                    </div>
+                    <div>
+                      <h4 class="text-sm sm:text-base font-extrabold text-white tracking-wide">防手残时光机全量备份</h4>
+                      <span class="text-[11px] font-mono text-indigo-300 font-semibold">无损快照 · 秒级灾备恢复</span>
+                    </div>
+                  </div>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-indigo-950/90 text-indigo-300 border border-indigo-500/40 font-bold shrink-0">
+                    秒级快照
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400 mt-3.5 leading-relaxed">
+                  一键打包导出包含双核配置、分流策略规则、宿主共生凭据在内的全量系统快照，遭遇任何误操作或故障均可一键导入秒级自愈。
+                </p>
+              </div>
+              <div class="grid grid-cols-2 gap-3 pt-2">
+                <button @click="exportBackup" class="py-2.5 sm:py-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-600 text-slate-200 hover:text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer shadow-md">
+                  <span>📥 导出系统快照</span>
+                </button>
+                <label class="py-2.5 sm:py-3 rounded-xl bg-indigo-950/80 hover:bg-indigo-900/80 border border-indigo-500/50 text-indigo-200 hover:text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer text-center shadow-md">
+                  <span>📤 导入快照恢复</span>
                   <input type="file" accept=".json" @change="importBackup" class="hidden" />
                 </label>
               </div>
             </div>
+
           </div>
 
           </div>
@@ -8550,37 +8637,58 @@ async function executeHostUpgrade() {
 
 async function inspectAndCleanReapplyRos() {
   cleaningRosFirewall.value = true
-  showToast('🔍 正在深度巡检 RouterOS 策略路由与防火墙，并执行全量配置自愈...')
+  showToast('⚡ 正在全栈巡检 RouterOS 策略路由、Netwatch 0秒逃生及 IPv6 原生防泄露...')
   try {
-    const res = await fetch('/api/v1/ros/clean-and-reapply', {
+    // 1. IPv4 策略路由与 Netwatch 0秒逃生编排
+    const res1 = await fetch('/api/v1/ros/clean-and-reapply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ target_ip: hostConfig.value.host === '10.0.0.1' ? '10.0.0.11' : '' })
     })
-    const data = await res.json()
-    const isErr = !!data.error
-    const msg = data.message || (isErr ? ('巡检提示: ' + data.error) : '🎉 RouterOS 策略路由已全量巡检、深度清理并重新配置完毕！')
+    const data1 = await res1.json()
+    const actions = [...(data1.actions || [])]
+    const errors = [...(data1.errors || (data1.error ? [data1.error] : []))]
+
+    // 2. 原生 IPv6 双栈自愈与 advertise-dns=no 防泄露锁定 (自动合并执行)
+    try {
+      const res2 = await fetch('/api/v1/ros/ipv6/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      })
+      const data2 = await res2.json()
+      if (data2.actions) actions.push(...data2.actions)
+      if (data2.logs) actions.push(...data2.logs)
+      if (data2.error) errors.push('IPv6: ' + data2.error)
+    } catch (e2) {
+      console.warn('IPv6 setup warning:', e2)
+    }
+
+    const isErr = errors.length > 0 && !data1.success
+    const msg = isErr
+      ? ('全栈自愈提示: ' + errors.join('; '))
+      : '🎉 RouterOS 策略路由、Netwatch 0秒逃生与 IPv6 原生防泄露已全量自愈加固完毕！'
     showToast(msg, isErr)
 
     hostLastExecution.value = {
-      title: 'RouterOS 策略路由全量巡检与重配',
+      title: 'RouterOS 全栈策略路由与 IPv6 防泄露自愈加固',
       message: msg,
       success: !isErr,
       time: new Date().toLocaleTimeString(),
-      actions: data.actions || []
+      actions: actions
     }
     executionModal.value = {
       visible: true,
-      title: 'RouterOS 策略路由全量巡检与重配报告',
+      title: 'RouterOS 全栈巡检、策略路由与 IPv6 防泄露自愈报告',
       status: isErr ? 'warning' : 'success',
       message: msg,
-      actions: data.actions || [],
-      errors: data.errors || (data.error ? [data.error] : []),
+      actions: actions,
+      errors: errors,
       timestamp: new Date().toLocaleTimeString()
     }
     await refreshHostTelemetry()
   } catch (e) {
-    showToast('❌ 触发全量巡检与重配失败: ' + e.message, true)
+    showToast('❌ 触发全栈自愈失败: ' + e.message, true)
   } finally {
     cleaningRosFirewall.value = false
   }
