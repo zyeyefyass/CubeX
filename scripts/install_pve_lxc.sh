@@ -58,14 +58,32 @@ if ! pvesm status -storage local-lvm >/dev/null 2>&1; then
     fi
 fi
 
-# 探查宿主网关与子网
+# 探查宿主网关与局域网段 (严禁写死，全自动自适应)
 GW_IP=$(ip route | grep default | awk '{print $3}' | head -n1)
+if [ -z "$GW_IP" ]; then
+    GW_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{print $3}' | head -n1)
+fi
 HOST_IP=$(ip -4 addr show vmbr0 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n1)
 if [ -z "$HOST_IP" ]; then
     HOST_IP=$(hostname -I | awk '{print $1}')
 fi
+
 SUBNET_PREFIX=$(echo "$GW_IP" | cut -d'.' -f1-3)
-DEFAULT_CT_IP="${SUBNET_PREFIX}.7/24"
+if [ -z "$SUBNET_PREFIX" ] && [ -n "$HOST_IP" ]; then
+    SUBNET_PREFIX=$(echo "$HOST_IP" | cut -d'.' -f1-3)
+    GW_IP="${SUBNET_PREFIX}.1"
+fi
+if [ -z "$SUBNET_PREFIX" ]; then
+    SUBNET_PREFIX="192.168.1"
+    GW_IP="192.168.1.1"
+fi
+
+# 动态选择一个未被 PVE 宿主自身或主路由占用的 IP 作为默认推荐值
+CANDIDATE_LAST=7
+if [ "$GW_IP" = "${SUBNET_PREFIX}.${CANDIDATE_LAST}" ] || [ "$HOST_IP" = "${SUBNET_PREFIX}.${CANDIDATE_LAST}" ]; then
+    CANDIDATE_LAST=77
+fi
+DEFAULT_CT_IP="${SUBNET_PREFIX}.${CANDIDATE_LAST}/24"
 
 echo -e "\n${YELLOW}${BOLD}⚙️ 请配置 CubeX LXC 容器基础参数 (直接回车保持默认):${NC}"
 read -rp "容器 VMID [默认: $NEXT_ID]: " CT_ID
