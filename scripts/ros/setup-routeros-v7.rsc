@@ -433,6 +433,19 @@ set memory-high=256M registry-url="https://registry-1.docker.io" tmpdir=$pullDir
     $printMsg ("✅ [5/5 默认下一跳] 已下发默认策略路由指向 " . $cubexIP . " (支持 ping 毫秒自愈逃生)");
 }
 
+# 注入/加固 198.18.0.0/15 Fake-IP 静态回指路由 (覆盖RFC 2544全网段，原生支持“网关留主路由/只改DNS”与“全改旁路由”双模式通吃)
+:if ([:len [find dst-address="198.18.0.0/15" and (routing-table=main or routing-table="main")]] = 0) do={
+    add dst-address=198.18.0.0/15 gateway=$cubexIP routing-table=main comment="CubeX-FakeIP-Backtrack"
+    $printMsg ("✅ [5/5 静态回指路由] 已下发 198.18.0.0/15 静态回指路由指向 " . $cubexIP . " (支持网关留主路由/只改DNS双模式)");
+} else={
+    :foreach r in=[find where dst-address="198.18.0.0/15"] do={
+        :if ([get $r gateway] != $cubexIP) do={
+            set $r gateway=$cubexIP comment="CubeX-FakeIP-Backtrack"
+            $printMsg ("✅ [5/5 静态回指校准] 已自动校准 198.18.0.0/15 静态回指路由网关为 " . $cubexIP);
+        }
+    }
+}
+
 # Mangle 防死锁豁免与回环放行
 /ip firewall mangle
 :if ([:len [find comment="CubeX-Bypass-Local"]] = 0) do={

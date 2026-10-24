@@ -552,6 +552,153 @@
           </section>
 
           <!-- ════════════════════════════════════════════════════════════════ -->
+          <!-- 🌐 客户端接入与网络拓扑智能指引 (双模式通吃与零配置指引)          -->
+          <!-- ════════════════════════════════════════════════════════════════ -->
+          <section :class="['rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 transition shadow-2xl', activeEngine === 'singbox' ? 'glass-aurora' : 'glass-matrix']">
+            <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-700/40">
+              <div>
+                <div class="flex items-center gap-2.5">
+                  <span class="text-xl">🧭</span>
+                  <h3 class="text-base sm:text-lg font-bold text-white tracking-wide">客户端接入与网络拓扑指引</h3>
+                  <span class="text-xs px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-mono font-bold flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>双模式通吃
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400 mt-1">根据您的网络拓扑灵活选择，彻底杜绝 Fake-IP 路由黑洞与客户端断流困扰</p>
+              </div>
+
+              <!-- Quick IP Badge -->
+              <div class="flex items-center gap-2 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-700/70">
+                <span class="text-xs text-slate-400">CubeX 本机 IP:</span>
+                <span class="text-xs font-mono font-bold text-cyan-300">{{ currentHostIP }}</span>
+                <button @click="copyToClipboard(currentHostIP, '📋 已复制 CubeX IP 地址！')" title="复制 IP" class="text-xs text-slate-400 hover:text-cyan-300 transition cursor-pointer">
+                  📋
+                </button>
+              </div>
+            </div>
+
+            <!-- 3 Access Modes Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-3.5">
+              <!-- Mode A: Standard Bypass (Recommended) -->
+              <div class="p-4 rounded-2xl bg-slate-950/80 border border-emerald-500/40 hover:border-emerald-400/70 transition flex flex-col justify-between shadow-lg relative group">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-emerald-300 tracking-wide flex items-center gap-1.5">
+                      <span>⭐</span>
+                      <span>模式一：标准单臂旁路由</span>
+                    </span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold shrink-0">
+                      小白极力推荐
+                    </span>
+                  </div>
+
+                  <p class="text-[11px] text-slate-300 leading-relaxed">
+                    客户端或主路由 DHCP 将网关与 DNS 统一指向 CubeX，全流量无感接管。
+                  </p>
+
+                  <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5 font-mono text-xs">
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-400">默认网关:</span>
+                      <span class="text-emerald-300 font-bold">{{ currentHostIP }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-400">首选 DNS:</span>
+                      <span class="text-emerald-300 font-bold">{{ currentHostIP }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pt-3 mt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                  <span class="text-slate-400 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>主路由零修改 · 即设即用
+                  </span>
+                  <button @click="copyToClipboard(currentHostIP, '📋 已复制网关/DNS 地址！')" class="px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold transition cursor-pointer">
+                    复制 IP
+                  </button>
+                </div>
+              </div>
+
+              <!-- Mode B: Host Symbiosis (Main Router Gateway + CubeX DNS) -->
+              <div class="p-4 rounded-2xl bg-slate-950/80 border border-cyan-500/40 hover:border-cyan-400/70 transition flex flex-col justify-between shadow-lg relative group">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-cyan-300 tracking-wide flex items-center gap-1.5">
+                      <span>⚙️</span>
+                      <span>模式二：主路由伴生共生</span>
+                    </span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-bold shrink-0">
+                      网关留主路由
+                    </span>
+                  </div>
+
+                  <p class="text-[11px] text-slate-300 leading-relaxed">
+                    设备网关仍保留为主路由，仅 DNS 改为 CubeX。海外流量精准回指，国内不经旁路。
+                  </p>
+
+                  <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5 font-mono text-xs">
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-400">默认网关:</span>
+                      <span class="text-slate-200 font-bold">主路由 IP (如 10.0.0.1)</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-400">首选 DNS:</span>
+                      <span class="text-cyan-300 font-bold">{{ currentHostIP }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pt-3 mt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                  <span class="text-cyan-300 font-mono flex items-center gap-1 font-bold">
+                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>198.18.0.0/15 回指已就绪 ✅
+                  </span>
+                  <button @click="copyToClipboard('/ip route add dst-address=198.18.0.0/15 gateway=' + currentHostIP, '📋 已复制 ROS 回指路由命令！')" class="px-2.5 py-1 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-500/40 text-[11px] font-bold transition cursor-pointer">
+                    复制 ROS 命令
+                  </button>
+                </div>
+              </div>
+
+              <!-- Mode C: Mixed Explicit Proxy (Port 7890) -->
+              <div class="p-4 rounded-2xl bg-slate-950/80 border border-purple-500/40 hover:border-purple-400/70 transition flex flex-col justify-between shadow-lg relative group">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-purple-300 tracking-wide flex items-center gap-1.5">
+                      <span>🚀</span>
+                      <span>模式三：免改网关显式代理</span>
+                    </span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-950 text-purple-300 border border-purple-500/40 font-bold shrink-0">
+                      即开即用
+                    </span>
+                  </div>
+
+                  <p class="text-[11px] text-slate-300 leading-relaxed">
+                    无需修改任何局域网网关与 DNS，适用于办公 PC、浏览器插件或特定软件。
+                  </p>
+
+                  <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5 font-mono text-xs">
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-400">混合协议:</span>
+                      <span class="text-purple-300 font-bold">HTTP & SOCKS5</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-400">代理地址:</span>
+                      <span class="text-purple-300 font-bold">{{ currentHostIP }}:7890</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pt-3 mt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                  <span class="text-slate-400 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>零侵入 · 软件级直通
+                  </span>
+                  <button @click="copyToClipboard('http://' + currentHostIP + ':7890', '📋 已复制代理地址: http://' + currentHostIP + ':7890')" class="px-2.5 py-1 rounded-lg bg-purple-950/80 hover:bg-purple-900 text-purple-300 border border-purple-500/40 text-[11px] font-bold transition cursor-pointer">
+                    复制代理
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ════════════════════════════════════════════════════════════════ -->
           <!-- 📊 动态模块: 实时网络遥测 (主流服务实时延迟探针)                  -->
           <!-- ════════════════════════════════════════════════════════════════ -->
           <section :class="['rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 transition shadow-2xl', activeEngine === 'singbox' ? 'glass-aurora' : 'glass-matrix']">
@@ -7058,6 +7205,10 @@ const cleaningRosFirewall = ref(false)
 const applyingLinuxFirewall = ref(false)
 const deployingHostWg = ref(false)
 const loadingDevices = ref(false)
+
+const currentHostIP = computed(() => {
+  return typeof window !== 'undefined' && window.location.hostname ? window.location.hostname : '10.0.0.7'
+})
 
 const hostInfo = ref({
   connected: true,
