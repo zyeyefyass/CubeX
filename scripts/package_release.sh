@@ -6,7 +6,7 @@
 # ═════════════════════════════════════════════════════════════════════════════
 set -e
 
-VERSION="Test-v3.4"
+VERSION="Test-v3.5"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 RELEASE_DIR="$DIST_DIR/release"
@@ -141,10 +141,8 @@ cp "$RELEASE_DIR/CubeX-$VERSION-linux-arm64.zip" "$RELEASE_DIR/CubeX-latest-linu
 cp "$RELEASE_DIR/CubeX-$VERSION-ros-amd64.tar" "$RELEASE_DIR/CubeX-latest-ros-amd64.tar"
 cp "$RELEASE_DIR/CubeX-$VERSION-ros-arm64.tar" "$RELEASE_DIR/CubeX-latest-ros-arm64.tar"
 
-# Copy RouterOS WinBox 1-Click RSC Script, OpenWrt & PVE LXC Shell Scripts
-cp "$ROOT_DIR/scripts/ros/setup-routeros-v7.rsc" "$RELEASE_DIR/setup-routeros-v7.rsc"
-cp "$ROOT_DIR/scripts/openwrt/setup-openwrt.sh" "$RELEASE_DIR/setup-openwrt.sh"
-cp "$ROOT_DIR/scripts/install_pve_lxc.sh" "$RELEASE_DIR/install_pve_lxc.sh"
+# Protect & Encrypt deployment scripts (Zero Source Code Exposure)
+python3 "$ROOT_DIR/scripts/protect_script.py"
 
 rm -rf "$DIST_DIR/staging"
 echo "🎉 All Dual-Core Release Packages Generated Successfully in: $RELEASE_DIR"

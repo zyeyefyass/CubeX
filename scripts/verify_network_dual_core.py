@@ -12,7 +12,17 @@ import json
 import subprocess
 import urllib.request
 
-HOST_CUBEX = "10.0.0.11"
+def find_active_host():
+    for candidate in ["10.0.0.7", "10.0.0.11", "127.0.0.1"]:
+        try:
+            req = urllib.request.Request(f"http://{candidate}:2026/api/v1/system/status")
+            with urllib.request.urlopen(req, timeout=1.5) as r:
+                return candidate
+        except Exception:
+            continue
+    return "10.0.0.7"
+
+HOST_CUBEX = find_active_host()
 PORT_API = 2026
 PORT_PROXY = 7890
 

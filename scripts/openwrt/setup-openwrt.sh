@@ -87,7 +87,10 @@ ROUTER_IP=$(uci -q get network.lan.ipaddr 2>/dev/null || ip -4 addr show "$LAN_I
 if [ -z "$ROUTER_IP" ]; then
     ROUTER_IP=$(ip route show default 2>/dev/null | awk '{print $3}' | head -n 1)
 fi
-[ -z "$ROUTER_IP" ] && ROUTER_IP="192.168.1.1"
+if [ -z "$ROUTER_IP" ]; then
+    echo -e "${RED}❌ 无法自动嗅探局域网主网关与子网，请检查网络配置或网卡连接！${NC}"
+    exit 1
+fi
 
 # 嗅探当前子网的真实主网关（区分主路由与旁路由模式）
 UPSTREAM_GW=$(ip route show default 2>/dev/null | awk '{print $3}' | head -n 1)

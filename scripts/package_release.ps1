@@ -3,12 +3,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Version = "Test-v3.4"
+$Version = "Test-v3.5"
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 $DistDir = "$RootDir\dist"
 $ReleaseDir = "$DistDir\release"
 
-Write-Host "📦 Starting CubeX Test v3.4 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
+Write-Host "📦 Starting CubeX Test v3.5 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
 if (-not $IncludeWindows) {
     Write-Host "ℹ️  Windows 平台包发布已按策略暂停 (可通过 -IncludeWindows 显式启用)" -ForegroundColor DarkCyan
 }
@@ -35,18 +35,30 @@ if ($IncludeWindows) {
     Write-Host "   -> Skipping Windows cubexd.exe build (暂时不发布windows包)" -ForegroundColor DarkGray
 }
 
-# Linux amd64
-Write-Host "   -> Cross-compiling Linux amd64 cubexd & cubex CLI..." -ForegroundColor Green
-$env:GOOS = "linux"
-$env:GOARCH = "amd64"
-go build -ldflags="-s -w" -o "$DistDir\cubexd-linux-amd64" ./cmd/cubexd
-go build -ldflags="-s -w" -o "$DistDir\cubex-linux-amd64" ./cmd/cubex
+# Linux amd64 & arm64 Compilation with Garble AST Obfuscation
+$garbleExe = "$((go env GOPATH))\bin\garble.exe"
+if (Test-Path $garbleExe) {
+    Write-Host "   -> [Security Hardening] Compiling with Garble AST Obfuscation & Literal Encryption..." -ForegroundColor Cyan
+    $env:GOOS = "linux"
+    $env:GOARCH = "amd64"
+    & $garbleExe -literals -tiny build -trimpath -ldflags="-s -w -buildid=" -o "$DistDir\cubexd-linux-amd64" ./cmd/cubexd
+    & $garbleExe -literals -tiny build -trimpath -ldflags="-s -w -buildid=" -o "$DistDir\cubex-linux-amd64" ./cmd/cubex
 
-# Linux arm64
-Write-Host "   -> Cross-compiling Linux arm64 cubexd & cubex CLI..." -ForegroundColor Green
-$env:GOARCH = "arm64"
-go build -ldflags="-s -w" -o "$DistDir\cubexd-linux-arm64" ./cmd/cubexd
-go build -ldflags="-s -w" -o "$DistDir\cubex-linux-arm64" ./cmd/cubex
+    $env:GOARCH = "arm64"
+    & $garbleExe -literals -tiny build -trimpath -ldflags="-s -w -buildid=" -o "$DistDir\cubexd-linux-arm64" ./cmd/cubexd
+    & $garbleExe -literals -tiny build -trimpath -ldflags="-s -w -buildid=" -o "$DistDir\cubex-linux-arm64" ./cmd/cubex
+} else {
+    Write-Host "   -> Cross-compiling Linux amd64 cubexd & cubex CLI..." -ForegroundColor Green
+    $env:GOOS = "linux"
+    $env:GOARCH = "amd64"
+    go build -ldflags="-s -w" -o "$DistDir\cubexd-linux-amd64" ./cmd/cubexd
+    go build -ldflags="-s -w" -o "$DistDir\cubex-linux-amd64" ./cmd/cubex
+
+    Write-Host "   -> Cross-compiling Linux arm64 cubexd & cubex CLI..." -ForegroundColor Green
+    $env:GOARCH = "arm64"
+    go build -ldflags="-s -w" -o "$DistDir\cubexd-linux-arm64" ./cmd/cubexd
+    go build -ldflags="-s -w" -o "$DistDir\cubex-linux-arm64" ./cmd/cubex
+}
 
 # 3. Helper to assemble package staging directory
 function Assemble-ReleasePackage($TargetName, $GatewayBinary, $ArchType) {
@@ -153,10 +165,16 @@ python "$RootDir\scripts\build_docker_tar_v30.py" | Out-Host
 Copy-Item -Path "$DistDir\cubexd-linux-amd64" -Destination "$ReleaseDir\cubexd-linux-amd64" -Force
 Copy-Item -Path "$DistDir\cubexd-linux-arm64" -Destination "$ReleaseDir\cubexd-linux-arm64" -Force
 
-# Copy RouterOS WinBox 1-Click RSC Script & OpenWrt 1-Click Shell Script
-Copy-Item -Path "$RootDir\scripts\ros\setup-routeros-v7.rsc" -Destination "$ReleaseDir\setup-routeros-v7.rsc" -Force
-Copy-Item -Path "$RootDir\scripts\openwrt\setup-openwrt.sh" -Destination "$ReleaseDir\setup-openwrt.sh" -Force
-Copy-Item -Path "$RootDir\scripts\install_pve_lxc.sh" -Destination "$ReleaseDir\install_pve_lxc.sh" -Force
+# Copy standalone CLI binaries
+if (Test-Path "$DistDir\cubex-linux-amd64") {
+    Copy-Item -Path "$DistDir\cubex-linux-amd64" -Destination "$ReleaseDir\cubex-linux-amd64" -Force
+}
+if (Test-Path "$DistDir\cubex-linux-arm64") {
+    Copy-Item -Path "$DistDir\cubex-linux-arm64" -Destination "$ReleaseDir\cubex-linux-arm64" -Force
+}
+
+# Protect & Encrypt deployment scripts (Zero Source Code Exposure)
+python "$RootDir\scripts\protect_script.py" | Out-Host
 
 # Clean up staging
 Remove-Item -Path "$DistDir\staging" -Recurse -Force

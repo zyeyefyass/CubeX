@@ -107,8 +107,8 @@ if [ -z "$SUBNET_PREFIX" ] && [ -n "$HOST_IP" ]; then
     GW_IP="${SUBNET_PREFIX}.1"
 fi
 if [ -z "$SUBNET_PREFIX" ]; then
-    SUBNET_PREFIX="192.168.1"
-    GW_IP="192.168.1.1"
+    echo -e "${RED}❌ 无法自动探查 PVE 局域网段与物理网关！请通过参数手动指定: -g [网关IP] -i [容器IP/24]${NC}"
+    exit 1
 fi
 
 # 3.4 动态智能选择未被占用的 IP (自动执行 ping 冲突检测)

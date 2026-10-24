@@ -84,7 +84,7 @@ import (
 
 var (
 
-	version   = "Test v3.4"
+	version   = "Test v3.5"
 
 	startTime = time.Now()
 
@@ -2181,19 +2181,29 @@ func (s *Server) handleSecurityRemediate(w http.ResponseWriter, r *http.Request)
 
 
 func (s *Server) handleRosScript(w http.ResponseWriter, r *http.Request) {
+	targetIP := ""
+	if s.rosMgr != nil {
+		targetIP = s.rosMgr.GetOutboundIP()
+	}
+	if targetIP == "" {
+		conn, err := net.Dial("udp", "8.8.8.8:80")
+		if err == nil {
+			if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
+				targetIP = localAddr.IP.String()
+			}
+			conn.Close()
+		}
+	}
+	if targetIP != "" && s.rosClient != nil {
+		s.rosClient.SetCubeXIP(targetIP)
+	}
 
 	script := s.rosClient.GenerateWinBoxScript()
-
 	clean := s.rosClient.CleanWinBoxScript()
-
 	sendJSON(w, map[string]string{
-
 		"script":       script,
-
 		"clean_script": clean,
-
 	})
-
 }
 
 
@@ -5981,15 +5991,17 @@ func (s *Server) startConntrackSweeper() {
 		time.Sleep(5 * time.Second)
 
 		if s.rosMgr != nil {
-
 			targetIP := s.rosMgr.GetOutboundIP()
-
 			if targetIP == "" {
-
-				targetIP = "10.0.0.7"
-
+				conn, err := net.Dial("udp", "8.8.8.8:80")
+				if err == nil {
+					if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
+						targetIP = localAddr.IP.String()
+					}
+					conn.Close()
+				}
 			}
-
+			if targetIP != "" {
 			if restored := s.rosMgr.EnsureFakeIPRoute(targetIP); restored {
 
 				s.logBuffer.Add("INFO", "ROS", "RouterOS 宿主启动守护: 自动补齐 198.18.0.0/15 回指路由")
@@ -6007,7 +6019,7 @@ func (s *Server) startConntrackSweeper() {
 			}
 
 			s.rosMgr.AdaptHostMemoryWatermark()
-
+			}
 		}
 
 
@@ -6025,15 +6037,17 @@ func (s *Server) startConntrackSweeper() {
 			loopCount++
 
 			if s.rosMgr != nil {
-
 				targetIP := s.rosMgr.GetOutboundIP()
-
 				if targetIP == "" {
-
-					targetIP = "10.0.0.7"
-
+					conn, err := net.Dial("udp", "8.8.8.8:80")
+					if err == nil {
+						if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
+							targetIP = localAddr.IP.String()
+						}
+						conn.Close()
+					}
 				}
-
+				if targetIP != "" {
 				// 1. Route guard every 15s: ensure route exists
 
 				if restored := s.rosMgr.EnsureFakeIPRoute(targetIP); restored {
@@ -6074,6 +6088,7 @@ func (s *Server) startConntrackSweeper() {
 
 					s.rosMgr.AdaptHostMemoryWatermark()
 
+				}
 				}
 
 			}
@@ -8999,22 +9014,38 @@ func (s *Server) handleHealthRadar(w http.ResponseWriter, r *http.Request) {
 
 
 func (s *Server) handleIkuaiDockerParams(w http.ResponseWriter, r *http.Request) {
-	hostIP := "10.0.0.109"
-	cubexIP := "10.0.0.7"
+	hostIP := ""
+	cubexIP := ""
 	if s.hostMgr != nil {
 		hostCfg := s.hostMgr.GetConfig()
 		if hostCfg.Host != "" {
 			hostIP = hostCfg.Host
 			cubexIP = s.hostMgr.GetOutboundIP(hostCfg.Host)
-		} else {
-			conn, err := net.Dial("udp", "8.8.8.8:80")
-			if err == nil {
-				defer conn.Close()
-				if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
-					cubexIP = localAddr.IP.String()
-				}
-			}
 		}
+	}
+	if cubexIP == "" && s.rosMgr != nil {
+		cubexIP = s.rosMgr.GetOutboundIP()
+	}
+	if cubexIP == "" {
+		conn, err := net.Dial("udp", "8.8.8.8:80")
+		if err == nil {
+			if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
+				cubexIP = localAddr.IP.String()
+			}
+			conn.Close()
+		}
+	}
+	if hostIP == "" && cubexIP != "" {
+		parts := strings.Split(cubexIP, ".")
+		if len(parts) == 4 {
+			hostIP = parts[0] + "." + parts[1] + "." + parts[2] + ".1"
+		}
+	}
+	if hostIP == "" {
+		hostIP = "192.168.1.1"
+	}
+	if cubexIP == "" {
+		cubexIP = "192.168.1.2"
 	}
 
 	image := "ghcr.io/zyeyefyass/cubex:latest"

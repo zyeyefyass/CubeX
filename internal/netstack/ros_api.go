@@ -41,6 +41,13 @@ func NewRosClient(cfg RosConfig) *RosClient {
 	}
 }
 
+// SetCubeXIP dynamically updates the CubeX gateway IP for WinBox script generation.
+func (r *RosClient) SetCubeXIP(ip string) {
+	if ip != "" {
+		r.cfg.CubeXIP = ip
+	}
+}
+
 // Ping tests connection to RouterOS REST API.
 func (r *RosClient) Ping() (bool, string, error) {
 	if r.cfg.Host == "" {
@@ -76,6 +83,10 @@ func (r *RosClient) GenerateWinBoxScript() string {
 	if ip == "" {
 		ip = "127.0.0.1"
 	}
+	prefix := ip
+	if idx := strings.LastIndex(ip, "."); idx > 0 {
+		prefix = ip[:idx]
+	}
 
 	return fmt.Sprintf(`# ════════════════════════════════════════════════════════════════════
 # 🌌 CubeX 官方 RouterOS v7 高可用策略路由与 Netwatch 0秒逃生脚本
@@ -88,7 +99,7 @@ func (r *RosClient) GenerateWinBoxScript() string {
 /ip route add dst-address=0.0.0.0/0 gateway=%s routing-table=cubex-bypass comment="CubeX Gateway Route"
 
 # 3. 局域网分流地址列表 (可按需将指定设备 IP 加入)
-/ip firewall address-list add list=CUBEX_CLIENTS address=10.0.0.100-10.0.0.250 comment="Devices routed to CubeX"
+/ip firewall address-list add list=CUBEX_CLIENTS address=%s.100-%s.250 comment="Devices routed to CubeX"
 
 # 4. Mangle 策略标记 (DNS 劫持放行与数据分流重定向)
 /ip firewall mangle add chain=prerouting action=mark-routing new-routing-mark=cubex-bypass src-address-list=CUBEX_CLIENTS dst-address-type=!local comment="Redirect LAN traffic to CubeX"
@@ -98,7 +109,7 @@ func (r *RosClient) GenerateWinBoxScript() string {
   up-script="/ip firewall mangle enable [find comment=\"Redirect LAN traffic to CubeX\"]" \
   down-script="/ip firewall mangle disable [find comment=\"Redirect LAN traffic to CubeX\"]" \
   comment="CubeX HA Auto-Failover"
-`, ip, ip)
+`, ip, prefix, prefix, ip)
 }
 
 // CleanWinBoxScript returns clean-up commands to revert RouterOS to pure direct mode.
