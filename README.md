@@ -5,7 +5,7 @@
   # 🌌 CubeX · 宿主共生零感网络系统 (Host-Symbiotic Zero-Perception Gateway)
   ### *单二进制纯自研 · 告别传统重型虚机旁路 · 极致轻量低开销 · 300ms 冷启 · 宛如物理肉身直连全球互联网的终极共生体*
 
-  [![Version](https://img.shields.io/badge/Release-Test_v3.3-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
+  [![Version](https://img.shields.io/badge/Release-Test_v3.4-00F5D4?style=for-the-badge&logo=github)](https://github.com/zyeyefyass/CubeX/releases)
   [![License](https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield)](COPYRIGHT.md)
   [![Dual-Engine](https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go)](https://github.com/zyeyefyass/CubeX)
   [![Host Base](https://img.shields.io/badge/Host-RouterOS_v7_%7C_爱快_iKuai_%7C_OpenWrt_%7C_飞牛_fnOS_%7C_PVE_%7C_Linux-3A86FF?style=for-the-badge)](#)
@@ -235,22 +235,24 @@
 > 
 > **这一根本死穴已在 Test v3.2 中彻底推倒重构与抹平**（全域推行“全版本零硬编码与网关/子网动态自动探查准则”，支持原生嗅探物理网桥、真实默认网关与子网 CIDR）。
 > 
-> 而今天发布的 **CubeX Test v3.3**，是在 3.2 彻底修复网络死穴的基础上，进一步落地了专家组针对日常稳定商用提出的一系列关键加固，并历经实机严苛的回归测试与验证：
-> 
-> * 🛡️ **双核端到端出海健康心跳与业务假死自动容灾倒换 (`End-to-End Watchdog`)**：
->   * 彻底告别“进程存活但出海流量假死”的尴尬！后台以 60 秒为周期通过本地代理端口对真实出海链路发起微秒级健康心跳探针；若连续 3 次超时假死，系统自动无感触发双核容灾热切换（Mihomo ⇄ sing-box），确保家庭网络绝不断流；
-> * 🔒 **`config.last-known-good.json` 原子快照保护与崩溃自愈回滚机制 (`Safe Config Fallback`)**：
->   * 核心持续健康运行 25 秒以上自动持久化安全快照，遭遇任何配置损坏或启动异常时内核自动回滚至上一次正常运行快照，坚决杜绝“配置误写导致失联”；
-> * 🌐 **全息网络健康度动态跑分与仪表微标 (`Cyber Aurora Health Radar`)**：
->   * 首页直观呈现五维网络健康度综合评分（国内直连穿透、境外透明代理、DNS 防侧漏与纯净度、0秒逃生就绪度、宿主硬件负载），一眼看清当前网络状态，给出权威评分（`100 极光盾级 · 极佳`）；
-> * ⚡ **一键全栈自愈时序链可视化升级 (`Step Tracker Pipeline`)**：
->   * 点击【⚡ 一键全栈自愈】时，弹出清晰的六维时序链步骤条（ICMP重定向封穴 ➔ table cubex策略路由重建 ➔ FastTrack加速保全 ➔ Netwatch逃生探针 ➔ IPv6防侧漏锁定 ➔ 双核热重载），掌控感拉满；
+> 而今天发布的 **CubeX Test v3.4**，进一步落地了专家组针对日常商用交互、多宿主严谨适配与视觉解耦提出的一系列关键升级，并历经实机严苛的回归测试与验证：
+>
+> * 🎛️ **实时遥测与同节点 AB 竞技场深度解耦 (`Telemetry & Arena Decoupling`)**：
+>   * 将实时服务探针（Baidu / AliDNS / Google / GitHub）与 18 站点双核 AB 延迟吞吐竞技场彻底解耦为两张独立卡片，布局清爽通透，解决复合卡片高度挤压与视觉焦点分散问题；
+> * 📈 **流量统计顶栏迁移与监控层级进化 (`Traffic Insights Hierarchy`)**：
+>   * 将活跃连接数、实时进出站速率、进出站总流量 5 维核心网络指标完整重构集成至「流量统计」卡片顶栏；同时将「流量统计」卡片置于「局域网设备分流」之上，遵循“上层宏观全局态势 ➔ 下层精准设备策略分流”的最佳人机交互规范；
+> * 🛡️ **宿主凭证全底座严谨对齐与美学打磨 (`Host Credentials Rigor`)**：
+>   * 联动底座协议覆盖全面扩充至 `RouterOS REST API / 爱快 iKuai Web-RPC / OpenWrt ubus / Linux SSH`；
+>   * 端口规范为 `(ROS/爱快/OpenWrt: 80, Linux: 22)`，用户名提示规范为 `管理用户名 (例: admin / root / 自建)`，杜绝绝对化描述；
+>   * 4 大凭证输入框底线水平绝对等高对齐，宿主底座与就绪状态胶囊统一为 28px 极光等高微标；
 > * 🩺 **双核（sing-box v1.14.4 × Mihomo v1.19.33）双循环 4 次往返热切换压力测试 100% 满分闭环**：
->   * 历经 4 次引擎往返无缝热重载切换实机压测，国内真实直连、境外透明穿透与 DNS Fake-IP 纯净度达成 100% 满分通过，零路由丢失、零连接停顿。
-> 
-> 经过严苛的端到端闭环验证，**专家组郑重推荐 Test v3.3 作为可供日常主力使用的稳定版本！**
-> 
-> 软路由系统的终极演进离不开真实复杂网络环境的磨砺。**我们真诚、积极地邀请所有极客用户将 Test v3.3 作为日常使用版本，在日常使用中多多挑刺、积极反馈 Bug、提出您最宝贵的建议与功能需求**，让我们一同携手打造终极形态的正式稳定版（Stable v1.0）！
+>   * 历经 4 次引擎往返无缝热重载切换实机压测，国内真实直连、境外透明穿透与 DNS Fake-IP 纯净度达成 100% 满分通过，零路由丢失、零连接停顿；
+> * 🔒 **发布物脱敏审计 100% 通过**：
+>   * 严格遵照安全红线，经由审计解包脚本逐一逆向审查，10 大发布物实现 0 订阅、0 节点、0 私钥、0 凭证、0 Windows 产物。
+>
+> 经过严苛的端到端闭环验证，**专家组郑重推荐 Test v3.4 作为可供日常主力使用的稳定版本！**
+>
+> 软路由系统的终极演进离不开真实复杂网络环境的磨砺。**我们真诚、积极地邀请所有极客用户将 Test v3.4 作为日常使用版本，在日常使用中多多挑刺、积极反馈 Bug、提出您最宝贵的建议与功能需求**，让我们一同携手打造终极形态的正式稳定版（Stable v1.0）！
 
 <a id="release-assets"></a>
 
@@ -258,13 +260,13 @@
 
 | 文件名 | 平台 / 底座 | 文件大小 | 说明与安装指引 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v3.3-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~95.0 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
-| `CubeX-Test-v3.3-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~95.1 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
-| `CubeX-Test-v3.3-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~70.5 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
-| `CubeX-Test-v3.3-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~64.4 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
+| `CubeX-Test-v3.4-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~95.0 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
+| `CubeX-Test-v3.4-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~95.1 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
+| `CubeX-Test-v3.4-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~70.5 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
+| `CubeX-Test-v3.4-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~64.4 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
 | `cubexd-linux-amd64` | Linux amd64 单二进制 | ~10.7 MB | 用于现有容器或 Linux 宿主系统的一键在线平滑热更执行文件 |
 | `cubexd-linux-arm64` | Linux arm64 单二进制 | ~9.9 MB | 用于现有容器或 Linux 宿主系统的一键在线平滑热更执行文件 |
-| `CubeX-Test-v3.3-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（导入后统一标记为 `cubex:latest`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
+| `CubeX-Test-v3.4-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（导入后统一标记为 `cubex:latest`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
 | `install_pve_lxc.sh` | Proxmox VE 官方安装脚本 | ~9.6 KB | PVE 宿主机终端一键全自动部署脚本（自动升级 Alpine、透传 TUN、创建 CT 容器与装配守护进程） |
 | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~27.4 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（自动配置容器、网络、路由与 Netwatch 0秒逃生） |
 | `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~10.3 KB | OpenWrt 终端复制即用全自动初始化脚本（自动打通 Macvlan-Shim、配置 0秒看门狗与锁定 odhcpd 防泄露） |
