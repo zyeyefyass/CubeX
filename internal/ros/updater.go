@@ -1881,7 +1881,7 @@ func (m *Manager) GetOutboundIP() string {
 	m.mu.Unlock()
 
 	if host == "" {
-		host = "10.0.0.1"
+		host = "223.5.5.5"
 	}
 	conn, err := net.DialTimeout("udp", host+":80", 1*time.Second)
 	if err != nil {
@@ -1896,7 +1896,7 @@ func (m *Manager) GetOutboundIP() string {
 				}
 			}
 		}
-		return "10.0.0.7"
+		return "127.0.0.1"
 	}
 	defer conn.Close()
 	localAddr := conn.LocalAddr().(*net.UDPAddr)

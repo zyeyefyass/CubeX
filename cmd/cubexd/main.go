@@ -548,6 +548,13 @@ func main() {
 
 	flag.Parse()
 
+	// Environment variable port override (PORT or CUBEX_PORT)
+	if envPort := os.Getenv("CUBEX_PORT"); envPort != "" && *listenAddr == ":2026" {
+		*listenAddr = ":" + envPort
+	} else if envPort := os.Getenv("PORT"); envPort != "" && *listenAddr == ":2026" {
+		*listenAddr = ":" + envPort
+	}
+
 
 
 	dir := *workDir
@@ -1137,17 +1144,60 @@ func main() {
 
 
 
-	log.Printf("🌌 CubeX Daemon [%s] listening on %s (Engine: %s, Tuning: %s)\n", version, *listenAddr, cfgIR.Meta.ActiveEngine, cfgIR.Network.TunInterface)
-
-	if err := http.ListenAndServe(*listenAddr, corsMiddleware(mux)); err != nil {
-
+	ln, actualAddr, err := bindWithFallback(*listenAddr)
+	if err != nil {
 		log.Fatalf("Fatal: %v", err)
+	}
+	log.Printf("🌌 CubeX Daemon [%s] listening on %s (Engine: %s, Tuning: %s)\n", version, actualAddr, cfgIR.Meta.ActiveEngine, cfgIR.Network.TunInterface)
 
+	if err := http.Serve(ln, corsMiddleware(mux)); err != nil {
+		log.Fatalf("Fatal: %v", err)
 	}
 
 }
 
 
+
+// bindWithFallback attempts to bind listen address, and automatically auto-increments to next free ports (2027..2036) if 2026 is occupied.
+func bindWithFallback(initialAddr string) (net.Listener, string, error) {
+	ln, err := net.Listen("tcp", initialAddr)
+	if err == nil {
+		return ln, initialAddr, nil
+	}
+
+	errStr := strings.ToLower(err.Error())
+	if !strings.Contains(errStr, "address already in use") && !strings.Contains(errStr, "only one usage of each socket address") && !strings.Contains(errStr, "bind") {
+		return nil, initialAddr, err
+	}
+
+	host, portStr, splitErr := net.SplitHostPort(initialAddr)
+	if splitErr != nil {
+		if strings.HasPrefix(initialAddr, ":") {
+			portStr = strings.TrimPrefix(initialAddr, ":")
+		} else {
+			return nil, initialAddr, err
+		}
+	}
+	basePort, parseErr := strconv.Atoi(portStr)
+	if parseErr != nil {
+		return nil, initialAddr, err
+	}
+
+	log.Printf("⚠️ [端口占用自愈] 默认服务端口 %s 已被宿主其它应用占用，启动智能空闲端口探查...\n", initialAddr)
+	for nextPort := basePort + 1; nextPort <= basePort+10; nextPort++ {
+		candidateAddr := fmt.Sprintf(":%d", nextPort)
+		if host != "" {
+			candidateAddr = net.JoinHostPort(host, strconv.Itoa(nextPort))
+		}
+		candidateLn, candidateErr := net.Listen("tcp", candidateAddr)
+		if candidateErr == nil {
+			log.Printf("✅ [端口占用自愈] 成功绑定备用空闲端口 %s！Web驾驶舱访问入口: http://<宿主IP>:%d\n", candidateAddr, nextPort)
+			return candidateLn, candidateAddr, nil
+		}
+	}
+
+	return nil, initialAddr, fmt.Errorf("端口 %s 及其后 10 个端口均已被占用: %w", initialAddr, err)
+}
 
 func corsMiddleware(next http.Handler) http.Handler {
 

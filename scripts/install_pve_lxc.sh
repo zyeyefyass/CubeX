@@ -280,12 +280,22 @@ elif [ -f "/opt/cubex/bin/cubexd" ]; then
     pct push "$CT_ID" /opt/cubex/bin/cubexd /opt/CubeX/bin/cubexd -perms 755
 else
     pct exec "$CT_ID" -- sh -c '
-    LATEST_URL=$(curl -sSL "https://api.github.com/repos/zyeyefyass/CubeX/releases" 2>/dev/null | grep "browser_download_url.*linux-amd64.zip" | head -n1 | cut -d "\"" -f4 || true)
-    if [ -n "$LATEST_URL" ]; then
-        curl -sSL -o /tmp/cubex.zip "$LATEST_URL"
-        unzip -o /tmp/cubex.zip -d /opt/CubeX/ >/dev/null 2>&1
-        chmod +x /opt/CubeX/bin/* || true
-        rm -f /tmp/cubex.zip
+    echo "🌐 正在从 GitHub 官方 Releases 拉取最新版 CubeX 二进制与资源..."
+    BIN_URL="https://github.com/zyeyefyass/CubeX/releases/latest/download/cubexd-linux-amd64"
+    MIRROR_URL="https://ghproxy.net/$BIN_URL"
+    if curl -sSL -m 30 -o /opt/CubeX/bin/cubexd "$BIN_URL" 2>/dev/null && [ -s /opt/CubeX/bin/cubexd ]; then
+        chmod +x /opt/CubeX/bin/cubexd
+    elif curl -sSL -m 30 -o /opt/CubeX/bin/cubexd "$MIRROR_URL" 2>/dev/null && [ -s /opt/CubeX/bin/cubexd ]; then
+        chmod +x /opt/CubeX/bin/cubexd
+    else
+        ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/latest/download/CubeX-latest-linux-amd64.zip"
+        ZIP_MIRROR="https://ghproxy.net/$ZIP_URL"
+        curl -sSL -o /tmp/cubex.zip "$ZIP_URL" 2>/dev/null || curl -sSL -o /tmp/cubex.zip "$ZIP_MIRROR" 2>/dev/null || true
+        if [ -s /tmp/cubex.zip ]; then
+            unzip -o /tmp/cubex.zip -d /opt/CubeX/ >/dev/null 2>&1
+            chmod +x /opt/CubeX/bin/* || true
+            rm -f /tmp/cubex.zip
+        fi
     fi
     '
 fi

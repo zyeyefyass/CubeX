@@ -128,6 +128,18 @@ assemble_ros_tar "CubeX-$VERSION-ros-arm64" "$DIST_DIR/cubexd-linux-arm64" "arm6
 # Copy standalone cubexd gateway binaries for 1-click in-place hot-upgrade
 cp "$DIST_DIR/cubexd-linux-amd64" "$RELEASE_DIR/cubexd-linux-amd64"
 cp "$DIST_DIR/cubexd-linux-arm64" "$RELEASE_DIR/cubexd-linux-arm64"
+if [ -f "$DIST_DIR/cubex-linux-amd64" ]; then
+    cp "$DIST_DIR/cubex-linux-amd64" "$RELEASE_DIR/cubex-linux-amd64"
+fi
+if [ -f "$DIST_DIR/cubex-linux-arm64" ]; then
+    cp "$DIST_DIR/cubex-linux-arm64" "$RELEASE_DIR/cubex-linux-arm64"
+fi
+
+# Produce latest alias packages for 1-click CI/CD and direct download without tag lookup
+cp "$RELEASE_DIR/CubeX-$VERSION-linux-amd64.zip" "$RELEASE_DIR/CubeX-latest-linux-amd64.zip"
+cp "$RELEASE_DIR/CubeX-$VERSION-linux-arm64.zip" "$RELEASE_DIR/CubeX-latest-linux-arm64.zip"
+cp "$RELEASE_DIR/CubeX-$VERSION-ros-amd64.tar" "$RELEASE_DIR/CubeX-latest-ros-amd64.tar"
+cp "$RELEASE_DIR/CubeX-$VERSION-ros-arm64.tar" "$RELEASE_DIR/CubeX-latest-ros-arm64.tar"
 
 # Copy RouterOS WinBox 1-Click RSC Script
 cp "$ROOT_DIR/scripts/ros/setup-routeros-v7.rsc" "$RELEASE_DIR/setup-routeros-v7.rsc"

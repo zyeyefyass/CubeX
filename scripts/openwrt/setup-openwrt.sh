@@ -167,6 +167,29 @@ if which uci >/dev/null 2>&1; then
 
     uci add_list firewall.@zone[0].device='macvlan-shim' 2>/dev/null || true
     uci add_list firewall.@zone[0].network='cubex_shim' 2>/dev/null || true
+    
+    # 宿主 2026 端口原生透明映射至容器 (免 iptables 刷新丢失)
+    uci -q delete firewall.cubex_dnat || true
+    uci set firewall.cubex_dnat=redirect
+    uci set firewall.cubex_dnat.name='CubeX-Panel-2026'
+    uci set firewall.cubex_dnat.src='lan'
+    uci set firewall.cubex_dnat.src_dport='2026'
+    uci set firewall.cubex_dnat.dest='lan'
+    uci set firewall.cubex_dnat.dest_ip="$CUBEX_IP"
+    uci set firewall.cubex_dnat.dest_port='2026'
+    uci set firewall.cubex_dnat.proto='tcp'
+    uci set firewall.cubex_dnat.target='DNAT'
+
+    # Hairpin NAT: 允许内网终端直接访问主路由 IP:2026 获得反向伪装响应
+    uci -q delete firewall.cubex_hairpin || true
+    uci set firewall.cubex_hairpin=nat
+    uci set firewall.cubex_hairpin.name='CubeX-Hairpin-NAT'
+    uci set firewall.cubex_hairpin.src='lan'
+    uci set firewall.cubex_hairpin.dest_ip="$CUBEX_IP"
+    uci set firewall.cubex_hairpin.dest_port='2026'
+    uci set firewall.cubex_hairpin.proto='tcp'
+    uci set firewall.cubex_hairpin.target='MASQUERADE'
+
     uci commit firewall 2>/dev/null || true
     /etc/init.d/firewall reload >/dev/null 2>&1 || true
 fi
@@ -239,7 +262,8 @@ docker exec "$CONTAINER_NAME" ip route add "${ROUTER_IP}/32" via "$SHIM_IP" dev 
 # 6. 下发三大一键配置 (策略回指 + DHCP 黄金解耦 + IPv6 防泄露 + 0秒逃生)
 echo -e "${CYAN}⚡ [6/6 一键自愈] 正在下发 OpenWrt UCI 策略路由与防火墙加固...${NC}"
 
-# 6.1 Fake-IP 回指路由 (198.18.0.0/15)
+# 6.1 Fake-IP 回指路由 (198.18.0.0/15 - 先入内核即刻生效，再持久化至 UCI)
+ip route replace 198.18.0.0/15 via "$CUBEX_IP" dev "$LAN_IF" 2>/dev/null || ip route replace 198.18.0.0/15 via "$CUBEX_IP" 2>/dev/null || true
 uci -q delete network.cubex_fakeip || true
 uci set network.cubex_fakeip=route
 uci set network.cubex_fakeip.interface='lan'
@@ -247,14 +271,16 @@ uci set network.cubex_fakeip.target='198.18.0.0'
 uci set network.cubex_fakeip.netmask='255.254.0.0'
 uci set network.cubex_fakeip.gateway="$CUBEX_IP"
 uci commit network
-/etc/init.d/network reload >/dev/null 2>&1 || true
-ip route replace 198.18.0.0/15 via "$CUBEX_IP" dev "$LAN_IF" 2>/dev/null || ip route replace 198.18.0.0/15 via "$CUBEX_IP" 2>/dev/null || true
 
-# 6.2 DHCP Option 6 指向 CubeX
-uci -q del_list dhcp.lan.dhcp_option="6,${CUBEX_IP}" || true
+# 6.2 DHCP Option 6 指向 CubeX (SIGHUP 平滑重载，0 断网)
+for opt in $(uci -q get dhcp.lan.dhcp_option 2>/dev/null); do
+    case "$opt" in
+        6,*) uci -q del_list dhcp.lan.dhcp_option="$opt" ;;
+    esac
+done
 uci add_list dhcp.lan.dhcp_option="6,${CUBEX_IP}"
 uci commit dhcp
-/etc/init.d/dnsmasq restart >/dev/null 2>&1 || true
+/etc/init.d/dnsmasq reload >/dev/null 2>&1 || /etc/init.d/dnsmasq restart >/dev/null 2>&1 || true
 
 # 6.3 锁定 odhcpd 杜绝运营商 IPv6 DNS 泄露
 uci set dhcp.lan.dns_service='0' 2>/dev/null || true
@@ -262,13 +288,22 @@ uci -q delete dhcp.lan.dns 2>/dev/null || true
 uci set dhcp.lan.ra_dns='0' 2>/dev/null || true
 uci commit dhcp 2>/dev/null || true
 /etc/init.d/odhcpd enable >/dev/null 2>&1 || true
-/etc/init.d/odhcpd restart >/dev/null 2>&1 || true
+/etc/init.d/odhcpd reload >/dev/null 2>&1 || /etc/init.d/odhcpd restart >/dev/null 2>&1 || true
 
-# 6.4 防火墙转发放行与内核优化
+# 6.4 全版本防火墙 (fw3/fw4 双向向下兼容) 转发放行与内核优化
 sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
 sysctl -w net.ipv4.conf.all.rp_filter=0 >/dev/null 2>&1 || true
 uci set firewall.@zone[0].forward='ACCEPT' 2>/dev/null || true
+uci -q delete firewall.cubex_bypass || true
+uci set firewall.cubex_bypass=rule
+uci set firewall.cubex_bypass.name='CubeX-Bypass-Forward'
+uci set firewall.cubex_bypass.src='*'
+uci set firewall.cubex_bypass.dest='*'
+uci set firewall.cubex_bypass.proto='all'
+uci set firewall.cubex_bypass.target='ACCEPT'
 uci commit firewall 2>/dev/null || true
+iptables -C FORWARD -d 198.18.0.0/15 -j ACCEPT 2>/dev/null || iptables -I FORWARD 1 -d 198.18.0.0/15 -j ACCEPT 2>/dev/null || true
+iptables -C FORWARD -s 198.18.0.0/15 -j ACCEPT 2>/dev/null || iptables -I FORWARD 1 -s 198.18.0.0/15 -j ACCEPT 2>/dev/null || true
 /etc/init.d/firewall reload >/dev/null 2>&1 || true
 
 # 6.5 植入 0 秒毫秒级自愈逃生看门狗

@@ -77,7 +77,7 @@ func TestIKuaiClientMock(t *testing.T) {
 			return
 		}
 
-		if req.FuncName == "dhcp" {
+		if req.FuncName == "dhcp" || req.FuncName == "dhcp_server" {
 			data := map[string]any{
 				"data": []map[string]any{
 					{

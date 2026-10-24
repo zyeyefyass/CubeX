@@ -9211,6 +9211,14 @@ async function applyLinuxHostFirewall() {
   const isOw = isOpenWrt.value
   showToast(isOw ? '📡 正在下发 OpenWrt Fake-IP 静态回指、DHCP Option 6 引导与逃生看门狗...' : (isIk ? '🚀 正在下发爱快静态回指路由与 DHCP 联动...' : `⚡ 正在下发 ${hostBadge.value.name} 防火墙转发规则与内核参数...`))
   try {
+    // 自动将界面最新填写的宿主凭据静默持久化，确保立刻生效
+    if (hostConfig.value && hostConfig.value.host) {
+      await fetch('/api/v1/host/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(hostConfig.value)
+      }).catch(() => {})
+    }
     const res = await fetch('/api/v1/host/firewall/apply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

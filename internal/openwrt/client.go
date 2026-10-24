@@ -245,7 +245,7 @@ func (c *Client) callUbus(obj, method string, params map[string]any) ([]byte, er
 	return nil, fmt.Errorf("ubus call %s.%s failed: %s", obj, method, string(ubusResp.Result))
 }
 
-// runSSHCommand executes a shell command over Dropbear/OpenSSH with standard credentials.
+// runSSHCommand executes a shell command over Dropbear/OpenSSH with standard credentials and a strict timeout.
 func (c *Client) runSSHCommand(cmd string) (string, error) {
 	sshPort := 22
 	if c.cfg.Port > 0 && c.cfg.Port != 80 && c.cfg.Port != 443 {
@@ -274,11 +274,27 @@ func (c *Client) runSSHCommand(cmd string) (string, error) {
 	}
 	defer session.Close()
 
-	out, err := session.CombinedOutput(cmd)
-	if err != nil {
-		return strings.TrimSpace(string(out)), fmt.Errorf("command execution error: %w (%s)", err, strings.TrimSpace(string(out)))
+	type cmdResult struct {
+		out []byte
+		err error
 	}
-	return strings.TrimSpace(string(out)), nil
+	ch := make(chan cmdResult, 1)
+	go func() {
+		out, err := session.CombinedOutput(cmd)
+		ch <- cmdResult{out: out, err: err}
+	}()
+
+	select {
+	case res := <-ch:
+		if res.err != nil {
+			return strings.TrimSpace(string(res.out)), fmt.Errorf("command execution error: %w (%s)", res.err, strings.TrimSpace(string(res.out)))
+		}
+		return strings.TrimSpace(string(res.out)), nil
+	case <-time.After(15 * time.Second):
+		_ = session.Signal(ssh.SIGKILL)
+		_ = session.Close()
+		return "", fmt.Errorf("ssh command execution timed out after 15s")
+	}
 }
 
 func (c *Client) probeViaSSH() (*SystemInfo, error) {
@@ -369,15 +385,21 @@ func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
 
 	script := fmt.Sprintf(`
 set -e
-# 1. Fake-IP 198.18.0.0/15 Return Route via CubeX Gateway
+# 1. Fake-IP 198.18.0.0/15 Return Route via CubeX Gateway (Instant Kernel Route + UCI Boot Persist)
+ip route replace 198.18.0.0/15 via %[1]s 2>/dev/null || true
+if ip link show macvlan-shim >/dev/null 2>&1; then
+    ip link set macvlan-shim up 2>/dev/null || true
+    ip route replace %[1]s/32 dev macvlan-shim 2>/dev/null || true
+fi
+
+# Persist to UCI network for boot survival (Avoid synchronous network reload to prevent bridge drop and SSH SIGTERM)
 uci -q delete network.cubex_fakeip || true
 uci set network.cubex_fakeip=route
 uci set network.cubex_fakeip.interface='lan'
 uci set network.cubex_fakeip.target='198.18.0.0'
 uci set network.cubex_fakeip.netmask='255.254.0.0'
-uci set network.cubex_fakeip.gateway='%s'
+uci set network.cubex_fakeip.gateway='%[1]s'
 
-# Preserve macvlan-shim route to container if running on same OpenWrt host
 if ip link show macvlan-shim >/dev/null 2>&1; then
     uci -q delete network.cubex_shim_route || true
     uci set network.cubex_shim_route=route
@@ -385,16 +407,30 @@ if ip link show macvlan-shim >/dev/null 2>&1; then
     uci set network.cubex_shim_route.target='%[1]s'
     uci set network.cubex_shim_route.netmask='255.255.255.255'
 fi
-
 uci commit network
-/etc/init.d/network reload >/dev/null 2>&1 || true
-ip route replace 198.18.0.0/15 via %s 2>/dev/null || true
-if ip link show macvlan-shim >/dev/null 2>&1; then
-    ip link set macvlan-shim up 2>/dev/null || true
-    ip route replace %[1]s/32 dev macvlan-shim 2>/dev/null || true
-fi
 
-# 1.1 Seamless 2026 Port Forwarding (Direct host:2026 access even with macvlan)
+# 1.1 Seamless 2026 Port Forwarding (UCI Redirect + Hairpin NAT + Immediate Kernel DNAT)
+uci -q delete firewall.cubex_dnat || true
+uci set firewall.cubex_dnat=redirect
+uci set firewall.cubex_dnat.name='CubeX-Panel-2026'
+uci set firewall.cubex_dnat.src='lan'
+uci set firewall.cubex_dnat.src_dport='2026'
+uci set firewall.cubex_dnat.dest='lan'
+uci set firewall.cubex_dnat.dest_ip='%[1]s'
+uci set firewall.cubex_dnat.dest_port='2026'
+uci set firewall.cubex_dnat.proto='tcp'
+uci set firewall.cubex_dnat.target='DNAT'
+
+uci -q delete firewall.cubex_hairpin || true
+uci set firewall.cubex_hairpin=nat
+uci set firewall.cubex_hairpin.name='CubeX-Hairpin-NAT'
+uci set firewall.cubex_hairpin.src='lan'
+uci set firewall.cubex_hairpin.dest_ip='%[1]s'
+uci set firewall.cubex_hairpin.dest_port='2026'
+uci set firewall.cubex_hairpin.proto='tcp'
+uci set firewall.cubex_hairpin.target='MASQUERADE'
+uci commit firewall
+
 iptables -t nat -C PREROUTING -p tcp --dport 2026 -j DNAT --to-destination %[1]s:2026 2>/dev/null || \
 iptables -t nat -I PREROUTING 1 -p tcp --dport 2026 -j DNAT --to-destination %[1]s:2026 2>/dev/null || true
 iptables -t nat -C POSTROUTING -p tcp -d %[1]s --dport 2026 -j MASQUERADE 2>/dev/null || \
@@ -402,18 +438,20 @@ iptables -t nat -I POSTROUTING 1 -p tcp -d %[1]s --dport 2026 -j MASQUERADE 2>/d
 iptables -C FORWARD -p tcp -d %[1]s --dport 2026 -j ACCEPT 2>/dev/null || \
 iptables -I FORWARD 1 -p tcp -d %[1]s --dport 2026 -j ACCEPT 2>/dev/null || true
 
-# 2. DHCP Option 6 (DNS) Injection to point directly to CubeX
-# Remove any existing option 6 list entry to prevent duplicate DNS
-while uci -q del_list dhcp.lan.dhcp_option='6,223.5.5.5'; do :; done
-while uci -q del_list dhcp.lan.dhcp_option='6,%s'; do :; done
-uci add_list dhcp.lan.dhcp_option='6,%s'
+# 2. DHCP Option 6 (DNS) Injection to point directly to CubeX (Safe non-blocking clean)
+for opt in $(uci -q get dhcp.lan.dhcp_option 2>/dev/null); do
+    case "$opt" in
+        6,*) uci -q del_list dhcp.lan.dhcp_option="$opt" ;;
+    esac
+done
+uci add_list dhcp.lan.dhcp_option='6,%[1]s'
 uci commit dhcp
-/etc/init.d/dnsmasq restart >/dev/null 2>&1 || true
+/etc/init.d/dnsmasq reload >/dev/null 2>&1 || /etc/init.d/dnsmasq restart >/dev/null 2>&1 || true
 
 # 3. Deploy 0-Second Failover Watchdog Script in OpenWrt
 cat << 'EOF' > /usr/bin/cubex-watchdog.sh
 #!/bin/sh
-CUBEX_IP="%s"
+CUBEX_IP="%[1]s"
 BACKUP_DNS="223.5.5.5"
 
 # Lightweight microsecond probe (dual fallback: /api/health & /api/v1/system/status)
@@ -422,8 +460,11 @@ if wget -q -T 2 -O - "http://${CUBEX_IP}:2026/api/health" 2>/dev/null | grep -q 
     CURRENT=$(uci -q get dhcp.lan.dhcp_option | grep -o "${CUBEX_IP}" || true)
     if [ -z "$CURRENT" ]; then
         logger -t cubex-watchdog "🛡️ CubeX Gateway revived! Restoring DHCP Option 6 to ${CUBEX_IP}"
-        while uci -q del_list dhcp.lan.dhcp_option="6,${BACKUP_DNS}"; do :; done
-        while uci -q del_list dhcp.lan.dhcp_option="6,${CUBEX_IP}"; do :; done
+        for opt in $(uci -q get dhcp.lan.dhcp_option 2>/dev/null); do
+            case "$opt" in
+                6,*) uci -q del_list dhcp.lan.dhcp_option="$opt" ;;
+            esac
+        done
         uci add_list dhcp.lan.dhcp_option="6,${CUBEX_IP}"
         uci commit dhcp
         /etc/init.d/dnsmasq reload >/dev/null 2>&1
@@ -433,8 +474,11 @@ else
     CURRENT=$(uci -q get dhcp.lan.dhcp_option | grep -o "${CUBEX_IP}" || true)
     if [ -n "$CURRENT" ]; then
         logger -t cubex-watchdog "🚨 CubeX Gateway unreachable! Activating 0-second failover to ${BACKUP_DNS}"
-        while uci -q del_list dhcp.lan.dhcp_option="6,${CUBEX_IP}"; do :; done
-        while uci -q del_list dhcp.lan.dhcp_option="6,${BACKUP_DNS}"; do :; done
+        for opt in $(uci -q get dhcp.lan.dhcp_option 2>/dev/null); do
+            case "$opt" in
+                6,*) uci -q del_list dhcp.lan.dhcp_option="$opt" ;;
+            esac
+        done
         uci add_list dhcp.lan.dhcp_option="6,${BACKUP_DNS}"
         uci commit dhcp
         /etc/init.d/dnsmasq reload >/dev/null 2>&1
@@ -449,7 +493,7 @@ if ! grep -q "cubex-watchdog.sh" /etc/crontabs/root 2>/dev/null; then
     /etc/init.d/cron enable >/dev/null 2>&1 || true
     /etc/init.d/cron restart >/dev/null 2>&1 || true
 fi
-`, cubexIP, cubexIP, cubexIP, cubexIP, cubexIP)
+`, cubexIP)
 
 	out, err := c.runSSHCommand(script)
 	if err != nil {
@@ -481,29 +525,34 @@ fi
 uci set firewall.@zone[0].forward='ACCEPT'
 uci commit firewall
 
-# 3. Detect firewall4 (nftables) vs firewall3 (iptables)
+# 3. Universal Firewall Forwarding (Natively compatible with fw4 nftables & fw3 iptables)
+rm -f /etc/nftables.d/10-cubex-bypass.nft 2>/dev/null || true
+
+# UCI Firewall Rule: allow 198.18.0.0/15 bypass traffic across all zones
+uci -q delete firewall.cubex_bypass || true
+uci set firewall.cubex_bypass=rule
+uci set firewall.cubex_bypass.name='CubeX-Bypass-Forward'
+uci set firewall.cubex_bypass.src='*'
+uci set firewall.cubex_bypass.dest='*'
+uci set firewall.cubex_bypass.proto='all'
+uci set firewall.cubex_bypass.target='ACCEPT'
+uci commit firewall
+
+# Immediate runtime kernel iptables rules (works across all Linux/OpenWrt kernels via iptables/xtables-nft)
+iptables -C FORWARD -d 198.18.0.0/15 -j ACCEPT 2>/dev/null || iptables -I FORWARD 1 -d 198.18.0.0/15 -j ACCEPT 2>/dev/null || true
+iptables -C FORWARD -s 198.18.0.0/15 -j ACCEPT 2>/dev/null || iptables -I FORWARD 1 -s 198.18.0.0/15 -j ACCEPT 2>/dev/null || true
+
+# Legacy fw3 /etc/firewall.user persistence
+if [ -f /etc/firewall.user ] && ! grep -q "198.18.0.0/15" /etc/firewall.user 2>/dev/null; then
+    echo "iptables -I FORWARD -d 198.18.0.0/15 -j ACCEPT" >> /etc/firewall.user
+    echo "iptables -I FORWARD -s 198.18.0.0/15 -j ACCEPT" >> /etc/firewall.user
+fi
+
+# Runtime iptables and UCI commit already active immediately (avoid firewall reload mid-request)
+
 if command -v fw4 >/dev/null 2>&1 || [ -f /etc/init.d/firewall ] && grep -q "fw4" /etc/init.d/firewall; then
-    # Firewall4 (nftables): Inject custom inclusion for bypass traffic
-    mkdir -p /etc/nftables.d
-    cat << 'EOF' > /etc/nftables.d/10-cubex-bypass.nft
-# CubeX Bypass Acceleration & Asymmetric Flow Whitelist
-table inet fw4 {
-    chain cubex_forward {
-        type filter hook forward priority -5; policy accept;
-        ip daddr 198.18.0.0/15 accept
-        ip saddr 198.18.0.0/15 accept
-    }
-}
-EOF
-    /etc/init.d/firewall reload >/dev/null 2>&1 || true
     echo "FW_MODE:firewall4"
 else
-    # Firewall3 (iptables): Inject into /etc/firewall.user
-    if ! grep -q "198.18.0.0/15" /etc/firewall.user 2>/dev/null; then
-        echo "iptables -I FORWARD -d 198.18.0.0/15 -j ACCEPT" >> /etc/firewall.user
-        echo "iptables -I FORWARD -s 198.18.0.0/15 -j ACCEPT" >> /etc/firewall.user
-    fi
-    /etc/init.d/firewall restart >/dev/null 2>&1 || true
     echo "FW_MODE:firewall3"
 fi
 `

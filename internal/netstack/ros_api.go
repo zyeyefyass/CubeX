@@ -30,7 +30,7 @@ func NewRosClient(cfg RosConfig) *RosClient {
 		cfg.Port = 80
 	}
 	if cfg.CubeXIP == "" {
-		cfg.CubeXIP = "10.0.0.7"
+		cfg.CubeXIP = "127.0.0.1"
 	}
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -74,7 +74,7 @@ func (r *RosClient) Ping() (bool, string, error) {
 func (r *RosClient) GenerateWinBoxScript() string {
 	ip := r.cfg.CubeXIP
 	if ip == "" {
-		ip = "10.0.0.7"
+		ip = "127.0.0.1"
 	}
 
 	return fmt.Sprintf(`# ════════════════════════════════════════════════════════════════════

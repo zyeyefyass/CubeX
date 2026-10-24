@@ -304,6 +304,38 @@ func (c *Client) GetSysStat() (*SysStatInfo, error) {
 	return info, nil
 }
 
+// getDHCPConfig queries DHCP settings, dynamically supporting both modern iKuai 3.7+/4.0 (dhcp_server) and legacy (dhcp).
+func (c *Client) getDHCPConfig() (string, []map[string]any, error) {
+	// 1. Try modern iKuai 3.7+ / 4.0 func_name: dhcp_server
+	resp, err := c.Call("dhcp_server", "show", map[string]string{
+		"TYPE":  "data,total",
+		"limit": "0,50",
+	})
+	if err == nil && resp.Result == 30000 && len(resp.Data) > 0 {
+		var dData struct {
+			Data []map[string]any `json:"data"`
+		}
+		if jsonErr := json.Unmarshal(resp.Data, &dData); jsonErr == nil && len(dData.Data) > 0 {
+			return "dhcp_server", dData.Data, nil
+		}
+	}
+
+	// 2. Fallback to legacy func_name: dhcp
+	resp, err = c.Call("dhcp", "show", map[string]string{
+		"TYPE":  "data,total",
+		"limit": "0,50",
+	})
+	if err == nil && resp.Result == 30000 {
+		var dData struct {
+			Data []map[string]any `json:"data"`
+		}
+		_ = json.Unmarshal(resp.Data, &dData)
+		return "dhcp", dData.Data, nil
+	}
+
+	return "", nil, fmt.Errorf("无法查询爱快 DHCP 服务配置")
+}
+
 // InspectRouting checks if 198.18.0.0/15 static route and DHCP DNS are configured.
 func (c *Client) InspectRouting(cubexIP string) (hasRoute bool, hasDNS bool, details string, err error) {
 	// 1. Check static route
@@ -339,23 +371,12 @@ func (c *Client) InspectRouting(cubexIP string) (hasRoute bool, hasDNS bool, det
 		}
 	}
 
-	// 2. Check DHCP server DNS
-	dhcpResp, err := c.Call("dhcp", "show", map[string]string{
-		"TYPE":  "data,total",
-		"limit": "0,50",
-	})
-	if err == nil && dhcpResp.Result == 30000 {
-		var dData struct {
-			Data []struct {
-				ID        any    `json:"id"`
-				Interface string `json:"interface"`
-				DNS1      string `json:"dns1"`
-				Gateway   string `json:"gateway"`
-			} `json:"data"`
-		}
-		_ = json.Unmarshal(dhcpResp.Data, &dData)
-		for _, d := range dData.Data {
-			if d.DNS1 == cubexIP && cubexIP != "" {
+	// 2. Check DHCP server DNS (supports modern dhcp_server and legacy dhcp)
+	_, dhcpList, errDHCP := c.getDHCPConfig()
+	if errDHCP == nil {
+		for _, d := range dhcpList {
+			currDNS1, _ := d["dns1"].(string)
+			if currDNS1 == cubexIP && cubexIP != "" {
 				hasDNS = true
 				break
 			}
@@ -387,31 +408,43 @@ func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
 	logs := []string{}
 	lanIf := "lan1"
 
-	// 1. Inspect DHCP server to determine active LAN interface and configure DNS1
-	dhcpResp, err := c.Call("dhcp", "show", map[string]string{
-		"TYPE":  "data,total",
-		"limit": "0,50",
-	})
-	if err == nil && dhcpResp.Result == 30000 {
-		var dData struct {
-			Data []map[string]any `json:"data"`
-		}
-		_ = json.Unmarshal(dhcpResp.Data, &dData)
-		for _, d := range dData.Data {
+	// 1. Inspect DHCP server: query existing settings and safely preserve them
+	fnDHCP, dhcpList, errDHCP := c.getDHCPConfig()
+	if errDHCP == nil && len(dhcpList) > 0 {
+		for _, d := range dhcpList {
 			if iface, ok := d["interface"].(string); ok && iface != "" {
 				lanIf = iface
 			}
 			idVal := d["id"]
 			currDNS1, _ := d["dns1"].(string)
+			currDNS2, _ := d["dns2"].(string)
+			gw, _ := d["gateway"].(string)
+
 			if currDNS1 != cubexIP && idVal != nil {
-				// Clone param and update dns1
+				// Pre-flight preserve: if currDNS2 is empty and currDNS1 had a valid upstream DNS (like 223.5.5.5/114.114.114.114),
+				// preserve it into dns2 as failover backup so clients never lose internet if CubeX is down!
+				if currDNS2 == "" && currDNS1 != "" && currDNS1 != cubexIP && currDNS1 != gw {
+					d["dns2"] = currDNS1
+				} else if currDNS2 == "" {
+					d["dns2"] = "223.5.5.5"
+				}
+
+				// Update primary DNS to CubeX
 				d["dns1"] = cubexIP
-				editResp, editErr := c.Call("dhcp", "edit", d)
+				editResp, editErr := c.Call(fnDHCP, "edit", d)
 				if editErr == nil && editResp.Result == 30000 {
-					logs = append(logs, fmt.Sprintf("成功更新爱快 DHCP 首选 DNS 为 CubeX 独立 IP: %s (接口 %s)", cubexIP, lanIf))
+					logs = append(logs, fmt.Sprintf("成功更新爱快 DHCP 首选 DNS 为 CubeX 独立 IP: %s (备用DNS保持: %v, 网关保持: %s, 接口: %s)", cubexIP, d["dns2"], gw, lanIf))
+				} else {
+					errMsg := "未知错误"
+					if editErr != nil {
+						errMsg = editErr.Error()
+					} else if editResp != nil {
+						errMsg = editResp.ErrMsg
+					}
+					logs = append(logs, fmt.Sprintf("更新爱快 DHCP 失败: %s", errMsg))
 				}
 			} else if currDNS1 == cubexIP {
-				logs = append(logs, fmt.Sprintf("爱快 DHCP 首选 DNS 已是 CubeX IP (%s)，状态健康", cubexIP))
+				logs = append(logs, fmt.Sprintf("爱快 DHCP 首选 DNS 已是 CubeX IP (%s)，备用DNS: %s，状态健康", cubexIP, currDNS2))
 			}
 		}
 	}

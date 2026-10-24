@@ -44,7 +44,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 	rosCfg := m.GetConfig()
 	cubexIP := m.GetOutboundIP()
 	if cubexIP == "" {
-		cubexIP = "10.0.0.7"
+		cubexIP = m.GetOutboundIP()
 	}
 
 	report := &InspectionReport{
@@ -704,7 +704,7 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		targetIP = m.GetOutboundIP()
 	}
 	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
-		targetIP = "10.0.0.7"
+		targetIP = m.GetOutboundIP()
 	}
 
 	res := &ApplyResult{
@@ -1284,7 +1284,7 @@ func (m *Manager) PurgeConflictingFakeIPRoutes(targetIP string) int {
 		targetIP = m.GetOutboundIP()
 	}
 	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
-		targetIP = "10.0.0.7"
+		targetIP = m.GetOutboundIP()
 	}
 	data, err := m.QueryROS("/ip/route")
 	if err != nil {
@@ -1343,7 +1343,7 @@ func (m *Manager) CleanAndReapplyRouting(targetIP string) (*ApplyResult, error) 
 		targetIP = m.GetOutboundIP()
 	}
 	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
-		targetIP = "10.0.0.7"
+		targetIP = m.GetOutboundIP()
 	}
 
 	res := &ApplyResult{
@@ -1438,7 +1438,7 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 		targetIP = m.GetOutboundIP()
 	}
 	if targetIP == "" {
-		targetIP = "10.0.0.7"
+		targetIP = m.GetOutboundIP()
 	}
 
 	var sb strings.Builder
@@ -1751,7 +1751,7 @@ func (m *Manager) EnsureFakeIPRoute(targetIP string) bool {
 		targetIP = m.GetOutboundIP()
 	}
 	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
-		targetIP = "10.0.0.7"
+		targetIP = m.GetOutboundIP()
 	}
 	data, err := m.QueryROS("/ip/route")
 	if err != nil {
@@ -1817,7 +1817,7 @@ func (m *Manager) EnsureBridgeDAIProtection(targetIP string) (bool, string) {
 		targetIP = m.GetOutboundIP()
 	}
 	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
-		targetIP = "10.0.0.7"
+		targetIP = m.GetOutboundIP()
 	}
 
 	pData, err := m.QueryROS("/interface/bridge/port")

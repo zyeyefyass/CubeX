@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ═════════════════════════════════════════════════════════════════════════════
 # 🌌 CubeX Universal Deployer · 次世代双擎高可用旁路网关一键极速安装程序
-# Target Version: Test v1.5
+# Target Version: latest
 # Supported Hosts: 爱快 iKuai (KVM/Docker/主路由联动), 飞牛 fnOS, RouterOS, PVE, OpenWrt, Linux
 # ═════════════════════════════════════════════════════════════════════════════
 set -e
@@ -25,7 +25,7 @@ cat << "EOF"
  ╚██████╗╚██████╔╝██████╔╝███████╗██╔╝ ██╗
   ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝
  🌌 次世代双擎高可用旁路网关系统 · 软路由的天花板
- [Version: Test v1.5 | Engine: Mihomo × sing-box v1.14+]
+ [Version: latest | Engine: Mihomo × sing-box v1.14+]
 EOF
 echo ""
 
@@ -312,6 +312,21 @@ if [ "$DEPLOY_MODE" = "docker" ]; then
     fi
 fi
 
+APP_PORT="${PORT:-${CUBEX_PORT:-2026}}"
+if command -v ss >/dev/null 2>&1; then
+    if ss -tuln | grep -q ":${APP_PORT} "; then
+        if docker ps 2>/dev/null | grep -q "cubex" || (command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet cubexd 2>/dev/null); then
+            echo -e "${CYAN}💡 检测到已有 CubeX 运行于端口 ${APP_PORT}，将执行平滑替换升级...${NC}"
+        else
+            echo -e "${YELLOW}⚠️ 宿主端口 ${APP_PORT} 已被其他应用占用，启动智能空闲端口探查...${NC}"
+            while ss -tuln | grep -q ":${APP_PORT} "; do
+                APP_PORT=$((APP_PORT + 1))
+            done
+            echo -e "${GREEN}✅ 自动切换至空闲可用端口: ${APP_PORT}${NC}"
+        fi
+    fi
+fi
+
 if [ "$DEPLOY_MODE" = "docker" ]; then
     cat <<EOF > "$INSTALL_DIR/docker-compose.yml"
 services:
@@ -333,8 +348,8 @@ services:
       - /etc/localtime:/etc/localtime:ro
     environment:
       - TZ=Asia/Shanghai
-      - CUBEX_PORT=2026
-      - CUBEX_LISTEN=:2026
+      - CUBEX_PORT=${APP_PORT}
+      - CUBEX_LISTEN=:${APP_PORT}
       - CUBEX_HOST_PLATFORM=${DETECTED_HOST}
       - GOMEMLIMIT=${HOST_GOMEMLIMIT}
       - GOGC=${HOST_GOGC}
@@ -355,6 +370,15 @@ EOF
         docker compose down 2>/dev/null || true
         docker compose up -d
     else
+        echo -e "${CYAN}💡 正在拉取最新版 Docker 镜像 (ghcr.io/zyeyefyass/cubex:latest)...${NC}"
+        DOCKER_IMG="ghcr.io/zyeyefyass/cubex:latest"
+        if ! docker pull "$DOCKER_IMG" 2>/dev/null; then
+            echo -e "${YELLOW}⚠️ GHCR 镜像源拉取超时，切换至 Docker Hub: docker.io/zyeyefyass/cubex:latest...${NC}"
+            docker pull "docker.io/zyeyefyass/cubex:latest" 2>/dev/null || true
+            if docker inspect "docker.io/zyeyefyass/cubex:latest" >/dev/null 2>&1; then
+                DOCKER_IMG="docker.io/zyeyefyass/cubex:latest"
+            fi
+        fi
         echo -e "${CYAN}💡 正在通过标准 docker run 命令拉起容器...${NC}"
         docker stop cubex 2>/dev/null || true
         docker rm cubex 2>/dev/null || true
@@ -368,18 +392,18 @@ EOF
           -v "$INSTALL_DIR/data:/app/data" \
           -v "$INSTALL_DIR/etc:/app/etc" \
           -e TZ=Asia/Shanghai \
-          -e CUBEX_PORT=2026 \
-          -e CUBEX_LISTEN=:2026 \
+          -e CUBEX_PORT=${APP_PORT} \
+          -e CUBEX_LISTEN=:${APP_PORT} \
           -e CUBEX_HOST_PLATFORM=${DETECTED_HOST} \
           -e GOMEMLIMIT=${HOST_GOMEMLIMIT} \
           -e GOGC=${HOST_GOGC} \
-          ghcr.io/zyeyefyass/cubex:latest || true
+          "$DOCKER_IMG" || true
     fi
 
 else
     echo -e "${PURPLE}⚡ [3/4] 正在配置原生单二进制 Systemd 守护进程...${NC}"
     
-    # 查找本地是否有编译好的二进制，若有则复制
+    # 查找本地是否有编译好的二进制，若有则复制；若无则自动从 GitHub Releases latest 下载
     if [ -f "$CURRENT_SCRIPT_DIR/../dist/cubexd-linux-$TARGET_ARCH" ]; then
         cp "$CURRENT_SCRIPT_DIR/../dist/cubexd-linux-$TARGET_ARCH" "$INSTALL_DIR/bin/cubexd"
     elif [ -f "$CURRENT_SCRIPT_DIR/dist/cubexd-linux-$TARGET_ARCH" ]; then
@@ -388,6 +412,14 @@ else
         cp "./dist/cubexd-linux-$TARGET_ARCH" "$INSTALL_DIR/bin/cubexd"
     elif [ -f "$CURRENT_SCRIPT_DIR/cubexd" ]; then
         cp "$CURRENT_SCRIPT_DIR/cubexd" "$INSTALL_DIR/bin/cubexd"
+    elif [ ! -f "$INSTALL_DIR/bin/cubexd" ]; then
+        echo -e "${CYAN}🌐 正在从 GitHub 官方 Releases 拉取最新版 cubexd (${TARGET_ARCH})...${NC}"
+        DL_URL="https://github.com/zyeyefyass/CubeX/releases/latest/download/cubexd-linux-$TARGET_ARCH"
+        DL_MIRROR="https://ghproxy.net/$DL_URL"
+        if ! curl -sSL --connect-timeout 6 -m 60 -o "$INSTALL_DIR/bin/cubexd" "$DL_URL"; then
+            echo -e "${YELLOW}⚠️ 直连下载超时，正在切换至加速镜像: ${DL_MIRROR}...${NC}"
+            curl -sSL --connect-timeout 8 -m 60 -o "$INSTALL_DIR/bin/cubexd" "$DL_MIRROR" || true
+        fi
     fi
     chmod +x "$INSTALL_DIR/bin/cubexd" 2>/dev/null || true
 
@@ -402,7 +434,7 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory=$INSTALL_DIR
-ExecStart=$INSTALL_DIR/bin/cubexd -dir $INSTALL_DIR -listen :2026
+ExecStart=$INSTALL_DIR/bin/cubexd -dir $INSTALL_DIR -listen :${APP_PORT}
 Restart=always
 RestartSec=2s
 LimitNOFILE=65535
@@ -436,6 +468,19 @@ for cli_path in "$CURRENT_SCRIPT_DIR/../dist/cubex-linux-$TARGET_ARCH" "$CURRENT
 done
 
 if [ "$CLI_INSTALLED" -eq 0 ]; then
+    echo -e "${CYAN}🌐 正在尝试拉取最新版原生运维 CLI (cubex-linux-${TARGET_ARCH})...${NC}"
+    CLI_URL="https://github.com/zyeyefyass/CubeX/releases/latest/download/cubex-linux-$TARGET_ARCH"
+    CLI_MIRROR="https://ghproxy.net/$CLI_URL"
+    if curl -sSL --connect-timeout 5 -m 30 -o /usr/local/bin/cubex "$CLI_URL" 2>/dev/null && [ -s /usr/local/bin/cubex ]; then
+        chmod +x /usr/local/bin/cubex 2>/dev/null || true
+        CLI_INSTALLED=1
+    elif curl -sSL --connect-timeout 6 -m 30 -o /usr/local/bin/cubex "$CLI_MIRROR" 2>/dev/null && [ -s /usr/local/bin/cubex ]; then
+        chmod +x /usr/local/bin/cubex 2>/dev/null || true
+        CLI_INSTALLED=1
+    fi
+fi
+
+if [ "$CLI_INSTALLED" -eq 0 ]; then
 cat << 'EOF' > /usr/local/bin/cubex
 #!/usr/bin/env bash
 ACTION="$1"
@@ -446,7 +491,7 @@ case "$ACTION" in
         elif command -v systemctl >/dev/null 2>&1; then
             systemctl status cubex --no-pager
         fi
-        curl -s http://127.0.0.1:2026/api/v1/system/status | grep -o '"version":[^,]*' || true
+        curl -s http://127.0.0.1:${APP_PORT}/api/v1/system/status | grep -o '"version":[^,]*' || true
         ;;
     restart)
         echo "🔄 正在重启 CubeX 守护进程..."
@@ -466,12 +511,12 @@ case "$ACTION" in
         ;;
     reload)
         echo "🔄 热重载分流策略与规则..."
-        curl -s -X POST http://127.0.0.1:2026/api/v1/system/reload-config
+        curl -s -X POST http://127.0.0.1:${APP_PORT}/api/v1/system/reload-config
         echo ""
         ;;
     ikuai)
         echo "🌐 爱快 iKuai 宿主联动中枢"
-        curl -s -X POST http://127.0.0.1:2026/api/v1/host/auto-setup
+        curl -s -X POST http://127.0.0.1:${APP_PORT}/api/v1/host/auto-setup
         echo ""
         ;;
     *)
@@ -490,7 +535,7 @@ echo ""
 echo -e "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"
 echo -e "${BOLD}${GREEN}🎉 恭喜！CubeX · 次世代双擎高可用旁路网关部署成功！${NC}"
 echo -e "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"
-echo -e "  🌐 ${BOLD}Web 控制驾驶舱:${NC}   ${CYAN}http://${LOCAL_IP}:2026${NC}"
+echo -e "  🌐 ${BOLD}Web 控制驾驶舱:${NC}   ${CYAN}http://${LOCAL_IP}:${APP_PORT}${NC}"
 echo -e "  🖥️  ${BOLD}已识别宿主底座:${NC}   ${PURPLE}${DETECTED_HOST_NAME}${NC}"
 echo -e "  📁 ${BOLD}持久化工作目录:${NC}   ${BLUE}${INSTALL_DIR}${NC}"
 echo -e "  ⚡ ${BOLD}双核心代理架构:${NC}   ${GREEN}Mihomo Meta ⇄ sing-box v1.14+ (毫秒级零断网热切)${NC}"
@@ -509,7 +554,7 @@ if [ "$IS_IKUAI_GATEWAY" -eq 1 ]; then
     echo -e "${PURPLE}═════════════════════════════════════════════════════════════════════════${NC}"
     echo -e "  💡 爱快旁路由拓扑核心：需在爱快中将 ${BOLD}198.18.0.0/15${NC} 静态回指路由指向 CubeX (${LOCAL_IP})"
     echo -e "  🔧 ${BOLD}全自动一键配置步骤:${NC}"
-    echo -e "     1. 浏览器打开: ${CYAN}http://${LOCAL_IP}:2026${NC}"
+    echo -e "     1. 浏览器打开: ${CYAN}http://${LOCAL_IP}:${APP_PORT}${NC}"
     echo -e "     2. 进入左侧导航【宿主共生凭据】，选择【爱快 iKuai】"
     echo -e "     3. 填入爱快地址 (${DEFAULT_GW}) 与 Web 管理密码"
     echo -e "     4. 点击【一键自愈与规则加固】，系统自动写入 198.18.0.0/15 静态回指与 DHCP 首选 DNS！"
