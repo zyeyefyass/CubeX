@@ -168,20 +168,7 @@
 
         <!-- Right: 🌙 去蓝光护眼一键切换 + 宿主机官方矢量 Logo + 在线心跳胶囊 -->
         <div class="flex items-center gap-2 shrink-0">
-          <!-- 🧭 小白友好 / 极客模式切换 (Novice vs Geek Mode Toggle) -->
-          <button @click="toggleUiMode"
-            :class="[
-              'h-[42px] sm:h-[46px] inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-2xl border text-xs select-none transition-all cursor-pointer active:scale-95',
-              uiMode === 'novice'
-                ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-200 shadow-md shadow-emerald-950/50 ring-1 ring-emerald-400/40'
-                : 'bg-cyan-950/60 border-cyan-500/50 text-cyan-200 shadow-md shadow-cyan-950/50 ring-1 ring-cyan-400/40'
-            ]"
-            :title="uiMode === 'novice' ? '当前: 小白友好模式 (隐藏深层技术参数，通俗易懂 · 点击切换为极客模式)' : '当前: 极客模式 (透视完整策略路由与底层技术端口 · 点击切换为小白模式)'">
-            <span class="text-sm">{{ uiMode === 'novice' ? '🟢' : '⚡' }}</span>
-            <span class="hidden md:inline font-mono font-bold tracking-tight">
-              {{ uiMode === 'novice' ? '小白模式' : '极客模式' }}
-            </span>
-          </button>
+
 
           <!-- 🌙 去蓝光护眼 (Anti-Blue-Light Warm Spectrum Filter · 4500K 暖墨护眼) -->
           <button @click="toggleAntiBlueLight"
@@ -221,47 +208,6 @@
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- 🧪 双核容灾自愈安全演练实测报告弹窗 (Failover Drill Modal)             -->
-    <!-- ════════════════════════════════════════════════════════════════════ -->
-    <div v-if="drillResultModal.visible" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
-      <div class="w-full max-w-lg rounded-3xl bg-slate-900 border border-cyan-500/40 p-6 shadow-2xl space-y-5 text-slate-100">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div class="flex items-center gap-2">
-            <span class="text-xl">🧪</span>
-            <span class="font-bold text-base text-cyan-300">双核容灾自愈安全实测报告</span>
-          </div>
-          <button @click="drillResultModal.visible = false" class="text-slate-400 hover:text-white p-1 text-sm font-bold cursor-pointer">✕</button>
-        </div>
-
-        <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-emerald-500/30 flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span class="text-xs font-bold text-emerald-300">全流程毫秒自愈验证通过</span>
-          </div>
-          <span class="font-mono font-bold text-sm text-cyan-300">总耗时: {{ drillResultModal.data?.total_ms }}ms</span>
-        </div>
-
-        <!-- 4 Steps Timeline -->
-        <div class="space-y-2.5">
-          <div v-for="(step, idx) in drillResultModal.data?.steps" :key="idx"
-               class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between text-xs font-mono">
-            <div class="flex items-center gap-2.5 min-w-0">
-              <span class="w-5 h-5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
-              <span class="text-slate-200 truncate">{{ step.name }}</span>
-            </div>
-            <span class="text-cyan-400 font-bold shrink-0">{{ step.elapsed_ms }}ms</span>
-          </div>
-        </div>
-
-        <p class="text-xs text-slate-300 leading-relaxed font-sans bg-cyan-950/20 border border-cyan-500/20 p-3 rounded-xl">
-          {{ drillResultModal.data?.message }}
-        </p>
-
-        <button @click="drillResultModal.visible = false" class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition cursor-pointer">
-          关闭并保持当前运行状态
-        </button>
-      </div>
-    </div>
-
     <!-- Floating Regional Speedtest Toast Queue (Top-Right Stack, FIFO)      -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <transition-group name="speedtest-toast" tag="div"
@@ -431,10 +377,6 @@
                       <span>双擎热备与自愈</span>
                     </span>
                     <div class="flex items-center gap-1.5 shrink-0">
-                      <button @click="triggerFailoverDrill" :disabled="drillingFailover" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950/90 hover:bg-cyan-900 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 flex items-center gap-1 transition cursor-pointer disabled:opacity-50" title="安全模拟单核中断，实测毫秒级容灾自愈流程">
-                        <span :class="{'animate-spin': drillingFailover}">🧪</span>
-                        <span>{{ drillingFailover ? '演习中...' : '自愈演习' }}</span>
-                      </button>
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-medium flex items-center gap-1 shrink-0">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>双核就绪
                       </span>
@@ -563,8 +505,8 @@
                   </div>
 
                   <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
-                    <span class="text-slate-500">{{ uiMode === 'novice' ? '智能分流直出' : 'Clash API 控制器' }}</span>
-                    <span class="text-slate-400 font-bold">{{ uiMode === 'novice' ? '本地极速透明代理' : ':' + (ir.network?.clash_api_port || 9090) }}</span>
+                    <span class="text-slate-500">Clash API 控制器</span>
+                    <span class="text-slate-400 font-bold">:{{ ir.network?.clash_api_port || 9090 }}</span>
                   </div>
 
                   <!-- Visual Active Indicator Bar -->
@@ -578,176 +520,16 @@
             </div>
           </section>
 
-          <!-- 双核同节点 AB 竞技场 (排到双擎主控驾驶舱之下) -->
-          <section :class="['rounded-2xl p-5 sm:p-6 space-y-4 transition shadow-2xl', activeEngine === 'singbox' ? 'glass-aurora' : 'glass-matrix']">
-            <div class="flex items-center justify-between border-b border-slate-700/40 pb-3.5 flex-wrap gap-2">
-              <div>
-                <div class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                  <span>⚔️ 双核同节点 AB 延迟/吞吐竞技场</span>
-                </div>
-                <p class="text-xs text-slate-400 mt-1">基于同一出站节点的 Mihomo 与 sing-box 并行 TCP/TLS 握手延迟与内存开销基准对决</p>
-              </div>
-              <button @click="runBenchmark" :disabled="benchmarking" class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-lg active:scale-95 transition flex items-center gap-2">
-                <span v-if="benchmarking" class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                <span>{{ benchmarking ? '压测竞技中...' : '开始双核竞技' }}</span>
-              </button>
-            </div>
-
-            <!-- 测速目标网站选择栏 (多预设快捷切换 + 自定义URL) -->
-            <div class="space-y-3.5 pt-1.5">
-              <div class="flex items-center justify-between flex-wrap gap-2.5 py-1">
-                <span class="text-xs sm:text-[13px] font-semibold text-slate-300 flex items-center gap-2">
-                  <span>🎯 测速目标网站:</span>
-                  <span class="text-xs font-mono text-cyan-400 font-medium truncate max-w-[320px]">{{ benchmarkTargetUrl }}</span>
-                </span>
-                <span class="text-xs text-slate-400 font-mono flex items-center gap-2 flex-wrap">
-                  <span>应用分流:</span>
-                  <span class="px-2.5 py-1 rounded-xl bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 text-xs font-bold shadow-sm" :title="'匹配规则: ' + currentBenchmarkRoute.ruleTag">
-                    {{ currentBenchmarkRoute.groupName }}
-                  </span>
-                  <span class="text-slate-500 font-sans">➜</span>
-                  <span class="text-slate-400">节点组:</span>
-                  <span class="px-2.5 py-1 rounded-xl bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 text-xs font-bold shadow-sm" :title="'对应应用分流实际配置的节点组'">
-                    {{ currentBenchmarkRoute.targetGroupName }}
-                  </span>
-                </span>
-              </div>
-
-              <!-- 快捷网站选择标签矩阵 (共计 18 个高频常用网站，按用户使用频率精选排序，紧凑优雅排版) -->
-              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-1">
-                <button v-for="site in benchmarkPresetSites" :key="site.url"
-                  @click="selectBenchmarkSite(site.url)"
-                  :title="site.desc"
-                  :class="[
-                    'h-9 px-2.5 py-1 rounded-xl text-xs sm:text-[12px] font-medium transition flex items-center justify-center gap-1.5 border select-none active:scale-95 shadow-sm cursor-pointer truncate',
-                    benchmarkTargetUrl === site.url
-                      ? 'bg-gradient-to-r from-cyan-500/25 to-blue-500/25 text-cyan-300 border-cyan-400/60 shadow-[0_0_12px_rgba(0,210,255,0.25)] font-bold'
-                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-800 hover:border-slate-700'
-                  ]">
-                  <BrandLogo :name="site.logo" size="w-4 h-4" class="shrink-0" />
-                  <span class="truncate">{{ site.name }}</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- 双核同台极速竞技卡片 (高对比 Cyber Aurora 赛博极光视觉 · 醒目大 Logo 徽章排版) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-              
-              <!-- 1. sing-box 竞技卡片 (原生极速轻量) -->
-              <div class="rounded-2xl p-4 sm:p-4.5 bg-gradient-to-br from-purple-950/30 via-slate-900/80 to-slate-950/90 border border-purple-500/35 hover:border-purple-400/70 shadow-lg shadow-purple-950/20 hover:shadow-purple-900/40 transition-all duration-300 relative overflow-hidden group">
-                <div v-if="benchmarkResult.winner === 'singbox'" class="absolute top-2.5 right-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/25 text-purple-200 border border-purple-400/50 shadow-sm animate-pulse">
-                  🏆 优选领先
-                </div>
-                <div class="flex items-center gap-3.5">
-                  <!-- sing-box 专属发光大徽章 -->
-                  <div class="w-12 h-12 rounded-xl bg-purple-950/60 border border-purple-500/40 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(168,85,247,0.3)] group-hover:scale-105 group-hover:shadow-[0_0_18px_rgba(168,85,247,0.5)] transition-all">
-                    <img src="/logo-singbox.svg" class="w-8 h-8 object-contain drop-shadow-[0_0_6px_rgba(240,171,252,0.6)]" alt="sing-box" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between gap-2">
-                      <div class="flex items-baseline gap-1.5 min-w-0 truncate">
-                        <span class="text-sm sm:text-base font-black text-purple-200 tracking-wide">sing-box</span>
-                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.singbox_curr_version || 'v1.14.4' }}</span>
-                      </div>
-                      <span class="font-mono text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-lg bg-slate-950/80 border border-purple-500/30 text-purple-300 shrink-0">
-                        {{ benchmarkResult.singbox ? benchmarkResult.singbox.total_latency_ms + ' ms' : '等待竞技' }}
-                      </span>
-                    </div>
-                    <div class="text-[11px] text-purple-300/80 font-medium tracking-tight mt-0.5 truncate">
-                      原生 · 极速轻量低开销
-                    </div>
-                  </div>
-                </div>
-                <!-- 3-Stage Latency & Memory Breakdown (TCP ➔ TLS ➔ TTFB) -->
-                <div class="mt-3 pt-2.5 border-t border-purple-500/20 space-y-1.5 text-[11px] font-mono text-slate-400">
-                  <div class="grid grid-cols-3 gap-1.5 text-center">
-                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-emerald-500/30">
-                      <span class="text-[9px] text-slate-500 block">⚡ TCP握手</span>
-                      <strong class="text-emerald-300 text-xs">{{ benchmarkResult.singbox ? benchmarkResult.singbox.tcp_handshake_ms + 'ms' : '--' }}</strong>
-                    </div>
-                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-cyan-500/30">
-                      <span class="text-[9px] text-slate-500 block">🔒 TLS加密</span>
-                      <strong class="text-cyan-300 text-xs">{{ benchmarkResult.singbox ? benchmarkResult.singbox.tls_handshake_ms + 'ms' : '--' }}</strong>
-                    </div>
-                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-purple-500/30">
-                      <span class="text-[9px] text-slate-500 block">🌐 首包TTFB</span>
-                      <strong class="text-purple-300 text-xs">{{ benchmarkResult.singbox ? (benchmarkResult.singbox.ttfb_ms || 18) + 'ms' : '--' }}</strong>
-                    </div>
-                  </div>
-                  <div class="flex items-center justify-between text-[11px] pt-1">
-                    <span class="text-slate-500">💾 专属常驻内存:</span>
-                    <strong class="text-purple-300">{{ singboxBenchmarkMemory.toFixed(1) }} MB</strong>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 2. Mihomo 竞技卡片 (兼容规则完备) -->
-              <div class="rounded-2xl p-4 sm:p-4.5 bg-gradient-to-br from-sky-950/30 via-slate-900/80 to-slate-950/90 border border-sky-500/35 hover:border-sky-400/70 shadow-lg shadow-sky-950/20 hover:shadow-sky-900/40 transition-all duration-300 relative overflow-hidden group">
-                <div v-if="benchmarkResult.winner === 'mihomo'" class="absolute top-2.5 right-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/25 text-amber-200 border border-amber-400/50 shadow-sm animate-pulse">
-                  🏆 优选领先
-                </div>
-                <div class="flex items-center gap-3.5">
-                  <!-- Mihomo 专属发光大徽章 -->
-                  <div class="w-12 h-12 rounded-xl bg-sky-950/60 border border-sky-500/40 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(56,189,248,0.3)] group-hover:scale-105 group-hover:shadow-[0_0_18px_rgba(56,189,248,0.5)] transition-all">
-                    <img src="/logo-mihomo.svg" class="w-8 h-8 object-contain drop-shadow-[0_0_6px_rgba(56,189,248,0.6)]" alt="Mihomo" />
-                  </div>
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between gap-2">
-                      <div class="flex items-baseline gap-1.5 min-w-0 truncate">
-                        <span class="text-sm sm:text-base font-black text-sky-200 tracking-wide">Mihomo</span>
-                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.mihomo_curr_version || 'v1.19.33' }}</span>
-                      </div>
-                      <span class="font-mono text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-lg bg-slate-950/80 border border-sky-500/30 text-sky-300 shrink-0">
-                        {{ benchmarkResult.mihomo ? benchmarkResult.mihomo.total_latency_ms + ' ms' : '等待竞技' }}
-                      </span>
-                    </div>
-                    <div class="text-[11px] text-sky-300/80 font-medium tracking-tight mt-0.5 truncate">
-                      兼容 · 规则完备全协议
-                    </div>
-                  </div>
-                </div>
-                <!-- 3-Stage Latency & Memory Breakdown (TCP ➔ TLS ➔ TTFB) -->
-                <div class="mt-3 pt-2.5 border-t border-sky-500/20 space-y-1.5 text-[11px] font-mono text-slate-400">
-                  <div class="grid grid-cols-3 gap-1.5 text-center">
-                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-emerald-500/30">
-                      <span class="text-[9px] text-slate-500 block">⚡ TCP握手</span>
-                      <strong class="text-emerald-300 text-xs">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tcp_handshake_ms + 'ms' : '--' }}</strong>
-                    </div>
-                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-cyan-500/30">
-                      <span class="text-[9px] text-slate-500 block">🔒 TLS加密</span>
-                      <strong class="text-cyan-300 text-xs">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tls_handshake_ms + 'ms' : '--' }}</strong>
-                    </div>
-                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-sky-500/30">
-                      <span class="text-[9px] text-slate-500 block">🌐 首包TTFB</span>
-                      <strong class="text-sky-300 text-xs">{{ benchmarkResult.mihomo ? (benchmarkResult.mihomo.ttfb_ms || 22) + 'ms' : '--' }}</strong>
-                    </div>
-                  </div>
-                  <div class="flex items-center justify-between text-[11px] pt-1">
-                    <span class="text-slate-500">💾 专属常驻内存:</span>
-                    <strong class="text-sky-300">{{ mihomoBenchmarkMemory.toFixed(1) }} MB</strong>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-            <!-- Recommendation Alert if Available -->
-            <div v-if="benchmarkResult.recommendation" class="p-3 rounded-xl bg-slate-900/90 border border-sky-800/40 text-xs text-cyan-200 flex items-center gap-2">
-              <span>💡</span>
-              <span class="font-mono">{{ benchmarkResult.recommendation }}</span>
-            </div>
-          </section>
-
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <!-- 📊 动态模块: 面板概览 (实时业务测速卡片 + 6-Metrics + 4 联实时波形图) -->
+          <!-- 📊 动态模块: 实时网络遥测与双核 AB 竞技场 (一体化全景控制卡片) -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <section :class="['rounded-3xl p-6 lg:p-7 space-y-6 transition shadow-2xl', activeEngine === 'singbox' ? 'glass-aurora' : 'glass-matrix']">
-            <!-- Header: 面板概览, 打开概览自动测速 toggle, ⚡ refresh button -->
-            <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-700/40">
+          <section :class="['rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-7 space-y-6 transition shadow-2xl', activeEngine === 'singbox' ? 'glass-aurora' : 'glass-matrix']">
+            <!-- 1. Header: 标题、流速探针控制开关与双核对决按钮 -->
+            <div class="flex items-center justify-between flex-wrap gap-3 pb-3.5 border-b border-slate-700/40">
               <div>
                 <div class="flex items-center gap-3">
                   <h3 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                    <span>📊 实时网络遥测</span>
+                    <span>📊 实时网络遥测与双核 AB 竞技场</span>
                   </h3>
                   <!-- Toggle: 开启实时自动测速 -->
                   <label class="flex items-center gap-2 cursor-pointer select-none">
@@ -759,22 +541,36 @@
                     </div>
                   </label>
                 </div>
-                <p class="text-xs text-slate-400 mt-1">全链路实时吞吐流速、网关内存负载与主流服务多域延迟探针遥测</p>
+                <p class="text-xs text-slate-400 mt-1">
+                  全链路实时流速负荷、主流服务动态探针与双内核（Mihomo × sing-box）多域基准同台竞技
+                </p>
               </div>
-              <!-- ⚡ button -->
-              <button @click="triggerAllServiceProbes" :disabled="probingServiceLatencies" title="立即刷新全部测速探针"
-                class="w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-amber-300 border border-slate-700 hover:border-amber-400/40 flex items-center justify-center transition active:scale-95 shadow-sm">
-                <span :class="{'animate-spin': probingServiceLatencies}">⚡</span>
-              </button>
+
+              <!-- Header Actions -->
+              <div class="flex items-center gap-2.5">
+                <!-- ⚡ Refresh probes button -->
+                <button @click="triggerAllServiceProbes" :disabled="probingServiceLatencies" title="立即刷新全部测速探针"
+                  class="w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-amber-300 border border-slate-700 hover:border-amber-400/40 flex items-center justify-center transition active:scale-95 shadow-sm cursor-pointer">
+                  <span :class="{'animate-spin': probingServiceLatencies}">⚡</span>
+                </button>
+
+                <!-- ⚔️ Start Dual-core Benchmark button -->
+                <button @click="runBenchmark" :disabled="benchmarking" class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-lg shadow-cyan-500/20 active:scale-95 transition flex items-center gap-2 cursor-pointer disabled:opacity-50">
+                  <span v-if="benchmarking" class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                  <span>{{ benchmarking ? '压测竞技中...' : '开始双核竞技' }}</span>
+                </button>
+              </div>
             </div>
 
             <!-- Backdrop overlay to dismiss dropdown on outside click -->
             <div v-if="activeProbeDropdown !== null" @click="activeProbeDropdown = null" class="fixed inset-0 z-40"></div>
 
-            <!-- Row 1: 4 Service Speedtest Cards with Custom Cyber Aurora Dropdown -->
+
+
+            <!-- 3. Row 2: 4 Service Speedtest Cards with Custom Cyber Aurora Dropdown & 8-Bar Dynamic Pillars -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div v-for="(item, bi) in serviceProbes" :key="bi"
-                class="min-h-[72px] py-3.5 px-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-cyan-500/40 transition flex items-center justify-between gap-1 shadow-md group relative"
+                class="min-h-[72px] py-3 px-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-cyan-500/40 transition flex items-center justify-between gap-1 shadow-md group relative"
                 :class="activeProbeDropdown === bi ? 'z-50 ring-1 ring-cyan-400/50' : 'z-10'">
                 
                 <!-- Left: Official Clean Brand Logo & Site Selector -->
@@ -798,10 +594,6 @@
                     <div v-if="activeProbeDropdown === bi"
                       class="absolute top-full mt-2 w-44 max-h-72 overflow-y-auto bg-[#17202c]/98 backdrop-blur-2xl border border-slate-700/80 rounded-2xl shadow-2xl p-1.5 z-[60] text-slate-200 space-y-0.5 custom-scrollbar animate-in fade-in zoom-in-95"
                       :class="bi >= 2 ? 'right-0 sm:left-0' : 'left-0'">
-                      <div class="px-2.5 py-1 text-[10px] font-mono text-slate-400 uppercase tracking-wider border-b border-slate-700/60 mb-1 flex items-center justify-between">
-                        <span>选择测速目标</span>
-                        <span class="text-slate-500 font-sans">{{ availableProbeTargets.length }} 个站点</span>
-                      </div>
                       <button v-for="target in availableProbeTargets" :key="target.id"
                         @click="selectProbeTarget(bi, target)"
                         class="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs transition text-left cursor-pointer"
@@ -842,137 +634,154 @@
               </div>
             </div>
 
-            <!-- Row 2: 6 Metrics Strip -->
-            <div class="rounded-2xl bg-slate-950/80 border border-slate-800/80 py-4.5 px-4 sm:px-6 min-h-[76px] flex items-center shadow-md">
-              <div class="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center divide-y sm:divide-y-0 sm:divide-x divide-slate-800/60">
-                <div class="pt-2 sm:pt-0">
-                  <div class="text-xs text-slate-400 font-medium">连接数</div>
-                  <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ telemetryMetrics.connections }}</div>
+            <!-- 4. Row 3: 双核同节点 AB 竞技基准 (目标网站选择 + 18 站矩阵) -->
+            <div class="space-y-3.5 pt-3 border-t border-slate-700/40">
+              <div class="flex items-center justify-between flex-wrap gap-2.5 py-1">
+                <span class="text-xs sm:text-[13px] font-semibold text-slate-300 flex items-center gap-2">
+                  <span>🎯 竞技测速目标:</span>
+                  <span class="text-xs font-mono text-cyan-400 font-medium truncate max-w-[320px]">{{ benchmarkTargetUrl }}</span>
+                </span>
+                <span class="text-xs text-slate-400 font-mono flex items-center gap-2 flex-wrap">
+                  <span>应用分流:</span>
+                  <span class="px-2.5 py-1 rounded-xl bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 text-xs font-bold shadow-sm" :title="'匹配规则: ' + currentBenchmarkRoute.ruleTag">
+                    {{ currentBenchmarkRoute.groupName }}
+                  </span>
+                  <span class="text-slate-500 font-sans">➜</span>
+                  <span class="text-slate-400">节点组:</span>
+                  <span class="px-2.5 py-1 rounded-xl bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 text-xs font-bold shadow-sm" :title="'对应应用分流实际配置的节点组'">
+                    {{ currentBenchmarkRoute.targetGroupName }}
+                  </span>
+                </span>
+              </div>
+
+              <!-- 快捷网站选择标签矩阵 (共计 18 个高频常用网站) -->
+              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-1">
+                <button v-for="site in benchmarkPresetSites" :key="site.url"
+                  @click="selectBenchmarkSite(site.url)"
+                  :title="site.desc"
+                  :class="[
+                    'h-9 px-2.5 py-1 rounded-xl text-xs sm:text-[12px] font-medium transition flex items-center justify-center gap-1.5 border select-none active:scale-95 shadow-sm cursor-pointer truncate',
+                    benchmarkTargetUrl === site.url
+                      ? 'bg-gradient-to-r from-cyan-500/25 to-blue-500/25 text-cyan-300 border-cyan-400/60 shadow-[0_0_12px_rgba(0,210,255,0.25)] font-bold'
+                      : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-800 hover:border-slate-700'
+                  ]">
+                  <BrandLogo :name="site.logo" size="w-4 h-4" class="shrink-0" />
+                  <span class="truncate">{{ site.name }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 5. Row 4: 双核同台极速竞技卡片 (sing-box vs Mihomo) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+              
+              <!-- 1. sing-box 竞技卡片 (原生极速轻量) -->
+              <div class="rounded-2xl p-4 sm:p-4.5 bg-gradient-to-br from-purple-950/30 via-slate-900/80 to-slate-950/90 border border-purple-500/35 hover:border-purple-400/70 shadow-lg shadow-purple-950/20 hover:shadow-purple-900/40 transition-all duration-300 relative overflow-hidden group">
+                <div class="flex items-center gap-3.5">
+                  <div class="w-12 h-12 rounded-xl bg-purple-950/60 border border-purple-500/40 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(168,85,247,0.3)] group-hover:scale-105 group-hover:shadow-[0_0_18px_rgba(168,85,247,0.5)] transition-all">
+                    <img src="/logo-singbox.svg" class="w-8 h-8 object-contain drop-shadow-[0_0_6px_rgba(240,171,252,0.6)]" alt="sing-box" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="flex items-baseline gap-1.5 min-w-0 truncate">
+                        <span class="text-sm sm:text-base font-black text-purple-200 tracking-wide">sing-box</span>
+                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.singbox_curr_version || 'v1.14.4' }}</span>
+                      </div>
+                      <div class="flex items-center gap-2 shrink-0">
+                        <span v-if="benchmarkResult.winner === 'singbox'" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/25 text-purple-200 border border-purple-400/50 shadow-sm flex items-center gap-1">
+                          <span>🏆</span>
+                          <span>优选领先</span>
+                        </span>
+                        <span class="font-mono text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-lg bg-slate-950/80 border border-purple-500/30 text-purple-300">
+                          {{ benchmarkResult.singbox ? benchmarkResult.singbox.total_latency_ms + ' ms' : '等待竞技' }}
+                        </span>
+                      </div>
+                    </div>
+                    <div class="text-[11px] text-purple-300/80 font-medium tracking-tight mt-0.5 truncate">
+                      原生 · 极速轻量低开销
+                    </div>
+                  </div>
                 </div>
-                <div class="pt-2 sm:pt-0">
-                  <div class="text-xs text-slate-400 font-medium">内存使用</div>
-                  <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ telemetryMetrics.memoryMB.toFixed(1) }} MB</div>
-                </div>
-                <div class="pt-2 sm:pt-0">
-                  <div class="text-xs text-slate-400 font-medium">进站流量</div>
-                  <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ telemetryMetrics.inboundTotalMB.toFixed(1) }} MB</div>
-                </div>
-                <div class="pt-2 sm:pt-0">
-                  <div class="text-xs text-slate-400 font-medium">进站速率</div>
-                  <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ formatSpeed(telemetryMetrics.inboundSpeedBps) }}</div>
-                </div>
-                <div class="pt-2 sm:pt-0">
-                  <div class="text-xs text-slate-400 font-medium">出站流量</div>
-                  <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ telemetryMetrics.outboundTotalMB.toFixed(0) }} MB</div>
-                </div>
-                <div class="pt-2 sm:pt-0">
-                  <div class="text-xs text-slate-400 font-medium">出站速率</div>
-                  <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ formatSpeed(telemetryMetrics.outboundSpeedBps) }}</div>
+                <!-- 3-Stage Latency & Memory Breakdown (TCP ➔ TLS ➔ TTFB) -->
+                <div class="mt-3 pt-2.5 border-t border-purple-500/20 space-y-1.5 text-[11px] font-mono text-slate-400">
+                  <div class="grid grid-cols-3 gap-1.5 text-center">
+                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-emerald-500/30">
+                      <span class="text-[9px] text-slate-500 block">⚡ TCP握手</span>
+                      <strong class="text-emerald-300 text-xs">{{ benchmarkResult.singbox ? benchmarkResult.singbox.tcp_handshake_ms + 'ms' : '--' }}</strong>
+                    </div>
+                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-cyan-500/30">
+                      <span class="text-[9px] text-slate-500 block">🔒 TLS加密</span>
+                      <strong class="text-cyan-300 text-xs">{{ benchmarkResult.singbox ? benchmarkResult.singbox.tls_handshake_ms + 'ms' : '--' }}</strong>
+                    </div>
+                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-purple-500/30">
+                      <span class="text-[9px] text-slate-500 block">🌐 首包TTFB</span>
+                      <strong class="text-purple-300 text-xs">{{ benchmarkResult.singbox ? (benchmarkResult.singbox.ttfb_ms || 18) + 'ms' : '--' }}</strong>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between text-[11px] pt-1">
+                    <span class="text-slate-500">💾 专属常驻内存:</span>
+                    <strong class="text-purple-300">{{ singboxBenchmarkMemory.toFixed(1) }} MB</strong>
+                  </div>
                 </div>
               </div>
+
+              <!-- 2. Mihomo 竞技卡片 (兼容规则完备) -->
+              <div class="rounded-2xl p-4 sm:p-4.5 bg-gradient-to-br from-sky-950/30 via-slate-900/80 to-slate-950/90 border border-sky-500/35 hover:border-sky-400/70 shadow-lg shadow-sky-950/20 hover:shadow-sky-900/40 transition-all duration-300 relative overflow-hidden group">
+                <div class="flex items-center gap-3.5">
+                  <div class="w-12 h-12 rounded-xl bg-sky-950/60 border border-sky-500/40 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(56,189,248,0.3)] group-hover:scale-105 group-hover:shadow-[0_0_18px_rgba(56,189,248,0.5)] transition-all">
+                    <img src="/logo-mihomo.svg" class="w-8 h-8 object-contain drop-shadow-[0_0_6px_rgba(56,189,248,0.6)]" alt="Mihomo" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="flex items-baseline gap-1.5 min-w-0 truncate">
+                        <span class="text-sm sm:text-base font-black text-sky-200 tracking-wide">Mihomo</span>
+                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.mihomo_curr_version || 'v1.19.33' }}</span>
+                      </div>
+                      <div class="flex items-center gap-2 shrink-0">
+                        <span v-if="benchmarkResult.winner === 'mihomo'" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/25 text-amber-200 border border-amber-400/50 shadow-sm flex items-center gap-1">
+                          <span>🏆</span>
+                          <span>优选领先</span>
+                        </span>
+                        <span class="font-mono text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-lg bg-slate-950/80 border border-sky-500/30 text-sky-300">
+                          {{ benchmarkResult.mihomo ? benchmarkResult.mihomo.total_latency_ms + ' ms' : '等待竞技' }}
+                        </span>
+                      </div>
+                    </div>
+                    <div class="text-[11px] text-sky-300/80 font-medium tracking-tight mt-0.5 truncate">
+                      兼容 · 规则完备全协议
+                    </div>
+                  </div>
+                </div>
+                <!-- 3-Stage Latency & Memory Breakdown (TCP ➔ TLS ➔ TTFB) -->
+                <div class="mt-3 pt-2.5 border-t border-sky-500/20 space-y-1.5 text-[11px] font-mono text-slate-400">
+                  <div class="grid grid-cols-3 gap-1.5 text-center">
+                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-emerald-500/30">
+                      <span class="text-[9px] text-slate-500 block">⚡ TCP握手</span>
+                      <strong class="text-emerald-300 text-xs">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tcp_handshake_ms + 'ms' : '--' }}</strong>
+                    </div>
+                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-cyan-500/30">
+                      <span class="text-[9px] text-slate-500 block">🔒 TLS加密</span>
+                      <strong class="text-cyan-300 text-xs">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tls_handshake_ms + 'ms' : '--' }}</strong>
+                    </div>
+                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-sky-500/30">
+                      <span class="text-[9px] text-slate-500 block">🌐 首包TTFB</span>
+                      <strong class="text-sky-300 text-xs">{{ benchmarkResult.mihomo ? (benchmarkResult.mihomo.ttfb_ms || 22) + 'ms' : '--' }}</strong>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between text-[11px] pt-1">
+                    <span class="text-slate-500">💾 专属常驻内存:</span>
+                    <strong class="text-sky-300">{{ mihomoBenchmarkMemory.toFixed(1) }} MB</strong>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- 6. Recommendation Alert if Available -->
+            <div v-if="benchmarkResult.recommendation" class="p-3.5 rounded-xl bg-slate-900/90 border border-sky-800/40 text-xs text-cyan-200 flex items-center gap-2">
+              <span>💡</span>
+              <span class="font-mono">{{ benchmarkResult.recommendation }}</span>
             </div>
           </section>
-
-          <!-- 🎛️ 局域网设备分流控制 (Per-Device Matrix) -->
-          <div class="glass-matrix rounded-2xl p-5 space-y-4 border-l-4 border-l-purple-500 shadow-xl">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-900/30 pb-3">
-              <div>
-                <div class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                  <span>🎛️ 局域网设备分流</span>
-                  <span class="text-xs text-cyan-300 bg-sky-900/40 px-2.5 py-0.5 rounded-full font-mono">
-                    {{ lanDevices.length }} 台设备在线
-                  </span>
-                </div>
-                <p class="text-xs text-slate-400 mt-1">针对局域网特定终端（蓝光机、飞牛 NAS、Apple TV、游戏机等）指定智能规则分流或直连绕过</p>
-              </div>
-              <button @click="fetchLanDevices" :disabled="loadingDevices" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer transition">
-                {{ loadingDevices ? '正在探查...' : '↻ 实时刷新设备' }}
-              </button>
-            </div>
-
-            <div v-if="lanDevices.length === 0" class="py-10 text-center bg-slate-950/40 rounded-2xl border border-slate-800/80 flex flex-col items-center justify-center gap-2">
-              <span class="text-3xl block" :class="{'animate-spin': loadingDevices}">🔍</span>
-              <div class="text-sm font-semibold text-slate-300">
-                {{ loadingDevices ? '正在实时嗅探局域网在线终端 (RouterOS DHCP / ARP)...' : '暂未探测到局域网在线设备，可点击右上角「实时刷新设备」' }}
-              </div>
-              <p class="text-xs text-slate-500 max-w-md">系统会自动同步上游网关活跃 DHCP 租约及 ARP 邻居表，毫秒级感知新上线终端。</p>
-            </div>
-
-            <div v-else class="space-y-3">
-              <div v-for="dev in lanDevices" :key="dev.ip" class="flex flex-col lg:flex-row lg:items-center justify-between bg-slate-950/60 border border-slate-800 rounded-xl p-4 gap-4 transition hover:border-cyan-500/40">
-                <!-- Device Info -->
-                <div class="flex items-center gap-3">
-                  <span class="text-3xl shrink-0 select-none">💻</span>
-                  <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <!-- Normal Display State -->
-                      <template v-if="editingDeviceIp !== dev.ip">
-                        <span class="text-sm font-bold text-white tracking-wide">{{ dev.name }}</span>
-                      </template>
-
-                      <!-- Inline Editing State -->
-                      <template v-else>
-                        <div class="flex items-center gap-1.5 animate-in fade-in py-0.5">
-                          <input v-model="editingDeviceName" 
-                            @keyup.enter="saveDeviceAlias(dev)" 
-                            @keyup.esc="cancelEditDevice" 
-                            autofocus 
-                            class="px-2.5 py-1 text-xs rounded-lg bg-slate-900 border border-cyan-400 text-white font-bold outline-none ring-2 ring-cyan-500/30 w-48 sm:w-64 shadow-inner"
-                            placeholder="输入新设备备注名..." />
-                          <button @click="saveDeviceAlias(dev)" 
-                            :disabled="savingDeviceAlias"
-                            class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1 shadow cursor-pointer">
-                            <span>✔ 保存</span>
-                          </button>
-                          <button @click="cancelEditDevice" 
-                            class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition cursor-pointer">
-                            <span>✕ 取消</span>
-                          </button>
-                        </div>
-                      </template>
-
-                      <span :class="[
-                        'text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold',
-                        dev.mode === 'bypass' ? 'bg-sky-950 text-sky-300 border border-sky-500/40' :
-                        'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
-                      ]">
-                        {{ dev.mode === 'bypass' ? '🔵 直连绕过' : '🟢 智能规则' }}
-                      </span>
-                    </div>
-                    <div class="text-xs font-mono text-slate-400 mt-0.5">
-                      IP: <strong class="text-cyan-300">{{ dev.ip }}</strong> | MAC: {{ dev.mac || '-' }}
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Right Controls: 2-Segmented Capsule Control Slider + 设备重命名 Button -->
-                <div class="flex items-center gap-2.5 flex-wrap">
-                  <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 gap-1 text-xs">
-                    <button @click="setDeviceRouting(dev, 'rule')"
-                      :class="['px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer', dev.mode === 'rule' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white']">
-                      🟢 智能规则
-                    </button>
-                    <button @click="setDeviceRouting(dev, 'bypass')"
-                      :class="['px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer', dev.mode === 'bypass' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white']">
-                      🔵 直连绕过
-                    </button>
-                  </div>
-
-                  <!-- 设备重命名 Trigger Button (最右侧) -->
-                  <button v-if="editingDeviceIp !== dev.ip"
-                    @click="startEditDevice(dev)" 
-                    title="修改设备备注名" 
-                    class="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 text-slate-400 hover:text-cyan-300 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-sm group">
-                    <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                    <span>设备重命名</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
 
           <!-- ════════════════════════════════════════════════════════════════ -->
           <!-- 📈 流量统计 (Traffic Insights) 全维月度与逐时流分析看板             -->
@@ -1019,6 +828,32 @@
                   <button @click="changeInsightsMonth(1)" class="px-2 py-1 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
                     ›
                   </button>
+                </div>
+              </div>
+
+              <!-- 全链路实时流量与连接数 5-Metrics 状态条 (除内存占用的其它项) -->
+              <div class="rounded-2xl bg-slate-950/80 border border-slate-800/80 py-3.5 px-4 sm:px-6 shadow-md">
+                <div class="w-full grid grid-cols-2 sm:grid-cols-5 gap-3 text-center divide-y sm:divide-y-0 sm:divide-x divide-slate-800/60">
+                  <div class="pt-2 sm:pt-0">
+                    <div class="text-xs text-slate-400 font-medium">活跃连接数</div>
+                    <div class="text-lg sm:text-xl font-black font-mono text-cyan-300 mt-1">{{ telemetryMetrics.connections }}</div>
+                  </div>
+                  <div class="pt-2 sm:pt-0">
+                    <div class="text-xs text-slate-400 font-medium">进站流量 (下载)</div>
+                    <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ telemetryMetrics.inboundTotalMB.toFixed(1) }} MB</div>
+                  </div>
+                  <div class="pt-2 sm:pt-0">
+                    <div class="text-xs text-slate-400 font-medium">实时进站速率</div>
+                    <div class="text-lg sm:text-xl font-black font-mono text-emerald-400 mt-1">{{ formatSpeed(telemetryMetrics.inboundSpeedBps) }}</div>
+                  </div>
+                  <div class="pt-2 sm:pt-0">
+                    <div class="text-xs text-slate-400 font-medium">出站流量 (上传)</div>
+                    <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ telemetryMetrics.outboundTotalMB.toFixed(0) }} MB</div>
+                  </div>
+                  <div class="pt-2 sm:pt-0">
+                    <div class="text-xs text-slate-400 font-medium">实时出站速率</div>
+                    <div class="text-lg sm:text-xl font-black font-mono text-sky-400 mt-1">{{ formatSpeed(telemetryMetrics.outboundSpeedBps) }}</div>
+                  </div>
                 </div>
               </div>
 
@@ -1283,6 +1118,108 @@
                 </div>
               </div>
           </section>
+
+          <!-- 🎛️ 局域网设备分流控制 (Per-Device Matrix) -->
+          <div class="glass-matrix rounded-2xl p-5 space-y-4 border-l-4 border-l-purple-500 shadow-xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-900/30 pb-3">
+              <div>
+                <div class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                  <span>🎛️ 局域网设备分流</span>
+                  <span class="text-xs text-cyan-300 bg-sky-900/40 px-2.5 py-0.5 rounded-full font-mono">
+                    {{ lanDevices.length }} 台设备在线
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400 mt-1">针对局域网特定终端（蓝光机、飞牛 NAS、Apple TV、游戏机等）指定智能规则分流或直连绕过</p>
+              </div>
+              <button @click="fetchLanDevices" :disabled="loadingDevices" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer transition">
+                {{ loadingDevices ? '正在探查...' : '↻ 实时刷新设备' }}
+              </button>
+            </div>
+
+            <div v-if="lanDevices.length === 0" class="py-10 text-center bg-slate-950/40 rounded-2xl border border-slate-800/80 flex flex-col items-center justify-center gap-2">
+              <span class="text-3xl block" :class="{'animate-spin': loadingDevices}">🔍</span>
+              <div class="text-sm font-semibold text-slate-300">
+                {{ loadingDevices ? '正在实时嗅探局域网在线终端 (RouterOS DHCP / ARP)...' : '暂未探测到局域网在线设备，可点击右上角「实时刷新设备」' }}
+              </div>
+              <p class="text-xs text-slate-500 max-w-md">系统会自动同步上游网关活跃 DHCP 租约及 ARP 邻居表，毫秒级感知新上线终端。</p>
+            </div>
+
+            <div v-else class="space-y-3">
+              <div v-for="dev in lanDevices" :key="dev.ip" class="flex flex-col lg:flex-row lg:items-center justify-between bg-slate-950/60 border border-slate-800 rounded-xl p-4 gap-4 transition hover:border-cyan-500/40">
+                <!-- Device Info -->
+                <div class="flex items-center gap-3">
+                  <span class="text-3xl shrink-0 select-none">💻</span>
+                  <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <!-- Normal Display State -->
+                      <template v-if="editingDeviceIp !== dev.ip">
+                        <span class="text-sm font-bold text-white tracking-wide">{{ dev.name }}</span>
+                      </template>
+
+                      <!-- Inline Editing State -->
+                      <template v-else>
+                        <div class="flex items-center gap-1.5 animate-in fade-in py-0.5">
+                          <input v-model="editingDeviceName" 
+                            @keyup.enter="saveDeviceAlias(dev)" 
+                            @keyup.esc="cancelEditDevice" 
+                            autofocus 
+                            class="px-2.5 py-1 text-xs rounded-lg bg-slate-900 border border-cyan-400 text-white font-bold outline-none ring-2 ring-cyan-500/30 w-48 sm:w-64 shadow-inner"
+                            placeholder="输入新设备备注名..." />
+                          <button @click="saveDeviceAlias(dev)" 
+                            :disabled="savingDeviceAlias"
+                            class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1 shadow cursor-pointer">
+                            <span>✔ 保存</span>
+                          </button>
+                          <button @click="cancelEditDevice" 
+                            class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition cursor-pointer">
+                            <span>✕ 取消</span>
+                          </button>
+                        </div>
+                      </template>
+
+                      <span :class="[
+                        'text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold',
+                        dev.mode === 'bypass' ? 'bg-sky-950 text-sky-300 border border-sky-500/40' :
+                        'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
+                      ]">
+                        {{ dev.mode === 'bypass' ? '🔵 直连绕过' : '🟢 智能规则' }}
+                      </span>
+                    </div>
+                    <div class="text-xs font-mono text-slate-400 mt-0.5">
+                      IP: <strong class="text-cyan-300">{{ dev.ip }}</strong> | MAC: {{ dev.mac || '-' }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Right Controls: 2-Segmented Capsule Control Slider + 设备重命名 Button -->
+                <div class="flex items-center gap-2.5 flex-wrap">
+                  <div class="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800 gap-1 text-xs">
+                    <button @click="setDeviceRouting(dev, 'rule')"
+                      :class="['px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer', dev.mode === 'rule' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white']">
+                      🟢 智能规则
+                    </button>
+                    <button @click="setDeviceRouting(dev, 'bypass')"
+                      :class="['px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer', dev.mode === 'bypass' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white']">
+                      🔵 直连绕过
+                    </button>
+                  </div>
+
+                  <!-- 设备重命名 Trigger Button (最右侧) -->
+                  <button v-if="editingDeviceIp !== dev.ip"
+                    @click="startEditDevice(dev)" 
+                    title="修改设备备注名" 
+                    class="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/50 text-slate-400 hover:text-cyan-300 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-sm group">
+                    <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    <span>设备重命名</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
 
         </div>
 
@@ -3432,7 +3369,7 @@
               <h2 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
                 <span>⚙️ 宿主共生与系统运维</span>
               </h2>
-              <p class="text-xs text-slate-400 mt-1">自动识别 RouterOS / Linux / 飞牛底座 · 策略路由与防火墙自愈 · 四维在线无缝热更</p>
+              <p class="text-xs text-slate-400 mt-1">自动识别 RouterOS / 爱快 iKuai / OpenWrt / 飞牛 / PVE / Linux 底座 · 策略路由与防火墙自愈 · 四维在线无缝热更</p>
             </div>
           </div>
 
@@ -3460,7 +3397,7 @@
                   </span>
                 </div>
                 <div class="text-xs text-slate-400">
-                  自动识别 RouterOS / 飞牛 / PVE 底座，一键安全联动策略路由与转发，容器意外启闭绝不影响主网。
+                  自动识别 RouterOS / 爱快 iKuai / OpenWrt / 飞牛 / PVE / Linux 底座，一键安全联动策略路由与转发，容器意外启闭绝不影响主网。
                 </div>
               </div>
             </div>
@@ -3478,18 +3415,20 @@
 
               <!-- 2. 系统内核与架构 -->
               <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-between shadow-inner">
-                <span class="text-slate-400 text-[11px] block">物理内核 & 架构</span>
-                <span class="text-slate-200 font-extrabold text-xs sm:text-[13px] block mt-1 truncate">
-                  {{ hostInfo.kernel_version || '6.6.30-amd64' }}
+                <span class="text-slate-400 text-[11px] block">底层内核 & 架构</span>
+                <span class="text-slate-200 font-extrabold text-xs sm:text-[13px] block mt-1 truncate" :title="hostInfo.kernel_version">
+                  {{ hostInfo.kernel_version || 'Linux 6.6.30-amd64' }}
                 </span>
-                <span class="text-[10px] text-slate-400 font-mono mt-1 block">指令集: {{ hostInfo.arch || 'x86_64' }}</span>
+                <span class="text-[10px] text-slate-400 font-mono mt-1 block truncate">
+                  {{ hostInfo.arch || 'x86_64' }} · {{ hostInfo.is_container ? (hostInfo.container_type || '伴生容器') : '宿主原生' }}
+                </span>
               </div>
 
               <!-- 3. 沙盒内存负载 -->
               <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-between shadow-inner">
                 <div class="flex items-center justify-between">
-                  <span class="text-slate-400 text-[11px] truncate pr-1" :title="hostInfo.is_container ? (hostInfo.container_type || 'PVE LXC (CT) 容器') : '宿主硬件负载'">
-                    {{ hostInfo.is_container ? (hostInfo.container_type || 'PVE LXC (CT) 容器') : '宿主硬件负载' }}
+                  <span class="text-slate-400 text-[11px] truncate pr-1" :title="hostInfo.is_container ? '容器分配内存 (与宿主物理内存隔离)' : '宿主硬件负载'">
+                    {{ hostInfo.is_container ? '容器分配内存' : '宿主硬件负载' }}
                   </span>
                   <span class="text-[10px] text-slate-400 font-mono shrink-0">{{ hostInfo.cpu_cores || 1 }}核</span>
                 </div>
@@ -3518,7 +3457,7 @@
                   <span class="text-cyan-400 text-sm">🔑</span>
                   <span class="font-bold text-white tracking-wide">宿主共生凭据与鉴权</span>
                   <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-                    RouterOS REST API / 爱快 iKuai Web-RPC / Linux SSH
+                    RouterOS REST API / 爱快 iKuai Web-RPC / OpenWrt ubus / Linux SSH
                   </span>
                 </div>
                 <span class="text-[11px] text-slate-400 font-normal">通常为主路由 IP（例: 10.0.0.1 或 192.168.1.1）或 Docker 网关（172.17.0.1）</span>
@@ -3530,15 +3469,15 @@
                   <input v-model="hostConfig.host" placeholder="例: 10.0.0.1 或 192.168.1.1" class="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
                 <div>
-                  <label class="block text-[11px] text-slate-300 font-bold mb-1">通信端口 (ROS/爱快: 80/443, SSH: 22)</label>
+                  <label class="block text-[11px] text-slate-300 font-bold mb-1">通信端口 (ROS/爱快/OpenWrt: 80/443, Linux: 22)</label>
                   <input v-model.number="hostConfig.port" type="number" placeholder="80 / 443 / 22" class="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
                 <div>
-                  <label class="block text-[11px] text-slate-300 font-bold mb-1">管理员账号 (ROS/爱快: admin, SSH: root)</label>
+                  <label class="block text-[11px] text-slate-300 font-bold mb-1">管理员账号 (ROS/爱快: admin, OpenWrt/Linux: root)</label>
                   <input v-model="hostConfig.user" placeholder="admin 或 root" class="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
                 <div>
-                  <label class="block text-[11px] text-slate-300 font-bold mb-1">登录密码 (WinBox / 爱快Web后台密码)</label>
+                  <label class="block text-[11px] text-slate-300 font-bold mb-1">登录密码 (WinBox / 爱快Web / OpenWrt后台密码)</label>
                   <input type="password" v-model="hostConfig.password" placeholder="Web / WinBox登录密码 (无密码留空)" class="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
               </div>
@@ -4051,7 +3990,7 @@
                   </span>
                 </div>
                 <p class="text-xs text-slate-400 mt-3.5 leading-relaxed">
-                  一键安全清空现有全部配置并重置出厂状态，交互式引导重新填入宿主凭据，自动嗅探 RouterOS / Linux / 飞牛底座并编排底层策略路由。
+                  一键安全清空现有全部配置并重置出厂状态，交互式引导重新填入宿主凭据，自动嗅探 RouterOS / 爱快 iKuai / OpenWrt / 飞牛 / PVE / Linux 全宿主底座并编排底层策略路由。
                 </p>
               </div>
               <div class="pt-2">
@@ -5992,47 +5931,9 @@ const healingSteps = [
   '♻️ 双核热重载与僵尸清算'
 ]
 
-const uiMode = ref(localStorage.getItem('cubex_ui_mode') || 'novice')
 
-function toggleUiMode() {
-  uiMode.value = uiMode.value === 'novice' ? 'geek' : 'novice'
-  try {
-    localStorage.setItem('cubex_ui_mode', uiMode.value)
-  } catch (e) {}
-  showToast(uiMode.value === 'novice' ? '🟢 已切换至「小白友好模式」：技术名词全量通俗化' : '⚡ 已切换至「极客模式」：全量透视底层端口与策略路由')
-}
 
-const drillingFailover = ref(false)
-const drillResultModal = ref({
-  visible: false,
-  data: null
-})
 
-async function triggerFailoverDrill() {
-  if (drillingFailover.value) return
-  drillingFailover.value = true
-  showToast('🧪 正在启动双核容灾安全演练，实测毫秒级自愈时序...')
-  try {
-    const res = await fetch('/api/v1/system/failover/drill', { method: 'POST' })
-    const data = await res.json()
-    if (data.ok) {
-      drillResultModal.value = {
-        visible: true,
-        data: data
-      }
-      activeEngine.value = data.target_engine
-      showToast(data.message || '🎉 双核容灾演习成功！')
-      await fetchSystemStatus().catch(() => {})
-      refreshHealthRadar()
-    } else {
-      showToast('容灾演练测试遇到问题: ' + (data.error || '未知错误'), 'error')
-    }
-  } catch (e) {
-    showToast('演练请求超时: ' + e.message, 'error')
-  } finally {
-    drillingFailover.value = false
-  }
-}
 
 const refreshingHealth = ref(false)
 
