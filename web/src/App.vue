@@ -3471,21 +3471,29 @@
               </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                <div>
-                  <label class="block text-[11px] text-slate-300 font-bold mb-1">宿主 / 主路由 IP</label>
-                  <input v-model="hostConfig.host" placeholder="例: 10.0.0.1 或 192.168.1.1" class="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
+                <div class="flex flex-col justify-end">
+                  <label class="block text-[11px] text-slate-300 font-bold mb-1.5 min-h-[32px] sm:min-h-[34px] flex items-end leading-snug">
+                    <span>宿主 / 主路由 IP</span>
+                  </label>
+                  <input v-model="hostConfig.host" placeholder="例: 10.0.0.1 或 192.168.1.1" class="w-full h-10 bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
-                <div>
-                  <label class="block text-[11px] text-slate-300 font-bold mb-1">通信端口 (ROS/爱快/OpenWrt: 80, Linux: 22)</label>
-                  <input v-model.number="hostConfig.port" type="number" placeholder="80 / 22" class="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
+                <div class="flex flex-col justify-end">
+                  <label class="block text-[11px] text-slate-300 font-bold mb-1.5 min-h-[32px] sm:min-h-[34px] flex items-end leading-snug">
+                    <span>通信端口 <span class="text-[10px] text-slate-400 font-mono font-normal">(ROS/爱快/OpenWrt: 80, Linux: 22)</span></span>
+                  </label>
+                  <input v-model.number="hostConfig.port" type="number" placeholder="80 / 22" class="w-full h-10 bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
-                <div>
-                  <label class="block text-[11px] text-slate-300 font-bold mb-1">管理员账号 (ROS/爱快: admin, OpenWrt/Linux: root)</label>
-                  <input v-model="hostConfig.user" placeholder="admin 或 root" class="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
+                <div class="flex flex-col justify-end">
+                  <label class="block text-[11px] text-slate-300 font-bold mb-1.5 min-h-[32px] sm:min-h-[34px] flex items-end leading-snug">
+                    <span>管理员账号 <span class="text-[10px] text-slate-400 font-mono font-normal">(ROS/爱快: admin, OpenWrt/Linux: root)</span></span>
+                  </label>
+                  <input v-model="hostConfig.user" placeholder="admin 或 root" class="w-full h-10 bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
-                <div>
-                  <label class="block text-[11px] text-slate-300 font-bold mb-1">登录密码 (WinBox / 爱快Web / OpenWrt后台密码)</label>
-                  <input type="password" v-model="hostConfig.password" placeholder="Web / WinBox登录密码 (无密码留空)" class="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
+                <div class="flex flex-col justify-end">
+                  <label class="block text-[11px] text-slate-300 font-bold mb-1.5 min-h-[32px] sm:min-h-[34px] flex items-end leading-snug">
+                    <span>登录密码 <span class="text-[10px] text-slate-400 font-mono font-normal">(WinBox / 爱快Web / OpenWrt后台密码)</span></span>
+                  </label>
+                  <input type="password" v-model="hostConfig.password" placeholder="Web / WinBox登录密码 (无密码留空)" class="w-full h-10 bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
               </div>
 
