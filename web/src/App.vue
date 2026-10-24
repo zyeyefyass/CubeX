@@ -3394,12 +3394,12 @@
                 <div class="text-base sm:text-lg font-extrabold text-white flex flex-wrap items-center gap-2.5">
                   <span class="tracking-wide">🖥️ 宿主共生底座</span>
                   <!-- Auto-Detected Host Badge with glowing status -->
-                  <span class="text-xs bg-[#00223e] text-cyan-300 border border-cyan-400/40 px-3 py-1 rounded-full font-mono font-bold flex items-center gap-2 shadow-sm select-none whitespace-nowrap shrink-0">
+                  <span class="h-7 px-3 inline-flex items-center gap-2 text-xs font-mono font-bold rounded-full bg-[#00223e] text-cyan-300 border border-cyan-400/40 shadow-sm select-none whitespace-nowrap shrink-0">
                     <span class="w-2 h-2 rounded-full shrink-0" :class="hostBadge.online ? 'bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse' : 'bg-amber-400'"></span>
                     <img :src="hostBadge.svg" class="w-4 h-4 min-w-[16px] max-w-[16px] h-[16px] max-h-[16px] object-contain shrink-0 drop-shadow-[0_0_6px_rgba(56,189,248,0.5)]" :alt="hostBadge.shortName" />
                     <span class="whitespace-nowrap">{{ hostBadge.name }}</span>
                   </span>
-                  <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/30">
+                  <span class="h-7 px-3 inline-flex items-center text-xs font-mono font-semibold rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 shadow-sm select-none whitespace-nowrap shrink-0">
                     全自动智能联动 · 安全不伤主路由
                   </span>
                 </div>
@@ -3500,7 +3500,7 @@
               <div class="p-3 rounded-xl bg-cyan-950/40 border border-cyan-800/40 text-[11px] text-cyan-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
                   <span>💡</span>
-                  <span>对于 <b>MikroTik RouterOS</b>，用户名密码为 <b>WinBox</b> 账号；对于 <b>爱快 iKuai</b>，填入 Web 账号密码；对于 <b>OpenWrt</b>，填入后台 IP（默认 192.168.1.1）及 root 密码。</span>
+                  <span>对于 <b>MikroTik RouterOS</b> 填 WinBox 账号密码；对于 <b>爱快 iKuai / OpenWrt</b> 填 Web 管理密码；对于 <b>Linux / 飞牛 fnOS / PVE</b> 填宿主 SSH 凭据。</span>
                 </div>
                 <button @click="saveCredentialsAndLinkHost" :disabled="savingAndLinkingHost" class="px-5 py-2 rounded-xl bg-gradient-to-r from-teal-400 to-cyan-500 hover:from-teal-300 hover:to-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 active:scale-95 transition shrink-0 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer">
                   <span v-if="savingAndLinkingHost" class="inline-block animate-spin">↻</span>
