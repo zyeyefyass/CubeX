@@ -482,21 +482,25 @@
                   </div>
 
                   <div class="flex items-center justify-between py-1">
-                    <span class="text-sm sm:text-base font-bold text-amber-300 font-mono truncate">{{ ir.network?.tun_interface || 'cubex-tun' }}</span>
-                    <!-- Live probe badges for direct and proxy -->
-                    <div class="flex items-center gap-1.5 shrink-0">
-                      <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold" title="国内直连延迟">
-                        ⚡ {{ healthRadar.metrics?.direct?.latency_ms ? healthRadar.metrics.direct.latency_ms + 'ms' : '0损耗' }}
-                      </span>
-                      <span class="px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 text-[10px] font-mono font-bold" title="境外加速延迟">
-                        🚀 {{ healthRadar.metrics?.proxy?.latency_ms ? healthRadar.metrics.proxy.latency_ms + 'ms' : '秒通' }}
-                      </span>
-                    </div>
+                    <span class="text-sm sm:text-base font-bold text-amber-300 font-mono whitespace-nowrap">{{ ir.network?.tun_interface || 'cubex-tun' }}</span>
+                    <span class="text-[11px] font-mono text-slate-400 whitespace-nowrap">:{{ ir.network?.tproxy_port || 7893 }} (TProxy)</span>
                   </div>
 
-                  <div class="space-y-1 text-xs font-mono">
-                    <div class="text-[11px] text-slate-400 font-mono truncate">TProxy 转发: :{{ ir.network?.tproxy_port || 7893 }}</div>
-                    <div class="text-[11px] text-slate-500 font-mono truncate">Clash API 控制器: :{{ ir.network?.clash_api_port || 9090 }}</div>
+                  <!-- Live probe badges for direct and proxy in their own dedicated row (No Ellipsis) -->
+                  <div class="flex items-center justify-between gap-1.5 py-0.5">
+                    <span class="px-2 py-0.5 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 text-[10px] sm:text-[11px] font-mono font-bold flex items-center gap-1 whitespace-nowrap shrink-0" title="国内直连延迟">
+                      <span>⚡ 国内:</span>
+                      <span>{{ healthRadar.metrics?.direct?.latency_ms ? healthRadar.metrics.direct.latency_ms + 'ms' : '0损耗' }}</span>
+                    </span>
+                    <span class="px-2 py-0.5 rounded-md bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 text-[10px] sm:text-[11px] font-mono font-bold flex items-center gap-1 whitespace-nowrap shrink-0" title="境外加速延迟">
+                      <span>🚀 境外:</span>
+                      <span>{{ healthRadar.metrics?.proxy?.latency_ms ? healthRadar.metrics.proxy.latency_ms + 'ms' : '秒通' }}</span>
+                    </span>
+                  </div>
+
+                  <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
+                    <span class="text-slate-500">Clash API 控制器</span>
+                    <span class="text-slate-400 font-bold">:{{ ir.network?.clash_api_port || 9090 }}</span>
                   </div>
 
                   <!-- Visual Active Indicator Bar -->
@@ -3368,11 +3372,11 @@
                     <span class="whitespace-nowrap">{{ hostBadge.name }}</span>
                   </span>
                   <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/30">
-                    零代码原生打通 · 0 侵权宿主共生
+                    全自动智能联动 · 安全不伤主路由
                   </span>
                 </div>
                 <div class="text-xs text-slate-400">
-                  全自动宿主特征嗅探 · 零代码一键共生内核转发与策略路由 · 防死锁与严格防 DNS 泄露保障。
+                  自动识别 RouterOS / 飞牛 / PVE 底座，一键安全联动策略路由与转发，容器意外启闭绝不影响主网。
                 </div>
               </div>
             </div>
