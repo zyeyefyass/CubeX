@@ -3485,13 +3485,13 @@
                 </div>
                 <div class="flex flex-col justify-end">
                   <label class="block text-[11px] text-slate-300 font-bold mb-1.5 min-h-[32px] sm:min-h-[34px] flex items-end leading-snug">
-                    <span>管理员账号 <span class="text-[10px] text-slate-400 font-mono font-normal">(ROS/爱快: admin, OpenWrt/Linux: root)</span></span>
+                    <span>管理员账号 <span class="text-[10px] text-slate-400 font-mono font-normal">(WinBox / Web / SSH 账号)</span></span>
                   </label>
-                  <input v-model="hostConfig.user" placeholder="admin 或 root" class="w-full h-10 bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 text-xs font-mono text-white outline-none shadow-inner transition" />
+                  <input v-model="hostConfig.user" placeholder="管理用户名 (例: admin / root / 自建)" class="w-full h-10 bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
                 <div class="flex flex-col justify-end">
                   <label class="block text-[11px] text-slate-300 font-bold mb-1.5 min-h-[32px] sm:min-h-[34px] flex items-end leading-snug">
-                    <span>登录密码 <span class="text-[10px] text-slate-400 font-mono font-normal">(WinBox / 爱快Web / OpenWrt后台密码)</span></span>
+                    <span>登录认证密码 <span class="text-[10px] text-slate-400 font-mono font-normal">(WinBox / Web / SSH 密码)</span></span>
                   </label>
                   <input type="password" v-model="hostConfig.password" placeholder="Web / WinBox登录密码 (无密码留空)" class="w-full h-10 bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
