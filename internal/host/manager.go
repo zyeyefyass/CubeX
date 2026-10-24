@@ -583,7 +583,7 @@ func (m *Manager) testSSHClientSession(client *ssh.Client, cfg HostConfig) (map[
 	defer session2.Close()
 	var b2 bytes.Buffer
 	session2.Stdout = &b2
-	_ = session2.Run("cat /etc/os-release; uname -m")
+	_ = session2.Run("cat /etc/issue 2>/dev/null; cat /etc/os-release 2>/dev/null; uname -r; uname -m")
 	osName, platID := parseOSRelease(b2.String())
 	arch := "amd64"
 	for _, l := range strings.Split(b2.String(), "\n") {
@@ -765,7 +765,28 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 	}
 
 	if cfg.Enabled && targetHost != "" && targetUser != "" {
-		if restRes, err := m.testRouterOSRest(HostConfig{Host: targetHost, Port: targetPort, User: targetUser, Password: targetPass}); err == nil && restRes != nil {
+		hostCfg := HostConfig{Host: targetHost, Port: targetPort, User: targetUser, Password: targetPass, PlatformType: cfg.PlatformType}
+
+		// If explicitly set to ikuai, probe iKuai Web-RPC
+		if cfg.PlatformType == "ikuai" {
+			if ikRes, err := m.testIKuaiRPC(hostCfg); err == nil && ikRes != nil {
+				m.mu.RLock()
+				defer m.mu.RUnlock()
+				return m.cachedInfo, nil
+			}
+		}
+
+		// If explicitly set to openwrt, probe OpenWrt
+		if cfg.PlatformType == "openwrt" {
+			if owRes, err := m.testOpenWrt(hostCfg); err == nil && owRes != nil {
+				m.mu.RLock()
+				defer m.mu.RUnlock()
+				return m.cachedInfo, nil
+			}
+		}
+
+		// Priority 1: RouterOS REST API
+		if restRes, err := m.testRouterOSRest(hostCfg); err == nil && restRes != nil {
 			info.Connected = true
 			info.PlatformID = "routeros"
 			info.OSName = restRes["os_pretty"].(string)
@@ -805,6 +826,22 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 			m.cachedInfo = info
 			m.mu.Unlock()
 			return info, nil
+		}
+
+		// Priority 2: iKuai Web-RPC (on port 80/443)
+		if ikRes, err := m.testIKuaiRPC(hostCfg); err == nil && ikRes != nil {
+			m.mu.RLock()
+			defer m.mu.RUnlock()
+			return m.cachedInfo, nil
+		}
+
+		// Priority 3: OpenWrt (on port 80/443, guard against explicit Linux/fnOS/PVE)
+		if hostCfg.PlatformType != "fnos" && hostCfg.PlatformType != "linux" && hostCfg.PlatformType != "pve" {
+			if owRes, err := m.testOpenWrt(hostCfg); err == nil && owRes != nil {
+				m.mu.RLock()
+				defer m.mu.RUnlock()
+				return m.cachedInfo, nil
+			}
 		}
 	}
 
@@ -893,7 +930,7 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 	if session, err := client.NewSession(); err == nil {
 		var out bytes.Buffer
 		session.Stdout = &out
-		_ = session.Run("cat /etc/os-release")
+		_ = session.Run("cat /etc/issue 2>/dev/null; cat /etc/os-release 2>/dev/null; uname -r")
 		session.Close()
 		info.OSName, info.PlatformID = parseOSRelease(out.String())
 	}
@@ -955,7 +992,7 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 	if session, err := client.NewSession(); err == nil {
 		var out bytes.Buffer
 		session.Stdout = &out
-		_ = session.Run("iptables -L INPUT -n 2>/dev/null | grep 2026")
+		_ = session.Run(wrapSudo("iptables -L INPUT -n 2>/dev/null | grep 2026", cfg.User, cfg.Password))
 		session.Close()
 		info.FirewallConfigured = strings.Contains(out.String(), "2026")
 	}
@@ -1002,13 +1039,36 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 	cached := m.cachedInfo
 	m.mu.RUnlock()
 
+	if cached == nil && cfg.Enabled && cfg.Host != "" {
+		cached, _ = m.ProbeHost()
+	}
+
 	// 1. If currently connected host is RouterOS, guide user to ROS configuration
 	if cached != nil && cached.PlatformID == "routeros" && cfg.Host != "" {
 		return nil, fmt.Errorf("当前连接的宿主为 MikroTik RouterOS（无需 iptables）。请直接使用【一键巡检 ROS 配置及全量重新配置】。若宿主机为独立 Linux / 飞牛 NAS，请在【宿主共生凭据】中填入其 SSH 凭据")
 	}
 
+	// 1.1 If currently connected host is iKuai, execute iKuai bypass orchestration
+	if (cached != nil && cached.PlatformID == "ikuai") || cfg.PlatformType == "ikuai" {
+		client := ikuai.NewClient(ikuai.Config{
+			Host:     cfg.Host,
+			Port:     cfg.Port,
+			User:     cfg.User,
+			Password: cfg.Password,
+		})
+		cubexIP := m.GetOutboundIP(cfg.Host)
+		logs, err := client.ApplyBypass(cubexIP)
+		if err != nil {
+			return nil, fmt.Errorf("爱快一键自愈与加固失败: %w", err)
+		}
+		return &FirewallResult{
+			Success: true,
+			Logs:    append([]string{"[IKUAI] 成功连接爱快主路由 Web-RPC", fmt.Sprintf("[IKUAI] 探测到 CubeX 宿主直连 IP 为: %s", cubexIP), "[IKUAI] 下发 Fake-IP 回指与 DHCP DNS 联动配置"}, logs...),
+		}, nil
+	}
+
 	// 1.2 If currently connected host is OpenWrt, execute OpenWrt bypass orchestration
-	if cached != nil && cached.PlatformID == "openwrt" && cfg.Host != "" {
+	if (cached != nil && cached.PlatformID == "openwrt") || cfg.PlatformType == "openwrt" {
 		client := openwrt.NewClient(openwrt.Config{
 			Host:     cfg.Host,
 			Port:     cfg.Port,
@@ -1197,7 +1257,8 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 		var out bytes.Buffer
 		session.Stdout = &out
 		session.Stderr = &out
-		runErr := session.Run(item.cmd)
+		cmdToRun := wrapSudo(item.cmd, cfg.User, cfg.Password)
+		runErr := session.Run(cmdToRun)
 		session.Close()
 
 		if runErr != nil {
@@ -1212,7 +1273,8 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 
 	// Try persisting rules
 	if session, err := client.NewSession(); err == nil {
-		_ = session.Run("which netfilter-persistent && netfilter-persistent save || which iptables-save && iptables-save > /etc/iptables.rules 2>/dev/null")
+		persistCmd := "which netfilter-persistent && netfilter-persistent save || which iptables-save && iptables-save > /etc/iptables.rules 2>/dev/null"
+		_ = session.Run(wrapSudo(persistCmd, cfg.User, cfg.Password))
 		session.Close()
 	}
 
@@ -1591,7 +1653,7 @@ func (m *Manager) detectLocalHost() string {
 		if strings.Contains(c, "openwrt") || strings.Contains(c, "immortalwrt") || strings.Contains(c, "lede") {
 			return "OpenWrt 智能软路由"
 		}
-		if strings.Contains(c, "fnos") || strings.Contains(c, "trimix") {
+		if strings.Contains(c, "fnos") || strings.Contains(c, "trim") {
 			return "飞牛 fnOS"
 		}
 		if strings.Contains(c, "pve") || strings.Contains(c, "proxmox") {
@@ -1654,13 +1716,19 @@ func parseOSRelease(content string) (osName string, platID string) {
 		}
 		return rawName, "openwrt"
 	}
-	if strings.Contains(lower, "fnos") || strings.Contains(lower, "trimix") {
-		if rawName == "" {
-			rawName = "飞牛 fnOS"
+	if strings.Contains(lower, "fnos") || strings.Contains(lower, "trim") {
+		for _, l := range lines {
+			l = strings.TrimSpace(l)
+			if strings.HasPrefix(l, "OS version:") {
+				ver := strings.TrimSpace(strings.TrimPrefix(l, "OS version:"))
+				if ver != "" {
+					return fmt.Sprintf("飞牛 %s", ver), "fnos"
+				}
+			}
 		}
-		return rawName, "fnos"
+		return "飞牛 fnOS", "fnos"
 	}
-	if strings.Contains(lower, "proxmox") || strings.Contains(lower, "pve") {
+	if strings.Contains(lower, "proxmox") || strings.Contains(strings.ToLower(rawName), "proxmox") || (strings.Contains(lower, "pve") && !strings.Contains(lower, "debian") && !strings.Contains(lower, "ubuntu")) {
 		if rawName == "" {
 			rawName = "Proxmox VE (PVE)"
 		}
@@ -1807,3 +1875,12 @@ func (m *Manager) GetDockerRegistryMirror() (string, error) {
 	return "", nil
 }
 
+
+func wrapSudo(cmd, user, password string) string {
+	if user == "root" || user == "" {
+		return cmd
+	}
+	safePwd := strings.ReplaceAll(password, "'", `'\''`)
+	safeCmd := strings.ReplaceAll(cmd, "'", `'\''`)
+	return fmt.Sprintf("echo '%s' | sudo -S -p '' sh -c '%s'", safePwd, safeCmd)
+}

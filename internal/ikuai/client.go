@@ -103,7 +103,7 @@ func (c *Client) Login() error {
 		return err
 	}
 
-	url := c.getBaseURL() + "/Action/call"
+	url := c.getBaseURL() + "/Action/login"
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return err
@@ -128,8 +128,8 @@ func (c *Client) Login() error {
 		return fmt.Errorf("解析爱快响应异常: %w (响应内容: %s)", err, string(respBytes))
 	}
 
-	// 30000 indicates success in iKuai
-	if rpcResp.Result != 30000 {
+	// 10000 (standard in 3.7+) or 30000 indicates success in iKuai
+	if rpcResp.Result != 10000 && rpcResp.Result != 30000 {
 		errMsg := rpcResp.ErrMsg
 		if errMsg == "" {
 			errMsg = fmt.Sprintf("错误码 %d", rpcResp.Result)
@@ -218,7 +218,7 @@ func (c *Client) Call(funcName, action string, param any) (*RPCResponse, error) 
 	}
 
 	// If session expired (e.g. Result 10001 or 10003), attempt 1 re-login
-	if rpcResp.Result == 10001 || rpcResp.Result == 10003 || strings.Contains(rpcResp.ErrMsg, "登录") {
+	if rpcResp.Result == 10001 || rpcResp.Result == 10003 || rpcResp.Result == 10014 || strings.Contains(rpcResp.ErrMsg, "登录") || strings.Contains(rpcResp.ErrMsg, "authentication") {
 		if err := c.Login(); err == nil {
 			c.mu.Lock()
 			newSess := c.sessKey

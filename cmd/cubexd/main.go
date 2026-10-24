@@ -802,6 +802,10 @@ func main() {
 
 	// 2. REST API v1
 
+	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"status":"ok","healthy":true}`))
+	})
 	mux.HandleFunc("/api/v1/system/status", srv.handleSystemStatus)
 
 	mux.HandleFunc("/api/v1/system/edition", srv.handleSystemEdition)

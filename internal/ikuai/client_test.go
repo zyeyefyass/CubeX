@@ -12,6 +12,13 @@ import (
 func TestIKuaiClientMock(t *testing.T) {
 	// Mock iKuai server
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/Action/login" {
+			http.SetCookie(w, &http.Cookie{Name: "sess_key", Value: "mock_session_key_12345"})
+			resp := RPCResponse{Result: 10000, ErrMsg: "Success"}
+			_ = json.NewEncoder(w).Encode(resp)
+			return
+		}
+
 		if r.URL.Path != "/Action/call" {
 			http.NotFound(w, r)
 			return

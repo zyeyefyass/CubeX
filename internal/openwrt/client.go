@@ -283,7 +283,11 @@ func (c *Client) runSSHCommand(cmd string) (string, error) {
 
 func (c *Client) probeViaSSH() (*SystemInfo, error) {
 	script := `
-cat /etc/openwrt_release 2>/dev/null || cat /etc/os-release 2>/dev/null
+if [ -f /etc/openwrt_release ]; then
+    cat /etc/openwrt_release
+else
+    echo "NOT_OPENWRT"
+fi
 echo "---SPLIT---"
 uname -r
 echo "---SPLIT---"
@@ -303,6 +307,15 @@ fi
 	}
 
 	parts := strings.Split(out, "---SPLIT---")
+	if len(parts) < 1 {
+		return nil, fmt.Errorf("invalid response from host")
+	}
+
+	lower0 := strings.ToLower(parts[0])
+	if strings.Contains(lower0, "not_openwrt") || (!strings.Contains(lower0, "openwrt") && !strings.Contains(lower0, "immortalwrt") && !strings.Contains(lower0, "lede") && !strings.Contains(lower0, "istoreos")) {
+		return nil, fmt.Errorf("target host is not an OpenWrt system")
+	}
+
 	info := &SystemInfo{
 		Release:     "OpenWrt",
 		FirewallVer: "firewall4",
@@ -383,7 +396,8 @@ fi
 
 # 2. DHCP Option 6 (DNS) Injection to point directly to CubeX
 # Remove any existing option 6 list entry to prevent duplicate DNS
-uci -q del_list dhcp.lan.dhcp_option='6,%s' || true
+while uci -q del_list dhcp.lan.dhcp_option='6,223.5.5.5'; do :; done
+while uci -q del_list dhcp.lan.dhcp_option='6,%s'; do :; done
 uci add_list dhcp.lan.dhcp_option='6,%s'
 uci commit dhcp
 /etc/init.d/dnsmasq restart >/dev/null 2>&1 || true
@@ -394,13 +408,14 @@ cat << 'EOF' > /usr/bin/cubex-watchdog.sh
 CUBEX_IP="%s"
 BACKUP_DNS="223.5.5.5"
 
-# Lightweight microsecond probe
-if wget -q -T 2 -O - "http://${CUBEX_IP}:2026/api/health" 2>/dev/null | grep -q "status"; then
+# Lightweight microsecond probe (dual fallback: /api/health & /api/v1/system/status)
+if wget -q -T 2 -O - "http://${CUBEX_IP}:2026/api/health" 2>/dev/null | grep -q "status" || wget -q -T 2 -O - "http://${CUBEX_IP}:2026/api/v1/system/status" 2>/dev/null | grep -q "status"; then
     # Healthy: ensure DHCP option points to CubeX
     CURRENT=$(uci -q get dhcp.lan.dhcp_option | grep -o "${CUBEX_IP}" || true)
     if [ -z "$CURRENT" ]; then
         logger -t cubex-watchdog "🛡️ CubeX Gateway revived! Restoring DHCP Option 6 to ${CUBEX_IP}"
-        uci -q del_list dhcp.lan.dhcp_option="6,${BACKUP_DNS}" || true
+        while uci -q del_list dhcp.lan.dhcp_option="6,${BACKUP_DNS}"; do :; done
+        while uci -q del_list dhcp.lan.dhcp_option="6,${CUBEX_IP}"; do :; done
         uci add_list dhcp.lan.dhcp_option="6,${CUBEX_IP}"
         uci commit dhcp
         /etc/init.d/dnsmasq reload >/dev/null 2>&1
@@ -410,7 +425,8 @@ else
     CURRENT=$(uci -q get dhcp.lan.dhcp_option | grep -o "${CUBEX_IP}" || true)
     if [ -n "$CURRENT" ]; then
         logger -t cubex-watchdog "🚨 CubeX Gateway unreachable! Activating 0-second failover to ${BACKUP_DNS}"
-        uci -q del_list dhcp.lan.dhcp_option="6,${CUBEX_IP}" || true
+        while uci -q del_list dhcp.lan.dhcp_option="6,${CUBEX_IP}"; do :; done
+        while uci -q del_list dhcp.lan.dhcp_option="6,${BACKUP_DNS}"; do :; done
         uci add_list dhcp.lan.dhcp_option="6,${BACKUP_DNS}"
         uci commit dhcp
         /etc/init.d/dnsmasq reload >/dev/null 2>&1
