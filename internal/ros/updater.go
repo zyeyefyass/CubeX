@@ -846,8 +846,9 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 
 	// Tier 1: Web 302 Redirect via verified fast GitHub mirrors
 	redirectCandidates := []string{
+		"https://ghproxy.net/https://github.com/" + repo + "/releases/latest",
+		"https://gh-proxy.com/https://github.com/" + repo + "/releases/latest",
 		"https://ghfast.top/https://github.com/" + repo + "/releases/latest",
-		"https://ghproxy.cn/https://github.com/" + repo + "/releases/latest",
 		"https://github.com/" + repo + "/releases/latest",
 	}
 
@@ -981,11 +982,11 @@ func (m *Manager) getLocalMihomoVersion() string {
 }
 
 func (m *Manager) fetchLatestMihomoVersion() (string, error) {
-	tag, err := fetchGitHubLatestTag("MetaCubeX/mihomo")
-	if err != nil || tag == "" {
-		return "v1.19.33", err
+	tag, _ := fetchGitHubLatestTag("MetaCubeX/mihomo")
+	if tag != "" {
+		return tag, nil
 	}
-	return tag, nil
+	return "v1.19.33", nil
 }
 
 func (m *Manager) getLocalSingboxVersion() string {
@@ -1020,11 +1021,11 @@ func (m *Manager) getLocalSingboxVersion() string {
 }
 
 func (m *Manager) fetchLatestSingboxVersion() (string, error) {
-	tag, err := fetchGitHubLatestTag("SagerNet/sing-box")
-	if err != nil || tag == "" {
-		return "v1.14.4", err
+	tag, _ := fetchGitHubLatestTag("SagerNet/sing-box")
+	if tag != "" {
+		return tag, nil
 	}
-	return tag, nil
+	return "v1.14.4", nil
 }
 
 func (m *Manager) checkROSConnection() (connected bool, version string) {
@@ -1229,6 +1230,9 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 }
 
 func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
+	if runtime.GOOS == "linux" {
+		_ = exec.Command("ip", "route", "replace", "198.18.0.0/15", "dev", "cubex-tun").Run()
+	}
 	cleanGitHubURL := rawURL
 	if idx := strings.Index(rawURL, "https://github.com/"); idx >= 0 {
 		cleanGitHubURL = rawURL[idx:]
@@ -1236,15 +1240,53 @@ func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
 		cleanGitHubURL = "https://" + rawURL[idx+7:]
 	}
 
+	// 1. Try high-speed download through local proxy 127.0.0.1:7890 if active (0-downtime hot download)
+	if proxyURL, pErr := url.Parse("http://127.0.0.1:7890"); pErr == nil {
+		pClient := &http.Client{
+			Transport: &http.Transport{
+				Proxy:           http.ProxyURL(proxyURL),
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+			Timeout: 120 * time.Second,
+		}
+		pReq, err := http.NewRequest(http.MethodGet, cleanGitHubURL, nil)
+		if err == nil {
+			pReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+			if pResp, err := pClient.Do(pReq); err == nil && pResp.StatusCode == http.StatusOK {
+				if gzReader, err := gzip.NewReader(pResp.Body); err == nil {
+					outFile, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+					if err == nil {
+						written, copyErr := io.Copy(outFile, gzReader)
+						outFile.Close()
+						gzReader.Close()
+						pResp.Body.Close()
+						if copyErr == nil && written >= 5000000 {
+							log.Printf("[ROS] Successfully downloaded Mihomo core via local proxy (%d bytes)", written)
+							return nil
+						}
+					} else {
+						gzReader.Close()
+						pResp.Body.Close()
+					}
+				} else {
+					pResp.Body.Close()
+				}
+			} else if pResp != nil {
+				pResp.Body.Close()
+			}
+		}
+	}
+
 	candidates := []string{
+		"https://ghproxy.net/" + cleanGitHubURL,
+		"https://gh-proxy.com/" + cleanGitHubURL,
+		"https://gh.ddlc.top/" + cleanGitHubURL,
 		"https://ghfast.top/" + cleanGitHubURL,
 		"https://mirror.ghproxy.com/" + cleanGitHubURL,
-		"https://gh-proxy.com/" + cleanGitHubURL,
-		"https://ghproxy.net/" + cleanGitHubURL,
 		cleanGitHubURL,
 	}
 
-	client := &http.Client{Timeout: 35 * time.Second}
+	client := &http.Client{Timeout: 120 * time.Second}
 	var lastErr error
 
 	for _, targetURL := range candidates {
@@ -1325,7 +1367,7 @@ func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath str
 				Proxy:           http.ProxyURL(proxyURL),
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			},
-			Timeout: 35 * time.Second,
+			Timeout: 120 * time.Second,
 		}
 		pReq, err := http.NewRequest(http.MethodGet, cleanGitHubURL, nil)
 		if err == nil {
@@ -1369,14 +1411,15 @@ func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath str
 	}
 
 	candidates := []string{
+		"https://ghproxy.net/" + cleanGitHubURL,
+		"https://gh-proxy.com/" + cleanGitHubURL,
+		"https://gh.ddlc.top/" + cleanGitHubURL,
 		"https://ghfast.top/" + cleanGitHubURL,
 		"https://mirror.ghproxy.com/" + cleanGitHubURL,
-		"https://gh-proxy.com/" + cleanGitHubURL,
-		"https://ghproxy.net/" + cleanGitHubURL,
 		cleanGitHubURL,
 	}
 
-	client := &http.Client{Timeout: 45 * time.Second}
+	client := &http.Client{Timeout: 120 * time.Second}
 	var lastErr error
 
 	for _, targetURL := range candidates {

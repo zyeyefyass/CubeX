@@ -755,6 +755,16 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 // to eliminate cold-start TLS latency and ensure instant traffic flow for LAN clients.
 func (m *Manager) prewarmEngine(target schema.EngineType) {
 	time.Sleep(150 * time.Millisecond)
+
+	// In Linux environments (PVE LXC / Container / Host), ensure Fake-IP route 198.18.0.0/15 dev cubex-tun is active
+	if runtime.GOOS == "linux" {
+		tunIface := "cubex-tun"
+		if m.ir != nil && m.ir.Network.TunInterface != "" {
+			tunIface = m.ir.Network.TunInterface
+		}
+		_ = exec.Command("ip", "route", "replace", "198.18.0.0/15", "dev", tunIface).Run()
+	}
+
 	warmGroups := []string{"🌐 国外流量", "YouTube", "Google", "AI"}
 	testURL := "https://www.gstatic.com/generate_204"
 	for _, g := range warmGroups {

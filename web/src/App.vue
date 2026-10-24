@@ -3289,55 +3289,69 @@
                   </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0 flex-wrap">
+                  <!-- 1. CubeX Panel Update -->
                   <button v-if="systemOverview.panel_update_avail" @click="upgradePanel" :disabled="upgradingPanel" class="px-3.5 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition shadow-md shadow-cyan-500/20">
                     一键热更 CubeX
                   </button>
-                  <button v-if="hostUpgradeDetails.hasUpdate" @click="executeHostUpgrade" :disabled="upgradingHost" class="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition shadow-md shadow-purple-600/20">
-                    一键升级宿主固件
+                  <!-- 2. Mihomo Core Update -->
+                  <button v-if="!coreUpgradeFrozen && systemOverview.mihomo_update_avail" @click="upgradeCore('mihomo')" :disabled="upgradingCoreMihomo" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-md shadow-amber-600/20 cursor-pointer active:scale-95 flex items-center gap-1.5">
+                    <span v-if="upgradingCoreMihomo" class="inline-block animate-spin mr-0.5">↻</span>
+                    <span>{{ upgradingCoreMihomo ? '正在升级 Mihomo...' : `⬆ 升级 Mihomo 内核 (${systemOverview.mihomo_latest_version || '最新'})` }}</span>
                   </button>
-                  <button @click="updateGeoData" :disabled="updatingGeo" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-md shadow-emerald-600/20">
-                    更新规则库
+                  <!-- 3. sing-box Core Update -->
+                  <button v-if="!coreUpgradeFrozen && systemOverview.singbox_update_avail" @click="upgradeCore('singbox')" :disabled="upgradingCoreSingbox" class="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition shadow-md shadow-amber-600/20 cursor-pointer active:scale-95 flex items-center gap-1.5">
+                    <span v-if="upgradingCoreSingbox" class="inline-block animate-spin mr-0.5">↻</span>
+                    <span>{{ upgradingCoreSingbox ? '正在升级 sing-box...' : `⬆ 升级 sing-box 内核 (${systemOverview.singbox_latest_version || '最新'})` }}</span>
+                  </button>
+                  <!-- 4. Geo Rules Update (ONLY when has_update is true) -->
+                  <button v-if="geodataStatus.has_update" @click="updateGeoData" :disabled="updatingGeo" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-md shadow-emerald-600/20 cursor-pointer active:scale-95 flex items-center gap-1.5">
+                    <span v-if="updatingGeo" class="inline-block animate-spin mr-0.5">↻</span>
+                    <span>{{ updatingGeo ? '正在全量同步...' : '一键更新规则库' }}</span>
+                  </button>
+                  <!-- 5. Host Firmware Update -->
+                  <button v-if="hostUpgradeDetails.hasUpdate" @click="executeHostUpgrade" :disabled="upgradingHost" class="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition shadow-md shadow-purple-600/20 cursor-pointer active:scale-95">
+                    一键升级宿主固件
                   </button>
                 </div>
               </div>
             </transition>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
               <!-- 1. CubeX 主控系统版本 -->
-              <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
-                <!-- Tier 1: Header (h-7) -->
-                <div class="h-7 flex justify-between items-center gap-2">
-                  <div class="flex items-center gap-2 min-w-0">
-                    <img src="/logo-cubex.svg" class="w-5 h-5 min-w-[20px] max-w-[20px] h-[20px] max-h-[20px] object-contain shrink-0 drop-shadow-[0_0_5px_rgba(56,189,248,0.4)]" alt="CubeX" />
-                    <span class="text-xs sm:text-[13px] font-bold text-white whitespace-nowrap truncate">CubeX 系统守护进程</span>
+              <div class="p-6 sm:p-7 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#001c38]/95 via-[#00172e]/90 to-slate-950/95 border border-cyan-500/25 hover:border-cyan-400/50 shadow-2xl shadow-cyan-950/30 hover:shadow-cyan-900/40 transition-all duration-300 space-y-4 flex flex-col justify-between group">
+                <!-- Tier 1: Header (min-h-[36px]) -->
+                <div class="min-h-[36px] flex justify-between items-center gap-3">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <img src="/logo-cubex.svg" class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] object-contain shrink-0 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)] transition-transform duration-300 group-hover:scale-105" alt="CubeX" />
+                    <span class="text-sm sm:text-base font-extrabold text-white whitespace-nowrap truncate tracking-wide">CubeX 系统守护进程</span>
                   </div>
-                  <span v-if="systemOverview.panel_update_avail" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse whitespace-nowrap shrink-0">发现新版 {{ systemOverview.panel_latest_version }}</span>
-                  <span v-else class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 whitespace-nowrap shrink-0 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>✓ 已是最新稳定版</span>
+                  <span v-if="systemOverview.panel_update_avail" class="text-xs font-mono px-3 py-1 rounded-lg bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse whitespace-nowrap shrink-0 font-semibold shadow-sm">发现新版 {{ systemOverview.panel_latest_version }}</span>
+                  <span v-else class="text-xs font-mono px-3 py-1 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-500/40 whitespace-nowrap shrink-0 flex items-center gap-1.5 font-semibold shadow-sm"><span class="w-2 h-2 rounded-full bg-emerald-400"></span>✓ 已是最新稳定版</span>
                 </div>
-                <!-- Tier 2: Body (h-[74px]) -->
-                <div class="h-[74px] text-xs font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
+                <!-- Tier 2: Body (min-h-[86px]) -->
+                <div class="min-h-[86px] text-xs sm:text-[13px] font-mono bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-center gap-2.5 shadow-inner">
                   <div class="flex items-center justify-between">
-                    <span>当前运行: <strong class="text-cyan-400 font-bold">{{ systemOverview.cubex_version || 'Test v3.1' }}</strong></span>
-                    <span class="text-slate-500">云端最新: <span class="text-slate-300">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v3.1' }}</span></span>
+                    <span>当前运行: <strong class="text-cyan-400 font-bold text-sm">{{ systemOverview.cubex_version || 'Test v3.1' }}</strong></span>
+                    <span class="text-slate-400">云端最新: <span class="text-slate-200 font-semibold">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v3.1' }}</span></span>
                   </div>
-                  <div class="flex items-center justify-between text-[11px]">
-                    <span class="text-slate-400">运行底座: <span class="text-slate-300">{{ hostBadge.name || 'MikroTik RouterOS' }} ({{ hostInfo.architecture || 'amd64' }})</span></span>
-                    <span class="text-emerald-400 font-semibold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>主控活跃守护</span>
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-400">运行底座: <span class="text-slate-200 font-semibold">{{ hostBadge.name || 'MikroTik RouterOS' }} ({{ hostInfo.architecture || 'amd64' }})</span></span>
+                    <span class="text-emerald-400 font-bold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>主控活跃守护</span>
                   </div>
                 </div>
-                <!-- Tier 3: Action Buttons (h-10) -->
-                <div class="h-10">
-                  <button @click="upgradePanel" :disabled="upgradingPanel" class="w-full h-10 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-500/20">
+                <!-- Tier 3: Action Buttons (h-11 sm:h-12) -->
+                <div class="h-11 sm:h-12">
+                  <button @click="upgradePanel" :disabled="upgradingPanel" class="w-full h-full rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-400 hover:to-cyan-300 text-slate-950 font-bold text-xs sm:text-sm transition cursor-pointer active:scale-98 flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25">
                     <span v-if="upgradingPanel" class="inline-block animate-spin mr-1">↻</span>
                     <span>{{ upgradingPanel ? '⏳ 正在核对与平滑热更中...' : (systemOverview.panel_update_avail ? `🚀 一键在线热更至 ${systemOverview.panel_latest_version}` : '🔄 校验并在线热更 CubeX') }}</span>
                   </button>
                 </div>
-                <!-- Tier 4: Terminal Viewport (h-[62px]) -->
-                <div class="h-[62px] p-2 rounded-xl bg-slate-950/80 border border-cyan-500/20 text-[11px] font-mono text-cyan-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center">
+                <!-- Tier 4: Terminal Viewport (h-[70px] sm:h-[76px]) -->
+                <div class="h-[70px] sm:h-[76px] p-3 rounded-xl bg-slate-950/90 border border-cyan-500/25 text-xs font-mono text-cyan-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center shadow-inner">
                   <div v-if="panelUpgradeLog" class="w-full break-words">
                     {{ panelUpgradeLog }}
                   </div>
-                  <div v-else class="text-slate-400 text-xs flex items-center gap-2">
+                  <div v-else class="text-slate-300 text-xs flex items-center gap-2.5">
                     <span class="text-cyan-400 font-bold shrink-0">[CUBEX]</span>
                     <span>主控守护进程运行中 · 双引擎热备调度活跃 · 内存与端口健康</span>
                   </div>
@@ -3345,109 +3359,109 @@
               </div>
 
               <!-- 2. 双内核版本 -->
-              <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
-                <!-- Tier 1: Header (h-7) -->
-                <div class="h-7 flex justify-between items-center gap-2">
-                  <div class="flex items-center gap-2 min-w-0">
-                    <div class="flex items-center -space-x-1 shrink-0">
-                      <img src="/logo-mihomo.svg" class="w-4 h-4 min-w-[16px] max-w-[16px] h-[16px] max-h-[16px] object-contain shrink-0 drop-shadow-[0_0_4px_rgba(56,189,248,0.3)]" alt="Mihomo" />
-                      <img src="/logo-singbox.svg" class="w-4 h-4 min-w-[16px] max-w-[16px] h-[16px] max-h-[16px] object-contain shrink-0 drop-shadow-[0_0_4px_rgba(56,189,248,0.3)]" alt="sing-box" />
+              <div class="p-6 sm:p-7 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#001c38]/95 via-[#00172e]/90 to-slate-950/95 border border-cyan-500/25 hover:border-cyan-400/50 shadow-2xl shadow-cyan-950/30 hover:shadow-cyan-900/40 transition-all duration-300 space-y-4 flex flex-col justify-between group">
+                <!-- Tier 1: Header (min-h-[36px]) -->
+                <div class="min-h-[36px] flex justify-between items-center gap-3">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="flex items-center gap-2.5 shrink-0">
+                      <img src="/logo-mihomo.svg" class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] object-contain shrink-0 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)] transition-transform duration-300 group-hover:scale-105" alt="Mihomo" />
+                      <img src="/logo-singbox.svg" class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] object-contain shrink-0 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)] transition-transform duration-300 group-hover:scale-105" alt="sing-box" />
                     </div>
-                    <span class="text-xs sm:text-[13px] font-bold text-white whitespace-nowrap truncate">双代理内核 (Mihomo & sing-box)</span>
+                    <span class="text-sm sm:text-base font-extrabold text-white whitespace-nowrap truncate tracking-wide">双代理内核</span>
                   </div>
-                  <div class="flex items-center gap-1.5">
+                  <div class="flex items-center gap-2 shrink-0">
                     <!-- Freeze Toggle Pill -->
                     <button @click="toggleCoreUpgradeFreeze" :title="coreUpgradeFrozen ? '当前已锁定内核版本，点击解除冻结' : '点击冻结内核升级，锁定当前稳定版本，防止语法与功能冲突'"
-                      :class="['text-[10px] font-mono px-2 py-0.5 rounded border transition cursor-pointer flex items-center gap-1 shadow-sm active:scale-95',
+                      :class="['text-xs font-mono px-2.5 py-1 rounded-lg border transition cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95 font-semibold',
                         coreUpgradeFrozen ? 'bg-blue-950 text-blue-300 border-blue-500/50 hover:bg-blue-900 hover:border-blue-400' : 'bg-slate-800/90 text-slate-300 hover:text-white border-slate-700 hover:border-blue-500/50']">
                       <span>{{ coreUpgradeFrozen ? '🔒 已冻结升级 (点击解锁)' : '🔒 冻结升级' }}</span>
                     </button>
                     <!-- Status Badge (when not frozen) -->
                     <template v-if="!coreUpgradeFrozen">
-                      <span v-if="upgradingCoreMihomo || upgradingCoreSingbox" class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40 flex items-center gap-1 shadow-sm">
-                        <span class="inline-block animate-spin text-[9px]">↻</span>
+                      <span v-if="upgradingCoreMihomo || upgradingCoreSingbox" class="text-xs font-mono px-2.5 py-1 rounded-lg bg-purple-950 text-purple-300 border border-purple-500/40 flex items-center gap-1.5 shadow-sm font-semibold">
+                        <span class="inline-block animate-spin text-[10px]">↻</span>
                         <span>内核热更中...</span>
                       </span>
-                      <span v-else-if="systemOverview.mihomo_update_avail || systemOverview.singbox_update_avail" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse flex items-center gap-1 shadow-sm">
+                      <span v-else-if="systemOverview.mihomo_update_avail || systemOverview.singbox_update_avail" class="text-xs font-mono px-2.5 py-1 rounded-lg bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse flex items-center gap-1 shadow-sm font-semibold">
                         <span>⚠️ 待催更</span>
                       </span>
-                      <span v-else class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      <span v-else class="text-xs font-mono px-2.5 py-1 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm font-semibold">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
                         <span>✓ 已最新</span>
                       </span>
                     </template>
                   </div>
                 </div>
-                <!-- Tier 2: Body (h-[74px]) -->
-                <div class="h-[74px] text-[11px] font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
+                <!-- Tier 2: Body (min-h-[86px]) -->
+                <div class="min-h-[86px] text-xs sm:text-[13px] font-mono bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-center gap-2.5 shadow-inner">
                   <div class="flex items-center justify-between">
-                    <span>Mihomo 内核: <strong class="text-emerald-400 font-semibold">{{ systemOverview.mihomo_curr_version || 'v1.19.33' }}</strong></span>
-                    <span class="text-slate-500">官方最新: <span :class="systemOverview.mihomo_update_avail ? 'text-amber-400 font-bold' : 'text-slate-300'">{{ systemOverview.mihomo_latest_version || 'v1.19.33' }}</span></span>
+                    <span>Mihomo 内核: <strong class="text-emerald-400 font-bold text-sm">{{ systemOverview.mihomo_curr_version || 'v1.19.33' }}</strong></span>
+                    <span class="text-slate-400">官方最新: <span :class="systemOverview.mihomo_update_avail ? 'text-amber-400 font-bold' : 'text-slate-200 font-semibold'">{{ systemOverview.mihomo_latest_version || 'v1.19.33' }}</span></span>
                   </div>
                   <div class="flex items-center justify-between">
-                    <span>sing-box 内核: <strong class="text-emerald-400 font-semibold">{{ systemOverview.singbox_curr_version || 'v1.14.4' }}</strong></span>
-                    <span class="text-slate-500">官方最新: <span :class="systemOverview.singbox_update_avail ? 'text-amber-400 font-bold' : 'text-slate-300'">{{ systemOverview.singbox_latest_version || 'v1.14.4' }}</span></span>
+                    <span>sing-box 内核: <strong class="text-emerald-400 font-bold text-sm">{{ systemOverview.singbox_curr_version || 'v1.14.4' }}</strong></span>
+                    <span class="text-slate-400">官方最新: <span :class="systemOverview.singbox_update_avail ? 'text-amber-400 font-bold' : 'text-slate-200 font-semibold'">{{ systemOverview.singbox_latest_version || 'v1.14.4' }}</span></span>
                   </div>
                 </div>
-                <!-- Tier 3: Action Buttons (h-10) -->
-                <div class="h-10 grid grid-cols-2 gap-2">
-                  <button v-if="coreUpgradeFrozen" disabled class="h-10 rounded-xl border border-slate-700 bg-slate-900/60 text-slate-500 font-bold text-xs flex items-center justify-center gap-1 cursor-not-allowed opacity-60" title="内核升级已冻结锁定，请先解除冻结">
+                <!-- Tier 3: Action Buttons (h-11 sm:h-12) -->
+                <div class="h-11 sm:h-12 grid grid-cols-2 gap-2.5">
+                  <button v-if="coreUpgradeFrozen" disabled class="h-full rounded-xl border border-slate-700 bg-slate-900/60 text-slate-500 font-bold text-xs sm:text-sm flex items-center justify-center gap-1 cursor-not-allowed opacity-60" title="内核升级已冻结锁定，请先解除冻结">
                     <span>🔒 Mihomo (已冻结)</span>
                   </button>
-                  <button v-else @click="upgradeCore('mihomo')" :disabled="upgradingCoreMihomo" class="h-10 rounded-xl border font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1"
-                    :class="systemOverview.mihomo_update_avail ? 'bg-amber-600/20 hover:bg-amber-600/30 border-amber-500/50 text-amber-200 shadow-sm' : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200'">
+                  <button v-else @click="upgradeCore('mihomo')" :disabled="upgradingCoreMihomo" class="h-full rounded-xl border font-bold text-xs sm:text-sm transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-md"
+                    :class="systemOverview.mihomo_update_avail ? 'bg-amber-600/30 hover:bg-amber-600/40 border-amber-500/60 text-amber-200 shadow-amber-500/20' : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-100'">
                     <span v-if="upgradingCoreMihomo" class="inline-block animate-spin mr-1">↻</span>
                     <span>{{ upgradingCoreMihomo ? '核对中...' : (systemOverview.mihomo_update_avail ? '⬆ 升级 Mihomo (自决)' : '⬆ 升级 Mihomo') }}</span>
                   </button>
-                  <button v-if="coreUpgradeFrozen" disabled class="h-10 rounded-xl border border-slate-700 bg-slate-900/60 text-slate-500 font-bold text-xs flex items-center justify-center gap-1 cursor-not-allowed opacity-60" title="内核升级已冻结锁定，请先解除冻结">
+                  <button v-if="coreUpgradeFrozen" disabled class="h-full rounded-xl border border-slate-700 bg-slate-900/60 text-slate-500 font-bold text-xs sm:text-sm flex items-center justify-center gap-1 cursor-not-allowed opacity-60" title="内核升级已冻结锁定，请先解除冻结">
                     <span>🔒 sing-box (已冻结)</span>
                   </button>
-                  <button v-else @click="upgradeCore('singbox')" :disabled="upgradingCoreSingbox" class="h-10 rounded-xl border font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1"
-                    :class="systemOverview.singbox_update_avail ? 'bg-amber-600/20 hover:bg-amber-600/30 border-amber-500/50 text-amber-200 shadow-sm' : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200'">
+                  <button v-else @click="upgradeCore('singbox')" :disabled="upgradingCoreSingbox" class="h-full rounded-xl border font-bold text-xs sm:text-sm transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-md"
+                    :class="systemOverview.singbox_update_avail ? 'bg-amber-600/30 hover:bg-amber-600/40 border-amber-500/60 text-amber-200 shadow-amber-500/20' : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-100'">
                     <span v-if="upgradingCoreSingbox" class="inline-block animate-spin mr-1">↻</span>
                     <span>{{ upgradingCoreSingbox ? '核对中...' : (systemOverview.singbox_update_avail ? '⬆ 升级 sing-box (自决)' : '⬆ 升级 sing-box') }}</span>
                   </button>
                 </div>
-                <!-- Tier 4: Terminal Viewport (h-[62px]) -->
-                <div class="h-[62px] p-2 rounded-xl bg-slate-950/80 border text-[11px] font-mono leading-relaxed overflow-y-auto custom-scrollbar flex items-center"
+                <!-- Tier 4: Terminal Viewport (h-[70px] sm:h-[76px]) -->
+                <div class="h-[70px] sm:h-[76px] p-3 rounded-xl bg-slate-950/90 border text-xs font-mono leading-relaxed overflow-y-auto custom-scrollbar flex items-center shadow-inner"
                   :class="coreUpgradeFrozen ? 'border-blue-500/30 text-blue-300' : (systemOverview.mihomo_update_avail || systemOverview.singbox_update_avail ? 'border-amber-500/30 text-amber-300' : 'border-slate-700/60 text-slate-300')">
                   <div v-if="coreUpgradeLog" class="w-full break-words">
                     {{ coreUpgradeLog }}
                   </div>
                   <!-- Case: Frozen -->
                   <div v-else-if="coreUpgradeFrozen" class="w-full flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-1.5 truncate">
+                    <div class="flex items-center gap-2 truncate">
                       <span class="text-blue-400 font-bold shrink-0">[LOCKED]</span>
                       <span class="truncate">内核升级已冻结锁定，避免语法特性未对齐影响运行。</span>
                     </div>
-                    <button @click="toggleCoreUpgradeFreeze" class="shrink-0 px-2 py-0.5 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 border border-blue-400/50 text-blue-200 hover:text-white text-[10px] font-bold transition active:scale-95 cursor-pointer flex items-center gap-1">
+                    <button @click="toggleCoreUpgradeFreeze" class="shrink-0 px-2.5 py-1 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 border border-blue-400/50 text-blue-200 hover:text-white text-xs font-bold transition active:scale-95 cursor-pointer flex items-center gap-1">
                       <span>🔓 解除冻结</span>
                     </button>
                   </div>
                   <!-- Case: Unfrozen & Update Available -->
                   <div v-else-if="systemOverview.mihomo_update_avail || systemOverview.singbox_update_avail" class="w-full flex items-center justify-between gap-2">
                     <div class="space-y-0.5 pr-1 flex-1 overflow-hidden leading-tight">
-                      <div class="flex items-center gap-1 font-bold text-amber-400 text-[11px]">
+                      <div class="flex items-center gap-1 font-bold text-amber-400 text-xs">
                         <span>⚠️ 发现新版官方内核</span>
                       </div>
-                      <div class="text-[10px] text-amber-200/90 leading-tight">
-                        请自行决定是否更新到最新版（语法特性未对齐可能影响使用）。<span class="text-amber-300 font-semibold underline decoration-amber-400/60">请立即提交 issues 至 GitHub，催促作者进行对齐升级！</span>
+                      <div class="text-[11px] text-amber-200/90 leading-tight truncate">
+                        请自行决定是否更新到最新版（语法特性未对齐可能影响使用）。<span class="text-amber-300 font-semibold underline decoration-amber-400/60">可提交 issue 催更作者！</span>
                       </div>
                     </div>
                     <div class="flex flex-col gap-1 shrink-0">
-                      <button @click="openGitHubIssuePrompt" class="px-2 py-0.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/60 text-cyan-300 hover:text-white text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer shadow-sm active:scale-95" title="立即在 GitHub 提交 Issue 催促作者对齐新内核版本">
-                        <svg class="w-2.5 h-2.5 text-cyan-400" viewBox="0 0 24 24" fill="currentColor">
+                      <button @click="openGitHubIssuePrompt" class="px-2.5 py-0.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/60 text-cyan-300 hover:text-white text-[11px] font-bold flex items-center justify-center gap-1 transition cursor-pointer shadow-sm active:scale-95" title="立即在 GitHub 提交 Issue 催促作者对齐新内核版本">
+                        <svg class="w-3 h-3 text-cyan-400" viewBox="0 0 24 24" fill="currentColor">
                           <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
                         </svg>
                         <span>📮 催更 Issue</span>
                       </button>
-                      <button @click="toggleCoreUpgradeFreeze" class="px-2 py-0.5 rounded-lg bg-blue-950/80 hover:bg-blue-900 border border-blue-500/50 text-blue-300 hover:text-white text-[10px] font-bold flex items-center justify-center gap-1 transition cursor-pointer active:scale-95" title="立即冻结锁定本卡片升级，保持生产稳定">
+                      <button @click="toggleCoreUpgradeFreeze" class="px-2.5 py-0.5 rounded-lg bg-blue-950/80 hover:bg-blue-900 border border-blue-500/50 text-blue-300 hover:text-white text-[11px] font-bold flex items-center justify-center gap-1 transition cursor-pointer active:scale-95" title="立即冻结锁定本卡片升级，保持生产稳定">
                         <span>🔒 冻结升级</span>
                       </button>
                     </div>
                   </div>
                   <!-- Case: Default / All Latest -->
-                  <div v-else class="text-slate-400 text-xs flex items-center gap-2">
+                  <div v-else class="text-slate-300 text-xs flex items-center gap-2">
                     <span class="text-emerald-400 font-bold shrink-0">[CORE]</span>
                     <span>双引擎无感热重载就绪 · {{ (activeEngine === 'singbox' || activeEngine === 'sing-box') ? 'sing-box' : 'Mihomo' }} 主控调度 · {{ (activeEngine === 'singbox' || activeEngine === 'sing-box') ? 'Mihomo' : 'sing-box' }} 待命热备</span>
                   </div>
@@ -3455,97 +3469,99 @@
               </div>
 
               <!-- 3. Geo 规则数据库与离线分流体系 -->
-              <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
-                <!-- Tier 1: Header (h-7) -->
-                <div class="h-7 flex justify-between items-center gap-2">
-                  <div class="flex items-center gap-2 min-w-0">
-                    <span class="text-base shrink-0">🛡️</span>
-                    <span class="text-xs sm:text-[13px] font-bold text-white whitespace-nowrap truncate">Geo 规则体系 (MRS / SRS)</span>
+              <div class="p-6 sm:p-7 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#001c38]/95 via-[#00172e]/90 to-slate-950/95 border border-cyan-500/25 hover:border-cyan-400/50 shadow-2xl shadow-cyan-950/30 hover:shadow-cyan-900/40 transition-all duration-300 space-y-4 flex flex-col justify-between group">
+                <!-- Tier 1: Header (min-h-[36px]) -->
+                <div class="min-h-[36px] flex justify-between items-center gap-3">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] flex items-center justify-center text-xl shrink-0 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]">
+                      🛡️
+                    </div>
+                    <span class="text-sm sm:text-base font-extrabold text-white whitespace-nowrap truncate tracking-wide">Geo 规则体系 (MRS / SRS)</span>
                   </div>
-                  <!-- Dynamic Top-Right Badge: Syncing / Checking / Has Update / All Latest -->
-                  <span v-if="updatingGeo" class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40 flex items-center gap-1 shadow-sm shrink-0">
-                    <span class="inline-block animate-spin text-[9px]">↻</span>
+                  <!-- Dynamic Top-Right Badge -->
+                  <span v-if="updatingGeo" class="text-xs font-mono px-3 py-1 rounded-lg bg-purple-950 text-purple-300 border border-purple-500/40 flex items-center gap-1.5 shadow-sm shrink-0 font-semibold">
+                    <span class="inline-block animate-spin text-[10px]">↻</span>
                     <span>规则库同步中...</span>
                   </span>
-                  <span v-else-if="checkingGeoUpgrade" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/50 flex items-center gap-1 shadow-sm shrink-0">
-                    <span class="inline-block animate-spin text-[9px]">↻</span>
+                  <span v-else-if="checkingGeoUpgrade" class="text-xs font-mono px-3 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700/50 flex items-center gap-1.5 shadow-sm shrink-0 font-semibold">
+                    <span class="inline-block animate-spin text-[10px]">↻</span>
                     <span>规则通道核对中...</span>
                   </span>
                   <span v-else-if="geodataStatus.has_update" :title="`检测到新规则包已发布 (最新版本: ${geodataStatus.latest_version || '最新'})，点击下方【一键全量更新】即可同步`"
-                    class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse flex items-center gap-1 shadow-sm shrink-0 cursor-pointer"
+                    class="text-xs font-mono px-3 py-1 rounded-lg bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer font-semibold"
                     @click="updateGeoData">
                     <span>🚀 发现规则更新 (待同步)</span>
                   </span>
                   <span v-else :title="`基础离线库 (geoip/geosite) + ${geodataStatus.rules_count || 105} 套策略规则集已全量装载生效（覆盖国内外全域路由分流加速）`"
-                    class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm shrink-0 truncate">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
-                    <span class="truncate">基础离线库 · 105 套分流策略集 全量生效</span>
+                    class="text-xs font-mono px-3 py-1 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm shrink-0 truncate font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+                    <span class="truncate">基础离线库 · 105 套规则集生效</span>
                   </span>
                 </div>
-                <!-- Tier 2: Body (h-[74px]) -->
-                <div class="h-[74px] text-[11px] font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
+                <!-- Tier 2: Body (min-h-[86px]) -->
+                <div class="min-h-[86px] text-xs sm:text-[13px] font-mono bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-center gap-2.5 shadow-inner">
                   <div class="flex justify-between items-center">
-                    <span>离线基础库: <span class="text-slate-300">geoip.metadb + geosite.dat</span></span>
-                    <span class="text-emerald-400 font-semibold">✓ 离线解析就绪 ({{ geodataStatus.geoip_size_str && geodataStatus.geosite_size_str ? (geodataStatus.geoip_size_str + ' + ' + geodataStatus.geosite_size_str) : '38.4 MB' }})</span>
+                    <span>离线基础库: <span class="text-slate-200 font-semibold">geoip.metadb + geosite.dat</span></span>
+                    <span class="text-emerald-400 font-bold">✓ 离线就绪 ({{ geodataStatus.geoip_size_str && geodataStatus.geosite_size_str ? (geodataStatus.geoip_size_str + ' + ' + geodataStatus.geosite_size_str) : '38.4 MB' }})</span>
                   </div>
                   <div class="flex justify-between items-center">
-                    <span>权威分流包: <span class="text-slate-300"><strong class="text-cyan-300">{{ geodataStatus.rules_count || 105 }} 套</strong> MRS / SRS 规则集</span></span>
-                    <span class="text-slate-400 font-mono">{{ geodataStatus.last_updated ? ('更新于 ' + (geodataStatus.last_updated.length > 10 ? geodataStatus.last_updated.substring(5, 16) : geodataStatus.last_updated)) : (geodataLastUpdateText || '已全量装载') }}</span>
+                    <span>权威分流包: <span class="text-slate-200"><strong class="text-cyan-300 font-bold text-sm">{{ geodataStatus.rules_count || 105 }} 套</strong> MRS / SRS 规则集</span></span>
+                    <span class="text-slate-400 font-mono font-medium">{{ geodataStatus.last_updated ? ('更新于 ' + (geodataStatus.last_updated.length > 10 ? geodataStatus.last_updated.substring(5, 16) : geodataStatus.last_updated)) : (geodataLastUpdateText || '已全量装载') }}</span>
                   </div>
                 </div>
-                <!-- Tier 3: Action Buttons (h-10) -->
-                <div class="h-10 grid grid-cols-2 gap-2">
-                  <button @click="updateGeoData" :disabled="updatingGeo" class="h-10 rounded-xl font-bold text-xs transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    :class="geodataStatus.has_update ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30 ring-1 ring-amber-400/50' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'">
+                <!-- Tier 3: Action Buttons (h-11 sm:h-12) -->
+                <div class="h-11 sm:h-12 grid grid-cols-2 gap-2.5">
+                  <button @click="updateGeoData" :disabled="updatingGeo" class="h-full rounded-xl font-bold text-xs sm:text-sm transition cursor-pointer active:scale-98 flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    :class="geodataStatus.has_update ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30 ring-1 ring-amber-400/50' : 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white shadow-emerald-600/25'">
                     <span v-if="updatingGeo" class="inline-block animate-spin mr-0.5">↻</span>
-                    <svg v-else class="w-3.5 h-3.5 text-emerald-200 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg v-else class="w-4 h-4 text-emerald-100 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                     <span class="truncate">{{ updatingGeo ? '正在全量同步...' : (geodataStatus.has_update ? '一键全量更新 (新规则)' : '一键全量更新') }}</span>
                   </button>
-                  <button @click="showGeodataDetailModal = true" :title="`查看全量 ${geodataStatus.rules_count || 105} 套分流策略规则清单与生效明细`" class="h-10 px-2 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 hover:text-cyan-300 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-98 group">
-                    <svg class="w-3.5 h-3.5 text-cyan-400 group-hover:text-cyan-300 shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <button @click="showGeodataDetailModal = true" :title="`查看全量 ${geodataStatus.rules_count || 105} 套分流策略规则清单与生效明细`" class="h-full px-2 rounded-xl bg-slate-800/95 hover:bg-slate-700 border border-slate-700/80 hover:border-cyan-500/50 text-slate-100 hover:text-cyan-300 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-98 group">
+                    <svg class="w-4 h-4 text-cyan-400 group-hover:text-cyan-300 shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     <span class="truncate">{{ geodataStatus.rules_count || 105 }} 套规则清单</span>
                   </button>
                 </div>
-                <!-- Tier 4: Terminal Viewport (h-[62px]) -->
-                <div class="h-[62px] p-2 rounded-xl bg-slate-950/80 border text-[11px] font-mono leading-relaxed overflow-y-auto custom-scrollbar flex items-center"
-                  :class="geodataStatus.has_update ? 'border-amber-500/30 text-amber-300' : 'border-emerald-500/20 text-emerald-300'">
+                <!-- Tier 4: Terminal Viewport (h-[70px] sm:h-[76px]) -->
+                <div class="h-[70px] sm:h-[76px] p-3 rounded-xl bg-slate-950/90 border text-xs font-mono leading-relaxed overflow-y-auto custom-scrollbar flex items-center shadow-inner"
+                  :class="geodataStatus.has_update ? 'border-amber-500/30 text-amber-300' : 'border-emerald-500/25 text-emerald-300'">
                   <div v-if="geoUpdateLog" class="w-full break-words">
                     {{ geoUpdateLog }}
                   </div>
                   <div v-else-if="geodataStatus.has_update" class="text-amber-300 text-xs flex items-center justify-between gap-2 w-full">
                     <div class="space-y-0.5 pr-1 flex-1 overflow-hidden leading-tight">
-                      <div class="flex items-center gap-1 font-bold text-amber-400 text-[11px]">
+                      <div class="flex items-center gap-1.5 font-bold text-amber-400 text-xs">
                         <span class="text-amber-400 font-bold shrink-0">[UPDATE]</span>
                         <span>发现官方规则库新版 ({{ geodataStatus.latest_version || '最新' }})</span>
                       </div>
-                      <div class="text-[10px] text-amber-200/90 leading-tight">
+                      <div class="text-[11px] text-amber-200/90 leading-tight">
                         全量 MRS/SRS 规则源有新提交，点击上方【一键全量更新】即可秒级平滑同步！
                       </div>
                     </div>
                   </div>
-                  <div v-else class="text-slate-300 text-xs flex items-center gap-2 w-full">
+                  <div v-else class="text-slate-300 text-xs flex items-center gap-2.5 w-full">
                     <span class="text-emerald-400 font-bold shrink-0">[GEODATA]</span>
-                    <div class="text-[11px] leading-tight space-y-1 w-full overflow-hidden">
+                    <div class="text-xs leading-tight space-y-1 w-full overflow-hidden">
                       <div class="truncate">
-                        <span class="text-slate-300">已装载 </span><strong class="text-cyan-300">{{ geodataStatus.rules_count || 105 }} 套</strong><span class="text-slate-300"> 分流加速规则集</span><span class="text-slate-500">（覆盖国内直连 / 境外加速 / 专线流媒体）</span>
+                        <span class="text-slate-300">已装载 </span><strong class="text-cyan-300 font-bold">{{ geodataStatus.rules_count || 105 }} 套</strong><span class="text-slate-300"> 分流加速规则集</span><span class="text-slate-400">（国内直连 / 境外加速）</span>
                       </div>
-                      <div class="text-[10px] text-slate-400 flex items-center justify-between">
+                      <div class="text-[11px] text-slate-400 flex items-center justify-between">
                         <div class="flex items-center gap-1.5 truncate">
-                          <span class="text-emerald-400 font-semibold flex items-center gap-1 shrink-0">
+                          <span class="text-emerald-400 font-bold flex items-center gap-1 shrink-0">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span>自动更新已守护</span>
+                            <span>自动更新守护</span>
                           </span>
                           <span class="text-slate-500">·</span>
-                          <span class="truncate">每日 04:00 智能静默同步</span>
+                          <span class="truncate">每日 04:00 同步</span>
                           <span class="text-slate-500">·</span>
-                          <span class="text-slate-400 shrink-0">无感热重载</span>
+                          <span class="text-slate-300 shrink-0">无感热重载</span>
                         </div>
                         <button @click="toggleGeoAutoUpdate" :title="geoAutoUpdateEnabled ? '点击暂停每日自动更新' : '点击启用每日自动更新'"
-                          class="shrink-0 text-[10px] px-1.5 py-0.5 rounded border transition cursor-pointer flex items-center gap-1 active:scale-95"
+                          class="shrink-0 text-xs px-2 py-0.5 rounded-md border transition cursor-pointer flex items-center gap-1 active:scale-95 font-semibold"
                           :class="geoAutoUpdateEnabled ? 'bg-emerald-950 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'">
                           <span>{{ geoAutoUpdateEnabled ? '已开启' : '已暂停' }}</span>
                         </button>
@@ -3556,57 +3572,57 @@
               </div>
 
               <!-- 4. 宿主固件系统 / 宿主机系统在线升级 (智能自适应 RouterOS / 飞牛 / PVE / Docker / Linux) -->
-              <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
-                <!-- Tier 1: Header (h-7) -->
-                <div class="h-7 flex justify-between items-center gap-2">
-                  <div class="flex items-center gap-2 min-w-0">
-                    <img :src="hostBadge.svg" class="w-5 h-5 min-w-[20px] max-w-[20px] h-[20px] max-h-[20px] object-contain shrink-0 drop-shadow-[0_0_5px_rgba(56,189,248,0.35)]" :alt="hostBadge.shortName" />
-                    <span class="text-xs sm:text-[13px] font-bold text-white whitespace-nowrap truncate">
+              <div class="p-6 sm:p-7 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#001c38]/95 via-[#00172e]/90 to-slate-950/95 border border-cyan-500/25 hover:border-cyan-400/50 shadow-2xl shadow-cyan-950/30 hover:shadow-cyan-900/40 transition-all duration-300 space-y-4 flex flex-col justify-between group">
+                <!-- Tier 1: Header (min-h-[36px]) -->
+                <div class="min-h-[36px] flex justify-between items-center gap-3">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <img :src="hostBadge.svg" class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] object-contain shrink-0 drop-shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-transform duration-300 group-hover:scale-105" :alt="hostBadge.shortName" />
+                    <span class="text-sm sm:text-base font-extrabold text-white whitespace-nowrap truncate tracking-wide">
                       {{ isRouterOS ? 'RouterOS 固件系统版本' : (hostBadge.name + ' 宿主系统版本') }}
                     </span>
                   </div>
-                  <span v-if="checkingHostUpgrade" class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40 flex items-center gap-1 shadow-sm shrink-0 whitespace-nowrap">
-                    <span class="inline-block animate-spin text-[9px]">↻</span>
+                  <span v-if="checkingHostUpgrade" class="text-xs font-mono px-3 py-1 rounded-lg bg-purple-950 text-purple-300 border border-purple-500/40 flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap font-semibold">
+                    <span class="inline-block animate-spin text-[10px]">↻</span>
                     <span>通道核对中...</span>
                   </span>
-                  <span v-else-if="hostUpgradeDetails.hasUpdate" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse flex items-center gap-1 shadow-sm shrink-0 whitespace-nowrap">
+                  <span v-else-if="hostUpgradeDetails.hasUpdate" class="text-xs font-mono px-3 py-1 rounded-lg bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap font-semibold">
                     <span>🚀 发现新固件 {{ hostUpgradeDetails.latestVersion }}</span>
                   </span>
-                  <span v-else class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                  <span v-else class="text-xs font-mono px-3 py-1 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
                     <span>✓ 已是最新稳定版</span>
                   </span>
                 </div>
-                <!-- Tier 2: Body (h-[74px]) -->
-                <div class="h-[74px] text-[11px] font-mono bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-center gap-1.5">
+                <!-- Tier 2: Body (min-h-[86px]) -->
+                <div class="min-h-[86px] text-xs sm:text-[13px] font-mono bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-center gap-2.5 shadow-inner">
                   <template v-if="isRouterOS">
                     <div class="flex justify-between items-center">
-                      <span>当前固件: <strong class="text-purple-300">{{ hostUpgradeDetails.installedVersion || hostInfo.os_name || 'MikroTik RouterOS 7.24.5' }}</strong></span>
-                      <span class="text-slate-500">升级通道: <span class="text-slate-300">{{ hostUpgradeDetails.channel || 'stable' }}</span></span>
+                      <span>当前固件: <strong class="text-purple-300 font-bold text-sm">{{ hostUpgradeDetails.installedVersion || hostInfo.os_name || 'MikroTik RouterOS 7.24.5' }}</strong></span>
+                      <span class="text-slate-400">升级通道: <span class="text-slate-200 font-semibold">{{ hostUpgradeDetails.channel || 'stable' }}</span></span>
                     </div>
                     <div class="flex justify-between items-center">
-                      <span>云端最新: <strong :class="hostUpgradeDetails.hasUpdate ? 'text-amber-400' : 'text-emerald-400'">{{ hostUpgradeDetails.latestVersion || hostUpgradeDetails.installedVersion || '7.24.5' }}</strong></span>
-                      <span :class="hostUpgradeDetails.hasUpdate ? 'text-amber-400 font-bold' : 'text-emerald-400 font-medium'">{{ hostUpgradeDetails.hasUpdate ? '● 存在新版本' : '● 最新稳定版' }}</span>
+                      <span>云端最新: <strong :class="hostUpgradeDetails.hasUpdate ? 'text-amber-400 font-bold text-sm' : 'text-emerald-400 font-bold text-sm'">{{ hostUpgradeDetails.latestVersion || hostUpgradeDetails.installedVersion || '7.24.5' }}</strong></span>
+                      <span :class="hostUpgradeDetails.hasUpdate ? 'text-amber-400 font-bold' : 'text-emerald-400 font-semibold'">{{ hostUpgradeDetails.hasUpdate ? '● 存在新版本' : '● 最新稳定版' }}</span>
                     </div>
                   </template>
                   <template v-else>
                     <div class="flex justify-between items-center">
-                      <span>当前宿主: <strong class="text-cyan-300">{{ hostInfo.os_name || hostBadge.name }}</strong></span>
-                      <span class="text-slate-500">内核: <span class="text-slate-300">{{ hostInfo.kernel_version || 'Linux 6.x' }}</span></span>
+                      <span>当前宿主: <strong class="text-cyan-300 font-bold text-sm">{{ hostInfo.os_name || hostBadge.name }}</strong></span>
+                      <span class="text-slate-400">内核: <span class="text-slate-200 font-semibold">{{ hostInfo.kernel_version || 'Linux 6.x' }}</span></span>
                     </div>
                     <div class="flex justify-between items-center">
-                      <span>运行模式: <strong class="text-emerald-400">容器沙盒化</strong></span>
-                      <span class="text-emerald-400">● 宿主正常</span>
+                      <span>运行模式: <strong class="text-emerald-400 font-bold">容器沙盒化</strong></span>
+                      <span class="text-emerald-400 font-semibold">● 宿主正常</span>
                     </div>
                   </template>
                 </div>
-                <!-- Tier 3: Action Buttons (h-10) -->
-                <div class="h-10 grid grid-cols-2 gap-2">
-                  <button @click="checkHostUpgrade" :disabled="checkingHostUpgrade" class="h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer">
+                <!-- Tier 3: Action Buttons (h-11 sm:h-12) -->
+                <div class="h-11 sm:h-12 grid grid-cols-2 gap-2.5">
+                  <button @click="checkHostUpgrade" :disabled="checkingHostUpgrade" class="h-full rounded-xl bg-slate-800/95 hover:bg-slate-700 border border-slate-600 text-slate-100 font-bold text-xs sm:text-sm transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
                     <span v-if="checkingHostUpgrade" class="inline-block animate-spin mr-1">↻</span>
                     <span>🔍 检查 {{ isRouterOS ? 'ROS 固件' : hostBadge.shortName }} 更新</span>
                   </button>
-                  <button @click="executeHostUpgrade" :disabled="executingHostUpgrade || (isRouterOS && hostUpgradeDetails.checked && !hostUpgradeDetails.hasUpdate)" class="h-10 rounded-xl font-bold text-xs shadow-lg transition active:scale-95 flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  <button @click="executeHostUpgrade" :disabled="executingHostUpgrade || (isRouterOS && hostUpgradeDetails.checked && !hostUpgradeDetails.hasUpdate)" class="h-full rounded-xl font-bold text-xs sm:text-sm shadow-lg transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     :class="isRouterOS ? (hostUpgradeDetails.hasUpdate ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30' : 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-600/30') : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-600/30'">
                     <span v-if="executingHostUpgrade" class="inline-block animate-spin mr-1">↻</span>
                     <span v-if="isRouterOS">
@@ -3615,12 +3631,12 @@
                     <span v-else>⬆ 升级宿主系统包</span>
                   </button>
                 </div>
-                <!-- Tier 4: Terminal Viewport (h-[62px]) -->
-                <div class="h-[62px] p-2 rounded-xl bg-slate-950/80 border border-purple-500/20 text-[11px] font-mono text-purple-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center">
+                <!-- Tier 4: Terminal Viewport (h-[70px] sm:h-[76px]) -->
+                <div class="h-[70px] sm:h-[76px] p-3 rounded-xl bg-slate-950/90 border border-purple-500/25 text-xs font-mono text-purple-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center shadow-inner">
                   <div v-if="hostUpgradeResult" class="w-full break-words whitespace-pre-wrap">
                     {{ hostUpgradeResult }}
                   </div>
-                  <div v-else class="text-slate-400 text-xs flex items-center gap-2">
+                  <div v-else class="text-slate-300 text-xs flex items-center gap-2.5">
                     <span class="text-purple-400 font-bold shrink-0">[HOST]</span>
                     <span>MikroTik RouterOS 原生 API 联通 · 隔离策略路由 (table cubex) 正常放行</span>
                   </div>
@@ -4798,9 +4814,9 @@
           <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
             <div class="flex justify-between items-center">
               <span class="text-xs font-bold text-white flex items-center gap-2">
-                <div class="flex items-center -space-x-1 shrink-0">
-                  <img src="/logo-mihomo.svg" class="w-4 h-4 object-contain shrink-0 drop-shadow-[0_0_4px_rgba(56,189,248,0.3)]" alt="Mihomo" />
-                  <img src="/logo-singbox.svg" class="w-4 h-4 object-contain shrink-0 drop-shadow-[0_0_4px_rgba(56,189,248,0.3)]" alt="sing-box" />
+                <div class="flex items-center gap-2 shrink-0">
+                  <img src="/logo-mihomo.svg" class="w-5 h-5 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(56,189,248,0.4)]" alt="Mihomo" />
+                  <img src="/logo-singbox.svg" class="w-5 h-5 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(56,189,248,0.4)]" alt="sing-box" />
                 </div>
                 <span>双核引擎 (Mihomo × sing-box)</span>
               </span>
@@ -6695,6 +6711,12 @@ const updateDetailText = computed(() => {
   }
   if (hostUpgradeDetails.value?.hasUpdate) {
     return `检测到 ${hostBadge.value.name} 宿主官方固件通道有新版本 ${hostUpgradeDetails.value.latestVersion}，支持在控制台一键安全升级。`
+  }
+  if (!coreUpgradeFrozen.value && (systemOverview.value?.mihomo_update_avail || systemOverview.value?.singbox_update_avail)) {
+    return '四维探针检测到代理内核有官方新版本发布，支持在线自主核对并平滑升级。'
+  }
+  if (geodataStatus.value?.has_update) {
+    return '四维探针检测到 Geo 规则体系有新包发布，支持一键秒级平滑同步！'
   }
   return '四维探针检测到系统组件存在可用更新，请按需点击下方卡片对应升级按钮。'
 })
