@@ -60,7 +60,7 @@
 
 - [⚡ 权威实测：CubeX Test v2.8 vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)](#benchmark)
 
-- [📢 最新版本升级通知 (Test v2.8 重磅特性)](#announcement)
+- [📢 最新版本升级通知 (Test v3.5 工业级专有加固版)](#announcement)
 
 - [📦 资产下载与全平台底座选用清单 (Release Assets)](#release-assets)
 
