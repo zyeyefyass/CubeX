@@ -394,6 +394,14 @@ if ip link show macvlan-shim >/dev/null 2>&1; then
     ip route replace %[1]s/32 dev macvlan-shim 2>/dev/null || true
 fi
 
+# 1.1 Seamless 2026 Port Forwarding (Direct host:2026 access even with macvlan)
+iptables -t nat -C PREROUTING -p tcp --dport 2026 -j DNAT --to-destination %[1]s:2026 2>/dev/null || \
+iptables -t nat -I PREROUTING 1 -p tcp --dport 2026 -j DNAT --to-destination %[1]s:2026 2>/dev/null || true
+iptables -t nat -C POSTROUTING -p tcp -d %[1]s --dport 2026 -j MASQUERADE 2>/dev/null || \
+iptables -t nat -I POSTROUTING 1 -p tcp -d %[1]s --dport 2026 -j MASQUERADE 2>/dev/null || true
+iptables -C FORWARD -p tcp -d %[1]s --dport 2026 -j ACCEPT 2>/dev/null || \
+iptables -I FORWARD 1 -p tcp -d %[1]s --dport 2026 -j ACCEPT 2>/dev/null || true
+
 # 2. DHCP Option 6 (DNS) Injection to point directly to CubeX
 # Remove any existing option 6 list entry to prevent duplicate DNS
 while uci -q del_list dhcp.lan.dhcp_option='6,223.5.5.5'; do :; done
