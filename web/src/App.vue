@@ -3348,8 +3348,11 @@
               <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
                 <!-- Tier 1: Header (h-7) -->
                 <div class="h-7 flex justify-between items-center">
-                  <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                    <span>⚙️</span>
+                  <div class="text-xs font-bold text-white flex items-center gap-2">
+                    <div class="flex items-center -space-x-1 shrink-0">
+                      <img src="/logo-mihomo.svg" class="w-4 h-4 object-contain shrink-0 drop-shadow-[0_0_4px_rgba(56,189,248,0.3)]" alt="Mihomo" />
+                      <img src="/logo-singbox.svg" class="w-4 h-4 object-contain shrink-0 drop-shadow-[0_0_4px_rgba(56,189,248,0.3)]" alt="sing-box" />
+                    </div>
                     <span>双代理内核 (Mihomo & sing-box)</span>
                   </div>
                   <div class="flex items-center gap-1.5">
@@ -4792,8 +4795,11 @@
           <!-- 维度 2: 双核驱动引擎 -->
           <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
             <div class="flex justify-between items-center">
-              <span class="text-xs font-bold text-white flex items-center gap-1.5">
-                <span>⚡</span>
+              <span class="text-xs font-bold text-white flex items-center gap-2">
+                <div class="flex items-center -space-x-1 shrink-0">
+                  <img src="/logo-mihomo.svg" class="w-4 h-4 object-contain shrink-0 drop-shadow-[0_0_4px_rgba(56,189,248,0.3)]" alt="Mihomo" />
+                  <img src="/logo-singbox.svg" class="w-4 h-4 object-contain shrink-0 drop-shadow-[0_0_4px_rgba(56,189,248,0.3)]" alt="sing-box" />
+                </div>
                 <span>双核引擎 (Mihomo × sing-box)</span>
               </span>
               <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40">✓ 双核就绪</span>
@@ -4838,8 +4844,8 @@
           <!-- 维度 4: 宿主底座与固件 -->
           <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
             <div class="flex justify-between items-center">
-              <span class="text-xs font-bold text-white flex items-center gap-1.5">
-                <span>🛸</span>
+              <span class="text-xs font-bold text-white flex items-center gap-2">
+                <img :src="hostBadge.svg" class="w-4.5 h-4.5 object-contain shrink-0 drop-shadow-[0_0_5px_rgba(56,189,248,0.35)]" :alt="hostBadge.shortName" />
                 <span>宿主底层固件 ({{ isRouterOS ? 'RouterOS v7' : hostBadge.name }})</span>
               </span>
               <span v-if="hostUpgradeDetails.hasUpdate" class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40">可升级 {{ hostUpgradeDetails.latestVersion }}</span>
