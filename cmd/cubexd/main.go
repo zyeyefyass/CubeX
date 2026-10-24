@@ -8780,15 +8780,19 @@ func (s *Server) handleHealthRadar(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	proxyScore := 98
+	proxyScore := 100
 
 	if !proxyOK {
 
 		proxyScore = 70
 
-	} else if proxyLatency > 300 {
+	} else if proxyLatency > 1000 {
 
-		proxyScore = 92
+		proxyScore = 85
+
+	} else if proxyLatency > 500 {
+
+		proxyScore = 95
 
 	}
 
@@ -8820,7 +8824,8 @@ func (s *Server) handleHealthRadar(w http.ResponseWriter, r *http.Request) {
 
 
 
-	total := int(float64(directScore)*0.25 + float64(proxyScore)*0.30 + float64(dnsScore)*0.20 + float64(failoverScore)*0.15 + float64(hostScore)*0.10)
+	rawTotal := float64(directScore)*0.25 + float64(proxyScore)*0.30 + float64(dnsScore)*0.20 + float64(failoverScore)*0.15 + float64(hostScore)*0.10
+	total := int(rawTotal + 0.5)
 
 	if total > 100 {
 

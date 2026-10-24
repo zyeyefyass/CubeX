@@ -765,13 +765,14 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 			if t, ok := restRes["memory_total"].(string); ok {
 				info.GatewayMemoryTotal = t
 			}
+			// Always propagate linked host CPU load & cores so UI reflects real host telemetry
+			if c, ok := restRes["cpu_cores"].(int); ok && c > 0 {
+				info.CPUCores = c
+			}
+			if l, ok := restRes["cpu_load"].(string); ok && l != "" {
+				info.CPULoad = l
+			}
 			if !isCt {
-				if c, ok := restRes["cpu_cores"].(int); ok {
-					info.CPUCores = c
-				}
-				if l, ok := restRes["cpu_load"].(string); ok {
-					info.CPULoad = l
-				}
 				if u, ok := restRes["memory_used"].(string); ok {
 					info.MemoryUsed = u
 				}
@@ -1440,18 +1441,33 @@ func probeLocalMetrics() (isContainer bool, containerType string, osName string,
 	}
 
 	loadStr = "1%"
-	if data, err := os.ReadFile("/proc/loadavg"); err == nil {
-		parts := strings.Fields(string(data))
-		if len(parts) > 0 {
-			if f, err := strconv.ParseFloat(parts[0], 64); err == nil {
-				pct := int(f * 100 / float64(cores))
-				if pct > 100 {
-					pct = 100
+	// Sample real CPU load from /proc/stat
+	if data, err := os.ReadFile("/proc/stat"); err == nil {
+		for _, line := range strings.Split(string(data), "\n") {
+			if strings.HasPrefix(line, "cpu ") {
+				fields := strings.Fields(line)
+				if len(fields) >= 5 {
+					var total, idle uint64
+					for i := 1; i < len(fields); i++ {
+						v, _ := strconv.ParseUint(fields[i], 10, 64)
+						total += v
+						if i == 4 || i == 5 {
+							idle += v
+						}
+					}
+					if total > 0 {
+						busy := total - idle
+						pct := int(float64(busy) * 100.0 / float64(total))
+						if pct < 1 {
+							pct = 1
+						}
+						if pct > 100 {
+							pct = 100
+						}
+						loadStr = fmt.Sprintf("%d%%", pct)
+					}
 				}
-				if pct < 1 {
-					pct = 1
-				}
-				loadStr = fmt.Sprintf("%d%%", pct)
+				break
 			}
 		}
 	}

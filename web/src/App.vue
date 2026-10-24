@@ -375,22 +375,22 @@
                 </div>
               </div>
 
-              <!-- 2. Host System Telemetry (与 PVE / CT 107 容器设置完全对齐) -->
+              <!-- 2. Host System Telemetry (宿主机真实硬件负载与 CubeX 专属常驻) -->
               <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-purple-500/30 relative overflow-hidden shadow-lg transition hover:border-purple-400/60 flex flex-col justify-between min-h-[148px]">
                 <div class="flex items-center justify-between">
-                  <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">{{ hostInfo.is_container ? '容器硬件负载' : '宿主硬件负载' }}</span>
+                  <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">宿主机硬件负载</span>
                   <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-950/90 text-purple-300 border border-purple-500/40 font-bold flex items-center gap-1 shrink-0">
                     <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>{{ hostInfo.cpu_cores ? hostInfo.cpu_cores + '核 CPU' : '1核 CPU' }}
                   </span>
                 </div>
 
-                <!-- 行 1: CPU 实时负载 -->
+                <!-- 行 1: 宿主机 CPU 实时负载 -->
                 <div class="flex items-center justify-between text-xs font-mono py-0.5">
-                  <span class="text-slate-400 text-[11px] whitespace-nowrap">{{ hostInfo.is_container ? '容器 CPU 负载' : 'CPU 实时负载' }}</span>
+                  <span class="text-slate-400 text-[11px] whitespace-nowrap">宿主机 CPU 负载</span>
                   <span class="text-sm font-bold text-purple-300 font-mono">{{ hostInfo.cpu_load || '1%' }}</span>
                 </div>
 
-                <!-- 行 2: 内存占用率与数值详情 (清晰区分 CubeX 专属常驻与容器/宿主占用) -->
+                <!-- 行 2: 内存占用率与数值详情 (只展示宿主机内存与 CubeX 专属常驻) -->
                 <div class="space-y-1 text-xs font-mono">
                   <div class="flex items-center justify-between">
                     <span class="text-slate-400 text-[11px] whitespace-nowrap">CubeX 专属常驻</span>
@@ -404,14 +404,10 @@
                     <span class="text-slate-600">=</span>
                     <span>总计: <strong class="text-emerald-400 font-bold">{{ liveTotalResidentMB.toFixed(1) }}M</strong></span>
                   </div>
+                  <!-- 宿主机内存单行对齐 (只显示宿主机内存使用情况，杜绝容器多行混淆) -->
                   <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono whitespace-nowrap">
-                    <span>{{ hostInfo.is_container ? '容器已用' : '宿主已用' }} {{ hostInfo.memory_used || '77MiB' }}</span>
-                    <span class="text-slate-500">总量 {{ hostInfo.memory_total || '256MiB' }}</span>
-                  </div>
-                  <!-- 联动网关状态提示 (清晰提示与 RouterOS 网关的联动，杜绝数据困惑) -->
-                  <div v-if="hostInfo.is_container && hostInfo.linked_gateway" class="flex items-center justify-between text-[10px] text-slate-500 font-mono pt-1 border-t border-slate-800/60">
-                    <span class="truncate">联动路由: {{ hostInfo.linked_gateway }}</span>
-                    <span class="shrink-0 text-slate-400 font-semibold">{{ hostInfo.gateway_memory_used ? (hostInfo.gateway_memory_used + ' / ' + hostInfo.gateway_memory_total) : (hostInfo.gateway_memory_total || '448MiB') }}</span>
+                    <span>宿主机已用 {{ (hostInfo.linked_gateway && hostInfo.gateway_memory_used) ? hostInfo.gateway_memory_used : hostInfo.memory_used }}</span>
+                    <span class="text-slate-500">总量 {{ (hostInfo.linked_gateway && hostInfo.gateway_memory_total) ? hostInfo.gateway_memory_total : hostInfo.memory_total }}</span>
                   </div>
                 </div>
 
@@ -506,34 +502,19 @@
                 </span>
               </div>
 
-              <!-- 快捷网站选择标签药丸 (采用官网矢量 Logo) -->
-              <div class="flex items-center gap-2 flex-wrap">
+              <!-- 快捷网站选择标签矩阵 (共计 18 个高频常用网站，按用户使用频率精选排序，紧凑优雅排版) -->
+              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 pt-1">
                 <button v-for="site in benchmarkPresetSites" :key="site.url"
                   @click="selectBenchmarkSite(site.url)"
                   :title="site.desc"
                   :class="[
-                    'px-3 py-2 rounded-xl text-xs sm:text-[13px] font-medium transition flex items-center gap-2.5 border select-none active:scale-95 shadow-sm',
+                    'h-9 px-2.5 py-1 rounded-xl text-xs sm:text-[12px] font-medium transition flex items-center justify-center gap-1.5 border select-none active:scale-95 shadow-sm cursor-pointer truncate',
                     benchmarkTargetUrl === site.url
                       ? 'bg-gradient-to-r from-cyan-500/25 to-blue-500/25 text-cyan-300 border-cyan-400/60 shadow-[0_0_12px_rgba(0,210,255,0.25)] font-bold'
                       : 'bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-800 hover:border-slate-700'
                   ]">
                   <BrandLogo :name="site.logo" size="w-4 h-4" class="shrink-0" />
-                  <span>{{ site.name }}</span>
-                </button>
-              </div>
-
-              <!-- 自定义 URL 输入 -->
-              <div class="flex items-center gap-2.5 pt-1.5">
-                <div class="relative flex-1">
-                  <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-sm text-slate-500 font-mono">🔗</span>
-                  <input v-model="benchmarkTargetUrl" type="text"
-                    placeholder="输入或粘贴自定义测速 URL (例如 https://...)"
-                    class="w-full pl-9 pr-3.5 py-2 text-xs sm:text-[13px] bg-slate-950/80 border border-slate-800 focus:border-cyan-500/60 rounded-xl text-slate-200 placeholder-slate-600 focus:outline-none font-mono transition" />
-                </div>
-                <button v-if="benchmarkTargetUrl !== defaultBenchmarkUrl"
-                  @click="benchmarkTargetUrl = defaultBenchmarkUrl"
-                  class="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-cyan-300 bg-slate-900 border border-slate-800 hover:border-cyan-500/30 transition whitespace-nowrap">
-                  恢复默认
+                  <span class="truncate">{{ site.name }}</span>
                 </button>
               </div>
             </div>
@@ -1362,12 +1343,14 @@
                         </span>
                       </div>
 
-                      <!-- Active Route Path Breadcrumb -->
+                      <!-- Active Route Path Breadcrumb (仅当指向嵌套策略组且最终落地节点不同时才显示跳转箭头) -->
                       <div class="text-xs font-mono text-slate-300 flex items-center gap-1.5 truncate">
                         <span class="text-slate-400">{{ getCandidateFlag(grp.now || grp.proxies?.[0]) }}</span>
                         <span class="text-cyan-300 font-semibold">{{ grp.now || grp.proxies?.[0] || 'DIRECT' }}</span>
-                        <span class="text-slate-500">➔</span>
-                        <span class="text-slate-300 truncate max-w-[280px] sm:max-w-md">{{ resolveActualProxyNode(grp.now || grp.proxies?.[0]) }}</span>
+                        <template v-if="resolveActualProxyNode(grp.now || grp.proxies?.[0]) && resolveActualProxyNode(grp.now || grp.proxies?.[0]) !== (grp.now || grp.proxies?.[0])">
+                          <span class="text-slate-500">➔</span>
+                          <span class="text-slate-300 truncate max-w-[280px] sm:max-w-md">{{ resolveActualProxyNode(grp.now || grp.proxies?.[0]) }}</span>
+                        </template>
                       </div>
                     </div>
                   </div>
@@ -7499,18 +7482,27 @@ const ir = ref({
 const defaultBenchmarkUrl = 'https://www.gstatic.com/generate_204'
 const benchmarkTargetUrl = ref('https://www.gstatic.com/generate_204')
 const benchmarkPresetSites = ref([
-  { name: 'Google', logo: 'google', url: 'https://www.gstatic.com/generate_204', desc: 'Google 官方 204 探针 (纯净TCP/TLS空载极速探针)' },
-  { name: 'Cloudflare', logo: 'cloudflare', url: 'https://www.cloudflare.com', desc: 'Cloudflare 全球Anycast CDN边缘节点' },
-  { name: 'YouTube', logo: 'youtube', url: 'https://www.youtube.com', desc: 'YouTube 官方 4K/8K视频流媒体高并发吞吐' },
-  { name: 'Netflix', logo: 'netflix', url: 'https://www.netflix.com', desc: 'Netflix 官方流媒体全球节点' },
-  { name: 'GitHub', logo: 'github', url: 'https://github.com', desc: 'GitHub 官方开发者API与Git代码传输' },
-  { name: 'OpenAI', logo: 'openai', url: 'https://api.openai.com', desc: 'OpenAI 官方 ChatGPT与大模型推理长连接' },
-  { name: 'Gemini', logo: 'gemini', url: 'https://gemini.google.com', desc: 'Google Gemini 官方大模型服务' },
+  // ── 国内常用高频网址 (Top Domestic Portals & Services) ──
+  { name: '百度', logo: 'baidu', url: 'https://www.baidu.com', desc: '百度搜索官方入口 (国内直连对照基准)' },
+  { name: '哔哩哔哩', logo: 'bilibili', url: 'https://www.bilibili.com', desc: '哔哩哔哩官方 4K/弹幕流媒体 (国内直连高并发)' },
+  { name: '腾讯网', logo: 'tencent', url: 'https://www.qq.com', desc: '腾讯网 / 微信云生态官方 (国内核心通讯与内容)' },
+  { name: '淘宝', logo: 'alibaba', url: 'https://www.taobao.com', desc: '淘宝 / 阿里电商生态官方 (国内高并发电商基准)' },
+  { name: '网易', logo: 'netease', url: 'https://www.163.com', desc: '网易云 / 门户官方 (国内数字音乐与综合多媒体)' },
+  { name: '抖音', logo: 'tiktok', url: 'https://www.douyin.com', desc: '抖音 / 字节跳动官方 (国内顶流短视频 CDN)' },
+
+  // ── 境外与全球顶流高频服务 (Top Global & Productivity Services) ──
+  { name: 'Google', logo: 'google', url: 'https://www.gstatic.com/generate_204', desc: 'Google 官方 204 探针 (纯净 TCP/TLS 空载极速探针)' },
+  { name: 'YouTube', logo: 'youtube', url: 'https://www.youtube.com', desc: 'YouTube 官方 4K/8K 视频流媒体高并发吞吐' },
+  { name: 'GitHub', logo: 'github', url: 'https://github.com', desc: 'GitHub 官方开发者 API 与 Git 源码分发' },
+  { name: 'OpenAI', logo: 'openai', url: 'https://api.openai.com', desc: 'OpenAI 官方 ChatGPT 与大模型推理长连接' },
   { name: 'Claude', logo: 'claude', url: 'https://claude.ai', desc: 'Anthropic Claude 官方前沿 AI' },
-  { name: 'Telegram', logo: 'telegram', url: 'https://web.telegram.org', desc: 'Telegram 官方全球即时通讯边缘' },
-  { name: 'Twitter', logo: 'twitter', url: 'https://x.com', desc: 'X (Twitter) 官方全时多媒体分发流' },
-  { name: 'Steam', logo: 'steam', url: 'https://store.steampowered.com', desc: 'Steam 官方全球游戏商店与CDN分发' },
-  { name: '哔哩哔哩', logo: 'bilibili', url: 'https://www.bilibili.com', desc: '哔哩哔哩官方 国内直连对照基准 (验证Fake-IP剥离直连)' }
+  { name: 'Gemini', logo: 'gemini', url: 'https://gemini.google.com', desc: 'Google Gemini 官方多模态大模型服务' },
+  { name: 'Telegram', logo: 'telegram', url: 'https://web.telegram.org', desc: 'Telegram 官方全球即时通讯边缘节点' },
+  { name: 'X / Twitter', logo: 'twitter', url: 'https://x.com', desc: 'X (Twitter) 官方全时多媒体分发流' },
+  { name: 'Netflix', logo: 'netflix', url: 'https://www.netflix.com', desc: 'Netflix 官方全球流媒体影音服务' },
+  { name: 'Steam', logo: 'steam', url: 'https://store.steampowered.com', desc: 'Steam 官方全球数字游戏商店与 CDN' },
+  { name: 'Cloudflare', logo: 'cloudflare', url: 'https://www.cloudflare.com', desc: 'Cloudflare 全球 Anycast CDN 边缘节点' },
+  { name: 'Microsoft', logo: 'microsoft', url: 'https://www.microsoft.com', desc: '微软官方国际云生态与 Bing 搜索引擎' }
 ])
 
 function selectBenchmarkSite(url) {
