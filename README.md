@@ -223,36 +223,39 @@
 
 <a id="announcement"></a>
 > [!TIP]
-> ### 📢 小伙伴们请立即一键平滑升级 Test v3.0（全面深度适配 RouterOS 7.25+ Bridge DAI 与 IP Source Guard · 15秒超高速回指路由看门狗 · 控制台 DAI Ready 极客徽标 · 双核双循环闭环验证版）！
+> ### 📢 小伙伴们请立即一键平滑升级 Test v3.1（四维系统状态卡片精细排版与官方矢量 Logo 全面焕新 · 全息宿主自适应感知 · 开机极速冷启 · 地区拖拽排序 · 双核双循环闭环验证版）！
 > **致所有追求极致软路由稳定性、高并发吞吐与视觉体验的极客老铁们：**
 > 
-> 紧随官方步伐，伴随 MikroTik RouterOS 7.25 稳定版的重磅发布，**CubeX Test v3.0 正式全面升级发布**！  
-> 本版本重点针对 RouterOS 7.25 新增的二层网桥安全防护体系（Dynamic ARP Inspection 与 IP Source Guard）深度重构与原生适配，同时将宿主回指路由巡检速率翻倍，实现全场景无感共生：
+> **CubeX Test v3.1 正式全面发布**！本版本针对视觉质感、人机交互与底层冷启体验进行全方位精细化重构：
 > 
-> * 🛡️ **RouterOS 7.25 网桥动态 ARP 检查 (DAI) 原生全自动信任编排 (`Native DAI & IP Source Guard Bridge Trust`)**：
->   * **深度剖析 ROS 7.25 二层防护**：RouterOS 7.25 引入了 Bridge Dynamic ARP Inspection 与 IP Source Guard 安全机制。当宿主启用网桥安全防护时，普通网桥端口上的 ARP 响应会被丢弃，导致旁路容器的 Fake-IP 与透明代理流量瞬间失联；
->   * **自动化信任编排**：CubeX `internal/ros/routing.go` 深度原生联动，自动在网桥端口 `veth-cubex` 上精准下发并固化 `trusted=true` 以及 7.25 专有 `trusted-arp=true`，确保网桥防护开启下透明代理报文无损直通；
->   * **100% 优雅向下兼容**：严格遵循向下兼容规范，在低版本 RouterOS（< 7.25）上优雅降级，绝无语法报错与 HTTP 400 异常。
-> * ⚡ **RouterOS 宿主静态回指路由看门狗提速至 15 秒 (`15-Second Accelerated Route Guard Watchdog`)**：
->   * 结合 RouterOS 7.25 底层路由表调度加速，将回指路由守护间隔由 30 秒压缩至 15 秒；新增 60 秒定期网桥端口信任看门狗，宿主重启或手工变更后 15 秒内全自动 0 秒自愈！
-> * 💎 **Cyber Aurora 控制台顶栏实装「RouterOS v7.25 · DAI Ready」智能全息徽标 (`UI DAI Ready Dynamic Badge`)**：
->   * 控制台顶栏探针接口全面升级，毫秒级探查并显示当前宿主 RouterOS 精准版本号，在 ROS 7.25 环境下自动点亮极客翡翠绿「DAI Ready」徽标，运维状态一览无余。
-> * 🩺 **双核（sing-box × Mihomo）双循环往返热切换压力测试 100% 闭环 (`Dual-Core 2-Cycle Round-Trip Verified`)**：
+> * 🎨 **四维系统状态卡片精细排版与官方矢量 Logo 全面焕新 (`UI Strict Vector Bounds & Unbreaking Typography`)**：
+>   * **严格规范 SVG 矢量边界**：彻底解决因非标准 CSS 类名与未限制 ViewBox 导致的 SVG 图标异常放大撑爆卡片问题，强制显式约束尺寸边界（`20×20px` 与 `16×16px`），高精细腻不失真；
+>   * **全端实施单行不折行版面重构**：为四大系统卡片（CubeX 守护进程、双引擎混动系统、Geo 规则体系、宿主固件系统版本）及四维模态框标题添加 `h-7`、`min-w-0` 与 `whitespace-nowrap truncate`，彻底杜绝在紧凑屏幕、高 DPI 缩放下的文字竖排折行；
+>   * **官方矢量 Logo 统一对齐**：CubeX 3D 水晶微光动力立方体官方矢量标、MikroTik 官方 3D M-shaped 极客蓝网格标、Mihomo × sing-box 双核官方矢量图标全部严密对齐。
+> * 🛰️ **多宿主底层自适应感知与联动增强 (`Dynamic Multi-Host Recognition & Linkage`)**：
+>   * 顶栏胶囊、四维体检与固件版本卡片深度集成宿主探针，根据实际底座动态自适应切换：
+>     * **RouterOS**：MikroTik 官方矢量标 + REST API 固件版本 + 升级通道 + DAI / 15秒看门狗巡检；
+>     * **飞牛 fnOS / Proxmox VE / 爱快 iKuai / OpenWrt / Linux**：动态按宿主真实平台自适应点亮官方徽标、渲染专属标题并下发底层防火墙与回指路由加固。
+> * ⚡ **开机极速冷启动深度优化 (`Accelerated Cold-Boot`)**：
+>   * 优化宿主机重启开机流程，预载核心网络参数，非阻塞后台重载订阅与探针，大幅缩减宿主机重启后国内直连与科学上网的就绪等待时间。
+> * 🗂️ **地区节点分组拖拽排序交互加固 (`Region Groups Drag & Drop Sorting`)**：
+>   * 完善地区分组拖拽排序交互与持久化，操作更顺滑。
+> * 🩺 **双核（sing-box v1.14.4 × Mihomo v1.19.33）双循环 4 次往返热切换压力测试 100% 满分闭环**：
 >   * 历经 4 次引擎往返无缝热重载切换实机压测，国内真实直连、境外透明穿透与 DNS Fake-IP 纯净度达成 100% 满分通过，零路由丢失、零连接停顿。
 <a id="release-assets"></a>
 ### 📦 资产下载与全平台底座选用清单 (Release Assets)
 
 | 文件名 | 平台 / 底座 | 文件大小 | 说明与安装指引 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v3.0-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~90.0 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
-| `CubeX-Test-v3.0-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~95.0 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
-| `CubeX-Test-v3.0-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~68.8 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
-| `CubeX-Test-v3.0-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~67.5 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
+| `CubeX-Test-v3.1-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~95.0 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
+| `CubeX-Test-v3.1-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~95.1 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
+| `CubeX-Test-v3.1-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~70.4 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
+| `CubeX-Test-v3.1-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~64.4 MB | 包含双内核、全量规则集、配置与控制面的完整生产归档 |
 | `cubexd-linux-amd64` | Linux amd64 单二进制 | ~10.7 MB | 用于现有容器或 Linux 宿主系统的一键在线平滑热更执行文件 |
-| `cubexd-linux-arm64` | Linux arm64 单二进制 | ~10.0 MB | 用于现有容器或 Linux 宿主系统的一键在线平滑热更执行文件 |
-| `CubeX-Test-v3.0-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（导入后统一标记为 `cubex:latest`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
-| `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~26.9 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（自动配置容器、网络、路由与 Netwatch 0秒逃生） |
-| `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~9.2 KB | OpenWrt 终端复制即用全自动初始化脚本（自动打通 Macvlan-Shim、配置 0秒看门狗与锁定 odhcpd 防泄露） |
+| `cubexd-linux-arm64` | Linux arm64 单二进制 | ~9.9 MB | 用于现有容器或 Linux 宿主系统的一键在线平滑热更执行文件 |
+| `CubeX-Test-v3.1-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（导入后统一标记为 `cubex:latest`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
+| `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~27.4 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（自动配置容器、网络、路由与 Netwatch 0秒逃生） |
+| `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~9.9 KB | OpenWrt 终端复制即用全自动初始化脚本（自动打通 Macvlan-Shim、配置 0秒看门狗与锁定 odhcpd 防泄露） |
 
 
 > [!TIP]

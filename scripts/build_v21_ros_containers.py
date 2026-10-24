@@ -7,7 +7,7 @@ import hashlib
 import tarfile
 import time
 
-print("🔨 Starting true OCI/Docker container packaging for RouterOS Test v3.0...")
+print("🔨 Starting true OCI/Docker container packaging for RouterOS Test v3.1...")
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 dist_dir = os.path.join(root_dir, "dist")
@@ -22,7 +22,7 @@ cubexd_amd64 = os.path.join(dist_dir, "cubexd-linux-amd64")
 cubex_cli_amd64 = os.path.join(dist_dir, "cubex-linux-amd64")
 singbox_amd64 = os.path.join(root_dir, "bin", "amd64", "sing-box")
 mihomo_amd64 = os.path.join(root_dir, "bin", "amd64", "mihomo")
-out_tar_amd64 = os.path.join(release_dir, "CubeX-Test-v3.0-ros-amd64.tar")
+out_tar_amd64 = os.path.join(release_dir, "CubeX-Test-v3.1-ros-amd64.tar")
 
 print(f"\n📦 [AMD64] Opening base OCI tar: {base_tar_amd64}")
 blobs = {}
@@ -263,7 +263,7 @@ cubexd_arm64 = os.path.join(dist_dir, "cubexd-linux-arm64")
 cubex_cli_arm64 = os.path.join(dist_dir, "cubex-linux-arm64")
 singbox_arm64 = os.path.join(root_dir, "bin", "arm64", "sing-box")
 mihomo_arm64 = os.path.join(root_dir, "bin", "arm64", "mihomo")
-out_tar_arm64 = os.path.join(release_dir, "CubeX-Test-v3.0-ros-arm64.tar")
+out_tar_arm64 = os.path.join(release_dir, "CubeX-Test-v3.1-ros-arm64.tar")
 
 if os.path.exists(base_tar_arm64):
     print(f"\n📦 [ARM64] Opening base OCI tar: {base_tar_arm64}")
