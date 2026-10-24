@@ -377,6 +377,49 @@ fi
 // Three Core One-Click Healing Implementations (三大一键配置自愈与巡检)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// InspectRouting checks if 198.18.0.0/15 static route and DHCP Option 6 are configured on OpenWrt.
+func (c *Client) InspectRouting(cubexIP string) (hasRoute bool, hasDNS bool, details string, err error) {
+	script := fmt.Sprintf(`
+if ip route show 198.18.0.0/15 2>/dev/null | grep -q "%[1]s" || uci -q get network.cubex_fakeip.gateway 2>/dev/null | grep -q "%[1]s"; then
+    echo "ROUTE_OK"
+else
+    echo "ROUTE_MISSING"
+fi
+if uci -q get dhcp.lan.dhcp_option 2>/dev/null | grep -q "6,%[1]s"; then
+    echo "DNS_OK"
+else
+    echo "DNS_MISSING"
+fi
+`, cubexIP)
+
+	out, err := c.runSSHCommand(script)
+	if err != nil {
+		return false, false, "", fmt.Errorf("读取 OpenWrt 路由与 DHCP 状态失败: %w", err)
+	}
+
+	if strings.Contains(out, "ROUTE_OK") {
+		hasRoute = true
+	}
+	if strings.Contains(out, "DNS_OK") {
+		hasDNS = true
+	}
+
+	msgParts := []string{}
+	if hasRoute {
+		msgParts = append(msgParts, "Fake-IP 回指 198.18.0.0/15 就绪")
+	} else {
+		msgParts = append(msgParts, "未发现 198.18.0.0/15 回指路由")
+	}
+	if hasDNS {
+		msgParts = append(msgParts, fmt.Sprintf("DHCP Option 6 已引导至 CubeX (%s)", cubexIP))
+	} else {
+		msgParts = append(msgParts, "DHCP Option 6 尚未引导至 CubeX")
+	}
+	details = strings.Join(msgParts, " · ")
+
+	return hasRoute, hasDNS, details, nil
+}
+
 // ApplyBypass orchestrates Fake-IP 198.18.0.0/15 static return route, DHCP Option 6 injection, and 0-second failover.
 func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
 	if cubexIP == "" {

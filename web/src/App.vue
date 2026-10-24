@@ -3445,6 +3445,7 @@
                   <span class="h-7 px-3 inline-flex items-center text-xs font-mono font-semibold rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 shadow-sm select-none whitespace-nowrap shrink-0">
                     全自动智能联动 · 安全不伤主路由
                   </span>
+
                 </div>
                 <div class="text-xs text-slate-400">
                   自动识别 RouterOS / 爱快 iKuai / OpenWrt / 飞牛 / PVE / Linux 底座，一键安全联动策略路由与转发，容器意外启闭绝不影响主网。
@@ -3554,7 +3555,7 @@
 
             <!-- Tier 4: Unified All-in-One Super-Healing Action Bar (全栈自愈总线) -->
             <div class="pt-2 border-t border-cyan-500/20 relative z-10">
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <!-- 1. 当前宿主全栈网络自愈主按钮 (左右严格等宽，文案精炼，去除晦涩术语) -->
                 <button v-if="isRouterOS" @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
                   class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-950/90 via-blue-950/90 to-emerald-950/90 hover:from-cyan-900/90 hover:to-emerald-900/90 border border-cyan-500/50 hover:border-cyan-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
@@ -3604,6 +3605,20 @@
                   title="🔒 安全冻结：当前运行在 Linux/PVE 宿主底座，未配置上级 RouterOS REST 凭据，已智能锁定">
                   <span class="text-sm">🔒</span>
                   <span>RouterOS 策略路由 (非当前宿主 · 安全冻结)</span>
+                </button>
+
+                <!-- 3. 爱快 Docker 插件开箱部署参数助手 (仅当前宿主为爱快时启用，非爱快宿主安全冻结) -->
+                <button v-if="isIKuai" @click="openIkuaiDockerModal"
+                  class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-teal-950/90 via-emerald-950/90 to-cyan-950/90 hover:from-teal-900/90 hover:to-cyan-900/90 border border-teal-500/50 hover:border-teal-400 text-teal-200 hover:text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-teal-950/40 active:scale-98 cursor-pointer"
+                  title="打开爱快 Docker 插件应用 1 分钟开箱部署助手，支持各字段独立复制、Docker Run 与 Compose 命令行一键生成">
+                  <span class="text-base text-teal-400">🐬</span>
+                  <span>爱快 Docker 1分钟开箱参数</span>
+                </button>
+                <button v-else disabled
+                  class="h-12 py-3 px-4 rounded-xl bg-slate-950/60 border border-slate-800/80 text-slate-500 text-xs sm:text-[13px] font-bold flex items-center justify-center gap-2 shadow-inner opacity-50 cursor-not-allowed select-none"
+                  :title="`🔒 安全冻结：当前运行在 ${hostBadge.name} 宿主底座，非爱快 iKuai 平台已智能锁定`">
+                  <span class="text-sm">🔒</span>
+                  <span>爱快 Docker 参数 (非当前宿主 · 安全冻结)</span>
                 </button>
               </div>
 
@@ -7206,6 +7221,55 @@ const systemOverview = ref({
   update_available: false
 })
 
+// ── 爱快 iKuai Docker 插件应用 1 分钟开箱参数复制 ──
+const showIkuaiDockerModal = ref(false)
+const ikuaiDockerTab = ref('fields')
+const ikuaiDockerRunCli = ref(`docker run -d \\
+  --name cubex \\
+  --restart always \\
+  --net host \\
+  --privileged \\
+  -e TZ=Asia/Shanghai \\
+  -e CUBEX_PORT=2026 \\
+  -e CUBEX_HOST_PLATFORM=ikuai \\
+  -v /media/disk1/docker/cubex/data:/app/data \\
+  -v /media/disk1/docker/cubex/etc:/app/etc \\
+  ghcr.io/zyeyefyass/cubex:latest`)
+const ikuaiDockerComposeYaml = ref(`version: '3.8'
+services:
+  cubex:
+    image: ghcr.io/zyeyefyass/cubex:latest
+    container_name: cubex
+    restart: always
+    network_mode: host
+    privileged: true
+    environment:
+      - TZ=Asia/Shanghai
+      - CUBEX_PORT=2026
+      - CUBEX_HOST_PLATFORM=ikuai
+    volumes:
+      - /media/disk1/docker/cubex/data:/app/data
+      - /media/disk1/docker/cubex/etc:/app/etc`)
+
+async function openIkuaiDockerModal() {
+  ikuaiDockerTab.value = 'fields'
+  showIkuaiDockerModal.value = true
+  try {
+    const res = await fetch('/api/v1/host/ikuai/docker-params')
+    if (res.ok) {
+      const data = await res.json()
+      if (data.docker_run_cli) {
+        ikuaiDockerRunCli.value = data.docker_run_cli
+      }
+      if (data.docker_compose) {
+        ikuaiDockerComposeYaml.value = data.docker_compose
+      }
+    }
+  } catch (e) {
+    // Keep default parameters
+  }
+}
+
 // ── 四维版本智能探针与规则数据库明细状态 ──
 const isProbingAll = ref(false)
 const showProbeModal = ref(false)
@@ -9286,6 +9350,7 @@ async function applyLinuxHostFirewall() {
     }
     if (data.success) {
       await refreshHostTelemetry()
+      runSecurityAudit().catch(() => {})
     }
   } catch (e) {
     showToast('❌ 触发宿主配置失败: ' + e.message, true)

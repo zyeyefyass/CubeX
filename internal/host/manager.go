@@ -1049,7 +1049,7 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 	}
 
 	// 1.1 If currently connected host is iKuai, execute iKuai bypass orchestration
-	if (cached != nil && cached.PlatformID == "ikuai") || cfg.PlatformType == "ikuai" {
+	if ((cached != nil && cached.PlatformID == "ikuai") || cfg.PlatformType == "ikuai") && cfg.Host != "" {
 		client := ikuai.NewClient(ikuai.Config{
 			Host:     cfg.Host,
 			Port:     cfg.Port,
@@ -1068,7 +1068,7 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 	}
 
 	// 1.2 If currently connected host is OpenWrt, execute OpenWrt bypass orchestration
-	if (cached != nil && cached.PlatformID == "openwrt") || cfg.PlatformType == "openwrt" {
+	if ((cached != nil && cached.PlatformID == "openwrt") || cfg.PlatformType == "openwrt") && cfg.Host != "" {
 		client := openwrt.NewClient(openwrt.Config{
 			Host:     cfg.Host,
 			Port:     cfg.Port,
@@ -1087,25 +1087,6 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 		return &FirewallResult{
 			Success: true,
 			Logs:    append([]string{"[OPENWRT] 成功连接 OpenWrt 主路由", fmt.Sprintf("[OPENWRT] 探测到 CubeX 宿主直连 IP 为: %s", cubexIP), "[OPENWRT] 下发 Fake-IP 回指、DHCP Option 6 引导与毫秒逃生看门狗配置"}, logs...),
-		}, nil
-	}
-
-	// 1.1 If currently connected host is iKuai, execute iKuai bypass orchestration
-	if cached != nil && cached.PlatformID == "ikuai" && cfg.Host != "" {
-		client := ikuai.NewClient(ikuai.Config{
-			Host:     cfg.Host,
-			Port:     cfg.Port,
-			User:     cfg.User,
-			Password: cfg.Password,
-		})
-		cubexIP := m.GetOutboundIP(cfg.Host)
-		logs, err := client.ApplyBypass(cubexIP)
-		if err != nil {
-			return nil, fmt.Errorf("爱快一键自愈与加固失败: %w", err)
-		}
-		return &FirewallResult{
-			Success: true,
-			Logs:    append([]string{"[IKUAI] 成功连接爱快 Web-RPC", fmt.Sprintf("[IKUAI] 探查到 CubeX 宿主直连 IP 为: %s", cubexIP), "[IKUAI] 执行静态回指路由与 DHCP 联动加固"}, logs...),
 		}, nil
 	}
 

@@ -66,6 +66,8 @@ import (
 
 	"github.com/zyeyefyass/CubeX/internal/netstack"
 
+	"github.com/zyeyefyass/CubeX/internal/openwrt"
+
 	"github.com/zyeyefyass/CubeX/internal/ros"
 
 	"github.com/zyeyefyass/CubeX/internal/schema"
@@ -1030,6 +1032,8 @@ func main() {
 	// 12. Host Unified Auto-Setup & Compatible Aliases
 
 	mux.HandleFunc("/api/v1/host/auto-setup", srv.handleHostAutoSetup)
+
+	mux.HandleFunc("/api/v1/host/ikuai/docker-params", srv.handleIkuaiDockerParams)
 
 	mux.HandleFunc("/api/v1/ros/routing/status", srv.handleROSInspect)
 
@@ -2021,60 +2025,74 @@ func (s *Server) handleSecurityRadar(w http.ResponseWriter, r *http.Request) {
 
 
 
-	// 联动宿主底座安全与路由巡检 (RouterOS 或 爱快 iKuai)
-
+	// 联动宿主底座安全与路由巡检 (RouterOS, 爱快 iKuai 或 OpenWrt)
 	if s.hostMgr != nil {
-
 		hostCfg := s.hostMgr.GetConfig()
-
 		cached := s.hostMgr.GetCachedHostInfo()
-
+		isROS := (cached != nil && cached.PlatformID == "routeros") || hostCfg.PlatformType == "routeros"
 		isIKuai := (cached != nil && cached.PlatformID == "ikuai") || hostCfg.PlatformType == "ikuai"
+		isOpenWrt := ((cached != nil && cached.PlatformID == "openwrt") || hostCfg.PlatformType == "openwrt") && hostCfg.Host != ""
 
-		if isIKuai && hostCfg.Host != "" {
-
-			client := ikuai.NewClient(ikuai.Config{
-
-				Host:     hostCfg.Host,
-
-				Port:     hostCfg.Port,
-
-				User:     hostCfg.User,
-
-				Password: hostCfg.Password,
-
-			})
-
-			cubexIP := s.hostMgr.GetOutboundIP(hostCfg.Host)
-
-			hasRoute, hasDNS, details, err := client.InspectRouting(cubexIP)
-
+		if isROS && s.rosMgr != nil && s.rosMgr.IsConnected() {
+			reportROS, err := s.rosMgr.InspectRouting()
 			ts := time.Now().Format("15:04:05")
-
-			if err == nil {
-
-				if hasRoute && hasDNS {
-
-					report.AuditLogs = append(report.AuditLogs, fmt.Sprintf("[%s] 🚀 [爱快底座联动] %s (旁路静态回指与 DHCP 状态极佳)", ts, details))
-
+			if err == nil && reportROS != nil {
+				if reportROS.AllOK {
+					report.AuditLogs = append(report.AuditLogs, fmt.Sprintf("[%s] 🚀 [RouterOS底座联动] table cubex 策略路由、FastTrack 白名单与 Netwatch 逃生探针状态极佳", ts))
 				} else {
-
-					report.AuditLogs = append(report.AuditLogs, fmt.Sprintf("[%s] ⚠️ [爱快底座联动] %s (请点击【一键自愈与规则加固】自动注入)", ts, details))
-
+					report.AuditLogs = append(report.AuditLogs, fmt.Sprintf("[%s] ⚠️ [RouterOS底座联动] 检测到底层策略路由或防火墙项待加固 (请点击【一键自愈与规则加固】自动注入)", ts))
 					report.CanAutoRemediate = true
-
 					if report.TotalScore > 85 {
-
 						report.TotalScore = 85
-
 						report.SecurityRating = "良好防护 (建议一键自愈)"
-
 					}
-
 				}
-
 			}
 
+		} else if isIKuai && hostCfg.Host != "" {
+			client := ikuai.NewClient(ikuai.Config{
+				Host:     hostCfg.Host,
+				Port:     hostCfg.Port,
+				User:     hostCfg.User,
+				Password: hostCfg.Password,
+			})
+			cubexIP := s.hostMgr.GetOutboundIP(hostCfg.Host)
+			hasRoute, hasDNS, details, err := client.InspectRouting(cubexIP)
+			ts := time.Now().Format("15:04:05")
+			if err == nil {
+				if hasRoute && hasDNS {
+					report.AuditLogs = append(report.AuditLogs, fmt.Sprintf("[%s] 🚀 [爱快底座联动] %s (旁路静态回指与 DHCP 状态极佳)", ts, details))
+				} else {
+					report.AuditLogs = append(report.AuditLogs, fmt.Sprintf("[%s] ⚠️ [爱快底座联动] %s (请点击【一键自愈与规则加固】自动注入)", ts, details))
+					report.CanAutoRemediate = true
+					if report.TotalScore > 85 {
+						report.TotalScore = 85
+						report.SecurityRating = "良好防护 (建议一键自愈)"
+					}
+				}
+			}
+		} else if isOpenWrt {
+			client := openwrt.NewClient(openwrt.Config{
+				Host:     hostCfg.Host,
+				Port:     hostCfg.Port,
+				User:     hostCfg.User,
+				Password: hostCfg.Password,
+			})
+			cubexIP := s.hostMgr.GetOutboundIP(hostCfg.Host)
+			hasRoute, hasDNS, details, err := client.InspectRouting(cubexIP)
+			ts := time.Now().Format("15:04:05")
+			if err == nil {
+				if hasRoute && hasDNS {
+					report.AuditLogs = append(report.AuditLogs, fmt.Sprintf("[%s] 🚀 [OpenWrt底座联动] %s (旁路静态回指与 DHCP 状态极佳)", ts, details))
+				} else {
+					report.AuditLogs = append(report.AuditLogs, fmt.Sprintf("[%s] ⚠️ [OpenWrt底座联动] %s (请点击【一键自愈与规则加固】自动注入)", ts, details))
+					report.CanAutoRemediate = true
+					if report.TotalScore > 85 {
+						report.TotalScore = 85
+						report.SecurityRating = "良好防护 (建议一键自愈)"
+					}
+				}
+			}
 		}
 
 	}
@@ -2093,11 +2111,16 @@ func (s *Server) handleSecurityRemediate(w http.ResponseWriter, r *http.Request)
 
 	result := security.AutoRemediateAll(ir)
 
+	s.engMgr.UpdateIR(ir)
+
 
 
 	// 同步联动宿主底层自愈与加固 (RouterOS Netwatch/Table/FastTrack, 爱快静态路由/DHCP 或 Linux 内核转发/防火墙)
+	cached := s.hostMgr.GetCachedHostInfo()
+	hostCfg := s.hostMgr.GetConfig()
+	isROS := (cached != nil && cached.PlatformID == "routeros") || hostCfg.PlatformType == "routeros"
 
-	if s.rosMgr != nil && s.rosMgr.IsConnected() {
+	if isROS && s.rosMgr != nil && s.rosMgr.IsConnected() {
 
 		if _, err := s.rosMgr.CleanAndReapplyRouting(""); err == nil {
 
@@ -2122,6 +2145,10 @@ func (s *Server) handleSecurityRemediate(w http.ResponseWriter, r *http.Request)
 				if (cached != nil && cached.PlatformID == "ikuai") || hostCfg.PlatformType == "ikuai" {
 
 					result.RemediatedItems = append(result.RemediatedItems, "宿主底座联动自愈: 爱快 iKuai 静态回指路由 198.18.0.0/15 与 DHCP DNS 已同步全自动下发加固！")
+
+				} else if (cached != nil && cached.PlatformID == "openwrt") || hostCfg.PlatformType == "openwrt" {
+
+					result.RemediatedItems = append(result.RemediatedItems, "宿主底座联动自愈: OpenWrt 宿主静态回指路由 198.18.0.0/15、DHCP Option 6 与转发放行已同步加固！")
 
 				} else {
 
@@ -6705,6 +6732,8 @@ func (s *Server) handleHostFirewallApply(w http.ResponseWriter, r *http.Request)
 
 		secRes := security.AutoRemediateAll(ir)
 
+		s.engMgr.UpdateIR(ir)
+
 		if len(secRes.RemediatedItems) > 0 {
 
 			localRemediations = append(localRemediations, secRes.RemediatedItems...)
@@ -6874,6 +6903,8 @@ func (s *Server) handleROSCleanAndReapply(w http.ResponseWriter, r *http.Request
 		ir := s.engMgr.GetIR()
 
 		secRes := security.AutoRemediateAll(ir)
+
+		s.engMgr.UpdateIR(ir)
 
 		if len(secRes.RemediatedItems) > 0 {
 
@@ -8965,3 +8996,129 @@ func (s *Server) handleHealthRadar(w http.ResponseWriter, r *http.Request) {
 }
 
 
+
+
+func (s *Server) handleIkuaiDockerParams(w http.ResponseWriter, r *http.Request) {
+	hostIP := "10.0.0.109"
+	cubexIP := "10.0.0.7"
+	if s.hostMgr != nil {
+		hostCfg := s.hostMgr.GetConfig()
+		if hostCfg.Host != "" {
+			hostIP = hostCfg.Host
+			cubexIP = s.hostMgr.GetOutboundIP(hostCfg.Host)
+		} else {
+			conn, err := net.Dial("udp", "8.8.8.8:80")
+			if err == nil {
+				defer conn.Close()
+				if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
+					cubexIP = localAddr.IP.String()
+				}
+			}
+		}
+	}
+
+	image := "ghcr.io/zyeyefyass/cubex:latest"
+	imageFallback := "zyeyefyass/cubex:latest"
+	containerName := "cubex"
+
+	dockerRunCLI := fmt.Sprintf(`docker run -d \
+  --name %s \
+  --restart always \
+  --net host \
+  --privileged \
+  -e TZ=Asia/Shanghai \
+  -e CUBEX_PORT=2026 \
+  -e CUBEX_HOST_PLATFORM=ikuai \
+  -v /media/disk1/docker/cubex/data:/app/data \
+  -v /media/disk1/docker/cubex/etc:/app/etc \
+  %s`, containerName, image)
+
+	dockerCompose := fmt.Sprintf(`version: '3.8'
+services:
+  cubex:
+    image: %s
+    container_name: %s
+    restart: always
+    network_mode: host
+    privileged: true
+    environment:
+      - TZ=Asia/Shanghai
+      - CUBEX_PORT=2026
+      - CUBEX_HOST_PLATFORM=ikuai
+    volumes:
+      - /media/disk1/docker/cubex/data:/app/data
+      - /media/disk1/docker/cubex/etc:/app/etc
+`, image, containerName)
+
+	macvlanRunCLI := fmt.Sprintf(`docker run -d \
+  --name %s \
+  --restart always \
+  --net macvlan_lan \
+  --ip %s \
+  --privileged \
+  -e TZ=Asia/Shanghai \
+  -e CUBEX_PORT=2026 \
+  -e CUBEX_HOST_PLATFORM=ikuai \
+  -v /media/disk1/docker/cubex/data:/app/data \
+  -v /media/disk1/docker/cubex/etc:/app/etc \
+  %s`, containerName, cubexIP, image)
+
+	resp := map[string]any{
+		"container_name":    containerName,
+		"image":             image,
+		"image_fallback":    imageFallback,
+		"network_mode":      "host",
+		"network_mode_desc": "Host 模式 (推荐 · 性能极速 · 无端口映射开销)",
+		"privileged":         true,
+		"restart_policy":     "always",
+		"memory_limit":       "512M",
+		"env": map[string]string{
+			"TZ":                  "Asia/Shanghai",
+			"CUBEX_PORT":           "2026",
+			"CUBEX_HOST_PLATFORM": "ikuai",
+		},
+		"volumes": []map[string]string{
+			{
+				"host_path":      "/media/disk1/docker/cubex/data",
+				"container_path": "/app/data",
+				"mode":           "rw (读写)",
+				"desc":           "持久化存储：订阅节点、核心配置与自愈状态",
+			},
+			{
+				"host_path":      "/media/disk1/docker/cubex/etc",
+				"container_path": "/app/etc",
+				"mode":           "rw (读写)",
+				"desc":           "引擎配置：Mihomo / sing-box 生成文件与规则缓存",
+			},
+		},
+		"ports":             []string{"2026:2026/tcp", "53:53/udp", "53:53/tcp"},
+		"detected_host_ip":  hostIP,
+		"detected_cubex_ip": cubexIP,
+		"docker_run_cli":    dockerRunCLI,
+		"docker_compose":    dockerCompose,
+		"macvlan_run_cli":   macvlanRunCLI,
+		"steps": []map[string]string{
+			{
+				"step":  "1",
+				"title": "启用爱快 Docker 插件",
+				"desc":  "登录爱快路由后台 -> 点击顶部导航【高级应用】 -> 【插件管理】 -> 【Docker】 -> 开启服务并挂载至分区 (如 disk1)。",
+			},
+			{
+				"step":  "2",
+				"title": "拉取 CubeX 官方镜像",
+				"desc":  "进入【镜像管理】 -> 输入 ghcr.io/zyeyefyass/cubex:latest (备用源: zyeyefyass/cubex:latest) 点击拉取。",
+			},
+			{
+				"step":  "3",
+				"title": "添加并配置容器",
+				"desc":  "进入【容器列表】 -> 点击【添加】 -> 点击本弹窗各项右侧按钮一键复制参数（容器名、网络Host、勾选特权、挂载目录与环境变量）。",
+			},
+			{
+				"step":  "4",
+				"title": "启动与全栈自愈联动",
+				"desc":  "点击保存并启动容器。浏览器打开 http://<爱快IP>:2026 登录 CubeX，在【宿主共生】输入爱快 Web 密码，点击【一键全栈自愈爱快主路由】，全自动完成旁路接管！",
+			},
+		},
+	}
+	sendJSON(w, resp)
+}

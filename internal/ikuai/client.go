@@ -362,7 +362,7 @@ func (c *Client) InspectRouting(cubexIP string) (hasRoute bool, hasDNS bool, det
 		}
 		_ = json.Unmarshal(routeResp.Data, &rData)
 		for _, r := range rData.Data {
-			if r.IP == "198.18.0.0" && (r.Netmask == "255.254.0.0" || r.Netmask == "255.255.0.0") {
+			if r.IP == "198.18.0.0" && (r.Netmask == "255.254.0.0" || r.Netmask == "255.255.0.0" || r.Netmask == "15" || r.Netmask == "16") {
 				if cubexIP == "" || r.Gateway == cubexIP {
 					hasRoute = true
 					break
