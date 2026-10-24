@@ -222,18 +222,22 @@ fi
 
 IMAGE="cubex:latest"
 if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
-    if docker inspect "zyeyefyass/cubex:latest" >/dev/null 2>&1; then
+    if docker inspect "ghcr.io/zyeyefyass/cubex:latest" >/dev/null 2>&1; then
+        IMAGE="ghcr.io/zyeyefyass/cubex:latest"
+    elif docker inspect "zyeyefyass/cubex:latest" >/dev/null 2>&1; then
         IMAGE="zyeyefyass/cubex:latest"
     else
-        EXISTING_TAG=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^(cubex|zyeyefyass/cubex):' | head -n 1)
+        EXISTING_TAG=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^(cubex|zyeyefyass/cubex|ghcr.io/zyeyefyass/cubex):' | head -n 1)
         if [ -n "$EXISTING_TAG" ]; then
             IMAGE="$EXISTING_TAG"
             docker tag "$EXISTING_TAG" "cubex:latest" 2>/dev/null || true
             IMAGE="cubex:latest"
         else
-            echo -e "${YELLOW}   -> 未检测到本地离线镜像，正在尝试在线拉取: ${IMAGE}...${NC}"
-            docker pull "$IMAGE" 2>/dev/null || docker pull "zyeyefyass/cubex:latest" || true
-            if docker inspect "zyeyefyass/cubex:latest" >/dev/null 2>&1; then
+            echo -e "${YELLOW}   -> 未检测到本地离线镜像，正在尝试在线拉取最新镜像 (GHCR / Docker Hub)...${NC}"
+            docker pull "ghcr.io/zyeyefyass/cubex:latest" 2>/dev/null || docker pull "zyeyefyass/cubex:latest" || docker pull "$IMAGE" || true
+            if docker inspect "ghcr.io/zyeyefyass/cubex:latest" >/dev/null 2>&1; then
+                IMAGE="ghcr.io/zyeyefyass/cubex:latest"
+            elif docker inspect "zyeyefyass/cubex:latest" >/dev/null 2>&1; then
                 IMAGE="zyeyefyass/cubex:latest"
             fi
         fi
