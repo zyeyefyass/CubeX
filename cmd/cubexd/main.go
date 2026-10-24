@@ -3326,10 +3326,30 @@ func (s *Server) handleROSCleanAndReapply(w http.ResponseWriter, r *http.Request
 		TargetIP string `json:"target_ip"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	// 1. 本端核心安全基线与双核规则自愈 (原按钮 2 核心功能全量合并入总线)
+	var localRemediations []string
+	if s.engMgr != nil {
+		ir := s.engMgr.GetIR()
+		secRes := security.AutoRemediateAll(ir)
+		if len(secRes.RemediatedItems) > 0 {
+			localRemediations = append(localRemediations, secRes.RemediatedItems...)
+		}
+		if _, err := s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine()); err != nil {
+			log.Printf("[CleanAndReapply] Engine hot reload notice: %v", err)
+		} else {
+			localRemediations = append(localRemediations, "CubeX 双核透明代理引擎已完成全维度安全基线热加固")
+		}
+	}
+
+	// 2. 外部宿主与主路由全栈网络编排 (原按钮 1 核心功能)
 	res, err := s.rosMgr.CleanAndReapplyRouting(req.TargetIP)
 	if err != nil {
-		sendJSON(w, map[string]any{"error": err.Error()})
+		sendJSON(w, map[string]any{"error": err.Error(), "actions": localRemediations})
 		return
+	}
+	if len(localRemediations) > 0 {
+		res.Actions = append(localRemediations, res.Actions...)
 	}
 	sendJSON(w, res)
 }

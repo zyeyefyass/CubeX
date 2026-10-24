@@ -2590,20 +2590,18 @@
             </div>
 
             <!-- Action Controls -->
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex flex-wrap items-center gap-3">
               <button @click="runSecurityAudit" :disabled="securityAudit.loading"
-                class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 text-slate-950 text-xs font-bold shadow-lg shadow-cyan-500/20 active:scale-95 transition flex items-center gap-1.5">
+                class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 text-slate-950 text-xs font-bold shadow-lg shadow-cyan-500/20 active:scale-95 transition flex items-center gap-1.5 cursor-pointer">
                 <span v-if="securityAudit.loading" class="inline-block animate-spin">↻</span>
                 <span v-else>⚡</span>
                 <span>一键全维度体检</span>
               </button>
 
-              <button @click="autoRemediateSecurity" :disabled="securityAudit.remediating"
-                class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/20 active:scale-95 transition flex items-center gap-1.5">
-                <span v-if="securityAudit.remediating" class="inline-block animate-spin">↻</span>
-                <span v-else>🛠️</span>
-                <span>一键自愈与规则加固</span>
-              </button>
+              <div class="px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-700/60 text-xs text-slate-400 flex items-center gap-1.5">
+                <span class="text-cyan-400">💡</span>
+                <span>核心安全规则自愈已全量合入【宿主共生】一体化全链路自愈总线</span>
+              </div>
             </div>
           </div>
 
@@ -3133,136 +3131,158 @@
 
 
           <!-- 🖥️ 宿主共生底座 (Host Base Interconnect) -->
-          <div class="glass-matrix rounded-2xl p-5 space-y-4 border-l-4 border-l-cyan-400 shadow-xl">
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-sky-900/30 pb-3">
-              <div>
-                <div class="text-base font-bold text-white flex flex-wrap items-center gap-2">
-                  <span>🖥️ 宿主共生底座</span>
-                  <!-- Auto-Detected Host Badge -->
-                  <span class="text-xs bg-sky-950 text-sky-300 border border-sky-400/50 px-2.5 py-1 rounded-full font-mono font-bold flex items-center gap-2 shadow-sm select-none whitespace-nowrap shrink-0">
-                    <span class="w-2 h-2 rounded-full shrink-0" :class="hostBadge.online ? 'bg-emerald-400 shadow-[0_0_6px_#10b981] animate-pulse' : 'bg-amber-400'"></span>
-                    <img :src="hostBadge.svg" class="w-4 h-4 min-w-[16px] max-w-[16px] h-[16px] max-h-[16px] object-contain shrink-0 drop-shadow-[0_0_4px_rgba(56,189,248,0.35)]" :alt="hostBadge.shortName" />
+          <div class="p-6 sm:p-7 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#001c38]/95 via-[#00172e]/90 to-slate-950/95 border border-cyan-500/25 hover:border-cyan-400/50 shadow-2xl shadow-cyan-950/30 hover:shadow-cyan-900/40 transition-all duration-300 space-y-5 group relative overflow-hidden">
+            <div class="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none"></div>
+
+            <!-- Tier 1: Header (Synchronized Hero Bar) -->
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-cyan-500/20 pb-4 relative z-10">
+              <div class="space-y-1">
+                <div class="text-base sm:text-lg font-extrabold text-white flex flex-wrap items-center gap-2.5">
+                  <span class="tracking-wide">🖥️ 宿主共生底座</span>
+                  <!-- Auto-Detected Host Badge with glowing status -->
+                  <span class="text-xs bg-[#00223e] text-cyan-300 border border-cyan-400/40 px-3 py-1 rounded-full font-mono font-bold flex items-center gap-2 shadow-sm select-none whitespace-nowrap shrink-0">
+                    <span class="w-2 h-2 rounded-full shrink-0" :class="hostBadge.online ? 'bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse' : 'bg-amber-400'"></span>
+                    <img :src="hostBadge.svg" class="w-4 h-4 min-w-[16px] max-w-[16px] h-[16px] max-h-[16px] object-contain shrink-0 drop-shadow-[0_0_6px_rgba(56,189,248,0.5)]" :alt="hostBadge.shortName" />
                     <span class="whitespace-nowrap">{{ hostBadge.name }}</span>
                   </span>
+                  <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/30">
+                    零代码原生打通 · 0 侵权宿主共生
+                  </span>
                 </div>
-                <div class="text-xs text-slate-400 mt-1">
+                <div class="text-xs text-slate-400">
                   全自动宿主特征嗅探 · 零代码一键共生内核转发与策略路由 · 防死锁与严格防 DNS 泄露保障。
                 </div>
               </div>
             </div>
 
-            <!-- Live Host Telemetry 4-Column Grid -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-900/60 p-4 rounded-xl border border-sky-900/30 text-xs font-mono">
-              <div>
+            <!-- Tier 2: Live Host Telemetry 4-Column Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 relative z-10">
+              <!-- 1. 宿主运行环境 -->
+              <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-between shadow-inner">
                 <span class="text-slate-400 text-[11px] block">宿主运行环境</span>
-                <span class="text-white font-bold block mt-0.5 truncate">
-                  <span class="text-cyan-300">{{ hostInfo.os_name || 'MikroTik RouterOS v7' }}</span>
+                <span class="text-cyan-300 font-extrabold text-xs sm:text-[13px] block mt-1 truncate" :title="hostInfo.os_name || 'MikroTik RouterOS v7'">
+                  {{ hostInfo.os_name || 'MikroTik RouterOS v7' }}
                 </span>
+                <span class="text-[10px] text-slate-500 font-mono mt-1 block">平台适配: {{ hostBadge.shortName }}</span>
               </div>
-              <div>
-                <span class="text-slate-400 text-[11px] block">系统内核 & 架构</span>
-                <span class="text-white font-bold block mt-0.5 truncate">
-                  {{ hostInfo.kernel_version || '6.6.30-amd64' }} ({{ hostInfo.arch || 'x86_64' }})
+
+              <!-- 2. 系统内核与架构 -->
+              <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-between shadow-inner">
+                <span class="text-slate-400 text-[11px] block">物理内核 & 架构</span>
+                <span class="text-slate-200 font-extrabold text-xs sm:text-[13px] block mt-1 truncate">
+                  {{ hostInfo.kernel_version || '6.6.30-amd64' }}
                 </span>
+                <span class="text-[10px] text-slate-400 font-mono mt-1 block">指令集: {{ hostInfo.arch || 'x86_64' }}</span>
               </div>
-              <div>
-                <span class="text-slate-400 text-[11px] block">CPU / 内存负载</span>
-                <span class="text-emerald-400 font-bold block mt-0.5 truncate">
-                  {{ hostInfo.cpu_cores || 4 }} 核 | {{ hostInfo.memory_used || '1.8GB' }}/{{ hostInfo.memory_total || '16GB' }}
+
+              <!-- 3. 沙盒内存负载 -->
+              <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-between shadow-inner">
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-400 text-[11px]">沙盒内存 / CPU</span>
+                  <span class="text-[10px] text-slate-400 font-mono">{{ hostInfo.cpu_cores || 1 }}核</span>
+                </div>
+                <span class="text-emerald-400 font-extrabold text-xs sm:text-[13px] block mt-1 truncate">
+                  {{ hostInfo.memory_used || '70MB' }} / {{ hostInfo.memory_total || '256MB' }}
                 </span>
+                <div class="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden mt-1.5 flex">
+                  <div class="bg-gradient-to-r from-teal-400 to-emerald-400 h-full rounded-full transition-all duration-500" :style="{ width: Math.min(100, Math.max(5, hostMemoryPercentNum)) + '%' }"></div>
+                </div>
               </div>
-              <div :class="['p-2 rounded-lg border transition', hostInfo.ip_forward ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-amber-950/40 border-amber-500/50']">
+
+              <!-- 4. 内核转发状态 -->
+              <div :class="['p-3.5 rounded-xl border flex flex-col justify-between shadow-inner transition', hostInfo.ip_forward ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-amber-950/40 border-amber-500/50']">
                 <span class="text-slate-400 text-[11px] block">内核转发 (ip_forward)</span>
-                <span :class="['font-bold block mt-0.5 text-xs truncate', hostInfo.ip_forward ? 'text-emerald-400' : 'text-amber-400']">
-                  {{ hostInfo.ip_forward ? '● 完整就绪 (Forwarding: 1)' : '○ 待开启 (点击一键联动)' }}
+                <span :class="['font-extrabold text-xs sm:text-[13px] block mt-1 truncate', hostInfo.ip_forward ? 'text-emerald-400' : 'text-amber-400']">
+                  {{ hostInfo.ip_forward ? '● 完整就绪 (Forward: 1)' : '○ 待开启 (点击自愈)' }}
                 </span>
+                <span class="text-[10px] text-slate-500 font-mono mt-1 block">Bypass 防死锁白名单</span>
               </div>
             </div>
 
-            <!-- Host Credentials Form (Directly Displayed) -->
-            <div class="bg-slate-950/70 p-4 sm:p-5 rounded-2xl border border-cyan-500/30 space-y-3.5 shadow-inner">
-              <div class="text-xs font-semibold text-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-sky-900/40 pb-2.5">
+            <!-- Tier 3: Host Credentials Panel (Integrated Credential Deck) -->
+            <div class="bg-slate-950/70 p-4 sm:p-5 rounded-2xl border border-cyan-500/25 space-y-3.5 shadow-inner relative z-10">
+              <div class="text-xs font-semibold text-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-cyan-500/20 pb-2.5">
                 <div class="flex items-center gap-2">
                   <span class="text-cyan-400 text-sm">🔑</span>
-                  <span class="font-bold text-white">宿主共生凭据与鉴权</span>
+                  <span class="font-bold text-white tracking-wide">宿主共生凭据与鉴权</span>
                   <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40">
                     RouterOS REST API / 爱快 iKuai Web-RPC / Linux SSH
                   </span>
                 </div>
-                <span class="text-[11px] text-slate-400 font-normal">通常为主路由 IP（例: 192.168.88.1 或 192.168.1.1）或 Docker 网关（172.17.0.1）</span>
+                <span class="text-[11px] text-slate-400 font-normal">通常为主路由 IP（例: 10.0.0.1 或 192.168.1.1）或 Docker 网关（172.17.0.1）</span>
               </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                 <div>
                   <label class="block text-[11px] text-slate-300 font-bold mb-1">宿主 / 主路由 IP</label>
-                  <input v-model="hostConfig.host" placeholder="例: 192.168.88.1 或 192.168.1.1" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
+                  <input v-model="hostConfig.host" placeholder="例: 10.0.0.1 或 192.168.1.1" class="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
                 <div>
                   <label class="block text-[11px] text-slate-300 font-bold mb-1">通信端口 (ROS/爱快: 80/443, SSH: 22)</label>
-                  <input v-model.number="hostConfig.port" type="number" placeholder="80 / 443 / 22" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
+                  <input v-model.number="hostConfig.port" type="number" placeholder="80 / 443 / 22" class="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
                 <div>
                   <label class="block text-[11px] text-slate-300 font-bold mb-1">管理员账号 (ROS/爱快: admin, SSH: root)</label>
-                  <input v-model="hostConfig.user" placeholder="admin 或 root" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
+                  <input v-model="hostConfig.user" placeholder="admin 或 root" class="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
                 <div>
                   <label class="block text-[11px] text-slate-300 font-bold mb-1">登录密码 (WinBox / 爱快Web后台密码)</label>
-                  <input type="password" v-model="hostConfig.password" placeholder="Web / WinBox登录密码 (无密码留空)" class="w-full bg-slate-900 border border-slate-700 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
+                  <input type="password" v-model="hostConfig.password" placeholder="Web / WinBox登录密码 (无密码留空)" class="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
               </div>
 
               <div class="p-3 rounded-xl bg-cyan-950/40 border border-cyan-800/40 text-[11px] text-cyan-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
                   <span>💡</span>
-                  <span>对于 <b>MikroTik RouterOS</b>，用户名密码为 <b>WinBox</b> 账号；对于 <b>爱快 iKuai</b>，填入 Web 账号密码；对于 <b>OpenWrt</b>，填入后台 IP（默认 192.168.1.1）及 root 密码（CubeX 自动通过 UBUS/SSH 下发回指路由并锁定 odhcpd 防 DNS 泄露）。</span>
+                  <span>对于 <b>MikroTik RouterOS</b>，用户名密码为 <b>WinBox</b> 账号；对于 <b>爱快 iKuai</b>，填入 Web 账号密码；对于 <b>OpenWrt</b>，填入后台 IP（默认 192.168.1.1）及 root 密码。</span>
                 </div>
-                <button @click="saveCredentialsAndLinkHost" :disabled="savingAndLinkingHost" class="px-5 py-2 rounded-xl bg-gradient-to-r from-teal-400 to-cyan-500 hover:from-teal-300 hover:to-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 active:scale-95 transition shrink-0 flex items-center gap-1.5 disabled:opacity-50">
+                <button @click="saveCredentialsAndLinkHost" :disabled="savingAndLinkingHost" class="px-5 py-2 rounded-xl bg-gradient-to-r from-teal-400 to-cyan-500 hover:from-teal-300 hover:to-cyan-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 active:scale-95 transition shrink-0 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer">
                   <span v-if="savingAndLinkingHost" class="inline-block animate-spin">↻</span>
                   <span>{{ savingAndLinkingHost ? '正在测试并联动宿主...' : '⚡ 保存凭据并一键联动宿主' }}</span>
                 </button>
               </div>
             </div>
 
-            <!-- 宿主全栈策略自愈中枢 (巡检、策略路由、0秒逃生与 IPv6 双栈防泄露已合并为一体化极简操作) -->
-            <div class="pt-2 border-t border-slate-800">
+            <!-- Tier 4: Unified All-in-One Super-Healing Action Bar (全栈全链路自愈总线) -->
+            <div class="pt-2 border-t border-cyan-500/20 relative z-10">
               <div class="flex flex-col sm:flex-row gap-2.5">
-                <!-- 1. 当前宿主专属全栈巡检自愈主按钮 (已全量合并 IPv4 + Netwatch + IPv6 双栈防泄露) -->
+                <!-- 1. 当前宿主专属全栈全链路自愈主按钮 (已全量合并原按钮2核心规则加固 + 策略路由 + Netwatch 0秒逃生 + IPv6 全局防泄露) -->
                 <button v-if="isRouterOS" @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
-                  class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-950/90 via-blue-950/90 to-emerald-950/90 hover:from-cyan-900/90 hover:to-emerald-900/90 border border-cyan-500/50 hover:border-cyan-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
-                  title="一键深度巡检 RouterOS 策略路由 (table cubex)、Netwatch 0秒毫秒逃生探针、FastTrack 兼容性及原生 IPv6 双栈防 DNS 泄露 (advertise-dns=no)">
+                  class="flex-1 h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-950/90 via-blue-950/90 to-emerald-950/90 hover:from-cyan-900/90 hover:to-emerald-900/90 border border-cyan-500/50 hover:border-cyan-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
+                  title="一键全栈全链路自愈：同步加固 CubeX 双核安全规则、RouterOS 策略路由 (table cubex)、Netwatch 0秒逃生探针、FastTrack 白名单及原生 IPv6 双栈防泄露">
                   <span v-if="cleaningRosFirewall" class="inline-block animate-spin text-sm">↻</span>
                   <span v-else class="text-base text-cyan-400">⚡</span>
-                  <span>一键全栈巡检与自愈 RouterOS (策略路由 · Netwatch 0秒逃生 · IPv6 全局防泄露)</span>
+                  <span>一键全栈全链路自愈 (核心规则加固 · RouterOS 策略回指 · Netwatch 0秒逃生 · IPv6 全局防泄露)</span>
                 </button>
                 <button v-else-if="isOpenWrt" @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
-                  class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-sky-950/90 via-blue-950/90 to-teal-950/90 hover:from-sky-900/90 hover:to-teal-900/90 border border-sky-500/50 hover:border-sky-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-sky-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
-                  title="一键深度巡检 OpenWrt UBUS 回指路由、DHCP 网关注入及 odhcpd 原生 IPv6 广播防泄露锁定">
+                  class="flex-1 h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-sky-950/90 via-blue-950/90 to-teal-950/90 hover:from-sky-900/90 hover:to-teal-900/90 border border-sky-500/50 hover:border-sky-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-sky-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
+                  title="一键全栈全链路自愈：同步加固 CubeX 双核安全规则、OpenWrt UBUS 回指路由、DHCP 网关注入及 odhcpd 原生 IPv6 广播防泄露锁定">
                   <span v-if="cleaningRosFirewall" class="inline-block animate-spin text-sm">↻</span>
                   <span v-else class="text-base text-sky-400">📡</span>
-                  <span>一键全栈巡检与自愈 OpenWrt (策略回指 · DHCP 逃生 · IPv6 全局防泄露)</span>
+                  <span>一键全栈全链路自愈 (核心规则加固 · OpenWrt 策略回指 · DHCP 逃生 · IPv6 全局防泄露)</span>
                 </button>
                 <button v-else-if="isIKuai" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall"
-                  class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-950/90 via-teal-950/90 to-cyan-950/90 hover:from-emerald-900/90 hover:to-cyan-900/90 border border-emerald-500/50 hover:border-emerald-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
-                  title="一键深度巡检爱快 Web-RPC 198.18.0.0/15 回指路由与 DHCP 联动加固">
+                  class="flex-1 h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-950/90 via-teal-950/90 to-cyan-950/90 hover:from-emerald-900/90 hover:to-cyan-900/90 border border-emerald-500/50 hover:border-emerald-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
+                  title="一键全栈全链路自愈：同步加固 CubeX 双核安全规则、爱快 Web-RPC 198.18.0.0/15 回指路由与 DHCP 联动加固">
                   <span v-if="applyingLinuxFirewall" class="inline-block animate-spin text-sm">↻</span>
                   <span v-else class="text-base text-emerald-400">⚡</span>
-                  <span>一键全栈巡检与自愈爱快 (静态回指 198.18.0.0/15 · DHCP 联动加固)</span>
+                  <span>一键全栈全链路自愈 (核心规则加固 · 爱快静态回指 198.18.0.0/15 · DHCP 联动加固)</span>
                 </button>
                 <button v-else @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall"
-                  class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-950/90 via-blue-950/90 to-indigo-950/90 hover:from-cyan-900/90 hover:to-indigo-900/90 border border-cyan-500/50 hover:border-cyan-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 active:scale-98 disabled:opacity-50 cursor-pointer">
+                  class="flex-1 h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-950/90 via-blue-950/90 to-indigo-950/90 hover:from-cyan-900/90 hover:to-indigo-900/90 border border-cyan-500/50 hover:border-cyan-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 active:scale-98 disabled:opacity-50 cursor-pointer">
                   <span v-if="applyingLinuxFirewall" class="inline-block animate-spin text-sm">↻</span>
                   <span v-else class="text-base text-cyan-400">⚡</span>
-                  <span>一键全栈巡检与自愈 {{ hostBadge.name }} 防火墙与内核转发</span>
+                  <span>一键全栈全链路自愈 (核心规则加固 · {{ hostBadge.name }} 防火墙与内核转发)</span>
                 </button>
 
                 <!-- 2. 混合双宿主协同辅助入口 -->
                 <button v-if="isRouterOS" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall"
-                  class="py-3 px-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 shrink-0 shadow-sm active:scale-98 cursor-pointer"
+                  class="h-12 py-3 px-4 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 text-slate-300 hover:text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 shrink-0 shadow-sm active:scale-98 cursor-pointer"
                   title="若旁路由运行于独立 Linux / 飞牛 NAS / PVE 宿主，可同时巡检与加固该宿主底层防火墙与内核转发">
                   <span>🐧 联动伴生 Linux 防火墙</span>
                 </button>
                 <button v-else @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
-                  class="py-3 px-3.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 shrink-0 shadow-sm active:scale-98 cursor-pointer"
+                  class="h-12 py-3 px-4 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 text-slate-300 hover:text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 shrink-0 shadow-sm active:scale-98 cursor-pointer"
                   title="若局域网上级主路由为 MikroTik RouterOS，可一键协同配置主路由策略路由与逃生规则">
                   <span>📶 联动 RouterOS 主路由</span>
                 </button>
@@ -8637,13 +8657,18 @@ async function executeHostUpgrade() {
 
 async function inspectAndCleanReapplyRos() {
   cleaningRosFirewall.value = true
-  showToast('⚡ 正在全栈巡检 RouterOS 策略路由、Netwatch 0秒逃生及 IPv6 原生防泄露...')
+  showToast('⚡ 正在全栈全链路自愈：同步加固双核安全规则、RouterOS 策略路由及 IPv6 原生防泄露...')
   try {
-    // 1. IPv4 策略路由与 Netwatch 0秒逃生编排
+    // 动态嗅探当前访问主机 IP，绝不硬编码
+    const currentHost = (typeof window !== 'undefined' && window.location && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+      ? window.location.hostname
+      : (hostConfig.value.cubex_ip || '')
+
+    // 1. 本端核心规则加固 + IPv4 策略路由与 Netwatch 0秒逃生编排
     const res1 = await fetch('/api/v1/ros/clean-and-reapply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ target_ip: hostConfig.value.host === '10.0.0.1' ? '10.0.0.11' : '' })
+      body: JSON.stringify({ target_ip: currentHost })
     })
     const data1 = await res1.json()
     const actions = [...(data1.actions || [])]
@@ -8667,11 +8692,11 @@ async function inspectAndCleanReapplyRos() {
     const isErr = errors.length > 0 && !data1.success
     const msg = isErr
       ? ('全栈自愈提示: ' + errors.join('; '))
-      : '🎉 RouterOS 策略路由、Netwatch 0秒逃生与 IPv6 原生防泄露已全量自愈加固完毕！'
+      : '🎉 全栈全链路自愈完成！核心安全规则已加固，RouterOS 策略路由与 IPv6 原生防泄露已全部生效！'
     showToast(msg, isErr)
 
     hostLastExecution.value = {
-      title: 'RouterOS 全栈策略路由与 IPv6 防泄露自愈加固',
+      title: '全栈全链路自愈加固 (核心规则 · 策略回指 · 0秒逃生 · IPv6 防泄露)',
       message: msg,
       success: !isErr,
       time: new Date().toLocaleTimeString(),
@@ -8679,14 +8704,15 @@ async function inspectAndCleanReapplyRos() {
     }
     executionModal.value = {
       visible: true,
-      title: 'RouterOS 全栈巡检、策略路由与 IPv6 防泄露自愈报告',
+      title: 'CubeX 全栈全链路自愈报告',
       status: isErr ? 'warning' : 'success',
       message: msg,
       actions: actions,
       errors: errors,
       timestamp: new Date().toLocaleTimeString()
     }
-    await refreshHostTelemetry()
+    // 联动刷新安全总评看板
+    runSecurityAudit()
   } catch (e) {
     showToast('❌ 触发全栈自愈失败: ' + e.message, true)
   } finally {

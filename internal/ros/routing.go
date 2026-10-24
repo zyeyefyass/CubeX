@@ -704,7 +704,7 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		targetIP = m.GetOutboundIP()
 	}
 	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
-		targetIP = "10.0.0.11"
+		targetIP = "10.0.0.7"
 	}
 
 	res := &ApplyResult{
@@ -804,7 +804,7 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		dst := fmt.Sprintf("%v", r["dst-address"])
 		gw := fmt.Sprintf("%v", r["gateway"])
 		id, _ := r[".id"].(string)
-		if (table == "" || table == "main") && (dst == "198.18.0.0/15" || dst == "198.18.0.0/16") {
+		if (table == "" || table == "main") && (dst == "198.18.0.0/15" || dst == "198.18.0.0/16" || dst == "198.19.0.0/16") {
 			if (gw == targetIP || strings.Contains(gw, targetIP)) && dst == "198.18.0.0/15" {
 				hasCorrectFakeIPRoute = true
 			} else if id != "" {
@@ -1285,7 +1285,7 @@ func (m *Manager) PurgeConflictingFakeIPRoutes(targetIP string) int {
 		targetIP = m.GetOutboundIP()
 	}
 	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
-		targetIP = "10.0.0.11"
+		targetIP = "10.0.0.7"
 	}
 	data, err := m.QueryROS("/ip/route")
 	if err != nil {
@@ -1301,7 +1301,7 @@ func (m *Manager) PurgeConflictingFakeIPRoutes(targetIP string) int {
 		gw := fmt.Sprintf("%v", r["gateway"])
 		id, _ := r[".id"].(string)
 		table, _ := r["routing-table"].(string)
-		if (table == "" || table == "main") && (dst == "198.18.0.0/15" || dst == "198.18.0.0/16") {
+		if (table == "" || table == "main") && (dst == "198.18.0.0/15" || dst == "198.18.0.0/16" || dst == "198.19.0.0/16") {
 			if gw == targetIP || strings.Contains(gw, targetIP) {
 				continue
 			}
@@ -1344,7 +1344,7 @@ func (m *Manager) CleanAndReapplyRouting(targetIP string) (*ApplyResult, error) 
 		targetIP = m.GetOutboundIP()
 	}
 	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
-		targetIP = "10.0.0.11"
+		targetIP = "10.0.0.7"
 	}
 
 	res := &ApplyResult{
@@ -1439,7 +1439,7 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 		targetIP = m.GetOutboundIP()
 	}
 	if targetIP == "" {
-		targetIP = "10.0.0.11"
+		targetIP = "10.0.0.7"
 	}
 
 	var sb strings.Builder
@@ -1752,7 +1752,7 @@ func (m *Manager) EnsureFakeIPRoute(targetIP string) bool {
 		targetIP = m.GetOutboundIP()
 	}
 	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
-		targetIP = "10.0.0.11"
+		targetIP = "10.0.0.7"
 	}
 	data, err := m.QueryROS("/ip/route")
 	if err != nil {
@@ -1818,7 +1818,7 @@ func (m *Manager) EnsureBridgeDAIProtection(targetIP string) (bool, string) {
 		targetIP = m.GetOutboundIP()
 	}
 	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
-		targetIP = "10.0.0.11"
+		targetIP = "10.0.0.7"
 	}
 
 	pData, err := m.QueryROS("/interface/bridge/port")
