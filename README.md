@@ -38,7 +38,7 @@
 
 - [⚡ 权威实测：CubeX Test v2.8 vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)](#benchmark)
 
-- [📢 最新版本升级通知 (Test v3.5 工业级专有加固版)](#announcement)
+- [📢 最新版本升级通知 (Test v3.6 拓扑双模闭环与智能指引版)](#announcement)
 
 - [📦 资产下载与全平台底座选用清单 (Release Assets)](#release-assets)
 
@@ -366,18 +366,18 @@
 
 | 文件名 | 平台 / 底座 | 文件大小 | 说明与安装指引 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v3.5-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~109 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
-| `CubeX-Test-v3.5-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~108 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
-| `CubeX-Test-v3.5-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~84.6 MB | 包含混淆加固双内核、全量规则集、配置与控制面的完整生产归档 |
-| `CubeX-Test-v3.5-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~77.4 MB | 包含混淆加固双内核、全量规则集、配置与控制面的完整生产归档 |
-| `cubexd-linux-amd64` | Linux amd64 单二进制 | ~35.6 MB | Garble AST 深度混淆加固主控守护进程，用于在线秒级热更或单文件运行 |
-| `cubexd-linux-arm64` | Linux arm64 单二进制 | ~31.7 MB | Garble AST 深度混淆加固主控守护进程（ARM64 硬件架构） |
+| `CubeX-Test-v3.6-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~109 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
+| `CubeX-Test-v3.6-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~108 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
+| `CubeX-Test-v3.6-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~84.6 MB | 包含混淆加固双内核、全量规则集、配置与控制面的完整生产归档 |
+| `CubeX-Test-v3.6-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~77.4 MB | 包含混淆加固双内核、全量规则集、配置与控制面的完整生产归档 |
+| `cubexd-linux-amd64` | Linux amd64 单二进制 | ~35.5 MB | Garble AST 深度混淆加固主控守护进程，用于在线秒级热更或单文件运行 |
+| `cubexd-linux-arm64` | Linux arm64 单二进制 | ~31.6 MB | Garble AST 深度混淆加固主控守护进程（ARM64 硬件架构） |
 | `cubex-linux-amd64` | Linux amd64 运维 CLI | ~16.9 MB | Garble 混淆加固终端运维命令行控制面 |
 | `cubex-linux-arm64` | Linux arm64 运维 CLI | ~15.1 MB | Garble 混淆加固终端运维命令行控制面（ARM64） |
-| `CubeX-Test-v3.5-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~75.5 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（导入后统一标记为 `cubex:latest`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
+| `CubeX-Test-v3.6-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~85.5 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（导入后统一标记为 `cubex:latest`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
 | `install.sh` | Linux 官方一键安全安装器 | ~9.8 KB | 专有内存流安全加载器，终端执行 `curl -fsSL https://github.com/zyeyefyass/CubeX/releases/latest/download/install.sh \| bash` |
 | `install_pve_lxc.sh` | Proxmox VE 官方安装脚本 | ~6.7 KB | PVE 宿主机终端一键全自动部署脚本（自动升级 Alpine、透传 TUN、创建 CT 容器与装配守护进程） |
-| `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~16.5 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（自动配置容器、网络、路由与 Netwatch 0秒逃生） |
+| `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~17.1 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（自动配置容器、网络、路由与 Netwatch 0秒逃生） |
 | `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~6.6 KB | OpenWrt 终端复制即用全自动初始化脚本（自动打通 Macvlan-Shim、配置 0秒看门狗与锁定 odhcpd 防泄露） |
 
 > ### 🧭 各主流宿主底座极速安装与发布资产选用速查指引：
