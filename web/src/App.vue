@@ -61,7 +61,27 @@
           </button>
         </nav>
 
+      </div>
 
+      <!-- Desktop Sidebar Bottom: GitHub Official Repository Card -->
+      <div class="p-3 border-t border-slate-800/80 bg-slate-900/60 mt-auto select-none shrink-0">
+        <a href="https://github.com/zyeyefyass/CubeX" target="_blank" rel="noopener noreferrer"
+          class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-slate-800/70 hover:bg-slate-800 border border-slate-700/60 hover:border-sky-500/50 text-slate-300 hover:text-white transition-all duration-300 shadow-sm group cursor-pointer"
+          title="访问 CubeX GitHub 官方开源仓库 (https://github.com/zyeyefyass/CubeX)">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <!-- Official GitHub SVG Mark -->
+            <div class="w-7 h-7 rounded-xl bg-slate-900/90 border border-slate-700/80 flex items-center justify-center shrink-0 group-hover:border-sky-400/50 group-hover:shadow-[0_0_8px_rgba(56,189,248,0.25)] transition-all">
+              <svg class="w-4 h-4 fill-current text-slate-200 group-hover:text-sky-300 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+              </svg>
+            </div>
+            <div class="flex flex-col text-left leading-none min-w-0">
+              <span class="text-xs font-bold tracking-tight text-slate-100 group-hover:text-sky-300 transition-colors">GitHub 仓库</span>
+              <span class="text-[10px] text-slate-400 font-mono tracking-tight mt-1 truncate">zyeyefyass/CubeX</span>
+            </div>
+          </div>
+          <span class="text-slate-500 group-hover:text-sky-300 text-xs font-mono font-bold group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform">↗</span>
+        </a>
       </div>
 
     </aside>
@@ -166,8 +186,19 @@
           </div>
         </div>
 
-        <!-- Right: 🌙 去蓝光护眼一键切换 + 宿主机官方矢量 Logo + 在线心跳胶囊 -->
+        <!-- Right: 🐙 GitHub 官方直达 + 🌙 去蓝光护眼一键切换 + 宿主机官方矢量 Logo + 在线心跳胶囊 -->
         <div class="flex items-center gap-2 shrink-0">
+
+          <!-- 🐙 GitHub 官方开源直达胶囊 (高度严格对称 h-[42px] sm:h-[46px]) -->
+          <a href="https://github.com/zyeyefyass/CubeX" target="_blank" rel="noopener noreferrer"
+            class="h-[42px] sm:h-[46px] inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800/90 border border-slate-700/60 hover:border-sky-500/50 text-slate-300 hover:text-white shadow-md select-none transition-all duration-300 cursor-pointer active:scale-95 group"
+            title="访问 CubeX GitHub 官方开源仓库 (https://github.com/zyeyefyass/CubeX)">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5 fill-current text-slate-300 group-hover:text-sky-300 group-hover:scale-110 transition-transform shrink-0" viewBox="0 0 24 24">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+            <span class="hidden xl:inline text-xs font-mono font-bold tracking-tight">GitHub</span>
+            <span class="text-[10px] text-slate-500 group-hover:text-sky-300 font-mono transition-colors">↗</span>
+          </a>
 
 
           <!-- 🌙 去蓝光护眼 (Anti-Blue-Light Warm Spectrum Filter · 4500K 暖墨护眼) -->
@@ -4383,8 +4414,16 @@
           </div>
         </div>
 
-        <!-- Drawer Footer -->
+        <!-- Drawer Footer: GitHub Quick Link + Version -->
         <div class="pt-4 border-t border-sky-900/40 space-y-2">
+          <a href="https://github.com/zyeyefyass/CubeX" target="_blank" rel="noopener noreferrer"
+            class="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-xs text-sky-300 font-medium transition cursor-pointer">
+            <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+            <span>GitHub 官方仓库</span>
+            <span class="text-[10px] text-slate-400 font-mono">↗</span>
+          </a>
           <div class="text-[9px] text-slate-500 text-center font-mono">
             CubeX {{ systemStatus.version || 'Test v3.4' }}
           </div>
