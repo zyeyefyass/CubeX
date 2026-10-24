@@ -3108,9 +3108,10 @@
                 <div class="text-base font-bold text-white flex flex-wrap items-center gap-2">
                   <span>🖥️ 宿主共生底座与网络中枢</span>
                   <!-- Auto-Detected Host Badge -->
-                  <span class="text-xs bg-sky-950 text-sky-300 border border-sky-400/50 px-3 py-0.5 rounded-full font-mono font-bold flex items-center gap-1.5 shadow-sm">
-                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                    {{ hostBadge.icon }} {{ hostBadge.name }}
+                  <span class="text-xs bg-sky-950 text-sky-300 border border-sky-400/50 px-2.5 py-1 rounded-full font-mono font-bold flex items-center gap-2 shadow-sm select-none">
+                    <span class="w-2 h-2 rounded-full shrink-0" :class="hostBadge.online ? 'bg-emerald-400 shadow-[0_0_6px_#10b981] animate-pulse' : 'bg-amber-400'"></span>
+                    <img :src="hostBadge.svg" class="w-4 h-4 object-contain shrink-0 drop-shadow-[0_0_4px_rgba(56,189,248,0.35)]" :alt="hostBadge.shortName" />
+                    <span>{{ hostBadge.name }}</span>
                   </span>
                 </div>
                 <div class="text-xs text-slate-400 mt-1">
@@ -3306,8 +3307,8 @@
               <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
                 <!-- Tier 1: Header (h-7) -->
                 <div class="h-7 flex justify-between items-center">
-                  <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                    <span>🧊</span>
+                  <div class="text-xs font-bold text-white flex items-center gap-2">
+                    <img src="/logo-cubex.svg" class="w-4.5 h-4.5 object-contain shrink-0 drop-shadow-[0_0_5px_rgba(56,189,248,0.4)]" alt="CubeX" />
                     <span>CubeX 系统守护进程</span>
                   </div>
                   <span v-if="systemOverview.panel_update_avail" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse">发现新版 {{ systemOverview.panel_latest_version }}</span>
@@ -3555,9 +3556,8 @@
               <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
                 <!-- Tier 1: Header (h-7) -->
                 <div class="h-7 flex justify-between items-center">
-                  <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                    <span v-if="isRouterOS">📡</span>
-                    <span v-else>{{ hostBadge.icon }}</span>
+                  <div class="text-xs font-bold text-white flex items-center gap-2">
+                    <img :src="hostBadge.svg" class="w-4.5 h-4.5 object-contain shrink-0 drop-shadow-[0_0_5px_rgba(56,189,248,0.35)]" :alt="hostBadge.shortName" />
                     <span>{{ isRouterOS ? 'MikroTik RouterOS 固件系统版本' : (hostBadge.name + ' 宿主系统版本') }}</span>
                   </div>
                   <span v-if="checkingHostUpgrade" class="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40 flex items-center gap-1 shadow-sm">
@@ -3941,7 +3941,7 @@
           <!-- Detected Host Platform badge on Mobile -->
           <div class="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
             <div class="flex items-center gap-2 overflow-hidden">
-              <span class="text-lg">{{ hostBadge.icon }}</span>
+              <img :src="hostBadge.svg" class="w-5 h-5 object-contain shrink-0 drop-shadow-[0_0_5px_rgba(56,189,248,0.35)]" :alt="hostBadge.shortName" />
               <div class="text-left overflow-hidden">
                 <div class="text-[9px] text-slate-400 uppercase font-mono">HOST BASE</div>
                 <div class="text-xs font-bold text-cyan-200 truncate">{{ hostBadge.name }}</div>
@@ -4766,8 +4766,8 @@
           <!-- 维度 1: CubeX 主控守护进程 -->
           <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 flex flex-col justify-between">
             <div class="flex justify-between items-center">
-              <span class="text-xs font-bold text-white flex items-center gap-1.5">
-                <span>🧊</span>
+              <span class="text-xs font-bold text-white flex items-center gap-2">
+                <img src="/logo-cubex.svg" class="w-4.5 h-4.5 object-contain shrink-0 drop-shadow-[0_0_5px_rgba(56,189,248,0.4)]" alt="CubeX" />
                 <span>CubeX 系统守护进程 (cubexd)</span>
               </span>
               <span v-if="systemOverview.panel_update_avail" class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40">发现新版 {{ systemOverview.panel_latest_version }}</span>
