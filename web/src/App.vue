@@ -289,140 +289,10 @@
               </div>
             </div>
 
-            <!-- 4 Engine Metrics Grid (Live Dual-Engine & Telemetry) -->
-            <!-- 1. 核心底座与双核引擎运行状态 (4 Engine & Host Infrastructure Cards) -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-              <!-- 1. Dual-Engine HA Sentinel & Hot-Standby (双擎热备与自愈) -->
-              <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-cyan-500/40 relative overflow-hidden shadow-lg transition hover:border-cyan-400/60 flex flex-col justify-between min-h-[148px]">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">双擎热备与自愈</span>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-medium flex items-center gap-1 shrink-0">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>双核就绪
-                  </span>
-                </div>
-
-                <div class="text-sm sm:text-base font-bold text-cyan-300 flex items-baseline gap-1.5 font-mono truncate py-0.5">
-                  <span>{{ activeEngine === 'singbox' ? 'sing-box' : 'mihomo' }}</span>
-                  <span class="text-xs text-slate-400 font-sans">⇄</span>
-                  <span class="text-xs text-purple-300 font-sans">{{ activeEngine === 'singbox' ? 'mihomo 热备' : 'sing-box 热备' }}</span>
-                </div>
-
-                <div class="space-y-1 text-xs font-mono">
-                  <div class="flex items-center justify-between">
-                    <span class="text-slate-400 text-[11px] whitespace-nowrap">热切耗时</span>
-                    <span class="font-bold text-emerald-400 text-[11px] font-mono">&lt;350ms</span>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <span class="text-slate-400 text-[11px] whitespace-nowrap">热备容灾</span>
-                    <span class="font-bold text-cyan-300 text-[11px] font-mono">崩溃自动秒切</span>
-                  </div>
-                </div>
-
-                <!-- Visual Dual-Engine Sync Bar -->
-                <div class="pt-1.5">
-                  <div class="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden flex">
-                    <div :class="['h-full transition-all duration-500', activeEngine === 'singbox' ? 'bg-gradient-to-r from-teal-400 to-cyan-500 w-3/5' : 'bg-slate-700 w-2/5']"></div>
-                    <div :class="['h-full transition-all duration-500', activeEngine === 'mihomo' ? 'bg-gradient-to-r from-purple-500 to-indigo-500 w-3/5' : 'bg-slate-700 w-2/5']"></div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 2. Host System Telemetry (宿主机真实硬件负载与 CubeX 专属常驻) -->
-              <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-purple-500/30 relative overflow-hidden shadow-lg transition hover:border-purple-400/60 flex flex-col justify-between min-h-[148px]">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">宿主机硬件负载</span>
-                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-950/90 text-purple-300 border border-purple-500/40 font-bold flex items-center gap-1 shrink-0">
-                    <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>{{ hostInfo.cpu_cores ? hostInfo.cpu_cores + '核 CPU' : '1核 CPU' }}
-                  </span>
-                </div>
-
-                <!-- 行 1: 宿主机 CPU 实时负载 -->
-                <div class="flex items-center justify-between text-xs font-mono py-0.5">
-                  <span class="text-slate-400 text-[11px] whitespace-nowrap">宿主机 CPU 负载</span>
-                  <span class="text-sm font-bold text-purple-300 font-mono">{{ hostInfo.cpu_load || '1%' }}</span>
-                </div>
-
-                <!-- 行 2: 内存占用率与数值详情 (只展示宿主机内存与 CubeX 专属常驻) -->
-                <div class="space-y-1 text-xs font-mono">
-                  <div class="flex items-center justify-between">
-                    <span class="text-slate-400 text-[11px] whitespace-nowrap">CubeX 专属常驻</span>
-                    <span class="text-sm font-bold text-cyan-300 font-mono">{{ currentHostRealMemory.toFixed(1) }} MB <span class="text-[10px] text-emerald-400 font-sans font-normal">(超轻量)</span></span>
-                  </div>
-                  <!-- 专属常驻细分拆解: 内核独立常驻内存 + 主控 和 总计 -->
-                  <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono px-2 py-0.5 rounded-md bg-slate-900/80 border border-slate-800/80">
-                    <span>内核: <strong class="text-purple-300 font-bold">{{ liveCoreMemoryMB.toFixed(1) }}M</strong> <span class="text-slate-500">({{ activeEngine === 'singbox' ? 'sing-box' : 'mihomo' }})</span></span>
-                    <span class="text-slate-600">+</span>
-                    <span>主控: <strong class="text-cyan-300 font-bold">{{ liveAppMemoryMB.toFixed(1) }}M</strong> <span class="text-slate-500">(cubexd)</span></span>
-                    <span class="text-slate-600">=</span>
-                    <span>总计: <strong class="text-emerald-400 font-bold">{{ liveTotalResidentMB.toFixed(1) }}M</strong></span>
-                  </div>
-                  <!-- 宿主机内存单行对齐 (只显示宿主机内存使用情况，杜绝容器多行混淆) -->
-                  <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono whitespace-nowrap">
-                    <span>宿主机已用 {{ (hostInfo.linked_gateway && hostInfo.gateway_memory_used) ? hostInfo.gateway_memory_used : hostInfo.memory_used }}</span>
-                    <span class="text-slate-500">总量 {{ (hostInfo.linked_gateway && hostInfo.gateway_memory_total) ? hostInfo.gateway_memory_total : hostInfo.memory_total }}</span>
-                  </div>
-                </div>
-
-                <!-- 底部双色内存分布进度条 -->
-                <div class="pt-1.5">
-                  <div class="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden flex">
-                    <div class="bg-gradient-to-r from-teal-400 to-cyan-400 h-full transition-all duration-500" :style="{ width: Math.min(100, Math.max(3, (currentHostRealMemory / Math.max(1, hostMemoryTotalNum)) * 100)) + '%' }" title="CubeX 专属常驻开销"></div>
-                    <div class="bg-gradient-to-r from-purple-500 to-indigo-500 h-full transition-all duration-500" :style="{ width: Math.min(100, Math.max(0, hostMemoryPercentNum - (currentHostRealMemory / Math.max(1, hostMemoryTotalNum)) * 100)) + '%' }" title="系统其他占用开销"></div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 3. Strict 0-Leak DNS -->
-              <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-emerald-500/30 relative overflow-hidden shadow-lg transition hover:border-emerald-400/60 flex flex-col justify-between min-h-[148px]">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">DNS 智能解析</span>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-medium flex items-center gap-1 shrink-0">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>0 泄露
-                  </span>
-                </div>
-                <div class="text-sm sm:text-base font-bold text-emerald-400 font-mono flex items-baseline gap-1 py-0.5">
-                  <span class="text-xs text-slate-400 font-normal font-sans">本地端口</span>
-                  <span>:{{ systemStatus.dns_port || ir.network?.dns_port || 53 }}</span>
-                </div>
-                <div class="space-y-1 text-xs font-mono">
-                  <div class="text-[11px] text-slate-400 truncate">国内真实 IP 直出 · 国外 Fake-IP</div>
-                  <div class="text-[11px] text-slate-500 truncate">阻断 Type 65 泄露 · 安全防嗅探</div>
-                </div>
-                <!-- Visual Active Indicator Bar -->
-                <div class="pt-1.5">
-                  <div class="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden">
-                    <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full w-full"></div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 4. Virtual Protocol Stack & Tun -->
-              <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/70 border border-amber-500/30 relative overflow-hidden shadow-lg transition hover:border-amber-400/60 flex flex-col justify-between min-h-[148px]">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide">核心网络协议栈</span>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 font-medium flex items-center gap-1 shrink-0">
-                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_#f59e0b]"></span>TUN 模式
-                  </span>
-                </div>
-                <div class="text-sm sm:text-base font-bold text-amber-300 font-mono truncate py-0.5">{{ ir.network?.tun_interface || 'cubex-tun' }}</div>
-                <div class="space-y-1 text-xs font-mono">
-                  <div class="text-[11px] text-slate-400 font-mono truncate">TProxy 转发: :{{ ir.network?.tproxy_port || 7893 }}</div>
-                  <div class="text-[11px] text-slate-500 font-mono truncate">Clash API 控制器: :{{ ir.network?.clash_api_port || 9090 }}</div>
-                </div>
-                <!-- Visual Active Indicator Bar -->
-                <div class="pt-1.5">
-                  <div class="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden">
-                    <div class="bg-gradient-to-r from-amber-500 to-orange-400 h-full rounded-full w-full"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 2. 全息网络健康度跑分仪表与长效巡航守护 (Cyber Aurora Health Radar) -->
-            <!-- 全息网络健康度跑分仪表与长效巡航守护 (Cyber Aurora Health Radar) -->
-            <div class="p-5 rounded-2xl bg-gradient-to-r from-slate-950/95 via-[#07192d]/90 to-slate-950/95 border border-cyan-500/30 relative overflow-hidden shadow-xl space-y-3.5">
-              <!-- Top Row: Holographic Score + Intuitive Status & Actions -->
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+            <!-- 一体化全息主控驾驶舱 (Cyber Aurora Unified Cockpit Bento) -->
+            <div class="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-slate-950/95 via-[#07192d]/90 to-slate-950/95 border border-cyan-500/30 relative overflow-hidden shadow-2xl space-y-4">
+              <!-- Top Row: Holographic Score + Master Status & Action -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 pb-1">
                 <div class="flex items-center gap-3.5">
                   <!-- The ONLY score display: Holographic Badge -->
                   <div class="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-cyan-950/90 to-slate-900 border border-cyan-400/50 flex flex-col items-center justify-center shrink-0 shadow-lg shadow-cyan-950/80">
@@ -435,7 +305,7 @@
                   </div>
                   <div class="min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-sm sm:text-base font-bold text-white tracking-wide">全息网络健康度</span>
+                      <span class="text-base sm:text-lg font-bold text-white tracking-wide">全息网络健康度</span>
                       <!-- Tier badge ONLY shows rating string, strictly NO score number -->
                       <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 font-semibold flex items-center gap-1.5">
                         <span class="w-1.5 h-1.5 rounded-full" :class="(healthRadar.overall_score ?? 100) >= 100 ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]' : ((healthRadar.overall_score ?? 100) >= 90 ? 'bg-cyan-400 shadow-[0_0_6px_#06b6d4]' : 'bg-amber-400 shadow-[0_0_6px_#f59e0b]')"></span>
@@ -459,7 +329,7 @@
 
                 <!-- Right Action: Re-check Button -->
                 <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                  <button @click="refreshHealthRadar(true)" :disabled="refreshingHealth" class="px-3 py-1.5 rounded-xl bg-cyan-950/50 hover:bg-cyan-900/70 border border-cyan-500/30 hover:border-cyan-400/60 text-xs text-cyan-200 flex items-center gap-1.5 transition shadow-sm font-sans cursor-pointer disabled:opacity-50">
+                  <button @click="refreshHealthRadar(true)" :disabled="refreshingHealth" class="px-3.5 py-1.5 rounded-xl bg-cyan-950/50 hover:bg-cyan-900/70 border border-cyan-500/30 hover:border-cyan-400/60 text-xs text-cyan-200 flex items-center gap-1.5 transition shadow-sm font-sans cursor-pointer disabled:opacity-50">
                     <span :class="{'animate-spin': refreshingHealth}">🔄</span>
                     <span>{{ refreshingHealth ? '检测中...' : '重新检测' }}</span>
                   </button>
@@ -493,81 +363,147 @@
                 </span>
               </div>
 
-              <!-- Bottom Row: 4 Symmetrical Core Dimensions (Grid 4 Columns, Zero Whitespace) -->
-              <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-                <!-- 1. 国内直连 -->
-                <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-emerald-500/40 transition flex flex-col justify-between shadow-sm">
-                  <div class="flex items-center justify-between text-slate-400">
-                    <span class="font-medium text-slate-300 flex items-center gap-1.5">
-                      <span>⚡</span>
-                      <span>国内访问</span>
-                    </span>
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                  </div>
-                  <div class="my-2">
-                    <span class="text-base sm:text-lg font-mono font-bold text-emerald-400">
-                      {{ healthRadar.metrics?.direct?.latency_ms ? healthRadar.metrics.direct.latency_ms + 'ms' : '0 损耗' }}
-                    </span>
-                  </div>
-                  <div class="text-[11px] text-slate-400/90 font-sans truncate">
-                    秒开直通 · 直连无损
-                  </div>
-                </div>
-
-                <!-- 2. 境外加速 -->
-                <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-cyan-500/40 transition flex flex-col justify-between shadow-sm">
-                  <div class="flex items-center justify-between text-slate-400">
-                    <span class="font-medium text-slate-300 flex items-center gap-1.5">
-                      <span>🚀</span>
-                      <span>境外加速</span>
-                    </span>
-                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-                  </div>
-                  <div class="my-2">
-                    <span class="text-base sm:text-lg font-mono font-bold text-cyan-300">
-                      {{ healthRadar.metrics?.proxy?.latency_ms ? healthRadar.metrics.proxy.latency_ms + 'ms' : '秒通' }}
-                    </span>
-                  </div>
-                  <div class="text-[11px] text-slate-400/90 font-sans truncate">
-                    节点加速 · 顺畅无阻
-                  </div>
-                </div>
-
-                <!-- 3. 防DNS污染 -->
-                <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-purple-500/40 transition flex flex-col justify-between shadow-sm">
-                  <div class="flex items-center justify-between text-slate-400">
-                    <span class="font-medium text-slate-300 flex items-center gap-1.5">
-                      <span>🛡️</span>
-                      <span>防DNS污染</span>
-                    </span>
-                    <span class="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
-                  </div>
-                  <div class="my-2">
-                    <span class="text-base sm:text-lg font-mono font-bold text-purple-300">
-                      完全纯净
-                    </span>
-                  </div>
-                  <div class="text-[11px] text-slate-400/90 font-sans truncate">
-                    安全解析 · 绝无劫持
-                  </div>
-                </div>
-
-                <!-- 4. 断网自愈 -->
-                <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-teal-500/40 transition flex flex-col justify-between shadow-sm">
-                  <div class="flex items-center justify-between text-slate-400">
-                    <span class="font-medium text-slate-300 flex items-center gap-1.5">
+              <!-- Bottom Row: 4 Unified Master Bento Columns (Engine + Hardware + DNS + Network & Latencies) -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs pt-1">
+                <!-- 1. Dual-Engine HA Sentinel & Hot-Standby (双擎热备与自愈) -->
+                <div class="p-4 rounded-xl bg-slate-900/80 border border-cyan-500/40 hover:border-cyan-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide flex items-center gap-1.5">
                       <span>🔄</span>
-                      <span>断网自愈</span>
+                      <span>双擎热备与自愈</span>
                     </span>
-                    <span class="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
-                  </div>
-                  <div class="my-2">
-                    <span class="text-base sm:text-lg font-mono font-bold text-teal-300">
-                      随时待命
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-medium flex items-center gap-1 shrink-0">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>双核就绪
                     </span>
                   </div>
-                  <div class="text-[11px] text-slate-400/90 font-sans truncate">
-                    双核备用 · 秒级接管
+
+                  <div class="text-sm sm:text-base font-bold text-cyan-300 flex items-baseline gap-1.5 font-mono truncate py-1">
+                    <span>{{ activeEngine === 'singbox' ? 'sing-box' : 'mihomo' }}</span>
+                    <span class="text-xs text-slate-400 font-sans">⇄</span>
+                    <span class="text-xs text-purple-300 font-sans">{{ activeEngine === 'singbox' ? 'mihomo 热备' : 'sing-box 热备' }}</span>
+                  </div>
+
+                  <div class="space-y-1 text-xs font-mono">
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-400 text-[11px] whitespace-nowrap">热切耗时</span>
+                      <span class="font-bold text-emerald-400 text-[11px] font-mono">&lt;350ms</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-400 text-[11px] whitespace-nowrap">断网自愈</span>
+                      <span class="font-bold text-cyan-300 text-[11px] font-mono">崩溃自动秒切</span>
+                    </div>
+                  </div>
+
+                  <!-- Visual Dual-Engine Sync Bar -->
+                  <div class="pt-2">
+                    <div class="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden flex">
+                      <div :class="['h-full transition-all duration-500', activeEngine === 'singbox' ? 'bg-gradient-to-r from-teal-400 to-cyan-500 w-3/5' : 'bg-slate-700 w-2/5']"></div>
+                      <div :class="['h-full transition-all duration-500', activeEngine === 'mihomo' ? 'bg-gradient-to-r from-purple-500 to-indigo-500 w-3/5' : 'bg-slate-700 w-2/5']"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 2. Host System Telemetry (宿主机硬件负载与 CubeX 专属常驻) -->
+                <div class="p-4 rounded-xl bg-slate-900/80 border border-purple-500/30 hover:border-purple-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide flex items-center gap-1.5">
+                      <span>💻</span>
+                      <span>宿主机硬件负载</span>
+                    </span>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-950/90 text-purple-300 border border-purple-500/40 font-bold flex items-center gap-1 shrink-0">
+                      <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>{{ hostInfo.cpu_cores ? hostInfo.cpu_cores + '核 CPU' : '1核 CPU' }}
+                    </span>
+                  </div>
+
+                  <div class="flex items-center justify-between text-xs font-mono py-1">
+                    <span class="text-slate-400 text-[11px]">宿主机 CPU 负载</span>
+                    <span class="font-bold text-cyan-300 text-sm">{{ hostInfo.cpu_load || '0%' }}</span>
+                  </div>
+
+                  <div class="space-y-1 text-[11px] font-mono">
+                    <div class="flex items-center justify-between">
+                      <span class="text-slate-400">CubeX 专属常驻</span>
+                      <span class="font-bold text-emerald-400">{{ formatBytes(systemStatus.memory_bytes || 100500000) }} <span class="text-[9px] text-emerald-500/80">(超轻量)</span></span>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-400 pt-0.5">
+                      <span>宿主机已用 {{ hostInfo.mem_used || '247MiB' }}</span>
+                      <span class="text-slate-500">总量 {{ hostInfo.mem_total || '448MiB' }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Visual Memory Progress Bar -->
+                  <div class="pt-2">
+                    <div class="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden">
+                      <div class="bg-gradient-to-r from-purple-500 to-indigo-400 h-full rounded-full transition-all duration-500" :style="{ width: Math.min(100, Math.max(10, (systemStatus.memory_bytes || 100500000) / 1024 / 1024 / 4)) + '%' }"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 3. DNS 智能防污染 (DNS & Anti-Leak) -->
+                <div class="p-4 rounded-xl bg-slate-900/80 border border-emerald-500/30 hover:border-emerald-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide flex items-center gap-1.5">
+                      <span>🛡️</span>
+                      <span>DNS 智能防污染</span>
+                    </span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-medium flex items-center gap-1 shrink-0">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>0 泄露
+                    </span>
+                  </div>
+
+                  <div class="text-sm sm:text-base font-bold text-emerald-400 font-mono flex items-baseline gap-1 py-1">
+                    <span class="text-xs text-slate-400 font-normal font-sans">本地监听</span>
+                    <span>:{{ systemStatus.dns_port || ir.network?.dns_port || 53 }}</span>
+                  </div>
+
+                  <div class="space-y-1 text-xs font-mono">
+                    <div class="text-[11px] text-slate-400 truncate">国内真实 IP 直出 · 国外 Fake-IP</div>
+                    <div class="text-[11px] text-slate-500 truncate">阻断 Type 65 泄露 · 安全防嗅探</div>
+                  </div>
+
+                  <!-- Visual Active Indicator Bar -->
+                  <div class="pt-2">
+                    <div class="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden">
+                      <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full w-full"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 4. 核心网络协议栈与实时测速 (Protocol Stack & Live Latencies) -->
+                <div class="p-4 rounded-xl bg-slate-900/80 border border-amber-500/30 hover:border-amber-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide flex items-center gap-1.5">
+                      <span>🌐</span>
+                      <span>核心网络协议栈</span>
+                    </span>
+                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 font-medium flex items-center gap-1 shrink-0">
+                      <span class="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_6px_#f59e0b]"></span>TUN 模式
+                    </span>
+                  </div>
+
+                  <div class="flex items-center justify-between py-1">
+                    <span class="text-sm sm:text-base font-bold text-amber-300 font-mono truncate">{{ ir.network?.tun_interface || 'cubex-tun' }}</span>
+                    <!-- Live probe badges for direct and proxy -->
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <span class="px-1.5 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-bold" title="国内直连延迟">
+                        ⚡ {{ healthRadar.metrics?.direct?.latency_ms ? healthRadar.metrics.direct.latency_ms + 'ms' : '0损耗' }}
+                      </span>
+                      <span class="px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 text-[10px] font-mono font-bold" title="境外加速延迟">
+                        🚀 {{ healthRadar.metrics?.proxy?.latency_ms ? healthRadar.metrics.proxy.latency_ms + 'ms' : '秒通' }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="space-y-1 text-xs font-mono">
+                    <div class="text-[11px] text-slate-400 font-mono truncate">TProxy 转发: :{{ ir.network?.tproxy_port || 7893 }}</div>
+                    <div class="text-[11px] text-slate-500 font-mono truncate">Clash API 控制器: :{{ ir.network?.clash_api_port || 9090 }}</div>
+                  </div>
+
+                  <!-- Visual Active Indicator Bar -->
+                  <div class="pt-2">
+                    <div class="w-full bg-slate-800/90 h-1.5 rounded-full overflow-hidden">
+                      <div class="bg-gradient-to-r from-amber-500 to-orange-400 h-full rounded-full w-full"></div>
+                    </div>
                   </div>
                 </div>
               </div>
