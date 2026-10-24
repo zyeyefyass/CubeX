@@ -102,31 +102,38 @@ fi
 IP_PREFIX=$(echo "$ROUTER_IP" | cut -d. -f1-3)
 SUBNET="${IP_PREFIX}.0/24"
 
-# 动态防撞 IP 分配：优先探查 .11，若占用则顺延递增探测
+NET_NAME="cubex-macvlan"
+CONTAINER_NAME="cubex"
+
+# 先检测已有容器原有 IP，并在探测前提前销毁旧容器，防止其自身占用的 IP 造成防撞逻辑误判漂移
+EXISTING_CUBEX_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$CONTAINER_NAME" 2>/dev/null || true)
+docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+if docker network inspect "$NET_NAME" >/dev/null 2>&1; then
+    docker network rm "$NET_NAME" >/dev/null 2>&1 || true
+fi
+
+# 动态防撞 IP 分配：若已有旧分配 IP 优先保持原有固定 IP，否则从 .11 开始探测空闲 IP
 CUBEX_IP=""
-for cand in 11 12 13 14 15 211 212 213; do
-    TEST_IP="${IP_PREFIX}.${cand}"
-    if [ "$TEST_IP" != "$ROUTER_IP" ] && [ "$TEST_IP" != "$UPSTREAM_GW" ]; then
-        if ! ping -c 1 -W 1 "$TEST_IP" >/dev/null 2>&1; then
-            CUBEX_IP="$TEST_IP"
-            break
+if [ -n "$EXISTING_CUBEX_IP" ] && [ "$(echo "$EXISTING_CUBEX_IP" | cut -d. -f1-3)" = "$IP_PREFIX" ] && [ "$EXISTING_CUBEX_IP" != "$ROUTER_IP" ] && [ "$EXISTING_CUBEX_IP" != "$UPSTREAM_GW" ]; then
+    CUBEX_IP="$EXISTING_CUBEX_IP"
+else
+    for cand in 11 12 13 14 15 211 212 213; do
+        TEST_IP="${IP_PREFIX}.${cand}"
+        if [ "$TEST_IP" != "$ROUTER_IP" ] && [ "$TEST_IP" != "$UPSTREAM_GW" ]; then
+            if ! ping -c 1 -W 1 "$TEST_IP" >/dev/null 2>&1; then
+                CUBEX_IP="$TEST_IP"
+                break
+            fi
         fi
-    fi
-done
-[ -z "$CUBEX_IP" ] && CUBEX_IP="${IP_PREFIX}.211"
+    done
+fi
+[ -z "$CUBEX_IP" ] && CUBEX_IP="${IP_PREFIX}.11"
 SHIM_IP="${IP_PREFIX}.228"
 [ "$SHIM_IP" = "$CUBEX_IP" ] && SHIM_IP="${IP_PREFIX}.229"
 
 echo -e "${GREEN}✅ [3/6 自动配赋] 分配 CubeX 独立物理 IP: ${CUBEX_IP} (Macvlan 网关: ${MACVLAN_GW})${NC}"
 
 # 4. 创建 Docker Macvlan 独立网络与 Shim 互通接口
-NET_NAME="cubex-macvlan"
-CONTAINER_NAME="cubex"
-docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
-if docker network inspect "$NET_NAME" >/dev/null 2>&1; then
-    docker network rm "$NET_NAME" >/dev/null 2>&1 || true
-fi
-
 echo -e "${CYAN}🔧 [4/6 网络编排] 创建 Macvlan 隔离网络 (${NET_NAME} 绑定 ${LAN_IF})...${NC}"
 docker network create -d macvlan \
     --subnet="$SUBNET" \
@@ -143,14 +150,13 @@ ip addr add "${SHIM_IP}/24" dev macvlan-shim
 ip link set macvlan-shim up
 ip route add "${CUBEX_IP}/32" dev macvlan-shim 2>/dev/null || true
 
-# 持久化 macvlan-shim 开机自启
+# 持久化 macvlan-shim 开机自启 (清理可能存在的旧条目并更新)
 if [ -f /etc/rc.local ]; then
-    if ! grep -q "macvlan-shim" /etc/rc.local 2>/dev/null; then
-        sed -i -e '$i ip link add macvlan-shim link '"$LAN_IF"' type macvlan mode bridge 2>/dev/null || true' /etc/rc.local
-        sed -i -e '$i ip addr add '"$SHIM_IP"'/24 dev macvlan-shim 2>/dev/null || true' /etc/rc.local
-        sed -i -e '$i ip link set macvlan-shim up 2>/dev/null || true' /etc/rc.local
-        sed -i -e '$i ip route add '"$CUBEX_IP"'/32 dev macvlan-shim 2>/dev/null || true' /etc/rc.local
-    fi
+    sed -i '/macvlan-shim/d' /etc/rc.local 2>/dev/null || true
+    sed -i -e '$i ip link add macvlan-shim link '"$LAN_IF"' type macvlan mode bridge 2>/dev/null || true' /etc/rc.local
+    sed -i -e '$i ip addr add '"$SHIM_IP"'/24 dev macvlan-shim 2>/dev/null || true' /etc/rc.local
+    sed -i -e '$i ip link set macvlan-shim up 2>/dev/null || true' /etc/rc.local
+    sed -i -e '$i ip route add '"$CUBEX_IP"'/32 dev macvlan-shim 2>/dev/null || true' /etc/rc.local
 fi
 
 # 5. 部署拉起 CubeX 容器
