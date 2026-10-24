@@ -133,27 +133,39 @@ else
 fi
 
 # 4. 交互式确认或非交互跳过
+# 智能检测：如果 stdin 为管道 (curl ... | bash) 且无法读 tty，或者指定了 -y，强制切换为非交互模式
+if [ "$AUTO_CONFIRM" -eq 0 ]; then
+    if [ ! -t 0 ] && [ ! -r /dev/tty ]; then
+        AUTO_CONFIRM=1
+    fi
+fi
+
 if [ "$AUTO_CONFIRM" -eq 0 ]; then
     echo -e "\n${YELLOW}${BOLD}⚙️ 请配置 CubeX LXC 容器基础参数 (直接回车保持默认):${NC}"
-    read -rp "容器 VMID [默认: $NEXT_ID]: " CT_ID
+    if [ -r /dev/tty ]; then
+        read -rp "容器 VMID [默认: $NEXT_ID]: " CT_ID </dev/tty || CT_ID=""
+        read -rp "容器静态 IP (CIDR 格式) [默认: $DEFAULT_CT_IP]: " CT_IP </dev/tty || CT_IP=""
+        read -rp "上级主路由网关 IP [默认: $GW_IP]: " CT_GW </dev/tty || CT_GW=""
+        read -rp "LXC 存储池 [默认: $DEFAULT_STORAGE]: " CT_STORAGE </dev/tty || CT_STORAGE=""
+        read -rp "分配内存 (MB) [推荐 256~512MB, 默认: 256]: " CT_MEM </dev/tty || CT_MEM=""
+        read -rp "分配磁盘大小 (GB) [推荐 2~4GB, 默认: 2]: " CT_DISK </dev/tty || CT_DISK=""
+        read -rp "容器主机名 [默认: cubex-gateway]: " CT_NAME </dev/tty || CT_NAME=""
+    else
+        read -rp "容器 VMID [默认: $NEXT_ID]: " CT_ID || CT_ID=""
+        read -rp "容器静态 IP (CIDR 格式) [默认: $DEFAULT_CT_IP]: " CT_IP || CT_IP=""
+        read -rp "上级主路由网关 IP [默认: $GW_IP]: " CT_GW || CT_GW=""
+        read -rp "LXC 存储池 [默认: $DEFAULT_STORAGE]: " CT_STORAGE || CT_STORAGE=""
+        read -rp "分配内存 (MB) [推荐 256~512MB, 默认: 256]: " CT_MEM || CT_MEM=""
+        read -rp "分配磁盘大小 (GB) [推荐 2~4GB, 默认: 2]: " CT_DISK || CT_DISK=""
+        read -rp "容器主机名 [默认: cubex-gateway]: " CT_NAME || CT_NAME=""
+    fi
+
     CT_ID=${CT_ID:-$NEXT_ID}
-
-    read -rp "容器静态 IP (CIDR 格式) [默认: $DEFAULT_CT_IP]: " CT_IP
     CT_IP=${CT_IP:-$DEFAULT_CT_IP}
-
-    read -rp "上级主路由网关 IP [默认: $GW_IP]: " CT_GW
     CT_GW=${CT_GW:-$GW_IP}
-
-    read -rp "LXC 存储池 [默认: $DEFAULT_STORAGE]: " CT_STORAGE
     CT_STORAGE=${CT_STORAGE:-$DEFAULT_STORAGE}
-
-    read -rp "分配内存 (MB) [推荐 256~512MB, 默认: 256]: " CT_MEM
     CT_MEM=${CT_MEM:-256}
-
-    read -rp "分配磁盘大小 (GB) [推荐 2~4GB, 默认: 2]: " CT_DISK
     CT_DISK=${CT_DISK:-2}
-
-    read -rp "容器主机名 [默认: cubex-gateway]: " CT_NAME
     CT_NAME=${CT_NAME:-cubex-gateway}
 else
     CT_ID="$NEXT_ID"
@@ -165,6 +177,26 @@ else
     CT_NAME="cubex-gateway"
     echo -e "${GREEN}✓ 已启用非交互极速模式，自动匹配参数: VMID=$CT_ID, IP=$CT_IP, GW=$CT_GW, Storage=$CT_STORAGE${NC}"
 fi
+
+# 参数防御性校验与自愈净化 (防止误贴多行代码导致 pct create 参数类型错误)
+case "$CT_ID" in
+    ''|*[!0-9]*) CT_ID="$NEXT_ID" ;;
+esac
+case "$CT_MEM" in
+    ''|*[!0-9]*) CT_MEM=256 ;;
+esac
+case "$CT_DISK" in
+    ''|*[!0-9]*) CT_DISK=2 ;;
+esac
+if [[ ! "$CT_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]]; then
+    CT_IP="$DEFAULT_CT_IP"
+fi
+if [[ ! "$CT_GW" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    CT_GW="$GW_IP"
+fi
+case "$CT_NAME" in
+    ''|*[!a-zA-Z0-9_-]*) CT_NAME="cubex-gateway" ;;
+esac
 
 CT_CLEAN_IP=$(echo "$CT_IP" | cut -d'/' -f1)
 
