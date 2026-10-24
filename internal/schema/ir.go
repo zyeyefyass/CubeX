@@ -260,7 +260,7 @@ func NewDefaultIR() *ConfigIR {
 				DirectBypass: true,
 				QuicBlock:    true,
 				AdBlock:      true,
-				SpeedtestURL: "http://www.gstatic.com/generate_204",
+				SpeedtestURL: "https://www.gstatic.com/generate_204",
 			},
 			{
 				ID:           "gaming",
@@ -269,7 +269,7 @@ func NewDefaultIR() *ConfigIR {
 				DirectBypass: true,
 				QuicBlock:    false,
 				AdBlock:      true,
-				SpeedtestURL: "http://www.gstatic.com/generate_204",
+				SpeedtestURL: "https://www.gstatic.com/generate_204",
 			},
 			{
 				ID:           "geek",
@@ -278,7 +278,7 @@ func NewDefaultIR() *ConfigIR {
 				DirectBypass: false,
 				QuicBlock:    false,
 				AdBlock:      false,
-				SpeedtestURL: "http://www.gstatic.com/generate_204",
+				SpeedtestURL: "https://www.gstatic.com/generate_204",
 			},
 		},
 		UpdatedAt: time.Now(),

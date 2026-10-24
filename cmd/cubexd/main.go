@@ -536,9 +536,8 @@ func main() {
 		fileServer.ServeHTTP(w, r)
 	})
 
-	// Automatically boot the active engine on daemon startup
+	// Automatically boot the active engine immediately on daemon startup (Zero-wait cold boot)
 	go func() {
-		time.Sleep(300 * time.Millisecond)
 		activeEng := engMgr.GetActiveEngine()
 		if activeEng == "" {
 			activeEng = schema.EngineMihomo
@@ -550,8 +549,6 @@ func main() {
 		}
 		if rosMgr != nil {
 			go func() {
-				time.Sleep(500 * time.Millisecond)
-				_, _ = rosMgr.CleanAndReapplyRouting("")
 				if purged := rosMgr.PurgeStaleFakeIPConnections(); purged > 0 {
 					log.Printf("🧹 [ROS] Auto-boot: Purged %d stale conntrack entries\n", purged)
 				}

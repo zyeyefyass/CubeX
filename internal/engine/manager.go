@@ -756,7 +756,7 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 func (m *Manager) prewarmEngine(target schema.EngineType) {
 	time.Sleep(150 * time.Millisecond)
 	warmGroups := []string{"🌐 国外流量", "YouTube", "Google", "AI"}
-	testURL := "http://www.gstatic.com/generate_204"
+	testURL := "https://www.gstatic.com/generate_204"
 	for _, g := range warmGroups {
 		escaped := url.PathEscape(g)
 		// 1. Warm specific proxy

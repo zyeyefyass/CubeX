@@ -188,16 +188,18 @@
           </button>
 
           <!-- Fixed Height h-[42px] sm:h-[46px] for absolute symmetry with left capsule -->
-          <div class="h-[42px] sm:h-[46px] inline-flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 rounded-2xl bg-slate-900/80 border border-slate-700/60 shadow-md group select-none transition-colors duration-300">
+          <button @click="activeMasterTab = 'system'"
+            :title="'当前联动宿主: ' + hostBadge.name + ' (点击进入「宿主共生」控制台)'"
+            class="h-[42px] sm:h-[46px] inline-flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 rounded-2xl bg-slate-900/80 hover:bg-slate-800/90 border border-slate-700/60 hover:border-cyan-500/50 shadow-md group select-none transition-all duration-300 cursor-pointer">
             <!-- 宿主官方矢量 Logo (柔和微光) -->
-            <img :src="hostBadge.svg" class="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(56,189,248,0.25)] group-hover:scale-105 transition-transform" :alt="hostBadge.shortName" />
+            <img :src="hostBadge.svg" class="w-5 h-5 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(56,189,248,0.25)] group-hover:scale-110 transition-transform" :alt="hostBadge.shortName" />
             
             <!-- 宿主平台名称 (无 MikroTik 前缀，单行优雅展示，基线居中对齐) -->
-            <span class="text-xs sm:text-[13px] font-bold font-mono text-sky-200 whitespace-nowrap truncate max-w-[160px] sm:max-w-[220px] leading-none" :title="hostBadge.name">
+            <span class="text-xs sm:text-[13px] font-bold font-mono text-sky-200 group-hover:text-cyan-300 whitespace-nowrap truncate max-w-[160px] sm:max-w-[220px] leading-none transition-colors" :title="hostBadge.name">
               {{ hostBadge.name }}
             </span>
-            <span :class="['w-2 h-2 rounded-full shrink-0', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_5px_#10b981]' : 'bg-amber-400']" :title="hostBadge.online ? '宿主平台在线联动' : '未连接'"></span>
-          </div>
+            <span :class="['w-2 h-2 rounded-full shrink-0', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_5px_#10b981]' : 'bg-amber-400']" :title="hostBadge.online ? '宿主平台在线联动 (已连接)' : '宿主未连接'"></span>
+          </button>
         </div>
       </header>
 
@@ -1532,24 +1534,24 @@
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 <div v-for="(reg, idx) in regionalAutoGroups" :key="reg.id"
                   draggable="true"
-                  @dragstart="onRegionDragStart($event, idx)"
-                  @dragover.prevent
+                  @dragstart="onRegionDragStart($event, reg.id)"
+                  @dragover="onRegionDragOver($event, reg.id)"
+                  @dragleave="onRegionDragLeave(reg.id)"
                   @dragend="onRegionDragEnd"
-                  @drop="onRegionDrop($event, idx)"
+                  @drop="onRegionDrop($event, reg.id)"
                   :class="[
-                    'rounded-2xl bg-[#161e27]/85 border border-slate-700/60 hover:border-slate-600 transition-all duration-200 shadow-md p-3.5 space-y-2.5 group',
-                    draggedRegionIndex === idx ? 'opacity-40 scale-[0.98] border-cyan-400 shadow-lg shadow-cyan-500/20 ring-1 ring-cyan-400/50' : ''
+                    'rounded-2xl bg-[#161e27]/85 border transition-all duration-200 shadow-md p-3.5 space-y-2.5 group cursor-move select-none',
+                    draggedRegionId === reg.id ? 'opacity-30 scale-[0.98] border-cyan-400 ring-2 ring-cyan-400/50' : 'border-slate-700/60 hover:border-slate-500',
+                    dragOverRegionId === reg.id && draggedRegionId !== reg.id ? 'border-cyan-400 bg-cyan-950/40 ring-2 ring-cyan-400' : ''
                   ]">
                   
                   <!-- ── Group Header (Tier 1: Identity, Badges, Latency & Fast Actions) ── -->
                   <div class="flex items-center justify-between gap-3">
                     <!-- Left: Drag + Flag + Group Name + Type Badge + Count Badge -->
                     <div class="flex items-center gap-2.5 min-w-0">
-                      <!-- Drag Handle (只有按住此把手区域才允许拖拽排序) -->
-                      <div class="region-drag-handle text-slate-500 hover:text-cyan-300 cursor-grab active:cursor-grabbing px-2 py-1.5 rounded-lg hover:bg-cyan-500/10 transition select-none text-base shrink-0 border border-transparent hover:border-cyan-500/30"
-                        title="按住拖拽排序"
-                        @mousedown="isGrabbingRegionHandle = true"
-                        @touchstart.passive="isGrabbingRegionHandle = true">
+                      <!-- Drag Handle -->
+                      <div class="region-drag-handle text-slate-500 group-hover:text-cyan-300 px-2 py-1.5 rounded-lg hover:bg-cyan-500/10 transition select-none text-base shrink-0 border border-transparent hover:border-cyan-500/30"
+                        title="按住拖拽排序">
                         ⠿
                       </div>
 
@@ -6495,20 +6497,21 @@ const hostBadge = computed(() => {
     if (!clean.toLowerCase().includes('routeros')) {
       clean = 'RouterOS ' + clean
     }
-    if (clean.includes('7.25')) {
-      clean = 'RouterOS v7.25'
-    }
+    // Dynamic clean version formatting: "RouterOS 7.25" -> "RouterOS v7.25"
+    clean = clean.replace(/RouterOS\s+(?:v)?(\d+)/i, 'RouterOS v$1')
     return {
       name: clean || 'RouterOS v7',
-      shortName: clean.includes('7.25') ? 'RouterOS v7.25' : 'RouterOS v7',
+      shortName: clean || 'RouterOS v7',
       svg: '/host-routeros.svg',
       icon: '🔷',
       online: hostInfo.value.connected !== false
     }
   }
   if (plat === 'pve' || name.includes('proxmox') || name.includes('pve')) {
+    const raw = hostInfo.value.os_name || 'Proxmox VE'
+    let clean = raw.replace(/\s*\(PVE\)/i, '').trim()
     return {
-      name: hostInfo.value.os_name || 'Proxmox VE',
+      name: clean.includes('Proxmox') ? clean : 'Proxmox VE',
       shortName: 'Proxmox VE',
       svg: '/host-pve.svg',
       icon: '🟠',
@@ -6516,8 +6519,9 @@ const hostBadge = computed(() => {
     }
   }
   if (plat === 'fnos' || name.includes('fnos') || name.includes('飞牛')) {
+    const raw = hostInfo.value.os_name || '飞牛 fnOS'
     return {
-      name: hostInfo.value.os_name || '飞牛 fnOS',
+      name: raw.includes('fnOS') || raw.includes('飞牛') ? raw : '飞牛 fnOS',
       shortName: '飞牛 fnOS',
       svg: '/host-fnos.svg',
       icon: '🟢',
@@ -6533,18 +6537,27 @@ const hostBadge = computed(() => {
       online: hostInfo.value.connected !== false
     }
   }
-  if (plat === 'openwrt' || name.includes('openwrt')) {
+  if (plat === 'openwrt' || name.includes('openwrt') || name.includes('immortalwrt') || name.includes('lede')) {
     return {
-      name: hostInfo.value.os_name || 'OpenWrt',
+      name: hostInfo.value.os_name || 'OpenWrt 智能路由',
       shortName: 'OpenWrt',
       svg: '/host-openwrt.svg',
       icon: '📡',
       online: hostInfo.value.connected !== false
     }
   }
+  if (plat === 'synology' || name.includes('synology') || name.includes('群晖') || name.includes('dsm')) {
+    return {
+      name: hostInfo.value.os_name || '群晖 Synology DSM',
+      shortName: '群晖 DSM',
+      svg: '/host-linux.svg',
+      icon: '💾',
+      online: hostInfo.value.connected !== false
+    }
+  }
   if (plat === 'docker' || name.includes('docker')) {
     return {
-      name: hostInfo.value.os_name || 'Docker Container',
+      name: hostInfo.value.os_name || 'Docker 容器环境',
       shortName: 'Docker',
       svg: '/host-docker.svg',
       icon: '🐳',
@@ -6706,6 +6719,9 @@ async function fetchSystemOverview() {
       const data = await res.json()
       if (data) {
         systemOverview.value = { ...systemOverview.value, ...data }
+        if (data.host_info) {
+          hostInfo.value = { ...hostInfo.value, ...data.host_info }
+        }
       }
     }
   } catch (e) {}
@@ -8841,52 +8857,63 @@ function toggleRegionExpand(id) {
   expandedRegion.value[id] = !expandedRegion.value[id]
 }
 
-// ── Region Group Drag & Drop Sorting ──
-let draggedRegionIndex = null
-let isGrabbingRegionHandle = false
+// ── Region Group Drag & Drop Sorting (Robust ID-Based Reordering) ──
+const draggedRegionId = ref(null)
+const dragOverRegionId = ref(null)
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('mouseup', () => {
-    isGrabbingRegionHandle = false
-  })
-}
-
-function onRegionDragStart(event, index) {
-  if (!isGrabbingRegionHandle) {
-    event.preventDefault()
-    return false
-  }
-  draggedRegionIndex = index
+function onRegionDragStart(event, id) {
+  draggedRegionId.value = id
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move'
     try {
-      event.dataTransfer.setData('text/plain', String(index))
+      event.dataTransfer.setData('text/plain', String(id))
     } catch (err) {}
   }
 }
 
-function onRegionDragEnd() {
-  draggedRegionIndex = null
-  isGrabbingRegionHandle = false
+function onRegionDragOver(event, id) {
+  event.preventDefault()
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move'
+  }
+  dragOverRegionId.value = id
 }
 
-function onRegionDrop(event, targetIndex) {
-  event.preventDefault()
-  isGrabbingRegionHandle = false
-  if (draggedRegionIndex === null || draggedRegionIndex === targetIndex) {
-    draggedRegionIndex = null
-    return
+function onRegionDragLeave(id) {
+  if (dragOverRegionId.value === id) {
+    dragOverRegionId.value = null
   }
+}
+
+function onRegionDragEnd() {
+  draggedRegionId.value = null
+  dragOverRegionId.value = null
+}
+
+function onRegionDrop(event, targetId) {
+  event.preventDefault()
+  const fromId = draggedRegionId.value
+  draggedRegionId.value = null
+  dragOverRegionId.value = null
+
+  if (!fromId || fromId === targetId) return
+
   const currentList = [...allRegionDefs.value]
-  const [moved] = currentList.splice(draggedRegionIndex, 1)
-  currentList.splice(targetIndex, 0, moved)
+  const fromIdx = currentList.findIndex(r => r.id === fromId)
+  const toIdx = currentList.findIndex(r => r.id === targetId)
+
+  if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return
+
+  const [moved] = currentList.splice(fromIdx, 1)
+  currentList.splice(toIdx, 0, moved)
+
   const newOrder = currentList.map(r => r.id)
   regionGroupOrder.value = [...newOrder]
   try {
     localStorage.setItem('cubex_region_group_order', JSON.stringify(newOrder))
   } catch (err) {}
-  draggedRegionIndex = null
-  showToast(`已成功将「${moved.name}」地区分组调整至新顺序`)
+
+  showToast(`已成功将「${moved.name}」地区分组移动至新位置`)
 }
 
 // ── Custom Node Group Creation (e.g. Airport Subscription Dedicated Group & Multi-Country Presets) ──

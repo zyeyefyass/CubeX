@@ -2,6 +2,7 @@ package compiler
 
 import (
 	"fmt"
+	stdnet "net"
 	"log"
 	"os"
 	"path/filepath"
@@ -218,6 +219,13 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"+.aliyun.com",
 		"+.tencent.com",
 		"+.bytedance.com",
+	}
+
+	// Dynamically exclude all proxy server domains from fake-ip to eliminate Fake-IP loops
+	for _, p := range ir.Proxies {
+		if p.Server != "" && stdnet.ParseIP(p.Server) == nil {
+			cleanFakeIPFilter = append(cleanFakeIPFilter, p.Server, "+."+p.Server)
+		}
 	}
 
 	dnsMap := map[string]any{
@@ -558,7 +566,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		if gType == "url-test" || gType == "fallback" || gType == "load-balance" {
 			gMap["url"] = g.URL
 			if gMap["url"] == nil || gMap["url"] == "" {
-				gMap["url"] = "http://www.gstatic.com/generate_204"
+				gMap["url"] = "https://www.gstatic.com/generate_204"
 			}
 			gMap["interval"] = g.Interval
 			if g.Interval == 0 {
@@ -708,7 +716,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	// 1c. Top-Priority Infrastructure Direct Rules (NTP, Private LAN, RouterOS Cloud - Prevents reboot deadlock)
 	rulesList = append(rulesList, "AND,((NETWORK,UDP),(DST-PORT,123)),DIRECT")
 	rulesList = append(rulesList, "DST-PORT,123,DIRECT")
-	rulesList = append(rulesList, "GEOIP,private,DIRECT,no-resolve")
+	// Note: Omit GEOIP,private,DIRECT as it matches 198.18.0.0/15 (Fake-IP range) and breaks proxy routing
 	rulesList = append(rulesList, "IP-CIDR,10.0.0.0/8,DIRECT,no-resolve")
 	rulesList = append(rulesList, "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve")
 	rulesList = append(rulesList, "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve")

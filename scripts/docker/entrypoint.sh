@@ -20,8 +20,8 @@ fi
 
 # Always ensure rules and geodata exist in /app/etc
 mkdir -p /app/etc/rules
-if [ -d "/app/defaults/etc/rules" ]; then
-    echo "📦 [CubeX] Syncing dual-engine rulesets (MRS / SRS) to /app/etc/rules..."
+if [ -d "/app/defaults/etc/rules" ] && [ ! -f "/app/etc/rules/adblocksingbox.srs" ]; then
+    echo "📦 [CubeX] Initializing dual-engine rulesets (MRS / SRS) to /app/etc/rules..."
     cp -rn /app/defaults/etc/rules/* /app/etc/rules/ 2>/dev/null || cp -r /app/defaults/etc/rules/* /app/etc/rules/ 2>/dev/null || true
 fi
 

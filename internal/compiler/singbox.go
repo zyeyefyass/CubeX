@@ -184,10 +184,16 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			},
 			{
 				"tag":         "dns-bootstrap",
-				"type":        "https",
-				"server":      "dns.alidns.com",
-				"server_port": 443,
-				"path":        "/dns-query",
+				"type":        "udp",
+				"server":      "223.5.5.5",
+				"server_port": 53,
+				"detour":      "direct",
+			},
+			{
+				"tag":         "dns-bootstrap-backup",
+				"type":        "udp",
+				"server":      "119.29.29.29",
+				"server_port": 53,
 				"detour":      "direct",
 			},
 			directServer,
@@ -801,7 +807,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		if gType == "urltest" {
 			url := g.URL
 			if url == "" {
-				url = "http://www.gstatic.com/generate_204"
+				url = "https://www.gstatic.com/generate_204"
 			}
 			interval := g.Interval
 			if interval == 0 {
