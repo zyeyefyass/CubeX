@@ -150,13 +150,22 @@ ip addr add "${SHIM_IP}/24" dev macvlan-shim
 ip link set macvlan-shim up
 ip route add "${CUBEX_IP}/32" dev macvlan-shim 2>/dev/null || true
 
-# 持久化 macvlan-shim 开机自启 (清理可能存在的旧条目并更新)
+# 将 macvlan-shim 纳入 OpenWrt 防火墙放行双向互访
+if which uci >/dev/null 2>&1; then
+    uci add_list firewall.@zone[0].device='macvlan-shim' 2>/dev/null || true
+    uci commit firewall 2>/dev/null || true
+    /etc/init.d/firewall reload >/dev/null 2>&1 || true
+fi
+
+# 持久化 macvlan-shim 与容器回指宿主路由开机自启
 if [ -f /etc/rc.local ]; then
     sed -i '/macvlan-shim/d' /etc/rc.local 2>/dev/null || true
+    sed -i '/cubex.*ip route/d' /etc/rc.local 2>/dev/null || true
     sed -i -e '$i ip link add macvlan-shim link '"$LAN_IF"' type macvlan mode bridge 2>/dev/null || true' /etc/rc.local
     sed -i -e '$i ip addr add '"$SHIM_IP"'/24 dev macvlan-shim 2>/dev/null || true' /etc/rc.local
     sed -i -e '$i ip link set macvlan-shim up 2>/dev/null || true' /etc/rc.local
     sed -i -e '$i ip route add '"$CUBEX_IP"'/32 dev macvlan-shim 2>/dev/null || true' /etc/rc.local
+    sed -i -e '$i docker exec cubex ip route add '"$ROUTER_IP"'/32 via '"$SHIM_IP"' dev eth0 2>/dev/null || true' /etc/rc.local
 fi
 
 # 5. 部署拉起 CubeX 容器
@@ -208,6 +217,10 @@ docker run -d \
     --device=/dev/net/tun \
     -v /etc/cubex/data:/app/data \
     "$IMAGE"
+
+# 打通容器向宿主自身 IP 发起 SSH / Web 管理访问链路 (经由 macvlan-shim 跨层互通)
+sleep 2
+docker exec "$CONTAINER_NAME" ip route add "${ROUTER_IP}/32" via "$SHIM_IP" dev eth0 2>/dev/null || true
 
 # 6. 下发三大一键配置 (策略回指 + DHCP 黄金解耦 + IPv6 防泄露 + 0秒逃生)
 echo -e "${CYAN}⚡ [6/6 一键自愈] 正在下发 OpenWrt UCI 策略路由与防火墙加固...${NC}"

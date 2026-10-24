@@ -720,7 +720,7 @@
                       <strong class="text-cyan-300 text-xs">{{ benchmarkResult.singbox ? benchmarkResult.singbox.tls_handshake_ms + 'ms' : '--' }}</strong>
                     </div>
                     <div class="p-1.5 rounded-lg bg-slate-950/60 border border-purple-500/30">
-                      <span class="text-[9px] text-slate-500 block">🌐 首包TTFB</span>
+                      <span class="text-[9px] text-slate-500 block cursor-help" title="首包到达时间 (TTFB: Time To First Byte)，指发出网络请求到服务器开始送达第一个数据包的响应耗时">🌐 首包响应</span>
                       <strong class="text-purple-300 text-xs">{{ benchmarkResult.singbox ? (benchmarkResult.singbox.ttfb_ms || 18) + 'ms' : '--' }}</strong>
                     </div>
                   </div>
@@ -770,7 +770,7 @@
                       <strong class="text-cyan-300 text-xs">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tls_handshake_ms + 'ms' : '--' }}</strong>
                     </div>
                     <div class="p-1.5 rounded-lg bg-slate-950/60 border border-sky-500/30">
-                      <span class="text-[9px] text-slate-500 block">🌐 首包TTFB</span>
+                      <span class="text-[9px] text-slate-500 block cursor-help" title="首包到达时间 (TTFB: Time To First Byte)，指发出网络请求到服务器开始送达第一个数据包的响应耗时">🌐 首包响应</span>
                       <strong class="text-sky-300 text-xs">{{ benchmarkResult.mihomo ? (benchmarkResult.mihomo.ttfb_ms || 22) + 'ms' : '--' }}</strong>
                     </div>
                   </div>
@@ -3162,7 +3162,7 @@
                 <div class="flex items-center gap-3">
                   <h3 class="text-base font-bold text-white tracking-wide flex items-center gap-2">
                     <span class="text-cyan-400">🔀</span>
-                    <span>DNS 重写和 A 记录静态映射</span>
+                    <span>DNS 重写和 局域网A 记录静态映射</span>
                   </h3>
                   <!-- Master Switch -->
                   <label class="relative inline-flex items-center cursor-pointer">
@@ -3175,7 +3175,7 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                  <button @click="resetDnsRewriteDefaults" title="恢复默认 DNS 重写与 A 记录静态映射规则" class="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 active:scale-95 transition cursor-pointer text-xs flex items-center gap-1.5">
+                  <button @click="resetDnsRewriteDefaults" title="恢复默认 DNS 重写与 局域网A 记录静态映射规则" class="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 active:scale-95 transition cursor-pointer text-xs flex items-center gap-1.5">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     <span>重置默认</span>
                   </button>
@@ -3227,7 +3227,7 @@
                 </div>
 
                 <div v-if="!dnsRewriteConfig.rules || dnsRewriteConfig.rules.length === 0" class="text-center py-6 text-xs text-slate-500 italic bg-slate-950/40 rounded-2xl border border-dashed border-slate-800">
-                  暂无规则，点击右上角【添加重写】或【重置默认】快速恢复官方加速重写与 A 记录静态映射示例
+                  暂无规则，点击右上角【添加重写】或【重置默认】快速恢复官方加速重写与 局域网A 记录静态映射示例
                 </div>
               </div>
             </div>
