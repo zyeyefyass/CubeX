@@ -22,7 +22,7 @@ cubexd_amd64 = os.path.join(dist_dir, "cubexd-linux-amd64")
 cubex_cli_amd64 = os.path.join(dist_dir, "cubex-linux-amd64")
 singbox_amd64 = os.path.join(root_dir, "bin", "amd64", "sing-box")
 mihomo_amd64 = os.path.join(root_dir, "bin", "amd64", "mihomo")
-out_tar_amd64 = os.path.join(release_dir, "CubeX-Test-v3.2-ros-amd64.tar")
+out_tar_amd64 = os.path.join(release_dir, "CubeX-Test-v3.3-ros-amd64.tar")
 
 print(f"\n📦 [AMD64] Opening base OCI tar: {base_tar_amd64}")
 blobs = {}
@@ -263,7 +263,7 @@ cubexd_arm64 = os.path.join(dist_dir, "cubexd-linux-arm64")
 cubex_cli_arm64 = os.path.join(dist_dir, "cubex-linux-arm64")
 singbox_arm64 = os.path.join(root_dir, "bin", "arm64", "sing-box")
 mihomo_arm64 = os.path.join(root_dir, "bin", "arm64", "mihomo")
-out_tar_arm64 = os.path.join(release_dir, "CubeX-Test-v3.2-ros-arm64.tar")
+out_tar_arm64 = os.path.join(release_dir, "CubeX-Test-v3.3-ros-arm64.tar")
 
 if os.path.exists(base_tar_arm64):
     print(f"\n📦 [ARM64] Opening base OCI tar: {base_tar_arm64}")

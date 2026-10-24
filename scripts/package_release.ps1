@@ -3,7 +3,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Version = "Test-v3.2"
+$Version = "Test-v3.3"
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 $DistDir = "$RootDir\dist"
 $ReleaseDir = "$DistDir\release"

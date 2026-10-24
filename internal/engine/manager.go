@@ -65,6 +65,7 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 		initialIR = schema.NewDefaultIR()
 	}
 	irFile := filepath.Join(workDir, "data", "config.ir.json")
+	var loaded bool
 	if data, err := os.ReadFile(irFile); err == nil {
 		var savedIR schema.ConfigIR
 		if json.Unmarshal(data, &savedIR) == nil && len(savedIR.Proxies) > 0 {
@@ -78,6 +79,18 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 			}
 			savedIR.Groups = cleanGroups
 			initialIR = &savedIR
+			loaded = true
+		}
+	}
+	// Fallback to last-known-good snapshot if primary config is missing or corrupted
+	if !loaded {
+		goodFile := filepath.Join(workDir, "data", "config.last-known-good.json")
+		if gData, gErr := os.ReadFile(goodFile); gErr == nil {
+			var goodIR schema.ConfigIR
+			if json.Unmarshal(gData, &goodIR) == nil && len(goodIR.Proxies) > 0 {
+				initialIR = &goodIR
+				log.Printf("🛡️ [Engine] Restored configuration from last-known-good snapshot (%d proxies)", len(goodIR.Proxies))
+			}
 		}
 	}
 	schema.SyncAllStrategyGroups(initialIR)
@@ -97,6 +110,7 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 		statusCh:     make(chan schema.EngineType, 10),
 	}
 	mgr.StartSupervisor()
+	mgr.StartEndToEndWatchdog()
 	return mgr
 }
 
@@ -892,9 +906,114 @@ func (m *Manager) StartSupervisor() {
 						m.crashCount = 0
 					}
 					m.mu.Unlock()
+					if healthyConsecutive%24 == 0 { // Snapshot last-known-good every ~60s of healthy operation
+						m.saveLastKnownGoodConfig()
+					}
 				}
 			}
 		}
 	}()
 }
 
+
+func (m *Manager) saveLastKnownGoodConfig() {
+	if m.workDir == "" {
+		return
+	}
+	src := filepath.Join(m.workDir, "data", "config.ir.json")
+	dst := filepath.Join(m.workDir, "data", "config.last-known-good.json")
+	if data, err := os.ReadFile(src); err == nil && len(data) > 0 {
+		_ = schema.WriteFileAtomicSecure(dst, data)
+	}
+}
+
+// GetLastKnownGoodTime returns when the last known good snapshot was persisted.
+func (m *Manager) GetLastKnownGoodTime() string {
+	dst := filepath.Join(m.workDir, "data", "config.last-known-good.json")
+	if info, err := os.Stat(dst); err == nil {
+		return info.ModTime().Format("2006-01-02 15:04:05")
+	}
+	return "就绪保护中"
+}
+
+// StartEndToEndWatchdog periodically verifies actual outbound data flow through the proxy.
+// If outbound traffic hangs/freezes repeatedly while process is alive, it auto-switches to the standby engine.
+func (m *Manager) StartEndToEndWatchdog() {
+	go func() {
+		time.Sleep(45 * time.Second)
+		ticker := time.NewTicker(60 * time.Second)
+		defer ticker.Stop()
+
+		var failCount int
+
+		for range ticker.C {
+			m.mu.RLock()
+			stopping := m.stopping
+			active := m.activeEngine
+			ir := m.ir
+			m.mu.RUnlock()
+
+			if stopping || active == "" || ir == nil || len(ir.Proxies) == 0 {
+				continue
+			}
+
+			proxyPort := 7890
+			if ir.Network.MixedPort > 0 {
+				proxyPort = ir.Network.MixedPort
+			}
+
+			proxyURL, err := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", proxyPort))
+			if err != nil {
+				continue
+			}
+
+			transport := &http.Transport{
+				Proxy: http.ProxyURL(proxyURL),
+				DialContext: (&net.Dialer{
+					Timeout: 4 * time.Second,
+				}).DialContext,
+				ResponseHeaderTimeout: 4 * time.Second,
+				DisableKeepAlives:     true,
+			}
+			client := &http.Client{
+				Transport: transport,
+				Timeout:   5 * time.Second,
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			req, rErr := http.NewRequestWithContext(ctx, http.MethodGet, "http://cp.cloudflare.com/generate_204", nil)
+			ok := false
+			if rErr == nil {
+				resp, dErr := client.Do(req)
+				if dErr == nil {
+					_ = resp.Body.Close()
+					if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusOK {
+						ok = true
+					}
+				}
+			}
+			cancel()
+
+			if ok {
+				if failCount > 0 {
+					m.log("INFO", "WATCHDOG", fmt.Sprintf("✅ 出海业务链路恢复畅通 (引擎: %s)", active))
+				}
+				failCount = 0
+			} else {
+				failCount++
+				m.log("WARN", "WATCHDOG", fmt.Sprintf("⚠️ 出海业务链路探测超时 (引擎: %s, 连续失败: %d/3)", active, failCount))
+				if failCount >= 3 {
+					failCount = 0
+					standby := schema.EngineSingbox
+					if active == schema.EngineSingbox {
+						standby = schema.EngineMihomo
+					}
+					m.log("WARN", "SUPERVISOR", fmt.Sprintf("🚨 核心 %s 出海业务链路连续假死，触发业务级无感容灾热切换 ➔ %s...", active, standby))
+					if res, err := m.SwitchEngine(standby); err == nil {
+						m.log("INFO", "SUPERVISOR", fmt.Sprintf("✅ 业务假死容灾自愈完成: 已切换至 %s (耗时 %d ms)", standby, res.ElapsedMs))
+					}
+				}
+			}
+		}
+	}()
+}
