@@ -150,9 +150,23 @@ ip addr add "${SHIM_IP}/24" dev macvlan-shim
 ip link set macvlan-shim up
 ip route add "${CUBEX_IP}/32" dev macvlan-shim 2>/dev/null || true
 
-# 将 macvlan-shim 纳入 OpenWrt 防火墙放行双向互访
+# 将 macvlan-shim 固化至 OpenWrt UCI network 与防火墙放行双向互访 (防 network reload 刷掉)
 if which uci >/dev/null 2>&1; then
+    uci -q delete network.cubex_shim || true
+    uci set network.cubex_shim=interface
+    uci set network.cubex_shim.device='macvlan-shim'
+    uci set network.cubex_shim.proto='static'
+    uci set network.cubex_shim.ipaddr="$SHIM_IP"
+    uci set network.cubex_shim.netmask='255.255.255.0'
+    uci -q delete network.cubex_shim_route || true
+    uci set network.cubex_shim_route=route
+    uci set network.cubex_shim_route.interface='cubex_shim'
+    uci set network.cubex_shim_route.target="$CUBEX_IP"
+    uci set network.cubex_shim_route.netmask='255.255.255.255'
+    uci commit network 2>/dev/null || true
+
     uci add_list firewall.@zone[0].device='macvlan-shim' 2>/dev/null || true
+    uci add_list firewall.@zone[0].network='cubex_shim' 2>/dev/null || true
     uci commit firewall 2>/dev/null || true
     /etc/init.d/firewall reload >/dev/null 2>&1 || true
 fi

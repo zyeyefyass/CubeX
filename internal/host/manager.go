@@ -172,7 +172,28 @@ func (m *Manager) getSSHClient(cfg HostConfig) (*ssh.Client, error) {
 	}
 
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
-	return ssh.Dial("tcp", addr, clientConfig)
+	client, err := ssh.Dial("tcp", addr, clientConfig)
+	if err != nil {
+		// Fallback for Macvlan container host communication:
+		// When running inside a container, direct host IP communication may be blocked by macvlan.
+		// Auto-inject container host route via .228 shim, or dial .228 shim directly.
+		parts := strings.Split(cfg.Host, ".")
+		if len(parts) == 4 {
+			shimHost := fmt.Sprintf("%s.%s.%s.228", parts[0], parts[1], parts[2])
+			if shimHost != cfg.Host {
+				_ = exec.Command("ip", "route", "replace", cfg.Host+"/32", "via", shimHost, "dev", "eth0").Run()
+				if c2, err2 := ssh.Dial("tcp", addr, clientConfig); err2 == nil {
+					return c2, nil
+				}
+				shimAddr := fmt.Sprintf("%s:%d", shimHost, cfg.Port)
+				if c3, err3 := ssh.Dial("tcp", shimAddr, clientConfig); err3 == nil {
+					return c3, nil
+				}
+			}
+		}
+		return nil, err
+	}
+	return client, nil
 }
 
 func parseROSResourcePrint(outStr string) (ver, arch string, cores int, load, memUsed, memTotal string) {

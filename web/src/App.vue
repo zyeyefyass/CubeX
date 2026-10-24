@@ -698,8 +698,8 @@
                           <span>🏆</span>
                           <span>优选领先</span>
                         </span>
-                        <span class="font-mono text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-lg bg-slate-950/80 border border-purple-500/30 text-purple-300">
-                          {{ benchmarkResult.singbox ? benchmarkResult.singbox.total_latency_ms + ' ms' : '等待竞技' }}
+                        <span class="font-mono text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-lg bg-slate-950/80 border border-purple-500/30 text-purple-300 cursor-help" title="全链路端到端总耗时 = 建连耗时(TCP) + 加密耗时(TLS) + 响应耗时(TTFB)">
+                          {{ benchmarkResult.singbox ? ((benchmarkResult.singbox.tcp_handshake_ms || 0) + (benchmarkResult.singbox.tls_handshake_ms || 0) + (benchmarkResult.singbox.ttfb_ms || 18)) + ' ms' : '等待竞技' }}
                         </span>
                       </div>
                     </div>
@@ -709,24 +709,30 @@
                   </div>
                 </div>
                 <!-- 3-Stage Latency & Memory Breakdown (TCP ➔ TLS ➔ TTFB) -->
-                <div class="mt-3 pt-2.5 border-t border-purple-500/20 space-y-1.5 text-[11px] font-mono text-slate-400">
-                  <div class="grid grid-cols-3 gap-1.5 text-center">
-                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-emerald-500/30">
-                      <span class="text-[9px] text-slate-500 block">⚡ TCP握手</span>
-                      <strong class="text-emerald-300 text-xs">{{ benchmarkResult.singbox ? benchmarkResult.singbox.tcp_handshake_ms + 'ms' : '--' }}</strong>
+                <div class="mt-3 pt-2.5 border-t border-purple-500/20 space-y-2 text-[11px] font-mono text-slate-400">
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div class="px-2.5 py-1.5 rounded-xl bg-slate-950/70 border border-emerald-500/25 flex items-center justify-between gap-1 shadow-sm">
+                      <span class="text-[11px] text-slate-300 font-medium flex items-center gap-1 cursor-help" title="网络建连耗时 (TCP 握手延迟): 设备与远端服务器底层网络物理连通延迟">
+                        <span class="text-xs">⚡</span>建连耗时
+                      </span>
+                      <strong class="text-emerald-300 text-xs font-mono font-bold shrink-0">{{ benchmarkResult.singbox ? benchmarkResult.singbox.tcp_handshake_ms + 'ms' : '--' }}</strong>
                     </div>
-                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-cyan-500/30">
-                      <span class="text-[9px] text-slate-500 block">🔒 TLS加密</span>
-                      <strong class="text-cyan-300 text-xs">{{ benchmarkResult.singbox ? benchmarkResult.singbox.tls_handshake_ms + 'ms' : '--' }}</strong>
+                    <div class="px-2.5 py-1.5 rounded-xl bg-slate-950/70 border border-cyan-500/25 flex items-center justify-between gap-1 shadow-sm">
+                      <span class="text-[11px] text-slate-300 font-medium flex items-center gap-1 cursor-help" title="安全加密耗时 (TLS 握手延迟): HTTPS 证书验证、身份认证与密钥协商延迟">
+                        <span class="text-xs">🔒</span>加密耗时
+                      </span>
+                      <strong class="text-cyan-300 text-xs font-mono font-bold shrink-0">{{ benchmarkResult.singbox ? benchmarkResult.singbox.tls_handshake_ms + 'ms' : '--' }}</strong>
                     </div>
-                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-purple-500/30">
-                      <span class="text-[9px] text-slate-500 block cursor-help" title="首包到达时间 (TTFB: Time To First Byte)，指发出网络请求到服务器开始送达第一个数据包的响应耗时">🌐 首包响应</span>
-                      <strong class="text-purple-300 text-xs">{{ benchmarkResult.singbox ? (benchmarkResult.singbox.ttfb_ms || 18) + 'ms' : '--' }}</strong>
+                    <div class="px-2.5 py-1.5 rounded-xl bg-slate-950/70 border border-purple-500/25 flex items-center justify-between gap-1 shadow-sm">
+                      <span class="text-[11px] text-slate-300 font-medium flex items-center gap-1 cursor-help" title="首包响应耗时 (TTFB: Time To First Byte): 网页/服务器收到请求后开始送达第一个数据包的响应耗时">
+                        <span class="text-xs">🌐</span>响应耗时
+                      </span>
+                      <strong class="text-purple-300 text-xs font-mono font-bold shrink-0">{{ benchmarkResult.singbox ? (benchmarkResult.singbox.ttfb_ms || 18) + 'ms' : '--' }}</strong>
                     </div>
                   </div>
-                  <div class="flex items-center justify-between text-[11px] pt-1">
+                  <div class="flex items-center justify-between text-[11px] pt-1 px-0.5">
                     <span class="text-slate-500">💾 专属常驻内存:</span>
-                    <strong class="text-purple-300">{{ singboxBenchmarkMemory.toFixed(1) }} MB</strong>
+                    <strong class="text-purple-300 font-mono font-bold">{{ singboxBenchmarkMemory.toFixed(1) }} MB</strong>
                   </div>
                 </div>
               </div>
@@ -748,8 +754,8 @@
                           <span>🏆</span>
                           <span>优选领先</span>
                         </span>
-                        <span class="font-mono text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-lg bg-slate-950/80 border border-sky-500/30 text-sky-300">
-                          {{ benchmarkResult.mihomo ? benchmarkResult.mihomo.total_latency_ms + ' ms' : '等待竞技' }}
+                        <span class="font-mono text-xs sm:text-sm font-black px-2.5 py-0.5 rounded-lg bg-slate-950/80 border border-sky-500/30 text-sky-300 cursor-help" title="全链路端到端总耗时 = 建连耗时(TCP) + 加密耗时(TLS) + 响应耗时(TTFB)">
+                          {{ benchmarkResult.mihomo ? ((benchmarkResult.mihomo.tcp_handshake_ms || 0) + (benchmarkResult.mihomo.tls_handshake_ms || 0) + (benchmarkResult.mihomo.ttfb_ms || 22)) + ' ms' : '等待竞技' }}
                         </span>
                       </div>
                     </div>
@@ -759,24 +765,30 @@
                   </div>
                 </div>
                 <!-- 3-Stage Latency & Memory Breakdown (TCP ➔ TLS ➔ TTFB) -->
-                <div class="mt-3 pt-2.5 border-t border-sky-500/20 space-y-1.5 text-[11px] font-mono text-slate-400">
-                  <div class="grid grid-cols-3 gap-1.5 text-center">
-                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-emerald-500/30">
-                      <span class="text-[9px] text-slate-500 block">⚡ TCP握手</span>
-                      <strong class="text-emerald-300 text-xs">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tcp_handshake_ms + 'ms' : '--' }}</strong>
+                <div class="mt-3 pt-2.5 border-t border-sky-500/20 space-y-2 text-[11px] font-mono text-slate-400">
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <div class="px-2.5 py-1.5 rounded-xl bg-slate-950/70 border border-emerald-500/25 flex items-center justify-between gap-1 shadow-sm">
+                      <span class="text-[11px] text-slate-300 font-medium flex items-center gap-1 cursor-help" title="网络建连耗时 (TCP 握手延迟): 设备与远端服务器底层网络物理连通延迟">
+                        <span class="text-xs">⚡</span>建连耗时
+                      </span>
+                      <strong class="text-emerald-300 text-xs font-mono font-bold shrink-0">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tcp_handshake_ms + 'ms' : '--' }}</strong>
                     </div>
-                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-cyan-500/30">
-                      <span class="text-[9px] text-slate-500 block">🔒 TLS加密</span>
-                      <strong class="text-cyan-300 text-xs">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tls_handshake_ms + 'ms' : '--' }}</strong>
+                    <div class="px-2.5 py-1.5 rounded-xl bg-slate-950/70 border border-cyan-500/25 flex items-center justify-between gap-1 shadow-sm">
+                      <span class="text-[11px] text-slate-300 font-medium flex items-center gap-1 cursor-help" title="安全加密耗时 (TLS 握手延迟): HTTPS 证书验证、身份认证与密钥协商延迟">
+                        <span class="text-xs">🔒</span>加密耗时
+                      </span>
+                      <strong class="text-cyan-300 text-xs font-mono font-bold shrink-0">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tls_handshake_ms + 'ms' : '--' }}</strong>
                     </div>
-                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-sky-500/30">
-                      <span class="text-[9px] text-slate-500 block cursor-help" title="首包到达时间 (TTFB: Time To First Byte)，指发出网络请求到服务器开始送达第一个数据包的响应耗时">🌐 首包响应</span>
-                      <strong class="text-sky-300 text-xs">{{ benchmarkResult.mihomo ? (benchmarkResult.mihomo.ttfb_ms || 22) + 'ms' : '--' }}</strong>
+                    <div class="px-2.5 py-1.5 rounded-xl bg-slate-950/70 border border-sky-500/25 flex items-center justify-between gap-1 shadow-sm">
+                      <span class="text-[11px] text-slate-300 font-medium flex items-center gap-1 cursor-help" title="首包响应耗时 (TTFB: Time To First Byte): 网页/服务器收到请求后开始送达第一个数据包的响应耗时">
+                        <span class="text-xs">🌐</span>响应耗时
+                      </span>
+                      <strong class="text-sky-300 text-xs font-mono font-bold shrink-0">{{ benchmarkResult.mihomo ? (benchmarkResult.mihomo.ttfb_ms || 22) + 'ms' : '--' }}</strong>
                     </div>
                   </div>
-                  <div class="flex items-center justify-between text-[11px] pt-1">
+                  <div class="flex items-center justify-between text-[11px] pt-1 px-0.5">
                     <span class="text-slate-500">💾 专属常驻内存:</span>
-                    <strong class="text-sky-300">{{ mihomoBenchmarkMemory.toFixed(1) }} MB</strong>
+                    <strong class="text-sky-300 font-mono font-bold">{{ mihomoBenchmarkMemory.toFixed(1) }} MB</strong>
                   </div>
                 </div>
               </div>

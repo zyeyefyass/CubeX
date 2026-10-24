@@ -363,9 +363,23 @@ uci set network.cubex_fakeip.interface='lan'
 uci set network.cubex_fakeip.target='198.18.0.0'
 uci set network.cubex_fakeip.netmask='255.254.0.0'
 uci set network.cubex_fakeip.gateway='%s'
+
+# Preserve macvlan-shim route to container if running on same OpenWrt host
+if ip link show macvlan-shim >/dev/null 2>&1; then
+    uci -q delete network.cubex_shim_route || true
+    uci set network.cubex_shim_route=route
+    uci set network.cubex_shim_route.interface='cubex_shim'
+    uci set network.cubex_shim_route.target='%[1]s'
+    uci set network.cubex_shim_route.netmask='255.255.255.255'
+fi
+
 uci commit network
 /etc/init.d/network reload >/dev/null 2>&1 || true
 ip route replace 198.18.0.0/15 via %s 2>/dev/null || true
+if ip link show macvlan-shim >/dev/null 2>&1; then
+    ip link set macvlan-shim up 2>/dev/null || true
+    ip route replace %[1]s/32 dev macvlan-shim 2>/dev/null || true
+fi
 
 # 2. DHCP Option 6 (DNS) Injection to point directly to CubeX
 # Remove any existing option 6 list entry to prevent duplicate DNS
