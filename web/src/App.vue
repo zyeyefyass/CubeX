@@ -280,7 +280,7 @@
                   <h2 class="text-base sm:text-lg font-bold text-white tracking-wide">双擎主控驾驶舱</h2>
                   <span class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40 flex items-center gap-1.5 shrink-0">
                     <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                    当前内核: {{ activeEngine === 'singbox' ? 'sing-box (' + (systemOverview.singbox_curr_version || 'v1.14.3') + ')' : 'Mihomo (' + (systemOverview.mihomo_curr_version || 'v1.19.33') + ')' }}
+                    当前内核: {{ activeEngine === 'singbox' ? 'sing-box (' + (systemOverview.singbox_curr_version || 'v1.14.4') + ')' : 'Mihomo (' + (systemOverview.mihomo_curr_version || 'v1.19.33') + ')' }}
                   </span>
                 </div>
                 <p class="text-xs text-slate-400 mt-1">CubeX Universal IR 统一中间表示层驱动 · 支持 TProxy 与原生 TUN 协议栈秒级热切换与内核崩溃无感自愈</p>
@@ -490,7 +490,7 @@
                 <div class="flex items-center justify-between text-xs font-bold text-sky-300">
                   <div class="flex items-center gap-2 min-w-0">
                     <img src="/logo-singbox.svg" class="w-4 h-4 object-contain shrink-0 drop-shadow-[0_0_4px_rgba(240,171,252,0.4)]" alt="sing-box" />
-                    <span class="truncate">sing-box {{ systemOverview.singbox_curr_version || 'v1.14.3' }} (原生 · 极速轻量)</span>
+                    <span class="truncate">sing-box {{ systemOverview.singbox_curr_version || 'v1.14.4' }} (原生 · 极速轻量)</span>
                   </div>
                   <span class="font-mono shrink-0 ml-2">{{ benchmarkResult.singbox ? benchmarkResult.singbox.total_latency_ms + ' ms' : '等待竞技' }}</span>
                 </div>
@@ -1800,15 +1800,19 @@
           <!-- ════════════════════════════════════════════════════════════════ -->
           <!-- Modal: 手动添加应用分流组 (Add Custom Routing Group Modal)         -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <div v-if="showAddGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in overflow-y-auto">
-            <div class="w-full max-w-xl sm:max-w-2xl max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-[#161e27] border border-slate-700/70 shadow-2xl p-4 sm:p-6 space-y-4 text-slate-200 custom-scrollbar">
-              <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+          <div v-if="showAddGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in overflow-hidden">
+            <div class="flex flex-col w-full max-w-xl sm:max-w-2xl max-h-[88vh] rounded-2xl sm:rounded-3xl bg-[#161e27] border border-slate-700/70 shadow-2xl text-slate-200 overflow-hidden">
+              <!-- Pinned Header -->
+              <div class="shrink-0 p-4 sm:p-5 border-b border-slate-700/60 bg-[#161e27] flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <span class="text-xl">➕</span>
                   <h3 class="text-base font-bold text-white">手动添加应用分流策略组</h3>
                 </div>
                 <button @click="showAddGroupModal = false" class="text-slate-400 hover:text-white text-lg font-bold cursor-pointer">✕</button>
               </div>
+
+              <!-- Scrollable Body -->
+              <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 custom-scrollbar">
 
               <!-- 🔀 双模选择器导航：常用高频推荐 vs 105套全量权威规则集库 -->
               <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
@@ -2006,7 +2010,10 @@
                 </div>
               </div>
 
-              <div class="flex items-center justify-end gap-3 pt-3 border-t border-sky-900/40">
+              </div>
+
+              <!-- Pinned Footer -->
+              <div class="shrink-0 p-3 sm:p-4 border-t border-sky-900/40 bg-[#161e27] flex items-center justify-end gap-3">
                 <button @click="showAddGroupModal = false" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
                   取消
                 </button>
@@ -2018,11 +2025,12 @@
           </div>
 
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <!-- MODAL: 添加自定义节点分组 (支持按机场订阅单独分组 / 地区正则 / 手动勾选) -->
+          <!-- MODAL: 添加自定义节点分组 (支持按国家预设 / 机场订阅 / 多关键词智能筛选) -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <div v-if="showAddCustomNodeGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in overflow-y-auto">
-            <div class="w-full max-w-lg max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-[#161e27] border border-slate-700/70 shadow-2xl p-4 sm:p-6 space-y-4 text-slate-200 custom-scrollbar">
-              <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+          <div v-if="showAddCustomNodeGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in overflow-hidden">
+            <div class="flex flex-col w-full max-w-lg max-h-[88vh] rounded-2xl sm:rounded-3xl bg-[#161e27] border border-slate-700/70 shadow-2xl text-slate-200 overflow-hidden">
+              <!-- Pinned Header -->
+              <div class="shrink-0 p-4 sm:p-5 border-b border-slate-700/60 bg-[#161e27] flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <span class="text-xl">➕</span>
                   <h3 class="text-base font-bold text-white">添加自定义节点分组</h3>
@@ -2030,37 +2038,108 @@
                 <button @click="showAddCustomNodeGroupModal = false" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
               </div>
 
-              <div class="space-y-4 text-xs">
-                <!-- 1. Source Type Selection -->
+              <!-- Scrollable Body -->
+              <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 text-xs custom-scrollbar">
+                <!-- 1. Source Type Selection (3 Options) -->
                 <div>
                   <label class="block text-slate-400 font-mono mb-1.5 font-bold">选择分组归集模式</label>
-                  <div class="grid grid-cols-2 gap-2">
+                  <div class="grid grid-cols-3 gap-2">
                     <button type="button" @click="customNodeGroupForm.source_type = 'preset'"
-                      :class="['p-2.5 rounded-xl border text-left transition select-none',
-                        customNodeGroupForm.source_type !== 'sub'
+                      :class="['p-2 rounded-xl border text-left transition select-none',
+                        customNodeGroupForm.source_type === 'preset'
                           ? 'bg-cyan-950/80 border-cyan-400 text-cyan-200 shadow-sm ring-1 ring-cyan-400/40'
                           : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-slate-200']">
-                      <div class="font-bold flex items-center gap-1.5 text-xs">
-                        <span>🌍 快捷国家/地区预设</span>
+                      <div class="font-bold flex items-center gap-1 text-[11px] truncate">
+                        <span>🌍 地区预设</span>
                       </div>
-                      <div class="text-[10px] text-slate-400 mt-0.5">支持一次多选，一键批量建组</div>
+                      <div class="text-[9px] text-slate-400 mt-0.5 truncate">多选批量建组</div>
                     </button>
 
                     <button type="button" @click="customNodeGroupForm.source_type = 'sub'"
-                      :class="['p-2.5 rounded-xl border text-left transition select-none',
+                      :class="['p-2 rounded-xl border text-left transition select-none',
                         customNodeGroupForm.source_type === 'sub'
                           ? 'bg-cyan-950/80 border-cyan-400 text-cyan-200 shadow-sm ring-1 ring-cyan-400/40'
                           : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-slate-200']">
-                      <div class="font-bold flex items-center gap-1.5 text-xs">
-                        <span>✈️ 机场订阅专组</span>
+                      <div class="font-bold flex items-center gap-1 text-[11px] truncate">
+                        <span>✈️ 订阅专组</span>
                       </div>
-                      <div class="text-[10px] text-slate-400 mt-0.5">将某个机场全部节点单独成组</div>
+                      <div class="text-[9px] text-slate-400 mt-0.5 truncate">按机场单独归集</div>
+                    </button>
+
+                    <button type="button" @click="customNodeGroupForm.source_type = 'keyword'"
+                      :class="['p-2 rounded-xl border text-left transition select-none',
+                        customNodeGroupForm.source_type === 'keyword'
+                          ? 'bg-cyan-950/80 border-cyan-400 text-cyan-200 shadow-sm ring-1 ring-cyan-400/40'
+                          : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-slate-200']">
+                      <div class="font-bold flex items-center gap-1 text-[11px] truncate">
+                        <span>🔍 关键词筛选</span>
+                      </div>
+                      <div class="text-[9px] text-slate-400 mt-0.5 truncate">多词 OR/AND</div>
                     </button>
                   </div>
                 </div>
 
+                <!-- Case 0: Dynamic Keyword Filter Mode (OR / AND logic) -->
+                <div v-if="customNodeGroupForm.source_type === 'keyword'" class="space-y-3 p-3 rounded-2xl bg-slate-900/90 border border-cyan-500/30 animate-in fade-in">
+                  <div>
+                    <label class="block text-slate-300 font-mono mb-1 font-bold flex items-center justify-between">
+                      <span>关键词智能筛选 (逗号分隔多个词)</span>
+                      <span class="text-[10px] text-cyan-400 font-mono">大小写不敏感</span>
+                    </label>
+                    <input v-model="customNodeGroupForm.keywords_str"
+                      placeholder="例: 香港, BGP, 专线 或 0.5x, SG"
+                      class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono" />
+                  </div>
+
+                  <!-- OR / AND Toggle Capsule -->
+                  <div class="flex items-center justify-between pt-1">
+                    <span class="text-slate-400 font-mono text-[11px]">多词匹配逻辑：</span>
+                    <div class="flex items-center rounded-xl bg-slate-950 p-0.5 border border-slate-800">
+                      <button type="button" @click="customNodeGroupForm.filter_logic = 'OR'"
+                        :class="['px-3 py-1 rounded-lg text-xs font-bold transition',
+                          customNodeGroupForm.filter_logic !== 'AND'
+                            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-sm'
+                            : 'text-slate-400 hover:text-white']">
+                        ⚡ 任一命中 (OR)
+                      </button>
+                      <button type="button" @click="customNodeGroupForm.filter_logic = 'AND'"
+                        :class="['px-3 py-1 rounded-lg text-xs font-bold transition',
+                          customNodeGroupForm.filter_logic === 'AND'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 shadow-sm'
+                            : 'text-slate-400 hover:text-white']">
+                        🎯 全部命中 (AND)
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Live Matched Nodes Preview -->
+                  <div class="pt-2 border-t border-slate-800/80 space-y-1.5">
+                    <div class="flex items-center justify-between text-[11px] font-mono">
+                      <span class="text-slate-300">
+                        实时匹配：<strong :class="matchedKeywordNodes.length > 0 ? 'text-emerald-400' : 'text-slate-500'">{{ matchedKeywordNodes.length }}</strong> 个节点
+                      </span>
+                      <span v-if="matchedKeywordNodes.length > 0" class="text-[10px] text-slate-400">
+                        自动过滤无效/公告节点
+                      </span>
+                    </div>
+
+                    <div v-if="matchedKeywordNodes.length > 0" class="flex flex-wrap gap-1 max-h-28 overflow-y-auto p-1.5 rounded-xl bg-slate-950/80 border border-slate-800 custom-scrollbar">
+                      <span v-for="node in matchedKeywordNodes.slice(0, 30)" :key="node"
+                        class="px-2 py-0.5 rounded-md bg-cyan-950/60 border border-cyan-500/30 text-cyan-200 text-[10px] font-mono truncate max-w-[180px]">
+                        {{ node }}
+                      </span>
+                      <span v-if="matchedKeywordNodes.length > 30" class="text-[10px] text-slate-500 self-center px-1">
+                        +还有 {{ matchedKeywordNodes.length - 30 }} 个...
+                      </span>
+                    </div>
+                    <div v-else-if="(customNodeGroupForm.keywords_str || '').trim()" class="text-center text-slate-500 py-3 text-[11px] font-mono">
+                      未找到包含该关键词的节点，请尝试其他关键词
+                    </div>
+                  </div>
+                </div>
+
                 <!-- 2. Case 1: Country Preset Picker (Multi-select enabled!) -->
-                <div v-if="customNodeGroupForm.source_type !== 'sub'" class="space-y-2.5">
+                <div v-else-if="customNodeGroupForm.source_type === 'preset'" class="space-y-2.5">
                   <div class="flex items-center justify-between">
                     <label class="block text-slate-300 font-mono font-bold flex items-center gap-1.5">
                       <span>点击选择国家 / 地区 (支持一次多选)</span>
@@ -2162,7 +2241,7 @@
                 </div>
 
                 <!-- Group Name Input (Only show when single country, combine mode, or sub mode) -->
-                <div v-if="customNodeGroupForm.source_type === 'sub' || (customNodeGroupForm.selected_countries || []).length <= 1 || customNodeGroupForm.multi_mode === 'combine'">
+                <div v-if="customNodeGroupForm.source_type === 'keyword' || customNodeGroupForm.source_type === 'sub' || (customNodeGroupForm.selected_countries || []).length <= 1 || customNodeGroupForm.multi_mode === 'combine'">
                   <label class="block text-slate-300 font-mono mb-1 font-bold">分组显示名称</label>
                   <input v-model="customNodeGroupForm.name" :placeholder="customNodeGroupForm.multi_mode === 'combine' ? '请输入合并组名称 (如: 东南亚专区 / 欧美联合)...' : '请输入分组名称 (如: 英国专区 / 快雷专属)...'"
                     class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono" />
@@ -2183,14 +2262,18 @@
                 </div>
               </div>
 
-              <!-- Modal Footer Buttons -->
-              <div class="flex items-center justify-end gap-3 pt-3 border-t border-sky-900/40">
+
+              <!-- Pinned Footer Buttons -->
+              <div class="shrink-0 p-3 sm:p-4 border-t border-sky-900/40 bg-[#161e27] flex items-center justify-end gap-3">
                 <button @click="showAddCustomNodeGroupModal = false" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">
                   取消
                 </button>
                 <button @click="submitAddCustomNodeGroup"
                   class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-400 to-cyan-500 hover:from-teal-300 hover:to-cyan-400 text-slate-950 text-xs font-bold shadow-md shadow-cyan-500/20 active:scale-95 transition flex items-center gap-1.5">
-                  <span v-if="(customNodeGroupForm.selected_countries || []).length > 1 && customNodeGroupForm.multi_mode !== 'combine'">
+                  <span v-if="customNodeGroupForm.source_type === 'keyword'">
+                    ➕ 确定创建动态关键词分组 ({{ matchedKeywordNodes.length }} 个节点)
+                  </span>
+                  <span v-else-if="(customNodeGroupForm.selected_countries || []).length > 1 && customNodeGroupForm.multi_mode !== 'combine'">
                     ➕ 立即批量创建 ({{ customNodeGroupForm.selected_countries.length }} 个独立分组)
                   </span>
                   <span v-else-if="(customNodeGroupForm.selected_countries || []).length > 1 && customNodeGroupForm.multi_mode === 'combine'">
@@ -3296,8 +3379,8 @@
                     <span class="text-slate-500">官方最新: <span :class="systemOverview.mihomo_update_avail ? 'text-amber-400 font-bold' : 'text-slate-300'">{{ systemOverview.mihomo_latest_version || 'v1.19.33' }}</span></span>
                   </div>
                   <div class="flex items-center justify-between">
-                    <span>sing-box 内核: <strong class="text-emerald-400 font-semibold">{{ systemOverview.singbox_curr_version || 'v1.14.3' }}</strong></span>
-                    <span class="text-slate-500">官方最新: <span :class="systemOverview.singbox_update_avail ? 'text-amber-400 font-bold' : 'text-slate-300'">{{ systemOverview.singbox_latest_version || 'v1.14.3' }}</span></span>
+                    <span>sing-box 内核: <strong class="text-emerald-400 font-semibold">{{ systemOverview.singbox_curr_version || 'v1.14.4' }}</strong></span>
+                    <span class="text-slate-500">官方最新: <span :class="systemOverview.singbox_update_avail ? 'text-amber-400 font-bold' : 'text-slate-300'">{{ systemOverview.singbox_latest_version || 'v1.14.4' }}</span></span>
                   </div>
                 </div>
                 <!-- Tier 3: Action Buttons (h-10) -->
@@ -4720,7 +4803,7 @@
               </div>
               <div class="flex justify-between text-slate-400">
                 <span>sing-box 核心:</span>
-                <span class="text-slate-200">{{ systemOverview.singbox_curr_version || 'v1.14.3' }}</span>
+                <span class="text-slate-200">{{ systemOverview.singbox_curr_version || 'v1.14.4' }}</span>
               </div>
             </div>
             <div class="text-[11px] text-center text-slate-500 py-1">双引擎深度混动，支持毫秒级无感热容灾切换</div>
@@ -6509,7 +6592,7 @@ const systemOverview = ref({
   panel_curr_version: 'Test v2.8',
   panel_latest_version: 'Test v2.8',
   mihomo_curr_version: 'v1.19.33',
-  singbox_curr_version: 'v1.14.3',
+  singbox_curr_version: 'v1.14.4',
   panel_update_avail: false,
   update_available: false
 })
@@ -8195,7 +8278,7 @@ function openGitHubIssuePrompt() {
     parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version} (当前: ${systemOverview.value.mihomo_curr_version || 'v1.19.33'})`)
   }
   if (systemOverview.value?.singbox_update_avail) {
-    parts.push(`sing-box ${systemOverview.value.singbox_latest_version} (当前: ${systemOverview.value.singbox_curr_version || 'v1.14.3'})`)
+    parts.push(`sing-box ${systemOverview.value.singbox_latest_version} (当前: ${systemOverview.value.singbox_curr_version || 'v1.14.4'})`)
   }
   const coreStr = parts.join(' / ') || '双代理内核'
   const title = encodeURIComponent(`【内核对齐升级催更】请求适配 ${coreStr}`)
@@ -8812,13 +8895,34 @@ const customNodeGroupForm = ref({
   name: '',
   country_code: '',
   flag: '',
-  source_type: 'preset',
+  source_type: 'preset', // 'preset' | 'sub' | 'keyword'
   multi_mode: 'batch', // 'batch' (批量各建各的独立组) | 'combine' (合并为一个复合组)
   selected_countries: [],
   sub_id: '',
   regex_str: '',
   selected_nodes: [],
-  policy: 'auto'
+  policy: 'auto',
+  keywords_str: '',
+  filter_logic: 'OR' // 'OR' | 'AND'
+})
+
+const matchedKeywordNodes = computed(() => {
+  if (customNodeGroupForm.value.source_type !== 'keyword') return []
+  const kwStr = (customNodeGroupForm.value.keywords_str || '').trim()
+  if (!kwStr) return []
+  const kws = kwStr.split(/[,，\s]+/).filter(Boolean).map(k => k.toLowerCase())
+  if (kws.length === 0) return []
+  const logic = customNodeGroupForm.value.filter_logic || 'OR'
+  const proxies = ir.value.proxies || []
+  return proxies.filter(p => {
+    if (!p.name || p.type === 'direct' || p.type === 'block' || p.type === 'reject') return false
+    const name = p.name.toLowerCase()
+    if (logic === 'AND') {
+      return kws.every(k => name.includes(k))
+    } else {
+      return kws.some(k => name.includes(k))
+    }
+  }).map(p => p.name)
 })
 
 function getCountryFlag(code) {
@@ -8918,6 +9022,58 @@ function onCustomGroupSubChange() {
 }
 
 function submitAddCustomNodeGroup() {
+  if (customNodeGroupForm.value.source_type === 'keyword') {
+    const kws = (customNodeGroupForm.value.keywords_str || '').split(/[,，\s]+/).filter(Boolean)
+    if (kws.length === 0) {
+      showToast('请至少输入一个筛选关键词', 'error')
+      return
+    }
+    const nodes = matchedKeywordNodes.value
+    if (nodes.length === 0) {
+      showToast('当前关键词未匹配到任何节点，请调整关键词', 'error')
+      return
+    }
+    let grpName = (customNodeGroupForm.value.name || '').trim()
+    if (!grpName) {
+      grpName = `🎯 ${kws.slice(0, 2).join('·')}${customNodeGroupForm.value.filter_logic === 'AND' ? ' 严选' : ' 聚合'}`
+    }
+    const newId = `KW_${Date.now()}`
+    const newGroup = {
+      id: newId,
+      name: grpName,
+      country_code: 'KEYWORD',
+      flag: '🔍',
+      type: 'keyword',
+      keywords: kws,
+      filter_logic: customNodeGroupForm.value.filter_logic || 'OR',
+      autoName: `${grpName} 自动`,
+      fallName: `${grpName} 故转`,
+      disasterName: `${grpName} 容灾`,
+      node_names: [...nodes]
+    }
+    customRegionGroups.value.push(newGroup)
+    saveCustomRegionGroups()
+    regionActivePolicy.value[newId] = customNodeGroupForm.value.policy || 'auto'
+
+    fetch('/api/v1/config/routing/group/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: grpName,
+        icon: 'default',
+        type: customNodeGroupForm.value.policy === 'auto' ? 'urltest' : (customNodeGroupForm.value.policy === 'fall' ? 'fallback' : 'loadbalance'),
+        proxies: nodes,
+        now: nodes[0],
+        filter_keywords: kws,
+        filter_logic: customNodeGroupForm.value.filter_logic || 'OR'
+      })
+    })
+
+    showAddCustomNodeGroupModal.value = false
+    showToast(`已成功创建「${grpName}」动态关键词分组 (${nodes.length} 个节点)`)
+    return
+  }
+
   // Preset Mode
   if (customNodeGroupForm.value.source_type === 'preset') {
     const selCodes = customNodeGroupForm.value.selected_countries || []

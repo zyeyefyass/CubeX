@@ -198,7 +198,7 @@ func handleStatus() {
 	resp, err := http.Get(defaultAPI + "/system/status")
 	if err != nil {
 		fmt.Println("🌌 CubeX 运行概览:")
-		fmt.Println("  激活内核: \033[1;32msing-box v1.14.3+\033[0m")
+		fmt.Println("  激活内核: \033[1;32msing-box v1.14.4+\033[0m")
 		fmt.Println("  路由模式: \033[1;36mRule (智能分流)\033[0m")
 		fmt.Println("  运行内存: \033[1;33m~16 MB (主控) + 宿主自适应内核常驻\033[0m")
 		fmt.Println("  Web 驾驶舱: http://127.0.0.1:2026")

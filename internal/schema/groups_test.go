@@ -228,3 +228,38 @@ func TestDisabledSubscriptionExclusion(t *testing.T) {
 		}
 	}
 }
+
+func TestFilterNodesByKeywords(t *testing.T) {
+	proxies := []ProxyNode{
+		{Name: "[云] 🇭🇰 香港 BGP 01", Type: "vless", Server: "1.1.1.1", Port: 443},
+		{Name: "[云] 🇭🇰 香港 专线 02", Type: "vmess", Server: "1.1.1.2", Port: 443},
+		{Name: "[云] 🇯🇵 日本 BGP 01", Type: "trojan", Server: "1.1.1.3", Port: 443},
+		{Name: "[云] 🇺🇸 美国 01", Type: "shadowsocks", Server: "1.1.1.4", Port: 443},
+		{Name: "[云] 剩余流量: 100G", Type: "vless", Server: "1.1.1.5", Port: 443},
+		{Name: "DIRECT", Type: "direct"},
+	}
+
+	// 1. Test OR logic
+	resOR := FilterNodesByKeywords(proxies, []string{"香港", "日本"}, "OR", "")
+	if len(resOR) != 3 {
+		t.Fatalf("expected 3 nodes for OR, got %d: %v", len(resOR), resOR)
+	}
+
+	// 2. Test AND logic
+	resAND := FilterNodesByKeywords(proxies, []string{"香港", "BGP"}, "AND", "")
+	if len(resAND) != 1 || resAND[0] != "[云] 🇭🇰 香港 BGP 01" {
+		t.Fatalf("expected 1 node for AND, got %d: %v", len(resAND), resAND)
+	}
+
+	// 3. Test Invalid Node Filtering
+	resNotice := FilterNodesByKeywords(proxies, []string{"剩余流量"}, "OR", "")
+	if len(resNotice) != 0 {
+		t.Fatalf("expected informational notice node to be filtered, got: %v", resNotice)
+	}
+
+	// 4. Test Case-Insensitive matching
+	resCase := FilterNodesByKeywords(proxies, []string{"bgp"}, "OR", "")
+	if len(resCase) != 2 {
+		t.Fatalf("expected 2 nodes for case-insensitive 'bgp', got %d: %v", len(resCase), resCase)
+	}
+}

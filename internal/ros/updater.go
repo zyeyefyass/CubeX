@@ -200,7 +200,7 @@ func (m *Manager) GetOverview() map[string]any {
 	}
 	latestSingbox := m.cachedLatestSingbox
 	if latestSingbox == "" {
-		latestSingbox = "v1.14.3"
+		latestSingbox = "v1.14.4"
 	}
 
 	panelUpdateAvail := IsVersionNewer(latestPanel, panelVer)
@@ -990,23 +990,39 @@ func (m *Manager) fetchLatestMihomoVersion() (string, error) {
 
 func (m *Manager) getLocalSingboxVersion() string {
 	singboxPath := filepath.Join(m.binDir, "sing-box")
+	if runtime.GOOS == "windows" {
+		if _, err := os.Stat(singboxPath); err != nil {
+			singboxPath += ".exe"
+		}
+	}
 	out, err := exec.Command(singboxPath, "version").CombinedOutput()
 	if err != nil {
-		return "v1.14.3"
+		return "v1.14.4"
 	}
 	s := string(out)
-	for _, field := range strings.Fields(s) {
-		if strings.HasPrefix(field, "v") && strings.Contains(field, ".") {
+	fields := strings.Fields(s)
+	for i, field := range fields {
+		if (field == "version" || field == "v") && i+1 < len(fields) {
+			ver := fields[i+1]
+			if !strings.HasPrefix(ver, "v") {
+				ver = "v" + ver
+			}
+			return ver
+		}
+		if (strings.HasPrefix(field, "v") || strings.HasPrefix(field, "1.")) && strings.Contains(field, ".") {
+			if !strings.HasPrefix(field, "v") {
+				return "v" + field
+			}
 			return field
 		}
 	}
-	return "v1.14.3"
+	return "v1.14.4"
 }
 
 func (m *Manager) fetchLatestSingboxVersion() (string, error) {
 	tag, err := fetchGitHubLatestTag("SagerNet/sing-box")
 	if err != nil || tag == "" {
-		return "v1.14.3", err
+		return "v1.14.4", err
 	}
 	return tag, nil
 }
@@ -1300,6 +1316,56 @@ func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath str
 		cleanGitHubURL = rawURL[idx:]
 	} else if idx := strings.Index(rawURL, "http://github.com/"); idx >= 0 {
 		cleanGitHubURL = "https://" + rawURL[idx+7:]
+	}
+
+	// 1. Try high-speed download through local proxy 127.0.0.1:7890 if active (0-downtime hot download)
+	if proxyURL, pErr := url.Parse("http://127.0.0.1:7890"); pErr == nil {
+		pClient := &http.Client{
+			Transport: &http.Transport{
+				Proxy:           http.ProxyURL(proxyURL),
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
+			Timeout: 35 * time.Second,
+		}
+		pReq, err := http.NewRequest(http.MethodGet, cleanGitHubURL, nil)
+		if err == nil {
+			pReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+			if pResp, err := pClient.Do(pReq); err == nil && pResp.StatusCode == http.StatusOK {
+				if gzReader, err := gzip.NewReader(pResp.Body); err == nil {
+					tarReader := tar.NewReader(gzReader)
+					found := false
+					for {
+						header, err := tarReader.Next()
+						if err == io.EOF {
+							break
+						}
+						if err != nil {
+							break
+						}
+						cleanName := filepath.Base(header.Name)
+						if cleanName == targetBinaryName && header.Typeflag == tar.TypeReg {
+							out, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+							if err == nil {
+								_, err = io.Copy(out, tarReader)
+								out.Close()
+								if err == nil {
+									found = true
+								}
+							}
+							break
+						}
+					}
+					gzReader.Close()
+					pResp.Body.Close()
+					if found {
+						log.Printf("[ROS] Core %s successfully downloaded via active proxy!", targetBinaryName)
+						return nil
+					}
+				} else {
+					pResp.Body.Close()
+				}
+			}
+		}
 	}
 
 	candidates := []string{

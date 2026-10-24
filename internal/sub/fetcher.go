@@ -118,7 +118,7 @@ func (f *Fetcher) doFetch(urlStr string, client *http.Client) (*FetchResult, err
 		return nil, fmt.Errorf("invalid subscription url: %w", err)
 	}
 
-	req.Header.Set("User-Agent", "Clash.Meta; sing-box/1.14.3; CubeX-Universal/1.0")
+	req.Header.Set("User-Agent", "Clash.Meta; sing-box/1.14.4; CubeX-Universal/1.0")
 
 	resp, err := client.Do(req)
 	if err != nil {

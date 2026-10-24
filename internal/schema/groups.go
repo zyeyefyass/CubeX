@@ -571,6 +571,19 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 				}
 			}
 
+			// Dynamic multi-keyword filtering (OR / AND logic)
+			if len(g.FilterKeywords) > 0 || g.FilterRegex != "" {
+				matchedNodes := FilterNodesByKeywords(ir.Proxies, g.FilterKeywords, g.FilterLogic, g.FilterRegex)
+				if len(matchedNodes) > 0 {
+					g.Proxies = matchedNodes
+				} else {
+					g.Proxies = []string{"DIRECT"}
+				}
+				if g.Now == "" || !containsString(g.Proxies, g.Now) {
+					g.Now = g.Proxies[0]
+				}
+			}
+
 			// Strict compliance: if custom group is AI or TikTok, filter out HK, MO, and DIRECT outbounds
 			if isAIOrSensitiveGroup(g.Name) {
 				filteredProxies := make([]string, 0, len(g.Proxies))
@@ -767,4 +780,74 @@ func getNodeQualityScore(name string) int {
 	return 5
 }
 
+// FilterNodesByKeywords dynamically filters a proxy node list using comma-separated keywords with OR / AND logic
+func FilterNodesByKeywords(proxies []ProxyNode, keywords []string, logic string, regexStr string) []string {
+	if len(proxies) == 0 {
+		return nil
+	}
+	cleanKws := make([]string, 0, len(keywords))
+	for _, kw := range keywords {
+		kw = strings.TrimSpace(kw)
+		if kw != "" {
+			cleanKws = append(cleanKws, strings.ToLower(kw))
+		}
+	}
+	if len(cleanKws) == 0 && strings.TrimSpace(regexStr) == "" {
+		return nil
+	}
+	logic = strings.ToUpper(strings.TrimSpace(logic))
+	if logic != "AND" {
+		logic = "OR"
+	}
+	var compiledRegex *regexp.Regexp
+	if strings.TrimSpace(regexStr) != "" {
+		compiledRegex, _ = regexp.Compile(strings.TrimSpace(regexStr))
+	}
 
+	res := make([]string, 0)
+	seen := make(map[string]bool)
+
+	for _, p := range proxies {
+		pType := strings.ToLower(p.Type)
+		if pType == "direct" || pType == "block" || pType == "reject" || p.Name == "" {
+			continue
+		}
+		if isInformationalOrInvalidNode(p.Name) {
+			continue
+		}
+		lowerName := strings.ToLower(p.Name)
+		matched := false
+		if len(cleanKws) > 0 {
+			if logic == "AND" {
+				matched = true
+				for _, kw := range cleanKws {
+					if !strings.Contains(lowerName, kw) {
+						matched = false
+						break
+					}
+				}
+			} else { // "OR"
+				for _, kw := range cleanKws {
+					if strings.Contains(lowerName, kw) {
+						matched = true
+						break
+					}
+				}
+			}
+		} else {
+			matched = true
+		}
+
+		if matched && compiledRegex != nil {
+			if !compiledRegex.MatchString(p.Name) {
+				matched = false
+			}
+		}
+
+		if matched && !seen[p.Name] {
+			seen[p.Name] = true
+			res = append(res, p.Name)
+		}
+	}
+	return res
+}

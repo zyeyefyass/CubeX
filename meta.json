@@ -4,7 +4,7 @@
   "subtitle": "HOST-SYMBIOTIC ZERO-PERCEPTION GATEWAY",
   "version": "Test v3.0",
   "engines": [
-    "sing-box v1.14.3",
+    "sing-box v1.14.4",
     "mihomo v1.19.32"
   ],
   "architectures": [

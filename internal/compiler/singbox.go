@@ -96,7 +96,7 @@ func isSRSAvailable(ruleFilename string) bool {
 	return false
 }
 
-// BuildSingBox transcompiles CubeX Universal IR to sing-box v1.14.3+ config.json
+// BuildSingBox transcompiles CubeX Universal IR to sing-box v1.14.4+ config.json
 func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	if ir == nil {
 		return nil, fmt.Errorf("config IR is nil")
@@ -780,6 +780,17 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			}
 			proxies = reordered
 		}
+
+		// v1.14.4 strict syntax requirement: reject duplicate tags in outbound groups
+		seenTags := make(map[string]bool, len(proxies))
+		dedupProxies := make([]string, 0, len(proxies))
+		for _, p := range proxies {
+			if !seenTags[p] {
+				seenTags[p] = true
+				dedupProxies = append(dedupProxies, p)
+			}
+		}
+		proxies = dedupProxies
 
 		gOutbound := map[string]any{
 			"type":      gType,

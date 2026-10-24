@@ -427,8 +427,10 @@ func main() {
 	mux.HandleFunc("/api/v1/engine/proxy/delay", srv.handleProxyDelay)
 	mux.HandleFunc("/api/v1/routing/regions", srv.handleRoutingRegions)
 	mux.HandleFunc("/api/v1/config/routing/group/add", srv.handleCustomGroupAdd)
+	mux.HandleFunc("/api/v1/config/routing/group/update", srv.handleCustomGroupUpdate)
 	mux.HandleFunc("/api/v1/config/routing/group/delete", srv.handleCustomGroupDelete)
 	mux.HandleFunc("/api/v1/config/routing/group/toggle", srv.handleCustomGroupToggle)
+	mux.HandleFunc("/api/v1/config/subscriptions/edit", srv.handleSubEdit)
 	mux.HandleFunc("/api/v1/ros/script", srv.handleRosScript)
 	mux.HandleFunc("/api/v1/ros/conntrack/clean", srv.handleRosConntrackClean)
 
@@ -1640,13 +1642,16 @@ func (s *Server) handleCustomGroupAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Name      string   `json:"name"`
-		Icon      string   `json:"icon"`
-		Type      string   `json:"type"`
-		Proxies   []string `json:"proxies"`
-		Now       string   `json:"now"`
-		RuleType  string   `json:"rule_type"`
-		RuleValue string   `json:"rule_value"`
+		Name           string   `json:"name"`
+		Icon           string   `json:"icon"`
+		Type           string   `json:"type"`
+		Proxies        []string `json:"proxies"`
+		Now            string   `json:"now"`
+		RuleType       string   `json:"rule_type"`
+		RuleValue      string   `json:"rule_value"`
+		FilterKeywords []string `json:"filter_keywords"`
+		FilterLogic    string   `json:"filter_logic"`
+		FilterRegex    string   `json:"filter_regex"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -1671,21 +1676,32 @@ func (s *Server) handleCustomGroupAdd(w http.ResponseWriter, r *http.Request) {
 	if req.Icon == "" {
 		req.Icon = "default"
 	}
+	if len(req.FilterKeywords) > 0 || req.FilterRegex != "" {
+		matched := schema.FilterNodesByKeywords(ir.Proxies, req.FilterKeywords, req.FilterLogic, req.FilterRegex)
+		if len(matched) > 0 {
+			req.Proxies = matched
+		} else {
+			req.Proxies = []string{"DIRECT"}
+		}
+	}
 	if len(req.Proxies) == 0 {
 		req.Proxies = []string{"🇭🇰 香港自动", "🇹🇼 台湾自动", "🇸🇬🇯🇵🇰🇷 新日韩自动", "🇺🇸 美国自动", "🏠 自建自动", "🌐 其它自动", "DIRECT"}
 	}
 	if req.Now == "" || req.Now == "🇸🇬 新加坡自动" || req.Now == "🇯🇵 日韩自动" {
-		req.Now = "🇸🇬🇯🇵🇰🇷 新日韩自动"
+		req.Now = req.Proxies[0]
 	}
 
 	newGroup := schema.StrategyGroup{
-		Name:     req.Name,
-		Type:     req.Type,
-		Proxies:  req.Proxies,
-		Now:      req.Now,
-		Icon:     req.Icon,
-		Category: "business",
-		IsCustom: true,
+		Name:           req.Name,
+		Type:           req.Type,
+		Proxies:        req.Proxies,
+		Now:            req.Now,
+		Icon:           req.Icon,
+		Category:       "business",
+		IsCustom:       true,
+		FilterKeywords: req.FilterKeywords,
+		FilterLogic:    req.FilterLogic,
+		FilterRegex:    req.FilterRegex,
 	}
 	ir.Groups = append(ir.Groups, newGroup)
 
@@ -1707,6 +1723,166 @@ func (s *Server) handleCustomGroupAdd(w http.ResponseWriter, r *http.Request) {
 	s.ir = ir
 	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
 	sendJSON(w, map[string]any{"ok": true, "group": newGroup})
+}
+
+func (s *Server) handleCustomGroupUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Name           string   `json:"name"`
+		NewName        string   `json:"new_name"`
+		Icon           string   `json:"icon"`
+		Type           string   `json:"type"`
+		Proxies        []string `json:"proxies"`
+		Now            string   `json:"now"`
+		FilterKeywords []string `json:"filter_keywords"`
+		FilterLogic    string   `json:"filter_logic"`
+		FilterRegex    string   `json:"filter_regex"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		sendJSON(w, map[string]any{"ok": false, "error": "策略组名称不能为空"})
+		return
+	}
+	ir := s.engMgr.GetIR()
+	found := false
+	for i := range ir.Groups {
+		if ir.Groups[i].Name == req.Name {
+			found = true
+			if req.NewName != "" && req.NewName != req.Name {
+				ir.Groups[i].Name = strings.TrimSpace(req.NewName)
+				for j := range ir.Rules {
+					if ir.Rules[j].Target == req.Name {
+						ir.Rules[j].Target = ir.Groups[i].Name
+					}
+				}
+			}
+			if req.Icon != "" {
+				ir.Groups[i].Icon = req.Icon
+			}
+			if req.Type != "" {
+				ir.Groups[i].Type = req.Type
+			}
+			ir.Groups[i].FilterKeywords = req.FilterKeywords
+			ir.Groups[i].FilterLogic = req.FilterLogic
+			ir.Groups[i].FilterRegex = req.FilterRegex
+
+			if len(req.FilterKeywords) > 0 || req.FilterRegex != "" {
+				matched := schema.FilterNodesByKeywords(ir.Proxies, req.FilterKeywords, req.FilterLogic, req.FilterRegex)
+				if len(matched) > 0 {
+					ir.Groups[i].Proxies = matched
+				} else {
+					ir.Groups[i].Proxies = []string{"DIRECT"}
+				}
+			} else if len(req.Proxies) > 0 {
+				ir.Groups[i].Proxies = req.Proxies
+			}
+			if req.Now != "" {
+				ir.Groups[i].Now = req.Now
+			} else if len(ir.Groups[i].Proxies) > 0 {
+				ir.Groups[i].Now = ir.Groups[i].Proxies[0]
+			}
+			break
+		}
+	}
+	if !found {
+		sendJSON(w, map[string]any{"ok": false, "error": "未找到指定策略组"})
+		return
+	}
+	schema.SyncAllStrategyGroups(ir)
+	s.engMgr.UpdateIR(ir)
+	s.ir = ir
+	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+	sendJSON(w, map[string]any{"ok": true})
+}
+
+func (s *Server) handleSubEdit(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+		URL  string `json:"url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	req.ID = strings.TrimSpace(req.ID)
+	req.URL = strings.TrimSpace(req.URL)
+	req.Name = strings.TrimSpace(req.Name)
+	if req.ID == "" || req.URL == "" {
+		sendJSON(w, map[string]any{"ok": false, "error": "订阅 ID 和 URL 不能为空"})
+		return
+	}
+	ir := s.engMgr.GetIR()
+	subIdx := -1
+	for i := range ir.Subscriptions {
+		if ir.Subscriptions[i].ID == req.ID {
+			subIdx = i
+			break
+		}
+	}
+	if subIdx == -1 {
+		sendJSON(w, map[string]any{"ok": false, "error": "未找到指定订阅"})
+		return
+	}
+
+	fetcher := sub.NewFetcher()
+	res, err := fetcher.Fetch(req.URL)
+	if err != nil || res == nil || res.NodeCount == 0 {
+		errMsg := "新订阅链接验证失败（未能获取到有效节点），已自动保留现有节点与配置！"
+		if err != nil {
+			errMsg = fmt.Sprintf("新订阅解析失败: %v，已安全保留原配置！", err)
+		}
+		sendJSON(w, map[string]any{"ok": false, "error": errMsg})
+		return
+	}
+
+	// Fetch succeeded: atomically replace nodes for this subscription
+	if req.Name != "" {
+		ir.Subscriptions[subIdx].Name = req.Name
+	}
+	ir.Subscriptions[subIdx].URL = req.URL
+	ir.Subscriptions[subIdx].NodeCount = res.NodeCount
+	ir.Subscriptions[subIdx].UsedBytes = res.Upload + res.Download
+	ir.Subscriptions[subIdx].TotalBytes = res.Total
+	ir.Subscriptions[subIdx].ExpireAt = res.Expire
+	ir.Subscriptions[subIdx].UpdatedAt = time.Now()
+
+	newProxies := make([]schema.ProxyNode, 0, len(ir.Proxies))
+	for _, p := range ir.Proxies {
+		if p.SubID != req.ID {
+			newProxies = append(newProxies, p)
+		}
+	}
+	for _, n := range res.Nodes {
+		n.SubID = req.ID
+		prefix := fmt.Sprintf("[%s]", ir.Subscriptions[subIdx].Name)
+		if !strings.HasPrefix(n.Name, prefix) {
+			n.Name = fmt.Sprintf("%s %s", prefix, n.Name)
+		}
+		newProxies = append(newProxies, n)
+	}
+	ir.Proxies = newProxies
+	schema.SyncAllStrategyGroups(ir)
+	s.engMgr.UpdateIR(ir)
+	s.ir = ir
+	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+	sendJSON(w, map[string]any{
+		"ok":         true,
+		"node_count": res.NodeCount,
+		"name":       ir.Subscriptions[subIdx].Name,
+		"url":        ir.Subscriptions[subIdx].URL,
+	})
 }
 
 func (s *Server) handleCustomGroupDelete(w http.ResponseWriter, r *http.Request) {

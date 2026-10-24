@@ -129,8 +129,11 @@ type StrategyGroup struct {
 	Category  string   `json:"category,omitempty" yaml:"category,omitempty"`   // business / region
 	Region    string   `json:"region,omitempty" yaml:"region,omitempty"`       // HK, TW, SG, JPKR, US, OTHERS
 	Policy    string   `json:"policy,omitempty" yaml:"policy,omitempty"`       // auto, fallback, disaster
-	IsCustom  bool     `json:"is_custom,omitempty" yaml:"is_custom,omitempty"` // whether user manually added this
-	Disabled  bool     `json:"disabled,omitempty" yaml:"disabled,omitempty"`   // whether rule routing for this group is temporarily bypassed
+	IsCustom       bool     `json:"is_custom,omitempty" yaml:"is_custom,omitempty"`             // whether user manually added this
+	Disabled       bool     `json:"disabled,omitempty" yaml:"disabled,omitempty"`               // whether rule routing for this group is temporarily bypassed
+	FilterKeywords []string `json:"filter_keywords,omitempty" yaml:"filter_keywords,omitempty"` // dynamic node filtering keywords
+	FilterLogic    string   `json:"filter_logic,omitempty" yaml:"filter_logic,omitempty"`       // 'OR' (default) or 'AND'
+	FilterRegex    string   `json:"filter_regex,omitempty" yaml:"filter_regex,omitempty"`       // optional regex filter
 }
 
 type Rule struct {
