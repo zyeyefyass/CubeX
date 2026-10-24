@@ -401,6 +401,10 @@ $printMsg ("✅ [3/5 网段与IP分配] 主路由IP: " . $bridgeIP . " | 局域�
 # 智能探测高速存储磁盘 (优先外部 disk1 / usb1，没有则使用内置根目录)
 :local storeDir "cubex";
 :local pullDir "cubex/pull";
+# 若存在无容器绑定的孤立旧 root-dir 目录残留，自动清理以允许 RouterOS 正常解压
+:if ([:len [/container find where root-dir=$storeDir]] = 0) do={
+    :do { /file remove [find name=$storeDir]; } on-error={};
+}
 :do {
     :if ([:len [/file find name="disk1"]] > 0) do={
         :set storeDir "disk1/cubex";
@@ -439,9 +443,12 @@ set memory-high=256M registry-url="https://registry-1.docker.io" tmpdir=$pullDir
 
 # 防恶意/私有 DoT 侧漏阻断 (阻断外发 TCP/UDP 853，防止终端绕过 Fake-IP 进行直连明文/私有探测)
 /ip firewall filter
+:if ([:len [find comment="CubeX Allow Outbound"]] = 0) do={
+    add chain=forward src-address=$cubexIP action=accept comment="CubeX Allow Outbound"
+}
 :if ([:len [find comment="CubeX Block DoT TCP"]] = 0) do={
-    add chain=forward src-address=!$cubexIP protocol=tcp dst-port=853 action=reject reject-with=tcp-reset comment="CubeX Block DoT TCP"
-    add chain=forward src-address=!$cubexIP protocol=udp dst-port=853 action=reject reject-with=icmp-network-unreachable comment="CubeX Block DoT UDP"
+    add chain=forward protocol=tcp dst-port=853 action=reject reject-with=tcp-reset comment="CubeX Block DoT TCP"
+    add chain=forward protocol=udp dst-port=853 action=reject reject-with=icmp-network-unreachable comment="CubeX Block DoT UDP"
     $printMsg "✅ [5/5 Filter防火墙] 已配置 DoT (端口853) 侧漏防御阻断规则";
 }
 
