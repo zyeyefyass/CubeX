@@ -521,15 +521,15 @@
           </section>
 
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <!-- 📊 动态模块: 实时网络遥测与双核 AB 竞技场 (一体化全景控制卡片) -->
+          <!-- 📊 动态模块: 实时网络遥测 (主流服务实时延迟探针)                  -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <section :class="['rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-7 space-y-6 transition shadow-2xl', activeEngine === 'singbox' ? 'glass-aurora' : 'glass-matrix']">
-            <!-- 1. Header: 标题、流速探针控制开关与双核对决按钮 -->
-            <div class="flex items-center justify-between flex-wrap gap-3 pb-3.5 border-b border-slate-700/40">
+          <section :class="['rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 transition shadow-2xl', activeEngine === 'singbox' ? 'glass-aurora' : 'glass-matrix']">
+            <!-- Header: 标题、开启实时自动测速 toggle、⚡ 立即刷新按钮 -->
+            <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-700/40">
               <div>
                 <div class="flex items-center gap-3">
                   <h3 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                    <span>📊 实时网络遥测与双核 AB 竞技场</span>
+                    <span>📊 实时网络遥测</span>
                   </h3>
                   <!-- Toggle: 开启实时自动测速 -->
                   <label class="flex items-center gap-2 cursor-pointer select-none">
@@ -541,36 +541,23 @@
                     </div>
                   </label>
                 </div>
-                <p class="text-xs text-slate-400 mt-1">
-                  全链路实时流速负荷、主流服务动态探针与双内核（Mihomo × sing-box）多域基准同台竞技
-                </p>
+                <p class="text-xs text-slate-400 mt-1">全链路主流服务实时多域延迟探针遥测与网络健康监控</p>
               </div>
 
-              <!-- Header Actions -->
-              <div class="flex items-center gap-2.5">
-                <!-- ⚡ Refresh probes button -->
-                <button @click="triggerAllServiceProbes" :disabled="probingServiceLatencies" title="立即刷新全部测速探针"
-                  class="w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-amber-300 border border-slate-700 hover:border-amber-400/40 flex items-center justify-center transition active:scale-95 shadow-sm cursor-pointer">
-                  <span :class="{'animate-spin': probingServiceLatencies}">⚡</span>
-                </button>
-
-                <!-- ⚔️ Start Dual-core Benchmark button -->
-                <button @click="runBenchmark" :disabled="benchmarking" class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-lg shadow-cyan-500/20 active:scale-95 transition flex items-center gap-2 cursor-pointer disabled:opacity-50">
-                  <span v-if="benchmarking" class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-                  <span>{{ benchmarking ? '压测竞技中...' : '开始双核竞技' }}</span>
-                </button>
-              </div>
+              <!-- ⚡ Refresh probes button -->
+              <button @click="triggerAllServiceProbes" :disabled="probingServiceLatencies" title="立即刷新全部测速探针"
+                class="w-8 h-8 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-amber-300 border border-slate-700 hover:border-amber-400/40 flex items-center justify-center transition active:scale-95 shadow-sm cursor-pointer">
+                <span :class="{'animate-spin': probingServiceLatencies}">⚡</span>
+              </button>
             </div>
 
             <!-- Backdrop overlay to dismiss dropdown on outside click -->
             <div v-if="activeProbeDropdown !== null" @click="activeProbeDropdown = null" class="fixed inset-0 z-40"></div>
 
-
-
-            <!-- 3. Row 2: 4 Service Speedtest Cards with Custom Cyber Aurora Dropdown & 8-Bar Dynamic Pillars -->
+            <!-- 4 Service Speedtest Cards with Custom Cyber Aurora Dropdown & 8-Bar Dynamic Pillars -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div v-for="(item, bi) in serviceProbes" :key="bi"
-                class="min-h-[72px] py-3 px-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-cyan-500/40 transition flex items-center justify-between gap-1 shadow-md group relative"
+                class="min-h-[72px] py-3.5 px-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-cyan-500/40 transition flex items-center justify-between gap-1 shadow-md group relative"
                 :class="activeProbeDropdown === bi ? 'z-50 ring-1 ring-cyan-400/50' : 'z-10'">
                 
                 <!-- Left: Official Clean Brand Logo & Site Selector -->
@@ -633,12 +620,32 @@
                 </div>
               </div>
             </div>
+          </section>
 
-            <!-- 4. Row 3: 双核同节点 AB 竞技基准 (目标网站选择 + 18 站矩阵) -->
-            <div class="space-y-3.5 pt-3 border-t border-slate-700/40">
+          <!-- ════════════════════════════════════════════════════════════════ -->
+          <!-- ⚔️ 双核同节点 AB 延迟/吞吐竞技场                                  -->
+          <!-- ════════════════════════════════════════════════════════════════ -->
+          <section :class="['rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 transition shadow-2xl', activeEngine === 'singbox' ? 'glass-aurora' : 'glass-matrix']">
+            <div class="flex items-center justify-between border-b border-slate-700/40 pb-3 flex-wrap gap-2">
+              <div>
+                <div class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                  <span>⚔️ 双核同节点 AB 延迟/吞吐竞技场</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-1">基于同一出站节点的 Mihomo 与 sing-box 并行 TCP/TLS 握手延迟与内存开销基准对决</p>
+              </div>
+
+              <!-- ⚔️ Start Dual-core Benchmark button -->
+              <button @click="runBenchmark" :disabled="benchmarking" class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white shadow-lg shadow-cyan-500/20 active:scale-95 transition flex items-center gap-2 cursor-pointer disabled:opacity-50">
+                <span v-if="benchmarking" class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                <span>{{ benchmarking ? '压测竞技中...' : '开始双核竞技' }}</span>
+              </button>
+            </div>
+
+            <!-- 测速目标网站选择栏 (多预设快捷切换 + 自定义URL) -->
+            <div class="space-y-3.5 pt-1">
               <div class="flex items-center justify-between flex-wrap gap-2.5 py-1">
                 <span class="text-xs sm:text-[13px] font-semibold text-slate-300 flex items-center gap-2">
-                  <span>🎯 竞技测速目标:</span>
+                  <span>🎯 测速目标网站:</span>
                   <span class="text-xs font-mono text-cyan-400 font-medium truncate max-w-[320px]">{{ benchmarkTargetUrl }}</span>
                 </span>
                 <span class="text-xs text-slate-400 font-mono flex items-center gap-2 flex-wrap">
@@ -671,7 +678,7 @@
               </div>
             </div>
 
-            <!-- 5. Row 4: 双核同台极速竞技卡片 (sing-box vs Mihomo) -->
+            <!-- 双核同台极速竞技卡片 (sing-box vs Mihomo) -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
               
               <!-- 1. sing-box 竞技卡片 (原生极速轻量) -->
@@ -776,7 +783,7 @@
 
             </div>
 
-            <!-- 6. Recommendation Alert if Available -->
+            <!-- Recommendation Alert if Available -->
             <div v-if="benchmarkResult.recommendation" class="p-3.5 rounded-xl bg-slate-900/90 border border-sky-800/40 text-xs text-cyan-200 flex items-center gap-2">
               <span>💡</span>
               <span class="font-mono">{{ benchmarkResult.recommendation }}</span>
@@ -3469,8 +3476,8 @@
                   <input v-model="hostConfig.host" placeholder="例: 10.0.0.1 或 192.168.1.1" class="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
                 <div>
-                  <label class="block text-[11px] text-slate-300 font-bold mb-1">通信端口 (ROS/爱快/OpenWrt: 80/443, Linux: 22)</label>
-                  <input v-model.number="hostConfig.port" type="number" placeholder="80 / 443 / 22" class="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
+                  <label class="block text-[11px] text-slate-300 font-bold mb-1">通信端口 (ROS/爱快/OpenWrt: 80, Linux: 22)</label>
+                  <input v-model.number="hostConfig.port" type="number" placeholder="80 / 22" class="w-full bg-slate-900 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
                 <div>
                   <label class="block text-[11px] text-slate-300 font-bold mb-1">管理员账号 (ROS/爱快: admin, OpenWrt/Linux: root)</label>
