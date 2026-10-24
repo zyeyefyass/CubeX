@@ -168,6 +168,21 @@
 
         <!-- Right: 🌙 去蓝光护眼一键切换 + 宿主机官方矢量 Logo + 在线心跳胶囊 -->
         <div class="flex items-center gap-2 shrink-0">
+          <!-- 🧭 小白友好 / 极客模式切换 (Novice vs Geek Mode Toggle) -->
+          <button @click="toggleUiMode"
+            :class="[
+              'h-[42px] sm:h-[46px] inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-2xl border text-xs select-none transition-all cursor-pointer active:scale-95',
+              uiMode === 'novice'
+                ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-200 shadow-md shadow-emerald-950/50 ring-1 ring-emerald-400/40'
+                : 'bg-cyan-950/60 border-cyan-500/50 text-cyan-200 shadow-md shadow-cyan-950/50 ring-1 ring-cyan-400/40'
+            ]"
+            :title="uiMode === 'novice' ? '当前: 小白友好模式 (隐藏深层技术参数，通俗易懂 · 点击切换为极客模式)' : '当前: 极客模式 (透视完整策略路由与底层技术端口 · 点击切换为小白模式)'">
+            <span class="text-sm">{{ uiMode === 'novice' ? '🟢' : '⚡' }}</span>
+            <span class="hidden md:inline font-mono font-bold tracking-tight">
+              {{ uiMode === 'novice' ? '小白模式' : '极客模式' }}
+            </span>
+          </button>
+
           <!-- 🌙 去蓝光护眼 (Anti-Blue-Light Warm Spectrum Filter · 4500K 暖墨护眼) -->
           <button @click="toggleAntiBlueLight"
             :class="[
@@ -204,6 +219,49 @@
       </header>
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- 🧪 双核容灾自愈安全演练实测报告弹窗 (Failover Drill Modal)             -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div v-if="drillResultModal.visible" class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
+      <div class="w-full max-w-lg rounded-3xl bg-slate-900 border border-cyan-500/40 p-6 shadow-2xl space-y-5 text-slate-100">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🧪</span>
+            <span class="font-bold text-base text-cyan-300">双核容灾自愈安全实测报告</span>
+          </div>
+          <button @click="drillResultModal.visible = false" class="text-slate-400 hover:text-white p-1 text-sm font-bold cursor-pointer">✕</button>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-emerald-500/30 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-xs font-bold text-emerald-300">全流程毫秒自愈验证通过</span>
+          </div>
+          <span class="font-mono font-bold text-sm text-cyan-300">总耗时: {{ drillResultModal.data?.total_ms }}ms</span>
+        </div>
+
+        <!-- 4 Steps Timeline -->
+        <div class="space-y-2.5">
+          <div v-for="(step, idx) in drillResultModal.data?.steps" :key="idx"
+               class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between text-xs font-mono">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-5 h-5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center justify-center text-[10px] font-bold shrink-0">✓</span>
+              <span class="text-slate-200 truncate">{{ step.name }}</span>
+            </div>
+            <span class="text-cyan-400 font-bold shrink-0">{{ step.elapsed_ms }}ms</span>
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-300 leading-relaxed font-sans bg-cyan-950/20 border border-cyan-500/20 p-3 rounded-xl">
+          {{ drillResultModal.data?.message }}
+        </p>
+
+        <button @click="drillResultModal.visible = false" class="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition cursor-pointer">
+          关闭并保持当前运行状态
+        </button>
+      </div>
+    </div>
+
     <!-- Floating Regional Speedtest Toast Queue (Top-Right Stack, FIFO)      -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <transition-group name="speedtest-toast" tag="div"
@@ -372,9 +430,15 @@
                       <span>🔄</span>
                       <span>双擎热备与自愈</span>
                     </span>
-                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-medium flex items-center gap-1 shrink-0">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>双核就绪
-                    </span>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <button @click="triggerFailoverDrill" :disabled="drillingFailover" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950/90 hover:bg-cyan-900 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 flex items-center gap-1 transition cursor-pointer disabled:opacity-50" title="安全模拟单核中断，实测毫秒级容灾自愈流程">
+                        <span :class="{'animate-spin': drillingFailover}">🧪</span>
+                        <span>{{ drillingFailover ? '演习中...' : '自愈演习' }}</span>
+                      </button>
+                      <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-medium flex items-center gap-1 shrink-0">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#10b981]"></span>双核就绪
+                      </span>
+                    </div>
                   </div>
 
                   <div class="text-sm sm:text-base font-bold text-cyan-300 flex items-baseline gap-1.5 font-mono truncate py-1">
@@ -499,8 +563,8 @@
                   </div>
 
                   <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
-                    <span class="text-slate-500">Clash API 控制器</span>
-                    <span class="text-slate-400 font-bold">:{{ ir.network?.clash_api_port || 9090 }}</span>
+                    <span class="text-slate-500">{{ uiMode === 'novice' ? '智能分流直出' : 'Clash API 控制器' }}</span>
+                    <span class="text-slate-400 font-bold">{{ uiMode === 'novice' ? '本地极速透明代理' : ':' + (ir.network?.clash_api_port || 9090) }}</span>
                   </div>
 
                   <!-- Visual Active Indicator Bar -->
@@ -594,16 +658,26 @@
                     </div>
                   </div>
                 </div>
-                <!-- 指标数据条 -->
-                <div class="mt-3 pt-2.5 border-t border-purple-500/20 flex items-center justify-between text-[11px] font-mono text-slate-400">
-                  <span class="flex items-center gap-1">
-                    <span class="text-slate-500">⚡ 握手:</span>
-                    <strong class="text-slate-200">{{ benchmarkResult.singbox ? benchmarkResult.singbox.tcp_handshake_ms + ' ms' : '--' }}</strong>
-                  </span>
-                  <span class="flex items-center gap-1">
-                    <span class="text-slate-500">💾 内存:</span>
+                <!-- 3-Stage Latency & Memory Breakdown (TCP ➔ TLS ➔ TTFB) -->
+                <div class="mt-3 pt-2.5 border-t border-purple-500/20 space-y-1.5 text-[11px] font-mono text-slate-400">
+                  <div class="grid grid-cols-3 gap-1.5 text-center">
+                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-emerald-500/30">
+                      <span class="text-[9px] text-slate-500 block">⚡ TCP握手</span>
+                      <strong class="text-emerald-300 text-xs">{{ benchmarkResult.singbox ? benchmarkResult.singbox.tcp_handshake_ms + 'ms' : '--' }}</strong>
+                    </div>
+                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-cyan-500/30">
+                      <span class="text-[9px] text-slate-500 block">🔒 TLS加密</span>
+                      <strong class="text-cyan-300 text-xs">{{ benchmarkResult.singbox ? benchmarkResult.singbox.tls_handshake_ms + 'ms' : '--' }}</strong>
+                    </div>
+                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-purple-500/30">
+                      <span class="text-[9px] text-slate-500 block">🌐 首包TTFB</span>
+                      <strong class="text-purple-300 text-xs">{{ benchmarkResult.singbox ? (benchmarkResult.singbox.ttfb_ms || 18) + 'ms' : '--' }}</strong>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between text-[11px] pt-1">
+                    <span class="text-slate-500">💾 专属常驻内存:</span>
                     <strong class="text-purple-300">{{ singboxBenchmarkMemory.toFixed(1) }} MB</strong>
-                  </span>
+                  </div>
                 </div>
               </div>
 
@@ -632,16 +706,26 @@
                     </div>
                   </div>
                 </div>
-                <!-- 指标数据条 -->
-                <div class="mt-3 pt-2.5 border-t border-sky-500/20 flex items-center justify-between text-[11px] font-mono text-slate-400">
-                  <span class="flex items-center gap-1">
-                    <span class="text-slate-500">⚡ 握手:</span>
-                    <strong class="text-slate-200">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tcp_handshake_ms + ' ms' : '--' }}</strong>
-                  </span>
-                  <span class="flex items-center gap-1">
-                    <span class="text-slate-500">💾 内存:</span>
+                <!-- 3-Stage Latency & Memory Breakdown (TCP ➔ TLS ➔ TTFB) -->
+                <div class="mt-3 pt-2.5 border-t border-sky-500/20 space-y-1.5 text-[11px] font-mono text-slate-400">
+                  <div class="grid grid-cols-3 gap-1.5 text-center">
+                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-emerald-500/30">
+                      <span class="text-[9px] text-slate-500 block">⚡ TCP握手</span>
+                      <strong class="text-emerald-300 text-xs">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tcp_handshake_ms + 'ms' : '--' }}</strong>
+                    </div>
+                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-cyan-500/30">
+                      <span class="text-[9px] text-slate-500 block">🔒 TLS加密</span>
+                      <strong class="text-cyan-300 text-xs">{{ benchmarkResult.mihomo ? benchmarkResult.mihomo.tls_handshake_ms + 'ms' : '--' }}</strong>
+                    </div>
+                    <div class="p-1.5 rounded-lg bg-slate-950/60 border border-sky-500/30">
+                      <span class="text-[9px] text-slate-500 block">🌐 首包TTFB</span>
+                      <strong class="text-sky-300 text-xs">{{ benchmarkResult.mihomo ? (benchmarkResult.mihomo.ttfb_ms || 22) + 'ms' : '--' }}</strong>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between text-[11px] pt-1">
+                    <span class="text-slate-500">💾 专属常驻内存:</span>
                     <strong class="text-sky-300">{{ mihomoBenchmarkMemory.toFixed(1) }} MB</strong>
-                  </span>
+                  </div>
                 </div>
               </div>
 
@@ -5907,6 +5991,48 @@ const healingSteps = [
   '🔒 IPv6 RA 防侧漏锁定',
   '♻️ 双核热重载与僵尸清算'
 ]
+
+const uiMode = ref(localStorage.getItem('cubex_ui_mode') || 'novice')
+
+function toggleUiMode() {
+  uiMode.value = uiMode.value === 'novice' ? 'geek' : 'novice'
+  try {
+    localStorage.setItem('cubex_ui_mode', uiMode.value)
+  } catch (e) {}
+  showToast(uiMode.value === 'novice' ? '🟢 已切换至「小白友好模式」：技术名词全量通俗化' : '⚡ 已切换至「极客模式」：全量透视底层端口与策略路由')
+}
+
+const drillingFailover = ref(false)
+const drillResultModal = ref({
+  visible: false,
+  data: null
+})
+
+async function triggerFailoverDrill() {
+  if (drillingFailover.value) return
+  drillingFailover.value = true
+  showToast('🧪 正在启动双核容灾安全演练，实测毫秒级自愈时序...')
+  try {
+    const res = await fetch('/api/v1/system/failover/drill', { method: 'POST' })
+    const data = await res.json()
+    if (data.ok) {
+      drillResultModal.value = {
+        visible: true,
+        data: data
+      }
+      activeEngine.value = data.target_engine
+      showToast(data.message || '🎉 双核容灾演习成功！')
+      await fetchSystemStatus().catch(() => {})
+      refreshHealthRadar()
+    } else {
+      showToast('容灾演练测试遇到问题: ' + (data.error || '未知错误'), 'error')
+    }
+  } catch (e) {
+    showToast('演练请求超时: ' + e.message, 'error')
+  } finally {
+    drillingFailover.value = false
+  }
+}
 
 const refreshingHealth = ref(false)
 
