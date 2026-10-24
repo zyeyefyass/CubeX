@@ -49,6 +49,15 @@ func DefaultConfig() Config {
 				Enabled:   true,
 				CreatedAt: "2026-10-22T00:00:00Z",
 			},
+			{
+				ID:        "rw_example_a_record",
+				Domain:    "nas.lan",
+				Type:      schema.DNSRewriteTypeA,
+				Target:    "10.0.0.100",
+				Comment:   "局域网 A 记录静态映射示例 (如将自定义域名直连私有 NAS 或服务器)",
+				Enabled:   false,
+				CreatedAt: "2026-10-25T00:00:00Z",
+			},
 		},
 	}
 }

@@ -3162,7 +3162,7 @@
                 <div class="flex items-center gap-3">
                   <h3 class="text-base font-bold text-white tracking-wide flex items-center gap-2">
                     <span class="text-cyan-400">🔀</span>
-                    <span>DNS 重写</span>
+                    <span>DNS 重写和 A 记录静态映射</span>
                   </h3>
                   <!-- Master Switch -->
                   <label class="relative inline-flex items-center cursor-pointer">
@@ -3175,7 +3175,7 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                  <button @click="resetDnsRewriteDefaults" title="恢复默认 Google Play 重写规则" class="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 active:scale-95 transition cursor-pointer text-xs flex items-center gap-1.5">
+                  <button @click="resetDnsRewriteDefaults" title="恢复默认 DNS 重写与 A 记录静态映射规则" class="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 active:scale-95 transition cursor-pointer text-xs flex items-center gap-1.5">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     <span>重置默认</span>
                   </button>
@@ -3188,7 +3188,7 @@
 
               <!-- Note / Description matching user screenshot -->
               <p class="text-xs text-slate-400 leading-relaxed">
-                把某个域名的解析结果改成另一个域名或固定 IP；默认带两条 Google 的重写（解决 Google Play 无法下载 App 问题）。
+                把某个域名的解析结果改成另一个域名或固定 IP；默认带两条 Google 的重写（解决 Google Play 无法下载 App 问题）及一条局域网 A 记录静态映射示例。
               </p>
 
               <!-- Rules List -->
@@ -3227,7 +3227,7 @@
                 </div>
 
                 <div v-if="!dnsRewriteConfig.rules || dnsRewriteConfig.rules.length === 0" class="text-center py-6 text-xs text-slate-500 italic bg-slate-950/40 rounded-2xl border border-dashed border-slate-800">
-                  暂无 DNS 重写规则，点击右上角【添加重写】或【重置默认】快速恢复 Google Play 官方加速重写
+                  暂无规则，点击右上角【添加重写】或【重置默认】快速恢复官方加速重写与 A 记录静态映射示例
                 </div>
               </div>
             </div>
@@ -7766,6 +7766,14 @@ const dnsRewriteConfig = ref({
       target: 'developers.google.com',
       comment: '重定向至 Google 开发者海外官方全功能域',
       enabled: true
+    },
+    {
+      id: 'rw_example_a_record',
+      domain: 'nas.lan',
+      type: 'A',
+      target: '10.0.0.100',
+      comment: '局域网 A 记录静态映射示例 (如将自定义域名直连私有 NAS 或服务器)',
+      enabled: false
     }
   ]
 })
@@ -7827,7 +7835,7 @@ const toggleDnsRewriteRule = async (rule) => {
 }
 
 const resetDnsRewriteDefaults = async () => {
-  if (!confirm('确定要恢复默认 DNS 重写设置吗？将重置为两条官方 Google Play 重写规则。')) return
+  if (!confirm('确定要恢复默认设置吗？将重置为两条 Google 重写规则及一条局域网 A 记录静态映射示例。')) return
   try {
     const res = await fetch('/api/v1/dns/rewrite/reset', { method: 'POST' })
     const data = await res.json()

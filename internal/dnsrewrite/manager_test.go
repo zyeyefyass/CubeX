@@ -20,27 +20,33 @@ func TestDNSRewriteManager(t *testing.T) {
 	}
 
 	rules := mgr.GetAllRules()
-	if len(rules) < 2 {
-		t.Errorf("Expected at least 2 default rules, got %d", len(rules))
+	if len(rules) < 3 {
+		t.Errorf("Expected at least 3 default rules, got %d", len(rules))
+	}
+
+	// Duplicate domain test on pre-existing default rule nas.lan
+	_, err = mgr.AddRule("nas.lan", schema.DNSRewriteTypeA, "10.0.0.101", "")
+	if err == nil {
+		t.Errorf("Expected duplicate error for existing nas.lan, got nil")
 	}
 
 	// Add an A-record rule
-	added, err := mgr.AddRule("nas.lan", schema.DNSRewriteTypeA, "10.0.0.100", "Home NAS")
+	added, err := mgr.AddRule("pve.lan", schema.DNSRewriteTypeA, "10.0.0.200", "Home PVE")
 	if err != nil {
 		t.Fatalf("Failed to add rule: %v", err)
 	}
-	if added.Domain != "nas.lan" || added.Target != "10.0.0.100" || added.Type != schema.DNSRewriteTypeA {
+	if added.Domain != "pve.lan" || added.Target != "10.0.0.200" || added.Type != schema.DNSRewriteTypeA {
 		t.Errorf("Unexpected rule content: %+v", added)
 	}
 
 	// Duplicate domain test
-	_, err = mgr.AddRule("nas.lan", schema.DNSRewriteTypeA, "10.0.0.101", "")
+	_, err = mgr.AddRule("pve.lan", schema.DNSRewriteTypeA, "10.0.0.201", "")
 	if err == nil {
 		t.Errorf("Expected duplicate error, got nil")
 	}
 
 	// Update rule
-	err = mgr.UpdateRule(added.ID, "nas.lan", schema.DNSRewriteTypeA, "10.0.0.105", "Updated NAS", true)
+	err = mgr.UpdateRule(added.ID, "pve.lan", schema.DNSRewriteTypeA, "10.0.0.205", "Updated PVE", true)
 	if err != nil {
 		t.Fatalf("Failed to update rule: %v", err)
 	}
@@ -50,7 +56,7 @@ func TestDNSRewriteManager(t *testing.T) {
 	active := mgr2.GetActiveRules()
 	found := false
 	for _, r := range active {
-		if r.Domain == "nas.lan" && r.Target == "10.0.0.105" {
+		if r.Domain == "pve.lan" && r.Target == "10.0.0.205" {
 			found = true
 			break
 		}
