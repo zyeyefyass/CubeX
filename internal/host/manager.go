@@ -950,7 +950,7 @@ func (m *Manager) GetOutboundIP(targetHost string) string {
 			}
 		}
 	}
-	return "10.0.0.11"
+	return "10.0.0.7"
 }
 
 // ApplyFirewall configures IP forwarding, WireGuard UDP port, panel TCP port, and NAT masquerade on the host.

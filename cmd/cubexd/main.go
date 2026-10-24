@@ -2940,11 +2940,15 @@ func (s *Server) startConntrackSweeper() {
 		// Initial purge 5 seconds after boot
 		time.Sleep(5 * time.Second)
 		if s.rosMgr != nil {
-			if restored := s.rosMgr.EnsureFakeIPRoute("10.0.0.11"); restored {
+			targetIP := s.rosMgr.GetOutboundIP()
+			if targetIP == "" {
+				targetIP = "10.0.0.7"
+			}
+			if restored := s.rosMgr.EnsureFakeIPRoute(targetIP); restored {
 				s.logBuffer.Add("INFO", "ROS", "RouterOS 宿主启动守护: 自动补齐 198.18.0.0/15 回指路由")
 			}
 			purgedConns := s.rosMgr.PurgeStaleFakeIPConnections()
-			purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes("10.0.0.11")
+			purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes(targetIP)
 			if purgedConns > 0 || purgedRoutes > 0 {
 				s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("RouterOS 宿主启动自愈巡检: 已清算 %d 条僵尸连接与 %d 条失效回指路由", purgedConns, purgedRoutes))
 			}
@@ -2958,14 +2962,18 @@ func (s *Server) startConntrackSweeper() {
 		for range ticker.C {
 			loopCount++
 			if s.rosMgr != nil {
+				targetIP := s.rosMgr.GetOutboundIP()
+				if targetIP == "" {
+					targetIP = "10.0.0.7"
+				}
 				// 1. Route guard every 15s: ensure route exists
-				if restored := s.rosMgr.EnsureFakeIPRoute("10.0.0.11"); restored {
+				if restored := s.rosMgr.EnsureFakeIPRoute(targetIP); restored {
 					s.logBuffer.Add("WARN", "ROS", "RouterOS 路由常驻看门狗: 检测到 198.18.0.0/15 回指路由丢失，已全自动 0 秒自愈恢复！")
 				}
 
 				// 2. ROS 7.25 DAI & Bridge trust guard every 60s (15s * 4)
 				if loopCount%4 == 0 {
-					if restored, _ := s.rosMgr.EnsureBridgeDAIProtection("10.0.0.11"); restored {
+					if restored, _ := s.rosMgr.EnsureBridgeDAIProtection(targetIP); restored {
 						s.logBuffer.Add("INFO", "ROS", "RouterOS 7.25+ 安全守护: 自动补齐 veth-cubex trusted=true 与 trusted-arp=true 信任标志")
 					}
 				}
@@ -2973,7 +2981,7 @@ func (s *Server) startConntrackSweeper() {
 				// 3. Conntrack sweeper and memory optimization every 10 minutes (15s * 40)
 				if loopCount%40 == 0 {
 					purgedConns := s.rosMgr.PurgeStaleFakeIPConnections()
-					purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes("10.0.0.11")
+					purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes(targetIP)
 					if purgedConns > 0 || purgedRoutes > 0 {
 						s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("RouterOS 宿主 10分钟静默周期自愈: 已清算 %d 条僵尸连接与 %d 条失效回指路由", purgedConns, purgedRoutes))
 					}
@@ -3021,13 +3029,12 @@ func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) 
 	dnsOK := false
 	fakeIP := ""
 	probeTargets := []string{
-		fmt.Sprintf("10.0.0.11:%d", dnsPort),
 		fmt.Sprintf("127.0.0.1:%d", dnsPort),
 	}
 	if s.rosMgr != nil {
 		obIP := s.rosMgr.GetOutboundIP()
-		if obIP != "" && obIP != "10.0.0.11" {
-			probeTargets = append(probeTargets, fmt.Sprintf("%s:%d", obIP, dnsPort))
+		if obIP != "" {
+			probeTargets = append([]string{fmt.Sprintf("%s:%d", obIP, dnsPort)}, probeTargets...)
 		}
 	}
 	for _, target := range probeTargets {
@@ -3066,7 +3073,8 @@ func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) 
 				for _, rt := range routes {
 					dst := fmt.Sprintf("%v", rt["dst-address"])
 					gw := fmt.Sprintf("%v", rt["gateway"])
-					if dst == "198.18.0.0/15" && strings.Contains(gw, "10.0.0.11") {
+					targetIP := s.rosMgr.GetOutboundIP()
+					if dst == "198.18.0.0/15" && (targetIP == "" || strings.Contains(gw, targetIP)) {
 						rosRouteOK = true
 						rosGW = gw
 						break

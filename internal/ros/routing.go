@@ -44,7 +44,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 	rosCfg := m.GetConfig()
 	cubexIP := m.GetOutboundIP()
 	if cubexIP == "" {
-		cubexIP = "10.0.0.11"
+		cubexIP = "10.0.0.7"
 	}
 
 	report := &InspectionReport{
@@ -366,7 +366,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Name:    "Mangle 策略分流标记 (/ip/firewall/mangle)",
 			Status:  "ok",
 			Value:   "同网段自由共存模式 (非强制劫持)",
-			Details: "当前采用 Fake-IP 静态路由精准分流。同网段任意终端可自由将网关设为 10.0.0.1 或 10.0.0.11，均可正常上网并享受分流，零单点故障风险。",
+			Details: "当前采用 Fake-IP 静态路由精准分流。同网段任意终端可自由将网关设为主路由或 CubeX (%s)，均可正常上网并享受分流，零单点故障风险。",
 			Advice:  "已支持同网段任意 IP 作为网关与 DNS",
 		})
 	}
@@ -400,7 +400,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			Name:    "严格防 DNS 泄露重定向 (/ip/firewall/nat)",
 			Status:  "ok",
 			Value:   "自由 DNS 解析模式 (非强制劫持)",
-			Details: "终端设为 10.0.0.11 可直接获得 CubeX 纯净防污染 DNS，设为 10.0.0.1 可使用主路由原生 DNS，两类设备在局域网内和谐共存。",
+			Details: "终端设为 %s 可直接获得 CubeX 纯净防污染 DNS，设为主路由可使用原生 DNS，两类设备在局域网内和谐共存。",
 			Advice:  "已支持同网段任意 IP 作为网关与 DNS",
 		})
 	}
@@ -1033,7 +1033,7 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 			}
 		}
 	}
-	res.Actions = append(res.Actions, "已确认就绪「同网段任意 IP 自由网关与 DNS」架构：终端设为 10.0.0.1 或 10.0.0.11 均可顺畅上网并享受科学加速！")
+	res.Actions = append(res.Actions, "已确认就绪「同网段任意 IP 自由网关与 DNS」架构：终端设为主路由或 CubeX (%s) 均可顺畅上网并享受加速！")
 
 	// 6. Anti-Block & Ultra-Low Latency Suite:
 	// 6a. Inject TCP MSS Clamping to prevent fragmentation blackholes (消除 IP 分片黑洞，降低 20% 握手延迟，杜绝 GFW 分片特征重组审计)
@@ -1145,9 +1145,8 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 	// 7. Clean up Stale Non-FIB Tables & Inactive NAT rules
 	for _, n := range existingNats {
 		comment, _ := n["comment"].(string)
-		toAddr, _ := n["to-addresses"].(string)
 		id, _ := n[".id"].(string)
-		if (strings.Contains(comment, "Phantun") || toAddr == "10.0.0.6") && id != "" {
+		if strings.Contains(comment, "Phantun") && id != "" {
 			_ = m.DeleteROS("/ip/firewall/nat/" + id)
 			res.Actions = append(res.Actions, "已清理失效端口映射规则: "+comment)
 		}
@@ -1377,7 +1376,7 @@ func (m *Manager) CleanAndReapplyRouting(targetIP string) (*ApplyResult, error) 
 			comment, _ := n["comment"].(string)
 			id, _ := n[".id"].(string)
 			if (strings.Contains(comment, "CubeX") || strings.Contains(comment, "MiCube") || strings.Contains(comment, "DNS")) && id != "" {
-				if toAddr, ok := n["to-addresses"].(string); ok && (toAddr == targetIP || toAddr == "10.0.0.11") {
+				if toAddr, ok := n["to-addresses"].(string); ok && (toAddr == targetIP || strings.Contains(comment, "DNS")) {
 					if delErr := m.DeleteROS("/ip/firewall/nat/" + id); delErr == nil {
 						res.Actions = append(res.Actions, "已清理 RouterOS DNS 端口 53 强制劫持规则 (恢复内网 DNS 自由选择)")
 					}

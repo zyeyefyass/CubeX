@@ -3243,48 +3243,52 @@
               </div>
             </div>
 
-            <!-- Tier 4: Unified All-in-One Super-Healing Action Bar (全栈全链路自愈总线) -->
+            <!-- Tier 4: Unified All-in-One Super-Healing Action Bar (全栈自愈总线) -->
             <div class="pt-2 border-t border-cyan-500/20 relative z-10">
-              <div class="flex flex-col sm:flex-row gap-2.5">
-                <!-- 1. 当前宿主专属全栈全链路自愈主按钮 (已全量合并原按钮2核心规则加固 + 策略路由 + Netwatch 0秒逃生 + IPv6 全局防泄露) -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- 1. 当前宿主全栈网络自愈主按钮 (左右严格等宽，文案精炼，去除晦涩术语) -->
                 <button v-if="isRouterOS" @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
-                  class="flex-1 h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-950/90 via-blue-950/90 to-emerald-950/90 hover:from-cyan-900/90 hover:to-emerald-900/90 border border-cyan-500/50 hover:border-cyan-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
-                  title="一键全栈全链路自愈：同步加固 CubeX 双核安全规则、RouterOS 策略路由 (table cubex)、Netwatch 0秒逃生探针、FastTrack 白名单及原生 IPv6 双栈防泄露">
+                  class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-950/90 via-blue-950/90 to-emerald-950/90 hover:from-cyan-900/90 hover:to-emerald-900/90 border border-cyan-500/50 hover:border-cyan-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
+                  title="一键全栈自愈：自动加固核心规则配置、主路由回指路由、故障毫秒逃生与原生 IPv6 纯净防泄露">
                   <span v-if="cleaningRosFirewall" class="inline-block animate-spin text-sm">↻</span>
                   <span v-else class="text-base text-cyan-400">⚡</span>
-                  <span>一键全栈全链路自愈 (核心规则加固 · RouterOS 策略回指 · Netwatch 0秒逃生 · IPv6 全局防泄露)</span>
+                  <span>一键全栈自愈 RouterOS</span>
                 </button>
                 <button v-else-if="isOpenWrt" @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
-                  class="flex-1 h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-sky-950/90 via-blue-950/90 to-teal-950/90 hover:from-sky-900/90 hover:to-teal-900/90 border border-sky-500/50 hover:border-sky-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-sky-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
-                  title="一键全栈全链路自愈：同步加固 CubeX 双核安全规则、OpenWrt UBUS 回指路由、DHCP 网关注入及 odhcpd 原生 IPv6 广播防泄露锁定">
+                  class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-sky-950/90 via-blue-950/90 to-teal-950/90 hover:from-sky-900/90 hover:to-teal-900/90 border border-sky-500/50 hover:border-sky-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-sky-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
+                  title="一键全栈自愈：自动加固核心规则配置、OpenWrt 策略回指、DHCP 故障逃生与 IPv6 原生防泄露">
                   <span v-if="cleaningRosFirewall" class="inline-block animate-spin text-sm">↻</span>
                   <span v-else class="text-base text-sky-400">📡</span>
-                  <span>一键全栈全链路自愈 (核心规则加固 · OpenWrt 策略回指 · DHCP 逃生 · IPv6 全局防泄露)</span>
+                  <span>一键全栈自愈 OpenWrt</span>
                 </button>
                 <button v-else-if="isIKuai" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall"
-                  class="flex-1 h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-950/90 via-teal-950/90 to-cyan-950/90 hover:from-emerald-900/90 hover:to-cyan-900/90 border border-emerald-500/50 hover:border-emerald-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
-                  title="一键全栈全链路自愈：同步加固 CubeX 双核安全规则、爱快 Web-RPC 198.18.0.0/15 回指路由与 DHCP 联动加固">
+                  class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-950/90 via-teal-950/90 to-cyan-950/90 hover:from-emerald-900/90 hover:to-cyan-900/90 border border-emerald-500/50 hover:border-emerald-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
+                  title="一键全栈自愈：自动加固核心规则配置、爱快静态回指路由与 DHCP 联动加固">
                   <span v-if="applyingLinuxFirewall" class="inline-block animate-spin text-sm">↻</span>
                   <span v-else class="text-base text-emerald-400">⚡</span>
-                  <span>一键全栈全链路自愈 (核心规则加固 · 爱快静态回指 198.18.0.0/15 · DHCP 联动加固)</span>
+                  <span>一键全栈自愈爱快主路由</span>
                 </button>
                 <button v-else @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall"
-                  class="flex-1 h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-950/90 via-blue-950/90 to-indigo-950/90 hover:from-cyan-900/90 hover:to-indigo-900/90 border border-cyan-500/50 hover:border-cyan-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 active:scale-98 disabled:opacity-50 cursor-pointer">
+                  class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-950/90 via-blue-950/90 to-indigo-950/90 hover:from-cyan-900/90 hover:to-indigo-900/90 border border-cyan-500/50 hover:border-cyan-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 active:scale-98 disabled:opacity-50 cursor-pointer">
                   <span v-if="applyingLinuxFirewall" class="inline-block animate-spin text-sm">↻</span>
                   <span v-else class="text-base text-cyan-400">⚡</span>
-                  <span>一键全栈全链路自愈 (核心规则加固 · {{ hostBadge.name }} 防火墙与内核转发)</span>
+                  <span>一键全栈自愈 {{ hostBadge.name }}</span>
                 </button>
 
-                <!-- 2. 混合双宿主协同辅助入口 -->
+                <!-- 2. 混合双宿主协同辅助入口 (与左侧严格等宽等高，统一视觉) -->
                 <button v-if="isRouterOS" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall"
-                  class="h-12 py-3 px-4 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 text-slate-300 hover:text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 shrink-0 shadow-sm active:scale-98 cursor-pointer"
-                  title="若旁路由运行于独立 Linux / 飞牛 NAS / PVE 宿主，可同时巡检与加固该宿主底层防火墙与内核转发">
-                  <span>🐧 联动伴生 Linux 防火墙</span>
+                  class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-slate-900/90 to-slate-950/90 hover:from-slate-800/90 hover:to-slate-900/90 border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 hover:text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-md active:scale-98 cursor-pointer"
+                  title="若旁路由运行于独立 Linux / 飞牛 NAS / PVE 宿主，可同时优化该宿主底层防火墙与内核转发">
+                  <span v-if="applyingLinuxFirewall" class="inline-block animate-spin text-sm">↻</span>
+                  <span v-else class="text-base">🐧</span>
+                  <span>联动伴生 Linux 防火墙</span>
                 </button>
                 <button v-else @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
-                  class="h-12 py-3 px-4 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-600 text-slate-300 hover:text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 shrink-0 shadow-sm active:scale-98 cursor-pointer"
+                  class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-slate-900/90 to-slate-950/90 hover:from-slate-800/90 hover:to-slate-900/90 border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 hover:text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-md active:scale-98 cursor-pointer"
                   title="若局域网上级主路由为 MikroTik RouterOS，可一键协同配置主路由策略路由与逃生规则">
-                  <span>📶 联动 RouterOS 主路由</span>
+                  <span v-if="cleaningRosFirewall" class="inline-block animate-spin text-sm">↻</span>
+                  <span v-else class="text-base text-cyan-400">📶</span>
+                  <span>联动 RouterOS 主路由</span>
                 </button>
               </div>
 
