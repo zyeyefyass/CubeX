@@ -150,7 +150,7 @@ func NewRingLogBuffer(maxSize int) *RingLogBuffer {
 
 	buf.Add("INFO", "SECURITY", "217heidai 权威规则与 MetaCubeX 防隐私追踪拦截库已装载 (233,481 条)")
 
-	buf.Add("INFO", "SECURITY", "防 DNS 泄露 0 明文回退熔断测试通过 (综合评分: 100/100 极光盾级)")
+	buf.Add("INFO", "SECURITY", "防 DNS 泄露 0 明文回退熔断测试通过 (综合评分: 100/100 暮光晶盾级)")
 
 	buf.Add("INFO", "DNSREWRITE", "DNS 重写中枢就绪 (CNAME 域名别名重定向与 A 记录静态映射已生效)")
 
@@ -437,6 +437,20 @@ type Server struct {
 	liveDownSpeed atomic.Int64
 
 	httpClient    *http.Client
+
+	smartPingMutex       sync.RWMutex
+
+	smartPingEnabled     bool
+
+	smartPingIntervalMin int
+
+	smartPingLastCheck   int64
+
+	smartPingFailovers   int
+
+	smartPingLastLog     string
+
+	smartPingGroupHealth []SmartPingGroupState
 
 }
 
@@ -780,6 +794,7 @@ func main() {
 	srv.startConntrackSweeper()
 
 	srv.startDailySubscriptionAutoUpdate()
+	srv.startSmartHealthPing()
 
 	adblockMgr.StartScheduler(func(msg string) {
 
@@ -881,6 +896,9 @@ func main() {
 	mux.HandleFunc("/api/v1/engine/group/select", srv.handleGroupSelect)
 
 	mux.HandleFunc("/api/v1/engine/proxy/delay", srv.handleProxyDelay)
+	mux.HandleFunc("/api/v1/smartping/status", srv.handleSmartPingStatus)
+	mux.HandleFunc("/api/v1/smartping/config", srv.handleSmartPingConfig)
+	mux.HandleFunc("/api/v1/smartping/trigger", srv.handleSmartPingTrigger)
 
 	mux.HandleFunc("/api/v1/routing/regions", srv.handleRoutingRegions)
 
@@ -8976,7 +8994,7 @@ func (s *Server) handleHealthRadar(w http.ResponseWriter, r *http.Request) {
 		total = 100
 	}
 
-	rating := "极光盾级 · 极佳"
+	rating := "暮光晶盾级 · 极佳"
 	if total < 80 {
 		rating = "预警 · 建议自愈"
 	} else if total < 95 {

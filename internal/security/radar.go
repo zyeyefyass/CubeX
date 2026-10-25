@@ -67,7 +67,7 @@ func RunSecurityAudit(ir *schema.ConfigIR) *SecurityAuditReport {
 	totalScoreAccum += quicItem.Score
 
 	totalScore := totalScoreAccum / 6
-	rating := "极光盾级 (100% 零泄露)"
+	rating := "暮光晶盾级 (100% 零泄露)"
 	summary := "所有 6 大硬核防泄露测试全量通过！DNS 0 明文回退、WebRTC Fake-IP 隔离、Apple Type 65 清洗、ECS 隐私保护均处于最高防御级别。"
 	canAutoRemediate := false
 

@@ -38,7 +38,7 @@ type SecurityTestItem struct {
 // SecurityAuditReport aggregates the entire hardcore security radar report.
 type SecurityAuditReport struct {
 	TotalScore       int                `json:"total_score"`        // 综合安全分 (0~100)
-	SecurityRating   string             `json:"security_rating"`    // 评级名称 (如: 极光盾级 100% 零泄露)
+	SecurityRating   string             `json:"security_rating"`    // 评级名称 (如: 暮光晶盾级 100% 零泄露)
 	ActiveEngine     string             `json:"active_engine"`      // 当前活跃内核 (sing-box / mihomo)
 	TestedAt         time.Time          `json:"tested_at"`          // 检测时间
 	Summary          string             `json:"summary"`            // 总体诊断结论

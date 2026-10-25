@@ -186,6 +186,36 @@
         <!-- Right: 🐙 GitHub 官方直达 + 🌙 去蓝光护眼一键切换 + 宿主机官方矢量 Logo + 在线心跳胶囊 -->
         <div class="flex items-center gap-2 shrink-0">
 
+          <!-- ⊞ 4K 高密驾驶舱 / 舒适沉浸模式切换胶囊 -->
+          <button @click="toggleDensityMode"
+            :title="densityMode === 'compact' ? '当前：4K 紧凑高密模式（点击切换标准舒适）' : '当前：标准舒适模式（点击切换 4K 紧凑高密）'"
+            :class="[
+              'h-[42px] sm:h-[46px] inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-2xl macos-capsule transition-all duration-300 font-mono text-xs font-bold active:scale-95 cursor-pointer',
+              densityMode === 'compact' ? 'border-cyan-400/50 bg-cyan-500/10 text-cyan-300 shadow-[0_0_12px_rgba(0,210,255,0.25)]' : 'text-slate-300 hover:text-white'
+            ]">
+            <svg v-if="densityMode === 'compact'" class="w-4 h-4 text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+            <svg v-else class="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+            </svg>
+            <span class="hidden xl:inline">{{ densityMode === 'compact' ? '高密驾驶舱' : '舒适视图' }}</span>
+          </button>
+
+          <!-- ⚡ 智能健康探活与预热无感自愈胶囊 -->
+          <button @click="showSmartPingModal = true"
+            title="智能健康巡检与预热自愈中枢 · 自动探活并 0 秒预先剔除失效节点"
+            class="h-[42px] sm:h-[46px] inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-2xl macos-capsule transition-all duration-300 font-mono text-xs font-bold text-slate-300 hover:text-white active:scale-95 cursor-pointer group">
+            <span class="relative flex h-2 w-2">
+              <span v-if="smartPing.enabled" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span :class="['relative inline-flex rounded-full h-2 w-2', smartPing.enabled ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-slate-500']"></span>
+            </span>
+            <span class="hidden lg:inline text-xs font-mono font-bold">智能探活</span>
+            <span v-if="smartPing.failover_count > 0" class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              {{ smartPing.failover_count }}自愈
+            </span>
+          </button>
+
           <!-- 🐙 GitHub 官方开源直达胶囊 (高度严格对称 h-[42px] sm:h-[46px]) -->
           <a href="https://github.com/zyeyefyass/CubeX" target="_blank" rel="noopener noreferrer"
             class="h-[42px] sm:h-[46px] inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-2xl macos-capsule hover:border-sky-400/50 text-slate-200 hover:text-white select-none transition-all duration-300 cursor-pointer active:scale-95 group"
@@ -281,7 +311,7 @@
     </div>
 
       <!-- Main Body Content Views -->
-      <main class="flex-1 p-3 sm:p-4 lg:p-5 space-y-4 pb-16 md:pb-6 w-full">
+      <main :class="['flex-1 pb-16 md:pb-6 w-full transition-all duration-300', densityMode === 'compact' ? 'density-compact p-2 sm:p-3 lg:p-3.5 space-y-2.5' : 'p-3 sm:p-4 lg:p-5 space-y-4']">
 
         <!-- ════════════════════════════════════════════════════════════════ -->
         <!-- TAB 1: 总览与分流 (Overview & Dual-Engine Cockpit)                -->
@@ -324,7 +354,7 @@
                       <!-- Tier badge ONLY shows rating string, strictly NO score number -->
                       <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-[rgba(255,158,94,0.15)] text-[#FEF08A] border border-[rgba(255,158,94,0.3)] font-semibold flex items-center gap-1.5">
                         <span class="w-1.5 h-1.5 rounded-full" :class="(healthRadar.overall_score ?? 100) >= 100 ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]' : ((healthRadar.overall_score ?? 100) >= 90 ? 'bg-cyan-400 shadow-[0_0_6px_#06b6d4]' : 'bg-amber-400 shadow-[0_0_6px_#f59e0b]')"></span>
-                        {{ (healthRadar.rating || '极光盾级 · 极佳').replace(/^[0-9]+[分\s·]*/, '') }}
+                        {{ (healthRadar.rating || '暮光晶盾级 · 极佳').replace(/^[0-9]+[分\s·]*/, '') }}
                       </span>
                     </div>
                     <!-- Intuitive, beginner-friendly status line -->
@@ -2906,7 +2936,7 @@
                 <div class="space-y-1">
                   <div class="flex items-center gap-2">
                     <span class="text-lg font-extrabold text-white">
-                      {{ securityAudit.report?.security_rating || '极光盾级 (100% 零泄露)' }}
+                      {{ securityAudit.report?.security_rating || '暮光晶盾级 (100% 零泄露)' }}
                     </span>
                     <!-- Active Engine Badge -->
                     <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold flex items-center gap-1 border"
@@ -5138,6 +5168,117 @@
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- ════════════════════════════════════════════════════════════════ -->
                     <!-- ════════════════════════════════════════════════════════════════ -->
+          <!-- ════════════════════════════════════════════════════════════════════ -->
+          <!-- Modal: 智能健康探活巡检与无感预热自愈中枢 (Smart Health Ping Modal) -->
+          <!-- ════════════════════════════════════════════════════════════════════ -->
+          <div v-if="showSmartPingModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xl animate-in fade-in">
+            <div class="w-full max-w-2xl rounded-3xl macos-glass-card shadow-2xl p-5 sm:p-7 space-y-5 text-slate-200 max-h-[85vh] flex flex-col border border-white/10">
+              <!-- Modal Header -->
+              <div class="flex items-center justify-between border-b border-white/10 pb-4 shrink-0">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 flex items-center justify-center text-xl shadow-[0_0_12px_rgba(16,185,129,0.2)]">
+                    ⚡
+                  </div>
+                  <div>
+                    <h3 class="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
+                      <span>智能健康探活与预热自愈中枢</span>
+                      <span :class="['text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold', smartPing.enabled ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30' : 'bg-slate-500/20 text-slate-400 border border-slate-500/30']">
+                        {{ smartPing.enabled ? '巡检中' : '已暂停' }}
+                      </span>
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5 font-sans">
+                      低频定期全网探活 · 0 秒预热无感剔除失效节点 · 告别看流媒体或使用 AI 时偶尔卡顿 5 秒
+                    </p>
+                  </div>
+                </div>
+                <button @click="showSmartPingModal = false" class="p-1.5 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer">✕</button>
+              </div>
+
+              <!-- Telemetry & Settings Grid -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0">
+                <!-- Switch Card -->
+                <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-300">后台自动探活</span>
+                    <button @click="saveSmartPingConfig(!smartPing.enabled, smartPing.interval_min)" :class="['w-10 h-5 rounded-full transition-colors relative cursor-pointer', smartPing.enabled ? 'bg-emerald-500' : 'bg-slate-700']">
+                      <span :class="['w-4 h-4 rounded-full bg-white absolute top-0.5 transition-transform', smartPing.enabled ? 'left-5' : 'left-1']"></span>
+                    </button>
+                  </div>
+                  <div class="text-[11px] text-slate-400 mt-2 font-mono">
+                    状态: {{ smartPing.enabled ? '自动守护开启' : '已停用' }}
+                  </div>
+                </div>
+
+                <!-- Interval Selector Card -->
+                <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
+                  <span class="text-xs font-bold text-slate-300">巡检探测周期</span>
+                  <div class="flex items-center gap-1.5 mt-2">
+                    <button v-for="interval in [5, 15, 30, 60]" :key="interval"
+                      @click="saveSmartPingConfig(smartPing.enabled, interval)"
+                      :class="[
+                        'flex-1 py-1 rounded-lg text-xs font-mono font-bold transition cursor-pointer',
+                        smartPing.interval_min === interval ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40' : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                      ]">
+                      {{ interval }}m
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Failover Counter Card -->
+                <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
+                  <span class="text-xs font-bold text-slate-300">无感自愈逃生</span>
+                  <div class="flex items-baseline gap-1.5 mt-1">
+                    <span class="text-xl font-mono font-black text-amber-300">{{ smartPing.failover_count || 0 }}</span>
+                    <span class="text-xs text-slate-400">次失效拦截</span>
+                  </div>
+                  <div class="text-[10px] text-slate-400 font-mono truncate" :title="smartPing.last_log || '暂无异常切换'">
+                    {{ smartPing.last_log ? '最近: ' + smartPing.last_log : '节点状态稳定良好' }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Groups Real-Time Latency & Health List -->
+              <div class="space-y-2 flex-1 overflow-y-auto pr-1">
+                <div class="flex items-center justify-between text-xs font-bold text-slate-400 px-1">
+                  <span>各分流策略组当前健康状态</span>
+                  <span class="font-mono text-[11px]">上次探活: {{ smartPing.last_check_time ? new Date(smartPing.last_check_time * 1000).toLocaleTimeString() : '尚未探活' }}</span>
+                </div>
+
+                <div v-if="!smartPing.group_health || smartPing.group_health.length === 0" class="p-6 text-center text-xs text-slate-500 bg-white/[0.02] rounded-2xl border border-white/5">
+                  暂无探活快照，点击下方按钮可立即执行首次全网端到端深度巡检
+                </div>
+
+                <div v-else class="space-y-1.5">
+                  <div v-for="gh in smartPing.group_health" :key="gh.group" class="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.05] border border-white/5 flex items-center justify-between text-xs transition">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                      <span class="w-2 h-2 rounded-full shrink-0" :class="gh.status === 'healthy' ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : gh.status === 'switched' ? 'bg-amber-400 shadow-[0_0_6px_#fbbf24]' : 'bg-rose-400'"></span>
+                      <span class="font-bold text-white truncate max-w-[120px] sm:max-w-[160px]">{{ gh.group }}</span>
+                      <span class="text-slate-400 text-[11px] font-mono truncate max-w-[140px] sm:max-w-[200px]">{{ gh.active_node }}</span>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0 font-mono">
+                      <span :class="['px-2 py-0.5 rounded-full text-[10px] font-semibold', gh.status === 'healthy' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30' : gh.status === 'switched' ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30' : 'bg-rose-500/20 text-rose-300 border border-rose-400/30']">
+                        {{ gh.status === 'healthy' ? '畅通' : gh.status === 'switched' ? '已自愈切流' : '异常' }}
+                      </span>
+                      <span :class="['w-14 text-right font-bold', gh.latency > 0 && gh.latency < 400 ? 'text-emerald-400' : gh.latency >= 400 ? 'text-amber-400' : 'text-slate-500']">
+                        {{ gh.latency > 0 ? gh.latency + 'ms' : '超时' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Modal Footer Actions -->
+              <div class="flex items-center justify-between border-t border-white/10 pt-4 shrink-0">
+                <button @click="triggerSmartPing" :disabled="triggeringSmartPing" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] cursor-pointer active:scale-95 transition disabled:opacity-50">
+                  <span>{{ triggeringSmartPing ? '⚡ 探活测速中...' : '⚡ 立即全网探活预热' }}</span>
+                </button>
+                <button @click="showSmartPingModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 text-xs font-bold cursor-pointer transition">
+                  关闭
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Modal: 一键自愈与巡检执行明细报告 (Execution Report Modal)          -->
           <!-- ════════════════════════════════════════════════════════════════ -->
           <div v-if="executionModal.visible" class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
@@ -6019,7 +6160,7 @@ const refreshingHealth = ref(false)
 
 const healthRadar = ref({
   overall_score: 100,
-  rating: '极光盾级 · 极佳',
+  rating: '暮光晶盾级 · 极佳',
   active_engine: 'mihomo',
   standby_engine: 'sing-box',
   last_good_snapshot: '随时待命',
@@ -6949,6 +7090,66 @@ const savingAndLinkingHost = ref(false)
 const showHostCredentials = ref(true)
 const showHostPassword = ref(false)
 const testingHostCreds = ref(false)
+// ── P1: 4K 高密驾驶舱模式与智能探活状态 ──
+const densityMode = ref(localStorage.getItem('cubex_density_mode') || 'normal')
+function toggleDensityMode() {
+  densityMode.value = densityMode.value === 'compact' ? 'normal' : 'compact'
+  localStorage.setItem('cubex_density_mode', densityMode.value)
+  showToast(densityMode.value === 'compact' ? '⚡ 已开启 4K 紧凑高密模式' : '💎 已恢复标准舒适沉浸模式')
+}
+
+const showSmartPingModal = ref(false)
+const triggeringSmartPing = ref(false)
+const smartPing = ref({
+  enabled: true,
+  interval_min: 15,
+  last_check_time: 0,
+  failover_count: 0,
+  last_log: '',
+  group_health: []
+})
+
+async function fetchSmartPingStatus() {
+  try {
+    const res = await fetch('/api/v1/smartping/status')
+    if (res.ok) {
+      const data = await res.json()
+      if (data.ok && data.data) {
+        smartPing.value = data.data
+      }
+    }
+  } catch (e) {}
+}
+
+async function triggerSmartPing() {
+  triggeringSmartPing.value = true
+  try {
+    const res = await fetch('/api/v1/smartping/trigger', { method: 'POST' })
+    const data = await res.json()
+    showToast(data.message || '已触发全网探活预热')
+    setTimeout(fetchSmartPingStatus, 1500)
+  } catch (e) {
+    showToast('触发失败: ' + e)
+  } finally {
+    triggeringSmartPing.value = false
+  }
+}
+
+async function saveSmartPingConfig(enabled, intervalMin) {
+  try {
+    const res = await fetch('/api/v1/smartping/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled, interval_min: intervalMin })
+    })
+    const data = await res.json()
+    showToast(data.message || '配置更新成功')
+    await fetchSmartPingStatus()
+  } catch (e) {
+    showToast('保存失败: ' + e)
+  }
+}
+
 const showUpgradeModal = ref(false)
 const upgradeStep = ref(0)
 const upgradeProgress = ref(0)
@@ -8234,7 +8435,7 @@ const securityAudit = ref({
   remediating: false,
   report: {
     total_score: 100,
-    security_rating: '极光盾级 (100% 零泄露)',
+    security_rating: '暮光晶盾级 (100% 零泄露)',
     active_engine: 'sing-box',
     tested_at: new Date().toISOString(),
     summary: '所有 6 大硬核防泄露测试全量通过！DNS 0 明文回退、WebRTC Fake-IP 隔离已就绪。',
@@ -8320,7 +8521,7 @@ const securityAudit = ref({
       '[PASS] [AUDIT-4] EDNS0 ECS 隐私剥离测试: 客户端子网已抹除 0.0.0.0/0 (RFC 7871)',
       '[PASS] [AUDIT-5] DNS 故障 0 明文回退熔断: 强制 SERVFAIL 熔断 (RFC 8484)',
       '[PASS] [AUDIT-6] QUIC / UDP 443 智能降级测试: 平滑回退 TCP TLS (RFC 9000)',
-      '[SUMMARY] 🛡️ 渗透体检完成：综合安全评分 100 / 100 (极光盾级 0 泄露防御)'
+      '[SUMMARY] 🛡️ 渗透体检完成：综合安全评分 100 / 100 (暮光晶盾级 0 泄露防御)'
     ],
     can_auto_remediate: false
   }
@@ -9373,9 +9574,9 @@ async function askAICheck() {
       body: JSON.stringify({ prompt: '请对当前 CubeX 网关执行全维度网络体检，包含双核运行状况、RouterOS 策略路由表状态、DNS 重写中枢及 217heidai 防广告合规性。' })
     })
     const data = await res.json()
-    aiReply.value = data.reply || '🎉 全网体检完毕：双核运行正常，内核数据包转发 (ip_forward=1) 畅通，0 明文 DNS 泄露，DNS 重写中枢与权威规则库 100% 极光盾级就绪！'
+    aiReply.value = data.reply || '🎉 全网体检完毕：双核运行正常，内核数据包转发 (ip_forward=1) 畅通，0 明文 DNS 泄露，DNS 重写中枢与权威规则库 100% 暮光晶盾级就绪！'
   } catch (e) {
-    aiReply.value = '🎉 全网体检完毕：双核运行正常，内核数据包转发 (ip_forward=1) 畅通，0 明文 DNS 泄露，DNS 重写中枢与权威规则库 100% 极光盾级就绪！'
+    aiReply.value = '🎉 全网体检完毕：双核运行正常，内核数据包转发 (ip_forward=1) 畅通，0 明文 DNS 泄露，DNS 重写中枢与权威规则库 100% 暮光晶盾级就绪！'
   } finally {
     aiLoading.value = false
   }
@@ -12968,6 +13169,9 @@ onMounted(async () => {
   // Initial latency probe
   fetchRealLatency()
   setInterval(fetchRealLatency, 30000)
+  fetchSmartPingStatus()
+  setInterval(fetchSmartPingStatus, 30000)
+
 
   // Fetch LAN Devices
   fetchLanDevices()
@@ -13035,3 +13239,29 @@ onMounted(async () => {
   window.addEventListener('hashchange', syncHash)
 })
 </script>
+
+<style scoped>
+/* ── P1: 4K 紧凑高密驾驶舱模式样式覆盖 ── */
+.density-compact .macos-glass-card {
+  padding: 1rem !important;
+}
+.density-compact .grid {
+  gap: 0.625rem !important;
+}
+@media (min-width: 1536px) {
+  .density-compact .grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-3 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  .density-compact .grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+}
+@media (min-width: 1920px) {
+  .density-compact .grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-3 {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  }
+  .density-compact .grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-4 {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  }
+}
+</style>

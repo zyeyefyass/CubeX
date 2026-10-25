@@ -105,7 +105,7 @@ func AutoRemediateAll(ir *schema.ConfigIR) *RemediateResult {
 		RemediatedItems: remediatedItems,
 		NewTotalScore:   100,
 		RestartedEngine: engineName,
-		Message:         fmt.Sprintf("全维度安全自愈成功！6 项核心防御已全量加固，%s 内核已热重载生效，综合安全评分达到 100/100 极光盾级。", engineName),
+		Message:         fmt.Sprintf("全维度安全自愈成功！6 项核心防御已全量加固，%s 内核已热重载生效，综合安全评分达到 100/100 暮光晶盾级。", engineName),
 		RemediatedAt:    time.Now(),
 	}
 }
