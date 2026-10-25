@@ -4,94 +4,277 @@
 
 :root {
   color-scheme: dark;
+  --cubex-primary: #FF9E5E;
+  --cubex-secondary: #C084FC;
+  --cubex-sunset-accent: #F59E0B;
+  --cubex-glass-bg: rgba(20, 18, 32, 0.32);
+  --cubex-glass-border: rgba(255, 240, 230, 0.16);
+  --cubex-text-main: #FFFFFF;
+  --cubex-text-muted: rgba(255, 245, 238, 0.88);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #11171f;
-  color: #e2e8f0;
+  background-color: #0c0a14;
+  background: url('/bg-zootopia.png') center 35% / cover no-repeat fixed;
+  color: var(--cubex-text-main);
   overflow-x: hidden;
   transition: background-color 0.4s ease;
 }
 
 /* 🌙 去蓝光护眼滤镜 (Anti-Blue-Light Optical Warm Spectrum 4500K) */
-/* 硬件级滤除 415-455nm 极易诱发视网膜疲劳的高能短波蓝光，将冷光色温温润校准至 4500K 暖墨护目光谱 */
 .anti-blue-active {
-  filter: sepia(0.26) saturate(0.88) brightness(0.92) contrast(0.94) hue-rotate(-8deg);
+  filter: sepia(0.24) saturate(0.88) brightness(0.92) contrast(0.95) hue-rotate(-6deg);
   transition: filter 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Cyber Aurora Glass Card - Glare-Free & Eye-Care Tuned */
-.glass-aurora {
-  background: rgba(22, 29, 39, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.35);
+/* ══════════════════════════════════════════════════════════════════════════ */
+/* 🌅 Twilight Crystal (暮光冰晶 · macOS 原生毛玻璃全局统一材质规范)            */
+/* ══════════════════════════════════════════════════════════════════════════ */
+
+/* 一级大容器（所有页面卡片、面板、弹窗全量共享同一套高透暮光深紫灰冰晶材质，绝不死黑） */
+.macos-glass-card,
+.liquid-glass,
+.glass-aurora,
+.glass-matrix,
+.glass-novice,
+.glass-obsidian,
+.host-card,
+.bg-\[\#001020\],
+.bg-\[\#161e27\],
+.bg-\[\#161e27\]\/90,
+.bg-\[\#161e27\]\/85,
+.bg-\[\#161e27\]\/80 {
+  background: rgba(20, 18, 32, 0.32) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 240, 230, 0.16) !important;
+  box-shadow: 0 20px 50px rgba(8, 6, 16, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.22) !important;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.glass-aurora:hover {
-  border-color: rgba(148, 163, 184, 0.28);
+.macos-glass-card:hover,
+.liquid-glass:hover,
+.glass-aurora:hover,
+.glass-matrix:hover,
+.glass-novice:hover,
+.glass-obsidian:hover,
+.host-card:hover {
+  border-color: rgba(255, 158, 94, 0.38) !important;
+  box-shadow: 0 24px 60px rgba(8, 6, 16, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.32) !important;
 }
 
-/* CubeX Matrix Blue Glass Card (Theme Morphing) - Gentle Eye-Care Tint */
-.glass-matrix {
-  background: rgba(20, 27, 37, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.35);
+/* 左侧导航栏 (Sidebar: 暮光深紫灰高透冰晶) */
+.macos-sidebar {
+  background: rgba(20, 18, 32, 0.32) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border-right: 1px solid rgba(255, 240, 230, 0.16) !important;
+  box-shadow: 0 20px 50px rgba(8, 6, 16, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.22) !important;
 }
 
-.glass-matrix:hover {
-  border-color: rgba(148, 163, 184, 0.30);
+/* 顶部状态栏 (Top Bar: 保持完全透明，消灭泥巴脏色横条) */
+.macos-topbar {
+  background: transparent !important;
+  border-bottom: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
-/* Novice Emerald Glass Card */
-.glass-novice {
-  background: rgba(18, 30, 27, 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(52, 211, 153, 0.20);
-  box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.35);
+/* 顶部与全局毛玻璃胶囊组件 (暮光深紫灰胶囊) */
+.macos-capsule,
+.windhawk-pill {
+  background: rgba(24, 20, 38, 0.42) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 240, 230, 0.18) !important;
+  box-shadow: 0 8px 24px rgba(8, 6, 16, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.20) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.glass-novice:hover {
-  border-color: rgba(52, 211, 153, 0.35);
+.macos-capsule:hover,
+.windhawk-pill:hover {
+  background: rgba(35, 28, 54, 0.55) !important;
+  border-color: rgba(255, 158, 94, 0.45) !important;
+  box-shadow: 0 12px 30px rgba(8, 6, 16, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.30) !important;
 }
 
-/* Glow Keyframes - Smooth, Subdued Micro-Glow */
-@keyframes neon-pulse {
+/* 二级子卡片、项目行、指标块（清透微光层，高度统一，彻底消灭死黑） */
+.macos-sub-card,
+.sub-card-glass,
+.bg-slate-900,
+.bg-slate-900\/95,
+.bg-slate-900\/90,
+.bg-slate-900\/80,
+.bg-slate-900\/70,
+.bg-slate-900\/60,
+.bg-slate-950,
+.bg-slate-950\/95,
+.bg-slate-950\/90,
+.bg-slate-950\/80,
+.bg-slate-950\/70,
+.bg-slate-950\/60,
+.bg-slate-950\/50,
+.bg-slate-950\/40 {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 240, 230, 0.12) !important;
+  backdrop-filter: blur(8px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(160%) !important;
+  border-radius: 16px !important;
+  transition: all 0.25s ease;
+}
+
+.macos-sub-card:hover,
+.bg-slate-900:hover,
+.bg-slate-950:hover {
+  background: rgba(255, 255, 255, 0.09) !important;
+  border-color: rgba(255, 158, 94, 0.35) !important;
+}
+
+.hover\:bg-slate-800:hover,
+.hover\:bg-slate-700:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* 日志流终端视窗高透定制 (Terminal Screen Output) */
+.bg-\[\#000d1a\],
+.terminal-screen-window {
+  background: rgba(14, 12, 24, 0.38) !important;
+  backdrop-filter: blur(14px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(180%) !important;
+}
+
+/* 暮光原生输入控件规范 (Input / Select / Textarea) */
+input, select, textarea {
+  background: rgba(10, 8, 20, 0.35) !important;
+  border: 1px solid rgba(255, 240, 230, 0.15) !important;
+  color: #FFFFFF !important;
+  backdrop-filter: blur(8px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(160%) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: #FF9E5E !important;
+  box-shadow: 0 0 14px rgba(255, 158, 94, 0.45), inset 0 0 4px rgba(255, 158, 94, 0.25) !important;
+  outline: none !important;
+}
+
+/* 标题光学防眩光衬底 (macOS Title Shield) */
+.macos-title-shield {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 20px;
+  background: rgba(20, 18, 32, 0.45) !important;
+  backdrop-filter: blur(14px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(180%) !important;
+  border: 1px solid rgba(255, 240, 230, 0.20) !important;
+  box-shadow: 0 12px 36px rgba(8, 6, 16, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════ */
+/* 🛡️ 暮光夕阳光学文字对比度系统 (刀刻般清晰锐利)                                */
+/* ══════════════════════════════════════════════════════════════════════════ */
+main, aside, header {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+}
+
+h1, h2, h3, .macos-title {
+  color: #FFFFFF !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85), 0 1px 3px rgba(0, 0, 0, 0.95) !important;
+}
+
+.macos-subtitle {
+  color: #FDE68A !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85) !important;
+}
+
+.text-slate-400,
+.text-slate-500 {
+  color: rgba(255, 245, 238, 0.88) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85) !important;
+}
+
+/* 流光落日金激活胶囊 (Primary Accent) */
+.windhawk-active-blue,
+.cubex-active-pill {
+  background: linear-gradient(135deg, #FF9E5E 0%, #F59E0B 100%) !important;
+  color: #1E1106 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 18px rgba(255, 158, 94, 0.40) !important;
+  border-color: rgba(255, 255, 255, 0.40) !important;
+}
+
+/* 暮光金微光呼吸脉冲 (Sunset Gold Pulse) */
+@keyframes sunset-pulse {
   0%, 100% {
-    box-shadow: 0 0 8px rgba(56, 189, 248, 0.20);
+    box-shadow: 0 0 6px rgba(255, 158, 94, 0.35);
   }
   50% {
-    box-shadow: 0 0 14px rgba(56, 189, 248, 0.35), 0 0 18px rgba(139, 92, 246, 0.20);
+    box-shadow: 0 0 16px rgba(255, 158, 94, 0.75);
   }
 }
 
-.animate-neon-pulse {
-  animation: neon-pulse 2.2s infinite ease-in-out;
+.animate-obsidian-pulse,
+.animate-emerald-pulse,
+.animate-sunset-pulse {
+  animation: sunset-pulse 2.2s infinite ease-in-out;
 }
 
-/* Custom Scrollbar - Subdued & Eye-Friendly */
+/* 弹窗与抽屉 Glass-Pop 动效 */
+.glass-pop-enter-active,
+.glass-pop-leave-active {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-pop-enter-from,
+.glass-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.94) translateY(18px);
+}
+
+/* 暮光定制滚动条 (Minimal macOS Translucent Glass) */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(17, 23, 31, 0.9);
+  background: rgba(14, 12, 22, 0.20);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.22);
+  background: rgba(255, 240, 230, 0.24);
   border-radius: 9999px;
+  backdrop-filter: blur(4px);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.40);
+  background: rgba(255, 158, 94, 0.55);
 }
 
-/* Safe area utilities for modern mobile edge-to-edge screens */
+/* 全局边框统一为 1px 暮光冰晶柔和描边，消除突兀生硬纯色边框 */
+.border-slate-800,
+.border-slate-800\/90,
+.border-slate-800\/80,
+.border-slate-700,
+.border-slate-700\/80,
+.border-slate-700\/70,
+.border-slate-700\/60,
+.border-cyan-500\/40,
+.border-cyan-500\/30,
+.border-cyan-500\/25,
+.border-cyan-500\/20,
+.border-sky-800\/40,
+.border-sky-900\/40,
+.border-sky-900\/30 {
+  border-color: rgba(255, 240, 230, 0.14) !important;
+}
+
+/* 移除老式实心边框条 */
+.border-l-4 {
+  border-left-width: 1px !important;
+}
+
+/* Safe area utilities */
 .pb-safe {
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
 }

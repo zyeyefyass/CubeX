@@ -6,7 +6,7 @@ set -e
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-echo "🌌 [1/3] 构建 Cyber Aurora Web 前端..."
+echo "🌌 [1/3] 构建 Twilight Crystal Web 前端..."
 cd "$ROOT_DIR/web"
 npm run build
 

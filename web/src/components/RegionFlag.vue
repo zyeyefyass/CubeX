@@ -1,6 +1,6 @@
 <template>
   <div :class="asBackground ? 'w-full h-full block' : 'inline-flex items-center justify-center shrink-0'">
-    <!-- 0. 多国组合通用全息同盟旗 (Universal Cyber Aurora Multi-Country Alliance Ensign) - 优先判定！ -->
+    <!-- 0. 多国组合通用全息同盟旗 (Universal Twilight Crystal Multi-Country Alliance Ensign) - 优先判定！ -->
     <!-- 彻底告别多旗挤压变形，全域多国组合 (2国、3国、多国) 统一采用尊贵自研同盟极光旗 -->
     <svg v-if="multiCodes.length >= 2 && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
       <defs>
@@ -11,7 +11,7 @@
           <stop offset="70%" stop-color="#073a6a"/>
           <stop offset="100%" stop-color="#094d8b"/>
         </linearGradient>
-        <!-- Cyber Aurora Speed Band Gradient -->
+        <!-- Twilight Crystal Speed Band Gradient -->
         <linearGradient id="aurora-band" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stop-color="#7b2cbf"/>
           <stop offset="50%" stop-color="#00d2ff"/>
@@ -26,7 +26,7 @@
       <!-- Background: Deep Navy Void -->
       <rect width="36" height="24" fill="url(#alliance-bg)"/>
 
-      <!-- Diagonal Cyber Aurora Speed Bands (Connecting the Multi-Nation Network) -->
+      <!-- Diagonal Twilight Crystal Speed Bands (Connecting the Multi-Nation Network) -->
       <path d="M-2 0 L14 0 L38 24 L22 24 Z" fill="url(#aurora-band)" opacity="0.22"/>
       <line x1="14" y1="0" x2="38" y2="24" stroke="#00f5d4" stroke-width="0.6" opacity="0.8"/>
       <line x1="-2" y1="0" x2="22" y2="24" stroke="#38bdf8" stroke-width="0.4" opacity="0.55"/>

@@ -84,7 +84,7 @@ import (
 
 var (
 
-	version   = "Test v3.8"
+	version = "Test v3.9"
 
 	startTime = time.Now()
 
@@ -826,6 +826,7 @@ func main() {
 	mux.HandleFunc("/api/v1/system/reload-core", srv.handleReloadCore)
 
 	mux.HandleFunc("/api/v1/system/restart", srv.handleRestartService)
+	mux.HandleFunc("/api/v1/host/hot-restart", srv.handleHostHotRestart)
 
 	mux.HandleFunc("/api/v1/system/reset", srv.handleSystemReset)
 
@@ -1605,48 +1606,65 @@ func (s *Server) handleReloadCore(w http.ResponseWriter, r *http.Request) {
 
 
 
-func (s *Server) handleRestartService(w http.ResponseWriter, r *http.Request) {
-
+func (s *Server) handleHostHotRestart(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-
 		return
-
 	}
-
+	activeEng := s.engMgr.GetActiveEngine()
+	if activeEng == "" {
+		activeEng = schema.EngineSingbox
+	}
+	res, err := s.engMgr.SwitchEngine(activeEng)
+	var purged int
+	if s.rosMgr != nil {
+		purged = s.rosMgr.PurgeStaleFakeIPConnections()
+	}
+	if err != nil {
+		sendJSON(w, map[string]any{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+	var elapsed int64
+	if res != nil {
+		elapsed = res.ElapsedMs
+	}
+	s.logBuffer.Add("INFO", "ENGINE", fmt.Sprintf("🔥 宿主共生服务热重启完成: 双核引擎 %s 已平滑重载, 清理 %d 条残留连接 (耗时: %dms)", activeEng, purged, elapsed))
 	sendJSON(w, map[string]any{
+		"success":             true,
+		"engine":              activeEng,
+		"purged_connections": purged,
+		"elapsed_ms":          elapsed,
+		"message":             fmt.Sprintf("双核引擎 (%s) 与宿主网络栈已完成热重启，全链路 100%% 干净重载", activeEng),
+	})
+}
 
+func (s *Server) handleRestartService(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	sendJSON(w, map[string]any{
 		"status":  "restarting",
-
-		"message": "CubeX 守护服务正在重启，请稍候...",
-
+		"message": "CubeX 守护服务正在平滑重启...",
 	})
 
-
-
 	go func() {
-
-		time.Sleep(600 * time.Millisecond)
-
-		exe, err := os.Executable()
-
-		if err == nil {
-
-			cmd := exec.Command(exe, os.Args[1:]...)
-
-			cmd.Stdout = os.Stdout
-
-			cmd.Stderr = os.Stderr
-
-			_ = cmd.Start()
-
+		time.Sleep(500 * time.Millisecond)
+		if s.engMgr != nil {
+			_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
 		}
-
+		exe, err := os.Executable()
+		if err == nil {
+			cmd := exec.Command(exe, os.Args[1:]...)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			_ = cmd.Start()
+		}
 		os.Exit(0)
-
 	}()
-
 }
 
 
@@ -8639,7 +8657,7 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 
 	meta := map[string]any{
 
-		"brand":           "CubeX (极光魔方)",
+		"brand":           "CubeX",
 
 		"version":         version,
 

@@ -2,7 +2,7 @@
 
 ## 一、项目前世与演进渊源
 
-`CubeX（极光魔方）` 是原作者 **zyeyefyass** 在继 **MiCube**（Mihomo 内核）与 **SingCube**（sing-box 内核）两大独立项目之后，历经深度重构推出的次世代终极双擎旗舰。
+`CubeX（CubeX）` 是原作者 **zyeyefyass** 在继 **MiCube**（Mihomo 内核）与 **SingCube**（sing-box 内核）两大独立项目之后，历经深度重构推出的次世代终极双擎旗舰。
 
 本系统不仅将原双核独立生态原地融合，通过 **CubeX IR 统一中间表示层** 实现了双核毫秒级无感热切换与混动运行，同时原生全面贯通 **RouterOS v7 硬件级联动、飞牛 fnOS、Proxmox VE (LXC) 及 Linux Docker** 宿主底座，开创了智能旁路由系统的全新形态。
 
@@ -13,7 +13,7 @@
 1. **彻底剥离旧版所有历史残留**：代码库、脚本、注释、环境变量、服务名均严格经过净室审查，杜绝任何历史旧项目的遗留逻辑；
 2. **100% 自研架构**：
    - 后端：纯 Go 静态单二进制控制面（`cubexd`），内置统一网络栈管理、动态 DNS 防泄漏引擎、WireGuard 硬件对齐总线；
-   - 前端：Vue 3 + Tailwind CSS 独立构建的 Cyber Aurora 赛博极光高质感全息交互驾驶舱。
+   - 前端：Vue 3 + Tailwind CSS 独立构建的 Twilight Crystal 暮光冰晶 · macOS 原生毛玻璃高质感全息交互驾驶舱。
 
 ---
 

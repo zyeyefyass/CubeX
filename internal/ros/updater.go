@@ -196,7 +196,7 @@ func (m *Manager) GetOverview() map[string]any {
 	}
 	latestPanel := m.cachedLatestPanel
 	if latestPanel == "" {
-		latestPanel = "Test v3.8"
+		latestPanel = "Test v3.9"
 	}
 	latestSingbox := m.cachedLatestSingbox
 	if latestSingbox == "" {
@@ -716,7 +716,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 // ──────────────────────────────────────────────
 
 func (m *Manager) getLocalPanelVersion() string {
-	return "Test v3.8"
+	return "Test v3.9"
 }
 
 // IsConnected returns whether the RouterOS host is currently reachable and authenticated.
@@ -750,7 +750,7 @@ func normalizeVersion(v string) string {
 	return v
 }
 
-// extractVersionNumbers parses major, minor, patch, prerelease from strings like "Test v1.7", "Test-v1.4", "v1.19.0".
+// extractVersionNumbers parses major, minor, patch, prerelease from strings like "Test v3.9", "Test-v1.4", "v1.19.0".
 func extractVersionNumbers(v string) []int {
 	v = strings.ToLower(v)
 	var b strings.Builder

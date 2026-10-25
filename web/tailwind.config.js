@@ -7,30 +7,46 @@ export default {
   theme: {
     extend: {
       colors: {
+        windhawk: {
+          bg: '#0c0d10',
+          panel: '#121317',
+          card: '#16171d',
+          cardHover: '#1c1e26',
+          border: '#27282e',
+          borderLight: '#383a44',
+          blue: '#0078d4',
+          blueHover: '#0067c0',
+          blueLight: '#4cc2ff',
+          coral: '#f43f5e',
+          pill: '#202126',
+          pillBorder: '#35363f',
+          textMuted: '#9a9da6',
+        },
         slate: {
-          950: '#11171f', // Soothing warm dark charcoal (replaces harsh #020617 pitch black)
-          900: '#151d27', // Card & container base
-          850: '#1a2430',
-          800: '#222e3d', // Card borders & dividers
-          750: '#2a394a',
-          700: '#334458', // Muted borders
+          950: '#0c0d10', // Deep obsidian dark from screenshot
+          900: '#121317', // Windhawk container & panel base
+          850: '#16171d', // Windhawk card base
+          800: '#20222a', // Windhawk pill & component borders
+          750: '#27282e', // Table grid lines
+          700: '#33353e', // Hover borders
+          600: '#484a56',
         },
         cyan: {
-          400: '#38bdf8', // Soften harsh neon #22d3ee to calm sky-cyan
-          300: '#7dd3fc',
+          400: '#0078d4', // Map primary cyan to Windhawk Cobalt Blue
+          300: '#4cc2ff',
         },
         aurora: {
-          cyan: '#2dd4bf',
-          purple: '#8b5cf6',
-          indigo: '#6366f1',
-          deep: '#11171f',
-          card: 'rgba(22, 29, 39, 0.85)',
+          cyan: '#0078d4',
+          purple: '#0078d4',
+          indigo: '#0078d4',
+          deep: '#0c0d10',
+          card: 'rgba(22, 23, 29, 0.85)',
         },
         matrix: {
-          blue: '#162232',
-          cyan: '#38bdf8',
+          blue: '#16171d',
+          cyan: '#0078d4',
           gold: '#f59e0b',
-          dark: '#11171f',
+          dark: '#0c0d10',
         }
       }
     },

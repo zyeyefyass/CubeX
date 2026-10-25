@@ -91,7 +91,7 @@ func (c *Controller) GetStatus() NetworkStatus {
 // GenerateNFTablesScript outputs the full production ruleset for RouterOS container / Linux.
 func (c *Controller) GenerateNFTablesScript() string {
 	return fmt.Sprintf(`#!/usr/sbin/nft -f
-# ── CubeX 统一赛博极光网络栈 (TProxy / TUN 复用) ──
+# ── CubeX 统一宿主共生网络栈 (TProxy / TUN 复用) ──
 table inet cubex {
     set reserved_ip {
         type ipv4_addr

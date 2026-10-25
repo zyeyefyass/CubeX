@@ -1,12 +1,12 @@
 <div align="center">
 
-<img src="logo-cubex.svg" width="140" height="140" alt="CubeX 3D Cyber Aurora Crystal Logo" />
+<img src="logo-cubex.svg" width="140" height="140" alt="CubeX 3D Twilight Crystal Crystal Logo" />
 
 # 🌌 CubeX · 宿主共生零感网络系统 (Host-Symbiotic Zero-Perception Gateway)
 ### *单二进制纯自研 · 告别传统重型虚机旁路 · 极致轻量低开销 · 300ms 冷启 · 宛如物理肉身直连全球互联网的终极共生体*
 
 <p align="center">
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v3.8-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v3.9-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 <a href="https://github.com/zyeyefyass/CubeX"><img src="https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go" alt="Dual-Engine" /></a>
 <a href="#"><img src="https://img.shields.io/badge/Host-RouterOS_v7_%7C_爱快_iKuai_%7C_OpenWrt_%7C_飞牛_fnOS_%7C_PVE_%7C_Linux-3A86FF?style=for-the-badge" alt="Host Base" /></a>
@@ -40,7 +40,7 @@
 
 - [⚡ 权威实测：CubeX Test v2.8 vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)](#benchmark)
 
-- [📢 最新版本升级通知 (Test v3.8 双核全协议字段归一化与初始化向导解耦版)](#announcement)
+- [📢 最新版本升级通知 (Test v3.9 双核全协议字段归一化与初始化向导解耦版)](#announcement)
 
 - [📦 资产下载与全平台底座选用清单 (Release Assets)](#release-assets)
 
@@ -254,7 +254,7 @@
 
 ### 🧭 局域网设备接入指南 · 三大模式全解析 (网关与 DNS 填写规范)
 
-CubeX 针对全家用户不同的网络设备、使用习惯与网络拓扑，在控制台首页原生集成了 **Cyber Aurora 赛博极光全息拓扑指引**，支持**“双模式通吃 + 显式代理”**三大接入模式：
+CubeX 针对全家用户不同的网络设备、使用习惯与网络拓扑，在控制台首页原生集成了 **Twilight Crystal 暮光冰晶 · macOS 原生毛玻璃全息拓扑指引**，支持**“双模式通吃 + 显式代理”**三大接入模式：
 
 ```
 +---------------------------------------------------------------------------------------------------------------+
@@ -326,7 +326,7 @@ CubeX 针对全家用户不同的网络设备、使用习惯与网络拓扑，�
   * **默认网关**：**保持主路由自身的 IP (例如 `10.0.0.1`)**；
   * **首选 DNS**：**改为 CubeX 旁路由的 IP (例如 `10.0.0.7`)**；
   * **备用 DNS**：**留空**。
-* **主路由关键回指路由配置 (Test v3.8 核心加固)**：
+* **主路由关键回指路由配置 (Test v3.9 核心加固)**：
   因为设备把 Fake-IP（`198.18.x.x`）发给了主路由网关，主路由必须知道将该网段精准交给 CubeX：
   * **MikroTik RouterOS v7**：在 WinBox 终端直接执行（控制台首页卡片有一键复制按钮）：
     ```routeros
@@ -473,6 +473,31 @@ CubeX 针对全家用户不同的网络设备、使用习惯与网络拓扑，�
 
 ---
 
+---
+
+### 📸 全息驾驶舱实机功能大赏 (实机真实截取 · 1080P Full HD)
+
+<div align="center">
+
+#### 1. 全息网络总览与微光健康跑分驾驶舱
+<img src="docs/assets/screenshots/cubex-live-security-radar.png" alt="CubeX 全息网络总览" width="95%" />
+
+#### 2. 14 大核心应用分流策略矩阵 (双核混动自适应编译)
+<img src="docs/assets/screenshots/cubex-live-routing-matrix.png" alt="CubeX 应用分流矩阵" width="95%" />
+
+#### 3. 宿主共生中枢 · 沙盒内核感知与平滑热重启 (零端口冲突 · 0 秒逃生)
+<img src="docs/assets/screenshots/cubex-live-host-symbiosis.png" alt="CubeX 宿主共生联动" width="95%" />
+
+#### 4. 217heidai 权威去广告与 101 套全量分流规则体系
+<img src="docs/assets/screenshots/cubex-live-adblock-filter.png" alt="CubeX 权威规则分流体系" width="95%" />
+
+#### 5. KSpeeder 容器镜像与 GitHub CDN 极速加速中枢
+<img src="docs/assets/screenshots/cubex-kspeeder-docker-mirrors.png" alt="CubeX 容器加速引擎" width="95%" />
+
+</div>
+
+---
+
 <a id="announcement"></a>
 
 > [!IMPORTANT]
@@ -526,23 +551,23 @@ CubeX 针对全家用户不同的网络设备、使用习惯与网络拓扑，�
 
 | 文件名 | 平台 / 底座 | 文件大小 | 说明与安装指引 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v3.8-linux-amd64.zip` | Linux amd64 (通用宿主 / **PVE CT 首选** / 飞牛) | ~86.3 MB | 包含混淆加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
-| `CubeX-Test-v3.8-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~79.5 MB | 包含混淆加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
-| `CubeX-Test-v3.8-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~109.3 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
-| `CubeX-Test-v3.8-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~108.4 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
-| `CubeX-Test-v3.8-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~85.4 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（标签为 `cubex:latest`）；OpenWrt 与飞牛支持 `setup-openwrt.sh` 自动载入或 `docker load -i` |
+| `CubeX-Test-v3.9-linux-amd64.zip` | Linux amd64 (通用宿主 / **PVE CT 首选** / 飞牛) | ~86.3 MB | 包含混淆加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
+| `CubeX-Test-v3.9-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~79.5 MB | 包含混淆加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
+| `CubeX-Test-v3.9-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~109.3 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
+| `CubeX-Test-v3.9-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~108.4 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
+| `CubeX-Test-v3.9-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~85.4 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（标签为 `cubex:latest`）；OpenWrt 与飞牛支持 `setup-openwrt.sh` 自动载入或 `docker load -i` |
 | `cubexd-linux-amd64` | Linux amd64 单二进制 | ~35.1 MB | Garble AST 深度混淆加固主控守护进程，用于在线秒级热更或单文件运行 |
 | `cubexd-linux-arm64` | Linux arm64 单二进制 | ~31.7 MB | Garble AST 深度混淆加固主控守护进程（ARM64 硬件架构） |
 | `cubex-linux-amd64` | Linux amd64 运维 CLI | ~16.9 MB | Garble 混淆加固终端运维命令行控制面 |
 | `cubex-linux-arm64` | Linux arm64 运维 CLI | ~15.1 MB | Garble 混淆加固终端运维命令行控制面（ARM64） |
 | `install_pve_lxc.sh` | **Proxmox VE 官方一键安装脚本 (最为推荐)** | ~7.9 KB | PVE 宿主机终端一键全自动部署脚本（自动升级 Alpine、透传 TUN、创建强隔离 CT 容器与装配 OpenRC 守护进程） |
-| `install.sh` | Linux 官方一键安全安装器 | ~11.4 KB | 专有安全加载器，终端执行 `curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.8/install.sh | bash` |
+| `install.sh` | Linux 官方一键安全安装器 | ~11.4 KB | 专有安全加载器，终端执行 `curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.9/install.sh | bash` |
 | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~17.0 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（支持全局大括号块作用域，自动配置网络、路由与 Netwatch 0秒逃生） |
 | `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~19.4 KB | OpenWrt 终端复制即用全自动编排脚本（支持多镜像断点续传、交互进度条、Macvlan-Shim、0秒看门狗与锁定 odhcpd 防泄露） |
 
 > ### 🧭 各主流宿主底座极速安装与发布资产选用速查指引：
 
-> * 🥇 **Proxmox VE (PVE) CT 容器 (LXC) 一键全自动安装（最为推荐方案 · 针对所有宿主）**：在 PVE 宿主机终端执行一行命令 `curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.8/install_pve_lxc.sh | bash`，全自动完成 Alpine 升级、TUN 透传、容器创建与守护进程启动！强沙盒隔离、开机不到一秒、内存仅占 30MB~70MB、原生物理万兆吞吐！详细图文请点击直达：[方式 A：Proxmox VE CT 容器极速部署教程](#deploy-pve)。
+> * 🥇 **Proxmox VE (PVE) CT 容器 (LXC) 一键全自动安装（最为推荐方案 · 针对所有宿主）**：在 PVE 宿主机终端执行一行命令 `curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.9/install_pve_lxc.sh | bash`，全自动完成 Alpine 升级、TUN 透传、容器创建与守护进程启动！强沙盒隔离、开机不到一秒、内存仅占 30MB~70MB、原生物理万兆吞吐！详细图文请点击直达：[方式 A：Proxmox VE CT 容器极速部署教程](#deploy-pve)。
 
 > * 🔵 **MikroTik RouterOS v7 原生容器安装方式**：通过 WinBox 上传 ROS 镜像包 `CubeX-*-ros-amd64.tar` 或 `arm64.tar`，在终端粘贴运行 `setup-routeros-v7.rsc` 脚本，30秒全自动拉起共生容器。详细步骤请点击直达：[方式 B：RouterOS v7 容器极速安装指南](#deploy-ros)。
 
@@ -839,7 +864,7 @@ CubeX 内置强大的本地 DNS 重写引擎，无需修改任何 hosts 文件�
 
 ```bash
 
-curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.8/install_pve_lxc.sh | bash
+curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.9/install_pve_lxc.sh | bash
 
 ```
 
@@ -975,7 +1000,7 @@ MikroTik RouterOS v7 原生支持容器（Container）技术。CubeX 打造了�
 
      * 宿主机目录 `/docker/cubex/etc` 挂载至 容器目录 `/app/etc`；
 
-4. 点击保存并启动容器！在浏览器中输入 `http://10.0.0.11:2026` 即可进入 Cyber Aurora 赛博极光全息 Web 控制台！
+4. 点击保存并启动容器！在浏览器中输入 `http://10.0.0.11:2026` 即可进入 Twilight Crystal 暮光冰晶 · macOS 原生毛玻璃全息 Web 控制台！
 
 <a id="ikuai-step-3"></a>
 
@@ -1100,7 +1125,7 @@ sh setup-openwrt.sh
 
 # 官方一键智能嗅探脚本 (自动适配 amd64 / arm64)
 
-wget -4 -qO- https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.8/setup-openwrt.sh | sh
+wget -4 -qO- https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.9/setup-openwrt.sh | sh
 
 ```
 
@@ -1302,7 +1327,7 @@ docker run -d   --name cubex   --restart always   --network host   --privileged 
 
 # 官方一键智能嗅探脚本
 
-curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.8/install.sh | bash
+curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.9/install.sh | bash
 
 ```
 
@@ -1318,7 +1343,7 @@ CubeX 是一个立足于极客高可用网络实践的专有自研项目。如�
 
 2. 局域网分流、特定协议握手或硬件加速的调优建议；
 
-3. Cyber Aurora 控制台界面或交互体验的审美改进建议。
+3. Twilight Crystal 控制台界面或交互体验的审美改进建议。
 
 欢迎通过 GitHub Issues 畅所欲言。我们始终保持谦卑与专注，听取每一位网络极客的真知灼见，持续打磨软路由系统的终极形态！
 

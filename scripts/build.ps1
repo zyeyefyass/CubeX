@@ -6,7 +6,7 @@ param(
 )
 $ErrorActionPreference = "Stop"
 
-Write-Host "[1/3] Building Cyber Aurora Web Frontend..." -ForegroundColor Cyan
+Write-Host "[1/3] Building Twilight Crystal Web Frontend..." -ForegroundColor Cyan
 Set-Location -Path "$PSScriptRoot\..\web"
 npm.cmd run build
 
