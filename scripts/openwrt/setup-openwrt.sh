@@ -253,9 +253,9 @@ if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
             # 优先从国内加速镜像拉取完整的 Docker 归档包 (支持断点续传与多源竞速)
             for MIRROR in "https://ghproxy.net" "https://gh.ddlc.top" ""; do
                 if [ -n "$MIRROR" ]; then
-                    TAR_DL="${MIRROR}/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.6/CubeX-Test-v3.6-docker-${ARCH}.tar.gz"
+                    TAR_DL="${MIRROR}/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.7/CubeX-Test-v3.7-docker-${ARCH}.tar.gz"
                 else
-                    TAR_DL="https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.6/CubeX-Test-v3.6-docker-${ARCH}.tar.gz"
+                    TAR_DL="https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.7/CubeX-Test-v3.7-docker-${ARCH}.tar.gz"
                 fi
                 echo -e "${CYAN}   -> 正在连接下载源: ${TAR_DL} ...${NC}"
                 if command -v curl >/dev/null 2>&1; then

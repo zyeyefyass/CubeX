@@ -305,18 +305,18 @@ rc-update add cubexd default >/dev/null 2>&1
 EOF
 
 # 10. 推送或下载 CubeX 完整发布包
-if [ -f "dist/release/CubeX-Test-v3.6-linux-amd64.zip" ]; then
+if [ -f "dist/release/CubeX-Test-v3.7-linux-amd64.zip" ]; then
     echo -e "${BLUE}检测到本地发布包，直接推送至容器: /opt/CubeX...${NC}"
-    pct push "$CT_ID" dist/release/CubeX-Test-v3.6-linux-amd64.zip /tmp/CubeX.zip
+    pct push "$CT_ID" dist/release/CubeX-Test-v3.7-linux-amd64.zip /tmp/CubeX.zip
     pct exec "$CT_ID" -- sh -s << 'EOF'
 unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/
 chmod +x /opt/CubeX/bin/* 2>/dev/null || true
 ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
 rm -f /tmp/CubeX.zip
 EOF
-elif [ -f "/tmp/CubeX-Test-v3.6-linux-amd64.zip" ] && [ -s "/tmp/CubeX-Test-v3.6-linux-amd64.zip" ]; then
+elif [ -f "/tmp/CubeX-Test-v3.7-linux-amd64.zip" ] && [ -s "/tmp/CubeX-Test-v3.7-linux-amd64.zip" ]; then
     echo -e "${BLUE}检测到宿主机缓存发布包，直接推送至容器: /opt/CubeX...${NC}"
-    pct push "$CT_ID" /tmp/CubeX-Test-v3.6-linux-amd64.zip /tmp/CubeX.zip
+    pct push "$CT_ID" /tmp/CubeX-Test-v3.7-linux-amd64.zip /tmp/CubeX.zip
     pct exec "$CT_ID" -- sh -s << 'EOF'
 unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/
 chmod +x /opt/CubeX/bin/* 2>/dev/null || true
@@ -340,7 +340,7 @@ else
             [ -n "$REL_TAG" ] && break
         fi
     done
-    [ -z "$REL_TAG" ] && REL_TAG="Test-v3.6"
+    [ -z "$REL_TAG" ] && REL_TAG="Test-v3.7"
 
     ZIP_NAME="CubeX-${REL_TAG}-linux-amd64.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"

@@ -3,12 +3,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Version = "Test-v3.6"
+$Version = "Test-v3.7"
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 $DistDir = "$RootDir\dist"
 $ReleaseDir = "$DistDir\release"
 
-Write-Host "📦 Starting CubeX Test v3.6 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
+Write-Host "📦 Starting CubeX Test v3.7 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
 if (-not $IncludeWindows) {
     Write-Host "ℹ️  Windows 平台包发布已按策略暂停 (可通过 -IncludeWindows 显式启用)" -ForegroundColor DarkCyan
 }
