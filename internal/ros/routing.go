@@ -649,6 +649,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 
 	// 14. RouterOS 7.25+ VETH Bridge Port Trusted & DAI Defense
 	vethTrusted := false
+	hasVETHPort := false
 	if pData, err := m.QueryROS("/interface/bridge/port"); err == nil {
 		var ports []map[string]any
 		if json.Unmarshal(pData, &ports) == nil {
@@ -656,6 +657,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 				iface, _ := p["interface"].(string)
 				comment, _ := p["comment"].(string)
 				if strings.Contains(iface, "veth") || strings.Contains(strings.ToLower(comment), "cubex") || strings.Contains(strings.ToLower(comment), "box") {
+					hasVETHPort = true
 					trusted, _ := p["trusted"].(bool)
 					trustedARP, _ := p["trusted-arp"].(bool)
 					if trusted || trustedARP {
@@ -666,7 +668,16 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 			}
 		}
 	}
-	if vethTrusted {
+	if !hasVETHPort {
+		report.Items = append(report.Items, CheckItem{
+			Key:     "bridge_port_trusted",
+			Name:    "RouterOS 7.25+ VETH 端口安全信任 (DAI Ready)",
+			Status:  "ok",
+			Value:   "独立设备模式 (无需 VETH 信任)",
+			Details: "CubeX 运行于独立物理机/PVE/Docker 宿主环境，通过物理网络与主路由通信，不受 ROS 7.25 VETH 容器网桥隔离限制。",
+			Advice:  "状态良好",
+		})
+	} else if vethTrusted {
 		report.Items = append(report.Items, CheckItem{
 			Key:     "bridge_port_trusted",
 			Name:    "RouterOS 7.25+ VETH 端口安全信任 (DAI Ready)",
@@ -829,8 +840,8 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 	}
 
 	// 2c. Ensure /ip/settings: send-redirects=no (消除同网段旁路二层三角路由 TCP 停顿与卡顿重传)
-	_ = m.PatchROS("/ip/settings", map[string]any{
-		"send-redirects": "false",
+	_, _ = m.PostROS("/ip/settings/set", map[string]any{
+		"send-redirects": "no",
 	})
 	res.Actions = append(res.Actions, "已确认关闭 RouterOS ICMP 重定向 (/ip/settings send-redirects=no，消除二层三角路由 TCP 停顿)")
 

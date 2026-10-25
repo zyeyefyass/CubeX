@@ -259,9 +259,9 @@ if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
                 fi
                 echo -e "${CYAN}   -> 正在连接下载源: ${TAR_DL} ...${NC}"
                 if command -v curl >/dev/null 2>&1; then
-                    curl --http1.1 -# -L -C - --connect-timeout 8 -m 300 -o "$TMP_TAR" "$TAR_DL" 2>&1 || true
+                    curl -4 --http1.1 -# -L -C - --connect-timeout 8 -m 300 -o "$TMP_TAR" "$TAR_DL" 2>&1 || true
                 elif command -v wget >/dev/null 2>&1; then
-                    wget -c -T 15 -O "$TMP_TAR" "$TAR_DL" 2>&1 || true
+                    wget -4 -c -T 15 -O "$TMP_TAR" "$TAR_DL" 2>&1 || true
                 fi
                 if [ -s "$TMP_TAR" ] && gzip -t "$TMP_TAR" 2>/dev/null; then
                     echo -e "${GREEN}   ✓ 镜像包下载完成并通过完整性校验，正在导入 Docker...${NC}"

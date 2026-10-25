@@ -334,7 +334,7 @@ else
     echo "🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 101套规则集 + 控制面)..."
     REL_TAG=""
     for MIRROR in "https://ghproxy.net" "https://gh.ddlc.top" "https://mirror.ghproxy.com"; do
-        LATEST_JSON=$(curl --http1.1 -fsSL --connect-timeout 3 -m 5 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
+        LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 3 -m 5 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
         if [ -n "$LATEST_JSON" ]; then
             REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
             [ -n "$REL_TAG" ] && break
@@ -351,7 +351,7 @@ else
 
     for DL_URL in $DOWNLOAD_URLS; do
         echo "   -> 正在尝试拉取: ${DL_URL}..."
-        if curl --http1.1 -sSL --connect-timeout 8 -m 180 -o "$TMP_ZIP" "$DL_URL" 2>/dev/null && [ -s "$TMP_ZIP" ]; then
+        if curl -4 --http1.1 -sSL --connect-timeout 8 -m 180 -o "$TMP_ZIP" "$DL_URL" 2>/dev/null && [ -s "$TMP_ZIP" ]; then
             if unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
                 DOWNLOAD_SUCCESS=1
                 break
@@ -371,7 +371,7 @@ else
         echo "⚠️ 归档下载超时，降级拉取单二进制..."
         BIN_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-amd64"
         BIN_MIRROR="https://ghproxy.net/$BIN_URL"
-        curl --http1.1 -sSL --connect-timeout 8 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_URL" 2>/dev/null || curl --http1.1 -sSL --connect-timeout 10 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_MIRROR" 2>/dev/null || true
+        curl -4 --http1.1 -sSL --connect-timeout 8 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_URL" 2>/dev/null || curl -4 --http1.1 -sSL --connect-timeout 10 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_MIRROR" 2>/dev/null || true
         chmod 755 /opt/CubeX/bin/cubexd 2>/dev/null || true
     fi
 EOF

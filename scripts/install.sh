@@ -456,9 +456,9 @@ else
 
     if [ "$NEED_DOWNLOAD" -eq 1 ] && [ ! -f "$INSTALL_DIR/bin/cubexd" ]; then
         echo -e "${CYAN}🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 101套规则集 + 控制面)...${NC}"
-        REL_TAG=$(curl -sSL --connect-timeout 3 -m 5 -I "https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
+        REL_TAG=$(curl -4 -sSL --connect-timeout 3 -m 5 -I "https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
         if [ -z "$REL_TAG" ]; then
-            REL_TAG=$(curl -sSL --connect-timeout 3 -m 5 -I "https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
+            REL_TAG=$(curl -4 -sSL --connect-timeout 3 -m 5 -I "https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
         fi
         [ -z "$REL_TAG" ] && REL_TAG="Test-v3.6"
         ZIP_NAME="CubeX-${REL_TAG}-linux-${TARGET_ARCH}.zip"
@@ -478,7 +478,7 @@ else
                 else
                     DL_LINK="${ZIP_URL}"
                 fi
-                if curl --http1.1 -fsSL --connect-timeout 8 -m 300 -o "$TMP_ZIP" "$DL_LINK" 2>/dev/null && [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
+                if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 300 -o "$TMP_ZIP" "$DL_LINK" 2>/dev/null && [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
                     DOWNLOAD_OK=1
                     break
                 fi
@@ -493,8 +493,8 @@ else
             echo -e "${YELLOW}⚠️ 完整归档拉取失败，尝试降级拉取单二进制核心控制面...${NC}"
             DL_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${TARGET_ARCH}"
             DL_MIRROR="https://ghproxy.net/${DL_URL}"
-            curl -sSL --connect-timeout 8 -m 120 -o "$INSTALL_DIR/bin/cubexd" "$DL_URL" 2>/dev/null || \
-            curl -sSL --connect-timeout 10 -m 120 -o "$INSTALL_DIR/bin/cubexd" "$DL_MIRROR" 2>/dev/null || true
+            curl -4 -sSL --connect-timeout 8 -m 120 -o "$INSTALL_DIR/bin/cubexd" "$DL_URL" 2>/dev/null || \
+            curl -4 -sSL --connect-timeout 10 -m 120 -o "$INSTALL_DIR/bin/cubexd" "$DL_MIRROR" 2>/dev/null || true
         fi
     fi
     chmod +x "$INSTALL_DIR/bin/"* 2>/dev/null || true
@@ -559,10 +559,10 @@ if [ "$CLI_INSTALLED" -eq 0 ]; then
     echo -e "${CYAN}🌐 正在尝试拉取最新版原生运维 CLI (cubex-linux-${TARGET_ARCH})...${NC}"
     CLI_URL="https://github.com/zyeyefyass/CubeX/releases/latest/download/cubex-linux-$TARGET_ARCH"
     CLI_MIRROR="https://ghproxy.net/$CLI_URL"
-    if curl -sSL --connect-timeout 5 -m 30 -o /usr/local/bin/cubex "$CLI_URL" 2>/dev/null && [ -s /usr/local/bin/cubex ]; then
+    if curl -4 -sSL --connect-timeout 5 -m 30 -o /usr/local/bin/cubex "$CLI_URL" 2>/dev/null && [ -s /usr/local/bin/cubex ]; then
         chmod +x /usr/local/bin/cubex 2>/dev/null || true
         CLI_INSTALLED=1
-    elif curl -sSL --connect-timeout 6 -m 30 -o /usr/local/bin/cubex "$CLI_MIRROR" 2>/dev/null && [ -s /usr/local/bin/cubex ]; then
+    elif curl -4 -sSL --connect-timeout 6 -m 30 -o /usr/local/bin/cubex "$CLI_MIRROR" 2>/dev/null && [ -s /usr/local/bin/cubex ]; then
         chmod +x /usr/local/bin/cubex 2>/dev/null || true
         CLI_INSTALLED=1
     fi
