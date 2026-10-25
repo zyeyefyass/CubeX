@@ -166,11 +166,27 @@ done
 INSTALL_DIR="${DEFAULT_INSTALL_DIR}"
 
 if [ "$AUTO_CONFIRM" -eq 0 ]; then
+    if [ ! -t 0 ] && [ ! -r /dev/tty ]; then
+        AUTO_CONFIRM=1
+    fi
+fi
+
+if [ "$AUTO_CONFIRM" -eq 0 ]; then
     echo ""
     echo -e "${BOLD}请选择或确认安装目录:${NC} (直接回车保持默认)"
-    read -r -p "安装路径 [${DEFAULT_INSTALL_DIR}]: " INPUT_DIR
+    INPUT_DIR=""
+    if [ -r /dev/tty ]; then
+        read -r -p "安装路径 [${DEFAULT_INSTALL_DIR}]: " INPUT_DIR </dev/tty || INPUT_DIR=""
+    elif [ -t 0 ]; then
+        read -r -p "安装路径 [${DEFAULT_INSTALL_DIR}]: " INPUT_DIR || INPUT_DIR=""
+    fi
     if [ -n "$INPUT_DIR" ]; then
-        INSTALL_DIR="$INPUT_DIR"
+        CLEAN_DIR=$(echo "$INPUT_DIR" | tr -d '\r\n' | grep -E '^/[a-zA-Z0-9_\.\/-]+$' || true)
+        if [ -n "$CLEAN_DIR" ]; then
+            INSTALL_DIR="$CLEAN_DIR"
+        else
+            INSTALL_DIR="$DEFAULT_INSTALL_DIR"
+        fi
     fi
 
     # 飞牛 fnOS 友好提示
@@ -183,7 +199,12 @@ if [ "$AUTO_CONFIRM" -eq 0 ]; then
         echo -e "${BOLD}请选择运行部署模式:${NC}"
         echo -e "  ${CYAN}1) Docker 容器化主旁一体部署 (推荐 · 隔离性好 · 飞牛/PVE/RouterOS/爱快首选)${NC}"
         echo -e "  ${PURPLE}2) 原生单二进制 Systemd 守护部署 (纯粹裸跑 · 极致轻量低开销 · 极客首选)${NC}"
-        read -r -p "请输入选项 [1/2, 默认 1]: " MODE_CHOICE
+        MODE_CHOICE=""
+        if [ -r /dev/tty ]; then
+            read -r -p "请输入选项 [1/2, 默认 1]: " MODE_CHOICE </dev/tty || MODE_CHOICE=""
+        elif [ -t 0 ]; then
+            read -r -p "请输入选项 [1/2, 默认 1]: " MODE_CHOICE || MODE_CHOICE=""
+        fi
         case "$MODE_CHOICE" in
             2)
                 DEPLOY_MODE="native"
@@ -448,19 +469,28 @@ else
         if [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
             echo -e "${GREEN}📦 发现本地已缓存的完整归档: ${TMP_ZIP}，秒级解压部署...${NC}"
         else
-            echo -e "${CYAN}   -> 正在通过高速镜像源下载 ${ZIP_NAME}...${NC}"
-            if ! curl -sSL --connect-timeout 8 -m 180 -o "$TMP_ZIP" "$ZIP_MIRROR" 2>/dev/null || [ ! -s "$TMP_ZIP" ]; then
-                echo -e "${YELLOW}   -> 镜像拉取异常，尝试直连源: ${ZIP_URL}...${NC}"
-                curl -sSL --connect-timeout 10 -m 180 -o "$TMP_ZIP" "$ZIP_URL" 2>/dev/null || true
-            fi
+            rm -f "$TMP_ZIP"
+            echo -e "${CYAN}   -> 正在通过高速镜像源下载 ${ZIP_NAME} (约 84MB，免代理极速拉取)...${NC}"
+            DOWNLOAD_OK=0
+            for MIRROR in "https://ghproxy.net" "https://gh.ddlc.top" ""; do
+                if [ -n "$MIRROR" ]; then
+                    DL_LINK="${MIRROR}/${ZIP_URL}"
+                else
+                    DL_LINK="${ZIP_URL}"
+                fi
+                if curl --http1.1 -fsSL --connect-timeout 8 -m 300 -o "$TMP_ZIP" "$DL_LINK" 2>/dev/null && [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
+                    DOWNLOAD_OK=1
+                    break
+                fi
+                rm -f "$TMP_ZIP"
+            done
         fi
 
-        if [ -s "$TMP_ZIP" ]; then
+        if [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
             unzip -q -o "$TMP_ZIP" -d "$INSTALL_DIR" 2>/dev/null || true
-            rm -f "$TMP_ZIP"
             echo -e "${GREEN}✅ 完整归档已成功释放至 ${INSTALL_DIR} (包含 Mihomo + sing-box 双核及全量规则)${NC}"
         else
-            echo -e "${YELLOW}⚠️ 完整归档下载超时，尝试降级拉取核心控制面...${NC}"
+            echo -e "${YELLOW}⚠️ 完整归档拉取失败，尝试降级拉取单二进制核心控制面...${NC}"
             DL_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${TARGET_ARCH}"
             DL_MIRROR="https://ghproxy.net/${DL_URL}"
             curl -sSL --connect-timeout 8 -m 120 -o "$INSTALL_DIR/bin/cubexd" "$DL_URL" 2>/dev/null || \
@@ -474,6 +504,7 @@ else
         exit 1
     fi
 
+    mkdir -p /usr/local/bin 2>/dev/null || true
     if [ -f "$INSTALL_DIR/bin/cubex" ]; then
         ln -sf "$INSTALL_DIR/bin/cubex" /usr/local/bin/cubex 2>/dev/null || cp "$INSTALL_DIR/bin/cubex" /usr/local/bin/cubex 2>/dev/null || true
         chmod +x /usr/local/bin/cubex 2>/dev/null || true
@@ -511,12 +542,13 @@ fi
 # 8. 快捷命令软链接与部署完成驾驶舱
 # ─────────────────────────────────────────────────────────────────────────────
 echo -e "${YELLOW}🔗 [4/4] 注册全局管理快捷指令 (cubex)...${NC}"
+mkdir -p /usr/local/bin 2>/dev/null || true
 
-# 如果本地存在编译好的 cubex 运维 CLI，则优先复制
+# 如果本地存在编译好的 cubex 运维 CLI，则优先链接或复制
 CLI_INSTALLED=0
-for cli_path in "$CURRENT_SCRIPT_DIR/../dist/cubex-linux-$TARGET_ARCH" "$CURRENT_SCRIPT_DIR/dist/cubex-linux-$TARGET_ARCH" "./dist/cubex-linux-$TARGET_ARCH"; do
+for cli_path in "$INSTALL_DIR/bin/cubex" "$CURRENT_SCRIPT_DIR/../dist/cubex-linux-$TARGET_ARCH" "$CURRENT_SCRIPT_DIR/dist/cubex-linux-$TARGET_ARCH" "./dist/cubex-linux-$TARGET_ARCH"; do
     if [ -f "$cli_path" ]; then
-        cp "$cli_path" /usr/local/bin/cubex
+        ln -sf "$cli_path" /usr/local/bin/cubex 2>/dev/null || cp "$cli_path" /usr/local/bin/cubex 2>/dev/null || true
         chmod +x /usr/local/bin/cubex 2>/dev/null || true
         CLI_INSTALLED=1
         break
