@@ -595,6 +595,10 @@
                   <p class="text-[11px] text-slate-300 leading-relaxed">
                     客户端或主路由 DHCP 将网关与 DNS 统一指向 CubeX，全流量无感接管。
                   </p>
+                  <div class="px-2 py-1 rounded-lg bg-amber-950/50 border border-amber-500/40 text-[10px] text-amber-300 flex items-center gap-1.5 leading-snug">
+                    <span class="shrink-0">⚠️</span>
+                    <span>特别提醒: 单网口折返转发，大流量直连测速可能夭折 50% 以上</span>
+                  </div>
 
                   <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5 font-mono text-xs">
                     <div class="flex items-center justify-between">
