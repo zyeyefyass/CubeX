@@ -43,7 +43,7 @@ if ! command -v docker >/dev/null 2>&1; then
     if command -v apk >/dev/null 2>&1; then
         echo -e "${CYAN}   -> 识别到新一代 apk 包管理器 (OpenWrt 24+ / iStoreOS 25+)，正在执行 apk 安装...${NC}"
         apk update
-        apk add dockerd docker docker-compose luci-app-dockerman 2>/dev/null || apk add dockerd docker 2>/dev/null || true
+        apk add dockerd docker docker-compose luci-app-dockerman curl ca-certificates 2>/dev/null || apk add dockerd docker 2>/dev/null || true
     elif command -v opkg >/dev/null 2>&1; then
         echo -e "${CYAN}   -> 识别到 opkg 包管理器，正在执行 opkg 安装...${NC}"
         # 国内镜像加速: 若检测到官方源连通困难，自动切换为清华大学开源镜像源
@@ -51,7 +51,7 @@ if ! command -v docker >/dev/null 2>&1; then
             sed -i 's/downloads.openwrt.org/mirrors.tuna.tsinghua.edu.cn\/openwrt/g' /etc/opkg/distfeeds.conf 2>/dev/null || true
         fi
         opkg update
-        opkg install dockerd docker luci-app-dockerman 2>/dev/null || opkg install dockerd docker 2>/dev/null || true
+        opkg install dockerd docker luci-app-dockerman curl ca-certificates ca-bundle 2>/dev/null || opkg install dockerd docker 2>/dev/null || true
     fi
 fi
 
@@ -247,26 +247,30 @@ if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
             docker tag "$EXISTING_TAG" "cubex:latest" 2>/dev/null || true
             IMAGE="cubex:latest"
         else
-            echo -e "${YELLOW}   -> 未检测到本地离线镜像，正在从国内加速镜像拉取 CubeX 离线 Docker 镜像包...${NC}"
+            echo -e "${YELLOW}   -> 未检测到本地离线镜像，正在从国内加速镜像拉取 CubeX 离线 Docker 镜像包 (约 89MB)...${NC}"
             PULL_SUCCESS=0
-            # 优先从国内加速镜像拉取完整的 Docker 归档包 (免代理免科学上网)
+            TMP_TAR="/tmp/cubex-docker-${ARCH}.tar.gz"
+            # 优先从国内加速镜像拉取完整的 Docker 归档包 (支持断点续传与多源竞速)
             for MIRROR in "https://ghproxy.net" "https://gh.ddlc.top" ""; do
                 if [ -n "$MIRROR" ]; then
                     TAR_DL="${MIRROR}/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.6/CubeX-Test-v3.6-docker-${ARCH}.tar.gz"
                 else
                     TAR_DL="https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.6/CubeX-Test-v3.6-docker-${ARCH}.tar.gz"
                 fi
-                TMP_TAR="/tmp/cubex-docker-${ARCH}.tar.gz"
-                rm -f "$TMP_TAR"
-                if curl --http1.1 -fsSL --connect-timeout 8 -m 300 -o "$TMP_TAR" "$TAR_DL" 2>/dev/null && [ -s "$TMP_TAR" ]; then
-                    echo -e "${GREEN}   ✓ 镜像包下载完成，正在导入 Docker...${NC}"
+                echo -e "${CYAN}   -> 正在连接下载源: ${TAR_DL} ...${NC}"
+                if command -v curl >/dev/null 2>&1; then
+                    curl --http1.1 -# -L -C - --connect-timeout 8 -m 300 -o "$TMP_TAR" "$TAR_DL" 2>&1 || true
+                elif command -v wget >/dev/null 2>&1; then
+                    wget -c -T 15 -O "$TMP_TAR" "$TAR_DL" 2>&1 || true
+                fi
+                if [ -s "$TMP_TAR" ] && gzip -t "$TMP_TAR" 2>/dev/null; then
+                    echo -e "${GREEN}   ✓ 镜像包下载完成并通过完整性校验，正在导入 Docker...${NC}"
                     if docker load -i "$TMP_TAR"; then
                         rm -f "$TMP_TAR"
                         PULL_SUCCESS=1
                         IMAGE="cubex:latest"
                         break
                     fi
-                    rm -f "$TMP_TAR"
                 fi
             done
             if [ "$PULL_SUCCESS" = "0" ]; then
