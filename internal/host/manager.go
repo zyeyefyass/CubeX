@@ -181,13 +181,19 @@ func (m *Manager) getSSHClient(cfg HostConfig) (*ssh.Client, error) {
 		if len(parts) == 4 {
 			shimHost := fmt.Sprintf("%s.%s.%s.228", parts[0], parts[1], parts[2])
 			if shimHost != cfg.Host {
-				_ = exec.Command("ip", "route", "replace", cfg.Host+"/32", "via", shimHost, "dev", "eth0").Run()
-				if c2, err2 := ssh.Dial("tcp", addr, clientConfig); err2 == nil {
-					return c2, nil
-				}
-				shimAddr := fmt.Sprintf("%s:%d", shimHost, cfg.Port)
-				if c3, err3 := ssh.Dial("tcp", shimAddr, clientConfig); err3 == nil {
-					return c3, nil
+				// Safety defense: Only test shim route if shimHost is physically reachable (ping/ARP response)
+				if errPing := exec.Command("ping", "-c", "1", "-W", "1", shimHost).Run(); errPing == nil {
+					_ = exec.Command("ip", "route", "replace", cfg.Host+"/32", "via", shimHost, "dev", "eth0").Run()
+					if c2, err2 := ssh.Dial("tcp", addr, clientConfig); err2 == nil {
+						return c2, nil
+					}
+					shimAddr := fmt.Sprintf("%s:%d", shimHost, cfg.Port)
+					if c3, err3 := ssh.Dial("tcp", shimAddr, clientConfig); err3 == nil {
+						return c3, nil
+					}
+					// Always clean up poisoned route immediately if dial failed!
+					_ = exec.Command("ip", "route", "del", cfg.Host+"/32", "via", shimHost, "dev", "eth0").Run()
+					_ = exec.Command("ip", "route", "flush", "cache").Run()
 				}
 			}
 		}
