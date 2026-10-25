@@ -263,7 +263,7 @@ sleep 2
 
 # 9. 容器内部初始化与依赖部署
 echo -e "\n${CYAN}🔄 [5/5] 容器内部全自动初始化 (更新源、配置守护进程与内存软上限)...${NC}"
-pct exec "$CT_ID" -- sh -c '
+pct exec "$CT_ID" -- sh -s << 'EOF'
 set -e
 cat << "REPO" > /etc/apk/repositories
 https://mirrors.aliyun.com/alpine/latest-stable/main
@@ -302,31 +302,56 @@ INIT
 
 chmod +x /etc/init.d/cubexd
 rc-update add cubexd default >/dev/null 2>&1
-'
+EOF
 
-# 10. 推送或下载 CubeX 二进制
-if [ -f "dist/cubexd-linux-amd64" ]; then
+# 10. 推送或下载 CubeX 完整发布包
+if [ -f "dist/release/CubeX-Test-v3.6-linux-amd64.zip" ]; then
+    echo -e "${BLUE}检测到本地发布包，直接推送至容器: /opt/CubeX...${NC}"
+    pct push "$CT_ID" dist/release/CubeX-Test-v3.6-linux-amd64.zip /tmp/CubeX.zip
+    pct exec "$CT_ID" -- sh -s << 'EOF'
+unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/
+chmod +x /opt/CubeX/bin/* 2>/dev/null || true
+rm -f /tmp/CubeX.zip
+EOF
+elif [ -f "dist/cubexd-linux-amd64" ]; then
     echo -e "${BLUE}检测到本地构建产物，直接推送至容器: /opt/CubeX/bin/cubexd...${NC}"
     pct push "$CT_ID" dist/cubexd-linux-amd64 /opt/CubeX/bin/cubexd -perms 755
 elif [ -f "/opt/cubex/bin/cubexd" ]; then
     pct push "$CT_ID" /opt/cubex/bin/cubexd /opt/CubeX/bin/cubexd -perms 755
 else
-    pct exec "$CT_ID" -- sh -c '
+    pct exec "$CT_ID" -- sh -s << 'EOF'
+    set -e
     echo "🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 101套规则集 + 控制面)..."
-    REL_TAG=$(curl -sSL -I "https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
+    REL_TAG=""
+    for MIRROR in "https://ghproxy.net" "https://gh.ddlc.top" "https://mirror.ghproxy.com"; do
+        LATEST_JSON=$(curl --http1.1 -fsSL --connect-timeout 3 -m 5 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
+        if [ -n "$LATEST_JSON" ]; then
+            REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
+            [ -n "$REL_TAG" ] && break
+        fi
+    done
     [ -z "$REL_TAG" ] && REL_TAG="Test-v3.6"
-    ZIP_NAME="CubeX-${REL_TAG}-linux-amd64.zip"
-    ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
-    ZIP_MIRROR="https://ghproxy.net/${ZIP_URL}"
 
+    ZIP_NAME="CubeX-${REL_TAG}-linux-amd64.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"
     rm -f "$TMP_ZIP"
-    if ! curl -sSL --connect-timeout 8 -m 180 -o "$TMP_ZIP" "$ZIP_URL" 2>/dev/null || [ ! -s "$TMP_ZIP" ]; then
-        echo "   -> 切换至极速加速镜像: ${ZIP_MIRROR}..."
-        curl -sSL --connect-timeout 10 -m 180 -o "$TMP_ZIP" "$ZIP_MIRROR" 2>/dev/null || true
-    fi
 
-    if [ -s "$TMP_ZIP" ]; then
+    DOWNLOAD_SUCCESS=0
+    DOWNLOAD_URLS="https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://gh.ddlc.top/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
+
+    for DL_URL in $DOWNLOAD_URLS; do
+        echo "   -> 正在尝试拉取: ${DL_URL}..."
+        if curl --http1.1 -sSL --connect-timeout 8 -m 180 -o "$TMP_ZIP" "$DL_URL" 2>/dev/null && [ -s "$TMP_ZIP" ]; then
+            if unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
+                DOWNLOAD_SUCCESS=1
+                break
+            else
+                rm -f "$TMP_ZIP"
+            fi
+        fi
+    done
+
+    if [ "$DOWNLOAD_SUCCESS" = "1" ] && [ -s "$TMP_ZIP" ]; then
         unzip -q -o "$TMP_ZIP" -d /opt/CubeX/ >/dev/null 2>&1
         chmod +x /opt/CubeX/bin/* 2>/dev/null || true
         rm -f "$TMP_ZIP"
@@ -335,10 +360,10 @@ else
         echo "⚠️ 归档下载超时，降级拉取单二进制..."
         BIN_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-amd64"
         BIN_MIRROR="https://ghproxy.net/$BIN_URL"
-        curl -sSL --connect-timeout 8 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_URL" 2>/dev/null ||         curl -sSL --connect-timeout 10 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_MIRROR" 2>/dev/null || true
+        curl --http1.1 -sSL --connect-timeout 8 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_URL" 2>/dev/null || curl --http1.1 -sSL --connect-timeout 10 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_MIRROR" 2>/dev/null || true
         chmod 755 /opt/CubeX/bin/cubexd 2>/dev/null || true
     fi
-    '
+EOF
 fi
 
 # 11. 启动服务

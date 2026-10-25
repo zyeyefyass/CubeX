@@ -46,6 +46,10 @@ if ! command -v docker >/dev/null 2>&1; then
         apk add dockerd docker docker-compose luci-app-dockerman 2>/dev/null || apk add dockerd docker 2>/dev/null || true
     elif command -v opkg >/dev/null 2>&1; then
         echo -e "${CYAN}   -> 识别到 opkg 包管理器，正在执行 opkg 安装...${NC}"
+        # 国内镜像加速: 若检测到官方源连通困难，自动切换为清华大学开源镜像源
+        if [ -f /etc/opkg/distfeeds.conf ]; then
+            sed -i 's/downloads.openwrt.org/mirrors.tuna.tsinghua.edu.cn\/openwrt/g' /etc/opkg/distfeeds.conf 2>/dev/null || true
+        fi
         opkg update
         opkg install dockerd docker luci-app-dockerman 2>/dev/null || opkg install dockerd docker 2>/dev/null || true
     fi
@@ -243,18 +247,55 @@ if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
             docker tag "$EXISTING_TAG" "cubex:latest" 2>/dev/null || true
             IMAGE="cubex:latest"
         else
-            echo -e "${YELLOW}   -> 未检测到本地离线镜像，正在尝试在线拉取最新镜像 (GHCR / Docker Hub)...${NC}"
-            docker pull "ghcr.io/zyeyefyass/cubex:latest" 2>/dev/null || docker pull "zyeyefyass/cubex:latest" || docker pull "$IMAGE" || true
-            if docker inspect "ghcr.io/zyeyefyass/cubex:latest" >/dev/null 2>&1; then
-                IMAGE="ghcr.io/zyeyefyass/cubex:latest"
-            elif docker inspect "zyeyefyass/cubex:latest" >/dev/null 2>&1; then
-                IMAGE="zyeyefyass/cubex:latest"
+            echo -e "${YELLOW}   -> 未检测到本地离线镜像，正在从国内加速镜像拉取 CubeX 离线 Docker 镜像包...${NC}"
+            PULL_SUCCESS=0
+            # 优先从国内加速镜像拉取完整的 Docker 归档包 (免代理免科学上网)
+            for MIRROR in "https://ghproxy.net" "https://gh.ddlc.top" ""; do
+                if [ -n "$MIRROR" ]; then
+                    TAR_DL="${MIRROR}/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.6/CubeX-Test-v3.6-docker-${ARCH}.tar.gz"
+                else
+                    TAR_DL="https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.6/CubeX-Test-v3.6-docker-${ARCH}.tar.gz"
+                fi
+                TMP_TAR="/tmp/cubex-docker-${ARCH}.tar.gz"
+                rm -f "$TMP_TAR"
+                if curl --http1.1 -fsSL --connect-timeout 8 -m 300 -o "$TMP_TAR" "$TAR_DL" 2>/dev/null && [ -s "$TMP_TAR" ]; then
+                    echo -e "${GREEN}   ✓ 镜像包下载完成，正在导入 Docker...${NC}"
+                    if docker load -i "$TMP_TAR"; then
+                        rm -f "$TMP_TAR"
+                        PULL_SUCCESS=1
+                        IMAGE="cubex:latest"
+                        break
+                    fi
+                    rm -f "$TMP_TAR"
+                fi
+            done
+            if [ "$PULL_SUCCESS" = "0" ]; then
+                echo -e "${YELLOW}   -> 尝试在线拉取公共镜像 (GHCR / Docker Hub)...${NC}"
+                docker pull "ghcr.io/zyeyefyass/cubex:latest" 2>/dev/null || docker pull "zyeyefyass/cubex:latest" || docker pull "$IMAGE" || true
+                if docker inspect "ghcr.io/zyeyefyass/cubex:latest" >/dev/null 2>&1; then
+                    IMAGE="ghcr.io/zyeyefyass/cubex:latest"
+                elif docker inspect "zyeyefyass/cubex:latest" >/dev/null 2>&1; then
+                    IMAGE="zyeyefyass/cubex:latest"
+                fi
             fi
         fi
     fi
 fi
 
 mkdir -p /etc/cubex/data
+
+# 自动加固与探查 TUN 虚拟设备 (支持物理 OpenWrt 与虚拟化容器 OpenWrt)
+modprobe tun 2>/dev/null || true
+if [ ! -c /dev/net/tun ]; then
+    mkdir -p /dev/net 2>/dev/null || true
+    mknod /dev/net/tun c 10 200 2>/dev/null || true
+    chmod 666 /dev/net/tun 2>/dev/null || true
+fi
+
+DEV_TUN_OPT=""
+if [ -c /dev/net/tun ]; then
+    DEV_TUN_OPT="--device=/dev/net/tun"
+fi
 
 echo -e "${CYAN}📦 [5/6 容器拉起] 正在拉起 CubeX 容器 (${CONTAINER_NAME} @ ${CUBEX_IP} 使用镜像: ${IMAGE})...${NC}"
 
@@ -265,7 +306,7 @@ docker run -d \
     --ip="$CUBEX_IP" \
     --cap-add=NET_ADMIN \
     --cap-add=NET_RAW \
-    --device=/dev/net/tun \
+    $DEV_TUN_OPT \
     -v /etc/cubex/data:/app/data \
     "$IMAGE"
 

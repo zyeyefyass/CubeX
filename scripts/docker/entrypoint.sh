@@ -15,7 +15,7 @@ echo "🚀 [CubeX] Starting CubeX Container Initialization..."
 # 1. Initialize /app/etc if empty or missing critical geodata / rules
 if [ ! -f "/app/etc/config.yaml" ] && [ ! -f "/app/etc/config.json" ]; then
     echo "📦 [CubeX] Initializing /app/etc from defaults..."
-    cp -rn /app/defaults/etc/* /app/etc/ 2>/dev/null || cp -r /app/defaults/etc/* /app/etc/
+    cp -rn /app/defaults/etc/* /app/etc/ 2>/dev/null || cp -r /app/defaults/etc/* /app/etc/ 2>/dev/null || true
 fi
 
 # Always ensure rules and geodata exist in /app/etc
@@ -26,19 +26,19 @@ if [ -d "/app/defaults/etc/rules" ] && [ ! -f "/app/etc/rules/adblocksingbox.srs
 fi
 
 if [ ! -f "/app/etc/geoip.metadb" ] && [ -f "/app/defaults/etc/geoip.metadb" ]; then
-    cp /app/defaults/etc/geoip.metadb /app/etc/geoip.metadb
+    cp /app/defaults/etc/geoip.metadb /app/etc/geoip.metadb 2>/dev/null || true
 fi
 if [ ! -f "/app/etc/geosite.dat" ] && [ -f "/app/defaults/etc/geosite.dat" ]; then
-    cp /app/defaults/etc/geosite.dat /app/etc/geosite.dat
+    cp /app/defaults/etc/geosite.dat /app/etc/geosite.dat 2>/dev/null || true
 fi
 if [ ! -f "/app/etc/GeoIP.dat" ] && [ -f "/app/defaults/etc/GeoIP.dat" ]; then
-    cp /app/defaults/etc/GeoIP.dat /app/etc/GeoIP.dat
+    cp /app/defaults/etc/GeoIP.dat /app/etc/GeoIP.dat 2>/dev/null || true
 fi
 
 # 2. Initialize /app/data if empty
 if [ ! -f "/app/data/config.ir.json" ]; then
     echo "📦 [CubeX] Initializing /app/data from defaults..."
-    cp -rn /app/defaults/data/* /app/data/ 2>/dev/null || cp -r /app/defaults/data/* /app/data/
+    cp -rn /app/defaults/data/* /app/data/ 2>/dev/null || cp -r /app/defaults/data/* /app/data/ 2>/dev/null || true
 fi
 
 # 3. Enable IP Forwarding and NAT Masquerade for Gateway / Secondary Router Mode
