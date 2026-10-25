@@ -500,21 +500,34 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			nodeMap["password"] = p.Password
 		case "shadowsocks", "ss":
 			cipher := strings.ToLower(p.Cipher)
-			if !ValidSSCiphers[cipher] {
+			if cipher == "" && p.RawConfig != nil {
+				if m, ok := p.RawConfig["method"].(string); ok && m != "" {
+					cipher = strings.ToLower(m)
+				} else if c, ok := p.RawConfig["cipher"].(string); ok && c != "" {
+					cipher = strings.ToLower(c)
+				}
+			}
+			pwd := p.Password
+			if pwd == "" && p.RawConfig != nil {
+				if pw, ok := p.RawConfig["password"].(string); ok {
+					pwd = pw
+				}
+			}
+			if pwd == "" || !ValidSSCiphers[cipher] {
 				valid = false
 			} else if strings.HasPrefix(cipher, "2022-") {
-				cleanPwd, ok := CleanSS2022Password(cipher, p.Password)
+				cleanPwd, ok := CleanSS2022Password(cipher, pwd)
 				if !ok {
 					valid = false
 				} else {
 					nodeMap["type"] = "shadowsocks"
-					nodeMap["method"] = p.Cipher
+					nodeMap["method"] = cipher
 					nodeMap["password"] = cleanPwd
 				}
 			} else {
 				nodeMap["type"] = "shadowsocks"
-				nodeMap["method"] = p.Cipher
-				nodeMap["password"] = p.Password
+				nodeMap["method"] = cipher
+				nodeMap["password"] = pwd
 			}
 
 			// Shadow-TLS plugin support in Sing-box (via detour to companion shadowtls outbound)

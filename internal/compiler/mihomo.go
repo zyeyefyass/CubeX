@@ -446,6 +446,20 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		delete(pMap, "tag")
 		delete(pMap, "server_port")
 		delete(pMap, "utls")
+		delete(pMap, "security")
+
+		// Normalize method to cipher for Mihomo
+		if m, ok := pMap["method"].(string); ok && m != "" {
+			if _, ok := pMap["cipher"]; !ok || pMap["cipher"] == "" {
+				pMap["cipher"] = m
+			}
+			delete(pMap, "method")
+		}
+		if p.Cipher != "" {
+			if _, ok := pMap["cipher"]; !ok || pMap["cipher"] == "" {
+				pMap["cipher"] = p.Cipher
+			}
+		}
 
 		// Normalize Type for Mihomo (Clash Meta)
 		if ptype == "shadowsocks" {
@@ -471,21 +485,43 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 				continue
 			}
 		} else if ptype == "ss" {
-			cipher := strings.ToLower(p.Cipher)
+			cipher := ""
+			if c, ok := pMap["cipher"].(string); ok && c != "" {
+				cipher = strings.ToLower(c)
+			} else if p.Cipher != "" {
+				cipher = strings.ToLower(p.Cipher)
+			}
 			if !ValidSSCiphers[cipher] {
-				log.Printf("[Compiler] Skipping invalid SS proxy %s: unsupported cipher %s", p.Name, p.Cipher)
+				log.Printf("[Compiler] Skipping invalid SS proxy %s: unsupported cipher %s", p.Name, cipher)
 				continue
 			}
+			pMap["cipher"] = cipher
+
+			pwd, _ := pMap["password"].(string)
+			if pwd == "" {
+				pwd = p.Password
+			}
+			if pwd == "" {
+				log.Printf("[Compiler] Skipping SS proxy %s: missing password", p.Name)
+				continue
+			}
+
 			if strings.HasPrefix(cipher, "2022-") {
-				cleanPwd, ok := CleanSS2022Password(cipher, p.Password)
+				cleanPwd, ok := CleanSS2022Password(cipher, pwd)
 				if !ok {
-					log.Printf("[Compiler] Skipping SS-2022 proxy %s: invalid or multi-user password %s", p.Name, p.Password)
+					log.Printf("[Compiler] Skipping SS-2022 proxy %s: invalid or multi-user password %s", p.Name, pwd)
 					continue
 				}
 				pMap["password"] = cleanPwd
+			} else {
+				pMap["password"] = pwd
+			}
+		} else if ptype == "ssr" {
+			if m, ok := pMap["method"].(string); ok && m != "" {
+				pMap["cipher"] = m
+				delete(pMap, "method")
 			}
 		}
-
 		// Filter out protocols that Mihomo cannot parse to avoid daemon abort
 		switch ptype {
 		case "ss", "ssr", "vmess", "vless", "trojan", "socks5", "http", "snell", "wireguard", "tuic", "hysteria", "hysteria2":

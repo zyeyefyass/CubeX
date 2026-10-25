@@ -84,7 +84,7 @@ import (
 
 var (
 
-	version   = "Test v3.7"
+	version   = "Test v3.8"
 
 	startTime = time.Now()
 
@@ -1361,6 +1361,10 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 
 		"total_proxies":     len(ir.Proxies),
 
+		"total_subscriptions": len(ir.Subscriptions),
+
+		"initialized":       len(ir.Proxies) > 0 || len(ir.Subscriptions) > 0,
+
 		"total_groups":      len(ir.Groups),
 
 	}
@@ -1729,7 +1733,7 @@ func (s *Server) handleEngineSwitch(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 
-		sendJSON(w, map[string]any{"status": "error", "error": err.Error(), "result": result})
+		sendJSON(w, map[string]any{"status": "error", "success": false, "error": err.Error(), "result": result})
 
 		return
 
@@ -1751,7 +1755,7 @@ func (s *Server) handleEngineSwitch(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	sendJSON(w, map[string]any{"status": "switched", "result": result})
+	sendJSON(w, map[string]any{"status": "switched", "success": true, "result": result})
 
 }
 

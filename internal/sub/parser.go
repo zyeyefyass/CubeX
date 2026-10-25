@@ -125,6 +125,10 @@ func parseClashNode(p map[string]any) schema.ProxyNode {
 		return false
 	}
 
+	cipher := getString("cipher")
+	if cipher == "" {
+		cipher = getString("method")
+	}
 	node := schema.ProxyNode{
 		Name:           getString("name"),
 		Type:           strings.ToLower(getString("type")),
@@ -132,7 +136,7 @@ func parseClashNode(p map[string]any) schema.ProxyNode {
 		Port:           getInt("port"),
 		UUID:           getString("uuid"),
 		Password:       getString("password"),
-		Cipher:         getString("cipher"),
+		Cipher:         cipher,
 		TLS:            getBool("tls"),
 		SNI:            getString("servername"),
 		SkipCertVerify: getBool("skip-cert-verify"),
@@ -204,6 +208,10 @@ func parseSingboxNode(ob map[string]any) schema.ProxyNode {
 		return schema.ProxyNode{}
 	}
 
+	cipher := getString("method")
+	if cipher == "" {
+		cipher = getString("cipher")
+	}
 	node := schema.ProxyNode{
 		Name:     getString("tag"),
 		Type:     pType,
@@ -211,13 +219,17 @@ func parseSingboxNode(ob map[string]any) schema.ProxyNode {
 		Port:     getInt("server_port"),
 		UUID:     getString("uuid"),
 		Password: getString("password"),
-		Cipher:   getString("method"),
+		Cipher:   cipher,
 		Flow:     getString("flow"),
 	}
 
 	raw := make(map[string]any)
 	for k, v := range ob {
 		raw[k] = v
+	}
+	if cipher != "" {
+		raw["cipher"] = cipher
+		raw["method"] = cipher
 	}
 
 	if tlsMap, ok := ob["tls"].(map[string]any); ok {
