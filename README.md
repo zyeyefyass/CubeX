@@ -6,7 +6,7 @@
 ### *单二进制纯自研 · 告别传统重型虚机旁路 · 极致轻量低开销 · 300ms 冷启 · 宛如物理肉身直连全球互联网的终极共生体*
 
 <p align="center">
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v3.5-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v3.6-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 <a href="https://github.com/zyeyefyass/CubeX"><img src="https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go" alt="Dual-Engine" /></a>
 <a href="#"><img src="https://img.shields.io/badge/Host-RouterOS_v7_%7C_爱快_iKuai_%7C_OpenWrt_%7C_飞牛_fnOS_%7C_PVE_%7C_Linux-3A86FF?style=for-the-badge" alt="Host Base" /></a>
@@ -409,29 +409,26 @@ CubeX 针对全家用户不同的网络设备、使用习惯与网络拓扑，�
 <a id="announcement"></a>
 
 > [!IMPORTANT]
-> ### 🛡️ 工业级闭源专有加固与全平台安全重构正式版 (CubeX Test v3.5 重磅发布)
+> ### 🏆 拓扑双模闭环 · 全宿主脚本实机加固与双核热切正式版 (CubeX Test v3.6 重磅发布)
 >
 > **致所有关注、支持与在实机中部署 CubeX 的极客老铁们：**
 >
-> 今天发布的 **CubeX Test v3.5**，全面落实了生产级知识产权防护与反编译防御体系，彻底推倒重构全平台脚本加载流与自愈闭环，并历经实机严苛的回归测试与验证：
+> 今天发布的 **CubeX Test v3.6**，全面落实了四大主流宿主底座一键安装脚本的真机闭环加固，彻底打通局域网拓扑双模无感知自适应，并历经 Debian、Alpine、iStoreOS 与 RouterOS 实机高压回归验证：
 >
-> * 🛡️ **专有代码防逆向与 AST 语法树全混淆 (`Garble AST Obfuscation & Literal Encryption`)**：
->   * 引入 Garble 编译期 AST 语法树全维度混淆与字符串字面量动态加密，全站符号表（函数名、方法名、包路径）彻底匿名代号化；
->   * 结合 `-s -w -trimpath` 深度剥离 DWARF 调试符号与代码绝对路径，IDA Pro / Ghidra / GoReSym 逆向直接失效，全方位守护自研知识产权；
-> * 🔐 **全平台部署脚本安全加载器 (`In-Memory Protected Stream Loaders`)**：
->   * 所有一键部署脚本（Shell）引入专有自解密内存流加载器，拒绝明文逻辑暴露在公网，全平台终端通过标准 `curl -fsSL ... | bash` 依然秒级无感执行；
-> * 🩺 **全宿主一键自愈 100/100 满分闭环治理 (`Universal 100/100 Health Audit & Zero Leakage`)**：
->   * 彻底解决 OpenWrt / iKuai / RouterOS / Linux 在执行自愈后 IR 未同步落盘导致偶发 96 分的隐患，所有自愈路径强制写入持久化 IR 并触发前端雷达即时重测，稳居 **100/100 极光盾级**；
-> * 🌐 **全版本与全宿主脚本零硬编码动态探查 (Rule 7 Zero-Hardcode Enforcement)**：
->   * 彻底清除底层残留的 `10.0.0.x` 等回退假定，主路由网关、出站接口、子网 CIDR、WinBox 分流清单及回指路由全部由探针动态嗅探计算，杜绝非 `10.0.0.0/24` 网段用户的路由冲突；
-> * 🧊 **非当前宿主底座智能安全冻结**：
->   * 宿主底座卡片增加智能环境识别，当宿主非当前平台时，相关专有参数按钮（如【爱快 Docker 1分钟开箱参数】）自动安全冻结并提示锁定状态，避免跨底座误操作；
-> * 🩺 **双核（sing-box v1.14.4 × Mihomo v1.19.33）双循环 4 次往返热切换实机压力测试 100% 满分闭环**：
->   * 历经 4 次引擎往返无缝热重载切换实机压测，国内真实直连、境外透明穿透与 DNS Fake-IP 纯净度达成 100% 满分通过，零路由丢失、零连接停顿；
-> * 🔒 **发布物脱敏审计 100% 通过**：
+> * 🌐 **拓扑双模零门槛通吃闭环（主路由回指 + 旁路由接管 100% 盲开）**：
+>   * 针对局域网设备“**网关保留主路由（如 10.0.0.1）、仅改 DNS 为 CubeX 旁路由**”的黄金解耦拓扑，各宿主底座与一键脚本全面自动化下发 `198.18.0.0/15 -> CubeX IP` 静态回指路由；
+>   * 无论用户采用“全改旁路由”还是“网关留主路由、仅改 DNS”，主路由均能自动将 Fake-IP 流量精准回传给 CubeX 实施线速分流，彻底杜绝丢包死锁；
+> * 🛠️ **四大多宿主一键安装脚本全流程实机深度加固**：
+>   * 软路由底座（`setup-openwrt.sh`）：免除 `base64` 外部依赖，自动切换清华大学镜像源与补齐 `curl`/`ca-bundle`；Docker 离线镜像拉取引入 **实时交互式百分比进度条 (`curl -#`)** 与 **自动断点续传 (`-C -` / `wget -c`)**，彻底消灭静默假死感，实机验证通过 **iStoreOS 25.12.5 (Kernel 6.12.94)**；
+>   * 通用主机底座（`install.sh`）：解耦安全加载器 STDIN 管道，将解密流隔离至安全临时脚本执行，彻底根治用户终端交互时 `read` 吞噬代码行导致的变量污染与 systemd Unit `bad unit file setting` 异常；增加 `/dev/tty` 智能定向与严格路径正则过滤；
+>   * PVE 容器底座（`install_pve_lxc.sh`）：容器内部初始化全面升级为 `sh -s << 'EOF'` heredoc 防引号剥离；归一化压缩包 POSIX 正斜杠路径，完美兼容 Alpine Busybox `unzip` 解压；集成 OpenRC `supervise-daemon` 与 `GOMEMLIMIT=180MiB` 软上限防护；
+>   * 物理路由底座（`setup-routeros-v7.rsc`）：整份配置脚本严格包裹在全局大括号块作用域 (`{ ... }`) 内，彻底根治 WinBox / Terminal 交互式逐行粘贴导致 `:local` 局部变量即时销毁并引发语法报错的问题；
+> * 🩺 **双核（Mihomo v1.19+ × sing-box v1.14+）双循环 4 次往返热切换实机压力测试 100% 满分闭环**：
+>   * 历经 4 次引擎往返无缝热重载切换实机压测（实测热切换耗时 300~700ms），国内真实直连、境外透明穿透与 DNS Fake-IP 纯净度达成 100% 满分通过，零路由丢失、零连接停顿；
+> * 🔒 **发布物脱敏审计 100% 零缺陷通过**：
 >   * 严格遵照安全红线，经由审计解包脚本逐一逆向审查，所有发布物实现 0 订阅、0 节点、0 私钥凭证、0 历史泄露、0 Windows 产物。
 >
-> 经过严苛的端到端闭环验证，**专家组郑重推荐 Test v3.5 作为可供日常主力使用的极度安全稳定版本！**
+> 经过严苛的端到端闭环验证，**专家组郑重推荐 Test v3.6 作为全宿主平台极度稳定、开箱即用、防呆自愈的主力推荐版本！**
 
 <a id="release-assets"></a>
 
@@ -441,17 +438,17 @@ CubeX 针对全家用户不同的网络设备、使用习惯与网络拓扑，�
 | :--- | :--- | :--- | :--- |
 | `CubeX-Test-v3.6-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~109 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
 | `CubeX-Test-v3.6-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~108 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
-| `CubeX-Test-v3.6-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~84.6 MB | 包含混淆加固双内核、全量规则集、配置与控制面的完整生产归档 |
-| `CubeX-Test-v3.6-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~77.4 MB | 包含混淆加固双内核、全量规则集、配置与控制面的完整生产归档 |
+| `CubeX-Test-v3.6-linux-amd64.zip` | Linux amd64 (通用宿主 / PVE / 飞牛) | ~86.4 MB | 包含混淆加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
+| `CubeX-Test-v3.6-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~79.4 MB | 包含混淆加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
 | `cubexd-linux-amd64` | Linux amd64 单二进制 | ~35.5 MB | Garble AST 深度混淆加固主控守护进程，用于在线秒级热更或单文件运行 |
 | `cubexd-linux-arm64` | Linux arm64 单二进制 | ~31.6 MB | Garble AST 深度混淆加固主控守护进程（ARM64 硬件架构） |
 | `cubex-linux-amd64` | Linux amd64 运维 CLI | ~16.9 MB | Garble 混淆加固终端运维命令行控制面 |
 | `cubex-linux-arm64` | Linux arm64 运维 CLI | ~15.1 MB | Garble 混淆加固终端运维命令行控制面（ARM64） |
-| `CubeX-Test-v3.6-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~85.5 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（导入后统一标记为 `cubex:latest`）；飞牛与通用 Docker 支持 GUI 本地导入或 `docker load -i` |
-| `install.sh` | Linux 官方一键安全安装器 | ~9.8 KB | 专有内存流安全加载器，终端执行 `curl -fsSL https://github.com/zyeyefyass/CubeX/releases/latest/download/install.sh \| bash` |
-| `install_pve_lxc.sh` | Proxmox VE 官方安装脚本 | ~6.7 KB | PVE 宿主机终端一键全自动部署脚本（自动升级 Alpine、透传 TUN、创建 CT 容器与装配守护进程） |
-| `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~17.1 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（自动配置容器、网络、路由与 Netwatch 0秒逃生） |
-| `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~6.6 KB | OpenWrt 终端复制即用全自动初始化脚本（自动打通 Macvlan-Shim、配置 0秒看门狗与锁定 odhcpd 防泄露） |
+| `CubeX-Test-v3.6-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~89.2 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（标签为 `cubex:latest`）；OpenWrt 与飞牛支持 `setup-openwrt.sh` 自动载入或 `docker load -i` |
+| `install.sh` | Linux 官方一键安全安装器 | ~11.7 KB | 专有安全加载器，终端执行 `curl -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.6/install.sh \| bash` |
+| `install_pve_lxc.sh` | Proxmox VE 官方安装脚本 | ~7.9 KB | PVE 宿主机终端一键全自动部署脚本（自动升级 Alpine、透传 TUN、创建 CT 容器与装配 OpenRC 守护进程） |
+| `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~17.5 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（支持全局大括号块作用域，自动配置网络、路由与 Netwatch 0秒逃生） |
+| `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~19.5 KB | OpenWrt 终端复制即用全自动编排脚本（支持多镜像断点续传、交互进度条、Macvlan-Shim、0秒看门狗与锁定 odhcpd 防泄露） |
 
 > ### 🧭 各主流宿主底座极速安装与发布资产选用速查指引：
 
@@ -955,7 +952,7 @@ sh setup-openwrt.sh
 
 # 官方一键智能嗅探脚本 (自动适配 amd64 / arm64)
 
-curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/setup-openwrt.sh -o setup-openwrt.sh && sh setup-openwrt.sh
+wget -qO- https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.6/setup-openwrt.sh | sh
 
 ```
 
@@ -1170,7 +1167,7 @@ docker run -d   --name cubex   --restart always   --network host   --privileged 
 
 ```bash
 
-curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/scripts/install_pve_lxc.sh -o install_pve_lxc.sh && bash install_pve_lxc.sh
+curl -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.6/install_pve_lxc.sh | bash
 
 ```
 
@@ -1214,7 +1211,7 @@ curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/scripts/insta
 
 # 官方一键智能嗅探脚本
 
-curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/scripts/install.sh -o install.sh && sudo bash install.sh
+curl -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v3.6/install.sh | bash
 
 ```
 
