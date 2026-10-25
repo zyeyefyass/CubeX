@@ -55,6 +55,22 @@ case "$ARCH" in
         ;;
 esac
 echo -e "${GREEN}🔍 检测到处理器架构: ${BOLD}${TARGET_ARCH}${NC}"
+# 自动检测并安装必要依赖 (curl / unzip / ca-certificates / iptables)
+if ! command -v curl >/dev/null 2>&1 || ! command -v unzip >/dev/null 2>&1 || ! command -v iptables >/dev/null 2>&1; then
+    echo -e "${YELLOW}📦 检测到缺少基础工具 (curl / unzip / iptables)，正在自动安装依赖...${NC}"
+    if command -v apt-get >/dev/null 2>&1; then
+        apt-get update -y >/dev/null 2>&1 || true
+        apt-get install -y curl ca-certificates unzip iptables iproute2 procps >/dev/null 2>&1 || true
+    elif command -v apk >/dev/null 2>&1; then
+        apk update >/dev/null 2>&1 || true
+        apk add --no-cache curl ca-certificates unzip iptables iproute2 procps >/dev/null 2>&1 || true
+    elif command -v dnf >/dev/null 2>&1; then
+        dnf install -y curl ca-certificates unzip iptables iproute procps-ng >/dev/null 2>&1 || true
+    elif command -v yum >/dev/null 2>&1; then
+        yum install -y curl ca-certificates unzip iptables iproute procps-ng >/dev/null 2>&1 || true
+    fi
+fi
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. 宿主系统全自动智能嗅探与默认安装路径匹配
@@ -401,27 +417,67 @@ EOF
     fi
 
 else
-    echo -e "${PURPLE}⚡ [3/4] 正在配置原生单二进制 Systemd 守护进程...${NC}"
+        echo -e "${PURPLE}⚡ [3/4] 正在配置原生单二进制 Systemd 守护进程...${NC}"
     
-    # 查找本地是否有编译好的二进制，若有则复制；若无则自动从 GitHub Releases latest 下载
-    if [ -f "$CURRENT_SCRIPT_DIR/../dist/cubexd-linux-$TARGET_ARCH" ]; then
+    # 优先查找本地完整发行归档，或自动从 GitHub Releases 下载全量包 (包含双引擎与101套规则)
+    NEED_DOWNLOAD=1
+    if [ -f "$CURRENT_SCRIPT_DIR/../dist/CubeX-Test-v3.6-linux-$TARGET_ARCH.zip" ]; then
+        echo -e "${GREEN}📦 发现本地发行归档包，直接解压部署...${NC}"
+        unzip -q -o "$CURRENT_SCRIPT_DIR/../dist/CubeX-Test-v3.6-linux-$TARGET_ARCH.zip" -d "$INSTALL_DIR" 2>/dev/null || true
+        NEED_DOWNLOAD=0
+    elif [ -f "./dist/CubeX-Test-v3.6-linux-$TARGET_ARCH.zip" ]; then
+        unzip -q -o "./dist/CubeX-Test-v3.6-linux-$TARGET_ARCH.zip" -d "$INSTALL_DIR" 2>/dev/null || true
+        NEED_DOWNLOAD=0
+    elif [ -f "$CURRENT_SCRIPT_DIR/../dist/cubexd-linux-$TARGET_ARCH" ]; then
         cp "$CURRENT_SCRIPT_DIR/../dist/cubexd-linux-$TARGET_ARCH" "$INSTALL_DIR/bin/cubexd"
-    elif [ -f "$CURRENT_SCRIPT_DIR/dist/cubexd-linux-$TARGET_ARCH" ]; then
-        cp "$CURRENT_SCRIPT_DIR/dist/cubexd-linux-$TARGET_ARCH" "$INSTALL_DIR/bin/cubexd"
-    elif [ -f "./dist/cubexd-linux-$TARGET_ARCH" ]; then
-        cp "./dist/cubexd-linux-$TARGET_ARCH" "$INSTALL_DIR/bin/cubexd"
-    elif [ -f "$CURRENT_SCRIPT_DIR/cubexd" ]; then
-        cp "$CURRENT_SCRIPT_DIR/cubexd" "$INSTALL_DIR/bin/cubexd"
-    elif [ ! -f "$INSTALL_DIR/bin/cubexd" ]; then
-        echo -e "${CYAN}🌐 正在从 GitHub 官方 Releases 拉取最新版 cubexd (${TARGET_ARCH})...${NC}"
-        DL_URL="https://github.com/zyeyefyass/CubeX/releases/latest/download/cubexd-linux-$TARGET_ARCH"
-        DL_MIRROR="https://ghproxy.net/$DL_URL"
-        if ! curl -sSL --connect-timeout 6 -m 60 -o "$INSTALL_DIR/bin/cubexd" "$DL_URL"; then
-            echo -e "${YELLOW}⚠️ 直连下载超时，正在切换至加速镜像: ${DL_MIRROR}...${NC}"
-            curl -sSL --connect-timeout 8 -m 60 -o "$INSTALL_DIR/bin/cubexd" "$DL_MIRROR" || true
+        NEED_DOWNLOAD=0
+    fi
+
+    if [ "$NEED_DOWNLOAD" -eq 1 ] && [ ! -f "$INSTALL_DIR/bin/cubexd" ]; then
+        echo -e "${CYAN}🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 101套规则集 + 控制面)...${NC}"
+        REL_TAG=$(curl -sSL --connect-timeout 3 -m 5 -I "https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
+        if [ -z "$REL_TAG" ]; then
+            REL_TAG=$(curl -sSL --connect-timeout 3 -m 5 -I "https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
+        fi
+        [ -z "$REL_TAG" ] && REL_TAG="Test-v3.6"
+        ZIP_NAME="CubeX-${REL_TAG}-linux-${TARGET_ARCH}.zip"
+        ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
+        ZIP_MIRROR="https://ghproxy.net/${ZIP_URL}"
+
+        TMP_ZIP="/tmp/${ZIP_NAME}"
+        if [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
+            echo -e "${GREEN}📦 发现本地已缓存的完整归档: ${TMP_ZIP}，秒级解压部署...${NC}"
+        else
+            echo -e "${CYAN}   -> 正在通过高速镜像源下载 ${ZIP_NAME}...${NC}"
+            if ! curl -sSL --connect-timeout 8 -m 180 -o "$TMP_ZIP" "$ZIP_MIRROR" 2>/dev/null || [ ! -s "$TMP_ZIP" ]; then
+                echo -e "${YELLOW}   -> 镜像拉取异常，尝试直连源: ${ZIP_URL}...${NC}"
+                curl -sSL --connect-timeout 10 -m 180 -o "$TMP_ZIP" "$ZIP_URL" 2>/dev/null || true
+            fi
+        fi
+
+        if [ -s "$TMP_ZIP" ]; then
+            unzip -q -o "$TMP_ZIP" -d "$INSTALL_DIR" 2>/dev/null || true
+            rm -f "$TMP_ZIP"
+            echo -e "${GREEN}✅ 完整归档已成功释放至 ${INSTALL_DIR} (包含 Mihomo + sing-box 双核及全量规则)${NC}"
+        else
+            echo -e "${YELLOW}⚠️ 完整归档下载超时，尝试降级拉取核心控制面...${NC}"
+            DL_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${TARGET_ARCH}"
+            DL_MIRROR="https://ghproxy.net/${DL_URL}"
+            curl -sSL --connect-timeout 8 -m 120 -o "$INSTALL_DIR/bin/cubexd" "$DL_URL" 2>/dev/null || \
+            curl -sSL --connect-timeout 10 -m 120 -o "$INSTALL_DIR/bin/cubexd" "$DL_MIRROR" 2>/dev/null || true
         fi
     fi
-    chmod +x "$INSTALL_DIR/bin/cubexd" 2>/dev/null || true
+    chmod +x "$INSTALL_DIR/bin/"* 2>/dev/null || true
+
+    if [ ! -f "$INSTALL_DIR/bin/cubexd" ] || [ ! -s "$INSTALL_DIR/bin/cubexd" ]; then
+        echo -e "${RED}❌ 错误: 未能获取到有效的 cubexd 二进制文件，请检查网络连接或权限后重试。${NC}"
+        exit 1
+    fi
+
+    if [ -f "$INSTALL_DIR/bin/cubex" ]; then
+        ln -sf "$INSTALL_DIR/bin/cubex" /usr/local/bin/cubex 2>/dev/null || cp "$INSTALL_DIR/bin/cubex" /usr/local/bin/cubex 2>/dev/null || true
+        chmod +x /usr/local/bin/cubex 2>/dev/null || true
+    fi
 
     # 生成 systemd 服务文件
     cat <<EOF > /etc/systemd/system/cubex.service

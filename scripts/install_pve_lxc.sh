@@ -285,8 +285,8 @@ description="CubeX System Control Plane Daemon"
 command="/opt/CubeX/bin/cubexd"
 command_args=""
 directory="/opt/CubeX"
-command_background="yes"
-pidfile="/run/cubexd.pid"
+supervisor="supervise-daemon"
+respawn_max=0
 output_log="/var/log/cubexd.log"
 error_log="/var/log/cubexd.err"
 
@@ -312,22 +312,31 @@ elif [ -f "/opt/cubex/bin/cubexd" ]; then
     pct push "$CT_ID" /opt/cubex/bin/cubexd /opt/CubeX/bin/cubexd -perms 755
 else
     pct exec "$CT_ID" -- sh -c '
-    echo "🌐 正在从 GitHub 官方 Releases 拉取最新版 CubeX 二进制与资源..."
-    BIN_URL="https://github.com/zyeyefyass/CubeX/releases/latest/download/cubexd-linux-amd64"
-    MIRROR_URL="https://ghproxy.net/$BIN_URL"
-    if curl -sSL -m 30 -o /opt/CubeX/bin/cubexd "$BIN_URL" 2>/dev/null && [ -s /opt/CubeX/bin/cubexd ]; then
-        chmod +x /opt/CubeX/bin/cubexd
-    elif curl -sSL -m 30 -o /opt/CubeX/bin/cubexd "$MIRROR_URL" 2>/dev/null && [ -s /opt/CubeX/bin/cubexd ]; then
-        chmod +x /opt/CubeX/bin/cubexd
+    echo "🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 101套规则集 + 控制面)..."
+    REL_TAG=$(curl -sSL -I "https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
+    [ -z "$REL_TAG" ] && REL_TAG="Test-v3.6"
+    ZIP_NAME="CubeX-${REL_TAG}-linux-amd64.zip"
+    ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
+    ZIP_MIRROR="https://ghproxy.net/${ZIP_URL}"
+
+    TMP_ZIP="/tmp/${ZIP_NAME}"
+    rm -f "$TMP_ZIP"
+    if ! curl -sSL --connect-timeout 8 -m 180 -o "$TMP_ZIP" "$ZIP_URL" 2>/dev/null || [ ! -s "$TMP_ZIP" ]; then
+        echo "   -> 切换至极速加速镜像: ${ZIP_MIRROR}..."
+        curl -sSL --connect-timeout 10 -m 180 -o "$TMP_ZIP" "$ZIP_MIRROR" 2>/dev/null || true
+    fi
+
+    if [ -s "$TMP_ZIP" ]; then
+        unzip -q -o "$TMP_ZIP" -d /opt/CubeX/ >/dev/null 2>&1
+        chmod +x /opt/CubeX/bin/* 2>/dev/null || true
+        rm -f "$TMP_ZIP"
+        echo "✅ 完整发布包解压完成！"
     else
-        ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/latest/download/CubeX-latest-linux-amd64.zip"
-        ZIP_MIRROR="https://ghproxy.net/$ZIP_URL"
-        curl -sSL -o /tmp/cubex.zip "$ZIP_URL" 2>/dev/null || curl -sSL -o /tmp/cubex.zip "$ZIP_MIRROR" 2>/dev/null || true
-        if [ -s /tmp/cubex.zip ]; then
-            unzip -o /tmp/cubex.zip -d /opt/CubeX/ >/dev/null 2>&1
-            chmod +x /opt/CubeX/bin/* || true
-            rm -f /tmp/cubex.zip
-        fi
+        echo "⚠️ 归档下载超时，降级拉取单二进制..."
+        BIN_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-amd64"
+        BIN_MIRROR="https://ghproxy.net/$BIN_URL"
+        curl -sSL --connect-timeout 8 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_URL" 2>/dev/null ||         curl -sSL --connect-timeout 10 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_MIRROR" 2>/dev/null || true
+        chmod 755 /opt/CubeX/bin/cubexd 2>/dev/null || true
     fi
     '
 fi

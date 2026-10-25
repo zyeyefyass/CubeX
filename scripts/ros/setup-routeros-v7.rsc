@@ -467,7 +467,7 @@ set memory-high=256M registry-url="https://registry-1.docker.io" tmpdir=$pullDir
 
 # 清理既有异常状态的容器残留 (若之前解压失败)
 /container
-:local failedContainers [find where (comment~"CubeX" or name~"CubeX") and (status="error" or status="failed")];
+:local failedContainers [find where comment~"CubeX" and (status="error" or status="failed")];
 :if ([:len $failedContainers] > 0) do={
     $printWarn "检测到之前解压异常的历史容器，正在为您自动清理重置...";
     :foreach fc in=$failedContainers do={
@@ -482,7 +482,7 @@ set memory-high=256M registry-url="https://registry-1.docker.io" tmpdir=$pullDir
     :set imageTag "zyeyefyass/cubex:latest";
 }
 
-:if ([:len [find name="cubex"]] = 0 and [:len [find name~"CubeX"]] = 0) do={
+:if ([:len [find where comment~"CubeX"]] = 0) do={
     :local foundTar "";
     :local defaultTar ("cubex-ros-" . $tarArch . ".tar");
     :if ([:len [/file find name=$defaultTar]] > 0) do={
@@ -508,16 +508,16 @@ set memory-high=256M registry-url="https://registry-1.docker.io" tmpdir=$pullDir
     :local isRunning false;
     :delay 5s;
     :for i from=1 to=15 do={
-        :local cList [/container find where comment~"CubeX" or name~"CubeX"];
+        :local cList [/container find where comment~"CubeX"];
         :if ([:len $cList] > 0) do={
             :local cObj [:pick $cList 0];
-            :if ([:len [/container find where (comment~"CubeX" or name~"CubeX") and running]] > 0) do={
+            :if ([:len [/container find where comment~"CubeX" and running]] > 0) do={
                 :set isRunning true;
                 :set i 15;
             } else={
                 :do { /container start $cObj; } on-error={};
                 :delay 2s;
-                :if ([:len [/container find where (comment~"CubeX" or name~"CubeX") and running]] > 0) do={
+                :if ([:len [/container find where comment~"CubeX" and running]] > 0) do={
                     :set isRunning true;
                     :set i 15;
                 } else={

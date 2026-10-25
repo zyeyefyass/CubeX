@@ -80,8 +80,15 @@ echo -e "${GREEN}✅ [2/6 Docker就绪] OpenWrt Docker 守护进程运行正常$
 # 3. LAN 网桥、主网关与 IP 动态计算 (Subnet & Gateway Probing)
 LAN_IF="br-lan"
 if ! ip link show "$LAN_IF" >/dev/null 2>&1; then
-    LAN_IF=$(uci -q get network.lan.device || echo "eth0")
+    LAN_IF=$(uci -q get network.lan.device 2>/dev/null || true)
 fi
+if [ -z "$LAN_IF" ] || ! ip link show "$LAN_IF" >/dev/null 2>&1; then
+    LAN_IF=$(ip route show default 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n 1)
+fi
+if [ -z "$LAN_IF" ] || ! ip link show "$LAN_IF" >/dev/null 2>&1; then
+    LAN_IF=$(ip -4 addr show 2>/dev/null | grep -E 'inet [0-9.]+' | grep -v '127.0.0.1' | awk '{print $NF}' | head -n 1)
+fi
+[ -z "$LAN_IF" ] && LAN_IF="eth0"
 
 ROUTER_IP=$(uci -q get network.lan.ipaddr 2>/dev/null || ip -4 addr show "$LAN_IF" 2>/dev/null | grep -oE 'inet [0-9.]+' | awk '{print $2}' | head -n 1)
 if [ -z "$ROUTER_IP" ]; then
