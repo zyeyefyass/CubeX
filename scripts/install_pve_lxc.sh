@@ -311,6 +311,16 @@ if [ -f "dist/release/CubeX-Test-v3.6-linux-amd64.zip" ]; then
     pct exec "$CT_ID" -- sh -s << 'EOF'
 unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/
 chmod +x /opt/CubeX/bin/* 2>/dev/null || true
+ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
+rm -f /tmp/CubeX.zip
+EOF
+elif [ -f "/tmp/CubeX-Test-v3.6-linux-amd64.zip" ] && [ -s "/tmp/CubeX-Test-v3.6-linux-amd64.zip" ]; then
+    echo -e "${BLUE}检测到宿主机缓存发布包，直接推送至容器: /opt/CubeX...${NC}"
+    pct push "$CT_ID" /tmp/CubeX-Test-v3.6-linux-amd64.zip /tmp/CubeX.zip
+    pct exec "$CT_ID" -- sh -s << 'EOF'
+unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/
+chmod +x /opt/CubeX/bin/* 2>/dev/null || true
+ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
 rm -f /tmp/CubeX.zip
 EOF
 elif [ -f "dist/cubexd-linux-amd64" ]; then
@@ -354,6 +364,7 @@ else
     if [ "$DOWNLOAD_SUCCESS" = "1" ] && [ -s "$TMP_ZIP" ]; then
         unzip -q -o "$TMP_ZIP" -d /opt/CubeX/ >/dev/null 2>&1
         chmod +x /opt/CubeX/bin/* 2>/dev/null || true
+        ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
         rm -f "$TMP_ZIP"
         echo "✅ 完整发布包解压完成！"
     else
@@ -373,6 +384,12 @@ sleep 2
 
 # 12. 运行状态校验
 if pct exec "$CT_ID" -- pgrep -f cubexd >/dev/null 2>&1; then
+    # 注册 PVE 宿主快捷指令 (一键穿透直达容器)
+    cat << PVECLI > /usr/local/bin/cubex 2>/dev/null || true
+#!/bin/sh
+pct exec "$CT_ID" -- /opt/CubeX/bin/cubex "\$@"
+PVECLI
+    chmod +x /usr/local/bin/cubex 2>/dev/null || true
     echo -e "\n${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}"
     echo -e "${GREEN}${BOLD}🎉 恭喜！CubeX 宿主共生透明代理网关已在 PVE LXC 容器成功部署运行！${NC}"
     echo -e "${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}"
