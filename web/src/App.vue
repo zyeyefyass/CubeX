@@ -9438,36 +9438,45 @@ const availableCountryPresets = [
   { code: 'US', name: '美国', flag: '🇺🇸', keywords: '美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯' }
 ]
 
+function sanitizeRegionGroup(item) {
+  if (!item || typeof item !== 'object') return item
+  if (!item.country_code && item.code) item.country_code = item.code
+  if (!item.code && item.country_code) item.code = item.country_code
+  if (!item.regex_str) {
+    if (item.country_code) {
+      const codes = String(item.country_code).split(',').map(c => c.trim().toUpperCase()).filter(Boolean)
+      const matched = codes.map(c => availableCountryPresets.find(pre => pre.code === c)).filter(Boolean)
+      if (matched.length > 0) {
+        item.regex_str = `(${matched.map(p => `(${p.keywords})`).join('|')})`
+        if (!item.flag) item.flag = matched[0].flag
+      }
+    }
+    if (!item.regex_str && item.name) {
+      const matched = availableCountryPresets.filter(p => item.name.includes(p.name))
+      if (matched.length > 0) {
+        item.regex_str = `(${matched.map(p => `(${p.keywords})`).join('|')})`
+      }
+    }
+  }
+  if (item.regex_str && typeof item.regex_str === 'string') {
+    try {
+      item.regex = new RegExp(item.regex_str, 'i')
+    } catch (e) {
+      item.regex = null
+    }
+  } else if (!(item.regex instanceof RegExp)) {
+    item.regex = null
+  }
+  return item
+}
+
 const customRegionGroups = ref([])
 try {
   const savedCustom = localStorage.getItem('cubex_custom_region_groups')
   if (savedCustom) {
     const parsed = JSON.parse(savedCustom)
     if (Array.isArray(parsed)) {
-      parsed.forEach(item => {
-        if (!item.country_code && item.code) item.country_code = item.code
-        if (!item.code && item.country_code) item.code = item.country_code
-        if (!item.regex_str) {
-          if (item.country_code) {
-            const codes = item.country_code.split(',').map(c => c.trim().toUpperCase()).filter(Boolean)
-            const matched = codes.map(c => availableCountryPresets.find(pre => pre.code === c)).filter(Boolean)
-            if (matched.length > 0) {
-              item.regex_str = `(${matched.map(p => `(${p.keywords})`).join('|')})`
-              if (!item.flag) item.flag = matched[0].flag
-            }
-          }
-          if (!item.regex_str && item.name) {
-            const matched = availableCountryPresets.filter(p => item.name.includes(p.name))
-            if (matched.length > 0) {
-              item.regex_str = `(${matched.map(p => `(${p.keywords})`).join('|')})`
-            }
-          }
-        }
-        if (item.regex_str && (!item.regex || !(item.regex instanceof RegExp))) {
-          try { item.regex = new RegExp(item.regex_str, 'i') } catch (e) {}
-        }
-      })
-      customRegionGroups.value = parsed
+      customRegionGroups.value = parsed.map(sanitizeRegionGroup)
     }
   }
 } catch (e) {}
@@ -9980,27 +9989,29 @@ function getRegionNodes(reg) {
     })
   }
 
-  // 3. Resolve regex from regex, regex_str, or country_code presets
-  let regObj = merged.regex
-  if (typeof regObj === 'string') {
-    try { regObj = new RegExp(regObj, 'i') } catch (e) { regObj = null }
+  // 3. Resolve regex safely from RegExp instance, regex_str, or country_code presets
+  let regObj = null
+  if (merged.regex instanceof RegExp) {
+    regObj = merged.regex
+  } else if (typeof merged.regex === 'string' && merged.regex.trim()) {
+    try { regObj = new RegExp(merged.regex, 'i') } catch (e) { regObj = null }
   }
-  if (!regObj && merged.regex_str) {
+  if (!regObj && typeof merged.regex_str === 'string' && merged.regex_str.trim()) {
     try { regObj = new RegExp(merged.regex_str, 'i') } catch (e) { regObj = null }
   }
   if (!regObj && merged.country_code) {
-    const code = merged.country_code.toUpperCase()
+    const code = String(merged.country_code).toUpperCase()
     const p = availableCountryPresets.find(pre => pre.code === code)
-    if (p) {
-      try { regObj = new RegExp(`(${p.keywords})`, 'i') } catch (e) {}
+    if (p && p.keywords) {
+      try { regObj = new RegExp(`(${p.keywords})`, 'i') } catch (e) { regObj = null }
     }
   }
 
-  // 4. Custom Group by Regex
-  if (merged.is_custom && regObj) {
+  // 4. Custom Group by Regex (Guaranteed callable .test)
+  if (merged.is_custom && regObj && typeof regObj.test === 'function') {
     return proxies.filter(p => {
       if (isTaiwanGroup && /(hhost[-_ ]?jp)/i.test(p.name)) return false
-      return regObj.test(p.name)
+      try { return regObj.test(p.name) } catch (e) { return false }
     })
   }
 
@@ -10017,21 +10028,32 @@ function getRegionNodes(reg) {
       for (const r of allRegionDefs.value) {
         if (r.id !== 'OTHERS' && r.id !== 'CUSTOM') {
           if (r.type === 'sub' && (p.sub_id === r.sub_id || (r.sub_name && p.name.includes(`[${r.sub_name}]`)))) return false
-          let rRegex = r.regex
-          if (typeof rRegex === 'string') { try { rRegex = new RegExp(rRegex, 'i') } catch (e) {} }
-          if (rRegex && rRegex.test(p.name)) return false
+          let rRegex = null
+          if (r.regex instanceof RegExp) {
+            rRegex = r.regex
+          } else if (typeof r.regex === 'string' && r.regex.trim()) {
+            try { rRegex = new RegExp(r.regex, 'i') } catch (e) { rRegex = null }
+          }
+          if (!rRegex && typeof r.regex_str === 'string' && r.regex_str.trim()) {
+            try { rRegex = new RegExp(r.regex_str, 'i') } catch (e) {}
+          }
+          if (rRegex && typeof rRegex.test === 'function') {
+            try {
+              if (rRegex.test(p.name)) return false
+            } catch (e) {}
+          }
         }
       }
       return true
     })
   }
 
-  // 7. 标准国家/地区正则匹配 (排除自建)
-  if (regObj) {
+  // 7. 标准国家/地区正则匹配 (排除自建, 必须保证 regObj.test 是函数)
+  if (regObj && typeof regObj.test === 'function') {
     return proxies.filter(p => {
       if (p.sub_id === 'custom' || p.name.startsWith('[自建]')) return false
       if (isTaiwanGroup && /(hhost[-_ ]?jp)/i.test(p.name)) return false
-      return regObj.test(p.name)
+      try { return regObj.test(p.name) } catch (e) { return false }
     })
   }
 
@@ -12908,8 +12930,8 @@ async function fetchUIState() {
           try { localStorage.setItem('cubex_group_excluded_candidates', JSON.stringify(groupExcludedCandidates.value)) } catch (e) {}
         }
         if (Array.isArray(s.custom_region_groups)) {
-          customRegionGroups.value = s.custom_region_groups
-          try { localStorage.setItem('cubex_custom_region_groups', JSON.stringify(s.custom_region_groups)) } catch (e) {}
+          customRegionGroups.value = s.custom_region_groups.map(sanitizeRegionGroup)
+          try { localStorage.setItem('cubex_custom_region_groups', JSON.stringify(customRegionGroups.value)) } catch (e) {}
         }
       }
     }
@@ -12931,7 +12953,11 @@ function syncUIStateToCloud() {
             group_selected_regions: groupSelectedRegionMap.value,
             group_region_policy: groupRegionPolicyMap.value,
             excluded_candidates: groupExcludedCandidates.value,
-            custom_region_groups: customRegionGroups.value,
+            custom_region_groups: customRegionGroups.value.map(g => {
+              const clean = { ...g }
+              delete clean.regex
+              return clean
+            }),
             updated_at: Date.now()
           }
         })
