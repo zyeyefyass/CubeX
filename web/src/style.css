@@ -66,13 +66,13 @@ body {
   box-shadow: 0 24px 60px rgba(8, 6, 16, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.32) !important;
 }
 
-/* 左侧导航栏 (Sidebar: 暮光深紫灰高透冰晶) */
+/* 左侧导航栏 (Sidebar: 暮光深紫灰高透冰晶 · 零右侧外发光渗漏，彻底杜绝主视口边缘抖动宽条) */
 .macos-sidebar {
   background: rgba(20, 18, 32, 0.32) !important;
   backdrop-filter: blur(20px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
   border-right: 1px solid rgba(255, 240, 230, 0.16) !important;
-  box-shadow: 0 20px 50px rgba(8, 6, 16, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.22) !important;
+  box-shadow: none !important;
 }
 
 /* 顶部状态栏 (Top Bar: 保持完全透明，消灭泥巴脏色横条) */
@@ -240,6 +240,17 @@ h1, h2, h3, .macos-title {
   scrollbar-color: rgba(255, 158, 94, 0.45) rgba(10, 16, 28, 0.35);
 }
 
+/* 彻底隐藏滑块类：保持滚动功能但 100% 隐藏滑块轨道与滑块拇指 */
+.no-scrollbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 ::-webkit-scrollbar {
   width: 15px;
   height: 15px;
@@ -302,4 +313,21 @@ h1, h2, h3, .macos-title {
 .safe-h-screen {
   height: 100vh;
   height: 100dvh;
+}
+
+/* 统一深色模式 Select 下拉菜单样式，杜绝原生白底导致白字看不清的问题 */
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: #0d1929 !important;
+  color: #f1f5f9 !important;
+  padding: 6px 10px;
+}
+
+select option:checked,
+select option:hover {
+  background-color: #1e293b !important;
+  color: #ff9e5e !important;
 }

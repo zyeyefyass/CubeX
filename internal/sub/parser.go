@@ -28,7 +28,7 @@ func ParseSubscription(raw []byte) ([]schema.ProxyNode, error) {
 			nodes := make([]schema.ProxyNode, 0, len(clashCfg.Proxies))
 			for _, p := range clashCfg.Proxies {
 				node := parseClashNode(p)
-				if node.Name != "" && node.Server != "" {
+				if node.Name != "" && node.Server != "" && !schema.IsInformationalOrInvalidNode(node.Name) {
 					nodes = append(nodes, node)
 				}
 			}
@@ -47,7 +47,7 @@ func ParseSubscription(raw []byte) ([]schema.ProxyNode, error) {
 			nodes := make([]schema.ProxyNode, 0, len(sbCfg.Outbounds))
 			for _, ob := range sbCfg.Outbounds {
 				node := parseSingboxNode(ob)
-				if node.Name != "" && node.Server != "" {
+				if node.Name != "" && node.Server != "" && !schema.IsInformationalOrInvalidNode(node.Name) {
 					nodes = append(nodes, node)
 				}
 			}
@@ -84,7 +84,7 @@ func ParseSubscription(raw []byte) ([]schema.ProxyNode, error) {
 			continue
 		}
 		node, err := ParseURILink(line)
-		if err == nil && node.Name != "" && node.Server != "" {
+		if err == nil && node.Name != "" && node.Server != "" && !schema.IsInformationalOrInvalidNode(node.Name) {
 			nodes = append(nodes, node)
 		}
 	}

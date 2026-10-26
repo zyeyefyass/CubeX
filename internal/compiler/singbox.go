@@ -463,6 +463,9 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		if p.Server == "" || p.Port <= 0 || p.Name == "" {
 			continue
 		}
+		if schema.IsInformationalOrInvalidNode(p.Name) {
+			continue
+		}
 
 		nodeMap := map[string]any{
 			"tag":         p.Name,
@@ -763,7 +766,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	for _, g := range ir.Groups {
 		proxies := make([]string, 0, len(g.Proxies))
 		for _, p := range g.Proxies {
-			if p != g.Name && validOutbounds[p] {
+			if p != g.Name && validOutbounds[p] && !schema.IsInformationalOrInvalidNode(p) {
 				proxies = append(proxies, p)
 			}
 		}
@@ -790,7 +793,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		}
 
 		// If g.Now is specified, move it to the front of proxies list so sing-box selects it by default
-		if g.Now != "" && validOutbounds[g.Now] {
+		if g.Now != "" && validOutbounds[g.Now] && !schema.IsInformationalOrInvalidNode(g.Now) {
 			reordered := []string{g.Now}
 			for _, p := range proxies {
 				if p != g.Now {

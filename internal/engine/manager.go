@@ -848,7 +848,7 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 
 		if isBenign {
 
-			level = "DEBUG"
+			continue
 
 		} else if isLifecycleInfo {
 
@@ -1298,7 +1298,11 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	}
 
-	m.log("INFO", "ENGINE", fmt.Sprintf("发起双核切换指令: %s -> %s", fromEngine, target))
+	if fromEngine == target {
+		m.log("INFO", "ENGINE", fmt.Sprintf("执行核心配置热重载: %s (配置同步与连接平滑保持)", target))
+	} else {
+		m.log("INFO", "ENGINE", fmt.Sprintf("发起双核热切换: %s ➔ %s (Zero-Downtime 平滑容灾)", fromEngine, target))
+	}
 
 
 
@@ -1496,7 +1500,13 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	m.lastResult = res
 
-	log.Printf("✨ [Engine] Zero-downtime hot-swap to %s completed in %d ms (%d groups restored)", target, res.ElapsedMs, restoredCount)
+	if fromEngine == target {
+		log.Printf("✨ [Engine] In-place configuration hot-reload for %s completed in %d ms (%d groups restored)", target, res.ElapsedMs, restoredCount)
+		m.log("INFO", "ENGINE", fmt.Sprintf("✅ 核心 %s 配置热重载完成 (耗时 %d ms, 恢复策略组: %d)", target, res.ElapsedMs, restoredCount))
+	} else {
+		log.Printf("✨ [Engine] Zero-downtime hot-swap to %s completed in %d ms (%d groups restored)", target, res.ElapsedMs, restoredCount)
+		m.log("INFO", "ENGINE", fmt.Sprintf("✅ 双核平滑切换完成: %s ➔ %s (耗时 %d ms, 恢复策略组: %d)", fromEngine, target, res.ElapsedMs, restoredCount))
+	}
 
 
 

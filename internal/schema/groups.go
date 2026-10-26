@@ -253,7 +253,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			continue
 		}
 		name := p.Name
-		if isInformationalOrInvalidNode(name) {
+		if IsInformationalOrInvalidNode(name) {
 			continue
 		}
 
@@ -401,6 +401,9 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 	// Append concrete proxy nodes as well for granular manual override
 	for _, p := range ir.Proxies {
 		if p.Type != "direct" && p.Type != "block" && p.Type != "reject" && !isProxyDisabled(&p) {
+			if IsInformationalOrInvalidNode(p.Name) {
+				continue
+			}
 			allRegionalCandidateProxies = append(allRegionalCandidateProxies, p.Name)
 		}
 	}
@@ -511,7 +514,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 		}
 
 		if eg, exists := existingMap[bg.Name]; exists {
-			if eg.Now != "" && containsString(candidates, eg.Now) && !isTagDisabled(eg.Now) {
+			if eg.Now != "" && containsString(candidates, eg.Now) && !isTagDisabled(eg.Now) && !IsInformationalOrInvalidNode(eg.Now) {
 				if eg.Now == "DIRECT" && bg.Name != "Apple 服务" && bg.Name != "Microsoft" && bg.Name != "🎯 国内流量" {
 					bizGrp.Now = defaultNow
 				} else if (bg.Name == "AI" || bg.Name == "Gemini & Antigravity") && (eg.Now == "🇭🇰 香港自动" || eg.Now == "🇭🇰 香港故转" || eg.Now == "🇭🇰 香港容灾") {
@@ -522,6 +525,8 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 				} else {
 					bizGrp.Now = eg.Now
 				}
+			} else {
+				bizGrp.Now = defaultNow
 			}
 			if len(eg.Proxies) > 0 {
 				bizGrp.Proxies = mergeProxiesFiltered(validCandidateMap, candidates, eg.Proxies)
@@ -708,7 +713,7 @@ func mergeProxiesFiltered(validCandidates map[string]bool, base, extra []string)
 	seen := make(map[string]bool)
 	res := make([]string, 0, len(base)+len(extra))
 	for _, item := range base {
-		if strings.HasSuffix(item, "容灾") {
+		if strings.HasSuffix(item, "容灾") || IsInformationalOrInvalidNode(item) {
 			continue
 		}
 		if !seen[item] {
@@ -717,7 +722,7 @@ func mergeProxiesFiltered(validCandidates map[string]bool, base, extra []string)
 		}
 	}
 	for _, item := range extra {
-		if strings.HasSuffix(item, "容灾") {
+		if strings.HasSuffix(item, "容灾") || IsInformationalOrInvalidNode(item) {
 			continue
 		}
 		if validCandidates[item] && !seen[item] {
@@ -737,8 +742,8 @@ func containsString(list []string, target string) bool {
 	return false
 }
 
-// isInformationalOrInvalidNode filters out airport notices, traffic balance notices, and expired tags
-func isInformationalOrInvalidNode(name string) bool {
+// IsInformationalOrInvalidNode filters out airport notices, traffic balance notices, and expired tags
+func IsInformationalOrInvalidNode(name string) bool {
 	lower := strings.ToLower(name)
 	keywords := []string{
 		"剩余流量", "套餐到期", "官网", "官方", "下次重置", "到期时间",
@@ -747,6 +752,7 @@ func isInformationalOrInvalidNode(name string) bool {
 		"重置剩余", "请到网站", "过期时间", "额度", "返利",
 		"expire date", "expiredate", "traffic", "balance",
 		"客服", "网址", "网站", "续费", "教程", "备用",
+		"↓↓", "↑↑", "打开下面", "流量",
 	}
 	for _, kw := range keywords {
 		if strings.Contains(lower, strings.ToLower(kw)) {
@@ -812,7 +818,7 @@ func FilterNodesByKeywords(proxies []ProxyNode, keywords []string, logic string,
 		if pType == "direct" || pType == "block" || pType == "reject" || p.Name == "" {
 			continue
 		}
-		if isInformationalOrInvalidNode(p.Name) {
+		if IsInformationalOrInvalidNode(p.Name) {
 			continue
 		}
 		lowerName := strings.ToLower(p.Name)

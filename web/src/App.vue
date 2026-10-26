@@ -1,6 +1,6 @@
 <template>
   <div :class="[
-    'min-h-screen font-sans antialiased transition-colors duration-500 selection:bg-teal-500/30 selection:text-teal-200 flex flex-col md:flex-row overflow-hidden safe-h-screen h-[100dvh]',
+    'min-h-screen font-sans antialiased transition-colors duration-500 selection:bg-teal-500/30 selection:text-teal-200 flex flex-col md:flex-row overflow-x-hidden overflow-y-hidden safe-h-screen h-[100dvh] w-full max-w-full',
     rootBgClass,
     antiBlueLight ? 'anti-blue-active' : ''
   ]">
@@ -86,132 +86,110 @@
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- 2. 右侧主内容区域 (Main Content Area with Top Header & Tab Views)     -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
-    <div class="flex-1 flex flex-col h-full overflow-y-auto pb-24 md:pb-6">
+    <div :class="['flex-1 flex flex-col h-full relative overflow-x-hidden w-full max-w-full', activeMasterTab === 'diagnostics' ? 'overflow-y-hidden' : 'overflow-y-auto pb-24 md:pb-6']" @scroll="onMainContentScroll">
       
-      <!-- Top Holographic Bar (Mobile & Desktop Adaptive, Generous Line-Height & Symmetrical Capsules) -->
-      <header class="w-full px-3.5 sm:px-6 lg:px-8 py-3.5 sm:py-4 min-h-[66px] sm:min-h-[74px] flex items-center justify-between gap-2 sm:gap-4 sticky top-0 z-20 transition-colors duration-500"
-        :class="headerBgClass">
-        
-        <!-- Left: Mobile Menu Trigger + Unified Control Plane Capsule (与右侧宿主胶囊高度完全一致，竖向居中，全局主题适配) -->
-        <div class="flex items-center gap-2 shrink-0">
-          <!-- Mobile Drawer Hamburger -->
-          <button @click="showMobileDrawer = true" class="md:hidden p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border border-cyan-500/40 text-emerald-300 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md active:scale-95 transition" title="打开快捷抽屉">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-            </svg>
-          </button>
 
-          <!-- Unified Control Plane Capsule: Fixed Height h-[42px] sm:h-[46px] for absolute symmetry with right capsule -->
-          <div class="h-[42px] sm:h-[46px] inline-flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 rounded-2xl select-none transition-all duration-300 macos-capsule">
-            <!-- CubeX 3D Logo (使用 CubeXLogo 组件) -->
-            <CubeXLogo :status="systemRunningStatus" :size="32" class="cursor-pointer hover:scale-110 transition-transform" @click="showLogoGalleryModal = true" />
+
+      <!-- Top Holographic Bar (自适应手机/桌面双屏美学：手机端严丝合缝绝不溢出、桌面端全息大气) -->
+      <header class="w-full px-2.5 sm:px-6 lg:px-8 py-2 sm:py-3.5 min-h-[52px] sm:min-h-[70px] flex items-center justify-between gap-1.5 sm:gap-4 sticky top-0 z-20 transition-all duration-300"
+        :class="[
+          headerBgClass,
+          isHeaderHidden ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100',
+          isScrolledDown ? 'backdrop-blur-2xl bg-black/35 border-b border-white/10 shadow-xl' : ''
+        ]">
+        
+        <!-- Left: Unified Control Plane Capsule (手机端精简适配，电脑端饱满呈现，完全取消冗余抽屉) -->
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div class="h-[36px] sm:h-[46px] inline-flex items-center gap-1.5 sm:gap-3 px-2 sm:px-4 rounded-xl sm:rounded-2xl select-none transition-all duration-300 macos-capsule">
+            <!-- CubeX 3D Logo -->
+            <CubeXLogo :status="systemRunningStatus" :size="24" class="cursor-pointer hover:scale-110 transition-transform sm:w-[32px] sm:h-[32px]" @click="showLogoGalleryModal = true" />
             
-            <!-- CubeX 品牌与版本号 (高对比度·落日金白双色·高穿透) -->
-            <div class="inline-flex items-center gap-1.5 font-mono text-xs sm:text-[13px] leading-none whitespace-nowrap">
+            <!-- CubeX 品牌与版本号 -->
+            <div class="inline-flex items-center gap-1 font-mono text-xs sm:text-[13px] leading-none whitespace-nowrap">
               <span class="font-black tracking-wide text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
                 CubeX
               </span>
-              <span class="font-black tracking-tight text-[#FEF08A] drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
-                {{ systemStatus.version || 'Test v3.8' }}
+              <span class="font-black tracking-tight text-[#FEF08A] drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] hidden xs:inline">
+                {{ systemStatus.version || 'Test v4.1' }}
               </span>
             </div>
 
             <span class="text-white/40 font-mono text-xs leading-none select-none">|</span>
 
-            <!-- 当前模块名 (纯净亮白·高对比度) -->
-            <h2 class="text-xs sm:text-[13px] font-extrabold text-white tracking-wide truncate max-w-[90px] xs:max-w-none leading-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">{{ currentTabTitle }}</h2>
+            <!-- 当前模块名 -->
+            <h2 class="text-xs sm:text-[13px] font-extrabold text-white tracking-wide truncate max-w-[70px] xs:max-w-none leading-none drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">{{ currentTabTitle }}</h2>
             
-            <!-- 控制面运行状态指示灯 (暖金微光) -->
-            <span class="w-2 h-2 rounded-full shrink-0 bg-[#FF9E5E] shadow-[0_0_8px_#ff9e5e]"
-              title="CubeX 控制面正常运行"></span>
+            <!-- 控制面运行状态指示灯 -->
+            <span class="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full shrink-0 bg-[#FF9E5E] shadow-[0_0_8px_#ff9e5e]"></span>
           </div>
         </div>
 
-        <!-- Center: Dual-Engine Capsule (Mihomo ⇄ sing-box 毫秒级热切 · LiquidGlass 翠绿/青绿) -->
-        <div class="shrink-0 flex items-center p-1 sm:p-1.5 rounded-2xl transition-all duration-300 relative gap-1.5 sm:gap-2 macos-capsule select-none">
+        <!-- Center / Right Dual Engine & Host Stack: 手机端自适应极简排列，电脑端标准全尺寸 -->
+        <div class="flex items-center gap-1 sm:gap-2.5 shrink-0">
           
-          <!-- sing-box Button (暮光落日金) -->
-          <button @click="switchEngine('singbox')" :disabled="switchingEngine"
-            :class="[
-              'w-[136px] sm:w-[148px] md:w-[158px] h-[38px] sm:h-[42px] px-2.5 sm:px-3 rounded-xl sm:rounded-2xl transition-all flex items-center gap-2 sm:gap-2.5 active:scale-95 border select-none shrink-0 group cursor-pointer',
-              activeEngine === 'singbox'
-                ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] shadow-md border-white/30 font-black'
-                : 'text-[rgba(255,240,230,0.65)] hover:text-white border-white/10 bg-black/25 hover:bg-white/10'
-            ]">
-            <!-- Sing-box Official 3D Logo -->
-            <img src="/logo-singbox.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(255,158,94,0.5)] transition-transform duration-300" :class="activeEngine === 'singbox' ? 'scale-105' : ''" alt="sing-box" />
-            <div class="flex-1 min-w-0 text-left overflow-hidden flex flex-col justify-center leading-none">
-              <div class="flex items-center justify-between gap-1 leading-none">
-                <span class="tracking-wide text-xs sm:text-[13px] font-black whitespace-nowrap" :class="activeEngine === 'singbox' ? 'text-[#1E1106]' : 'text-slate-100'">sing-box</span>
-                <span v-if="activeEngine === 'singbox'" class="w-1.5 h-1.5 rounded-full bg-[#1E1106] shadow-[0_0_5px_#ffffff] shrink-0"></span>
-              </div>
-              <div :class="[
-                'text-[10px] sm:text-[11px] font-sans tracking-tight whitespace-nowrap truncate mt-1 leading-none transition-colors',
-                activeEngine === 'singbox' ? 'text-[#1E1106]/85 font-bold' : 'text-slate-400 group-hover:text-slate-200'
+          <!-- Dual-Engine Switch Capsule (手机端超紧凑图标/缩写切换 · 电脑端标准双翼) -->
+          <div class="flex items-center p-0.5 sm:p-1.5 rounded-xl sm:rounded-2xl transition-all duration-300 relative gap-0.5 sm:gap-2 macos-capsule select-none shrink-0">
+            <!-- sing-box Button -->
+            <button @click="switchEngine('singbox')" :disabled="switchingEngine"
+              title="切换至 sing-box 极速轻量引擎"
+              :class="[
+                'h-[30px] sm:h-[40px] px-1.5 sm:px-3 rounded-lg sm:rounded-xl transition-all flex items-center gap-1 sm:gap-2 active:scale-95 border select-none shrink-0 group cursor-pointer',
+                activeEngine === 'singbox'
+                  ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] shadow-md border-white/30 font-black'
+                  : 'text-[rgba(255,240,230,0.65)] hover:text-white border-white/10 bg-black/25 hover:bg-white/10'
               ]">
-                原生 · 极速轻量
+              <img src="/logo-singbox.svg" class="w-4 h-4 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(255,158,94,0.5)]" alt="sing-box" />
+              <div class="text-left leading-none">
+                <span class="text-[11px] sm:text-[13px] font-black whitespace-nowrap" :class="activeEngine === 'singbox' ? 'text-[#1E1106]' : 'text-slate-100'">
+                  <span class="inline sm:hidden">sing</span><span class="hidden sm:inline">sing-box</span>
+                </span>
+                <span class="hidden md:block text-[10px] font-sans text-slate-400 mt-0.5">极速轻量</span>
               </div>
-            </div>
-          </button>
+            </button>
 
-          <!-- Mihomo Button (暮光落日金) -->
-          <button @click="switchEngine('mihomo')" :disabled="switchingEngine"
-            :class="[
-              'w-[136px] sm:w-[148px] md:w-[158px] h-[38px] sm:h-[42px] px-2.5 sm:px-3 rounded-xl sm:rounded-2xl transition-all flex items-center gap-2 sm:gap-2.5 active:scale-95 border select-none shrink-0 group cursor-pointer',
-              activeEngine === 'mihomo'
-                ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] shadow-md border-white/30 font-black'
-                : 'text-[rgba(255,240,230,0.65)] hover:text-white border-white/10 bg-black/25 hover:bg-white/10'
-            ]">
-            <!-- Mihomo Official Mascot Logo -->
-            <img src="/logo-mihomo.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(255,158,94,0.5)] transition-transform duration-300" :class="activeEngine === 'mihomo' ? 'scale-105' : ''" alt="Mihomo" />
-            <div class="flex-1 min-w-0 text-left overflow-hidden flex flex-col justify-center leading-none">
-              <div class="flex items-center justify-between gap-1 leading-none">
-                <span class="tracking-wide text-xs sm:text-[13px] font-black whitespace-nowrap" :class="activeEngine === 'mihomo' ? 'text-[#1E1106]' : 'text-slate-100'">Mihomo</span>
-                <span v-if="activeEngine === 'mihomo'" class="w-1.5 h-1.5 rounded-full bg-[#1E1106] shadow-[0_0_5px_#ffffff] shrink-0"></span>
-              </div>
-              <div :class="[
-                'text-[10px] sm:text-[11px] font-sans tracking-tight whitespace-nowrap truncate mt-1 leading-none transition-colors',
-                activeEngine === 'mihomo' ? 'text-[#1E1106]/85 font-bold' : 'text-slate-400 group-hover:text-slate-200'
+            <!-- Mihomo Button -->
+            <button @click="switchEngine('mihomo')" :disabled="switchingEngine"
+              title="切换至 Mihomo 规则完备引擎"
+              :class="[
+                'h-[30px] sm:h-[40px] px-1.5 sm:px-3 rounded-lg sm:rounded-xl transition-all flex items-center gap-1 sm:gap-2 active:scale-95 border select-none shrink-0 group cursor-pointer',
+                activeEngine === 'mihomo'
+                  ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] shadow-md border-white/30 font-black'
+                  : 'text-[rgba(255,240,230,0.65)] hover:text-white border-white/10 bg-black/25 hover:bg-white/10'
               ]">
-                兼容 · 规则完备
+              <img src="/logo-mihomo.svg" class="w-4 h-4 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(255,158,94,0.5)]" alt="Mihomo" />
+              <div class="text-left leading-none">
+                <span class="text-[11px] sm:text-[13px] font-black whitespace-nowrap" :class="activeEngine === 'mihomo' ? 'text-[#1E1106]' : 'text-slate-100'">
+                  <span class="inline sm:hidden">mihomo</span><span class="hidden sm:inline">Mihomo</span>
+                </span>
+                <span class="hidden md:block text-[10px] font-sans text-slate-400 mt-0.5">规则完备</span>
               </div>
-            </div>
-          </button>
+            </button>
 
-          <div v-if="switchingEngine" class="absolute inset-0 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/95 rounded-2xl flex items-center justify-center text-xs text-emerald-300 font-mono animate-pulse z-10">
-            🔄 双核零断流热切中...
+            <div v-if="switchingEngine" class="absolute inset-0 bg-white/10 border border-white/20 text-white/95 rounded-xl flex items-center justify-center text-[10px] sm:text-xs text-emerald-300 font-mono animate-pulse z-10">
+              🔄 热切中...
+            </div>
           </div>
-        </div>
 
-        <!-- Right: 🐙 GitHub 官方直达 + 🌙 去蓝光护眼一键切换 + 宿主机官方矢量 Logo + 在线心跳胶囊 -->
-        <div class="flex items-center gap-2 shrink-0">
-<!-- ⚡ 智能健康探活与预热无感自愈胶囊 -->
+          <!-- 智能探活胶囊 (仅在中大屏幕展示) -->
           <button @click="showSmartPingModal = true"
-            title="智能健康巡检与预热自愈中枢 · 自动探活并 0 秒预先剔除失效节点"
-            class="h-[42px] sm:h-[46px] inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-2xl macos-capsule transition-all duration-300 font-mono text-xs font-bold text-slate-300 hover:text-white active:scale-95 cursor-pointer group">
+            title="智能健康巡检与预热自愈中枢"
+            class="hidden md:inline-flex h-[42px] sm:h-[46px] items-center gap-1.5 px-3 rounded-2xl macos-capsule transition-all duration-300 font-mono text-xs font-bold text-slate-300 hover:text-white active:scale-95 cursor-pointer">
             <span class="relative flex h-2 w-2">
               <span v-if="smartPing.enabled" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span :class="['relative inline-flex rounded-full h-2 w-2', smartPing.enabled ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-slate-500']"></span>
             </span>
             <span class="hidden lg:inline text-xs font-mono font-bold">智能探活</span>
-            <span v-if="smartPing.failover_count > 0" class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              {{ smartPing.failover_count }}自愈
-            </span>
           </button>
-<!-- 🌙 去蓝光护眼显示模式保持全局常驻生效 -->
 
-          <!-- Fixed Height h-[42px] sm:h-[46px] for absolute symmetry with left capsule -->
+          <!-- 宿主机平台胶囊 (手机端紧凑图标展示 · 电脑端完整名称展示) -->
           <button @click="activeMasterTab = 'system'"
             :title="'当前联动宿主: ' + hostBadge.name + ' (点击进入「宿主共生」控制台)'"
-            class="h-[42px] sm:h-[46px] inline-flex items-center gap-2.5 sm:gap-3 px-3.5 sm:px-4 rounded-2xl macos-capsule hover:border-[#FF9E5E]/50 group select-none transition-all duration-300 cursor-pointer">
-            <!-- 宿主官方矢量 Logo (尺寸与双核对齐) -->
-            <img :src="hostBadge.svg" class="w-6 h-6 sm:w-7 sm:h-7 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(56,189,248,0.35)] group-hover:scale-110 transition-transform" :alt="hostBadge.shortName" />
-            
-            <!-- 宿主平台名称 (无 MikroTik 前缀，单行优雅展示，基线居中对齐) -->
-            <span class="text-xs sm:text-[13px] font-bold font-mono text-emerald-200 group-hover:text-[#FF9E5E] whitespace-nowrap truncate max-w-[160px] sm:max-w-[220px] leading-none transition-colors" :title="hostBadge.name">
+            class="h-[30px] sm:h-[42px] md:h-[46px] inline-flex items-center gap-1 sm:gap-2.5 px-1.5 sm:px-3.5 rounded-lg sm:rounded-2xl macos-capsule hover:border-[#FF9E5E]/50 group select-none transition-all duration-300 cursor-pointer shrink-0">
+            <img :src="hostBadge.svg" class="w-4 h-4 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(56,189,248,0.35)] group-hover:scale-110 transition-transform" :alt="hostBadge.shortName" />
+            <span class="hidden md:inline text-xs sm:text-[13px] font-bold font-mono text-emerald-200 group-hover:text-[#FF9E5E] whitespace-nowrap truncate max-w-[140px] leading-none transition-colors">
               {{ hostBadge.name }}
             </span>
-            <span :class="['w-2 h-2 rounded-full shrink-0', hostBadge.online ? 'bg-[#FF9E5E] shadow-[0_0_6px_#ff9e5e]' : 'bg-rose-400']" :title="hostBadge.online ? '宿主平台在线联动 (已连接)' : '宿主未连接'"></span>
+            <span :class="['w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full shrink-0', hostBadge.online ? 'bg-[#FF9E5E] shadow-[0_0_6px_#ff9e5e]' : 'bg-rose-400']"></span>
           </button>
         </div>
       </header>
@@ -219,12 +197,14 @@
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- 🧪 双核容灾自愈安全演练实测报告弹窗 (Failover Drill Modal)             -->
-    <!-- Floating Regional Speedtest Toast Queue (Top-Right Stack, FIFO)      -->
+    <!-- Floating Regional Speedtest Toast Queue (Bottom-Right Stack, FIFO)   -->
+    <!-- 优化方案：常驻右下角 (bottom-20 md:bottom-6)，绝不遮挡页眉与模块标题    -->
+    <!-- 纯净暮光冰晶轻量毛玻璃材质：取消黑色边框与黑底，高通透全息质感          -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <transition-group name="speedtest-toast" tag="div"
-      class="fixed top-5 right-5 z-[9999] flex flex-col gap-2.5 max-w-[240px] pointer-events-none">
+      class="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-[9999] flex flex-col-reverse gap-2.5 max-w-[240px] pointer-events-none">
       <div v-for="task in speedtestTasks" :key="task.id"
-        class="pointer-events-auto w-[210px] sm:w-[230px] rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/95 backdrop-blur-xl text-slate-100 px-3.5 py-2.5 shadow-2xl shadow-cyan-950/60 border border-cyan-500/40 ring-1 ring-cyan-400/20 transition-all duration-300 flex flex-col gap-1 select-none animate-in slide-in-from-right fade-in">
+        class="pointer-events-auto w-[210px] sm:w-[230px] rounded-2xl bg-white/10 hover:bg-white/15 backdrop-blur-2xl text-white px-3.5 py-2.5 shadow-xl border border-white/20 transition-all duration-300 flex flex-col gap-1 select-none animate-in slide-in-from-bottom-3 fade-in">
         
         <!-- Top row: Group Name + Close '✕' Button -->
         <div class="flex items-center justify-between">
@@ -277,7 +257,7 @@
         <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="toastError ? 'bg-rose-400 animate-ping' : 'bg-emerald-400 animate-ping'"></span>
         <span class="tracking-wide">{{ toastMsg }}</span>
       </div>
-      <button @click="toastMsg = ''" class="text-slate-400 hover:text-white px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 cursor-pointer transition">✕</button>
+      <button @click="toastMsg = ''" class="text-slate-400 hover:text-white px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 cursor-pointer transition">✕</button>
     </div>
 
       <!-- Main Body Content Views -->
@@ -381,7 +361,7 @@
               <!-- Bottom Row: 4 Unified Master Bento Columns (Engine + Hardware + DNS + Network & Latencies) -->
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs pt-1">
                 <!-- 1. Dual-Engine HA Sentinel & Hot-Standby (双擎热备与自愈) -->
-                <div class="p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 border border-cyan-500/40 hover:border-cyan-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
+                <div class="p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border border-cyan-500/40 hover:border-cyan-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
                   <div class="flex items-center justify-between">
                     <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide flex items-center gap-1.5">
                       <span>🔄</span>
@@ -413,7 +393,7 @@
 
                   <!-- Visual Dual-Engine Sync Bar -->
                   <div class="pt-2">
-                    <div class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md h-1.5 rounded-full overflow-hidden flex">
+                    <div class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white h-1.5 rounded-full overflow-hidden flex">
                       <div :class="['h-full transition-all duration-500', activeEngine === 'singbox' ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] w-3/5' : 'bg-slate-700 w-2/5']"></div>
                       <div :class="['h-full transition-all duration-500', activeEngine === 'mihomo' ? 'bg-gradient-to-r from-purple-500 to-indigo-500 w-3/5' : 'bg-slate-700 w-2/5']"></div>
                     </div>
@@ -421,7 +401,7 @@
                 </div>
 
                 <!-- 2. Host System Telemetry (宿主机硬件负载与 CubeX 专属常驻) -->
-                <div class="p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 border border-purple-500/30 hover:border-purple-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
+                <div class="p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border border-purple-500/30 hover:border-purple-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
                   <div class="flex items-center justify-between">
                     <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide flex items-center gap-1.5">
                       <span>💻</span>
@@ -450,14 +430,14 @@
 
                   <!-- Visual Memory Progress Bar -->
                   <div class="pt-2">
-                    <div class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md h-1.5 rounded-full overflow-hidden">
+                    <div class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white h-1.5 rounded-full overflow-hidden">
                       <div class="bg-gradient-to-r from-purple-500 to-indigo-400 h-full rounded-full transition-all duration-500" :style="{ width: Math.min(100, Math.max(10, (systemStatus.memory_bytes || 100500000) / 1024 / 1024 / 4)) + '%' }"></div>
                     </div>
                   </div>
                 </div>
 
                 <!-- 3. DNS 智能防污染 (DNS & Anti-Leak) -->
-                <div class="p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 border border-emerald-500/30 hover:border-emerald-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
+                <div class="p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border border-emerald-500/30 hover:border-emerald-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
                   <div class="flex items-center justify-between">
                     <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide flex items-center gap-1.5">
                       <span>🛡️</span>
@@ -480,14 +460,14 @@
 
                   <!-- Visual Active Indicator Bar -->
                   <div class="pt-2">
-                    <div class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md h-1.5 rounded-full overflow-hidden">
+                    <div class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white h-1.5 rounded-full overflow-hidden">
                       <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full w-full"></div>
                     </div>
                   </div>
                 </div>
 
                 <!-- 4. 核心网络协议栈与实时测速 (Protocol Stack & Live Latencies) -->
-                <div class="p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 border border-amber-500/30 hover:border-amber-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
+                <div class="p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border border-amber-500/30 hover:border-amber-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
                   <div class="flex items-center justify-between">
                     <span class="text-xs sm:text-[13px] font-bold text-slate-200 tracking-wide flex items-center gap-1.5">
                       <span>🌐</span>
@@ -522,7 +502,7 @@
 
                   <!-- Visual Active Indicator Bar -->
                   <div class="pt-2">
-                    <div class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md h-1.5 rounded-full overflow-hidden">
+                    <div class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white h-1.5 rounded-full overflow-hidden">
                       <div class="bg-gradient-to-r from-amber-500 to-orange-400 h-full rounded-full w-full"></div>
                     </div>
                   </div>
@@ -558,7 +538,7 @@
 
               <!-- ⚡ Refresh probes button -->
               <button @click="triggerAllServiceProbes" :disabled="probingServiceLatencies" title="立即刷新全部测速探针"
-                class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 hover:bg-slate-700 text-amber-300 border border-slate-700 hover:border-amber-400/40 flex items-center justify-center transition active:scale-95 shadow-sm cursor-pointer">
+                class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 hover:bg-slate-700 text-amber-300 border border-slate-700 hover:border-amber-400/40 flex items-center justify-center transition active:scale-95 shadow-sm cursor-pointer">
                 <span :class="{'animate-spin': probingServiceLatencies}">⚡</span>
               </button>
             </div>
@@ -584,7 +564,7 @@
                   <div class="relative min-w-0">
                     <button @click="toggleProbeDropdown(bi)" title="点击切换测速站点"
                       class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer select-none"
-                      :class="activeProbeDropdown === bi ? 'bg-cyan-950/80 border-cyan-400 text-emerald-200 ring-1 ring-cyan-400/30' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border-slate-700/60 hover:border-cyan-400/50 text-slate-100 hover:text-white'">
+                      :class="activeProbeDropdown === bi ? 'bg-cyan-950/80 border-cyan-400 text-emerald-200 ring-1 ring-cyan-400/30' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border-slate-700/60 hover:border-cyan-400/50 text-slate-100 hover:text-white'">
                       <span class="truncate max-w-[60px] sm:max-w-[72px]">{{ item.name }}</span>
                       <span class="text-[9px] text-emerald-300 shrink-0 transition-transform duration-200" :class="activeProbeDropdown === bi ? 'rotate-180' : ''">▾</span>
                     </button>
@@ -596,7 +576,7 @@
                       <button v-for="target in availableProbeTargets" :key="target.id"
                         @click.stop="selectProbeTarget(bi, target)"
                         class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition text-left cursor-pointer"
-                        :class="item.id === target.id ? 'bg-cyan-500/25 text-emerald-200 font-bold border border-cyan-400/40 shadow-sm' : 'hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 hover:text-white'">
+                        :class="item.id === target.id ? 'bg-cyan-500/25 text-emerald-200 font-bold border border-cyan-400/40 shadow-sm' : 'hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 hover:text-white'">
                         <BrandLogo :name="target.logo" size="w-4 h-4" class="shrink-0" />
                         <span class="truncate flex-1 font-medium">{{ target.name }}</span>
                         <span v-if="item.id === target.id" class="text-emerald-300 text-xs font-bold shrink-0">✓</span>
@@ -682,7 +662,7 @@
                     'h-9 px-2.5 py-1 rounded-xl text-xs sm:text-[12px] font-medium transition flex items-center justify-center gap-1.5 border select-none active:scale-95 shadow-sm cursor-pointer truncate',
                     benchmarkTargetUrl === site.url
                       ? 'bg-gradient-to-r from-cyan-500/25 to-blue-500/25 text-emerald-300 border-cyan-400/60 shadow-[0_0_12px_rgba(0,210,255,0.25)] font-bold'
-                      : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-400 hover:text-slate-200 border-slate-800 hover:border-slate-700'
+                      : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-400 hover:text-slate-200 border-slate-800 hover:border-slate-700'
                   ]">
                   <BrandLogo :name="site.logo" size="w-4 h-4" class="shrink-0" />
                   <span class="truncate">{{ site.name }}</span>
@@ -808,7 +788,7 @@
             </div>
 
             <!-- Recommendation Alert if Available -->
-            <div v-if="benchmarkResult.recommendation" class="p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border border-sky-800/40 text-xs text-emerald-200 flex items-center gap-2">
+            <div v-if="benchmarkResult.recommendation" class="p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 border border-sky-800/40 text-xs text-emerald-200 flex items-center gap-2">
               <span>💡</span>
               <span class="font-mono">{{ benchmarkResult.recommendation }}</span>
             </div>
@@ -829,7 +809,7 @@
                       <span>统计直连流量</span>
                       <div class="relative">
                         <input type="checkbox" v-model="trafficInsights.includeDirect" class="sr-only" />
-                        <div :class="['w-8 h-4 rounded-full transition-colors duration-200', trafficInsights.includeDirect ? 'bg-cyan-500 shadow-[0_0_8px_rgba(0,210,255,0.4)]' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-700']"></div>
+                        <div :class="['w-8 h-4 rounded-full transition-colors duration-200', trafficInsights.includeDirect ? 'bg-cyan-500 shadow-[0_0_8px_rgba(0,210,255,0.4)]' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-700']"></div>
                         <div :class="['absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform duration-200', trafficInsights.includeDirect ? 'translate-x-4' : 'translate-x-0']"></div>
                       </div>
                     </label>
@@ -843,8 +823,8 @@
                 </div>
 
                 <!-- Month Navigator Capsule -->
-                <div class="flex items-center gap-1 p-1 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 rounded-2xl border border-slate-800 text-xs font-mono shrink-0">
-                  <button @click="changeInsightsMonth(-1)" class="px-2 py-1 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md transition">
+                <div class="flex items-center gap-1 p-1 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 rounded-2xl border border-slate-800 text-xs font-mono shrink-0">
+                  <button @click="changeInsightsMonth(-1)" class="px-2 py-1 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white transition">
                     ‹
                   </button>
                   <button @click="setInsightsMonth(9)" :class="['px-2.5 py-1 rounded-xl transition', trafficInsights.month === 9 ? 'bg-emerald-500 text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-white']">
@@ -856,7 +836,7 @@
                   <button @click="setInsightsMonth(11)" :class="['px-2.5 py-1 rounded-xl transition', trafficInsights.month === 11 ? 'bg-emerald-500 text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-white']">
                     2026年11月
                   </button>
-                  <button @click="changeInsightsMonth(1)" class="px-2 py-1 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md transition">
+                  <button @click="changeInsightsMonth(1)" class="px-2 py-1 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white transition">
                     ›
                   </button>
                 </div>
@@ -961,7 +941,7 @@
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
                   <div class="flex items-center gap-2 flex-wrap">
                     <!-- Tab Switcher -->
-                    <div class="flex items-center p-0.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800">
+                    <div class="flex items-center p-0.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800">
                       <button @click="trafficChartMode = 'realtime'"
                         :class="['px-2.5 py-1 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5',
                           trafficChartMode === 'realtime' ? 'bg-cyan-500/20 text-emerald-300 border border-cyan-500/40 shadow' : 'text-slate-400 hover:text-white']">
@@ -997,12 +977,12 @@
                   <!-- Right Action Buttons -->
                   <div class="flex items-center gap-2">
                     <button v-if="trafficChartMode === 'hourly'" @click="resetHourlyEntireDay"
-                      class="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 transition cursor-pointer">
+                      class="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 transition cursor-pointer">
                       {{ trafficInsights.viewEntireDay ? '已看全天' : '恢复看整天' }}
                     </button>
                     <button v-else @click="realtimePaused = !realtimePaused"
                       :class="['px-2.5 py-1 rounded-xl border text-xs font-mono transition cursor-pointer flex items-center gap-1',
-                        realtimePaused ? 'bg-amber-950 text-amber-300 border-amber-500/40' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 border-slate-800 hover:text-white']">
+                        realtimePaused ? 'bg-amber-950 text-amber-300 border-amber-500/40' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 border-slate-800 hover:text-white']">
                       <span>{{ realtimePaused ? '▶ 恢复滚动' : '⏸ 暂停滚动' }}</span>
                     </button>
                   </div>
@@ -1162,7 +1142,7 @@
                 </div>
                 <p class="text-xs text-slate-400 mt-1">针对局域网特定终端（蓝光机、飞牛 NAS、Apple TV、游戏机等）指定智能规则分流或直连绕过</p>
               </div>
-              <button @click="fetchLanDevices" :disabled="loadingDevices" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer transition">
+              <button @click="fetchLanDevices" :disabled="loadingDevices" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer transition">
                 {{ loadingDevices ? '正在探查...' : '↻ 实时刷新设备' }}
               </button>
             </div>
@@ -1194,7 +1174,7 @@
                             @keyup.enter="saveDeviceAlias(dev)" 
                             @keyup.esc="cancelEditDevice" 
                             autofocus 
-                            class="px-2.5 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-cyan-400 text-white font-bold outline-none ring-2 ring-cyan-500/30 w-48 sm:w-64 shadow-inner"
+                            class="px-2.5 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-cyan-400 text-white font-bold outline-none ring-2 ring-cyan-500/30 w-48 sm:w-64 shadow-inner"
                             placeholder="输入新设备备注名..." />
                           <button @click="saveDeviceAlias(dev)" 
                             :disabled="savingDeviceAlias"
@@ -1202,7 +1182,7 @@
                             <span>✔ 保存</span>
                           </button>
                           <button @click="cancelEditDevice" 
-                            class="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 text-xs transition cursor-pointer">
+                            class="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs transition cursor-pointer">
                             <span>✕ 取消</span>
                           </button>
                         </div>
@@ -1224,7 +1204,7 @@
 
                 <!-- Right Controls: 2-Segmented Capsule Control Slider + 设备重命名 Button -->
                 <div class="flex items-center gap-2.5 flex-wrap">
-                  <div class="flex items-center bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md p-1 rounded-xl border border-slate-800 gap-1 text-xs">
+                  <div class="flex items-center bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white p-1 rounded-xl border border-slate-800 gap-1 text-xs">
                     <button @click="setDeviceRouting(dev, 'rule')"
                       :class="['px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer', dev.mode === 'rule' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white']">
                       🟢 智能规则
@@ -1239,7 +1219,7 @@
                   <button v-if="editingDeviceIp !== dev.ip"
                     @click="startEditDevice(dev)" 
                     title="修改设备备注名" 
-                    class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 hover:border-cyan-500/50 text-slate-400 hover:text-emerald-300 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-sm group">
+                    class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 hover:border-cyan-500/50 text-slate-400 hover:text-emerald-300 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-sm group">
                     <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-[#FF9E5E]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -1262,127 +1242,97 @@
           <!-- 🧭 应用分流与全域出站节点控制中枢 (3-in-1 策略 / 节点 / 订阅)      -->
           <!-- ════════════════════════════════════════════════════════════════ -->
           <section class="space-y-4">
-            <!-- Universal Top Bar: 3 Sub-tabs, Keyword Search & Global Operations -->
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-slate-700/40 pb-3">
-              <!-- Left: 3 Sub-tabs Capsule Switcher -->
-              <div class="flex items-center gap-1.5 p-1 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border border-slate-800 shrink-0">
+            <!-- Universal Top Bar: 3 Sub-tabs & Global Operations (Height h-[42px] Unified Capsule, High Contrast Text) -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-1.5 select-none">
+              <!-- Left: 3 Sub-tabs Capsule Switcher (h-[42px] 胶囊容器 · 高对比白金文字) -->
+              <div class="h-[42px] flex items-center gap-1.5 p-1 rounded-2xl macos-capsule shrink-0">
                 <button @click="routingSubTab = 'policy'"
                   :class="[
-                    'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 select-none',
+                    'h-[34px] px-3.5 rounded-xl text-xs font-bold transition flex items-center gap-2 select-none cursor-pointer',
                     routingSubTab === 'policy'
-                      ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] font-bold shadow-md shadow-[#FF9E5E]/20'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] font-black shadow-md shadow-[#FF9E5E]/25'
+                      : 'text-white/85 hover:text-white hover:bg-white/10'
                   ]">
                   <span>策略</span>
-                  <span :class="['text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold',
-                    routingSubTab === 'policy' ? 'bg-[#201630] text-[#FDE68A]' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-400']">
+                  <span :class="['text-[11px] px-2 py-0.5 rounded-full font-mono font-bold',
+                    routingSubTab === 'policy' ? 'bg-[#201630] text-[#FDE68A]' : 'bg-white/10 border border-white/20 text-[#FEF08A]']">
                     {{ filteredPolicies.length }}
                   </span>
                 </button>
 
                 <button @click="routingSubTab = 'node'"
                   :class="[
-                    'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 select-none',
+                    'h-[34px] px-3.5 rounded-xl text-xs font-bold transition flex items-center gap-2 select-none cursor-pointer',
                     routingSubTab === 'node'
-                      ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] font-bold shadow-md shadow-[#FF9E5E]/20'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] font-black shadow-md shadow-[#FF9E5E]/25'
+                      : 'text-white/85 hover:text-white hover:bg-white/10'
                   ]">
                   <span>地区</span>
-                  <span :class="['text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold',
-                    routingSubTab === 'node' ? 'bg-[#201630] text-[#FDE68A]' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-400']">
+                  <span :class="['text-[11px] px-2 py-0.5 rounded-full font-mono font-bold',
+                    routingSubTab === 'node' ? 'bg-[#201630] text-[#FDE68A]' : 'bg-white/10 border border-white/20 text-[#FEF08A]']">
                     {{ regionalAutoGroups.length }}
                   </span>
                 </button>
 
                 <button @click="routingSubTab = 'sub'"
                   :class="[
-                    'px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 select-none',
+                    'h-[34px] px-3.5 rounded-xl text-xs font-bold transition flex items-center gap-2 select-none cursor-pointer',
                     routingSubTab === 'sub'
-                      ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] font-bold shadow-md shadow-[#FF9E5E]/20'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] font-black shadow-md shadow-[#FF9E5E]/25'
+                      : 'text-white/85 hover:text-white hover:bg-white/10'
                   ]">
                   <span>订阅</span>
-                  <span :class="['text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold',
-                    routingSubTab === 'sub' ? 'bg-[#201630] text-[#FDE68A]' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-400']">
+                  <span :class="['text-[11px] px-2 py-0.5 rounded-full font-mono font-bold',
+                    routingSubTab === 'sub' ? 'bg-[#201630] text-[#FDE68A]' : 'bg-white/10 border border-white/20 text-[#FEF08A]']">
                     {{ (ir.subscriptions || []).length }}
                   </span>
                 </button>
               </div>
 
-              <!-- Center: Real-Time Keyword Search Bar -->
-              <div class="relative flex-1 max-w-xl">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-300">
-                  <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
-                  </svg>
-                </div>
-                <input
-                  ref="routingSearchInput"
-                  v-model="routingSearchQuery"
-                  placeholder="搜索 | 多个关键词用空格分隔 (按 / 快捷聚焦)"
-                  class="w-full pl-9 pr-10 py-2 rounded-2xl macos-sub-card text-xs text-white placeholder-slate-400 font-mono outline-none transition"
-                />
-                <div class="absolute inset-y-0 right-0 pr-3 flex items-center gap-1.5">
-                  <button v-if="routingSearchQuery" @click="routingSearchQuery = ''"
-                    class="text-slate-300 hover:text-slate-300">
-                    ✕
-                  </button>
-                  <kbd v-else class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 text-slate-400 border border-slate-700/60 select-none cursor-pointer" @click="routingSearchInput?.focus()" title="按下 / 键快速搜索">/</kbd>
-                </div>
-              </div>
-
-              <!-- Right: Quick Tools & Context Action Buttons -->
-              <div class="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
-                <button @click="cycleRoutingSort" title="切换排序模式 (默认 / 按延迟 / 按名称)"
-                  class="px-3 py-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 hover:border-slate-700 text-slate-300 transition flex items-center gap-1.5 shadow-sm active:scale-95">
-                  <span>🔀</span>
-                  <span>{{ routingSortLabel }}</span>
-                </button>
-
+              <!-- Right: Quick Tools & Context Action Buttons (h-[42px] 对称对齐 · 取消搜索框与刷新按钮) -->
+              <div class="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
+                <!-- ⚡ 全员测速 (高透全息胶囊 · 暖金与白文字) -->
                 <button @click="runAllLatencyTest" :disabled="testingLatency"
-                  class="px-3.5 py-2 rounded-xl text-xs font-bold bg-cyan-600/25 hover:bg-cyan-600/40 border border-cyan-500/40 hover:border-cyan-400 text-emerald-200 transition flex items-center gap-1.5 shadow-sm active:scale-95 whitespace-nowrap">
+                  class="h-[42px] px-4 rounded-2xl text-xs font-bold macos-capsule hover:border-[#FF9E5E]/50 text-white transition flex items-center gap-1.5 shadow-sm active:scale-95 whitespace-nowrap cursor-pointer">
                   <span v-if="testingLatency" class="inline-block animate-spin">⏳</span>
-                  <span v-else>⚡</span>
+                  <span v-else class="text-[#FEF08A]">⚡</span>
                   <span>{{ testingLatency ? '测速中...' : '全员测速' }}</span>
                 </button>
 
-                <button @click="fetchIR" title="重新载入并同步分流状态"
-                  class="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 hover:border-cyan-500/40 text-slate-300 text-xs transition active:scale-95">
-                  <span>🔄</span>
-                </button>
-
                 <button v-if="routingSubTab === 'policy'" @click="restoreDefaultPolicies" title="一键恢复官方默认 14 个业务分流策略与 8 大地区"
-                  class="px-3 py-2 rounded-xl text-xs font-semibold border transition flex items-center gap-1 active:scale-95 whitespace-nowrap shadow-sm cursor-pointer"
-                  :class="deletedPolicyGroupNames.length > 0 ? 'bg-amber-950/70 hover:bg-amber-900 border-amber-500/50 text-amber-300' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border-slate-700/80 hover:border-cyan-400 text-slate-300 hover:text-white'">
-                  <span>↺ 恢复默认策略 (14个)</span>
-                  <span v-if="deletedPolicyGroupNames.length > 0" class="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-200">
+                  class="h-[42px] px-3.5 rounded-2xl text-xs font-bold macos-capsule hover:border-[#FF9E5E]/50 text-white transition flex items-center gap-1.5 active:scale-95 whitespace-nowrap shadow-sm cursor-pointer"
+                  :class="deletedPolicyGroupNames.length > 0 ? 'border-amber-500/40 text-amber-200' : ''">
+                  <span class="text-[#FEF08A]">↺</span>
+                  <span>恢复默认策略 (14个)</span>
+                  <span v-if="deletedPolicyGroupNames.length > 0" class="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-200 font-mono">
                     {{ deletedPolicyGroupNames.length }}
                   </span>
                 </button>
                 <button v-if="routingSubTab === 'policy'" @click="showAddGroupModal = true"
-                  class="px-3.5 py-2 rounded-xl text-xs font-extrabold bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] hover:from-[#FFA970] hover:to-[#FBBF24] text-[#1E1106] shadow-md shadow-[#FF9E5E]/25 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap">
+                  class="h-[42px] px-4 rounded-2xl text-xs font-black bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] hover:from-[#FFA970] hover:to-[#FBBF24] text-[#1E1106] shadow-md shadow-[#FF9E5E]/25 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
                   <span>➕ 添加策略</span>
                 </button>
                 <div v-else-if="routingSubTab === 'node'" class="flex items-center gap-2">
                   <button @click="restoreDefaultRegions" title="一键恢复官方预设 8 大核心地区聚类"
-                    class="px-3 py-2 rounded-xl text-xs font-semibold border transition flex items-center gap-1 active:scale-95 whitespace-nowrap shadow-sm cursor-pointer"
-                    :class="deletedRegionIds.length > 0 ? 'bg-amber-950/70 hover:bg-amber-900 border-amber-500/50 text-amber-300' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border-slate-700/80 hover:border-cyan-400 text-slate-300 hover:text-white'">
-                    <span>↺ 恢复默认地区 (8个)</span>
-                    <span v-if="deletedRegionIds.length > 0" class="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-200">
+                    class="h-[42px] px-3.5 rounded-2xl text-xs font-bold macos-capsule hover:border-[#FF9E5E]/50 text-white transition flex items-center gap-1.5 active:scale-95 whitespace-nowrap shadow-sm cursor-pointer"
+                    :class="deletedRegionIds.length > 0 ? 'border-amber-500/40 text-amber-200' : ''">
+                    <span class="text-[#FEF08A]">↺</span>
+                    <span>恢复默认地区 (8个)</span>
+                    <span v-if="deletedRegionIds.length > 0" class="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-200 font-mono">
                       {{ deletedRegionIds.length }}
                     </span>
                   </button>
                   <button @click="showAddCustomNodeGroupModal = true"
-                    class="px-3.5 py-2 rounded-xl text-xs font-extrabold bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] hover:from-[#FFA970] hover:to-[#FBBF24] text-[#1E1106] shadow-md shadow-[#FF9E5E]/25 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap">
+                    class="h-[42px] px-4 rounded-2xl text-xs font-black bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] hover:from-[#FFA970] hover:to-[#FBBF24] text-[#1E1106] shadow-md shadow-[#FF9E5E]/25 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
                     <span>➕ 添加分组</span>
                   </button>
                   <button @click="openImportModal('node')"
-                    class="px-3 py-2 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 hover:border-slate-700 text-slate-300 transition flex items-center gap-1 whitespace-nowrap">
+                    class="h-[42px] px-3.5 rounded-2xl text-xs font-bold macos-capsule hover:border-[#FF9E5E]/50 text-white transition flex items-center gap-1 whitespace-nowrap cursor-pointer">
                     <span>📥 导入节点</span>
                   </button>
                 </div>
                 <button v-else-if="routingSubTab === 'sub'" @click="openImportModal('sub')"
-                  class="px-3.5 py-2 rounded-xl text-xs font-extrabold bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] hover:from-[#FFA970] hover:to-[#FBBF24] text-[#1E1106] shadow-md shadow-[#FF9E5E]/25 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap">
+                  class="h-[42px] px-4 rounded-2xl text-xs font-black bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] hover:from-[#FFA970] hover:to-[#FBBF24] text-[#1E1106] shadow-md shadow-[#FF9E5E]/25 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
                   <span>➕ 导入订阅</span>
                 </button>
               </div>
@@ -1392,7 +1342,7 @@
             <!-- SUB-TAB 1: 策略分流 (Policies)                                 -->
             <!-- ════════════════════════════════════════════════════════════ -->
             <div v-if="routingSubTab === 'policy'" class="space-y-4">
-              <div v-if="filteredPolicies.length === 0" class="p-8 text-center rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 border border-slate-800 text-slate-400">
+              <div v-if="filteredPolicies.length === 0" class="p-8 text-center rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border border-slate-800 text-slate-400">
                 <span class="text-2xl block mb-2">🔍</span>
                 <span>未找到与「{{ routingSearchQuery }}」匹配的分流策略</span>
               </div>
@@ -1431,7 +1381,7 @@
                     <div class="min-w-0 space-y-1">
                       <div class="flex items-center gap-2 flex-wrap">
                         <span class="text-base font-bold text-white tracking-wide truncate">{{ getCleanGroupName(grp.name) }}</span>
-                        <span class="text-xs px-2 py-0.5 rounded-md font-mono bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 border border-slate-700/60">
+                        <span class="text-xs px-2 py-0.5 rounded-md font-mono bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 border border-slate-700/60">
                           {{ isChinaGroup(grp) ? '国内穿透' : (grp.name.includes('Speed') ? '测速穿透' : '域名穿透') }}
                         </span>
                         <span class="text-xs font-mono text-slate-400">
@@ -1467,43 +1417,36 @@
                       <span>核心基石</span>
                     </span>
                     <button v-else @click="deletePolicyGroup(grp.name)" title="移除此应用分流策略"
-                      class="text-slate-300 hover:text-rose-400 text-xs px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/60 hover:bg-rose-950/60 border border-slate-700/40 hover:border-rose-500/40 transition">
+                      class="text-slate-300 hover:text-rose-400 text-xs px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/60 hover:bg-rose-950/60 border border-slate-700/40 hover:border-rose-500/40 transition">
                       ✕
                     </button>
                   </div>
                 </div>
 
-                <!-- Candidates Selection Grid (卡片排版，悬浮窗展示最近 10 次测速记录) -->
-                <div class="flex flex-wrap gap-2.5 items-stretch">
+                <!-- Candidates Selection Grid (7面旗帜整齐单行排列 · 间距微调至 gap-3 杜绝误操作) -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5 sm:gap-3 items-stretch">
                   <!-- 1. 🎯 直连 (DIRECT) - 国外流量不可选国内直连 -->
                   <div v-if="!isForeignGroup(grp) && !isCandidateExcluded(grp.name, 'DIRECT')"
                     @click="selectGroupNode(grp.name, 'DIRECT')"
                     :class="[
-                      'w-[130px] sm:w-[145px] md:w-[155px] aspect-[3/2] shrink-0 rounded-2xl text-left transition-all duration-200 border select-none cursor-pointer relative group flex flex-col justify-between p-2.5 sm:p-3',
+                      'w-full aspect-[3/2] rounded-2xl text-left transition-all duration-200 border select-none cursor-pointer relative group flex flex-col justify-between p-2 sm:p-2.5',
                       isDirectActive(grp)
                         ? 'border-emerald-400 shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-400/60'
                         : 'border-slate-800/90 hover:border-emerald-500/50 shadow-sm',
                       isChinaGroup(grp) ? 'ring-1 ring-emerald-400/50 shadow-emerald-500/20' : ''
                     ]">
-                    <!-- Background: Proportional 3:2 Chinese Flag SVG (Proportionally Scaled Down) -->
-                    <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none bg-slate-950 flex items-center justify-center">
-                      <!-- Subtle Ambient Flag Aura in Background -->
-                      <div class="absolute inset-0 opacity-25 blur-sm scale-110">
-                        <RegionFlag country-code="CN" name="中国" as-background class="w-full h-full object-cover" />
-                      </div>
-                      <!-- Centered Proportional Flag (Scaled Down ~78%) -->
-                      <div class="w-full h-full flex items-center justify-center transform scale-[0.78] transition-all duration-300 group-hover:scale-[0.82] rounded-xl overflow-hidden shadow-md shadow-black/60">
-                        <RegionFlag country-code="CN" name="中国" as-background
-                          :class="[
-                            'w-full h-full object-cover transition-all duration-300',
-                            isDirectActive(grp) ? 'opacity-95' : 'opacity-85 group-hover:opacity-100'
-                          ]" />
-                      </div>
+                    <!-- Background: Full-Bleed Holographic Flag (Zero Black Border) -->
+                    <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                      <RegionFlag country-code="CN" name="中国" as-background
+                        :class="[
+                          'w-full h-full object-cover transition-all duration-300 group-hover:scale-105',
+                          isDirectActive(grp) ? 'opacity-95' : 'opacity-85 group-hover:opacity-100'
+                        ]" />
                       <div :class="[
                         'absolute inset-0 transition-opacity duration-300 pointer-events-none',
                         isDirectActive(grp)
-                          ? 'bg-gradient-to-t from-black/85 via-black/20 to-transparent'
-                          : 'bg-gradient-to-t from-black/85 via-black/20 to-transparent group-hover:via-black/10'
+                          ? 'bg-gradient-to-t from-black/90 via-black/35 to-transparent'
+                          : 'bg-gradient-to-t from-black/90 via-black/35 to-transparent group-hover:via-black/20'
                       ]"></div>
                       <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent"></div>
                     </div>
@@ -1512,7 +1455,7 @@
                     <div class="relative z-10 flex items-center justify-end min-h-[18px]">
                       <div v-if="!isChinaGroup(grp)" class="shrink-0">
                         <button @click.stop="removeCandidateFromGroup(grp, 'DIRECT')" title="从该策略中移除直连"
-                          class="opacity-0 group-hover:opacity-100 hover:text-rose-400 text-slate-400 text-[10px] w-4.5 h-4.5 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 hover:bg-rose-950/90 border border-slate-700/60 hover:border-rose-500/50 backdrop-blur-sm transition">
+                          class="opacity-0 group-hover:opacity-100 hover:text-rose-400 text-slate-400 text-[10px] w-5 h-5 flex items-center justify-center rounded-lg bg-black/40 hover:bg-rose-950/90 border border-white/20 hover:border-rose-500/50 text-white backdrop-blur-sm transition">
                           ✕
                         </button>
                       </div>
@@ -1548,30 +1491,23 @@
                       <div v-if="!isCandidateExcluded(grp.name, reg.id)"
                         @click="selectPolicyRegion(grp, reg)"
                         :class="[
-                          'w-[130px] sm:w-[145px] md:w-[155px] aspect-[3/2] shrink-0 rounded-2xl text-left transition-all duration-300 border select-none cursor-pointer relative group flex flex-col justify-between p-2 sm:p-2.5',
+                          'w-full aspect-[3/2] rounded-2xl text-left transition-all duration-300 border select-none cursor-pointer relative group flex flex-col justify-between p-2 sm:p-2.5',
                           isRegionActiveInGroup(grp, reg)
                             ? 'border-emerald-400 shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-400/60'
                             : 'border-slate-800/90 hover:border-cyan-500/50 shadow-sm'
                         ]">
-                        <!-- Background: Proportional 3:2 Flag SVG (Proportionally Scaled Down) -->
-                        <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none bg-slate-950 flex items-center justify-center">
-                          <!-- Subtle Ambient Flag Aura in Background -->
-                          <div class="absolute inset-0 opacity-25 blur-sm scale-110">
-                            <RegionFlag :id="reg.id" :country-code="reg.country_code" :name="reg.name" :type="reg.type" :flag="reg.flag" as-background class="w-full h-full object-cover" />
-                          </div>
-                          <!-- Centered Proportional Flag (Scaled Down ~78%) -->
-                          <div class="w-full h-full flex items-center justify-center transform scale-[0.78] transition-all duration-300 group-hover:scale-[0.82] rounded-xl overflow-hidden shadow-md shadow-black/60">
-                            <RegionFlag :id="reg.id" :country-code="reg.country_code" :name="reg.name" :type="reg.type" :flag="reg.flag" as-background
-                              :class="[
-                                'w-full h-full object-cover transition-all duration-300',
-                                isRegionActiveInGroup(grp, reg) ? 'opacity-95' : 'opacity-85 group-hover:opacity-100'
-                              ]" />
-                          </div>
+                        <!-- Background: Full-Bleed Holographic Flag (Zero Black Border) -->
+                        <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                          <RegionFlag :id="reg.id" :country-code="reg.country_code" :name="reg.name" :type="reg.type" :flag="reg.flag" as-background
+                            :class="[
+                              'w-full h-full object-cover transition-all duration-300 group-hover:scale-105',
+                              isRegionActiveInGroup(grp, reg) ? 'opacity-95' : 'opacity-85 group-hover:opacity-100'
+                            ]" />
                           <div :class="[
                             'absolute inset-0 transition-opacity duration-300 pointer-events-none',
                             isRegionActiveInGroup(grp, reg)
-                              ? 'bg-gradient-to-t from-black/85 via-black/20 to-transparent'
-                              : 'bg-gradient-to-t from-black/85 via-black/20 to-transparent group-hover:via-black/10'
+                              ? 'bg-gradient-to-t from-black/90 via-black/35 to-transparent'
+                              : 'bg-gradient-to-t from-black/90 via-black/35 to-transparent group-hover:via-black/20'
                           ]"></div>
                           <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/25 to-transparent"></div>
                         </div>
@@ -1580,7 +1516,7 @@
                         <div class="relative z-10 flex items-center justify-end min-h-[18px]">
                           <div class="shrink-0">
                             <button @click.stop="removeCandidateFromGroup(grp, reg.id)" title="从该策略中移除此地区"
-                              class="opacity-0 group-hover:opacity-100 hover:text-rose-400 text-slate-400 text-[10px] w-4.5 h-4.5 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 hover:bg-rose-950/90 border border-slate-700/60 hover:border-rose-500/50 backdrop-blur-sm transition">
+                              class="opacity-0 group-hover:opacity-100 hover:text-rose-400 text-slate-400 text-[10px] w-5 h-5 flex items-center justify-center rounded-lg bg-black/40 hover:bg-rose-950/90 border border-white/20 hover:border-rose-500/50 text-white backdrop-blur-sm transition">
                               ✕
                             </button>
                           </div>
@@ -1607,38 +1543,33 @@
                           @click.stop="testRegionGroupNodes(reg)">
                             <span v-if="regionTestingMap[reg.id]" class="w-2.5 h-2.5 border-2 border-amber-300 border-t-transparent rounded-full animate-spin"></span>
                             <span v-else class="text-[8px] opacity-75">⚡</span>
-                            <span>{{ regionTestingMap[reg.id] ? '测速中' : (getRegionLatency(reg) > 0 ? getRegionLatency(reg) : '超时') }}</span>
+                            <span>{{ regionTestingMap[reg.id] ? (regionTestingMap[reg.id] === 'retry' ? '复测中' : '测速中') : (getRegionLatency(reg) > 0 ? getRegionLatency(reg) : '超时') }}</span>
                           </span>
                         </div>
                       </div>
                     </template>
 
-                    <!-- 3. 🛑 拒绝 (REJECT) - 国内流量不出现拒绝 -->
-                    <div v-if="!isCandidateExcluded(grp.name, 'REJECT')"
+                    <!-- 3. 🛑 拒绝 (REJECT) - 仅在漏网之鱼中显示拒绝 -->
+                    <div v-if="grp.name.includes('漏网之鱼') && !isCandidateExcluded(grp.name, 'REJECT')"
                       @click="selectGroupNode(grp.name, 'REJECT')"
                       :class="[
-                        'w-[130px] sm:w-[145px] md:w-[155px] aspect-[3/2] shrink-0 rounded-2xl text-left transition-all duration-300 border select-none cursor-pointer relative group flex flex-col justify-between p-2 sm:p-2.5',
+                        'w-full aspect-[3/2] rounded-2xl text-left transition-all duration-300 border select-none cursor-pointer relative group flex flex-col justify-between p-2 sm:p-2.5',
                         isRejectActive(grp)
                           ? 'border-rose-400 shadow-lg shadow-rose-500/25 ring-2 ring-rose-400/60'
                           : 'border-slate-800/90 hover:border-rose-500/50 shadow-sm'
                       ]">
-                      <!-- Background: Crimson Aegis Sentinel Flag SVG (Proportionally Scaled Down) -->
-                      <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none bg-slate-950 flex items-center justify-center">
-                        <div class="absolute inset-0 opacity-25 blur-sm scale-110">
-                          <RegionFlag code="REJECT" name="拒绝" as-background class="w-full h-full object-cover" />
-                        </div>
-                        <div class="w-full h-full flex items-center justify-center transform scale-[0.78] transition-all duration-300 group-hover:scale-[0.82] rounded-xl overflow-hidden shadow-md shadow-black/60">
-                          <RegionFlag code="REJECT" name="拒绝" as-background
-                            :class="[
-                              'w-full h-full object-cover transition-all duration-300',
-                              isRejectActive(grp) ? 'opacity-95' : 'opacity-85 group-hover:opacity-100'
-                            ]" />
-                        </div>
+                      <!-- Background: Full-Bleed Holographic Flag (Zero Black Border) -->
+                      <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                        <RegionFlag code="REJECT" name="拒绝" as-background
+                          :class="[
+                            'w-full h-full object-cover transition-all duration-300 group-hover:scale-105',
+                            isRejectActive(grp) ? 'opacity-95' : 'opacity-85 group-hover:opacity-100'
+                          ]" />
                         <div :class="[
                           'absolute inset-0 transition-opacity duration-300 pointer-events-none',
                           isRejectActive(grp)
-                            ? 'bg-gradient-to-t from-black/85 via-black/20 to-transparent'
-                            : 'bg-gradient-to-t from-black/85 via-black/20 to-transparent group-hover:via-black/10'
+                            ? 'bg-gradient-to-t from-black/90 via-black/35 to-transparent'
+                            : 'bg-gradient-to-t from-black/90 via-black/35 to-transparent group-hover:via-black/20'
                         ]"></div>
                         <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-rose-500/30 to-transparent"></div>
                       </div>
@@ -1647,7 +1578,7 @@
                       <div class="relative z-10 flex items-center justify-end min-h-[18px]">
                         <div class="shrink-0">
                           <button @click.stop="removeCandidateFromGroup(grp, 'REJECT')" title="从该策略中移除拒绝"
-                            class="opacity-0 group-hover:opacity-100 hover:text-rose-400 text-slate-400 text-[10px] w-4.5 h-4.5 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 hover:bg-rose-950/90 border border-slate-700/60 hover:border-rose-500/50 backdrop-blur-sm transition">
+                            class="opacity-0 group-hover:opacity-100 hover:text-rose-400 text-slate-400 text-[10px] w-5 h-5 flex items-center justify-center rounded-lg bg-black/40 hover:bg-rose-950/90 border border-white/20 hover:border-rose-500/50 text-white backdrop-blur-sm transition">
                             ✕
                           </button>
                         </div>
@@ -1676,11 +1607,11 @@
 
                     <!-- 4. ➕ 增加出站候选项 (支持自建、其它、直连、各地区与拒绝) -->
                     <div v-if="hasAddableOutbounds(grp)"
-                      class="w-[130px] sm:w-[145px] md:w-[155px] aspect-[3/2] shrink-0 p-2.5 rounded-2xl border border-dashed border-slate-700/80 hover:border-cyan-500/50 bg-slate-950/50 flex flex-col items-center justify-center transition select-none group">
+                      class="w-full aspect-[3/2] p-2 sm:p-2.5 rounded-2xl border border-dashed border-white/20 hover:border-[#FF9E5E]/50 bg-black/25 flex flex-col items-center justify-center transition select-none group">
                       <span class="text-base text-slate-300 group-hover:text-emerald-300 mb-1 transition">➕</span>
                       <select
                         @change="restoreCandidateToGroup(grp, $event.target.value); $event.target.value = ''"
-                        class="w-full text-[10px] font-mono font-semibold py-1 px-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border border-slate-700 text-emerald-300 appearance-none text-center cursor-pointer hover:border-cyan-500/40">
+                        class="w-full text-[10px] font-mono font-semibold py-1 px-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 text-emerald-300 appearance-none text-center cursor-pointer hover:border-cyan-500/40">
                         <option value="" disabled selected>增加出站</option>
                         <option v-if="canAddCandidate(grp, 'DIRECT')" value="DIRECT">🇨🇳 直连</option>
                         <option v-for="r in getExcludedRegionsForGroup(grp)" :key="r.id" :value="r.id">
@@ -1688,39 +1619,13 @@
                         </option>
                         <option v-if="canAddCandidate(grp, 'CUSTOM')" value="CUSTOM">🏠 自建</option>
                         <option v-if="canAddCandidate(grp, 'OTHERS')" value="OTHERS">🌐 其它</option>
-                        <option v-if="canAddCandidate(grp, 'REJECT')" value="REJECT">🛑 拒绝</option>
+                        <option v-if="grp.name.includes('漏网之鱼') && canAddCandidate(grp, 'REJECT')" value="REJECT">🛑 拒绝</option>
                       </select>
                     </div>
                   </template>
                 </div>
 
-                <!-- Expandable Accordion: 策略穿透 ▾ (Rule Drawer) -->
-                <div class="border-t border-slate-800/80 pt-2.5">
-                  <div class="flex items-center justify-between">
-                    <button @click="togglePolicyRules(grp.name)"
-                      class="text-xs font-mono text-slate-400 hover:text-emerald-300 transition flex items-center gap-1.5 py-1">
-                      <span>策略穿透</span>
-                      <span class="text-[10px] px-1.5 py-0.2 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 font-bold">
-                        {{ getPolicyRules(grp).length }} 条规则
-                      </span>
-                      <span class="text-slate-300 transition-transform duration-200"
-                        :class="{ 'rotate-180': expandedPolicyRules[grp.name] }">
-                        ▾
-                      </span>
-                    </button>
-                  </div>
 
-                  <!-- Collapsible Rules List -->
-                  <div v-if="expandedPolicyRules[grp.name]" class="mt-2.5 p-3 rounded-2xl bg-slate-950/90 border border-slate-800/80 space-y-1.5 animate-in fade-in">
-                    <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
-                      <span v-for="r in getPolicyRules(grp)" :key="r"
-                        class="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 text-[11px] font-mono text-emerald-300 flex items-center gap-1">
-                        <span class="text-slate-400">🏷️</span>
-                        <span>{{ r }}</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -1728,7 +1633,7 @@
             <!-- SUB-TAB 2: 地区节点组 (Regional & Custom Node Groups)           -->
             <!-- ════════════════════════════════════════════════════════════ -->
             <div v-else-if="routingSubTab === 'node'" class="space-y-3">
-              <div v-if="regionalAutoGroups.length === 0" class="p-8 text-center rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 border border-slate-800 text-slate-400">
+              <div v-if="regionalAutoGroups.length === 0" class="p-8 text-center rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border border-slate-800 text-slate-400">
                 <span class="text-2xl block mb-2">🔍</span>
                 <span>未找到与「{{ routingSearchQuery }}」匹配的节点组</span>
               </div>
@@ -1777,7 +1682,7 @@
                         <span v-else class="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium bg-cyan-950/90 text-emerald-300 border border-cyan-500/30 whitespace-nowrap shrink-0">
                           🌍 地区
                         </span>
-                        <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 text-slate-300 border border-slate-700/60 whitespace-nowrap shrink-0">
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 text-slate-300 border border-slate-700/60 whitespace-nowrap shrink-0">
                           {{ reg.totalCount }} 节点
                         </span>
                       </div>
@@ -1795,13 +1700,13 @@
 
                       <!-- Quick Test Button -->
                       <button @click.stop="testRegionGroupNodes(reg)" :disabled="regionTestingMap[reg.id]" title="并发测速该组全部节点"
-                        class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-cyan-950/80 border border-slate-800 hover:border-cyan-500/40 text-emerald-300 text-xs font-semibold transition active:scale-95 disabled:opacity-60 cursor-pointer">
+                        class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-cyan-950/80 border border-slate-800 hover:border-cyan-500/40 text-emerald-300 text-xs font-semibold transition active:scale-95 disabled:opacity-60 cursor-pointer">
                         <span :class="{'inline-block animate-spin': regionTestingMap[reg.id]}">⚡</span>
                       </button>
 
                       <!-- Region Group Delete Button -->
                       <button @click.stop="deleteRegionDef(reg.id)" title="删除此地区节点组"
-                        class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-rose-950/80 border border-slate-800 hover:border-rose-500/40 text-slate-300 hover:text-rose-400 text-xs transition active:scale-95">
+                        class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-rose-950/80 border border-slate-800 hover:border-rose-500/40 text-slate-300 hover:text-rose-400 text-xs transition active:scale-95">
                         ✕
                       </button>
                     </div>
@@ -1831,7 +1736,7 @@
 
                       <!-- Toggle Node List Button (Collapsed by Default) -->
                       <button @click.stop="toggleRegionExpand(reg.id)"
-                        class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-700/80 text-slate-200 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+                        class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-700/80 text-slate-200 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
                         :title="expandedRegion[reg.id] ? '收起节点清单' : '展开查看该组全部节点'">
                         <span class="text-[11px] font-medium">{{ expandedRegion[reg.id] ? '收起' : '节点' }}</span>
                         <span class="text-[10px] text-emerald-300 font-mono font-semibold">({{ reg.totalCount }})</span>
@@ -1853,7 +1758,7 @@
                             'p-1.5 px-2 rounded-lg text-left transition flex flex-col justify-between gap-1 border select-none active:scale-95',
                             reg.winner === node.name
                               ? 'bg-emerald-500 text-white font-bold border-emerald-400 shadow-sm ring-1 ring-emerald-300/40'
-                              : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 border-slate-800/90 hover:border-cyan-500/40'
+                              : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 border-slate-800/90 hover:border-cyan-500/40'
                           ]">
                           <div class="text-[11px] truncate font-semibold">{{ node.name }}</div>
                           <div class="flex items-center justify-between text-[9px] font-mono">
@@ -1875,7 +1780,7 @@
             <!-- ════════════════════════════════════════════════════════════ -->
             <div v-else-if="routingSubTab === 'sub'" class="space-y-4">
               <!-- Empty State -->
-              <div v-if="filteredSubscriptions.length === 0" class="p-10 text-center rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 border border-slate-800 text-slate-400 space-y-3">
+              <div v-if="filteredSubscriptions.length === 0" class="p-10 text-center rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border border-slate-800 text-slate-400 space-y-3">
                 <span class="text-3xl block">✈️</span>
                 <div class="text-sm font-bold text-white">尚未接入机场订阅或无匹配项</div>
                 <p class="text-xs text-slate-400 max-w-md mx-auto">
@@ -1898,10 +1803,10 @@
                       <div class="flex items-center gap-2 flex-wrap">
                         <div v-if="editingSubId === sub.id" class="flex items-center gap-1.5">
                           <input v-model="editingSubName" @keyup.enter="saveSubRename(sub.id)" @keyup.esc="cancelSubRename"
-                            class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-cyan-400 text-white text-sm font-bold focus:outline-none focus:ring-1 focus:ring-cyan-300 w-44"
+                            class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-cyan-400 text-white text-sm font-bold focus:outline-none focus:ring-1 focus:ring-cyan-300 w-44"
                             autoFocus placeholder="输入新订阅名称" />
                           <button @click="saveSubRename(sub.id)" title="保存" class="p-1 px-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition">✓</button>
-                          <button @click="cancelSubRename" title="取消" class="p-1 px-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 text-xs transition">✕</button>
+                          <button @click="cancelSubRename" title="取消" class="p-1 px-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs transition">✕</button>
                         </div>
                         <div v-else class="flex items-center gap-1.5 group cursor-pointer" @click="startSubRename(sub)" title="点击重命名此订阅">
                           <span class="text-base font-bold text-white tracking-wide group-hover:text-[#FF9E5E] transition-colors">{{ sub.name }}</span>
@@ -1911,7 +1816,7 @@
                           ({{ getSubTestedCount(sub) }}/{{ getSubNodes(sub.id).length }})
                         </span>
                         <span :class="['text-[10px] px-2 py-0.5 rounded-full font-mono font-bold',
-                          sub.enabled ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-400']">
+                          sub.enabled ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-400']">
                           {{ sub.enabled ? '● 启用中' : '○ 已停用' }}
                         </span>
                       </div>
@@ -1929,21 +1834,21 @@
                           <span class="text-[10px]">测速</span>
                         </button>
                         <button @click="startSubRename(sub)" title="重命名此机场订阅"
-                          class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 hover:border-cyan-500/40 text-slate-200 text-xs transition flex items-center gap-1">
+                          class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 hover:border-cyan-500/40 text-slate-200 text-xs transition flex items-center gap-1">
                           <span>✏️</span>
                           <span class="text-[10px]">命名</span>
                         </button>
                         <button @click="updateSubscription(sub.id)" title="重新同步拉取此机场"
-                          class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 text-slate-200 text-xs transition flex items-center gap-1">
+                          class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 text-slate-200 text-xs transition flex items-center gap-1">
                           <span>🔄</span>
                           <span class="text-[10px]">更新</span>
                         </button>
                         <button @click="toggleSubscription(sub.id, !sub.enabled)" :title="sub.enabled ? '停用此机场' : '启用此机场'"
-                          class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 text-xs transition">
+                          class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 text-xs transition">
                           {{ sub.enabled ? '⏸️' : '▶️' }}
                         </button>
                         <button @click="deleteSubscription(sub.id)" title="删除此机场订阅"
-                          class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-rose-950/60 border border-slate-800 hover:border-rose-500/40 text-rose-400 text-xs transition">
+                          class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-rose-950/60 border border-slate-800 hover:border-rose-500/40 text-rose-400 text-xs transition">
                           🗑️
                         </button>
                       </div>
@@ -1971,7 +1876,7 @@
                 <!-- Dropdown Accordion Toggle Button -->
                 <div class="pt-2 border-t border-slate-800/60 flex items-center justify-between">
                   <button @click="toggleSubDrawer(sub.id)"
-                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 hover:border-cyan-500/40 text-xs font-mono text-emerald-300 hover:text-emerald-300 transition-all select-none group shadow-sm active:scale-95">
+                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 hover:border-cyan-500/40 text-xs font-mono text-emerald-300 hover:text-emerald-300 transition-all select-none group shadow-sm active:scale-95">
                     <span class="text-xs transition-transform duration-200" :class="{ 'rotate-180': isSubDrawerExpanded(sub.id) }">▾</span>
                     <span class="font-bold">{{ isSubDrawerExpanded(sub.id) ? '收起节点列表' : '展开全部节点' }}</span>
                     <span class="text-slate-400 group-hover:text-emerald-300">({{ getSubNodes(sub.id).length }} 个节点)</span>
@@ -1986,7 +1891,7 @@
                   class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2 pt-1 transition-all duration-300 animate-in fade-in">
                   <button v-for="node in getSubNodes(sub.id)" :key="node.name"
                     @click="testSingleNode(node)"
-                    class="p-2 rounded-xl text-left transition-all duration-200 flex flex-col justify-between gap-1.5 border border-slate-800/90 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:border-cyan-500/40 shadow-sm active:scale-95 group">
+                    class="p-2 rounded-xl text-left transition-all duration-200 flex flex-col justify-between gap-1.5 border border-slate-800/90 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:border-cyan-500/40 shadow-sm active:scale-95 group">
                     <div class="text-xs truncate font-semibold text-slate-300 group-hover:text-[#FF9E5E]">
                       {{ node.name }}
                     </div>
@@ -2027,7 +1932,7 @@
                     </p>
                   </div>
                 </div>
-                <button v-if="!upgradingPanel" @click="showUpgradeModal = false" class="p-1.5 rounded-xl hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-400 hover:text-white transition cursor-pointer">✕</button>
+                <button v-if="!upgradingPanel" @click="showUpgradeModal = false" class="p-1.5 rounded-xl hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-400 hover:text-white transition cursor-pointer">✕</button>
               </div>
 
               <!-- Upgrade Highlights (新版核心升级亮点) -->
@@ -2110,7 +2015,7 @@
                       <div class="flex items-center gap-2">
                         <span v-if="upgradeStep > idx" class="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 flex items-center justify-center text-[10px] font-bold">✓</span>
                         <span v-else-if="upgradeStep === idx" class="w-4 h-4 rounded-full bg-cyan-500/20 text-emerald-300 border border-cyan-500/50 flex items-center justify-center text-[10px] animate-spin font-bold">↻</span>
-                        <span v-else class="w-4 h-4 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 flex items-center justify-center text-[10px] font-bold">{{ idx + 1 }}</span>
+                        <span v-else class="w-4 h-4 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 flex items-center justify-center text-[10px] font-bold">{{ idx + 1 }}</span>
                         <span :class="upgradeStep >= idx ? 'text-slate-200' : 'text-slate-300'">{{ st.title }}</span>
                       </div>
                       <span :class="upgradeStep > idx ? 'text-emerald-400' : (upgradeStep === idx ? 'text-emerald-300 animate-pulse' : 'text-white/40')">
@@ -2133,7 +2038,7 @@
                 </span>
                 <div class="flex items-center gap-3">
                   <button v-if="!upgradingPanel && upgradeStep === 0" @click="showUpgradeModal = false"
-                    class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 text-xs font-bold transition cursor-pointer">
+                    class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-bold transition cursor-pointer">
                     暂不更新
                   </button>
                   <button v-if="upgradeStep === 0" @click="startModalUpgrade" :disabled="upgradingPanel"
@@ -2171,13 +2076,13 @@
                 <div class="flex items-center gap-2">
                   <button type="button" @click="addGroupActiveTab = 'presets'"
                     class="px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
-                    :class="addGroupActiveTab === 'presets' ? 'bg-cyan-500/20 text-emerald-300 border border-cyan-400/40 shadow-sm' : 'text-slate-400 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/60 border border-transparent'">
+                    :class="addGroupActiveTab === 'presets' ? 'bg-cyan-500/20 text-emerald-300 border border-cyan-400/40 shadow-sm' : 'text-slate-400 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/60 border border-transparent'">
                     <span>🔥 快捷常用应用</span>
-                    <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 font-mono">{{ availablePresetServices.length }}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 font-mono">{{ availablePresetServices.length }}</span>
                   </button>
                   <button type="button" @click="addGroupActiveTab = 'georules'"
                     class="px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
-                    :class="addGroupActiveTab === 'georules' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 shadow-sm' : 'text-slate-400 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/60 border border-transparent'">
+                    :class="addGroupActiveTab === 'georules' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 shadow-sm' : 'text-slate-400 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/60 border border-transparent'">
                     <span>📚 官方应用规则库</span>
                     <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 font-mono font-bold">{{ allUniqueGeoRules.length }} 套</span>
                   </button>
@@ -2207,7 +2112,7 @@
                 </div>
 
                 <!-- Custom Add Preset Form (Collapsible) -->
-                <div v-if="showAddCustomPresetForm" class="p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/95 border border-emerald-500/50 space-y-2 text-xs animate-in fade-in">
+                <div v-if="showAddCustomPresetForm" class="p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/95 border border-emerald-500/50 space-y-2 text-xs animate-in fade-in">
                   <div class="font-bold text-emerald-300 flex items-center justify-between">
                     <span>新增日常高频应用模版</span>
                     <button type="button" @click="showAddCustomPresetForm = false" class="text-slate-400 hover:text-white font-bold">✕</button>
@@ -2229,7 +2134,7 @@
 
                 <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 rounded-xl bg-slate-950/80 border border-slate-800 custom-scrollbar">
                   <div v-for="preset in availablePresetServices" :key="preset.id"
-                    class="group inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-mono bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-cyan-950/70 border border-slate-800 hover:border-cyan-500/50 text-slate-300 transition select-none">
+                    class="group inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-mono bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-cyan-950/70 border border-slate-800 hover:border-cyan-500/50 text-slate-300 transition select-none">
                     <!-- Brand Vector Logo -->
                     <BrandLogo :icon="preset.icon" size="w-3.5 h-3.5" />
                     <!-- Click to fill form -->
@@ -2254,7 +2159,7 @@
                   </div>
                 </div>
                 <!-- 解释提示：消除用户认知困惑 -->
-                <div class="text-[10px] text-slate-400 flex items-center justify-between p-1 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/40 rounded-lg border border-slate-800/60">
+                <div class="text-[10px] text-slate-400 flex items-center justify-between p-1 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/40 rounded-lg border border-slate-800/60">
                   <span class="truncate">💡 看板已自动运行主流应用组。更多海量分流，请切换上方全量库：</span>
                   <button type="button" @click="addGroupActiveTab = 'georules'" class="text-emerald-300 hover:text-emerald-300 font-bold hover:underline shrink-0 ml-1 cursor-pointer">
                     切换至 105 套全量规则集 ➔
@@ -2269,7 +2174,7 @@
                   <button v-for="cat in geoRuleCategories" :key="cat.id" type="button"
                     @click="geoRulePickerCategory = cat.id"
                     class="px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-xs font-bold transition flex items-center gap-1 shrink-0 cursor-pointer select-none"
-                    :class="geoRulePickerCategory === cat.id ? 'bg-cyan-500/20 text-emerald-300 border border-cyan-400/50 shadow-sm' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700'">
+                    :class="geoRulePickerCategory === cat.id ? 'bg-cyan-500/20 text-emerald-300 border border-cyan-400/50 shadow-sm' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700'">
                     <span>{{ cat.icon }}</span>
                     <span>{{ cat.name }}</span>
                     <span class="text-[9px] px-1 py-0.2 rounded-full font-mono" :class="geoRulePickerCategory === cat.id ? 'bg-cyan-950 text-emerald-300' : 'bg-slate-950 text-slate-300'">{{ cat.count }}</span>
@@ -2287,7 +2192,7 @@
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-52 sm:max-h-60 overflow-y-auto p-1.5 sm:p-2 rounded-2xl bg-slate-950/80 border border-slate-800 custom-scrollbar">
                   <div v-for="rule in filteredGeoRules" :key="rule.id"
-                    class="group flex items-center justify-between p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 hover:bg-cyan-950/60 border border-slate-800/80 hover:border-cyan-500/40 transition gap-1.5">
+                    class="group flex items-center justify-between p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 hover:bg-cyan-950/60 border border-slate-800/80 hover:border-cyan-500/40 transition gap-1.5">
                     <div class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" @click="selectGeoRule(rule)" title="点击填入下方表单">
                       <BrandLogo :icon="rule.icon" size="w-5 h-5" class="shrink-0" />
                       <div class="min-w-0 flex-1">
@@ -2296,7 +2201,7 @@
                       </div>
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
-                      <button type="button" @click="selectGeoRule(rule)" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer">
+                      <button type="button" @click="selectGeoRule(rule)" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer">
                         填入
                       </button>
                       <button type="button" @click="quickAddGeoRule(rule)" :disabled="quickAddingId === rule.id"
@@ -2366,7 +2271,7 @@
 
               <!-- Pinned Footer -->
               <div class="shrink-0 p-3 sm:p-4 border-t border-sky-900/40 bg-white/[0.03] flex items-center justify-end gap-3">
-                <button @click="showAddGroupModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+                <button @click="showAddGroupModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold">
                   取消
                 </button>
                 <button @click="submitAddCustomGroup" class="px-4 py-2 rounded-xl bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] font-bold text-xs font-bold shadow-md shadow-[#FF9E5E]/20 active:scale-95 transition">
@@ -2400,7 +2305,7 @@
                       :class="['p-2 rounded-xl border text-left transition select-none',
                         customNodeGroupForm.source_type === 'preset'
                           ? 'bg-cyan-950/80 border-cyan-400 text-emerald-200 shadow-sm ring-1 ring-cyan-400/40'
-                          : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 border-slate-800 text-slate-400 hover:text-slate-200']">
+                          : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border-slate-800 text-slate-400 hover:text-slate-200']">
                       <div class="font-bold flex items-center gap-1 text-[11px] truncate">
                         <span>🌍 地区预设</span>
                       </div>
@@ -2411,7 +2316,7 @@
                       :class="['p-2 rounded-xl border text-left transition select-none',
                         customNodeGroupForm.source_type === 'sub'
                           ? 'bg-cyan-950/80 border-cyan-400 text-emerald-200 shadow-sm ring-1 ring-cyan-400/40'
-                          : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 border-slate-800 text-slate-400 hover:text-slate-200']">
+                          : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border-slate-800 text-slate-400 hover:text-slate-200']">
                       <div class="font-bold flex items-center gap-1 text-[11px] truncate">
                         <span>✈️ 订阅专组</span>
                       </div>
@@ -2422,7 +2327,7 @@
                       :class="['p-2 rounded-xl border text-left transition select-none',
                         customNodeGroupForm.source_type === 'keyword'
                           ? 'bg-cyan-950/80 border-cyan-400 text-emerald-200 shadow-sm ring-1 ring-cyan-400/40'
-                          : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 border-slate-800 text-slate-400 hover:text-slate-200']">
+                          : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border-slate-800 text-slate-400 hover:text-slate-200']">
                       <div class="font-bold flex items-center gap-1 text-[11px] truncate">
                         <span>🔍 关键词筛选</span>
                       </div>
@@ -2432,7 +2337,7 @@
                 </div>
 
                 <!-- Case 0: Dynamic Keyword Filter Mode (OR / AND logic) -->
-                <div v-if="customNodeGroupForm.source_type === 'keyword'" class="space-y-3 p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border border-cyan-500/30 animate-in fade-in">
+                <div v-if="customNodeGroupForm.source_type === 'keyword'" class="space-y-3 p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 border border-cyan-500/30 animate-in fade-in">
                   <div>
                     <label class="block text-slate-300 font-mono mb-1 font-bold flex items-center justify-between">
                       <span>关键词智能筛选 (逗号分隔多个词)</span>
@@ -2520,7 +2425,7 @@
                         'p-2 rounded-lg border text-left flex items-center justify-between gap-1 transition select-none group',
                         (customNodeGroupForm.selected_countries || []).includes(preset.code)
                           ? 'bg-cyan-950 border-cyan-400 text-emerald-200 shadow-sm ring-1 ring-cyan-400/60'
-                          : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white'
+                          : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white'
                       ]">
                       <div class="flex items-center gap-1.5 min-w-0">
                         <span class="text-sm shrink-0">{{ preset.flag }}</span>
@@ -2533,7 +2438,7 @@
 
                   <!-- Selected Country Badges Preview -->
                   <div v-if="(customNodeGroupForm.selected_countries || []).length > 0"
-                    class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border border-cyan-500/30 space-y-2">
+                    class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 border border-cyan-500/30 space-y-2">
                     <div class="flex items-center justify-between text-[11px] font-mono">
                       <span class="text-slate-300">
                         已选 <strong class="text-emerald-300">{{ customNodeGroupForm.selected_countries.length }}</strong> 个地区:
@@ -2617,7 +2522,7 @@
 
               <!-- Pinned Footer Buttons -->
               <div class="shrink-0 p-3 sm:p-4 border-t border-sky-900/40 bg-white/[0.03] flex items-center justify-end gap-3">
-                <button @click="showAddCustomNodeGroupModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+                <button @click="showAddCustomNodeGroupModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold">
                   取消
                 </button>
                 <button @click="submitAddCustomNodeGroup"
@@ -2665,7 +2570,7 @@
                 class="px-4 py-2 rounded-xl text-xs font-extrabold bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] hover:from-[#FFA970] hover:to-[#FBBF24] text-[#1E1106] shadow-lg shadow-[#FF9E5E]/25 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap">
                 <span>{{ testingKSpeeder ? '全网并发测速中...' : '⚡ 全节点并发测速' }}</span>
               </button>
-              <button @click="fetchKSpeeder" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-semibold whitespace-nowrap">
+              <button @click="fetchKSpeeder" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-semibold whitespace-nowrap">
                 🔄 刷新源状态
               </button>
             </div>
@@ -2710,7 +2615,7 @@
                   <button @click="copyAcceleratedUrl" class="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow-md">
                     <span>📋 一键复制加速链接</span>
                   </button>
-                  <button @click="openAcceleratedUrl" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-200 font-bold text-xs transition flex items-center gap-1.5">
+                  <button @click="openAcceleratedUrl" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-200 font-bold text-xs transition flex items-center gap-1.5">
                     <span>⬇️ 浏览器直接打开下载</span>
                   </button>
                 </div>
@@ -2728,7 +2633,7 @@
                   <p class="text-xs text-slate-400">实时测速、自动剔除失效节点并锁定毫秒级极速下载通道</p>
                 </div>
               </div>
-              <button @click="testGitHubProxies" :disabled="testingKSpeeder" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-200 text-xs font-bold transition">
+              <button @click="testGitHubProxies" :disabled="testingKSpeeder" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-200 text-xs font-bold transition">
                 ⚡ 仅测速 GitHub 源
               </button>
             </div>
@@ -2817,7 +2722,7 @@
               </div>
               <div class="flex items-center gap-2 shrink-0 self-end md:self-center">
                 <button @click="fetchHostDockerStatus(true)" :disabled="fetchingHostDockerStatus"
-                  class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-semibold transition flex items-center gap-1 active:scale-95 disabled:opacity-50">
+                  class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-semibold transition flex items-center gap-1 active:scale-95 disabled:opacity-50">
                   <span :class="fetchingHostDockerStatus ? 'inline-block animate-spin' : ''">↻</span>
                   <span>{{ fetchingHostDockerStatus ? '检测中...' : '校验宿主配置' }}</span>
                 </button>
@@ -2895,7 +2800,7 @@
                 <span>一键全维度体检</span>
               </button>
 
-              <div class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 border border-slate-700/60 text-xs text-slate-400 flex items-center gap-1.5">
+              <div class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border border-slate-700/60 text-xs text-slate-400 flex items-center gap-1.5">
                 <span class="text-emerald-300">💡</span>
                 <span>核心安全规则自愈已全量合入【宿主共生】一体化全链路自愈总线</span>
               </div>
@@ -2914,7 +2819,7 @@
                 <div class="relative w-24 h-24 flex items-center justify-center shrink-0">
                   <div class="absolute inset-0 rounded-full border-4 border-slate-700/40"></div>
                   <div class="absolute inset-1 rounded-full border-2 border-emerald-500/40"></div>
-                  <div class="w-20 h-20 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-emerald-500/40 flex flex-col items-center justify-center shadow-inner">
+                  <div class="w-20 h-20 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-emerald-500/40 flex flex-col items-center justify-center shadow-inner">
                     <span class="text-2xl font-black font-mono text-emerald-300 tracking-tighter">
                       {{ securityAudit.report?.total_score || 100 }}
                     </span>
@@ -2945,17 +2850,17 @@
 
               <!-- Right: Hardcore Pillars Mini-Chips -->
               <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-2.5 w-full lg:w-auto shrink-0">
-                <div class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border border-slate-800 flex items-center gap-2.5 text-xs font-mono">
+                <div class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 border border-slate-800 flex items-center gap-2.5 text-xs font-mono">
                   <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400"></span>
                   <span class="text-slate-400">DNS 0 明文回退:</span>
                   <span class="text-emerald-300 font-bold">100% 熔断阻断</span>
                 </div>
-                <div class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border border-slate-800 flex items-center gap-2.5 text-xs font-mono">
+                <div class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 border border-slate-800 flex items-center gap-2.5 text-xs font-mono">
                   <span class="w-2 h-2 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400"></span>
                   <span class="text-slate-400">WebRTC 境外隔离:</span>
                   <span class="text-emerald-300 font-bold">Fake-IP 保密</span>
                 </div>
-                <div class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border border-slate-800 flex items-center gap-2.5 text-xs font-mono">
+                <div class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 border border-slate-800 flex items-center gap-2.5 text-xs font-mono">
                   <span class="w-2 h-2 rounded-full bg-teal-400 shadow-sm shadow-teal-400"></span>
                   <span class="text-slate-400">Apple Type 65:</span>
                   <span class="text-emerald-300 font-bold">100% 清洗拦截</span>
@@ -3013,7 +2918,7 @@
                     {{ item.score }} / 100
                   </span>
                 </div>
-                <div class="w-full h-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md overflow-hidden">
+                <div class="w-full h-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white overflow-hidden">
                   <div class="h-full rounded-full transition-all duration-500"
                     :class="item.score >= 90 ? 'bg-gradient-to-r from-teal-400 to-emerald-400' : (item.score >= 70 ? 'bg-gradient-to-r from-amber-400 to-yellow-400' : 'bg-rose-500')"
                     :style="{ width: item.score + '%' }"></div>
@@ -3069,13 +2974,13 @@
                     <input type="checkbox" v-model="filterConfig.enabled" @change="toggleFilterMaster" class="sr-only peer">
                     <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
                   </label>
-                  <span :class="['text-xs px-2.5 py-0.5 rounded-full font-bold border transition', filterConfig.enabled ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-400 border-slate-700']">
+                  <span :class="['text-xs px-2.5 py-0.5 rounded-full font-bold border transition', filterConfig.enabled ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-400 border-slate-700']">
                     {{ filterConfig.enabled ? '已生效' : '已暂停' }}
                   </span>
                 </div>
 
                 <div class="flex items-center gap-2">
-                  <button @click="fetchDnsFilterStats" title="刷新状态" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 active:scale-95 transition cursor-pointer">
+                  <button @click="fetchDnsFilterStats" title="刷新状态" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 active:scale-95 transition cursor-pointer">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                   </button>
                   <button @click="openAddSourceModal" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 transition cursor-pointer">
@@ -3115,16 +3020,16 @@
 
                   <!-- Actions -->
                   <div class="flex items-center gap-1.5 shrink-0 self-end md:self-center">
-                    <button @click="openSourcePreview(src)" title="查看规则详情" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer">
+                    <button @click="openSourcePreview(src)" title="查看规则详情" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                     </button>
-                    <button @click="refreshSourceItem(src)" :disabled="isUpdatingSource" title="立即更新" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 hover:bg-slate-700 text-slate-400 hover:text-emerald-300 transition cursor-pointer disabled:opacity-50">
+                    <button @click="refreshSourceItem(src)" :disabled="isUpdatingSource" title="立即更新" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 hover:bg-slate-700 text-slate-400 hover:text-emerald-300 transition cursor-pointer disabled:opacity-50">
                       <svg :class="['w-3.5 h-3.5', isUpdatingSource ? 'animate-spin text-emerald-300' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     </button>
-                    <button @click="openEditSourceModal(src)" title="编辑规则源" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer">
+                    <button @click="openEditSourceModal(src)" title="编辑规则源" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                     </button>
-                    <button v-if="src.id !== '217heidai'" @click="deleteSourceItem(src)" title="删除规则源" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 hover:bg-rose-950 text-slate-400 hover:text-rose-400 transition cursor-pointer">
+                    <button v-if="src.id !== '217heidai'" @click="deleteSourceItem(src)" title="删除规则源" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 hover:bg-rose-950 text-slate-400 hover:text-rose-400 transition cursor-pointer">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                   </div>
@@ -3142,13 +3047,13 @@
                 </label>
                 <div class="flex items-center gap-2 flex-wrap">
                   <span>每</span>
-                  <select v-model="filterConfig.auto_update.interval_days" @change="saveFilterAutoUpdate" class="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono cursor-pointer">
+                  <select v-model="filterConfig.auto_update.interval_days" @change="saveFilterAutoUpdate" class="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono cursor-pointer">
                     <option :value="1">1 天</option>
                     <option :value="3">3 天</option>
                     <option :value="7">7 天</option>
                   </select>
                   <span>在</span>
-                  <select v-model="filterConfig.auto_update.update_time" @change="saveFilterAutoUpdate" class="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono cursor-pointer">
+                  <select v-model="filterConfig.auto_update.update_time" @change="saveFilterAutoUpdate" class="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono cursor-pointer">
                     <option value="04:00">04:00</option>
                     <option value="06:00">06:00</option>
                     <option value="08:00">08:00</option>
@@ -3188,7 +3093,7 @@
                   <!-- Add Form -->
                   <div class="flex items-center gap-2 max-w-md">
                     <input type="text" v-model="newWhitelistDomain" @keyup.enter="addWhitelistItem" placeholder="输入放行域名 (如 apple.com)" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-mono">
-                    <button @click="addWhitelistItem" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-emerald-400 font-bold text-xs border border-slate-700 active:scale-95 transition cursor-pointer">
+                    <button @click="addWhitelistItem" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-emerald-400 font-bold text-xs border border-slate-700 active:scale-95 transition cursor-pointer">
                       添加放行
                     </button>
                   </div>
@@ -3199,7 +3104,7 @@
             <!-- ════════════════════════════════════════════════════════════════ -->
             <!-- 🔀 DNS 重写 (域名别名重定向 & 静态 IP 映射)                        -->
             <!-- ════════════════════════════════════════════════════════════════ -->
-            <div class="rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border border-slate-800/90 hover:border-cyan-500/30 transition-all duration-300 p-5 space-y-4 shadow-xl backdrop-blur-xl">
+            <div class="rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 border border-slate-800/90 hover:border-cyan-500/30 transition-all duration-300 p-5 space-y-4 shadow-xl backdrop-blur-xl">
               <!-- Top Row: Title, Master Toggle, Status Badge, Action Buttons -->
               <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-800/80">
                 <div class="flex items-center gap-3">
@@ -3212,13 +3117,13 @@
                     <input type="checkbox" v-model="dnsRewriteConfig.enabled" @change="toggleDnsRewriteMaster" class="sr-only peer">
                     <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500 shadow-inner"></div>
                   </label>
-                  <span :class="['text-xs px-2.5 py-0.5 rounded-full font-bold border transition', dnsRewriteConfig.enabled ? 'bg-cyan-500/20 text-emerald-300 border-cyan-500/40' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-400 border-slate-700']">
+                  <span :class="['text-xs px-2.5 py-0.5 rounded-full font-bold border transition', dnsRewriteConfig.enabled ? 'bg-cyan-500/20 text-emerald-300 border-cyan-500/40' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-400 border-slate-700']">
                     {{ dnsRewriteConfig.enabled ? '已生效' : '已暂停' }}
                   </span>
                 </div>
 
                 <div class="flex items-center gap-2">
-                  <button @click="resetDnsRewriteDefaults" title="恢复默认 DNS 重写与 局域网A 记录静态映射规则" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 active:scale-95 transition cursor-pointer text-xs flex items-center gap-1.5">
+                  <button @click="resetDnsRewriteDefaults" title="恢复默认 DNS 重写与 局域网A 记录静态映射规则" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 active:scale-95 transition cursor-pointer text-xs flex items-center gap-1.5">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     <span>重置默认</span>
                   </button>
@@ -3240,7 +3145,7 @@
                      class="rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-cyan-500/30 transition-all p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div class="flex-1 min-w-0 space-y-1">
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span class="font-mono text-xs font-bold text-white tracking-wide bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md px-2 py-0.5 rounded border border-slate-800">{{ rule.domain }}</span>
+                      <span class="font-mono text-xs font-bold text-white tracking-wide bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white px-2 py-0.5 rounded border border-slate-800">{{ rule.domain }}</span>
                       <span class="text-emerald-300 text-xs">➔</span>
                       <span class="font-mono text-xs font-bold text-emerald-300 tracking-wide bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-800/50">{{ rule.target }}</span>
                       <span :class="['text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider', rule.type === 'CNAME' ? 'bg-cyan-500/10 text-emerald-300 border border-cyan-500/30' : 'bg-purple-500/10 text-purple-400 border border-purple-500/30']">
@@ -3260,10 +3165,10 @@
                       <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
                     </label>
 
-                    <button @click="openEditDnsRewriteModal(rule)" title="编辑规则" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer">
+                    <button @click="openEditDnsRewriteModal(rule)" title="编辑规则" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                     </button>
-                    <button @click="deleteDnsRewriteRule(rule)" title="删除规则" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-rose-950 text-slate-400 hover:text-rose-300 border border-transparent hover:border-rose-800 transition cursor-pointer">
+                    <button @click="deleteDnsRewriteRule(rule)" title="删除规则" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-rose-950 text-slate-400 hover:text-rose-300 border border-transparent hover:border-rose-800 transition cursor-pointer">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                   </div>
@@ -3367,15 +3272,15 @@
 
                 <!-- 均衡行高底部分类标签 -->
                 <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800/60 text-[10px] font-mono text-center">
-                  <div class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/60 border border-slate-800/60">
+                  <div class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/60 border border-slate-800/60">
                     <div class="text-slate-400">广告弹窗</div>
                     <div class="text-amber-400 font-bold mt-0.5">14,820</div>
                   </div>
-                  <div class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/60 border border-slate-800/60">
+                  <div class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/60 border border-slate-800/60">
                     <div class="text-slate-400">隐私追踪</div>
                     <div class="text-amber-400 font-bold mt-0.5">5,640</div>
                   </div>
-                  <div class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/60 border border-slate-800/60">
+                  <div class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/60 border border-slate-800/60">
                     <div class="text-slate-400">恶意劫持</div>
                     <div class="text-amber-400 font-bold mt-0.5">1,220</div>
                   </div>
@@ -3395,7 +3300,7 @@
                         <span class="text-slate-300 truncate max-w-[240px]" :title="item.domain">{{ item.domain }}</span>
                         <span class="text-slate-400 font-semibold">{{ item.count.toLocaleString() }}</span>
                       </div>
-                      <div class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 h-1.5 rounded-full overflow-hidden">
+                      <div class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 h-1.5 rounded-full overflow-hidden">
                         <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-full rounded-full transition-all duration-500"
                           :style="{ width: item.percent + '%' }"></div>
                       </div>
@@ -3884,7 +3789,7 @@
                     <span class="inline-block animate-spin text-[10px]">↻</span>
                     <span>规则库同步中...</span>
                   </span>
-                  <span v-else-if="checkingGeoUpgrade" class="text-xs font-mono px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-400 border border-slate-700/50 flex items-center gap-1.5 shadow-sm shrink-0 font-semibold">
+                  <span v-else-if="checkingGeoUpgrade" class="text-xs font-mono px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-400 border border-slate-700/50 flex items-center gap-1.5 shadow-sm shrink-0 font-semibold">
                     <span class="inline-block animate-spin text-[10px]">↻</span>
                     <span>规则通道核对中...</span>
                   </span>
@@ -3962,7 +3867,7 @@
                         </div>
                         <button @click="toggleGeoAutoUpdate" :title="geoAutoUpdateEnabled ? '点击暂停每日自动更新' : '点击启用每日自动更新'"
                           class="shrink-0 text-xs px-2 py-0.5 rounded-md border transition cursor-pointer flex items-center gap-1 active:scale-95 font-semibold"
-                          :class="geoAutoUpdateEnabled ? 'bg-emerald-950 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-400 border-slate-700 hover:text-white'">
+                          :class="geoAutoUpdateEnabled ? 'bg-emerald-950 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-400 border-slate-700 hover:text-white'">
                           <span>{{ geoAutoUpdateEnabled ? '已开启' : '已暂停' }}</span>
                         </button>
                       </div>
@@ -4123,141 +4028,33 @@
         <!-- ════════════════════════════════════════════════════════════════ -->
         <!-- TAB: 日志诊断 (Logs & Diagnostics - 左侧主项目区独立模块)         -->
         <!-- ════════════════════════════════════════════════════════════════ -->
-        <div v-else-if="activeMasterTab === 'diagnostics'" class="space-y-6 animate-in fade-in">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
-            <div class="macos-title-shield space-y-1">
-              <h2 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                <span class="flex items-center gap-2"><ZootopiaIcon name="diagnostics" :size="22" class="shrink-0" /><span>日志诊断</span></span>
-              </h2>
-              <p class="text-xs text-[#E2F8EC] tracking-normal font-medium">环形实时日志流捕获 · 关键词检索与模块过滤 · 一键安全脱敏诊断包导出与 Issue 协同</p>
-            </div>
-            <div class="flex items-center gap-2">
-              <button @click="fetchSystemLogs(true)" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-700 text-emerald-300 hover:text-white flex items-center gap-1.5 cursor-pointer active:scale-95 transition">
-                <span>🔄 刷新日志</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- 🛡️ 一键安全脱敏诊断包 & GitHub Issue 一键上传直通车 Hero Bento -->
-          <div class="macos-glass-card rounded-3xl p-5 sm:p-6 space-y-5 hover:border-[#FF9E5E]/40 shadow-2xl relative overflow-hidden">
-            <!-- Background Ambient Glow -->
-            <div class="absolute -top-24 -right-24 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-sky-900/40 pb-4">
-              <div class="space-y-1">
-                <div class="flex items-center gap-2">
-                  <span class="text-xl">📦</span>
-                  <h3 class="text-base font-black text-white">一键安全脱敏排障直通车</h3>
-                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 font-bold flex items-center gap-1">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                    净室审计合规
-                  </span>
-                </div>
-                <p class="text-xs text-slate-300 max-w-2xl leading-relaxed">
-                  全自动采集宿主底层内核、双代理引擎状态、DNS 防泄露测试指标与近态诊断日志；系统<b>自动 100% 抹除一切机场订阅链接、Token 凭证、节点真实 IP/密码与穿透私钥</b>，确保无论导出还是提交至公共 Issues 均绝对安全无隐患。
-                </p>
-              </div>
-
-              <!-- Quick Action Button Cluster -->
-              <div class="flex flex-wrap items-center gap-2.5 shrink-0">
-                <!-- 1. Export JSON Diagnostic Pack -->
-                <button @click="downloadDiagnosticReport" :disabled="exportingDiagnose"
-                  class="px-4 py-2.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-cyan-500/40 active:scale-95 transition shadow-lg shadow-cyan-950/50 flex items-center gap-1.5 cursor-pointer">
-                  <span v-if="exportingDiagnose" class="inline-block animate-spin mr-1">↻</span>
-                  <span v-else>📦</span>
-                  <span>导出脱敏诊断包 (.json)</span>
-                </button>
-
-                <!-- 2. Copy Desensitized Markdown -->
-                <button @click="copyDiagnosticMarkdown"
-                  class="px-4 py-2.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-200 border border-slate-700 active:scale-95 transition flex items-center gap-1.5 cursor-pointer">
-                  <span>📋</span>
-                  <span>复制脱敏排障报告</span>
-                </button>
-
-                <!-- 3. One-Click Upload to GitHub Issues -->
-                <button @click="uploadToGithubIssue" :disabled="creatingGithubIssue"
-                  class="px-5 py-2.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] hover:from-[#FFA970] hover:to-[#FBBF24] text-[#1E1106] shadow-xl shadow-[#FF9E5E]/25 active:scale-95 transition flex items-center gap-2 cursor-pointer">
-                  <span v-if="creatingGithubIssue" class="inline-block animate-spin mr-1">↻</span>
-                  <span v-else>🚀</span>
-                  <span>一键上传至 GitHub Issues</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Desensitization Guarantee Badges & Explanations -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
-              <div class="p-3 rounded-2xl macos-sub-card hover:border-[#FF9E5E]/30 space-y-1">
-                <span class="text-[10px] text-emerald-300 font-bold flex items-center gap-1">
-                  <span>✓</span> 机场订阅凭证
-                </span>
-                <div class="text-[11px] font-bold text-white">URL / Token 彻底抹除</div>
-                <div class="text-[9px] text-slate-400">仅保留分组名称与脱敏数量</div>
-              </div>
-              <div class="p-3 rounded-2xl macos-sub-card hover:border-[#FF9E5E]/30 space-y-1">
-                <span class="text-[10px] text-emerald-300 font-bold flex items-center gap-1">
-                  <span>✓</span> 节点服务器地址
-                </span>
-                <div class="text-[11px] font-bold text-white">真实 IP / UUID 100% 剥离</div>
-                <div class="text-[9px] text-slate-400">仅统计协议类型 (vless/ss)</div>
-              </div>
-              <div class="p-3 rounded-2xl macos-sub-card hover:border-[#FF9E5E]/30 space-y-1">
-                <span class="text-[10px] text-emerald-300 font-bold flex items-center gap-1">
-                  <span>✓</span> 宿主系统认证
-                </span>
-                <div class="text-[11px] font-bold text-white">WinBox / SSH 密码屏蔽</div>
-                <div class="text-[9px] text-slate-400">全量替换为 ***MASKED***</div>
-              </div>
-              <div class="p-3 rounded-2xl macos-sub-card hover:border-[#FF9E5E]/30 space-y-1">
-                <span class="text-[10px] text-emerald-300 font-bold flex items-center gap-1">
-                  <span>✓</span> 穿透安全私钥
-                </span>
-                <div class="text-[11px] font-bold text-white">网络穿透私钥脱敏</div>
-                <div class="text-[9px] text-slate-400">绝无私钥及对称凭证泄露</div>
-              </div>
-            </div>
-
-            <!-- Optional GitHub PAT Token Configuration (Collapsible for Power Users) -->
-            <div class="pt-2 border-t border-sky-900/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-              <div class="flex items-center gap-2 text-slate-400 text-[11px]">
-                <span>💡 默认点击「一键上传」将自动在浏览器直达 GitHub 预填 issue；亦可填入 PAT 实现完全静默直传：</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <input v-model="githubPatToken" @change="saveGithubPatToken" type="password" placeholder="可选: ghp_xxxxxxxx (GitHub PAT)"
-                  class="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-200 font-mono outline-none focus:border-cyan-400 w-56 truncate" />
-                <button @click="saveGithubPatToken" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 font-bold text-[11px] active:scale-95 transition cursor-pointer">
-                  保存凭证
-                </button>
-              </div>
-            </div>
-          </div>
-
+        <div v-else-if="activeMasterTab === 'diagnostics'" class="space-y-3 animate-in fade-in">
           <!-- 💻 环形实时日志流终端面板 (Ring Log Stream Terminal) -->
           <div class="rounded-3xl macos-glass-card shadow-2xl overflow-hidden flex flex-col">
-            <!-- Terminal Title Bar & Control Bar -->
-            <div class="px-5 py-3.5 bg-white/[0.04] border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
-              <!-- Left: Terminal Brand & Live Status Indicator -->
-              <div class="flex items-center gap-3">
+            <!-- Terminal Title Bar & Control Bar (纯单行极致暮光美学，取消搜索与暂停，清爽合理布局，问题反馈置于最右侧) -->
+            <div class="px-4 sm:px-6 py-2.5 sm:py-3 min-h-[50px] bg-white/[0.04] border-b border-white/10 flex items-center justify-between gap-3 overflow-x-auto no-scrollbar select-none">
+              <!-- Left: Terminal Brand & Live Status Indicator (固定在左侧，单行精简优雅) -->
+              <div class="flex items-center gap-2.5 shrink-0">
                 <div class="flex items-center gap-1.5">
-                  <span class="w-3 h-3 rounded-full bg-rose-500/80 inline-block"></span>
-                  <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
-                  <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block shadow-sm"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block shadow-sm"></span>
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block shadow-sm"></span>
                 </div>
-                <div class="h-4 w-px bg-slate-700 mx-1"></div>
+                <div class="h-3.5 w-px bg-slate-700/80 mx-0.5"></div>
                 <div class="flex items-center gap-2">
-                  <span class="text-xs font-mono font-bold text-white tracking-wide">CUBEX_LIVE_RING_BUFFER</span>
-                  <span :class="['text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center gap-1', logStreamPaused ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40' : 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30']">
-                    <span :class="['w-1.5 h-1.5 rounded-full', logStreamPaused ? 'bg-amber-400' : 'bg-emerald-400 animate-ping']"></span>
-                    {{ logStreamPaused ? '已暂停滚动' : '实时捕获中' }}
+                  <span class="text-xs sm:text-[13px] font-mono font-black text-white tracking-wide flex items-center gap-1.5">
+                    <ZootopiaIcon name="diagnostics" :size="16" class="shrink-0" />
+                    <span>CUBEX_LIVE_RING_BUFFER</span>
                   </span>
-                  <span class="hidden sm:inline-block text-[10px] font-mono text-slate-400 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md px-2 py-0.5 rounded border border-slate-800">
-                    {{ filteredLogs.length }} / {{ systemLogs.length }} 条 (FIFO 500 · RAM &lt; 2MB)
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center gap-1 bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                    实时捕获
                   </span>
                 </div>
               </div>
 
-              <!-- Right: Filters & Action Controls -->
-              <div class="flex flex-wrap items-center gap-2 text-xs font-mono">
+              <!-- Right: 单行紧凑排列集群 (按序排列：级别过滤 -> 模块选择 -> 清屏 -> 刷新 -> 复制报告 -> 问题反馈) -->
+              <div class="flex items-center gap-2 text-xs font-mono shrink-0 flex-nowrap">
                 <!-- Level Filter Pills -->
                 <div class="flex items-center macos-capsule p-0.5 rounded-xl">
                   <button v-for="lvl in ['ALL', 'INFO', 'WARN', 'ERROR']" :key="lvl"
@@ -4270,90 +4067,84 @@
                   </button>
                 </div>
 
-                <!-- Module Select -->
-                <select v-model="logFilterModule" class="macos-sub-card rounded-xl px-2.5 py-1 text-[11px] text-[#FF9E5E] font-mono outline-none cursor-pointer">
-                  <option value="ALL">全部模块</option>
-                  <option v-for="mod in logModules.filter(m => m !== 'ALL')" :key="mod" :value="mod">{{ mod }}</option>
-                </select>
-
-                <!-- Search Input -->
-                <div class="relative">
-                  <input v-model="logSearchQuery" placeholder="搜索日志内容..."
-                    class="w-32 sm:w-44 px-2.5 py-1 rounded-xl macos-sub-card text-[11px] text-white outline-none font-mono" />
-                  <span v-if="logSearchQuery" @click="logSearchQuery = ''" class="absolute right-2 top-1.5 text-slate-400 hover:text-white cursor-pointer text-[10px]">✕</span>
-                </div>
-
-                <!-- Pause / Resume Toggle -->
-                <button @click="logStreamPaused = !logStreamPaused"
-                  :class="[
-                    'px-2.5 py-1 rounded-xl text-[11px] font-bold border transition flex items-center gap-1 cursor-pointer',
-                    logStreamPaused ? 'bg-emerald-950 text-emerald-300 border-emerald-500/50' : 'bg-amber-950/60 text-amber-300 border-amber-500/40 hover:bg-amber-900/50'
-                  ]" :title="logStreamPaused ? '继续自动滚动与拉取' : '暂停自动滚动以便查看日志'">
-                  <span>{{ logStreamPaused ? '▶ 继续' : '⏸ 暂停' }}</span>
-                </button>
+                <!-- 全部模块下拉菜单已按需取消 -->
 
                 <!-- Clear Screen -->
-                <button @click="clearSystemLogs" class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 text-slate-300 hover:text-white text-[11px] font-bold active:scale-95 transition cursor-pointer" title="清空当前环形缓冲区日志">
+                <button @click="clearSystemLogs" class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 hover:text-white text-[11px] font-bold active:scale-95 transition cursor-pointer" title="清空当前环形缓冲区日志">
                   <span>🗑 清屏</span>
                 </button>
 
-                <!-- Download Plain Text Logs -->
-                <button @click="downloadRawLogs" class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 text-emerald-300 hover:text-emerald-200 text-[11px] font-bold active:scale-95 transition cursor-pointer" title="将当前日志导出为 .txt 纯文本文件">
-                  <span>📥 导出</span>
+                <!-- Refresh -->
+                <button @click="fetchSystemLogs(true)" class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 text-slate-300 hover:text-white active:scale-95 transition cursor-pointer" title="立即刷新日志">
+                  <span>🔄</span>
                 </button>
 
-                <!-- Refresh -->
-                <button @click="fetchSystemLogs(true)" class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 text-slate-300 hover:text-white active:scale-95 transition cursor-pointer" title="立即刷新日志">
-                  <span>🔄</span>
+                <!-- Copy Desensitized Markdown Report -->
+                <button @click="copyDiagnosticMarkdown"
+                  class="px-3 py-1 rounded-xl text-[11px] font-bold bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-slate-200 backdrop-blur-md active:scale-95 transition flex items-center gap-1 cursor-pointer"
+                  title="复制 Markdown 格式脱敏排障报告至剪贴板">
+                  <span>📋</span>
+                  <span>复制报告</span>
+                </button>
+
+                <!-- One-Click Upload to GitHub Issues (固定在最右侧，高亮突出) -->
+                <button @click="uploadToGithubIssue" :disabled="creatingGithubIssue"
+                  class="px-3.5 py-1 rounded-xl text-[11px] font-extrabold bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] hover:from-[#FFA970] hover:to-[#FBBF24] text-[#1E1106] shadow-md shadow-[#FF9E5E]/20 active:scale-95 transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                  title="在浏览器直达 GitHub Issues 预填脱敏排障报告">
+                  <span v-if="creatingGithubIssue" class="inline-block animate-spin mr-0.5">↻</span>
+                  <span v-else>🚀</span>
+                  <span>问题反馈</span>
                 </button>
               </div>
             </div>
 
-            <!-- Terminal Output Window (Fixed height, scrollable, monospace) -->
-            <div ref="logContainerRef" class="h-[520px] overflow-y-auto p-4 sm:p-5 font-mono text-xs space-y-1.5 bg-[rgba(14,12,24,0.38)] backdrop-blur-md select-text">
-              <div v-if="filteredLogs.length === 0" class="h-full flex flex-col items-center justify-center text-slate-300 space-y-2 py-12">
-                <span class="text-3xl">📜</span>
-                <span class="text-xs">当前过滤器下暂无日志记录</span>
-                <button v-if="logFilterLevel !== 'ALL' || logFilterModule !== 'ALL' || logSearchQuery"
-                  @click="logFilterLevel = 'ALL'; logFilterModule = 'ALL'; logSearchQuery = ''"
-                  class="text-[11px] text-emerald-300 underline hover:text-emerald-300 cursor-pointer">
-                  重置所有过滤器
-                </button>
+            <!-- Terminal Output Window (固定展示最新20行、紧随约1行自然空白、页面不滑动、日志保持实时滚动) -->
+            <div ref="logContainerRef" class="h-[485px] sm:h-[510px] max-h-[calc(100dvh-165px)] overflow-y-auto no-scrollbar p-3.5 sm:p-4 font-mono text-xs bg-[rgba(14,12,24,0.38)] backdrop-blur-md select-text transition-all">
+              <div class="space-y-1">
+                <div v-if="displayedLogs.length === 0" class="h-full flex flex-col items-center justify-center text-slate-300 space-y-2 py-12">
+                  <span class="text-3xl">📜</span>
+                  <span class="text-xs">当前过滤器下暂无日志记录</span>
+                  <button v-if="logFilterLevel !== 'ALL' || logFilterModule !== 'ALL' || logSearchQuery"
+                    @click="logFilterLevel = 'ALL'; logFilterModule = 'ALL'; logSearchQuery = ''"
+                    class="text-[11px] text-emerald-300 underline hover:text-emerald-300 cursor-pointer">
+                    重置所有过滤器
+                  </button>
+                </div>
+
+                <div v-for="entry in displayedLogs" :key="entry.id" class="flex items-start gap-2.5 leading-normal hover:bg-white/[0.06] px-2 py-0.5 rounded transition font-mono group">
+                  <!-- Timestamp -->
+                  <span class="text-slate-300 text-[11px] shrink-0 select-none">{{ entry.time }}</span>
+
+                  <!-- Level Badge -->
+                  <span :class="[
+                    'px-1.5 py-0.2 rounded text-[10px] font-bold shrink-0 select-none uppercase tracking-wider',
+                    entry.level === 'ERROR' ? 'bg-rose-950 text-rose-300 border border-rose-500/50 animate-pulse' :
+                    entry.level === 'WARN' ? 'bg-amber-950 text-amber-300 border border-amber-500/50' :
+                    entry.level === 'DEBUG' ? 'bg-purple-950 text-purple-300 border border-purple-500/40' :
+                    'bg-[rgba(255,158,94,0.18)] text-[#FF9E5E] border border-[rgba(255,158,94,0.35)]'
+                  ]">
+                    {{ entry.level }}
+                  </span>
+
+                  <!-- Module Tag -->
+                  <span class="px-1.5 py-0.2 rounded bg-white/[0.06] text-slate-300 border border-white/10 text-[10px] font-bold shrink-0 select-none">
+                    {{ entry.module }}
+                  </span>
+
+                  <!-- Message Text -->
+                  <span :class="[
+                    'flex-1 break-all text-xs font-mono',
+                    entry.level === 'ERROR' ? 'text-rose-200 font-bold' :
+                    entry.level === 'WARN' ? 'text-amber-200' :
+                    'text-slate-200'
+                  ]">
+                    {{ entry.msg }}
+                  </span>
+                </div>
               </div>
 
-              <div v-for="entry in filteredLogs" :key="entry.id" class="flex items-start gap-2.5 leading-relaxed hover:bg-white/[0.06] px-2 py-0.5 rounded transition font-mono group">
-                <!-- Timestamp -->
-                <span class="text-slate-300 text-[11px] shrink-0 select-none">{{ entry.time }}</span>
-
-                <!-- Level Badge -->
-                <span :class="[
-                  'px-1.5 py-0.2 rounded text-[10px] font-bold shrink-0 select-none uppercase tracking-wider',
-                  entry.level === 'ERROR' ? 'bg-rose-950 text-rose-300 border border-rose-500/50 animate-pulse' :
-                  entry.level === 'WARN' ? 'bg-amber-950 text-amber-300 border border-amber-500/50' :
-                  entry.level === 'DEBUG' ? 'bg-purple-950 text-purple-300 border border-purple-500/40' :
-                  'bg-[rgba(255,158,94,0.18)] text-[#FF9E5E] border border-[rgba(255,158,94,0.35)]'
-                ]">
-                  {{ entry.level }}
-                </span>
-
-                <!-- Module Tag -->
-                <span class="px-1.5 py-0.2 rounded bg-white/[0.06] text-slate-300 border border-white/10 text-[10px] font-bold shrink-0 select-none">
-                  {{ entry.module }}
-                </span>
-
-                <!-- Message Text -->
-                <span :class="[
-                  'flex-1 break-all text-xs font-mono',
-                  entry.level === 'ERROR' ? 'text-rose-200 font-bold' :
-                  entry.level === 'WARN' ? 'text-amber-200' :
-                  'text-slate-200'
-                ]">
-                  {{ entry.msg }}
-                </span>
-              </div>
-
-              <!-- Terminal Cursor Blink -->
-              <div class="pt-2 flex items-center gap-2 text-emerald-300 text-xs select-none">
+              <!-- Terminal Cursor Blink (紧随15行日志下方，约1行自然空白间距，绝不下沉留大空) -->
+              <div class="pt-2 sm:pt-2.5 flex items-center gap-2 text-emerald-300 text-xs select-none">
                 <span>cubex@host:~$</span>
                 <span class="inline-block w-2 h-4 bg-cyan-400 animate-pulse"></span>
               </div>
@@ -4364,98 +4155,6 @@
 
       </main>
 
-      <!-- ════════════════════════════════════════════════════════════════ -->
-      <!-- 3. 移动端原生级底部导航栏 (Mobile Safe-Area Bottom Dock < 768px)  -->
-      <!-- ════════════════════════════════════════════════════════════════ -->
-      <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 macos-glass-card backdrop-blur-2xl border-t border-white/10 pb-safe shadow-2xl">
-        <div class="grid grid-cols-6 px-1 py-1.5 gap-0.5">
-          <button v-for="item in navItems" :key="item.id" @click="activeMasterTab = item.id"
-            :class="[
-              'flex flex-col items-center justify-center py-1.5 px-0.5 rounded-xl transition-all select-none',
-              activeMasterTab === item.id
-                ? 'text-emerald-200 font-bold bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md shadow-sm border border-slate-700/80'
-                : 'text-slate-400 hover:text-slate-200 border border-transparent active:scale-95'
-            ]">
-            <ZootopiaIcon :name="item.id" :active="activeMasterTab === item.id" :size="20" class="mb-1" />
-            <span class="text-[10px] tracking-tight leading-none whitespace-nowrap">{{ item.label }}</span>
-          </button>
-        </div>
-      </nav>
-
-    </div>
-
-    <!-- ════════════════════════════════════════════════════════════════════ -->
-    <!-- 移动端侧滑/浮层抽屉导航 (Mobile Flyout Navigation Drawer)              -->
-    <!-- ════════════════════════════════════════════════════════════════════ -->
-    <div v-if="showMobileDrawer" class="md:hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex animate-in fade-in">
-      <div class="w-4/5 max-w-xs h-full macos-glass-card border-r border-white/10 p-5 flex flex-col justify-between overflow-y-auto">
-        <div class="space-y-5">
-          <!-- Drawer Header with Logo & Close Button -->
-          <div class="flex items-center justify-between border-b border-sky-900/40 pb-4">
-            <div class="flex items-center gap-2.5">
-              <img :src="activeLogoSrc" class="w-10 h-10 drop-shadow-[0_0_12px_rgba(0,210,255,0.7)]" alt="CubeX" />
-              <div>
-                <h1 class="text-lg font-black text-white">CubeX</h1>
-                <span class="text-[11px] font-medium text-emerald-300">宿主共生零感网络系统</span>
-              </div>
-            </div>
-            <button @click="showMobileDrawer = false" class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 hover:text-white">
-              ✕
-            </button>
-          </div>
-
-          <!-- Official X-Cube Brand Badge on Mobile -->
-          <div class="p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border border-cyan-500/30 flex items-center justify-between text-xs">
-            <span class="text-emerald-300 font-bold font-mono">✦ 光曜极光 X-Cube</span>
-            <span class="text-[10px] font-mono text-emerald-200 bg-cyan-950 px-2 py-0.5 rounded border border-cyan-500/30 font-bold">官方定稿</span>
-          </div>
-
-          <!-- Detected Host Platform badge on Mobile -->
-          <div class="p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border border-slate-800 flex items-center justify-between text-xs">
-            <div class="flex items-center gap-2 overflow-hidden">
-              <img :src="hostBadge.svg" class="w-5 h-5 object-contain shrink-0 drop-shadow-[0_0_5px_rgba(56,189,248,0.35)]" :alt="hostBadge.shortName" />
-              <div class="text-left overflow-hidden">
-                <div class="text-[9px] text-slate-400 uppercase font-mono">HOST BASE</div>
-                <div class="text-xs font-bold text-emerald-200 truncate">{{ hostBadge.name }}</div>
-              </div>
-            </div>
-            <span :class="['w-2 h-2 rounded-full', hostBadge.online ? 'bg-emerald-400 shadow-[0_0_6px_#10b981] animate-pulse' : 'bg-amber-400']"></span>
-          </div>
-
-          <!-- Navigation Links in Drawer -->
-          <div class="space-y-1.5 pt-1">
-            <div class="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-2">快速导航</div>
-            <button v-for="item in navItems" :key="item.id"
-              @click="activeMasterTab = item.id; showMobileDrawer = false"
-              :class="[
-                'w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition',
-                activeMasterTab === item.id
-                  ? 'bg-cyan-500/20 text-emerald-300 border border-cyan-400/50 font-bold'
-                  : 'text-slate-300 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/60'
-              ]">
-              <ZootopiaIcon :name="item.id" :active="activeMasterTab === item.id" :size="22" class="shrink-0" />
-              <span>{{ item.label }}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Drawer Footer: GitHub Quick Link + Version -->
-        <div class="pt-4 border-t border-sky-900/40 space-y-2">
-          <a href="https://github.com/zyeyefyass/CubeX" target="_blank" rel="noopener noreferrer"
-            class="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 hover:bg-slate-700/80 border border-slate-700/60 text-xs text-emerald-300 font-medium transition cursor-pointer">
-            <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-            </svg>
-            <span>GitHub 官方仓库</span>
-            <span class="text-[10px] text-slate-400 font-mono">↗</span>
-          </a>
-          <div class="text-[9px] text-slate-300 text-center font-mono">
-            CubeX {{ systemStatus.version || 'Test v3.8' }}
-          </div>
-        </div>
-      </div>
-      <!-- Click Outside Area to Close -->
-      <div class="flex-1" @click="showMobileDrawer = false"></div>
     </div>
 
     <!-- ── Multi-Airport & Custom Nodes Manager Modal ── -->
@@ -4475,7 +4174,7 @@
               <p class="text-[11px] text-slate-400 mt-0.5">支持每行一条、直接指定名称，实时智能解析并一键合并挂载到核心代理集群</p>
             </div>
           </div>
-          <button @click="showImportModal = false" class="text-slate-400 hover:text-white px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 hover:bg-slate-700 text-sm font-bold transition">✕</button>
+          <button @click="showImportModal = false" class="text-slate-400 hover:text-white px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 hover:bg-slate-700 text-sm font-bold transition">✕</button>
         </div>
 
         <!-- 3-Segment Navigation Capsule -->
@@ -4536,7 +4235,7 @@
               <span class="text-slate-400 text-[10px]">单次原子热重载 · 零频闪</span>
             </div>
             <div class="max-h-36 overflow-y-auto space-y-1.5 pr-1 font-mono text-[11px]">
-              <div v-for="(item, idx) in parsedBatchSubs" :key="idx" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800">
+              <div v-for="(item, idx) in parsedBatchSubs" :key="idx" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800">
                 <div class="flex items-center gap-2 truncate">
                   <span class="text-slate-300 text-[10px] w-5 text-right shrink-0">{{ idx + 1 }}.</span>
                   <span class="px-2 py-0.5 rounded bg-white/10 text-[#FEF08A] border border-[rgba(254,240,138,0.35)] font-bold drop-shadow-sm text-xs font-bold shrink-0">
@@ -4555,10 +4254,10 @@
               <span v-if="batchImportingSubs" class="inline-block animate-spin">↻</span>
               <span>{{ batchImportingSubs ? '正在并发拉取并解析所有订阅...' : `🚀 立即一键导入 (${parsedBatchSubs.length} 条机场订阅)` }}</span>
             </button>
-            <button v-if="batchSubText" @click="batchSubText = ''" class="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+            <button v-if="batchSubText" @click="batchSubText = ''" class="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
               清空
             </button>
-            <button @click="showImportModal = false" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+            <button @click="showImportModal = false" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
               取消
             </button>
           </div>
@@ -4603,13 +4302,13 @@
               <span class="text-slate-400 text-[10px]">单次原子热重载 · 自动去重</span>
             </div>
             <div class="max-h-36 overflow-y-auto space-y-1.5 pr-1 font-mono text-[11px]">
-              <div v-for="(item, idx) in parsedBatchNodes" :key="idx" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800">
+              <div v-for="(item, idx) in parsedBatchNodes" :key="idx" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800">
                 <div class="flex items-center gap-2 truncate">
                   <span class="text-slate-300 text-[10px] w-5 text-right shrink-0">{{ idx + 1 }}.</span>
                   <span class="px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40 text-[10px] font-bold shrink-0 uppercase">
                     {{ item.protocol }}
                   </span>
-                  <span class="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-white text-xs font-bold shrink-0 truncate max-w-[140px]">
+                  <span class="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-white text-xs font-bold shrink-0 truncate max-w-[140px]">
                     🔗 {{ item.name }}
                   </span>
                   <span class="text-slate-400 truncate text-[11px]">{{ item.link }}</span>
@@ -4625,10 +4324,10 @@
               <span v-if="batchAddingNodes" class="inline-block animate-spin">↻</span>
               <span>{{ batchAddingNodes ? '正在添加自建节点并重载核心...' : `➕ 立即一键添加 (${parsedBatchNodes.length} 个节点)` }}</span>
             </button>
-            <button v-if="batchNodeText" @click="batchNodeText = ''" class="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+            <button v-if="batchNodeText" @click="batchNodeText = ''" class="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
               清空
             </button>
-            <button @click="showImportModal = false" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+            <button @click="showImportModal = false" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
               取消
             </button>
           </div>
@@ -4672,8 +4371,8 @@
                       class="p-1 rounded bg-cyan-950 hover:bg-cyan-900 text-emerald-300 border border-cyan-500/30 text-xs">
                       ⚡
                     </button>
-                    <button @click="updateSubscription(sub.id)" title="更新此订阅" class="p-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-200 text-xs">🔄</button>
-                    <button @click="toggleSubscription(sub.id, !sub.enabled)" :title="sub.enabled ? '停用此订阅' : '启用此订阅'" class="p-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-xs">
+                    <button @click="updateSubscription(sub.id)" title="更新此订阅" class="p-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-200 text-xs">🔄</button>
+                    <button @click="toggleSubscription(sub.id, !sub.enabled)" :title="sub.enabled ? '停用此订阅' : '启用此订阅'" class="p-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-xs">
                       {{ sub.enabled ? '👁️' : '🕶️' }}
                     </button>
                     <button @click="deleteSubscription(sub.id)" title="删除此订阅" class="p-1 rounded bg-rose-950/50 hover:bg-rose-900 border border-rose-500/40 text-rose-300 text-xs">🗑️</button>
@@ -4681,7 +4380,7 @@
                 </div>
 
                 <!-- Telemetry Progress Bar & Data -->
-                <div class="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 p-2 rounded-xl border border-slate-800 space-y-1">
+                <div class="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 p-2 rounded-xl border border-slate-800 space-y-1">
                   <div class="flex items-center justify-between text-[10px] font-mono">
                     <span class="text-slate-300">
                       剩余流量: <strong class="text-white">{{ getSubQuota(sub).remStr }}</strong>
@@ -4705,7 +4404,7 @@
                 <div class="flex items-center justify-between text-[10px] font-mono pt-0.5">
                   <div class="flex items-center gap-1 flex-wrap">
                     <span class="text-slate-300">地区:</span>
-                    <span v-for="reg in getSubRegions(sub).slice(0, 4)" :key="reg.name" class="px-1.5 py-0.2 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 border border-slate-800">
+                    <span v-for="reg in getSubRegions(sub).slice(0, 4)" :key="reg.name" class="px-1.5 py-0.2 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 border border-slate-800">
                       {{ reg.flag }} {{ reg.count }}
                     </span>
                   </div>
@@ -4717,10 +4416,10 @@
                 <!-- Modal In-place Drawer -->
                 <div v-if="isSubDrawerExpanded(sub.id)" class="p-2.5 bg-black/50 rounded-xl border border-cyan-900/40 space-y-1.5 max-h-48 overflow-y-auto text-xs font-mono">
                   <div v-for="(node, nIdx) in getSubNodes(sub.id)" :key="node.name"
-                    class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border border-slate-800 flex items-center justify-between gap-1.5">
+                    class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 border border-slate-800 flex items-center justify-between gap-1.5">
                     <div class="flex items-center gap-1.5 truncate">
                       <span class="text-slate-300 text-[10px]">{{ nIdx + 1 }}.</span>
-                      <span class="text-[9px] px-1 rounded uppercase bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-emerald-300 font-bold">{{ node.type }}</span>
+                      <span class="text-[9px] px-1 rounded uppercase bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-emerald-300 font-bold">{{ node.type }}</span>
                       <span class="text-white text-[11px] truncate">{{ node.name }}</span>
                     </div>
                     <div class="flex items-center gap-1.5 shrink-0">
@@ -4796,18 +4495,18 @@
               <p class="text-xs text-slate-400 mt-0.5">宿主基座直连 · 环境自动探测 · 策略路由双向编排</p>
             </div>
           </div>
-          <button @click="showInitWizardModal = false; stopFireworks()" class="text-slate-400 hover:text-white text-lg font-bold p-1 rounded-lg hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 transition">✕</button>
+          <button @click="showInitWizardModal = false; stopFireworks()" class="text-slate-400 hover:text-white text-lg font-bold p-1 rounded-lg hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 transition">✕</button>
         </div>
 
         <!-- Wizard Step Indicator Pills (4 Steps) -->
         <div class="grid grid-cols-4 gap-2 text-xs font-mono relative z-10">
-          <div :class="['p-2 rounded-xl border text-center transition', initWizardStep === 1 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (initWizardStep > 1 ? 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300')]">
+          <div :class="['p-2 rounded-xl border text-center transition', initWizardStep === 1 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (initWizardStep > 1 ? 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300')]">
             <span>① 模式选择</span>
           </div>
-          <div :class="['p-2 rounded-xl border text-center transition', initWizardStep === 2 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (initWizardStep > 2 ? 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300')]">
+          <div :class="['p-2 rounded-xl border text-center transition', initWizardStep === 2 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (initWizardStep > 2 ? 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300')]">
             <span>② 连通宿主</span>
           </div>
-          <div :class="['p-2 rounded-xl border text-center transition', initWizardStep === 3 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (initWizardStep > 3 ? 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300')]">
+          <div :class="['p-2 rounded-xl border text-center transition', initWizardStep === 3 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (initWizardStep > 3 ? 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300')]">
             <span>③ 探测编排</span>
           </div>
           <div :class="['p-2 rounded-xl border text-center transition', initWizardStep === 4 ? 'bg-gradient-to-r from-teal-500/30 to-cyan-500/30 border-cyan-400 text-emerald-200 font-bold shadow-sm' : 'bg-slate-950/60 border-slate-800 text-slate-300']">
@@ -4919,7 +4618,7 @@
                 <button @click="initWizardStep = 3; startInitStep3Execution()" class="py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] font-bold font-bold text-xs shadow-md shadow-[#FF9E5E]/20 active:scale-95 transition flex items-center justify-center gap-1">
                   <span>探测并同步宿主 ➔</span>
                 </button>
-                <button @click="initWizardStep = 4; launchFireworks()" class="py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-emerald-300 border border-cyan-500/40 font-bold text-xs active:scale-95 transition flex items-center justify-center gap-1">
+                <button @click="initWizardStep = 4; launchFireworks()" class="py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-emerald-300 border border-cyan-500/40 font-bold text-xs active:scale-95 transition flex items-center justify-center gap-1">
                   <span>跳过直接启航 🚀</span>
                 </button>
               </div>
@@ -4975,7 +4674,7 @@
           </div>
 
           <div class="flex items-center justify-between pt-4 border-t border-sky-900/40">
-            <button @click="initWizardStep = 1" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 text-slate-300 text-xs font-semibold active:scale-95 transition">
+            <button @click="initWizardStep = 1" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 text-slate-300 text-xs font-semibold active:scale-95 transition">
               ⬅ 返回模式选择
             </button>
             <button @click="startInitStep3Execution" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] font-bold font-bold text-xs shadow-md shadow-[#FF9E5E]/20 active:scale-95 transition flex items-center gap-1.5">
@@ -4988,7 +4687,7 @@
         <!-- STEP 3: 系统判断宿主类型并自动执行两条                         -->
         <!-- ──────────────────────────────────────────────────────────── -->
         <div v-else-if="initWizardStep === 3" class="space-y-4 animate-in fade-in relative z-10">
-          <div class="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border border-slate-800 flex items-center justify-between">
+          <div class="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 border border-slate-800 flex items-center justify-between">
             <div class="flex items-center gap-3">
               <span class="text-2xl">{{ initDetectedPlatform === 'routeros' ? '👑' : '🐧' }}</span>
               <div>
@@ -5016,7 +4715,7 @@
             </div>
           </div>
 
-          <div class="p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/60 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+          <div class="p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/60 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
             <span>正在执行：巡检隔离策略路由表 (table cubex)、下发 Mangle 防火墙规则与配置防 DNS 泄露...</span>
             <span v-if="initExecuting" class="text-emerald-300 font-mono animate-pulse">处理中...</span>
           </div>
@@ -5067,7 +4766,7 @@
           <!-- Embedded Batch Multi-Import Card -->
           <div class="space-y-3 p-4 rounded-2xl bg-slate-950/90 border border-cyan-500/30 shadow-inner">
             <!-- 2-Segment Switcher -->
-            <div class="flex p-1 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md rounded-xl border border-slate-800 text-xs font-mono">
+            <div class="flex p-1 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white rounded-xl border border-slate-800 text-xs font-mono">
               <button type="button" @click="initWizardImportTab = 'sub'" :class="['flex-1 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5', initWizardImportTab === 'sub' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-[#FF9E5E]/20' : 'text-slate-400 hover:text-slate-200']">
                 <span>🌐 批量导入机场订阅</span>
                 <span v-if="parsedBatchSubs.length > 0" class="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-950 text-emerald-300 font-mono">
@@ -5092,10 +4791,10 @@
               </div>
               <textarea v-model="batchSubText" rows="3"
                 placeholder="直接粘贴机场订阅链接，每行一条。例如：&#10;香港主力专线, https://sub.airport1.com/api/v1/client/subscribe?token=abc&#10;备用海外节点 | https://sub.airport2.com/clash/token123"
-                class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-100 font-mono outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 shadow-inner resize-y leading-relaxed" />
+                class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-100 font-mono outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 shadow-inner resize-y leading-relaxed" />
               
               <!-- Parsed Preview -->
-              <div v-if="parsedBatchSubs.length > 0" class="max-h-24 overflow-y-auto space-y-1 font-mono text-[11px] bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/60 p-2 rounded-xl border border-cyan-500/20">
+              <div v-if="parsedBatchSubs.length > 0" class="max-h-24 overflow-y-auto space-y-1 font-mono text-[11px] bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/60 p-2 rounded-xl border border-cyan-500/20">
                 <div v-for="(item, idx) in parsedBatchSubs" :key="idx" class="flex items-center gap-2 truncate text-slate-300">
                   <span class="text-emerald-300 font-bold">✈️ {{ item.name }}</span>
                   <span class="text-slate-300 truncate text-[10px]">{{ item.url }}</span>
@@ -5113,10 +4812,10 @@
               </div>
               <textarea v-model="batchNodeText" rows="3"
                 placeholder="直接粘贴节点链接，每行一条。例如：&#10;东京落地 01, ss://YWVzLTI1Ni1nY206cGFzc0AxLjIuMy40OjgzODg=#东京&#10;vless://uuid@us.example.com:443?security=reality&sni=yahoo.com#美西"
-                class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-100 font-mono outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 shadow-inner resize-y leading-relaxed" />
+                class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-100 font-mono outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 shadow-inner resize-y leading-relaxed" />
               
               <!-- Parsed Preview -->
-              <div v-if="parsedBatchNodes.length > 0" class="max-h-24 overflow-y-auto space-y-1 font-mono text-[11px] bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/60 p-2 rounded-xl border border-purple-500/20">
+              <div v-if="parsedBatchNodes.length > 0" class="max-h-24 overflow-y-auto space-y-1 font-mono text-[11px] bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/60 p-2 rounded-xl border border-purple-500/20">
                 <div v-for="(item, idx) in parsedBatchNodes" :key="idx" class="flex items-center gap-2 truncate text-slate-300">
                   <span class="text-purple-400 font-bold uppercase text-[10px]">[{{ item.protocol }}]</span>
                   <span class="text-white font-bold">🔗 {{ item.name }}</span>
@@ -5128,7 +4827,7 @@
 
           <!-- Bottom Actions -->
           <div class="pt-3 border-t border-sky-800/40 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <button @click="completeInitWizard" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-700 text-slate-300 text-xs font-semibold active:scale-95 transition">
+            <button @click="completeInitWizard" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-700 text-slate-300 text-xs font-semibold active:scale-95 transition">
               跳过直接进入主控台 ➔
             </button>
             <button v-if="(initWizardImportTab === 'sub' && parsedBatchSubs.length > 0) || (initWizardImportTab === 'node' && parsedBatchNodes.length > 0)"
@@ -5288,7 +4987,7 @@
                     <p class="text-xs text-slate-400 mt-0.5 font-mono">执行时间: {{ executionModal.timestamp }}</p>
                   </div>
                 </div>
-                <button @click="executionModal.visible = false" class="p-1.5 rounded-xl hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-400 hover:text-white transition cursor-pointer">✕</button>
+                <button @click="executionModal.visible = false" class="p-1.5 rounded-xl hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-400 hover:text-white transition cursor-pointer">✕</button>
               </div>
 
               <div class="text-xs text-slate-300 bg-sky-950/40 border border-sky-900/50 rounded-xl p-3 leading-relaxed shrink-0">
@@ -5356,7 +5055,7 @@
               <p class="text-xs text-slate-400 mt-0.5">主控守护 · 双核引擎 · 217heidai 规则库 · 宿主固件 4 维度全栈健康实时诊断</p>
             </div>
           </div>
-          <button @click="showProbeModal = false" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer">
+          <button @click="showProbeModal = false" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer">
             <span class="text-lg leading-none">✕</span>
           </button>
         </div>
@@ -5364,7 +5063,7 @@
         <!-- Body: 4 Dimension Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[60vh] pr-1">
           <!-- 维度 1: CubeX 主控守护进程 -->
-          <div class="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 border border-slate-800 space-y-3 flex flex-col justify-between">
+          <div class="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border border-slate-800 space-y-3 flex flex-col justify-between">
             <div class="flex justify-between items-center">
               <span class="text-xs font-bold text-white flex items-center gap-2">
                 <img src="/logo-cubex.svg" class="w-5 h-5 min-w-[20px] max-w-[20px] h-[20px] max-h-[20px] object-contain shrink-0 drop-shadow-[0_0_5px_rgba(56,189,248,0.4)]" alt="CubeX" />
@@ -5390,7 +5089,7 @@
           </div>
 
           <!-- 维度 2: 双核驱动引擎 -->
-          <div class="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 border border-slate-800 space-y-3 flex flex-col justify-between">
+          <div class="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border border-slate-800 space-y-3 flex flex-col justify-between">
             <div class="flex justify-between items-center">
               <span class="text-xs font-bold text-white flex items-center gap-2">
                 <div class="flex items-center gap-2 shrink-0">
@@ -5415,7 +5114,7 @@
           </div>
 
           <!-- 维度 3: 217heidai 规则库 -->
-          <div class="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 border border-slate-800 space-y-3 flex flex-col justify-between">
+          <div class="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border border-slate-800 space-y-3 flex flex-col justify-between">
             <div class="flex justify-between items-center">
               <span class="text-xs font-bold text-white flex items-center gap-1.5">
                 <span>🛡️</span>
@@ -5439,7 +5138,7 @@
           </div>
 
           <!-- 维度 4: 宿主底座与固件 -->
-          <div class="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80 border border-slate-800 space-y-3 flex flex-col justify-between">
+          <div class="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border border-slate-800 space-y-3 flex flex-col justify-between">
             <div class="flex justify-between items-center">
               <span class="text-xs font-bold text-white flex items-center gap-2">
                 <img :src="hostBadge.svg" class="w-5 h-5 min-w-[20px] max-w-[20px] h-[20px] max-h-[20px] object-contain shrink-0 drop-shadow-[0_0_5px_rgba(56,189,248,0.35)]" :alt="hostBadge.shortName" />
@@ -5471,7 +5170,7 @@
             上次体检时间: <span class="font-mono text-emerald-300">{{ probeLastTime || '刚刚' }}</span>
           </div>
           <div class="flex items-center gap-2">
-            <button @click="probeAllFourDimensions" :disabled="isProbingAll" class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-200 text-xs font-bold transition cursor-pointer flex items-center gap-1.5">
+            <button @click="probeAllFourDimensions" :disabled="isProbingAll" class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-200 text-xs font-bold transition cursor-pointer flex items-center gap-1.5">
               <span :class="{'animate-spin': isProbingAll}">↻</span>
               <span>重新体检</span>
             </button>
@@ -5502,7 +5201,7 @@
                     </p>
                   </div>
                 </div>
-                <button @click="showGeodataDetailModal = false" class="text-slate-400 hover:text-white px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-sm font-bold transition cursor-pointer">✕</button>
+                <button @click="showGeodataDetailModal = false" class="text-slate-400 hover:text-white px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-sm font-bold transition cursor-pointer">✕</button>
               </div>
 
               <!-- Summary Metrics Bar -->
@@ -5530,22 +5229,22 @@
                 <div class="flex flex-wrap items-center justify-between gap-2">
                   <!-- Category Pills -->
                   <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
-                    <button @click="geodataFilterCategory = 'all'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === 'all' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 hover:bg-slate-700']">
+                    <button @click="geodataFilterCategory = 'all'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === 'all' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 hover:bg-slate-700']">
                       全部分类 ({{ geodataStatus.files?.length || 0 }})
                     </button>
-                    <button @click="geodataFilterCategory = '基础数据库'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '基础数据库' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 hover:bg-slate-700']">
+                    <button @click="geodataFilterCategory = '基础数据库'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '基础数据库' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 hover:bg-slate-700']">
                       基础库 ({{ geodataStatus.files?.filter(f => f.category === '基础数据库').length || 0 }})
                     </button>
-                    <button @click="geodataFilterCategory = '广告与恶意追踪拦截'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '广告与恶意追踪拦截' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 hover:bg-slate-700']">
+                    <button @click="geodataFilterCategory = '广告与恶意追踪拦截'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '广告与恶意追踪拦截' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 hover:bg-slate-700']">
                       去广告 ({{ geodataStatus.files?.filter(f => f.category === '广告与恶意追踪拦截').length || 0 }})
                     </button>
-                    <button @click="geodataFilterCategory = '基础路由分流'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '基础路由分流' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 hover:bg-slate-700']">
+                    <button @click="geodataFilterCategory = '基础路由分流'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '基础路由分流' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 hover:bg-slate-700']">
                       基础路由 ({{ geodataStatus.files?.filter(f => f.category === '基础路由分流').length || 0 }})
                     </button>
-                    <button @click="geodataFilterCategory = '应用专线分流'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '应用专线分流' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 hover:bg-slate-700']">
+                    <button @click="geodataFilterCategory = '应用专线分流'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '应用专线分流' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 hover:bg-slate-700']">
                       核心专线 ({{ geodataStatus.files?.filter(f => f.category === '应用专线分流').length || 0 }})
                     </button>
-                    <button @click="geodataFilterCategory = '常用生态与自定义扩展'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '常用生态与自定义扩展' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-300 hover:bg-slate-700']">
+                    <button @click="geodataFilterCategory = '常用生态与自定义扩展'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', geodataFilterCategory === '常用生态与自定义扩展' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 hover:bg-slate-700']">
                       常用生态扩展 ({{ geodataStatus.files?.filter(f => f.category === '常用生态与自定义扩展').length || 0 }})
                     </button>
                   </div>
@@ -5574,7 +5273,7 @@
               <!-- Rule Files Table (Scrollable) -->
               <div class="flex-1 overflow-y-auto border border-slate-800/80 rounded-2xl bg-slate-950/60 custom-scrollbar max-h-[400px]">
                 <table class="w-full text-left text-xs">
-                  <thead class="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/95 text-slate-400 font-mono border-b border-slate-800 sticky top-0 backdrop-blur z-10">
+                  <thead class="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/95 text-slate-400 font-mono border-b border-slate-800 sticky top-0 backdrop-blur z-10">
                     <tr>
                       <th class="py-2.5 px-3">规则名称与用途</th>
                       <th class="py-2.5 px-2.5 text-center">适配引擎</th>
@@ -5585,7 +5284,7 @@
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-800/40">
-                    <tr v-for="(f, idx) in filteredGeodataFiles" :key="idx" class="hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/30 transition">
+                    <tr v-for="(f, idx) in filteredGeodataFiles" :key="idx" class="hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/30 transition">
                       <td class="py-2.5 px-3 max-w-[280px]">
                         <div class="font-bold text-slate-200">{{ f.name }}</div>
                         <div class="text-[11px] text-slate-400 truncate">{{ f.description }}</div>
@@ -5600,7 +5299,7 @@
                         </span>
                       </td>
                       <td class="py-2.5 px-2.5">
-                        <span class="text-[10px] px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md text-slate-200 border border-slate-700/80 font-mono">
+                        <span class="text-[10px] px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-200 border border-slate-700/80 font-mono">
                           {{ f.group || '通用分流' }}
                         </span>
                       </td>
@@ -5631,7 +5330,7 @@
                     <span v-if="updatingGeo" class="inline-block animate-spin mr-1">↻</span>
                     <span>{{ updatingGeo ? '正在更新中...' : '🔄 立即一键更新' }}</span>
                   </button>
-                  <button @click="showGeodataDetailModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer">
+                  <button @click="showGeodataDetailModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer">
                     关闭
                   </button>
                 </div>
@@ -5666,10 +5365,10 @@
                     'p-6 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-4 group relative',
                     activeLogoId === scheme.id
                       ? 'bg-cyan-950/40 border-cyan-400 shadow-xl shadow-cyan-950/60 ring-2 ring-cyan-400/50'
-                      : 'bg-slate-950/80 border-slate-800 hover:border-cyan-500/40 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/80'
+                      : 'bg-slate-950/80 border-slate-800 hover:border-cyan-500/40 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80'
                   ]">
                   <div class="space-y-4 text-center">
-                    <div class="relative mx-auto w-32 h-32 flex items-center justify-center p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md/90 border border-slate-800 group-hover:border-cyan-400/50 transition">
+                    <div class="relative mx-auto w-32 h-32 flex items-center justify-center p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 border border-slate-800 group-hover:border-cyan-400/50 transition">
                       <div class="absolute inset-0 rounded-2xl blur-xl transition-opacity opacity-40 group-hover:opacity-75 bg-cyan-500/20"></div>
                       <img :src="scheme.file" class="relative z-10 w-24 h-24 drop-shadow-[0_0_20px_rgba(0,210,255,0.6)] group-hover:scale-110 transition-transform duration-500" :alt="scheme.name" />
                     </div>
@@ -5686,7 +5385,7 @@
                         'w-full py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow',
                         activeLogoId === scheme.id
                           ? 'bg-cyan-500 text-slate-950'
-                          : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-200'
+                          : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-200'
                       ]">
                       <span>{{ activeLogoId === scheme.id ? '✓ 当前选用' : '选用此方案' }}</span>
                     </button>
@@ -5707,7 +5406,7 @@
 
     <!-- Modal: Add / Edit DNS Rewrite Rule -->
     <div v-if="showDnsRewriteModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-      <div class="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 p-4 sm:p-6 space-y-4 shadow-2xl relative custom-scrollbar">
+      <div class="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 p-4 sm:p-6 space-y-4 shadow-2xl relative custom-scrollbar">
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span class="text-emerald-300">🔀</span>
@@ -5739,7 +5438,7 @@
         </div>
 
         <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
-          <button @click="showDnsRewriteModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer">取消</button>
+          <button @click="showDnsRewriteModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer">取消</button>
           <button @click="saveDnsRewriteRule" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-950/40 cursor-pointer transition">保存并立即生效</button>
         </div>
       </div>
@@ -5747,7 +5446,7 @@
 
     <!-- Modal: Add / Edit Domain Filter Rule Source -->
     <div v-if="showRuleSourceModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in overflow-y-auto">
-      <div class="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 p-4 sm:p-6 space-y-4 shadow-2xl relative custom-scrollbar">
+      <div class="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 p-4 sm:p-6 space-y-4 shadow-2xl relative custom-scrollbar">
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span>🛡️ {{ editingRuleSource.id ? '编辑规则源' : '添加域名过滤规则源' }}</span>
@@ -5776,7 +5475,7 @@
         </div>
 
         <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
-          <button @click="showRuleSourceModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer">取消</button>
+          <button @click="showRuleSourceModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer">取消</button>
           <button @click="saveRuleSource" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/20 cursor-pointer">保存规则源</button>
         </div>
       </div>
@@ -5784,7 +5483,7 @@
 
     <!-- Modal: Rule Source Preview / Information -->
     <div v-if="showSourcePreviewModal && previewingSource" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
-      <div class="w-full max-w-lg rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md border border-slate-800 p-6 space-y-4 shadow-2xl relative">
+      <div class="w-full max-w-lg rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 p-6 space-y-4 shadow-2xl relative">
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span>👁️ 规则源详情: {{ previewingSource.name }}</span>
@@ -5804,12 +5503,28 @@
           </p>
         </div>
         <div class="flex justify-end pt-2">
-          <button @click="showSourcePreviewModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white backdrop-blur-md hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer">关闭</button>
+          <button @click="showSourcePreviewModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer">关闭</button>
         </div>
       </div>
     </div>
 
-  </template>
+    <!-- 📱 移动端 6 大主模块常驻底部导航栏 (Permanent Mobile Safe-Area Bottom Dock · 6 等分绝对铺满 · 暮光落日金高亮) -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[#001529]/95 backdrop-blur-2xl border-t border-white/15 px-1 py-1 pb-safe shadow-[0_-8px_30px_rgba(0,0,0,0.8)] select-none">
+    <div class="grid grid-cols-6 [grid-template-columns:repeat(6,minmax(0,1fr))] gap-0.5 w-full items-center">
+      <button v-for="item in navItems" :key="item.id"
+        @click="activeMasterTab = item.id"
+        :class="[
+          'flex flex-col items-center justify-center py-1 px-0 rounded-lg transition-all select-none cursor-pointer w-full min-w-0 overflow-hidden',
+          activeMasterTab === item.id
+            ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] font-black shadow-md shadow-[#FF9E5E]/30'
+            : 'text-slate-300 hover:text-white active:scale-95'
+        ]">
+        <ZootopiaIcon :name="item.id" :active="activeMasterTab === item.id" :size="18" class="mb-0.5 shrink-0" />
+        <span class="text-[9px] tracking-tight leading-none whitespace-nowrap font-bold block truncate w-full text-center">{{ item.label }}</span>
+      </button>
+    </div>
+  </nav>
+</template>
 
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
@@ -5826,10 +5541,6 @@ function getInitialTab() {
   try {
     // 1. URL Hash Priority
     const hash = window.location.hash.replace(/^#\/?/, '')
-    if (hash === 'diagnostics') {
-      try { localStorage.setItem('cubex_system_sub_tab', 'diagnostics') } catch (e) {}
-      return 'system'
-    }
     if (VALID_TABS.includes(hash)) return hash
 
     // 2. Query param ?tab=xxx
@@ -6237,12 +5948,33 @@ const rootBgClass = computed(() => {
 })
 
 const sidebarBgClass = computed(() => {
-  return 'macos-sidebar shadow-2xl'
+  return 'macos-sidebar border-r border-white/10'
 })
 
 const headerBgClass = computed(() => {
   return 'macos-topbar'
 })
+
+// 🌅 两全其美智能吸顶与自动避让系统 (Smart Scroll Auto-Hide & Instant Reveal)
+// 向下滚动时自动收起页眉，为下方卡片留出 100% 视野；轻微向上滚动或鼠标移至顶端时瞬间滑下呈现
+const isHeaderHidden = ref(false)
+const isScrolledDown = ref(false)
+const headerAutoMode = ref(true) // 默认开启「两全其美」智能避让
+let lastScrollY = 0
+
+function onMainContentScroll(e) {
+  const currentScrollY = e.target.scrollTop || 0
+  isScrolledDown.value = currentScrollY > 20
+
+  if (currentScrollY <= 20) {
+    // 仅当彻底回到页面最顶部时显示页眉
+    isHeaderHidden.value = false
+  } else {
+    // 离开顶部后，无论是向上滑、向下滑还是滑块拖动，一律不显示页眉，绝不遮挡卡片
+    isHeaderHidden.value = true
+  }
+  lastScrollY = currentScrollY
+}
 
 const activeEngine = ref('singbox')
 const switchingEngine = ref(false)
@@ -7593,6 +7325,7 @@ const logFilterLevel = ref('ALL') // 'ALL' | 'INFO' | 'WARN' | 'ERROR'
 const logFilterModule = ref('ALL')
 const logSearchQuery = ref('')
 const loadingLogs = ref(false)
+const showDiagnoseBento = ref(false)
 const exportingDiagnose = ref(false)
 const githubPatToken = ref(localStorage.getItem('cubex_github_pat') || '')
 const creatingGithubIssue = ref(false)
@@ -7606,8 +7339,11 @@ const logModules = computed(() => {
   return ['ALL', ...Array.from(set)]
 })
 
+const logLineLimit = ref(15) // 日志行数严格固定在 15 行
 const filteredLogs = computed(() => {
   return systemLogs.value.filter(item => {
+    if (item.level === 'DEBUG') return false
+    if (item.msg && (item.msg.includes('missing fakeip record') || item.msg.includes('operation was canceled'))) return false
     if (logFilterLevel.value !== 'ALL' && item.level !== logFilterLevel.value) {
       return false
     }
@@ -7621,6 +7357,14 @@ const filteredLogs = computed(() => {
     }
     return true
   })
+})
+
+const displayedLogs = computed(() => {
+  const filtered = filteredLogs.value
+  if (filtered.length > 20) {
+    return filtered.slice(-20)
+  }
+  return filtered
 })
 
 async function fetchSystemLogs(manual = false) {
@@ -10356,7 +10100,7 @@ const speedtestTasks = ref([]) // Active & completed toast tasks
 const speedtestQueue = []      // Task IDs waiting in FIFO queue
 let isSpeedtestWorkerRunning = false
 
-function enqueueRegionSpeedtest(reg) {
+function enqueueRegionSpeedtest(reg, retryCount = 0) {
   if (!reg) return
   const regId = reg.id
   const regName = reg.name || '地区节点'
@@ -10364,14 +10108,14 @@ function enqueueRegionSpeedtest(reg) {
   const totalCount = nodes ? nodes.length : (reg.totalCount || 0)
 
   if (totalCount === 0) {
-    showToast(`【${regName}】分组暂无可用节点`, true)
+    if (retryCount === 0) showToast(`【${regName}】分组暂无可用节点`, true)
     return
   }
 
-  // Check if a task for this region is already in queue or running; if so, bring it to front
+  // Check if a task for this region is already in queue or running; if so, avoid duplicate
   const existingQueued = speedtestTasks.value.find(t => t.regId === regId && (t.status === 'queued' || t.status === 'testing'))
   if (existingQueued) {
-    showToast(`【${regName}】已在测速队列中`)
+    if (retryCount === 0) showToast(`【${regName}】已在测速队列中`)
     return
   }
 
@@ -10385,7 +10129,8 @@ function enqueueRegionSpeedtest(reg) {
     testedCount: 0,
     onlineCount: 0,
     winnerDelay: 0,
-    status: 'queued', // 'queued' | 'testing' | 'completed' | 'error'
+    status: 'queued', // 'queued' | 'testing' | 'completed' | 'error' | 'retrying'
+    retryCount: retryCount,
     errorMsg: ''
   }
 
@@ -10436,17 +10181,47 @@ async function processSpeedtestQueue() {
         task.testedCount = data.tested_count || nodeNames.length
         task.onlineCount = data.online_count || 0
         const best = data.min_delay > 0 ? data.min_delay : (data.avg_delay > 0 ? data.avg_delay : 0)
+
+        // ⚡ 超时自动复测机制：若全组超时不可达且重试尚未满2次，后台自动延迟启动再次测速
+        if (best <= 0 && (!task.retryCount || task.retryCount < 2)) {
+          const nextRetry = (task.retryCount || 0) + 1
+          regionTestingMap.value[task.regId] = 'retry'
+          setTimeout(() => {
+            enqueueRegionSpeedtest(reg, nextRetry)
+          }, 1800)
+          task.status = 'retrying'
+          continue
+        }
+
         task.winnerDelay = best
         reg.winnerLatency = best
         regionWinnerLatencyMap.value[task.regId] = best
         if (reg.id) regionWinnerLatencyMap.value[reg.id] = best
         task.status = 'completed'
       } else {
+        if (!task.retryCount || task.retryCount < 2) {
+          const nextRetry = (task.retryCount || 0) + 1
+          regionTestingMap.value[task.regId] = 'retry'
+          setTimeout(() => {
+            enqueueRegionSpeedtest(reg, nextRetry)
+          }, 1800)
+          task.status = 'retrying'
+          continue
+        }
         task.testedCount = nodeNames.length
         task.onlineCount = nodeNames.length
         task.status = 'completed'
       }
     } catch (e) {
+      if (!task.retryCount || task.retryCount < 2) {
+        const nextRetry = (task.retryCount || 0) + 1
+        regionTestingMap.value[task.regId] = 'retry'
+        setTimeout(() => {
+          enqueueRegionSpeedtest(reg, nextRetry)
+        }, 1800)
+        task.status = 'retrying'
+        continue
+      }
       task.status = 'error'
       task.errorMsg = e.message || '测速超时'
     } finally {
@@ -10610,6 +10385,7 @@ function onDrop(event, targetIndex) {
   customGroupOrder.value = newOrder
   try {
     localStorage.setItem('cubex_biz_order', JSON.stringify(newOrder))
+  syncUIStateToCloud()
   } catch (e) {}
   draggedGroupIndex = null
   isGrabbingBizHandle = false
@@ -10638,6 +10414,7 @@ function deletePolicyGroup(groupName) {
     deletedPolicyGroupNames.value.push(groupName)
     try {
       localStorage.setItem('cubex_deleted_policy_groups', JSON.stringify(deletedPolicyGroupNames.value))
+  syncUIStateToCloud()
     } catch (e) {}
   }
   try {
@@ -11225,7 +11002,9 @@ function selectPolicyRegion(grp, reg, forcedStrategy = null) {
   groupSelectedRegionMap.value[grp.name] = reg.id
   try {
     localStorage.setItem('cubex_group_region_policy_map', JSON.stringify(groupRegionPolicyMap.value))
+  syncUIStateToCloud()
     localStorage.setItem('cubex_group_selected_region_map', JSON.stringify(groupSelectedRegionMap.value))
+  syncUIStateToCloud()
   } catch (e) {}
 
   // Smart outbound matching: If grp.proxies doesn't contain targetNode (e.g. custom region "俄罗斯"),
@@ -11262,6 +11041,7 @@ function onPolicyRegionStrategyChange(grp, reg, newStrategy) {
   groupRegionPolicyMap.value[key] = newStrategy
   try {
     localStorage.setItem('cubex_group_region_policy_map', JSON.stringify(groupRegionPolicyMap.value))
+  syncUIStateToCloud()
   } catch (e) {}
 
   selectPolicyRegion(grp, reg, newStrategy)
@@ -12090,10 +11870,12 @@ async function selectGroupNode(groupName, nodeName) {
 
   if (nodeName === 'DIRECT' || nodeName.includes('直连')) {
     groupSelectedRegionMap.value[groupName] = 'DIRECT'
-    try { localStorage.setItem('cubex_group_selected_region_map', JSON.stringify(groupSelectedRegionMap.value)) } catch (e) {}
+    try { localStorage.setItem('cubex_group_selected_region_map', JSON.stringify(groupSelectedRegionMap.value))
+  syncUIStateToCloud() } catch (e) {}
   } else if (nodeName === 'REJECT' || nodeName.includes('拒绝')) {
     groupSelectedRegionMap.value[groupName] = 'REJECT'
-    try { localStorage.setItem('cubex_group_selected_region_map', JSON.stringify(groupSelectedRegionMap.value)) } catch (e) {}
+    try { localStorage.setItem('cubex_group_selected_region_map', JSON.stringify(groupSelectedRegionMap.value))
+  syncUIStateToCloud() } catch (e) {}
   }
 
   try {
@@ -13095,7 +12877,71 @@ function completeInitWizard() {
   refreshHostTelemetry()
 }
 
+
+// ── 🌐 全端跨设备实时同步引擎 (Cross-Device Real-time UI Sync) ──
+// 保证手机端与电脑端浏览、策略分组排序、节点选择、删改操作 100% 毫秒级双向同步
+async function fetchUIState() {
+  try {
+    const res = await fetch('/api/v1/config/ui_state')
+    if (res.ok) {
+      const data = await res.json()
+      if (data && data.state) {
+        const s = data.state
+        if (Array.isArray(s.biz_order) && s.biz_order.length > 0) {
+          customGroupOrder.value = s.biz_order
+          try { localStorage.setItem('cubex_biz_order', JSON.stringify(s.biz_order)) } catch (e) {}
+        }
+        if (Array.isArray(s.deleted_policy_groups)) {
+          deletedPolicyGroupNames.value = s.deleted_policy_groups
+          try { localStorage.setItem('cubex_deleted_policy_groups', JSON.stringify(s.deleted_policy_groups)) } catch (e) {}
+        }
+        if (s.group_selected_regions && typeof s.group_selected_regions === 'object') {
+          groupSelectedRegionMap.value = { ...groupSelectedRegionMap.value, ...s.group_selected_regions }
+          try { localStorage.setItem('cubex_group_selected_region_map', JSON.stringify(groupSelectedRegionMap.value)) } catch (e) {}
+        }
+        if (s.group_region_policy && typeof s.group_region_policy === 'object') {
+          groupRegionPolicyMap.value = { ...groupRegionPolicyMap.value, ...s.group_region_policy }
+          try { localStorage.setItem('cubex_group_region_policy_map', JSON.stringify(groupRegionPolicyMap.value)) } catch (e) {}
+        }
+        if (s.excluded_candidates && typeof s.excluded_candidates === 'object') {
+          groupExcludedCandidates.value = { ...groupExcludedCandidates.value, ...s.excluded_candidates }
+          try { localStorage.setItem('cubex_group_excluded_candidates', JSON.stringify(groupExcludedCandidates.value)) } catch (e) {}
+        }
+        if (Array.isArray(s.custom_region_groups)) {
+          customRegionGroups.value = s.custom_region_groups
+          try { localStorage.setItem('cubex_custom_region_groups', JSON.stringify(s.custom_region_groups)) } catch (e) {}
+        }
+      }
+    }
+  } catch (e) {}
+}
+
+let saveUIStateDebounceTimer = null
+function syncUIStateToCloud() {
+  if (saveUIStateDebounceTimer) clearTimeout(saveUIStateDebounceTimer)
+  saveUIStateDebounceTimer = setTimeout(async () => {
+    try {
+      await fetch('/api/v1/config/ui_state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          state: {
+            biz_order: customGroupOrder.value,
+            deleted_policy_groups: deletedPolicyGroupNames.value,
+            group_selected_regions: groupSelectedRegionMap.value,
+            group_region_policy: groupRegionPolicyMap.value,
+            excluded_candidates: groupExcludedCandidates.value,
+            custom_region_groups: customRegionGroups.value,
+            updated_at: Date.now()
+          }
+        })
+      })
+    } catch (e) {}
+  }, 350)
+}
+
 onMounted(async () => {
+  fetchUIState()
   // Global shortcut: press "/" to focus routing search input
   window.addEventListener('keydown', (e) => {
     if (e.key === '/' && activeMasterTab.value === 'routing') {
@@ -13176,13 +13022,19 @@ onMounted(async () => {
     setTimeout(triggerAllServiceProbes, 500)
   }
 
-  // Polling for real-time traffic telemetry every 1.0s (心电极光 1秒采样滚动)
-  setInterval(() => {
-    fetchTelemetryTraffic()
-  }, 1000)
+  // ⚡ 智能按需调度器：仅在页面可见且对应 Tab 激活时才轮询，后台或未激活时静默休眠
+  const isPageVisible = () => typeof document !== 'undefined' && !document.hidden
 
-  // Polling for real-time memory & system status every 2.5s
+  // 1. 流量遥测 (仅在总览页且可见时每 1.2s 采样，切换至其他页自动休眠)
+  setInterval(() => {
+    if (isPageVisible() && activeMasterTab.value === 'overview') {
+      fetchTelemetryTraffic()
+    }
+  }, 1200)
+
+  // 2. 双核主控内存与状态 (仅前台可见时每 3s 刷新)
   setInterval(async () => {
+    if (!isPageVisible()) return
     try {
       const res = await fetch('/api/v1/system/status')
       const data = await res.json()
@@ -13190,10 +13042,12 @@ onMounted(async () => {
         systemStatus.value = { ...systemStatus.value, ...data }
       }
     } catch (e) {}
-  }, 2500)
+  }, 3000)
 
-  // Periodic host telemetry refresh (every 5s for live CPU & hardware stats)
+  // 3. 宿主系统硬件探针 (仅总览或系统页激活时每 6s 刷新)
   setInterval(async () => {
+    if (!isPageVisible()) return
+    if (activeMasterTab.value !== 'system' && activeMasterTab.value !== 'overview') return
     try {
       const res = await fetch('/api/v1/host/info')
       if (res.ok) {
@@ -13203,17 +13057,44 @@ onMounted(async () => {
         }
       }
     } catch (e) {}
-  }, 5000)
+  }, 6000)
 
-  // Periodic DNS filter stats refresh (every 10s)
-  setInterval(fetchDnsFilterStats, 10000)
-
-  // Periodic ring logs stream refresh (every 3s when on diagnostics tab)
+  // 4. DNS 拦截过滤统计 (仅在规则页激活时每 10s 刷新)
   setInterval(() => {
-    if (activeMasterTab.value === 'diagnostics') {
+    if (isPageVisible() && activeMasterTab.value === 'rules') {
+      fetchDnsFilterStats()
+    }
+  }, 10000)
+
+  // 5. 环形实时日志流 (仅在诊断页激活且前台可见时每 3s 刷新)
+  setInterval(() => {
+    if (isPageVisible() && activeMasterTab.value === 'diagnostics') {
       fetchSystemLogs()
     }
   }, 3000)
+
+  // 6. 页面可见性感知：切换回标签页时瞬时顺滑唤醒刷新一次
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (isPageVisible()) {
+        if (activeMasterTab.value === 'overview') fetchTelemetryTraffic()
+        else if (activeMasterTab.value === 'diagnostics') fetchSystemLogs()
+        else if (activeMasterTab.value === 'rules') fetchDnsFilterStats()
+      }
+    })
+  }
+
+  // ⚡ 超时节点/地区后台自愈巡检 (每 25 秒巡检一次，若发现有卡片处于「超时」状态，自动静默复测自愈)
+  setInterval(() => {
+    if (!allRegionDefs.value || allRegionDefs.value.length === 0) return
+    const timeoutReg = allRegionDefs.value.find(r => {
+      const lat = getRegionLatency(r)
+      return lat <= 0 && !regionTestingMap.value[r.id]
+    })
+    if (timeoutReg) {
+      enqueueRegionSpeedtest(timeoutReg, 1)
+    }
+  }, 25000)
 
 
 

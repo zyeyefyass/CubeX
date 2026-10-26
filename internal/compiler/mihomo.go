@@ -318,6 +318,9 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		if p.Server == "" || p.Port <= 0 || p.Name == "" {
 			continue
 		}
+		if schema.IsInformationalOrInvalidNode(p.Name) {
+			continue
+		}
 
 		pMap := make(map[string]any)
 		if len(p.RawConfig) > 0 {
@@ -562,7 +565,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		proxies := make([]string, 0, len(g.Proxies))
 		for _, p := range g.Proxies {
-			if p != g.Name && validTargets[p] {
+			if p != g.Name && validTargets[p] && !schema.IsInformationalOrInvalidNode(p) {
 				proxies = append(proxies, p)
 			}
 		}
@@ -584,7 +587,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		}
 
 		// If g.Now is specified, move it to the front of proxies list so Mihomo selects it by default
-		if g.Now != "" && validTargets[g.Now] {
+		if g.Now != "" && validTargets[g.Now] && !schema.IsInformationalOrInvalidNode(g.Now) {
 			reordered := []string{g.Now}
 			for _, p := range proxies {
 				if p != g.Now {

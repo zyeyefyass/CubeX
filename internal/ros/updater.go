@@ -196,7 +196,7 @@ func (m *Manager) GetOverview() map[string]any {
 	}
 	latestPanel := m.cachedLatestPanel
 	if latestPanel == "" {
-		latestPanel = "Test v4.0"
+		latestPanel = "Test v4.1"
 	}
 	latestSingbox := m.cachedLatestSingbox
 	if latestSingbox == "" {
@@ -716,7 +716,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 // ──────────────────────────────────────────────
 
 func (m *Manager) getLocalPanelVersion() string {
-	return "Test v4.0"
+	return "Test v4.1"
 }
 
 // IsConnected returns whether the RouterOS host is currently reachable and authenticated.

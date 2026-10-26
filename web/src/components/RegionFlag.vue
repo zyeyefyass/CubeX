@@ -1,69 +1,68 @@
 <template>
   <div :class="asBackground ? 'w-full h-full block' : 'inline-flex items-center justify-center shrink-0'">
-    <!-- 0. 多国组合通用全息同盟旗 (Universal Twilight Crystal Multi-Country Alliance Ensign) - 优先判定！ -->
-    <!-- 彻底告别多旗挤压变形，全域多国组合 (2国、3国、多国) 统一采用尊贵自研同盟极光旗 -->
+    <!-- 0. 多国组合全息同盟卡 (Zootopia Metropolis & Climate Wall Nexus · 疯狂动物城极光生态之冠) -->
     <svg v-if="multiCodes.length >= 2 && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
       <defs>
-        <!-- Deep Navy Celestial Space Background -->
-        <linearGradient id="alliance-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#021124"/>
-          <stop offset="35%" stop-color="#042244"/>
-          <stop offset="70%" stop-color="#073a6a"/>
-          <stop offset="100%" stop-color="#094d8b"/>
+        <!-- Cinematic Twilight Amethyst to Deep Navy Sky -->
+        <linearGradient id="ztp-alliance-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#060b18"/>
+          <stop offset="35%" stop-color="#141a38"/>
+          <stop offset="70%" stop-color="#2d124d"/>
+          <stop offset="100%" stop-color="#0a2a44"/>
         </linearGradient>
-        <!-- Twilight Crystal Speed Band Gradient -->
-        <linearGradient id="aurora-band" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#7b2cbf"/>
-          <stop offset="50%" stop-color="#00d2ff"/>
-          <stop offset="100%" stop-color="#00f5d4"/>
+        <!-- Zootopia Aurora Canopy (Violet to Cyan to Emerald) -->
+        <linearGradient id="ztp-aurora" x1="0" y1="0" x2="36" y2="16" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#7b2cbf" stop-opacity="0.85"/>
+          <stop offset="45%" stop-color="#00d2ff" stop-opacity="0.75"/>
+          <stop offset="100%" stop-color="#00f5d4" stop-opacity="0.6"/>
         </linearGradient>
-        <!-- Mini 5-Point Alliance Star -->
-        <g id="alliance-star-canton">
-          <polygon points="0,-0.9 0.27,-0.27 0.9,-0.27 0.36,0.09 0.54,0.72 0,0.36 -0.54,0.72 -0.36,0.09 -0.9,-0.27 -0.27,-0.27" fill="#00f5d4"/>
-        </g>
+        <!-- Golden Sunlight Rim -->
+        <linearGradient id="ztp-gold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fef08a"/>
+          <stop offset="100%" stop-color="#f59e0b"/>
+        </linearGradient>
       </defs>
 
-      <!-- Background: Deep Navy Void -->
-      <rect width="36" height="24" fill="url(#alliance-bg)"/>
+      <!-- Background: Deep Twilight Void -->
+      <rect width="36" height="24" fill="url(#ztp-alliance-bg)"/>
 
-      <!-- Diagonal Twilight Crystal Speed Bands (Connecting the Multi-Nation Network) -->
-      <path d="M-2 0 L14 0 L38 24 L22 24 Z" fill="url(#aurora-band)" opacity="0.22"/>
-      <line x1="14" y1="0" x2="38" y2="24" stroke="#00f5d4" stroke-width="0.6" opacity="0.8"/>
-      <line x1="-2" y1="0" x2="22" y2="24" stroke="#38bdf8" stroke-width="0.4" opacity="0.55"/>
+      <!-- Aurora Curtain Waves in Sky -->
+      <path d="M-2 2 C8 8, 18 0, 38 7 L38 0 L-2 0 Z" fill="url(#ztp-aurora)" opacity="0.35"/>
+      <path d="M-2 5 C10 1, 22 9, 38 3 L38 0 L-2 0 Z" fill="#00d2ff" opacity="0.2"/>
 
-      <!-- Top-Left Canton: Triad Alliance Stars (Symbolizing Sovereign Coalition) -->
-      <use href="#alliance-star-canton" x="4.2" y="3.8"/>
-      <use href="#alliance-star-canton" x="7.4" y="3.8"/>
-      <use href="#alliance-star-canton" x="10.6" y="3.8"/>
+      <!-- Constellation Coalition Stars in Deep Sky -->
+      <circle cx="4.5" cy="3.5" r="0.45" fill="#ffffff" opacity="0.9"/>
+      <circle cx="8" cy="2.2" r="0.35" fill="#fef08a" opacity="0.85"/>
+      <circle cx="12" cy="4" r="0.4" fill="#ffffff" opacity="0.9"/>
+      <circle cx="28" cy="2.8" r="0.35" fill="#00f5d4" opacity="0.85"/>
+      <circle cx="32" cy="4.2" r="0.45" fill="#ffffff" opacity="0.9"/>
 
-      <!-- Dual Intertwined Orbital Rings (East-West Planetary Synthesis) -->
-      <ellipse cx="18" cy="12" rx="10.5" ry="4.2" stroke="#00f5d4" stroke-width="0.55" fill="none" opacity="0.75" transform="rotate(-22 18 12)" stroke-dasharray="2 0.8"/>
-      <ellipse cx="18" cy="12" rx="10.5" ry="4.2" stroke="#38bdf8" stroke-width="0.55" fill="none" opacity="0.75" transform="rotate(22 18 12)" stroke-dasharray="2 0.8"/>
+      <!-- Background Silhouette: Giant Climate Wall Pillars & Mountain Range -->
+      <path d="M0 24 L0 16 L3 16 L3 14 L5 14 L5 17 L9 17 L9 13 L11 13 L11 18 L15 18 L15 12 L17 12 L17 18 L21 18 L21 11 L23 11 L23 18 L27 18 L27 14 L29 14 L29 18 L36 18 L36 24 Z" fill="#091224" opacity="0.85"/>
 
-      <!-- Multi-Nation Node Coordinates on the Rings -->
-      <circle cx="8.5" cy="8.2" r="0.8" fill="#00f5d4" stroke="#ffffff" stroke-width="0.3"/>
-      <circle cx="27.5" cy="15.8" r="0.8" fill="#00f5d4" stroke="#ffffff" stroke-width="0.3"/>
-      <circle cx="8.5" cy="15.8" r="0.8" fill="#38bdf8" stroke="#ffffff" stroke-width="0.3"/>
-      <circle cx="27.5" cy="8.2" r="0.8" fill="#38bdf8" stroke="#ffffff" stroke-width="0.3"/>
+      <!-- Iconic Palm-Spire City Nexus Skyline Silhouette -->
+      <!-- Palm Spire Tower in Center -->
+      <polygon points="18,3 19.4,17 16.6,17" fill="#034870" opacity="0.95"/>
+      <!-- Glowing Spire Spikes / Crystal Palm Crown -->
+      <path d="M18 3 Q13 7 11 10 Q14 8 18 6 Q22 8 25 10 Q23 7 18 3 Z" fill="url(#ztp-gold)" opacity="0.9"/>
+      <!-- Spire Beacon -->
+      <circle cx="18" cy="3" r="0.75" fill="#ffffff"/>
+      <circle cx="18" cy="3" r="1.6" fill="#fef08a" opacity="0.35"/>
 
-      <!-- Center Radiant Core -->
-      <circle cx="18" cy="12" r="4.5" fill="#00f5d4" opacity="0.15"/>
-      <circle cx="18" cy="12" r="3.2" fill="#062244" stroke="#00f5d4" stroke-width="0.6"/>
+      <!-- Twin Hyperloop Transit Arcs (Connecting the Biomes) -->
+      <ellipse cx="18" cy="14" rx="14" ry="5.5" stroke="#00f5d4" stroke-width="0.55" fill="none" opacity="0.7" stroke-dasharray="2 0.8" transform="rotate(-12 18 14)"/>
+      <ellipse cx="18" cy="14" rx="14" ry="5.5" stroke="#38bdf8" stroke-width="0.55" fill="none" opacity="0.7" stroke-dasharray="2 0.8" transform="rotate(12 18 14)"/>
 
-      <!-- 8-Point Sovereign Alliance Compass Star (Majestic & High-Tech) -->
-      <polygon points="18,5.2 19.1,10.8 16.9,10.8" fill="#ffffff"/>
-      <polygon points="18,18.8 19.1,13.2 16.9,13.2" fill="#ffffff"/>
-      <polygon points="24.8,12 19.2,10.9 19.2,13.1" fill="#ffffff"/>
-      <polygon points="11.2,12 16.8,10.9 16.8,13.1" fill="#ffffff"/>
+      <!-- Transit Pods on the Arcs -->
+      <circle cx="7" cy="11.5" r="0.75" fill="#00f5d4" stroke="#ffffff" stroke-width="0.25"/>
+      <circle cx="29" cy="16.5" r="0.75" fill="#00f5d4" stroke="#ffffff" stroke-width="0.25"/>
+      <circle cx="7" cy="16.5" r="0.75" fill="#fef08a" stroke="#ffffff" stroke-width="0.25"/>
+      <circle cx="29" cy="11.5" r="0.75" fill="#fef08a" stroke="#ffffff" stroke-width="0.25"/>
 
-      <polygon points="22.8,7.2 19,11 18,10" fill="#00f5d4"/>
-      <polygon points="13.2,7.2 18,10 17,11" fill="#00f5d4"/>
-      <polygon points="22.8,16.8 18,14 19,13" fill="#00f5d4"/>
-      <polygon points="13.2,16.8 17,13 18,14" fill="#00f5d4"/>
-
-      <!-- Center Star Nexus Gem -->
-      <circle cx="18" cy="12" r="1.4" fill="#ffffff" stroke="#00d2ff" stroke-width="0.5"/>
-      <polygon points="18,10.9 19.1,12 18,13.1 16.9,12" fill="#00f5d4"/>
+      <!-- Center Nexus Radiant Energy Core -->
+      <circle cx="18" cy="14" r="3.2" fill="#02213a" stroke="#00f5d4" stroke-width="0.6"/>
+      <circle cx="18" cy="14" r="2.2" fill="url(#ztp-gold)" opacity="0.9"/>
+      <polygon points="18,10.8 19,13.2 21.2,14 19,14.8 18,17.2 17,14.8 14.8,14 17,13.2" fill="#ffffff"/>
     </svg>
 
     <!-- 非背景小图标模式：全能同盟徽章 (Universal Alliance Mini Badge) -->
@@ -74,63 +73,69 @@
     <!-- 1. 香港 (香港特别行政区区旗: 法定标准洋紫荆五瓣带五星矢量) -->
     <svg v-else-if="code === 'HK'" viewBox="0 0 900 600" preserveAspectRatio="none" :class="asBackground ? 'w-full h-full block' : [sizeClass, 'rounded-xs shadow-sm shrink-0']">
       <rect width="900" height="600" fill="#DE2910"/>
-      <g id="hk-p">
-        <path d="M492.936022 125.19583a27.917245 27.917245 0 0 0-14.901582 41.791893 45.171052 45.171052 0 0 1-20.289932 66.204239 38.650583 38.650583 0 0 0-10.816469 64.313021 68.374981 68.374981 0 0 1-17.067835-93.913589 15.809868 15.809868 0 0 1-1.109109-1.047777 69.880683 69.880683 0 0 0 16.754434 95.793146 90.342104 90.342104 0 0 1 47.430493-173.140933" fill="#ffffff"/>
-        <path d="M451.979333 181.099409l-27.564739 12.021638 29.366483 6.476437-19.951229-22.500734 2.915284 29.930515" fill="#DE2910"/>
+      <g>
+        <g id="hk-p">
+          <path d="M492.936022 125.19583a27.917245 27.917245 0 0 0-14.901582 41.791893 45.171052 45.171052 0 0 1-20.289932 66.204239 38.650583 38.650583 0 0 0-10.816469 64.313021 68.374981 68.374981 0 0 1-17.067835-93.913589 15.809868 15.809868 0 0 1-1.109109-1.047777 69.880683 69.880683 0 0 0 16.754434 95.793146 90.342104 90.342104 0 0 1 47.430493-173.140933" fill="#ffffff"/>
+          <path d="M451.979333 181.099409l-27.564739 12.021638 29.366483 6.476437-19.951229-22.500734 2.915284 29.930515" fill="#DE2910"/>
+        </g>
+        <use href="#hk-p" transform="rotate(72 450 300)"/>
+        <use href="#hk-p" transform="rotate(144 450 300)"/>
+        <use href="#hk-p" transform="rotate(216 450 300)"/>
+        <use href="#hk-p" transform="rotate(288 450 300)"/>
       </g>
-      <use href="#hk-p" transform="rotate(72 450 300)"/>
-      <use href="#hk-p" transform="rotate(144 450 300)"/>
-      <use href="#hk-p" transform="rotate(216 450 300)"/>
-      <use href="#hk-p" transform="rotate(288 450 300)"/>
     </svg>
 
-    <!-- 2. 台湾 -->
+    <!-- 2. 台湾 (青天白日满地红法定比例矢量: 左上四分之一青天白日，右下满地红) -->
     <svg v-else-if="code === 'TW'" viewBox="0 0 36 24" preserveAspectRatio="none" :class="asBackground ? 'w-full h-full block' : [sizeClass, 'rounded-xs shadow-sm shrink-0']">
       <rect width="36" height="24" fill="#FE0000"/>
-      <rect width="18" height="12" fill="#000095"/>
-      <g transform="translate(9,6)" fill="#FFFFFF">
-        <circle cx="0" cy="0" r="3.2"/>
-        <polygon points="0,-5 0.7,-2 -0.7,-2" />
-        <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(30)" />
-        <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(60)" />
-        <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(90)" />
-        <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(120)" />
-        <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(150)" />
-        <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(180)" />
-        <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(210)" />
-        <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(240)" />
-        <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(270)" />
-        <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(300)" />
-        <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(330)" />
-        <circle cx="0" cy="0" r="2.2" fill="#000095"/>
-        <circle cx="0" cy="0" r="1.8" fill="#FFFFFF"/>
+      <g>
+        <rect width="18" height="12" fill="#000095"/>
+        <g transform="translate(9,6)" fill="#FFFFFF">
+          <circle cx="0" cy="0" r="3.2"/>
+          <polygon points="0,-5 0.7,-2 -0.7,-2" />
+          <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(30)" />
+          <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(60)" />
+          <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(90)" />
+          <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(120)" />
+          <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(150)" />
+          <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(180)" />
+          <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(210)" />
+          <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(240)" />
+          <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(270)" />
+          <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(300)" />
+          <polygon points="0,-5 0.7,-2 -0.7,-2" transform="rotate(330)" />
+          <circle cx="0" cy="0" r="2.2" fill="#000095"/>
+          <circle cx="0" cy="0" r="1.8" fill="#FFFFFF"/>
+        </g>
       </g>
     </svg>
 
-    <!-- 3. 日本 -->
+    <!-- 3. 日本 (日章旗法定标准矢量: 纯白底色，正红日轮居中，直径为旗高 3/5) -->
     <svg v-else-if="code === 'JP'" viewBox="0 0 36 24" preserveAspectRatio="none" :class="asBackground ? 'w-full h-full block' : [sizeClass, 'rounded-xs shadow-sm border border-slate-700/60 shrink-0']">
       <rect width="36" height="24" fill="#FFFFFF"/>
-      <circle cx="18" cy="12" r="7" fill="#BC002D"/>
+      <circle cx="18" cy="12" r="7.2" fill="#BC002D"/>
     </svg>
 
-    <!-- 4. 韩国 (大韩民国国旗: 太极旗法定标准矢量) -->
+    <!-- 4. 韩国 (大韩民国国旗: 太极旗法定标准矢量，中央红蓝太极，四角乾坤坎离四卦) -->
     <svg v-else-if="code === 'KR'" viewBox="-72 -48 144 96" preserveAspectRatio="none" :class="asBackground ? 'w-full h-full block' : [sizeClass, 'rounded-xs shadow-sm border border-slate-700/60 shrink-0']">
       <path fill="#ffffff" d="M-72-48v96H72v-96z"/>
-      <g stroke="#000000" stroke-width="4">
-        <path transform="rotate(33.69006752598)" d="M-50-12v24m6 0v-24m6 0v24m76 0V1m0-2v-11m6 0v11m0 2v11m6 0V1m0-2v-11"/>
-        <path transform="rotate(-33.69006752598)" d="M-50-12v24m6 0V1m0-2v-11m6 0v24m76 0V1m0-2v-11m6 0v24m6 0V1m0-2v-11"/>
-      </g>
-      <g transform="rotate(33.69006752598)">
-        <path fill="#cd2e3a" d="M12 0a18 18 0 11-36 0 24 24 0 1148 0"/>
-        <path fill="#0047a0" d="M-24 0a24 24 0 1048 0A12 12 0 100 0a12 12 0 11-24 0"/>
+      <g>
+        <g stroke="#000000" stroke-width="4">
+          <path transform="rotate(33.69006752598)" d="M-50-12v24m6 0v-24m6 0v24m76 0V1m0-2v-11m6 0v11m0 2v11m6 0V1m0-2v-11"/>
+          <path transform="rotate(-33.69006752598)" d="M-50-12v24m6 0V1m0-2v-11m6 0v24m76 0V1m0-2v-11m6 0v24m6 0V1m0-2v-11"/>
+        </g>
+        <g transform="rotate(33.69006752598)">
+          <path fill="#cd2e3a" d="M12 0a18 18 0 11-36 0 24 24 0 1148 0"/>
+          <path fill="#0047a0" d="M-24 0a24 24 0 1048 0A12 12 0 100 0a12 12 0 11-24 0"/>
+        </g>
       </g>
     </svg>
 
-    <!-- 5. 新加坡 -->
+    <!-- 5. 新加坡 (红白双色旗: 左上红底嵌白色新月与五颗五角星) -->
     <svg v-else-if="code === 'SG'" viewBox="0 0 36 24" preserveAspectRatio="none" :class="asBackground ? 'w-full h-full block' : [sizeClass, 'rounded-xs shadow-sm shrink-0']">
       <rect width="36" height="12" fill="#ED2939"/>
       <rect y="12" width="36" height="12" fill="#FFFFFF"/>
-      <g fill="#FFFFFF" transform="translate(7, 6)">
+      <g fill="#FFFFFF" transform="translate(7.5, 6)">
         <path d="M-2,-4 A 4.2 4.2 0 1 0 -2 4 A 3.3 3.3 0 1 1 -2 -4 Z"/>
         <polygon points="1.5,-2 1.8,-1.2 2.6,-1.2 2,-0.7 2.2,0 1.5,-0.4 0.8,0 1,-0.7 0.4,-1.2 1.2,-1.2" transform="scale(0.8) translate(0.5, -1.8)"/>
         <polygon points="1.5,-2 1.8,-1.2 2.6,-1.2 2,-0.7 2.2,0 1.5,-0.4 0.8,0 1,-0.7 0.4,-1.2 1.2,-1.2" transform="scale(0.8) translate(2.5, 0)"/>
@@ -170,18 +175,20 @@
       <rect y="53.846" width="190" height="7.692" fill="#FFFFFF"/>
       <rect y="69.231" width="190" height="7.692" fill="#FFFFFF"/>
       <rect y="84.615" width="190" height="7.692" fill="#FFFFFF"/>
-      <!-- Blue Canton (Union) -->
-      <rect width="76" height="53.846" fill="#3C3B6E"/>
-      <!-- 50 Stars in 9 Alternating Rows -->
-      <use href="#us-r6" y="5.38"/>
-      <use href="#us-r5" y="10.77"/>
-      <use href="#us-r6" y="16.15"/>
-      <use href="#us-r5" y="21.54"/>
-      <use href="#us-r6" y="26.92"/>
-      <use href="#us-r5" y="32.31"/>
-      <use href="#us-r6" y="37.69"/>
-      <use href="#us-r5" y="43.08"/>
-      <use href="#us-r6" y="48.46"/>
+      <!-- Blue Canton (Union - 覆盖上 7 道条纹与 40% 旗宽) -->
+      <g>
+        <rect width="76" height="53.846" fill="#3C3B6E"/>
+        <!-- 50 Stars in 9 Alternating Rows -->
+        <use href="#us-r6" y="5.38"/>
+        <use href="#us-r5" y="10.77"/>
+        <use href="#us-r6" y="16.15"/>
+        <use href="#us-r5" y="21.54"/>
+        <use href="#us-r6" y="26.92"/>
+        <use href="#us-r5" y="32.31"/>
+        <use href="#us-r6" y="37.69"/>
+        <use href="#us-r5" y="43.08"/>
+        <use href="#us-r6" y="48.46"/>
+      </g>
     </svg>
 
     <!-- 7. 英国 (GB / UK) -->
@@ -208,7 +215,7 @@
       <rect x="24" width="12" height="24" fill="#ED2939"/>
     </svg>
 
-    <!-- 10. 加拿大 (CA) -->
+    <!-- 10. 加拿大 (CA: 枫叶旗法定比例矢量) -->
     <svg v-else-if="code === 'CA'" viewBox="0 0 36 24" preserveAspectRatio="none" :class="asBackground ? 'w-full h-full block' : [sizeClass, 'rounded-xs shadow-sm shrink-0']">
       <rect width="9" height="24" fill="#FF0000"/>
       <rect x="9" width="18" height="24" fill="#FFFFFF"/>
@@ -295,7 +302,7 @@
       <rect y="20" width="36" height="4" fill="#A51931"/>
     </svg>
 
-    <!-- 17. 越南 (VN) -->
+    <!-- 17. 越南 (VN: 金星红旗法定标准矢量) -->
     <svg v-else-if="code === 'VN'" viewBox="0 0 36 24" preserveAspectRatio="none" :class="asBackground ? 'w-full h-full block' : [sizeClass, 'rounded-xs shadow-sm shrink-0']">
       <rect width="36" height="24" fill="#DA251D"/>
       <polygon points="18,5 19.8,10.6 25.6,10.6 20.9,14 22.7,19.6 18,16.2 13.3,19.6 15.1,14 10.4,10.6 16.2,10.6" fill="#FFFF00"/>
@@ -368,11 +375,13 @@
       <circle cx="20.4" cy="13.8" r="0.22" fill="#ffffff"/>
     </svg>
 
-    <!-- 23. 瑞士 (CH) -->
+    <!-- 23. 瑞士 (CH: 瑞士红白十字国旗法定矢量) -->
     <svg v-else-if="code === 'CH'" viewBox="0 0 36 24" preserveAspectRatio="none" :class="asBackground ? 'w-full h-full block' : [sizeClass, 'rounded-xs shadow-sm shrink-0']">
       <rect width="36" height="24" fill="#D52B1E"/>
-      <rect x="15" y="6" width="6" height="12" fill="#FFFFFF"/>
-      <rect x="10" y="9" width="16" height="6" fill="#FFFFFF"/>
+      <g>
+        <rect x="15" y="6" width="6" height="12" fill="#FFFFFF"/>
+        <rect x="10" y="9" width="16" height="6" fill="#FFFFFF"/>
+      </g>
     </svg>
 
     <!-- 24. 瑞典 (SE) -->
@@ -415,16 +424,19 @@
       <path d="M13.5,18.8 Q16,18.2 18,18.8 Q20,19.4 22.5,18.8" stroke="#FFFFFF" stroke-width="0.4" fill="none"/>
     </svg>
 
-    <!-- 28. 中国 (CN) -->
+    <!-- 28. 中国 (CN: 中华人民共和国国旗五星红旗法定标准矢量) -->
     <svg v-else-if="code === 'CN'" viewBox="0 0 36 24" preserveAspectRatio="none" :class="asBackground ? 'w-full h-full block' : [sizeClass, 'rounded-xs shadow-sm shrink-0']">
       <rect width="36" height="24" fill="#DE2910"/>
-      <!-- Big Star centered at (6, 6) -->
-      <polygon points="6,2.4 6.84,4.98 9.55,4.98 7.36,6.58 8.19,9.12 6,7.54 3.81,9.12 4.64,6.58 2.45,4.98 5.16,4.98" fill="#FFDE00"/>
-      <!-- 4 Small Stars pointing at (6, 6) -->
-      <polygon points="0,-1.2 0.28,-0.37 1.14,-0.37 0.44,0.14 0.71,0.97 0,0.46 -0.71,0.97 -0.44,0.14 -1.14,-0.37 -0.28,-0.37" fill="#FFDE00" transform="translate(12, 2.4) rotate(-31)"/>
-      <polygon points="0,-1.2 0.28,-0.37 1.14,-0.37 0.44,0.14 0.71,0.97 0,0.46 -0.71,0.97 -0.44,0.14 -1.14,-0.37 -0.28,-0.37" fill="#FFDE00" transform="translate(14.4, 4.8) rotate(-8.1)"/>
-      <polygon points="0,-1.2 0.28,-0.37 1.14,-0.37 0.44,0.14 0.71,0.97 0,0.46 -0.71,0.97 -0.44,0.14 -1.14,-0.37 -0.28,-0.37" fill="#FFDE00" transform="translate(14.4, 8.4) rotate(15.9)"/>
-      <polygon points="0,-1.2 0.28,-0.37 1.14,-0.37 0.44,0.14 0.71,0.97 0,0.46 -0.71,0.97 -0.44,0.14 -1.14,-0.37 -0.28,-0.37" fill="#FFDE00" transform="translate(12, 10.8) rotate(38.7)"/>
+      <!-- 5 Stars Group (法定左上象限大五角星与四颗环拱小星) -->
+      <g>
+        <!-- Big Star centered at (6, 6) -->
+        <polygon points="6,2.4 6.84,4.98 9.55,4.98 7.36,6.58 8.19,9.12 6,7.54 3.81,9.12 4.64,6.58 2.45,4.98 5.16,4.98" fill="#FFDE00"/>
+        <!-- 4 Small Stars pointing at (6, 6) -->
+        <polygon points="0,-1.2 0.28,-0.37 1.14,-0.37 0.44,0.14 0.71,0.97 0,0.46 -0.71,0.97 -0.44,0.14 -1.14,-0.37 -0.28,-0.37" fill="#FFDE00" transform="translate(12, 2.4) rotate(-31)"/>
+        <polygon points="0,-1.2 0.28,-0.37 1.14,-0.37 0.44,0.14 0.71,0.97 0,0.46 -0.71,0.97 -0.44,0.14 -1.14,-0.37 -0.28,-0.37" fill="#FFDE00" transform="translate(14.4, 4.8) rotate(-8.1)"/>
+        <polygon points="0,-1.2 0.28,-0.37 1.14,-0.37 0.44,0.14 0.71,0.97 0,0.46 -0.71,0.97 -0.44,0.14 -1.14,-0.37 -0.28,-0.37" fill="#FFDE00" transform="translate(14.4, 8.4) rotate(15.9)"/>
+        <polygon points="0,-1.2 0.28,-0.37 1.14,-0.37 0.44,0.14 0.71,0.97 0,0.46 -0.71,0.97 -0.44,0.14 -1.14,-0.37 -0.28,-0.37" fill="#FFDE00" transform="translate(12, 10.8) rotate(38.7)"/>
+      </g>
     </svg>
 
     <!-- 29. 阿联酋 (AE) -->
@@ -448,116 +460,217 @@
       <rect y="12" width="36" height="12" fill="#FFDD00"/>
     </svg>
 
-    <!-- 32. 自建节点主权旗 (Sovereign Cyber HomeLab Ensign) -->
+    <!-- 32. 兔窝镇私人电台基站 / 自建节点 (Bunnyburrow Carrot Farm & HomeLab Transmitter) -->
     <svg v-else-if="code === 'CUSTOM' && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
       <defs>
-        <linearGradient id="custom-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#180b2c"/>
-          <stop offset="60%" stop-color="#3b0764"/>
-          <stop offset="100%" stop-color="#581c87"/>
+        <!-- Twilight Pastoral Sunset Gradient -->
+        <linearGradient id="ztp-custom-sky" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#190e2e"/>
+          <stop offset="40%" stop-color="#3b1054"/>
+          <stop offset="75%" stop-color="#831843"/>
+          <stop offset="100%" stop-color="#9a3412"/>
+        </linearGradient>
+        <!-- Glowing Carrot Gradient -->
+        <linearGradient id="ztp-carrot-body" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#fb923c"/>
+          <stop offset="100%" stop-color="#ea580c"/>
+        </linearGradient>
+        <!-- Carrot Leaves Gradient -->
+        <linearGradient id="ztp-carrot-leaf" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#4ade80"/>
+          <stop offset="100%" stop-color="#15803d"/>
         </linearGradient>
       </defs>
-      <rect width="36" height="24" fill="url(#custom-bg)"/>
-      <rect x="0" y="9.5" width="36" height="5" fill="#0d041a"/>
-      <rect x="9.5" y="0" width="5" height="24" fill="#0d041a"/>
-      <rect x="0" y="10.8" width="36" height="2.4" fill="#a855f7" opacity="0.55"/>
-      <rect x="10.8" y="0" width="2.4" height="24" fill="#a855f7" opacity="0.55"/>
-      <g transform="translate(5, 5)">
-        <circle cx="0" cy="0" r="1.3" fill="#00f5d4"/>
-        <circle cx="3.5" cy="0" r="1.3" fill="#38bdf8"/>
-      </g>
-      <g transform="translate(22.5, 12)">
-        <polygon points="0,-5.8 5.2,-2.9 0,0 -5.2,-2.9" fill="#00f5d4" opacity="0.95"/>
-        <polygon points="-5.2,-2.9 0,0 0,5.8 -5.2,2.9" fill="#7b2cbf"/>
-        <polygon points="0,0 5.2,-2.9 5.2,2.9 0,5.8" fill="#38bdf8"/>
-        <circle cx="0" cy="0" r="1.2" fill="#ffffff"/>
-      </g>
+      <!-- Twilight Sky -->
+      <rect width="36" height="24" fill="url(#ztp-custom-sky)"/>
+      <!-- Twinkling Countryside Stars & Golden Crescent Moon -->
+      <circle cx="5" cy="4" r="0.4" fill="#ffffff" opacity="0.9"/>
+      <circle cx="10" cy="2.5" r="0.3" fill="#fef08a" opacity="0.8"/>
+      <circle cx="15" cy="5" r="0.35" fill="#ffffff" opacity="0.85"/>
+      <circle cx="28" cy="3.5" r="0.4" fill="#fde047" opacity="0.85"/>
+      <!-- Crescent Moon -->
+      <path d="M7 2 A 2 2 0 1 0 9 5 A 1.6 1.6 0 1 1 7 2 Z" fill="#fef08a" opacity="0.9"/>
+      <!-- Soft Rolling Countryside Hills (Bunnyburrow Farmland) -->
+      <path d="M-2 24 Q 8 16, 18 19 Q 28 22, 38 17 L38 24 Z" fill="#14532d" opacity="0.9"/>
+      <path d="M-2 24 Q 10 20, 22 22 Q 32 18, 38 21 L38 24 Z" fill="#052e16"/>
+      <!-- Wi-Fi / Mesh Radio Transmission Waves from the Carrot Mast -->
+      <circle cx="24" cy="9" r="4" fill="none" stroke="#ff9e5e" stroke-width="0.5" opacity="0.6" stroke-dasharray="1.5 1"/>
+      <circle cx="24" cy="9" r="6.5" fill="none" stroke="#00f5d4" stroke-width="0.45" opacity="0.45" stroke-dasharray="2 1"/>
+      <!-- Carrot Cottage & Antenna Mast -->
+      <line x1="24" y1="4" x2="24" y2="18" stroke="#fef08a" stroke-width="0.6"/>
+      <line x1="22" y1="7" x2="26" y2="7" stroke="#fef08a" stroke-width="0.5"/>
+      <line x1="21" y1="11" x2="27" y2="11" stroke="#fef08a" stroke-width="0.5"/>
+      <!-- Carrot House Body -->
+      <path d="M21 13 Q 24 10, 27 13 L 25.5 20 Q 24 21, 22.5 20 Z" fill="url(#ztp-carrot-body)"/>
+      <!-- Carrot House Leaves on Top -->
+      <path d="M24 10 Q 22 6, 20 7 Q 22 9, 24 10 Q 26 6, 28 7 Q 26 9, 24 10 Z" fill="url(#ztp-carrot-leaf)"/>
+      <circle cx="24" cy="4" r="0.75" fill="#ffffff" stroke="#ff9e5e" stroke-width="0.3"/>
+      <!-- House Door and Cozy Window Glow -->
+      <circle cx="24" cy="14" r="0.8" fill="#fef08a"/>
+      <rect x="23.2" y="16.5" width="1.6" height="3" rx="0.5" fill="#78350f"/>
     </svg>
     <div v-else-if="code === 'CUSTOM'" class="text-sm shrink-0">
       🏠
     </div>
 
-    <!-- 33. 全球公海 / 其它 (United Earth & Maritime Ensign) -->
+    <!-- 33. 环球生态全景仪 / 其它与公海 (Zootopia World Biosphere Transit) -->
     <svg v-else-if="code === 'OTHERS' && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
       <defs>
-        <linearGradient id="others-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
+        <linearGradient id="ztp-others-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stop-color="#021c38"/>
-          <stop offset="50%" stop-color="#0284c7"/>
-          <stop offset="100%" stop-color="#082f49"/>
+          <stop offset="45%" stop-color="#0369a1"/>
+          <stop offset="80%" stop-color="#075985"/>
+          <stop offset="100%" stop-color="#064e3b"/>
+        </linearGradient>
+        <linearGradient id="ztp-brass" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fef08a"/>
+          <stop offset="100%" stop-color="#ca8a04"/>
         </linearGradient>
       </defs>
-      <rect width="36" height="24" fill="url(#others-bg)"/>
-      <rect x="0" y="2.5" width="36" height="1.8" fill="#fbbf24" opacity="0.8"/>
-      <rect x="0" y="19.7" width="36" height="1.8" fill="#fbbf24" opacity="0.8"/>
-      <g transform="translate(6, 12)" fill="#ffffff" opacity="0.8">
-        <polygon points="0,-2 0.5,-0.5 2,0 0.5,0.5 0,2 -0.5,0.5 -2,0 -0.5,-0.5"/>
-      </g>
-      <g transform="translate(30, 12)" fill="#ffffff" opacity="0.8">
-        <polygon points="0,-2 0.5,-0.5 2,0 0.5,0.5 0,2 -0.5,0.5 -2,0 -0.5,-0.5"/>
-      </g>
-      <g transform="translate(18, 12)">
-        <circle cx="0" cy="0" r="6.8" fill="#0369a1" stroke="#ffffff" stroke-width="0.8"/>
-        <ellipse cx="0" cy="0" rx="3.4" ry="6.8" fill="none" stroke="#ffffff" stroke-width="0.6" opacity="0.85"/>
-        <line x1="-6.8" y1="0" x2="6.8" y2="0" stroke="#ffffff" stroke-width="0.6" opacity="0.85"/>
-        <ellipse cx="0" cy="0" rx="6.8" ry="3.4" fill="none" stroke="#38bdf8" stroke-width="0.5" opacity="0.65"/>
-        <ellipse cx="0" cy="0" rx="9.8" ry="3.6" fill="none" stroke="#fbbf24" stroke-width="0.75" stroke-dasharray="1.5 1" transform="rotate(-25)"/>
+      <!-- Background: Deep Oceanic Void -->
+      <rect width="36" height="24" fill="url(#ztp-others-bg)"/>
+      <!-- Aurora Shimmer Bands Across Oceans -->
+      <path d="M-2 4 Q 18 12, 38 6 L38 0 L-2 0 Z" fill="#00f5d4" opacity="0.15"/>
+      <path d="M-2 20 Q 18 14, 38 22 L38 24 L-2 24 Z" fill="#38bdf8" opacity="0.18"/>
+      <!-- Distant Golden Horizon Navigational Rules -->
+      <line x1="0" y1="3" x2="36" y2="3" stroke="#fbbf24" stroke-width="0.5" opacity="0.55" stroke-dasharray="2 1"/>
+      <line x1="0" y1="21" x2="36" y2="21" stroke="#fbbf24" stroke-width="0.5" opacity="0.55" stroke-dasharray="2 1"/>
+      <!-- Celestial Armillary Sphere -->
+      <g :transform="asBackground ? 'translate(18, 11) scale(0.72)' : 'translate(18, 12)'">
+        <!-- Outer Golden Armillary Ring -->
+        <circle cx="0" cy="0" r="9.2" fill="none" stroke="url(#ztp-brass)" stroke-width="0.8"/>
+        <!-- Inner Holographic Globe -->
+        <circle cx="0" cy="0" r="7.5" fill="#0c4a6e" stroke="#38bdf8" stroke-width="0.55" opacity="0.9"/>
+        <!-- Globe Latitude & Longitude Grids -->
+        <ellipse cx="0" cy="0" rx="3.6" ry="7.5" fill="none" stroke="#7dd3fc" stroke-width="0.45" opacity="0.75"/>
+        <line x1="-7.5" y1="0" x2="7.5" y2="0" stroke="#7dd3fc" stroke-width="0.45" opacity="0.75"/>
+        <ellipse cx="0" cy="0" rx="7.5" ry="3.5" fill="none" stroke="#00f5d4" stroke-width="0.4" opacity="0.6"/>
+        <!-- 3D Tilted Brass Orbital Ring -->
+        <ellipse cx="0" cy="0" rx="11.5" ry="4.2" fill="none" stroke="url(#ztp-brass)" stroke-width="0.75" transform="rotate(-26)" stroke-dasharray="2 0.8"/>
+        <!-- 4 Biome Nexus Coordinates on the Ring (Glacier, Desert, Rainforest, City) -->
+        <circle cx="-9" cy="4" r="0.9" fill="#38bdf8" stroke="#ffffff" stroke-width="0.3"/>
+        <circle cx="9" cy="-4" r="0.9" fill="#facc15" stroke="#ffffff" stroke-width="0.3"/>
+        <circle cx="0" cy="-7.5" r="0.9" fill="#22c55e" stroke="#ffffff" stroke-width="0.3"/>
+        <circle cx="0" cy="7.5" r="0.9" fill="#c084fc" stroke="#ffffff" stroke-width="0.3"/>
+        <!-- Center Navigator Star -->
+        <polygon points="0,-2.2 0.7,-0.7 2.2,0 0.7,0.7 0,2.2 -0.7,0.7 -2.2,0 -0.7,-0.7" fill="#ffffff"/>
       </g>
     </svg>
     <div v-else-if="code === 'OTHERS'" class="text-sm shrink-0">
       🌐
     </div>
 
-    <!-- 34. 机场订阅专属旗 (Supersonic Cyber Airway Ensign) -->
+    <!-- 34. 动物城穿梭动车 / 机场订阅专属 (Zootopia Express Monorail Streamliner) -->
     <svg v-else-if="(code === 'SUB' || type === 'sub') && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
       <defs>
-        <linearGradient id="sub-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#0b1b36"/>
-          <stop offset="50%" stop-color="#0284c7"/>
-          <stop offset="100%" stop-color="#075985"/>
+        <!-- Sunset Dramatic Sky: Deep Navy to Blazing Sunset Orange -->
+        <linearGradient id="ztp-sub-sky" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#0b162c"/>
+          <stop offset="35%" stop-color="#1e3a8a"/>
+          <stop offset="70%" stop-color="#ea580c"/>
+          <stop offset="100%" stop-color="#f59e0b"/>
         </linearGradient>
-        <linearGradient id="sub-gold" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#fef08a"/>
-          <stop offset="100%" stop-color="#ca8a04"/>
+        <!-- Sleek High-Speed Train Body Gradient -->
+        <linearGradient id="ztp-train-silver" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#ffffff"/>
+          <stop offset="50%" stop-color="#e2e8f0"/>
+          <stop offset="100%" stop-color="#94a3b8"/>
+        </linearGradient>
+        <!-- Headlight Beam Flare -->
+        <linearGradient id="ztp-headlight" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#fef08a" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
         </linearGradient>
       </defs>
-      <rect width="36" height="24" fill="url(#sub-bg)"/>
-      <path d="M0 24 L13 0 L17 0 L4 24 Z" fill="#ffffff" opacity="0.3"/>
-      <path d="M5 24 L18 0 L22 0 L9 24 Z" fill="#38bdf8" opacity="0.45"/>
-      <g transform="translate(6.5, 6)" fill="#ffffff" opacity="0.9">
-        <polygon points="0,-3.5 0.7,-0.7 3.5,0 0.7,0.7 0,3.5 -0.7,0.7 -3.5,0 -0.7,-0.7"/>
-        <circle cx="0" cy="0" r="0.7" fill="#facc15"/>
-      </g>
-      <g transform="translate(22, 12)">
-        <ellipse cx="-4.5" cy="0" rx="3.5" ry="1.4" fill="#00f5d4" opacity="0.7"/>
-        <path d="M6.5 0 L-6 -5 L-3 -1.5 L-6.5 0 L-3 1.5 L-6 5 Z" fill="#ffffff"/>
-        <path d="M6.5 0 L-2 -1.5 L-6.5 0 L-2 1.5 Z" fill="url(#sub-gold)"/>
-      </g>
+      <!-- Sunset Sky Background -->
+      <rect width="36" height="24" fill="url(#ztp-sub-sky)"/>
+      <!-- Distant City Skyline Silhouettes in Sunset Glow -->
+      <polygon points="2,14 4,14 4,11 6,11 6,14 10,14 10,9 12,9 12,14 16,14 16,12 18,12 18,14 26,14 26,10 28,10 28,14 36,14 36 24 0 24 0 14" fill="#0f172a" opacity="0.6"/>
+      <!-- Giant Golden Setting Sun at Horizon -->
+      <circle cx="22" cy="14" r="5" fill="#fef08a" opacity="0.35"/>
+      <circle cx="22" cy="14" r="3.2" fill="#fffbeb" opacity="0.5"/>
+      <!-- Elevated Monorail Track: Sweeping Perspective Curve from Left to Right -->
+      <path d="M-2 19 Q 14 16, 38 12" stroke="#64748b" stroke-width="1.8" fill="none"/>
+      <path d="M-2 19 Q 14 16, 38 12" stroke="#38bdf8" stroke-width="0.5" fill="none" opacity="0.8"/>
+      <!-- Track Pillar Columns -->
+      <line x1="6" y1="18" x2="6" y2="24" stroke="#1e293b" stroke-width="0.9"/>
+      <line x1="16" y1="16.5" x2="16" y2="24" stroke="#1e293b" stroke-width="0.9"/>
+      <line x1="28" y1="14" x2="28" y2="24" stroke="#1e293b" stroke-width="0.9"/>
+      <!-- Supersonic Speed Streaks (Try Everything Jet Trails) -->
+      <line x1="0" y1="14.5" x2="18" y2="12.5" stroke="#00f5d4" stroke-width="0.6" opacity="0.75"/>
+      <line x1="-2" y1="16.5" x2="14" y2="14.5" stroke="#ffffff" stroke-width="0.7" opacity="0.9"/>
+      <line x1="4" y1="13.2" x2="20" y2="11.5" stroke="#38bdf8" stroke-width="0.4" opacity="0.6"/>
+      <!-- Streamlined Zootopia Express Bullet Train -->
+      <path d="M12 14.5 Q 22 13, 27 12 Q 29.5 11.5, 30.5 13 Q 29 14.2, 26 14.5 L 12 15.8 Z" fill="url(#ztp-train-silver)"/>
+      <path d="M26 12.3 Q 28.5 12, 29.5 12.8 Q 28 13.5, 26 13.5 Z" fill="#0284c7"/>
+      <path d="M13 14.8 L 27 13.6" stroke="#00f5d4" stroke-width="0.4"/>
+      <!-- Glowing Passenger Windows -->
+      <rect x="14" y="13.8" width="1.5" height="0.8" rx="0.2" fill="#fef08a"/>
+      <rect x="17" y="13.5" width="1.5" height="0.8" rx="0.2" fill="#fef08a"/>
+      <rect x="20" y="13.2" width="1.5" height="0.8" rx="0.2" fill="#fef08a"/>
+      <rect x="23" y="12.9" width="1.5" height="0.8" rx="0.2" fill="#fef08a"/>
+      <!-- Powerful Headlight Beam Shooting Forward -->
+      <polygon points="30.2,13 38,11 38,15.5 30.2,13.5" fill="url(#ztp-headlight)"/>
+      <circle cx="30.2" cy="13.2" r="0.5" fill="#ffffff"/>
     </svg>
     <div v-else-if="code === 'SUB' || type === 'sub'" class="text-sm shrink-0">
       ✈️
     </div>
 
-    <!-- 35. 拒绝出站 / 规则拦截旗 (Sentinel Citadel & Aegis Defense Flag) -->
+    <!-- 35. 动物城警察局警徽盾牌 / 规则拦截阻断 (ZPD Officer Star Badge & Security Shield) -->
     <svg v-else-if="code === 'REJECT' && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
       <defs>
-        <linearGradient id="reject-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stop-color="#4c0519"/>
-          <stop offset="50%" stop-color="#9f1239"/>
-          <stop offset="100%" stop-color="#2a030d"/>
+        <!-- Midnight Police Navy Void with Tactical Carbon Texture -->
+        <linearGradient id="ztp-zpd-bg" x1="0" y1="0" x2="36" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#040914"/>
+          <stop offset="50%" stop-color="#081830"/>
+          <stop offset="100%" stop-color="#0f274a"/>
         </linearGradient>
-        <linearGradient id="reject-shield" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#fb7185"/>
-          <stop offset="100%" stop-color="#e11d48"/>
+        <!-- Officer Golden Star / Shield Rim -->
+        <linearGradient id="ztp-zpd-gold" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#fef08a"/>
+          <stop offset="40%" stop-color="#facc15"/>
+          <stop offset="80%" stop-color="#ca8a04"/>
+          <stop offset="100%" stop-color="#78350f"/>
         </linearGradient>
+        <!-- Police Warning Beacons: Red & Blue Flasher Flare -->
+        <radialGradient id="ztp-flasher-red" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ef4444" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="ztp-flasher-blue" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+        </radialGradient>
       </defs>
-      <rect width="36" height="24" fill="url(#reject-bg)"/>
-      <path d="M0 0 L15 12 L0 24 Z" fill="#180208" opacity="0.55"/>
-      <line x1="0" y1="0" x2="15" y2="12" stroke="#f43f5e" stroke-width="0.9" opacity="0.7"/>
-      <line x1="0" y1="24" x2="15" y2="12" stroke="#f43f5e" stroke-width="0.9" opacity="0.7"/>
-      <g transform="translate(22, 12)">
-        <path d="M0 -6.5 L6.2 -3.3 V2 C6.2 5.8 0 8.2 0 8.2 C0 8.2 -6.2 5.8 -6.2 2 V-3.3 Z" fill="url(#reject-shield)" stroke="#ffffff" stroke-width="0.8"/>
-        <line x1="-3.2" y1="-3.2" x2="3.2" y2="3.2" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round"/>
-        <line x1="3.2" y1="-3.2" x2="-3.2" y2="3.2" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round"/>
+      <!-- Background: Police Midnight Blue -->
+      <rect width="36" height="24" fill="url(#ztp-zpd-bg)"/>
+      <!-- Twin Police Emergency Flasher Warning Beacons (Left Red / Right Blue) -->
+      <circle cx="2" cy="12" r="10" fill="url(#ztp-flasher-red)"/>
+      <circle cx="34" cy="12" r="10" fill="url(#ztp-flasher-blue)"/>
+      <line x1="0" y1="12" x2="12" y2="12" stroke="#ef4444" stroke-width="0.4" opacity="0.6" stroke-dasharray="1 1"/>
+      <line x1="24" y1="12" x2="36" y2="12" stroke="#3b82f6" stroke-width="0.4" opacity="0.6" stroke-dasharray="1 1"/>
+      <!-- Grand Officer ZPD Badge Shield (Centered with Judy's Golden Star) -->
+      <g :transform="asBackground ? 'translate(18, 11) scale(0.85)' : 'translate(18, 12)'">
+        <!-- Outer Heavy Gold Shield Rim -->
+        <path d="M0 -11 L8.5 -6 V2 C8.5 7.8 0 11.2 0 11.2 C0 11.2 -8.5 7.8 -8.5 2 V-6 Z" fill="url(#ztp-zpd-gold)" stroke="#ffffff" stroke-width="0.5"/>
+        <!-- Inner Police Navy Shield Plate -->
+        <path d="M0 -9.8 L7.2 -5.2 V1.6 C7.2 6.5 0 9.8 0 9.8 C0 9.8 -7.2 6.5 -7.2 1.6 V-5.2 Z" fill="#0a1a36"/>
+        <!-- Top ZPD Police Ribbon Banner -->
+        <path d="M-6 -4.8 H 6 V-2.2 H -6 Z" fill="url(#ztp-zpd-gold)" rx="0.5"/>
+        <text x="0" y="-3" font-size="2" font-weight="900" font-family="sans-serif" fill="#1e1106" text-anchor="middle" letter-spacing="0.4">ZPD</text>
+        <!-- Radiant 8-Point Officer Star in Center of Badge -->
+        <polygon points="0,-1.8 1,1.5 -1,1.5" fill="url(#ztp-zpd-gold)"/>
+        <polygon points="0,5.8 1,2.5 -1,2.5" fill="url(#ztp-zpd-gold)"/>
+        <polygon points="-3.8,2 0,1 0,3" fill="url(#ztp-zpd-gold)"/>
+        <polygon points="3.8,2 0,1 0,3" fill="url(#ztp-zpd-gold)"/>
+        <polygon points="-2.6,-0.6 0,1.2 -0.8,2" fill="#fef08a"/>
+        <polygon points="2.6,-0.6 0,1.2 0.8,2" fill="#fef08a"/>
+        <polygon points="-2.6,4.6 0,2.8 -0.8,2" fill="#fef08a"/>
+        <polygon points="2.6,4.6 0,2.8 0.8,2" fill="#fef08a"/>
+        <!-- Center Police Star Diamond Core -->
+        <circle cx="0" cy="2" r="1.3" fill="#ffffff" stroke="#facc15" stroke-width="0.3"/>
+        <polygon points="0,1 0.7,2 0,3 -0.7,2" fill="#ef4444"/>
       </g>
     </svg>
     <div v-else-if="code === 'REJECT'" class="text-sm shrink-0">

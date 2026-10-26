@@ -5,6 +5,7 @@ package main
 import (
 
 	"bytes"
+	"compress/gzip"
 
 	"encoding/json"
 
@@ -84,7 +85,7 @@ import (
 
 var (
 
-	version = "Test v4.0"
+	version = "Test v4.1"
 
 	startTime = time.Now()
 
@@ -372,7 +373,7 @@ func (w *LogBufferWriter) Write(p []byte) (n int, err error) {
 
 		if isBenign {
 
-			level = "DEBUG"
+			continue
 
 		} else if isLifecycleInfo {
 
@@ -733,6 +734,10 @@ func main() {
 
 	engMgr.SetLogCallback(func(level, module, msg string) {
 
+		if level == "DEBUG" {
+			return
+		}
+
 		logBuffer.Add(level, module, msg)
 
 	})
@@ -846,6 +851,7 @@ func main() {
 	mux.HandleFunc("/api/v1/system/reset", srv.handleSystemReset)
 
 	mux.HandleFunc("/api/v1/config/ir", srv.handleConfigIR)
+	mux.HandleFunc("/api/v1/config/ui_state", srv.handleUIState)
 
 	mux.HandleFunc("/api/v1/engine/switch", srv.handleEngineSwitch)
 
@@ -1173,7 +1179,7 @@ func main() {
 	}
 	log.Printf("🌌 CubeX Daemon [%s] listening on %s (Engine: %s, Tuning: %s)\n", version, actualAddr, cfgIR.Meta.ActiveEngine, cfgIR.Network.TunInterface)
 
-	if err := http.Serve(ln, corsMiddleware(mux)); err != nil {
+	if err := http.Serve(ln, gzipMiddleware(corsMiddleware(mux))); err != nil {
 		log.Fatalf("Fatal: %v", err)
 	}
 
@@ -1220,6 +1226,55 @@ func bindWithFallback(initialAddr string) (net.Listener, string, error) {
 	}
 
 	return nil, initialAddr, fmt.Errorf("端口 %s 及其后 10 个端口均已被占用: %w", initialAddr, err)
+}
+
+
+type gzipResponseWriter struct {
+	http.ResponseWriter
+	writer *gzip.Writer
+}
+
+func (w *gzipResponseWriter) WriteHeader(status int) {
+	w.Header().Del("Content-Length")
+	w.ResponseWriter.WriteHeader(status)
+}
+
+func (w *gzipResponseWriter) Write(b []byte) (int, error) {
+	w.Header().Del("Content-Length")
+	return w.writer.Write(b)
+}
+
+func (w *gzipResponseWriter) Flush() {
+	if w.writer != nil {
+		_ = w.writer.Flush()
+	}
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+func gzipMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") ||
+			r.Header.Get("Upgrade") != "" ||
+			strings.Contains(r.Header.Get("Accept"), "text/event-stream") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		w.Header().Set("Vary", "Accept-Encoding")
+		w.Header().Set("Content-Encoding", "gzip")
+
+		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		defer gz.Close()
+
+		gzw := &gzipResponseWriter{ResponseWriter: w, writer: gz}
+		next.ServeHTTP(gzw, r)
+	})
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -1686,6 +1741,32 @@ func (s *Server) handleRestartService(w http.ResponseWriter, r *http.Request) {
 }
 
 
+
+func (s *Server) handleUIState(w http.ResponseWriter, r *http.Request) {
+	stateFile := filepath.Join(s.workDir, "data", "ui_state.json")
+	if r.Method == http.MethodGet {
+		if b, err := os.ReadFile(stateFile); err == nil && len(b) > 0 {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			_, _ = w.Write(b)
+			return
+		}
+		sendJSON(w, map[string]any{"ok": true, "state": map[string]any{}})
+		return
+	}
+	if r.Method == http.MethodPost {
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		_ = os.MkdirAll(filepath.Dir(stateFile), 0755)
+		b, _ := json.MarshalIndent(payload, "", "  ")
+		_ = os.WriteFile(stateFile, b, 0644)
+		sendJSON(w, map[string]any{"ok": true})
+		return
+	}
+	http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+}
 
 func (s *Server) handleConfigIR(w http.ResponseWriter, r *http.Request) {
 

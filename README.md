@@ -6,7 +6,7 @@
 ### *单二进制纯自研 · 告别传统重型虚机旁路 · 极致轻量低开销 · 300ms 冷启 · 宛如物理肉身直连全球互联网的终极共生体*
 
 <p align="center">
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v4.0-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v4.1-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 <a href="https://github.com/zyeyefyass/CubeX"><img src="https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go" alt="Dual-Engine" /></a>
 <a href="#"><img src="https://img.shields.io/badge/Host-RouterOS_v7_%7C_爱快_iKuai_%7C_OpenWrt_%7C_飞牛_fnOS_%7C_PVE_%7C_Linux-3A86FF?style=for-the-badge" alt="Host Base" /></a>
@@ -40,7 +40,7 @@
 
 - [⚡ 权威实测：CubeX Test v2.8 vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)](#benchmark)
 
-- [📢 最新版本升级通知 (Test v4.0 3D 暮光晶曜动态矢量 LOGO 定稿 · 智能健康探活自愈中枢 · 极简驾驶舱版)](#announcement)
+- [📢 最新版本升级通知 (Test v4.1 移动端极致自适应 · 常驻 6 大模块 Safe-Area 导航坞 · 全栈云端 UI 状态秒级同步 · 极速高性能纯净终端版)](#announcement)
 
 - [📦 资产下载与全平台底座选用清单 (Release Assets)](#release-assets)
 
@@ -501,26 +501,33 @@ CubeX 针对全家用户不同的网络设备、使用习惯与网络拓扑，�
 <a id="announcement"></a>
 
 > [!IMPORTANT]
-> ### 🏆 官方 3D 暮光晶曜动态矢量 LOGO 定稿 · 智能健康探活自愈中枢 · 极简驾驶舱版 (CubeX Test v4.0 旗舰里程碑发布)
+> ### 🏆 移动端极致自适应 · 常驻 6 大模块 Safe-Area 导航坞 · 全栈云端 UI 状态秒级同步 · 极速高性能纯净终端版 (CubeX Test v4.1 旗舰重磅发布)
 >
 > **致所有追求极限网络性能、极度稳定与零运维开销的极客用户：**
 >
-> 今天发布的 **CubeX Test v4.0**，全面落实全新品牌规范、官方 3D 动态矢量 LOGO 定稿与双核智能健康探活中枢，历经真实多宿主环境严苛闭环验证：
+> 今天发布的 **CubeX Test v4.1**，针对移动端人机交互全景重构、跨设备云端偏好状态同步、全栈前端加载吞吐优化与高密纯净运维终端，历经真实多宿主环境严苛闭环验证与双引擎 4 轮往返热重载无损校验：
 >
-> 1. 🎨 **官方 3D 暮光晶曜微光动力立方体 (Twilight Crystal Dynamic Animated Logo)**：
->    * 全站与文档 LOGO 彻底定稿并正名，全面替换为纯 SVG 贝塞尔曲线、日落暖金 (`#FF9E5E`) 与暮光深紫 (`#C084FC`) 双向激光束、旋转核聚变超新星 (`nova-star`) 与悬浮引力星轨 (`orbit-gold` / `orbit-violet`) 的全动态自适应矢量图；
->    * 4K / 8K 超清显示与深色背景下Sub-pixel亚像素级纯净渲染，永不发虚！
-> 2. ⚡ **智能健康探活与预热无感自愈中枢 (Smart Health Ping & Pre-emptive Failover)**：
->    * 引入低频低开销全网后台探活守护引擎（支持 5m / 15m / 30m / 60m 灵活调优）；
->    * 一旦感知当前出海落地节点被封锁或超时，**在用户发起请求之前 0 毫秒静默预热无感切至同组延迟最低的健康备选节点**，彻底根治看流媒体（YouTube / Netflix）或使用 AI（ChatGPT / Claude / Gemini）时偶尔卡顿 5 秒超时的业界顽疾！
-> 3. 💎 **控制台顶部栏极简优雅重构 (Clean Capsule Architecture)**：
->    * 彻底精简并移除冗余图框，布局高度严格对称，突出双核秒级热切、智能探活状态指示与宿主共生徽标；
-> 4. 📱 **手机端触控微动效与安全区自适应 (Mobile Haptics & Safe-Area)**：
->    * 移动端底部常驻导航坞（Bottom Dock）严格适配 `env(safe-area-inset-bottom)` 避免 iOS 底部横条遮挡，全站操作按钮注入物理级微回弹反馈动效；
-> 5. 🛡️ **沙盒感知重构与平滑热重启自愈中枢**：
->    * 宿主网格精准重塑为「沙盒内核 & 架构」，时光机卡片新增专属 `[ 🔥 平滑热重启 ]` 按钮，一键强制解绑冲突端口与 TUN 网卡；
-> 6. 🌌 **品牌形象终极纯化**：
->    * 彻底剥离历史遗留名词（再无“赛博极光”、“极光魔方”说法），官方命名统一为 **CubeX 宿主共生零感网络系统**，交互设计正名为 **Twilight Crystal 暮光冰晶 · macOS 原生毛玻璃**。
+> 1. 📱 **移动端全功能自适应与常驻底部 Safe-Area 6 大模块导航坞 (Mobile Permanent Bottom Dock)**：
+>    * 彻底修复手机端浏览时底部栏按钮挤压遮挡与裁切问题，采用严格 6 等分 `grid-template-columns: repeat(6, minmax(0, 1fr))` 物理响应式布局，手机端 100% 完整展示 6 大主模块（网络中枢、应用分流、安全防护、容器加速、宿主共生、日志诊断）；
+>    * 移动端（< 768px）自适应隐藏 PC 左侧常驻侧边栏与冗余抽屉，完全释放竖屏可视面积；
+>    * 暮光落日金高亮高光、安全区置底（`pb-safe`）与全息毛玻璃质感，单手盲操丝滑自如；
+>    * 手机端页眉自适应极简微胶囊排列（CubeX 品牌、双引擎快速切换图标 pill、宿主状态），绝对零横向溢出。
+> 2. ☁️ **跨设备云端 UI 状态实时同步协议 (Cross-Device Cloud UI State Sync)**：
+>    * 后端守护进程新增 `/api/v1/config/ui_state` 状态持久化中枢，彻底打破手机端与电脑端 `localStorage` 孤岛；
+>    * 策略分组拖拽自定义排序（`biz_order`）、用户自定义合并区域（`custom_region_groups`）、排除候选节点（`excluded_candidates`）、策略选路映射（`group_region_policy`）全端秒级自动双向同步，手机开箱即享与电脑端完全一致的精细编排！
+> 3. ⚡ **首屏传输体积骤降 75% 与 GPU 渲染引擎极速提速 (Zero-Lag Frontend & Gzip Acceleration)**：
+>    * 后端 `cubexd` 核心集成高性能静态资源与 API Gzip 实时动态压缩管道，JS 传输体积从 703KB 骤降至 189KB（-73.1%），CSS 传输体积骤降至 17KB（-85.2%）；
+>    * 清理并重构前端 177 处深层嵌套 `backdrop-blur` 高负载滤镜，彻底消除 GPU 渲染流水线光栅化瓶颈与移动端卡顿；
+>    * 智能标签页感知轮询调度器（Page Visibility API + Tab-gating），后台休眠降频，降低设备功耗与前端 CPU 占用。
+> 4. 🩺 **日志诊断中枢 20 行高密展示与纯净极简终端 (Diagnostics 20-Line Density & Clean Terminal)**：
+>    * 移除冗余的模块选择与下拉菜单，终端工具栏全面极简纯净；
+>    * 精准锁定 20 行高密度日志流展示，禁止页面外层穿透滑动，保持内部流式日志平滑滚动，运维观察一目了然；
+>    * 智能过滤与降噪内核底层无害套接字取消、外部常规超时与未映射 Fake-IP 噪音，高信噪比呈现核心路由决策与安全自愈动态。
+> 5. 🔄 **智能超时自动重试与后台静默自愈测速 (Smart Timeout Auto-Retry & Self-Healing Speedtest)**：
+>    * 区域测速在偶发网络抖动或超时情况下自动执行后台二次重试，配合 25 秒后台静默自愈巡检，彻底消除节点“测速超时”假死。
+> 6. 🛡️ **宿主故障与关机 100% 零影响主路由国内直连安全闭环 (Zero-Downtime Domestic Traffic Isolation)**：
+>    * RouterOS / 爱快主路由 DHCP 默认网关直指物理主路由，国内所有流量（百度、微信、阿里、腾讯等）直走 WAN 直连路由表，零标记且绝不经过 CubeX；
+>    * 配合 RouterOS Netwatch 3秒毫秒级双向逃生看门狗，CubeX 无论重启、崩溃、维护还是关机断电，局域网与国内直连 100% 零丢包、零感知、绝对无损！
 >
 > 经过严苛的端到端闭环验证，*专家组一致裁定将 PVE CT 容器作为所有宿主平台首选最为推荐的部署方案！*
 <a id="release-assets"></a>
@@ -529,23 +536,23 @@ CubeX 针对全家用户不同的网络设备、使用习惯与网络拓扑，�
 
 | 文件名 | 平台 / 底座 | 文件大小 | 说明与安装指引 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v4.0-linux-amd64.zip` | Linux amd64 (通用宿主 / **PVE CT 首选** / 飞牛) | ~86.3 MB | 包含混淆加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
-| `CubeX-Test-v4.0-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~79.5 MB | 包含混淆加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
-| `CubeX-Test-v4.0-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~109.3 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
-| `CubeX-Test-v4.0-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~108.4 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
-| `CubeX-Test-v4.0-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~85.4 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（标签为 `cubex:latest`）；OpenWrt 与飞牛支持 `setup-openwrt.sh` 自动载入或 `docker load -i` |
-| `cubexd-linux-amd64` | Linux amd64 单二进制 | ~35.1 MB | Garble AST 深度混淆加固主控守护进程，用于在线秒级热更或单文件运行 |
-| `cubexd-linux-arm64` | Linux arm64 单二进制 | ~31.7 MB | Garble AST 深度混淆加固主控守护进程（ARM64 硬件架构） |
-| `cubex-linux-amd64` | Linux amd64 运维 CLI | ~16.9 MB | Garble 混淆加固终端运维命令行控制面 |
-| `cubex-linux-arm64` | Linux arm64 运维 CLI | ~15.1 MB | Garble 混淆加固终端运维命令行控制面（ARM64） |
-| `install_pve_lxc.sh` | **Proxmox VE 官方一键安装脚本 (最为推荐)** | ~7.9 KB | PVE 宿主机终端一键全自动部署脚本（自动升级 Alpine、透传 TUN、创建强隔离 CT 容器与装配 OpenRC 守护进程） |
-| `install.sh` | Linux 官方一键安全安装器 | ~11.4 KB | 专有安全加载器，终端执行 `curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/install.sh | bash` |
+| `CubeX-Test-v4.1-linux-amd64.zip` | Linux amd64 (通用宿主 / **PVE CT 首选** / 飞牛) | ~73.8 MB | 包含加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
+| `CubeX-Test-v4.1-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~68.0 MB | 包含加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
+| `CubeX-Test-v4.1-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~96.8 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
+| `CubeX-Test-v4.1-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~96.9 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
+| `CubeX-Test-v4.1-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~77.4 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（标签为 `cubex:latest`）；OpenWrt 与飞牛支持 `setup-openwrt.sh` 自动载入或 `docker load -i` |
+| `cubexd-linux-amd64` | Linux amd64 单二进制 | ~12.9 MB | 加固主控守护进程，集成 Gzip 实时动态加速与跨端状态同步，用于在线秒级热更或单文件运行 |
+| `cubexd-linux-arm64` | Linux arm64 单二进制 | ~12.1 MB | 加固主控守护进程（ARM64 硬件架构） |
+| `cubex-linux-amd64` | Linux amd64 运维 CLI | ~6.3 MB | 终端运维命令行控制面 |
+| `cubex-linux-arm64` | Linux arm64 运维 CLI | ~5.8 MB | 终端运维命令行控制面（ARM64） |
+| `install_pve_lxc.sh` | **Proxmox VE 官方一键安装脚本 (最为推荐)** | ~8.1 KB | PVE 宿主机终端一键全自动部署脚本（自动升级 Alpine、透传 TUN、创建强隔离 CT 容器与装配 OpenRC 守护进程） |
+| `install.sh` | Linux 官方一键安全安装器 | ~11.4 KB | 专有安全加载器，终端执行 `curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.1/install.sh | bash` |
 | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~17.0 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（支持全局大括号块作用域，自动配置网络、路由与 Netwatch 0秒逃生） |
-| `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~19.4 KB | OpenWrt 终端复制即用全自动编排脚本（支持多镜像断点续传、交互进度条、Macvlan-Shim、0秒看门狗与锁定 odhcpd 防泄露） |
+| `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~19.0 KB | OpenWrt 终端复制即用全自动编排脚本（支持多镜像断点续传、交互进度条、Macvlan-Shim、0秒看门狗与锁定 odhcpd 防泄露） |
 
 > ### 🧭 各主流宿主底座极速安装与发布资产选用速查指引：
 
-> * 🥇 **Proxmox VE (PVE) CT 容器 (LXC) 一键全自动安装（最为推荐方案 · 针对所有宿主）**：在 PVE 宿主机终端执行一行命令 `curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/install_pve_lxc.sh | bash`，全自动完成 Alpine 升级、TUN 透传、容器创建与守护进程启动！强沙盒隔离、开机不到一秒、内存仅占 30MB~70MB、原生物理万兆吞吐！详细图文请点击直达：[方式 A：Proxmox VE CT 容器极速部署教程](#deploy-pve)。
+> * 🥇 **Proxmox VE (PVE) CT 容器 (LXC) 一键全自动安装（最为推荐方案 · 针对所有宿主）**：在 PVE 宿主机终端执行一行命令 `curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.1/install_pve_lxc.sh | bash`，全自动完成 Alpine 升级、TUN 透传、容器创建与守护进程启动！强沙盒隔离、开机不到一秒、内存仅占 30MB~70MB、原生物理万兆吞吐！详细图文请点击直达：[方式 A：Proxmox VE CT 容器极速部署教程](#deploy-pve)。
 
 > * 🔵 **MikroTik RouterOS v7 原生容器安装方式**：通过 WinBox 上传 ROS 镜像包 `CubeX-*-ros-amd64.tar` 或 `arm64.tar`，在终端粘贴运行 `setup-routeros-v7.rsc` 脚本，30秒全自动拉起共生容器。详细步骤请点击直达：[方式 B：RouterOS v7 容器极速安装指南](#deploy-ros)。
 
@@ -842,7 +849,7 @@ CubeX 内置强大的本地 DNS 重写引擎，无需修改任何 hosts 文件�
 
 ```bash
 
-curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/install_pve_lxc.sh | bash
+curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.1/install_pve_lxc.sh | bash
 
 ```
 
@@ -1103,7 +1110,7 @@ sh setup-openwrt.sh
 
 # 官方一键智能嗅探脚本 (自动适配 amd64 / arm64)
 
-wget -4 -qO- https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/setup-openwrt.sh | sh
+wget -4 -qO- https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.1/setup-openwrt.sh | sh
 
 ```
 
@@ -1325,7 +1332,7 @@ docker run -d \
 
 # 官方一键智能嗅探脚本
 
-curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/install.sh | bash
+curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.1/install.sh | bash
 
 ```
 
