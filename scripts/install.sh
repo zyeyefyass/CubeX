@@ -456,14 +456,14 @@ else
 
     if [ "$NEED_DOWNLOAD" -eq 1 ] && [ ! -f "$INSTALL_DIR/bin/cubexd" ]; then
         echo -e "${CYAN}🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 101套规则集 + 控制面)...${NC}"
-        REL_TAG=$(curl -4 -sSL --connect-timeout 3 -m 5 -I "https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
+        REL_TAG=$(curl -4 -sSL --connect-timeout 3 -m 5 -I "https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
         if [ -z "$REL_TAG" ]; then
             REL_TAG=$(curl -4 -sSL --connect-timeout 3 -m 5 -I "https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
         fi
         [ -z "$REL_TAG" ] && REL_TAG="Test-v3.8"
         ZIP_NAME="CubeX-${REL_TAG}-linux-${TARGET_ARCH}.zip"
         ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
-        ZIP_MIRROR="https://ghproxy.net/${ZIP_URL}"
+        ZIP_MIRROR="https://gh-proxy.com/${ZIP_URL}"
 
         TMP_ZIP="/tmp/${ZIP_NAME}"
         if [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
@@ -472,7 +472,7 @@ else
             rm -f "$TMP_ZIP"
             echo -e "${CYAN}   -> 正在通过高速镜像源下载 ${ZIP_NAME} (约 84MB，免代理极速拉取)...${NC}"
             DOWNLOAD_OK=0
-            for MIRROR in "https://ghproxy.net" "https://gh.ddlc.top" ""; do
+            for MIRROR in "https://gh-proxy.com" "https://gh.ddlc.top" ""; do
                 if [ -n "$MIRROR" ]; then
                     DL_LINK="${MIRROR}/${ZIP_URL}"
                 else
@@ -492,7 +492,7 @@ else
         else
             echo -e "${YELLOW}⚠️ 完整归档拉取失败，尝试降级拉取单二进制核心控制面...${NC}"
             DL_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${TARGET_ARCH}"
-            DL_MIRROR="https://ghproxy.net/${DL_URL}"
+            DL_MIRROR="https://gh-proxy.com/${DL_URL}"
             curl -4 -sSL --connect-timeout 8 -m 120 -o "$INSTALL_DIR/bin/cubexd" "$DL_URL" 2>/dev/null || \
             curl -4 -sSL --connect-timeout 10 -m 120 -o "$INSTALL_DIR/bin/cubexd" "$DL_MIRROR" 2>/dev/null || true
         fi
@@ -558,7 +558,7 @@ done
 if [ "$CLI_INSTALLED" -eq 0 ]; then
     echo -e "${CYAN}🌐 正在尝试拉取最新版原生运维 CLI (cubex-linux-${TARGET_ARCH})...${NC}"
     CLI_URL="https://github.com/zyeyefyass/CubeX/releases/latest/download/cubex-linux-$TARGET_ARCH"
-    CLI_MIRROR="https://ghproxy.net/$CLI_URL"
+    CLI_MIRROR="https://gh-proxy.com/$CLI_URL"
     if curl -4 -sSL --connect-timeout 5 -m 30 -o /usr/local/bin/cubex "$CLI_URL" 2>/dev/null && [ -s /usr/local/bin/cubex ]; then
         chmod +x /usr/local/bin/cubex 2>/dev/null || true
         CLI_INSTALLED=1

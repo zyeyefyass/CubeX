@@ -539,13 +539,13 @@ CubeX 针对全家用户不同的网络设备、使用习惯与网络拓扑，�
 | `cubex-linux-amd64` | Linux amd64 运维 CLI | ~16.9 MB | Garble 混淆加固终端运维命令行控制面 |
 | `cubex-linux-arm64` | Linux arm64 运维 CLI | ~15.1 MB | Garble 混淆加固终端运维命令行控制面（ARM64） |
 | `install_pve_lxc.sh` | **Proxmox VE 官方一键安装脚本 (最为推荐)** | ~7.9 KB | PVE 宿主机终端一键全自动部署脚本（自动升级 Alpine、透传 TUN、创建强隔离 CT 容器与装配 OpenRC 守护进程） |
-| `install.sh` | Linux 官方一键安全安装器 | ~11.4 KB | 专有安全加载器，终端执行 `curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/install.sh | bash` |
+| `install.sh` | Linux 官方一键安全安装器 | ~11.4 KB | 专有安全加载器，终端执行 `curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/install.sh | bash` |
 | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~17.0 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（支持全局大括号块作用域，自动配置网络、路由与 Netwatch 0秒逃生） |
 | `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~19.4 KB | OpenWrt 终端复制即用全自动编排脚本（支持多镜像断点续传、交互进度条、Macvlan-Shim、0秒看门狗与锁定 odhcpd 防泄露） |
 
 > ### 🧭 各主流宿主底座极速安装与发布资产选用速查指引：
 
-> * 🥇 **Proxmox VE (PVE) CT 容器 (LXC) 一键全自动安装（最为推荐方案 · 针对所有宿主）**：在 PVE 宿主机终端执行一行命令 `curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/install_pve_lxc.sh | bash`，全自动完成 Alpine 升级、TUN 透传、容器创建与守护进程启动！强沙盒隔离、开机不到一秒、内存仅占 30MB~70MB、原生物理万兆吞吐！详细图文请点击直达：[方式 A：Proxmox VE CT 容器极速部署教程](#deploy-pve)。
+> * 🥇 **Proxmox VE (PVE) CT 容器 (LXC) 一键全自动安装（最为推荐方案 · 针对所有宿主）**：在 PVE 宿主机终端执行一行命令 `curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/install_pve_lxc.sh | bash`，全自动完成 Alpine 升级、TUN 透传、容器创建与守护进程启动！强沙盒隔离、开机不到一秒、内存仅占 30MB~70MB、原生物理万兆吞吐！详细图文请点击直达：[方式 A：Proxmox VE CT 容器极速部署教程](#deploy-pve)。
 
 > * 🔵 **MikroTik RouterOS v7 原生容器安装方式**：通过 WinBox 上传 ROS 镜像包 `CubeX-*-ros-amd64.tar` 或 `arm64.tar`，在终端粘贴运行 `setup-routeros-v7.rsc` 脚本，30秒全自动拉起共生容器。详细步骤请点击直达：[方式 B：RouterOS v7 容器极速安装指南](#deploy-ros)。
 
@@ -842,7 +842,7 @@ CubeX 内置强大的本地 DNS 重写引擎，无需修改任何 hosts 文件�
 
 ```bash
 
-curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/install_pve_lxc.sh | bash
+curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/install_pve_lxc.sh | bash
 
 ```
 
@@ -1103,7 +1103,7 @@ sh setup-openwrt.sh
 
 # 官方一键智能嗅探脚本 (自动适配 amd64 / arm64)
 
-wget -4 -qO- https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/setup-openwrt.sh | sh
+wget -4 -qO- https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/setup-openwrt.sh | sh
 
 ```
 
@@ -1325,7 +1325,7 @@ docker run -d \
 
 # 官方一键智能嗅探脚本
 
-curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/install.sh | bash
+curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/install.sh | bash
 
 ```
 

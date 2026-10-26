@@ -333,7 +333,7 @@ else
     set -e
     echo "🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 101套规则集 + 控制面)..."
     REL_TAG=""
-    for MIRROR in "https://ghproxy.net" "https://gh.ddlc.top" "https://mirror.ghproxy.com"; do
+    for MIRROR in "https://gh-proxy.com" "https://gh.ddlc.top" "https://mirror.ghproxy.com"; do
         LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 3 -m 5 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
         if [ -n "$LATEST_JSON" ]; then
             REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
@@ -347,7 +347,7 @@ else
     rm -f "$TMP_ZIP"
 
     DOWNLOAD_SUCCESS=0
-    DOWNLOAD_URLS="https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://gh.ddlc.top/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
+    DOWNLOAD_URLS="https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://gh.ddlc.top/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
 
     for DL_URL in $DOWNLOAD_URLS; do
         echo "   -> 正在尝试拉取: ${DL_URL}..."
@@ -370,7 +370,7 @@ else
     else
         echo "⚠️ 归档下载超时，降级拉取单二进制..."
         BIN_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-amd64"
-        BIN_MIRROR="https://ghproxy.net/$BIN_URL"
+        BIN_MIRROR="https://gh-proxy.com/$BIN_URL"
         curl -4 --http1.1 -sSL --connect-timeout 8 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_URL" 2>/dev/null || curl -4 --http1.1 -sSL --connect-timeout 10 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_MIRROR" 2>/dev/null || true
         chmod 755 /opt/CubeX/bin/cubexd 2>/dev/null || true
     fi
