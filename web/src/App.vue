@@ -185,24 +185,7 @@
 
         <!-- Right: 🐙 GitHub 官方直达 + 🌙 去蓝光护眼一键切换 + 宿主机官方矢量 Logo + 在线心跳胶囊 -->
         <div class="flex items-center gap-2 shrink-0">
-
-          <!-- ⊞ 4K 高密驾驶舱 / 舒适沉浸模式切换胶囊 -->
-          <button @click="toggleDensityMode"
-            :title="densityMode === 'compact' ? '当前：4K 紧凑高密模式（点击切换标准舒适）' : '当前：标准舒适模式（点击切换 4K 紧凑高密）'"
-            :class="[
-              'h-[42px] sm:h-[46px] inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-2xl macos-capsule transition-all duration-300 font-mono text-xs font-bold active:scale-95 cursor-pointer',
-              densityMode === 'compact' ? 'border-cyan-400/50 bg-cyan-500/10 text-cyan-300 shadow-[0_0_12px_rgba(0,210,255,0.25)]' : 'text-slate-300 hover:text-white'
-            ]">
-            <svg v-if="densityMode === 'compact'" class="w-4 h-4 text-cyan-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-            <svg v-else class="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
-            </svg>
-            <span class="hidden xl:inline">{{ densityMode === 'compact' ? '高密驾驶舱' : '舒适视图' }}</span>
-          </button>
-
-          <!-- ⚡ 智能健康探活与预热无感自愈胶囊 -->
+<!-- ⚡ 智能健康探活与预热无感自愈胶囊 -->
           <button @click="showSmartPingModal = true"
             title="智能健康巡检与预热自愈中枢 · 自动探活并 0 秒预先剔除失效节点"
             class="h-[42px] sm:h-[46px] inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-2xl macos-capsule transition-all duration-300 font-mono text-xs font-bold text-slate-300 hover:text-white active:scale-95 cursor-pointer group">
@@ -215,20 +198,7 @@
               {{ smartPing.failover_count }}自愈
             </span>
           </button>
-
-          <!-- 🐙 GitHub 官方开源直达胶囊 (高度严格对称 h-[42px] sm:h-[46px]) -->
-          <a href="https://github.com/zyeyefyass/CubeX" target="_blank" rel="noopener noreferrer"
-            class="h-[42px] sm:h-[46px] inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 rounded-2xl macos-capsule hover:border-sky-400/50 text-slate-200 hover:text-white select-none transition-all duration-300 cursor-pointer active:scale-95 group"
-            title="访问 CubeX GitHub 官方开源仓库 (https://github.com/zyeyefyass/CubeX)">
-            <svg class="w-4 h-4 sm:w-5 sm:h-5 fill-current text-slate-300 group-hover:text-emerald-300 group-hover:scale-110 transition-transform shrink-0" viewBox="0 0 24 24">
-              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-            </svg>
-            <span class="hidden xl:inline text-xs font-mono font-bold tracking-tight">GitHub</span>
-            <span class="text-[10px] text-slate-300 group-hover:text-emerald-300 font-mono transition-colors">↗</span>
-          </a>
-
-
-          <!-- 🌙 去蓝光护眼显示模式保持全局常驻生效 -->
+<!-- 🌙 去蓝光护眼显示模式保持全局常驻生效 -->
 
           <!-- Fixed Height h-[42px] sm:h-[46px] for absolute symmetry with left capsule -->
           <button @click="activeMasterTab = 'system'"
