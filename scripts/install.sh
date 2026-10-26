@@ -368,7 +368,7 @@ if [ "$DEPLOY_MODE" = "docker" ]; then
     cat <<EOF > "$INSTALL_DIR/docker-compose.yml"
 services:
   cubex:
-    image: ghcr.io/zyeyefyass/cubex:latest
+    image: docker.io/fyasshole/cubex:latest
     container_name: cubex
     restart: unless-stopped
     network_mode: host
@@ -407,13 +407,13 @@ EOF
         docker compose down 2>/dev/null || true
         docker compose up -d
     else
-        echo -e "${CYAN}💡 正在拉取最新版 Docker 镜像 (ghcr.io/zyeyefyass/cubex:latest)...${NC}"
-        DOCKER_IMG="ghcr.io/zyeyefyass/cubex:latest"
+        echo -e "${CYAN}💡 正在拉取最新版 Docker 镜像 (docker.io/fyasshole/cubex:latest)...${NC}"
+        DOCKER_IMG="docker.io/fyasshole/cubex:latest"
         if ! docker pull "$DOCKER_IMG" 2>/dev/null; then
-            echo -e "${YELLOW}⚠️ GHCR 镜像源拉取超时，切换至 Docker Hub: docker.io/zyeyefyass/cubex:latest...${NC}"
-            docker pull "docker.io/zyeyefyass/cubex:latest" 2>/dev/null || true
-            if docker inspect "docker.io/zyeyefyass/cubex:latest" >/dev/null 2>&1; then
-                DOCKER_IMG="docker.io/zyeyefyass/cubex:latest"
+            echo -e "${YELLOW}⚠️ GHCR 镜像源拉取超时，切换至 Docker Hub: docker.io/fyasshole/cubex:latest...${NC}"
+            docker pull "docker.io/fyasshole/cubex:latest" 2>/dev/null || true
+            if docker inspect "docker.io/fyasshole/cubex:latest" >/dev/null 2>&1; then
+                DOCKER_IMG="docker.io/fyasshole/cubex:latest"
             fi
         fi
         echo -e "${CYAN}💡 正在通过标准 docker run 命令拉起容器...${NC}"

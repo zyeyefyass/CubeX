@@ -556,7 +556,7 @@ CubeX 针对全家用户不同的网络设备、使用习惯与网络拓扑，�
 
 > * 🟠 **OpenWrt 智能软路由安装方式**：SSH 登录 OpenWrt 终端执行复制 `setup-openwrt.sh` 脚本，全自动部署 Macvlan-Shim 容器与 0 秒逃生看门狗。详细步骤请点击直达：[方式 D：OpenWrt 原生极速部署](#deploy-openwrt)。
 
-> * 🟣 **飞牛 fnOS 与通用 Docker 安装方式**：在 Docker 界面导入离线包 `CubeX-*-docker-amd64.tar.gz`，或直接使用官方免配镜像 `image: zyeyefyass/cubex:latest` 执行 `docker compose up -d` 即可。详细步骤请点击直达：[方式 E：飞牛 fnOS 部署教程](#deploy-fnos-linux)。
+> * 🟣 **飞牛 fnOS 与通用 Docker 安装方式**：在 Docker 界面导入离线包 `CubeX-*-docker-amd64.tar.gz`，或直接使用官方免配镜像 `image: fyasshole/cubex:latest` 执行 `docker compose up -d` 即可。详细步骤请点击直达：[方式 E：飞牛 fnOS 部署教程](#deploy-fnos-linux)。
 
 ---
 
@@ -1249,7 +1249,7 @@ ip route add 10.0.0.11/32 dev macvlan-shim
 
      cubex:
 
-       image: zyeyefyass/cubex:latest
+       image: fyasshole/cubex:latest
 
        container_name: cubex
 
@@ -1287,13 +1287,33 @@ ip route add 10.0.0.11/32 dev macvlan-shim
 
 #### ⚡ 途径 ②：Host 共享网络模式（单行命令拉起 · 免配 Macvlan）
 
+##### 🟣 飞牛 fnOS 专属单行命令（默认路径 `/vol1/1000/cubex`）：
+
 ```bash
-
-docker run -d   --name cubex   --restart always   --network host   --privileged   --device /dev/net/tun   -v /var/lib/cubex/data:/app/data   zyeyefyass/cubex:latest
-
+docker run -d \
+  --name cubex \
+  --restart always \
+  --network host \
+  --privileged \
+  --device /dev/net/tun \
+  -v /vol1/1000/cubex/data:/app/data \
+  -v /vol1/1000/cubex/etc:/app/etc \
+  fyasshole/cubex:latest
 ```
 
+##### 🐧 通用 Linux Docker 单行命令（默认路径 `/var/lib/cubex`）：
 
+```bash
+docker run -d \
+  --name cubex \
+  --restart always \
+  --network host \
+  --privileged \
+  --device /dev/net/tun \
+  -v /var/lib/cubex/data:/app/data \
+  -v /var/lib/cubex/etc:/app/etc \
+  fyasshole/cubex:latest
+```
 
 ---
 
