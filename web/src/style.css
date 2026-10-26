@@ -234,21 +234,36 @@ h1, h2, h3, .macos-title {
   transform: scale(0.94) translateY(18px);
 }
 
-/* 暮光定制滚动条 (Minimal macOS Translucent Glass) */
+/* 暮光晶曜高可见度立体滚动条 (High-Contrast Twilight Crystal Scrollbar) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 158, 94, 0.75) rgba(10, 16, 28, 0.65);
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 9px;
+  height: 9px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(14, 12, 22, 0.20);
+  background: rgba(10, 16, 28, 0.70);
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 240, 230, 0.24);
+  background: linear-gradient(180deg, #FF9E5E 0%, #C084FC 100%);
   border-radius: 9999px;
-  backdrop-filter: blur(4px);
+  border: 1.5px solid rgba(10, 16, 28, 0.85);
+  box-shadow: 0 0 8px rgba(255, 158, 94, 0.45);
+  transition: all 0.2s ease-in-out;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 158, 94, 0.55);
+  background: linear-gradient(180deg, #FFAE78 0%, #D8B4FE 100%);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 12px rgba(255, 158, 94, 0.85);
+}
+::-webkit-scrollbar-thumb:active {
+  background: #00F5D4;
+  box-shadow: 0 0 14px rgba(0, 245, 212, 0.9);
 }
 
 /* 全局边框统一为 1px 暮光冰晶柔和描边，消除突兀生硬纯色边框 */
