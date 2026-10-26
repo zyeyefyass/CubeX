@@ -1485,18 +1485,25 @@
                         : 'border-slate-800/90 hover:border-emerald-500/50 shadow-sm',
                       isChinaGroup(grp) ? 'ring-1 ring-emerald-400/50 shadow-emerald-500/20' : ''
                     ]">
-                    <!-- Background: Full-Bleed 3:2 Chinese Flag SVG + Bottom Shadow Veil (Bright & Vivid) -->
-                    <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none bg-slate-950">
-                      <RegionFlag country-code="CN" name="中国" as-background
-                        :class="[
-                          'w-full h-full object-cover transition-all duration-300',
-                          isDirectActive(grp) ? 'opacity-95 scale-[1.02]' : 'opacity-80 group-hover:opacity-95'
-                        ]" />
+                    <!-- Background: Proportional 3:2 Chinese Flag SVG (Proportionally Scaled Down) -->
+                    <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none bg-slate-950 flex items-center justify-center">
+                      <!-- Subtle Ambient Flag Aura in Background -->
+                      <div class="absolute inset-0 opacity-25 blur-sm scale-110">
+                        <RegionFlag country-code="CN" name="中国" as-background class="w-full h-full object-cover" />
+                      </div>
+                      <!-- Centered Proportional Flag (Scaled Down ~78%) -->
+                      <div class="w-full h-full flex items-center justify-center transform scale-[0.78] transition-all duration-300 group-hover:scale-[0.82] rounded-xl overflow-hidden shadow-md shadow-black/60">
+                        <RegionFlag country-code="CN" name="中国" as-background
+                          :class="[
+                            'w-full h-full object-cover transition-all duration-300',
+                            isDirectActive(grp) ? 'opacity-95' : 'opacity-85 group-hover:opacity-100'
+                          ]" />
+                      </div>
                       <div :class="[
-                        'absolute inset-0 transition-opacity duration-300',
+                        'absolute inset-0 transition-opacity duration-300 pointer-events-none',
                         isDirectActive(grp)
-                          ? 'bg-gradient-to-t from-black/85 via-black/25 to-transparent'
-                          : 'bg-gradient-to-t from-black/85 via-black/25 to-transparent group-hover:via-black/15'
+                          ? 'bg-gradient-to-t from-black/85 via-black/20 to-transparent'
+                          : 'bg-gradient-to-t from-black/85 via-black/20 to-transparent group-hover:via-black/10'
                       ]"></div>
                       <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent"></div>
                     </div>
@@ -1546,18 +1553,25 @@
                             ? 'border-emerald-400 shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-400/60'
                             : 'border-slate-800/90 hover:border-cyan-500/50 shadow-sm'
                         ]">
-                        <!-- Background: Full-Bleed 3:2 Flag SVG + Bottom Shadow Veil (Bright & Vivid) -->
-                        <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none bg-slate-950">
-                          <RegionFlag :id="reg.id" :country-code="reg.country_code" :name="reg.name" :type="reg.type" :flag="reg.flag" as-background
-                            :class="[
-                              'w-full h-full object-cover transition-all duration-300',
-                              isRegionActiveInGroup(grp, reg) ? 'opacity-95 scale-[1.02]' : 'opacity-80 group-hover:opacity-95'
-                            ]" />
+                        <!-- Background: Proportional 3:2 Flag SVG (Proportionally Scaled Down) -->
+                        <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none bg-slate-950 flex items-center justify-center">
+                          <!-- Subtle Ambient Flag Aura in Background -->
+                          <div class="absolute inset-0 opacity-25 blur-sm scale-110">
+                            <RegionFlag :id="reg.id" :country-code="reg.country_code" :name="reg.name" :type="reg.type" :flag="reg.flag" as-background class="w-full h-full object-cover" />
+                          </div>
+                          <!-- Centered Proportional Flag (Scaled Down ~78%) -->
+                          <div class="w-full h-full flex items-center justify-center transform scale-[0.78] transition-all duration-300 group-hover:scale-[0.82] rounded-xl overflow-hidden shadow-md shadow-black/60">
+                            <RegionFlag :id="reg.id" :country-code="reg.country_code" :name="reg.name" :type="reg.type" :flag="reg.flag" as-background
+                              :class="[
+                                'w-full h-full object-cover transition-all duration-300',
+                                isRegionActiveInGroup(grp, reg) ? 'opacity-95' : 'opacity-85 group-hover:opacity-100'
+                              ]" />
+                          </div>
                           <div :class="[
-                            'absolute inset-0 transition-opacity duration-300',
+                            'absolute inset-0 transition-opacity duration-300 pointer-events-none',
                             isRegionActiveInGroup(grp, reg)
-                              ? 'bg-gradient-to-t from-black/85 via-black/25 to-transparent'
-                              : 'bg-gradient-to-t from-black/85 via-black/25 to-transparent group-hover:via-black/15'
+                              ? 'bg-gradient-to-t from-black/85 via-black/20 to-transparent'
+                              : 'bg-gradient-to-t from-black/85 via-black/20 to-transparent group-hover:via-black/10'
                           ]"></div>
                           <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/25 to-transparent"></div>
                         </div>
@@ -1608,18 +1622,23 @@
                           ? 'border-rose-400 shadow-lg shadow-rose-500/25 ring-2 ring-rose-400/60'
                           : 'border-slate-800/90 hover:border-rose-500/50 shadow-sm'
                       ]">
-                      <!-- Background: Crimson Aegis Sentinel Flag SVG + Bottom Shadow Veil (Bright & Vivid) -->
-                      <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none bg-slate-950">
-                        <RegionFlag code="REJECT" name="拒绝" as-background
-                          :class="[
-                            'w-full h-full object-cover transition-all duration-300',
-                            isRejectActive(grp) ? 'opacity-95 scale-[1.02]' : 'opacity-80 group-hover:opacity-95'
-                          ]" />
+                      <!-- Background: Crimson Aegis Sentinel Flag SVG (Proportionally Scaled Down) -->
+                      <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none bg-slate-950 flex items-center justify-center">
+                        <div class="absolute inset-0 opacity-25 blur-sm scale-110">
+                          <RegionFlag code="REJECT" name="拒绝" as-background class="w-full h-full object-cover" />
+                        </div>
+                        <div class="w-full h-full flex items-center justify-center transform scale-[0.78] transition-all duration-300 group-hover:scale-[0.82] rounded-xl overflow-hidden shadow-md shadow-black/60">
+                          <RegionFlag code="REJECT" name="拒绝" as-background
+                            :class="[
+                              'w-full h-full object-cover transition-all duration-300',
+                              isRejectActive(grp) ? 'opacity-95' : 'opacity-85 group-hover:opacity-100'
+                            ]" />
+                        </div>
                         <div :class="[
-                          'absolute inset-0 transition-opacity duration-300',
+                          'absolute inset-0 transition-opacity duration-300 pointer-events-none',
                           isRejectActive(grp)
-                            ? 'bg-gradient-to-t from-black/85 via-black/25 to-transparent'
-                            : 'bg-gradient-to-t from-black/85 via-black/25 to-transparent group-hover:via-black/15'
+                            ? 'bg-gradient-to-t from-black/85 via-black/20 to-transparent'
+                            : 'bg-gradient-to-t from-black/85 via-black/20 to-transparent group-hover:via-black/10'
                         ]"></div>
                         <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-rose-500/30 to-transparent"></div>
                       </div>

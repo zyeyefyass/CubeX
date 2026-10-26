@@ -262,22 +262,28 @@ pct start "$CT_ID"
 sleep 2
 
 # 9. 容器内部初始化与依赖部署
-echo -e "\n${CYAN}🔄 [5/5] 容器内部全自动初始化 (更新源、配置守护进程与内存软上限)...${NC}"
+echo -e "\n${CYAN}🔄 [5/5] 容器内部全自动初始化（首次部署约需 30~60 秒，请耐心等待）...${NC}"
+
+echo -e "   -> ${BOLD}[5.1/5.4] 正在配置国内极速镜像源 (Aliyun Mirror)...${NC}"
 pct exec "$CT_ID" -- sh -s << 'EOF'
 set -e
 cat << "REPO" > /etc/apk/repositories
 https://mirrors.aliyun.com/alpine/latest-stable/main
 https://mirrors.aliyun.com/alpine/latest-stable/community
-https://dl-cdn.alpinelinux.org/alpine/latest-stable/main
-https://dl-cdn.alpinelinux.org/alpine/latest-stable/community
 REPO
+EOF
 
-apk update >/dev/null 2>&1 || true
-apk add --no-cache curl ca-certificates iptables ip6tables iproute2 tzdata unzip >/dev/null 2>&1
-
+echo -e "   -> ${BOLD}[5.2/5.4] 正在安装底层网络与系统依赖 (iptables / iproute2 / curl / ca-certificates)...${NC}"
+pct exec "$CT_ID" -- sh -s << 'EOF'
+set -e
+apk update --quiet || true
+apk add --no-cache curl ca-certificates iptables ip6tables iproute2 tzdata unzip
 mkdir -p /opt/CubeX/bin /opt/CubeX/data /opt/CubeX/etc /opt/CubeX/rules
+EOF
 
-# 注册带 GOMEMLIMIT 保护的 OpenRC 系统级守护进程
+echo -e "   -> ${BOLD}[5.3/5.4] 正在配置 OpenRC 系统级守护进程 (含 180MB GOMEMLIMIT 防爆保护)...${NC}"
+pct exec "$CT_ID" -- sh -s << 'EOF'
+set -e
 cat << "INIT" > /etc/init.d/cubexd
 #!/sbin/openrc-run
 name="cubexd"
@@ -304,19 +310,20 @@ chmod +x /etc/init.d/cubexd
 rc-update add cubexd default >/dev/null 2>&1
 EOF
 
+echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX Test v4.0 双核完整发布包...${NC}"
 # 10. 推送或下载 CubeX 完整发布包
-if [ -f "dist/release/CubeX-Test-v3.8-linux-amd64.zip" ]; then
+if [ -f "dist/release/CubeX-Test-v4.0-linux-amd64.zip" ]; then
     echo -e "${BLUE}检测到本地发布包，直接推送至容器: /opt/CubeX...${NC}"
-    pct push "$CT_ID" dist/release/CubeX-Test-v3.8-linux-amd64.zip /tmp/CubeX.zip
+    pct push "$CT_ID" dist/release/CubeX-Test-v4.0-linux-amd64.zip /tmp/CubeX.zip
     pct exec "$CT_ID" -- sh -s << 'EOF'
 unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/
 chmod +x /opt/CubeX/bin/* 2>/dev/null || true
 ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
 rm -f /tmp/CubeX.zip
 EOF
-elif [ -f "/tmp/CubeX-Test-v3.8-linux-amd64.zip" ] && [ -s "/tmp/CubeX-Test-v3.8-linux-amd64.zip" ]; then
+elif [ -f "/tmp/CubeX-Test-v4.0-linux-amd64.zip" ] && [ -s "/tmp/CubeX-Test-v4.0-linux-amd64.zip" ]; then
     echo -e "${BLUE}检测到宿主机缓存发布包，直接推送至容器: /opt/CubeX...${NC}"
-    pct push "$CT_ID" /tmp/CubeX-Test-v3.8-linux-amd64.zip /tmp/CubeX.zip
+    pct push "$CT_ID" /tmp/CubeX-Test-v4.0-linux-amd64.zip /tmp/CubeX.zip
     pct exec "$CT_ID" -- sh -s << 'EOF'
 unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/
 chmod +x /opt/CubeX/bin/* 2>/dev/null || true
@@ -340,7 +347,7 @@ else
             [ -n "$REL_TAG" ] && break
         fi
     done
-    [ -z "$REL_TAG" ] && REL_TAG="Test-v3.8"
+    [ -z "$REL_TAG" ] && REL_TAG="Test-v4.0"
 
     ZIP_NAME="CubeX-${REL_TAG}-linux-amd64.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"
@@ -397,9 +404,9 @@ PVECLI
     echo -e "  🌐 旁路由 IP   : ${BOLD}${CT_CLEAN_IP}${NC}"
     echo -e "  🖥️ Web 控制台  : ${CYAN}${BOLD}http://${CT_CLEAN_IP}:2026${NC}"
     echo -e "  ⚡ 底座优势    : 原生共享宿主物理内核，内存仅需 70MB，启动 < 1 秒"
-    echo -e "  🔑 初始账号    : admin  |  初始密码: admin123"
+    echo -e "  🛡️ 访问安全    : 开箱即用 · 局域网直连免密 (亦可在控制台设置访问密钥)"
     echo -e "\n${YELLOW}💡 下一步联动指引:${NC}"
-    echo -e "  1. 打开浏览器登录 Web 控制台: ${CYAN}http://${CT_CLEAN_IP}:2026${NC}"
+    echo -e "  1. 打开浏览器直接访问 Web 控制台: ${CYAN}http://${CT_CLEAN_IP}:2026${NC}"
     echo -e "  2. 进入【⚙️ 宿主共生与系统运维】，输入主路由（如 RouterOS / 爱快）的 IP 与凭据"
     echo -e "  3. 点击【⚡ 一键全栈自愈】，CubeX 将自动完成策略路由表创建、Fake-IP 回指与 0 秒逃生编排！"
     echo -e "${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}\n"
