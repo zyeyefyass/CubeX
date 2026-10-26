@@ -250,12 +250,22 @@ if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
             echo -e "${YELLOW}   -> 未检测到本地离线镜像，正在从国内加速镜像拉取 CubeX 离线 Docker 镜像包 (约 89MB)...${NC}"
             PULL_SUCCESS=0
             TMP_TAR="/tmp/cubex-docker-${ARCH}.tar.gz"
+            REL_TAG=""
+            for MIRROR in "https://gh-proxy.com" "https://gh.ddlc.top" "https://mirror.ghproxy.com"; do
+                LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 3 -m 5 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
+                if [ -n "$LATEST_JSON" ]; then
+                    REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
+                    [ -n "$REL_TAG" ] && break
+                fi
+            done
+            [ -z "$REL_TAG" ] && REL_TAG="Test-v4.1"
+
             # 优先从国内加速镜像拉取完整的 Docker 归档包 (支持断点续传与多源竞速)
             for MIRROR in "https://gh-proxy.com" "https://gh.ddlc.top" ""; do
                 if [ -n "$MIRROR" ]; then
-                    TAR_DL="${MIRROR}/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/CubeX-Test-v4.0-docker-${ARCH}.tar.gz"
+                    TAR_DL="${MIRROR}/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/CubeX-${REL_TAG}-docker-${ARCH}.tar.gz"
                 else
-                    TAR_DL="https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.0/CubeX-Test-v4.0-docker-${ARCH}.tar.gz"
+                    TAR_DL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/CubeX-${REL_TAG}-docker-${ARCH}.tar.gz"
                 fi
                 echo -e "${CYAN}   -> 正在连接下载源: ${TAR_DL} ...${NC}"
                 if command -v curl >/dev/null 2>&1; then

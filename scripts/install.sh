@@ -442,12 +442,10 @@ else
     
     # 优先查找本地完整发行归档，或自动从 GitHub Releases 下载全量包 (包含双引擎与101套规则)
     NEED_DOWNLOAD=1
-    if [ -f "$CURRENT_SCRIPT_DIR/../dist/CubeX-Test-v4.0-linux-$TARGET_ARCH.zip" ]; then
-        echo -e "${GREEN}📦 发现本地发行归档包，直接解压部署...${NC}"
-        unzip -q -o "$CURRENT_SCRIPT_DIR/../dist/CubeX-Test-v4.0-linux-$TARGET_ARCH.zip" -d "$INSTALL_DIR" 2>/dev/null || true
-        NEED_DOWNLOAD=0
-    elif [ -f "./dist/CubeX-Test-v4.0-linux-$TARGET_ARCH.zip" ]; then
-        unzip -q -o "./dist/CubeX-Test-v4.0-linux-$TARGET_ARCH.zip" -d "$INSTALL_DIR" 2>/dev/null || true
+    LOCAL_ZIP=$(ls "$CURRENT_SCRIPT_DIR/../dist/release/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "$CURRENT_SCRIPT_DIR/../dist/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "./dist/release/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "./dist/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" 2>/dev/null | sort -V | tail -n1 || true)
+    if [ -n "$LOCAL_ZIP" ] && [ -f "$LOCAL_ZIP" ]; then
+        echo -e "${GREEN}📦 发现本地发行归档包 (${LOCAL_ZIP})，直接解压部署...${NC}"
+        unzip -q -o "$LOCAL_ZIP" -d "$INSTALL_DIR" 2>/dev/null || true
         NEED_DOWNLOAD=0
     elif [ -f "$CURRENT_SCRIPT_DIR/../dist/cubexd-linux-$TARGET_ARCH" ]; then
         cp "$CURRENT_SCRIPT_DIR/../dist/cubexd-linux-$TARGET_ARCH" "$INSTALL_DIR/bin/cubexd"
@@ -460,7 +458,7 @@ else
         if [ -z "$REL_TAG" ]; then
             REL_TAG=$(curl -4 -sSL --connect-timeout 3 -m 5 -I "https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
         fi
-        [ -z "$REL_TAG" ] && REL_TAG="Test-v4.0"
+        [ -z "$REL_TAG" ] && REL_TAG="Test-v4.1"
         ZIP_NAME="CubeX-${REL_TAG}-linux-${TARGET_ARCH}.zip"
         ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
         ZIP_MIRROR="https://gh-proxy.com/${ZIP_URL}"

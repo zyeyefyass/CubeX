@@ -310,20 +310,23 @@ chmod +x /etc/init.d/cubexd
 rc-update add cubexd default >/dev/null 2>&1
 EOF
 
-echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX Test v4.0 双核完整发布包...${NC}"
+echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX Test v4.1 双核完整发布包...${NC}"
 # 10. 推送或下载 CubeX 完整发布包
-if [ -f "dist/release/CubeX-Test-v4.0-linux-amd64.zip" ]; then
-    echo -e "${BLUE}检测到本地发布包，直接推送至容器: /opt/CubeX...${NC}"
-    pct push "$CT_ID" dist/release/CubeX-Test-v4.0-linux-amd64.zip /tmp/CubeX.zip
+LOCAL_PKG=$(ls dist/release/CubeX-Test-*-linux-amd64.zip 2>/dev/null | sort -V | tail -n1 || true)
+CACHE_PKG=$(ls /tmp/CubeX-Test-*-linux-amd64.zip 2>/dev/null | sort -V | tail -n1 || true)
+
+if [ -n "$LOCAL_PKG" ] && [ -f "$LOCAL_PKG" ]; then
+    echo -e "${BLUE}检测到本地发布包 (${LOCAL_PKG})，直接推送至容器: /opt/CubeX...${NC}"
+    pct push "$CT_ID" "$LOCAL_PKG" /tmp/CubeX.zip
     pct exec "$CT_ID" -- sh -s << 'EOF'
 unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/
 chmod +x /opt/CubeX/bin/* 2>/dev/null || true
 ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
 rm -f /tmp/CubeX.zip
 EOF
-elif [ -f "/tmp/CubeX-Test-v4.0-linux-amd64.zip" ] && [ -s "/tmp/CubeX-Test-v4.0-linux-amd64.zip" ]; then
-    echo -e "${BLUE}检测到宿主机缓存发布包，直接推送至容器: /opt/CubeX...${NC}"
-    pct push "$CT_ID" /tmp/CubeX-Test-v4.0-linux-amd64.zip /tmp/CubeX.zip
+elif [ -n "$CACHE_PKG" ] && [ -s "$CACHE_PKG" ]; then
+    echo -e "${BLUE}检测到宿主机缓存发布包 (${CACHE_PKG})，直接推送至容器: /opt/CubeX...${NC}"
+    pct push "$CT_ID" "$CACHE_PKG" /tmp/CubeX.zip
     pct exec "$CT_ID" -- sh -s << 'EOF'
 unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/
 chmod +x /opt/CubeX/bin/* 2>/dev/null || true
@@ -347,7 +350,7 @@ else
             [ -n "$REL_TAG" ] && break
         fi
     done
-    [ -z "$REL_TAG" ] && REL_TAG="Test-v4.0"
+    [ -z "$REL_TAG" ] && REL_TAG="Test-v4.1"
 
     ZIP_NAME="CubeX-${REL_TAG}-linux-amd64.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"
