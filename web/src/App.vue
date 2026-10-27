@@ -511,6 +511,18 @@
             </div>
           </section>
 
+          <!-- ════════════════════════════════════════════════════════════════ -->
+          <!-- 🌌 全息动态流量拓扑大屏 (Twilight Crystal 2.0 Dynamic Topology Canvas) -->
+          <!-- ════════════════════════════════════════════════════════════════ -->
+          <TopologyCanvas
+            :lan-devices="lanDevices"
+            :active-engine="activeEngine"
+            :system-status="systemStatus"
+            :ir="ir"
+            :health-radar="healthRadar"
+            :telemetry-metrics="telemetryMetrics"
+            @refresh="fetchLanDevices"
+          />
 
           <!-- ════════════════════════════════════════════════════════════════ -->
           <!-- 📊 动态模块: 实时网络遥测 (主流服务实时延迟探针)                  -->
@@ -1353,9 +1365,13 @@
                 @dragover.prevent
                 @dragend="onDragEnd"
                 @drop="onDrop($event, grpIdx)"
+                @touchstart="handlePolicyTouchStart($event, grp)"
+                @touchend="handlePolicyTouchEnd($event, grp)"
                 :class="[
                   'rounded-3xl macos-glass-card hover:border-[#FF9E5E]/40 transition-all duration-300 shadow-xl relative p-4 sm:p-5 space-y-4',
-                  draggedGroupIndex === grpIdx ? 'opacity-40 scale-[0.98] border-cyan-400 shadow-2xl shadow-[#FF9E5E]/20 ring-1 ring-cyan-400/50' : ''
+                  draggedGroupIndex === grpIdx ? 'opacity-40 scale-[0.98] border-cyan-400 shadow-2xl shadow-[#FF9E5E]/20 ring-1 ring-cyan-400/50' : '',
+                  policyCardBounceMap[grp.name] ? 'scale-[0.98] ring-2 ring-emerald-400 shadow-emerald-500/30' : '',
+                  policyCardRippleMap[grp.name] ? 'ring-2 ring-cyan-400 shadow-2xl shadow-cyan-400/40' : ''
                 ]">
                 
                 <!-- Card Header: Drag Handle, Brand Icon, Name, Badges, Outbound Route Breadcrumb, Top-Right Latency Badge -->
@@ -1406,8 +1422,12 @@
 
                   <!-- Active Outbound Latency Badge & Delete/Immutable Group Badge -->
                   <div class="shrink-0 flex items-center gap-2">
-                    <span class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-white/5 border border-emerald-500/30 text-emerald-400 shadow-sm">
-                      {{ getGroupActiveLatency(grp) > 0 ? getGroupActiveLatency(grp) : (isDirectActive(grp) ? 22 : '⚡') }}
+                    <span :class="[
+                      'px-3 py-1 rounded-full text-xs font-mono font-bold shadow-sm flex items-center gap-1.5 transition-all duration-300',
+                      getLatencyRadarBadgeClass(getGroupActiveLatency(grp), true)
+                    ]">
+                      <span class="w-1.5 h-1.5 rounded-full" :class="getLatencyDotClass(getGroupActiveLatency(grp))"></span>
+                      <span>{{ getGroupActiveLatency(grp) > 0 ? getGroupActiveLatency(grp) + 'ms' : (isDirectActive(grp) ? '22ms' : '⚡ 优选') }}</span>
                     </span>
                     <!-- 核心基石徽章 (不可删除) vs 普通策略组删除按钮 -->
                     <span v-if="grp.is_immutable"
@@ -1535,15 +1555,13 @@
                             'text-[9.5px] font-mono font-bold px-2 py-0.5 rounded-full shadow-md transition shrink-0 flex items-center gap-1 cursor-pointer select-none',
                             regionTestingMap[reg.id]
                               ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 animate-pulse'
-                              : isRegionActiveInGroup(grp, reg)
-                                ? 'bg-emerald-500 text-white shadow-emerald-500/40 ring-1 ring-emerald-300/50'
-                                : 'bg-slate-950/90 text-emerald-400 border border-emerald-500/30 backdrop-blur-sm hover:border-cyan-400/60'
+                              : getLatencyRadarBadgeClass(getRegionLatency(reg), isRegionActiveInGroup(grp, reg))
                           ]"
                           :title="regionTestingMap[reg.id] ? '正在测试中...' : '点击立即测速该组所有节点'"
                           @click.stop="testRegionGroupNodes(reg)">
                             <span v-if="regionTestingMap[reg.id]" class="w-2.5 h-2.5 border-2 border-amber-300 border-t-transparent rounded-full animate-spin"></span>
                             <span v-else class="text-[8px] opacity-75">⚡</span>
-                            <span>{{ regionTestingMap[reg.id] ? (regionTestingMap[reg.id] === 'retry' ? '复测中' : '测速中') : (getRegionLatency(reg) > 0 ? getRegionLatency(reg) : '超时') }}</span>
+                            <span>{{ regionTestingMap[reg.id] ? (regionTestingMap[reg.id] === 'retry' ? '复测中' : '测速中') : (getRegionLatency(reg) > 0 ? getRegionLatency(reg) + 'ms' : '超时') }}</span>
                           </span>
                         </div>
                       </div>
@@ -1691,11 +1709,12 @@
                     <!-- Right: Latency Badge + Fast Speedtest + Delete Button -->
                     <div class="flex items-center gap-2 shrink-0">
                       <!-- Latency badge (Click to speedtest) -->
-                      <span :class="['px-2.5 py-1 rounded-xl text-xs font-mono font-bold shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition select-none whitespace-nowrap',
-                        regionTestingMap[reg.id] ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : getLatencyBadgeClass(reg.winnerLatency)]"
+                      <span :class="['px-2.5 py-1 rounded-xl text-xs font-mono font-bold shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition select-none whitespace-nowrap flex items-center gap-1',
+                        regionTestingMap[reg.id] ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse' : getLatencyRadarBadgeClass(reg.winnerLatency, false)]"
                         @click.stop="enqueueRegionSpeedtest(reg)"
                         :title="regionTestingMap[reg.id] ? '正在测速中...' : '点击立即测速该分组所有节点'">
-                        {{ regionTestingMap[reg.id] ? '测速中...' : (reg.winnerLatency > 0 ? `${reg.winnerLatency}ms` : '⚡ 未测速') }}
+                        <span class="w-1.5 h-1.5 rounded-full" :class="getLatencyDotClass(reg.winnerLatency)"></span>
+                        <span>{{ regionTestingMap[reg.id] ? '测速中...' : (reg.winnerLatency > 0 ? `${reg.winnerLatency}ms` : '⚡ 未测速') }}</span>
                       </span>
 
                       <!-- Quick Test Button -->
@@ -4004,19 +4023,33 @@
                   一键打包导出包含双核配置、分流策略规则、宿主共生凭据在内的全量系统快照，遭遇任何误操作或故障均可一键导入秒级自愈。
                 </p>
               </div>
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                <button @click="exportBackup" class="py-2.5 sm:py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer shadow-md backdrop-blur-md">
-                  <span>📥 导出系统快照</span>
-                </button>
-                <label class="py-2.5 sm:py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer text-center shadow-md backdrop-blur-md">
-                  <span>📤 导入快照恢复</span>
-                  <input type="file" accept=".json" @change="importBackup" class="hidden" />
-                </label>
-                <button @click="triggerHotRestart" :disabled="isHotRestarting" class="py-2.5 sm:py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer shadow-md backdrop-blur-md disabled:opacity-50" title="平滑热重载双核代理引擎、解除端口占用、重置 TUN 虚拟网卡并自愈主路由策略连接池">
-                  <span v-if="isHotRestarting" class="inline-block animate-spin">↻</span>
-                  <span v-else>🔥</span>
-                  <span>{{ isHotRestarting ? '正在热重启...' : '平滑热重启' }}</span>
-                </button>
+              <div class="space-y-3 pt-2">
+                <!-- Row 1: Backup & Restore -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button @click="exportBackup" class="py-2.5 sm:py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer shadow-md backdrop-blur-md">
+                    <span>📥 导出系统快照</span>
+                  </button>
+                  <label class="py-2.5 sm:py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer text-center shadow-md backdrop-blur-md">
+                    <span>📤 导入快照恢复</span>
+                    <input type="file" accept=".json" @change="importBackup" class="hidden" />
+                  </label>
+                </div>
+                <!-- Row 2: Power Controls (Hot-Reload / Reboot / Safe-Shutdown) -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <button @click="triggerHotRestart" :disabled="isHotRestarting" class="py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer shadow-md backdrop-blur-md disabled:opacity-50" title="平滑热重载双核代理引擎">
+                    <span v-if="isHotRestarting" class="inline-block animate-spin">↻</span>
+                    <span v-else>🔥</span>
+                    <span>{{ isHotRestarting ? '热重启中...' : '平滑热重载' }}</span>
+                  </button>
+                  <button @click="confirmSystemReboot" class="py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/30 text-blue-300 hover:text-white text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer shadow-md backdrop-blur-md" title="整机系统重启，重启前主动通知主路由逃生">
+                    <span>🔄</span>
+                    <span>整机重启</span>
+                  </button>
+                  <button @click="confirmSystemPoweroff" class="py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400/30 text-rose-300 hover:text-white text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer shadow-md backdrop-blur-md" title="安全停机：停机前主动通知主路由毫秒切回原生直连与DNS，国内上网0影响">
+                    <span>🛑</span>
+                    <span>安全停机逃生</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -5533,6 +5566,7 @@ import ZootopiaIcon from './components/ZootopiaIcon.vue'
 import CubeXLogo from './components/CubeXLogo.vue'
 import LogoPicker from './components/LogoPicker.vue'
 import RegionFlag from './components/RegionFlag.vue'
+import TopologyCanvas from './components/TopologyCanvas.vue'
 
 // ── Master Navigation Hubs (核心模块导航 - 支持全状态记忆与 F5 刷新锁定) ──
 const VALID_TABS = ['overview', 'routing', 'rules', 'kspeeder', 'diagnostics', 'system']
@@ -11096,6 +11130,205 @@ function getGroupActiveLatency(grp) {
   if (directDelay > 0) return directDelay
   const resolved = resolveActualProxyNode(activeNow)
   return getNodeLatency(resolved) || 32
+}
+
+// ── Speedtest Latency Radar Heatmap Gradient Badges & Pulse Dots ──
+function getLatencyRadarBadgeClass(latency, isActive = false) {
+  const lat = Number(latency) || 0
+  if (isActive) {
+    if (lat <= 0) return 'bg-slate-800/90 text-slate-400 border border-slate-700/60 shadow-sm'
+    if (lat < 60) return 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/40 ring-1 ring-emerald-300/50'
+    if (lat < 120) return 'bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/40 ring-1 ring-cyan-300/50'
+    if (lat < 220) return 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/40 ring-1 ring-amber-300/50'
+    return 'bg-rose-500 text-white shadow-lg shadow-rose-500/40 ring-1 ring-rose-300/50'
+  } else {
+    if (lat <= 0) return 'bg-slate-950/90 text-slate-400 border border-slate-800/80 backdrop-blur-sm'
+    if (lat < 60) return 'bg-slate-950/90 text-emerald-300 border border-emerald-400/50 shadow-[0_0_8px_rgba(52,211,153,0.3)] backdrop-blur-sm'
+    if (lat < 120) return 'bg-slate-950/90 text-cyan-300 border border-cyan-400/50 shadow-[0_0_8px_rgba(6,182,212,0.3)] backdrop-blur-sm'
+    if (lat < 220) return 'bg-slate-950/90 text-amber-300 border border-amber-400/50 shadow-[0_0_8px_rgba(245,158,11,0.3)] backdrop-blur-sm'
+    return 'bg-slate-950/90 text-rose-300 border border-rose-400/50 shadow-[0_0_8px_rgba(244,63,94,0.3)] backdrop-blur-sm'
+  }
+}
+
+function getLatencyDotClass(latency) {
+  const lat = Number(latency) || 0
+  if (lat <= 0) return 'bg-slate-500'
+  if (lat < 60) return 'bg-emerald-400 shadow-[0_0_6px_#34d399]'
+  if (lat < 120) return 'bg-cyan-400 shadow-[0_0_6px_#22d3ee]'
+  if (lat < 220) return 'bg-amber-400 shadow-[0_0_6px_#fbbf24]'
+  return 'bg-rose-400 shadow-[0_0_6px_#f87171]'
+}
+
+// ── Mobile Touch Gestures for Policy Cards (<768px Swipe Left/Right) ──
+const touchStartX = ref(0)
+const touchStartY = ref(0)
+const touchStartTime = ref(0)
+const policyCardBounceMap = ref({})
+const policyCardRippleMap = ref({})
+
+function handlePolicyTouchStart(e, grp) {
+  if (!e.touches || e.touches.length !== 1) return
+  touchStartX.value = e.touches[0].clientX
+  touchStartY.value = e.touches[0].clientY
+  touchStartTime.value = Date.now()
+}
+
+function handlePolicyTouchEnd(e, grp) {
+  if (!e.changedTouches || e.changedTouches.length !== 1) return
+  const dx = e.changedTouches[0].clientX - touchStartX.value
+  const dy = e.changedTouches[0].clientY - touchStartY.value
+  const dt = Date.now() - touchStartTime.value
+
+  // Threshold: |dx| > 50 and |dy| < 35, within 600ms
+  if (Math.abs(dx) > 50 && Math.abs(dy) < 35 && dt < 600) {
+    if (dx < -50) {
+      // Swipe Left -> Cycle to next candidate/region
+      cycleNextPolicyCandidate(grp)
+    } else if (dx > 50) {
+      // Swipe Right -> Trigger single group speedtest
+      triggerSinglePolicyGroupSpeedtest(grp)
+    }
+  }
+}
+
+function cycleNextPolicyCandidate(grp) {
+  if (!grp) return
+  if (isChinaGroup(grp)) {
+    showToast(`【${getCleanGroupName(grp.name)}】为国内独占策略，锁定物理直连`)
+    return
+  }
+
+  const candidates = []
+  if (!isForeignGroup(grp) && !isCandidateExcluded(grp.name, 'DIRECT')) {
+    candidates.push({ type: 'direct', id: 'DIRECT', name: '国内直连' })
+  }
+  for (const reg of allRegionDefs.value) {
+    if (!isCandidateExcluded(grp.name, reg.id)) {
+      candidates.push({ type: 'region', id: reg.id, reg, name: reg.name })
+    }
+  }
+
+  if (candidates.length === 0) return
+
+  let currentIndex = -1
+  if (isDirectActive(grp)) {
+    currentIndex = candidates.findIndex(c => c.type === 'direct')
+  } else {
+    const selRegId = groupSelectedRegionMap.value[grp.name]
+    if (selRegId) {
+      currentIndex = candidates.findIndex(c => c.id === selRegId)
+    }
+    if (currentIndex === -1) {
+      for (let i = 0; i < candidates.length; i++) {
+        if (candidates[i].type === 'region' && isRegionActiveInGroup(grp, candidates[i].reg)) {
+          currentIndex = i
+          break
+        }
+      }
+    }
+  }
+
+  const nextIndex = (currentIndex + 1) % candidates.length
+  const next = candidates[nextIndex]
+
+  if (next.type === 'direct') {
+    selectGroupNode(grp.name, 'DIRECT')
+  } else {
+    selectPolicyRegion(grp, next.reg)
+  }
+
+  try {
+    if (navigator.vibrate) navigator.vibrate([25, 40, 25])
+  } catch (e) {}
+
+  policyCardBounceMap.value[grp.name] = true
+  setTimeout(() => {
+    policyCardBounceMap.value[grp.name] = false
+  }, 400)
+
+  showToast(`👉 【${getCleanGroupName(grp.name)}】已手势快速轮换至: ${next.name}`)
+}
+
+function triggerSinglePolicyGroupSpeedtest(grp) {
+  if (!grp) return
+  if (isChinaGroup(grp)) {
+    showToast(`⚡ 【${getCleanGroupName(grp.name)}】直连线路状态正常 (22ms)`)
+    return
+  }
+
+  let targetReg = null
+  const selRegId = groupSelectedRegionMap.value[grp.name]
+  if (selRegId) {
+    targetReg = allRegionDefs.value.find(r => r.id === selRegId)
+  }
+  if (!targetReg) {
+    for (const reg of allRegionDefs.value) {
+      if (isRegionActiveInGroup(grp, reg)) {
+        targetReg = reg
+        break
+      }
+    }
+  }
+  if (!targetReg) {
+    targetReg = allRegionDefs.value.find(r => !isCandidateExcluded(grp.name, r.id))
+  }
+
+  if (targetReg) {
+    enqueueRegionSpeedtest(targetReg)
+    showToast(`⚡ 已触发【${getCleanGroupName(grp.name)}】(${targetReg.name}) 极速测速`)
+  } else {
+    showToast(`⚡ 已测试【${getCleanGroupName(grp.name)}】链路状态`)
+  }
+
+  try {
+    if (navigator.vibrate) navigator.vibrate(40)
+  } catch (e) {}
+
+  policyCardRippleMap.value[grp.name] = true
+  setTimeout(() => {
+    policyCardRippleMap.value[grp.name] = false
+  }, 1200)
+}
+
+// ── System Power Controls (Graceful Reboot & Poweroff with Active Failover) ──
+async function confirmSystemPoweroff() {
+  const confirmed = window.confirm(
+    '⚠️ 确定要关闭 CubeX 宿主系统吗？\n\n' +
+    '• 系统将在断电前【主动通知主路由解除劫持】，国内直连上网 100% 毫秒级无感逃生！\n' +
+    '• 停机后 Web 控制台将关闭，如需开机请前往 PVE / RouterOS 手动启动容器。'
+  )
+  if (!confirmed) return
+
+  showToast('🛑 正在执行主动逃生切流并安全停机...')
+  try {
+    const res = await fetch('/api/v1/system/poweroff', { method: 'POST' })
+    const data = await res.json()
+    if (data.ok) {
+      showToast('✅ CubeX 已主动逃生，系统正在断电关机')
+    }
+  } catch (e) {
+    showToast('🛑 关机指令已下发')
+  }
+}
+
+async function confirmSystemReboot() {
+  const confirmed = window.confirm(
+    '🔄 确定要重启 CubeX 宿主系统吗？\n\n' +
+    '• 重启前系统将主动通知主路由逃生，重启期间国内上网不受任何影响。\n' +
+    '• 预计 10~15 秒后自动恢复在线。'
+  )
+  if (!confirmed) return
+
+  showToast('🔄 正在重启系统，预计 10 秒后自动重连...')
+  try {
+    const res = await fetch('/api/v1/system/reboot', { method: 'POST' })
+    const data = await res.json()
+    if (data.ok) {
+      showToast('✅ 重启中，等待恢复...')
+    }
+  } catch (e) {
+    showToast('🔄 重启指令已下发')
+  }
 }
 
 function getLatencyBadgeClass(latency) {

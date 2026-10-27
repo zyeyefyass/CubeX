@@ -1060,6 +1060,13 @@ func (m *Manager) waitForPortsRelease(ports []int, timeout time.Duration) {
 
 
 
+// Stop gracefully stops the active core and unbinds TUN interfaces before system shutdown.
+func (m *Manager) Stop() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.stopCurrentCore("")
+}
+
 func (m *Manager) stopCurrentCore(binName string) {
 	if m.currentProc != nil && m.currentProc.Pid > 0 {
 		pid := m.currentProc.Pid

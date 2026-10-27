@@ -828,15 +828,32 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 	}
 	if !hasCorrectFakeIPRoute {
 		fPayload := map[string]any{
-			"dst-address": "198.18.0.0/15",
-			"gateway":     targetIP,
-			"comment":     "CubeX Fake-IP Route",
+			"dst-address":   "198.18.0.0/15",
+			"gateway":       targetIP,
+			"check-gateway": "ping",
+			"comment":       "CubeX-FakeIP-Backtrack",
 		}
 		if _, err := m.PutROS("/ip/route", fPayload); err == nil {
 			res.Actions = append(res.Actions, fmt.Sprintf("已创建 Fake-IP 静态路由 /ip/route (198.18.0.0/15 -> %s)", targetIP))
 		}
 	} else {
-		res.Actions = append(res.Actions, fmt.Sprintf("Fake-IP 回指路由 (198.18.0.0/15 -> %s) 正常就绪", targetIP))
+		for _, r := range existingRoutes {
+			dst := fmt.Sprintf("%v", r["dst-address"])
+			gw := fmt.Sprintf("%v", r["gateway"])
+			id, _ := r[".id"].(string)
+			cg, _ := r["check-gateway"].(string)
+			if (gw == targetIP || strings.Contains(gw, targetIP)) && dst == "198.18.0.0/15" && id != "" {
+				if cg != "ping" {
+					_ = m.PatchROS("/ip/route/"+id, map[string]any{
+						"check-gateway": "ping",
+						"comment":       "CubeX-FakeIP-Backtrack",
+					})
+					res.Actions = append(res.Actions, "已为 Fake-IP 回指路由开启 ping 毫秒存活探测")
+				}
+				break
+			}
+		}
+		res.Actions = append(res.Actions, fmt.Sprintf("Fake-IP 回指路由 (198.18.0.0/15 -> %s, check-gateway=ping) 正常就绪", targetIP))
 	}
 
 	// 2c. Ensure /ip/settings: send-redirects=no (消除同网段旁路二层三角路由 TCP 停顿与卡顿重传)
@@ -1032,19 +1049,113 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		}
 	}
 
+	// 5. Ensure RouterOS Native DNS & DHCP Failover Architecture (网关与DNS留主路由 + 0秒逃生)
+	routerIP := m.config.Host
+	if routerIP == "" || routerIP == "127.0.0.1" {
+		routerIP = "10.0.0.1"
+	}
+
+	// 5a. Set RouterOS DNS servers and allow remote requests
+	_, _ = m.PostROS("/ip/dns/set", map[string]any{
+		"allow-remote-requests": "yes",
+		"servers":               "223.5.5.5,119.29.29.29",
+	})
+
+	// 5b. Update DHCP networks: gateway=routerIP, dns-server=routerIP
+	if dhcpData, err := m.QueryROS("/ip/dhcp-server/network"); err == nil {
+		var dhcpNets []map[string]any
+		if json.Unmarshal(dhcpData, &dhcpNets) == nil {
+			for _, dn := range dhcpNets {
+				dnID, _ := dn[".id"].(string)
+				currDNS, _ := dn["dns-server"].(string)
+				if dnID != "" && currDNS != routerIP {
+					_ = m.PatchROS("/ip/dhcp-server/network/"+dnID, map[string]any{
+						"dns-server": routerIP,
+					})
+					res.Actions = append(res.Actions, fmt.Sprintf("已优化 DHCP 网络配置：DNS 与网关收归主路由 (%s)，消除旁路由关机 ARP 黑洞", routerIP))
+				}
+			}
+		}
+	}
+
+	// 5c. Ensure CubeX-DNS-Hijack and CubeX-DNS-Hairpin NAT rules
+	hasDNSUdpHijack := false
+	hasDNSTcpHijack := false
+	hasDNSHairpinUdp := false
+	hasDNSHairpinTcp := false
+
 	var existingNats []map[string]any
 	if data, err := m.QueryROS("/ip/firewall/nat"); err == nil {
 		_ = json.Unmarshal(data, &existingNats)
 		for _, n := range existingNats {
 			comment, _ := n["comment"].(string)
-			id, _ := n[".id"].(string)
-			if (strings.Contains(comment, "CubeX DNS") || strings.Contains(comment, "MiCube DNS")) && id != "" {
-				_ = m.DeleteROS("/ip/firewall/nat/" + id)
-				res.Actions = append(res.Actions, "已移除全局 DNS 端口 53 强制劫持规则（保障同网段任意 IP 自由作为独立 DNS）")
+			proto, _ := n["protocol"].(string)
+			if strings.Contains(comment, "CubeX-DNS-Hijack") {
+				if proto == "udp" { hasDNSUdpHijack = true }
+				if proto == "tcp" { hasDNSTcpHijack = true }
+			} else if strings.Contains(comment, "CubeX-DNS-Hairpin") {
+				if proto == "udp" { hasDNSHairpinUdp = true }
+				if proto == "tcp" { hasDNSHairpinTcp = true }
 			}
 		}
 	}
-	res.Actions = append(res.Actions, "已确认就绪「同网段任意 IP 自由网关与 DNS」架构：终端设为主路由或 CubeX (%s) 均可顺畅上网并享受加速！")
+
+	if !hasDNSUdpHijack {
+		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
+			"chain":        "dstnat",
+			"src-address":  "!" + targetIP,
+			"dst-address":  routerIP,
+			"protocol":     "udp",
+			"dst-port":     "53",
+			"action":       "dst-nat",
+			"to-addresses": targetIP,
+			"to-ports":     "53",
+			"comment":      "CubeX-DNS-Hijack",
+		})
+	}
+	if !hasDNSTcpHijack {
+		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
+			"chain":        "dstnat",
+			"src-address":  "!" + targetIP,
+			"dst-address":  routerIP,
+			"protocol":     "tcp",
+			"dst-port":     "53",
+			"action":       "dst-nat",
+			"to-addresses": targetIP,
+			"to-ports":     "53",
+			"comment":      "CubeX-DNS-Hijack",
+		})
+	}
+	subnetCIDR := "10.0.0.0/24"
+	if len(targetIP) > 0 {
+		parts := strings.Split(targetIP, ".")
+		if len(parts) == 4 {
+			subnetCIDR = fmt.Sprintf("%s.%s.%s.0/24", parts[0], parts[1], parts[2])
+		}
+	}
+	if !hasDNSHairpinUdp {
+		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
+			"chain":        "srcnat",
+			"src-address":  subnetCIDR,
+			"dst-address":  targetIP,
+			"protocol":     "udp",
+			"dst-port":     "53",
+			"action":       "masquerade",
+			"comment":      "CubeX-DNS-Hairpin",
+		})
+	}
+	if !hasDNSHairpinTcp {
+		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
+			"chain":        "srcnat",
+			"src-address":  subnetCIDR,
+			"dst-address":  targetIP,
+			"protocol":     "tcp",
+			"dst-port":     "53",
+			"action":       "masquerade",
+			"comment":      "CubeX-DNS-Hairpin",
+		})
+	}
+	res.Actions = append(res.Actions, "已确认就绪「主路由全接管 · 伴生透明加速与0秒逃生」DNS 劫持与 Hairpin NAT")
 
 	// 6. Anti-Block & Ultra-Low Latency Suite:
 	// 6a. Inject TCP MSS Clamping to prevent fragmentation blackholes (消除 IP 分片黑洞，降低 20% 握手延迟，杜绝 GFW 分片特征重组审计)
@@ -1137,14 +1248,17 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		}
 	}
 	if !hasValidNetwatch {
+		upScript := `/ip firewall nat enable [find comment~"CubeX-DNS-Hijack"]; /ip route enable [find comment~"CubeX-FakeIP-Backtrack"]; :log info "CubeX is UP: Restored DNS Hijack & Fake-IP backtrack"`
+		downScript := `/ip firewall nat disable [find comment~"CubeX-DNS-Hijack"]; /ip route disable [find comment~"CubeX-FakeIP-Backtrack"]; /ip dns cache flush; :log warn "CubeX is DOWN: 0-second Failover to RouterOS native DNS!"`
+
 		nwPayload := map[string]any{
 			"host":        targetIP,
-			"interval":    "3s",
+			"interval":    "2s",
 			"timeout":     "800ms",
 			"type":        "simple",
-			"comment":     "CubeX HA Auto-Failover",
-			"up-script":   "/ip firewall mangle enable [find comment~\"CubeX\"]; /ip firewall nat enable [find comment~\"CubeX DNS\"]",
-			"down-script": "/ip firewall mangle disable [find comment~\"CubeX\"]; /ip firewall nat disable [find comment~\"CubeX DNS\"]",
+			"comment":     "CubeX-HA-Failover",
+			"up-script":   upScript,
+			"down-script": downScript,
 		}
 		if _, err := m.PutROS("/tool/netwatch", nwPayload); err == nil {
 			res.Actions = append(res.Actions, fmt.Sprintf("已注入 Netwatch 毫秒级心跳探针 (3秒自动探活 %s · 容器宕机 0 秒降级直连与原生 DNS)", targetIP))
@@ -1753,6 +1867,39 @@ func (m *Manager) GetContainerRegistryURL() (string, error) {
 		return strings.TrimSpace(reg), nil
 	}
 	return "", nil
+}
+
+// TriggerPreShutdownFailover immediately disables DNS hijack and Fake-IP route on RouterOS before CubeX shuts down.
+func (m *Manager) TriggerPreShutdownFailover() error {
+	// 1. Disable DNS hijack rules
+	if data, err := m.QueryROS("/ip/firewall/nat"); err == nil {
+		var nats []map[string]any
+		if json.Unmarshal(data, &nats) == nil {
+			for _, n := range nats {
+				comment, _ := n["comment"].(string)
+				id, _ := n[".id"].(string)
+				if strings.Contains(comment, "CubeX-DNS-Hijack") && id != "" {
+					_ = m.PatchROS("/ip/firewall/nat/"+id, map[string]any{"disabled": "true"})
+				}
+			}
+		}
+	}
+	// 2. Disable Fake-IP route
+	if data, err := m.QueryROS("/ip/route"); err == nil {
+		var routes []map[string]any
+		if json.Unmarshal(data, &routes) == nil {
+			for _, r := range routes {
+				dst, _ := r["dst-address"].(string)
+				id, _ := r[".id"].(string)
+				if dst == "198.18.0.0/15" && id != "" {
+					_ = m.PatchROS("/ip/route/"+id, map[string]any{"disabled": "true"})
+				}
+			}
+		}
+	}
+	// 3. Flush RouterOS DNS cache
+	_, _ = m.PostROS("/ip/dns/cache/flush", nil)
+	return nil
 }
 
 // EnsureFakeIPRoute verifies that the static route 198.18.0.0/15 pointing to targetIP exists on RouterOS.

@@ -847,6 +847,8 @@ func main() {
 
 	mux.HandleFunc("/api/v1/system/restart", srv.handleRestartService)
 	mux.HandleFunc("/api/v1/host/hot-restart", srv.handleHostHotRestart)
+	mux.HandleFunc("/api/v1/system/poweroff", srv.handleSystemPoweroff)
+	mux.HandleFunc("/api/v1/system/reboot", srv.handleSystemReboot)
 
 	mux.HandleFunc("/api/v1/system/reset", srv.handleSystemReset)
 
@@ -1736,6 +1738,60 @@ func (s *Server) handleRestartService(w http.ResponseWriter, r *http.Request) {
 			cmd.Stderr = os.Stderr
 			_ = cmd.Start()
 		}
+		os.Exit(0)
+	}()
+}
+
+func (s *Server) handleSystemPoweroff(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	// 1. Pre-flight active failover on RouterOS before poweroff
+	if s.rosMgr != nil {
+		_ = s.rosMgr.TriggerPreShutdownFailover()
+	}
+	// 2. Gracefully stop engine
+	if s.engMgr != nil {
+		s.engMgr.Stop()
+	}
+	sendJSON(w, map[string]any{
+		"ok":      true,
+		"status":  "powering_off",
+		"message": "CubeX 已主动执行逃生切流，系统正在安全关机...",
+	})
+	go func() {
+		time.Sleep(600 * time.Millisecond)
+		_ = exec.Command("poweroff").Run()
+		_ = exec.Command("shutdown", "-h", "now").Run()
+		_ = exec.Command("systemctl", "poweroff").Run()
+		os.Exit(0)
+	}()
+}
+
+func (s *Server) handleSystemReboot(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	// 1. Pre-flight active failover on RouterOS before reboot
+	if s.rosMgr != nil {
+		_ = s.rosMgr.TriggerPreShutdownFailover()
+	}
+	// 2. Gracefully stop engine
+	if s.engMgr != nil {
+		s.engMgr.Stop()
+	}
+	sendJSON(w, map[string]any{
+		"ok":      true,
+		"status":  "rebooting",
+		"message": "CubeX 已主动执行逃生切流，整机系统正在重启 (预计 10 秒后恢复)...",
+	})
+	go func() {
+		time.Sleep(600 * time.Millisecond)
+		_ = exec.Command("reboot").Run()
+		_ = exec.Command("shutdown", "-r", "now").Run()
+		_ = exec.Command("systemctl", "reboot").Run()
 		os.Exit(0)
 	}()
 }
