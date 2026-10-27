@@ -24,37 +24,42 @@
           </span>
         </div>
         <p class="text-xs text-slate-400 font-medium">
-          三层拓扑感知 · 客户端终端集群 ➔ CubeX 智能双核中枢 ➔ 真实国内直连与跨境分流落地
+          三层拓扑感知 · 局域网设备 ➔ CubeX 智能双核中枢 ➔ 真实国内直连与跨境分流落地
         </p>
       </div>
 
       <!-- Right Toolbar Controls -->
       <div class="flex items-center gap-2.5 flex-wrap">
-        <!-- Filter Tabs -->
-        <div class="flex items-center p-1 rounded-xl bg-black/40 border border-white/10 text-xs">
-          <button @click="pathFilter = 'all'"
-            :class="['px-2.5 py-1 rounded-lg font-bold transition cursor-pointer', pathFilter === 'all' ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] shadow' : 'text-slate-400 hover:text-white']">
-            全部链路
+        <!-- Terminal Filter Tabs -->
+        <div class="flex items-center p-1 rounded-xl bg-black/40 border border-white/10 backdrop-blur-md text-xs">
+          <button @click="terminalFilter = 'all'"
+            :class="['px-2.5 py-1 rounded-lg font-bold transition cursor-pointer', terminalFilter === 'all' ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] shadow' : 'text-slate-400 hover:text-white']">
+            全部设备
           </button>
-          <button @click="pathFilter = 'proxy'"
-            :class="['px-2.5 py-1 rounded-lg font-bold transition cursor-pointer', pathFilter === 'proxy' ? 'bg-cyan-500 text-black shadow' : 'text-slate-400 hover:text-white']">
-            跨境代理
+          <button @click="terminalFilter = 'rule'"
+            :class="['px-2.5 py-1 rounded-lg font-bold transition cursor-pointer', terminalFilter === 'rule' ? 'bg-cyan-500 text-black shadow' : 'text-slate-400 hover:text-white']">
+            智能分流
           </button>
-          <button @click="pathFilter = 'direct'"
-            :class="['px-2.5 py-1 rounded-lg font-bold transition cursor-pointer', pathFilter === 'direct' ? 'bg-emerald-500 text-black shadow' : 'text-slate-400 hover:text-white']">
-            国内直连
+          <button @click="terminalFilter = 'bypass'"
+            :class="['px-2.5 py-1 rounded-lg font-bold transition cursor-pointer', terminalFilter === 'bypass' ? 'bg-emerald-500 text-black shadow' : 'text-slate-400 hover:text-white']">
+            直连绕过
           </button>
         </div>
 
-        <!-- Particle Speed Toggle -->
-        <button @click="toggleParticleSpeed" title="调节粒子流速"
-          class="h-8 px-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs text-slate-300 hover:text-white flex items-center gap-1.5 transition active:scale-95 cursor-pointer">
-          <span class="text-[13px]">⚡</span>
-          <span>{{ flowSpeedLabel }}</span>
+        <!-- Animation Eco Toggle (动效开/关 · 一键为低功耗设备节约显卡/CPU) -->
+        <button @click="toggleAnimation" :title="isAnimationActive ? '点击暂停光流动效，为手机或老旧浏览器节省 CPU 与 GPU' : '点击开启全息粒子流动效'"
+          :class="[
+            'h-8 px-2.5 rounded-xl border text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer font-bold',
+            isAnimationActive
+              ? 'bg-cyan-500/15 text-cyan-300 border-cyan-400/30 hover:bg-cyan-500/25'
+              : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-slate-200'
+          ]">
+          <span class="text-[12px]">{{ isAnimationActive ? '✨' : '⏸️' }}</span>
+          <span>{{ isAnimationActive ? '动效开' : '动效关' }}</span>
         </button>
 
         <!-- Refresh Topology -->
-        <button @click="refreshTopology" title="刷新拓扑状态"
+        <button @click="refreshTopology" title="实时刷新拓扑与局域网终端"
           class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-amber-300 flex items-center justify-center transition active:scale-95 cursor-pointer">
           <span :class="{'animate-spin': isRefreshing}">↺</span>
         </button>
@@ -93,59 +98,72 @@
             fill="none"
             :class="[
               'transition-all duration-300',
-              flowSpeed !== 'paused' ? (p.type === 'direct' ? 'flow-dash-direct' : 'flow-dash-proxy') : ''
+              isAnimationActive ? (p.type === 'direct' ? 'flow-dash-direct' : 'flow-dash-proxy') : ''
             ]"
             :style="{
-              animationDuration: flowAnimationDuration,
-              filter: p.isHighlighted ? 'url(#glowEffect)' : 'none'
+              filter: (isAnimationActive && p.isHighlighted) ? 'url(#glowEffect)' : 'none'
             }"
           />
         </g>
       </svg>
 
-      <!-- ── 3-Tier Grid Layout ── -->
+      <!-- ── 3-Tier Grid Layout (Strict 5-Card Height Symmetrical Balance: 382px) ── -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch relative z-10">
 
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <!-- TIER 1: 客户端终端集群 (LAN Clients) [lg:col-span-4]           -->
+        <!-- TIER 1: 局域网设备 (LAN Devices) [lg:col-span-4]               -->
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <div class="lg:col-span-4 flex flex-col space-y-3">
-          <div class="flex items-center justify-between pb-1 px-1">
-            <span class="text-xs font-bold text-slate-300 tracking-wide flex items-center gap-1.5">
-              <span>📱</span>
-              <span>接入终端集群</span>
-              <span class="text-[11px] font-mono px-2 py-0.2 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-500/30 font-bold">
+        <div class="lg:col-span-4 flex flex-col justify-between space-y-2">
+          <!-- Non-wrapping clean header -->
+          <div class="h-7 flex items-center justify-between gap-2 pb-1 px-1 whitespace-nowrap">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="text-xs sm:text-[13px] font-bold text-white tracking-wide flex items-center gap-1.5 shrink-0">
+                <span class="text-sm">📱</span>
+                <span>局域网设备</span>
+              </span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 font-bold shrink-0">
                 {{ activeDisplayDevices.length }} 在线
               </span>
-            </span>
-            <span class="text-[11px] text-slate-400">点击设备高亮专属链路</span>
+            </div>
+            <span class="text-[11px] text-slate-400 truncate">点击切换分流模式 · ✏️重命名</span>
           </div>
 
-          <!-- Device Cards Scroll List -->
-          <div class="space-y-2.5 max-h-[440px] overflow-y-auto pr-1 custom-scrollbar">
+          <!-- Device Cards Scroll List (Exact Height 382px: Fits 5 Full Cards + Right Scrollbar) -->
+          <div class="h-[396px] max-h-[396px] overflow-y-auto pr-1.5 custom-scrollbar space-y-1.5 flex flex-col">
             <div v-for="dev in activeDisplayDevices" :key="dev.ip"
-              @click="toggleSelectDevice(dev)"
+              @click="toggleDeviceMode(dev)"
               :id="'client-node-' + dev.ip.replace(/\./g, '-')"
-              :class="[
-                'p-3 sm:p-3.5 rounded-2xl transition-all duration-200 cursor-pointer border relative overflow-hidden group',
-                selectedDevice?.ip === dev.ip
-                  ? 'bg-cyan-950/70 border-cyan-400 shadow-[0_0_20px_rgba(0,210,255,0.25)] ring-1 ring-cyan-400/50'
-                  : 'bg-slate-950/60 hover:bg-slate-900/80 border-slate-800/80 hover:border-cyan-500/40'
-              ]">
+              :title="'点击切换分流模式 (当前: ' + (dev.mode === 'bypass' ? '直连绕过' : '智能分流') + ')'"
+              class="p-2.5 sm:px-3 sm:py-2 rounded-2xl transition-all duration-200 cursor-pointer border relative overflow-hidden group h-[68px] min-h-[68px] flex items-center bg-white/[0.03] hover:bg-white/[0.08] border-white/10 hover:border-cyan-400/50 select-none shadow-sm backdrop-blur-none">
               
               <!-- Left Color Indicator Accent -->
               <div :class="['absolute left-0 top-0 bottom-0 w-1', dev.mode === 'bypass' ? 'bg-sky-400' : 'bg-emerald-400']"></div>
 
-              <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center justify-between gap-2 w-full">
                 <div class="flex items-center gap-2.5 min-w-0">
-                  <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-sm shrink-0 border border-white/10 group-hover:scale-105 transition-transform">
-                    <span>{{ getDeviceIcon(dev) }}</span>
-                  </div>
+                  <!-- Official Brand / Device Logo -->
+                  <DeviceBrandLogo :device="dev" />
+
                   <div class="min-w-0">
-                    <div class="flex items-center gap-1.5">
-                      <span class="text-xs sm:text-[13px] font-bold text-white truncate max-w-[140px]" :title="dev.name || dev.hostname || dev.ip">
+                    <!-- Inline Rename or Normal Display -->
+                    <div v-if="editingIp === dev.ip" class="flex items-center gap-1 py-0.5" @click.stop>
+                      <input v-model="editingName"
+                        @keyup.enter="saveInlineRename(dev)"
+                        @keyup.esc="cancelInlineRename"
+                        class="px-2 py-0.5 text-xs rounded bg-white/15 border border-cyan-400 text-white font-bold outline-none ring-1 ring-cyan-400/40 w-28 sm:w-32 shadow-inner"
+                        placeholder="新备注名..."
+                        autofocus />
+                      <button @click.stop="saveInlineRename(dev)" class="px-1.5 py-0.5 text-[10px] rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold cursor-pointer">✔</button>
+                      <button @click.stop="cancelInlineRename" class="px-1.5 py-0.5 text-[10px] rounded bg-white/10 hover:bg-white/20 text-slate-300 cursor-pointer">✕</button>
+                    </div>
+                    <div v-else class="flex items-center gap-1.5">
+                      <span class="text-xs sm:text-[13px] font-bold text-white truncate max-w-[125px]" :title="dev.name || dev.hostname || dev.ip">
                         {{ dev.name || dev.hostname || dev.ip }}
                       </span>
+                      <!-- Quick Rename Pencil Button -->
+                      <button @click.stop="startInlineRename(dev)" title="重命名该设备" class="opacity-0 group-hover:opacity-100 text-[11px] text-slate-400 hover:text-cyan-300 transition cursor-pointer">
+                        ✏️
+                      </button>
                       <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
                     </div>
                     <div class="text-[11px] font-mono text-slate-400 truncate">
@@ -154,16 +172,18 @@
                   </div>
                 </div>
 
-                <!-- Right Mode & Traffic Badge -->
+                <!-- Right Mode & Traffic Badge (Click badge directly toggles mode!) -->
                 <div class="flex flex-col items-end gap-1 shrink-0">
-                  <span :class="[
-                    'text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border',
-                    dev.mode === 'bypass'
-                      ? 'bg-sky-500/15 text-sky-300 border-sky-400/30'
-                      : 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30'
-                  ]">
-                    {{ dev.mode === 'bypass' ? '直连绕过' : '智能分流' }}
-                  </span>
+                  <button @click.stop="toggleDeviceMode(dev)"
+                    :title="'点击直接切换为: ' + (dev.mode === 'bypass' ? '智能分流' : '直连绕过')"
+                    :class="[
+                      'text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border transition cursor-pointer active:scale-95 flex items-center gap-1 shadow-sm',
+                      dev.mode === 'bypass'
+                        ? 'bg-sky-500/20 text-sky-300 border-sky-400/40 hover:bg-sky-500/30'
+                        : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40 hover:bg-emerald-500/30'
+                    ]">
+                    <span>{{ dev.mode === 'bypass' ? '🔵 直连绕过' : '🟢 智能分流' }}</span>
+                  </button>
                   <span class="text-[10px] font-mono text-slate-400 flex items-center gap-1">
                     <span class="text-emerald-400">↑{{ dev.trafficUp || '12KB' }}</span>
                     <span class="text-cyan-400">↓{{ dev.trafficDown || '380KB' }}</span>
@@ -177,26 +197,26 @@
         <!-- ══════════════════════════════════════════════════════════════ -->
         <!-- TIER 2: CubeX 旁路由双核中枢 (Gateway Core) [lg:col-span-4]    -->
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <div class="lg:col-span-4 flex flex-col justify-center items-center my-auto px-2 py-4">
+        <div class="lg:col-span-4 flex flex-col justify-center items-center my-auto h-[396px] px-1">
           <div id="cubex-core-center"
-            class="w-full max-w-[320px] rounded-3xl p-5 sm:p-6 bg-gradient-to-b from-[#00223e]/90 via-[#001529]/95 to-[#000d1a]/95 border border-cyan-400/40 shadow-[0_0_35px_rgba(0,210,255,0.2)] text-center relative overflow-hidden transition-all duration-300 group hover:border-[#FF9E5E]/60">
+            class="w-full max-w-[320px] rounded-3xl p-4 sm:p-5 bg-gradient-to-b from-[#00223e]/55 via-[#001529]/60 to-[#000d1a]/65 backdrop-blur-xl border border-cyan-400/40 shadow-[0_0_35px_rgba(0,210,255,0.2)] text-center relative overflow-hidden transition-all duration-300 group hover:border-[#FF9E5E]/60">
             
             <!-- Core Radial Ambient Pulse -->
             <div class="absolute inset-0 bg-radial-glow pointer-events-none opacity-40 group-hover:opacity-60 transition-opacity"></div>
 
             <!-- CubeX 3D Logo Central Beacon -->
-            <div class="relative mx-auto flex items-center justify-center w-20 h-20 mb-3 group-hover:scale-105 transition-transform duration-300">
+            <div class="relative mx-auto flex items-center justify-center w-16 h-16 sm:w-18 sm:h-18 mb-1.5 group-hover:scale-105 transition-transform duration-300">
               <div class="absolute inset-0 rounded-full bg-cyan-400/20 blur-xl animate-pulse"></div>
-              <CubeXLogo :status="systemStatus?.status === 'running' ? 'running' : 'online'" :size="64" />
+              <CubeXLogo :status="systemStatus?.status === 'running' ? 'running' : 'online'" :size="56" />
             </div>
 
-            <!-- Brand Identity -->
-            <div class="space-y-1 mb-4 relative z-10">
-              <h4 class="text-base sm:text-lg font-black tracking-widest bg-gradient-to-r from-white via-cyan-200 to-[#FF9E5E] bg-clip-text text-transparent">
+            <!-- Brand Identity: 3D High-End Golden Relief Typography -->
+            <div class="space-y-1 mb-3 relative z-10">
+              <h4 class="text-lg sm:text-xl font-black tracking-widest gold-3d-text select-none">
                 CubeX 零感中枢
               </h4>
               <div class="flex items-center justify-center gap-1.5 flex-wrap">
-                <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-bold">
+                <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-bold">
                   {{ activeEngine === 'singbox' ? 'sing-box v1.14' : 'Mihomo v1.19' }}
                 </span>
                 <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 font-semibold">
@@ -205,61 +225,73 @@
               </div>
             </div>
 
-            <!-- Core Live Metrics Grid -->
+            <!-- Core Live Metrics Grid: 实时进出站速率 + 本月出海流量 + 活跃并发 -->
             <div class="grid grid-cols-2 gap-2 text-left relative z-10 pt-2 border-t border-white/10">
-              <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-0.5">
-                <span class="text-[10px] text-slate-400 block font-medium">🛡️ 防 DNS 泄露</span>
-                <span class="text-xs font-mono font-bold text-emerald-300">:53 0明文回退</span>
-              </div>
-              <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-0.5">
-                <span class="text-[10px] text-slate-400 block font-medium">⚡ 吞吐总速率</span>
+              <!-- 1. 实时出站 (下行) -->
+              <div class="p-2 sm:p-2.5 rounded-xl bg-black/30 hover:bg-black/45 border border-white/5 space-y-0.5 transition-colors">
+                <span class="text-[10px] text-slate-400 block font-medium">⚡ 实时出站 (下行)</span>
                 <span class="text-xs font-mono font-bold text-cyan-300 truncate block">
-                  {{ formatThroughput(telemetryMetrics?.inboundTotalMB || 0) }}
+                  ↓ {{ currentOutboundRate }}
                 </span>
               </div>
-              <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-0.5">
-                <span class="text-[10px] text-slate-400 block font-medium">🌐 活跃并发连接</span>
-                <span class="text-xs font-mono font-bold text-amber-300">
-                  {{ telemetryMetrics?.connections || 128 }} 会话
+
+              <!-- 2. 实时进站 (上行) -->
+              <div class="p-2 sm:p-2.5 rounded-xl bg-black/30 hover:bg-black/45 border border-white/5 space-y-0.5 transition-colors">
+                <span class="text-[10px] text-slate-400 block font-medium">🚀 实时进站 (上行)</span>
+                <span class="text-xs font-mono font-bold text-emerald-300 truncate block">
+                  ↑ {{ currentInboundRate }}
                 </span>
               </div>
-              <div class="p-2.5 rounded-xl bg-black/40 border border-white/5 space-y-0.5">
-                <span class="text-[10px] text-slate-400 block font-medium">🔒 安全规则拦截</span>
-                <span class="text-xs font-mono font-bold text-teal-300">101 套 MRS/SRS</span>
+
+              <!-- 3. 本月出海流量 -->
+              <div class="p-2 sm:p-2.5 rounded-xl bg-black/30 hover:bg-black/45 border border-white/5 space-y-0.5 transition-colors">
+                <span class="text-[10px] text-slate-400 block font-medium">🚢 本月出海流量</span>
+                <span class="text-xs font-mono font-bold text-[#FFB300] truncate block">
+                  {{ currentMonthTotalGB }} GB
+                </span>
+              </div>
+
+              <!-- 4. 活跃并发连接与安全状态 -->
+              <div class="p-2 sm:p-2.5 rounded-xl bg-black/30 hover:bg-black/45 border border-white/5 space-y-0.5 transition-colors">
+                <span class="text-[10px] text-slate-400 block font-medium">🛡️ 活跃并发 · 0泄露</span>
+                <span class="text-xs font-mono font-bold text-teal-300 truncate block">
+                  {{ telemetryMetrics?.connections || 14 }} 会话 · :53
+                </span>
               </div>
             </div>
 
             <!-- Interactive Hint -->
-            <div class="mt-3 text-[10px] text-cyan-400/80 font-mono tracking-tight">
+            <div class="mt-2 text-[10px] text-cyan-400/80 font-mono tracking-tight">
               ● 双核热重载无感容灾保护就绪
             </div>
           </div>
         </div>
 
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <!-- TIER 3: 出口与分流策略 (Outbound & Target Hub) [lg:col-span-4]  -->
+        <!-- TIER 3: 出口与分流策略 (Outbound Hub - Exact 382px: 5 Cards)  -->
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <div class="lg:col-span-4 flex flex-col space-y-3">
-          <div class="flex items-center justify-between pb-1 px-1">
-            <span class="text-xs font-bold text-slate-300 tracking-wide flex items-center gap-1.5">
+        <div class="lg:col-span-4 flex flex-col justify-between space-y-2">
+          <div class="h-7 flex items-center justify-between pb-1 px-1 whitespace-nowrap">
+            <span class="text-xs sm:text-[13px] font-bold text-slate-300 tracking-wide flex items-center gap-1.5">
               <span>🚀</span>
               <span>出站与策略落地</span>
-              <span class="text-[11px] font-mono px-2 py-0.2 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/30 font-bold">
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/30 font-bold">
                 双轨直达
               </span>
             </span>
             <span class="text-[11px] text-slate-400">实时延迟优选</span>
           </div>
 
-          <div class="space-y-2.5 max-h-[440px] overflow-y-auto pr-1 custom-scrollbar">
+          <!-- Outbound Cards List (Exact Height 382px: 5 Cards Equal Height) -->
+          <div class="h-[396px] max-h-[396px] space-y-1.5 flex flex-col">
 
             <!-- 1. 🇨🇳 真实国内直连极速通道 (Direct Pipeline) -->
             <div id="outbound-direct-node"
-              class="p-3.5 rounded-2xl bg-slate-950/60 border border-emerald-500/40 hover:border-emerald-400 transition-all duration-200 relative overflow-hidden group cursor-pointer shadow-md"
+              class="p-2.5 sm:px-3 sm:py-2 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-emerald-500/20 hover:border-emerald-400/50 transition-all duration-200 relative overflow-hidden group cursor-pointer shadow-sm h-[68px] min-h-[68px] flex items-center"
               @click="highlightOutbound('direct')">
               <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-teal-400"></div>
               
-              <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center justify-between gap-2 w-full">
                 <div class="flex items-center gap-2.5 min-w-0">
                   <div class="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center text-sm shrink-0">
                     <span>🇨🇳</span>
@@ -286,14 +318,14 @@
               </div>
             </div>
 
-            <!-- 2. 🌐 跨境智能分流落地策略列表 (Proxy Pipelines) -->
+            <!-- 2. 🌐 跨境智能分流落地策略列表 (Proxy Pipelines: 4 items) -->
             <div v-for="(route, ri) in displayOutboundRoutes" :key="ri"
               :id="'outbound-proxy-node-' + ri"
               @click="highlightOutbound(route.id)"
-              class="p-3 sm:p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 hover:border-cyan-500/40 transition-all duration-200 relative overflow-hidden group cursor-pointer shadow-md">
+              class="p-2.5 sm:px-3 sm:py-2 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 hover:border-cyan-400/50 transition-all duration-200 relative overflow-hidden group cursor-pointer shadow-sm h-[68px] min-h-[68px] flex items-center">
               <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-cyan-400 to-purple-400"></div>
 
-              <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center justify-between gap-2 w-full">
                 <div class="flex items-center gap-2.5 min-w-0">
                   <div class="w-8 h-8 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-sm shrink-0">
                     <span>{{ route.flag }}</span>
@@ -332,25 +364,6 @@
 
       </div>
 
-      <!-- ── Bottom Interactive Inspection HUD Bar ── -->
-      <div v-if="selectedDevice" class="mt-4 p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-400/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs animate-in fade-in">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <span class="text-base">🔍</span>
-          <div class="min-w-0">
-            <span class="text-slate-300">当前聚焦终端:</span>
-            <span class="font-bold text-white mx-1.5 font-mono">{{ selectedDevice.name || selectedDevice.ip }}</span>
-            <span class="text-slate-400 font-mono">({{ selectedDevice.ip }})</span>
-            <span class="text-cyan-300 mx-1 font-mono">➔</span>
-            <span class="text-emerald-300 font-bold font-mono">{{ selectedDevice.mode === 'bypass' ? '国内物理直连' : 'CubeX 智能双核穿透' }}</span>
-          </div>
-        </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <button @click="selectedDevice = null" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition cursor-pointer">
-            ✕ 清除聚焦
-          </button>
-        </div>
-      </div>
-
     </div>
 
   </div>
@@ -359,6 +372,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import CubeXLogo from './CubeXLogo.vue'
+import DeviceBrandLogo from './DeviceBrandLogo.vue'
 
 const props = defineProps({
   lanDevices: {
@@ -384,32 +398,59 @@ const props = defineProps({
   telemetryMetrics: {
     type: Object,
     default: () => ({})
+  },
+  trafficInsights: {
+    type: Object,
+    default: () => ({})
   }
 })
 
-const emit = defineEmits(['refresh', 'select-device'])
+const emit = defineEmits(['refresh', 'select-device', 'update-device-mode', 'rename-device'])
 
 // Toolbar controls
-const pathFilter = ref('all')
-const flowSpeed = ref('normal') // 'normal', 'fast', 'paused'
+const terminalFilter = ref('all') // 'all', 'rule', 'bypass'
 const isRefreshing = ref(false)
 const selectedDevice = ref(null)
 
-const flowSpeedLabel = computed(() => {
-  if (flowSpeed.value === 'fast') return '极速流'
-  if (flowSpeed.value === 'paused') return '已暂停'
-  return '标准流'
-})
+// Animation Eco Toggle (Default on, saves CPU/GPU when turned off)
+const isAnimationActive = ref(typeof localStorage !== 'undefined' ? localStorage.getItem('cubex_topo_anim') !== 'false' : true)
 
-const flowAnimationDuration = computed(() => {
-  if (flowSpeed.value === 'fast') return '1.2s'
-  return '2.4s'
-})
+function toggleAnimation() {
+  isAnimationActive.value = !isAnimationActive.value
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('cubex_topo_anim', String(isAnimationActive.value))
+  }
+}
 
-function toggleParticleSpeed() {
-  if (flowSpeed.value === 'normal') flowSpeed.value = 'fast'
-  else if (flowSpeed.value === 'fast') flowSpeed.value = 'paused'
-  else flowSpeed.value = 'normal'
+// Inline renaming state
+const editingIp = ref('')
+const editingName = ref('')
+
+function startInlineRename(dev) {
+  editingIp.value = dev.ip
+  editingMac.value = dev.mac || ''
+  editingName.value = dev.name || dev.hostname || dev.ip
+}
+
+function cancelInlineRename() {
+  editingIp.value = ''
+  editingName.value = ''
+}
+
+function saveInlineRename(dev) {
+  const newName = (editingName.value || '').trim()
+  if (!newName) return
+  emit('rename-device', { dev, newName })
+  dev.name = newName
+  editingIp.value = ''
+  editingName.value = ''
+}
+
+function toggleDeviceMode(dev) {
+  const newMode = dev.mode === 'bypass' ? 'rule' : 'bypass'
+  dev.mode = newMode
+  emit('update-device-mode', { dev, mode: newMode })
+  nextTick(() => calculateSvgPaths())
 }
 
 function refreshTopology() {
@@ -432,18 +473,7 @@ function toggleSelectDevice(dev) {
 }
 
 function highlightOutbound(id) {
-  // Can trigger specific route selection or toast
-}
-
-// ── Device Icon Resolver ──
-function getDeviceIcon(dev) {
-  const str = `${dev.name || ''} ${dev.hostname || ''} ${dev.source || ''}`.toLowerCase()
-  if (str.includes('tv') || str.includes('电视') || str.includes('tcl') || str.includes('box')) return '📺'
-  if (str.includes('phone') || str.includes('samsung') || str.includes('ultra') || str.includes('iphone') || str.includes('mi')) return '📱'
-  if (str.includes('nas') || str.includes('fnos') || str.includes('飞牛') || str.includes('synology')) return '🗄️'
-  if (str.includes('ros') || str.includes('router') || str.includes('路由') || str.includes('gateway')) return '🌐'
-  if (str.includes('pve') || str.includes('server') || str.includes('linux')) return '🖥️'
-  return '💻'
+  // Can trigger route filter
 }
 
 // Fallback high-fidelity sample devices if lanDevices is empty
@@ -457,21 +487,51 @@ const defaultSampleDevices = [
 
 const activeDisplayDevices = computed(() => {
   let list = props.lanDevices && props.lanDevices.length > 0 ? props.lanDevices : defaultSampleDevices
-  // Filter out internal non-client IPs like 198.18.0.1 or offline
-  list = list.filter(d => d.ip !== '198.18.0.1' && d.online !== false)
+  // Filter out internal virtual bridge IPs (Docker 172.17/18/19, Fake-IP 198.18.0.1, 127.*)
+  list = list.filter(d => {
+    if (!d.ip || d.online === false) return false
+    const ip = d.ip
+    if (ip === '198.18.0.1' || ip.startsWith('127.') || ip.startsWith('172.17.') || ip.startsWith('172.18.') || ip.startsWith('172.19.')) {
+      return false
+    }
+    return true
+  })
   
-  if (pathFilter.value === 'proxy') {
+  if (terminalFilter.value === 'rule') {
     return list.filter(d => d.mode !== 'bypass')
   }
-  if (pathFilter.value === 'direct') {
+  if (terminalFilter.value === 'bypass') {
     return list.filter(d => d.mode === 'bypass')
   }
-  return list.slice(0, 6)
+  return list
 })
 
 // Outbound live metrics
 const directLatency = computed(() => {
   return props.healthRadar?.metrics?.direct?.latency_ms || 22
+})
+
+// Live rates & Monthly outbound traffic
+const currentOutboundRate = computed(() => {
+  const m = props.telemetryMetrics
+  if (m?.rateDown) return m.rateDown
+  if (m?.outboundRate) return m.outboundRate
+  return '2.4 MB/s'
+})
+
+const currentInboundRate = computed(() => {
+  const m = props.telemetryMetrics
+  if (m?.rateUp) return m.rateUp
+  if (m?.inboundRate) return m.inboundRate
+  return '380 KB/s'
+})
+
+const currentMonthTotalGB = computed(() => {
+  if (props.trafficInsights?.monthTotalGB != null) {
+    return props.trafficInsights.monthTotalGB
+  }
+  const cached = (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic')) ? Number(localStorage.getItem('cubex_month_traffic')) : 99.5
+  return cached || 99.5
 })
 
 // Outbound proxy routes resolution
@@ -527,16 +587,8 @@ const displayOutboundRoutes = computed(() => {
     }
   })
 
-  if (pathFilter.value === 'direct') {
-    return []
-  }
   return list
 })
-
-function formatThroughput(mb) {
-  if (mb >= 1024) return (mb / 1024).toFixed(2) + ' GB'
-  return mb.toFixed(1) + ' MB'
-}
 
 function getLatencyBadgeClass(ms) {
   if (ms <= 0 || ms > 500) return 'bg-slate-800 text-slate-400 border-slate-700'
@@ -576,8 +628,8 @@ function calculateSvgPaths() {
 
   const paths = []
 
-  // 1. Connect Active Clients -> CubeX Core
-  activeDisplayDevices.value.forEach((dev, idx) => {
+  // 1. Connect Active Clients -> CubeX Core (Top 5 visible items)
+  activeDisplayDevices.value.slice(0, 5).forEach((dev, idx) => {
     const devEl = document.getElementById('client-node-' + dev.ip.replace(/\./g, '-'))
     if (!devEl) return
     const devRect = devEl.getBoundingClientRect()
@@ -604,7 +656,7 @@ function calculateSvgPaths() {
   // 2. Connect CubeX Core -> Outbound Hub
   // 2.1 Direct outbound path
   const directEl = document.getElementById('outbound-direct-node')
-  if (directEl && pathFilter.value !== 'proxy') {
+  if (directEl) {
     const dRect = directEl.getBoundingClientRect()
     const startX = coreRightX
     const startY = coreCenterY - 15
@@ -627,31 +679,29 @@ function calculateSvgPaths() {
   }
 
   // 2.2 Proxy outbound paths
-  if (pathFilter.value !== 'direct') {
-    displayOutboundRoutes.value.forEach((route, ri) => {
-      const pEl = document.getElementById('outbound-proxy-node-' + ri)
-      if (!pEl) return
-      const pRect = pEl.getBoundingClientRect()
-      const startX = coreRightX
-      const startY = coreCenterY + (ri - 1) * 12
-      const endX = pRect.left - containerRect.left
-      const endY = pRect.top + pRect.height / 2 - containerRect.top
+  displayOutboundRoutes.value.forEach((route, ri) => {
+    const pEl = document.getElementById('outbound-proxy-node-' + ri)
+    if (!pEl) return
+    const pRect = pEl.getBoundingClientRect()
+    const startX = coreRightX
+    const startY = coreCenterY + (ri - 1) * 12
+    const endX = pRect.left - containerRect.left
+    const endY = pRect.top + pRect.height / 2 - containerRect.top
 
-      const cp1X = startX + (endX - startX) * 0.5
-      const cp1Y = startY
-      const cp2X = startX + (endX - startX) * 0.5
-      const cp2Y = endY
+    const cp1X = startX + (endX - startX) * 0.5
+    const cp1Y = startY
+    const cp2X = startX + (endX - startX) * 0.5
+    const cp2Y = endY
 
-      const isHigh = selectedDevice.value && selectedDevice.value.mode !== 'bypass'
-      paths.push({
-        d: `M ${startX} ${startY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${endX} ${endY}`,
-        type: 'proxy',
-        isActive: true,
-        isHighlighted: isHigh,
-        isMatchSelected: !selectedDevice.value || isHigh
-      })
+    const isHigh = selectedDevice.value && selectedDevice.value.mode !== 'bypass'
+    paths.push({
+      d: `M ${startX} ${startY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${endX} ${endY}`,
+      type: 'proxy',
+      isActive: true,
+      isHighlighted: isHigh,
+      isMatchSelected: !selectedDevice.value || isHigh
     })
-  }
+  })
 
   svgPaths.value = paths
 }
@@ -678,11 +728,20 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 3D Liquid 24K Gold Typography for CubeX Core */
+.gold-3d-text {
+  background: linear-gradient(135deg, #FFFDF0 0%, #FFE082 22%, #FFB300 45%, #FFA000 70%, #FF6F00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 1px #78350F) drop-shadow(0 4px 4px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 18px rgba(255, 179, 0, 0.6));
+  letter-spacing: 0.12em;
+}
+
 .bg-radial-glow {
   background: radial-gradient(circle at center, rgba(0, 245, 212, 0.25) 0%, rgba(0, 210, 255, 0.1) 45%, transparent 70%);
 }
 
-/* Animated SVG Particle Streams */
+/* Animated SVG Particle Streams (Standard flow duration) */
 .flow-dash-proxy {
   stroke-dasharray: 8 12;
   animation: flowStream 2.4s linear infinite;
@@ -690,7 +749,7 @@ onUnmounted(() => {
 
 .flow-dash-direct {
   stroke-dasharray: 6 10;
-  animation: flowStream 2s linear infinite;
+  animation: flowStream 2.0s linear infinite;
 }
 
 @keyframes flowStream {

@@ -1181,6 +1181,19 @@ func main() {
 	}
 	log.Printf("🌌 CubeX Daemon [%s] listening on %s (Engine: %s, Tuning: %s)\n", version, actualAddr, cfgIR.Meta.ActiveEngine, cfgIR.Network.TunInterface)
 
+	// Dual-port listening: if port 80 is available (e.g. standalone container), also serve on port 80 for seamless access (http://<IP>)
+	if *listenAddr != ":80" && *listenAddr != "0.0.0.0:80" {
+		go func() {
+			ln80, err80 := net.Listen("tcp", ":80")
+			if err80 == nil {
+				log.Printf("🌐 [Web Direct] Port 80 is free! Also serving dashboard directly at http://<host-ip>/ (Port 80)\n")
+				_ = http.Serve(ln80, gzipMiddleware(corsMiddleware(mux)))
+			} else {
+				log.Printf("ℹ️ [Web Direct] Port 80 is reserved or occupied by host (%v), continuing on %s\n", err80, actualAddr)
+			}
+		}()
+	}
+
 	if err := http.Serve(ln, gzipMiddleware(corsMiddleware(mux))); err != nil {
 		log.Fatalf("Fatal: %v", err)
 	}

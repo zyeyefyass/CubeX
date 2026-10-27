@@ -102,18 +102,21 @@ func (m *Manager) SetAlias(ip, mac, name string) error {
 	mac = strings.ToUpper(strings.TrimSpace(mac))
 
 	if name == "" {
-		if ip != "" {
-			delete(m.store.Aliases, ip)
-		}
 		if mac != "" {
 			delete(m.store.Aliases, mac)
 		}
-	} else {
 		if ip != "" {
-			m.store.Aliases[ip] = name
+			delete(m.store.Aliases, ip)
 		}
+	} else {
 		if mac != "" {
+			// MAC is authoritative and permanent: prevents alias mismatch when DHCP IP changes
 			m.store.Aliases[mac] = name
+			if ip != "" {
+				delete(m.store.Aliases, ip) // Purge stale IP key to prevent collision
+			}
+		} else if ip != "" {
+			m.store.Aliases[ip] = name
 		}
 	}
 
@@ -354,7 +357,11 @@ func (m *Manager) GetDevices() []Device {
 			if json.NewDecoder(resp.Body).Decode(&connData) == nil {
 				for _, c := range connData.Connections {
 					srcIP := c.Metadata.SourceIP
-					if srcIP != "" && srcIP != "127.0.0.1" && srcIP != "::1" {
+					if srcIP != "" && srcIP != "127.0.0.1" && srcIP != "::1" &&
+						!strings.HasPrefix(srcIP, "172.17.") &&
+						!strings.HasPrefix(srcIP, "172.18.") &&
+						!strings.HasPrefix(srcIP, "172.19.") &&
+						!strings.HasPrefix(srcIP, "198.18.") {
 						if existing, ok := deviceMap[srcIP]; ok {
 							existing.Online = true
 							existing.LastSeen = now
@@ -376,15 +383,15 @@ func (m *Manager) GetDevices() []Device {
 	// 5. Apply user custom aliases from local store
 	var result []Device
 	for ip, d := range deviceMap {
-		// Priority 1: Check alias by MAC
-		if d.MAC != "" {
+		// Priority 1: Check alias by MAC (permanent and authoritative)
+		if d.MAC != "" && d.MAC != "-" {
 			if alias, ok := m.store.Aliases[d.MAC]; ok && alias != "" {
 				d.Name = alias
 				d.IsCustom = true
 			}
 		}
-		// Priority 2: Check alias by IP
-		if !d.IsCustom {
+		// Priority 2: Check alias by IP only if MAC is unknown/missing
+		if !d.IsCustom && (d.MAC == "" || d.MAC == "-") {
 			if alias, ok := m.store.Aliases[ip]; ok && alias != "" {
 				d.Name = alias
 				d.IsCustom = true

@@ -124,16 +124,14 @@
           </div>
         </div>
 
-        <!-- Center / Right Dual Engine & Host Stack: 手机端自适应极简排列，电脑端标准全尺寸 -->
-        <div class="flex items-center gap-1 sm:gap-2.5 shrink-0">
-          
-          <!-- Dual-Engine Switch Capsule (手机端超紧凑图标/缩写切换 · 电脑端标准双翼) -->
-          <div class="flex items-center p-0.5 sm:p-1.5 rounded-xl sm:rounded-2xl transition-all duration-300 relative gap-0.5 sm:gap-2 macos-capsule select-none shrink-0">
+        <!-- Center: Dual-Engine Switch Capsule (页眉居中设计 · 完美中轴平衡) -->
+        <div class="flex items-center justify-center shrink-0 mx-auto">
+          <div class="flex items-center p-0.5 sm:p-1.5 rounded-xl sm:rounded-2xl transition-all duration-300 relative gap-0.5 sm:gap-2 macos-capsule select-none shrink-0 shadow-lg border border-white/15">
             <!-- sing-box Button -->
             <button @click="switchEngine('singbox')" :disabled="switchingEngine"
               title="切换至 sing-box 极速轻量引擎"
               :class="[
-                'h-[30px] sm:h-[40px] px-1.5 sm:px-3 rounded-lg sm:rounded-xl transition-all flex items-center gap-1 sm:gap-2 active:scale-95 border select-none shrink-0 group cursor-pointer',
+                'h-[30px] sm:h-[40px] px-2 sm:px-3.5 rounded-lg sm:rounded-xl transition-all flex items-center gap-1.5 sm:gap-2.5 active:scale-95 border select-none shrink-0 group cursor-pointer',
                 activeEngine === 'singbox'
                   ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] shadow-md border-white/30 font-black'
                   : 'text-[rgba(255,240,230,0.65)] hover:text-white border-white/10 bg-black/25 hover:bg-white/10'
@@ -151,7 +149,7 @@
             <button @click="switchEngine('mihomo')" :disabled="switchingEngine"
               title="切换至 Mihomo 规则完备引擎"
               :class="[
-                'h-[30px] sm:h-[40px] px-1.5 sm:px-3 rounded-lg sm:rounded-xl transition-all flex items-center gap-1 sm:gap-2 active:scale-95 border select-none shrink-0 group cursor-pointer',
+                'h-[30px] sm:h-[40px] px-2 sm:px-3.5 rounded-lg sm:rounded-xl transition-all flex items-center gap-1.5 sm:gap-2.5 active:scale-95 border select-none shrink-0 group cursor-pointer',
                 activeEngine === 'mihomo'
                   ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] shadow-md border-white/30 font-black'
                   : 'text-[rgba(255,240,230,0.65)] hover:text-white border-white/10 bg-black/25 hover:bg-white/10'
@@ -169,19 +167,10 @@
               🔄 热切中...
             </div>
           </div>
+        </div>
 
-          <!-- 智能探活胶囊 (仅在中大屏幕展示) -->
-          <button @click="showSmartPingModal = true"
-            title="智能健康巡检与预热自愈中枢"
-            class="hidden md:inline-flex h-[42px] sm:h-[46px] items-center gap-1.5 px-3 rounded-2xl macos-capsule transition-all duration-300 font-mono text-xs font-bold text-slate-300 hover:text-white active:scale-95 cursor-pointer">
-            <span class="relative flex h-2 w-2">
-              <span v-if="smartPing.enabled" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span :class="['relative inline-flex rounded-full h-2 w-2', smartPing.enabled ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-slate-500']"></span>
-            </span>
-            <span class="hidden lg:inline text-xs font-mono font-bold">智能探活</span>
-          </button>
-
-          <!-- 宿主机平台胶囊 (手机端紧凑图标展示 · 电脑端完整名称展示) -->
+        <!-- Right: 宿主机平台胶囊 -->
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button @click="activeMasterTab = 'system'"
             :title="'当前联动宿主: ' + hostBadge.name + ' (点击进入「宿主共生」控制台)'"
             class="h-[30px] sm:h-[42px] md:h-[46px] inline-flex items-center gap-1 sm:gap-2.5 px-1.5 sm:px-3.5 rounded-lg sm:rounded-2xl macos-capsule hover:border-[#FF9E5E]/50 group select-none transition-all duration-300 cursor-pointer shrink-0">
@@ -521,7 +510,10 @@
             :ir="ir"
             :health-radar="healthRadar"
             :telemetry-metrics="telemetryMetrics"
+            :traffic-insights="trafficInsights"
             @refresh="fetchLanDevices"
+            @update-device-mode="onTopoUpdateDeviceMode"
+            @rename-device="onTopoRenameDevice"
           />
 
           <!-- ════════════════════════════════════════════════════════════════ -->
@@ -574,16 +566,17 @@
 
                   <!-- Site Dropdown Selector Popover -->
                   <div class="relative min-w-0">
-                    <button @click="toggleProbeDropdown(bi)" title="点击切换测速站点"
+                    <button @click.stop="toggleProbeDropdown(bi)" title="点击切换测速站点"
                       class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer select-none"
-                      :class="activeProbeDropdown === bi ? 'bg-cyan-950/80 border-cyan-400 text-emerald-200 ring-1 ring-cyan-400/30' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border-slate-700/60 hover:border-cyan-400/50 text-slate-100 hover:text-white'">
+                      :class="activeProbeDropdown === bi ? 'bg-cyan-950/80 border-cyan-400 text-emerald-200 ring-1 ring-cyan-400/30' : 'bg-slate-900/80 hover:bg-slate-800 border-slate-700/70 hover:border-cyan-400/60 text-slate-100 hover:text-white'">
                       <span class="truncate max-w-[60px] sm:max-w-[72px]">{{ item.name }}</span>
                       <span class="text-[9px] text-emerald-300 shrink-0 transition-transform duration-200" :class="activeProbeDropdown === bi ? 'rotate-180' : ''">▾</span>
                     </button>
 
-                    <!-- Custom Dropdown Popover Menu -->
+                    <!-- Custom Dropdown Popover Menu (Closes on mouse leave) -->
                     <div v-if="activeProbeDropdown === bi"
-                      class="absolute top-full mt-2 w-48 max-h-72 overflow-y-auto overscroll-contain bg-[#0c1626] border border-cyan-500/50 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] p-1.5 z-[100] text-slate-200 space-y-0.5 custom-scrollbar ring-1 ring-cyan-400/30 backdrop-blur-3xl animate-in fade-in zoom-in-95"
+                      @mouseleave="activeProbeDropdown = null"
+                      class="absolute top-full mt-1.5 w-48 max-h-72 overflow-y-auto overscroll-contain bg-[#0c1626]/95 border border-cyan-500/50 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] p-1.5 z-[100] text-slate-200 space-y-0.5 custom-scrollbar ring-1 ring-cyan-400/30 backdrop-blur-3xl animate-in fade-in zoom-in-95"
                       :class="bi >= 2 ? 'right-0 sm:left-0' : 'left-0'">
                       <button v-for="target in availableProbeTargets" :key="target.id"
                         @click.stop="selectProbeTarget(bi, target)"
@@ -806,442 +799,6 @@
             </div>
           </section>
 
-          <!-- ════════════════════════════════════════════════════════════════ -->
-          <!-- 📈 流量统计 (Traffic Insights) 全维月度与逐时流分析看板             -->
-          <!-- ════════════════════════════════════════════════════════════════ -->
-          <section :class="['rounded-3xl p-6 lg:p-7 space-y-6 transition shadow-2xl', activeEngine === 'singbox' ? 'glass-aurora' : 'glass-matrix']">
-              
-              <!-- 1. Header: 标题、直连统计开关、总览与月份切换 -->
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/60 pb-4">
-                <div class="flex items-center gap-3.5 flex-wrap">
-                  <div class="flex items-center gap-2">
-                    <span class="text-base sm:text-lg font-black text-white tracking-wide">流量统计</span>
-                    <!-- 统计直连流量 Toggle -->
-                    <label class="flex items-center gap-1.5 cursor-pointer select-none text-xs text-slate-400 hover:text-slate-200">
-                      <span>统计直连流量</span>
-                      <div class="relative">
-                        <input type="checkbox" v-model="trafficInsights.includeDirect" class="sr-only" />
-                        <div :class="['w-8 h-4 rounded-full transition-colors duration-200', trafficInsights.includeDirect ? 'bg-cyan-500 shadow-[0_0_8px_rgba(0,210,255,0.4)]' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-700']"></div>
-                        <div :class="['absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform duration-200', trafficInsights.includeDirect ? 'translate-x-4' : 'translate-x-0']"></div>
-                      </div>
-                    </label>
-                  </div>
-                  <!-- Monthly Total Summary -->
-                  <div class="text-xs text-slate-400 font-mono">
-                    <span>{{ trafficInsights.year }}年{{ trafficInsights.month }}月共</span>
-                    <span class="text-emerald-400 font-bold ml-1">{{ trafficInsights.monthTotalGB }} GB</span>,
-                    <span class="text-white font-bold ml-1">{{ trafficInsights.monthTotalConns.toLocaleString() }}</span> 个连接。
-                  </div>
-                </div>
-
-                <!-- Month Navigator Capsule -->
-                <div class="flex items-center gap-1 p-1 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/90 rounded-2xl border border-slate-800 text-xs font-mono shrink-0">
-                  <button @click="changeInsightsMonth(-1)" class="px-2 py-1 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white transition">
-                    ‹
-                  </button>
-                  <button @click="setInsightsMonth(9)" :class="['px-2.5 py-1 rounded-xl transition', trafficInsights.month === 9 ? 'bg-emerald-500 text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-white']">
-                    2026年9月
-                  </button>
-                  <button @click="setInsightsMonth(10)" :class="['px-2.5 py-1 rounded-xl transition', trafficInsights.month === 10 ? 'bg-emerald-500 text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-white']">
-                    2026年10月
-                  </button>
-                  <button @click="setInsightsMonth(11)" :class="['px-2.5 py-1 rounded-xl transition', trafficInsights.month === 11 ? 'bg-emerald-500 text-slate-950 font-bold shadow' : 'text-slate-400 hover:text-white']">
-                    2026年11月
-                  </button>
-                  <button @click="changeInsightsMonth(1)" class="px-2 py-1 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white transition">
-                    ›
-                  </button>
-                </div>
-              </div>
-
-              <!-- 全链路实时流量与连接数 5-Metrics 状态条 (除内存占用的其它项) -->
-              <div class="rounded-2xl bg-slate-950/80 border border-slate-800/80 py-3.5 px-4 sm:px-6 shadow-md">
-                <div class="w-full grid grid-cols-2 sm:grid-cols-5 gap-3 text-center divide-y sm:divide-y-0 sm:divide-x divide-slate-800/60">
-                  <div class="pt-2 sm:pt-0">
-                    <div class="text-xs text-slate-400 font-medium">活跃连接数</div>
-                    <div class="text-lg sm:text-xl font-black font-mono text-emerald-300 mt-1">{{ telemetryMetrics.connections }}</div>
-                  </div>
-                  <div class="pt-2 sm:pt-0">
-                    <div class="text-xs text-slate-400 font-medium">进站流量 (下载)</div>
-                    <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ telemetryMetrics.inboundTotalMB.toFixed(1) }} MB</div>
-                  </div>
-                  <div class="pt-2 sm:pt-0">
-                    <div class="text-xs text-slate-400 font-medium">实时进站速率</div>
-                    <div class="text-lg sm:text-xl font-black font-mono text-emerald-400 mt-1">{{ formatSpeed(telemetryMetrics.inboundSpeedBps) }}</div>
-                  </div>
-                  <div class="pt-2 sm:pt-0">
-                    <div class="text-xs text-slate-400 font-medium">出站流量 (上传)</div>
-                    <div class="text-lg sm:text-xl font-black font-mono text-white mt-1">{{ telemetryMetrics.outboundTotalMB.toFixed(0) }} MB</div>
-                  </div>
-                  <div class="pt-2 sm:pt-0">
-                    <div class="text-xs text-slate-400 font-medium">实时出站速率</div>
-                    <div class="text-lg sm:text-xl font-black font-mono text-[#FF9E5E] mt-1">{{ formatSpeed(telemetryMetrics.outboundSpeedBps) }}</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 2. Upper Section: 31-Day Stacked Bar Chart with Amber Average Guideline -->
-              <div class="space-y-3">
-                <div class="relative h-44 flex items-end">
-                  <!-- Dashed Amber Average Guideline (日均 5.5 GB) -->
-                  <div class="absolute left-0 right-0 top-[52%] border-b border-amber-400/80 border-dashed z-10 pointer-events-none flex items-center justify-end">
-                    <span class="text-[10px] font-mono font-bold text-amber-400 bg-slate-950/90 px-1.5 py-0.5 rounded -mr-1">
-                      日均 {{ trafficInsights.dailyAverageGB }} GB
-                    </span>
-                  </div>
-
-                  <!-- 31 Days Columns -->
-                  <div class="w-full h-full flex items-end justify-between gap-1 pt-6 pb-6 relative">
-                    <div v-for="d in trafficInsights.days" :key="d.day"
-                      @click="selectInsightsDay(d.day)"
-                      class="flex-1 h-full flex flex-col justify-end items-center cursor-pointer group relative">
-                      
-                      <!-- Value label above bar -->
-                      <span v-if="d.label" 
-                        class="text-[9px] font-mono text-slate-400 group-hover:text-[#FF9E5E] absolute -top-5 whitespace-nowrap transition-colors"
-                        :class="d.day === trafficInsights.selectedDay ? 'text-white font-bold' : ''">
-                        {{ d.label }}
-                      </span>
-
-                      <!-- Stacked Bar Column -->
-                      <div class="w-full max-w-[18px] sm:max-w-[24px] flex flex-col justify-end rounded-t-sm overflow-hidden transition-all duration-300"
-                        :class="[
-                          d.day === trafficInsights.selectedDay 
-                            ? 'ring-2 ring-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.6)]' 
-                            : 'hover:brightness-125'
-                        ]">
-                        <!-- Outbound segment (Blue) -->
-                        <div v-if="d.outboundMB > 0"
-                          class="w-full transition-all duration-300"
-                          :class="d.day === trafficInsights.selectedDay ? 'bg-blue-600' : 'bg-blue-400/80'"
-                          :style="{ height: getDayBarHeight(d.outboundMB) + 'px' }"></div>
-                        <!-- Inbound segment (Light Emerald) -->
-                        <div v-if="d.inboundMB > 0"
-                          class="w-full transition-all duration-300"
-                          :class="d.day === trafficInsights.selectedDay ? 'bg-blue-500' : 'bg-emerald-300/80'"
-                          :style="{ height: getDayBarHeight(d.inboundMB) + 'px' }"></div>
-                      </div>
-
-                      <!-- Day Number on X-Axis -->
-                      <span class="text-[10px] font-mono mt-2 transition-colors select-none"
-                        :class="d.day === trafficInsights.selectedDay 
-                          ? 'text-white font-bold px-1.5 py-0.5 rounded-full bg-blue-600 shadow' 
-                          : 'text-slate-300 group-hover:text-slate-300'">
-                        {{ d.day }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Upper Chart Legend -->
-                <div class="flex items-center gap-4 text-xs font-mono pt-1 text-slate-400 border-t border-slate-900/60">
-                  <div class="flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                    <span>进站 <strong class="text-white">{{ formatTrafficMB(selectedDayInboundMB) }}</strong></span>
-                  </div>
-                  <div class="flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                    <span>出站 <strong class="text-white">{{ formatTrafficMB(selectedDayOutboundMB) }}</strong></span>
-                  </div>
-                  <span class="text-slate-300 hover:text-slate-300 cursor-pointer text-xs" title="统计包含当月所有出入站代理流量">ⓘ</span>
-                </div>
-              </div>
-
-              <!-- 3. Lower Section: Real-time Rolling Wave & Hourly Area Chart -->
-              <div class="space-y-3 pt-3 border-t border-slate-800/80">
-                <!-- Mode Switcher & Stream Status Header -->
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <!-- Tab Switcher -->
-                    <div class="flex items-center p-0.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800">
-                      <button @click="trafficChartMode = 'realtime'"
-                        :class="['px-2.5 py-1 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5',
-                          trafficChartMode === 'realtime' ? 'bg-cyan-500/20 text-emerald-300 border border-cyan-500/40 shadow' : 'text-slate-400 hover:text-white']">
-                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                        <span>⚡ 实时心电波形 (60s)</span>
-                      </button>
-                      <button @click="trafficChartMode = 'hourly'"
-                        :class="['px-2.5 py-1 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5',
-                          trafficChartMode === 'hourly' ? 'bg-cyan-500/20 text-emerald-300 border border-cyan-500/40 shadow' : 'text-slate-400 hover:text-white']">
-                        <span>📊 24小时分时分布</span>
-                      </button>
-                    </div>
-
-                    <!-- Mode Metrics -->
-                    <template v-if="trafficChartMode === 'realtime'">
-                      <span class="text-slate-300">·</span>
-                      <span class="text-slate-300">出站 <strong class="text-emerald-300">{{ formatSpeed(telemetryMetrics.outboundSpeedBps) }}</strong></span>
-                      <span class="text-slate-300">|</span>
-                      <span class="text-slate-300">进站 <strong class="text-emerald-400">{{ formatSpeed(telemetryMetrics.inboundSpeedBps) }}</strong></span>
-                      <span class="text-slate-300">·</span>
-                      <span v-if="isRealtimeIdle" class="text-emerald-300 font-mono flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>待机心跳 (1s 采样)</span>
-                      <span v-else class="text-slate-400 font-mono">峰值 {{ formatSpeed(maxRealtimeSpeedKB * 1024) }}</span>
-                    </template>
-                    <template v-else>
-                      <span class="text-white font-bold">{{ trafficInsights.year }}-{{ String(trafficInsights.month).padStart(2, '0') }}-{{ String(trafficInsights.selectedDay).padStart(2, '0') }}</span>
-                      <span class="text-emerald-300 font-bold">{{ trafficInsights.selectedHourSlice }}</span>
-                      <span class="text-slate-300">·</span>
-                      <span class="text-slate-300">总流量 <strong class="text-white">{{ formatTrafficMB(selectedSliceTotalMB) }}</strong></span>
-                      <span class="text-slate-400">{{ selectedSliceConns }} 个连接</span>
-                    </template>
-                  </div>
-
-                  <!-- Right Action Buttons -->
-                  <div class="flex items-center gap-2">
-                    <button v-if="trafficChartMode === 'hourly'" @click="resetHourlyEntireDay"
-                      class="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 transition cursor-pointer">
-                      {{ trafficInsights.viewEntireDay ? '已看全天' : '恢复看整天' }}
-                    </button>
-                    <button v-else @click="realtimePaused = !realtimePaused"
-                      :class="['px-2.5 py-1 rounded-xl border text-xs font-mono transition cursor-pointer flex items-center gap-1',
-                        realtimePaused ? 'bg-amber-950 text-amber-300 border-amber-500/40' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 border-slate-800 hover:text-white']">
-                      <span>{{ realtimePaused ? '▶ 恢复滚动' : '⏸ 暂停滚动' }}</span>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Chart Canvas Container -->
-                <div class="relative h-44 flex">
-                  <!-- Y-axis guide labels -->
-                  <div class="w-16 text-[10px] text-slate-300 font-mono flex flex-col justify-between py-1 select-none text-right pr-2">
-                    <template v-if="trafficChartMode === 'realtime'">
-                      <span>{{ formatSpeed(maxRealtimeSpeedKB * 1024) }}</span>
-                      <span>{{ formatSpeed(maxRealtimeSpeedKB * 1024 * 0.8) }}</span>
-                      <span>{{ formatSpeed(maxRealtimeSpeedKB * 1024 * 0.6) }}</span>
-                      <span>{{ formatSpeed(maxRealtimeSpeedKB * 1024 * 0.4) }}</span>
-                      <span>{{ formatSpeed(maxRealtimeSpeedKB * 1024 * 0.2) }}</span>
-                      <span>0 B/s</span>
-                    </template>
-                    <template v-else>
-                      <span>{{ formatTrafficMB(maxHourlyTrafficMB) }}</span>
-                      <span>{{ formatTrafficMB(maxHourlyTrafficMB * 0.8) }}</span>
-                      <span>{{ formatTrafficMB(maxHourlyTrafficMB * 0.6) }}</span>
-                      <span>{{ formatTrafficMB(maxHourlyTrafficMB * 0.4) }}</span>
-                      <span>{{ formatTrafficMB(maxHourlyTrafficMB * 0.2) }}</span>
-                      <span>0 B</span>
-                    </template>
-                  </div>
-
-                  <!-- SVG Canvas with Curves -->
-                  <div class="flex-1 relative h-full">
-                    <!-- Guidelines -->
-                    <div class="absolute inset-0 flex flex-col justify-between pointer-events-none py-1">
-                      <div class="border-b border-slate-800/40 border-dashed w-full"></div>
-                      <div class="border-b border-slate-800/40 border-dashed w-full"></div>
-                      <div class="border-b border-slate-800/40 border-dashed w-full"></div>
-                      <div class="border-b border-slate-800/40 border-dashed w-full"></div>
-                      <div class="border-b border-slate-800/40 border-dashed w-full"></div>
-                      <div class="border-b border-slate-800/40 w-full"></div>
-                    </div>
-
-                    <!-- REALTIME SVG -->
-                    <template v-if="trafficChartMode === 'realtime'">
-                      <svg class="w-full h-full" viewBox="0 0 900 160" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="realtimeOutGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#FF9E5E" stop-opacity="0.45"/>
-                            <stop offset="100%" stop-color="#FF9E5E" stop-opacity="0.02"/>
-                          </linearGradient>
-                          <linearGradient id="realtimeInGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#C084FC" stop-opacity="0.35"/>
-                            <stop offset="100%" stop-color="#C084FC" stop-opacity="0.0"/>
-                          </linearGradient>
-                        </defs>
-                        <!-- Outbound Area & Line (Cyber Cyan) -->
-                        <path :d="realtimeOutboundPath.area" fill="url(#realtimeOutGrad)" />
-                        <path :d="realtimeOutboundPath.line" fill="none" stroke="#FF9E5E" stroke-width="2.5" stroke-linecap="round" />
-
-                        <!-- Inbound Area & Line (Emerald) -->
-                        <path :d="realtimeInboundPath.area" fill="url(#realtimeInGrad)" />
-                        <path :d="realtimeInboundPath.line" fill="none" stroke="#C084FC" stroke-width="2.5" stroke-linecap="round" />
-
-                        <!-- Current Live Pulse Dot for Outbound (at x = 900) -->
-                        <circle cx="896" :cy="realtimeOutboundLastY" r="4" fill="#FF9E5E" />
-                        <circle cx="896" :cy="realtimeOutboundLastY" r="8" fill="#FF9E5E" opacity="0.4" class="animate-ping" />
-
-                        <!-- Current Live Pulse Dot for Inbound (at x = 900) -->
-                        <circle cx="896" :cy="realtimeInboundLastY" r="4" fill="#C084FC" />
-                        <circle cx="896" :cy="realtimeInboundLastY" r="8" fill="#C084FC" opacity="0.4" class="animate-ping" />
-                      </svg>
-
-                      <!-- X-axis timestamps (-60s to 0s) -->
-                      <div class="absolute -bottom-5 left-0 right-0 flex justify-between text-[10px] text-slate-300 font-mono select-none">
-                        <span>-60s</span>
-                        <span>-50s</span>
-                        <span>-40s</span>
-                        <span>-30s</span>
-                        <span>-20s</span>
-                        <span>-10s</span>
-                        <span class="text-emerald-300 font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>现在 (Live)</span>
-                      </div>
-                    </template>
-
-                    <!-- HOURLY SVG -->
-                    <template v-else>
-                      <div v-if="cursorLeftPercent >= 0"
-                        class="absolute top-0 bottom-0 border-l border-slate-400 border-dashed pointer-events-none z-10 transition-all duration-300"
-                        :style="{ left: cursorLeftPercent + '%' }"></div>
-
-                      <svg class="w-full h-full cursor-crosshair" viewBox="0 0 900 160" preserveAspectRatio="none" @click="onTrafficChartClick">
-                        <defs>
-                          <linearGradient id="trafficOutGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#FF9E5E" stop-opacity="0.45"/>
-                            <stop offset="100%" stop-color="#FF9E5E" stop-opacity="0.05"/>
-                          </linearGradient>
-                          <linearGradient id="trafficInGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#C084FC" stop-opacity="0.35"/>
-                            <stop offset="100%" stop-color="#C084FC" stop-opacity="0.0"/>
-                          </linearGradient>
-                        </defs>
-                        <path :d="trafficHourlyOutboundPath.area" fill="url(#trafficOutGrad)" />
-                        <path :d="trafficHourlyOutboundPath.line" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round" />
-                        <path :d="trafficHourlyInboundPath.line" fill="none" stroke="#C084FC" stroke-width="2" stroke-linecap="round" />
-                      </svg>
-
-                      <!-- X-axis timestamps -->
-                      <div class="absolute -bottom-5 left-0 right-0 flex justify-between text-[10px] text-slate-300 font-mono select-none">
-                        <span>00:00</span>
-                        <span>03:00</span>
-                        <span>06:00</span>
-                        <span>09:00</span>
-                        <span>12:00</span>
-                        <span>15:00</span>
-                        <span>18:00</span>
-                        <span>21:00</span>
-                        <span>23:59</span>
-                      </div>
-                    </template>
-                  </div>
-                </div>
-
-                <!-- Lower Chart Legend & Metrics -->
-                <div class="flex items-center justify-center gap-6 text-xs font-mono pt-4 text-slate-400">
-                  <template v-if="trafficChartMode === 'realtime'">
-                    <span class="text-slate-300">极光心电实时监控 (1s 采样)</span>
-                    <div class="flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#00d2ff]"></span>
-                      <span>实时出站 <strong class="text-white">{{ formatSpeed(telemetryMetrics.outboundSpeedBps) }}</strong></span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]"></span>
-                      <span>实时进站 <strong class="text-white">{{ formatSpeed(telemetryMetrics.inboundSpeedBps) }}</strong></span>
-                    </div>
-                  </template>
-                  <template v-else>
-                    <span class="text-slate-300">已选 {{ trafficInsights.selectedHourSlice }}</span>
-                    <div class="flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                      <span>进站 <strong class="text-white">{{ formatTrafficMB(selectedSliceInboundMB) }}</strong></span>
-                    </div>
-                    <div class="flex items-center gap-1.5">
-                      <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                      <span>出站 <strong class="text-white">{{ formatTrafficMB(selectedSliceOutboundMB) }}</strong></span>
-                    </div>
-                  </template>
-                </div>
-              </div>
-          </section>
-
-          <!-- 🎛️ 局域网设备分流控制 (Per-Device Matrix) -->
-          <div class="macos-glass-card rounded-2xl p-5 space-y-4 shadow-xl">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sky-900/30 pb-3">
-              <div>
-                <div class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-                  <span>🎛️ 局域网设备分流</span>
-                  <span class="text-xs text-emerald-300 bg-sky-900/40 px-2.5 py-0.5 rounded-full font-mono">
-                    {{ lanDevices.length }} 台设备在线
-                  </span>
-                </div>
-                <p class="text-xs text-slate-400 mt-1">针对局域网特定终端（蓝光机、飞牛 NAS、Apple TV、游戏机等）指定智能规则分流或直连绕过</p>
-              </div>
-              <button @click="fetchLanDevices" :disabled="loadingDevices" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer transition">
-                {{ loadingDevices ? '正在探查...' : '↻ 实时刷新设备' }}
-              </button>
-            </div>
-
-            <div v-if="lanDevices.length === 0" class="py-10 text-center bg-slate-950/40 rounded-2xl border border-slate-800/80 flex flex-col items-center justify-center gap-2">
-              <span class="text-3xl block" :class="{'animate-spin': loadingDevices}">🔍</span>
-              <div class="text-sm font-semibold text-slate-300">
-                {{ loadingDevices ? '正在实时嗅探局域网在线终端 (RouterOS DHCP / ARP)...' : '暂未探测到局域网在线设备，可点击右上角「实时刷新设备」' }}
-              </div>
-              <p class="text-xs text-slate-300 max-w-md">系统会自动同步上游网关活跃 DHCP 租约及 ARP 邻居表，毫秒级感知新上线终端。</p>
-            </div>
-
-            <div v-else class="space-y-3">
-              <div v-for="dev in lanDevices" :key="dev.ip" class="flex flex-col lg:flex-row lg:items-center justify-between macos-sub-card p-4 gap-4 transition hover:border-[#FF9E5E]/40">
-                <!-- Device Info -->
-                <div class="flex items-center gap-3">
-                  <span class="text-3xl shrink-0 select-none">💻</span>
-                  <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <!-- Normal Display State -->
-                      <template v-if="editingDeviceIp !== dev.ip">
-                        <span class="text-sm font-bold text-white tracking-wide">{{ dev.name }}</span>
-                      </template>
-
-                      <!-- Inline Editing State -->
-                      <template v-else>
-                        <div class="flex items-center gap-1.5 animate-in fade-in py-0.5">
-                          <input v-model="editingDeviceName" 
-                            @keyup.enter="saveDeviceAlias(dev)" 
-                            @keyup.esc="cancelEditDevice" 
-                            autofocus 
-                            class="px-2.5 py-1 text-xs rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-cyan-400 text-white font-bold outline-none ring-2 ring-cyan-500/30 w-48 sm:w-64 shadow-inner"
-                            placeholder="输入新设备备注名..." />
-                          <button @click="saveDeviceAlias(dev)" 
-                            :disabled="savingDeviceAlias"
-                            class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1 shadow cursor-pointer">
-                            <span>✔ 保存</span>
-                          </button>
-                          <button @click="cancelEditDevice" 
-                            class="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs transition cursor-pointer">
-                            <span>✕ 取消</span>
-                          </button>
-                        </div>
-                      </template>
-
-                      <span :class="[
-                        'text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold',
-                        dev.mode === 'bypass' ? 'bg-sky-950 text-emerald-300 border border-sky-500/40' :
-                        'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30'
-                      ]">
-                        {{ dev.mode === 'bypass' ? '🔵 直连绕过' : '🟢 智能规则' }}
-                      </span>
-                    </div>
-                    <div class="text-xs font-mono text-slate-400 mt-0.5">
-                      IP: <strong class="text-emerald-300">{{ dev.ip }}</strong> | MAC: {{ dev.mac || '-' }}
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Right Controls: 2-Segmented Capsule Control Slider + 设备重命名 Button -->
-                <div class="flex items-center gap-2.5 flex-wrap">
-                  <div class="flex items-center bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white p-1 rounded-xl border border-slate-800 gap-1 text-xs">
-                    <button @click="setDeviceRouting(dev, 'rule')"
-                      :class="['px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer', dev.mode === 'rule' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-white']">
-                      🟢 智能规则
-                    </button>
-                    <button @click="setDeviceRouting(dev, 'bypass')"
-                      :class="['px-3 py-1.5 rounded-lg font-semibold transition cursor-pointer', dev.mode === 'bypass' ? 'bg-sky-600 text-white shadow' : 'text-slate-400 hover:text-white']">
-                      🔵 直连绕过
-                    </button>
-                  </div>
-
-                  <!-- 设备重命名 Trigger Button (最右侧) -->
-                  <button v-if="editingDeviceIp !== dev.ip"
-                    @click="startEditDevice(dev)" 
-                    title="修改设备备注名" 
-                    class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 hover:border-cyan-500/50 text-slate-400 hover:text-emerald-300 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer shadow-sm group">
-                    <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-[#FF9E5E]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                    <span>设备重命名</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
 
 
         </div>
@@ -4024,30 +3581,32 @@
                 </p>
               </div>
               <div class="space-y-3 pt-2">
-                <!-- Row 1: Backup & Restore -->
+                <!-- 统一规格 2x2 运维控制中枢矩阵 (四个按钮严格统一字体与尺寸) -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button @click="exportBackup" class="py-2.5 sm:py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer shadow-md backdrop-blur-md">
-                    <span>📥 导出系统快照</span>
+                  <!-- 1. 导出系统快照 -->
+                  <button @click="exportBackup" class="h-10 sm:h-11 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md backdrop-blur-md select-none">
+                    <span class="text-sm">📥</span>
+                    <span>导出系统快照</span>
                   </button>
-                  <label class="py-2.5 sm:py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer text-center shadow-md backdrop-blur-md">
-                    <span>📤 导入快照恢复</span>
+
+                  <!-- 2. 导入快照恢复 -->
+                  <label class="h-10 sm:h-11 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer text-center shadow-md backdrop-blur-md select-none">
+                    <span class="text-sm">📤</span>
+                    <span>导入快照恢复</span>
                     <input type="file" accept=".json" @change="importBackup" class="hidden" />
                   </label>
-                </div>
-                <!-- Row 2: Power Controls (Hot-Reload / Reboot / Safe-Shutdown) -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <button @click="triggerHotRestart" :disabled="isHotRestarting" class="py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer shadow-md backdrop-blur-md disabled:opacity-50" title="平滑热重载双核代理引擎">
-                    <span v-if="isHotRestarting" class="inline-block animate-spin">↻</span>
-                    <span v-else>🔥</span>
+
+                  <!-- 3. 平滑热重载 -->
+                  <button @click="triggerHotRestart" :disabled="isHotRestarting" class="h-10 sm:h-11 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md backdrop-blur-md disabled:opacity-50 select-none" title="平滑热重载双核代理引擎">
+                    <span v-if="isHotRestarting" class="inline-block animate-spin text-sm">↻</span>
+                    <span v-else class="text-sm">🔥</span>
                     <span>{{ isHotRestarting ? '热重启中...' : '平滑热重载' }}</span>
                   </button>
-                  <button @click="confirmSystemReboot" class="py-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/30 text-blue-300 hover:text-white text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer shadow-md backdrop-blur-md" title="整机系统重启，重启前主动通知主路由逃生">
-                    <span>🔄</span>
+
+                  <!-- 4. 整机重启 -->
+                  <button @click="confirmSystemReboot" class="h-10 sm:h-11 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/30 text-blue-300 hover:text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md backdrop-blur-md select-none" title="整机系统重启，重启前主动通知主路由逃生">
+                    <span class="text-sm">🔄</span>
                     <span>整机重启</span>
-                  </button>
-                  <button @click="confirmSystemPoweroff" class="py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400/30 text-rose-300 hover:text-white text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer shadow-md backdrop-blur-md" title="安全停机：停机前主动通知主路由毫秒切回原生直连与DNS，国内上网0影响">
-                    <span>🛑</span>
-                    <span>安全停机逃生</span>
                   </button>
                 </div>
               </div>
@@ -6180,7 +5739,7 @@ const trafficInsights = ref({
   includeDirect: false,
   year: 2026,
   month: 10,
-  monthTotalGB: 100.3,
+  monthTotalGB: (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic')) ? Number(localStorage.getItem('cubex_month_traffic')) : 99.5,
   monthTotalConns: 78137,
   dailyAverageGB: 5.5,
   selectedDay: new Date().getDate(),
@@ -6446,6 +6005,11 @@ function updateHourlyDistribution(inMB, outMB, conns) {
     }
   })
   trafficInsights.value.monthTotalGB = Number((sumMB / 1024).toFixed(1))
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('cubex_month_traffic', String(trafficInsights.value.monthTotalGB))
+    }
+  } catch (e) {}
   trafficInsights.value.dailyAverageGB = activeDays > 0 ? Number((sumMB / activeDays / 1024).toFixed(1)) : 5.5
 
   const targetDay = trafficInsights.value.selectedDay
@@ -6737,6 +6301,24 @@ async function triggerAllServiceProbes() {
   probingServiceLatencies.value = true
   await Promise.allSettled(serviceProbes.value.map(probeSingleService))
   setTimeout(() => { probingServiceLatencies.value = false }, 400)
+}
+
+
+let baseOutboundAnchorMB = null
+
+function updateLiveMonthlyTraffic(currentOutMB) {
+  if (currentOutMB === undefined || currentOutMB === null) return
+  if (baseOutboundAnchorMB === null) {
+    baseOutboundAnchorMB = currentOutMB
+  }
+  const deltaMB = Math.max(0, currentOutMB - baseOutboundAnchorMB)
+  const baseGB = Number(localStorage.getItem('cubex_base_month_gb') || 99.5)
+  // Dynamic 0.1GB accumulation based on real-time outbound transfer
+  const liveGB = Number((baseGB + deltaMB / 1024).toFixed(1))
+  trafficInsights.value.monthTotalGB = liveGB
+  try {
+    localStorage.setItem('cubex_month_traffic', String(liveGB))
+  } catch (e) {}
 }
 
 async function fetchTelemetryTraffic() {
@@ -8769,6 +8351,15 @@ async function setDeviceRouting(dev, mode, boundNode = '') {
     })
     showToast(`已为 ${dev.name} 应用策略: ${mode === 'rule' ? '智能分流' : (mode === 'bypass' ? '直连绕过' : '锁定出口')}`)
   } catch (e) {}
+}
+
+function onTopoUpdateDeviceMode({ dev, mode }) {
+  setDeviceRouting(dev, mode)
+}
+
+async function onTopoRenameDevice({ dev, newName }) {
+  editingDeviceName.value = newName
+  await saveDeviceAlias(dev)
 }
 
 async function autoSetupHostPlatform() {
