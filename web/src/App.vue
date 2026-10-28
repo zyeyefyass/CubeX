@@ -6304,25 +6304,38 @@ async function triggerAllServiceProbes() {
 }
 
 
-let baseOutboundAnchorMB = null
+let lastTelemetryOutboundMB = null
 
 function updateLiveMonthlyTraffic(currentOutMB) {
   if (currentOutMB === undefined || currentOutMB === null || isNaN(currentOutMB)) return
-  if (baseOutboundAnchorMB === null) {
-    baseOutboundAnchorMB = currentOutMB
-  }
 
-  // Real-time cumulative traffic from current core session + persisted monthly base
   const now = new Date()
   const monthKey = `cubex_traffic_${now.getFullYear()}_${now.getMonth() + 1}`
 
-  // Purge any legacy hardcoded 99.5 sample values from cache
+  // Purge any legacy hardcoded 99.5 or runaway feedback loop values
   if (typeof localStorage !== 'undefined') {
-    if (localStorage.getItem('cubex_month_traffic') === '99.5' || localStorage.getItem('cubex_base_month_gb') === '99.5') {
+    const rawVal = localStorage.getItem('cubex_month_traffic')
+    const rawMonthMB = localStorage.getItem(monthKey)
+    if (rawVal === '99.5' || rawVal === '13.19' || (rawMonthMB && parseFloat(rawMonthMB) > 5000 && currentOutMB < 2000)) {
       localStorage.removeItem('cubex_month_traffic')
       localStorage.removeItem('cubex_base_month_gb')
+      localStorage.removeItem(monthKey)
     }
   }
+
+  // True incremental delta calculation (never feedback accumulated in a loop)
+  if (lastTelemetryOutboundMB === null) {
+    lastTelemetryOutboundMB = currentOutMB
+  }
+
+  let deltaMB = 0
+  if (currentOutMB >= lastTelemetryOutboundMB) {
+    deltaMB = currentOutMB - lastTelemetryOutboundMB
+  } else {
+    // Core restarted or traffic counters reset
+    deltaMB = currentOutMB
+  }
+  lastTelemetryOutboundMB = currentOutMB
 
   let storedBaseMB = 0
   try {
@@ -6331,8 +6344,14 @@ function updateLiveMonthlyTraffic(currentOutMB) {
     }
   } catch (e) {}
 
-  const currentSessionMB = Math.max(0, currentOutMB - baseOutboundAnchorMB)
-  const totalMonthMB = Math.max(currentOutMB, storedBaseMB + currentSessionMB)
+  let totalMonthMB = storedBaseMB
+  if (totalMonthMB === 0 && currentOutMB > 0) {
+    // First observation for this month initializes to current core baseline
+    totalMonthMB = currentOutMB
+  } else if (deltaMB > 0) {
+    // Only increment when authentic new outbound traffic actually passed through!
+    totalMonthMB += deltaMB
+  }
 
   const liveGB = Number((totalMonthMB / 1024).toFixed(2))
   trafficInsights.value.monthTotalGB = liveGB
@@ -6351,12 +6370,12 @@ async function fetchTelemetryTraffic() {
     if (res.ok) {
       const data = await res.json()
       const liveMem = data.rss_mb || data.memory_mb || systemStatus.value?.memory_mb || 51.1
-      telemetryMetrics.value.connections = data.connections_count || 9
+      telemetryMetrics.value.connections = data.connections_count ?? 0
       telemetryMetrics.value.memoryMB = liveMem
       if (data.rss_mb !== undefined) telemetryMetrics.value.rssMB = Number(data.rss_mb.toFixed(1))
-      telemetryMetrics.value.inboundTotalMB = data.inbound_total_mb || 78.4
+      telemetryMetrics.value.inboundTotalMB = data.inbound_total_mb ?? 0
       telemetryMetrics.value.inboundSpeedBps = data.inbound_speed_bps || 0
-      telemetryMetrics.value.outboundTotalMB = data.outbound_total_mb || 802
+      telemetryMetrics.value.outboundTotalMB = data.outbound_total_mb ?? 0
       telemetryMetrics.value.outboundSpeedBps = data.outbound_speed_bps || 0
 
       // Dynamically accumulate and update monthly outbound transfer

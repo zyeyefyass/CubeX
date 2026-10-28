@@ -5991,52 +5991,23 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 
 
 
-	connCount := 9
-
-	var uploadTotal, downloadTotal int64 = 840974336, 82208358 // ~802MB out, ~78.4MB in
-
+	connCount := 0
+	var uploadTotal, downloadTotal int64 = 0, 0
 	var upSpeed, downSpeed int64 = 0, 0
 
-
-
 	resp, err := s.httpClient.Get(fmt.Sprintf("http://127.0.0.1:%d/connections", clashPort))
-
 	if err == nil && resp.StatusCode == http.StatusOK {
-
 		var connResp struct {
-
 			DownloadTotal int64      `json:"downloadTotal"`
-
 			UploadTotal   int64      `json:"uploadTotal"`
-
 			Connections   []struct{} `json:"connections"`
-
 		}
-
 		if json.NewDecoder(resp.Body).Decode(&connResp) == nil {
-
-			if len(connResp.Connections) > 0 {
-
-				connCount = len(connResp.Connections)
-
-			}
-
-			if connResp.DownloadTotal > 0 {
-
-				downloadTotal = connResp.DownloadTotal
-
-			}
-
-			if connResp.UploadTotal > 0 {
-
-				uploadTotal = connResp.UploadTotal
-
-			}
-
+			connCount = len(connResp.Connections)
+			downloadTotal = connResp.DownloadTotal
+			uploadTotal = connResp.UploadTotal
 		}
-
 		resp.Body.Close()
-
 	}
 
 

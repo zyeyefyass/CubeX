@@ -543,14 +543,14 @@ const currentUploadRate = computed(() => {
 
 const currentMonthTotalGB = computed(() => {
   if (props.trafficInsights?.monthTotalGB != null && props.trafficInsights.monthTotalGB > 0) {
-    return props.trafficInsights.monthTotalGB
+    return Number(props.trafficInsights.monthTotalGB).toFixed(2)
   }
   const m = props.telemetryMetrics
   if (m?.outboundTotalMB != null && m.outboundTotalMB > 0) {
-    return (m.outboundTotalMB / 1024).toFixed(1)
+    return (m.outboundTotalMB / 1024).toFixed(2)
   }
-  const cached = (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic') && localStorage.getItem('cubex_month_traffic') !== '99.5') ? Number(localStorage.getItem('cubex_month_traffic')) : 0
-  return cached || '0.0'
+  const cached = (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic') && localStorage.getItem('cubex_month_traffic') !== '99.5' && localStorage.getItem('cubex_month_traffic') !== '13.19') ? Number(localStorage.getItem('cubex_month_traffic')) : 0
+  return cached ? cached.toFixed(2) : '0.00'
 })
 
 // Outbound proxy routes resolution
