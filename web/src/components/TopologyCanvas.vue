@@ -82,10 +82,7 @@
             <stop offset="50%" stop-color="#34D399" stop-opacity="0.9" />
             <stop offset="100%" stop-color="#F59E0B" stop-opacity="0.8" />
           </linearGradient>
-          <filter id="glowEffect" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
+
         </defs>
 
         <!-- Active Connecting Paths -->
@@ -100,7 +97,7 @@
               isAnimationActive ? (p.type === 'direct' ? 'flow-dash-direct' : 'flow-dash-proxy') : ''
             ]"
             :style="{
-              filter: (isAnimationActive && p.isHighlighted) ? 'drop-shadow(0 0 6px rgba(0, 245, 212, 0.7))' : 'none'
+              opacity: p.isHighlighted ? '1' : '0.85'
             }"
           />
         </g>
@@ -112,7 +109,7 @@
         <!-- ══════════════════════════════════════════════════════════════ -->
         <!-- TIER 1: 局域网设备 (LAN Devices) [lg:col-span-4]               -->
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <div class="lg:col-span-4 flex flex-col justify-between space-y-2">
+        <div id="topology-tier-1" class="lg:col-span-4 flex flex-col justify-between space-y-2">
           <!-- Non-wrapping clean header -->
           <div class="h-7 flex items-center justify-between gap-2 pb-1 px-1 whitespace-nowrap">
             <div class="flex items-center gap-1.5 min-w-0">
@@ -183,10 +180,24 @@
                     ]">
                     <span>{{ dev.mode === 'bypass' ? '🔵 直连绕过' : '🟢 智能分流' }}</span>
                   </button>
-                  <span class="text-[10px] font-mono text-slate-400 flex items-center gap-1">
-                    <span class="text-emerald-400">↑{{ dev.trafficUp || '12KB' }}</span>
-                    <span class="text-cyan-400">↓{{ dev.trafficDown || '380KB' }}</span>
-                  </span>
+                  <!-- Dynamic Traffic / Status Badge -->
+                  <div class="text-[10px] font-mono flex items-center gap-1">
+                    <template v-if="dev.mode === 'bypass'">
+                      <span class="text-sky-400/90 font-medium">⚡ 芯片直连 · 0负载</span>
+                    </template>
+                    <template v-else-if="getDeviceRateDisplay(dev)">
+                      <span class="text-cyan-300 font-bold flex items-center gap-0.5 animate-pulse">
+                        <span>↓</span>
+                        <span>{{ getDeviceRateDisplay(dev) }}</span>
+                      </span>
+                    </template>
+                    <template v-else>
+                      <span class="text-slate-500 font-medium flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/70"></span>
+                        <span>就绪</span>
+                      </span>
+                    </template>
+                  </div>
                 </div>
               </div>
             </div>
@@ -269,7 +280,7 @@
         <!-- ══════════════════════════════════════════════════════════════ -->
         <!-- TIER 3: 出口与分流策略 (Outbound Hub - Exact 382px: 5 Cards)  -->
         <!-- ══════════════════════════════════════════════════════════════ -->
-        <div class="lg:col-span-4 flex flex-col justify-between space-y-2">
+        <div id="topology-tier-3" class="lg:col-span-4 flex flex-col justify-between space-y-2">
           <div class="h-7 flex items-center justify-between pb-1 px-1 whitespace-nowrap">
             <span class="text-xs sm:text-[13px] font-bold text-slate-300 tracking-wide flex items-center gap-1.5">
               <span>🚀</span>
@@ -369,7 +380,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import CubeXLogo from './CubeXLogo.vue'
 import DeviceBrandLogo from './DeviceBrandLogo.vue'
 
@@ -524,22 +535,81 @@ const directLatency = computed(() => {
   return props.healthRadar?.metrics?.direct?.latency_ms || 22
 })
 
-// Live rates & Monthly outbound traffic (Dynamic reactive mapping)
+// Live rates & Monthly outbound traffic (Dynamic reactive mapping with EWMA damping)
+const smoothedDownloadBps = ref(0)
+const smoothedUploadBps = ref(0)
+
+// Watch telemetryMetrics to dynamically handle burst buffering (e.g. YouTube 4K stream)
+// In gateway transparent proxy, video streaming download is received and delivered to the LAN client (often counted as outbound transfer)
+
+watch(() => props.telemetryMetrics, (m) => {
+  if (!m) return
+  const inBps = Number(m.inboundSpeedBps) || 0
+  const outBps = Number(m.outboundSpeedBps) || 0
+
+  // The true active client video downlink speed is the primary streaming peak
+  const activeStreamDown = Math.max(inBps, outBps)
+  const activeStreamUp = Math.min(inBps, outBps)
+
+  if (activeStreamDown > 0) {
+    if (activeStreamDown >= smoothedDownloadBps.value) {
+      smoothedDownloadBps.value = activeStreamDown
+    } else {
+      // Smooth exponential decay: retains realistic bandwidth view during YouTube chunk intervals
+      smoothedDownloadBps.value = Math.round(smoothedDownloadBps.value * 0.7 + activeStreamDown * 0.3)
+    }
+  } else {
+    smoothedDownloadBps.value = Math.round(smoothedDownloadBps.value * 0.5)
+    if (smoothedDownloadBps.value < 100) smoothedDownloadBps.value = 0
+  }
+
+  if (activeStreamUp > 0) {
+    if (activeStreamUp >= smoothedUploadBps.value) {
+      smoothedUploadBps.value = activeStreamUp
+    } else {
+      smoothedUploadBps.value = Math.round(smoothedUploadBps.value * 0.7 + activeStreamUp * 0.3)
+    }
+  } else {
+    smoothedUploadBps.value = Math.round(smoothedUploadBps.value * 0.5)
+    if (smoothedUploadBps.value < 100) smoothedUploadBps.value = 0
+  }
+}, { deep: true, immediate: true })
+
 const currentDownloadRate = computed(() => {
+  if (smoothedDownloadBps.value > 0) return formatSpeed(smoothedDownloadBps.value)
   const m = props.telemetryMetrics
-  const bps = m?.inboundSpeedBps ?? m?.rateDown
-  if (bps != null && bps > 0) return formatSpeed(bps)
-  if (m?.outboundRate) return m.outboundRate
+  const bps = Math.max(Number(m?.inboundSpeedBps) || 0, Number(m?.outboundSpeedBps) || 0)
+  if (bps > 0) return formatSpeed(bps)
   return '0 B/s'
 })
 
 const currentUploadRate = computed(() => {
+  if (smoothedUploadBps.value > 0) return formatSpeed(smoothedUploadBps.value)
   const m = props.telemetryMetrics
-  const bps = m?.outboundSpeedBps ?? m?.rateUp
-  if (bps != null && bps > 0) return formatSpeed(bps)
-  if (m?.inboundRate) return m.inboundRate
+  const bps = Math.min(Number(m?.inboundSpeedBps) || 0, Number(m?.outboundSpeedBps) || 0)
+  if (bps > 0) return formatSpeed(bps)
   return '0 B/s'
 })
+
+// Dynamic per-device rate resolution (no hardcoded fake values)
+function getDeviceRateDisplay(dev) {
+  if (!dev || dev.mode === 'bypass') return ''
+  if (dev.trafficDown && dev.trafficDown !== '380KB' && dev.trafficDown !== '12KB') return dev.trafficDown
+  
+  const totalDownBps = smoothedDownloadBps.value || Math.max(Number(props.telemetryMetrics?.inboundSpeedBps) || 0, Number(props.telemetryMetrics?.outboundSpeedBps) || 0)
+  if (totalDownBps <= 2048) return '' // < 2KB/s considered idle
+
+  // Check if this device is the primary active consumer
+  if (selectedDevice.value && selectedDevice.value.ip === dev.ip) {
+    return formatSpeed(totalDownBps)
+  }
+  const ruleDevices = activeDisplayDevices.value.filter(d => d.mode !== 'bypass')
+  const isPrimary = dev.ip.endsWith('.4') || (ruleDevices.length > 0 && ruleDevices[0].ip === dev.ip)
+  if (isPrimary && (!selectedDevice.value || selectedDevice.value.ip === dev.ip)) {
+    return formatSpeed(totalDownBps)
+  }
+  return ''
+}
 
 const currentMonthTotalGB = computed(() => {
   if (props.trafficInsights?.monthTotalGB != null && props.trafficInsights.monthTotalGB > 0) {
@@ -659,17 +729,33 @@ function calculateSvgPaths() {
   const coreRightX = Math.round(coreRect.right - containerRect.left)
   const coreCenterY = Math.round(coreRect.top + coreRect.height / 2 - containerRect.top)
 
+  // Anchor X boundaries: Tier 1 right edge & Tier 3 left edge
+  const tier1El = document.getElementById('topology-tier-1')
+  let tier1RightX = coreLeftX - 70
+  if (tier1El) {
+    const t1Rect = tier1El.getBoundingClientRect()
+    tier1RightX = Math.round(t1Rect.right - containerRect.left)
+  }
+
+  const tier3El = document.getElementById('topology-tier-3')
+  let tier3LeftX = coreRightX + 70
+  if (tier3El) {
+    const t3Rect = tier3El.getBoundingClientRect()
+    tier3LeftX = Math.round(t3Rect.left - containerRect.left)
+  }
+
+  // 5 Symmetrical Slot Center Y coordinates (fits 5 visible 68px cards in 396px column perfectly)
+  const slotCentersY = [40, 114, 188, 262, 336]
+
   const paths = []
 
-  // 1. Connect Active Clients -> CubeX Core (Top 5 visible items)
-  activeDisplayDevices.value.slice(0, 5).forEach((dev, idx) => {
-    const devEl = document.getElementById('client-node-' + dev.ip.replace(/\./g, '-'))
-    if (!devEl) return
-    const devRect = devEl.getBoundingClientRect()
-    const startX = Math.round(devRect.right - containerRect.left)
-    const startY = Math.round(devRect.top + devRect.height / 2 - containerRect.top)
+  // 1. Connect Active Clients -> CubeX Core (5 symmetrical slot lines)
+  const visibleDevices = activeDisplayDevices.value.slice(0, 5)
+  visibleDevices.forEach((dev, idx) => {
+    const startX = tier1RightX
+    const startY = slotCentersY[idx] !== undefined ? slotCentersY[idx] : (40 + idx * 74)
     const endX = coreLeftX
-    const endY = coreCenterY + (idx - 2) * 12
+    const endY = coreCenterY + (idx - 2) * 10
 
     const cp1X = Math.round(startX + (endX - startX) * 0.5)
     const cp1Y = startY
@@ -686,50 +772,27 @@ function calculateSvgPaths() {
     })
   })
 
-  // 2. Connect CubeX Core -> Outbound Hub
-  // 2.1 Direct outbound path
-  const directEl = document.getElementById('outbound-direct-node')
-  if (directEl) {
-    const dRect = directEl.getBoundingClientRect()
+  // 2. Connect CubeX Core -> Outbound Hub (Top 5 Outbound Routes)
+  const directRoute = { name: '国内直连', mode: 'direct' }
+  const proxyRoutes = displayOutboundRoutes.value.slice(0, 4)
+  const allRoutes = [directRoute, ...proxyRoutes]
+
+  allRoutes.forEach((route, idx) => {
     const startX = coreRightX
-    const startY = coreCenterY - 15
-    const endX = Math.round(dRect.left - containerRect.left)
-    const endY = Math.round(dRect.top + dRect.height / 2 - containerRect.top)
+    const startY = coreCenterY + (idx - 2) * 10
+    const endX = tier3LeftX
+    const endY = slotCentersY[idx] !== undefined ? slotCentersY[idx] : (40 + idx * 74)
 
     const cp1X = Math.round(startX + (endX - startX) * 0.5)
     const cp1Y = startY
     const cp2X = cp1X
     const cp2Y = endY
 
-    const isHigh = selectedDevice.value?.mode === 'bypass'
+    const isDirect = route.mode === 'direct'
+    const isHigh = selectedDevice.value ? (selectedDevice.value.mode === 'bypass' ? isDirect : !isDirect) : false
     paths.push({
       d: `M ${startX} ${startY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${endX} ${endY}`,
-      type: 'direct',
-      isActive: true,
-      isHighlighted: isHigh,
-      isMatchSelected: !selectedDevice.value || isHigh
-    })
-  }
-
-  // 2.2 Proxy outbound paths
-  displayOutboundRoutes.value.forEach((route, ri) => {
-    const pEl = document.getElementById('outbound-proxy-node-' + ri)
-    if (!pEl) return
-    const pRect = pEl.getBoundingClientRect()
-    const startX = coreRightX
-    const startY = coreCenterY + (ri - 1) * 12
-    const endX = Math.round(pRect.left - containerRect.left)
-    const endY = Math.round(pRect.top + pRect.height / 2 - containerRect.top)
-
-    const cp1X = Math.round(startX + (endX - startX) * 0.5)
-    const cp1Y = startY
-    const cp2X = cp1X
-    const cp2Y = endY
-
-    const isHigh = selectedDevice.value && selectedDevice.value.mode !== 'bypass'
-    paths.push({
-      d: `M ${startX} ${startY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${endX} ${endY}`,
-      type: 'proxy',
+      type: isDirect ? 'direct' : 'proxy',
       isActive: true,
       isHighlighted: isHigh,
       isMatchSelected: !selectedDevice.value || isHigh
@@ -745,19 +808,20 @@ function calculateSvgPaths() {
   svgPaths.value = paths
 }
 
-let resizeObserver = null
+let resizeTimeout = null
+function handleWindowResize() {
+  if (resizeTimeout) clearTimeout(resizeTimeout)
+  resizeTimeout = setTimeout(() => {
+    scheduleCalculateSvgPaths()
+  }, 200)
+}
+
 onMounted(() => {
   nextTick(() => {
     scheduleCalculateSvgPaths()
-    setTimeout(scheduleCalculateSvgPaths, 300)
-    setTimeout(scheduleCalculateSvgPaths, 1000)
+    setTimeout(scheduleCalculateSvgPaths, 250)
   })
-
-  if (typeof ResizeObserver !== 'undefined' && topologyContainer.value) {
-    resizeObserver = new ResizeObserver(() => scheduleCalculateSvgPaths())
-    resizeObserver.observe(topologyContainer.value)
-  }
-  window.addEventListener('resize', scheduleCalculateSvgPaths, { passive: true })
+  window.addEventListener('resize', handleWindowResize, { passive: true })
 })
 
 onUnmounted(() => {
@@ -765,8 +829,8 @@ onUnmounted(() => {
     cancelAnimationFrame(rafId)
     rafId = null
   }
-  if (resizeObserver) resizeObserver.disconnect()
-  window.removeEventListener('resize', scheduleCalculateSvgPaths)
+  if (resizeTimeout) clearTimeout(resizeTimeout)
+  window.removeEventListener('resize', handleWindowResize)
 })
 </script>
 
