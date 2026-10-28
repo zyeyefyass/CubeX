@@ -3695,7 +3695,7 @@
                         <span>三步让 DeepSeek 帮你管网关 (小白极速上手)</span>
                       </span>
                       <span class="px-2 py-0.5 rounded-md bg-blue-500/15 border border-blue-400/25 text-[10px] text-blue-300 font-mono">
-                        支持 V3 / R1 思考模型
+                        全面兼容 DeepSeek 4.x / 4.1 Flash / R1 全系
                       </span>
                     </div>
 
@@ -3705,7 +3705,7 @@
                         <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold text-[11px] flex items-center justify-center shrink-0">1</span>
                         <div>
                           <p class="font-semibold text-slate-200">下载 Cherry Studio 并选 DeepSeek 模型</p>
-                          <p class="text-[11px] text-slate-400 mt-0.5">电脑免费安装 Cherry Studio（最好用的国产多模型客户端），模型选择 <span class="text-cyan-300 font-mono">deepseek-chat</span> 或 <span class="text-cyan-300 font-mono">deepseek-reasoner</span>。</p>
+                          <p class="text-[11px] text-slate-400 mt-0.5">电脑免费安装 Cherry Studio（最好用的国产多模型客户端），模型选择最新 <span class="text-cyan-300 font-mono">DeepSeek 4.1 Flash</span>、<span class="text-cyan-300 font-mono">R1 深度思考</span> 或 <span class="text-cyan-300 font-mono">V3 / deepseek-chat</span> 均完美支持！</p>
                         </div>
                       </div>
 
@@ -3752,13 +3752,6 @@
                       </div>
                     </div>
 
-                    <!-- Direct Documentation Link Footer -->
-                    <div class="pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
-                      <span class="text-slate-400">想看带图的完整配置步骤与更多玩法？</span>
-                      <a href="https://github.com/zyeyefyass/CubeX#mcp-guide" target="_blank" rel="noopener noreferrer" class="text-cyan-300 hover:text-cyan-200 underline font-semibold flex items-center gap-1 transition">
-                        <span>查看主页 README 详细图文手册 ↗</span>
-                      </a>
-                    </div>
                   </div>
                 </div>
 

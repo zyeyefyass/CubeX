@@ -6,7 +6,7 @@
 ### *网关不用改 · DNS不用改 · 老婆再也不拔插头！极客随便折腾、全家永不断网的宿主共生透明代理系统*
 
 <p align="center">
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v4.2-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v4.3-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 <a href="https://github.com/zyeyefyass/CubeX"><img src="https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go" alt="Dual-Engine" /></a>
 <a href="#"><img src="https://img.shields.io/badge/Host-PVE_%7C_RouterOS_%7C_爱快_%7C_OpenWrt_%7C_飞牛_%7C_Linux-3A86FF?style=for-the-badge" alt="Host Base" /></a>
@@ -32,7 +32,7 @@
 - [🛡️ 架构选型建议：为什么首推 PVE CT 容器？](#sandbox-vs-all-in-one)
 - [⚡ 权威实测：CubeX vs 传统方案全维度对决](#benchmark)
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
-- [📢 Test v4.2 最新版本更新亮点](#announcement)
+- [📢 Test v4.3 最新版本更新亮点](#announcement)
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 - [🚀 六大主流平台保姆级部署实战 (选一种适合你的就行)](#deployment-guides)
   - [方式 A：Proxmox VE (PVE) CT 容器部署 (🥇 强烈推荐 · 沙盒隔离 · 万兆无损)](#deploy-pve)
@@ -94,7 +94,7 @@
 
 ## 👑 终极解法：大白话讲透“网关 + DNS 全双双指向主路由”
 
-这就是 **CubeX Test v4.2** 带来的终极形态：**把主路由和旁路由各自擅长的事彻底拆开！**
+这就是 **CubeX Test v4.3** 带来的终极形态：**把主路由和旁路由各自擅长的事彻底拆开！**
 
 用生活里的大白话打个比方：
 * **主路由器**（RouterOS / 爱快 / OpenWrt）：相当于小区的**门卫大爷**。他手里有芯片级硬件加速引擎，最擅长看门放行。
@@ -229,19 +229,21 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v4.2 最新版本更新亮点
+## 📢 Test v4.3 最新版本更新亮点 (全新集成 AI 原生 MCP 领航员 · 支持 DeepSeek 4.1 Flash / R1 全系掌控家庭网络)
 
-1. 👑 **【网关 + DNS 全双双指主路由】终极免折腾形态正式落地**：
+1. 🤖 **【AI 原生 MCP 领航员接入 · 全面支持 DeepSeek 4.1 Flash / R1 全系】重磅首发**：
+   正式原生内置轻量 MCP (Model Context Protocol 2024-11-05) 领航员服务！纯 Go 原生零依赖嵌入守护进程（内存开销 <1MB · 纯内网安全监听），无缝兼容 **DeepSeek 4.1 Flash**、**DeepSeek-R1 (深度思考)**、**DeepSeek-V3**、Claude 3.5 Sonnet 及 Cursor / Cherry Studio。无需打开控制台后台，直接以日常口语与 AI 对话，AI 即可自动感知全息网速流量、扫描在线终端设备、一句话流控改策略、秒级平滑热切双核引擎及一键全栈网络自愈加固！
+2. 👑 **【网关 + DNS 全双双指主路由】终极免折腾形态正式落地**：
    全家手机电脑 100% 保持默认 DHCP，主路由 FastTrack 硬件芯片满血直出，CubeX 幕后接管国际跨境分流，看门狗 0 秒无感逃生。
-2. ⚡ **拓扑大屏 60FPS 顺滑渲染与鼠标 0 卡顿**：
+3. ⚡ **拓扑大屏 60FPS 顺滑渲染与鼠标 0 卡顿**：
    彻底修复鼠标移动时控制台卡顿掉帧的问题，页面拖拽如同黄油般丝滑。
-3. 🚀 **真实进出站网速毫秒动态刷新**：
+4. 🚀 **真实进出站网速毫秒动态刷新**：
    实时反映当前真实下载和上传速度，动态累加并保存本月实际跨境/出站流量，告别数字看似不动的问题。
-4. 🌐 **全局零硬编码与网关自动探查**：
+5. 🌐 **全局零硬编码与网关自动探查**：
    自动识别主路由 IP 和内网网段，哪怕你换了路由器或搬了家，插上网线自动适配，绝不用手动改配置文件。
-5. 📱 **手机端底部常驻导航坞**：
+6. 📱 **手机端底部常驻导航坞**：
    手机查看控制台体验大升级，网络中枢、应用分流、安全防护一键直达。
-6. 🔄 **双引擎双循环无损验证**：
+7. 🔄 **双引擎双循环无损验证**：
    Mihomo 与 sing-box 双核热切换丝滑顺畅，国内直连与国际分流通道零中断。
 
 ---
@@ -255,13 +257,13 @@
 | 我用的是什么环境？ | 我该下载哪个文件？ | 文件大小 | 怎么安装？ |
 | :--- | :--- | :--- | :--- |
 | **🥇 PVE 虚拟机小主机 (强烈推荐)** | 不需要手动下载文件！ | - | 复制下面的[方式 A 一行命令](#deploy-pve)粘贴进 PVE 终端回车即可！ |
-| **爱快 iKuai 64位 主路由** | `CubeX-Test-v4.2-docker-amd64.tar.gz` | ~77.3 MB | 进爱快 Docker 导入镜像，按[方式 C](#deploy-ikuai)教程配好即可 |
-| **MikroTik RouterOS (x86软路由)** | `CubeX-Test-v4.2-ros-amd64.tar` | ~111.4 MB | WinBox 拖入文件，运行 `setup-routeros-v7.rsc` 脚本 |
-| **MikroTik RouterOS (RB5009/CCR)** | `CubeX-Test-v4.2-ros-arm64.tar` | ~110.4 MB | WinBox 拖入文件，运行 `setup-routeros-v7.rsc` 脚本 |
-| **OpenWrt 智能软路由** | `CubeX-Test-v4.2-docker-amd64.tar.gz` | ~77.3 MB | 传到 OpenWrt 跑 `setup-openwrt.sh` 脚本 |
-| **飞牛 fnOS / 通用 Linux Docker** | `CubeX-Test-v4.2-docker-amd64.tar.gz` | ~77.3 MB | 导入镜像或直接用 `fyasshole/cubex:latest` 一行命令拉起 |
-| **通用 Linux (纯手动解压版 amd64)** | `CubeX-Test-v4.2-linux-amd64.zip` | ~86.5 MB | 包含加固双内核、101 套规则库与 CLI 工具 |
-| **通用 Linux (纯手动解压版 arm64)** | `CubeX-Test-v4.2-linux-arm64.zip` | ~79.4 MB | ARM64 软路由/树莓派解压包 |
+| **爱快 iKuai 64位 主路由** | `CubeX-Test-v4.3-docker-amd64.tar.gz` | ~77.3 MB | 进爱快 Docker 导入镜像，按[方式 C](#deploy-ikuai)教程配好即可 |
+| **MikroTik RouterOS (x86软路由)** | `CubeX-Test-v4.3-ros-amd64.tar` | ~111.4 MB | WinBox 拖入文件，运行 `setup-routeros-v7.rsc` 脚本 |
+| **MikroTik RouterOS (RB5009/CCR)** | `CubeX-Test-v4.3-ros-arm64.tar` | ~110.4 MB | WinBox 拖入文件，运行 `setup-routeros-v7.rsc` 脚本 |
+| **OpenWrt 智能软路由** | `CubeX-Test-v4.3-docker-amd64.tar.gz` | ~77.3 MB | 传到 OpenWrt 跑 `setup-openwrt.sh` 脚本 |
+| **飞牛 fnOS / 通用 Linux Docker** | `CubeX-Test-v4.3-docker-amd64.tar.gz` | ~77.3 MB | 导入镜像或直接用 `fyasshole/cubex:latest` 一行命令拉起 |
+| **通用 Linux (纯手动解压版 amd64)** | `CubeX-Test-v4.3-linux-amd64.zip` | ~86.5 MB | 包含加固双内核、101 套规则库与 CLI 工具 |
+| **通用 Linux (纯手动解压版 arm64)** | `CubeX-Test-v4.3-linux-arm64.zip` | ~79.4 MB | ARM64 软路由/树莓派解压包 |
 | **PVE 一键安装脚本** | `install_pve_lxc.sh` | ~8.2 KB | PVE 宿主机自动化创建 CT 容器脚本 |
 | **Linux 通用安装脚本** | `install.sh` | ~11.4 KB | Linux 宿主机自动探查安装脚本 |
 | **RouterOS 编排脚本** | `setup-routeros-v7.rsc` | ~17.0 KB | WinBox 终端复制即用一键脚本 |
@@ -309,7 +311,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 如果你的主路由就是 MikroTik（RB5009、CCR2004、x86 ROS）：
 
-1. **下载镜像**：在上方清单下载对应架构的 `CubeX-Test-v4.2-ros-amd64.tar`（或 `arm64.tar`）；
+1. **下载镜像**：在上方清单下载对应架构的 `CubeX-Test-v4.3-ros-amd64.tar`（或 `arm64.tar`）；
 2. **传进路由器**：打开 WinBox，把 `.tar` 文件直接拖进【Files】列表（推荐放在 U 盘或 SSD 磁盘如 `disk1/`）；
 3. **一键运行脚本**：打开 WinBox 的【Terminal】终端，把 `setup-routeros-v7.rsc` 里的内容全选复制粘贴进去回车；
 4. 30 秒内脚本会自动建好容器、配置好 VETH 网卡和 Netwatch 0 秒逃生看门狗，控制台立刻可用！
@@ -323,7 +325,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 爱快主路由的七层流控非常强，通过 Docker 跑 CubeX，不仅能保留爱快原汁原味的流控，国内流量还能跑满物理线速！
 
 #### 步骤 1：导入离线镜像
-1. 在上方清单下载 `CubeX-Test-v4.2-docker-amd64.tar.gz`；
+1. 在上方清单下载 `CubeX-Test-v4.3-docker-amd64.tar.gz`；
 2. 登录爱快后台，进入【高级应用】➔【插件营销】➔【Docker】；
 3. 进入【镜像管理】➔ 点击【导入镜像】，上传刚刚下载的压缩包（导入后标签为 `cubex:latest`）。
 
@@ -356,7 +358,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 OpenWrt 自带 Docker 环境，使用 CubeX 独创的 Macvlan-Shim 方案，再也不用担心装插件把系统整变砖！
 
 #### 极速 2 步离线安装（国内网络推荐，0 失败率）：
-1. 在上方资产清单下载 `CubeX-Test-v4.2-docker-amd64.tar.gz` 和 `setup-openwrt.sh` 两个文件；
+1. 在上方资产清单下载 `CubeX-Test-v4.3-docker-amd64.tar.gz` 和 `setup-openwrt.sh` 两个文件；
 2. 用 WinSCP 或 SSH 传到 OpenWrt 的 `/tmp` 目录，在终端执行：
    ```bash
    cd /tmp && sh setup-openwrt.sh
@@ -450,7 +452,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 ## 🤖 MCP (Model Context Protocol) AI 原生领航员接入与 DeepSeek / 多模型实战指南
 
-CubeX Test v4.2 原生内置了工业级 **轻量 MCP (Model Context Protocol) 领航员服务**。通过 Anthropic 与开源社区最新倡导的 MCP 2024-11-05 规范标准，赋予当今主流大语言模型（**DeepSeek-V3 / R1**、Claude 3.5 Sonnet、Cursor、Windsurf 等）通过自然语言对话**实时感知、掌控与自愈家庭网络**的超级能力！
+CubeX Test v4.3 原生内置了工业级 **轻量 MCP (Model Context Protocol) 领航员服务**。通过 Anthropic 与开源社区最新倡导的 MCP 2024-11-05 规范标准，赋予当今主流大语言模型（**DeepSeek 4.x / 4.1 Flash / R1 / V3 全系**、Claude 3.5 Sonnet、Cursor、Windsurf 等）通过自然语言对话**实时感知、掌控与自愈家庭网络**的超级能力！
 
 ### 🌟 核心工程架构与安全合规特性
 
@@ -481,14 +483,14 @@ CubeX Test v4.2 原生内置了工业级 **轻量 MCP (Model Context Protocol) �
 
 ### 🐋 实战教学一：DeepSeek 接入与自然语言操控 (以 Cherry Studio / Chatbox 为例)
 
-国产顶尖大模型 **DeepSeek-V3**（通用推理）与 **DeepSeek-R1**（深度思考推理）具备卓越的 Function Calling（工具调用）能力。通过 Cherry Studio 或 Chatbox 客户端，你可以轻松将 DeepSeek 变身为你的“家庭网络全天候智能运维专家”！
+顶尖大模型 **DeepSeek 4.1 Flash**、**DeepSeek-R1**（深度思考推理）与 **DeepSeek-V3** 具备卓越的 Function Calling（工具调用）能力。由于 CubeX 原生遵循通用 MCP 规范，对 DeepSeek 全版本及未来衍生版本 100% 具备无缝兼容性！通过 Cherry Studio 或 Chatbox 客户端，你可以轻松将 DeepSeek 变身为你的“家庭网络全天候智能运维专家”！
 
 #### 详细配置三步法：
 
 1. **第一步：配置 DeepSeek 模型**
    - 打开 Cherry Studio（或 Chatbox），进入【设置】->【模型服务】；
    - 添加 DeepSeek 官方 API Key（或 SiliconFlow / 硅基流动等聚合服务商 Key）；
-   - 默认模型选择 `deepseek-chat` 或 `deepseek-reasoner`。
+   - 默认模型选择最新 `DeepSeek-4.1-Flash`、`deepseek-reasoner (R1)` 或 `deepseek-chat (V3)`。
 
 2. **第二步：挂载 CubeX MCP 服务端**
    - 在客户端左侧菜单点击【MCP 服务器】或【插件 / Tools】设置；
