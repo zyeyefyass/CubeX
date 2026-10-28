@@ -549,7 +549,7 @@ const currentMonthTotalGB = computed(() => {
   if (m?.outboundTotalMB != null && m.outboundTotalMB > 0) {
     return (m.outboundTotalMB / 1024).toFixed(1)
   }
-  const cached = (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic')) ? Number(localStorage.getItem('cubex_month_traffic')) : 0
+  const cached = (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic') && localStorage.getItem('cubex_month_traffic') !== '99.5') ? Number(localStorage.getItem('cubex_month_traffic')) : 0
   return cached || '0.0'
 })
 

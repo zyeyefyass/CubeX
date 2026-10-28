@@ -5739,7 +5739,7 @@ const trafficInsights = ref({
   includeDirect: false,
   year: 2026,
   month: 10,
-  monthTotalGB: (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic')) ? Number(localStorage.getItem('cubex_month_traffic')) : 99.5,
+  monthTotalGB: (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic') && localStorage.getItem('cubex_month_traffic') !== '99.5') ? Number(localStorage.getItem('cubex_month_traffic')) : 0.0,
   monthTotalConns: 78137,
   dailyAverageGB: 5.5,
   selectedDay: new Date().getDate(),
@@ -6307,17 +6307,41 @@ async function triggerAllServiceProbes() {
 let baseOutboundAnchorMB = null
 
 function updateLiveMonthlyTraffic(currentOutMB) {
-  if (currentOutMB === undefined || currentOutMB === null) return
+  if (currentOutMB === undefined || currentOutMB === null || isNaN(currentOutMB)) return
   if (baseOutboundAnchorMB === null) {
     baseOutboundAnchorMB = currentOutMB
   }
-  const deltaMB = Math.max(0, currentOutMB - baseOutboundAnchorMB)
-  const baseGB = Number(localStorage.getItem('cubex_base_month_gb') || 99.5)
-  // Dynamic 0.1GB accumulation based on real-time outbound transfer
-  const liveGB = Number((baseGB + deltaMB / 1024).toFixed(1))
-  trafficInsights.value.monthTotalGB = liveGB
+
+  // Real-time cumulative traffic from current core session + persisted monthly base
+  const now = new Date()
+  const monthKey = `cubex_traffic_${now.getFullYear()}_${now.getMonth() + 1}`
+
+  // Purge any legacy hardcoded 99.5 sample values from cache
+  if (typeof localStorage !== 'undefined') {
+    if (localStorage.getItem('cubex_month_traffic') === '99.5' || localStorage.getItem('cubex_base_month_gb') === '99.5') {
+      localStorage.removeItem('cubex_month_traffic')
+      localStorage.removeItem('cubex_base_month_gb')
+    }
+  }
+
+  let storedBaseMB = 0
   try {
-    localStorage.setItem('cubex_month_traffic', String(liveGB))
+    if (typeof localStorage !== 'undefined' && localStorage.getItem(monthKey)) {
+      storedBaseMB = parseFloat(localStorage.getItem(monthKey)) || 0
+    }
+  } catch (e) {}
+
+  const currentSessionMB = Math.max(0, currentOutMB - baseOutboundAnchorMB)
+  const totalMonthMB = Math.max(currentOutMB, storedBaseMB + currentSessionMB)
+
+  const liveGB = Number((totalMonthMB / 1024).toFixed(2))
+  trafficInsights.value.monthTotalGB = liveGB
+
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(monthKey, String(totalMonthMB))
+      localStorage.setItem('cubex_month_traffic', String(liveGB))
+    }
   } catch (e) {}
 }
 
