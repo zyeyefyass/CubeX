@@ -113,4 +113,79 @@ func SanitizeIR(ir *schema.ConfigIR) {
 		cleanProxies = append(cleanProxies, p)
 	}
 	ir.Proxies = cleanProxies
+
+	// 3. Sanitize DNS (Anti-Recursive DNS Deadlock Guard)
+	SanitizeDNS(&ir.DNS)
+}
+
+// IsLoopbackOrDeadlockDNS checks whether a DNS address is a loopback, unspecified,
+// systemd-resolved, or recursive deadlock address that could cause engine query deadlocks.
+func IsLoopbackOrDeadlockDNS(addr string) bool {
+	raw := strings.TrimSpace(addr)
+	if raw == "" {
+		return true
+	}
+	// Strip protocol prefixes like udp://, tcp://, tls://, https://, quic://, h3://
+	if idx := strings.Index(raw, "://"); idx != -1 {
+		raw = raw[idx+3:]
+	}
+	// Strip path component for DoH/DoQ (e.g. 1.1.1.1/dns-query)
+	if idx := strings.Index(raw, "/"); idx != -1 {
+		raw = raw[:idx]
+	}
+	// Strip port if present
+	host := raw
+	if h, _, err := net.SplitHostPort(raw); err == nil {
+		host = h
+	}
+	host = strings.ToLower(strings.Trim(host, "[]"))
+
+	if host == "localhost" || host == "localhost.localdomain" || host == "0.0.0.0" || host == "::" {
+		return true
+	}
+
+	ip := net.ParseIP(host)
+	if ip != nil {
+		if ip.IsLoopback() || ip.IsUnspecified() {
+			return true
+		}
+		// Check for 127.0.0.0/8
+		if ip4 := ip.To4(); ip4 != nil {
+			if ip4[0] == 127 || ip4[0] == 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// SanitizeDNS scrubs loopback, unspecified, and deadlocking recursive DNS servers
+// from DirectDNS, RemoteDNS, and FallbackDNS, auto-recovering with resilient defaults.
+func SanitizeDNS(dns *schema.DNSConfig) {
+	if dns == nil {
+		return
+	}
+
+	sanitizeList := func(list []string, defaultList []string, label string) []string {
+		clean := make([]string, 0, len(list))
+		for _, addr := range list {
+			t := strings.TrimSpace(addr)
+			if t == "" {
+				continue
+			}
+			if IsLoopbackOrDeadlockDNS(t) {
+				log.Printf("[DNSLoopbackGuard] Dropped loopback/deadlock DNS upstream (%s): %s", label, t)
+				continue
+			}
+			clean = append(clean, t)
+		}
+		if len(clean) == 0 {
+			clean = append(clean, defaultList...)
+		}
+		return clean
+	}
+
+	dns.DirectDNS = sanitizeList(dns.DirectDNS, []string{"223.5.5.5", "119.29.29.29"}, "DirectDNS")
+	dns.RemoteDNS = sanitizeList(dns.RemoteDNS, []string{"tls://1.1.1.1", "tls://8.8.8.8"}, "RemoteDNS")
+	dns.FallbackDNS = sanitizeList(dns.FallbackDNS, []string{"tls://1.1.1.1", "tls://8.8.8.8"}, "FallbackDNS")
 }

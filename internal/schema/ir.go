@@ -113,6 +113,8 @@ type ProxyNode struct {
 	Flow           string            `json:"flow,omitempty" yaml:"flow,omitempty"`
 	Congestion     string            `json:"congestion,omitempty" yaml:"congestion,omitempty"`
 	Delay          int               `json:"delay" yaml:"delay"` // measured latency ms
+	DelayStatus    string            `json:"delay_status,omitempty" yaml:"delay_status,omitempty"` // ok, timeout, dns_failed, conn_refused, resource_limit, tls_failed, conn_reset, error
+	DelayText      string            `json:"delay_text,omitempty" yaml:"delay_text,omitempty"`     // 正常, 握手超时, DNS解析失败, 连接被拒, 系统资源受限, TLS握手异常, 连接重置, 连接异常
 	SubID          string            `json:"sub_id,omitempty" yaml:"sub_id,omitempty"`
 	RawConfig      map[string]any    `json:"raw_config,omitempty" yaml:"raw_config,omitempty"`
 }

@@ -4630,106 +4630,113 @@ func (s *Server) handleSubCronStatus(w http.ResponseWriter, r *http.Request) {
 
 
 
-func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSecret string) int {
+type NodeDelayResult struct {
+	Delay      int    `json:"delay"`
+	Status     string `json:"status"`      // ok, timeout, dns_failed, conn_refused, resource_limit, tls_failed, conn_reset, error
+	StatusText string `json:"status_text"` // 正常, 握手超时, DNS解析失败, 连接被拒, 系统资源受限, TLS握手异常, 连接重置, 连接异常
+}
 
-	if clashPort <= 0 || node.Name == "" {
-
-		return 0
-
+func classifyDelayError(errStr string, httpCode int) (string, string) {
+	lower := strings.ToLower(errStr)
+	if httpCode == http.StatusNotFound || strings.Contains(lower, "not found") || strings.Contains(lower, "not exist") {
+		return "not_found", "未加载"
 	}
+	if strings.Contains(lower, "lookup") || strings.Contains(lower, "no such host") || strings.Contains(lower, "dns") || strings.Contains(lower, "name resolution") {
+		return "dns_failed", "DNS解析失败"
+	}
+	if strings.Contains(lower, "timeout") || strings.Contains(lower, "deadline exceeded") || httpCode == http.StatusGatewayTimeout {
+		return "timeout", "握手超时"
+	}
+	if strings.Contains(lower, "connection refused") || strings.Contains(lower, "refused") {
+		return "conn_refused", "连接被拒"
+	}
+	if strings.Contains(lower, "too many open files") || strings.Contains(lower, "resource temporarily unavailable") || strings.Contains(lower, "cannot assign requested address") || strings.Contains(lower, "socket: buffer") {
+		return "resource_limit", "系统资源受限"
+	}
+	if strings.Contains(lower, "tls:") || strings.Contains(lower, "handshake") || strings.Contains(lower, "cert") || strings.Contains(lower, "bad record mac") || strings.Contains(lower, "first record does not look like a tls handshake") {
+		return "tls_failed", "TLS握手异常"
+	}
+	if strings.Contains(lower, "reset by peer") || strings.Contains(lower, "broken pipe") || strings.Contains(lower, "eof") {
+		return "conn_reset", "连接重置"
+	}
+	if lower != "" {
+		return "error", "连接异常"
+	}
+	return "timeout", "握手超时"
+}
 
-
+func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSecret string) NodeDelayResult {
+	if clashPort <= 0 || node.Name == "" {
+		return NodeDelayResult{Delay: 0, Status: "error", StatusText: "节点未就绪"}
+	}
 
 	escaped := url.PathEscape(node.Name)
-
 	escaped = strings.ReplaceAll(escaped, "[", "%5B")
-
 	escaped = strings.ReplaceAll(escaped, "]", "%5D")
 
-
-
-	// Use 2 reliable HTTPS probes with short timeout to prevent goroutine hang
-
 	probeURLs := []string{
-
 		"https://cp.cloudflare.com/generate_204",
-
 		"https://www.gstatic.com/generate_204",
-
 	}
-
-
-
-	// Transport with DisableKeepAlives to prevent socket hoarding during speedtests
 
 	tr := &http.Transport{
-
 		DisableKeepAlives: true,
-
 		MaxIdleConns:      0,
-
 	}
-
 	client := &http.Client{
-
 		Transport: tr,
-
 		Timeout:   2800 * time.Millisecond,
-
 	}
 
-
+	lastStatus := "timeout"
+	lastStatusText := "握手超时"
 
 	for _, probe := range probeURLs {
-
 		testURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?url=%s&timeout=2500",
-
 			clashPort, escaped, url.QueryEscape(probe))
-
 		req, err := http.NewRequest(http.MethodGet, testURL, nil)
-
 		if err != nil {
-
+			lastStatus, lastStatusText = classifyDelayError(err.Error(), 0)
 			continue
-
 		}
-
 		if clashSecret != "" {
-
 			req.Header.Set("Authorization", "Bearer "+clashSecret)
-
 		}
-
 		resp, err := client.Do(req)
-
 		if err != nil {
-
+			lastStatus, lastStatusText = classifyDelayError(err.Error(), 0)
 			continue
-
 		}
+
+		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		resp.Body.Close()
 
 		var result struct {
+			Delay   int    `json:"delay"`
+			Message string `json:"message"`
+		}
+		_ = json.Unmarshal(bodyBytes, &result)
 
-			Delay int `json:"delay"`
-
+		if resp.StatusCode == http.StatusOK && result.Delay > 0 {
+			return NodeDelayResult{
+				Delay:      result.Delay,
+				Status:     "ok",
+				StatusText: "正常",
+			}
 		}
 
-		decodeErr := json.NewDecoder(resp.Body).Decode(&result)
-
-		resp.Body.Close() // ALWAYS close immediately, never defer inside loop
-
-		if decodeErr == nil && result.Delay > 0 {
-
-			return result.Delay
-
+		errMsg := result.Message
+		if errMsg == "" {
+			errMsg = string(bodyBytes)
 		}
-
+		lastStatus, lastStatusText = classifyDelayError(errMsg, resp.StatusCode)
 	}
 
-
-
-	return 0
-
+	return NodeDelayResult{
+		Delay:      0,
+		Status:     lastStatus,
+		StatusText: lastStatusText,
+	}
 }
 
 
@@ -4808,11 +4815,13 @@ func (s *Server) handleProxyDelay(w http.ResponseWriter, r *http.Request) {
 
 
 
-	delay := s.testNodeRealDelay(*targetNode, clashPort, clashSecret)
+	res := s.testNodeRealDelay(*targetNode, clashPort, clashSecret)
 
 	if targetIdx >= 0 {
 
-		ir.Proxies[targetIdx].Delay = delay
+		ir.Proxies[targetIdx].Delay = res.Delay
+		ir.Proxies[targetIdx].DelayStatus = res.Status
+		ir.Proxies[targetIdx].DelayText = res.StatusText
 
 		s.engMgr.UpdateIR(ir)
 
@@ -4822,11 +4831,15 @@ func (s *Server) handleProxyDelay(w http.ResponseWriter, r *http.Request) {
 
 	sendJSON(w, map[string]any{
 
-		"ok":    true,
+		"ok":          true,
 
-		"name":  name,
+		"name":        name,
 
-		"delay": delay,
+		"delay":       res.Delay,
+
+		"status":      res.Status,
+
+		"status_text": res.StatusText,
 
 	})
 
@@ -4964,29 +4977,17 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 
 
 
-			delay := s.testNodeRealDelay(item.node, clashPort, clashSecret)
+			res := s.testNodeRealDelay(item.node, clashPort, clashSecret)
 
-			if delay > 0 {
-
-				mu.Lock()
-
+			mu.Lock()
+			ir.Proxies[item.index].Delay = res.Delay
+			ir.Proxies[item.index].DelayStatus = res.Status
+			ir.Proxies[item.index].DelayText = res.StatusText
+			if res.Delay > 0 {
 				onlineCount++
-
-				totalDelay += int64(delay)
-
-				ir.Proxies[item.index].Delay = delay
-
-				mu.Unlock()
-
-			} else {
-
-				mu.Lock()
-
-				ir.Proxies[item.index].Delay = 0
-
-				mu.Unlock()
-
+				totalDelay += int64(res.Delay)
 			}
+			mu.Unlock()
 
 		}(it)
 
@@ -5175,6 +5176,7 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 	minDelay := 9999
 
 	results := make(map[string]int)
+	diagnostics := make(map[string]NodeDelayResult)
 
 
 
@@ -5192,39 +5194,22 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 
 
 
-			delay := s.testNodeRealDelay(item.node, clashPort, clashSecret)
+			res := s.testNodeRealDelay(item.node, clashPort, clashSecret)
 
-			if delay > 0 {
-
-				mu.Lock()
-
+			mu.Lock()
+			ir.Proxies[item.index].Delay = res.Delay
+			ir.Proxies[item.index].DelayStatus = res.Status
+			ir.Proxies[item.index].DelayText = res.StatusText
+			results[item.node.Name] = res.Delay
+			diagnostics[item.node.Name] = res
+			if res.Delay > 0 {
 				onlineCount++
-
-				totalDelay += int64(delay)
-
-				if delay < minDelay {
-
-					minDelay = delay
-
+				totalDelay += int64(res.Delay)
+				if res.Delay < minDelay {
+					minDelay = res.Delay
 				}
-
-				ir.Proxies[item.index].Delay = delay
-
-				results[item.node.Name] = delay
-
-				mu.Unlock()
-
-			} else {
-
-				mu.Lock()
-
-				ir.Proxies[item.index].Delay = 0
-
-				results[item.node.Name] = 0
-
-				mu.Unlock()
-
 			}
+			mu.Unlock()
 
 		}(it)
 
@@ -5295,6 +5280,7 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 		"min_delay":    minDelay,
 
 		"results":      results,
+		"diagnostics":  diagnostics,
 
 	})
 

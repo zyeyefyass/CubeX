@@ -1339,8 +1339,8 @@
                           <div class="text-[11px] truncate font-semibold">{{ node.name }}</div>
                           <div class="flex items-center justify-between text-[9px] font-mono">
                             <span :class="reg.winner === node.name ? 'text-emerald-100' : 'text-slate-400'">{{ node.type || 'vless' }}</span>
-                            <span :class="['px-1 rounded font-bold', getNodePillClass(node.delay, reg.winner === node.name)]">
-                              {{ node.delay > 0 ? `${node.delay}ms` : '⚡' }}
+                            <span :class="['px-1 rounded font-bold', getNodePillClass(node.delay, reg.winner === node.name, node.delay_status)]">
+                              {{ node.delay > 0 ? `${node.delay}ms` : (node.delay_text || '⚡') }}
                             </span>
                           </div>
                         </button>
@@ -1473,8 +1473,8 @@
                     </div>
                     <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
                       <span>{{ node.type || 'vless' }} / udp</span>
-                      <span :class="['px-1.5 py-0.2 rounded font-bold text-[9px]', getNodePillClass(node.delay, false)]">
-                        {{ node.delay > 0 ? node.delay : '⚡' }}
+                      <span :class="['px-1.5 py-0.2 rounded font-bold text-[9px]', getNodePillClass(node.delay, false, node.delay_status)]">
+                        {{ node.delay > 0 ? `${node.delay}ms` : (node.delay_text || '⚡') }}
                       </span>
                     </div>
                   </button>
@@ -4242,8 +4242,8 @@
                       <span class="text-white text-[11px] truncate">{{ node.name }}</span>
                     </div>
                     <div class="flex items-center gap-1.5 shrink-0">
-                      <span :class="['px-1.5 py-0.2 rounded text-[9px] font-bold border', getNodeDelayClass(node.delay)]">
-                        {{ node.delay > 0 ? `${node.delay}ms` : '未测速' }}
+                      <span :class="['px-1.5 py-0.2 rounded text-[9px] font-bold border', getNodeDelayClass(node.delay, node.delay_status)]">
+                        {{ node.delay > 0 ? `${node.delay}ms` : (node.delay_text || '未测速') }}
                       </span>
                       <button @click="setNodeAsPrimaryOutbound(node.name)" class="px-1.5 py-0.2 rounded bg-cyan-950 hover:bg-cyan-900 text-emerald-300 border border-cyan-500/30 text-[9px]">
                         设为出口
@@ -11339,10 +11339,18 @@ function getLatencyBadgeClass(latency) {
   return 'bg-rose-950/80 text-rose-300 border border-rose-500/30'
 }
 
-function getNodePillClass(delay, isWinner = false) {
-  if (isWinner) return 'bg-emerald-700/60 text-white'
-  if (delay > 0 && delay < 100) return 'bg-emerald-950 text-emerald-300'
-  if (delay > 0 && delay < 200) return 'bg-amber-950 text-amber-300'
+function getNodePillClass(delay, isWinner = false, status = '') {
+  if (isWinner) return 'bg-emerald-700/60 text-white font-bold'
+  if (delay > 0) {
+    if (delay < 100) return 'bg-emerald-950 text-emerald-300'
+    if (delay < 200) return 'bg-amber-950 text-amber-300'
+    return 'bg-rose-950 text-rose-300'
+  }
+  if (status === 'dns_failed') return 'bg-amber-950/90 text-amber-300'
+  if (status === 'timeout') return 'bg-rose-950/90 text-rose-300'
+  if (status === 'conn_refused') return 'bg-red-950/90 text-red-300'
+  if (status === 'resource_limit') return 'bg-purple-950/90 text-purple-300'
+  if (status === 'tls_failed') return 'bg-orange-950/90 text-orange-300'
   return 'bg-slate-800 text-slate-400'
 }
 
@@ -11606,16 +11614,20 @@ async function testSingleNode(node) {
       const data = await res.json()
       if (data.delay !== undefined) {
         node.delay = data.delay
+        node.delay_status = data.status
+        node.delay_text = data.status_text
         if (data.delay > 0) {
           showToast(`「${node.name}」真实端到端延迟: ${node.delay}ms`)
         } else {
-          showToast(`「${node.name}」连接超时或不可达`)
+          showToast(`「${node.name}」测速诊断: [${data.status_text || '握手超时'}]`)
         }
         return
       }
     }
   } catch (e) {}
   node.delay = 0
+  node.delay_status = 'timeout'
+  node.delay_text = '握手超时'
   showToast(`「${node.name}」测速超时`)
 }
 
@@ -11633,6 +11645,10 @@ async function testProviderNodes(nodes) {
       for (const n of nodes) {
         if (data.results[n.name] !== undefined) {
           n.delay = data.results[n.name]
+        }
+        if (data.diagnostics && data.diagnostics[n.name]) {
+          n.delay_status = data.diagnostics[n.name].status
+          n.delay_text = data.diagnostics[n.name].status_text
         }
       }
       showToast(`测速完成！${data.online_count || 0}/${nodes.length} 节点在线，平均延迟 ${data.avg_delay || 0}ms`)
@@ -12724,12 +12740,21 @@ function isSubDrawerExpanded(subId) {
   return !!expandedSubIds.value[subId]
 }
 
-function getNodeDelayClass(delay) {
-  if (!delay || delay <= 0) return 'text-slate-300 bg-slate-900 border-slate-800'
-  if (delay < 80) return 'text-emerald-400 bg-emerald-950/80 border-emerald-500/40'
-  if (delay < 180) return 'text-emerald-300 bg-emerald-500/15 border-emerald-400/30 font-bold'
-  if (delay < 300) return 'text-amber-300 bg-amber-950/80 border-amber-500/40'
-  return 'text-rose-400 bg-rose-950/80 border-rose-500/40'
+function getNodeDelayClass(delay, status = '') {
+  if (delay > 0) {
+    if (delay < 80) return 'text-emerald-400 bg-emerald-950/80 border-emerald-500/40'
+    if (delay < 180) return 'text-emerald-300 bg-emerald-500/15 border-emerald-400/30 font-bold'
+    if (delay < 300) return 'text-amber-300 bg-amber-950/80 border-amber-500/40'
+    return 'text-rose-400 bg-rose-950/80 border-rose-500/40'
+  }
+  if (!status || status === 'not_found') return 'text-slate-400 bg-slate-900/60 border-slate-700/40'
+  if (status === 'dns_failed') return 'text-amber-400 bg-amber-950/70 border-amber-500/40 font-bold'
+  if (status === 'timeout') return 'text-rose-400 bg-rose-950/70 border-rose-500/40'
+  if (status === 'conn_refused') return 'text-red-400 bg-red-950/70 border-red-500/40'
+  if (status === 'resource_limit') return 'text-purple-400 bg-purple-950/70 border-purple-500/40 font-bold'
+  if (status === 'tls_failed') return 'text-orange-400 bg-orange-950/70 border-orange-500/40'
+  if (status === 'conn_reset') return 'text-pink-400 bg-pink-950/70 border-pink-500/40'
+  return 'text-rose-400/80 bg-rose-950/50 border-rose-800/40'
 }
 
 async function runSubSpeedTest(subId) {

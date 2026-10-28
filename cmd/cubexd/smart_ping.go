@@ -130,7 +130,8 @@ func (s *Server) executeSmartHealthPing(force bool) {
 			}()
 
 			// 1. Probe currently selected active node
-			delay := s.testNodeRealDelay(*activeNode, clashPort, clashSecret)
+			res := s.testNodeRealDelay(*activeNode, clashPort, clashSecret)
+			delay := res.Delay
 
 			state := SmartPingGroupState{
 				Group:         grp.Name,
@@ -162,7 +163,8 @@ func (s *Server) executeSmartHealthPing(force bool) {
 						break // Inspect top 5 candidates max to keep it lightweight
 					}
 
-					candDelay := s.testNodeRealDelay(*candNode, clashPort, clashSecret)
+					candRes := s.testNodeRealDelay(*candNode, clashPort, clashSecret)
+					candDelay := candRes.Delay
 					if candDelay > 0 && candDelay < bestDelay {
 						bestDelay = candDelay
 						bestCandidate = candNode
