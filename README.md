@@ -213,10 +213,7 @@
 ### 2. 全息网络总览与微光健康跑分
 <img src="docs/assets/screenshots/cubex-live-security-radar.png" alt="CubeX 全息网络总览" width="95%" />
 
-### 3. 14 大核心应用分流策略矩阵
-<img src="docs/assets/screenshots/cubex-live-routing-matrix.png" alt="CubeX 应用分流矩阵" width="95%" />
-
-### 4. 宿主共生中枢与一键全栈自愈
+### 3. 宿主共生中枢与一键全栈自愈
 <img src="docs/assets/screenshots/cubex-live-host-symbiosis.png" alt="CubeX 宿主共生联动" width="95%" />
 
 ### 5. 217heidai 权威去广告与 101 套全量分流规则体系
@@ -463,7 +460,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 ### Q4：本月跨境/出站流量会在每月 1 日自动清零重新统计吗？
 **会！100% 自动归档清零！**
-系统内置精准的月份边界感知机制。每到每月 1 日 00:00:00，系统会自动将上个月的国际跨境分流总流量归档存入历史记录，并将当月跨境/出站流量严格重置为 `0.00 GB` 开始重新统计。平时没有跨境/出站流量时数值纹丝不动，月度账单清清楚楚。
+系统内置精准的月份边界感知机制。每到每月 1 日 00:00:00，系统会自动将上个月的国际跨境总流量归档存入历史记录，并将当月跨境/出站流量严格重置为 `0.00 GB` 开始重新统计。平时没有跨境/出站流量时数值纹丝不动，月度账单清清楚楚。
 
 ### Q5：有人造谣说“CubeX 会在我的路由器里乱加代码开后门”，这是真的吗？
 **纯属无稽之谈！真相是：100% 明文透明、零密码依赖、物理沙盒强隔离！**

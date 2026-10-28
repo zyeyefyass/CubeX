@@ -180,21 +180,15 @@
                     ]">
                     <span>{{ dev.mode === 'bypass' ? '🔵 直连绕过' : '🟢 智能分流' }}</span>
                   </button>
-                  <!-- Dynamic Traffic / Status Badge -->
+                  <!-- Clean Device Mode & State Indicator -->
                   <div class="text-[10px] font-mono flex items-center gap-1">
                     <template v-if="dev.mode === 'bypass'">
                       <span class="text-sky-400/90 font-medium">⚡ 芯片直连 · 0负载</span>
                     </template>
-                    <template v-else-if="getDeviceRateDisplay(dev)">
-                      <span class="text-cyan-300 font-bold flex items-center gap-0.5 animate-pulse">
-                        <span>↓</span>
-                        <span>{{ getDeviceRateDisplay(dev) }}</span>
-                      </span>
-                    </template>
                     <template v-else>
-                      <span class="text-slate-500 font-medium flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/70"></span>
-                        <span>就绪</span>
+                      <span class="text-emerald-400/80 font-medium flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400/70"></span>
+                        <span>智能分流就绪</span>
                       </span>
                     </template>
                   </div>
@@ -235,9 +229,9 @@
               </div>
             </div>
 
-            <!-- Core Live Metrics Grid: 实时进出站速率 + 本月出海流量 + 活跃并发 -->
+            <!-- Core Live Metrics Grid: 实时进出站速率 + 本月跨境流量 + 活跃并发 -->
             <div class="grid grid-cols-2 gap-2 text-left relative z-10 pt-2 border-t border-white/10">
-              <!-- 1. 实时下行 (出海下载) -->
+              <!-- 1. 实时下行 (外部下行) -->
               <div class="p-2 sm:p-2.5 rounded-xl bg-black/30 hover:bg-black/45 border border-white/5 space-y-0.5 transition-colors">
                 <span class="text-[10px] text-slate-400 block font-medium">⚡ 实时下行 (下载)</span>
                 <span class="text-xs font-mono font-bold text-cyan-300 truncate block">
@@ -253,9 +247,9 @@
                 </span>
               </div>
 
-              <!-- 3. 本月出海流量 -->
+              <!-- 3. 本月跨境流量 -->
               <div class="p-2 sm:p-2.5 rounded-xl bg-black/30 hover:bg-black/45 border border-white/5 space-y-0.5 transition-colors">
-                <span class="text-[10px] text-slate-400 block font-medium">🚢 本月出海流量</span>
+                <span class="text-[10px] text-slate-400 block font-medium">🌐 本月跨境流量</span>
                 <span class="text-xs font-mono font-bold text-[#FFB300] truncate block">
                   {{ currentMonthTotalGB }} GB
                 </span>
@@ -295,7 +289,7 @@
           <!-- Outbound Cards List (Exact Height 382px: 5 Cards Equal Height) -->
           <div class="h-[396px] max-h-[396px] space-y-1.5 flex flex-col">
 
-            <!-- 1. 🇨🇳 真实国内直连极速通道 (Direct Pipeline) -->
+            <!-- 1. 🇨🇳 真实国内直连通道 (Direct Pipeline) -->
             <div id="outbound-direct-node"
               class="p-2.5 sm:px-3 sm:py-2 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-emerald-500/20 hover:border-emerald-400/50 transition-all duration-200 relative overflow-hidden group cursor-pointer shadow-sm h-[68px] min-h-[68px] flex items-center"
               @click="highlightOutbound('direct')">
@@ -304,7 +298,7 @@
               <div class="flex items-center justify-between gap-2 w-full">
                 <div class="flex items-center gap-2.5 min-w-0">
                   <div class="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center text-sm shrink-0">
-                    <span>🇨🇳</span>
+                    <span>🎯</span>
                   </div>
                   <div class="min-w-0">
                     <div class="flex items-center gap-1.5">

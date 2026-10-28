@@ -1525,17 +1525,17 @@
                       <span>全面根治历史网关与子网硬编码缺陷 (已在3.2彻底修复)</span>
                     </div>
                     <p class="text-slate-300 leading-relaxed text-[11px]">
-                      早先版本因部分脚本硬编码特定网关/网段（如 10.0.0.x）导致非该网段用户无法科学上网。现已全平台推行动态网关与子网嗅探准则，静态回指与 DHCP 劫持 100% 杜绝黑洞丢包！
+                      早先版本因部分脚本硬编码特定网关/网段（如 10.0.0.x）导致非该网段用户无法正常分流与加速。现已全平台推行动态网关与子网嗅探准则，静态回指与 DHCP 劫持 100% 杜绝黑洞丢包！
                     </p>
                   </div>
 
                   <div class="p-3 rounded-2xl bg-slate-950/70 border border-cyan-500/30 space-y-1">
                     <div class="font-bold text-emerald-300 flex items-center gap-1.5">
                       <span>🛡️</span>
-                      <span>双核端到端出海健康心跳与业务假死自动容灾倒换</span>
+                      <span>双核端到端国际链路健康心跳与业务假死自动容灾倒换</span>
                     </div>
                     <p class="text-slate-300 leading-relaxed text-[11px]">
-                      后台 60 秒周期通过本地代理端口发起轻量出海握手探针，若出海链路连续 3 次假死，系统自动无感触发双核容灾热切换（Mihomo ⇄ sing-box），保障家庭网络绝不断流！
+                      后台 60 秒周期通过本地代理端口发起轻量国际链路握手探针，若国际链路连续 3 次假死，系统自动无感触发双核容灾热切换（Mihomo ⇄ sing-box），保障家庭网络绝不断流！
                     </p>
                   </div>
 
@@ -6322,7 +6322,7 @@ function updateLiveMonthlyTraffic(currentOutMB) {
     const storedActiveMonth = localStorage.getItem(activeMonthKey)
     if (storedActiveMonth && storedActiveMonth !== monthTag) {
       // 跨月边界感知：归档旧月份总流量，新月份彻底从 0.00 GB 重新统计！
-      console.log(`[CubeX] 跨月自动清零: 从 ${storedActiveMonth} 进入 ${monthTag}，出海流量已自动归档并清零重新统计！`)
+      console.log(`[CubeX] 跨月自动清零: 从 ${storedActiveMonth} 进入 ${monthTag}，跨境流量已自动归档并清零重新统计！`)
       localStorage.setItem(`cubex_archived_${storedActiveMonth}`, localStorage.getItem(`cubex_traffic_${storedActiveMonth}`) || '0')
       localStorage.setItem(activeMonthKey, monthTag)
       localStorage.setItem(monthKey, '0')
@@ -6354,7 +6354,7 @@ function updateLiveMonthlyTraffic(currentOutMB) {
     }
   }
 
-  // 3. 真实增量计算 (Delta Accumulation: 只有出海流量真正物理增长才累加)
+  // 3. 真实增量计算 (Delta Accumulation: 只有跨境流量真正物理增长才累加)
   if (lastTelemetryOutboundMB === null) {
     lastTelemetryOutboundMB = currentOutMB
   }
@@ -6381,7 +6381,7 @@ function updateLiveMonthlyTraffic(currentOutMB) {
     // 首次初始化
     totalMonthMB = currentOutMB
   } else if (deltaMB > 0) {
-    // 只有当真正发生了新的物理出海流量时才增加！
+    // 只有当真正发生了新的物理跨境流量时才增加！
     totalMonthMB += deltaMB
   }
 
