@@ -226,19 +226,19 @@
 
             <!-- Core Live Metrics Grid: 实时进出站速率 + 本月出海流量 + 活跃并发 -->
             <div class="grid grid-cols-2 gap-2 text-left relative z-10 pt-2 border-t border-white/10">
-              <!-- 1. 实时出站 (下行) -->
+              <!-- 1. 实时下行 (出海下载) -->
               <div class="p-2 sm:p-2.5 rounded-xl bg-black/30 hover:bg-black/45 border border-white/5 space-y-0.5 transition-colors">
-                <span class="text-[10px] text-slate-400 block font-medium">⚡ 实时出站 (下行)</span>
+                <span class="text-[10px] text-slate-400 block font-medium">⚡ 实时下行 (下载)</span>
                 <span class="text-xs font-mono font-bold text-cyan-300 truncate block">
-                  ↓ {{ currentOutboundRate }}
+                  ↓ {{ currentDownloadRate }}
                 </span>
               </div>
 
-              <!-- 2. 实时进站 (上行) -->
+              <!-- 2. 实时上行 (请求上传) -->
               <div class="p-2 sm:p-2.5 rounded-xl bg-black/30 hover:bg-black/45 border border-white/5 space-y-0.5 transition-colors">
-                <span class="text-[10px] text-slate-400 block font-medium">🚀 实时进站 (上行)</span>
+                <span class="text-[10px] text-slate-400 block font-medium">🚀 实时上行 (上传)</span>
                 <span class="text-xs font-mono font-bold text-emerald-300 truncate block">
-                  ↑ {{ currentInboundRate }}
+                  ↑ {{ currentUploadRate }}
                 </span>
               </div>
 
@@ -254,7 +254,7 @@
               <div class="p-2 sm:p-2.5 rounded-xl bg-black/30 hover:bg-black/45 border border-white/5 space-y-0.5 transition-colors">
                 <span class="text-[10px] text-slate-400 block font-medium">🛡️ 活跃并发 · 0泄露</span>
                 <span class="text-xs font-mono font-bold text-teal-300 truncate block">
-                  {{ telemetryMetrics?.connections || 14 }} 会话 · :53
+                  {{ telemetryMetrics?.connections || 0 }} 活跃会话 · 晶盾
                 </span>
               </div>
             </div>
@@ -525,28 +525,32 @@ const directLatency = computed(() => {
 })
 
 // Live rates & Monthly outbound traffic (Dynamic reactive mapping)
-const currentOutboundRate = computed(() => {
+const currentDownloadRate = computed(() => {
   const m = props.telemetryMetrics
+  const bps = m?.inboundSpeedBps ?? m?.rateDown
+  if (bps != null && bps > 0) return formatSpeed(bps)
   if (m?.outboundRate) return m.outboundRate
-  if (m?.rateDown) return m.rateDown
-  if (m?.outboundSpeedBps != null && m?.outboundSpeedBps > 0) return formatSpeed(m.outboundSpeedBps)
   return '0 B/s'
 })
 
-const currentInboundRate = computed(() => {
+const currentUploadRate = computed(() => {
   const m = props.telemetryMetrics
+  const bps = m?.outboundSpeedBps ?? m?.rateUp
+  if (bps != null && bps > 0) return formatSpeed(bps)
   if (m?.inboundRate) return m.inboundRate
-  if (m?.rateUp) return m.rateUp
-  if (m?.inboundSpeedBps != null && m?.inboundSpeedBps > 0) return formatSpeed(m.inboundSpeedBps)
   return '0 B/s'
 })
 
 const currentMonthTotalGB = computed(() => {
-  if (props.trafficInsights?.monthTotalGB != null) {
+  if (props.trafficInsights?.monthTotalGB != null && props.trafficInsights.monthTotalGB > 0) {
     return props.trafficInsights.monthTotalGB
   }
-  const cached = (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic')) ? Number(localStorage.getItem('cubex_month_traffic')) : 99.5
-  return cached || 99.5
+  const m = props.telemetryMetrics
+  if (m?.outboundTotalMB != null && m.outboundTotalMB > 0) {
+    return (m.outboundTotalMB / 1024).toFixed(1)
+  }
+  const cached = (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic')) ? Number(localStorage.getItem('cubex_month_traffic')) : 0
+  return cached || '0.0'
 })
 
 // Outbound proxy routes resolution

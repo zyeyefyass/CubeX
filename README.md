@@ -501,19 +501,19 @@
 
 | 文件名 | 平台 / 底座 | 文件大小 | 说明与安装指引 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v4.2-linux-amd64.zip` | Linux amd64 (通用宿主 / **PVE CT 首选** / 飞牛) | ~73.8 MB | 包含加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
-| `CubeX-Test-v4.2-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~68.0 MB | 包含加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
-| `CubeX-Test-v4.2-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~96.8 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
-| `CubeX-Test-v4.2-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~96.9 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
-| `CubeX-Test-v4.2-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~77.4 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（标签为 `cubex:latest`）；OpenWrt 与飞牛支持 `setup-openwrt.sh` 自动载入或 `docker load -i` |
-| `cubexd-linux-amd64` | Linux amd64 单二进制 | ~12.9 MB | 加固主控守护进程，集成 Gzip 实时动态加速与跨端状态同步，用于在线秒级热更或单文件运行 |
-| `cubexd-linux-arm64` | Linux arm64 单二进制 | ~12.1 MB | 加固主控守护进程（ARM64 硬件架构） |
-| `cubex-linux-amd64` | Linux amd64 运维 CLI | ~6.3 MB | 终端运维命令行控制面 |
-| `cubex-linux-arm64` | Linux arm64 运维 CLI | ~5.8 MB | 终端运维命令行控制面（ARM64） |
-| `install_pve_lxc.sh` | **Proxmox VE 官方一键安装脚本 (最为推荐)** | ~8.1 KB | PVE 宿主机终端一键全自动部署脚本（自动升级 Alpine、透传 TUN、创建强隔离 CT 容器与装配 OpenRC 守护进程） |
+| `CubeX-Test-v4.2-linux-amd64.zip` | Linux amd64 (通用宿主 / **PVE CT 首选** / 飞牛) | ~86.5 MB | 包含加固双内核、全量 101 套 MRS/SRS 二进制规则、配置模板与 CLI 工具 |
+| `CubeX-Test-v4.2-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~79.4 MB | 包含加固双内核、全量 101 套 MRS/SRS 二进制规则、配置模板与 CLI 工具 |
+| `CubeX-Test-v4.2-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~111.4 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
+| `CubeX-Test-v4.2-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~110.4 MB | ROS 专有未压缩容器镜像（ARM64 硬件满血适配） |
+| `CubeX-Test-v4.2-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux | ~77.3 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：标签为 `cubex:latest`，支持 `docker load -i` |
+| `cubexd-linux-amd64` | Linux amd64 独立核心守护进程 | ~37.8 MB | 纯 Go 原创编译，Garble AST 混淆与符号剥离，集成 Gzip 实时加速与跨端状态同步 |
+| `cubexd-linux-arm64` | Linux arm64 独立核心守护进程 | ~34.1 MB | 纯 Go 原创编译，Garble AST 混淆与符号剥离（ARM64 硬件架构） |
+| `cubex-linux-amd64` | Linux amd64 运维管理 CLI 命令行工具 | ~16.8 MB | 终端交互与故障诊断 CLI (`cubex status/logs/switch`) |
+| `cubex-linux-arm64` | Linux arm64 运维管理 CLI 命令行工具 | ~15.1 MB | 终端交互与故障诊断 CLI (`cubex status/logs/switch`) |
+| `install_pve_lxc.sh` | **Proxmox VE 官方一键安装脚本 (最为推荐)** | ~8.2 KB | PVE 宿主机终端一键全自动部署脚本（自动升级 Alpine、透传 TUN、创建强隔离 CT 容器与装配 OpenRC 守护进程） |
 | `install.sh` | Linux 官方一键安全安装器 | ~11.4 KB | Linux 通用官方一键安全加载器，自动探查系统架构与宿主环境、装配 systemd/OpenRC 守护进程并极速拉起 |
 | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~17.0 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（支持全局大括号块作用域，自动配置网络、路由与 Netwatch 0秒逃生） |
-| `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~19.0 KB | OpenWrt 终端复制即用全自动编排脚本（支持多镜像断点续传、交互进度条、Macvlan-Shim、0秒看门狗与锁定 odhcpd 防泄露） |
+| `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~19.6 KB | OpenWrt 终端复制即用全自动编排脚本（支持多镜像断点续传、交互进度条、Macvlan-Shim、0秒看门狗与锁定 odhcpd 防泄露） |
 
 > ### 🧭 各主流宿主底座极速安装与发布资产选用速查指引：
 
