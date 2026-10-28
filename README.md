@@ -231,8 +231,8 @@
 
 ## 📢 Test v4.3 最新版本更新亮点 (全新集成 AI 原生 MCP 领航员 · 支持 DeepSeek 4.1 Flash / R1 全系掌控家庭网络)
 
-1. 🤖 **【AI 原生 MCP 领航员接入 · 全面支持 DeepSeek 4.1 Flash / R1 全系】重磅首发**：
-   正式原生内置轻量 MCP (Model Context Protocol 2024-11-05) 领航员服务！纯 Go 原生零依赖嵌入守护进程（内存开销 <1MB · 纯内网安全监听），无缝兼容 **DeepSeek 4.1 Flash**、**DeepSeek-R1 (深度思考)**、**DeepSeek-V3**、Claude 3.5 Sonnet 及 Cursor / Cherry Studio。无需打开控制台后台，直接以日常口语与 AI 对话，AI 即可自动感知全息网速流量、扫描在线终端设备、一句话流控改策略、秒级平滑热切双核引擎及一键全栈网络自愈加固！
+1. 🤖 **【AI 原生 MCP 领航员接入 · 全面支持 DeepSeek、豆包、通义千问、Claude 等全系大模型】重磅首发**：
+   正式原生内置轻量 MCP (Model Context Protocol 2024-11-05) 领航员服务！纯 Go 原生零依赖嵌入守护进程（内存开销 <1MB · 纯内网安全监听），无缝兼容 **DeepSeek**、**豆包 (火山引擎)**、**通义千问 (Qwen)**、**Claude** 等主流大模型 及 Cursor / Cherry Studio。无需打开控制台后台，直接以日常口语与 AI 对话，AI 即可自动感知全息网速流量、扫描在线终端设备、一句话流控改策略、秒级平滑热切双核引擎及一键全栈网络自愈加固！
 2. 👑 **【网关 + DNS 全双双指主路由】终极免折腾形态正式落地**：
    全家手机电脑 100% 保持默认 DHCP，主路由 FastTrack 硬件芯片满血直出，CubeX 幕后接管国际跨境分流，看门狗 0 秒无感逃生。
 3. ⚡ **拓扑大屏 60FPS 顺滑渲染与鼠标 0 卡顿**：
@@ -452,7 +452,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 ## 🤖 MCP (Model Context Protocol) AI 原生领航员接入与 DeepSeek / 多模型实战指南
 
-CubeX Test v4.3 原生内置了工业级 **轻量 MCP (Model Context Protocol) 领航员服务**。通过 Anthropic 与开源社区最新倡导的 MCP 2024-11-05 规范标准，赋予当今主流大语言模型（**DeepSeek 4.x / 4.1 Flash / R1 / V3 全系**、Claude 3.5 Sonnet、Cursor、Windsurf 等）通过自然语言对话**实时感知、掌控与自愈家庭网络**的超级能力！
+CubeX Test v4.3 原生内置了工业级 **轻量 MCP (Model Context Protocol) 领航员服务**。通过 Anthropic 与开源社区最新倡导的 MCP 2024-11-05 规范标准，赋予当今主流大语言模型（**DeepSeek、豆包、通义千问、Claude**、Cursor、Windsurf 等）通过自然语言对话**实时感知、掌控与自愈家庭网络**的超级能力！
 
 ### 🌟 核心工程架构与安全合规特性
 
@@ -483,7 +483,7 @@ CubeX Test v4.3 原生内置了工业级 **轻量 MCP (Model Context Protocol) �
 
 ### 🐋 实战教学一：DeepSeek 接入与自然语言操控 (以 Cherry Studio / Chatbox 为例)
 
-顶尖大模型 **DeepSeek 4.1 Flash**、**DeepSeek-R1**（深度思考推理）与 **DeepSeek-V3** 具备卓越的 Function Calling（工具调用）能力。由于 CubeX 原生遵循通用 MCP 规范，对 DeepSeek 全版本及未来衍生版本 100% 具备无缝兼容性！通过 Cherry Studio 或 Chatbox 客户端，你可以轻松将 DeepSeek 变身为你的“家庭网络全天候智能运维专家”！
+**DeepSeek、豆包 (火山引擎)、通义千问 (Qwen)、Claude** 均具备出色的 Function Calling（工具调用）能力。由于 CubeX 原生严格遵循通用 MCP 规范，无需关心大模型每月的版本迭代，任何支持工具调用的新老模型均 100% 即插即用！通过 Cherry Studio 或 Chatbox 客户端，你可以轻松将 DeepSeek 变身为你的“家庭网络全天候智能运维专家”！
 
 #### 详细配置三步法：
 
