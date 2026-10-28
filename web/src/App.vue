@@ -5735,11 +5735,12 @@ const trafficHourlyInbound = ref([
   22, 20, 22, 24, 28, 32, 38, 40, 35, 28, 18, 12
 ])
 
+const _nowInit = new Date()
 const trafficInsights = ref({
   includeDirect: false,
-  year: 2026,
-  month: 10,
-  monthTotalGB: (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic') && localStorage.getItem('cubex_month_traffic') !== '99.5') ? Number(localStorage.getItem('cubex_month_traffic')) : 0.0,
+  year: _nowInit.getFullYear(),
+  month: _nowInit.getMonth() + 1,
+  monthTotalGB: (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic') && localStorage.getItem('cubex_month_traffic') !== '99.5' && localStorage.getItem('cubex_month_traffic') !== '13.19') ? Number(localStorage.getItem('cubex_month_traffic')) : 0.0,
   monthTotalConns: 78137,
   dailyAverageGB: 5.5,
   selectedDay: new Date().getDate(),
@@ -6310,20 +6311,50 @@ function updateLiveMonthlyTraffic(currentOutMB) {
   if (currentOutMB === undefined || currentOutMB === null || isNaN(currentOutMB)) return
 
   const now = new Date()
-  const monthKey = `cubex_traffic_${now.getFullYear()}_${now.getMonth() + 1}`
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1
+  const monthTag = `${currentYear}_${currentMonth}`
+  const monthKey = `cubex_traffic_${monthTag}`
+  const activeMonthKey = 'cubex_active_month'
 
-  // Purge any legacy hardcoded 99.5 or runaway feedback loop values
+  // 1. 每月一日自动清零与跨月轮转 (Monthly Auto-Reset on Day 1 00:00:00)
+  if (typeof localStorage !== 'undefined') {
+    const storedActiveMonth = localStorage.getItem(activeMonthKey)
+    if (storedActiveMonth && storedActiveMonth !== monthTag) {
+      // 跨月边界感知：归档旧月份总流量，新月份彻底从 0.00 GB 重新统计！
+      console.log(`[CubeX] 跨月自动清零: 从 ${storedActiveMonth} 进入 ${monthTag}，出海流量已自动归档并清零重新统计！`)
+      localStorage.setItem(`cubex_archived_${storedActiveMonth}`, localStorage.getItem(`cubex_traffic_${storedActiveMonth}`) || '0')
+      localStorage.setItem(activeMonthKey, monthTag)
+      localStorage.setItem(monthKey, '0')
+      localStorage.setItem('cubex_month_traffic', '0.00')
+
+      trafficInsights.value.year = currentYear
+      trafficInsights.value.month = currentMonth
+      trafficInsights.value.monthTotalGB = 0.00
+      trafficInsights.value.days.forEach(d => {
+        d.inboundMB = 0
+        d.outboundMB = 0
+        d.label = '0MB'
+      })
+      lastTelemetryOutboundMB = currentOutMB
+      return
+    } else if (!storedActiveMonth) {
+      localStorage.setItem(activeMonthKey, monthTag)
+    }
+  }
+
+  // 2. 清理历史遗留脏数据 (99.5, 13.19 以及此前死循环异常暴增值)
   if (typeof localStorage !== 'undefined') {
     const rawVal = localStorage.getItem('cubex_month_traffic')
     const rawMonthMB = localStorage.getItem(monthKey)
     if (rawVal === '99.5' || rawVal === '13.19' || (rawMonthMB && parseFloat(rawMonthMB) > 5000 && currentOutMB < 2000)) {
       localStorage.removeItem('cubex_month_traffic')
       localStorage.removeItem('cubex_base_month_gb')
-      localStorage.removeItem(monthKey)
+      localStorage.setItem(monthKey, '0')
     }
   }
 
-  // True incremental delta calculation (never feedback accumulated in a loop)
+  // 3. 真实增量计算 (Delta Accumulation: 只有出海流量真正物理增长才累加)
   if (lastTelemetryOutboundMB === null) {
     lastTelemetryOutboundMB = currentOutMB
   }
@@ -6332,24 +6363,25 @@ function updateLiveMonthlyTraffic(currentOutMB) {
   if (currentOutMB >= lastTelemetryOutboundMB) {
     deltaMB = currentOutMB - lastTelemetryOutboundMB
   } else {
-    // Core restarted or traffic counters reset
+    // 核心重启或计数器重置
     deltaMB = currentOutMB
   }
   lastTelemetryOutboundMB = currentOutMB
 
-  let storedBaseMB = 0
+  // 4. 读取本月已持久化的真实基准流量
+  let storedMonthMB = 0
   try {
     if (typeof localStorage !== 'undefined' && localStorage.getItem(monthKey)) {
-      storedBaseMB = parseFloat(localStorage.getItem(monthKey)) || 0
+      storedMonthMB = parseFloat(localStorage.getItem(monthKey)) || 0
     }
   } catch (e) {}
 
-  let totalMonthMB = storedBaseMB
-  if (totalMonthMB === 0 && currentOutMB > 0) {
-    // First observation for this month initializes to current core baseline
+  let totalMonthMB = storedMonthMB
+  if (totalMonthMB === 0 && currentOutMB > 0 && !localStorage.getItem(activeMonthKey)) {
+    // 首次初始化
     totalMonthMB = currentOutMB
   } else if (deltaMB > 0) {
-    // Only increment when authentic new outbound traffic actually passed through!
+    // 只有当真正发生了新的物理出海流量时才增加！
     totalMonthMB += deltaMB
   }
 

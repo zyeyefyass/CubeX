@@ -323,6 +323,10 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 					"server":   "dns-direct",
 				},
 				{
+					"outbound": []string{"direct", "DIRECT"},
+					"server":   "dns-direct",
+				},
+				{
 					"query_type": []string{"A", "AAAA"},
 					"server":     "dns-fakeip",
 				},
@@ -424,14 +428,16 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 	// Built-in fixed endpoints
 	outbounds = append(outbounds, map[string]any{
-		"type":          "direct",
-		"tag":           "direct",
-		"tcp_fast_open": true,
+		"type":            "direct",
+		"tag":             "direct",
+		"tcp_fast_open":   true,
+		"domain_resolver": "dns-direct",
 	})
 	outbounds = append(outbounds, map[string]any{
-		"type":          "direct",
-		"tag":           "DIRECT",
-		"tcp_fast_open": true,
+		"type":            "direct",
+		"tag":             "DIRECT",
+		"tcp_fast_open":   true,
+		"domain_resolver": "dns-direct",
 	})
 	outbounds = append(outbounds, map[string]any{
 		"type": "block",
