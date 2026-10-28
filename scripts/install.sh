@@ -458,7 +458,7 @@ else
         if [ -z "$REL_TAG" ]; then
             REL_TAG=$(curl -4 -sSL --connect-timeout 3 -m 5 -I "https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
         fi
-        [ -z "$REL_TAG" ] && REL_TAG="Test-v4.1"
+        [ -z "$REL_TAG" ] && REL_TAG="Test-v4.2"
         ZIP_NAME="CubeX-${REL_TAG}-linux-${TARGET_ARCH}.zip"
         ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
         ZIP_MIRROR="https://gh-proxy.com/${ZIP_URL}"
