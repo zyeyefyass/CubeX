@@ -1434,6 +1434,8 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 
 		"version":           version,
 
+		"host_ip":           s.detectHostIP(),
+
 		"uptime_seconds":    int64(time.Since(startTime).Seconds()),
 
 		"active_engine":     s.engMgr.GetActiveEngine(),
@@ -9656,4 +9658,29 @@ func (s *Server) SwitchEngine(engine string) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%d 毫秒", res.ElapsedMs), nil
+}
+
+func (s *Server) detectHostIP() string {
+	if s.rosMgr != nil {
+		if ip := s.rosMgr.GetOutboundIP(); ip != "" {
+			return ip
+		}
+	}
+	if s.hostMgr != nil {
+		hostCfg := s.hostMgr.GetConfig()
+		if hostCfg.Host != "" {
+			if ip := s.hostMgr.GetOutboundIP(hostCfg.Host); ip != "" {
+				return ip
+			}
+		}
+	}
+	conn, err := net.Dial("udp", "223.5.5.5:80")
+	if err == nil {
+		if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
+			conn.Close()
+			return localAddr.IP.String()
+		}
+		conn.Close()
+	}
+	return ""
 }

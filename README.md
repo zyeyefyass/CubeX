@@ -42,6 +42,7 @@
   - [方式 E：飞牛 fnOS 与通用 Linux Docker 部署 (Compose 与单行命令)](#deploy-fnos-linux)
   - [方式 F：通用 Linux 终端一键全自动安装](#deploy-linux-cli)
 - [⚡ 控制台里的【⚡ 一键全栈自愈】到底是干嘛的？](#auto-healing)
+- [🤖 MCP AI 原生领航员接入与 DeepSeek / 多模型实战指南](#mcp-guide)
 - [💬 常见疑问与极客交流](#community-feedback)
 - [📜 净室合规与安全脱敏审计声明](#compliance-statement)
 - [🤝 致敬与鸣谢开源先驱 (Acknowledgements)](#acknowledgements)
@@ -440,6 +441,141 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 2. **主路由策略自愈**：自动检查并修好主路由的 `198.18.0.0/15` 回指路由，关掉容易引起丢包的 ICMP 重定向；
 3. **看门狗逃生编排**：动态植入故障监控探针，确保旁路由万一关机，全家网络毫秒切换回普通宽带；
 4. **IPv6 解析调度与防泄露加固**：规范双栈 DNS 解析优先级与 AAAA 回退逻辑，防范明文解析泄露，保障国际协同业务流量平稳高效运行。
+
+---
+
+---
+
+<a id="mcp-guide"></a>
+
+## 🤖 MCP (Model Context Protocol) AI 原生领航员接入与 DeepSeek / 多模型实战指南
+
+CubeX Test v4.2 原生内置了工业级 **轻量 MCP (Model Context Protocol) 领航员服务**。通过 Anthropic 与开源社区最新倡导的 MCP 2024-11-05 规范标准，赋予当今主流大语言模型（**DeepSeek-V3 / R1**、Claude 3.5 Sonnet、Cursor、Windsurf 等）通过自然语言对话**实时感知、掌控与自愈家庭网络**的超级能力！
+
+### 🌟 核心工程架构与安全合规特性
+
+1. **纯 Go 原生零依赖极简内核**：
+   与业界普遍使用笨重臃肿的 Node.js 或 Python MCP 守护进程（动辄消耗数百兆内存）完全不同，CubeX 的 MCP 服务**100% 采用 Go 语言原生开发**，直接集成于 `cubexd` 守护进程内部。
+   - **内存物理开销**：日常空闲常驻内存 **< 1MB**；
+   - **并发响应时延**：内网 JSON-RPC 2.0 原生极速应答，处理时延 **< 2ms**；
+   - **外部依赖**：0 外部进程、0 Node/Python 运行环境依赖。
+
+2. **纯内网安全沙盒与严格权限白名单 (零代码与凭证外泄)**：
+   - 监听通道严格限定在局域网受信网络内（支持标准 HTTP POST 与 SSE 流式事件）；
+   - **绝无代码执行与密钥探针**：MCP 接口**严禁且无法执行任何 Shell/Bash 自由命令**，杜绝任何外部大模型提示词注入（Prompt Injection）安全隐患；
+   - **零敏感资产外泄**：绝不向上层大模型输出任何上游分流节点信息、订阅私钥或敏感账号凭证。所有操作严格闭环于 5 大白名单原子工具。
+
+---
+
+### 🛠️ 开放的 5 大网络原子掌控工具一览
+
+| 工具标识 (Tool Name) | 操作模式 | 权限层级 | 功能详细说明与业务价值 |
+| :--- | :---: | :---: | :--- |
+| `get_gateway_telemetry` | 只读遥测 | 纯观察 | 实时获取当前物理网速、活跃代理引擎（Mihomo / sing-box）、并发会话数以及**本月物理累计跨境流量**。 |
+| `list_lan_devices` | 局域网嗅探 | 纯观察 | 实时探测局域网内所有活跃在线设备，列出其 IP 地址、MAC 物理地址、主机名及当前分流状态（智能分流 / 芯片直连）。 |
+| `set_device_policy` | 流控路由 | 状态写入 | 支持自然语言直接将指定局域网设备切换为【智能分流】（`rule`）或【芯片直连绕过】（`bypass`）。 |
+| `trigger_system_heal` | 安全自愈 | 链路加固 | 唤醒安全中枢核心自愈总线：秒级自动理顺双核规则、自愈主路由 `198.18.0.0/15` 回指路由、清算僵尸连接并加固 IPv6 防泄露。 |
+| `switch_proxy_engine` | 双核热切 | 内核调度 | 秒级无感热重载切换底层透明代理内核（`mihomo` ⇄ `sing-box`），自动迁移已有连接池，业务零瞬断。 |
+
+---
+
+### 🐋 实战教学一：DeepSeek 接入与自然语言操控 (以 Cherry Studio / Chatbox 为例)
+
+国产顶尖大模型 **DeepSeek-V3**（通用推理）与 **DeepSeek-R1**（深度思考推理）具备卓越的 Function Calling（工具调用）能力。通过 Cherry Studio 或 Chatbox 客户端，你可以轻松将 DeepSeek 变身为你的“家庭网络全天候智能运维专家”！
+
+#### 详细配置三步法：
+
+1. **第一步：配置 DeepSeek 模型**
+   - 打开 Cherry Studio（或 Chatbox），进入【设置】->【模型服务】；
+   - 添加 DeepSeek 官方 API Key（或 SiliconFlow / 硅基流动等聚合服务商 Key）；
+   - 默认模型选择 `deepseek-chat` 或 `deepseek-reasoner`。
+
+2. **第二步：挂载 CubeX MCP 服务端**
+   - 在客户端左侧菜单点击【MCP 服务器】或【插件 / Tools】设置；
+   - 点击【添加服务器】，配置如下：
+     - **服务名称**：`cubex-gateway`
+     - **服务类型**：`HTTP` 或 `SSE`
+     - **服务器 URL**：`http://<你的CubeX局域网IP>:2026/api/v1/mcp` *(可在 CubeX Web 控制台首页一键复制当前动态地址)*
+
+   *若客户端支持导入 JSON，可直接粘贴以下完整配置：*
+   ```json
+   {
+     "mcpServers": {
+       "cubex-gateway": {
+         "type": "http",
+         "url": "http://<你的CubeX局域网IP>:2026/api/v1/mcp"
+       }
+     }
+   }
+   ```
+
+3. **第三步：开启会话，自然语言直接掌控**
+   - 新建对话，确认右下角或设置中已勾选 `cubex-gateway` 插件工具；
+   - 直接用平时说话的口语向 DeepSeek 提问，DeepSeek 会自动分析意图、调用对应的原子工具并用自然语言回答你！
+
+#### 💬 与 DeepSeek 交互真实范例 (Prompt Showcase)：
+
+* **场景 1：查询网速与月度流量**
+  > **用户**：“小深，帮我看看现在家里网速怎么样？这个月用了多少跨境流量了？”  
+  > **DeepSeek**：*(自动调用 `get_gateway_telemetry`)*  
+  > “报告主人，当前 CubeX 网关运行平稳：实时下载速度为 18.5 MB/s，上传速度为 1.2 MB/s；当前运行引擎为 sing-box v1.14；本月物理累计跨境协同业务流量为 45.68 GB，并发连接数 38 个。”
+
+* **场景 2：局域网设备巡检与策略切换**
+  > **用户**：“帮我看看局域网现在有哪些设备在线？另外把客厅电视改为直连绕过。”  
+  > **DeepSeek**：*(依次调用 `list_lan_devices` 发现客厅电视 IP 为 10.0.0.191，随后调用 `set_device_policy`)*  
+  > “已为您完成局域网巡检，当前共 12 台设备在线。已成功将【客厅电视】(10.0.0.191) 的策略切换为【直连绕过模式】（bypass），后续该设备所有出站流量均由主路由芯片直接送出。”
+
+* **场景 3：异常自愈与内核热切**
+  > **用户**：“感觉刚才开网页有点慢，帮我检查并自愈一下网络，顺便把代理引擎切换成 Mihomo。”  
+  > **DeepSeek**：*(调用 `trigger_system_heal` 与 `switch_proxy_engine`)*  
+  > “已为您执行安全中枢全栈自愈加固：策略路由校验完毕，已清除 4 个僵尸连接并完成 IPv6 防泄露锁闭；随后已平滑将透明代理引擎热重载切换为 Mihomo，连接池无损迁移成功！”
+
+---
+
+### 💻 实战教学二：其它主流 AI 客户端接入举例
+
+#### 1. Claude Desktop (Anthropic 官方客户端)
+
+打开 Claude Desktop 的配置文件：
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+在 `mcpServers` 对象中追加 CubeX 服务配置：
+```json
+{
+  "mcpServers": {
+    "cubex": {
+      "url": "http://<你的CubeX局域网IP>:2026/api/v1/mcp"
+    }
+  }
+}
+```
+保存并完全重启 Claude Desktop 客户端，聊天框右下角将出现 🔨 小锤子图标，显示 `5 tools available` 即代表接入成功。
+
+#### 2. Cursor / Windsurf (AI 智能编程与系统运维 IDE)
+
+Cursor 与 Windsurf 原生支持通过 MCP 拓展智能体的底层运维掌控力：
+1. 进入 **Cursor Settings** -> **Features** -> **MCP**；
+2. 点击 **+ Add New MCP Server**；
+3. 填入参数：
+   - **Name**: `cubex-gateway`
+   - **Type**: `SSE` 或 `HTTP`
+   - **URL**: `http://<你的CubeX局域网IP>:2026/api/v1/mcp`
+4. 保存后指示灯变为绿色，在 Cursor Composer 或 Agent 模式（`Ctrl+I` / `Cmd+I`）中直接对项目或系统提问：“*检查旁路由当前状态并汇报*”，Agent 即可自动调用。
+
+#### 3. 极客原生调用：终端 curl / 自动化脚本 (JSON-RPC 2.0)
+
+由于 CubeX 采用纯标准的 JSON-RPC 2.0 规范，你甚至无需任何大模型，直接在 Linux / macOS / Windows 终端中通过单行 `curl` 即可集成入家里的自动化系统（如 Home Assistant、Node-RED 等）：
+
+* **列出所有开放工具清单**：
+  ```bash
+  curl -s -X POST http://<CubeX-IP>:2026/api/v1/mcp     -H "Content-Type: application/json"     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq .
+  ```
+
+* **执行全栈网络自愈指令**：
+  ```bash
+  curl -s -X POST http://<CubeX-IP>:2026/api/v1/mcp     -H "Content-Type: application/json"     -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"trigger_system_heal","arguments":{}}}' | jq .
+  ```
 
 ---
 

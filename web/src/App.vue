@@ -3611,99 +3611,246 @@
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- 🤖 Model Context Protocol (MCP) 原生 AI 领航员接入卡片 -->
-            <div class="p-6 sm:p-7 rounded-2xl sm:rounded-3xl macos-glass-card hover:border-cyan-400/40 transition-all duration-300 relative overflow-hidden group">
-              <!-- Tier 1: Header -->
-              <div class="flex items-center justify-between pb-4 border-b border-white/10">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500/20 via-blue-500/20 to-purple-500/20 border border-cyan-400/30 flex items-center justify-center text-xl shadow-lg">
+          <!-- 🤖 Model Context Protocol (MCP) 原生 AI 领航员接入卡片 (通栏占满整行宽度 · 大白话极简上手布局) -->
+          <div class="w-full p-6 sm:p-7 rounded-2xl sm:rounded-3xl macos-glass-card hover:border-cyan-400/40 transition-all duration-300 relative overflow-hidden group space-y-5">
+              <!-- Tier 1: Header (醒目品牌与状态 - 大白话) -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
+                <div class="flex items-center gap-3.5">
+                  <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-cyan-500/20 via-blue-500/20 to-purple-500/20 border border-cyan-400/30 flex items-center justify-center text-2xl shadow-lg shrink-0">
                     🤖
                   </div>
                   <div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                       <h4 class="text-sm sm:text-base font-extrabold text-white tracking-wide">
-                        AI 原生 MCP 领航员接入 (Model Context Protocol)
+                        让 AI (DeepSeek / Claude) 当你的全天候网络管家
                       </h4>
-                      <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                        ● 原生 JSON-RPC 2.0 就绪
+                      <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                        ● AI 管家服务就绪
                       </span>
                     </div>
-                    <p class="text-[11px] text-slate-400 mt-0.5">
-                      CubeX 内置原生轻量 MCP 协议服务（内存开销 &lt;1MB · 纯 Go 零依赖），支持 Claude Desktop、Cursor、Windsurf 及私有大模型以自然语言直接掌控与自愈家庭网络。
+                    <p class="text-[11px] text-slate-300 mt-0.5 leading-relaxed">
+                      <b class="text-cyan-300">什么是 MCP？用大白话讲：</b> 就是让 DeepSeek、Claude 等大模型听懂人话来管网关。你不用登录后台点按钮，直接用日常聊天口语发问，AI 就会自动帮你查网速、查在线设备、甚至一键修网！
                     </p>
                   </div>
                 </div>
 
-                <button @click="testMCPConnection" :disabled="testingMCP" class="shrink-0 px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/30 text-cyan-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-98">
-                  <span>{{ testingMCP ? '测试中...' : '⚡ 连通性测试' }}</span>
-                </button>
+                <div class="flex items-center gap-2.5">
+                  <a href="https://github.com/zyeyefyass/CubeX#mcp-guide" target="_blank" rel="noopener noreferrer" class="shrink-0 px-3 py-2 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-400/30 text-purple-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-98 shadow-sm">
+                    <span>📖 README 保姆级教程 ↗</span>
+                  </a>
+                  <button @click="testMCPConnection" :disabled="testingMCP" class="shrink-0 px-3.5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/30 text-cyan-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-98 shadow-sm">
+                    <span>{{ testingMCP ? '测试中...' : '⚡ 测试 AI 管家连通性' }}</span>
+                  </button>
+                </div>
               </div>
 
-              <!-- Tier 2: MCP Connection Endpoint & Tools Summary -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                <!-- Left: Endpoint & Quick Copy -->
-                <div class="macos-sub-card p-4 rounded-2xl space-y-3">
-                  <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                      <span>🔗</span> MCP 服务端接口 (HTTP POST / SSE)
-                    </span>
-                    <span class="text-[10px] text-cyan-400 font-mono">规范版本: 2024-11-05</span>
+              <!-- Tier 2: 横向双栏布局 (左栏: 一键连接 + DeepSeek大白话实战; 右栏: 5大能力大白话说明) -->
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+                
+                <!-- ====== 左栏: 一键连接 + DeepSeek 保姆级指南 ====== -->
+                <div class="space-y-4">
+                  <!-- 1. 连接接口配置卡片 -->
+                  <div class="macos-sub-card p-4 sm:p-5 rounded-2xl space-y-3.5 border border-white/10">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <span class="text-xs font-bold text-slate-200 flex items-center gap-2">
+                        <span class="text-cyan-400">🔗</span>
+                        <span>第一步：把管家专属地址复制给 AI</span>
+                      </span>
+                      <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-emerald-300 font-mono">
+                          纯局域网安全 · 绝不外泄密码与节点
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Endpoint URL Code Box -->
+                    <div class="p-3 rounded-xl bg-black/50 border border-white/10 font-mono text-xs sm:text-sm text-cyan-300 flex items-center justify-between gap-3 shadow-inner">
+                      <span class="truncate tracking-wide select-all font-semibold">{{ mcpEndpointUrl }}</span>
+                      <button @click="copyText(mcpEndpointUrl, '管家连接地址')" class="shrink-0 px-3 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/35 border border-cyan-400/30 text-xs font-bold text-cyan-200 transition cursor-pointer active:scale-95">
+                        复制地址
+                      </button>
+                    </div>
+
+                    <!-- One-Click Configuration Buttons -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-0.5">
+                      <button @click="copyCherryConfig" class="py-2 px-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/30 text-emerald-200 text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-sm" title="一键复制 Cherry Studio 或 Chatbox 的配置代码">
+                        <span>📋 复制 Cherry / Chatbox</span>
+                      </button>
+                      <button @click="copyClaudeConfig" class="py-2 px-2 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-400/30 text-purple-200 text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-sm" title="一键复制 Claude Desktop 配置文件">
+                        <span>📋 复制 Claude 配置</span>
+                      </button>
+                      <button @click="copyCursorConfig" class="py-2 px-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/30 text-blue-200 text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98 shadow-sm" title="一键复制 Cursor 或 Windsurf 的 MCP 配置">
+                        <span>📋 复制 Cursor 配置</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div class="p-2.5 rounded-xl bg-black/40 border border-white/10 font-mono text-xs text-cyan-300 break-all select-all flex items-center justify-between gap-2">
-                    <span>{{ mcpEndpointUrl }}</span>
-                    <button @click="copyText(mcpEndpointUrl, 'MCP 接口地址')" class="shrink-0 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] text-slate-300 hover:text-white transition cursor-pointer">
-                      复制
-                    </button>
-                  </div>
+                  <!-- 2. DeepSeek 大白话实战指南卡片 -->
+                  <div class="macos-sub-card p-4 sm:p-5 rounded-2xl space-y-3.5 border border-white/10 bg-gradient-to-br from-blue-900/15 via-cyan-900/10 to-transparent">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="text-xs font-bold text-slate-200 flex items-center gap-2">
+                        <span class="text-blue-400 text-base">🐋</span>
+                        <span>三步让 DeepSeek 帮你管网关 (小白极速上手)</span>
+                      </span>
+                      <span class="px-2 py-0.5 rounded-md bg-blue-500/15 border border-blue-400/25 text-[10px] text-blue-300 font-mono">
+                        支持 V3 / R1 思考模型
+                      </span>
+                    </div>
 
-                  <!-- Quick Client Config Copy Buttons -->
-                  <div class="grid grid-cols-2 gap-2 pt-1">
-                    <button @click="copyClaudeConfig" class="py-2 px-3 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-400/30 text-purple-200 text-xs font-medium transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98">
-                      <span>📋 复制 Claude 配置</span>
-                    </button>
-                    <button @click="copyCursorConfig" class="py-2 px-3 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/30 text-blue-200 text-xs font-medium transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98">
-                      <span>📋 复制 Cursor 配置</span>
-                    </button>
+                    <!-- 3-Step Guide in Plain Chinese -->
+                    <div class="space-y-2 text-xs text-slate-300">
+                      <div class="flex items-start gap-2.5 p-2 rounded-lg bg-white/5 border border-white/5">
+                        <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold text-[11px] flex items-center justify-center shrink-0">1</span>
+                        <div>
+                          <p class="font-semibold text-slate-200">下载 Cherry Studio 并选 DeepSeek 模型</p>
+                          <p class="text-[11px] text-slate-400 mt-0.5">电脑免费安装 Cherry Studio（最好用的国产多模型客户端），模型选择 <span class="text-cyan-300 font-mono">deepseek-chat</span> 或 <span class="text-cyan-300 font-mono">deepseek-reasoner</span>。</p>
+                        </div>
+                      </div>
+
+                      <div class="flex items-start gap-2.5 p-2 rounded-lg bg-white/5 border border-white/5">
+                        <span class="w-5 h-5 rounded-full bg-blue-500/20 text-blue-300 font-bold text-[11px] flex items-center justify-center shrink-0">2</span>
+                        <div>
+                          <p class="font-semibold text-slate-200">把 CubeX 管家添加进客户端</p>
+                          <p class="text-[11px] text-slate-400 mt-0.5">在 Cherry Studio 设置里找到【MCP 服务器】，点添加，服务类型选 <span class="text-cyan-300 font-mono">HTTP</span>，把上面的接口地址粘贴进去。</p>
+                        </div>
+                      </div>
+
+                      <div class="flex items-start gap-2.5 p-2 rounded-lg bg-white/5 border border-white/5">
+                        <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[11px] flex items-center justify-center shrink-0">3</span>
+                        <div>
+                          <p class="font-semibold text-slate-200">直接发中文口语聊天掌控！</p>
+                          <p class="text-[11px] text-slate-400 mt-0.5">像平时跟朋友微信聊天一样，直接把你想干的事发给 DeepSeek，它会自动调用网关并回复你！</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Quick Prompt Pills (口语化指令) -->
+                    <div class="pt-1 space-y-2">
+                      <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-bold text-slate-300 flex items-center gap-1">
+                          <span>💡 常用大白话指令示例 (点击即可一键复制发给 AI):</span>
+                        </span>
+                      </div>
+                      <div class="flex flex-wrap gap-1.5">
+                        <button @click="copyPrompt('小深，家里现在网速多少？这个月用了多少跨境流量了？')" class="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-400/40 text-[11px] text-cyan-200 hover:text-white transition flex items-center gap-1 cursor-pointer active:scale-95" title="点击一键复制">
+                          <span>💬 “查查当前网速和本月流量”</span>
+                        </button>
+                        <button @click="copyPrompt('帮我看看局域网现在有哪些设备在线？列出它们的IP和分流模式')" class="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-400/40 text-[11px] text-blue-200 hover:text-white transition flex items-center gap-1 cursor-pointer active:scale-95" title="点击一键复制">
+                          <span>💬 “查查家里有哪些设备在线”</span>
+                        </button>
+                        <button @click="copyPrompt('把 10.0.0.191 设置为芯片直连绕过模式')" class="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-400/40 text-[11px] text-purple-200 hover:text-white transition flex items-center gap-1 cursor-pointer active:scale-95" title="点击一键复制">
+                          <span>💬 “把指定设备改成直连绕过”</span>
+                        </button>
+                        <button @click="copyPrompt('感觉刚才网络有点卡，帮我执行一次全栈网络自愈并加固')" class="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/40 text-[11px] text-amber-200 hover:text-white transition flex items-center gap-1 cursor-pointer active:scale-95" title="点击一键复制">
+                          <span>💬 “一键自愈修复全栈网络”</span>
+                        </button>
+                        <button @click="copyPrompt('帮我把底层的透明代理引擎平滑切换为 sing-box')" class="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-emerald-400/40 text-[11px] text-emerald-200 hover:text-white transition flex items-center gap-1 cursor-pointer active:scale-95" title="点击一键复制">
+                          <span>💬 “无感平滑切换双核引擎”</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Direct Documentation Link Footer -->
+                    <div class="pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
+                      <span class="text-slate-400">想看带图的完整配置步骤与更多玩法？</span>
+                      <a href="https://github.com/zyeyefyass/CubeX#mcp-guide" target="_blank" rel="noopener noreferrer" class="text-cyan-300 hover:text-cyan-200 underline font-semibold flex items-center gap-1 transition">
+                        <span>查看主页 README 详细图文手册 ↗</span>
+                      </a>
+                    </div>
                   </div>
                 </div>
 
-                <!-- Right: Available Tools Palette -->
-                <div class="macos-sub-card p-4 rounded-2xl space-y-2">
-                  <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                      <span>🛠️</span> 开放 5 大原子掌控工具
+                <!-- ====== 右栏: 开放给 AI 的 5 项本领 (大白话卡片) ====== -->
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between px-1">
+                    <span class="text-xs font-bold text-slate-200 flex items-center gap-2">
+                      <span class="text-amber-400">🛠️</span>
+                      <span>AI 管家当前解锁的 5 项专属本领</span>
                     </span>
-                    <span class="text-[10px] text-emerald-400 font-mono">严格只读/自愈白名单</span>
+                    <span class="text-[10px] text-emerald-400 font-mono">严格只读/自愈白名单 · 安全无忧</span>
                   </div>
 
-                  <div class="space-y-1.5 text-[11px] font-mono">
-                    <div class="p-1.5 rounded-lg bg-black/30 border border-white/5 flex items-center justify-between">
-                      <span class="text-cyan-300">get_gateway_telemetry</span>
-                      <span class="text-slate-400">实时网速/双核状态/月度流量</span>
+                  <div class="space-y-2.5">
+                    <!-- Tool 1: 大白话网速与流量 -->
+                    <div class="macos-sub-card p-3.5 rounded-xl border border-white/10 hover:border-cyan-400/30 transition-all space-y-1.5 shadow-sm">
+                      <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm">📊</span>
+                          <span class="font-bold text-xs text-white">查实时网速与月度流量</span>
+                          <span class="text-[10px] font-mono text-cyan-300/70">get_gateway_telemetry</span>
+                        </div>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-cyan-500/15 text-cyan-300 border border-cyan-400/20 shrink-0">实时只读</span>
+                      </div>
+                      <p class="text-xs text-slate-300 leading-normal pl-6">
+                        问一句网速多少，AI 自动帮你汇报当前下载/上传速度、双核活跃状态、以及本月物理累计跑了多少跨境协同流量。
+                      </p>
                     </div>
-                    <div class="p-1.5 rounded-lg bg-black/30 border border-white/5 flex items-center justify-between">
-                      <span class="text-cyan-300">list_lan_devices</span>
-                      <span class="text-slate-400">局域网全量在线设备及分流模式</span>
+
+                    <!-- Tool 2: 大白话在线设备 -->
+                    <div class="macos-sub-card p-3.5 rounded-xl border border-white/10 hover:border-cyan-400/30 transition-all space-y-1.5 shadow-sm">
+                      <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm">📱</span>
+                          <span class="font-bold text-xs text-white">查家里所有连网设备</span>
+                          <span class="text-[10px] font-mono text-cyan-300/70">list_lan_devices</span>
+                        </div>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/15 text-blue-300 border border-blue-400/20 shrink-0">局域网巡检</span>
+                      </div>
+                      <p class="text-xs text-slate-300 leading-normal pl-6">
+                        AI 自动探测全家在线的手机、电视、平板与电脑，汇报每个设备的 IP、MAC 地址及当前分流/直连状态。
+                      </p>
                     </div>
-                    <div class="p-1.5 rounded-lg bg-black/30 border border-white/5 flex items-center justify-between">
-                      <span class="text-cyan-300">set_device_policy</span>
-                      <span class="text-slate-400">自然语言切换设备为直连或分流</span>
+
+                    <!-- Tool 3: 大白话修改策略 -->
+                    <div class="macos-sub-card p-3.5 rounded-xl border border-white/10 hover:border-cyan-400/30 transition-all space-y-1.5 shadow-sm">
+                      <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm">🔀</span>
+                          <span class="font-bold text-xs text-white">一句话切换指定设备分流/直连</span>
+                          <span class="text-[10px] font-mono text-cyan-300/70">set_device_policy</span>
+                        </div>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-500/15 text-purple-300 border border-purple-400/20 shrink-0">设备控制</span>
+                      </div>
+                      <p class="text-xs text-slate-300 leading-normal pl-6">
+                        比如对 AI 说“把电视改成直连”，AI 就会秒级把该设备调为芯片直连绕过模式，免去你手动翻列表点击的繁琐。
+                      </p>
                     </div>
-                    <div class="p-1.5 rounded-lg bg-black/30 border border-white/5 flex items-center justify-between">
-                      <span class="text-cyan-300">trigger_system_heal</span>
-                      <span class="text-slate-400">安全中枢一键全栈网络自愈</span>
+
+                    <!-- Tool 4: 大白话自愈 -->
+                    <div class="macos-sub-card p-3.5 rounded-xl border border-white/10 hover:border-cyan-400/30 transition-all space-y-1.5 shadow-sm">
+                      <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm">🚑</span>
+                          <span class="font-bold text-xs text-white">全栈网络一键自愈与修复</span>
+                          <span class="text-[10px] font-mono text-cyan-300/70">trigger_system_heal</span>
+                        </div>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-400/20 shrink-0">安全自愈</span>
+                      </div>
+                      <p class="text-xs text-slate-300 leading-normal pl-6">
+                        网络感觉卡顿或怀疑有故障？喊一声“帮我修网”，AI 就会唤醒底层自愈总线：修好策略路由、清理死连接并加固防泄露。
+                      </p>
                     </div>
-                    <div class="p-1.5 rounded-lg bg-black/30 border border-white/5 flex items-center justify-between">
-                      <span class="text-cyan-300">switch_proxy_engine</span>
-                      <span class="text-slate-400">无感热重载切换 Mihomo ⇄ sing-box</span>
+
+                    <!-- Tool 5: 大白话双核切换 -->
+                    <div class="macos-sub-card p-3.5 rounded-xl border border-white/10 hover:border-cyan-400/30 transition-all space-y-1.5 shadow-sm">
+                      <div class="flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                          <span class="text-sm">⚡</span>
+                          <span class="font-bold text-xs text-white">平滑无感热切换双核引擎</span>
+                          <span class="text-[10px] font-mono text-cyan-300/70">switch_proxy_engine</span>
+                        </div>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-400/20 shrink-0">内核热重载</span>
+                      </div>
+                      <p class="text-xs text-slate-300 leading-normal pl-6">
+                        跟 AI 说“切成 sing-box”或“切成 Mihomo”，秒级平滑热重启底层内核，现有网络连接平稳迁移，不中断看视频打游戏。
+                      </p>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
+              </div>
           </div>
 
           </div>
@@ -6492,9 +6639,20 @@ function updateLiveMonthlyTraffic(currentOutMB) {
 const testingMCP = ref(false)
 const mcpEndpointUrl = computed(() => {
   if (typeof window !== 'undefined') {
-    return `${window.location.origin}/api/v1/mcp`
+    const loc = window.location
+    // 动态探测：如果在内网通过真实 IP/域名访问，严格动态继承当前协议、主机与端口
+    if (loc.hostname !== 'localhost' && loc.hostname !== '127.0.0.1') {
+      return `${loc.protocol}//${loc.host}/api/v1/mcp`
+    }
+    // 若在旁路宿主机本机通过 localhost 访问，动态使用后端探针捕获的物理局域网 IP
+    const hostIP = systemStatus.value?.host_ip || hostInfo.value?.ip
+    if (hostIP) {
+      const portPart = loc.port ? `:${loc.port}` : ''
+      return `${loc.protocol}//${hostIP}${portPart}/api/v1/mcp`
+    }
+    return `${loc.origin}/api/v1/mcp`
   }
-  return 'http://10.0.0.7:2026/api/v1/mcp'
+  return '/api/v1/mcp'
 })
 
 async function testMCPConnection() {
@@ -6527,6 +6685,14 @@ async function testMCPConnection() {
   }
 }
 
+function copyText(text, label) {
+  copyToClipboard(text, `📋 已复制${label ? ' ' + label : ''}到剪贴板！`)
+}
+
+function copyPrompt(prompt) {
+  copyToClipboard(prompt, `💬 已复制指令: "${prompt}"`)
+}
+
 function copyClaudeConfig() {
   const url = mcpEndpointUrl.value
   const cfg = {
@@ -6537,6 +6703,19 @@ function copyClaudeConfig() {
     }
   }
   copyText(JSON.stringify(cfg, null, 2), 'Claude Desktop 配置 (JSON)')
+}
+
+function copyCherryConfig() {
+  const url = mcpEndpointUrl.value
+  const cfg = {
+    mcpServers: {
+      "cubex-gateway": {
+        type: "http",
+        url: url
+      }
+    }
+  }
+  copyText(JSON.stringify(cfg, null, 2), 'Cherry Studio / Chatbox MCP 配置 (JSON)')
 }
 
 function copyCursorConfig() {
