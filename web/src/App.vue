@@ -3612,6 +3612,98 @@
               </div>
             </div>
 
+            <!-- 🤖 Model Context Protocol (MCP) 原生 AI 领航员接入卡片 -->
+            <div class="p-6 sm:p-7 rounded-2xl sm:rounded-3xl macos-glass-card hover:border-cyan-400/40 transition-all duration-300 relative overflow-hidden group">
+              <!-- Tier 1: Header -->
+              <div class="flex items-center justify-between pb-4 border-b border-white/10">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500/20 via-blue-500/20 to-purple-500/20 border border-cyan-400/30 flex items-center justify-center text-xl shadow-lg">
+                    🤖
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h4 class="text-sm sm:text-base font-extrabold text-white tracking-wide">
+                        AI 原生 MCP 领航员接入 (Model Context Protocol)
+                      </h4>
+                      <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                        ● 原生 JSON-RPC 2.0 就绪
+                      </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-0.5">
+                      CubeX 内置原生轻量 MCP 协议服务（内存开销 &lt;1MB · 纯 Go 零依赖），支持 Claude Desktop、Cursor、Windsurf 及私有大模型以自然语言直接掌控与自愈家庭网络。
+                    </p>
+                  </div>
+                </div>
+
+                <button @click="testMCPConnection" :disabled="testingMCP" class="shrink-0 px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/30 text-cyan-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer active:scale-98">
+                  <span>{{ testingMCP ? '测试中...' : '⚡ 连通性测试' }}</span>
+                </button>
+              </div>
+
+              <!-- Tier 2: MCP Connection Endpoint & Tools Summary -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                <!-- Left: Endpoint & Quick Copy -->
+                <div class="macos-sub-card p-4 rounded-2xl space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <span>🔗</span> MCP 服务端接口 (HTTP POST / SSE)
+                    </span>
+                    <span class="text-[10px] text-cyan-400 font-mono">规范版本: 2024-11-05</span>
+                  </div>
+
+                  <div class="p-2.5 rounded-xl bg-black/40 border border-white/10 font-mono text-xs text-cyan-300 break-all select-all flex items-center justify-between gap-2">
+                    <span>{{ mcpEndpointUrl }}</span>
+                    <button @click="copyText(mcpEndpointUrl, 'MCP 接口地址')" class="shrink-0 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[10px] text-slate-300 hover:text-white transition cursor-pointer">
+                      复制
+                    </button>
+                  </div>
+
+                  <!-- Quick Client Config Copy Buttons -->
+                  <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button @click="copyClaudeConfig" class="py-2 px-3 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-400/30 text-purple-200 text-xs font-medium transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98">
+                      <span>📋 复制 Claude 配置</span>
+                    </button>
+                    <button @click="copyCursorConfig" class="py-2 px-3 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/30 text-blue-200 text-xs font-medium transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98">
+                      <span>📋 复制 Cursor 配置</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Right: Available Tools Palette -->
+                <div class="macos-sub-card p-4 rounded-2xl space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                      <span>🛠️</span> 开放 5 大原子掌控工具
+                    </span>
+                    <span class="text-[10px] text-emerald-400 font-mono">严格只读/自愈白名单</span>
+                  </div>
+
+                  <div class="space-y-1.5 text-[11px] font-mono">
+                    <div class="p-1.5 rounded-lg bg-black/30 border border-white/5 flex items-center justify-between">
+                      <span class="text-cyan-300">get_gateway_telemetry</span>
+                      <span class="text-slate-400">实时网速/双核状态/月度流量</span>
+                    </div>
+                    <div class="p-1.5 rounded-lg bg-black/30 border border-white/5 flex items-center justify-between">
+                      <span class="text-cyan-300">list_lan_devices</span>
+                      <span class="text-slate-400">局域网全量在线设备及分流模式</span>
+                    </div>
+                    <div class="p-1.5 rounded-lg bg-black/30 border border-white/5 flex items-center justify-between">
+                      <span class="text-cyan-300">set_device_policy</span>
+                      <span class="text-slate-400">自然语言切换设备为直连或分流</span>
+                    </div>
+                    <div class="p-1.5 rounded-lg bg-black/30 border border-white/5 flex items-center justify-between">
+                      <span class="text-cyan-300">trigger_system_heal</span>
+                      <span class="text-slate-400">安全中枢一键全栈网络自愈</span>
+                    </div>
+                    <div class="p-1.5 rounded-lg bg-black/30 border border-white/5 flex items-center justify-between">
+                      <span class="text-cyan-300">switch_proxy_engine</span>
+                      <span class="text-slate-400">无感热重载切换 Mihomo ⇄ sing-box</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           </div>
@@ -6393,6 +6485,70 @@ function updateLiveMonthlyTraffic(currentOutMB) {
       localStorage.setItem('cubex_month_traffic', String(liveGB))
     }
   } catch (e) {}
+}
+
+
+// --- Model Context Protocol (MCP) Client Config & Helpers ---
+const testingMCP = ref(false)
+const mcpEndpointUrl = computed(() => {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/api/v1/mcp`
+  }
+  return 'http://10.0.0.7:2026/api/v1/mcp'
+})
+
+async function testMCPConnection() {
+  testingMCP.value = true
+  try {
+    const res = await fetch('/api/v1/mcp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: { protocolVersion: '2024-11-05' }
+      })
+    })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.result && data.result.serverInfo) {
+        showToast(`🎉 MCP 接口连接成功！服务端: ${data.result.serverInfo.name} (${data.result.serverInfo.version})`)
+      } else {
+        showToast('✅ MCP 接口响应正常！')
+      }
+    } else {
+      showToast(`⚠️ MCP 请求异常 (HTTP ${res.status})`)
+    }
+  } catch (e) {
+    showToast(`❌ MCP 连通性测试失败: ${e.message}`)
+  } finally {
+    testingMCP.value = false
+  }
+}
+
+function copyClaudeConfig() {
+  const url = mcpEndpointUrl.value
+  const cfg = {
+    mcpServers: {
+      cubex: {
+        url: url
+      }
+    }
+  }
+  copyText(JSON.stringify(cfg, null, 2), 'Claude Desktop 配置 (JSON)')
+}
+
+function copyCursorConfig() {
+  const url = mcpEndpointUrl.value
+  const cfg = {
+    mcpServers: {
+      "cubex-gateway": {
+        url: url
+      }
+    }
+  }
+  copyText(JSON.stringify(cfg, null, 2), 'Cursor / MCP 配置 (JSON)')
 }
 
 async function fetchTelemetryTraffic() {

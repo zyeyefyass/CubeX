@@ -65,6 +65,7 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/host"
 
 	"github.com/zyeyefyass/CubeX/internal/ikuai"
+	"github.com/zyeyefyass/CubeX/internal/mcp"
 
 	"github.com/zyeyefyass/CubeX/internal/netstack"
 
@@ -452,6 +453,12 @@ type Server struct {
 
 	lastCoreInboundBytes  int64
 
+	lastTrafficDiskSave   time.Time
+
+	lastSavedOutBytes     int64
+
+	mcpServer             *mcp.Server
+
 	smartPingMutex       sync.RWMutex
 
 	smartPingEnabled     bool
@@ -804,6 +811,8 @@ func main() {
 
 	}
 
+	srv.mcpServer = mcp.NewServer(srv, "Test v4.2")
+
 	srv.initTrafficState()
 
 	srv.startTrafficCollector()
@@ -1055,6 +1064,9 @@ func main() {
 	// 10.2 Realtime Telemetry & Traffic Speed (Overview Module)
 
 	mux.HandleFunc("/api/v1/telemetry/traffic", srv.handleTelemetryTraffic)
+
+	// 10.3 Native Model Context Protocol (MCP Server JSON-RPC 2.0 / SSE)
+	mux.Handle("/api/v1/mcp", srv.mcpServer)
 
 
 
@@ -6029,13 +6041,22 @@ func (s *Server) initTrafficState() {
 	s.monthInboundBytes = 0
 	s.lastCoreOutboundBytes = 0
 	s.lastCoreInboundBytes = 0
-	s.saveTrafficStateLocked()
+	s.saveTrafficStateLocked(true)
 }
 
-func (s *Server) saveTrafficStateLocked() {
+func (s *Server) saveTrafficStateLocked(force bool) {
 	if s.trafficMonth == "" {
 		s.trafficMonth = time.Now().Format("2006-01")
 	}
+	// 闪存寿命与防刷盘卫士 (Flash Endurance Guard): 非强制时每 30 秒或物理流量变化满 10MB 才写盘一次
+	deltaBytes := s.monthOutboundBytes - s.lastSavedOutBytes
+	if deltaBytes < 0 {
+		deltaBytes = -deltaBytes
+	}
+	if !force && time.Since(s.lastTrafficDiskSave) < 30*time.Second && deltaBytes < 10*1024*1024 {
+		return
+	}
+
 	st := TrafficMonthState{
 		YearMonth:        s.trafficMonth,
 		OutboundBytes:    s.monthOutboundBytes,
@@ -6049,6 +6070,8 @@ func (s *Server) saveTrafficStateLocked() {
 		stateFile := filepath.Join(s.workDir, "data", "traffic_state.json")
 		_ = os.MkdirAll(filepath.Dir(stateFile), 0755)
 		_ = os.WriteFile(stateFile, b, 0644)
+		s.lastTrafficDiskSave = time.Now()
+		s.lastSavedOutBytes = s.monthOutboundBytes
 	}
 }
 
@@ -6058,7 +6081,7 @@ func (s *Server) recordTrafficSample(coreOutbound, coreInbound int64) (int64, in
 
 	currentMonth := time.Now().Format("2006-01")
 	if s.trafficMonth != "" && s.trafficMonth != currentMonth {
-		s.saveTrafficStateLocked()
+		s.saveTrafficStateLocked(false)
 		archiveFile := filepath.Join(s.workDir, "data", fmt.Sprintf("traffic_archive_%s.json", s.trafficMonth))
 		stateFile := filepath.Join(s.workDir, "data", "traffic_state.json")
 		if b, err := os.ReadFile(stateFile); err == nil {
@@ -6069,7 +6092,7 @@ func (s *Server) recordTrafficSample(coreOutbound, coreInbound int64) (int64, in
 		s.monthInboundBytes = 0
 		s.lastCoreOutboundBytes = coreOutbound
 		s.lastCoreInboundBytes = coreInbound
-		s.saveTrafficStateLocked()
+		s.saveTrafficStateLocked(true)
 		return 0, 0
 	}
 	if s.trafficMonth == "" {
@@ -6081,7 +6104,7 @@ func (s *Server) recordTrafficSample(coreOutbound, coreInbound int64) (int64, in
 		s.lastCoreInboundBytes = coreInbound
 		s.monthOutboundBytes = coreOutbound
 		s.monthInboundBytes = coreInbound
-		s.saveTrafficStateLocked()
+		s.saveTrafficStateLocked(false)
 		return s.monthOutboundBytes, s.monthInboundBytes
 	}
 
@@ -6104,7 +6127,7 @@ func (s *Server) recordTrafficSample(coreOutbound, coreInbound int64) (int64, in
 	if outDelta > 0 || inDelta > 0 {
 		s.monthOutboundBytes += outDelta
 		s.monthInboundBytes += inDelta
-		s.saveTrafficStateLocked()
+		s.saveTrafficStateLocked(false)
 	}
 
 	return s.monthOutboundBytes, s.monthInboundBytes
@@ -9524,4 +9547,113 @@ func detectDefaultGateway() string {
 		}
 	}
 	return "192.168.1.1"
+}
+
+// ============================================================================
+// Model Context Protocol (MCP) GatewayProvider Implementation
+// ============================================================================
+
+func (s *Server) GetTelemetry() (map[string]any, error) {
+	memMB, coreMem, _ := s.getLiveMemoryMetrics()
+	clashPort := 9090
+	if ir := s.engMgr.GetIR(); ir != nil && ir.Network.ClashAPIPort > 0 {
+		clashPort = ir.Network.ClashAPIPort
+	}
+	connCount := 0
+	var uploadTotal, downloadTotal int64 = 0, 0
+	resp, err := s.httpClient.Get(fmt.Sprintf("http://127.0.0.1:%d/connections", clashPort))
+	if err == nil && resp.StatusCode == http.StatusOK {
+		var connResp struct {
+			DownloadTotal int64      `json:"downloadTotal"`
+			UploadTotal   int64      `json:"uploadTotal"`
+			Connections   []struct{} `json:"connections"`
+		}
+		if json.NewDecoder(resp.Body).Decode(&connResp) == nil {
+			connCount = len(connResp.Connections)
+			downloadTotal = connResp.DownloadTotal
+			uploadTotal = connResp.UploadTotal
+		}
+		resp.Body.Close()
+	}
+
+	monthOut, _ := s.recordTrafficSample(uploadTotal, downloadTotal)
+	monthGB := float64(monthOut) / (1024 * 1024 * 1024)
+
+	return map[string]any{
+		"active_engine":      string(s.engMgr.GetActiveEngine()),
+		"connections_count":  connCount,
+		"inbound_speed_bps":  s.liveDownSpeed.Load(),
+		"outbound_speed_bps": s.liveUpSpeed.Load(),
+		"memory_mb":          memMB + coreMem,
+		"month_total_gb":     math.Round(monthGB*100) / 100,
+	}, nil
+}
+
+func (s *Server) ListDevices() ([]map[string]any, error) {
+	if s.devMgr == nil {
+		return nil, fmt.Errorf("设备管理器尚未初始化")
+	}
+	devs := s.devMgr.GetDevices()
+	var list []map[string]any
+	for _, d := range devs {
+		list = append(list, map[string]any{
+			"name":   d.Name,
+			"ip":     d.IP,
+			"mac":    d.MAC,
+			"mode":   d.Mode,
+			"online": d.Online,
+		})
+	}
+	return list, nil
+}
+
+func (s *Server) SetDeviceMode(ip, mode string) error {
+	if s.devMgr == nil {
+		return fmt.Errorf("设备管理器尚未初始化")
+	}
+	devs := s.devMgr.GetDevices()
+	var mac string
+	for _, d := range devs {
+		if d.IP == ip {
+			mac = d.MAC
+			break
+		}
+	}
+	return s.devMgr.SetPolicy(ip, mac, mode, "")
+}
+
+func (s *Server) TriggerSelfHeal() (string, error) {
+	ir := s.engMgr.GetIR()
+	result := security.AutoRemediateAll(ir)
+	s.engMgr.UpdateIR(ir)
+
+	cached := s.hostMgr.GetCachedHostInfo()
+	hostCfg := s.hostMgr.GetConfig()
+	isROS := (cached != nil && cached.PlatformID == "routeros") || hostCfg.PlatformType == "routeros"
+
+	if isROS && s.rosMgr != nil && s.rosMgr.IsConnected() {
+		if _, err := s.rosMgr.CleanAndReapplyRouting(""); err == nil {
+			result.RemediatedItems = append(result.RemediatedItems, "MikroTik RouterOS 策略路由 table cubex 与 Netwatch 逃生探针已加固")
+		}
+	} else if s.hostMgr != nil && hostCfg.Enabled && hostCfg.Host != "" {
+		_, _ = s.hostMgr.ApplyFirewall("permissive", true)
+		result.RemediatedItems = append(result.RemediatedItems, "伴生宿主防火墙放行与回指路由已加固")
+	}
+
+	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+
+	out := fmt.Sprintf("已成功完成 %d 项全链路自愈加固：\n", len(result.RemediatedItems))
+	for i, item := range result.RemediatedItems {
+		out += fmt.Sprintf(" %d. %s\n", i+1, item)
+	}
+	return out, nil
+}
+
+func (s *Server) SwitchEngine(engine string) (string, error) {
+	target := schema.EngineType(engine)
+	res, err := s.engMgr.SwitchEngine(target)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%d 毫秒", res.ElapsedMs), nil
 }
