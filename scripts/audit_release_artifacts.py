@@ -48,6 +48,23 @@ FORBIDDEN_LEGACY_NAMES = [
     re.compile(r"\bros[-_]?box\b", re.IGNORECASE),
 ]
 
+FORBIDDEN_SENSITIVE_WORDS = [
+    re.compile(r"科学上网"),
+    re.compile(r"\b出海\b"),
+    re.compile(r"\b翻墙\b"),
+    re.compile(r"\b梯子\b"),
+    re.compile(r"偷跑"),
+    re.compile(r"后门"),
+    re.compile(r"绝对安全"),
+    re.compile(r"加密通道"),
+]
+
+FORBIDDEN_FLAG_IMAGE_PATTERNS = [
+    re.compile(r"cubex-live-routing-matrix\.png", re.IGNORECASE),
+    re.compile(r"flags-crop\.png", re.IGNORECASE),
+    re.compile(r"flags-test\.png", re.IGNORECASE),
+]
+
 def check_file_content(archive_name, inner_path, content_bytes):
     errors = []
     text = None

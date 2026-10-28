@@ -3,6 +3,7 @@ package main
 
 
 import (
+	"math"
 
 	"bytes"
 	"compress/gzip"
@@ -439,6 +440,18 @@ type Server struct {
 
 	httpClient    *http.Client
 
+	trafficMu             sync.Mutex
+
+	trafficMonth          string
+
+	monthOutboundBytes    int64
+
+	monthInboundBytes     int64
+
+	lastCoreOutboundBytes int64
+
+	lastCoreInboundBytes  int64
+
 	smartPingMutex       sync.RWMutex
 
 	smartPingEnabled     bool
@@ -790,6 +803,8 @@ func main() {
 		},
 
 	}
+
+	srv.initTrafficState()
 
 	srv.startTrafficCollector()
 
@@ -5975,6 +5990,126 @@ func getProcessRSS() float64 {
 
 
 
+
+type TrafficMonthState struct {
+	YearMonth        string    `json:"year_month"`
+	OutboundBytes    int64     `json:"outbound_bytes"`
+	InboundBytes     int64     `json:"inbound_bytes"`
+	LastCoreOutbound int64     `json:"last_core_outbound"`
+	LastCoreInbound  int64     `json:"last_core_inbound"`
+	UpdatedAt        time.Time `json:"updated_at"`
+}
+
+func (s *Server) initTrafficState() {
+	s.trafficMu.Lock()
+	defer s.trafficMu.Unlock()
+
+	currentMonth := time.Now().Format("2006-01")
+	stateFile := filepath.Join(s.workDir, "data", "traffic_state.json")
+
+	if b, err := os.ReadFile(stateFile); err == nil {
+		var st TrafficMonthState
+		if json.Unmarshal(b, &st) == nil {
+			if st.YearMonth == currentMonth {
+				s.trafficMonth = st.YearMonth
+				s.monthOutboundBytes = st.OutboundBytes
+				s.monthInboundBytes = st.InboundBytes
+				s.lastCoreOutboundBytes = st.LastCoreOutbound
+				s.lastCoreInboundBytes = st.LastCoreInbound
+				return
+			} else if st.YearMonth != "" {
+				archiveFile := filepath.Join(s.workDir, "data", fmt.Sprintf("traffic_archive_%s.json", st.YearMonth))
+				_ = os.WriteFile(archiveFile, b, 0644)
+			}
+		}
+	}
+
+	s.trafficMonth = currentMonth
+	s.monthOutboundBytes = 0
+	s.monthInboundBytes = 0
+	s.lastCoreOutboundBytes = 0
+	s.lastCoreInboundBytes = 0
+	s.saveTrafficStateLocked()
+}
+
+func (s *Server) saveTrafficStateLocked() {
+	if s.trafficMonth == "" {
+		s.trafficMonth = time.Now().Format("2006-01")
+	}
+	st := TrafficMonthState{
+		YearMonth:        s.trafficMonth,
+		OutboundBytes:    s.monthOutboundBytes,
+		InboundBytes:     s.monthInboundBytes,
+		LastCoreOutbound: s.lastCoreOutboundBytes,
+		LastCoreInbound:  s.lastCoreInboundBytes,
+		UpdatedAt:        time.Now(),
+	}
+	b, err := json.MarshalIndent(st, "", "  ")
+	if err == nil {
+		stateFile := filepath.Join(s.workDir, "data", "traffic_state.json")
+		_ = os.MkdirAll(filepath.Dir(stateFile), 0755)
+		_ = os.WriteFile(stateFile, b, 0644)
+	}
+}
+
+func (s *Server) recordTrafficSample(coreOutbound, coreInbound int64) (int64, int64) {
+	s.trafficMu.Lock()
+	defer s.trafficMu.Unlock()
+
+	currentMonth := time.Now().Format("2006-01")
+	if s.trafficMonth != "" && s.trafficMonth != currentMonth {
+		s.saveTrafficStateLocked()
+		archiveFile := filepath.Join(s.workDir, "data", fmt.Sprintf("traffic_archive_%s.json", s.trafficMonth))
+		stateFile := filepath.Join(s.workDir, "data", "traffic_state.json")
+		if b, err := os.ReadFile(stateFile); err == nil {
+			_ = os.WriteFile(archiveFile, b, 0644)
+		}
+		s.trafficMonth = currentMonth
+		s.monthOutboundBytes = 0
+		s.monthInboundBytes = 0
+		s.lastCoreOutboundBytes = coreOutbound
+		s.lastCoreInboundBytes = coreInbound
+		s.saveTrafficStateLocked()
+		return 0, 0
+	}
+	if s.trafficMonth == "" {
+		s.trafficMonth = currentMonth
+	}
+
+	if s.lastCoreOutboundBytes == 0 && s.lastCoreInboundBytes == 0 && s.monthOutboundBytes == 0 {
+		s.lastCoreOutboundBytes = coreOutbound
+		s.lastCoreInboundBytes = coreInbound
+		s.monthOutboundBytes = coreOutbound
+		s.monthInboundBytes = coreInbound
+		s.saveTrafficStateLocked()
+		return s.monthOutboundBytes, s.monthInboundBytes
+	}
+
+	var outDelta int64 = 0
+	if coreOutbound >= s.lastCoreOutboundBytes {
+		outDelta = coreOutbound - s.lastCoreOutboundBytes
+	} else if coreOutbound > 0 {
+		outDelta = coreOutbound
+	}
+	s.lastCoreOutboundBytes = coreOutbound
+
+	var inDelta int64 = 0
+	if coreInbound >= s.lastCoreInboundBytes {
+		inDelta = coreInbound - s.lastCoreInboundBytes
+	} else if coreInbound > 0 {
+		inDelta = coreInbound
+	}
+	s.lastCoreInboundBytes = coreInbound
+
+	if outDelta > 0 || inDelta > 0 {
+		s.monthOutboundBytes += outDelta
+		s.monthInboundBytes += inDelta
+		s.saveTrafficStateLocked()
+	}
+
+	return s.monthOutboundBytes, s.monthInboundBytes
+}
+
 func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) {
 
 	memMB, coreMem, totalOverhead := s.getLiveMemoryMetrics()
@@ -6012,6 +6147,8 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 
 
 
+	monthOutBytes, monthInBytes := s.recordTrafficSample(uploadTotal, downloadTotal)
+
 	upSpeed = s.liveUpSpeed.Load()
 
 	downSpeed = s.liveDownSpeed.Load()
@@ -6039,6 +6176,12 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 		"outbound_total_mb":  float64(uploadTotal) / (1024 * 1024),
 
 		"outbound_speed_bps": upSpeed,
+
+		"month_outbound_mb":  float64(monthOutBytes) / (1024 * 1024),
+
+		"month_inbound_mb":   float64(monthInBytes) / (1024 * 1024),
+
+		"month_total_gb":     math.Round((float64(monthOutBytes)/(1024*1024*1024))*100) / 100,
 
 		"probes": map[string]int{
 
@@ -6099,6 +6242,28 @@ func (s *Server) startTrafficCollector() {
 			}
 
 
+
+			// Background periodic physical connections sampler
+			go func() {
+				for {
+					time.Sleep(3 * time.Second)
+					cp := 9090
+					if ir := s.engMgr.GetIR(); ir != nil && ir.Network.ClashAPIPort > 0 {
+						cp = ir.Network.ClashAPIPort
+					}
+					r, err := s.httpClient.Get(fmt.Sprintf("http://127.0.0.1:%d/connections", cp))
+					if err == nil && r.StatusCode == http.StatusOK {
+						var cr struct {
+							DownloadTotal int64 `json:"downloadTotal"`
+							UploadTotal   int64 `json:"uploadTotal"`
+						}
+						if json.NewDecoder(r.Body).Decode(&cr) == nil {
+							s.recordTrafficSample(cr.UploadTotal, cr.DownloadTotal)
+						}
+						r.Body.Close()
+					}
+				}
+			}()
 
 			dec := json.NewDecoder(resp.Body)
 

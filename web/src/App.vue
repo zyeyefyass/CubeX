@@ -6343,11 +6343,10 @@ function updateLiveMonthlyTraffic(currentOutMB) {
     }
   }
 
-  // 2. 清理历史遗留脏数据 (99.5, 13.19 以及此前死循环异常暴增值)
+  // 2. 避免误杀真实大流量
   if (typeof localStorage !== 'undefined') {
     const rawVal = localStorage.getItem('cubex_month_traffic')
-    const rawMonthMB = localStorage.getItem(monthKey)
-    if (rawVal === '99.5' || rawVal === '13.19' || (rawMonthMB && parseFloat(rawMonthMB) > 5000 && currentOutMB < 2000)) {
+    if (rawVal === '99.5' || rawVal === '13.19') {
       localStorage.removeItem('cubex_month_traffic')
       localStorage.removeItem('cubex_base_month_gb')
       localStorage.setItem(monthKey, '0')
@@ -6410,8 +6409,17 @@ async function fetchTelemetryTraffic() {
       telemetryMetrics.value.outboundTotalMB = data.outbound_total_mb ?? 0
       telemetryMetrics.value.outboundSpeedBps = data.outbound_speed_bps || 0
 
-      // Dynamically accumulate and update monthly outbound transfer
-      updateLiveMonthlyTraffic(data.outbound_total_mb)
+      // Server-authoritative monthly traffic (7x24h persisted on cubexd disk)
+      if (data.month_total_gb !== undefined && data.month_total_gb !== null) {
+        telemetryMetrics.value.monthTotalGB = data.month_total_gb
+        trafficInsights.value.monthTotalGB = Number(data.month_total_gb).toFixed(2)
+      } else if (data.month_outbound_mb !== undefined) {
+        const gb = Number((data.month_outbound_mb / 1024).toFixed(2))
+        telemetryMetrics.value.monthTotalGB = gb
+        trafficInsights.value.monthTotalGB = gb.toFixed(2)
+      } else {
+        updateLiveMonthlyTraffic(data.outbound_total_mb)
+      }
 
       // Sync authentic gateway latency probes directly into service cards
       if (data.probes && typeof data.probes === 'object') {

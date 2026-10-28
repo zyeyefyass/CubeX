@@ -1983,7 +1983,7 @@ func (m *Manager) StartEndToEndWatchdog() {
 
 				if failCount > 0 {
 
-					m.log("INFO", "WATCHDOG", fmt.Sprintf("✅ 出海业务链路恢复畅通 (引擎: %s)", active))
+					m.log("INFO", "WATCHDOG", fmt.Sprintf("✅ 国际分流业务链路恢复畅通 (引擎: %s)", active))
 
 				}
 
@@ -1993,7 +1993,7 @@ func (m *Manager) StartEndToEndWatchdog() {
 
 				failCount++
 
-				m.log("WARN", "WATCHDOG", fmt.Sprintf("⚠️ 出海业务链路探测超时 (引擎: %s, 连续失败: %d/3)", active, failCount))
+				m.log("WARN", "WATCHDOG", fmt.Sprintf("⚠️ 国际分流业务链路探测超时 (引擎: %s, 连续失败: %d/3)", active, failCount))
 
 				if failCount >= 3 {
 
@@ -2007,7 +2007,7 @@ func (m *Manager) StartEndToEndWatchdog() {
 
 					}
 
-					m.log("WARN", "SUPERVISOR", fmt.Sprintf("🚨 核心 %s 出海业务链路连续假死，触发业务级无感容灾热切换 ➔ %s...", active, standby))
+					m.log("WARN", "SUPERVISOR", fmt.Sprintf("🚨 核心 %s 国际分流业务链路连续假死，触发业务级无感容灾热切换 ➔ %s...", active, standby))
 
 					if res, err := m.SwitchEngine(standby); err == nil {
 
