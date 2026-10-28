@@ -119,14 +119,15 @@ const deviceType = computed(() => {
   const name = (dev.name || '').toLowerCase()
   const hostname = (dev.hostname || '').toLowerCase()
   const ip = dev.ip || ''
+  const currentHost = typeof window !== 'undefined' ? window.location.hostname : ''
 
-  // 1. CubeX 旁路本机
-  if (name.includes('旁路') || name.includes('cubex') || ip === '10.0.0.7') {
+  // 1. CubeX 旁路本机 (动态匹配当前访问主机名或名称)
+  if (name.includes('旁路') || name.includes('cubex') || (currentHost && (ip === currentHost || currentHost === 'localhost' || currentHost === '127.0.0.1'))) {
     return 'cubex'
   }
 
-  // 2. MikroTik RouterOS (仅根据设备名称或主路由 IP，绝不检查 dev.source！)
-  if (name.includes('主路由') || name.includes('ros') || name.includes('routeros') || name.includes('mikrotik') || ip === '10.0.0.1') {
+  // 2. MikroTik RouterOS (根据名称、网关标记或末尾 .1 主路由网关特征)
+  if (name.includes('主路由') || name.includes('ros') || name.includes('routeros') || name.includes('mikrotik') || dev.is_gateway || (ip && ip.endsWith('.1'))) {
     return 'ros'
   }
 
@@ -177,8 +178,8 @@ const deviceType = computed(() => {
     return 'gaming'
   }
 
-  // 12. Linux / PVE / 服务器 (Lucky, 10.0.0.9, 10.0.0.5)
-  if (name.includes('linux') || name.includes('pve') || name.includes('proxmox') || name.includes('lucky') || name.includes('server') || ip === '10.0.0.9' || ip === '10.0.0.5') {
+  // 12. Linux / PVE / 服务器
+  if (name.includes('linux') || name.includes('pve') || name.includes('proxmox') || name.includes('lucky') || name.includes('server') || hostname.includes('pve') || hostname.includes('linux')) {
     return 'linux'
   }
 

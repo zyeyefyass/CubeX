@@ -97,11 +97,10 @@
             :stroke-opacity="p.isHighlighted ? 1 : (selectedDevice ? (p.isMatchSelected ? 0.9 : 0.15) : 0.6)"
             fill="none"
             :class="[
-              'transition-all duration-300',
               isAnimationActive ? (p.type === 'direct' ? 'flow-dash-direct' : 'flow-dash-proxy') : ''
             ]"
             :style="{
-              filter: (isAnimationActive && p.isHighlighted) ? 'url(#glowEffect)' : 'none'
+              filter: (isAnimationActive && p.isHighlighted) ? 'drop-shadow(0 0 6px rgba(0, 245, 212, 0.7))' : 'none'
             }"
           />
         </g>
@@ -450,7 +449,7 @@ function toggleDeviceMode(dev) {
   const newMode = dev.mode === 'bypass' ? 'rule' : 'bypass'
   dev.mode = newMode
   emit('update-device-mode', { dev, mode: newMode })
-  nextTick(() => calculateSvgPaths())
+  scheduleCalculateSvgPaths()
 }
 
 function refreshTopology() {
@@ -458,7 +457,7 @@ function refreshTopology() {
   emit('refresh')
   setTimeout(() => {
     isRefreshing.value = false
-    calculateSvgPaths()
+    scheduleCalculateSvgPaths()
   }, 600)
 }
 
@@ -469,24 +468,38 @@ function toggleSelectDevice(dev) {
     selectedDevice.value = dev
     emit('select-device', dev)
   }
-  nextTick(() => calculateSvgPaths())
+  scheduleCalculateSvgPaths()
 }
 
 function highlightOutbound(id) {
   // Can trigger route filter
 }
 
-// Fallback high-fidelity sample devices if lanDevices is empty
-const defaultSampleDevices = [
-  { ip: '10.0.0.191', name: 'Samsung Galaxy S24', mode: 'rule', trafficUp: '24KB', trafficDown: '1.2MB' },
-  { ip: '10.0.0.189', name: '客厅 TCL 智能电视', mode: 'rule', trafficUp: '15KB', trafficDown: '8.4MB' },
-  { ip: '10.0.0.3', name: '飞牛 NAS 存储中枢', mode: 'bypass', trafficUp: '3.4MB', trafficDown: '4.2MB' },
-  { ip: '10.0.0.1', name: 'MikroTik 主路由', mode: 'bypass', trafficUp: '450KB', trafficDown: '12MB' },
-  { ip: '10.0.0.192', name: 'jun-de-iPhone-Pro', mode: 'rule', trafficUp: '18KB', trafficDown: '620KB' }
-]
+// Format network speed (bps -> human readable)
+function formatSpeed(bps) {
+  if (bps == null || isNaN(bps) || bps <= 0) return '0 B/s'
+  if (bps < 1024) return `${Math.round(bps)} B/s`
+  if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(1)} KB/s`
+  if (bps < 1024 * 1024 * 1024) return `${(bps / (1024 * 1024)).toFixed(1)} MB/s`
+  return `${(bps / (1024 * 1024 * 1024)).toFixed(2)} GB/s`
+}
+
+// Fallback sample devices with dynamically detected subnet prefix (strictly no hardcoded 10.0.0.x)
+const defaultSampleDevices = computed(() => {
+  const host = typeof window !== 'undefined' ? (window.location.hostname || '192.168.1.1') : '192.168.1.1'
+  const parts = host.split('.')
+  const prefix = parts.length === 4 ? `${parts[0]}.${parts[1]}.${parts[2]}` : '192.168.1'
+  return [
+    { ip: `${prefix}.191`, name: 'Samsung Galaxy S24', mode: 'rule', trafficUp: '24KB', trafficDown: '1.2MB' },
+    { ip: `${prefix}.189`, name: '客厅 TCL 智能电视', mode: 'rule', trafficUp: '15KB', trafficDown: '8.4MB' },
+    { ip: `${prefix}.3`, name: '飞牛 NAS 存储中枢', mode: 'bypass', trafficUp: '3.4MB', trafficDown: '4.2MB' },
+    { ip: `${prefix}.1`, name: 'MikroTik 主路由', mode: 'bypass', trafficUp: '450KB', trafficDown: '12MB' },
+    { ip: `${prefix}.192`, name: 'jun-de-iPhone-Pro', mode: 'rule', trafficUp: '18KB', trafficDown: '620KB' }
+  ]
+})
 
 const activeDisplayDevices = computed(() => {
-  let list = props.lanDevices && props.lanDevices.length > 0 ? props.lanDevices : defaultSampleDevices
+  let list = props.lanDevices && props.lanDevices.length > 0 ? props.lanDevices : defaultSampleDevices.value
   // Filter out internal virtual bridge IPs (Docker 172.17/18/19, Fake-IP 198.18.0.1, 127.*)
   list = list.filter(d => {
     if (!d.ip || d.online === false) return false
@@ -511,19 +524,21 @@ const directLatency = computed(() => {
   return props.healthRadar?.metrics?.direct?.latency_ms || 22
 })
 
-// Live rates & Monthly outbound traffic
+// Live rates & Monthly outbound traffic (Dynamic reactive mapping)
 const currentOutboundRate = computed(() => {
   const m = props.telemetryMetrics
-  if (m?.rateDown) return m.rateDown
   if (m?.outboundRate) return m.outboundRate
-  return '2.4 MB/s'
+  if (m?.rateDown) return m.rateDown
+  if (m?.outboundSpeedBps != null && m?.outboundSpeedBps > 0) return formatSpeed(m.outboundSpeedBps)
+  return '0 B/s'
 })
 
 const currentInboundRate = computed(() => {
   const m = props.telemetryMetrics
-  if (m?.rateUp) return m.rateUp
   if (m?.inboundRate) return m.inboundRate
-  return '380 KB/s'
+  if (m?.rateUp) return m.rateUp
+  if (m?.inboundSpeedBps != null && m?.inboundSpeedBps > 0) return formatSpeed(m.inboundSpeedBps)
+  return '0 B/s'
 })
 
 const currentMonthTotalGB = computed(() => {
@@ -606,14 +621,28 @@ function getLatencyDotClass(ms) {
   return 'bg-rose-400'
 }
 
-// ── SVG Dynamic Bézier Lines Calculation ──
+// ── SVG Dynamic Bézier Lines Calculation (Silky 60fps & Anti-Layout-Thrashing) ──
 const topologyContainer = ref(null)
 const svgPaths = ref([])
+let lastPathsSignature = ''
+let rafId = null
+
+function scheduleCalculateSvgPaths() {
+  if (typeof window === 'undefined') return
+  if (rafId) return
+  rafId = requestAnimationFrame(() => {
+    rafId = null
+    calculateSvgPaths()
+  })
+}
 
 function calculateSvgPaths() {
   if (!topologyContainer.value || typeof window === 'undefined') return
   if (window.innerWidth < 1024) {
-    svgPaths.value = []
+    if (svgPaths.value.length > 0) {
+      svgPaths.value = []
+      lastPathsSignature = ''
+    }
     return
   }
 
@@ -622,9 +651,9 @@ function calculateSvgPaths() {
   if (!coreEl) return
 
   const coreRect = coreEl.getBoundingClientRect()
-  const coreLeftX = coreRect.left - containerRect.left
-  const coreRightX = coreRect.right - containerRect.left
-  const coreCenterY = coreRect.top + coreRect.height / 2 - containerRect.top
+  const coreLeftX = Math.round(coreRect.left - containerRect.left)
+  const coreRightX = Math.round(coreRect.right - containerRect.left)
+  const coreCenterY = Math.round(coreRect.top + coreRect.height / 2 - containerRect.top)
 
   const paths = []
 
@@ -633,14 +662,14 @@ function calculateSvgPaths() {
     const devEl = document.getElementById('client-node-' + dev.ip.replace(/\./g, '-'))
     if (!devEl) return
     const devRect = devEl.getBoundingClientRect()
-    const startX = devRect.right - containerRect.left
-    const startY = devRect.top + devRect.height / 2 - containerRect.top
+    const startX = Math.round(devRect.right - containerRect.left)
+    const startY = Math.round(devRect.top + devRect.height / 2 - containerRect.top)
     const endX = coreLeftX
     const endY = coreCenterY + (idx - 2) * 12
 
-    const cp1X = startX + (endX - startX) * 0.5
+    const cp1X = Math.round(startX + (endX - startX) * 0.5)
     const cp1Y = startY
-    const cp2X = startX + (endX - startX) * 0.5
+    const cp2X = cp1X
     const cp2Y = endY
 
     const isMatch = !selectedDevice.value || selectedDevice.value.ip === dev.ip
@@ -660,12 +689,12 @@ function calculateSvgPaths() {
     const dRect = directEl.getBoundingClientRect()
     const startX = coreRightX
     const startY = coreCenterY - 15
-    const endX = dRect.left - containerRect.left
-    const endY = dRect.top + dRect.height / 2 - containerRect.top
+    const endX = Math.round(dRect.left - containerRect.left)
+    const endY = Math.round(dRect.top + dRect.height / 2 - containerRect.top)
 
-    const cp1X = startX + (endX - startX) * 0.5
+    const cp1X = Math.round(startX + (endX - startX) * 0.5)
     const cp1Y = startY
-    const cp2X = startX + (endX - startX) * 0.5
+    const cp2X = cp1X
     const cp2Y = endY
 
     const isHigh = selectedDevice.value?.mode === 'bypass'
@@ -685,12 +714,12 @@ function calculateSvgPaths() {
     const pRect = pEl.getBoundingClientRect()
     const startX = coreRightX
     const startY = coreCenterY + (ri - 1) * 12
-    const endX = pRect.left - containerRect.left
-    const endY = pRect.top + pRect.height / 2 - containerRect.top
+    const endX = Math.round(pRect.left - containerRect.left)
+    const endY = Math.round(pRect.top + pRect.height / 2 - containerRect.top)
 
-    const cp1X = startX + (endX - startX) * 0.5
+    const cp1X = Math.round(startX + (endX - startX) * 0.5)
     const cp1Y = startY
-    const cp2X = startX + (endX - startX) * 0.5
+    const cp2X = cp1X
     const cp2Y = endY
 
     const isHigh = selectedDevice.value && selectedDevice.value.mode !== 'bypass'
@@ -703,27 +732,37 @@ function calculateSvgPaths() {
     })
   })
 
+  // ⚡ Signature comparison: avoid mutating reactive ref if paths geometry didn't change!
+  const signature = paths.map(p => `${p.d}_${p.type}_${p.isHighlighted ? 1 : 0}_${p.isMatchSelected ? 1 : 0}`).join(';')
+  if (signature === lastPathsSignature) {
+    return
+  }
+  lastPathsSignature = signature
   svgPaths.value = paths
 }
 
 let resizeObserver = null
 onMounted(() => {
   nextTick(() => {
-    calculateSvgPaths()
-    setTimeout(calculateSvgPaths, 300)
-    setTimeout(calculateSvgPaths, 1000)
+    scheduleCalculateSvgPaths()
+    setTimeout(scheduleCalculateSvgPaths, 300)
+    setTimeout(scheduleCalculateSvgPaths, 1000)
   })
 
   if (typeof ResizeObserver !== 'undefined' && topologyContainer.value) {
-    resizeObserver = new ResizeObserver(() => calculateSvgPaths())
+    resizeObserver = new ResizeObserver(() => scheduleCalculateSvgPaths())
     resizeObserver.observe(topologyContainer.value)
   }
-  window.addEventListener('resize', calculateSvgPaths)
+  window.addEventListener('resize', scheduleCalculateSvgPaths, { passive: true })
 })
 
 onUnmounted(() => {
+  if (rafId) {
+    cancelAnimationFrame(rafId)
+    rafId = null
+  }
   if (resizeObserver) resizeObserver.disconnect()
-  window.removeEventListener('resize', calculateSvgPaths)
+  window.removeEventListener('resize', scheduleCalculateSvgPaths)
 })
 </script>
 

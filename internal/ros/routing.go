@@ -1052,7 +1052,16 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 	// 5. Ensure RouterOS Native DNS & DHCP Failover Architecture (网关与DNS留主路由 + 0秒逃生)
 	routerIP := m.config.Host
 	if routerIP == "" || routerIP == "127.0.0.1" {
-		routerIP = "10.0.0.1"
+		outIP := m.GetOutboundIP()
+		if outIP != "" && outIP != "127.0.0.1" {
+			parts := strings.Split(outIP, ".")
+			if len(parts) == 4 {
+				routerIP = parts[0] + "." + parts[1] + "." + parts[2] + ".1"
+			}
+		}
+	}
+	if routerIP == "" || routerIP == "127.0.0.1" {
+		routerIP = "192.168.1.1"
 	}
 
 	// 5a. Set RouterOS DNS servers and allow remote requests
@@ -1126,9 +1135,13 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 			"comment":      "CubeX-DNS-Hijack",
 		})
 	}
-	subnetCIDR := "10.0.0.0/24"
-	if len(targetIP) > 0 {
-		parts := strings.Split(targetIP, ".")
+	subnetCIDR := "192.168.1.0/24"
+	baseIP := targetIP
+	if baseIP == "" {
+		baseIP = routerIP
+	}
+	if len(baseIP) > 0 {
+		parts := strings.Split(baseIP, ".")
 		if len(parts) == 4 {
 			subnetCIDR = fmt.Sprintf("%s.%s.%s.0/24", parts[0], parts[1], parts[2])
 		}

@@ -6,7 +6,7 @@
 ### *单二进制纯自研 · 封神之作：网关+DNS双双全指主路由 · 免折腾的软路由终极形态 · 随便折腾永不断网 · 300ms 冷启 · 宛如物理肉身直连全球互联网*
 
 <p align="center">
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v4.1-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v4.2-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 <a href="https://github.com/zyeyefyass/CubeX"><img src="https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go" alt="Dual-Engine" /></a>
 <a href="#"><img src="https://img.shields.io/badge/Host-RouterOS_v7_%7C_爱快_iKuai_%7C_OpenWrt_%7C_飞牛_fnOS_%7C_PVE_%7C_Linux-3A86FF?style=for-the-badge" alt="Host Base" /></a>
@@ -40,7 +40,7 @@
 
 - [⚡ 权威实测：CubeX Test v2.8 vs 某测评 全维度基准对决 (同带宽 · 同宿主 · 同节点压测)](#benchmark)
 
-- [📢 最新版本升级通知 (Test v4.1 移动端极致自适应 · 常驻 6 大模块 Safe-Area 导航坞 · 全栈云端 UI 状态秒级同步 · 极速高性能纯净终端版)](#announcement)
+- [📢 最新版本升级通知 (Test v4.2 全息拓扑 60FPS 极速渲染 · 实时速率毫秒刷新 · 全栈零硬编码动态探查 · 极速丝滑终极版)](#announcement)
 
 - [📦 资产下载与全平台底座选用清单 (Release Assets)](#release-assets)
 
@@ -261,8 +261,8 @@
    这是最早也是最坑的玩法。新手教程动不动教你“把主路由 DHCP 网关改成旁路由 IP”。结果只要你手痒在弱电箱升级固件、换订阅节点、改规则，大订阅瞬间爆内存被 OOM 强杀，全家 Wi-Fi 立即弹出黄色感叹号！客厅的老婆瞬间暴怒：“**喂！你怎么又断网了？！我电视剧正看到大结局呢！**” 丈母娘的视频通话突然黑屏，老爸打麻将掉线，连扫地机器人都卡在客厅中央发呆……下一秒，老婆直接大步流星走过来，毫不留情地一把拔掉所有电源插头！你辛辛苦苦调优了一周的脚本，瞬间被“物理断电法”一键火化！
 2. **阶段二：上一代“过渡折中型”旁路（网关留主路、改 DHCP Option 6 旁路 DNS）**：
    后来有高手发现把网关留给主路由，只改 DHCP Option 6 将 DNS 指向旁路由，能解决国内大流量折返跑的问题。但这依然是个**半吊子妥协方案**！首先你得在主路由里折腾 DHCP Option 6，或者去几十台手机、平板、智能电视上手动配静态 DNS；更致命的是：一旦旁路由重启、崩溃或升级，全屋的 DNS 解析依然瞬间瘫痪！虽然网关没坏，但域名全解析不了，网页依然打不开，电视剧依然转圈，你依然难逃被全家审判的命运！
-3. **阶段三（终极形态 · 封神之作）：CubeX 独创【网关 + DNS 全双双指向主路由模式】**：
-   **这就是软路由演进的终极天花板，真正做到“极客随便折腾、家人彻底躺平、家庭地位稳如泰山”的免折腾终极形态与封神之作！**
+3. **阶段三（终极形态 · 封神之作 · 诞生于 CubeX Test v4.2 划时代独创突破）：【网关 + DNS 全双双指向主路由模式】**：
+   **在以往所有版本与传统方案中，科学上网要么必须强改终端网关到旁路由，要么必须修改 DHCP Option 6 改 DNS。直到 CubeX Test v4.2 重磅发布，才真正完成了软路由网络拓扑划时代的颠覆性突破——终端网关指向主路由，DNS 也统统指向主路由！无需改动终端任何设置，即可全自动实现出海透明代理与国内真实芯片满速直出，真正做到“极客随便折腾、家人彻底躺平、家庭地位稳如泰山”的免折腾终极形态！**
 
 ```
 +-------------------------------------------------------------------------------------------------------------------------+
@@ -466,12 +466,12 @@
 <a id="announcement"></a>
 
 > [!IMPORTANT]
-> ### 👑【封神之作置顶】网关 + DNS 全双双指向主路由！免折腾的软路由终极形态 · 随便折腾绝不断网的“家庭和睦神器”！(CubeX Test v4.1 旗舰重磅发布)
+> ### 👑【封神之作置顶】网关 + DNS 全双双指向主路由！免折腾的软路由终极形态 · 随便折腾绝不断网的“家庭和睦神器”！(CubeX Test v4.2 旗舰重磅发布)
 >
 > **致所有追求极限网络性能、家庭和睦与零运维开销的极客软路由玩家：**
 >
 > 告别改网关血泪史！彻底消除“一人折腾软路由、全家断网挨骂、老婆怒拔插头”的历史痛点！
-> 今天发布的 **CubeX Test v4.1**，不仅带来移动端人机交互全景重构、常驻 6 大模块 Safe-Area 导航坞与跨设备云端 UI 状态秒级同步，更完成了软路由网络拓扑划时代的颠覆性突破：**网关指主路由，DNS 也统统指向主路由！**
+> 今天重磅发布的 **CubeX Test v4.2**，不仅带来全息拓扑 60FPS 极速渲染、控制台鼠标移动卡顿彻底根治、实时网络速率毫秒动态刷新，更是业界首个正式实现【网关指向主路由，DNS 也统统指向主路由即可完美实现科学上网与全域去广告】的划时代软路由终极形态！
 >
 > 1. 🛡️ **终端 100% 零侵入零修改 (Zero-Touch Client Deployment)**：
 >    * 全家所有手机、电视、电脑网络设置 100% 保持系统默认 DHCP（网关=10.0.0.1，DNS=10.0.0.1），连主路由 DHCP 服务端的 Option 6 都不用修改！新设备进门连上 Wi-Fi 就能直接享受全球加速与全域去广告！
@@ -482,7 +482,7 @@
 >
 > **致所有追求极限网络性能、极度稳定与零运维开销的极客用户：**
 >
-> 今天发布的 **CubeX Test v4.1**，针对移动端人机交互全景重构、跨设备云端偏好状态同步、全栈前端加载吞吐优化与高密纯净运维终端，历经真实多宿主环境严苛闭环验证与双引擎 4 轮往返热重载无损校验：
+> 今天发布的 **CubeX Test v4.2**，针对全息拓扑性能卡顿治理、实时流量精准刷新、全栈零硬编码动态探查与双核高可用调度，历经真实多宿主环境严苛闭环验证与双引擎 4 轮往返热重载无损校验：
 >
 > 1. 📱 **移动端全功能自适应与常驻底部 Safe-Area 6 大模块导航坞 (Mobile Permanent Bottom Dock)**：
 >    * 彻底修复手机端浏览时底部栏按钮挤压遮挡与裁切问题，采用严格 6 等分 `grid-template-columns: repeat(6, minmax(0, 1fr))` 物理响应式布局，手机端 100% 完整展示 6 大主模块（网络中枢、应用分流、安全防护、容器加速、宿主共生、日志诊断）；
@@ -513,23 +513,23 @@
 
 | 文件名 | 平台 / 底座 | 文件大小 | 说明与安装指引 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v4.1-linux-amd64.zip` | Linux amd64 (通用宿主 / **PVE CT 首选** / 飞牛) | ~73.8 MB | 包含加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
-| `CubeX-Test-v4.1-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~68.0 MB | 包含加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
-| `CubeX-Test-v4.1-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~96.8 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
-| `CubeX-Test-v4.1-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~96.9 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
-| `CubeX-Test-v4.1-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~77.4 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（标签为 `cubex:latest`）；OpenWrt 与飞牛支持 `setup-openwrt.sh` 自动载入或 `docker load -i` |
+| `CubeX-Test-v4.2-linux-amd64.zip` | Linux amd64 (通用宿主 / **PVE CT 首选** / 飞牛) | ~73.8 MB | 包含加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
+| `CubeX-Test-v4.2-linux-arm64.zip` | Linux arm64 (通用宿主 / 树莓派 / 软路由) | ~68.0 MB | 包含加固双内核、全量 101 套规则集、配置与控制面的完整生产归档（POSIX 正斜杠规范） |
+| `CubeX-Test-v4.2-ros-amd64.tar` | MikroTik RouterOS v7 (x86_64) | ~96.8 MB | ROS 专有未压缩容器镜像（支持 WinBox `/container/add` 或搭配 `setup-routeros-v7.rsc` 一键导入） |
+| `CubeX-Test-v4.2-ros-arm64.tar` | MikroTik RouterOS v7 (ARM64 / RB5009) | ~96.9 MB | ROS 专有未压缩容器镜像（ARM64 硬件架构） |
+| `CubeX-Test-v4.2-docker-amd64.tar.gz` | **爱快 iKuai 64位** / **OpenWrt Docker** / 飞牛 fnOS / 通用 Linux Docker (amd64) | ~77.4 MB | **爱快、OpenWrt、飞牛与通用 Docker 离线镜像导入包**：爱快后台【Docker ➔ 镜像管理 ➔ 导入镜像】直接上传导入（标签为 `cubex:latest`）；OpenWrt 与飞牛支持 `setup-openwrt.sh` 自动载入或 `docker load -i` |
 | `cubexd-linux-amd64` | Linux amd64 单二进制 | ~12.9 MB | 加固主控守护进程，集成 Gzip 实时动态加速与跨端状态同步，用于在线秒级热更或单文件运行 |
 | `cubexd-linux-arm64` | Linux arm64 单二进制 | ~12.1 MB | 加固主控守护进程（ARM64 硬件架构） |
 | `cubex-linux-amd64` | Linux amd64 运维 CLI | ~6.3 MB | 终端运维命令行控制面 |
 | `cubex-linux-arm64` | Linux arm64 运维 CLI | ~5.8 MB | 终端运维命令行控制面（ARM64） |
 | `install_pve_lxc.sh` | **Proxmox VE 官方一键安装脚本 (最为推荐)** | ~8.1 KB | PVE 宿主机终端一键全自动部署脚本（自动升级 Alpine、透传 TUN、创建强隔离 CT 容器与装配 OpenRC 守护进程） |
-| `install.sh` | Linux 官方一键安全安装器 | ~11.4 KB | 专有安全加载器，终端执行 `curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.1/install.sh | bash` |
+| `install.sh` | Linux 官方一键安全安装器 | ~11.4 KB | Linux 通用官方一键安全加载器，自动探查系统架构与宿主环境、装配 systemd/OpenRC 守护进程并极速拉起 |
 | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~17.0 KB | RouterOS v7 WinBox 终端复制即用一键全自动编排脚本（支持全局大括号块作用域，自动配置网络、路由与 Netwatch 0秒逃生） |
 | `setup-openwrt.sh` | OpenWrt 终端编排脚本 | ~19.0 KB | OpenWrt 终端复制即用全自动编排脚本（支持多镜像断点续传、交互进度条、Macvlan-Shim、0秒看门狗与锁定 odhcpd 防泄露） |
 
 > ### 🧭 各主流宿主底座极速安装与发布资产选用速查指引：
 
-> * 🥇 **Proxmox VE (PVE) CT 容器 (LXC) 一键全自动安装（最为推荐方案 · 针对所有宿主）**：在 PVE 宿主机终端执行一行命令 `curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.1/install_pve_lxc.sh | bash`，全自动完成 Alpine 升级、TUN 透传、容器创建与守护进程启动！强沙盒隔离、开机不到一秒、内存仅占 30MB~70MB、原生物理万兆吞吐！详细图文请点击直达：[方式 A：Proxmox VE CT 容器极速部署教程](#deploy-pve)。
+> * 🥇 **Proxmox VE (PVE) CT 容器 (LXC) 一键全自动安装（最为推荐方案 · 针对所有宿主）**：在 PVE 宿主机终端执行一行命令 `curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/latest/download/install_pve_lxc.sh | bash`，全自动完成 Alpine 升级、TUN 透传、容器创建与守护进程启动！强沙盒隔离、开机不到一秒、内存仅占 30MB~70MB、原生物理万兆吞吐！详细图文请点击直达：[方式 A：Proxmox VE CT 容器极速部署教程](#deploy-pve)。
 
 > * 🔵 **MikroTik RouterOS v7 原生容器安装方式**：通过 WinBox 上传 ROS 镜像包 `CubeX-*-ros-amd64.tar` 或 `arm64.tar`，在终端粘贴运行 `setup-routeros-v7.rsc` 脚本，30秒全自动拉起共生容器。详细步骤请点击直达：[方式 B：RouterOS v7 容器极速安装指南](#deploy-ros)。
 
@@ -826,7 +826,7 @@ CubeX 内置强大的本地 DNS 重写引擎，无需修改任何 hosts 文件�
 
 ```bash
 
-curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.1/install_pve_lxc.sh | bash
+curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/latest/download/install_pve_lxc.sh | bash
 
 ```
 
@@ -1087,7 +1087,7 @@ sh setup-openwrt.sh
 
 # 官方一键智能嗅探脚本 (自动适配 amd64 / arm64)
 
-wget -4 -qO- https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.1/setup-openwrt.sh | sh
+wget -4 -qO- https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/latest/download/setup-openwrt.sh | sh
 
 ```
 
@@ -1271,6 +1271,9 @@ ip route add 10.0.0.11/32 dev macvlan-shim
 ##### 🟣 飞牛 fnOS 专属单行命令（默认路径 `/vol1/1000/cubex`）：
 
 ```bash
+# 拉取官方最新镜像 (标签统一为 latest)
+docker pull fyasshole/cubex:latest
+
 docker run -d \
   --name cubex \
   --restart always \
@@ -1285,6 +1288,9 @@ docker run -d \
 ##### 🐧 通用 Linux Docker 单行命令（默认路径 `/var/lib/cubex`）：
 
 ```bash
+# 拉取官方最新镜像 (标签统一为 latest)
+docker pull fyasshole/cubex:latest
+
 docker run -d \
   --name cubex \
   --restart always \
@@ -1306,7 +1312,7 @@ docker run -d \
 
 # 官方一键智能嗅探脚本
 
-curl -4 -fsSL https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/Test-v4.1/install.sh | bash
+curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/latest/download/install.sh | bash
 
 ```
 

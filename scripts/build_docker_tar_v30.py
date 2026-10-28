@@ -7,9 +7,15 @@ import hashlib
 import tarfile
 import time
 
-print("🔨 Generating CubeX-Test-v3.8-docker-amd64.tar.gz from v2.7 base...")
-
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+# Dynamically resolve target version from meta.json
+with open(os.path.join(root_dir, "meta.json"), "r", encoding="utf-8") as f:
+    meta_data = json.load(f)
+version_tag = meta_data.get("version", "Test v4.2").replace(" ", "-")
+
+print(f"🔨 Generating CubeX-{version_tag}-docker-amd64.tar.gz from base...")
+
 base_path = os.path.join(root_dir, "dist", "release", "CubeX-Test-v2.9-docker-amd64.tar.gz")
 if not os.path.exists(base_path):
     base_path = os.path.join(root_dir, "dist", "docker", "CubeX-Test-v2.6-docker-amd64.tar.gz")
@@ -101,11 +107,11 @@ blobs[new_cfg_blob] = new_cfg_bytes
 # Update manifest
 manifest[0]['Config'] = new_cfg_blob
 manifest[0]['Layers'] = layers
-manifest[0]['RepoTags'] = ['cubex:Test-v3.8', 'cubex:latest']
+manifest[0]['RepoTags'] = [f'cubex:{version_tag}', 'cubex:latest']
 manifest_bytes = json.dumps(manifest, indent=2).encode('utf-8')
 
 # Write output tar.gz
-out_path = os.path.join(root_dir, "dist", "release", "CubeX-Test-v3.8-docker-amd64.tar.gz")
+out_path = os.path.join(root_dir, "dist", "release", f"CubeX-{version_tag}-docker-amd64.tar.gz")
 os.makedirs(os.path.dirname(out_path), exist_ok=True)
 with tarfile.open(out_path, mode='w:gz') as t_out:
     def add_data(name, b):

@@ -85,7 +85,7 @@ import (
 
 var (
 
-	version = "Test v4.1"
+	version = "Test v4.2"
 
 	startTime = time.Now()
 
@@ -632,16 +632,13 @@ func main() {
 
 
 
-	// ROS Client
-
+	// ROS Client with dynamic gateway and outbound IP discovery (Rule 7 Zero-Hardcode)
+	detectedGW := detectDefaultGateway()
+	detectedSelf := detectOutboundIP()
 	rosClient := netstack.NewRosClient(netstack.RosConfig{
-
-		Host:     "10.0.0.1",
-
-		CubeXIP:  "10.0.0.2",
-
+		Host:     detectedGW,
+		CubeXIP:  detectedSelf,
 		Username: "admin",
-
 	})
 
 
@@ -9232,10 +9229,10 @@ func (s *Server) handleIkuaiDockerParams(w http.ResponseWriter, r *http.Request)
 		}
 	}
 	if hostIP == "" {
-		hostIP = "192.168.1.1"
+		hostIP = detectDefaultGateway()
 	}
 	if cubexIP == "" {
-		cubexIP = "192.168.1.2"
+		cubexIP = detectOutboundIP()
 	}
 
 	image := "ghcr.io/zyeyefyass/cubex:latest"
@@ -9342,4 +9339,53 @@ services:
 		},
 	}
 	sendJSON(w, resp)
+}
+
+// detectOutboundIP discovers the local host's active IP used for outbound routing
+func detectOutboundIP() string {
+	conn, err := net.DialTimeout("udp", "223.5.5.5:80", 1*time.Second)
+	if err == nil {
+		defer conn.Close()
+		if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
+			return localAddr.IP.String()
+		}
+	}
+	addrs, err := net.InterfaceAddrs()
+	if err == nil {
+		for _, a := range addrs {
+			if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+				if ip4 := ipnet.IP.To4(); ip4 != nil {
+					return ip4.String()
+				}
+			}
+		}
+	}
+	return "127.0.0.1"
+}
+
+// detectDefaultGateway dynamically discovers the default gateway on Linux (/proc/net/route) or infers from outbound IP
+func detectDefaultGateway() string {
+	if data, err := os.ReadFile("/proc/net/route"); err == nil {
+		lines := strings.Split(string(data), "\n")
+		for _, line := range lines[1:] {
+			fields := strings.Fields(line)
+			if len(fields) >= 3 && fields[1] == "00000000" { // Destination 0.0.0.0
+				var ipBytes [4]byte
+				if n, _ := fmt.Sscanf(fields[2], "%02X%02X%02X%02X", &ipBytes[3], &ipBytes[2], &ipBytes[1], &ipBytes[0]); n == 4 {
+					gw := net.IP(ipBytes[:]).String()
+					if gw != "0.0.0.0" {
+						return gw
+					}
+				}
+			}
+		}
+	}
+	outIP := detectOutboundIP()
+	if outIP != "" && outIP != "127.0.0.1" {
+		parts := strings.Split(outIP, ".")
+		if len(parts) == 4 {
+			return parts[0] + "." + parts[1] + "." + parts[2] + ".1"
+		}
+	}
+	return "192.168.1.1"
 }
