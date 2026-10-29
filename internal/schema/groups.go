@@ -420,18 +420,51 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 	for _, bg := range StandardBusinessGroups {
 		candidates := append([]string{}, allRegionalCandidateProxies...)
 
-		// 严格合规隔离：AI与敏感服务 (Gemini / Antigravity / OpenAI / Claude / TikTok) 严格禁止中国大陆、中国香港、中国澳门出站
+		// 严格合规隔离与专属优化：AI与敏感服务 (Gemini / Antigravity / OpenAI / Claude / TikTok) 
+		// 严格禁止中国大陆、中国香港、中国澳门出站，并优先将专线与流媒体/AI解锁节点前置
 		if isAIOrSensitiveGroup(bg.Name) {
 			aiCandidates := make([]string, 0, len(candidates))
+			aiSpecialNodes := make([]string, 0)
+			otherNodes := make([]string, 0)
+
+			// Preferred low-latency AI regions
+			preferredAIRegions := []string{
+				"🇸🇬 新加坡自动", "🇯🇵 日本自动", "🇹🇼 台湾自动", "🇺🇸 美国自动", "🇰🇷 韩国自动",
+				"🇸🇬 新加坡故转", "🇯🇵 日本故转", "🇹🇼 台湾故转", "🇺🇸 美国故转",
+				"🇸🇬 新加坡容灾", "🇯🇵 日本容灾", "🇹🇼 台湾容灾", "🇺🇸 美国容灾",
+			}
+
 			for _, c := range candidates {
 				cLower := strings.ToLower(c)
 				if strings.Contains(c, "香港") || strings.Contains(cLower, "hk") || strings.Contains(c, "🇭🇰") ||
 				   strings.Contains(c, "澳门") || strings.Contains(cLower, "macau") || strings.Contains(c, "🇲🇴") ||
-				   c == "DIRECT" {
+				   c == "DIRECT" || c == "REJECT" || c == "block" {
 					continue
 				}
-				aiCandidates = append(aiCandidates, c)
+
+				// Check if it's one of the preferred dynamic groups
+				if containsString(preferredAIRegions, c) {
+					continue // Will be added in priority order below
+				}
+
+				// Check if it's an explicit AI/Streaming certified node
+				if strings.Contains(cLower, "ai") || strings.Contains(cLower, "openai") || 
+				   strings.Contains(cLower, "claude") || strings.Contains(cLower, "chatgpt") || 
+				   strings.Contains(c, "流媒体") || strings.Contains(cLower, "mpls") {
+					aiSpecialNodes = append(aiSpecialNodes, c)
+				} else {
+					otherNodes = append(otherNodes, c)
+				}
 			}
+
+			for _, pref := range preferredAIRegions {
+				if containsString(candidates, pref) {
+					aiCandidates = append(aiCandidates, pref)
+				}
+			}
+			aiCandidates = append(aiCandidates, aiSpecialNodes...)
+			aiCandidates = append(aiCandidates, otherNodes...)
+
 			if len(aiCandidates) > 0 {
 				candidates = aiCandidates
 			}
@@ -450,15 +483,15 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 		if bg.Name == "Apple 服务" || bg.Name == "Microsoft" || bg.Name == "🎯 国内流量" {
 			defaultNow = "DIRECT"
 		} else if bg.Name == "AI" || bg.Name == "Gemini & Antigravity" {
-			// Prefer regions that have native nodes first (e.g. US -> JP -> TW -> SG)
-			for _, pref := range []string{"🇺🇸 美国自动", "🇯🇵 日本自动", "🇹🇼 台湾自动", "🇸🇬 新加坡自动"} {
+			// Prioritize low-latency Asia-Pacific AI-unlocked regions first (SG -> JP -> TW -> US)
+			for _, pref := range []string{"🇸🇬 新加坡自动", "🇯🇵 日本自动", "🇹🇼 台湾自动", "🇺🇸 美国自动"} {
 				if containsString(candidates, pref) && hasNativeNodes(pref) {
 					defaultNow = pref
 					break
 				}
 			}
 			if defaultNow == candidates[0] {
-				for _, pref := range []string{"🇺🇸 美国自动", "🇯🇵 日本自动", "🇹🇼 台湾自动", "🇸🇬 新加坡自动"} {
+				for _, pref := range []string{"🇸🇬 新加坡自动", "🇯🇵 日本自动", "🇹🇼 台湾自动", "🇺🇸 美国自动"} {
 					if containsString(candidates, pref) {
 						defaultNow = pref
 						break

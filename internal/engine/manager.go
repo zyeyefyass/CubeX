@@ -724,6 +724,8 @@ func (m *Manager) buildCmd(eng schema.EngineType, binPath, etcDir, configPath st
 
 		"GODEBUG=madvdontneed=1",
 
+		"ENABLE_DEPRECATED_OUTBOUND_DNS_RULE_ITEM=true",
+
 	)
 
 	return cmd
@@ -1809,6 +1811,12 @@ func (m *Manager) StartSupervisor() {
 
 					}
 
+					if healthyConsecutive%6 == 0 { // Audit dead-node circuit breaker every ~15s
+
+						m.PatrolCircuitBreaker()
+
+					}
+
 				}
 
 			}
@@ -1858,6 +1866,270 @@ func (m *Manager) GetLastKnownGoodTime() string {
 	}
 
 	return "就绪保护中"
+
+}
+
+
+
+// PatrolCircuitBreaker audits all Selector groups in Clash API (127.0.0.1:9090).
+
+// If any group is statically locked to a single concrete node that has timed out (Delay <= 0)
+
+// or failed health checks, it automatically triggers a circuit-breaker to safely fall back to an active dynamic group.
+
+func (m *Manager) PatrolCircuitBreaker() int {
+
+	u := fmt.Sprintf("%s/proxies", m.clashAPI)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1200*time.Millisecond)
+
+	defer cancel()
+
+
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+
+	if err != nil {
+
+		return 0
+
+	}
+
+	if m.ir != nil && m.ir.Network.ClashSecret != "" {
+
+		req.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
+
+	}
+
+
+
+	resp, err := m.httpClient.Do(req)
+
+	if err != nil || resp.StatusCode != http.StatusOK {
+
+		return 0
+
+	}
+
+	defer resp.Body.Close()
+
+
+
+	body, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+
+		return 0
+
+	}
+
+
+
+	var data struct {
+
+		Proxies map[string]struct {
+
+			Name    string   `json:"name"`
+
+			Type    string   `json:"type"`
+
+			Now     string   `json:"now"`
+
+			All     []string `json:"all"`
+
+			History []struct {
+
+				Delay int `json:"delay"`
+
+			} `json:"history"`
+
+		} `json:"proxies"`
+
+	}
+
+	if err := json.Unmarshal(body, &data); err != nil {
+
+		return 0
+
+	}
+
+
+
+	healedCount := 0
+
+
+
+	isSafeTarget := func(name string) bool {
+
+		return strings.Contains(name, "自动") || strings.Contains(name, "故转") ||
+
+			strings.Contains(name, "容灾") || name == "DIRECT" || name == "REJECT" || name == "block"
+
+	}
+
+
+
+	for grpName, grp := range data.Proxies {
+
+		if grp.Type != "Selector" || grp.Now == "" || isSafeTarget(grp.Now) {
+
+			continue
+
+		}
+
+
+
+		// grp.Now is a single physical node (e.g. "[HHost-JP] xtls-reality"). Check its health.
+
+		nodeInfo, exists := data.Proxies[grp.Now]
+
+		if !exists {
+
+			continue
+
+		}
+
+
+
+		isDead := false
+
+		lastDelay := 0
+
+		if len(nodeInfo.History) > 0 {
+
+			lastDelay = nodeInfo.History[len(nodeInfo.History)-1].Delay
+
+			if lastDelay <= 0 || lastDelay >= 7500 {
+
+				isDead = true
+
+			}
+
+		}
+
+
+
+		if isDead {
+
+			// Find optimal fallback dynamic target from grp.All
+
+			var fallbackTarget string
+
+			for _, candidate := range grp.All {
+
+				if strings.Contains(candidate, "自动") && !schema.IsInformationalOrInvalidNode(candidate) {
+
+					fallbackTarget = candidate
+
+					break
+
+				}
+
+			}
+
+			if fallbackTarget == "" {
+
+				for _, candidate := range grp.All {
+
+					if (strings.Contains(candidate, "故转") || strings.Contains(candidate, "容灾")) && !schema.IsInformationalOrInvalidNode(candidate) {
+
+						fallbackTarget = candidate
+
+						break
+
+					}
+
+				}
+
+			}
+
+			if fallbackTarget == "" {
+
+				for _, candidate := range grp.All {
+
+					if (candidate == "🌐 国外流量" || candidate == "DIRECT") && !schema.IsInformationalOrInvalidNode(candidate) {
+
+						fallbackTarget = candidate
+
+						break
+
+					}
+
+				}
+
+			}
+
+
+
+			if fallbackTarget != "" && fallbackTarget != grp.Now {
+
+				putURL := fmt.Sprintf("%s/proxies/%s", m.clashAPI, url.PathEscape(grpName))
+
+				payload, _ := json.Marshal(map[string]string{"name": fallbackTarget})
+
+				pReq, pErr := http.NewRequestWithContext(context.Background(), http.MethodPut, putURL, bytes.NewReader(payload))
+
+				if pErr == nil {
+
+					pReq.Header.Set("Content-Type", "application/json")
+
+					if m.ir != nil && m.ir.Network.ClashSecret != "" {
+
+						pReq.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
+
+					}
+
+					if pResp, err := m.httpClient.Do(pReq); err == nil {
+
+						pResp.Body.Close()
+
+						m.mu.Lock()
+
+						if m.ir != nil {
+
+							for i := range m.ir.Groups {
+
+								if m.ir.Groups[i].Name == grpName {
+
+									m.ir.Groups[i].Now = fallbackTarget
+
+									break
+
+								}
+
+							}
+
+							if data, err := json.MarshalIndent(m.ir, "", "  "); err == nil {
+
+								_ = schema.WriteFileAtomicSecure(filepath.Join(m.workDir, "data", "config.ir.json"), data)
+
+							}
+
+						}
+
+						m.mu.Unlock()
+
+
+
+						healedCount++
+
+						log.Printf("🛡️ [CircuitBreaker] 策略组 [%s] 节点 [%s] 延迟异常(%dms)，已触发智能熔断回退至 [%s]！", grpName, grp.Now, lastDelay, fallbackTarget)
+
+						m.log("WARN", "HA", fmt.Sprintf("🛡️ 智能熔断: 策略组 [%s] 单节点 [%s] 异常不可达，已静默回退至 [%s]", grpName, grp.Now, fallbackTarget))
+
+					}
+
+				}
+
+			}
+
+		}
+
+	}
+
+
+
+	return healedCount
 
 }
 

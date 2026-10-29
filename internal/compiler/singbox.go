@@ -323,10 +323,6 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 					"server":   "dns-direct",
 				},
 				{
-					"outbound": []string{"direct", "DIRECT"},
-					"server":   "dns-direct",
-				},
-				{
 					"query_type": []string{"A", "AAAA"},
 					"server":     "dns-fakeip",
 				},

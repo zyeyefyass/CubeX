@@ -2,8 +2,8 @@
   <div class="rounded-3xl p-5 sm:p-7 macos-glass-card shadow-2xl relative overflow-hidden transition-all duration-300 border border-white/10 select-none">
     
     <!-- Top Ambient Glow Aura -->
-    <div class="absolute -top-24 -left-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-[#FF9E5E]/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -top-24 -left-24 w-96 h-96 bg-[radial-gradient(circle,rgba(6,182,212,0.10)_0%,transparent_70%)] rounded-full pointer-events-none"></div>
+    <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-[radial-gradient(circle,rgba(255,158,94,0.10)_0%,transparent_70%)] rounded-full pointer-events-none"></div>
 
     <!-- ── Header Controls Bar ── -->
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-white/10 relative z-10">
@@ -16,7 +16,7 @@
             全息动态流量拓扑大屏
           </h3>
           <span class="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-gradient-to-r from-cyan-500/20 to-teal-500/20 text-cyan-300 border border-cyan-400/30 font-bold flex items-center gap-1.5 shadow-sm">
-            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
             Twilight Crystal 2.0
           </span>
           <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-[#FEF08A] border border-white/20 font-medium hidden sm:inline-flex">
@@ -160,7 +160,7 @@
                       <button @click.stop="startInlineRename(dev)" title="重命名该设备" class="opacity-0 group-hover:opacity-100 text-[11px] text-slate-400 hover:text-cyan-300 transition cursor-pointer">
                         ✏️
                       </button>
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
                     </div>
                     <div class="text-[11px] font-mono text-slate-400 truncate">
                       {{ dev.ip }}
@@ -203,14 +203,14 @@
         <!-- ══════════════════════════════════════════════════════════════ -->
         <div class="lg:col-span-4 flex flex-col justify-center items-center my-auto h-[396px] px-1">
           <div id="cubex-core-center"
-            class="w-full max-w-[320px] rounded-3xl p-4 sm:p-5 bg-gradient-to-b from-[#00223e]/55 via-[#001529]/60 to-[#000d1a]/65 backdrop-blur-xl border border-cyan-400/40 shadow-[0_0_35px_rgba(0,210,255,0.2)] text-center relative overflow-hidden transition-all duration-300 group hover:border-[#FF9E5E]/60">
+            class="w-full max-w-[320px] rounded-3xl p-4 sm:p-5 bg-gradient-to-b from-[#00223e]/70 via-[#001529]/80 to-[#000d1a]/85 border border-cyan-400/40 shadow-[0_0_25px_rgba(0,210,255,0.15)] text-center relative overflow-hidden transition-all duration-300 group hover:border-[#FF9E5E]/60">
             
             <!-- Core Radial Ambient Pulse -->
             <div class="absolute inset-0 bg-radial-glow pointer-events-none opacity-40 group-hover:opacity-60 transition-opacity"></div>
 
             <!-- CubeX 3D Logo Central Beacon -->
             <div class="relative mx-auto flex items-center justify-center w-16 h-16 sm:w-18 sm:h-18 mb-1.5 group-hover:scale-105 transition-transform duration-300">
-              <div class="absolute inset-0 rounded-full bg-cyan-400/20 blur-xl animate-pulse"></div>
+              <div class="absolute inset-0 rounded-full bg-cyan-400/15"></div>
               <CubeXLogo :status="systemStatus?.status === 'running' ? 'running' : 'online'" :size="56" />
             </div>
 
@@ -417,7 +417,7 @@ const isRefreshing = ref(false)
 const selectedDevice = ref(null)
 
 // Animation Eco Toggle (Default on, saves CPU/GPU when turned off)
-const isAnimationActive = ref(typeof localStorage !== 'undefined' ? localStorage.getItem('cubex_topo_anim') !== 'false' : true)
+const isAnimationActive = ref(typeof localStorage !== 'undefined' ? localStorage.getItem('cubex_topo_anim') === 'true' : false)
 
 function toggleAnimation() {
   isAnimationActive.value = !isAnimationActive.value
@@ -845,20 +845,20 @@ onUnmounted(() => {
 /* Animated SVG Particle Streams (Standard flow duration) */
 .flow-dash-proxy {
   stroke-dasharray: 8 12;
-  animation: flowStream 2.4s linear infinite;
+  animation: streamGlow 3s ease-in-out infinite;
 }
 
 .flow-dash-direct {
   stroke-dasharray: 6 10;
-  animation: flowStream 2.0s linear infinite;
+  animation: streamGlow 3s ease-in-out infinite;
 }
 
-@keyframes flowStream {
+@keyframes streamGlow {
   from {
-    stroke-dashoffset: 80;
+    opacity: 0.55;
   }
   to {
-    stroke-dashoffset: 0;
+    opacity: 0.95;
   }
 }
 </style>

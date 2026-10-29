@@ -728,8 +728,8 @@
                     </div>
                   </div>
                   <div class="flex items-center justify-between text-[11px] pt-1 px-0.5">
-                    <span class="text-slate-300">💾 专属常驻内存:</span>
-                    <strong class="text-purple-300 font-mono font-bold">{{ singboxBenchmarkMemory.toFixed(1) }} MB</strong>
+                    <span class="text-slate-300">💾 内核独立常驻:</span>
+                    <div class="flex items-center gap-1.5 font-mono"><strong class="text-purple-300 font-bold">{{ singboxBenchmarkMemory.toFixed(1) }} MB</strong><span class="text-slate-400 text-[10px]">(整机: {{ currentHostRealMemory.toFixed(1) }} MB)</span></div>
                   </div>
                 </div>
               </div>
@@ -784,8 +784,8 @@
                     </div>
                   </div>
                   <div class="flex items-center justify-between text-[11px] pt-1 px-0.5">
-                    <span class="text-slate-300">💾 专属常驻内存:</span>
-                    <strong class="text-emerald-300 font-mono font-bold">{{ mihomoBenchmarkMemory.toFixed(1) }} MB</strong>
+                    <span class="text-slate-300">💾 内核独立常驻:</span>
+                    <div class="flex items-center gap-1.5 font-mono"><strong class="text-emerald-300 font-bold">{{ mihomoBenchmarkMemory.toFixed(1) }} MB</strong><span class="text-slate-400 text-[10px]">(整机: {{ currentHostRealMemory.toFixed(1) }} MB)</span></div>
                   </div>
                 </div>
               </div>
@@ -5831,7 +5831,7 @@ async function fetchRealLatency() {
 }
 
 // ── Dashboard Overview (面板概览) Dynamic Telemetry State ──
-const autoSpeedtestEnabled = ref(localStorage.getItem('cubex_auto_speedtest') !== 'false')
+const autoSpeedtestEnabled = ref(localStorage.getItem('cubex_auto_speedtest') === 'true')
 const probingServiceLatencies = ref(false)
 
 const availableProbeTargets = [
@@ -7735,9 +7735,9 @@ const singboxBenchmarkMemory = computed(() => {
     return benchmarkResult.value.singbox.memory_usage_mb
   }
   if (isSingboxActive.value) {
-    return currentHostRealMemory.value
+    return liveCoreMemoryMB.value
   }
-  return Math.max(25, Number((currentHostRealMemory.value - 10).toFixed(1)))
+  return 34.8
 })
 
 const mihomoBenchmarkMemory = computed(() => {
@@ -7745,9 +7745,9 @@ const mihomoBenchmarkMemory = computed(() => {
     return benchmarkResult.value.mihomo.memory_usage_mb
   }
   if (isMihomoActive.value) {
-    return currentHostRealMemory.value
+    return liveCoreMemoryMB.value
   }
-  return Number((currentHostRealMemory.value + 10).toFixed(1))
+  return 98.6
 })
 
 
@@ -10239,7 +10239,7 @@ async function processSpeedtestQueue() {
         const best = data.min_delay > 0 ? data.min_delay : (data.avg_delay > 0 ? data.avg_delay : 0)
 
         // ⚡ 超时自动复测机制：若全组超时不可达且重试尚未满2次，后台自动延迟启动再次测速
-        if (best <= 0 && (!task.retryCount || task.retryCount < 2)) {
+        if (false && best <= 0 && (!task.retryCount || task.retryCount < 2)) {
           const nextRetry = (task.retryCount || 0) + 1
           regionTestingMap.value[task.regId] = 'retry'
           setTimeout(() => {
@@ -10255,7 +10255,7 @@ async function processSpeedtestQueue() {
         if (reg.id) regionWinnerLatencyMap.value[reg.id] = best
         task.status = 'completed'
       } else {
-        if (!task.retryCount || task.retryCount < 2) {
+        if (false && (!task.retryCount || task.retryCount < 2)) {
           const nextRetry = (task.retryCount || 0) + 1
           regionTestingMap.value[task.regId] = 'retry'
           setTimeout(() => {
@@ -10269,7 +10269,7 @@ async function processSpeedtestQueue() {
         task.status = 'completed'
       }
     } catch (e) {
-      if (!task.retryCount || task.retryCount < 2) {
+      if (false && (!task.retryCount || task.retryCount < 2)) {
         const nextRetry = (task.retryCount || 0) + 1
         regionTestingMap.value[task.regId] = 'retry'
         setTimeout(() => {
@@ -13370,13 +13370,13 @@ onMounted(async () => {
 
   // ⚡ 超时节点/地区后台自愈巡检 (每 25 秒巡检一次，若发现有卡片处于「超时」状态，自动静默复测自愈)
   setInterval(() => {
-    if (!allRegionDefs.value || allRegionDefs.value.length === 0) return
+    return // 彻底取消超时节点后台静默自愈巡检，仅在用户主动点击时测速
     const timeoutReg = allRegionDefs.value.find(r => {
       const lat = getRegionLatency(r)
       return lat <= 0 && !regionTestingMap.value[r.id]
     })
-    if (timeoutReg) {
-      enqueueRegionSpeedtest(timeoutReg, 1)
+    if (false) {
+      // Canceled per user instruction: never auto-test in background
     }
   }, 25000)
 

@@ -1253,7 +1253,14 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 			comment, _ := nw["comment"].(string)
 			id, _ := nw[".id"].(string)
 			if host == targetIP && strings.Contains(comment, "CubeX") {
-				hasValidNetwatch = true
+				typ, _ := nw["type"].(string)
+				port, _ := nw["port"].(string)
+				if typ == "tcp-conn" && (port == "2026" || port == "2026/tcp") {
+					hasValidNetwatch = true
+				} else if id != "" {
+					_ = m.DeleteROS("/tool/netwatch/" + id)
+					res.Actions = append(res.Actions, "已将旧版 ICMP Netwatch 升级为应用级 TCP 2026 看门狗")
+				}
 			} else if (strings.Contains(comment, "CubeX") || strings.Contains(comment, "MiCube")) && id != "" {
 				_ = m.DeleteROS("/tool/netwatch/" + id)
 				res.Actions = append(res.Actions, "已清理失效 Netwatch 探针规则")
@@ -1266,18 +1273,19 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 
 		nwPayload := map[string]any{
 			"host":        targetIP,
+			"port":        "2026",
 			"interval":    "2s",
 			"timeout":     "800ms",
-			"type":        "simple",
+			"type":        "tcp-conn",
 			"comment":     "CubeX-HA-Failover",
 			"up-script":   upScript,
 			"down-script": downScript,
 		}
 		if _, err := m.PutROS("/tool/netwatch", nwPayload); err == nil {
-			res.Actions = append(res.Actions, fmt.Sprintf("已注入 Netwatch 毫秒级心跳探针 (3秒自动探活 %s · 容器宕机 0 秒降级直连与原生 DNS)", targetIP))
+			res.Actions = append(res.Actions, fmt.Sprintf("已注入 Netwatch 应用级 TCP 心跳探针 (2秒自动探测 %s:2026 · 服务异常 0 秒降级直连与原生 DNS)", targetIP))
 		}
 	} else {
-		res.Actions = append(res.Actions, fmt.Sprintf("Netwatch 毫秒级心跳逃生探针已就绪 (%s)", targetIP))
+		res.Actions = append(res.Actions, fmt.Sprintf("Netwatch 应用级 TCP 心跳逃生探针已就绪 (%s:2026)", targetIP))
 	}
 
 	// 7. Clean up Stale Non-FIB Tables & Inactive NAT rules
@@ -1632,9 +1640,9 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 	sb.WriteString("/ipv6 firewall filter remove [find comment~\"CubeX Anti-Block IPv6\"]\n")
 	sb.WriteString(":local fwdAccept [/ipv6 firewall filter find chain=forward and action=accept and in-interface=bridge]; :if ([:len $fwdAccept] > 0) do={ /ipv6 firewall filter add chain=forward dst-address=2000::/3 action=reject reject-with=icmp-admin-prohibited place-before=($fwdAccept->0) comment=\"CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak\" } else={ /ipv6 firewall filter add chain=forward dst-address=2000::/3 action=reject reject-with=icmp-admin-prohibited comment=\"CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak\" }\n\n")
 
-	sb.WriteString("# 11. 注入 Netwatch 毫秒级心跳高可用逃生 (旁路由重启或宕机时全网自动 0秒直连与原生 DNS)\n")
+	sb.WriteString("# 11. 注入 Netwatch 应用级 TCP 2026 心跳看门狗 (服务异常或容器宕机时全自动 0秒直连与原生 DNS)\n")
 	sb.WriteString("/tool/netwatch remove [find comment~\"CubeX\"]\n")
-	sb.WriteString(fmt.Sprintf("/tool/netwatch add host=%s interval=3s timeout=800ms type=simple comment=\"CubeX HA Auto-Failover\" up-script=\"/ip firewall mangle enable [find comment~\\\"CubeX\\\"]; /ip firewall nat enable [find comment~\\\"CubeX DNS\\\"]\" down-script=\"/ip firewall mangle disable [find comment~\\\"CubeX\\\"]; /ip firewall nat disable [find comment~\\\"CubeX DNS\\\"]\"\n\n", targetIP))
+	sb.WriteString(fmt.Sprintf("/tool/netwatch add host=%s port=2026 type=tcp-conn interval=2s timeout=800ms comment=\"CubeX-HA-Failover\" up-script=\"/ip firewall nat enable [find comment~\\\"CubeX-DNS-Hijack\\\"]; /ip route enable [find comment~\\\"CubeX-FakeIP-Backtrack\\\"]\" down-script=\"/ip firewall nat disable [find comment~\\\"CubeX-DNS-Hijack\\\"]; /ip route disable [find comment~\\\"CubeX-FakeIP-Backtrack\\\"]; /ip dns cache flush; :log warn \\\"CubeX Service is DOWN: 0-second Failover to RouterOS native DNS!\\\"\"\n\n", targetIP))
 
 	sb.WriteString("# 12. 清理遗留 WireGuard 防火墙规则与接口\n")
 	sb.WriteString("/ip/firewall/filter remove [find comment~\"WireGuard\" or dst-port=\"13231\" or dst-port=\"51820\"]\n")

@@ -87,7 +87,7 @@ import (
 
 var (
 
-	version = "Test v4.3"
+	version = "Test v4.4"
 
 	startTime = time.Now()
 
@@ -811,7 +811,7 @@ func main() {
 
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v4.3")
+	srv.mcpServer = mcp.NewServer(srv, "Test v4.4")
 
 	srv.initTrafficState()
 
@@ -4554,19 +4554,24 @@ func (s *Server) startDailySubscriptionAutoUpdate() {
 
 			now := time.Now()
 
-			// Calculate next midnight: tomorrow 00:00:05 (5 seconds buffer for clock sync)
+			// Calculate next 12-hour sync time: either today 12:00:05 or tomorrow 00:00:05
+			var nextSync time.Time
+			todayNoon := time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 5, 0, now.Location())
+			tomorrowMidnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 5, 0, now.Location())
 
-			nextMidnight := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 5, 0, now.Location())
+			if now.Before(todayNoon) {
+				nextSync = todayNoon
+			} else {
+				nextSync = tomorrowMidnight
+			}
 
-			durationUntil := nextMidnight.Sub(now)
+			durationUntil := nextSync.Sub(now)
 
+			log.Printf("⏰ [Sub-Cron] 12小时高可用订阅自动同步就绪 (将在 %v 后触发，下次: %s)",
 
+				durationUntil.Round(time.Second), nextSync.Format("2006-01-02 15:04:05"))
 
-			log.Printf("⏰ [Sub-Cron] 每日 00:00 订阅自动同步就绪 (将在 %v 后触发，下次: %s)",
-
-				durationUntil.Round(time.Second), nextMidnight.Format("2006-01-02 15:04:05"))
-
-			s.logBuffer.Add("INFO", "SUB", fmt.Sprintf("定时任务: 每日 00:00 订阅自动同步就绪 (下次触发: %s)", nextMidnight.Format("2006-01-02 15:04:05")))
+			s.logBuffer.Add("INFO", "SUB", fmt.Sprintf("定时任务: 12小时双周期订阅自动同步就绪 (下次触发: %s)", nextSync.Format("2006-01-02 15:04:05")))
 
 
 
@@ -4574,7 +4579,7 @@ func (s *Server) startDailySubscriptionAutoUpdate() {
 
 			case <-time.After(durationUntil):
 
-				log.Println("⏰ [Sub-Cron] 每日 00:00 定时已到达：正在全自动拉取更新所有订阅...")
+				log.Println("⏰ [Sub-Cron] 订阅同步周期已到达：正在全自动拉取更新所有订阅...")
 
 				subsCount, nodesCount, err := s.UpdateAllSubscriptions()
 

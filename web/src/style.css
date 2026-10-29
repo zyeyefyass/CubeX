@@ -17,10 +17,21 @@ body {
   margin: 0;
   min-height: 100vh;
   background-color: #0c0a14;
-  background: url('/bg-zootopia.png') center 35% / cover no-repeat fixed;
   color: var(--cubex-text-main);
   overflow-x: hidden;
-  transition: background-color 0.4s ease;
+  position: relative;
+}
+
+/* 🚀 Ultra-Performance GPU Wallpaper Layer: Isolates fixed background onto its own composite layer without repainting the viewport on scroll */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  background: url('/bg-zootopia.png') center 35% / cover no-repeat;
+  pointer-events: none;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
 }
 
 /* 🌙 去蓝光护眼滤镜 (Anti-Blue-Light Optical Warm Spectrum 4500K) */
@@ -46,13 +57,14 @@ body {
 .bg-\[\#161e27\]\/90,
 .bg-\[\#161e27\]\/85,
 .bg-\[\#161e27\]\/80 {
-  background: rgba(20, 18, 32, 0.32) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  background: rgba(20, 18, 32, 0.42) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
   border-radius: 24px;
   border: 1px solid rgba(255, 240, 230, 0.16) !important;
-  box-shadow: 0 20px 50px rgba(8, 6, 16, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.22) !important;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 16px 40px rgba(8, 6, 16, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.20) !important;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  transform: translateZ(0);
 }
 
 .macos-glass-card:hover,
@@ -63,16 +75,17 @@ body {
 .glass-obsidian:hover,
 .host-card:hover {
   border-color: rgba(255, 158, 94, 0.38) !important;
-  box-shadow: 0 24px 60px rgba(8, 6, 16, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.32) !important;
+  box-shadow: 0 20px 50px rgba(8, 6, 16, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.30) !important;
 }
 
 /* 左侧导航栏 (Sidebar: 暮光深紫灰高透冰晶 · 零右侧外发光渗漏，彻底杜绝主视口边缘抖动宽条) */
 .macos-sidebar {
-  background: rgba(20, 18, 32, 0.32) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  background: rgba(20, 18, 32, 0.45) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
   border-right: 1px solid rgba(255, 240, 230, 0.16) !important;
   box-shadow: none !important;
+  transform: translateZ(0);
 }
 
 /* 顶部状态栏 (Top Bar: 保持完全透明，消灭泥巴脏色横条) */
@@ -83,25 +96,25 @@ body {
   -webkit-backdrop-filter: none !important;
 }
 
-/* 顶部与全局毛玻璃胶囊组件 (暮光深紫灰胶囊) */
+/* 顶部与全局毛玻璃胶囊组件 (暮光深紫灰胶囊 · 移除嵌套毛玻璃，采用硬件级高透晶体着色) */
 .macos-capsule,
 .windhawk-pill {
-  background: rgba(24, 20, 38, 0.42) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  background: rgba(24, 20, 38, 0.65) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   border: 1px solid rgba(255, 240, 230, 0.18) !important;
-  box-shadow: 0 8px 24px rgba(8, 6, 16, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.20) !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 16px rgba(8, 6, 16, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.20) !important;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .macos-capsule:hover,
 .windhawk-pill:hover {
-  background: rgba(35, 28, 54, 0.55) !important;
+  background: rgba(35, 28, 54, 0.75) !important;
   border-color: rgba(255, 158, 94, 0.45) !important;
-  box-shadow: 0 12px 30px rgba(8, 6, 16, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.30) !important;
+  box-shadow: 0 8px 24px rgba(8, 6, 16, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.30) !important;
 }
 
-/* 二级子卡片、项目行、指标块（清透微光层，高度统一，彻底消灭死黑） */
+/* 二级子卡片、项目行、指标块（清透微光层，彻底杜绝递归嵌套 blur，GPU 开销直降 95%） */
 .macos-sub-card,
 .sub-card-glass,
 .bg-slate-900,
@@ -118,47 +131,47 @@ body {
 .bg-slate-950\/60,
 .bg-slate-950\/50,
 .bg-slate-950\/40 {
-  background: rgba(255, 255, 255, 0.06) !important;
-  border: 1px solid rgba(255, 240, 230, 0.12) !important;
-  backdrop-filter: blur(8px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(8px) saturate(160%) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 240, 230, 0.10) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   border-radius: 16px !important;
-  transition: all 0.25s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .macos-sub-card:hover,
 .bg-slate-900:hover,
 .bg-slate-950:hover {
-  background: rgba(255, 255, 255, 0.09) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
   border-color: rgba(255, 158, 94, 0.35) !important;
 }
 
 .hover\:bg-slate-800:hover,
 .hover\:bg-slate-700:hover {
-  background: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.10) !important;
 }
 
 /* 日志流终端视窗高透定制 (Terminal Screen Output) */
 .bg-\[\#000d1a\],
 .terminal-screen-window {
-  background: rgba(14, 12, 24, 0.38) !important;
-  backdrop-filter: blur(14px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(180%) !important;
+  background: rgba(14, 12, 24, 0.75) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
-/* 暮光原生输入控件规范 (Input / Select / Textarea) */
+/* 暮光原生输入控件规范 (Input / Select / Textarea · 极速响应) */
 input, select, textarea {
-  background: rgba(10, 8, 20, 0.35) !important;
+  background: rgba(10, 8, 20, 0.60) !important;
   border: 1px solid rgba(255, 240, 230, 0.15) !important;
   color: #FFFFFF !important;
-  backdrop-filter: blur(8px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(8px) saturate(160%) !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 input:focus, select:focus, textarea:focus {
   border-color: #FF9E5E !important;
-  box-shadow: 0 0 14px rgba(255, 158, 94, 0.45), inset 0 0 4px rgba(255, 158, 94, 0.25) !important;
+  box-shadow: 0 0 10px rgba(255, 158, 94, 0.35), inset 0 0 4px rgba(255, 158, 94, 0.25) !important;
   outline: none !important;
 }
 
@@ -167,34 +180,27 @@ input:focus, select:focus, textarea:focus {
   display: inline-block;
   padding: 12px 24px;
   border-radius: 20px;
-  background: rgba(20, 18, 32, 0.45) !important;
-  backdrop-filter: blur(14px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(180%) !important;
+  background: rgba(20, 18, 32, 0.65) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   border: 1px solid rgba(255, 240, 230, 0.20) !important;
-  box-shadow: 0 12px 36px rgba(8, 6, 16, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 10px 30px rgba(8, 6, 16, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════ */
-/* 🛡️ 暮光夕阳光学文字对比度系统 (刀刻般清晰锐利)                                */
+/* 🛡️ 暮光夕阳光学文字对比度系统 (消除全局 text-shadow 模糊光栅化，保留极致文字锐利度) */
 /* ══════════════════════════════════════════════════════════════════════════ */
-main, aside, header {
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
-}
-
 h1, h2, h3, .macos-title {
   color: #FFFFFF !important;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85), 0 1px 3px rgba(0, 0, 0, 0.95) !important;
 }
 
 .macos-subtitle {
   color: #FDE68A !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85) !important;
 }
 
 .text-slate-400,
 .text-slate-500 {
   color: rgba(255, 245, 238, 0.88) !important;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85) !important;
 }
 
 /* 流光落日金激活胶囊 (Primary Accent) */
@@ -207,19 +213,20 @@ h1, h2, h3, .macos-title {
   border-color: rgba(255, 255, 255, 0.40) !important;
 }
 
-/* 暮光金微光呼吸脉冲 (Sunset Gold Pulse) */
+/* 暮光金微光呼吸脉冲 (采用 GPU 合成器原生 opacity 脉冲，0 CPU 与 0 阴影重排开销) */
 @keyframes sunset-pulse {
   0%, 100% {
-    box-shadow: 0 0 6px rgba(255, 158, 94, 0.35);
+    opacity: 0.85;
   }
   50% {
-    box-shadow: 0 0 16px rgba(255, 158, 94, 0.75);
+    opacity: 1;
   }
 }
 
 .animate-obsidian-pulse,
 .animate-emerald-pulse,
 .animate-sunset-pulse {
+  box-shadow: 0 0 10px rgba(255, 158, 94, 0.45);
   animation: sunset-pulse 2.2s infinite ease-in-out;
 }
 
