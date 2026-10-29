@@ -560,7 +560,7 @@
       🌐
     </div>
 
-    <!-- 34. 动物城穿梭动车 / 机场订阅专属 (Zootopia Express Monorail Streamliner) -->
+    <!-- 34. 动物城穿梭动车 / 网络订阅专属 (Zootopia Express Monorail Streamliner) -->
     <svg v-else-if="(code === 'SUB' || type === 'sub') && asBackground" viewBox="0 0 36 24" preserveAspectRatio="none" class="w-full h-full block">
       <defs>
         <!-- Sunset Dramatic Sky: Deep Navy to Blazing Sunset Orange -->

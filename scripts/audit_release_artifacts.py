@@ -53,6 +53,7 @@ FORBIDDEN_SENSITIVE_WORDS = [
     re.compile(r"\b出海\b"),
     re.compile(r"\b翻墙\b"),
     re.compile(r"\b梯子\b"),
+    re.compile(r"机场"),
     re.compile(r"偷跑"),
     re.compile(r"后门"),
     re.compile(r"绝对安全"),

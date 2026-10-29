@@ -1249,7 +1249,7 @@
                       <div class="flex items-center gap-2 flex-wrap min-w-0">
                         <span class="text-sm sm:text-base font-bold text-white tracking-wide truncate max-w-[130px] sm:max-w-[180px]">{{ reg.name }}</span>
                         <span v-if="reg.type === 'sub'" class="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium bg-purple-950/90 text-purple-300 border border-purple-500/30 whitespace-nowrap shrink-0">
-                          ✈️ 机场
+                          ✈️ 订阅源
                         </span>
                         <span v-else-if="reg.id === 'CUSTOM'" class="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium bg-indigo-950/90 text-indigo-300 border border-indigo-500/30 whitespace-nowrap shrink-0">
                           🏠 自建
@@ -1358,13 +1358,13 @@
               <!-- Empty State -->
               <div v-if="filteredSubscriptions.length === 0" class="p-10 text-center rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white/80 border border-slate-800 text-slate-400 space-y-3">
                 <span class="text-3xl block">✈️</span>
-                <div class="text-sm font-bold text-white">尚未接入机场订阅或无匹配项</div>
+                <div class="text-sm font-bold text-white">尚未接入订阅源订阅或无匹配项</div>
                 <p class="text-xs text-slate-400 max-w-md mx-auto">
                   CubeX 支持一键直连导入 Clash、Sing-box、V2Ray 等全协议通用订阅链接，智能解析节点并自动分配至各地测速分组。
                 </p>
                 <button @click="openImportModal('sub')"
                   class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] font-bold shadow-md shadow-[#FF9E5E]/20 active:scale-95 transition inline-flex items-center gap-1.5">
-                  <span>➕ 立即导入机场订阅</span>
+                  <span>➕ 立即导入订阅源订阅</span>
                 </button>
               </div>
 
@@ -1409,21 +1409,21 @@
                           <span :class="{ 'inline-block animate-spin': subSpeedTesting[sub.id] }">⚡</span>
                           <span class="text-[10px]">测速</span>
                         </button>
-                        <button @click="startSubRename(sub)" title="重命名此机场订阅"
+                        <button @click="startSubRename(sub)" title="重命名此订阅订阅"
                           class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 hover:border-cyan-500/40 text-slate-200 text-xs transition flex items-center gap-1">
                           <span>✏️</span>
                           <span class="text-[10px]">命名</span>
                         </button>
-                        <button @click="updateSubscription(sub.id)" title="重新同步拉取此机场"
+                        <button @click="updateSubscription(sub.id)" title="重新同步拉取此订阅源"
                           class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 text-slate-200 text-xs transition flex items-center gap-1">
                           <span>🔄</span>
                           <span class="text-[10px]">更新</span>
                         </button>
-                        <button @click="toggleSubscription(sub.id, !sub.enabled)" :title="sub.enabled ? '停用此机场' : '启用此机场'"
+                        <button @click="toggleSubscription(sub.id, !sub.enabled)" :title="sub.enabled ? '停用此订阅' : '启用此订阅'"
                           class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 text-xs transition">
                           {{ sub.enabled ? '⏸️' : '▶️' }}
                         </button>
-                        <button @click="deleteSubscription(sub.id)" title="删除此机场订阅"
+                        <button @click="deleteSubscription(sub.id)" title="删除此订阅订阅"
                           class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-rose-950/60 border border-slate-800 hover:border-rose-500/40 text-rose-400 text-xs transition">
                           🗑️
                         </button>
@@ -1858,7 +1858,7 @@
           </div>
 
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <!-- MODAL: 添加自定义节点分组 (支持按国家预设 / 机场订阅 / 多关键词智能筛选) -->
+          <!-- MODAL: 添加自定义节点分组 (支持按国家预设 / 订阅源订阅 / 多关键词智能筛选) -->
           <!-- ════════════════════════════════════════════════════════════════ -->
           <div v-if="showAddCustomNodeGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in overflow-hidden">
             <div class="flex flex-col w-full max-w-lg max-h-[88vh] rounded-2xl sm:rounded-3xl macos-glass-card shadow-2xl text-slate-200 overflow-hidden">
@@ -1896,7 +1896,7 @@
                       <div class="font-bold flex items-center gap-1 text-[11px] truncate">
                         <span>✈️ 订阅专组</span>
                       </div>
-                      <div class="text-[9px] text-slate-400 mt-0.5 truncate">按机场单独归集</div>
+                      <div class="text-[9px] text-slate-400 mt-0.5 truncate">按订阅源单独归集</div>
                     </button>
 
                     <button type="button" @click="customNodeGroupForm.source_type = 'keyword'"
@@ -2062,11 +2062,11 @@
 
                 <!-- Case 2: Subscription Picker -->
                 <div v-else class="space-y-2">
-                  <label class="block text-slate-300 font-mono mb-1 font-bold">选择绑定的机场订阅</label>
+                  <label class="block text-slate-300 font-mono mb-1 font-bold">选择绑定的订阅源订阅</label>
                   <select v-model="customNodeGroupForm.sub_id"
                     @change="onCustomGroupSubChange"
                     class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono">
-                    <option value="" disabled>-- 请选择已绑定的机场订阅 --</option>
+                    <option value="" disabled>-- 请选择已绑定的订阅源订阅 --</option>
                     <option v-for="sub in (ir.subscriptions || [])" :key="sub.id" :value="sub.id">
                       {{ sub.name }} ({{ getSubNodes(sub.id).length }} 个节点)
                     </option>
@@ -3985,7 +3985,7 @@
             <span class="text-2xl p-2 rounded-2xl bg-cyan-950/80 border border-cyan-500/30">⚡</span>
             <div>
               <h3 class="text-base font-black text-white flex items-center gap-2">
-                <span>机场订阅与自建节点批量导入中枢</span>
+                <span>订阅源订阅与自建节点批量导入中枢</span>
                 <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-[#FEF08A] border border-[rgba(254,240,138,0.35)] font-bold drop-shadow-sm font-mono font-bold">
                   Batch Multi-Import
                 </span>
@@ -3999,7 +3999,7 @@
         <!-- 3-Segment Navigation Capsule -->
         <div class="flex p-1 bg-slate-950/90 rounded-2xl border border-slate-800 text-xs font-mono shrink-0">
           <button @click="subModalTab = 'sub'" :class="['flex-1 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5', subModalTab === 'sub' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-[#FF9E5E]/20' : 'text-slate-400 hover:text-slate-200']">
-            <span>🌐 批量导入机场订阅</span>
+            <span>🌐 批量导入订阅订阅</span>
             <span v-if="parsedBatchSubs.length > 0" class="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-950 text-emerald-300 font-mono">
               {{ parsedBatchSubs.length }}
             </span>
@@ -4011,22 +4011,22 @@
             </span>
           </button>
           <button @click="subModalTab = 'list'" :class="['flex-1 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5', subModalTab === 'list' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-[#FF9E5E]/20' : 'text-slate-400 hover:text-slate-200']">
-            <span>📋 机场与节点清单 ({{ ir.subscriptions?.length || 0 }} 机场 · {{ customNodes.length }} 节点)</span>
+            <span>📋 订阅与节点清单 ({{ ir.subscriptions?.length || 0 }} 订阅源 · {{ customNodes.length }} 节点)</span>
           </button>
         </div>
 
-        <!-- Tab 1: 批量导入机场订阅 -->
+        <!-- Tab 1: 批量导入订阅订阅 -->
         <div v-if="subModalTab === 'sub'" class="space-y-3.5 overflow-y-auto pr-1 flex-1">
           <!-- Format Helper Banner -->
           <div class="p-3 bg-cyan-950/40 border border-cyan-800/50 rounded-2xl text-xs space-y-1.5 text-emerald-200">
             <div class="font-bold flex items-center gap-1.5 text-emerald-300 font-mono">
-              <span>📋 多条机场订阅格式说明 (每行一条，可直接在行内指定自定义名称)：</span>
+              <span>📋 多条订阅格式说明 (每行一条，可直接在行内指定自定义名称)：</span>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] font-mono text-emerald-200/90 pl-1">
               <div>• <span class="text-white font-bold">名称, 订阅链接</span> (如: <code>香港主力, https://airport.com/sub?token=xxx</code>)</div>
               <div>• <span class="text-white font-bold">名称 | 订阅链接</span> (如: <code>备用专线 | https://airport.com/clash</code>)</div>
               <div>• <span class="text-white font-bold">订阅链接#名称</span> (如: <code>https://sub.link.net/api#日本BGP专线</code>)</div>
-              <div>• <span class="text-white font-bold">直接粘贴纯链接</span> (系统将自动按序号命名: <code>机场订阅 1, 2...</code>)</div>
+              <div>• <span class="text-white font-bold">直接粘贴纯链接</span> (系统将自动按序号命名: <code>订阅源订阅 1, 2...</code>)</div>
             </div>
           </div>
 
@@ -4034,7 +4034,7 @@
           <div>
             <div class="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1.5">
               <span class="flex items-center gap-1.5">
-                <span>粘贴机场订阅列表 (每行一条)</span>
+                <span>粘贴订阅源订阅列表 (每行一条)</span>
                 <span class="text-[11px] text-slate-400 font-normal">支持 Clash / sing-box / V2Ray 协议</span>
               </span>
               <span v-if="parsedBatchSubs.length > 0" class="text-emerald-300 font-mono text-xs font-bold flex items-center gap-1">
@@ -4043,7 +4043,7 @@
               </span>
             </div>
             <textarea v-model="batchSubText" rows="6"
-              placeholder="每行一条机场订阅，支持直接指定自定义名称。例如：&#10;香港主力专线, https://sub.airport1.com/api/v1/client/subscribe?token=abc&#10;备用海外节点 | https://sub.airport2.com/clash/token123&#10;https://sub.myfast.net/singbox#游戏低延迟加速"
+              placeholder="每行一条订阅源订阅，支持直接指定自定义名称。例如：&#10;香港主力专线, https://sub.network1.com/api/v1/client/subscribe?token=abc&#10;备用海外节点 | https://sub.network2.com/clash/token123&#10;https://sub.myfast.net/singbox#游戏低延迟加速"
               class="w-full bg-slate-950 border border-slate-700/80 rounded-2xl p-3 text-xs text-slate-100 font-mono outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 shadow-inner resize-y leading-relaxed" />
           </div>
 
@@ -4071,7 +4071,7 @@
             <button @click="submitBatchSubs" :disabled="parsedBatchSubs.length === 0 || batchImportingSubs"
               class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] hover:from-[#FFA970] hover:to-[#FBBF24] text-[#1E1106] font-extrabold font-bold text-xs shadow-lg shadow-[#FF9E5E]/20 active:scale-95 transition flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
               <span v-if="batchImportingSubs" class="inline-block animate-spin">↻</span>
-              <span>{{ batchImportingSubs ? '正在并发拉取并解析所有订阅...' : `🚀 立即一键导入 (${parsedBatchSubs.length} 条机场订阅)` }}</span>
+              <span>{{ batchImportingSubs ? '正在并发拉取并解析所有订阅...' : `🚀 立即一键导入 (${parsedBatchSubs.length} 条订阅源订阅)` }}</span>
             </button>
             <button v-if="batchSubText" @click="batchSubText = ''" class="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
               清空
@@ -4152,17 +4152,17 @@
           </div>
         </div>
 
-        <!-- Tab 3: 机场与自建节点清单 -->
+        <!-- Tab 3: 订阅源与自建节点清单 -->
         <div v-else class="space-y-3.5 pt-1 max-h-[60vh] overflow-y-auto pr-1 flex-1">
           <!-- Subscriptions list -->
           <div class="space-y-2">
             <div class="text-xs font-bold text-slate-300 flex items-center justify-between">
               <span class="flex items-center gap-1.5">
-                <span>✈️ 已保存机场订阅</span>
+                <span>✈️ 已保存订阅源订阅</span>
                 <span class="text-emerald-300 font-mono">({{ ir.subscriptions?.length || 0 }} 个)</span>
               </span>
               <button @click="updateAllSubscriptions" class="text-emerald-300 hover:text-emerald-200 text-[11px] font-mono flex items-center gap-1 font-bold">
-                <span>🔄 并发拉取全部机场最新节点</span>
+                <span>🔄 并发拉取全部订阅源最新节点</span>
               </button>
             </div>
             <div v-if="ir.subscriptions && ir.subscriptions.length > 0" class="space-y-3">
@@ -4186,7 +4186,7 @@
                     </span>
                   </div>
                   <div class="flex items-center gap-1 shrink-0 font-mono">
-                    <button @click="runSubSpeedTest(sub.id)" :disabled="subSpeedTesting[sub.id]" title="仅对该机场测速诊断"
+                    <button @click="runSubSpeedTest(sub.id)" :disabled="subSpeedTesting[sub.id]" title="仅对该订阅源测速诊断"
                       class="p-1 rounded bg-cyan-950 hover:bg-cyan-900 text-emerald-300 border border-cyan-500/30 text-xs">
                       ⚡
                     </button>
@@ -4254,7 +4254,7 @@
               </div>
             </div>
             <div v-else class="text-xs text-slate-300 p-4 text-center border border-dashed border-slate-800 rounded-xl">
-              暂无保存的机场订阅，点击「批量导入机场订阅」即可添加。
+              暂无保存的订阅源订阅，点击「批量导入订阅订阅」即可添加。
             </div>
           </div>
 
@@ -4394,7 +4394,7 @@
                 <div>
                   <h4 class="text-sm font-bold text-white group-hover:text-purple-200 transition">导入已有备份 (Restore Snapshot)</h4>
                   <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-                    从本地已导出的 CubeX 备份文件（.json 快照）一键还原全量机场订阅、代理节点、分流规则与宿主凭据。
+                    从本地已导出的 CubeX 备份文件（.json 快照）一键还原全量订阅源订阅、代理节点、分流规则与宿主凭据。
                   </p>
                 </div>
 
@@ -4425,7 +4425,7 @@
                     <span>快照已成功恢复装载！</span>
                   </div>
                   <div class="text-[11px] font-mono text-slate-300 space-y-0.5">
-                    <div>已装载机场订阅: <b class="text-emerald-300">{{ initImportStats.sub_count }}</b> 条</div>
+                    <div>已装载网络订阅: <b class="text-emerald-300">{{ initImportStats.sub_count }}</b> 条</div>
                     <div>已装载出站节点: <b class="text-emerald-300">{{ initImportStats.proxy_count }}</b> 个</div>
                     <div class="text-[10px] text-slate-400 truncate">文件: {{ initImportStats.filename }}</div>
                   </div>
@@ -4557,7 +4557,7 @@
                 </span>
               </h3>
               <p class="text-xs text-slate-300 mt-0.5 truncate">
-                最后一步：可直接粘贴机场订阅或节点链接一键启航，也可跳过进入主控台后续再导。
+                最后一步：可直接粘贴订阅源订阅或节点链接一键启航，也可跳过进入主控台后续再导。
               </p>
             </div>
           </div>
@@ -4587,7 +4587,7 @@
             <!-- 2-Segment Switcher -->
             <div class="flex p-1 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white rounded-xl border border-slate-800 text-xs font-mono">
               <button type="button" @click="initWizardImportTab = 'sub'" :class="['flex-1 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5', initWizardImportTab === 'sub' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-[#FF9E5E]/20' : 'text-slate-400 hover:text-slate-200']">
-                <span>🌐 批量导入机场订阅</span>
+                <span>🌐 批量导入订阅订阅</span>
                 <span v-if="parsedBatchSubs.length > 0" class="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-950 text-emerald-300 font-mono">
                   {{ parsedBatchSubs.length }}
                 </span>
@@ -4609,7 +4609,7 @@
                 </span>
               </div>
               <textarea v-model="batchSubText" rows="3"
-                placeholder="直接粘贴机场订阅链接，每行一条。例如：&#10;香港主力专线, https://sub.airport1.com/api/v1/client/subscribe?token=abc&#10;备用海外节点 | https://sub.airport2.com/clash/token123"
+                placeholder="直接粘贴订阅源订阅链接，每行一条。例如：&#10;香港主力专线, https://sub.network1.com/api/v1/client/subscribe?token=abc&#10;备用海外节点 | https://sub.network2.com/clash/token123"
                 class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-100 font-mono outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 shadow-inner resize-y leading-relaxed" />
               
               <!-- Parsed Preview -->
@@ -7497,7 +7497,7 @@ function buildDiagnosticMarkdown(data) {
 - **内核转发 (ip_forward)**: ${h.ip_forward ? '已开启' : '未开启'}
 - **RouterOS 联动**: ${ros.connected ? '已连通 (v' + (ros.version || '') + ')' : '未连接/独立运行'}
 - **内存占用**: 堆分配 ${(meta.memory_alloc_mb || 0).toFixed(1)} MB / 系统申请 ${(meta.memory_sys_mb || 0).toFixed(1)} MB
-- **脱敏合规**: 严格剔除所有机场订阅 URL、Token、节点真实 IP/密码与私钥。
+- **脱敏合规**: 严格剔除所有网络订阅 URL、Token、节点真实 IP/密码与私钥。
 
 #### 📜 关键日志尾部 (最后15条)
 \`\`\`log
@@ -9425,7 +9425,7 @@ async function triggerHotRestart() {
 }
 
 // ── Region Clusters & Strategies (Default 8 Regions: 香港, 台湾, 日本, 韩国, 新加坡, 美国, 自建, 其它) ──
-// 严格遵循排序：地区自动，地区故转，地区容灾 (各地区组支持拖拽排序与自定义机场订阅分组)
+// 严格遵循排序：地区自动，地区故转，地区容灾 (各地区组支持拖拽排序与自定义订阅源订阅分组)
 const defaultRegionDefs = [
   { id: 'HK', country_code: 'HK', name: '香港', flag: '🇭🇰', auto: '🇭🇰 香港自动', fall: '🇭🇰 香港故转', disaster: '🇭🇰 香港容灾', regex: /(港|hk|hong kong)/i, type: 'region' },
   { id: 'TW', country_code: 'TW', name: '台湾', flag: '🇹🇼', auto: '🇹🇼 台湾自动', fall: '🇹🇼 台湾故转', disaster: '🇹🇼 台湾容灾', regex: /(台|tw|taiwan)/i, type: 'region' },
@@ -9923,7 +9923,7 @@ function submitAddCustomNodeGroup() {
   let subName = ''
   if (customNodeGroupForm.value.source_type === 'sub') {
     if (!customNodeGroupForm.value.sub_id) {
-      showToast('请选择绑定的机场订阅', true)
+      showToast('请选择绑定的订阅订阅', true)
       return
     }
     const sub = (ir.value.subscriptions || []).find(s => s.id === customNodeGroupForm.value.sub_id)
@@ -10007,7 +10007,7 @@ function getRegionNodes(reg) {
 
   const proxies = (ir.value.proxies || []).filter(p => p.type !== 'direct' && p.type !== 'block' && p.type !== 'reject')
 
-  // 1. Custom Group by Subscription (如把某个机场订阅单独添加为一组)
+  // 1. Custom Group by Subscription (如把某个订阅源订阅单独添加为一组)
   if (merged.type === 'sub' && merged.sub_id) {
     return proxies.filter(p => {
       if (isTaiwanGroup && /(hhost[-_ ]?jp)/i.test(p.name)) return false
@@ -10054,7 +10054,7 @@ function getRegionNodes(reg) {
     return proxies.filter(p => p.sub_id === 'custom' || p.name.startsWith('[自建]') || (!p.sub_id && !p.name.includes('Hhost') && !p.name.includes('Mtice') && !p.name.includes('Jscloud') && !p.name.includes('Niubi') && !p.name.includes('Forest') && !p.name.includes('Kuailei') && !/(港|hk|台|tw|新|sg|日|jp|韩|kr|美|us)/i.test(p.name)))
   }
 
-  // 6. Default OTHERS: 其它机场节点 (未被前面所有组匹配的节点)
+  // 6. Default OTHERS: 其它订阅源节点 (未被前面所有组匹配的节点)
   if (merged.id === 'OTHERS') {
     return proxies.filter(p => {
       if (p.sub_id === 'custom' || p.name.startsWith('[自建]')) return false
@@ -10637,7 +10637,7 @@ function isRegionalOrInfrastructureGroup(grp) {
     if (clean === cp.name.toLowerCase() || clean.includes(cp.name.toLowerCase())) return true
   }
 
-  // 4. 机场订阅分组或带专属/节点特征名
+  // 4. 订阅源订阅分组或带专属/节点特征名
   if (clean.includes('专属') || raw.includes('专属')) return true
   if (ir.value && ir.value.subscriptions) {
     for (const sub of ir.value.subscriptions) {
@@ -11482,7 +11482,7 @@ const regionalAutoGroups = computed(() => {
         } else if (n.sub_id === 'custom' || n.name.startsWith('[自建]')) {
           provName = '自建节点'
         } else {
-          provName = '机场订阅'
+          provName = '订阅源订阅'
         }
       }
       if (!providerMap[provName]) {
@@ -12227,7 +12227,7 @@ function parseSubscriptionLine(rawLine, index = 0) {
   }
 
   if (!name) {
-    name = `机场订阅 ${index + 1}`
+    name = `订阅源订阅 ${index + 1}`
   }
 
   return { name, url }
@@ -12326,7 +12326,7 @@ const parsedBatchNodes = computed(() => {
 async function submitBatchSubs() {
   const items = parsedBatchSubs.value
   if (!items || items.length === 0) {
-    showToast('未能识别到有效的机场订阅链接，请检查输入格式', true)
+    showToast('未能识别到有效的订阅源订阅链接，请检查输入格式', true)
     return
   }
   batchImportingSubs.value = true
@@ -12340,7 +12340,7 @@ async function submitBatchSubs() {
     })
     const data = await res.json()
     if (data.ok) {
-      showToast(`🎉 批量导入完成！成功添加 ${data.added_subs} 个机场订阅，共收录 ${data.total_nodes} 个节点`)
+      showToast(`🎉 批量导入完成！成功添加 ${data.added_subs} 个订阅源订阅，共收录 ${data.total_nodes} 个节点`)
       batchSubText.value = ''
       showImportModal.value = false
       await fetchIR()
@@ -12393,7 +12393,7 @@ async function submitBatchNodes() {
 
 async function submitAddSubscription() {
   if (!newSubUrl.value) {
-    showToast('请输入有效的机场订阅链接', true)
+    showToast('请输入有效的网络订阅链接', true)
     return
   }
   importingSub.value = true
@@ -12402,13 +12402,13 @@ async function submitAddSubscription() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name: newSubName.value.trim() || '机场订阅',
+        name: newSubName.value.trim() || '订阅源订阅',
         url: newSubUrl.value.trim()
       })
     })
     const data = await res.json()
     if (data.ok || data.status === 'added') {
-      showToast(`🎉 机场「${newSubName.value || '订阅'}」导入成功！收录 ${data.node_count || 0} 个节点`)
+      showToast(`🎉 订阅源「${newSubName.value || '订阅'}」导入成功！收录 ${data.node_count || 0} 个节点`)
       newSubName.value = ''
       newSubUrl.value = ''
       await fetchIR()
@@ -12499,7 +12499,7 @@ async function saveSubRename(subId) {
 }
 
 async function deleteSubscription(subId) {
-  if (!confirm('确定要删除此机场订阅及其所属节点吗？')) return
+  if (!confirm('确定要删除此订阅订阅及其所属节点吗？')) return
   try {
     const res = await fetch('/api/v1/config/subscriptions/delete', {
       method: 'POST',
@@ -12508,7 +12508,7 @@ async function deleteSubscription(subId) {
     })
     const data = await res.json()
     if (data.ok) {
-      showToast('已成功移除该机场订阅及所属节点')
+      showToast('已成功移除该订阅源订阅及所属节点')
       await fetchIR()
     }
   } catch (e) {}
@@ -12523,14 +12523,14 @@ async function toggleSubscription(subId, enabled) {
     })
     const data = await res.json()
     if (data.ok) {
-      showToast(enabled ? '机场订阅已启用' : '机场订阅已停用')
+      showToast(enabled ? '订阅源订阅已启用' : '订阅源订阅已停用')
       await fetchIR()
     }
   } catch (e) {}
 }
 
 async function updateSubscription(subId) {
-  showToast('正在重新拉取此机场最新节点...')
+  showToast('正在重新拉取此订阅源最新节点...')
   try {
     const res = await fetch('/api/v1/config/subscriptions/update', {
       method: 'POST',
@@ -12548,7 +12548,7 @@ async function updateSubscription(subId) {
 }
 
 async function updateAllSubscriptions() {
-  showToast('正在并发拉取所有机场最新节点...')
+  showToast('正在并发拉取所有订阅源最新节点...')
   try {
     const res = await fetch('/api/v1/config/subscriptions/update', {
       method: 'POST',
@@ -12557,7 +12557,7 @@ async function updateAllSubscriptions() {
     })
     const data = await res.json()
     if (data.ok) {
-      showToast(`🎉 所有机场已全量同步完成！共 ${data.total_nodes || 0} 个节点`)
+      showToast(`🎉 所有订阅源已全量同步完成！共 ${data.total_nodes || 0} 个节点`)
       await fetchIR()
     }
   } catch (e) {
@@ -12760,7 +12760,7 @@ function getNodeDelayClass(delay, status = '') {
 async function runSubSpeedTest(subId) {
   const targetSub = ir.value.subscriptions?.find(s => s.id === subId)
   subSpeedTesting.value[subId] = true
-  showToast(`正在对「${targetSub?.name || '机场'}」的所有节点并发测速与健康诊断...`)
+  showToast(`正在对「${targetSub?.name || '订阅'}」的所有节点并发测速与健康诊断...`)
   try {
     const res = await fetch('/api/v1/config/subscriptions/speedtest', {
       method: 'POST',

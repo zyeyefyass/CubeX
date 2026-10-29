@@ -2670,7 +2670,7 @@ func (s *Server) handleSubBatchAdd(w http.ResponseWriter, r *http.Request) {
 
 	if len(req.Items) == 0 {
 
-		sendJSON(w, map[string]any{"ok": false, "error": "请至少提供一条有效的机场订阅"})
+		sendJSON(w, map[string]any{"ok": false, "error": "请至少提供一条有效的网络订阅"})
 
 		return
 
@@ -2704,7 +2704,7 @@ func (s *Server) handleSubBatchAdd(w http.ResponseWriter, r *http.Request) {
 
 		if name == "" {
 
-			name = fmt.Sprintf("机场订阅 %d", len(ir.Subscriptions)+1)
+			name = fmt.Sprintf("网络订阅 %d", len(ir.Subscriptions)+1)
 
 		}
 
@@ -4616,7 +4616,7 @@ func (s *Server) handleSubCronStatus(w http.ResponseWriter, r *http.Request) {
 
 		"schedule":        "daily_00_00",
 
-		"description":     "每天 00:00 自动拉取更新所有已启用的机场订阅",
+		"description":     "每天 00:00 自动拉取更新所有已启用的网络订阅",
 
 		"next_run":        nextMidnight.Format("2006-01-02 15:04:05"),
 
@@ -4668,6 +4668,12 @@ func classifyDelayError(errStr string, httpCode int) (string, string) {
 func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSecret string) NodeDelayResult {
 	if clashPort <= 0 || node.Name == "" {
 		return NodeDelayResult{Delay: 0, Status: "error", StatusText: "节点未就绪"}
+	}
+	if node.Type == "direct" {
+		return NodeDelayResult{Delay: 1, Status: "ok", StatusText: "直连"}
+	}
+	if node.Type == "block" || node.Type == "reject" {
+		return NodeDelayResult{Delay: 0, Status: "block", StatusText: "阻断"}
 	}
 
 	escaped := url.PathEscape(node.Name)
@@ -4778,21 +4784,15 @@ func (s *Server) handleProxyDelay(w http.ResponseWriter, r *http.Request) {
 
 
 	if targetNode == nil {
-
 		sendJSON(w, map[string]any{
-
-			"ok":    false,
-
-			"name":  name,
-
-			"delay": 0,
-
-			"error": "node not found",
-
+			"ok":          false,
+			"name":        name,
+			"delay":       0,
+			"status":      "not_found",
+			"status_text": "节点未找到",
+			"error":       "node not found",
 		})
-
 		return
-
 	}
 
 

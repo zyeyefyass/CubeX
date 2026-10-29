@@ -278,7 +278,7 @@ func auditDNSFallback(ir *schema.ConfigIR, ts string) (SecurityTestItem, []strin
 		RiskLevel:      RiskCritical,
 		Status:         StatusFail,
 		Score:          40,
-		Details:        "FallbackDNS 包含非加密明文地址。当加密通道出现故障时，所有 DNS 解析请求将降级裸奔发送给运营商，导致整个访问历史被窃听。",
+		Details:        "FallbackDNS 包含非加密明文地址。当安全通道出现故障时，所有 DNS 解析请求将降级明文发送给运营商，导致整个访问历史被窃听。",
 		TechnicalSpecs: "RFC 8484 / DNS over HTTPS Strict Circuit Breaker",
 		Recommendation: "极高危！必须立即点击一键自愈，移除所有明文 Fallback 并固化熔断机制。",
 		Remediated:     false,
