@@ -42,7 +42,7 @@
   - [方式 E：飞牛 fnOS 与通用 Linux Docker 部署 (Compose 与单行命令)](#deploy-fnos-linux)
   - [方式 F：通用 Linux 终端一键全自动安装](#deploy-linux-cli)
 - [⚡ 控制台里的【⚡ 一键全栈自愈】到底是干嘛的？](#auto-healing)
-- [🤖 MCP AI 原生领航员接入与 DeepSeek / 多模型实战指南](#mcp-guide)
+- [🤖 AI 伴生管家 (Copilot) 全维实战与 MCP 原生领航员接入指南](#ai-copilot-mcp)
 - [💬 常见疑问与极客交流](#community-feedback)
 - [📜 净室合规与安全脱敏审计声明](#compliance-statement)
 - [🤝 致敬与鸣谢开源先驱 (Acknowledgements)](#acknowledgements)
@@ -454,13 +454,64 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 ---
 
+<a id="ai-copilot-mcp"></a>
 <a id="mcp-guide"></a>
 
-## 🤖 MCP (Model Context Protocol) AI 原生领航员接入与 DeepSeek / 多模型实战指南
+## 🤖 AI 伴生管家 (Copilot) 全维实战与 MCP 原生领航员接入指南
 
-CubeX Test v4.5 原生内置了工业级 **轻量 MCP (Model Context Protocol) 领航员服务**。通过 Anthropic 与开源社区最新倡导的 MCP 2024-11-05 规范标准，赋予当今主流大语言模型（**DeepSeek、豆包、通义千问、Claude**、Cursor、Windsurf 等）通过自然语言对话**实时感知、掌控与自愈家庭网络**的超级能力！
+在 **CubeX Test v4.5** 中，AI 不再只是浮于表面的概念，而是深度融入底层网络控制面与日常运维流程的**核心中枢**。系统提供了两大互补的 AI 交互形态：
+1. **控制台原生「AI 伴生管家」**：集成在 Web 全息控制台内部（Tab 6），支持端云自适应、零 Key 启发式离线体检、多模型热配置，并具备**真实运维下发权限的交互操作卡片流 (Interactive Action Pills)**；
+2. **纯 Go 原生「MCP 领航员服务」**：符合 Anthropic MCP 2024-11-05 工业级通用标准，供外部 **Cherry Studio、Chatbox、Claude Desktop、Cursor、Windsurf** 等客户端无缝挂载，通过自然语言对话遥测与管控局域网。
 
-### 🌟 核心工程架构与安全合规特性
+---
+
+### 🌟 模块一：Web 控制台原生「AI 伴生管家」(CubeX Copilot)
+
+点击控制台左侧/顶部导航栏中的 **【🤖 AI管家】**（Tab 6），即可直接唤起专属全息问答视窗与诊断中枢。AI 管家与底座 Go 核心守护进程（`cubexd`）同频共振，能够毫秒级嗅探网关实时遥测数据与宿主网络拓扑。
+
+#### 1. 零門檻开箱即用 · 离线启发式推演引擎 (Zero-Key Heuristic Engine)
+* **无需配置任何 API Key**：新用户在未填写任何大模型凭证时，系统自动无缝启用**内置本地启发式推演引擎**。
+* **物理级微秒诊断**：根据底层 TUN 虚拟网卡状态、DNS 阻断率、`table cubex` 策略路由表活跃度、双核引擎状态及真实并发连接池，毫秒级推演当前网络健康度，输出结构化诊断报告并智能生成可执行的自愈动作卡片。
+
+#### 2. 四维一键快捷智能体检与推演作业
+控制台顶部预置了四维专业网络运维作业卡片，点击即可一键触发针对性推演：
+* 🩺 **全维网络健康体检**：深度扫描策略路由 `table cubex`、DNS 重写中枢、TUN 虚拟网卡及宿主内核转发状态，给出健康评分与隐患排查建议；
+* 🚀 **分流策略调优推演**：推演国内外落地链路出站延迟，优化跨国远程会议、前沿 AI 学术研究、开发协作与协同办公出站质量；
+* 🛡️ **安全防护与防泄露**：深度审查 0 明文回退与 SERVFAIL 强阻断，全方位杜绝 IPv6 DNS 侧漏，验证广告与隐私追踪拦截效能；
+* ⚡ **双核秒级容灾演练**：模拟透明代理引擎故障场景，推演 Mihomo ⇄ sing-box 毫秒级无感热重载，验证 `198.18.0.0/15` 回指路由持久保活。
+
+#### 3. 具备真实运维权限的「交互操作胶囊卡片流 (Interactive Action Pills)」
+AI 管家彻底颠覆了“传统智能体只会文字输出”的局限，**拥有直接调用底层自愈中枢的执行权限**：
+* 每次 AI 推演完成后，将根据会话语境与网络诊断隐患，自动推导出 1~3 个**带物理操作权限的交互动作卡片**：
+  * 🚑 **【一键全栈自愈加固】(`action-heal`)**：自动重编排宿主策略路由表、闭环修复 `198.18.0.0/15` 回指、清算僵尸连接并锁闭 IPv6 防泄露；
+  * 🛡️ **【节点无感避障与极速转移】(`action-failover`)**：毫秒级 SmartPing 探活各出站落地节点，自动避开拥堵并重选最优低延迟路径；
+  * 🧹 **【清理僵尸死连接池】(`action-conntrack`)**：释放 Fake-IP 僵尸会话与宿主内核连接跟踪表，瞬间释放并发压力；
+  * 🔀 **【双核平滑往返热切换】(`action-switch-engine`)**：无感平滑热重载 Mihomo ⇄ sing-box 双引擎，业务连接池零瞬断迁移。
+* **闭环回执报告**：用户点击卡片后，系统全自动完成底层修复，并在对话视窗内实时输出绿色《AI 运维指令执行成功报告》，形成完整自愈闭环。
+
+#### 4. 深度支持国内外 10 大大模型生态 (一键弹窗配置)
+点击 AI 管家右上角 **【⚙️ 模型配置】**，即可在弹窗中一键选择主流大语言模型服务商，支持自定义 Model 名、API Key 与 API 端点 (Base URL)：
+
+| 大模型提供商 (Provider) | 推荐预设模型 (Model) | 接入类型与优势特性 |
+| :--- | :--- | :--- |
+| **DeepSeek (深度求索)** | `deepseek-chat` (V3) / `deepseek-reasoner` (R1) | 官方原生接入，深度推理能力强，网络拓扑诊断逻辑极为严谨 |
+| **阿里云通义千问 (Qwen)** | `qwen-plus` / `qwen-max` / `qwen-turbo` | 阿里云 DashScope 原生兼容，国内访问极速稳定，上下文理解深刻 |
+| **智谱清言 (Zhipu GLM)** | `glm-4-flash` / `glm-4-plus` | 智谱 AI 开放平台接入，极速响应，支持超长网络日志分析 |
+| **字节跳动豆包 (Doubao)** | `doubao-pro-32k` | 火山引擎接入，高并发低延迟，日常运维问答流畅自然 |
+| **月之暗面 Kimi (Moonshot)** | `moonshot-v1-8k` | 长文本解析卓越，适合上传复杂路由表与规则列表进行系统性研判 |
+| **OpenAI ChatGPT** | `gpt-4o-mini` / `gpt-4o` / `o1-mini` | 国际行业标杆，多语言跨国协同与复杂协议栈推演极其精准 |
+| **Anthropic Claude** | `claude-3-5-sonnet` / `claude-3-haiku` | 编程代码与路由脚本分析顶级水准，逻辑严密无幻觉 |
+| **Google Gemini** | `gemini-2.0-flash` / `gemini-1.5-pro` | Google 原生超大上下文窗口，多模态架构，响应极速 |
+| **本地私有化 (Ollama / LM Studio)** | `deepseek-r1:8b` / `llama3.3` | **100% 局域网离线私有化部署**，无网环境可用，敏感网络拓扑绝对零外泄 |
+| **自定义兼容端点 (Custom Base URL)** | 自定义输入 | 支持 One-API、New-API 等各类聚合代理或第三方中转反代网关 |
+
+---
+
+### 🌐 模块二：纯 Go 原生轻量 MCP 领航员服务 (Model Context Protocol)
+
+除了内置的 Web 控制台 AI 管家，CubeX 核心守护进程内置了工业级 **轻量 MCP (Model Context Protocol) 领航员服务**。通过 Anthropic 与开源社区最新倡导的 MCP 2024-11-05 规范标准，赋予当今主流外部大语言模型客户端（**Cherry Studio、Chatbox、Claude Desktop、Cursor、Windsurf** 等）通过自然语言对话**实时感知、掌控与自愈家庭网络**的超级能力！
+
+#### 🌟 核心工程架构与安全合规特性
 
 1. **纯 Go 原生零依赖极简内核**：
    与业界普遍使用笨重臃肿的 Node.js 或 Python MCP 守护进程（动辄消耗数百兆内存）完全不同，CubeX 的 MCP 服务**100% 采用 Go 语言原生开发**，直接集成于 `cubexd` 守护进程内部。
@@ -473,30 +524,26 @@ CubeX Test v4.5 原生内置了工业级 **轻量 MCP (Model Context Protocol) �
    - **绝无代码执行与密钥探针**：MCP 接口**严禁且无法执行任何 Shell/Bash 自由命令**，杜绝任何外部大模型提示词注入（Prompt Injection）安全隐患；
    - **零敏感资产外泄**：绝不向上层大模型输出任何上游分流节点信息、订阅私钥或敏感账号凭证。所有操作严格闭环于 5 大白名单原子工具。
 
----
-
-### 🛠️ 开放的 5 大网络原子掌控工具一览
+#### 🛠️ 开放的 5 大网络原子掌控工具一览
 
 | 工具标识 (Tool Name) | 操作模式 | 权限层级 | 功能详细说明与业务价值 |
 | :--- | :---: | :---: | :--- |
-| `get_gateway_telemetry` | 只读遥测 | 纯观察 | 实时获取当前物理网速、活跃代理引擎（Mihomo / sing-box）、并发会话数以及**本月物理累计跨境流量**。 |
+| `get_gateway_telemetry` | 只读遥测 | 纯观察 | 实时获取当前物理网速、活跃代理引擎（Mihomo / sing-box）、并发会话数以及**本月物理累计协同业务出站流量**。 |
 | `list_lan_devices` | 局域网嗅探 | 纯观察 | 实时探测局域网内所有活跃在线设备，列出其 IP 地址、MAC 物理地址、主机名及当前分流状态（智能分流 / 芯片直连）。 |
 | `set_device_policy` | 流控路由 | 状态写入 | 支持自然语言直接将指定局域网设备切换为【智能分流】（`rule`）或【芯片直连绕过】（`bypass`）。 |
 | `trigger_system_heal` | 安全自愈 | 链路加固 | 唤醒安全中枢核心自愈总线：秒级自动理顺双核规则、自愈主路由 `198.18.0.0/15` 回指路由、清算僵尸连接并加固 IPv6 防泄露。 |
 | `switch_proxy_engine` | 双核热切 | 内核调度 | 秒级无感热重载切换底层透明代理内核（`mihomo` ⇄ `sing-box`），自动迁移已有连接池，业务零瞬断。 |
 
----
+#### 🐋 实战教学一：DeepSeek 接入与自然语言操控 (以 Cherry Studio / Chatbox 为例)
 
-### 🐋 实战教学一：DeepSeek 接入与自然语言操控 (以 Cherry Studio / Chatbox 为例)
+通过 Cherry Studio 或 Chatbox 客户端，你可以轻松将 DeepSeek 变身为你的“家庭网络全天候智能运维专家”：
 
-**DeepSeek、豆包 (火山引擎)、通义千问 (Qwen)、Claude** 均具备出色的 Function Calling（工具调用）能力。由于 CubeX 原生严格遵循通用 MCP 规范，无需关心大模型每月的版本迭代，任何支持工具调用的新老模型均 100% 即插即用！通过 Cherry Studio 或 Chatbox 客户端，你可以轻松将 DeepSeek 变身为你的“家庭网络全天候智能运维专家”！
-
-#### 详细配置三步法：
+##### 详细配置三步法：
 
 1. **第一步：配置 DeepSeek 模型**
    - 打开 Cherry Studio（或 Chatbox），进入【设置】->【模型服务】；
    - 添加 DeepSeek 官方 API Key（或 SiliconFlow / 硅基流动等聚合服务商 Key）；
-   - 默认模型选择最新 `DeepSeek-4.1-Flash`、`deepseek-reasoner (R1)` 或 `deepseek-chat (V3)`。
+   - 默认模型选择最新 `deepseek-chat` (V3) 或 `deepseek-reasoner` (R1)。
 
 2. **第二步：挂载 CubeX MCP 服务端**
    - 在客户端左侧菜单点击【MCP 服务器】或【插件 / Tools】设置；
@@ -521,12 +568,12 @@ CubeX Test v4.5 原生内置了工业级 **轻量 MCP (Model Context Protocol) �
    - 新建对话，确认右下角或设置中已勾选 `cubex-gateway` 插件工具；
    - 直接用平时说话的口语向 DeepSeek 提问，DeepSeek 会自动分析意图、调用对应的原子工具并用自然语言回答你！
 
-#### 💬 与 DeepSeek 交互真实范例 (Prompt Showcase)：
+##### 💬 与 DeepSeek 交互真实范例 (Prompt Showcase)：
 
 * **场景 1：查询网速与月度流量**
-  > **用户**：“小深，帮我看看现在家里网速怎么样？这个月用了多少跨境流量了？”  
+  > **用户**：“小深，帮我看看现在家里网速怎么样？这个月用了多少协同业务流量了？”  
   > **DeepSeek**：*(自动调用 `get_gateway_telemetry`)*  
-  > “报告主人，当前 CubeX 网关运行平稳：实时下载速度为 18.5 MB/s，上传速度为 1.2 MB/s；当前运行引擎为 sing-box v1.14；本月物理累计跨境协同业务流量为 45.68 GB，并发连接数 38 个。”
+  > “报告主人，当前 CubeX 网关运行平稳：实时下载速度为 18.5 MB/s，上传速度为 1.2 MB/s；当前运行引擎为 sing-box v1.14；本月物理累计协同业务出站流量为 45.68 GB，并发连接数 38 个。”
 
 * **场景 2：局域网设备巡检与策略切换**
   > **用户**：“帮我看看局域网现在有哪些设备在线？另外把客厅电视改为直连绕过。”  
@@ -538,11 +585,9 @@ CubeX Test v4.5 原生内置了工业级 **轻量 MCP (Model Context Protocol) �
   > **DeepSeek**：*(调用 `trigger_system_heal` 与 `switch_proxy_engine`)*  
   > “已为您执行安全中枢全栈自愈加固：策略路由校验完毕，已清除 4 个僵尸连接并完成 IPv6 防泄露锁闭；随后已平滑将透明代理引擎热重载切换为 Mihomo，连接池无损迁移成功！”
 
----
+#### 💻 实战教学二：其它主流 AI 客户端接入举例
 
-### 💻 实战教学二：其它主流 AI 客户端接入举例
-
-#### 1. Claude Desktop (Anthropic 官方客户端)
+##### 1. Claude Desktop (Anthropic 官方客户端)
 
 打开 Claude Desktop 的配置文件：
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
@@ -560,7 +605,7 @@ CubeX Test v4.5 原生内置了工业级 **轻量 MCP (Model Context Protocol) �
 ```
 保存并完全重启 Claude Desktop 客户端，聊天框右下角将出现 🔨 小锤子图标，显示 `5 tools available` 即代表接入成功。
 
-#### 2. Cursor / Windsurf (AI 智能编程与系统运维 IDE)
+##### 2. Cursor / Windsurf (AI 智能编程与系统运维 IDE)
 
 Cursor 与 Windsurf 原生支持通过 MCP 拓展智能体的底层运维掌控力：
 1. 进入 **Cursor Settings** -> **Features** -> **MCP**；
@@ -569,20 +614,24 @@ Cursor 与 Windsurf 原生支持通过 MCP 拓展智能体的底层运维掌控�
    - **Name**: `cubex-gateway`
    - **Type**: `SSE` 或 `HTTP`
    - **URL**: `http://<你的CubeX局域网IP>:2026/api/v1/mcp`
-4. 保存后指示灯变为绿色，在 Cursor Composer 或 Agent 模式（`Ctrl+I` / `Cmd+I`）中直接对项目或系统提问：“*检查旁路由当前状态并汇报*”，Agent 即可自动调用。
+4. 保存后指示灯变为绿色，在 Cursor Composer 或 Agent 模式（`Ctrl+I` / `Cmd+I`）中直接对系统提问：“*检查旁路由当前状态并汇报*”，Agent 即可自动调用。
 
-#### 3. 极客原生调用：终端 curl / 自动化脚本 (JSON-RPC 2.0)
+##### 3. 极客原生调用：终端 curl / 自动化脚本 (JSON-RPC 2.0)
 
 由于 CubeX 采用纯标准的 JSON-RPC 2.0 规范，你甚至无需任何大模型，直接在 Linux / macOS / Windows 终端中通过单行 `curl` 即可集成入家里的自动化系统（如 Home Assistant、Node-RED 等）：
 
 * **列出所有开放工具清单**：
   ```bash
-  curl -s -X POST http://<CubeX-IP>:2026/api/v1/mcp     -H "Content-Type: application/json"     -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq .
+  curl -s -X POST http://<CubeX-IP>:2026/api/v1/mcp \
+    -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | jq .
   ```
 
 * **执行全栈网络自愈指令**：
   ```bash
-  curl -s -X POST http://<CubeX-IP>:2026/api/v1/mcp     -H "Content-Type: application/json"     -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"trigger_system_heal","arguments":{}}}' | jq .
+  curl -s -X POST http://<CubeX-IP>:2026/api/v1/mcp \
+    -H "Content-Type: application/json" \
+    -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"trigger_system_heal","arguments":{}}}' | jq .
   ```
 
 ---
