@@ -241,7 +241,7 @@ pct create "$CT_ID" "local:vztmpl/$TEMPLATE" \
     --swap 256 \
     --rootfs "${CT_STORAGE}:${CT_DISK}" \
     --net0 name=eth0,bridge=vmbr0,ip="$CT_IP",gw="$CT_GW",type=veth \
-    --nameserver "$CT_GW" \
+    --nameserver "$CT_GW 223.5.5.5 119.29.29.29" \
     --features nesting=1,keyctl=1 \
     --unprivileged 0 \
     --onboot 1 \
@@ -259,25 +259,85 @@ EOF
 
 # 启动容器
 pct start "$CT_ID"
-sleep 2
+
+# 优雅等待网络链路就绪 (最多等待 5 秒)
+echo -e "   -> ${BLUE}等待容器网卡与链路协商就绪...${NC}"
+for i in 1 2 3 4 5; do
+    if pct exec "$CT_ID" -- ping -c 1 -W 1 "$CT_GW" >/dev/null 2>&1; then
+        break
+    fi
+    sleep 1
+done
 
 # 9. 容器内部初始化与依赖部署
 echo -e "\n${CYAN}🔄 [5/5] 容器内部全自动初始化（首次部署约需 30~60 秒，请耐心等待）...${NC}"
 
-echo -e "   -> ${BOLD}[5.1/5.4] 正在配置国内极速镜像源 (Aliyun Mirror)...${NC}"
+echo -e "   -> ${BOLD}[5.1/5.4] 正在配置容器 DNS 与国内极速镜像源 (带自动故障转移与多源轮换)...${NC}"
 pct exec "$CT_ID" -- sh -s << 'EOF'
 set -e
-cat << "REPO" > /etc/apk/repositories
-https://mirrors.aliyun.com/alpine/latest-stable/main
-https://mirrors.aliyun.com/alpine/latest-stable/community
+# 注入公网主备 DNS，彻底防范主路由尚未配对导致的临时解析失败
+cat << "RESOLV" > /etc/resolv.conf
+nameserver 223.5.5.5
+nameserver 119.29.29.29
+nameserver 114.114.114.114
+nameserver 8.8.8.8
+RESOLV
+
+# 探查真实 Alpine 发行版分支
+ALPINE_VER=$(cat /etc/alpine-release 2>/dev/null | cut -d. -f1,2)
+if [ -n "$ALPINE_VER" ]; then
+    BRANCH="v${ALPINE_VER}"
+else
+    BRANCH="latest-stable"
+fi
+
+# 首选用 HTTP 协议拉取索引与 ca-certificates，彻底规避新容器无根证书时导致的 HTTPS 握手失败
+cat << REPO > /etc/apk/repositories
+http://mirrors.aliyun.com/alpine/${BRANCH}/main
+http://mirrors.aliyun.com/alpine/${BRANCH}/community
 REPO
 EOF
 
 echo -e "   -> ${BOLD}[5.2/5.4] 正在安装底层网络与系统依赖 (iptables / iproute2 / curl / ca-certificates)...${NC}"
 pct exec "$CT_ID" -- sh -s << 'EOF'
 set -e
-apk update --quiet || true
-apk add --no-cache curl ca-certificates iptables ip6tables iproute2 tzdata unzip
+ALPINE_VER=$(cat /etc/alpine-release 2>/dev/null | cut -d. -f1,2)
+BRANCH="v${ALPINE_VER:-latest-stable}"
+
+# 五大镜像源容灾轮换池 (Aliyun -> USTC -> TUNA -> Tencent -> Official)
+MIRRORS="mirrors.aliyun.com mirrors.ustc.edu.cn mirrors.tuna.tsinghua.edu.cn mirrors.cloud.tencent.com dl-cdn.alpinelinux.org"
+
+UPDATED=0
+for M in $MIRRORS; do
+    cat << REPO > /etc/apk/repositories
+http://${M}/alpine/${BRANCH}/main
+http://${M}/alpine/${BRANCH}/community
+REPO
+    if apk update --quiet; then
+        UPDATED=1
+        break
+    fi
+    sleep 1
+done
+
+if [ "$UPDATED" -eq 0 ]; then
+    apk update || true
+fi
+
+# 依赖安装自愈重试 (最多 3 次)
+INSTALLED=0
+for attempt in 1 2 3; do
+    if apk add --no-cache curl ca-certificates iptables ip6tables iproute2 tzdata unzip; then
+        INSTALLED=1
+        break
+    fi
+    echo "正在重试依赖安装 ($attempt/3)..."
+    sleep 2
+done
+
+# 安装完成 ca-certificates 后无缝升级回安全 HTTPS 镜像源
+sed -i 's|http://|https://|g' /etc/apk/repositories 2>/dev/null || true
+
 mkdir -p /opt/CubeX/bin /opt/CubeX/data /opt/CubeX/etc /opt/CubeX/rules
 EOF
 
