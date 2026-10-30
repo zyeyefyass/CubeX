@@ -22,16 +22,14 @@ body {
   position: relative;
 }
 
-/* 🚀 Ultra-Performance GPU Wallpaper Layer: Isolates fixed background onto its own composite layer without repainting the viewport on scroll */
+/* 🚀 Deep Twilight Base Layer: Fallback dark canvas */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
-  z-index: -10;
-  background: url('/bg-zootopia.png') center 35% / cover no-repeat;
+  z-index: -20;
+  background-color: #0c0a14;
   pointer-events: none;
-  transform: translate3d(0, 0, 0);
-  will-change: transform;
 }
 
 /* 🌙 去蓝光护眼滤镜 (Anti-Blue-Light Optical Warm Spectrum 4500K) */
@@ -44,7 +42,7 @@ body::before {
 /* 🌅 Twilight Crystal (暮光冰晶 · macOS 原生毛玻璃全局统一材质规范)            */
 /* ══════════════════════════════════════════════════════════════════════════ */
 
-/* 一级大容器（所有页面卡片、面板、弹窗全量共享同一套高透暮光深紫灰冰晶材质，绝不死黑） */
+/* 一级大容器（100% 全景通透晶体 · 彻底取消毛玻璃模糊 · 原画海报完全清晰可见） */
 .macos-glass-card,
 .liquid-glass,
 .glass-aurora,
@@ -57,13 +55,14 @@ body::before {
 .bg-\[\#161e27\]\/90,
 .bg-\[\#161e27\]\/85,
 .bg-\[\#161e27\]\/80 {
-  background: rgba(20, 18, 32, 0.42) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
+  background: rgba(8, 10, 20, 0.08) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   border-radius: 24px;
-  border: 1px solid rgba(255, 240, 230, 0.16) !important;
-  box-shadow: 0 16px 40px rgba(8, 6, 16, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.20) !important;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  border: 1px solid rgba(255, 240, 230, 0.20) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.25) !important;
+  contain: layout style;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
   transform: translateZ(0);
 }
 
@@ -74,17 +73,19 @@ body::before {
 .glass-novice:hover,
 .glass-obsidian:hover,
 .host-card:hover {
-  border-color: rgba(255, 158, 94, 0.38) !important;
-  box-shadow: 0 20px 50px rgba(8, 6, 16, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.30) !important;
+  background: rgba(16, 18, 32, 0.15) !important;
+  border-color: rgba(255, 158, 94, 0.50) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.35) !important;
 }
 
-/* 左侧导航栏 (Sidebar: 暮光深紫灰高透冰晶 · 零右侧外发光渗漏，彻底杜绝主视口边缘抖动宽条) */
+/* 左侧导航栏 (Sidebar: 100% 通透超清 · 零模糊 · 海报背景完全看清) */
 .macos-sidebar {
-  background: rgba(20, 18, 32, 0.45) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  border-right: 1px solid rgba(255, 240, 230, 0.16) !important;
-  box-shadow: none !important;
+  background: rgba(8, 10, 20, 0.12) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-right: 1px solid rgba(255, 240, 230, 0.18) !important;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25) !important;
+  contain: layout style;
   transform: translateZ(0);
 }
 
@@ -96,25 +97,25 @@ body::before {
   -webkit-backdrop-filter: none !important;
 }
 
-/* 顶部与全局毛玻璃胶囊组件 (暮光深紫灰胶囊 · 移除嵌套毛玻璃，采用硬件级高透晶体着色) */
+/* 顶部与全局毛玻璃胶囊组件 (零模糊 · 超高透晶体) */
 .macos-capsule,
 .windhawk-pill {
-  background: rgba(24, 20, 38, 0.65) !important;
+  background: rgba(14, 16, 28, 0.18) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border: 1px solid rgba(255, 240, 230, 0.18) !important;
-  box-shadow: 0 4px 16px rgba(8, 6, 16, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.20) !important;
+  border: 1px solid rgba(255, 240, 230, 0.20) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+  /* lightweight clean text */
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .macos-capsule:hover,
 .windhawk-pill:hover {
-  background: rgba(35, 28, 54, 0.75) !important;
+  background: rgba(22, 24, 38, 0.28) !important;
   border-color: rgba(255, 158, 94, 0.45) !important;
-  box-shadow: 0 8px 24px rgba(8, 6, 16, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.30) !important;
 }
 
-/* 二级子卡片、项目行、指标块（清透微光层，彻底杜绝递归嵌套 blur，GPU 开销直降 95%） */
+/* 二级子卡片、项目行、指标块（极简微光外框 · 零模糊 · 背景图完全透显） */
 .macos-sub-card,
 .sub-card-glass,
 .bg-slate-900,
@@ -130,33 +131,41 @@ body::before {
 .bg-slate-950\/70,
 .bg-slate-950\/60,
 .bg-slate-950\/50,
-.bg-slate-950\/40 {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 240, 230, 0.10) !important;
+.bg-slate-950\/40,
+.bg-black\/30,
+.bg-black\/40,
+.bg-black\/50,
+.bg-black\/60 {
+  background: rgba(6, 8, 16, 0.10) !important;
+  border: 1px solid rgba(255, 240, 230, 0.14) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-radius: 16px !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .macos-sub-card:hover,
 .bg-slate-900:hover,
 .bg-slate-950:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 158, 94, 0.35) !important;
+  background: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(255, 158, 94, 0.40) !important;
 }
 
 .hover\:bg-slate-800:hover,
 .hover\:bg-slate-700:hover {
-  background: rgba(255, 255, 255, 0.10) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
 }
 
-/* 日志流终端视窗高透定制 (Terminal Screen Output) */
+/* 日志流终端视窗高透定制 (Terminal Screen Output · 100% 全透明直透海报背景) */
 .bg-\[\#000d1a\],
-.terminal-screen-window {
-  background: rgba(14, 12, 24, 0.75) !important;
+.terminal-screen-window,
+.bg-\[rgba\(14\,12\,24\,0\.38\)\] {
+  background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  border: none !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
 }
 
 /* 暮光原生输入控件规范 (Input / Select / Textarea · 极速响应) */
@@ -337,4 +346,24 @@ select option:checked,
 select option:hover {
   background-color: #1e293b !important;
   color: #ff9e5e !important;
+}
+
+/* ⚡ 满帧丝滑硬件加速与防卡顿优化 (Zero-Jank GPU Layer & Native Momentum Scrolling) */
+.overflow-y-auto,
+.overflow-x-auto,
+.custom-scrollbar {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  scroll-behavior: smooth;
+  transform: translateZ(0);
+}
+
+/* 消除重型全局模糊对主滚动帧率的拖拽 */
+@media (max-width: 1024px) {
+  .backdrop-blur-3xl,
+  .backdrop-blur-2xl,
+  .backdrop-blur-xl {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
 }

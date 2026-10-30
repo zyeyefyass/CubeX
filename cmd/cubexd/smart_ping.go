@@ -49,9 +49,10 @@ func (s *Server) startSmartHealthPing() {
 		// Run first probe pass
 		s.executeSmartHealthPing(false)
 
-		ticker := time.NewTicker(30 * time.Second)
+		ticker := time.NewTicker(15 * time.Second)
 		defer ticker.Stop()
 
+		fastWatchdogCounter := 0
 		for range ticker.C {
 			s.smartPingMutex.RLock()
 			enabled := s.smartPingEnabled
@@ -63,12 +64,72 @@ func (s *Server) startSmartHealthPing() {
 				continue
 			}
 
+			fastWatchdogCounter++
 			elapsed := time.Now().Unix() - lastCheck
+
+			// 1. Full-group standard ping check (e.g. every intervalMin minutes)
 			if elapsed >= int64(intervalMin*60) {
 				s.executeSmartHealthPing(false)
+				fastWatchdogCounter = 0
+			} else if fastWatchdogCounter >= 3 { // Every 45 seconds: agile exit check
+				fastWatchdogCounter = 0
+				s.executeAgileExitProbe()
 			}
 		}
 	}()
+}
+
+// executeAgileExitProbe performs ultra-lightweight 45s health probe on active primary exit
+func (s *Server) executeAgileExitProbe() {
+	ir := s.engMgr.GetIR()
+	if ir == nil || len(ir.Proxies) == 0 || len(ir.Groups) == 0 {
+		return
+	}
+
+	clashPort := 9090
+	clashSecret := ""
+	if ir.Network.ClashAPIPort > 0 {
+		clashPort = ir.Network.ClashAPIPort
+	}
+	if ir.Network.ClashSecret != "" {
+		clashSecret = ir.Network.ClashSecret
+	}
+
+	// Index proxies
+	proxyMap := make(map[string]*schema.ProxyNode, len(ir.Proxies))
+	for i := range ir.Proxies {
+		proxyMap[ir.Proxies[i].Name] = &ir.Proxies[i]
+	}
+
+	for gIdx := range ir.Groups {
+		grp := &ir.Groups[gIdx]
+		gUpper := strings.ToUpper(grp.Name)
+		// Only inspect major exit groups
+		if !strings.Contains(gUpper, "PROXY") && !strings.Contains(gUpper, "节点") && !strings.Contains(gUpper, "GLOBAL") && !strings.Contains(gUpper, "MATCH") && !strings.Contains(gUpper, "漏网") {
+			continue
+		}
+		if len(grp.Proxies) <= 1 {
+			continue
+		}
+
+		activeName := grp.Now
+		if activeName == "" {
+			activeName = grp.Proxies[0]
+		}
+		node, ok := proxyMap[activeName]
+		if !ok || node == nil || node.Type == "direct" || node.Type == "block" {
+			continue
+		}
+
+		// Light single-packet probe
+		res := s.testNodeRealDelay(*node, clashPort, clashSecret)
+		if res.Delay <= 0 {
+			// Pre-emptive immediate failover!
+			log.Printf("[SMART-FAILOVER] Active exit [%s] in group [%s] timed out! Triggering immediate fallback...", activeName, grp.Name)
+			s.executeSmartHealthPing(true)
+			break
+		}
+	}
 }
 
 // executeSmartHealthPing performs end-to-end latency checks and zero-perception failover
@@ -286,18 +347,30 @@ func (s *Server) handleSmartPingConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleSmartPingTrigger triggers an immediate ad-hoc inspection pass
+// handleSmartPingTrigger manually forces an immediate health ping pass and returns real-time report
 func (s *Server) handleSmartPingTrigger(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	go s.executeSmartHealthPing(true)
+	beforeCount := s.smartPingFailovers
+	s.executeSmartHealthPing(true)
+	afterCount := s.smartPingFailovers
 
-	s.logBuffer.Add("INFO", "SMARTPING", "已手动触发即时端到端智能健康巡检与预热")
+	msg := "已完成全局智能避障巡检：全链路节点连接通畅，当前延迟最优。"
+	if afterCount > beforeCount && s.smartPingLastLog != "" {
+		msg = fmt.Sprintf("已成功触发智能无感避障：%s", s.smartPingLastLog)
+	}
+
+	s.logBuffer.Add("INFO", "SMARTPING", "全局智能避障巡检与节点故障转移已执行完成")
 
 	sendJSON(w, map[string]any{
-		"ok":      true,
-		"message": "即时智能健康巡检与预热已启动",
+		"ok":        true,
+		"status":    "ok",
+		"message":   msg,
+		"failovers": afterCount,
+		"last_log":  s.smartPingLastLog,
 	})
 }
+

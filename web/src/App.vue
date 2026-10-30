@@ -5,6 +5,20 @@
     antiBlueLight ? 'anti-blue-active' : ''
   ]">
 
+    <!-- 🚀 疯狂动物城超高清全息海报 (单图层 GPU 原生极速合成 · 60% 沉浸通透显色度 · 零显存浪费与零层级混合卡顿) -->
+    <div class="fixed inset-0 -z-10 pointer-events-none overflow-hidden select-none bg-[#0a0815]" style="contain: strict; will-change: transform; transform: translate3d(0, 0, 0);">
+      <div
+        class="absolute inset-0 bg-cover bg-no-repeat transition-[background-image] duration-500 ease-out opacity-[0.60]"
+        :style="{
+          backgroundImage: `url('${activeTabBg.webp}')`,
+          backgroundPosition: activeTabBg.position || 'center 35%'
+        }">
+      </div>
+      <!-- 柔和护眼微暮光层，提升文字对比度 -->
+      <div class="absolute inset-0 bg-black/15 pointer-events-none"></div>
+    </div>
+
+
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- 1. PC 桌面端左侧固定侧边栏 (Desktop Left Sidebar >= 768px)            -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
@@ -86,7 +100,7 @@
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- 2. 右侧主内容区域 (Main Content Area with Top Header & Tab Views)     -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
-    <div :class="['flex-1 flex flex-col h-full relative overflow-x-hidden w-full max-w-full', activeMasterTab === 'diagnostics' ? 'overflow-y-hidden' : 'overflow-y-auto pb-24 md:pb-6']" @scroll="onMainContentScroll">
+    <div :class="['flex-1 flex flex-col h-full relative overflow-x-hidden w-full max-w-full', 'overflow-y-auto pb-24 md:pb-6']" style="contain: content; will-change: scroll-position; -webkit-overflow-scrolling: touch;" @scroll="onMainContentScroll">
       
 
 
@@ -95,7 +109,7 @@
         :class="[
           headerBgClass,
           isHeaderHidden ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100',
-          isScrolledDown ? 'backdrop-blur-2xl bg-black/35 border-b border-white/10 shadow-xl' : ''
+          isScrolledDown ? 'bg-[#0a0d18]/90 border-b border-white/10 shadow-xl' : ''
         ]">
         
         <!-- Left: Unified Control Plane Capsule (手机端精简适配，电脑端饱满呈现，完全取消冗余抽屉) -->
@@ -1377,14 +1391,7 @@
                   <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div>
                       <div class="flex items-center gap-2 flex-wrap">
-                        <div v-if="editingSubId === sub.id" class="flex items-center gap-1.5">
-                          <input v-model="editingSubName" @keyup.enter="saveSubRename(sub.id)" @keyup.esc="cancelSubRename"
-                            class="px-2 py-0.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-cyan-400 text-white text-sm font-bold focus:outline-none focus:ring-1 focus:ring-cyan-300 w-44"
-                            autoFocus placeholder="输入新订阅名称" />
-                          <button @click="saveSubRename(sub.id)" title="保存" class="p-1 px-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold transition">✓</button>
-                          <button @click="cancelSubRename" title="取消" class="p-1 px-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-slate-700 text-slate-300 text-xs transition">✕</button>
-                        </div>
-                        <div v-else class="flex items-center gap-1.5 group cursor-pointer" @click="startSubRename(sub)" title="点击重命名此订阅">
+                        <div class="flex items-center gap-1.5 group cursor-pointer" @click="startSubEdit(sub)" title="点击修改此订阅名称与链接">
                           <span class="text-base font-bold text-white tracking-wide group-hover:text-[#FF9E5E] transition-colors">{{ sub.name }}</span>
                           <span class="text-xs text-slate-300 group-hover:text-emerald-300 opacity-60 group-hover:opacity-100 transition-opacity">✏️</span>
                         </div>
@@ -1409,10 +1416,10 @@
                           <span :class="{ 'inline-block animate-spin': subSpeedTesting[sub.id] }">⚡</span>
                           <span class="text-[10px]">测速</span>
                         </button>
-                        <button @click="startSubRename(sub)" title="重命名此订阅订阅"
+                        <button @click="startSubEdit(sub)" title="修改此订阅名称与链接"
                           class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 hover:border-cyan-500/40 text-slate-200 text-xs transition flex items-center gap-1">
                           <span>✏️</span>
-                          <span class="text-[10px]">命名</span>
+                          <span class="text-[10px]">修改</span>
                         </button>
                         <button @click="updateSubscription(sub.id)" title="重新同步拉取此订阅源"
                           class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 text-slate-200 text-xs transition flex items-center gap-1">
@@ -1436,6 +1443,64 @@
                         </span>
                         <span class="text-slate-300">·</span>
                         <span class="text-slate-400">{{ formatSubExpire(sub.expire_at) }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Expanded Inline Edit Panel for Name and URL -->
+                  <div v-if="editingSubId === sub.id" 
+                    class="p-4 rounded-2xl bg-slate-950/90 border border-cyan-400/50 shadow-2xl space-y-3 animate-in fade-in duration-200">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm">✏️</span>
+                        <span class="text-xs font-bold text-cyan-300">修改订阅配置</span>
+                        <span class="text-[10px] text-slate-400 font-mono">({{ sub.id }})</span>
+                      </div>
+                      <span class="text-[11px] font-mono text-slate-400">
+                        当前节点数: {{ getSubNodes(sub.id).length }} 个
+                      </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                      <!-- 订阅名称 -->
+                      <div class="space-y-1">
+                        <label class="text-[11px] text-slate-300 font-bold flex items-center gap-1">
+                          <span>🏷️</span> 订阅名称
+                        </label>
+                        <input v-model="editingSubName" @keyup.esc="cancelSubEdit" @keyup.enter="saveSubEdit(sub.id)"
+                          class="w-full px-3 py-1.5 rounded-xl bg-white/5 border border-white/20 focus:border-cyan-400 text-white text-xs font-bold focus:outline-none focus:ring-1 focus:ring-cyan-300"
+                          placeholder="输入订阅名称" />
+                      </div>
+
+                      <!-- 订阅地址 -->
+                      <div class="md:col-span-2 space-y-1">
+                        <label class="text-[11px] text-slate-300 font-bold flex items-center gap-1">
+                          <span>🔗</span> 订阅地址 (URL)
+                        </label>
+                        <input v-model="editingSubUrl" @keyup.esc="cancelSubEdit" @keyup.enter="saveSubEdit(sub.id)"
+                          class="w-full px-3 py-1.5 rounded-xl bg-white/5 border border-white/20 focus:border-cyan-400 text-white text-xs font-mono focus:outline-none focus:ring-1 focus:ring-cyan-300"
+                          placeholder="http:// 或 https:// 订阅链接" />
+                      </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1.5 border-t border-slate-800/80">
+                      <div class="text-[10px] text-slate-400">
+                        <span v-if="editingSubSaving" class="text-cyan-300 flex items-center gap-1 font-mono">
+                          <span class="animate-spin">⏳</span> 正在验证新订阅链接并热重载核心...
+                        </span>
+                        <span v-else class="text-slate-400">
+                          💡 提示：若仅改名称将秒级重命名；若修改链接将全自动抓取新节点并原子替换。
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-2 self-end sm:self-auto">
+                        <button @click="cancelSubEdit" :disabled="editingSubSaving"
+                          class="px-3 py-1 rounded-xl bg-white/10 hover:bg-slate-800 border border-white/20 text-slate-300 text-xs font-bold transition">
+                          取消
+                        </button>
+                        <button @click="saveSubEdit(sub.id)" :disabled="editingSubSaving"
+                          class="px-3.5 py-1 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 text-xs font-bold transition shadow-md active:scale-95 flex items-center gap-1">
+                          <span>✓</span> 保存修改
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -2902,6 +2967,12 @@
               </h2>
               <p class="text-xs text-[#E2F8EC] tracking-normal font-medium">自动识别 RouterOS / 爱快 iKuai / OpenWrt / 飞牛 / PVE / Linux 底座 · 策略路由与防火墙自愈 · 四维在线无缝热更</p>
             </div>
+            <button @click="showLogsModal = true"
+              class="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/60 text-white font-bold text-xs flex items-center gap-2 transition active:scale-95 shadow-md cursor-pointer shrink-0"
+              title="调出实时系统日志环形缓冲区终端">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>📜 实时系统日志终端</span>
+            </button>
           </div>
 
           <!-- 宿主底座与四维升级主视窗 -->
@@ -3147,7 +3218,7 @@
             <transition name="fade">
               <div v-if="hasAnyUpdate" class="p-4 rounded-2xl bg-gradient-to-r from-amber-950/80 via-slate-900/90 to-cyan-950/80 border border-amber-500/50 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in">
                 <div class="flex items-center gap-3">
-                  <span class="text-2xl p-2 rounded-xl bg-amber-500/20 border border-amber-500/40 animate-bounce">🔔</span>
+                  <span class="text-3xl animate-bounce select-none leading-none">🔔</span>
                   <div>
                     <div class="text-xs font-bold text-white flex items-center gap-2">
                       <span class="text-amber-300">【四维探针提醒】检测到可用系统升级项目！</span>
@@ -3613,360 +3684,211 @@
             </div>
           </div>
 
-          <!-- 🤖 Model Context Protocol (MCP) 原生 AI 领航员接入卡片 (通栏占满页面宽度 · 左右严格等高对齐) -->
-          <div class="w-full p-5 sm:p-6 rounded-2xl sm:rounded-3xl macos-glass-card hover:border-cyan-400/40 transition-all duration-300 relative overflow-hidden group space-y-4">
-            
-            <!-- Tier 1: Header (紧凑防溢出 · 标题/说明/按钮完美自适应) -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3.5 border-b border-white/10">
-              <div class="flex items-center gap-3 min-w-0">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 via-blue-500/20 to-purple-500/20 border border-cyan-400/30 flex items-center justify-center text-xl shadow-md shrink-0">
-                  🤖
-                </div>
-                <div class="min-w-0">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <h4 class="text-sm sm:text-base font-extrabold text-white tracking-wide">
-                      让 AI (DeepSeek / 豆包 / 千问 / Claude) 当你的全天候网络管家
-                    </h4>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 shrink-0">
-                      ● 服务就绪
-                    </span>
-                  </div>
-                  <p class="text-[11px] text-slate-300 mt-0.5 leading-snug">
-                    <b class="text-cyan-300">大白话极简理解：</b> 直接用日常中文对 AI 提问（查网速、查设备、一键修网），AI 自动替你掌控网关，再也不用登后台！
-                  </p>
-                </div>
-              </div>
-
-              <!-- 顶部右侧快捷按钮 (精简文字 · 严防溢出) -->
-              <div class="flex items-center gap-2 shrink-0 self-start md:self-center">
-                <a href="https://github.com/zyeyefyass/CubeX#mcp-guide" target="_blank" rel="noopener noreferrer" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-400/30 text-purple-200 text-xs font-bold transition flex items-center gap-1 active:scale-98 shadow-sm" title="查看主页完整接入文档">
-                  <span>📖 README 教程 ↗</span>
-                </a>
-                <button @click="testMCPConnection" :disabled="testingMCP" class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/30 text-cyan-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer active:scale-98 shadow-sm" title="测试 MCP 服务端口连通性">
-                  <span>{{ testingMCP ? '测试中...' : '⚡ 连通性测试' }}</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Tier 2: 横向双栏布局 (左右等高 · 底部绝对对齐) -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
-              
-              <!-- ====== 左栏: 一键连接 + 极速上手 ====== -->
-              <div class="flex flex-col justify-between space-y-3">
-                <!-- 1. 连接接口配置卡片 -->
-                <div class="macos-sub-card p-3.5 sm:p-4 rounded-2xl space-y-2.5 border border-white/10">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                      <span class="text-cyan-400">🔗</span>
-                      <span>第一步：把管家专属地址复制给 AI</span>
-                    </span>
-                    <span class="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-[10px] text-emerald-300 font-mono">
-                      纯局域网 · 绝不外泄密码与节点
-                    </span>
-                  </div>
-
-                  <!-- Endpoint URL Code Box -->
-                  <div class="p-2.5 rounded-xl bg-black/50 border border-white/10 font-mono text-xs text-cyan-300 flex items-center justify-between gap-2 shadow-inner">
-                    <span class="truncate tracking-wide select-all font-semibold">{{ mcpEndpointUrl }}</span>
-                    <button @click="copyText(mcpEndpointUrl, '管家连接地址')" class="shrink-0 px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/35 border border-cyan-400/30 text-[11px] font-bold text-cyan-200 transition cursor-pointer active:scale-95">
-                      复制地址
-                    </button>
-                  </div>
-
-                  <!-- One-Click Configuration Buttons -->
-                  <div class="grid grid-cols-3 gap-2">
-                    <button @click="copyCherryConfig" class="py-1.5 px-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/30 text-emerald-200 text-xs font-semibold transition flex items-center justify-center gap-1 cursor-pointer active:scale-98 shadow-sm" title="一键复制 Cherry Studio 或 Chatbox 配置代码">
-                      <span>📋 Cherry / Chatbox</span>
-                    </button>
-                    <button @click="copyClaudeConfig" class="py-1.5 px-2 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-400/30 text-purple-200 text-xs font-semibold transition flex items-center justify-center gap-1 cursor-pointer active:scale-98 shadow-sm" title="一键复制 Claude Desktop 配置代码">
-                      <span>📋 Claude 配置</span>
-                    </button>
-                    <button @click="copyCursorConfig" class="py-1.5 px-2 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/30 text-blue-200 text-xs font-semibold transition flex items-center justify-center gap-1 cursor-pointer active:scale-98 shadow-sm" title="一键复制 Cursor 或 Windsurf 配置代码">
-                      <span>📋 Cursor 配置</span>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- 2. AI (DeepSeek / 豆包 / 千问) 极速上手指南卡片 -->
-                <div class="macos-sub-card p-3.5 sm:p-4 rounded-2xl space-y-2.5 border border-white/10 bg-gradient-to-br from-blue-900/15 via-cyan-900/10 to-transparent flex-1 flex flex-col justify-between">
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                      <span class="text-blue-400 text-sm">🐋</span>
-                      <span>三步让 AI (DeepSeek / 豆包 / 千问) 帮你管网关</span>
-                    </span>
-                    <span class="px-2 py-0.5 rounded-md bg-blue-500/15 border border-blue-400/25 text-[10px] text-blue-300 font-mono">
-                      全系通用 · 无视模型版本迭代
-                    </span>
-                  </div>
-
-                  <!-- 3-Step Guide (精炼大白话) -->
-                  <div class="space-y-1.5 text-xs text-slate-300">
-                    <div class="flex items-start gap-2 p-1.5 rounded-lg bg-white/5 border border-white/5">
-                      <span class="w-4 h-4 rounded-full bg-cyan-500/20 text-cyan-300 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">1</span>
-                      <p class="text-[11px] leading-tight text-slate-300">
-                        <b class="text-white">选客户端与模型：</b>电脑安装 Cherry Studio 或 Chatbox，配置 <span class="text-cyan-300 font-medium">DeepSeek</span>、<span class="text-cyan-300 font-medium">豆包</span>、<span class="text-cyan-300 font-medium">通义千问</span>、<span class="text-cyan-300 font-medium">Claude</span> 等任意大模型（无需关心版本号，新老全兼容）。
-                      </p>
-                    </div>
-
-                    <div class="flex items-start gap-2 p-1.5 rounded-lg bg-white/5 border border-white/5">
-                      <span class="w-4 h-4 rounded-full bg-blue-500/20 text-blue-300 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">2</span>
-                      <p class="text-[11px] leading-tight text-slate-300">
-                        <b class="text-white">挂载 CubeX 管家：</b>在客户端【MCP 服务器】添加服务，类型选 <span class="text-cyan-300 font-mono">HTTP</span>，把上方专属地址粘贴进去。
-                      </p>
-                    </div>
-
-                    <div class="flex items-start gap-2 p-1.5 rounded-lg bg-white/5 border border-white/5">
-                      <span class="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">3</span>
-                      <p class="text-[11px] leading-tight text-slate-300">
-                        <b class="text-white">自然语言直接掌控：</b>像微信聊天一样发消息，AI 自动理解意图、调度 CubeX 并直接回复你！
-                      </p>
-                    </div>
-                  </div>
-
-                  <!-- Quick Prompt Pills (口语化常用指令 · 点击一键复制) -->
-                  <div class="space-y-1.5 pt-0.5">
-                    <span class="text-[11px] font-bold text-slate-300 flex items-center gap-1">
-                      <span>💡 常用大白话指令 (点击复制发给 AI):</span>
-                    </span>
-                    <div class="flex flex-wrap gap-1.5">
-                      <button @click="copyPrompt('小深，家里现在网速多少？这个月用了多少跨境流量了？')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-400/40 text-[11px] text-cyan-200 hover:text-white transition cursor-pointer active:scale-95" title="点击一键复制">
-                        <span>💬 查网速与月度流量</span>
-                      </button>
-                      <button @click="copyPrompt('帮我看看局域网现在有哪些设备在线？列出它们的IP和分流模式')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-400/40 text-[11px] text-blue-200 hover:text-white transition cursor-pointer active:scale-95" title="点击一键复制">
-                        <span>💬 查家里有哪些设备在线</span>
-                      </button>
-                      <button @click="copyPrompt('把 10.0.0.191 设置为芯片直连绕过模式')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-400/40 text-[11px] text-purple-200 hover:text-white transition cursor-pointer active:scale-95" title="点击一键复制">
-                        <span>💬 把指定设备改直连</span>
-                      </button>
-                      <button @click="copyPrompt('感觉刚才网络有点卡，帮我执行一次全栈网络自愈并加固')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/40 text-[11px] text-amber-200 hover:text-white transition cursor-pointer active:scale-95" title="点击一键复制">
-                        <span>💬 一键全栈自愈网络</span>
-                      </button>
-                      <button @click="copyPrompt('帮我把底层的透明代理引擎平滑切换为 sing-box')" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-emerald-400/40 text-[11px] text-emerald-200 hover:text-white transition cursor-pointer active:scale-95" title="点击一键复制">
-                        <span>💬 平滑切换双核引擎</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- ====== 右栏: 开放给 AI 的 5 项本领 (紧凑舒展 · 与左栏绝对底部对齐) ====== -->
-              <div class="flex flex-col justify-between space-y-2 h-full">
-                <div class="flex items-center justify-between px-1">
-                  <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                    <span class="text-amber-400">🛠️</span>
-                    <span>AI 管家当前解锁的 5 项专属本领</span>
-                  </span>
-                  <span class="text-[10px] text-emerald-400 font-mono">严格只读/自愈白名单 · 安全无忧</span>
-                </div>
-
-                <!-- 5 个能力卡片 (精简说明 · 紧凑竖向间距 · 底部与左侧严格对齐) -->
-                <div class="flex-1 flex flex-col justify-between gap-2">
-                  <!-- Tool 1 -->
-                  <div class="macos-sub-card p-2.5 sm:p-3 rounded-xl border border-white/10 hover:border-cyan-400/30 transition-all flex flex-col justify-center space-y-1 shadow-sm">
-                    <div class="flex items-center justify-between gap-2">
-                      <div class="flex items-center gap-1.5">
-                        <span class="text-xs">📊</span>
-                        <span class="font-bold text-xs text-white">查实时网速与月度流量</span>
-                        <span class="text-[10px] font-mono text-cyan-300/60 hidden sm:inline">get_gateway_telemetry</span>
-                      </div>
-                      <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-cyan-500/15 text-cyan-300 border border-cyan-400/20 shrink-0">实时只读</span>
-                    </div>
-                    <p class="text-[11px] text-slate-300 leading-tight pl-4 sm:pl-5">
-                      问一句网速多少，AI 自动汇报实时上传/下载速度与本月物理累计跨境协同流量。
-                    </p>
-                  </div>
-
-                  <!-- Tool 2 -->
-                  <div class="macos-sub-card p-2.5 sm:p-3 rounded-xl border border-white/10 hover:border-cyan-400/30 transition-all flex flex-col justify-center space-y-1 shadow-sm">
-                    <div class="flex items-center justify-between gap-2">
-                      <div class="flex items-center gap-1.5">
-                        <span class="text-xs">📱</span>
-                        <span class="font-bold text-xs text-white">查家里所有连网设备</span>
-                        <span class="text-[10px] font-mono text-cyan-300/60 hidden sm:inline">list_lan_devices</span>
-                      </div>
-                      <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/15 text-blue-300 border border-blue-400/20 shrink-0">局域网巡检</span>
-                    </div>
-                    <p class="text-[11px] text-slate-300 leading-tight pl-4 sm:pl-5">
-                      AI 自动巡检全家在线的手机、电视与电脑，汇报 IP 地址与当前分流/直连状态。
-                    </p>
-                  </div>
-
-                  <!-- Tool 3 -->
-                  <div class="macos-sub-card p-2.5 sm:p-3 rounded-xl border border-white/10 hover:border-cyan-400/30 transition-all flex flex-col justify-center space-y-1 shadow-sm">
-                    <div class="flex items-center justify-between gap-2">
-                      <div class="flex items-center gap-1.5">
-                        <span class="text-xs">🔀</span>
-                        <span class="font-bold text-xs text-white">一句话切换指定设备分流/直连</span>
-                        <span class="text-[10px] font-mono text-cyan-300/60 hidden sm:inline">set_device_policy</span>
-                      </div>
-                      <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-purple-500/15 text-purple-300 border border-purple-400/20 shrink-0">设备控制</span>
-                    </div>
-                    <p class="text-[11px] text-slate-300 leading-tight pl-4 sm:pl-5">
-                      对 AI 说“把电视改成直连”，秒级调为芯片直连绕过模式，免去手动翻列表的繁琐。
-                    </p>
-                  </div>
-
-                  <!-- Tool 4 -->
-                  <div class="macos-sub-card p-2.5 sm:p-3 rounded-xl border border-white/10 hover:border-cyan-400/30 transition-all flex flex-col justify-center space-y-1 shadow-sm">
-                    <div class="flex items-center justify-between gap-2">
-                      <div class="flex items-center gap-1.5">
-                        <span class="text-xs">🚑</span>
-                        <span class="font-bold text-xs text-white">全栈网络一键自愈与修复</span>
-                        <span class="text-[10px] font-mono text-cyan-300/60 hidden sm:inline">trigger_system_heal</span>
-                      </div>
-                      <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-300 border border-amber-400/20 shrink-0">安全自愈</span>
-                    </div>
-                    <p class="text-[11px] text-slate-300 leading-tight pl-4 sm:pl-5">
-                      喊一声“帮我修网”，AI 唤醒自愈总线修好策略路由、清理死连接并加固防泄露。
-                    </p>
-                  </div>
-
-                  <!-- Tool 5 -->
-                  <div class="macos-sub-card p-2.5 sm:p-3 rounded-xl border border-white/10 hover:border-cyan-400/30 transition-all flex flex-col justify-center space-y-1 shadow-sm">
-                    <div class="flex items-center justify-between gap-2">
-                      <div class="flex items-center gap-1.5">
-                        <span class="text-xs">⚡</span>
-                        <span class="font-bold text-xs text-white">平滑无感热切换双核引擎</span>
-                        <span class="text-[10px] font-mono text-cyan-300/60 hidden sm:inline">switch_proxy_engine</span>
-                      </div>
-                      <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-400/20 shrink-0">内核热重载</span>
-                    </div>
-                    <p class="text-[11px] text-slate-300 leading-tight pl-4 sm:pl-5">
-                      说“切成 sing-box”或“切成 Mihomo”，秒级热重载代理内核，视频游戏不卡顿。
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-
           </div>
         </div>
 
+                <!-- ════════════════════════════════════════════════════════════════ -->
+        <!-- TAB 6: AI管家 (AI Copilot & Smart Assistant - 宿主共生之下独立模块) -->
         <!-- ════════════════════════════════════════════════════════════════ -->
-        <!-- TAB: 日志诊断 (Logs & Diagnostics - 左侧主项目区独立模块)         -->
-        <!-- ════════════════════════════════════════════════════════════════ -->
-        <div v-else-if="activeMasterTab === 'diagnostics'" class="space-y-3 animate-in fade-in">
-          <!-- 💻 环形实时日志流终端面板 (Ring Log Stream Terminal) -->
-          <div class="rounded-3xl macos-glass-card shadow-2xl overflow-hidden flex flex-col">
-            <!-- Terminal Title Bar & Control Bar (纯单行极致暮光美学，取消搜索与暂停，清爽合理布局，问题反馈置于最右侧) -->
-            <div class="px-4 sm:px-6 py-2.5 sm:py-3 min-h-[50px] bg-white/[0.04] border-b border-white/10 flex items-center justify-between gap-3 overflow-x-auto no-scrollbar select-none">
-              <!-- Left: Terminal Brand & Live Status Indicator (固定在左侧，单行精简优雅) -->
-              <div class="flex items-center gap-2.5 shrink-0">
-                <div class="flex items-center gap-1.5">
-                  <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block shadow-sm"></span>
-                  <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block shadow-sm"></span>
-                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block shadow-sm"></span>
+        <div v-else-if="activeMasterTab === 'ai'" class="space-y-6 animate-in fade-in">
+          <!-- 模块标题盾牌 -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+            <div class="macos-title-shield space-y-1">
+              <h2 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                <span class="flex items-center gap-2"><ZootopiaIcon name="ai" :size="24" class="shrink-0" /><span>CubeX AI 伴生管家</span></span>
+              </h2>
+              <p class="text-xs text-[#E2F8EC] tracking-normal font-medium">端云融合 AI 智能体 · 零感网络健康体检 · 策略路由智能推演 · 双核容灾诊断顾问</p>
+            </div>
+            <!-- 右侧状态胶囊 -->
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="h-7 px-3 inline-flex items-center gap-2 text-xs font-mono font-bold rounded-full bg-white/10 text-[#FEF08A] border border-[rgba(254,240,138,0.35)] shadow-sm">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse"></span>
+                <span>全天候伴生守护</span>
+              </span>
+              <button @click="showAISettingsModal = true"
+                class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/60 text-slate-200 hover:text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                title="配置 AI 大模型 API Key 与提供商">
+                <span>⚙️</span>
+                <span>模型配置</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 四维快捷智能体检与推演作业卡片 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <!-- 1. 全维深度体检 -->
+            <button @click="triggerQuickAIPrompt('请对当前 CubeX 网关执行全维度网络体检，包含双核运行状况、RouterOS 策略路由表、DNS 重写中枢及 0 明文防泄露合规性。')"
+              class="p-4 rounded-2xl macos-glass-card hover:border-[#FF9E5E]/50 text-left transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative overflow-hidden">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-2xl select-none leading-none drop-shadow-sm group-hover:scale-110 transition-transform">🩺</span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-amber-300 font-bold">一键体检</span>
+              </div>
+              <h4 class="text-xs sm:text-[13px] font-black text-white group-hover:text-[#FF9E5E] transition-colors">全维网络健康体检</h4>
+              <p class="text-[11px] text-slate-400 mt-1 leading-snug">深度扫描策略路由、DNS、TUN 与内核转发状态</p>
+            </button>
+
+            <!-- 2. 路由分流推演 -->
+            <button @click="triggerQuickAIPrompt('请分析当前分流规则与国内外落地链路，给出跨境流媒体（Netflix/YouTube/OpenAI）最优节点调优建议。')"
+              class="p-4 rounded-2xl macos-glass-card hover:border-[#FF9E5E]/50 text-left transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative overflow-hidden">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-2xl select-none leading-none drop-shadow-sm group-hover:scale-110 transition-transform">🚀</span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-cyan-300 font-bold">智能分流</span>
+              </div>
+              <h4 class="text-xs sm:text-[13px] font-black text-white group-hover:text-cyan-300 transition-colors">分流策略调优推演</h4>
+              <p class="text-[11px] text-slate-400 mt-1 leading-snug">推演低延迟出站，优化游戏与流媒体快速穿透</p>
+            </button>
+
+            <!-- 3. 安全防侧漏审计 -->
+            <button @click="triggerQuickAIPrompt('请执行局域网安全审计，审查是否存在 IPv6 DNS 侧漏风险、未知设备接入，以及 217heidai 拦截效果。')"
+              class="p-4 rounded-2xl macos-glass-card hover:border-[#FF9E5E]/50 text-left transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative overflow-hidden">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-2xl select-none leading-none drop-shadow-sm group-hover:scale-110 transition-transform">🛡️</span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-emerald-300 font-bold">安全审计</span>
+              </div>
+              <h4 class="text-xs sm:text-[13px] font-black text-white group-hover:text-emerald-300 transition-colors">安全防护与防泄露</h4>
+              <p class="text-[11px] text-slate-400 mt-1 leading-snug">审查 0 明文回退与 SERVFAIL 阻断，杜绝隐私侧漏</p>
+            </button>
+
+            <!-- 4. 双核容灾演练 -->
+            <button @click="triggerQuickAIPrompt('请模拟单核崩溃场景，推演 Mihomo 与 sing-box 双核秒级容灾切换链路与路由回指自愈状态。')"
+              class="p-4 rounded-2xl macos-glass-card hover:border-[#FF9E5E]/50 text-left transition-all duration-300 group hover:-translate-y-0.5 cursor-pointer relative overflow-hidden">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-2xl select-none leading-none drop-shadow-sm group-hover:scale-110 transition-transform">⚡</span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-purple-300 font-bold">容灾演练</span>
+              </div>
+              <h4 class="text-xs sm:text-[13px] font-black text-white group-hover:text-purple-300 transition-colors">双核秒级容灾演练</h4>
+              <p class="text-[11px] text-slate-400 mt-1 leading-snug">推演崩溃无感热重载，验证 198.18.0.0/15 路由保活</p>
+            </button>
+          </div>
+
+          <!-- AI 对话式全息交互视窗 (Interactive Chat & Diagnostic Console) -->
+          <div class="rounded-3xl macos-glass-card p-5 sm:p-7 space-y-5 border border-white/15 relative overflow-hidden">
+            <div class="flex items-center justify-between border-b border-white/10 pb-4 flex-wrap gap-2">
+              <div class="flex items-center gap-3">
+                <div class="flex items-center justify-center shrink-0">
+                  <ZootopiaIcon name="ai" :size="28" class="drop-shadow-[0_0_12px_rgba(0,245,212,0.6)]" />
                 </div>
-                <div class="h-3.5 w-px bg-slate-700/80 mx-0.5"></div>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs sm:text-[13px] font-mono font-black text-white tracking-wide flex items-center gap-1.5">
-                    <ZootopiaIcon name="diagnostics" :size="16" class="shrink-0" />
-                    <span>CUBEX_LIVE_RING_BUFFER</span>
-                  </span>
-                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center gap-1 bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                    实时捕获
-                  </span>
+                <div>
+                  <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                    <span>CubeX Copilot 智能问答与诊断中枢</span>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 font-bold">
+                      端云自适应
+                    </span>
+                  </h3>
+                  <p class="text-[11px] text-slate-400 mt-0.5">可直接提问任何关于软路由配置、RouterOS 策略、DNS 优化及双核网关的问题</p>
                 </div>
               </div>
 
-              <!-- Right: 单行紧凑排列集群 (按序排列：级别过滤 -> 模块选择 -> 清屏 -> 刷新 -> 复制报告 -> 问题反馈) -->
-              <div class="flex items-center gap-2 text-xs font-mono shrink-0 flex-nowrap">
-                <!-- Level Filter Pills -->
-                <div class="flex items-center macos-capsule p-0.5 rounded-xl">
-                  <button v-for="lvl in ['ALL', 'INFO', 'WARN', 'ERROR']" :key="lvl"
-                    @click="logFilterLevel = lvl"
-                    :class="[
-                      'px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer',
-                      logFilterLevel === lvl ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] font-extrabold shadow-sm' : 'text-slate-300 hover:text-white hover:bg-white/10'
-                    ]">
-                    {{ lvl }}
-                  </button>
-                </div>
-
-                <!-- 全部模块下拉菜单已按需取消 -->
-
-                <!-- Clear Screen -->
-                <button @click="clearSystemLogs" class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-slate-300 hover:text-white text-[11px] font-bold active:scale-95 transition cursor-pointer" title="清空当前环形缓冲区日志">
-                  <span>🗑 清屏</span>
-                </button>
-
-                <!-- Refresh -->
-                <button @click="fetchSystemLogs(true)" class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white border border-slate-800 text-slate-300 hover:text-white active:scale-95 transition cursor-pointer" title="立即刷新日志">
-                  <span>🔄</span>
-                </button>
-
-                <!-- Copy Desensitized Markdown Report -->
-                <button @click="copyDiagnosticMarkdown"
-                  class="px-3 py-1 rounded-xl text-[11px] font-bold bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-slate-200 backdrop-blur-md active:scale-95 transition flex items-center gap-1 cursor-pointer"
-                  title="复制 Markdown 格式脱敏排障报告至剪贴板">
+              <!-- 右侧快捷操作 -->
+              <div class="flex items-center gap-2">
+                <button v-if="aiReply" @click="copyText(aiReply, '已复制 AI 诊断报告')"
+                  class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-200 hover:text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
                   <span>📋</span>
-                  <span>复制报告</span>
+                  <span>复制回答</span>
                 </button>
-
-                <!-- One-Click Upload to GitHub Issues (固定在最右侧，高亮突出) -->
-                <button @click="uploadToGithubIssue" :disabled="creatingGithubIssue"
-                  class="px-3.5 py-1 rounded-xl text-[11px] font-extrabold bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] hover:from-[#FFA970] hover:to-[#FBBF24] text-[#1E1106] shadow-md shadow-[#FF9E5E]/20 active:scale-95 transition flex items-center gap-1.5 cursor-pointer shrink-0"
-                  title="在浏览器直达 GitHub Issues 预填脱敏排障报告">
-                  <span v-if="creatingGithubIssue" class="inline-block animate-spin mr-0.5">↻</span>
-                  <span v-else>🚀</span>
-                  <span>问题反馈</span>
+                <button v-if="aiReply" @click="aiReply = ''; aiActions = []; aiActionResult = ''"
+                  class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-400 hover:text-white text-xs transition cursor-pointer">
+                  清空
                 </button>
               </div>
             </div>
 
-            <!-- Terminal Output Window (固定展示最新20行、紧随约1行自然空白、页面不滑动、日志保持实时滚动) -->
-            <div ref="logContainerRef" class="h-[485px] sm:h-[510px] max-h-[calc(100dvh-165px)] overflow-y-auto no-scrollbar p-3.5 sm:p-4 font-mono text-xs bg-[rgba(14,12,24,0.38)] backdrop-blur-md select-text transition-all">
-              <div class="space-y-1">
-                <div v-if="displayedLogs.length === 0" class="h-full flex flex-col items-center justify-center text-slate-300 space-y-2 py-12">
-                  <span class="text-3xl">📜</span>
-                  <span class="text-xs">当前过滤器下暂无日志记录</span>
-                  <button v-if="logFilterLevel !== 'ALL' || logFilterModule !== 'ALL' || logSearchQuery"
-                    @click="logFilterLevel = 'ALL'; logFilterModule = 'ALL'; logSearchQuery = ''"
-                    class="text-[11px] text-emerald-300 underline hover:text-emerald-300 cursor-pointer">
-                    重置所有过滤器
-                  </button>
+            <!-- AI 回复内容展示视窗 -->
+            <div class="min-h-[220px] max-h-[500px] overflow-y-auto custom-scrollbar rounded-2xl bg-black/35 border border-white/10 p-4 sm:p-5 text-slate-200 text-xs sm:text-[13px] leading-relaxed relative">
+              <div v-if="aiLoading" class="h-48 flex flex-col items-center justify-center space-y-3">
+                <div class="w-10 h-10 border-3 border-[#FF9E5E] border-t-transparent rounded-full animate-spin"></div>
+                <div class="text-xs font-mono text-slate-300 animate-pulse">CubeX AI 伴生管家正在全维推演与体检中...</div>
+              </div>
+
+              <div v-else-if="!aiReply" class="space-y-4 py-3">
+                <div class="flex items-start gap-3">
+                  <span class="text-2xl shrink-0 select-none leading-none drop-shadow-sm">🤖</span>
+                  <div class="space-y-2">
+                    <p class="font-bold text-white text-sm">你好！我是 CubeX 零感网络伴生 AI 管家。</p>
+                    <p class="text-slate-300">我已深度接入当前软路由运行时底层：实时监控 RouterOS / 飞牛 / Linux 宿主底座、双核引擎健康度、策略路由表 table cubex 与 217heidai 防广告拦截中枢。</p>
+                    <p class="text-slate-400 text-xs">点击上方快捷作业卡片，或直接在下方输入框提出您关心的网络问题！</p>
+                  </div>
                 </div>
 
-                <div v-for="entry in displayedLogs" :key="entry.id" class="flex items-start gap-2.5 leading-normal hover:bg-white/[0.06] px-2 py-0.5 rounded transition font-mono group">
-                  <!-- Timestamp -->
-                  <span class="text-slate-300 text-[11px] shrink-0 select-none">{{ entry.time }}</span>
-
-                  <!-- Level Badge -->
-                  <span :class="[
-                    'px-1.5 py-0.2 rounded text-[10px] font-bold shrink-0 select-none uppercase tracking-wider',
-                    entry.level === 'ERROR' ? 'bg-rose-950 text-rose-300 border border-rose-500/50 animate-pulse' :
-                    entry.level === 'WARN' ? 'bg-amber-950 text-amber-300 border border-amber-500/50' :
-                    entry.level === 'DEBUG' ? 'bg-purple-950 text-purple-300 border border-purple-500/40' :
-                    'bg-[rgba(255,158,94,0.18)] text-[#FF9E5E] border border-[rgba(255,158,94,0.35)]'
-                  ]">
-                    {{ entry.level }}
-                  </span>
-
-                  <!-- Module Tag -->
-                  <span class="px-1.5 py-0.2 rounded bg-white/[0.06] text-slate-300 border border-white/10 text-[10px] font-bold shrink-0 select-none">
-                    {{ entry.module }}
-                  </span>
-
-                  <!-- Message Text -->
-                  <span :class="[
-                    'flex-1 break-all text-xs font-mono',
-                    entry.level === 'ERROR' ? 'text-rose-200 font-bold' :
-                    entry.level === 'WARN' ? 'text-amber-200' :
-                    'text-slate-200'
-                  ]">
-                    {{ entry.msg }}
-                  </span>
+                <!-- 推荐热点提问气泡 -->
+                <div class="pt-2 border-t border-white/5 space-y-2">
+                  <span class="text-[11px] font-bold text-slate-400">💡 推荐快捷提问：</span>
+                  <div class="flex flex-wrap gap-2">
+                    <button v-for="q in aiPresetQuestions" :key="q"
+                      @click="triggerQuickAIPrompt(q)"
+                      class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 hover:border-[#FF9E5E]/40 text-slate-300 hover:text-white text-xs transition-colors cursor-pointer text-left">
+                      {{ q }}
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <!-- Terminal Cursor Blink (紧随15行日志下方，约1行自然空白间距，绝不下沉留大空) -->
-              <div class="pt-2 sm:pt-2.5 flex items-center gap-2 text-emerald-300 text-xs select-none">
-                <span>cubex@host:~$</span>
-                <span class="inline-block w-2 h-4 bg-cyan-400 animate-pulse"></span>
+              <!-- AI 输出结果 (支持 Markdown 排版与实操执行卡片) -->
+              <div v-else class="space-y-4 whitespace-pre-wrap select-text font-sans">
+                <div class="flex items-center justify-between pb-2 border-b border-white/10 text-[11px] font-mono">
+                  <div class="flex items-center gap-2 text-cyan-300">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse"></span>
+                    <span>AI 管家推演完成 · 具备真实自愈运维权限</span>
+                  </div>
+                  <span class="text-slate-400 hidden sm:inline">端云协同 · 本地安全沙盒</span>
+                </div>
+                <div class="leading-relaxed text-slate-100 text-xs sm:text-[13px]">{{ aiReply }}</div>
+
+                <!-- 🛠️ AI 管家专属交互操作胶囊卡片流 (Interactive Action Pills) -->
+                <div v-if="aiActions && aiActions.length > 0" class="pt-3 border-t border-white/10 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-[#FF9E5E] flex items-center gap-1.5">
+                      <span>⚡ AI 推荐立即执行的操作 (点击直接修网):</span>
+                    </span>
+                    <span class="text-[10px] text-emerald-400 font-mono">闭环自愈就绪</span>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    <button v-for="act in aiActions" :key="act.id"
+                      @click="executeAIAction(act)"
+                      :disabled="executingAIActionId === act.id"
+                      class="p-2.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/15 hover:border-amber-400/50 text-left transition flex items-start gap-2.5 cursor-pointer group active:scale-98 disabled:opacity-60 select-none shadow-sm">
+                      <span class="text-xl shrink-0 group-hover:scale-110 transition-transform select-none leading-none mt-0.5">
+                        {{ executingAIActionId === act.id ? '⏳' : act.icon }}
+                      </span>
+                      <div class="min-w-0 flex-1">
+                        <div class="font-bold text-xs text-white group-hover:text-amber-200 flex items-center gap-1 truncate">
+                          <span>{{ cleanActionLabel(act.label) }}</span>
+                        </div>
+                        <div class="text-[11px] text-slate-400 font-normal truncate mt-0.5">{{ act.desc }}</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 📜 AI 执行动作后的实时操作回执日志 -->
+                <div v-if="aiActionResult" class="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-200 text-xs space-y-1.5 animate-in fade-in">
+                  <div class="font-bold flex items-center gap-1.5 text-emerald-300">
+                    <span>✅ AI 运维指令执行成功报告</span>
+                  </div>
+                  <div class="text-[11px] text-slate-300 whitespace-pre-line leading-relaxed font-mono">{{ aiActionResult }}</div>
+                </div>
               </div>
+            </div>
+
+            <!-- 输入栏与控制栏 -->
+            <div class="space-y-2">
+              <form @submit.prevent="sendAIChat" class="flex items-center gap-2">
+                <div class="relative flex-1">
+                  <input v-model="aiPrompt"
+                    :disabled="aiLoading"
+                    type="text"
+                    placeholder="问 AI 管家：例如“如何配置 RouterOS 策略路由？”或“帮我体检当前网络”..."
+                    class="w-full px-4 py-3 rounded-2xl bg-black/40 border border-white/15 text-white placeholder-slate-500 text-xs sm:text-[13px] focus:outline-none focus:border-[#FF9E5E]/60 focus:ring-1 focus:ring-[#FF9E5E]/30 transition" />
+                  <span v-if="aiPrompt" @click="aiPrompt = ''" class="absolute right-3.5 top-3 text-slate-400 hover:text-white cursor-pointer text-xs">✕</span>
+                </div>
+                <button type="submit"
+                  :disabled="aiLoading || !aiPrompt.trim()"
+                  class="px-5 py-3 rounded-2xl font-black text-xs sm:text-[13px] bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] hover:from-[#FFA970] hover:to-[#FBBF24] text-[#1E1106] shadow-lg shadow-[#FF9E5E]/20 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1.5 shrink-0 cursor-pointer">
+                  <span v-if="aiLoading" class="inline-block animate-spin mr-1">↻</span>
+                  <span v-else>🚀</span>
+                  <span>发送提问</span>
+                </button>
+              </form>
             </div>
           </div>
         </div>
@@ -3975,6 +3897,220 @@
       </main>
 
     </div>
+
+    <!-- 📜 实时系统日志终端模态弹窗 (Live Diagnostics & Ring Buffer Modal) -->
+    <div v-if="showLogsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in" @click.self="showLogsModal = false">
+      <div class="bg-[#0b0816]/95 border border-white/20 rounded-3xl max-w-5xl w-full shadow-2xl flex flex-col text-slate-200 overflow-hidden relative">
+        <!-- Terminal Header -->
+        <div class="px-4 sm:px-6 py-3 bg-white/[0.04] border-b border-white/10 flex items-center justify-between gap-3 select-none flex-wrap sm:flex-nowrap">
+          <!-- Left Status -->
+          <div class="flex items-center gap-2.5 shrink-0">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block shadow-sm"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block shadow-sm"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block shadow-sm"></span>
+            </div>
+            <div class="h-3.5 w-px bg-slate-700/80 mx-0.5"></div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs sm:text-[13px] font-mono font-black text-white tracking-wide flex items-center gap-1.5">
+                <ZootopiaIcon name="diagnostics" :size="16" class="shrink-0" />
+                <span>CUBEX_LIVE_RING_BUFFER</span>
+              </span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center gap-1 bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                实时捕获
+              </span>
+            </div>
+          </div>
+
+          <!-- Right Controls -->
+          <div class="flex items-center gap-2 text-xs font-mono shrink-0 flex-nowrap">
+            <!-- Level Filter Pills -->
+            <div class="flex items-center macos-capsule p-0.5 rounded-xl">
+              <button v-for="lvl in ['ALL', 'INFO', 'WARN', 'ERROR']" :key="lvl"
+                @click="logFilterLevel = lvl"
+                :class="[
+                  'px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer',
+                  logFilterLevel === lvl ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] font-extrabold shadow-sm' : 'text-slate-300 hover:text-white hover:bg-white/10'
+                ]">
+                {{ lvl }}
+              </button>
+            </div>
+
+            <!-- Clear Screen -->
+            <button @click="clearSystemLogs" class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-slate-300 hover:text-white text-[11px] font-bold active:scale-95 transition cursor-pointer" title="清空当前环形缓冲区日志">
+              <span>🗑 清屏</span>
+            </button>
+
+            <!-- Refresh -->
+            <button @click="fetchSystemLogs(true)" class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-slate-300 hover:text-white active:scale-95 transition cursor-pointer" title="立即刷新日志">
+              <span>🔄</span>
+            </button>
+
+            <!-- Copy Desensitized Markdown Report -->
+            <button @click="copyDiagnosticMarkdown"
+              class="px-3 py-1 rounded-xl text-[11px] font-bold bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-slate-200 active:scale-95 transition flex items-center gap-1 cursor-pointer"
+              title="复制 Markdown 格式脱敏排障报告至剪贴板">
+              <span>📋</span>
+              <span>复制报告</span>
+            </button>
+
+            <!-- One-Click Upload to GitHub Issues -->
+            <button @click="uploadToGithubIssue" :disabled="creatingGithubIssue"
+              class="px-3.5 py-1 rounded-xl text-[11px] font-extrabold bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] hover:from-[#FFA970] hover:to-[#FBBF24] text-[#1E1106] shadow-md shadow-[#FF9E5E]/20 active:scale-95 transition flex items-center gap-1.5 cursor-pointer shrink-0"
+              title="在浏览器直达 GitHub Issues 预填脱敏排障报告">
+              <span v-if="creatingGithubIssue" class="inline-block animate-spin mr-0.5">↻</span>
+              <span v-else>🚀</span>
+              <span>问题反馈</span>
+            </button>
+
+            <!-- Close Modal Button -->
+            <button @click="showLogsModal = false" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-300 hover:text-white text-xs font-bold transition cursor-pointer" title="关闭窗口">
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <!-- Terminal Output Window -->
+        <div ref="logContainerRef" class="h-[520px] max-h-[70vh] overflow-y-auto no-scrollbar p-3.5 sm:p-4 font-mono text-xs bg-black/40 select-text transition-all">
+          <div class="space-y-1">
+            <div v-if="displayedLogs.length === 0" class="h-full flex flex-col items-center justify-center text-slate-300 space-y-2 py-12">
+              <span class="text-3xl">📜</span>
+              <span class="text-xs">当前过滤器下暂无日志记录</span>
+              <button v-if="logFilterLevel !== 'ALL' || logFilterModule !== 'ALL' || logSearchQuery"
+                @click="logFilterLevel = 'ALL'; logFilterModule = 'ALL'; logSearchQuery = ''"
+                class="text-[11px] text-emerald-300 underline hover:text-emerald-300 cursor-pointer">
+                重置所有过滤器
+              </button>
+            </div>
+
+            <div v-for="entry in displayedLogs" :key="entry.id" class="flex items-start gap-2.5 leading-normal hover:bg-white/[0.06] px-2 py-0.5 rounded transition font-mono group">
+              <!-- Timestamp -->
+              <span class="text-slate-400 text-[11px] shrink-0 select-none">{{ entry.time }}</span>
+
+              <!-- Level Badge -->
+              <span :class="[
+                'px-1.5 py-0.2 rounded text-[10px] font-bold shrink-0 select-none uppercase tracking-wider',
+                entry.level === 'ERROR' ? 'bg-rose-950 text-rose-300 border border-rose-500/50 animate-pulse' :
+                entry.level === 'WARN' ? 'bg-amber-950 text-amber-300 border border-amber-500/50' :
+                entry.level === 'DEBUG' ? 'bg-purple-950 text-purple-300 border border-purple-500/40' :
+                'bg-[rgba(255,158,94,0.18)] text-[#FF9E5E] border border-[rgba(255,158,94,0.35)]'
+              ]">
+                {{ entry.level }}
+              </span>
+
+              <!-- Module Tag -->
+              <span class="px-1.5 py-0.2 rounded bg-white/[0.06] text-slate-300 border border-white/10 text-[10px] font-bold shrink-0 select-none">
+                {{ entry.module }}
+              </span>
+
+              <!-- Message Text -->
+              <span :class="[
+                'flex-1 break-all text-xs font-mono',
+                entry.level === 'ERROR' ? 'text-rose-200 font-bold' :
+                entry.level === 'WARN' ? 'text-amber-200' :
+                'text-slate-200'
+              ]">
+                {{ entry.msg }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Terminal Cursor Blink -->
+          <div class="pt-2 sm:pt-2.5 flex items-center gap-2 text-emerald-300 text-xs select-none">
+            <span>cubex@host:~$</span>
+            <span class="inline-block w-2 h-4 bg-cyan-400 animate-pulse"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+        <!-- ⚙️ AI 管家大模型提供商与参数配置弹窗 (AI Model Settings Modal - 深度支持 10 大国内外主流与本地引擎) -->
+    <div v-if="showAISettingsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in" @click.self="showAISettingsModal = false">
+      <div class="bg-[#0e091c]/95 border border-white/20 rounded-3xl p-5 sm:p-7 max-w-2xl w-full space-y-5 shadow-2xl text-slate-200 my-auto">
+        <!-- 模态框标题 -->
+        <div class="flex items-center justify-between border-b border-white/10 pb-3.5">
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl p-2 rounded-2xl bg-purple-500/15 border border-purple-500/30">🤖</span>
+            <div>
+              <h3 class="text-base font-black text-white">AI 管家大模型引擎设置</h3>
+              <p class="text-[11px] text-slate-400 mt-0.5">支持 DeepSeek、通义千问、OpenAI、Claude、Gemini、Kimi、GLM、豆包及本地离线私有化</p>
+            </div>
+          </div>
+          <button @click="showAISettingsModal = false" class="text-slate-400 hover:text-white px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold transition cursor-pointer">✕</button>
+        </div>
+
+        <!-- 表单 -->
+        <div class="space-y-4 text-xs font-mono">
+          <!-- 10 大模型提供商选择网格 -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="block font-bold text-slate-300">选择大模型提供商 (点击一键载入推荐配置)</label>
+              <span class="text-[10px] text-emerald-400 font-mono">● 即选即填</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <button type="button" v-for="prov in aiProviders" :key="prov.id"
+                @click="selectAIProvider(prov)"
+                :class="[
+                  'p-2.5 rounded-xl font-bold transition border cursor-pointer text-left flex items-start gap-2 select-none',
+                  aiConfig.provider === prov.id ? 'bg-[#FF9E5E]/20 text-white border-[#FF9E5E] shadow-md ring-1 ring-[#FF9E5E]/50' : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:border-white/20'
+                ]">
+                <span class="text-lg shrink-0 mt-0.5">{{ prov.icon }}</span>
+                <div class="min-w-0">
+                  <div class="font-extrabold text-xs truncate flex items-center gap-1">
+                    <span>{{ prov.name }}</span>
+                    <span v-if="aiConfig.provider === prov.id" class="text-[10px] text-emerald-300">✔</span>
+                  </div>
+                  <div class="text-[10px] text-slate-400 truncate font-sans font-normal mt-0.5">{{ prov.desc }}</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- 模型名称 -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="block font-bold text-slate-300">模型名称 (Model)</label>
+              <span class="text-[10px] text-slate-400">已自动为您预设推荐模型，支持手动修改</span>
+            </div>
+            <input v-model="aiConfig.model" placeholder="例如 deepseek-chat, qwen-plus, gpt-4o-mini, gemini-2.0-flash"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/15 text-white font-mono focus:outline-none focus:border-[#FF9E5E]/60 text-xs" />
+          </div>
+
+          <!-- API Key -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <label class="block font-bold text-slate-300">API Key 凭证</label>
+              <span class="text-[10px] text-emerald-400">本地 Ollama 可不填 · 留空启用内置启发式体检</span>
+            </div>
+            <input v-model="aiConfig.api_key" type="password" placeholder="sk-..."
+              class="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/15 text-white font-mono focus:outline-none focus:border-[#FF9E5E]/60 text-xs" />
+          </div>
+
+          <!-- 自定义 BaseURL -->
+          <div class="space-y-1.5" v-if="aiConfig.provider !== 'gemini'">
+            <div class="flex items-center justify-between">
+              <label class="block font-bold text-slate-300">API 端点 (Base URL)</label>
+              <span class="text-[10px] text-slate-400">可使用官方端点或您的私有中转/局域网端点</span>
+            </div>
+            <input v-model="aiConfig.base_url" placeholder="https://api.deepseek.com/v1"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/15 text-white font-mono focus:outline-none focus:border-[#FF9E5E]/60 text-xs" />
+          </div>
+        </div>
+
+        <!-- 底部按钮 -->
+        <div class="flex items-center justify-between pt-3 border-t border-white/10">
+          <div class="text-[11px] text-slate-400 flex items-center gap-1 font-sans">
+            <span>💡 提示：零 Key 即时可用，配置 Key 解锁完整多轮对话</span>
+          </div>
+          <div class="flex items-center gap-2.5">
+            <button @click="showAISettingsModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 font-bold text-xs transition cursor-pointer">取消</button>
+            <button @click="saveAIConfig" class="px-5 py-2 rounded-xl bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] font-black text-xs shadow-md shadow-[#FF9E5E]/20 transition active:scale-95 cursor-pointer">保存生效</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
 
     <!-- ── Multi-Airport & Custom Nodes Manager Modal ── -->
     <div v-if="showImportModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
@@ -5355,7 +5491,10 @@ import RegionFlag from './components/RegionFlag.vue'
 import TopologyCanvas from './components/TopologyCanvas.vue'
 
 // ── Master Navigation Hubs (核心模块导航 - 支持全状态记忆与 F5 刷新锁定) ──
-const VALID_TABS = ['overview', 'routing', 'rules', 'kspeeder', 'diagnostics', 'system']
+const VALID_TABS = ['overview', 'routing', 'rules', 'kspeeder', 'system', 'ai']
+
+const showLogsModal = ref(false)
+const showAISettingsModal = ref(false)
 
 function getInitialTab() {
   try {
@@ -5415,8 +5554,22 @@ const navItems = [
   { id: 'rules', label: '安全防护', icon: 'rules' },
   { id: 'kspeeder', label: '容器加速', icon: 'kspeeder' },
   { id: 'system', label: '宿主共生', icon: 'system' },
-  { id: 'diagnostics', label: '日志诊断', icon: 'diagnostics' }
+  { id: 'ai', label: 'AI管家', icon: 'ai' }
 ]
+
+// 🎨 疯狂动物城 1 & 2 主题 6 大板块独立超高清海报配置 (WebP 硬件解码)
+const tabBackgrounds = [
+  { id: 'overview', webp: '/assets/bg-tab-overview.webp', jpg: '/assets/bg-tab-overview.jpg', position: 'center 35%' },
+  { id: 'routing', webp: '/assets/bg-tab-routing.webp', jpg: '/assets/bg-tab-routing.jpg', position: 'center 35%' },
+  { id: 'rules', webp: '/assets/bg-tab-rules.webp', jpg: '/assets/bg-tab-rules.jpg', position: 'center 30%' },
+  { id: 'kspeeder', webp: '/assets/bg-tab-kspeeder.webp', jpg: '/assets/bg-tab-kspeeder.jpg', position: 'center 40%' },
+  { id: 'system', webp: '/assets/bg-tab-system.webp', jpg: '/assets/bg-tab-system.jpg', position: 'center 35%' },
+  { id: 'ai', webp: '/assets/bg-tab-diagnostics.webp', jpg: '/assets/bg-tab-diagnostics.jpg', position: 'center 35%' }
+]
+
+const activeTabBg = computed(() => {
+  return tabBackgrounds.find(b => b.id === activeMasterTab.value) || tabBackgrounds[0]
+})
 
 const currentTabTitle = computed(() => {
   const match = navItems.find(i => i.id === activeMasterTab.value)
@@ -5749,7 +5902,7 @@ const currentThemeMeta = computed(() => ({
 }))
 
 // 去蓝光护眼滤镜状态 (本地持久化存储 · 滤除 420-460nm 高能蓝光)
-const antiBlueLight = ref(localStorage.getItem('cubex_anti_blue') !== 'false')
+const antiBlueLight = ref(localStorage.getItem('cubex_anti_blue') === 'true')
 
 function toggleAntiBlueLight() {
   antiBlueLight.value = !antiBlueLight.value
@@ -5782,18 +5935,21 @@ const isScrolledDown = ref(false)
 const headerAutoMode = ref(true) // 默认开启「两全其美」智能避让
 let lastScrollY = 0
 
+let scrollRafId = null
 function onMainContentScroll(e) {
+  if (scrollRafId) return
   const currentScrollY = e.target.scrollTop || 0
-  isScrolledDown.value = currentScrollY > 20
-
-  if (currentScrollY <= 20) {
-    // 仅当彻底回到页面最顶部时显示页眉
-    isHeaderHidden.value = false
-  } else {
-    // 离开顶部后，无论是向上滑、向下滑还是滑块拖动，一律不显示页眉，绝不遮挡卡片
-    isHeaderHidden.value = true
-  }
-  lastScrollY = currentScrollY
+  scrollRafId = requestAnimationFrame(() => {
+    scrollRafId = null
+    const scrolled = currentScrollY > 20
+    if (isScrolledDown.value !== scrolled) {
+      isScrolledDown.value = scrolled
+    }
+    if (isHeaderHidden.value !== scrolled) {
+      isHeaderHidden.value = scrolled
+    }
+    lastScrollY = currentScrollY
+  })
 }
 
 const activeEngine = ref('singbox')
@@ -7608,6 +7764,50 @@ const expandedPolicyRules = ref({})
 const aiPrompt = ref('')
 const aiReply = ref('')
 const aiLoading = ref(false)
+const aiActions = ref([])
+const aiActionResult = ref('')
+const executingAIActionId = ref('')
+const aiProviders = [
+  { id: 'deepseek', name: 'DeepSeek (深度求索)', icon: '🐋', desc: '首选高性价比 · 极速推理', defaultModel: 'deepseek-chat', defaultBase: 'https://api.deepseek.com/v1' },
+  { id: 'qwen', name: '通义千问 (Qwen)', icon: '☁️', desc: '阿里云百炼官方端点', defaultModel: 'qwen-plus', defaultBase: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
+  { id: 'openai', name: 'OpenAI (ChatGPT)', icon: '⚡', desc: 'GPT-4o / GPT-4o-mini', defaultModel: 'gpt-4o-mini', defaultBase: 'https://api.openai.com/v1' },
+  { id: 'claude', name: 'Claude (Anthropic)', icon: '🎭', desc: 'Claude 3.5 Sonnet / Haiku', defaultModel: 'claude-3-5-sonnet-20241022', defaultBase: 'https://api.anthropic.com' },
+  { id: 'gemini', name: 'Google Gemini', icon: '✨', desc: 'Gemini 2.0 Flash 极速官方端', defaultModel: 'gemini-2.0-flash', defaultBase: '' },
+  { id: 'moonshot', name: '月之暗面 (Kimi)', icon: '🌙', desc: 'Moonshot 超长文本推理', defaultModel: 'moonshot-v1-8k', defaultBase: 'https://api.moonshot.cn/v1' },
+  { id: 'zhipu', name: '智谱清言 (GLM-4)', icon: '🧠', desc: 'GLM-4 认知大模型', defaultModel: 'glm-4-flash', defaultBase: 'https://open.bigmodel.cn/api/paas/v4' },
+  { id: 'doubao', name: '火山引擎 (豆包)', icon: '🌋', desc: '字节跳动 Doubao-pro-32k', defaultModel: 'doubao-pro-32k', defaultBase: 'https://ark.cn-beijing.volces.com/api/v3' },
+  { id: 'ollama', name: '本地 Ollama / LM Studio', icon: '🦙', desc: '局域网纯离线私有化', defaultModel: 'deepseek-r1:8b', defaultBase: 'http://10.0.0.9:11434/v1' },
+  { id: 'custom', name: '自定义端点 (OpenAI 兼容)', icon: '🛠️', desc: '第三方反向代理/聚合端点', defaultModel: '', defaultBase: '' },
+]
+
+function selectAIProvider(prov) {
+  aiConfig.value.provider = prov.id
+  if (prov.defaultModel) {
+    aiConfig.value.model = prov.defaultModel
+  }
+  if (prov.defaultBase !== undefined) {
+    aiConfig.value.base_url = prov.defaultBase
+  }
+}
+
+const aiConfig = ref({
+  provider: 'qwen',
+  model: 'qwen-plus',
+  api_key: '',
+  base_url: '',
+  has_api_key: false
+})
+const aiPresetQuestions = [
+  '请对当前网络进行一次全维度的体检评估',
+  '如何设置 Apple 业务走国内直连无损分流？',
+  '飞牛 fnOS 容器与 CubeX 旁路由双向互通方案',
+  '推荐当前延迟最低、丢包率最少的落地节点',
+  '检查 RouterOS 策略路由 198.18.0.0/15 是否健康'
+]
+function triggerQuickAIPrompt(prompt) {
+  aiPrompt.value = prompt
+  sendAIChat()
+}
 
 // ── System Status & Last Result ──
 const systemStatus = ref({
@@ -9352,6 +9552,7 @@ async function askAICheck() {
 async function sendAIChat() {
   if (!aiPrompt.value) return
   aiLoading.value = true
+  aiActionResult.value = ''
   const p = aiPrompt.value
   aiPrompt.value = ''
   try {
@@ -9362,10 +9563,94 @@ async function sendAIChat() {
     })
     const data = await res.json()
     aiReply.value = data.reply || '已完成推演：推荐保持当前智能规则分流，局域网特定设备可通过「穿透协同」切换底层直连。'
+    aiActions.value = data.actions || []
   } catch (e) {
     aiReply.value = '已完成推演：推荐保持当前智能规则分流，局域网特定设备可通过「穿透协同」切换底层直连。'
+    aiActions.value = []
   } finally {
     aiLoading.value = false
+  }
+}
+
+async function cleanActionLabel(label) {
+  if (!label) return ''
+  // 移除开头可能包含的任何 emoji、图标及紧随的空格，彻底避免与左侧大图标重复
+  return label.replace(/^[\p{Extended_Pictographic}\uFE0F\u200D\s]+/u, '').trim()
+}
+
+async function executeAIAction(act) {
+  if (!act || executingAIActionId.value) return
+  executingAIActionId.value = act.id
+  aiActionResult.value = ''
+  try {
+    let resultMsg = ''
+    if (act.type === 'heal') {
+      const res = await fetch('/api/v1/system/heal', { method: 'POST' })
+      const data = await res.json()
+      resultMsg = data.report || data.message || '全栈自愈加固已完成！'
+      showToast('🎉 ' + (data.message || '自愈完成'))
+      refreshHealthRadar(true)
+      fetchHostConfig()
+    } else if (act.type === 'failover') {
+      const res = await fetch('/api/v1/smartping/trigger', { method: 'POST' })
+      const data = await res.json()
+      resultMsg = data.message || '智能避障巡检完成：已探查所有策略组并就绪。'
+      showToast('🛡️ ' + resultMsg)
+      fetchTelemetryTraffic()
+      fetchSmartPingStatus()
+    } else if (act.type === 'clean_conntrack') {
+      const res = await fetch('/api/v1/ros/conntrack/clean', { method: 'POST' })
+      const data = await res.json()
+      resultMsg = `已清空残留 Fake-IP 僵尸连接 ${data.purged_count || 0} 条，网络并发已彻底清算！`
+      showToast('🧹 ' + resultMsg)
+    } else if (act.type === 'switch_engine') {
+      const targetEng = activeEngine.value === 'mihomo' ? 'singbox' : 'mihomo'
+      await switchEngine(targetEng)
+      resultMsg = `双核平滑热切换成功：当前活动核心已无缝热重载为【${targetEng === 'singbox' ? 'sing-box v1.14' : 'Mihomo v1.19'}】！`
+    } else if (act.endpoint) {
+      const res = await fetch(act.endpoint, { method: 'POST' })
+      const data = await res.json()
+      resultMsg = data.message || data.report || '指令已成功执行！'
+      showToast('✔ 指令执行成功')
+    }
+    aiActionResult.value = `【管家执行报告】\n${resultMsg}\n• 执行时间：${new Date().toLocaleTimeString()} · 状态：全绿满分就绪`
+  } catch (e) {
+    aiActionResult.value = `【执行中断】操作出现异常: ${e.message}`
+    showToast('❌ 执行失败: ' + e.message, true)
+  } finally {
+    executingAIActionId.value = ''
+  }
+}
+
+async function fetchAIConfig() {
+  try {
+    const res = await fetch('/api/v1/ai/config')
+    if (res.ok) {
+      const data = await res.json()
+      if (data) {
+        aiConfig.value = { ...aiConfig.value, ...data }
+      }
+    }
+  } catch (e) {}
+}
+
+async function saveAIConfig() {
+  try {
+    const res = await fetch('/api/v1/ai/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(aiConfig.value)
+    })
+    const data = await res.json()
+    if (data.status === 'ok') {
+      showToast('🎉 ' + (data.message || 'AI 管家配置保存成功！'))
+      showAISettingsModal.value = false
+      await fetchAIConfig()
+    } else {
+      showToast('❌ 保存失败: ' + (data.error || '未知错误'), true)
+    }
+  } catch (e) {
+    showToast('❌ 保存失败: ' + e.message, true)
   }
 }
 
@@ -12461,42 +12746,58 @@ async function submitAddNode() {
 
 const editingSubId = ref(null)
 const editingSubName = ref('')
+const editingSubUrl = ref('')
+const editingSubSaving = ref(false)
 
-function startSubRename(sub) {
+function startSubEdit(sub) {
   editingSubId.value = sub.id
-  editingSubName.value = sub.name
+  editingSubName.value = sub.name || ''
+  editingSubUrl.value = sub.url || ''
 }
 
-function cancelSubRename() {
+const startSubRename = startSubEdit
+
+function cancelSubEdit() {
   editingSubId.value = null
   editingSubName.value = ''
+  editingSubUrl.value = ''
+  editingSubSaving.value = false
 }
 
-async function saveSubRename(subId) {
+const cancelSubRename = cancelSubEdit
+
+async function saveSubEdit(subId) {
   const newName = editingSubName.value.trim()
+  const newUrl = editingSubUrl.value.trim()
   if (!newName) {
     showToast('⚠️ 订阅名称不能为空')
     return
   }
+  editingSubSaving.value = true
   try {
-    const res = await fetch('/api/v1/config/subscriptions/rename', {
+    const res = await fetch('/api/v1/config/subscriptions/edit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: subId, name: newName })
+      body: JSON.stringify({ id: subId, name: newName, url: newUrl })
     })
     const data = await res.json()
     if (data.ok) {
-      showToast(`🎉 订阅已成功重命名为: ${newName}`)
+      showToast(`🎉 订阅已成功保存修改 (共 ${data.node_count || 0} 个节点)`)
       editingSubId.value = null
       editingSubName.value = ''
+      editingSubUrl.value = ''
       await fetchIR()
     } else {
-      showToast(`⚠️ 重命名失败: ${data.error || '未知错误'}`)
+      showToast(`⚠️ 修改失败: ${data.error || '未知错误'}`)
     }
   } catch (e) {
     showToast(`⚠️ 网络请求异常: ${e.message}`)
+  } finally {
+    editingSubSaving.value = false
   }
 }
+
+const saveSubRename = saveSubEdit
 
 async function deleteSubscription(subId) {
   if (!confirm('确定要删除此订阅订阅及其所属节点吗？')) return
@@ -13226,6 +13527,7 @@ function syncUIStateToCloud() {
 
 onMounted(async () => {
   fetchUIState()
+  fetchAIConfig()
   // Global shortcut: press "/" to focus routing search input
   window.addEventListener('keydown', (e) => {
     if (e.key === '/' && activeMasterTab.value === 'routing') {
@@ -13309,12 +13611,18 @@ onMounted(async () => {
   // ⚡ 智能按需调度器：仅在页面可见且对应 Tab 激活时才轮询，后台或未激活时静默休眠
   const isPageVisible = () => typeof document !== 'undefined' && !document.hidden
 
-  // 1. 流量遥测 (仅在总览页且可见时每 1.2s 采样，切换至其他页自动休眠)
-  setInterval(() => {
-    if (isPageVisible() && activeMasterTab.value === 'overview') {
-      fetchTelemetryTraffic()
+  let isFetchingTelemetry = false
+  // 1. 流量遥测 (仅在总览页且可见时每 1.5s 采样，切换至其他页自动休眠 · 严格防请求堆积卡顿)
+  setInterval(async () => {
+    if (isPageVisible() && activeMasterTab.value === 'overview' && !isFetchingTelemetry) {
+      isFetchingTelemetry = true
+      try {
+        await fetchTelemetryTraffic()
+      } finally {
+        isFetchingTelemetry = false
+      }
     }
-  }, 1200)
+  }, 1500)
 
   // 2. 双核主控内存与状态 (仅前台可见时每 3s 刷新)
   setInterval(async () => {
@@ -13352,7 +13660,7 @@ onMounted(async () => {
 
   // 5. 环形实时日志流 (仅在诊断页激活且前台可见时每 3s 刷新)
   setInterval(() => {
-    if (isPageVisible() && activeMasterTab.value === 'diagnostics') {
+    if (isPageVisible() && showLogsModal.value) {
       fetchSystemLogs()
     }
   }, 3000)

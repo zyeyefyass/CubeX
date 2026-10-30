@@ -346,9 +346,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 				if p.SNI != "" {
 					pMap["servername"] = p.SNI
 				}
-				if p.SkipCertVerify {
-					pMap["skip-cert-verify"] = true
-				}
+				pMap["skip-cert-verify"] = true // 🛡️ 强制跳过验证，免疫机场多域名证书不匹配断网
 				if len(p.ALPN) > 0 {
 					pMap["alpn"] = p.ALPN
 				}
@@ -397,9 +395,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			if sni, exists := tlsMap["server_name"].(string); exists && sni != "" {
 				pMap["servername"] = sni
 			}
-			if insec, exists := tlsMap["insecure"].(bool); exists && insec {
-				pMap["skip-cert-verify"] = true
-			}
+			pMap["skip-cert-verify"] = true // 🛡️ 强制跳过证书验证
 			if alpn, exists := tlsMap["alpn"].([]any); exists && len(alpn) > 0 {
 				pMap["alpn"] = alpn
 			}
@@ -608,11 +604,12 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 				gMap["url"] = "https://www.gstatic.com/generate_204"
 			}
 			gMap["interval"] = g.Interval
-			if g.Interval == 0 {
-				gMap["interval"] = 300
+			if g.Interval == 0 || g.Interval > 60 {
+				gMap["interval"] = 60 // ⚡ 60秒快速巡检
 			}
 			gMap["lazy"] = false
-			gMap["timeout"] = 2500
+			gMap["timeout"] = 2000
+			gMap["max-failed"] = 2
 			gMap["expected-status"] = "204"
 			if g.Tolerance > 0 {
 				gMap["tolerance"] = g.Tolerance

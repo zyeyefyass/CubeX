@@ -633,9 +633,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			}
 			tlsMap["server_name"] = sni
 
-			if p.SkipCertVerify {
-				tlsMap["insecure"] = true
-			}
+			tlsMap["insecure"] = true // 🛡️ 强制开启 insecure 免疫证书域名不匹配断网
 			// ALPN handling
 			var alpnList []string
 			if len(p.ALPN) > 0 {

@@ -31,8 +31,7 @@
         </linearGradient>
       </defs>
 
-      <!-- Glass Rounded Badge -->
-      <rect x="1.5" y="1.5" width="29" height="29" rx="8" fill="url(#zt-metro-bg)" stroke="rgba(255, 240, 230, 0.22)" stroke-width="1.2" />
+      <!-- Glass Rounded Badge Removed for Pure Float -->
 
       <!-- Twilight Stars -->
       <circle cx="6" cy="6.5" r="0.8" fill="#FDE68A" opacity="0.8" />
@@ -285,6 +284,41 @@
     </svg>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- 6. AI COPILOT (AI管家): 动物城全息智慧晶核 · AI 伴生管家星芒         -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <svg v-else-if="normalizedName === 'ai' || normalizedName === 'copilot' || normalizedName === 'bot'"
+      :width="computedSize" :height="computedSize" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="zt-ai-bg" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#2D124D" />
+          <stop offset="50%" stop-color="#1B0F2E" />
+          <stop offset="100%" stop-color="#0E081A" />
+        </linearGradient>
+        <linearGradient id="zt-ai-star" x1="16" y1="6" x2="16" y2="26" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#FFFFFF" />
+          <stop offset="50%" stop-color="#FDE68A" />
+          <stop offset="100%" stop-color="#FF9E5E" />
+        </linearGradient>
+      </defs>
+
+      <!-- Glass Rounded Badge Removed for Pure Float -->
+
+      <!-- Quantum Orbital Ring -->
+      <ellipse cx="16" cy="16" rx="11" ry="5.5" stroke="rgba(56, 189, 248, 0.5)" stroke-width="1" stroke-dasharray="2 2" transform="rotate(-25 16 16)" fill="none" />
+      <circle cx="24" cy="12" r="1.2" fill="#38BDF8" />
+
+      <!-- Central 4-Point AI Sparkle Star (AI 核心星芒) -->
+      <path d="M16 6 C16 12 12 16 6 16 C12 16 16 20 16 26 C16 20 20 16 26 16 C20 16 16 12 16 6 Z" fill="url(#zt-ai-star)" filter="drop-shadow(0 0 4px rgba(253, 230, 138, 0.8))" />
+
+      <!-- Inner Micro Core -->
+      <circle cx="16" cy="16" r="2.2" fill="#FFFFFF" />
+
+      <!-- Small Companion Stars -->
+      <circle cx="9" cy="9" r="0.8" fill="#FDE68A" opacity="0.9" />
+      <circle cx="23" cy="23" r="0.8" fill="#A855F7" opacity="0.9" />
+    </svg>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
     <!-- 6. DIAGNOSTICS (日志诊断): 朱迪数字录音胡萝卜笔与全息终端档案     -->
     <!-- ══════════════════════════════════════════════════════════════════════ -->
     <svg v-else-if="normalizedName === 'diagnostics' || normalizedName === 'recorder' || normalizedName === 'logs'"
@@ -462,7 +496,7 @@
       </defs>
 
       <!-- Glass Frame -->
-      <rect x="2.5" y="3.5" width="27" height="25" rx="6" fill="rgba(24, 18, 38, 0.7)" stroke="rgba(255, 240, 230, 0.2)" stroke-width="1.2" />
+      <!-- Background box removed -->
 
       <!-- Equalizer Bars -->
       <rect x="6.5" y="16" width="3.5" height="9" rx="1.5" fill="url(#zt-bar-gold)" opacity="0.7" />
@@ -481,7 +515,7 @@
     <svg v-else-if="normalizedName === 'terminal' || normalizedName === 'console'"
       :width="computedSize" :height="computedSize" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
       <!-- Glass Console Window -->
-      <rect x="2.5" y="4.5" width="27" height="23" rx="5" fill="rgba(18, 14, 28, 0.85)" stroke="rgba(255, 240, 230, 0.22)" stroke-width="1.2" />
+      <!-- Background box removed -->
 
       <!-- Window Title Bar Traffic Dots (macOS Style) -->
       <circle cx="6.5" cy="8.5" r="1.3" fill="#EF4444" />
@@ -547,6 +581,8 @@ const defaultTitle = computed(() => {
     rules: '安全防护 · ZPD 朱迪警官荣誉金星八角警徽',
     kspeeder: '容器加速 · 动物城穿梭特快磁悬浮列车',
     system: '宿主共生 · 生态调控动力晶核双环齿轮',
+    ai: 'AI管家 · 动物城全息智慧晶核与伴生网络领航员',
+    copilot: 'AI管家 · 动物城全息智慧晶核与伴生网络领航员',
     diagnostics: '日志诊断 · 朱迪数字录音胡萝卜笔',
     'host-base': '宿主共生底座 · 钛合金共生节点',
     'auth-key': '宿主凭据与鉴权 · ZPD 金色密匙',

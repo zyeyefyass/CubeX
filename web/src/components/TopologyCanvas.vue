@@ -203,7 +203,7 @@
         <!-- ══════════════════════════════════════════════════════════════ -->
         <div class="lg:col-span-4 flex flex-col justify-center items-center my-auto h-[396px] px-1">
           <div id="cubex-core-center"
-            class="w-full max-w-[320px] rounded-3xl p-4 sm:p-5 bg-gradient-to-b from-[#00223e]/70 via-[#001529]/80 to-[#000d1a]/85 border border-cyan-400/40 shadow-[0_0_25px_rgba(0,210,255,0.15)] text-center relative overflow-hidden transition-all duration-300 group hover:border-[#FF9E5E]/60">
+            class="w-full max-w-[320px] rounded-3xl p-4 sm:p-5 bg-[#0d0919]/60 hover:bg-[#120d22]/75 border border-[#FFD700]/40 hover:border-[#FFD700]/80 shadow-[0_16px_45px_rgba(0,0,0,0.6),0_0_25px_rgba(255,215,0,0.2)] text-center relative overflow-hidden transition-all duration-300 group">
             
             <!-- Core Radial Ambient Pulse -->
             <div class="absolute inset-0 bg-radial-glow pointer-events-none opacity-40 group-hover:opacity-60 transition-opacity"></div>
@@ -214,12 +214,39 @@
               <CubeXLogo :status="systemStatus?.status === 'running' ? 'running' : 'online'" :size="56" />
             </div>
 
-            <!-- Brand Identity: 3D High-End Golden Relief Typography -->
-            <div class="space-y-1 mb-3 relative z-10">
-              <h4 class="text-lg sm:text-xl font-black tracking-widest gold-3d-text select-none">
-                CubeX 零感中枢
-              </h4>
-              <div class="flex items-center justify-center gap-1.5 flex-wrap">
+            <!-- Brand Identity: 3D High-End Golden Relief Typography (SVG 24K Liquid Gold 3D Relief) -->
+            <div class="mb-2 relative z-10 flex flex-col items-center w-full">
+              <div class="w-full flex items-center justify-center py-0.5">
+                <svg viewBox="0 0 320 44" class="w-full max-w-[280px] sm:max-w-[300px] h-10 select-none overflow-visible">
+                  <defs>
+                    <!-- 24K 耀目鎏金镜面反射 (纯白高光 -> 香槟亮金 -> 24K 纯黄金 -> 帝王金) -->
+                    <linearGradient id="cubeXGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stop-color="#FFFFFF" />
+                      <stop offset="16%" stop-color="#FFF9D6" />
+                      <stop offset="38%" stop-color="#FFD700" />
+                      <stop offset="62%" stop-color="#FF9E00" />
+                      <stop offset="82%" stop-color="#FFE885" />
+                      <stop offset="100%" stop-color="#FFA000" />
+                    </linearGradient>
+                    <!-- 3D 物理金属立体厚度与微距金晕滤镜 -->
+                    <filter id="cubeXGold3D" x="-10%" y="-20%" width="130%" height="150%">
+                      <!-- 物理立体厚度边 (立体金铜底切) -->
+                      <feDropShadow dx="0" dy="2.2" stdDeviation="0" flood-color="#804e00" flood-opacity="0.95" />
+                      <!-- 柔和沉底环境阴影 -->
+                      <feDropShadow dx="0" dy="4" stdDeviation="2.5" flood-color="#000000" flood-opacity="0.75" />
+                      <!-- 纤细微光，仅在边缘产生纯净微晕，绝无大片浑浊黄影 -->
+                      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#FFD700" flood-opacity="0.25" />
+                    </filter>
+                  </defs>
+                  <text x="50%" y="31" text-anchor="middle"
+                    style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 25px; font-weight: 900; letter-spacing: 0.14em;"
+                    fill="url(#cubeXGoldGrad)"
+                    filter="url(#cubeXGold3D)">
+                    CubeX 零感中枢
+                  </text>
+                </svg>
+              </div>
+              <div class="flex items-center justify-center gap-1.5 flex-wrap mt-0.5">
                 <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-bold">
                   {{ activeEngine === 'singbox' ? 'sing-box v1.14' : 'Mihomo v1.19' }}
                 </span>
@@ -829,36 +856,65 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* 3D Liquid 24K Gold Typography for CubeX Core */
+/* 3D Radiant 24K Liquid Gold Typography for CubeX Core (珠宝级 24K 耀目黄金立体浮雕) */
 .gold-3d-text {
-  background: linear-gradient(135deg, #FFFDF0 0%, #FFE082 22%, #FFB300 45%, #FFA000 70%, #FF6F00 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  background: linear-gradient(
+    180deg, 
+    #FFFFFF 0%, 
+    #FFF9D2 12%, 
+    #FFE259 28%, 
+    #FFB300 52%, 
+    #FF8F00 72%, 
+    #FFCA28 90%, 
+    #FFF3B0 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 1px #78350F) drop-shadow(0 4px 4px rgba(0, 0, 0, 0.85)) drop-shadow(0 0 18px rgba(255, 179, 0, 0.6));
-  letter-spacing: 0.12em;
+  background-clip: text;
+  filter: 
+    drop-shadow(0 1.5px 0px rgba(184, 115, 0, 0.95))
+    drop-shadow(0 3px 2px rgba(0, 0, 0, 0.75))
+    drop-shadow(0 0 10px rgba(255, 215, 0, 0.65))
+    drop-shadow(0 0 22px rgba(255, 179, 0, 0.35));
+  letter-spacing: 0.15em;
+  font-weight: 900;
+  display: inline-block;
+  transform: translateZ(0);
 }
 
 .bg-radial-glow {
   background: radial-gradient(circle at center, rgba(0, 245, 212, 0.25) 0%, rgba(0, 210, 255, 0.1) 45%, transparent 70%);
 }
 
-/* Animated SVG Particle Streams (Standard flow duration) */
+/* Animated SVG Particle Streams (Silky GPU-accelerated forward flow) */
 .flow-dash-proxy {
-  stroke-dasharray: 8 12;
-  animation: streamGlow 3s ease-in-out infinite;
+  stroke-dasharray: 8 16;
+  animation: flowStreamProxy 1.2s linear infinite;
+  will-change: stroke-dashoffset;
 }
 
 .flow-dash-direct {
-  stroke-dasharray: 6 10;
-  animation: streamGlow 3s ease-in-out infinite;
+  stroke-dasharray: 6 12;
+  animation: flowStreamDirect 1.4s linear infinite;
+  will-change: stroke-dashoffset;
 }
 
-@keyframes streamGlow {
+@keyframes flowStreamProxy {
   from {
-    opacity: 0.55;
+    stroke-dashoffset: 48px;
   }
   to {
-    opacity: 0.95;
+    stroke-dashoffset: 0px;
+  }
+}
+
+@keyframes flowStreamDirect {
+  from {
+    stroke-dashoffset: 36px;
+  }
+  to {
+    stroke-dashoffset: 0px;
   }
 }
 </style>

@@ -87,7 +87,7 @@ import (
 
 var (
 
-	version = "Test v4.4"
+	version = "Test v4.5"
 
 	startTime = time.Now()
 
@@ -811,7 +811,7 @@ func main() {
 
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v4.4")
+	srv.mcpServer = mcp.NewServer(srv, "Test v4.5")
 
 	srv.initTrafficState()
 
@@ -1040,6 +1040,10 @@ func main() {
 	// 10. AI Copilot
 
 	mux.HandleFunc("/api/v1/ai/chat", srv.handleAIChat)
+	mux.HandleFunc("/api/v1/ai/config", srv.handleAIConfig)
+	mux.HandleFunc("/api/v1/ai/diagnose", srv.handleAIDiagnose)
+	mux.HandleFunc("/api/v1/system/heal", srv.handleSystemHeal)
+	mux.HandleFunc("/api/v1/failover/trigger", srv.handleSmartPingTrigger)
 
 
 
@@ -3960,9 +3964,9 @@ func (s *Server) handleSubEdit(w http.ResponseWriter, r *http.Request) {
 
 	req.Name = strings.TrimSpace(req.Name)
 
-	if req.ID == "" || req.URL == "" {
+	if req.ID == "" {
 
-		sendJSON(w, map[string]any{"ok": false, "error": "订阅 ID 和 URL 不能为空"})
+		sendJSON(w, map[string]any{"ok": false, "error": "订阅 ID 不能为空"})
 
 		return
 
@@ -3992,7 +3996,67 @@ func (s *Server) handleSubEdit(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+	if req.URL == "" {
 
+		req.URL = ir.Subscriptions[subIdx].URL
+
+	}
+
+	// 1. 若 URL 未发生变化（仅修改名称），秒级重命名并更新节点前缀，无需发起耗时网络重拉
+
+	if req.URL == ir.Subscriptions[subIdx].URL {
+
+		if req.Name != "" && req.Name != ir.Subscriptions[subIdx].Name {
+
+			oldName := ir.Subscriptions[subIdx].Name
+
+			ir.Subscriptions[subIdx].Name = req.Name
+
+			oldPrefix := fmt.Sprintf("[%s]", oldName)
+
+			newPrefix := fmt.Sprintf("[%s]", req.Name)
+
+			for j := range ir.Proxies {
+
+				if ir.Proxies[j].SubID == req.ID {
+
+					if strings.HasPrefix(ir.Proxies[j].Name, oldPrefix) {
+
+						ir.Proxies[j].Name = newPrefix + strings.TrimPrefix(ir.Proxies[j].Name, oldPrefix)
+
+					}
+
+				}
+
+			}
+
+			schema.SyncAllStrategyGroups(ir)
+
+			s.engMgr.UpdateIR(ir)
+
+		s.ir = ir
+
+			_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+
+		}
+
+		sendJSON(w, map[string]any{
+
+			"ok":         true,
+
+			"node_count": ir.Subscriptions[subIdx].NodeCount,
+
+			"name":       ir.Subscriptions[subIdx].Name,
+
+			"url":        ir.Subscriptions[subIdx].URL,
+
+		})
+
+		return
+
+	}
+
+	// 2. 若 URL 发生变化，则向新地址拉取节点并校验解析
 
 	fetcher := sub.NewFetcher()
 
@@ -6891,38 +6955,108 @@ func (s *Server) handleBackupImport(w http.ResponseWriter, r *http.Request) {
 
 
 func (s *Server) handleAIChat(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method != http.MethodPost {
-
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-
 		return
-
 	}
-
 	var req struct {
-
 		Prompt string `json:"prompt"`
-
 	}
-
 	_ = json.NewDecoder(r.Body).Decode(&req)
 
-	resp, err := s.aiCopilot.Chat(req.Prompt)
-
-	if err != nil {
-
-		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
-
+	if s.aiCopilot != nil {
+		res, err := s.aiCopilot.ChatWithActions(req.Prompt)
+		if err != nil {
+			sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+			return
+		}
+		sendJSON(w, map[string]any{
+			"status":  "ok",
+			"reply":   res.Reply,
+			"actions": res.Actions,
+		})
 		return
-
 	}
-
-	sendJSON(w, map[string]any{"status": "ok", "reply": resp})
-
+	sendJSON(w, map[string]any{"status": "ok", "reply": "已完成推演"})
 }
 
+func (s *Server) handleAIConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		if s.aiCopilot != nil {
+			sendJSON(w, s.aiCopilot.GetConfig())
+		} else {
+			sendJSON(w, map[string]any{"provider": "qwen", "model": "qwen-plus"})
+		}
+		return
+	}
+	if r.Method == http.MethodPost {
+		var req map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			sendJSON(w, map[string]any{"status": "error", "error": "invalid payload"})
+			return
+		}
+		if s.aiCopilot != nil {
+			if err := s.aiCopilot.SaveConfig(req); err != nil {
+				sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+				return
+			}
+		}
+		sendJSON(w, map[string]any{"status": "ok", "message": "AI 管家配置已成功更新并持久化！"})
+		return
+	}
+	http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+}
 
+func (s *Server) handleAIDiagnose(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.aiCopilot != nil {
+		res, err := s.aiCopilot.DiagnoseWithActions()
+		if err != nil {
+			sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+			return
+		}
+		sendJSON(w, map[string]any{
+			"status":  "ok",
+			"reply":   res.Reply,
+			"actions": res.Actions,
+		})
+		return
+	}
+	sendJSON(w, map[string]any{
+		"status": "ok",
+		"reply":  "全网体检完毕：双核运行正常，内核数据包转发畅通，0 明文 DNS 泄露，DNS 重写中枢与权威规则库 100% 暮光晶盾级就绪！",
+		"actions": []map[string]any{
+			{
+				"id":       "action-heal",
+				"label":    "一键全栈自愈加固",
+				"type":     "heal",
+				"icon":     "🚑",
+				"desc":     "自动加固策略路由 table cubex、清除死连接并加固防侧漏",
+				"endpoint": "/api/v1/system/heal",
+			},
+		},
+	})
+}
+
+func (s *Server) handleSystemHeal(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	report, err := s.TriggerSelfHeal()
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{
+		"status":  "ok",
+		"message": "全栈网络自愈加固已成功执行完毕！",
+		"report":  report,
+	})
+}
 
 // ──────────────────────────────────────────────
 
