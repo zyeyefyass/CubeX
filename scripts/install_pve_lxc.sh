@@ -370,7 +370,7 @@ chmod +x /etc/init.d/cubexd
 rc-update add cubexd default >/dev/null 2>&1
 EOF
 
-echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX Test v4.1 双核完整发布包...${NC}"
+echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX Test v4.5 双核完整发布包...${NC}"
 # 10. 推送或下载 CubeX 完整发布包
 LOCAL_PKG=$(ls dist/release/CubeX-Test-*-linux-amd64.zip 2>/dev/null | sort -V | tail -n1 || true)
 CACHE_PKG=$(ls /tmp/CubeX-Test-*-linux-amd64.zip 2>/dev/null | sort -V | tail -n1 || true)
@@ -410,7 +410,7 @@ else
             [ -n "$REL_TAG" ] && break
         fi
     done
-    [ -z "$REL_TAG" ] && REL_TAG="Test-v4.4"
+    [ -z "$REL_TAG" ] && REL_TAG="Test-v4.5"
 
     ZIP_NAME="CubeX-${REL_TAG}-linux-amd64.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"
