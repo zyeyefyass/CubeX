@@ -6779,99 +6779,13 @@ function updateLiveMonthlyTraffic(currentOutMB) {
 }
 
 
-// --- Model Context Protocol (MCP) Client Config & Helpers ---
-const testingMCP = ref(false)
-const mcpEndpointUrl = computed(() => {
-  if (typeof window !== 'undefined') {
-    const loc = window.location
-    // 动态探测：如果在内网通过真实 IP/域名访问，严格动态继承当前协议、主机与端口
-    if (loc.hostname !== 'localhost' && loc.hostname !== '127.0.0.1') {
-      return `${loc.protocol}//${loc.host}/api/v1/mcp`
-    }
-    // 若在旁路宿主机本机通过 localhost 访问，动态使用后端探针捕获的物理局域网 IP
-    const hostIP = systemStatus.value?.host_ip || hostInfo.value?.ip
-    if (hostIP) {
-      const portPart = loc.port ? `:${loc.port}` : ''
-      return `${loc.protocol}//${hostIP}${portPart}/api/v1/mcp`
-    }
-    return `${loc.origin}/api/v1/mcp`
-  }
-  return '/api/v1/mcp'
-})
-
-async function testMCPConnection() {
-  testingMCP.value = true
-  try {
-    const res = await fetch('/api/v1/mcp', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'initialize',
-        params: { protocolVersion: '2024-11-05' }
-      })
-    })
-    if (res.ok) {
-      const data = await res.json()
-      if (data.result && data.result.serverInfo) {
-        showToast(`🎉 MCP 接口连接成功！服务端: ${data.result.serverInfo.name} (${data.result.serverInfo.version})`)
-      } else {
-        showToast('✅ MCP 接口响应正常！')
-      }
-    } else {
-      showToast(`⚠️ MCP 请求异常 (HTTP ${res.status})`)
-    }
-  } catch (e) {
-    showToast(`❌ MCP 连通性测试失败: ${e.message}`)
-  } finally {
-    testingMCP.value = false
-  }
-}
-
+// --- AI Copilot Helpers ---
 function copyText(text, label) {
   copyToClipboard(text, `📋 已复制${label ? ' ' + label : ''}到剪贴板！`)
 }
 
 function copyPrompt(prompt) {
   copyToClipboard(prompt, `💬 已复制指令: "${prompt}"`)
-}
-
-function copyClaudeConfig() {
-  const url = mcpEndpointUrl.value
-  const cfg = {
-    mcpServers: {
-      cubex: {
-        url: url
-      }
-    }
-  }
-  copyText(JSON.stringify(cfg, null, 2), 'Claude Desktop 配置 (JSON)')
-}
-
-function copyCherryConfig() {
-  const url = mcpEndpointUrl.value
-  const cfg = {
-    mcpServers: {
-      "cubex-gateway": {
-        type: "http",
-        url: url
-      }
-    }
-  }
-  copyText(JSON.stringify(cfg, null, 2), 'Cherry Studio / Chatbox MCP 配置 (JSON)')
-}
-
-function copyCursorConfig() {
-  const url = mcpEndpointUrl.value
-  const cfg = {
-    mcpServers: {
-      "cubex-gateway": {
-        url: url
-      }
-    }
-  }
-  copyText(JSON.stringify(cfg, null, 2), 'Cursor / MCP 配置 (JSON)')
 }
 
 async function fetchTelemetryTraffic() {
