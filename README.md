@@ -6,7 +6,7 @@
 ### *网关不用改 · DNS不用改 · 老婆再也不拔插头！极客随便折腾、全家永不断网的宿主共生透明代理系统*
 
 <p align="center">
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v4.6-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v4.7-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 <a href="https://github.com/zyeyefyass/CubeX"><img src="https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go" alt="Dual-Engine" /></a>
 <a href="#"><img src="https://img.shields.io/badge/Host-PVE_%7C_RouterOS_%7C_爱快_%7C_OpenWrt_%7C_飞牛_%7C_Linux-3A86FF?style=for-the-badge" alt="Host Base" /></a>
@@ -32,7 +32,7 @@
 - [🛡️ 架构选型建议：为什么首推 PVE CT 容器？](#sandbox-vs-all-in-one)
 - [⚡ 权威实测：CubeX vs 传统方案全维度对决](#benchmark)
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
-- [📢 Test v4.6 最新版本更新亮点](#announcement)
+- [📢 Test v4.7 最新版本更新亮点](#announcement)
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 - [🌐 六大主流宿主底座兼容性天花板矩阵 (Multi-Host Compatibility Matrix)](#host-matrix)
 - [🚀 六大主流平台保姆级部署实战 (选一种适合你的就行)](#deployment-guides)
@@ -95,7 +95,7 @@
 
 ## 👑 终极解法：大白话讲透“网关 + DNS 全双双指向主路由”
 
-这就是 **CubeX Test v4.6** 带来的终极形态：**把主路由和旁路由各自擅长的事彻底拆开！**
+这就是 **CubeX Test v4.7** 带来的终极形态：**把主路由和旁路由各自擅长的事彻底拆开！**
 
 用生活里的大白话打个比方：
 * **主路由器**（RouterOS / 爱快 / OpenWrt）：相当于小区的**门卫大爷**。他手里有芯片级硬件加速引擎，最擅长看门放行。
@@ -230,15 +230,15 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v4.6 最新版本更新亮点 (Hysteria2 协议标准全量补齐 · 原生端口跳跃粉碎单流限速 · AI 专属专线防风控 · 双核动态协同)
+## 📢 Test v4.7 最新版本更新亮点 (Hysteria2 协议标准全量补齐 · 原生端口跳跃粉碎单流限速 · AI 专属专线防风控 · 双核动态协同)
 
 > [!IMPORTANT]
-> ### 👑【旗舰高可用更新】Hysteria2 原生端口跳跃 (Port Hopping) · 彻底告别 4K 限速 · AI 智算专线直通 (CubeX Test v4.6 正式发布)
+> ### 👑【旗舰高可用更新】Hysteria2 原生端口跳跃 (Port Hopping) · 彻底告别 4K 限速 · AI 智算专线直通 (CubeX Test v4.7 正式发布)
 >
 > **致所有追求极限网络性能、家庭和睦与零运维开销的极客软路由玩家：**
 >
 > 告别改网关血泪史！彻底消除“一人折腾软路由、全家断网挨骂、节点挂死全家撞墙”的历史痛点！
-> 今天重磅发布的 **CubeX Test v4.6**，带来全新工业级 **Hysteria2 协议原生端口跳跃 (Port Hopping 20000-40000)**、**AI 与国际业务专属分流矩阵防风控加固**、**双核通用编译器（Mihomo × sing-box v1.14+）动态端口池原子协同与热重载**，以及**全客户通用无感自适应网络保障**！
+> 今天重磅发布的 **CubeX Test v4.7**，带来全新工业级 **Hysteria2 协议原生端口跳跃 (Port Hopping 20000-40000)**、**AI 与国际业务专属分流矩阵防风控加固**、**双核通用编译器（Mihomo × sing-box v1.14+）动态端口池原子协同与热重载**，以及**全客户通用无感自适应网络保障**！
 >
 > 1. 🚀 **【Hysteria2 协议标准全量补齐 · 原生端口跳跃 (Port Hopping 20000-40000)】重磅上线**：
 >    * 深度遵循标准协议规范，全面打通订阅解析器与双核编译器对 `mport` / `ports`（端口跳跃范围）的原生支持。在拉取大码率 4K/8K 视频流时，客户端动态循环跳跃连接端口，彻底粉碎运营商 DPI 探针对固定单端口的高并发单流限速压制，速度满血狂飙！
@@ -261,13 +261,13 @@
 | 我用的是什么环境？ | 我该下载哪个文件？ | 文件大小 | 怎么安装？ |
 | :--- | :--- | :--- | :--- |
 | **🥇 PVE 虚拟机小主机 (强烈推荐)** | 不需要手动下载文件！ | - | 复制下面的[方式 A 一行命令](#deploy-pve)粘贴进 PVE 终端回车即可！ |
-| **爱快 iKuai 64位 主路由** | `CubeX-Test-v4.6-docker-amd64.tar.gz` | ~94.0 MB | 进爱快 Docker 导入镜像，按[方式 C](#deploy-ikuai)教程配好即可 |
-| **MikroTik RouterOS (x86软路由)** | `CubeX-Test-v4.6-ros-amd64.tar` | ~117.9 MB | WinBox 拖入文件，运行 `setup-routeros-v7.rsc` 脚本 |
-| **MikroTik RouterOS (RB5009/CCR)** | `CubeX-Test-v4.6-ros-arm64.tar` | ~116.8 MB | WinBox 拖入文件，运行 `setup-routeros-v7.rsc` 脚本 |
-| **OpenWrt 智能软路由** | `CubeX-Test-v4.6-docker-amd64.tar.gz` | ~94.0 MB | 传到 OpenWrt 跑 `setup-openwrt.sh` 脚本 |
-| **飞牛 fnOS / 通用 Linux Docker** | `CubeX-Test-v4.6-docker-amd64.tar.gz` | ~94.0 MB | 导入镜像或直接用 `fyasshole/cubex:latest` 一行命令拉起 |
-| **通用 Linux (纯手动解压版 amd64)** | `CubeX-Test-v4.6-linux-amd64.zip` | ~93.0 MB | 包含加固双内核、101 套规则库与 CLI 工具 |
-| **通用 Linux (纯手动解压版 arm64)** | `CubeX-Test-v4.6-linux-arm64.zip` | ~85.8 MB | ARM64 软路由/树莓派解压包 |
+| **爱快 iKuai 64位 主路由** | `CubeX-Test-v4.7-docker-amd64.tar.gz` | ~94.0 MB | 进爱快 Docker 导入镜像，按[方式 C](#deploy-ikuai)教程配好即可 |
+| **MikroTik RouterOS (x86软路由)** | `CubeX-Test-v4.7-ros-amd64.tar` | ~117.9 MB | WinBox 拖入文件，运行 `setup-routeros-v7.rsc` 脚本 |
+| **MikroTik RouterOS (RB5009/CCR)** | `CubeX-Test-v4.7-ros-arm64.tar` | ~116.8 MB | WinBox 拖入文件，运行 `setup-routeros-v7.rsc` 脚本 |
+| **OpenWrt 智能软路由** | `CubeX-Test-v4.7-docker-amd64.tar.gz` | ~94.0 MB | 传到 OpenWrt 跑 `setup-openwrt.sh` 脚本 |
+| **飞牛 fnOS / 通用 Linux Docker** | `CubeX-Test-v4.7-docker-amd64.tar.gz` | ~94.0 MB | 导入镜像或直接用 `fyasshole/cubex:latest` 一行命令拉起 |
+| **通用 Linux (纯手动解压版 amd64)** | `CubeX-Test-v4.7-linux-amd64.zip` | ~93.0 MB | 包含加固双内核、101 套规则库与 CLI 工具 |
+| **通用 Linux (纯手动解压版 arm64)** | `CubeX-Test-v4.7-linux-arm64.zip` | ~85.8 MB | ARM64 软路由/树莓派解压包 |
 | **PVE 一键安装脚本** | `install_pve_lxc.sh` | ~8.2 KB | PVE 宿主机自动化创建 CT 容器脚本 |
 | **Linux 通用安装脚本** | `install.sh` | ~11.4 KB | Linux 宿主机自动探查安装脚本 |
 | **RouterOS 编排脚本** | `setup-routeros-v7.rsc` | ~17.0 KB | WinBox 终端复制即用一键脚本 |
@@ -333,7 +333,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 如果你的主路由就是 MikroTik（RB5009、CCR2004、x86 ROS）：
 
-1. **下载镜像**：在上方清单下载对应架构的 `CubeX-Test-v4.6-ros-amd64.tar`（或 `arm64.tar`）；
+1. **下载镜像**：在上方清单下载对应架构的 `CubeX-Test-v4.7-ros-amd64.tar`（或 `arm64.tar`）；
 2. **传进路由器**：打开 WinBox，把 `.tar` 文件直接拖进【Files】列表（推荐放在 U 盘或 SSD 磁盘如 `disk1/`）；
 3. **一键运行脚本**：打开 WinBox 的【Terminal】终端，把 `setup-routeros-v7.rsc` 里的内容全选复制粘贴进去回车；
 4. 30 秒内脚本会自动建好容器、配置好 VETH 网卡和 Netwatch 0 秒逃生看门狗，控制台立刻可用！
@@ -347,7 +347,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 爱快主路由的七层流控非常强，通过 Docker 跑 CubeX，不仅能保留爱快原汁原味的流控，国内流量还能跑满物理线速！
 
 #### 步骤 1：导入离线镜像
-1. 在上方清单下载 `CubeX-Test-v4.6-docker-amd64.tar.gz`；
+1. 在上方清单下载 `CubeX-Test-v4.7-docker-amd64.tar.gz`；
 2. 登录爱快后台，进入【高级应用】➔【插件营销】➔【Docker】；
 3. 进入【镜像管理】➔ 点击【导入镜像】，上传刚刚下载的压缩包（导入后标签为 `cubex:latest`）。
 
@@ -380,7 +380,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 OpenWrt 自带 Docker 环境，使用 CubeX 独创的 Macvlan-Shim 方案，再也不用担心装插件把系统整变砖！
 
 #### 极速 2 步离线安装（国内网络推荐，0 失败率）：
-1. 在上方资产清单下载 `CubeX-Test-v4.6-docker-amd64.tar.gz` 和 `setup-openwrt.sh` 两个文件；
+1. 在上方资产清单下载 `CubeX-Test-v4.7-docker-amd64.tar.gz` 和 `setup-openwrt.sh` 两个文件；
 2. 用 WinSCP 或 SSH 传到 OpenWrt 的 `/tmp` 目录，在终端执行：
    ```bash
    cd /tmp && sh setup-openwrt.sh
@@ -476,7 +476,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 ## 🤖 AI 伴生管家 (Copilot) 全维实战与一键自愈中枢指南
 
-在 **CubeX Test v4.6** 中，AI 不再只是浮于表面的概念，而是深度融入底层网络控制面与日常运维流程的**全息伴生智能体**。
+在 **CubeX Test v4.7** 中，AI 不再只是浮于表面的概念，而是深度融入底层网络控制面与日常运维流程的**全息伴生智能体**。
 
 告别繁琐的命令行排错与晦涩的路由日志！点击控制台左侧/顶部导航栏中的 **【🤖 AI管家】**（Tab 6），即可直接唤起专属全息问答视窗与诊断中枢。AI 管家与底座 Go 核心守护进程（`cubexd`）同频共振，能够毫秒级嗅探网关实时遥测数据与宿主网络拓扑，赋予您通过自然语言对话**实时感知、掌控与自愈家庭网络**的超级能力！
 
