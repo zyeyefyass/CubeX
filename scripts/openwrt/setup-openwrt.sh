@@ -163,6 +163,7 @@ docker network create -d macvlan \
 if ! ip link show macvlan-shim >/dev/null 2>&1; then
     ip link add macvlan-shim link "$LAN_IF" type macvlan mode bridge
 fi
+bridge link set dev "$LAN_IF" hairpin on 2>/dev/null || true
 ip addr flush dev macvlan-shim 2>/dev/null || true
 ip addr add "${SHIM_IP}/24" dev macvlan-shim
 ip link set macvlan-shim up
@@ -423,5 +424,6 @@ echo -e "${GREEN}===============================================================
 echo -e "${GREEN}🎉 恭喜！CubeX OpenWrt Docker 宿主共生系统已全自动部署并加固完毕！${NC}"
 echo -e "${GREEN}👉 CubeX Web 控制台驾驶舱: http://${CUBEX_IP}:2026${NC}"
 echo -e "${GREEN}👉 主路由 OpenWrt 网关管理: http://${ROUTER_IP}${NC}"
+echo -e "${YELLOW}💡 提示: 进入 CubeX 控制台联动主路由时，【宿主/主路由 IP】填写 OpenWrt IP (${ROUTER_IP})，切勿误填 CubeX 自身 IP (${CUBEX_IP})！${NC}"
 echo -e "${GREEN}🛡️ 全屋设备无需任何手动设置，已自动继承透明代理、去广告与0秒逃生！${NC}"
 echo -e "${GREEN}========================================================================${NC}"

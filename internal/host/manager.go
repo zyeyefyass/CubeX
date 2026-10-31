@@ -609,8 +609,32 @@ func (m *Manager) testSSHClientSession(client *ssh.Client, cfg HostConfig) (map[
 	}, nil
 }
 
+func isSelfLANIP(host string) bool {
+	trimmed := strings.TrimSpace(host)
+	ip := net.ParseIP(trimmed)
+	if ip == nil || ip.IsLoopback() {
+		return false
+	}
+	addrs, err := net.InterfaceAddrs()
+	if err == nil {
+		for _, addr := range addrs {
+			if ipNet, ok := addr.(*net.IPNet); ok {
+				if !ipNet.IP.IsLoopback() && ipNet.IP.Equal(ip) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // TestSSH tests the host credentials, auto-detecting MikroTik RouterOS REST API, iKuai Web-RPC, or standard Linux SSH.
 func (m *Manager) TestSSH(cfg HostConfig) (map[string]any, error) {
+	// 0. Defense: Verify user is not inadvertently targeting CubeX's own container IP
+	if isSelfLANIP(cfg.Host) {
+		return nil, fmt.Errorf("检测到输入的 IP (%s) 为 CubeX 容器/本机自身 IP！此处必须填写上级主路由的管理 IP (例如 OpenWrt 的实际 LAN IP，如 10.0.0.88 或 10.0.0.1)，切勿填写 CubeX 自身 IP", cfg.Host)
+	}
+
 	// 1. If explicitly set to ikuai or openwrt, test directly
 	if cfg.PlatformType == "ikuai" {
 		return m.testIKuaiRPC(cfg)
@@ -651,6 +675,9 @@ func (m *Manager) TestSSH(cfg HostConfig) (map[string]any, error) {
 		}
 
 		if restErr != nil {
+			if strings.Contains(restErr.Error(), "connection refused") || strings.Contains(restErr.Error(), "timeout") || strings.Contains(restErr.Error(), "i/o timeout") {
+				return nil, fmt.Errorf("无法连接至主路由 %s:%d (连接被拒绝或超时，已尝试自动探测 RouterOS / 爱快 / OpenWrt)。请确认主路由 IP 是否正确，以及主路由是否开放了 Web/API 端口", cfg.Host, cfg.Port)
+			}
 			return nil, fmt.Errorf("宿主连接失败 (REST API 端口 %d): %w", cfg.Port, restErr)
 		}
 		return nil, fmt.Errorf("宿主连接失败: 无法连接至 80/443 端口")
