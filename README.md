@@ -34,6 +34,7 @@
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 - [📢 Test v4.6 最新版本更新亮点](#announcement)
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
+- [🌐 六大主流宿主底座兼容性天花板矩阵 (Multi-Host Compatibility Matrix)](#host-matrix)
 - [🚀 六大主流平台保姆级部署实战 (选一种适合你的就行)](#deployment-guides)
   - [方式 A：Proxmox VE (PVE) CT 容器部署 (🥇 强烈推荐 · 沙盒隔离 · 万兆无损)](#deploy-pve)
   - [方式 B：MikroTik RouterOS v7 容器一键部署 (工业级硬路由共生)](#deploy-ros)
@@ -273,6 +274,24 @@
 | **OpenWrt 编排脚本** | `setup-openwrt.sh` | ~19.6 KB | OpenWrt 终端一键编排脚本 |
 
 > ⚠️ **关于 Windows 版本的说明**：根据项目架构安全与净室准则，CubeX 专为路由器、NAS 和 Linux 宿主底座设计，不提供 Windows 平台运行包。
+
+---
+
+<a id="host-matrix"></a>
+
+## 🌐 六大主流宿主底座兼容性天花板矩阵 (Multi-Host Compatibility Matrix)
+
+> 💡 **针对部分朋友关心的“CubeX 是不是只支持爱快？会支持 RouterOS 和 OpenWrt 吗？”特别说明：**  
+> **CubeX 绝非单一路由器系统专属！** 事实上，CubeX 最初就是深度针对 **MikroTik RouterOS v7** 原创自研的。系统采用“宿主共生 · 零侵权 · 零硬编码”架构，全面原生覆盖家庭与企业最主流的六大平台底座：
+
+| 宿主底座 | 运行形态 | 策略路由与防火墙联动 | 故障逃生与保活保障 | 专用脚本 / 原生资产 | 体验评级 |
+| :--- | :--- | :--- | :--- | :--- | :---: |
+| **🥇 Proxmox VE (PVE)** | 独立 CT (LXC) 容器 | `/dev/net/tun` 网卡直通 · 与虚拟化完全解耦 | 独立强沙盒，宿主与主路由永不受牵连 | `install_pve_lxc.sh` (一行命令全自动) | ⭐⭐⭐⭐⭐ |
+| **👑 MikroTik RouterOS v7** | 原生 OCI 容器 (`.tar`) | `table cubex` 隔离路由 + WinBox REST API 联动 | **Netwatch 毫秒级逃生 (物理路由零损伤)** | `setup-routeros-v7.rsc` / ROS TAR (x86/ARM64) | ⭐⭐⭐⭐⭐ |
+| **📡 OpenWrt / LEDE** | 物理旁路由 / Docker | nftables (fw4) / iptables (fw3) 自适应放行 | Fake-IP `198.18.0.0/15` 回指 + DHCP 引导 | `setup-openwrt.sh` 终端一键编排脚本 | ⭐⭐⭐⭐⭐ |
+| **🐬 爱快 iKuai (64位)** | 旁路网关 / Docker 插件 | Web-RPC 联动 + 静态回指路由 | 静态路由主备快速回退 | 控制台一键开箱参数助手 + Docker TAR | ⭐⭐⭐⭐⭐ |
+| **🐂 飞牛 fnOS / NAS** | 官方 Docker 应用 | 伴生宿主 Linux 内核转发与 ARP 防风暴优化 | Docker Supervisor 进程守护保活 | 官方 Docker 镜像 / 一行 Compose 部署 | ⭐⭐⭐⭐⭐ |
+| **🐧 通用 Linux (Debian/Ubuntu)** | 单二进制系统守护进程 | 系统级 Systemd 守护 + TUN / TProxy 透明转发 | 僵尸连接自动清算 + 自动探针网络自愈 | `install.sh` / 单二进制 `cubexd` | ⭐⭐⭐⭐⭐ |
 
 ---
 

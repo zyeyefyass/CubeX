@@ -1352,7 +1352,10 @@
                           ]">
                           <div class="text-[11px] truncate font-semibold">{{ node.name }}</div>
                           <div class="flex items-center justify-between text-[9px] font-mono">
-                            <span :class="reg.winner === node.name ? 'text-emerald-100' : 'text-slate-400'">{{ node.type || 'vless' }}</span>
+                            <div class="flex items-center gap-1 truncate">
+                              <span :class="reg.winner === node.name ? 'text-emerald-100' : 'text-slate-400'">{{ node.type || 'vless' }}</span>
+                              <span v-if="node.ports || node.mport" class="px-1 rounded text-[8px] bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 font-mono" :title="'端口跳跃: ' + (node.ports || node.mport)">⚡跳</span>
+                            </div>
                             <span :class="['px-1 rounded font-bold', getNodePillClass(node.delay, reg.winner === node.name, node.delay_status)]">
                               {{ node.delay > 0 ? `${node.delay}ms` : (node.delay_text || '⚡') }}
                             </span>
@@ -1537,7 +1540,11 @@
                       {{ node.name }}
                     </div>
                     <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
-                      <span>{{ node.type || 'vless' }} / udp</span>
+                      <div class="flex items-center gap-1 truncate">
+                        <span>{{ node.type || 'vless' }}</span>
+                        <span v-if="node.ports || node.mport || (node.server_ports && node.server_ports.length)" class="px-1 py-0.2 rounded text-[8px] bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 font-mono animate-pulse" :title="'端口跳跃: ' + (node.ports || node.mport || node.server_ports)">⚡跳跃</span>
+                        <span v-else>/ udp</span>
+                      </div>
                       <span :class="['px-1.5 py-0.2 rounded font-bold text-[9px]', getNodePillClass(node.delay, false, node.delay_status)]">
                         {{ node.delay > 0 ? `${node.delay}ms` : (node.delay_text || '⚡') }}
                       </span>
@@ -4375,6 +4382,7 @@
                     <div class="flex items-center gap-1.5 truncate">
                       <span class="text-slate-300 text-[10px]">{{ nIdx + 1 }}.</span>
                       <span class="text-[9px] px-1 rounded uppercase bg-white/10 hover:bg-white/20 border border-white/20 hover:border-[#FF9E5E]/50 text-white text-emerald-300 font-bold">{{ node.type }}</span>
+                      <span v-if="node.ports || node.mport" class="text-[8px] px-1 py-0.2 rounded font-mono bg-cyan-950 text-cyan-300 border border-cyan-500/40 animate-pulse" :title="'端口跳跃: ' + (node.ports || node.mport)">⚡跳跃</span>
                       <span class="text-white text-[11px] truncate">{{ node.name }}</span>
                     </div>
                     <div class="flex items-center gap-1.5 shrink-0">
@@ -4408,6 +4416,9 @@
                   <div class="text-xs font-bold text-white flex items-center gap-2">
                     <span class="text-[10px] px-1.5 py-0.5 rounded uppercase font-mono bg-purple-950 text-purple-300 border border-purple-500/40">
                       {{ node.type }}
+                    </span>
+                    <span v-if="node.ports || node.mport" class="text-[9px] px-1.5 py-0.5 rounded font-mono bg-cyan-950 text-cyan-300 border border-cyan-500/40 animate-pulse">
+                      ⚡ 跳频: {{ node.ports || node.mport }}
                     </span>
                     <span class="truncate">{{ node.name }}</span>
                   </div>
