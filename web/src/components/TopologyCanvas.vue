@@ -33,7 +33,7 @@
         <!-- Terminal Filter Tabs -->
         <div class="flex items-center p-1 rounded-xl bg-black/40 border border-white/10 backdrop-blur-md text-xs">
           <button @click="terminalFilter = 'all'"
-            :class="['px-2.5 py-1 rounded-lg font-bold transition cursor-pointer', terminalFilter === 'all' ? 'bg-gradient-to-r from-[#FF9E5E] to-[#F59E0B] text-[#1E1106] shadow' : 'text-slate-400 hover:text-white']">
+            :class="['px-2.5 py-1 rounded-lg font-bold transition cursor-pointer', terminalFilter === 'all' ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-extrabold shadow-md shadow-sky-500/25' : 'text-slate-400 hover:text-white']">
             全部设备
           </button>
           <button @click="terminalFilter = 'rule'"
