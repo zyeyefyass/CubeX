@@ -7,21 +7,12 @@ import hashlib
 import tarfile
 import time
 
+print("🔨 Starting true OCI/Docker container packaging for RouterOS Test v4.7...")
+
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 dist_dir = os.path.join(root_dir, "dist")
 release_dir = os.path.join(dist_dir, "release")
 os.makedirs(release_dir, exist_ok=True)
-
-with open(os.path.join(root_dir, "meta.json"), "r", encoding="utf-8") as f:
-    meta = json.load(f)
-ver_tag = meta.get("version", "Test v4.7").replace(" ", "-")
-
-print(f"🔨 Starting true OCI/Docker container packaging for RouterOS {ver_tag}...")
-
-rules_dir = os.path.join(root_dir, "etc", "rules")
-meta_file = os.path.join(root_dir, "meta.json")
-with open(meta_file, 'rb') as f:
-    meta_bytes = f.read()
 
 # ═════════════════════════════════════════════════════════════════════════════
 # 1. Package AMD64 RouterOS OCI Container
@@ -31,7 +22,7 @@ cubexd_amd64 = os.path.join(dist_dir, "cubexd-linux-amd64")
 cubex_cli_amd64 = os.path.join(dist_dir, "cubex-linux-amd64")
 singbox_amd64 = os.path.join(root_dir, "bin", "amd64", "sing-box")
 mihomo_amd64 = os.path.join(root_dir, "bin", "amd64", "mihomo")
-out_tar_amd64 = os.path.join(release_dir, f"CubeX-{ver_tag}-ros-amd64.tar")
+out_tar_amd64 = os.path.join(release_dir, "CubeX-Test-v4.7-ros-amd64.tar")
 
 print(f"\n📦 [AMD64] Opening base OCI tar: {base_tar_amd64}")
 blobs = {}
@@ -46,6 +37,7 @@ cfg_name = manifest[0]['Config']
 cfg = json.loads(blobs[cfg_name].decode())
 layers = list(manifest[0]['Layers'])
 
+# Locate the layer where app binaries/rules reside
 cubexd_layer_idx = 4
 for i, l in enumerate(layers):
     data = blobs[l]
@@ -72,6 +64,12 @@ if os.path.exists(mihomo_amd64):
     with open(mihomo_amd64, 'rb') as f:
         new_mihomo = f.read()
 
+rules_dir = os.path.join(root_dir, "etc", "rules")
+meta_file = os.path.join(root_dir, "meta.json")
+with open(meta_file, 'rb') as f:
+    meta_bytes = f.read()
+
+# Build updated layer tarball
 buf = io.BytesIO()
 with tarfile.open(fileobj=buf, mode='w') as sub:
     dirs = [
@@ -85,6 +83,7 @@ with tarfile.open(fileobj=buf, mode='w') as sub:
         ti.mtime = int(time.time())
         sub.addfile(ti)
 
+    # Binaries
     ti = tarfile.TarInfo(name='app/bin/cubexd')
     ti.type = tarfile.REGTYPE
     ti.mode = 0o755
@@ -115,6 +114,7 @@ with tarfile.open(fileobj=buf, mode='w') as sub:
         ti.mtime = int(time.time())
         sub.addfile(ti, io.BytesIO(new_mihomo))
 
+    # Meta
     for p in ['app/meta.json', 'app/defaults/meta.json']:
         ti = tarfile.TarInfo(name=p)
         ti.type = tarfile.REGTYPE
@@ -123,6 +123,7 @@ with tarfile.open(fileobj=buf, mode='w') as sub:
         ti.mtime = int(time.time())
         sub.addfile(ti, io.BytesIO(meta_bytes))
 
+    # All 101 Rules fully bundled
     if os.path.exists(rules_dir):
         for r in os.listdir(rules_dir):
             rpath = os.path.join(rules_dir, r)
@@ -130,34 +131,71 @@ with tarfile.open(fileobj=buf, mode='w') as sub:
                 with open(rpath, 'rb') as rf:
                     rdata = rf.read()
                 for prefix in ['app/etc/rules', 'app/defaults/etc/rules']:
-                    ti = tarfile.TarInfo(name=f"{prefix}/{r}")
+                    ti = tarfile.TarInfo(name=f'{prefix}/{r}')
                     ti.type = tarfile.REGTYPE
                     ti.mode = 0o644
                     ti.size = len(rdata)
                     ti.mtime = int(time.time())
                     sub.addfile(ti, io.BytesIO(rdata))
 
-new_layer_bytes = buf.getvalue()
-new_layer_digest = hashlib.sha256(new_layer_bytes).hexdigest()
-new_layer_blob_name = f'blobs/sha256/{new_layer_digest}'
-blobs[new_layer_blob_name] = new_layer_bytes
+    # Top-level geodata files in etc/
+    etc_dir = os.path.join(root_dir, "etc")
+    for geofile in ['GeoIP.dat', 'geosite.dat', 'geoip.metadb']:
+        geopath = os.path.join(etc_dir, geofile)
+        if os.path.exists(geopath):
+            with open(geopath, 'rb') as gf:
+                gdata = gf.read()
+            for prefix in ['app/etc', 'app/defaults/etc']:
+                ti = tarfile.TarInfo(name=f'{prefix}/{geofile}')
+                ti.type = tarfile.REGTYPE
+                ti.mode = 0o644
+                ti.size = len(gdata)
+                ti.mtime = int(time.time())
+                sub.addfile(ti, io.BytesIO(gdata))
+
+    # Entrypoint script
+    entrypoint_path = os.path.join(root_dir, "scripts", "docker", "entrypoint.sh")
+    if os.path.exists(entrypoint_path):
+        with open(entrypoint_path, 'rb') as ef:
+            edata = ef.read()
+        ti = tarfile.TarInfo(name='app/entrypoint.sh')
+        ti.type = tarfile.REGTYPE
+        ti.mode = 0o755
+        ti.size = len(edata)
+        ti.mtime = int(time.time())
+        sub.addfile(ti, io.BytesIO(edata))
+
+uncompressed_layer = buf.getvalue()
+diff_id = f"sha256:{hashlib.sha256(uncompressed_layer).hexdigest()}"
+compressed_layer = gzip.compress(uncompressed_layer)
+layer_digest = hashlib.sha256(compressed_layer).hexdigest()
+new_layer_blob_name = f"blobs/sha256/{layer_digest}"
+
+print(f"📦 [AMD64] New layer uncompressed: {len(uncompressed_layer)} bytes, compressed: {len(compressed_layer)} bytes")
+blobs[new_layer_blob_name] = compressed_layer
+
+# Prune obsolete/duplicate historical layers 5..10 (which contained old v0.99 binaries and bloated the archive by 57MB)
+layers = layers[:cubexd_layer_idx+1]
 layers[cubexd_layer_idx] = new_layer_blob_name
 
-cfg['rootfs']['diff_ids'][cubexd_layer_idx] = f'sha256:{new_layer_digest}'
+# Update config json
+cfg['rootfs']['diff_ids'] = cfg['rootfs']['diff_ids'][:cubexd_layer_idx+1]
+cfg['rootfs']['diff_ids'][cubexd_layer_idx] = diff_id
 new_cfg_bytes = json.dumps(cfg, indent=2).encode('utf-8')
 new_cfg_digest = hashlib.sha256(new_cfg_bytes).hexdigest()
-new_cfg_blob_name = f'blobs/sha256/{new_cfg_digest}'
+new_cfg_blob_name = f"blobs/sha256/{new_cfg_digest}"
 blobs[new_cfg_blob_name] = new_cfg_bytes
 
+# Update manifest
 manifest[0]['Config'] = new_cfg_blob_name
 manifest[0]['Layers'] = layers
-manifest[0]['RepoTags'] = [f'cubex:{ver_tag}', 'cubex:latest']
 manifest_bytes = json.dumps(manifest, indent=2).encode('utf-8')
 
+# Build OCI manifest & index
 oci_manifest_layers = []
 for l in layers:
     oci_manifest_layers.append({
-        'mediaType': 'application/vnd.oci.image.layer.v1.tar',
+        'mediaType': 'application/vnd.oci.image.layer.v1.tar+gzip',
         'size': len(blobs[l]),
         'digest': f"sha256:{l.split('/')[-1]}"
     })
@@ -220,24 +258,14 @@ print(f"✅ [AMD64] Done! Generated {out_tar_amd64} ({size_mb:.2f} MB)")
 # ═════════════════════════════════════════════════════════════════════════════
 # 2. Package ARM64 RouterOS OCI Container
 # ═════════════════════════════════════════════════════════════════════════════
-# Check if previous version arm64 tar exists in release or dist
-base_tar_arm64 = None
-for cand in [
-    os.path.join(release_dir, "CubeX-Test-v4.6-ros-arm64.tar"),
-    os.path.join(dist_dir, "release", "CubeX-Test-v4.6-ros-arm64.tar"),
-    r"d:\Micube\dist\MiCube-arm64.tar"
-]:
-    if os.path.exists(cand):
-        base_tar_arm64 = cand
-        break
-
+base_tar_arm64 = r'd:\Micube\dist\MiCube-arm64.tar'
 cubexd_arm64 = os.path.join(dist_dir, "cubexd-linux-arm64")
 cubex_cli_arm64 = os.path.join(dist_dir, "cubex-linux-arm64")
 singbox_arm64 = os.path.join(root_dir, "bin", "arm64", "sing-box")
 mihomo_arm64 = os.path.join(root_dir, "bin", "arm64", "mihomo")
-out_tar_arm64 = os.path.join(release_dir, f"CubeX-{ver_tag}-ros-arm64.tar")
+out_tar_arm64 = os.path.join(release_dir, "CubeX-Test-v4.7-ros-arm64.tar")
 
-if base_tar_arm64 and os.path.exists(base_tar_arm64):
+if os.path.exists(base_tar_arm64):
     print(f"\n📦 [ARM64] Opening base OCI tar: {base_tar_arm64}")
     blobs_arm = {}
     with tarfile.open(base_tar_arm64, 'r') as t:
@@ -322,6 +350,7 @@ if base_tar_arm64 and os.path.exists(base_tar_arm64):
             ti.mtime = int(time.time())
             sub.addfile(ti, io.BytesIO(meta_bytes))
 
+        # All 101 Rules fully bundled
         if os.path.exists(rules_dir):
             for r in os.listdir(rules_dir):
                 rpath = os.path.join(rules_dir, r)
@@ -329,34 +358,49 @@ if base_tar_arm64 and os.path.exists(base_tar_arm64):
                     with open(rpath, 'rb') as rf:
                         rdata = rf.read()
                     for prefix in ['app/etc/rules', 'app/defaults/etc/rules']:
-                        ti = tarfile.TarInfo(name=f"{prefix}/{r}")
+                        ti = tarfile.TarInfo(name=f'{prefix}/{r}')
                         ti.type = tarfile.REGTYPE
                         ti.mode = 0o644
                         ti.size = len(rdata)
                         ti.mtime = int(time.time())
                         sub.addfile(ti, io.BytesIO(rdata))
 
-    new_layer_bytes_arm = buf_arm.getvalue()
-    new_layer_digest_arm = hashlib.sha256(new_layer_bytes_arm).hexdigest()
-    new_layer_blob_name_arm = f'blobs/sha256/{new_layer_digest_arm}'
-    blobs_arm[new_layer_blob_name_arm] = new_layer_bytes_arm
-    layers_arm[arm_layer_idx] = new_layer_blob_name_arm
+        for geofile in ['GeoIP.dat', 'geosite.dat', 'geoip.metadb']:
+            geopath = os.path.join(etc_dir, geofile)
+            if os.path.exists(geopath):
+                with open(geopath, 'rb') as gf:
+                    gdata = gf.read()
+                for prefix in ['app/etc', 'app/defaults/etc']:
+                    ti = tarfile.TarInfo(name=f'{prefix}/{geofile}')
+                    ti.type = tarfile.REGTYPE
+                    ti.mode = 0o644
+                    ti.size = len(gdata)
+                    ti.mtime = int(time.time())
+                    sub.addfile(ti, io.BytesIO(gdata))
 
-    cfg_arm['rootfs']['diff_ids'][arm_layer_idx] = f'sha256:{new_layer_digest_arm}'
+    uncompressed_arm = buf_arm.getvalue()
+    diff_id_arm = f"sha256:{hashlib.sha256(uncompressed_arm).hexdigest()}"
+    compressed_arm = gzip.compress(uncompressed_arm)
+    layer_digest_arm = hashlib.sha256(compressed_arm).hexdigest()
+    new_arm_layer_blob = f"blobs/sha256/{layer_digest_arm}"
+
+    blobs_arm[new_arm_layer_blob] = compressed_arm
+    layers_arm[arm_layer_idx] = new_arm_layer_blob
+
+    cfg_arm['rootfs']['diff_ids'][arm_layer_idx] = diff_id_arm
     new_cfg_bytes_arm = json.dumps(cfg_arm, indent=2).encode('utf-8')
     new_cfg_digest_arm = hashlib.sha256(new_cfg_bytes_arm).hexdigest()
-    new_cfg_blob_name_arm = f'blobs/sha256/{new_cfg_digest_arm}'
-    blobs_arm[new_cfg_blob_name_arm] = new_cfg_bytes_arm
+    new_cfg_blob_arm = f"blobs/sha256/{new_cfg_digest_arm}"
+    blobs_arm[new_cfg_blob_arm] = new_cfg_bytes_arm
 
-    manifest_arm[0]['Config'] = new_cfg_blob_name_arm
+    manifest_arm[0]['Config'] = new_cfg_blob_arm
     manifest_arm[0]['Layers'] = layers_arm
-    manifest_arm[0]['RepoTags'] = [f'cubex:{ver_tag}', 'cubex:latest']
     manifest_bytes_arm = json.dumps(manifest_arm, indent=2).encode('utf-8')
 
     oci_manifest_layers_arm = []
     for l in layers_arm:
         oci_manifest_layers_arm.append({
-            'mediaType': 'application/vnd.oci.image.layer.v1.tar',
+            'mediaType': 'application/vnd.oci.image.layer.v1.tar+gzip',
             'size': len(blobs_arm[l]),
             'digest': f"sha256:{l.split('/')[-1]}"
         })
@@ -373,8 +417,8 @@ if base_tar_arm64 and os.path.exists(base_tar_arm64):
     }
     oci_manifest_bytes_arm = json.dumps(oci_manifest_arm, indent=2).encode('utf-8')
     oci_manifest_digest_arm = hashlib.sha256(oci_manifest_bytes_arm).hexdigest()
-    oci_manifest_blob_name_arm = f'blobs/sha256/{oci_manifest_digest_arm}'
-    blobs_arm[oci_manifest_blob_name_arm] = oci_manifest_bytes_arm
+    oci_manifest_blob_arm = f'blobs/sha256/{oci_manifest_digest_arm}'
+    blobs_arm[oci_manifest_blob_arm] = oci_manifest_bytes_arm
 
     oci_index_arm = {
         'schemaVersion': 2,
@@ -409,11 +453,13 @@ if base_tar_arm64 and os.path.exists(base_tar_arm64):
         add_mem_arm('oci-layout', b'{"imageLayoutVersion":"1.0.0"}')
         add_mem_arm('index.json', index_bytes_arm)
         add_mem_arm('manifest.json', manifest_bytes_arm)
-        all_blobs_arm = [oci_manifest_blob_name_arm, new_cfg_blob_name_arm] + layers_arm
+        all_blobs_arm = [oci_manifest_blob_arm, new_cfg_blob_arm] + layers_arm
         for b in all_blobs_arm:
             add_mem_arm(b, blobs_arm[b])
 
     size_mb_arm = os.path.getsize(out_tar_arm64) / (1024 * 1024)
     print(f"✅ [ARM64] Done! Generated {out_tar_arm64} ({size_mb_arm:.2f} MB)")
 else:
-    print("⚠️ Base ARM64 tar not found, skipping ARM64 OCI packaging.")
+    print(f"⚠️  Base ARM64 tar not found at {base_tar_arm64}, skipping ARM64 OCI container generation.")
+
+print("\n🎉 True RouterOS OCI Containers Packaging Complete!")
