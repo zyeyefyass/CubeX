@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div :class="[
     'min-h-screen font-sans antialiased transition-colors duration-500 selection:bg-teal-500/30 selection:text-teal-200 flex flex-col md:flex-row overflow-x-hidden overflow-y-hidden safe-h-screen h-[100dvh] w-full max-w-full',
     rootBgClass,
@@ -8,14 +8,14 @@
     <!-- 🚀 疯狂动物城超高清全息海报 (单图层 GPU 原生极速合成 · 60% 沉浸通透显色度 · 零显存浪费与零层级混合卡顿) -->
     <div class="fixed inset-0 -z-10 pointer-events-none overflow-hidden select-none bg-[#0a0815]" style="contain: strict; will-change: transform; transform: translate3d(0, 0, 0);">
       <div
-        class="absolute inset-0 bg-cover bg-no-repeat transition-[background-image] duration-500 ease-out opacity-[0.50]"
+        class="absolute inset-0 bg-cover bg-no-repeat transition-[background-image] duration-500 ease-out opacity-[0.95]"
         :style="{
           backgroundImage: `url('${activeTabBg.webp}')`,
           backgroundPosition: activeTabBg.position || 'center 35%'
         }">
       </div>
       <!-- 柔和护眼微暮光层，提升文字对比度 -->
-      <div class="absolute inset-0 bg-gradient-to-b from-[#001326]/40 via-[#001326]/50 to-[#000c1a]/65 pointer-events-none"></div>
+      <div class="absolute inset-0 bg-black/10 pointer-events-none"></div>
     </div>
 
 
