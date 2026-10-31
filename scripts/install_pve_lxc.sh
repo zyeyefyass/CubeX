@@ -410,7 +410,7 @@ else
             [ -n "$REL_TAG" ] && break
         fi
     done
-    [ -z "$REL_TAG" ] && REL_TAG="Test-v4.5"
+    [ -z "$REL_TAG" ] && REL_TAG="Test-v4.6"
 
     ZIP_NAME="CubeX-${REL_TAG}-linux-amd64.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"

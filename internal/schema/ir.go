@@ -101,6 +101,7 @@ type ProxyNode struct {
 	Type           string            `json:"type" yaml:"type"` // ss, vmess, vless, trojan, hysteria2, tuic, wireguard, direct, block
 	Server         string            `json:"server" yaml:"server"`
 	Port           int               `json:"port" yaml:"port"`
+	Ports          string            `json:"ports,omitempty" yaml:"ports,omitempty"` // Port hopping range (e.g. 20000-40000 or 20000:40000)
 	UUID           string            `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	Password       string            `json:"password,omitempty" yaml:"password,omitempty"`
 	Cipher         string            `json:"cipher,omitempty" yaml:"cipher,omitempty"`

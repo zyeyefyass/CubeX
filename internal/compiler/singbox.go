@@ -588,6 +588,29 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 					nodeMap["down_mbps"] = down
 				}
 			}
+			// Port hopping support (server_ports) for Hysteria2
+			ports := p.Ports
+			if ports == "" && p.RawConfig != nil {
+				if pts, ok := p.RawConfig["ports"].(string); ok && pts != "" {
+					ports = pts
+				} else if mpt, ok := p.RawConfig["mport"].(string); ok && mpt != "" {
+					ports = mpt
+				}
+			}
+			if ports != "" {
+				var portList []string
+				for _, part := range strings.Split(ports, ",") {
+					part = strings.TrimSpace(part)
+					if part != "" {
+						portList = append(portList, strings.ReplaceAll(part, "-", ":"))
+					}
+				}
+				if len(portList) > 0 {
+					nodeMap["server_ports"] = portList
+					delete(nodeMap, "server_port")
+					nodeMap["hop_interval"] = "30s"
+				}
+			}
 		case "tuic":
 			nodeMap["type"] = "tuic"
 			nodeMap["uuid"] = p.UUID

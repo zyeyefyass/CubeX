@@ -129,11 +129,20 @@ func parseClashNode(p map[string]any) schema.ProxyNode {
 	if cipher == "" {
 		cipher = getString("method")
 	}
+	ports := getString("ports")
+	if ports == "" {
+		ports = getString("mport")
+	}
+	if ports == "" {
+		ports = getString("server_ports")
+	}
+
 	node := schema.ProxyNode{
 		Name:           getString("name"),
 		Type:           strings.ToLower(getString("type")),
 		Server:         getString("server"),
 		Port:           getInt("port"),
+		Ports:          ports,
 		UUID:           getString("uuid"),
 		Password:       getString("password"),
 		Cipher:         cipher,
@@ -373,6 +382,20 @@ func ParseURILink(link string) (schema.ProxyNode, error) {
 
 	node.Server = u.Hostname()
 	node.Port, _ = strconv.Atoi(u.Port())
+	if node.Server == "" && u.Host != "" {
+		hostStr := u.Host
+		if idx := strings.LastIndex(hostStr, ":"); idx != -1 {
+			node.Server = hostStr[:idx]
+			portPart := hostStr[idx+1:]
+			if p, err := strconv.Atoi(portPart); err == nil {
+				node.Port = p
+			} else if strings.Contains(portPart, "-") || strings.Contains(portPart, ":") {
+				node.Ports = portPart
+			}
+		} else {
+			node.Server = hostStr
+		}
+	}
 
 	scheme := strings.ToLower(u.Scheme)
 	switch scheme {
@@ -491,7 +514,14 @@ func ParseURILink(link string) (schema.ProxyNode, error) {
 		if u.Query().Get("insecure") == "1" || u.Query().Get("insecure") == "true" {
 			node.SkipCertVerify = true
 		}
-		node.RawConfig = map[string]any{
+		if node.Ports == "" {
+			ports := u.Query().Get("mport")
+			if ports == "" {
+				ports = u.Query().Get("ports")
+			}
+			node.Ports = ports
+		}
+		raw := map[string]any{
 			"name":             node.Name,
 			"type":             "hysteria2",
 			"server":           node.Server,
@@ -501,6 +531,11 @@ func ParseURILink(link string) (schema.ProxyNode, error) {
 			"skip-cert-verify": node.SkipCertVerify,
 			"udp":              true,
 		}
+		if node.Ports != "" {
+			raw["ports"] = node.Ports
+			raw["mport"] = node.Ports
+		}
+		node.RawConfig = raw
 	case "tuic":
 		node.Type = "tuic"
 		node.UUID = u.User.Username()

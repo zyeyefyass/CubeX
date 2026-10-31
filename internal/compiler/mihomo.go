@@ -520,6 +520,21 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 				pMap["cipher"] = m
 				delete(pMap, "method")
 			}
+		} else if ptype == "hysteria2" || ptype == "hy2" {
+			ports := p.Ports
+			if ports == "" && p.RawConfig != nil {
+				if pts, ok := p.RawConfig["ports"].(string); ok && pts != "" {
+					ports = pts
+				} else if mpt, ok := p.RawConfig["mport"].(string); ok && mpt != "" {
+					ports = mpt
+				}
+			}
+			if ports != "" {
+				mihomoPorts := strings.ReplaceAll(ports, ":", "-")
+				pMap["ports"] = mihomoPorts
+				pMap["mport"] = mihomoPorts
+				pMap["hop-interval"] = 30
+			}
 		}
 		// Filter out protocols that Mihomo cannot parse to avoid daemon abort
 		switch ptype {

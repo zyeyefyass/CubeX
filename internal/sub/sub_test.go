@@ -92,3 +92,23 @@ func TestParseBase64Links(t *testing.T) {
 		t.Errorf("Node 1 name mismatch: %s", nodes[1].Name)
 	}
 }
+
+func TestParseHysteria2PortHopping(t *testing.T) {
+	link := "hysteria2://mysecretpass@103.204.174.208:8443?mport=20000-40000&sni=www.yahoo.co.jp&insecure=1#JP-Hy2-Hopping"
+	node, err := sub.ParseURILink(link)
+	if err != nil {
+		t.Fatalf("ParseURILink failed: %v", err)
+	}
+	if node.Type != "hysteria2" {
+		t.Errorf("Expected hysteria2, got %s", node.Type)
+	}
+	if node.Port != 8443 {
+		t.Errorf("Expected port 8443, got %d", node.Port)
+	}
+	if node.Ports != "20000-40000" {
+		t.Errorf("Expected ports 20000-40000, got %s", node.Ports)
+	}
+	if node.RawConfig["mport"] != "20000-40000" {
+		t.Errorf("Expected mport in raw config, got %v", node.RawConfig["mport"])
+	}
+}

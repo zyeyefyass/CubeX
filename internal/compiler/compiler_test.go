@@ -490,3 +490,86 @@ func TestDNSRewriteCompilers(t *testing.T) {
 		t.Errorf("Sing-box missing A rewrite rule")
 	}
 }
+
+func TestHysteria2PortHoppingCompilation(t *testing.T) {
+	ir := schema.NewDefaultIR()
+	ir.Proxies = []schema.ProxyNode{
+		{
+			Name:      "Hy2-Hopping-Test",
+			Type:      "hysteria2",
+			Server:    "103.204.174.208",
+			Port:      8443,
+			Ports:     "20000-40000",
+			Password:  "mypassword",
+			RawConfig: map[string]any{"mport": "20000-40000"},
+		},
+	}
+	ir.Groups = []schema.StrategyGroup{
+		{
+			Name:    "PROXY",
+			Type:    "select",
+			Proxies: []string{"Hy2-Hopping-Test"},
+		},
+	}
+
+	// 1. Verify Sing-box compilation
+	sbBytes, err := compiler.BuildSingBox(ir)
+	if err != nil {
+		t.Fatalf("BuildSingBox failed: %v", err)
+	}
+	var sbConfig map[string]any
+	if err := json.Unmarshal(sbBytes, &sbConfig); err != nil {
+		t.Fatalf("Unmarshal Singbox JSON failed: %v", err)
+	}
+	outbounds, _ := sbConfig["outbounds"].([]any)
+	var hy2Sb map[string]any
+	for _, ob := range outbounds {
+		obMap, _ := ob.(map[string]any)
+		if obMap["tag"] == "Hy2-Hopping-Test" {
+			hy2Sb = obMap
+			break
+		}
+	}
+	if hy2Sb == nil {
+		t.Fatalf("Hy2-Hopping-Test not found in Sing-box outbounds")
+	}
+	// server_port must be absent, server_ports must be ["20000:40000"]
+	if _, ok := hy2Sb["server_port"]; ok {
+		t.Errorf("Sing-box Hysteria2 with port hopping must NOT have server_port, got %v", hy2Sb["server_port"])
+	}
+	serverPorts, ok := hy2Sb["server_ports"].([]any)
+	if !ok || len(serverPorts) == 0 || serverPorts[0] != "20000:40000" {
+		t.Errorf("Sing-box Hysteria2 server_ports mismatch: got %v", hy2Sb["server_ports"])
+	}
+	if hy2Sb["hop_interval"] != "30s" {
+		t.Errorf("Sing-box Hysteria2 hop_interval mismatch: got %v", hy2Sb["hop_interval"])
+	}
+
+	// 2. Verify Mihomo compilation
+	mihomoBytes, err := compiler.BuildMihomo(ir)
+	if err != nil {
+		t.Fatalf("BuildMihomo failed: %v", err)
+	}
+	var mihomoConfig map[string]any
+	if err := yaml.Unmarshal(mihomoBytes, &mihomoConfig); err != nil {
+		t.Fatalf("Unmarshal Mihomo YAML failed: %v", err)
+	}
+	proxies, _ := mihomoConfig["proxies"].([]any)
+	var hy2Mihomo map[string]any
+	for _, p := range proxies {
+		pMap, _ := p.(map[string]any)
+		if pMap["name"] == "Hy2-Hopping-Test" {
+			hy2Mihomo = pMap
+			break
+		}
+	}
+	if hy2Mihomo == nil {
+		t.Fatalf("Hy2-Hopping-Test not found in Mihomo proxies")
+	}
+	if hy2Mihomo["ports"] != "20000-40000" {
+		t.Errorf("Mihomo Hysteria2 ports mismatch: got %v", hy2Mihomo["ports"])
+	}
+	if hy2Mihomo["hop-interval"] != 30 {
+		t.Errorf("Mihomo Hysteria2 hop-interval mismatch: got %v", hy2Mihomo["hop-interval"])
+	}
+}
