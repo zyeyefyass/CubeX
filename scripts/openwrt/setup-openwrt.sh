@@ -103,18 +103,22 @@ if [ -z "$ROUTER_IP" ]; then
     exit 1
 fi
 
-# 嗅探当前子网的真实主网关（区分主路由与旁路由模式）
+IP_PREFIX=$(echo "$ROUTER_IP" | cut -d. -f1-3)
+SUBNET="${IP_PREFIX}.0/24"
+
+# 嗅探当前子网的真实主网关（严格区分主路由与旁路由模式）
+DEF_ROUTE_DEV=$(ip route show default 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n 1)
 UPSTREAM_GW=$(ip route show default 2>/dev/null | awk '{print $3}' | head -n 1)
-if [ -n "$UPSTREAM_GW" ] && [ "$UPSTREAM_GW" != "$ROUTER_IP" ]; then
+UPSTREAM_PREFIX=$(echo "$UPSTREAM_GW" | cut -d. -f1-3)
+
+# 判断条件：只有当上级网关与 LAN IP 处于同一子网网段且不等于自身 IP，并且默认路由出接口不是 PPPoE/WAN 口时，才属于旁路由底座
+if [ -n "$UPSTREAM_GW" ] && [ "$UPSTREAM_PREFIX" = "$IP_PREFIX" ] && [ "$UPSTREAM_GW" != "$ROUTER_IP" ] && ! echo "$DEF_ROUTE_DEV" | grep -qE '^(ppp|wan)'; then
     MACVLAN_GW="$UPSTREAM_GW"
     echo -e "${GREEN}✅ [3/6 模式识别] 当前 OpenWrt 处于旁路由底座，上级物理主网关为: ${UPSTREAM_GW}${NC}"
 else
     MACVLAN_GW="$ROUTER_IP"
-    echo -e "${GREEN}✅ [3/6 模式识别] 当前 OpenWrt 处于主路由底座，主网关为: ${ROUTER_IP}${NC}"
+    echo -e "${GREEN}✅ [3/6 模式识别] 当前 OpenWrt 处于主路由底座 (WAN 出口: ${DEF_ROUTE_DEV:-pppoe-wan})，主网关为: ${ROUTER_IP}${NC}"
 fi
-
-IP_PREFIX=$(echo "$ROUTER_IP" | cut -d. -f1-3)
-SUBNET="${IP_PREFIX}.0/24"
 
 NET_NAME="cubex-macvlan"
 CONTAINER_NAME="cubex"
@@ -162,7 +166,13 @@ fi
 ip addr flush dev macvlan-shim 2>/dev/null || true
 ip addr add "${SHIM_IP}/24" dev macvlan-shim
 ip link set macvlan-shim up
-ip route add "${CUBEX_IP}/32" dev macvlan-shim 2>/dev/null || true
+ip route replace "${CUBEX_IP}/32" dev macvlan-shim src "$SHIM_IP" 2>/dev/null || ip route add "${CUBEX_IP}/32" dev macvlan-shim 2>/dev/null || true
+
+# 彻底解除宿主与 Macvlan 间的反向路径过滤拦截
+sysctl -w net.ipv4.conf.all.rp_filter=0 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.conf.default.rp_filter=0 >/dev/null 2>&1 || true
+sysctl -w "net.ipv4.conf.macvlan-shim.rp_filter=0" >/dev/null 2>&1 || true
+sysctl -w "net.ipv4.conf.${LAN_IF}.rp_filter=0" >/dev/null 2>&1 || true
 
 # 将 macvlan-shim 固化至 OpenWrt UCI network 与防火墙放行双向互访 (防 network reload 刷掉)
 if which uci >/dev/null 2>&1; then
@@ -258,7 +268,7 @@ if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
                     [ -n "$REL_TAG" ] && break
                 fi
             done
-            [ -z "$REL_TAG" ] && REL_TAG="Test-v4.2"
+            [ -z "$REL_TAG" ] && REL_TAG="Test-v4.8"
 
             # 优先从国内加速镜像拉取完整的 Docker 归档包 (支持断点续传与多源竞速)
             for MIRROR in "https://gh-proxy.com" "https://gh.ddlc.top" ""; do
@@ -381,7 +391,7 @@ cat << EOF > /usr/bin/cubex-watchdog.sh
 CUBEX_IP="${CUBEX_IP}"
 BACKUP_DNS="223.5.5.5"
 
-if wget -q -T 2 -O - "http://\${CUBEX_IP}:2026/api/health" 2>/dev/null | grep -q "status"; then
+if docker exec "${CONTAINER_NAME}" curl -fsSL -m 2 http://127.0.0.1:2026/api/health 2>/dev/null | grep -q "status" || curl -fsSL -m 2 "http://\${CUBEX_IP}:2026/api/health" 2>/dev/null | grep -q "status" || wget -q -T 2 -O - "http://\${CUBEX_IP}:2026/api/health" 2>/dev/null | grep -q "status"; then
     CURRENT=\$(uci -q get dhcp.lan.dhcp_option | grep -o "\${CUBEX_IP}" || true)
     if [ -z "\$CURRENT" ]; then
         logger -t cubex-watchdog "🛡️ CubeX Gateway revived! Restoring DHCP Option 6 to \${CUBEX_IP}"
