@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div :class="[
     'min-h-screen font-sans antialiased transition-colors duration-500 selection:bg-teal-500/30 selection:text-teal-200 flex flex-col md:flex-row overflow-x-hidden overflow-y-hidden safe-h-screen h-[100dvh] w-full max-w-full',
     rootBgClass,
@@ -8,14 +8,14 @@
     <!-- 🚀 疯狂动物城超高清全息海报 (单图层 GPU 原生极速合成 · 60% 沉浸通透显色度 · 零显存浪费与零层级混合卡顿) -->
     <div class="fixed inset-0 -z-10 pointer-events-none overflow-hidden select-none bg-[#0a0815]" style="contain: strict; will-change: transform; transform: translate3d(0, 0, 0);">
       <div
-        class="absolute inset-0 bg-cover bg-no-repeat transition-[background-image] duration-500 ease-out opacity-[0.60]"
+        class="absolute inset-0 bg-cover bg-no-repeat transition-[background-image] duration-500 ease-out opacity-[0.24]"
         :style="{
           backgroundImage: `url('${activeTabBg.webp}')`,
           backgroundPosition: activeTabBg.position || 'center 35%'
         }">
       </div>
       <!-- 柔和护眼微暮光层，提升文字对比度 -->
-      <div class="absolute inset-0 bg-black/15 pointer-events-none"></div>
+      <div class="absolute inset-0 bg-gradient-to-b from-[#001326]/60 via-[#001326]/75 to-[#000c1a]/90 pointer-events-none"></div>
     </div>
 
 
@@ -3194,6 +3194,71 @@
                   </button>
                 </div>
                 <p class="text-xs text-slate-300 leading-relaxed">{{ hostLastExecution.message }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 📡 OpenWrt / ImmortalWrt 宿主共生智能大屏 (UBUS / SSH 双通道探针驾驶舱) -->
+          <div v-if="isOpenWrt || (hostBadge.shortName && (hostBadge.shortName.includes('OpenWrt') || hostBadge.shortName.includes('LEDE')))"
+            class="p-5 sm:p-6 rounded-2xl macos-glass-card border border-sky-500/30 space-y-4 relative overflow-hidden animate-in fade-in">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+              <div class="flex items-center gap-3">
+                <img src="/host-openwrt.svg" class="w-7 h-7 object-contain drop-shadow" alt="OpenWrt" />
+                <div>
+                  <h4 class="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+                    <span>OpenWrt / ImmortalWrt 智能路由底座大屏</span>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full" :class="openwrtStatus.connected ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'">
+                      {{ openwrtStatus.connected ? '● UBUS/SSH 探针在线' : '○ 待探活巡检' }}
+                    </span>
+                  </h4>
+                  <p class="text-xs text-slate-400 mt-0.5">原生 UBUS JSON-RPC 与 Dropbear SSH 双通道深度感知 · 旁路静态回指与 DHCP 劫持防护</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button @click="inspectOpenWrt" :disabled="inspectingOpenWrt" class="px-3.5 py-1.5 rounded-xl bg-sky-950/80 hover:bg-sky-900 border border-sky-500/40 text-sky-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
+                  <span v-if="inspectingOpenWrt" class="inline-block animate-spin">↻</span>
+                  <span v-else>📡</span>
+                  <span>深度探活巡检</span>
+                </button>
+                <button @click="applyOpenWrtDirect" :disabled="applyingOpenWrt" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 text-white text-xs font-black shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
+                  <span v-if="applyingOpenWrt" class="inline-block animate-spin">↻</span>
+                  <span v-else>⚡</span>
+                  <span>一键加固回指</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 4-Grid Status -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div class="macos-sub-card p-3 rounded-xl">
+                <span class="text-slate-400 text-[11px] block">固件系统与版本</span>
+                <span class="text-emerald-300 font-extrabold text-xs sm:text-[13px] block mt-1 truncate" :title="openwrtStatus.release || hostInfo.os_name">
+                  {{ openwrtStatus.release || hostInfo.os_name || 'OpenWrt 智能路由' }}
+                </span>
+                <span class="text-[10px] text-slate-400 font-mono mt-0.5 block truncate">
+                  {{ openwrtStatus.model || '标准软路由平台' }}
+                </span>
+              </div>
+              <div class="macos-sub-card p-3 rounded-xl">
+                <span class="text-slate-400 text-[11px] block">防火墙引擎</span>
+                <span class="text-sky-300 font-extrabold text-xs sm:text-[13px] block mt-1 truncate">
+                  {{ openwrtStatus.firewall_ver || 'firewall4 (nftables)' }}
+                </span>
+                <span class="text-[10px] text-slate-400 font-mono mt-0.5 block">内核原生高效转发</span>
+              </div>
+              <div class="macos-sub-card p-3 rounded-xl">
+                <span class="text-slate-400 text-[11px] block">198.18.0.0/15 回指</span>
+                <span :class="['font-extrabold text-xs sm:text-[13px] block mt-1 truncate', openwrtStatus.has_route ? 'text-emerald-300' : 'text-amber-400']">
+                  {{ openwrtStatus.has_route ? '✓ 已注入并生效' : '⚠️ 待加固回指' }}
+                </span>
+                <span class="text-[10px] text-slate-400 font-mono mt-0.5 block truncate">下一跳: {{ openwrtStatus.cubex_ip || '10.0.0.7' }}</span>
+              </div>
+              <div class="macos-sub-card p-3 rounded-xl">
+                <span class="text-slate-400 text-[11px] block">DHCP Option 6 注入</span>
+                <span :class="['font-extrabold text-xs sm:text-[13px] block mt-1 truncate', openwrtStatus.has_dns ? 'text-emerald-300' : 'text-amber-400']">
+                  {{ openwrtStatus.has_dns ? '✓ 全局安全下发' : '○ 建议一键加固' }}
+                </span>
+                <span class="text-[10px] text-slate-400 font-mono mt-0.5 block">防 DNS 污染与侧漏</span>
               </div>
             </div>
           </div>
@@ -7234,6 +7299,61 @@ const isOpenWrt = computed(() => {
 })
 
 
+
+const openwrtStatus = ref({
+  connected: false,
+  hostname: '',
+  model: '',
+  release: '',
+  kernel: '',
+  firewall_ver: '',
+  has_route: false,
+  has_dns: false,
+  details: '',
+  cubex_ip: ''
+})
+const inspectingOpenWrt = ref(false)
+const applyingOpenWrt = ref(false)
+
+async function inspectOpenWrt() {
+  inspectingOpenWrt.value = true
+  try {
+    const res = await fetch('/api/v1/host/openwrt/inspect')
+    if (res.ok) {
+      const data = await res.json()
+      openwrtStatus.value = { ...openwrtStatus.value, ...data }
+      if (data.connected) {
+        showToast('✓ OpenWrt 底座深度探活完成，UBUS / SSH 状态正常')
+      } else {
+        showToast(data.probe_warning || '⚠️ 未能连通 OpenWrt，请在上方核对管理凭据')
+      }
+    }
+  } catch (e) {
+    showToast('⚠️ OpenWrt 探活请求异常: ' + e.message)
+  } finally {
+    inspectingOpenWrt.value = false
+  }
+}
+
+async function applyOpenWrtDirect() {
+  applyingOpenWrt.value = true
+  try {
+    const res = await fetch('/api/v1/host/openwrt/apply', { method: 'POST' })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.success) {
+        showToast('🎉 OpenWrt 198.18.0.0/15 回指与防火墙已成功全自动加固！')
+        await inspectOpenWrt()
+      } else {
+        showToast('⚠️ OpenWrt 加固反馈: ' + (data.error || '部分规则未注入'))
+      }
+    }
+  } catch (e) {
+    showToast('⚠️ OpenWrt 加固请求异常: ' + e.message)
+  } finally {
+    applyingOpenWrt.value = false
+  }
+}
 
 const hostConfig = ref({
   host: '',

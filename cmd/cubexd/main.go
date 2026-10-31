@@ -1,4 +1,4 @@
-package main
+﻿package main
 
 
 
@@ -1089,6 +1089,10 @@ func main() {
 	mux.HandleFunc("/api/v1/host/auto-setup", srv.handleHostAutoSetup)
 
 	mux.HandleFunc("/api/v1/host/ikuai/docker-params", srv.handleIkuaiDockerParams)
+
+	mux.HandleFunc("/api/v1/host/openwrt/inspect", srv.handleOpenWrtInspect)
+
+	mux.HandleFunc("/api/v1/host/openwrt/apply", srv.handleOpenWrtApply)
 
 	mux.HandleFunc("/api/v1/ros/routing/status", srv.handleROSInspect)
 
@@ -9628,6 +9632,147 @@ services:
 }
 
 // detectOutboundIP discovers the local host's active IP used for outbound routing
+func (s *Server) handleOpenWrtInspect(w http.ResponseWriter, r *http.Request) {
+	hostIP := ""
+	port := 80
+	user := "root"
+	pass := ""
+
+	if s.hostMgr != nil {
+		hostCfg := s.hostMgr.GetConfig()
+		if hostCfg.Host != "" {
+			hostIP = hostCfg.Host
+			port = hostCfg.Port
+			user = hostCfg.User
+			pass = hostCfg.Password
+		}
+	}
+	if hostIP == "" {
+		hostIP = detectDefaultGateway()
+	}
+	if port <= 0 {
+		port = 80
+	}
+	if user == "" {
+		user = "root"
+	}
+
+	cubexIP := ""
+	if s.hostMgr != nil && hostIP != "" {
+		cubexIP = s.hostMgr.GetOutboundIP(hostIP)
+	}
+	if cubexIP == "" {
+		cubexIP = detectOutboundIP()
+	}
+
+	client := openwrt.NewClient(openwrt.Config{
+		Host:     hostIP,
+		Port:     port,
+		User:     user,
+		Password: pass,
+	})
+
+	sysInfo, probeErr := client.Probe()
+	hasRoute, hasDNS, details, inspectErr := client.InspectRouting(cubexIP)
+
+	resp := map[string]any{
+		"host_ip":   hostIP,
+		"port":      port,
+		"cubex_ip":  cubexIP,
+		"has_route": hasRoute,
+		"has_dns":   hasDNS,
+		"details":   details,
+		"connected": probeErr == nil || inspectErr == nil,
+	}
+
+	if sysInfo != nil {
+		resp["hostname"] = sysInfo.Hostname
+		resp["model"] = sysInfo.Model
+		resp["release"] = sysInfo.Release
+		resp["kernel"] = sysInfo.Kernel
+		resp["firewall_ver"] = sysInfo.FirewallVer
+		resp["memory_total_mb"] = sysInfo.MemoryTotalMB
+		resp["memory_free_mb"] = sysInfo.MemoryFreeMB
+	}
+	if probeErr != nil {
+		resp["probe_warning"] = probeErr.Error()
+	}
+	if inspectErr != nil {
+		resp["inspect_warning"] = inspectErr.Error()
+	}
+
+	sendJSON(w, resp)
+}
+
+func (s *Server) handleOpenWrtApply(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	hostIP := ""
+	port := 80
+	user := "root"
+	pass := ""
+
+	if s.hostMgr != nil {
+		hostCfg := s.hostMgr.GetConfig()
+		if hostCfg.Host != "" {
+			hostIP = hostCfg.Host
+			port = hostCfg.Port
+			user = hostCfg.User
+			pass = hostCfg.Password
+		}
+	}
+	if hostIP == "" {
+		hostIP = detectDefaultGateway()
+	}
+	if port <= 0 {
+		port = 80
+	}
+	if user == "" {
+		user = "root"
+	}
+
+	cubexIP := ""
+	if s.hostMgr != nil && hostIP != "" {
+		cubexIP = s.hostMgr.GetOutboundIP(hostIP)
+	}
+	if cubexIP == "" {
+		cubexIP = detectOutboundIP()
+	}
+
+	client := openwrt.NewClient(openwrt.Config{
+		Host:     hostIP,
+		Port:     port,
+		User:     user,
+		Password: pass,
+	})
+
+	bypassLogs, err1 := client.ApplyBypass(cubexIP)
+	fwLogs, err2 := client.ApplyFirewall()
+	ipv6Logs, _ := client.ApplyIPv6Hardening()
+
+	allLogs := append([]string{}, bypassLogs...)
+	allLogs = append(allLogs, fwLogs...)
+	allLogs = append(allLogs, ipv6Logs...)
+
+	success := (err1 == nil && err2 == nil)
+	errMsg := ""
+	if err1 != nil {
+		errMsg = err1.Error()
+	} else if err2 != nil {
+		errMsg = err2.Error()
+	}
+
+	sendJSON(w, map[string]any{
+		"success":  success,
+		"logs":     allLogs,
+		"error":    errMsg,
+		"cubex_ip": cubexIP,
+	})
+}
+
 func detectOutboundIP() string {
 	conn, err := net.DialTimeout("udp", "223.5.5.5:80", 1*time.Second)
 	if err == nil {
