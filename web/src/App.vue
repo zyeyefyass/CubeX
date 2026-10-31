@@ -8,7 +8,7 @@
     <!-- 🚀 疯狂动物城超高清全息海报 (单图层 GPU 原生极速合成 · 60% 沉浸通透显色度 · 零显存浪费与零层级混合卡顿) -->
     <div class="fixed inset-0 -z-10 pointer-events-none overflow-hidden select-none bg-[#0a0815]" style="contain: strict; will-change: transform; transform: translate3d(0, 0, 0);">
       <div
-        class="absolute inset-0 bg-cover bg-no-repeat transition-[background-image] duration-500 ease-out opacity-[0.95]"
+        class="absolute inset-0 bg-cover bg-no-repeat transition-[background-image] duration-500 ease-out opacity-100"
         :style="{
           backgroundImage: `url('${activeTabBg.webp}')`,
           backgroundPosition: activeTabBg.position || 'center 35%'

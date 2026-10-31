@@ -48,7 +48,7 @@ body::before {
 /* 🌅 Twilight Crystal 暮光冰晶 · 人体工程学护眼面板与 120 FPS 满帧硬件加速体系   */
 /* ══════════════════════════════════════════════════════════════════════════ */
 
-/* 一级大容器（疯狂动物城暮光冰晶主题 · 50% 精准半透明微晶 · 原画海报通透可见 · 护眼丝滑） */
+/* 一级大容器（疯狂动物城主题 · 每一板块背景图 50% 水晶穿透可见 · 零模糊原画透显） */
 .macos-glass-card,
 .liquid-glass,
 .glass-aurora,
@@ -61,12 +61,12 @@ body::before {
 .bg-\[\#161e27\]\/90,
 .bg-\[\#161e27\]\/85,
 .bg-\[\#161e27\]\/80 {
-  background: rgba(0, 24, 48, 0.50) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+  background: rgba(0, 18, 36, 0.50) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   border-radius: 20px;
-  border: 1px solid rgba(56, 189, 248, 0.16) !important;
-  box-shadow: 0 10px 30px -5px rgba(0, 8, 20, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.10) !important;
+  border: 1px solid rgba(56, 189, 248, 0.20) !important;
+  box-shadow: 0 10px 30px -5px rgba(0, 8, 20, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
   contain: content;
   content-visibility: auto;
   contain-intrinsic-size: 0 280px;
@@ -81,48 +81,48 @@ body::before {
 .glass-novice:hover,
 .glass-obsidian:hover,
 .host-card:hover {
-  background: rgba(0, 30, 60, 0.60) !important;
-  border-color: rgba(56, 189, 248, 0.36) !important;
-  box-shadow: 0 14px 40px -4px rgba(0, 8, 20, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+  background: rgba(0, 24, 48, 0.58) !important;
+  border-color: rgba(56, 189, 248, 0.40) !important;
+  box-shadow: 0 14px 40px -4px rgba(0, 8, 20, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.20) !important;
 }
 
-/* 左侧导航栏 (Sidebar: 50% 通透深蓝微晶 · 舒适透显海报) */
+/* 左侧导航栏 (Sidebar: 50% 纯净水晶穿透 · 海报完全穿透可见) */
 .macos-sidebar {
   background: rgba(0, 18, 36, 0.50) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border-right: 1px solid rgba(56, 189, 248, 0.14) !important;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.30) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-right: 1px solid rgba(56, 189, 248, 0.18) !important;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25) !important;
   contain: layout style;
   transform: translateZ(0);
 }
 
-/* 顶部状态栏 (Top Bar: 柔光通透微晶) */
+/* 顶部状态栏 (Top Bar: 100% 全透明穿透) */
 .macos-topbar {
-  background: rgba(0, 16, 32, 0.35) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border-bottom: 1px solid rgba(56, 189, 248, 0.10) !important;
-}
-
-/* 顶部与全局胶囊组件 (45% 通透微晶) */
-.macos-capsule,
-.windhawk-pill {
-  background: rgba(0, 28, 56, 0.45) !important;
+  background: transparent !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border: 1px solid rgba(56, 189, 248, 0.18) !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.12) !important;
+}
+
+/* 顶部与全局胶囊组件 (35% 通透微晶) */
+.macos-capsule,
+.windhawk-pill {
+  background: rgba(0, 24, 48, 0.35) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(56, 189, 248, 0.22) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
   transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
 }
 
 .macos-capsule:hover,
 .windhawk-pill:hover {
-  background: rgba(0, 38, 76, 0.60) !important;
-  border-color: rgba(56, 189, 248, 0.40) !important;
+  background: rgba(0, 36, 72, 0.50) !important;
+  border-color: rgba(56, 189, 248, 0.45) !important;
 }
 
-/* 二级子卡片、项目行、指标块（40% 通透底衬 · 海报通透透显） */
+/* 二级子卡片、项目行、指标块（极轻量微晶衬底 · 保证海报穿透率 50% 不衰减） */
 .macos-sub-card,
 .sub-card-glass,
 .bg-slate-900,
@@ -143,8 +143,8 @@ body::before {
 .bg-black\/40,
 .bg-black\/50,
 .bg-black\/60 {
-  background: rgba(0, 16, 32, 0.40) !important;
-  border: 1px solid rgba(56, 189, 248, 0.12) !important;
+  background: rgba(0, 10, 20, 0.20) !important;
+  border: 1px solid rgba(56, 189, 248, 0.14) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-radius: 14px !important;
@@ -155,8 +155,8 @@ body::before {
 .macos-sub-card:hover,
 .bg-slate-900:hover,
 .bg-slate-950:hover {
-  background: rgba(0, 28, 56, 0.55) !important;
-  border-color: rgba(56, 189, 248, 0.30) !important;
+  background: rgba(0, 24, 48, 0.35) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
 }
 
 .hover\:bg-slate-800:hover,
