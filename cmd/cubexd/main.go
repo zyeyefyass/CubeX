@@ -87,7 +87,7 @@ import (
 
 var (
 
-	version = "Test v4.7"
+	version = "Test v4.8"
 
 	startTime = time.Now()
 
@@ -811,7 +811,7 @@ func main() {
 
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v4.7")
+	srv.mcpServer = mcp.NewServer(srv, "Test v4.8")
 
 	srv.initTrafficState()
 
