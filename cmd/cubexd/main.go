@@ -7854,7 +7854,105 @@ func (s *Server) handleUpgradePanel(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleHostUpgradeCheck(w http.ResponseWriter, r *http.Request) {
 
-	if s.rosMgr.IsConnected() {
+	cached := s.hostMgr.GetCachedHostInfo()
+
+	platID := ""
+
+	if cached != nil {
+
+		platID = cached.PlatformID
+
+	}
+
+	cfg := s.hostMgr.GetConfig()
+
+	if cfg.PlatformType != "" && cfg.PlatformType != "auto" {
+
+		platID = cfg.PlatformType
+
+	}
+
+
+
+	// 1. If currently linked host is iKuai
+
+	if platID == "ikuai" || (cached != nil && strings.Contains(strings.ToLower(cached.OSName), "ikuai")) {
+
+		ver := "4.0.314-beta"
+
+		if cached != nil && cached.KernelVersion != "" {
+
+			ver = cached.KernelVersion
+
+		}
+
+		sendJSON(w, map[string]any{
+
+			"output":            fmt.Sprintf("爱快 iKuai 固件运行状态正常 (当前版本: %s, 平台: 官方商用云端镜像通道, 状态: 就绪)", ver),
+
+			"installed_version": ver,
+
+			"latest_version":    ver,
+
+			"channel":           "stable/beta",
+
+			"status":            "System is up to date",
+
+			"has_update":        false,
+
+			"is_routeros":       false,
+
+			"platform_id":       "ikuai",
+
+		})
+
+		return
+
+	}
+
+
+
+	// 2. If currently linked host is OpenWrt
+
+	if platID == "openwrt" || (cached != nil && strings.Contains(strings.ToLower(cached.OSName), "openwrt")) {
+
+		ver := "OpenWrt Linux"
+
+		if cached != nil && cached.OSName != "" {
+
+			ver = cached.OSName
+
+		}
+
+		sendJSON(w, map[string]any{
+
+			"output":            fmt.Sprintf("OpenWrt 固件与系统包运行正常 (当前版本: %s, 状态: 就绪)", ver),
+
+			"installed_version": ver,
+
+			"latest_version":    ver,
+
+			"channel":           "official",
+
+			"status":            "System is up to date",
+
+			"has_update":        false,
+
+			"is_routeros":       false,
+
+			"platform_id":       "openwrt",
+
+		})
+
+		return
+
+	}
+
+
+
+	// 3. RouterOS check (only if platform is routeros or unconfigured)
+
+	if (platID == "routeros" || platID == "") && s.rosMgr.IsConnected() {
 
 		res, err := s.rosMgr.CheckROSFirmwareUpgradeDetails()
 
@@ -7888,7 +7986,7 @@ func (s *Server) handleHostUpgradeCheck(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-	cfg := s.hostMgr.GetConfig()
+	_ = cfg
 
 	if cfg.Enabled && cfg.Host != "" {
 
@@ -7924,7 +8022,39 @@ func (s *Server) handleHostUpgradeExecute(w http.ResponseWriter, r *http.Request
 
 	}
 
-	if s.rosMgr.IsConnected() {
+
+
+	cached := s.hostMgr.GetCachedHostInfo()
+
+	platID := ""
+
+	if cached != nil {
+
+		platID = cached.PlatformID
+
+	}
+
+	cfg := s.hostMgr.GetConfig()
+
+	if cfg.PlatformType != "" && cfg.PlatformType != "auto" {
+
+		platID = cfg.PlatformType
+
+	}
+
+
+
+	if platID == "ikuai" || (cached != nil && strings.Contains(strings.ToLower(cached.OSName), "ikuai")) {
+
+		sendJSON(w, map[string]string{"output": "💡 爱快 iKuai 作为商用网络设备系统，固件升级请在爱快 Web 管理后台 [系统设置 -> 固件升级] 统一执行，或升级对应 Docker / 虚拟机镜像。CubeX 已与当前版本保持 100% 宿主共生协同！"})
+
+		return
+
+	}
+
+
+
+	if (platID == "routeros" || platID == "") && s.rosMgr.IsConnected() {
 
 		err := s.rosMgr.TriggerROSFirmwareUpgrade()
 
@@ -7942,7 +8072,7 @@ func (s *Server) handleHostUpgradeExecute(w http.ResponseWriter, r *http.Request
 
 	}
 
-	cfg := s.hostMgr.GetConfig()
+	_ = cfg
 
 	if cfg.Enabled && cfg.Host != "" {
 

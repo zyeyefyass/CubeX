@@ -7265,7 +7265,16 @@
 
                     <span class="text-purple-400 font-bold shrink-0">[HOST]</span>
 
-                    <span>MikroTik RouterOS 原生 API 联通 · 隔离策略路由 (table cubex) 正常放行</span>
+                    <span v-if="isIKuai">爱快 iKuai Web-RPC 联通 · 198.18.0.0/15 静态回指与 DHCP DNS 联动就绪</span>
+
+
+                    <span v-else-if="isOpenWrt">OpenWrt UBUS/SSH 联通 · 198.18.0.0/15 回指与策略转发就绪</span>
+
+
+                    <span v-else-if="isRouterOS">MikroTik RouterOS 原生 API 联通 · 隔离策略路由 (table cubex) 正常放行</span>
+
+
+                    <span v-else>{{ hostBadge.name }} 原生通道联通 · 底层网络与防火墙自愈就绪</span>
 
                   </div>
 
@@ -18620,7 +18629,7 @@ async function checkHostUpgrade(silent = false) {
 
       if (data.installed_version) {
 
-        hostInfo.value.os_name = `MikroTik RouterOS ${data.installed_version} (${data.channel || 'stable'})`
+        if (isRouterOS.value || data.is_routeros) { hostInfo.value.os_name = `MikroTik RouterOS ${data.installed_version} (${data.channel || 'stable'})` }
 
       }
 

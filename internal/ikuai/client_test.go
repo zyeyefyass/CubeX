@@ -145,3 +145,138 @@ func TestIKuaiClientMock(t *testing.T) {
 		t.Errorf("expected logs, got none")
 	}
 }
+
+func TestIKuaiV4ClientMock(t *testing.T) {
+	// Mock iKuai 4.0 server
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/Action/login" {
+			http.SetCookie(w, &http.Cookie{Name: "sess_key", Value: "mock_v4_session_key"})
+			resp := RPCResponse{Result: 10000, Code: 0, Message: "成功"}
+			_ = json.NewEncoder(w).Encode(resp)
+			return
+		}
+
+		if r.URL.Path != "/Action/call" {
+			http.NotFound(w, r)
+			return
+		}
+
+		var req RPCRequest
+		_ = json.NewDecoder(r.Body).Decode(&req)
+
+		if req.FuncName == "sysstat" {
+			data := map[string]any{
+				"verinfo": map[string]any{
+					"version": "4.0.314-beta x64",
+					"sysname": "iKuai8",
+					"arch":    "x86_64",
+				},
+				"cpu": []map[string]any{
+					{"load": "1%"},
+				},
+				"memory": map[string]any{
+					"used":  536870912.0,
+					"total": 2147483648.0,
+				},
+				"uptime": "24h",
+			}
+			dataBytes, _ := json.Marshal(data)
+			resp := RPCResponse{Code: 0, Message: "Success", Results: dataBytes}
+			_ = json.NewEncoder(w).Encode(resp)
+			return
+		}
+
+		if req.FuncName == "static_rt" {
+			if req.Action == "show" {
+				data := map[string]any{
+					"data": []map[string]any{
+						{
+							"rowid":     1,
+							"dst_addr":  "198.18.0.0/15",
+							"gateway":   "10.0.0.7",
+							"interface": "lan1",
+							"ip_type":   "4",
+							"tagname":   "CubeX-FakeIP-Bypass",
+						},
+					},
+					"total": 1,
+				}
+				dataBytes, _ := json.Marshal(data)
+				resp := RPCResponse{Code: 0, Message: "Success", Results: dataBytes}
+				_ = json.NewEncoder(w).Encode(resp)
+				return
+			}
+			resp := RPCResponse{Code: 0, Message: "Success", RowID: 1}
+			_ = json.NewEncoder(w).Encode(resp)
+			return
+		}
+
+		if req.FuncName == "dhcp_server" {
+			if req.Action == "show" {
+				data := map[string]any{
+					"data": []map[string]any{
+						{
+							"id":        1,
+							"interface": "lan1",
+							"dns1":      "10.0.0.7",
+							"gateway":   "10.0.0.188",
+						},
+					},
+					"total": 1,
+				}
+				dataBytes, _ := json.Marshal(data)
+				resp := RPCResponse{Code: 0, Message: "Success", Results: dataBytes}
+				_ = json.NewEncoder(w).Encode(resp)
+				return
+			}
+			resp := RPCResponse{Code: 0, Message: "Success"}
+			_ = json.NewEncoder(w).Encode(resp)
+			return
+		}
+
+		resp := RPCResponse{Code: 0, Message: "Success"}
+		_ = json.NewEncoder(w).Encode(resp)
+	}))
+	defer ts.Close()
+
+	u, err := url.Parse(ts.URL)
+	if err != nil {
+		t.Fatalf("failed to parse url: %v", err)
+	}
+	port, _ := strconv.Atoi(u.Port())
+
+	client := NewClient(Config{
+		Host:     u.Hostname(),
+		Port:     port,
+		User:     "admin",
+		Password: "password123",
+	})
+
+	if err := client.Login(); err != nil {
+		t.Fatalf("V4 Login failed: %v", err)
+	}
+
+	stat, err := client.GetSysStat()
+	if err != nil {
+		t.Fatalf("V4 GetSysStat failed: %v", err)
+	}
+	if stat.Version != "4.0.314-beta x64" {
+		t.Errorf("expected version 4.0.314-beta x64, got %s", stat.Version)
+	}
+
+	hasRoute, hasDNS, details, err := client.InspectRouting("10.0.0.7")
+	if err != nil {
+		t.Fatalf("V4 InspectRouting failed: %v", err)
+	}
+	if !hasRoute || !hasDNS {
+		t.Errorf("expected hasRoute=true, hasDNS=true, got %v, %v (details: %s)", hasRoute, hasDNS, details)
+	}
+
+	logs, err := client.ApplyBypass("10.0.0.7")
+	if err != nil {
+		t.Fatalf("V4 ApplyBypass failed: %v", err)
+	}
+	if len(logs) == 0 {
+		t.Errorf("expected logs, got none")
+	}
+}

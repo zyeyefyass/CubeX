@@ -1059,7 +1059,7 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 			},
 		}
 		resp, err := client.Do(req)
-		if err != nil || resp.StatusCode >= 400 {
+		if err != nil || resp.StatusCode != http.StatusOK {
 			if resp != nil {
 				_ = resp.Body.Close()
 			}
@@ -1073,7 +1073,7 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 			FreeHddSpace  int64  `json:"free-hdd-space"`
 			TotalHddSpace int64  `json:"total-hdd-space"`
 		}
-		if err := json.NewDecoder(resp.Body).Decode(&resource); err == nil {
+		if err := json.NewDecoder(resp.Body).Decode(&resource); err == nil && resource.Version != "" {
 			ver := strings.TrimSpace(resource.Version)
 			if !strings.HasPrefix(strings.ToLower(ver), "v") {
 				ver = "v" + ver
@@ -1095,10 +1095,9 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 			}
 			return true, ver
 		}
-		m.lastConnected = true
-		m.lastVersion = "v7.x"
-		return true, "v7.x"
 	}
+	m.lastConnected = false
+	m.lastVersion = ""
 	return false, ""
 }
 

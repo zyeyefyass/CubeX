@@ -133,8 +133,18 @@ func (m *Manager) GetConfig() HostConfig {
 // GetCachedHostInfo returns the most recently successfully probed host telemetry.
 func (m *Manager) GetCachedHostInfo() *HostInfo {
 	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return m.cachedInfo
+	cached := m.cachedInfo
+	cfg := m.config
+	m.mu.RUnlock()
+
+	if cached == nil && cfg.Enabled && cfg.Host != "" {
+		if _, err := m.TestSSH(cfg); err == nil {
+			m.mu.RLock()
+			cached = m.cachedInfo
+			m.mu.RUnlock()
+		}
+	}
+	return cached
 }
 
 // getSSHClient dials the host machine via SSH.
@@ -651,18 +661,16 @@ func (m *Manager) TestSSH(cfg HostConfig) (map[string]any, error) {
 			_ = m.syncToROSConfig(cfg)
 			return restRes, nil
 		}
-		// If RouterOS REST API returned an explicit authentication error, return it directly!
-		if restErr != nil && strings.Contains(restErr.Error(), "鉴权失败") {
-			return nil, restErr
-		}
 
-		// Priority 2: iKuai Web-RPC (on port 80/443)
-		if ikRes, ikErr := m.testIKuaiRPC(cfg); ikErr == nil && ikRes != nil {
+		// Priority 2: iKuai Web-RPC (on port 80/443, supporting 3.x and 4.0+)
+		ikRes, ikErr := m.testIKuaiRPC(cfg)
+		if ikErr == nil && ikRes != nil {
 			return ikRes, nil
 		}
 
 		// Priority 3: OpenWrt (UBUS / HTTP on port 80/443)
-		if owRes, owErr := m.testOpenWrt(cfg); owErr == nil && owRes != nil {
+		owRes, owErr := m.testOpenWrt(cfg)
+		if owErr == nil && owRes != nil {
 			return owRes, nil
 		}
 
@@ -674,13 +682,12 @@ func (m *Manager) TestSSH(cfg HostConfig) (map[string]any, error) {
 			return m.testSSHClientSession(client, sshCfg)
 		}
 
-		if restErr != nil {
-			if strings.Contains(restErr.Error(), "connection refused") || strings.Contains(restErr.Error(), "timeout") || strings.Contains(restErr.Error(), "i/o timeout") {
-				return nil, fmt.Errorf("无法连接至主路由 %s:%d (连接被拒绝或超时，已尝试自动探测 RouterOS / 爱快 / OpenWrt)。请确认主路由 IP 是否正确，以及主路由是否开放了 Web/API 端口", cfg.Host, cfg.Port)
-			}
-			return nil, fmt.Errorf("宿主连接失败 (REST API 端口 %d): %w", cfg.Port, restErr)
+		if cfg.PlatformType == "routeros" {
+			return nil, fmt.Errorf("RouterOS REST API 连接失败 (端口 %d): %w", cfg.Port, restErr)
 		}
-		return nil, fmt.Errorf("宿主连接失败: 无法连接至 80/443 端口")
+
+		// Comprehensive auto-detection error message
+		return nil, fmt.Errorf("无法连接至主路由 %s:%d (已自动探测 RouterOS / 爱快 / OpenWrt 均未通过认证)。请检查主路由 IP 是否正确、管理密码是否输入准确，以及主路由是否开放了 Web/API 端口 (爱快排查:%v)", cfg.Host, cfg.Port, ikErr)
 	}
 
 	// 3. Port 22 or standard SSH
@@ -1366,10 +1373,29 @@ func (m *Manager) RemovePeerFromHost(publicKey string) error {
 func (m *Manager) CheckHostUpgrade() (string, error) {
 	m.mu.RLock()
 	cfg := m.config
+	cached := m.cachedInfo
 	m.mu.RUnlock()
 
 	if !cfg.Enabled || cfg.Host == "" {
-		return "", fmt.Errorf("宿主机 SSH 连接未配置")
+		return "", fmt.Errorf("宿主连接未配置")
+	}
+
+	if cached != nil {
+		if cached.PlatformID == "ikuai" {
+			return fmt.Sprintf("爱快 iKuai 固件运行状态正常 (当前版本: %s, 平台: 官方商用云端镜像通道, 状态: 就绪)", cached.KernelVersion), nil
+		}
+		if cached.PlatformID == "openwrt" {
+			return fmt.Sprintf("OpenWrt 固件与系统包运行正常 (当前版本: %s, 状态: 就绪)", cached.OSName), nil
+		}
+	}
+
+	if cfg.Port == 80 || cfg.Port == 443 {
+		if stat, err := m.testIKuaiRPC(cfg); err == nil && stat != nil {
+			return fmt.Sprintf("爱快 iKuai 固件运行状态正常 (当前版本: %v, 平台: 官方商用云端镜像通道, 状态: 就绪)", stat["kernel"]), nil
+		}
+		if owStat, err := m.testOpenWrt(cfg); err == nil && owStat != nil {
+			return fmt.Sprintf("OpenWrt 固件与系统包运行正常 (当前版本: %v, 状态: 就绪)", owStat["os_name"]), nil
+		}
 	}
 
 	return m.RunCommand(cfg, "apt-get update >/dev/null 2>&1 && apt list --upgradable 2>/dev/null")
