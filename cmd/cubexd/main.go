@@ -87,7 +87,7 @@ import (
 
 var (
 
-	version = "Test v4.8"
+	version = "Test v4.9"
 
 	startTime = time.Now()
 
@@ -403,6 +403,16 @@ func (w *LogBufferWriter) Write(p []byte) (n int, err error) {
 
 
 
+type delayCacheEntry struct {
+	result   NodeDelayResult
+	testedAt time.Time
+}
+
+type delayFlightCall struct {
+	wg  sync.WaitGroup
+	val NodeDelayResult
+}
+
 type Server struct {
 
 	workDir       string
@@ -448,6 +458,12 @@ type Server struct {
 	monthOutboundBytes    int64
 
 	monthInboundBytes     int64
+
+	// In-Flight Singleflight & Multi-Strategy Group Delay Cache
+	delayCacheMu          sync.RWMutex
+	delayCache            map[string]delayCacheEntry
+	delaySFMu             sync.Mutex
+	delaySFGroup          map[string]*delayFlightCall
 
 	lastCoreOutboundBytes int64
 
@@ -792,6 +808,8 @@ func main() {
 		kspeeder:      kspeeder,
 
 		logBuffer:     logBuffer,
+		delayCache:    make(map[string]delayCacheEntry),
+		delaySFGroup:  make(map[string]*delayFlightCall),
 
 		httpClient: &http.Client{
 
@@ -811,7 +829,7 @@ func main() {
 
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v4.8")
+	srv.mcpServer = mcp.NewServer(srv, "Test v4.9")
 
 	srv.initTrafficState()
 
@@ -1192,6 +1210,10 @@ func main() {
 		if rosMgr != nil {
 
 			go func() {
+
+				if err := rosMgr.RestoreRulesAfterBoot(); err == nil {
+					log.Println("🛡️ [ROS] Auto-boot: Restored DNS Hijack and Fake-IP backtrack routes")
+				}
 
 				if purged := rosMgr.PurgeStaleFakeIPConnections(); purged > 0 {
 
@@ -1612,6 +1634,21 @@ func (s *Server) handleSystemPanic(w http.ResponseWriter, r *http.Request) {
 
 
 
+// purgeConntrackForDirectBypass cleans up stale Fake-IP connections and conntrack entries
+func (s *Server) purgeConntrackForDirectBypass() {
+	go func() {
+		time.Sleep(300 * time.Millisecond)
+		// 1. Linux 内核连接跟踪表定向刷洗 198.18.0.0/15 (仅清退已重定向的 Fake-IP 僵尸流，保护本地管理端口)
+		_ = exec.Command("conntrack", "-D", "-d", "198.18.0.0/15").Run()
+		_ = exec.Command("conntrack", "-D", "-s", "198.18.0.0/15").Run()
+
+		// 2. RouterOS 策略路由与 Conntrack 僵尸连接清算
+		if s.rosMgr != nil && s.rosMgr.IsConnected() {
+			_ = s.rosMgr.PurgeStaleFakeIPConnections()
+		}
+	}()
+}
+
 func (s *Server) handleReloadConfig(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -1637,6 +1674,8 @@ func (s *Server) handleReloadConfig(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
+
+	s.purgeConntrackForDirectBypass()
 
 	sendJSON(w, map[string]any{
 
@@ -4749,6 +4788,45 @@ func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSe
 		return NodeDelayResult{Delay: 0, Status: "block", StatusText: "阻断"}
 	}
 
+	// 1. 查询多策略组共享测速缓存 (20秒内有效)
+	s.delayCacheMu.RLock()
+	if c, ok := s.delayCache[node.Name]; ok && time.Since(c.testedAt) < 20*time.Second {
+		s.delayCacheMu.RUnlock()
+		return c.result
+	}
+	s.delayCacheMu.RUnlock()
+
+	// 2. In-Flight Singleflight 并发去重 (同节点多策略组共享同一物理探针)
+	s.delaySFMu.Lock()
+	if call, ok := s.delaySFGroup[node.Name]; ok {
+		s.delaySFMu.Unlock()
+		call.wg.Wait()
+		return call.val
+	}
+	call := new(delayFlightCall)
+	call.wg.Add(1)
+	s.delaySFGroup[node.Name] = call
+	s.delaySFMu.Unlock()
+
+	defer func() {
+		s.delaySFMu.Lock()
+		delete(s.delaySFGroup, node.Name)
+		s.delaySFMu.Unlock()
+		call.wg.Done()
+	}()
+
+	res := s.executeNodeRealDelayProbe(node, clashPort, clashSecret)
+
+	// 写入多策略组共享缓存
+	s.delayCacheMu.Lock()
+	s.delayCache[node.Name] = delayCacheEntry{result: res, testedAt: time.Now()}
+	s.delayCacheMu.Unlock()
+
+	call.val = res
+	return res
+}
+
+func (s *Server) executeNodeRealDelayProbe(node schema.ProxyNode, clashPort int, clashSecret string) NodeDelayResult {
 	escaped := url.PathEscape(node.Name)
 	escaped = strings.ReplaceAll(escaped, "[", "%5B")
 	escaped = strings.ReplaceAll(escaped, "]", "%5D")
@@ -7950,112 +8028,93 @@ func (s *Server) handleHostUpgradeCheck(w http.ResponseWriter, r *http.Request) 
 
 
 
-	// 3. RouterOS check (only if platform is routeros or unconfigured)
-
-	if (platID == "routeros" || platID == "") && s.rosMgr.IsConnected() {
-
-		res, err := s.rosMgr.CheckROSFirmwareUpgradeDetails()
-
-		if err != nil {
-
-			sendJSON(w, map[string]any{"error": "RouterOS 固件检查失败: " + err.Error()})
-
+	// 3. RouterOS check (strictly isolated from Linux SSH)
+	if platID == "routeros" {
+		if s.rosMgr.IsConnected() {
+			res, err := s.rosMgr.CheckROSFirmwareUpgradeDetails()
+			if err != nil {
+				sendJSON(w, map[string]any{"error": "RouterOS 固件检查失败: " + err.Error(), "is_routeros": true})
+				return
+			}
+			sendJSON(w, map[string]any{
+				"output":            res.Message,
+				"installed_version": res.InstalledVersion,
+				"latest_version":    res.LatestVersion,
+				"channel":           res.Channel,
+				"status":            res.Status,
+				"has_update":        res.HasUpdate,
+				"is_routeros":       true,
+				"platform_id":       "routeros",
+			})
 			return
-
 		}
-
 		sendJSON(w, map[string]any{
-
-			"output":            res.Message,
-
-			"installed_version": res.InstalledVersion,
-
-			"latest_version":    res.LatestVersion,
-
-			"channel":           res.Channel,
-
-			"status":            res.Status,
-
-			"has_update":        res.HasUpdate,
-
+			"error":             "RouterOS REST API 尚未连通认证。请在上方【宿主共生凭据】核对 RouterOS 的 IP 与 WinBox/Web 管理账号密码（并确认 IP -> Services 中 www 端口 80 或 443 已开启）",
 			"is_routeros":       true,
-
+			"platform_id":       "routeros",
 		})
-
 		return
+	}
 
+	if platID == "" && s.rosMgr.IsConnected() {
+		res, err := s.rosMgr.CheckROSFirmwareUpgradeDetails()
+		if err != nil {
+			sendJSON(w, map[string]any{"error": "RouterOS 固件检查失败: " + err.Error(), "is_routeros": true})
+			return
+		}
+		sendJSON(w, map[string]any{
+			"output":            res.Message,
+			"installed_version": res.InstalledVersion,
+			"latest_version":    res.LatestVersion,
+			"channel":           res.Channel,
+			"status":            res.Status,
+			"has_update":        res.HasUpdate,
+			"is_routeros":       true,
+			"platform_id":       "routeros",
+		})
+		return
 	}
 
 	_ = cfg
-
 	if cfg.Enabled && cfg.Host != "" {
-
 		out, err := s.hostMgr.CheckHostUpgrade()
-
 		if err != nil {
-
 			sendJSON(w, map[string]any{"error": err.Error()})
-
 			return
-
 		}
-
 		sendJSON(w, map[string]any{"output": out, "is_routeros": false})
-
 		return
-
 	}
 
 	sendJSON(w, map[string]any{"error": "未检测到已连接的 RouterOS 或宿主机 SSH，请先在「系统升级与联动」配置联动凭证"})
-
 }
 
-
-
 func (s *Server) handleHostUpgradeExecute(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method != http.MethodPost {
-
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-
 		return
-
 	}
-
-
 
 	cached := s.hostMgr.GetCachedHostInfo()
-
 	platID := ""
-
 	if cached != nil {
-
 		platID = cached.PlatformID
-
 	}
-
 	cfg := s.hostMgr.GetConfig()
-
 	if cfg.PlatformType != "" && cfg.PlatformType != "auto" {
-
 		platID = cfg.PlatformType
-
 	}
-
-
 
 	if platID == "ikuai" || (cached != nil && strings.Contains(strings.ToLower(cached.OSName), "ikuai")) {
-
 		sendJSON(w, map[string]string{"output": "💡 爱快 iKuai 作为商用网络设备系统，固件升级请在爱快 Web 管理后台 [系统设置 -> 固件升级] 统一执行，或升级对应 Docker / 虚拟机镜像。CubeX 已与当前版本保持 100% 宿主共生协同！"})
-
 		return
-
 	}
 
-
-
-	if (platID == "routeros" || platID == "") && s.rosMgr.IsConnected() {
-
+	if platID == "routeros" {
+		if !s.rosMgr.IsConnected() {
+			sendJSON(w, map[string]string{"error": "RouterOS REST API 尚未连通，请先验证并保存 WinBox 管理凭据后再执行固件升级！"})
+			return
+		}
 		err := s.rosMgr.TriggerROSFirmwareUpgrade()
 
 		if err != nil {

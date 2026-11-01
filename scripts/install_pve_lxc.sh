@@ -366,11 +366,15 @@ depend() {
 }
 INIT
 
-chmod +x /etc/init.d/cubexd
+chmod 755 /etc/init.d/cubexd
+# Shebang hard verification & auto-heal
+if ! head -n 1 /etc/init.d/cubexd | grep -q "openrc-run"; then
+    sed -i '1s|^|#!/sbin/openrc-run\n|' /etc/init.d/cubexd || true
+fi
 rc-update add cubexd default >/dev/null 2>&1
 EOF
 
-echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX Test v4.5 双核完整发布包...${NC}"
+echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX Test v4.9 双核完整发布包...${NC}"
 # 10. 推送或下载 CubeX 完整发布包
 LOCAL_PKG=$(ls dist/release/CubeX-Test-*-linux-amd64.zip 2>/dev/null | sort -V | tail -n1 || true)
 CACHE_PKG=$(ls /tmp/CubeX-Test-*-linux-amd64.zip 2>/dev/null | sort -V | tail -n1 || true)
@@ -410,7 +414,7 @@ else
             [ -n "$REL_TAG" ] && break
         fi
     done
-    [ -z "$REL_TAG" ] && REL_TAG="Test-v4.8"
+    [ -z "$REL_TAG" ] && REL_TAG="Test-v4.9"
 
     ZIP_NAME="CubeX-${REL_TAG}-linux-amd64.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"
@@ -447,7 +451,15 @@ else
 EOF
 fi
 
-# 11. 启动服务
+# 11. 守护进程就绪与服务启动
+pct exec "$CT_ID" -- sh -c '
+chmod 755 /opt/CubeX/bin/* 2>/dev/null || true
+if [ ! -f /etc/init.d/cubexd ] || ! head -n 1 /etc/init.d/cubexd | grep -q "openrc-run"; then
+    sed -i "1s|^|#!/sbin/openrc-run\n|" /etc/init.d/cubexd 2>/dev/null || true
+    chmod 755 /etc/init.d/cubexd 2>/dev/null || true
+fi
+rc-update add cubexd default >/dev/null 2>&1 || true
+'
 echo -e "${CYAN}🚀 正在启动 CubeX 守护进程...${NC}"
 pct exec "$CT_ID" -- rc-service cubexd restart >/dev/null 2>&1 || true
 sleep 2

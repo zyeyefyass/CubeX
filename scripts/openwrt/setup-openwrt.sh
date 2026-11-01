@@ -269,7 +269,7 @@ if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
                     [ -n "$REL_TAG" ] && break
                 fi
             done
-            [ -z "$REL_TAG" ] && REL_TAG="Test-v4.8"
+            [ -z "$REL_TAG" ] && REL_TAG="Test-v4.9"
 
             # 优先从国内加速镜像拉取完整的 Docker 归档包 (支持断点续传与多源竞速)
             for MIRROR in "https://gh-proxy.com" "https://gh.ddlc.top" ""; do

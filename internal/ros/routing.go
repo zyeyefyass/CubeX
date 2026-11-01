@@ -1923,8 +1923,44 @@ func (m *Manager) TriggerPreShutdownFailover() error {
 	return nil
 }
 
+// RestoreRulesAfterBoot ensures that DNS hijack NAT rules and Fake-IP static route on RouterOS
+// are re-enabled (disabled: false) when CubeX starts up.
+func (m *Manager) RestoreRulesAfterBoot() error {
+	// 1. Enable DNS hijack rules
+	if data, err := m.QueryROS("/ip/firewall/nat"); err == nil {
+		var nats []map[string]any
+		if json.Unmarshal(data, &nats) == nil {
+			for _, n := range nats {
+				comment, _ := n["comment"].(string)
+				id, _ := n[".id"].(string)
+				disabledStr := fmt.Sprintf("%v", n["disabled"])
+				if disabledStr == "true" && strings.Contains(comment, "CubeX-DNS-Hijack") && id != "" {
+					_ = m.PatchROS("/ip/firewall/nat/"+id, map[string]any{"disabled": "false"})
+				}
+			}
+		}
+	}
+	// 2. Enable Fake-IP route
+	if data, err := m.QueryROS("/ip/route"); err == nil {
+		var routes []map[string]any
+		if json.Unmarshal(data, &routes) == nil {
+			for _, r := range routes {
+				dst, _ := r["dst-address"].(string)
+				id, _ := r[".id"].(string)
+				disabledStr := fmt.Sprintf("%v", r["disabled"])
+				if disabledStr == "true" && dst == "198.18.0.0/15" && id != "" {
+					_ = m.PatchROS("/ip/route/"+id, map[string]any{"disabled": "false"})
+				}
+			}
+		}
+	}
+	// 3. Flush RouterOS DNS cache
+	_, _ = m.PostROS("/ip/dns/cache/flush", nil)
+	return nil
+}
+
 // EnsureFakeIPRoute verifies that the static route 198.18.0.0/15 pointing to targetIP exists on RouterOS.
-// If missing or inactive, it re-creates it immediately and returns true (restored).
+// If missing or inactive, it re-creates or re-enables it immediately and returns true (restored).
 func (m *Manager) EnsureFakeIPRoute(targetIP string) bool {
 	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
 		targetIP = m.GetOutboundIP()
@@ -1944,16 +1980,26 @@ func (m *Manager) EnsureFakeIPRoute(targetIP string) bool {
 		dst := fmt.Sprintf("%v", r["dst-address"])
 		gw := fmt.Sprintf("%v", r["gateway"])
 		table, _ := r["routing-table"].(string)
-		disabled, _ := r["disabled"].(bool)
-		if (table == "" || table == "main") && dst == "198.18.0.0/15" && (gw == targetIP || strings.Contains(gw, targetIP)) && !disabled {
-			return false // Already active and intact
+		id, _ := r[".id"].(string)
+		disabledStr := fmt.Sprintf("%v", r["disabled"])
+		if (table == "" || table == "main") && dst == "198.18.0.0/15" {
+			if (gw == targetIP || strings.Contains(gw, targetIP)) && disabledStr != "true" {
+				return false // Already active and intact
+			}
+			if id != "" {
+				_ = m.PatchROS("/ip/route/"+id, map[string]any{
+					"disabled": "false",
+					"gateway":  targetIP,
+				})
+				return true
+			}
 		}
 	}
 	body := map[string]string{
 		"dst-address":   "198.18.0.0/15",
 		"gateway":       targetIP,
 		"routing-table": "main",
-		"comment":       "CubeX Fake-IP Route",
+		"comment":       "CubeX-FakeIP-Backtrack",
 	}
 	if _, err := m.PostROS("/ip/route", body); err == nil {
 		return true

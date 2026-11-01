@@ -7176,23 +7176,14 @@
                 <div class="min-h-[86px] text-xs sm:text-[13px] font-mono macos-sub-card p-3.5 rounded-xl flex flex-col justify-center gap-2.5 shadow-sm">
 
                   <template v-if="isRouterOS">
-
                     <div class="flex justify-between items-center">
-
-                      <span>当前固件: <strong class="text-purple-300 font-bold text-sm">{{ hostUpgradeDetails.installedVersion || hostInfo.os_name || 'MikroTik RouterOS 7.24.5' }}</strong></span>
-
+                      <span>当前固件: <strong class="text-purple-300 font-bold text-sm">{{ (hostUpgradeDetails.installedVersion && !hostUpgradeDetails.installedVersion.includes('beta')) ? hostUpgradeDetails.installedVersion : ((hostInfo.os_name && (hostInfo.os_name.toLowerCase().includes('routeros') || hostInfo.os_name.toLowerCase().includes('mikrotik'))) ? hostInfo.os_name : 'MikroTik RouterOS') }}</strong></span>
                       <span class="text-slate-400">升级通道: <span class="text-slate-200 font-semibold">{{ hostUpgradeDetails.channel || 'stable' }}</span></span>
-
                     </div>
-
                     <div class="flex justify-between items-center">
-
-                      <span>云端最新: <strong :class="hostUpgradeDetails.hasUpdate ? 'text-amber-400 font-bold text-sm' : 'text-emerald-400 font-bold text-sm'">{{ hostUpgradeDetails.latestVersion || hostUpgradeDetails.installedVersion || '7.24.5' }}</strong></span>
-
-                      <span :class="hostUpgradeDetails.hasUpdate ? 'text-amber-400 font-bold' : 'text-emerald-400 font-semibold'">{{ hostUpgradeDetails.hasUpdate ? '● 存在新版本' : '● 最新稳定版' }}</span>
-
+                      <span>云端最新: <strong :class="hostUpgradeDetails.hasUpdate ? 'text-amber-400 font-bold text-sm' : 'text-emerald-400 font-bold text-sm'">{{ hostUpgradeDetails.latestVersion || (hostUpgradeDetails.installedVersion ? hostUpgradeDetails.installedVersion : (hostUpgradeDetails.checked ? '已是最新稳定版' : '待连通检测')) }}</strong></span>
+                      <span :class="hostUpgradeDetails.hasUpdate ? 'text-amber-400 font-bold' : 'text-emerald-400 font-semibold'">{{ hostUpgradeDetails.hasUpdate ? '● 存在新版本' : (hostUpgradeDetails.checked ? '● 最新稳定版' : '● 待核对') }}</span>
                     </div>
-
                   </template>
 
                   <template v-else>

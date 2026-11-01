@@ -43,7 +43,7 @@ func makeSingboxDNSServer(tag, rawAddr, detour string) map[string]any {
 	serverMap := map[string]any{
 		"tag": tag,
 	}
-	if detour != "" && detour != "direct" && detour != "DIRECT" {
+	if detour != "" {
 		serverMap["detour"] = detour
 	}
 	if strings.HasPrefix(rawAddr, "https://") {

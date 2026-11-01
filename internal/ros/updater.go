@@ -44,6 +44,7 @@ type Manager struct {
 	URLOptimizer func(rawURL string) string
 
 	lastConnected     bool
+	lastConnectedAt   time.Time
 	lastVersion       string
 	lastFreeHddSpace  int64
 	lastTotalHddSpace int64
@@ -196,7 +197,7 @@ func (m *Manager) GetOverview() map[string]any {
 	}
 	latestPanel := m.cachedLatestPanel
 	if latestPanel == "" {
-		latestPanel = "Test v4.8"
+		latestPanel = "Test v4.9"
 	}
 	latestSingbox := m.cachedLatestSingbox
 	if latestSingbox == "" {
@@ -716,13 +717,16 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 // ──────────────────────────────────────────────
 
 func (m *Manager) getLocalPanelVersion() string {
-	return "Test v4.8"
+	return "Test v4.9"
 }
 
 // IsConnected returns whether the RouterOS host is currently reachable and authenticated.
 func (m *Manager) IsConnected() bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.lastConnected && time.Since(m.lastConnectedAt) < 10*time.Second {
+		return true
+	}
 	conn, _ := m.checkROSConnection()
 	return conn
 }
@@ -1063,15 +1067,22 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 			if resp != nil {
 				_ = resp.Body.Close()
 			}
-			continue
+			time.Sleep(200 * time.Millisecond)
+			resp, err = client.Do(req)
+			if err != nil || resp.StatusCode != http.StatusOK {
+				if resp != nil {
+					_ = resp.Body.Close()
+				}
+				continue
+			}
 		}
 		defer resp.Body.Close()
 
 		var resource struct {
 			Version       string `json:"version"`
 			BoardName     string `json:"board-name"`
-			FreeHddSpace  int64  `json:"free-hdd-space"`
-			TotalHddSpace int64  `json:"total-hdd-space"`
+			FreeHddSpace  any    `json:"free-hdd-space"`
+			TotalHddSpace any    `json:"total-hdd-space"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&resource); err == nil && resource.Version != "" {
 			ver := strings.TrimSpace(resource.Version)
@@ -1082,12 +1093,26 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 				ver = fmt.Sprintf("%s · %s", ver, resource.BoardName)
 			}
 			m.lastConnected = true
+			m.lastConnectedAt = time.Now()
 			m.lastVersion = ver
-			if resource.FreeHddSpace > 0 {
-				m.lastFreeHddSpace = resource.FreeHddSpace
+			parseSpace := func(val any) int64 {
+				if val == nil {
+					return 0
+				}
+				switch v := val.(type) {
+				case float64:
+					return int64(v)
+				case string:
+					n, _ := strconv.ParseInt(v, 10, 64)
+					return n
+				}
+				return 0
 			}
-			if resource.TotalHddSpace > 0 {
-				m.lastTotalHddSpace = resource.TotalHddSpace
+			if free := parseSpace(resource.FreeHddSpace); free > 0 {
+				m.lastFreeHddSpace = free
+			}
+			if total := parseSpace(resource.TotalHddSpace); total > 0 {
+				m.lastTotalHddSpace = total
 			}
 			if m.config.Port != p {
 				m.config.Port = p

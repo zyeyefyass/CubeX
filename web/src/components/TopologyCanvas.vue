@@ -219,29 +219,60 @@
               <div class="w-full flex items-center justify-center py-0.5">
                 <svg viewBox="0 0 320 44" class="w-full max-w-[280px] sm:max-w-[300px] h-10 select-none overflow-visible">
                   <defs>
-                    <!-- 24K 耀目鎏金镜面反射 (纯白高光 -> 香槟亮金 -> 24K 纯黄金 -> 帝王金) -->
+                    <!-- 24K 耀目纯金多段镜面反射 (纯白超亮镜面光 -> 极浅香槟金 -> 24K皇家正金 -> 深琥珀重金 -> 地面二次反光 -> 暗影收底) -->
                     <linearGradient id="cubeXGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" stop-color="#FFFFFF" />
-                      <stop offset="16%" stop-color="#FFF9D6" />
-                      <stop offset="38%" stop-color="#FFD700" />
-                      <stop offset="62%" stop-color="#FF9E00" />
-                      <stop offset="82%" stop-color="#FFE885" />
-                      <stop offset="100%" stop-color="#FFA000" />
+                      <stop offset="10%" stop-color="#FFF6C8" />
+                      <stop offset="26%" stop-color="#F7C43E" />
+                      <stop offset="42%" stop-color="#C98614" />
+                      <stop offset="58%" stop-color="#FBE07A" />
+                      <stop offset="74%" stop-color="#E5A020" />
+                      <stop offset="88%" stop-color="#FFF0A8" />
+                      <stop offset="100%" stop-color="#A8680C" />
                     </linearGradient>
-                    <!-- 3D 物理金属立体厚度与微距金晕滤镜 -->
-                    <filter id="cubeXGold3D" x="-10%" y="-20%" width="130%" height="150%">
-                      <!-- 物理立体厚度边 (立体金铜底切) -->
-                      <feDropShadow dx="0" dy="2.2" stdDeviation="0" flood-color="#804e00" flood-opacity="0.95" />
-                      <!-- 柔和沉底环境阴影 -->
-                      <feDropShadow dx="0" dy="4" stdDeviation="2.5" flood-color="#000000" flood-opacity="0.75" />
-                      <!-- 纤细微光，仅在边缘产生纯净微晕，绝无大片浑浊黄影 -->
-                      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#FFD700" flood-opacity="0.25" />
+
+                    <!-- 3D 顶部微距切角金属刀锋倒角描边 -->
+                    <linearGradient id="cubeXGoldRim" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95" />
+                      <stop offset="45%" stop-color="#FFE885" stop-opacity="0.75" />
+                      <stop offset="100%" stop-color="#7A4500" stop-opacity="0.9" />
+                    </linearGradient>
+
+                    <!-- 沉底物理环境光晕与金属接触投影 -->
+                    <filter id="cubeXGoldAmbient" x="-20%" y="-20%" width="140%" height="160%">
+                      <feDropShadow dx="0" dy="4.5" stdDeviation="3" flood-color="#000000" flood-opacity="0.9" />
+                      <feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#FFB703" flood-opacity="0.25" />
                     </filter>
                   </defs>
-                  <text x="50%" y="31" text-anchor="middle"
+
+                  <!-- 3D 物理金属厚度侧立面 (真实分层矢量阶梯侧立壁，纯硬质实体金属质感) -->
+                  <text x="50%" y="34.6" text-anchor="middle"
+                    style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 25px; font-weight: 900; letter-spacing: 0.14em;"
+                    fill="#301A00" filter="url(#cubeXGoldAmbient)">
+                    CubeX 零感中枢
+                  </text>
+                  <text x="50%" y="33.8" text-anchor="middle"
+                    style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 25px; font-weight: 900; letter-spacing: 0.14em;"
+                    fill="#5C3300">
+                    CubeX 零感中枢
+                  </text>
+                  <text x="50%" y="33.0" text-anchor="middle"
+                    style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 25px; font-weight: 900; letter-spacing: 0.14em;"
+                    fill="#8C5200">
+                    CubeX 零感中枢
+                  </text>
+                  <text x="50%" y="32.2" text-anchor="middle"
+                    style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 25px; font-weight: 900; letter-spacing: 0.14em;"
+                    fill="#BD7908">
+                    CubeX 零感中枢
+                  </text>
+                  <!-- 顶层主面: 24K 镜面黄金反射 + 刀锋倒角微光描边 -->
+                  <text x="50%" y="31.4" text-anchor="middle"
                     style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 25px; font-weight: 900; letter-spacing: 0.14em;"
                     fill="url(#cubeXGoldGrad)"
-                    filter="url(#cubeXGold3D)">
+                    stroke="url(#cubeXGoldRim)"
+                    stroke-width="0.75"
+                    paint-order="stroke fill">
                     CubeX 零感中枢
                   </text>
                 </svg>

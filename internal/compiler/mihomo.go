@@ -631,6 +631,8 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			} else if gType == "url-test" {
 				gMap["tolerance"] = 50
 			}
+			gMap["interrupt-exist-connections"] = false
+			gMap["interrupt-exist-connections"] = false
 		}
 		groupsList = append(groupsList, gMap)
 	}
