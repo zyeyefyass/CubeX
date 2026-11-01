@@ -202,7 +202,7 @@
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
 
-    <div :class="['flex-1 flex flex-col h-full relative overflow-x-hidden w-full max-w-full', 'overflow-y-auto pb-24 md:pb-6']" style="contain: content; will-change: scroll-position; -webkit-overflow-scrolling: touch;" @scroll="onMainContentScroll">
+    <div :class="['flex-1 flex flex-col h-full relative overflow-x-hidden w-full max-w-full', 'overflow-y-auto pb-28 md:pb-6']" style="contain: content; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; transform: translateZ(0);" @scroll="onMainContentScroll">
 
       
 
@@ -212,7 +212,7 @@
 
       <!-- Top Holographic Bar (自适应手机/桌面双屏美学：手机端严丝合缝绝不溢出、桌面端全息大气) -->
 
-      <header class="w-full px-2.5 sm:px-6 lg:px-8 py-2 sm:py-3.5 min-h-[52px] sm:min-h-[70px] flex items-center justify-between gap-1.5 sm:gap-4 sticky top-0 z-20 transition-all duration-300"
+      <header class="w-full px-2.5 sm:px-6 lg:px-8 py-2 sm:py-3.5 min-h-[52px] sm:min-h-[70px] flex items-center justify-between gap-1.5 sm:gap-4 sticky top-0 z-20 transition-[transform,opacity] duration-200 ease-out"
 
         :class="[
 
@@ -530,7 +530,7 @@
 
       <!-- Main Body Content Views -->
 
-      <main :class="['flex-1 pb-16 md:pb-6 w-full transition-all duration-300', densityMode === 'compact' ? 'density-compact p-2 sm:p-3 lg:p-3.5 space-y-2.5' : 'p-3 sm:p-4 lg:p-5 space-y-4']">
+      <main :class="['flex-1 pb-28 md:pb-8 w-full transition-all duration-300', densityMode === 'compact' ? 'density-compact p-2 sm:p-3 lg:p-3.5 space-y-2.5' : 'p-3 sm:p-4 lg:p-5 space-y-4']">
 
 
 
@@ -2094,7 +2094,7 @@
 
                         <button @click.stop="removeCandidateFromGroup(grp, 'DIRECT')" title="从该策略中移除直连"
 
-                          class="opacity-0 group-hover:opacity-100 hover:text-rose-400 text-slate-400 text-[10px] w-5 h-5 flex items-center justify-center rounded-lg bg-black/40 hover:bg-rose-950/90 border border-white/20 hover:border-rose-500/50 text-white backdrop-blur-sm transition">
+                          class="opacity-0 group-hover:opacity-100 hover:text-rose-400 text-slate-400 text-[10px] w-5 h-5 flex items-center justify-center rounded-lg bg-black/40 hover:bg-rose-950/90 border border-white/20 hover:border-rose-500/50 text-white transition">
 
                           ✕
 
@@ -2140,7 +2140,7 @@
 
                           ? 'bg-emerald-500 text-white shadow-emerald-500/40 ring-1 ring-emerald-300/50'
 
-                          : 'bg-slate-950/90 text-emerald-400 border border-emerald-500/30 backdrop-blur-sm'
+                          : 'bg-slate-950/90 text-emerald-400 border border-emerald-500/30'
 
                       ]">
 
@@ -2216,7 +2216,7 @@
 
                             <button @click.stop="removeCandidateFromGroup(grp, reg.id)" title="从该策略中移除此地区"
 
-                              class="opacity-0 group-hover:opacity-100 hover:text-rose-400 text-slate-400 text-[10px] w-5 h-5 flex items-center justify-center rounded-lg bg-black/40 hover:bg-rose-950/90 border border-white/20 hover:border-rose-500/50 text-white backdrop-blur-sm transition">
+                              class="opacity-0 group-hover:opacity-100 hover:text-rose-400 text-slate-400 text-[10px] w-5 h-5 flex items-center justify-center rounded-lg bg-black/40 hover:bg-rose-950/90 border border-white/20 hover:border-rose-500/50 text-white transition">
 
                               ✕
 
@@ -2336,7 +2336,7 @@
 
                           <button @click.stop="removeCandidateFromGroup(grp, 'REJECT')" title="从该策略中移除拒绝"
 
-                            class="opacity-0 group-hover:opacity-100 hover:text-rose-400 text-slate-400 text-[10px] w-5 h-5 flex items-center justify-center rounded-lg bg-black/40 hover:bg-rose-950/90 border border-white/20 hover:border-rose-500/50 text-white backdrop-blur-sm transition">
+                            class="opacity-0 group-hover:opacity-100 hover:text-rose-400 text-slate-400 text-[10px] w-5 h-5 flex items-center justify-center rounded-lg bg-black/40 hover:bg-rose-950/90 border border-white/20 hover:border-rose-500/50 text-white transition">
 
                             ✕
 
@@ -2376,7 +2376,7 @@
 
                             ? 'bg-rose-600 text-white shadow-rose-600/40 ring-1 ring-rose-400/50'
 
-                            : 'bg-slate-950/90 text-rose-400 border border-rose-500/30 backdrop-blur-sm'
+                            : 'bg-slate-950/90 text-rose-400 border border-rose-500/30'
 
                         ]" title="静态规则直接阻断丢弃，无网络测速延迟">
 
@@ -6705,7 +6705,7 @@
 
                       :class="[
 
-                        'text-xs font-mono px-2.5 py-1 rounded-lg border transition cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95 font-semibold backdrop-blur-md',
+                        'text-xs font-mono px-2.5 py-1 rounded-lg border transition cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95 font-semibold',
 
                         coreUpgradeFrozen
 
@@ -6787,7 +6787,7 @@
 
                   <button v-else @click="upgradeCore('singbox')" :disabled="upgradingCoreSingbox" class="h-full rounded-xl border font-bold text-xs sm:text-sm transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-md"
 
-                    :class="systemOverview.singbox_update_avail ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-extrabold shadow-lg shadow-sky-500/25' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/60 text-white font-bold backdrop-blur-md shadow-md'">
+                    :class="systemOverview.singbox_update_avail ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-extrabold shadow-lg shadow-sky-500/25' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/60 text-white font-bold shadow-md'">
 
                     <span v-if="upgradingCoreSingbox" class="inline-block animate-spin mr-1">↻</span>
 
@@ -6805,7 +6805,7 @@
 
                   <button v-else @click="upgradeCore('mihomo')" :disabled="upgradingCoreMihomo" class="h-full rounded-xl border font-bold text-xs sm:text-sm transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-md"
 
-                    :class="systemOverview.mihomo_update_avail ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-extrabold shadow-lg shadow-sky-500/25' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/60 text-white font-bold backdrop-blur-md shadow-md'">
+                    :class="systemOverview.mihomo_update_avail ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-extrabold shadow-lg shadow-sky-500/25' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/60 text-white font-bold shadow-md'">
 
                     <span v-if="upgradingCoreMihomo" class="inline-block animate-spin mr-1">↻</span>
 
@@ -7023,7 +7023,7 @@
 
                   </button>
 
-                  <button @click="showGeodataDetailModal = true" :title="`查看全量 ${geodataStatus.rules_count || 105} 套分流策略规则清单与生效明细`" class="h-full px-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/60 text-white hover:text-sky-200 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md backdrop-blur-md active:scale-98 group">
+                  <button @click="showGeodataDetailModal = true" :title="`查看全量 ${geodataStatus.rules_count || 105} 套分流策略规则清单与生效明细`" class="h-full px-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/60 text-white hover:text-sky-200 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-98 group">
 
                     <svg class="w-4 h-4 text-emerald-300 group-hover:text-sky-200 shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
 
@@ -7212,7 +7212,7 @@
 
                 <div class="h-11 sm:h-12 grid grid-cols-2 gap-2.5">
 
-                  <button @click="checkHostUpgrade" :disabled="checkingHostUpgrade" class="h-full rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/60 text-white hover:text-sky-200 font-bold text-xs sm:text-sm transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-md backdrop-blur-md">
+                  <button @click="checkHostUpgrade" :disabled="checkingHostUpgrade" class="h-full rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/60 text-white hover:text-sky-200 font-bold text-xs sm:text-sm transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
 
                     <span v-if="checkingHostUpgrade" class="inline-block animate-spin mr-1">↻</span>
 
@@ -7391,7 +7391,7 @@
 
                   <!-- 1. 导出系统快照 -->
 
-                  <button @click="exportBackup" class="h-10 sm:h-11 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md backdrop-blur-md select-none">
+                  <button @click="exportBackup" class="h-10 sm:h-11 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md select-none">
 
                     <span class="text-sm">📥</span>
 
@@ -7417,7 +7417,7 @@
 
                   <!-- 3. 平滑热重载 -->
 
-                  <button @click="triggerHotRestart" :disabled="isHotRestarting" class="h-10 sm:h-11 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md backdrop-blur-md disabled:opacity-50 select-none" title="平滑热重载双核代理引擎">
+                  <button @click="triggerHotRestart" :disabled="isHotRestarting" class="h-10 sm:h-11 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md disabled:opacity-50 select-none" title="平滑热重载双核代理引擎">
 
                     <span v-if="isHotRestarting" class="inline-block animate-spin text-sm">↻</span>
 
@@ -7431,7 +7431,7 @@
 
                   <!-- 4. 整机重启 -->
 
-                  <button @click="confirmSystemReboot" class="h-10 sm:h-11 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/30 text-blue-300 hover:text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md backdrop-blur-md select-none" title="整机系统重启，重启前主动通知主路由逃生">
+                  <button @click="confirmSystemReboot" class="h-10 sm:h-11 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/30 text-blue-300 hover:text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md select-none" title="整机系统重启，重启前主动通知主路由逃生">
 
                     <span class="text-sm">🔄</span>
 
@@ -11017,7 +11017,7 @@
 
     <!-- 📱 移动端 6 大主模块常驻底部导航栏 (Permanent Mobile Safe-Area Bottom Dock · 6 等分绝对铺满 · 暮光落日金高亮) -->
 
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[#001529]/95 backdrop-blur-2xl border-t border-white/15 px-1 py-1 pb-safe shadow-[0_-8px_30px_rgba(0,0,0,0.8)] select-none">
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[#001529]/98 border-t border-sky-500/25 px-1 py-1 pb-safe shadow-[0_-6px_25px_rgba(0,0,0,0.85)] select-none">
 
     <div class="grid grid-cols-6 [grid-template-columns:repeat(6,minmax(0,1fr))] gap-0.5 w-full items-center">
 
@@ -11027,19 +11027,19 @@
 
         :class="[
 
-          'flex flex-col items-center justify-center py-1 px-0 rounded-lg transition-all select-none cursor-pointer w-full min-w-0 overflow-hidden',
+          'flex flex-col items-center justify-center min-h-[48px] py-1 px-0.5 rounded-xl transition-transform active:scale-90 duration-150 select-none cursor-pointer w-full min-w-0 overflow-hidden',
 
           activeMasterTab === item.id
 
             ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-black shadow-md shadow-sky-500/30'
 
-            : 'text-slate-300 hover:text-white active:scale-95'
+            : 'text-slate-300 hover:text-white'
 
         ]">
 
-        <ZootopiaIcon :name="item.id" :active="activeMasterTab === item.id" :size="18" class="mb-0.5 shrink-0" />
+        <ZootopiaIcon :name="item.id" :active="activeMasterTab === item.id" :size="20" class="shrink-0" />
 
-        <span class="text-[9px] tracking-tight leading-none whitespace-nowrap font-bold block truncate w-full text-center">{{ item.label }}</span>
+        <span class="text-[10px] tracking-tight leading-none whitespace-nowrap font-bold block truncate w-full text-center mt-1">{{ item.label }}</span>
 
       </button>
 
@@ -11960,6 +11960,8 @@ let lastScrollY = 0
 
 
 let scrollRafId = null
+let isUserScrolling = false
+let scrollStopTimer = null
 
 function onMainContentScroll(e) {
 
@@ -11967,11 +11969,17 @@ function onMainContentScroll(e) {
 
   const currentScrollY = e.target.scrollTop || 0
 
+  isUserScrolling = true
+  if (scrollStopTimer) clearTimeout(scrollStopTimer)
+  scrollStopTimer = setTimeout(() => {
+    isUserScrolling = false
+  }, 400)
+
   scrollRafId = requestAnimationFrame(() => {
 
     scrollRafId = null
 
-    const scrolled = currentScrollY > 20
+    const scrolled = currentScrollY > 15
 
     if (isScrolledDown.value !== scrolled) {
 
@@ -11979,9 +11987,13 @@ function onMainContentScroll(e) {
 
     }
 
-    if (isHeaderHidden.value !== scrolled) {
+    // 手机端保持顶栏平稳锚定（杜绝滑动手势中上下晃荡掉帧）；电脑端保持平滑避让
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+    const shouldHide = !isMobile && headerAutoMode.value && currentScrollY > 80 && currentScrollY > lastScrollY
 
-      isHeaderHidden.value = scrolled
+    if (isHeaderHidden.value !== shouldHide) {
+
+      isHeaderHidden.value = shouldHide
 
     }
 
@@ -22826,15 +22838,15 @@ function getLatencyRadarBadgeClass(latency, isActive = false) {
 
   } else {
 
-    if (lat <= 0) return 'bg-slate-950/90 text-slate-400 border border-slate-800/80 backdrop-blur-sm'
+    if (lat <= 0) return 'bg-slate-950/90 text-slate-400 border border-slate-800/80'
 
-    if (lat < 60) return 'bg-slate-950/90 text-emerald-300 border border-emerald-400/50 shadow-[0_0_8px_rgba(52,211,153,0.3)] backdrop-blur-sm'
+    if (lat < 60) return 'bg-slate-950/90 text-emerald-300 border border-emerald-400/50 shadow-sm'
 
-    if (lat < 120) return 'bg-slate-950/90 text-cyan-300 border border-cyan-400/50 shadow-[0_0_8px_rgba(6,182,212,0.3)] backdrop-blur-sm'
+    if (lat < 120) return 'bg-slate-950/90 text-cyan-300 border border-cyan-400/50 shadow-sm'
 
-    if (lat < 220) return 'bg-slate-950/90 text-amber-300 border border-amber-400/50 shadow-[0_0_8px_rgba(245,158,11,0.3)] backdrop-blur-sm'
+    if (lat < 220) return 'bg-slate-950/90 text-amber-300 border border-amber-400/50 shadow-sm'
 
-    return 'bg-slate-950/90 text-rose-300 border border-rose-400/50 shadow-[0_0_8px_rgba(244,63,94,0.3)] backdrop-blur-sm'
+    return 'bg-slate-950/90 text-rose-300 border border-rose-400/50 shadow-sm'
 
   }
 
@@ -27196,9 +27208,17 @@ onMounted(async () => {
 
   let isFetchingTelemetry = false
 
-  // 1. 流量遥测 (仅在总览页且可见时每 1.5s 采样，切换至其他页自动休眠 · 严格防请求堆积卡顿)
+  // 1. 流量遥测 (仅在总览页且可见时采样；用户滑动/触控期间跳过，手机端 3s 电脑端 1.5s · 满帧 120 FPS 绝不卡顿)
+
+  let telemetryTickCounter = 0
 
   setInterval(async () => {
+
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
+    telemetryTickCounter++
+    // 手机端每 2 拍 (3秒) 采样一次，电脑端每拍 (1.5秒) 采样一次；用户快速滑动期间暂停 DOM 重绘
+    if (isMobile && telemetryTickCounter % 2 !== 0) return
+    if (isUserScrolling) return
 
     if (isPageVisible() && activeMasterTab.value === 'overview' && !isFetchingTelemetry) {
 
