@@ -573,3 +573,58 @@ func TestHysteria2PortHoppingCompilation(t *testing.T) {
 		t.Errorf("Mihomo Hysteria2 hop-interval mismatch: got %v", hy2Mihomo["hop-interval"])
 	}
 }
+
+func TestStrategyGroupAndSpeedtestFeatures(t *testing.T) {
+	ir := schema.NewDefaultIR()
+	ir.Groups = append(ir.Groups, schema.StrategyGroup{
+		Name:    "Test-LB",
+		Type:    "loadbalance",
+		Proxies: []string{"DIRECT"},
+	})
+	ir.Groups = append(ir.Groups, schema.StrategyGroup{
+		Name:    "Test-URLTest",
+		Type:    "urltest",
+		Proxies: []string{"DIRECT"},
+	})
+
+	// 1. Mihomo Verification
+	mihomoBytes, err := compiler.BuildMihomo(ir)
+	if err != nil {
+		t.Fatalf("BuildMihomo failed: %v", err)
+	}
+	mihomoStr := string(mihomoBytes)
+
+	// Check 5s timeout & 120s loadbalance interval
+	if !strings.Contains(mihomoStr, "timeout: 5000") {
+		t.Errorf("Expected timeout: 5000 in Mihomo YAML")
+	}
+	if !strings.Contains(mihomoStr, "interval: 120") {
+		t.Errorf("Expected interval: 120 for load-balance in Mihomo YAML")
+	}
+	if !strings.Contains(mihomoStr, "strategy: consistent-hashing") {
+		t.Errorf("Expected strategy: consistent-hashing in Mihomo YAML")
+	}
+
+	// Check domestic speedtest -> DIRECT
+	if !strings.Contains(mihomoStr, "DOMAIN-SUFFIX,speedtest.cn,DIRECT") {
+		t.Errorf("Expected DOMAIN-SUFFIX,speedtest.cn,DIRECT in Mihomo rules")
+	}
+	if !strings.Contains(mihomoStr, "DOMAIN-SUFFIX,10010.com,DIRECT") {
+		t.Errorf("Expected DOMAIN-SUFFIX,10010.com,DIRECT in Mihomo rules")
+	}
+
+	// 2. SingBox Verification
+	sbBytes, err := compiler.BuildSingBox(ir)
+	if err != nil {
+		t.Fatalf("BuildSingBox failed: %v", err)
+	}
+	sbStr := string(sbBytes)
+
+	// Check sing-box speedtest rules
+	if !strings.Contains(sbStr, "speedtest.cn") {
+		t.Errorf("Expected speedtest.cn in Sing-box route rules")
+	}
+	if !strings.Contains(sbStr, "speedtest.net") {
+		t.Errorf("Expected speedtest.net in Sing-box route rules")
+	}
+}

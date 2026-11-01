@@ -53,3 +53,4 @@ dist/docker/
 *.tar
 *.tar.gz
 *.zip
+tools/

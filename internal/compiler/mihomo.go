@@ -621,12 +621,32 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			if gMap["url"] == nil || gMap["url"] == "" {
 				gMap["url"] = "https://www.gstatic.com/generate_204"
 			}
-			gMap["interval"] = g.Interval
-			if g.Interval == 0 || g.Interval > 60 {
-				gMap["interval"] = 60 // ⚡ 60秒快速巡检
+			// Health-check interval: load-balance defaults to 120s to prevent provider rate-limits; url-test/fallback default to 60s
+			if gType == "load-balance" {
+				if g.Interval > 0 {
+					gMap["interval"] = g.Interval
+				} else {
+					gMap["interval"] = 120 // ⚡ 负载均衡优选 120s 巡检间隔，保护上游节点防封
+				}
+				strategy := g.Strategy
+				if strategy == "" {
+					strategy = "consistent-hashing" // ⚡ 负载均衡采用一致性哈希，故障隔离与低延迟节点分配，杜绝频繁漂移
+				}
+				gMap["strategy"] = strategy
+			} else {
+				if g.Interval > 0 {
+					gMap["interval"] = g.Interval
+				} else {
+					gMap["interval"] = 60 // ⚡ 60秒快速巡检
+				}
 			}
 			gMap["lazy"] = false
-			gMap["timeout"] = 2000
+			// 单节点健康检测默认超时统一为 5 秒 (5000ms)，避免跨境长链路或公网轻度抖动误判
+			if g.Timeout > 0 {
+				gMap["timeout"] = g.Timeout
+			} else {
+				gMap["timeout"] = 5000
+			}
 			gMap["max-failed"] = 2
 			gMap["expected-status"] = "204"
 			if g.Tolerance > 0 {
@@ -634,7 +654,6 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			} else if gType == "url-test" {
 				gMap["tolerance"] = 50
 			}
-			gMap["interrupt-exist-connections"] = false
 			gMap["interrupt-exist-connections"] = false
 		}
 		groupsList = append(groupsList, gMap)
@@ -827,12 +846,24 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	// High-Priority Line-Speed Benchmark / Speedtest Fast-Path Rule
+	// 1. Domestic Line-Speed Benchmark -> DIRECT (精准直连测试真实国内宽带)
+	rulesList = append(rulesList, "DOMAIN-SUFFIX,speedtest.cn,DIRECT")
+	rulesList = append(rulesList, "DOMAIN-SUFFIX,speedtest5.cn,DIRECT")
+	rulesList = append(rulesList, "DOMAIN-SUFFIX,10010.com,DIRECT")
+	rulesList = append(rulesList, "DOMAIN-SUFFIX,189.cn,DIRECT")
+	rulesList = append(rulesList, "DOMAIN-SUFFIX,10086.cn,DIRECT")
+	rulesList = append(rulesList, "DOMAIN,speed.neu.edu.cn,DIRECT")
+	rulesList = append(rulesList, "DOMAIN,test.ustc.edu.cn,DIRECT")
+
+	// 2. Overseas Line-Speed Benchmark -> foreignGroup (精准测试真实节点落地吞吐)
 	if validTargets[foreignGroup] {
 		rulesList = append(rulesList, fmt.Sprintf("DOMAIN,speed.cloudflare.com,%s", foreignGroup))
 		rulesList = append(rulesList, fmt.Sprintf("DOMAIN,challenges.cloudflare.com,%s", foreignGroup))
 		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,fast.com,%s", foreignGroup))
 		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,speedtest.net,%s", foreignGroup))
 		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,ooklaserver.net,%s", foreignGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,speedtestcustom.com,%s", foreignGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,ookla.com,%s", foreignGroup))
 	}
 
 

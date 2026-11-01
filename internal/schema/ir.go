@@ -127,6 +127,8 @@ type StrategyGroup struct {
 	Now       string   `json:"now" yaml:"now"` // currently active node
 	URL       string   `json:"url,omitempty" yaml:"url,omitempty"`
 	Interval  int      `json:"interval,omitempty" yaml:"interval,omitempty"`
+	Timeout   int      `json:"timeout,omitempty" yaml:"timeout,omitempty"`
+	Strategy  string   `json:"strategy,omitempty" yaml:"strategy,omitempty"`
 	Tolerance int      `json:"tolerance,omitempty" yaml:"tolerance,omitempty"`
 	Icon      string   `json:"icon,omitempty" yaml:"icon,omitempty"`           // openai, youtube, google, github, telegram, twitter, netflix, apple, microsoft, default
 	Category  string   `json:"category,omitempty" yaml:"category,omitempty"`   // business / region
