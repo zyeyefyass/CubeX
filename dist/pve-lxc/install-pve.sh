@@ -254,7 +254,7 @@ pct create "$CT_ID" "local:vztmpl/$TEMPLATE" \
     --memory "$CT_MEM" \
     --swap 256 \
     --rootfs "${CT_STORAGE}:${CT_DISK}" \
-    --net0 name=eth0,bridge=vmbr0,ip="$CT_IP",gw="$CT_GW",type=veth \
+    --net0 name=eth0,bridge=vmbr0,ip="$CT_IP",gw="$CT_GW",type=veth,firewall=0 \
     --nameserver "$CT_GW 223.5.5.5 119.29.29.29" \
     --features nesting=1,keyctl=1 \
     --unprivileged 0 \
@@ -264,6 +264,10 @@ pct create "$CT_ID" "local:vztmpl/$TEMPLATE" \
 # 8. 注入 TUN 设备穿透 (确保容器原生支持 /dev/net/tun 与高并发网络)
 echo -e "${CYAN}🔧 [4/5] 注入宿主内核 TUN 设备直通与 cgroup 白名单...${NC}"
 CONF_FILE="/etc/pve/lxc/${CT_ID}.conf"
+# 防御性解除 PVE 网卡防火墙拦截 (确保 2026 控制台端口秒开无阻断)
+sed -i 's/firewall=1/firewall=0/g' "$CONF_FILE" 2>/dev/null || true
+pve-firewall restart 2>/dev/null || true
+
 cat << 'EOF' >> "$CONF_FILE"
 
 # === CubeX Native TUN & Acceleration Direct Pass ===
