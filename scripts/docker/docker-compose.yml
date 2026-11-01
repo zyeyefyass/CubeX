@@ -1,0 +1,32 @@
+# ==============================================================================
+# 🌌 CubeX · Linux / PVE / 通用 Docker 宿主共生部署模版 (Docker Compose)
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  cubex:
+    image: fyasshole/cubex:latest
+    container_name: cubex
+    restart: always
+    network_mode: host
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - /opt/CubeX/etc:/opt/CubeX/etc
+      - /opt/CubeX/data:/opt/CubeX/data
+      - /opt/CubeX/rules:/opt/CubeX/rules
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - CUBEX_ENV=production
+      - GOMEMLIMIT=128MiB
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

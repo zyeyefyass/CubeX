@@ -1,0 +1,34 @@
+# ==============================================================================
+# 🌌 CubeX · 飞牛 fnOS / 通用 Docker 宿主共生极简部署配置 (Docker Compose)
+# 专为 飞牛 fnOS、群晖 DSM、极空间、爱快 iKuai Docker 及通用 Linux 设计
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  cubex:
+    image: fyasshole/cubex:latest
+    container_name: cubex
+    restart: always
+    network_mode: host
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      # 持久化存储目录 (确保宿主重启数据与配置零丢失)
+      - /vol1/1000/docker/cubex/etc:/opt/CubeX/etc
+      - /vol1/1000/docker/cubex/data:/opt/CubeX/data
+      - /vol1/1000/docker/cubex/rules:/opt/CubeX/rules
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - CUBEX_ENV=production
+      - GOMEMLIMIT=128MiB
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
