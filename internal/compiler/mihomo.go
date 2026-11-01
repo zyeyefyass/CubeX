@@ -107,6 +107,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"mtu":                      tunMTU,
 		"gso":                      true,
 		"gso-max-size":             65536,
+		"udp-timeout":              60,
 		"endpoint-independent-nat": true,
 		"route-exclude-address": []string{
 			"10.0.0.0/8",
@@ -232,6 +233,8 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"enable":             true,
 		"cache-algorithm":    "arc",
 		"cache-size":         8192,
+		"prefer-h3":          false,
+		"strategy":            "prefer_ipv4",
 		"listen":             fmt.Sprintf("0.0.0.0:%d", dnsPort),
 		"ipv6":               net.IPv6,
 		"enhanced-mode":      "fake-ip",

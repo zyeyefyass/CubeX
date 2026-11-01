@@ -165,6 +165,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	cfg["dns"] = map[string]any{
+		"independent_cache": true,
 		"servers": []map[string]any{
 			{
 				"tag":  "dns-local",
@@ -374,7 +375,9 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"auto_redirect":            false,
 				"strict_route":             false,
 				"stack":                    tunStack,
+				"tcp_timeout":              "600s",
 				"udp_timeout":              "60s",
+				"tcp_keepalive_interval":   "15s",
 				"endpoint_independent_nat": true,
 				"route_exclude_address": []string{
 					"10.0.0.0/8",
