@@ -66,6 +66,20 @@ for arg in "$@"; do
     esac
 done
 
+# 2.2 自动探查宿主机 CPU 架构 (严格按硬件架构匹配模板与二进制，杜绝 amd64/arm64 错位)
+SYS_ARCH=$(uname -m 2>/dev/null || echo "x86_64")
+case "$SYS_ARCH" in
+    x86_64|amd64)
+        PVE_ARCH="amd64"
+        ;;
+    aarch64|arm64)
+        PVE_ARCH="arm64"
+        ;;
+    *)
+        PVE_ARCH="amd64"
+        ;;
+esac
+
 # 3. 宿主网络与存储池自动智能探查
 # 3.1 自动寻找下一个未占用的 VMID
 NEXT_ID=107
@@ -209,21 +223,21 @@ modprobe xt_mark 2>/dev/null || true
 sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
 
 # 6. 模板探查 (优先复用本地已有模板，防止外网断流报错)
-echo -e "\n${CYAN}📦 [2/5] 探查并匹配 Alpine Linux LXC 模板...${NC}"
+echo -e "\n${CYAN}📦 [2/5] 探查并匹配 Alpine Linux LXC 模板 (${PVE_ARCH})...${NC}"
 TEMPLATE=""
-# 优先检查本地已经存在的 Alpine 模板
-LOCAL_TEMPLATES=$(pveam list local 2>/dev/null | grep -i 'alpine' | awk '{print $1}' | tail -n1 || true)
+# 优先检查本地已经存在的对应架构 Alpine 模板 (严格过滤架构后缀，避免错用 arm64/amd64)
+LOCAL_TEMPLATES=$(pveam list local 2>/dev/null | grep -i 'alpine' | grep "${PVE_ARCH}" | awk '{print $1}' | tail -n1 || true)
 if [ -n "$LOCAL_TEMPLATES" ]; then
     TEMPLATE=$(basename "$LOCAL_TEMPLATES")
     echo -e "${GREEN}✓ 发现本地已缓存的 Alpine 模板: ${TEMPLATE} (免重复下载，秒级开机)${NC}"
 fi
 
 if [ -z "$TEMPLATE" ]; then
-    echo -e "${BLUE}正在更新并检索官方 Alpine 模板清单...${NC}"
+    echo -e "${BLUE}正在更新并检索官方 Alpine 模板清单 (${PVE_ARCH})...${NC}"
     pveam update >/dev/null 2>&1 || true
-    TEMPLATE=$(pveam available -section system 2>/dev/null | grep -i 'alpine' | tail -n1 | awk '{print $2}' || true)
+    TEMPLATE=$(pveam available -section system 2>/dev/null | grep -i 'alpine' | grep "${PVE_ARCH}" | tail -n1 | awk '{print $2}' || true)
     if [ -z "$TEMPLATE" ]; then
-        TEMPLATE="alpine-3.20-default_20240606_amd64.tar.xz"
+        TEMPLATE="alpine-3.20-default_20240606_${PVE_ARCH}.tar.xz"
     fi
     if ! pveam list local 2>/dev/null | grep -q "$TEMPLATE"; then
         echo -e "${BLUE}正在下载 Alpine 模板: ${TEMPLATE}...${NC}"
@@ -374,10 +388,10 @@ fi
 rc-update add cubexd default >/dev/null 2>&1
 EOF
 
-echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX Test v4.9 双核完整发布包...${NC}"
-# 10. 推送或下载 CubeX 完整发布包
-LOCAL_PKG=$(ls dist/release/CubeX-Test-*-linux-amd64.zip 2>/dev/null | sort -V | tail -n1 || true)
-CACHE_PKG=$(ls /tmp/CubeX-Test-*-linux-amd64.zip 2>/dev/null | sort -V | tail -n1 || true)
+echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX Test v4.9 双核完整发布包 (${PVE_ARCH})...${NC}"
+# 10. 推送或下载 CubeX 完整发布包 (按架构自动匹配)
+LOCAL_PKG=$(ls dist/release/CubeX-Test-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+CACHE_PKG=$(ls /tmp/CubeX-Test-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
 
 if [ -n "$LOCAL_PKG" ] && [ -f "$LOCAL_PKG" ]; then
     echo -e "${BLUE}检测到本地发布包 (${LOCAL_PKG})，直接推送至容器: /opt/CubeX...${NC}"
@@ -397,15 +411,16 @@ chmod +x /opt/CubeX/bin/* 2>/dev/null || true
 ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
 rm -f /tmp/CubeX.zip
 EOF
-elif [ -f "dist/cubexd-linux-amd64" ]; then
+elif [ -f "dist/cubexd-linux-${PVE_ARCH}" ]; then
     echo -e "${BLUE}检测到本地构建产物，直接推送至容器: /opt/CubeX/bin/cubexd...${NC}"
-    pct push "$CT_ID" dist/cubexd-linux-amd64 /opt/CubeX/bin/cubexd -perms 755
+    pct push "$CT_ID" "dist/cubexd-linux-${PVE_ARCH}" /opt/CubeX/bin/cubexd -perms 755
 elif [ -f "/opt/cubex/bin/cubexd" ]; then
     pct push "$CT_ID" /opt/cubex/bin/cubexd /opt/CubeX/bin/cubexd -perms 755
 else
-    pct exec "$CT_ID" -- sh -s << 'EOF'
+    pct exec "$CT_ID" -- sh -s "$PVE_ARCH" << 'EOF'
     set -e
-    echo "🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 101套规则集 + 控制面)..."
+    ARCH="$1"
+    echo "🌐 正在从 GitHub Releases 拉取最新完整发布包 (${ARCH} 双内核 + 101套规则集 + 控制面)..."
     REL_TAG=""
     for MIRROR in "https://gh-proxy.com" "https://gh.ddlc.top" "https://mirror.ghproxy.com"; do
         LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 3 -m 5 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
@@ -416,7 +431,7 @@ else
     done
     [ -z "$REL_TAG" ] && REL_TAG="Test-v4.9"
 
-    ZIP_NAME="CubeX-${REL_TAG}-linux-amd64.zip"
+    ZIP_NAME="CubeX-${REL_TAG}-linux-${ARCH}.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"
     rm -f "$TMP_ZIP"
 
@@ -443,7 +458,7 @@ else
         echo "✅ 完整发布包解压完成！"
     else
         echo "⚠️ 归档下载超时，降级拉取单二进制..."
-        BIN_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-amd64"
+        BIN_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${ARCH}"
         BIN_MIRROR="https://gh-proxy.com/$BIN_URL"
         curl -4 --http1.1 -sSL --connect-timeout 8 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_URL" 2>/dev/null || curl -4 --http1.1 -sSL --connect-timeout 10 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_MIRROR" 2>/dev/null || true
         chmod 755 /opt/CubeX/bin/cubexd 2>/dev/null || true
