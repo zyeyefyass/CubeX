@@ -183,7 +183,7 @@
 | **主路由/宿主 CPU 开销** | 旁路由单核 100% 满载烤鸡蛋，发热卡顿 | **极度轻量（CPU 占用仅 ~1%），发热几乎为 0** |
 | **旁路由重启或升级的影响** | 💥 **全家立刻断网！老婆电视剧卡死转圈，怒拔电源！** | **🛡️ 毫秒无感逃生！微信不断流、游戏不掉线、电视毫无感知！** |
 | **内存开销与启动时间** | 笨重虚机占用 2GB~4GB 内存，冷启等半分钟 | **常驻物理内存仅 ~35MB~100MB，300 毫秒瞬间秒开！** |
-| **广告拦截效果** | 规则老旧经常误杀，容易导致网页排版错乱 | **集成 217heidai 权威规则与 101 套分流，精准去广告零误杀** |
+| **广告拦截效果** | 规则老旧经常误杀，容易导致网页排版错乱 | **集成 217heidai 权威规则与 105 套分流，精准去广告零误杀** |
 
 ---
 
@@ -283,7 +283,7 @@
 
 <img src="docs/assets/screenshots/cubex-live-host-symbiosis.png" alt="CubeX 宿主共生联动" width="95%" />
 
-### 5. 217heidai 权威去广告与 101 套全量分流规则体系
+### 5. 217heidai 权威去广告与 105 套全量分流规则体系
 
 <img src="docs/assets/screenshots/cubex-live-adblock-filter.png" alt="CubeX 权威规则分流体系" width="95%" />
 
@@ -327,7 +327,7 @@
 
 > 3. 🐂 **【飞牛 fnOS 与通用 Linux Docker 极简部署原生支持】**：
 
->    * 针对 Docker Hub 突破 **9.7K 下载量** 的飞牛用户群，全新发布官方开箱即用 [scripts/docker/docker-compose-fnos.yml](https://github.com/zyeyefyass/CubeX/blob/Test-v5.1/scripts/docker/docker-compose-fnos.yml)；
+>    * 针对 Docker Hub 突破 **9.9K 下载量（火热冲刺 10,000+ 工业级里程碑）** 的飞牛用户群，全新发布官方开箱即用 [scripts/docker/docker-compose-fnos.yml](https://github.com/zyeyefyass/CubeX/blob/Test-v5.1/scripts/docker/docker-compose-fnos.yml)；
 
 >    * 内置 `network_mode: host`、TUN 网卡透传、数据持久化卷与安全特权配置，零摩擦一行命令启动。
 
@@ -365,7 +365,7 @@
 | **MikroTik RouterOS (RB5009/CCR)** | `CubeX-Test-v5.1-ros-arm64.tar` | ~116.8 MB | WinBox 拖入文件，运行 `setup-routeros-v7.rsc` 脚本 |
 | **OpenWrt 智能软路由** | `CubeX-Test-v5.1-docker-amd64.tar.gz` | ~94.0 MB | 传到 OpenWrt 跑 `setup-openwrt.sh` 脚本 |
 | **飞牛 fnOS / 通用 Linux Docker** | `CubeX-Test-v5.1-docker-amd64.tar.gz` | ~94.0 MB | 导入镜像或使用官方开箱即用 [docker-compose-fnos.yml](https://github.com/zyeyefyass/CubeX/blob/Test-v5.1/scripts/docker/docker-compose-fnos.yml) 极简拉起 |
-| **通用 Linux (纯手动解压版 amd64)** | `CubeX-Test-v5.1-linux-amd64.zip` | ~93.0 MB | 包含加固双内核、101 套规则库与 CLI 工具 |
+| **通用 Linux (纯手动解压版 amd64)** | `CubeX-Test-v5.1-linux-amd64.zip` | ~93.0 MB | 包含加固双内核、105 套规则库与 CLI 工具 |
 | **通用 Linux (纯手动解压版 arm64)** | `CubeX-Test-v5.1-linux-arm64.zip` | ~85.8 MB | ARM64 软路由/树莓派解压包 |
 | **PVE 一键安装脚本** | `install_pve_lxc.sh` | ~8.2 KB | PVE 宿主机自动化创建 CT 容器脚本 |
 | **Linux 通用安装脚本** | `install.sh` | ~11.4 KB | Linux 宿主机自动探查安装脚本 |

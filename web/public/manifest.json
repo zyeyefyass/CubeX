@@ -4,9 +4,11 @@
   "description": "CubeX 宿主共生零感网络系统全息控制台",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay"],
   "orientation": "any",
   "background_color": "#001529",
   "theme_color": "#001529",
+  "categories": ["utilities", "productivity", "network"],
   "icons": [
     {
       "src": "/logo-cubex.svg",

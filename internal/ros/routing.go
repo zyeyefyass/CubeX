@@ -810,11 +810,17 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 
 	// 2b. Clean up conflicting / stale Fake-IP routes (198.18.0.0/15) and ensure single valid route to targetIP
 	hasCorrectFakeIPRoute := false
+	hasBlackholeRoute := false
 	for _, r := range existingRoutes {
 		table, _ := r["routing-table"].(string)
 		dst := fmt.Sprintf("%v", r["dst-address"])
 		gw := fmt.Sprintf("%v", r["gateway"])
 		id, _ := r[".id"].(string)
+		comm, _ := r["comment"].(string)
+		if dst == "198.18.0.0/15" && comm == "CubeX-FakeIP-Blackhole" {
+			hasBlackholeRoute = true
+			continue
+		}
 		if (table == "" || table == "main") && (dst == "198.18.0.0/15" || dst == "198.18.0.0/16" || dst == "198.19.0.0/16") {
 			if (gw == targetIP || strings.Contains(gw, targetIP)) && dst == "198.18.0.0/15" {
 				hasCorrectFakeIPRoute = true
@@ -831,6 +837,7 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 			"dst-address":   "198.18.0.0/15",
 			"gateway":       targetIP,
 			"check-gateway": "ping",
+			"distance":      "1",
 			"comment":       "CubeX-FakeIP-Backtrack",
 		}
 		if _, err := m.PutROS("/ip/route", fPayload); err == nil {
@@ -846,6 +853,7 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 				if cg != "ping" {
 					_ = m.PatchROS("/ip/route/"+id, map[string]any{
 						"check-gateway": "ping",
+						"distance":      "1",
 						"comment":       "CubeX-FakeIP-Backtrack",
 					})
 					res.Actions = append(res.Actions, "已为 Fake-IP 回指路由开启 ping 毫秒存活探测")
@@ -854,6 +862,21 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 			}
 		}
 		res.Actions = append(res.Actions, fmt.Sprintf("Fake-IP 回指路由 (198.18.0.0/15 -> %s, check-gateway=ping) 正常就绪", targetIP))
+	}
+
+	// 2b-2. Ensure Blackhole route for Fake-IP (distance=200) to prevent leaking to WAN/Modem on failover
+	if !hasBlackholeRoute {
+		bhPayload := map[string]any{
+			"dst-address": "198.18.0.0/15",
+			"blackhole":   "true",
+			"distance":    "200",
+			"comment":     "CubeX-FakeIP-Blackhole",
+		}
+		if _, err := m.PutROS("/ip/route", bhPayload); err == nil {
+			res.Actions = append(res.Actions, "已注入 Fake-IP 黑洞防外泄兜底路由 (198.18.0.0/15 blackhole distance=200 · 杜绝光猫伪证书 SSL 报错)")
+		}
+	} else {
+		res.Actions = append(res.Actions, "Fake-IP 黑洞防外泄兜底路由 (198.18.0.0/15 blackhole distance=200) 正常就绪")
 	}
 
 	// 2c. Ensure /ip/settings: send-redirects=no (消除同网段旁路二层三角路由 TCP 停顿与卡顿重传)
@@ -1245,8 +1268,8 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 
 	// 6c. Inject Netwatch HA Auto-Failover Probe (毫秒级宕机检测，容器宕机 3 秒自动回退直连)
 	hasValidNetwatch := false
+	var nwList []map[string]any
 	if nwData, err := m.QueryROS("/tool/netwatch"); err == nil {
-		var nwList []map[string]any
 		_ = json.Unmarshal(nwData, &nwList)
 		for _, nw := range nwList {
 			host, _ := nw["host"].(string)
@@ -1274,18 +1297,31 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		nwPayload := map[string]any{
 			"host":        targetIP,
 			"port":        "2026",
-			"interval":    "2s",
-			"timeout":     "800ms",
+			"interval":    "3s",
+			"timeout":     "2s",
 			"type":        "tcp-conn",
 			"comment":     "CubeX-HA-Failover",
 			"up-script":   upScript,
 			"down-script": downScript,
 		}
 		if _, err := m.PutROS("/tool/netwatch", nwPayload); err == nil {
-			res.Actions = append(res.Actions, fmt.Sprintf("已注入 Netwatch 应用级 TCP 心跳探针 (2秒自动探测 %s:2026 · 服务异常 0 秒降级直连与原生 DNS)", targetIP))
+			res.Actions = append(res.Actions, fmt.Sprintf("已注入 Netwatch 应用级 TCP 心跳探针 (3秒探测 %s:2026 · 服务异常 0 秒降级直连与原生 DNS)", targetIP))
 		}
 	} else {
-		res.Actions = append(res.Actions, fmt.Sprintf("Netwatch 应用级 TCP 心跳逃生探针已就绪 (%s:2026)", targetIP))
+		for _, nw := range nwList {
+			comment, _ := nw["comment"].(string)
+			if strings.Contains(comment, "CubeX") {
+				id, _ := nw[".id"].(string)
+				to, _ := nw["timeout"].(string)
+				if id != "" && (to == "800ms" || to == "500ms" || to == "1s") {
+					_ = m.PatchROS("/tool/netwatch/"+id, map[string]any{
+						"interval": "3s",
+						"timeout":  "2s",
+					})
+				}
+			}
+		}
+		res.Actions = append(res.Actions, fmt.Sprintf("Netwatch 应用级 TCP 心跳逃生探针已就绪 (%s:2026 · 3s/2s)", targetIP))
 	}
 
 	// 7. Clean up Stale Non-FIB Tables & Inactive NAT rules
@@ -1445,7 +1481,11 @@ func (m *Manager) PurgeConflictingFakeIPRoutes(targetIP string) int {
 		dst := fmt.Sprintf("%v", r["dst-address"])
 		gw := fmt.Sprintf("%v", r["gateway"])
 		id, _ := r[".id"].(string)
+		comm, _ := r["comment"].(string)
 		table, _ := r["routing-table"].(string)
+		if comm == "CubeX-FakeIP-Blackhole" {
+			continue
+		}
 		if (table == "" || table == "main") && (dst == "198.18.0.0/15" || dst == "198.18.0.0/16" || dst == "198.19.0.0/16") {
 			if gw == targetIP || strings.Contains(gw, targetIP) {
 				continue
@@ -1514,17 +1554,22 @@ func (m *Manager) CleanAndReapplyRouting(targetIP string) (*ApplyResult, error) 
 		}
 	}
 
-	// 2. Clean DNS nat hijack rules
+	// 2. Clean DNS nat hijack rules (keep healthy active CubeX rules pointing to targetIP to prevent DNS teardown race)
 	if data, err := m.QueryROS("/ip/firewall/nat"); err == nil {
 		var nats []map[string]any
 		_ = json.Unmarshal(data, &nats)
 		for _, n := range nats {
 			comment, _ := n["comment"].(string)
 			id, _ := n[".id"].(string)
+			toAddr, _ := n["to-addresses"].(string)
 			if (strings.Contains(comment, "CubeX") || strings.Contains(comment, "MiCube") || strings.Contains(comment, "DNS")) && id != "" {
-				if toAddr, ok := n["to-addresses"].(string); ok && (toAddr == targetIP || strings.Contains(comment, "DNS")) {
+				if strings.Contains(comment, "CubeX-DNS-Hijack") && toAddr == targetIP {
+					// Keep active healthy DNS hijack rule untouched, preventing DNS leak window!
+					continue
+				}
+				if toAddr != targetIP || strings.Contains(comment, "MiCube") {
 					if delErr := m.DeleteROS("/ip/firewall/nat/" + id); delErr == nil {
-						res.Actions = append(res.Actions, "已清理 RouterOS DNS 端口 53 强制劫持规则 (恢复内网 DNS 自由选择)")
+						res.Actions = append(res.Actions, "已清理 RouterOS 过期/冲突 DNS 劫持规则")
 					}
 				}
 			}
@@ -1597,8 +1642,10 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 	sb.WriteString("/ip/settings/set send-redirects=no\n\n")
 
 	sb.WriteString("# 1. 清理旧版冲突与残留 Fake-IP 路由并注入 RFC 2544 完整网段 (198.18.0.0/15)\n")
-	sb.WriteString(fmt.Sprintf("/ip/route remove [find (dst-address=\"198.18.0.0/16\" or dst-address=\"198.18.0.0/15\") and gateway!=\"%s\"]\n", targetIP))
-	sb.WriteString(fmt.Sprintf("/ip/route add dst-address=198.18.0.0/15 gateway=%s comment=\"CubeX Fake-IP Route\"\n\n", targetIP))
+	sb.WriteString(fmt.Sprintf("/ip/route remove [find (dst-address=\"198.18.0.0/16\" or dst-address=\"198.18.0.0/15\") and gateway!=\"%s\" and comment!=\"CubeX-FakeIP-Blackhole\"]\n", targetIP))
+	sb.WriteString(fmt.Sprintf("/ip/route add dst-address=198.18.0.0/15 gateway=%s check-gateway=ping distance=1 comment=\"CubeX-FakeIP-Backtrack\"\n", targetIP))
+	sb.WriteString("# 1b. 注入 Fake-IP 黑洞防外泄兜底路由 (distance=200，当旁路由容器启闭或心跳失联时，绝对杜绝 Fake-IP 逃逸至光猫/外网导致 SSL 证书报错)\n")
+	sb.WriteString(":if ([:len [/ip route find dst-address=\"198.18.0.0/15\" and comment=\"CubeX-FakeIP-Blackhole\"]] = 0) do={ /ip route add dst-address=198.18.0.0/15 blackhole distance=200 comment=\"CubeX-FakeIP-Blackhole\" }\n\n")
 
 	sb.WriteString("# 2. 创建专用策略路由表 (FIB 转发)\n")
 	sb.WriteString("/routing/table add name=cubex fib\n\n")
@@ -1642,7 +1689,7 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 
 	sb.WriteString("# 11. 注入 Netwatch 应用级 TCP 2026 心跳看门狗 (服务异常或容器宕机时全自动 0秒直连与原生 DNS)\n")
 	sb.WriteString("/tool/netwatch remove [find comment~\"CubeX\"]\n")
-	sb.WriteString(fmt.Sprintf("/tool/netwatch add host=%s port=2026 type=tcp-conn interval=2s timeout=800ms comment=\"CubeX-HA-Failover\" up-script=\"/ip firewall nat enable [find comment~\\\"CubeX-DNS-Hijack\\\"]; /ip route enable [find comment~\\\"CubeX-FakeIP-Backtrack\\\"]\" down-script=\"/ip firewall nat disable [find comment~\\\"CubeX-DNS-Hijack\\\"]; /ip route disable [find comment~\\\"CubeX-FakeIP-Backtrack\\\"]; /ip dns cache flush; :log warn \\\"CubeX Service is DOWN: 0-second Failover to RouterOS native DNS!\\\"\"\n\n", targetIP))
+	sb.WriteString(fmt.Sprintf("/tool/netwatch add host=%s port=2026 type=tcp-conn interval=3s timeout=2s comment=\"CubeX-HA-Failover\" up-script=\"/ip firewall nat enable [find comment~\\\"CubeX-DNS-Hijack\\\"]; /ip route enable [find comment~\\\"CubeX-FakeIP-Backtrack\\\"]\" down-script=\"/ip firewall nat disable [find comment~\\\"CubeX-DNS-Hijack\\\"]; /ip route disable [find comment~\\\"CubeX-FakeIP-Backtrack\\\"]; /ip dns cache flush; :log warn \\\"CubeX Service is DOWN: 0-second Failover to RouterOS native DNS!\\\"\"\n\n", targetIP))
 
 	sb.WriteString("# 12. 清理遗留 WireGuard 防火墙规则与接口\n")
 	sb.WriteString("/ip/firewall/filter remove [find comment~\"WireGuard\" or dst-port=\"13231\" or dst-port=\"51820\"]\n")

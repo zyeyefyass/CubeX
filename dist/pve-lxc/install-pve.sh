@@ -424,7 +424,7 @@ else
     pct exec "$CT_ID" -- sh -s "$PVE_ARCH" << 'EOF'
     set -e
     ARCH="$1"
-    echo "🌐 正在从 GitHub Releases 拉取最新完整发布包 (${ARCH} 双内核 + 101套规则集 + 控制面)..."
+    echo "🌐 正在从 GitHub Releases 拉取最新完整发布包 (${ARCH} 双内核 + 105套规则集 + 控制面)..."
     REL_TAG=""
     for MIRROR in "https://gh-proxy.com" "https://gh.ddlc.top" "https://mirror.ghproxy.com"; do
         LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 3 -m 5 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
