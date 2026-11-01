@@ -50,7 +50,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 Test v5.1 最新版本更新亮点](#announcement)
+- [📢 Test v5.2 最新版本更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -142,7 +142,7 @@
 
 ## 👑 终极解法：大白话讲透“网关 + DNS 全双双指向主路由”
 
-这就是 **CubeX Test v5.1** 带来的终极形态：**把主路由和旁路由各自擅长的事彻底拆开！**
+这就是 **CubeX Test v5.2** 带来的终极形态：**把主路由和旁路由各自擅长的事彻底拆开！**
 
 用生活里的大白话打个比方：
 
@@ -297,11 +297,11 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v5.1 官方正式版重磅更新亮点 (300秒在线热更超时加固 · 零内存尖峰流式直写 · 飞牛fnOS极简Compose原生支持 · 5秒高弹探针 · 120s防频控防护)
+## 📢 Test v5.2 官方正式版重磅更新亮点 (Fake-IP黑洞防外泄兜底 · 彻底终结光猫证书撞车HSTS报错 · 全域滑鼠穿透滚动 · PWA桌面级原生沉浸 · 105套规则标准化)
 
 > [!IMPORTANT]
 
-> ### 👑【工业级高弹热更与多宿主极简共生双旗舰】在线热更300s流式长超时 · 内存零溢出直写 · 飞牛fnOS/Docker极简Compose模版 · 5秒高弹探针 · 120s防频控 · 会话一致性哈希 (CubeX Test v5.1 官方正式版)
+> ### 👑【黑洞防外泄兜底与全域交互双旗舰】Fake-IP黑洞路由 · 0光猫伪证书撞车 · 自愈总线原子零中断 · 全域滑鼠穿透滚动 · PWA原生沉浸 · 105套分流去广告 (CubeX Test v5.2 官方正式版)
 
 >
 
@@ -309,11 +309,26 @@
 
 >
 
-> 今天正式发布的 **CubeX Test v5.1** 带来重磅工业级热更新加固与多宿主开箱体验飞跃：
+> 今天正式发布的 **CubeX Test v5.2** 带来重磅主路由黑洞防外泄加固与全端交互体验飞跃：
 
 >
 
-> 1. 🚀 **【在线平滑热更 300 秒长超时与动态分级调度】**：
+> 1. 🛡️ **【主路由 Fake-IP 黑洞防外泄兜底与 0 证书报错防线 (Blackhole Guard Route)】**：
+>    * 自动在主路由 RouterOS 注入 198.18.0.0/15 blackhole distance=200 兜底路由；
+>    * 当旁路由容器冷启、升级或网络重载时，Fake-IP 报文瞬间命中本地黑洞静默吸收，**绝对杜绝逃逸至光猫/外网**，彻底终结光猫伪证书引发的 NET::ERR_CERT_COMMON_NAME_INVALID 与 HSTS 浏览器强阻断痛点。
+> 2. ⚡ **【自愈总线 DNS 劫持规则原子保活 (Idempotent Zero-Teardown)】**：
+>    * 重构 CleanAndReapplyRouting 逻辑，健康状态下保持 DNS 劫持规则 0 毫秒连续工作，消除了自愈期间 DNS 泄露至主路由明文上游的竞态窗口。
+> 3. 🎯 **【Netwatch 应用级 TCP 心跳探针防抖加固】**：
+>    * 将 RouterOS Netwatch 探针超时从 800ms 优化放宽至 2s（探测间隔 3s），杜绝双核热重载瞬时高负载导致的心跳误判脱钩。
+> 4. 🖱️ **【全页面滑鼠滚轮平滑滚动与底部防截断大留白】**：
+>    * 彻底修复卡片拦截鼠标滚轮事件 Bug，全站卡片支持平滑穿透滚动；底部拓展 96px+ 超大沉浸留白，移动端与 PC 端操作按钮全域防遮挡。
+> 5. 📱 **【手机端全沉浸 PWA 桌面 Web App 原生加固】**：
+>    * 补齐高清桌面图标与 standalone 全屏沉浸元数据，消除手机浏览器地址栏干扰，实现 App 级原生顺滑交互。
+> 6. 📜 **【全域 105 套全量高精 MRS/SRS 规则体系标准化】**：
+>    * 全平台彻底纠偏并标准化 105 套 MRS/SRS 规则集，覆盖主流应用精准分流与 217heidai 权威广告过滤。
+> 7. 🚀 **【Docker Hub 9.9K ➔ 10K+ 工业级里程碑】**：
+>    * 同步 Docker Hub 最新元数据与飞牛 fnOS 极简 Compose 开箱即用架构。
+> 8. 🚀 **【在线平滑热更 300 秒长超时与动态分级调度】**：
 
 >    * 彻底根治此前版本因 15 秒短超时在长链路或复杂网络下下载 45MB 核心导致 `context deadline exceeded` 的痛点；
 
@@ -327,7 +342,7 @@
 
 > 3. 🐂 **【飞牛 fnOS 与通用 Linux Docker 极简部署原生支持】**：
 
->    * 针对 Docker Hub 突破 **9.9K 下载量（火热冲刺 10,000+ 工业级里程碑）** 的飞牛用户群，全新发布官方开箱即用 [scripts/docker/docker-compose-fnos.yml](https://github.com/zyeyefyass/CubeX/blob/Test-v5.1/scripts/docker/docker-compose-fnos.yml)；
+>    * 针对 Docker Hub 突破 **9.9K 下载量（火热冲刺 10,000+ 工业级里程碑）** 的飞牛用户群，全新发布官方开箱即用 [scripts/docker/docker-compose-fnos.yml](https://github.com/zyeyefyass/CubeX/blob/Test-v5.2/scripts/docker/docker-compose-fnos.yml)；
 
 >    * 内置 `network_mode: host`、TUN 网卡透传、数据持久化卷与安全特权配置，零摩擦一行命令启动。
 
@@ -360,13 +375,13 @@
 | 我用的是什么环境？ | 我该下载哪个文件？ | 文件大小 | 怎么安装？ |
 | :--- | :--- | :--- | :--- |
 | **🥇 PVE 虚拟机小主机 (强烈推荐)** | 不需要手动下载文件！ | - | 复制下面的[方式 A 一行命令](#deploy-pve)粘贴进 PVE 终端回车即可！ |
-| **爱快 iKuai 64位 主路由** | `CubeX-Test-v5.1-docker-amd64.tar.gz` | ~94.0 MB | 进爱快 Docker 导入镜像，按[方式 C](#deploy-ikuai)教程配好即可 |
-| **MikroTik RouterOS (x86软路由)** | `CubeX-Test-v5.1-ros-amd64.tar` | ~117.9 MB | WinBox 拖入文件，运行 `setup-routeros-v7.rsc` 脚本 |
-| **MikroTik RouterOS (RB5009/CCR)** | `CubeX-Test-v5.1-ros-arm64.tar` | ~116.8 MB | WinBox 拖入文件，运行 `setup-routeros-v7.rsc` 脚本 |
-| **OpenWrt 智能软路由** | `CubeX-Test-v5.1-docker-amd64.tar.gz` | ~94.0 MB | 传到 OpenWrt 跑 `setup-openwrt.sh` 脚本 |
-| **飞牛 fnOS / 通用 Linux Docker** | `CubeX-Test-v5.1-docker-amd64.tar.gz` | ~94.0 MB | 导入镜像或使用官方开箱即用 [docker-compose-fnos.yml](https://github.com/zyeyefyass/CubeX/blob/Test-v5.1/scripts/docker/docker-compose-fnos.yml) 极简拉起 |
-| **通用 Linux (纯手动解压版 amd64)** | `CubeX-Test-v5.1-linux-amd64.zip` | ~93.0 MB | 包含加固双内核、105 套规则库与 CLI 工具 |
-| **通用 Linux (纯手动解压版 arm64)** | `CubeX-Test-v5.1-linux-arm64.zip` | ~85.8 MB | ARM64 软路由/树莓派解压包 |
+| **爱快 iKuai 64位 主路由** | `CubeX-Test-v5.2-docker-amd64.tar.gz` | ~94.0 MB | 进爱快 Docker 导入镜像，按[方式 C](#deploy-ikuai)教程配好即可 |
+| **MikroTik RouterOS (x86软路由)** | `CubeX-Test-v5.2-ros-amd64.tar` | ~117.9 MB | WinBox 拖入文件，运行 `setup-routeros-v7.rsc` 脚本 |
+| **MikroTik RouterOS (RB5009/CCR)** | `CubeX-Test-v5.2-ros-arm64.tar` | ~116.8 MB | WinBox 拖入文件，运行 `setup-routeros-v7.rsc` 脚本 |
+| **OpenWrt 智能软路由** | `CubeX-Test-v5.2-docker-amd64.tar.gz` | ~94.0 MB | 传到 OpenWrt 跑 `setup-openwrt.sh` 脚本 |
+| **飞牛 fnOS / 通用 Linux Docker** | `CubeX-Test-v5.2-docker-amd64.tar.gz` | ~94.0 MB | 导入镜像或使用官方开箱即用 [docker-compose-fnos.yml](https://github.com/zyeyefyass/CubeX/blob/Test-v5.2/scripts/docker/docker-compose-fnos.yml) 极简拉起 |
+| **通用 Linux (纯手动解压版 amd64)** | `CubeX-Test-v5.2-linux-amd64.zip` | ~93.0 MB | 包含加固双内核、105 套规则库与 CLI 工具 |
+| **通用 Linux (纯手动解压版 arm64)** | `CubeX-Test-v5.2-linux-arm64.zip` | ~85.8 MB | ARM64 软路由/树莓派解压包 |
 | **PVE 一键安装脚本** | `install_pve_lxc.sh` | ~8.2 KB | PVE 宿主机自动化创建 CT 容器脚本 |
 | **Linux 通用安装脚本** | `install.sh` | ~11.4 KB | Linux 宿主机自动探查安装脚本 |
 | **RouterOS 编排脚本** | `setup-routeros-v7.rsc` | ~17.0 KB | WinBox 终端复制即用一键脚本 |
@@ -390,7 +405,7 @@
 | **👑 MikroTik RouterOS v7** | 原生 OCI 容器 (`.tar`) | `table cubex` 隔离路由 + WinBox REST API 联动 | **Netwatch 毫秒级逃生 (物理路由零损伤)** | `setup-routeros-v7.rsc` / ROS TAR (x86/ARM64) | ⭐⭐⭐⭐⭐ |
 | **📡 OpenWrt / LEDE** | 物理旁路由 / Docker | nftables (fw4) / iptables (fw3) 自适应放行 | Fake-IP `198.18.0.0/15` 回指 + DHCP 引导 | `setup-openwrt.sh` 终端一键编排脚本 | ⭐⭐⭐⭐⭐ |
 | **🐬 爱快 iKuai (64位)** | 旁路网关 / Docker 插件 | Web-RPC 联动 + 静态回指路由 | 静态路由主备快速回退 | 控制台一键开箱参数助手 + Docker TAR | ⭐⭐⭐⭐⭐ |
-| **🐂 飞牛 fnOS / NAS** | 官方 Docker 应用 | 伴生宿主 Linux 内核转发与 ARP 防风暴优化 | Docker Supervisor 进程守护保活 | 官方 Docker 镜像 / 官方开箱即用 [docker-compose-fnos.yml](https://github.com/zyeyefyass/CubeX/blob/Test-v5.1/scripts/docker/docker-compose-fnos.yml) | ⭐⭐⭐⭐⭐ |
+| **🐂 飞牛 fnOS / NAS** | 官方 Docker 应用 | 伴生宿主 Linux 内核转发与 ARP 防风暴优化 | Docker Supervisor 进程守护保活 | 官方 Docker 镜像 / 官方开箱即用 [docker-compose-fnos.yml](https://github.com/zyeyefyass/CubeX/blob/Test-v5.2/scripts/docker/docker-compose-fnos.yml) | ⭐⭐⭐⭐⭐ |
 | **🐧 通用 Linux (Debian/Ubuntu)** | 单二进制系统守护进程 | 系统级 Systemd 守护 + TUN / TProxy 透明转发 | 僵尸连接自动清算 + 自动探针网络自愈 | `install.sh` / 单二进制 `cubexd` | ⭐⭐⭐⭐⭐ |
 
 ---
@@ -445,7 +460,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 如果你的主路由就是 MikroTik（RB5009、CCR2004、x86 ROS）：
 
-1. **下载镜像**：在上方清单下载对应架构的 `CubeX-Test-v5.1-ros-amd64.tar`（或 `arm64.tar`）；
+1. **下载镜像**：在上方清单下载对应架构的 `CubeX-Test-v5.2-ros-amd64.tar`（或 `arm64.tar`）；
 
 2. **传进路由器**：打开 WinBox，把 `.tar` 文件直接拖进【Files】列表（推荐放在 U 盘或 SSD 磁盘如 `disk1/`）；
 
@@ -463,7 +478,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 #### 步骤 1：导入离线镜像
 
-1. 在上方清单下载 `CubeX-Test-v5.1-docker-amd64.tar.gz`；
+1. 在上方清单下载 `CubeX-Test-v5.2-docker-amd64.tar.gz`；
 
 2. 登录爱快后台，进入【高级应用】➔【插件营销】➔【Docker】；
 
@@ -515,7 +530,7 @@ OpenWrt 自带 Docker 环境，使用 CubeX 独创的 Macvlan-Shim 方案，再�
 
 #### 极速 2 步离线安装（国内网络推荐，0 失败率）：
 
-1. 在上方资产清单下载 `CubeX-Test-v5.1-docker-amd64.tar.gz` 和 `setup-openwrt.sh` 两个文件；
+1. 在上方资产清单下载 `CubeX-Test-v5.2-docker-amd64.tar.gz` 和 `setup-openwrt.sh` 两个文件；
 
 2. 用 WinSCP 或 SSH 传到 OpenWrt 的 `/tmp` 目录，在终端执行：
 
@@ -537,13 +552,13 @@ OpenWrt 自带 Docker 环境，使用 CubeX 独创的 Macvlan-Shim 方案，再�
 
 #### 途径 ①：使用官方开箱即用 Docker Compose 极速编排（强烈推荐）
 
-官方开箱即用模版文件：[scripts/docker/docker-compose-fnos.yml](https://github.com/zyeyefyass/CubeX/blob/Test-v5.1/scripts/docker/docker-compose-fnos.yml)
+官方开箱即用模版文件：[scripts/docker/docker-compose-fnos.yml](https://github.com/zyeyefyass/CubeX/blob/Test-v5.2/scripts/docker/docker-compose-fnos.yml)
 
 ##### 1. 一行命令极速下载并启动：
 
 ```bash
 
-curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/Test-v5.1/scripts/docker/docker-compose-fnos.yml -o docker-compose.yml && docker compose up -d
+curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/Test-v5.2/scripts/docker/docker-compose-fnos.yml -o docker-compose.yml && docker compose up -d
 
 ```
 
@@ -719,7 +734,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 ## 🤖 AI 伴生管家 (Copilot) 全维实战与一键自愈中枢指南
 
-在 **CubeX Test v5.1** 中，AI 不再只是浮于表面的概念，而是深度融入底层网络控制面与日常运维流程的**全息伴生智能体**。
+在 **CubeX Test v5.2** 中，AI 不再只是浮于表面的概念，而是深度融入底层网络控制面与日常运维流程的**全息伴生智能体**。
 
 告别繁琐的命令行排错与晦涩的路由日志！点击控制台左侧/顶部导航栏中的 **【🤖 AI管家】**（Tab 6），即可直接唤起专属全息问答视窗与诊断中枢。AI 管家与底座 Go 核心守护进程（`cubexd`）同频共振，能够毫秒级嗅探网关实时遥测数据与宿主网络拓扑，赋予您通过自然语言对话**实时感知、掌控与自愈家庭网络**的超级能力！
 

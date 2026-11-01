@@ -7,7 +7,7 @@ import hashlib
 import tarfile
 import time
 
-print("🔨 Generating CubeX-Test-v5.1-docker-amd64.tar.gz from v2.7 base...")
+print("🔨 Generating CubeX-Test-v5.2-docker-amd64.tar.gz from v2.7 base...")
 
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 base_path = os.path.join(root_dir, "dist", "release", "CubeX-Test-v4.5-docker-amd64.tar.gz")
@@ -45,7 +45,7 @@ cubexd_path = os.path.join(root_dir, "dist", "cubexd-linux-amd64")
 with open(cubexd_path, 'rb') as f:
     new_cubexd = f.read()
 
-print(f"Read new cubexd Test v5.1: {len(new_cubexd)} bytes")
+print(f"Read new cubexd Test v5.2: {len(new_cubexd)} bytes")
 
 # Build updated cubexd layer
 buf = io.BytesIO()
@@ -105,7 +105,7 @@ manifest[0]['RepoTags'] = ['cubex:Test-v4.5', 'cubex:latest']
 manifest_bytes = json.dumps(manifest, indent=2).encode('utf-8')
 
 # Write output tar.gz
-out_path = os.path.join(root_dir, "dist", "release", "CubeX-Test-v5.1-docker-amd64.tar.gz")
+out_path = os.path.join(root_dir, "dist", "release", "CubeX-Test-v5.2-docker-amd64.tar.gz")
 os.makedirs(os.path.dirname(out_path), exist_ok=True)
 with tarfile.open(out_path, mode='w:gz') as t_out:
     def add_data(name, b):
