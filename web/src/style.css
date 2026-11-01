@@ -67,9 +67,6 @@ body::before {
   border-radius: 20px;
   border: 1px solid rgba(56, 189, 248, 0.20) !important;
   box-shadow: 0 10px 30px -5px rgba(0, 8, 20, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
-  contain: content;
-  content-visibility: auto;
-  contain-intrinsic-size: 0 280px;
   transform: translateZ(0);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
@@ -369,12 +366,17 @@ button, a, input, select, textarea, [role="button"] {
 
 .macos-glass-card,
 .macos-sub-card,
-.macos-sidebar,
+.macos-sidebar {
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  overscroll-behavior: auto;
+}
+
 .overflow-y-auto,
 .overflow-x-auto,
 .custom-scrollbar {
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
   scroll-behavior: smooth;
   transform: translateZ(0);
   backface-visibility: hidden;

@@ -202,7 +202,7 @@
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
 
-    <div :class="['flex-1 flex flex-col h-full relative overflow-x-hidden w-full max-w-full', 'overflow-y-auto pb-28 md:pb-6']" style="contain: content; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; transform: translateZ(0);" @scroll="onMainContentScroll">
+    <div :class="['flex-1 min-h-0 flex flex-col h-full relative overflow-x-hidden w-full max-w-full', 'overflow-y-auto pb-32 md:pb-24']" style="-webkit-overflow-scrolling: touch; transform: translateZ(0);" @scroll="onMainContentScroll">
 
       
 
