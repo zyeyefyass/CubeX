@@ -234,7 +234,7 @@
 
             <!-- CubeX 3D Logo -->
 
-            <CubeXLogo :status="systemRunningStatus" :size="24" class="cursor-pointer hover:scale-110 transition-transform sm:w-[32px] sm:h-[32px]" @click="showLogoGalleryModal = true" />
+            <CubeXLogo :status="systemRunningStatus" :size="24" class="hover:scale-105 transition-transform sm:w-[32px] sm:h-[32px]" />
 
             
 
@@ -10795,131 +10795,11 @@
 
 
 
-          <!-- Modal: 双子星 × 超立方 3大全新设计定稿大图展厅                     -->
+          
 
-          <!-- ════════════════════════════════════════════════════════════════ -->
 
-          <div v-if="showLogoGalleryModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
 
-            <div class="w-full max-w-4xl rounded-3xl macos-glass-card shadow-2xl p-6 sm:p-8 space-y-6 text-slate-200 max-h-[90vh] overflow-y-auto">
 
-              <div class="flex items-center justify-between border-b border-slate-700/60 pb-4">
-
-                <div class="flex items-center gap-3">
-
-                  <span class="text-2xl">✨</span>
-
-                  <div>
-
-                    <h3 class="text-lg font-black text-white flex items-center gap-2">
-
-                      <span>双子星 × 超立方 3 大全新设计提案定稿展示</span>
-
-                      <span class="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono">
-
-                        Gemini-Cube Showcase
-
-                      </span>
-
-                    </h3>
-
-                    <p class="text-xs text-slate-400 mt-1">融合 Google Gemini 双子星耀引力轨与 MikroTik 科技超立方架构，点击任一方案即可一键定稿设为系统 Logo。</p>
-
-                  </div>
-
-                </div>
-
-                <button @click="showLogoGalleryModal = false" class="text-slate-400 hover:text-white text-xl font-bold">✕</button>
-
-              </div>
-
-
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-                <div v-for="scheme in logoOptions" :key="scheme.id"
-
-                  @click="activeLogoId = scheme.id; showToast(`已选用: ${scheme.name}`)"
-
-                  :class="[
-
-                    'p-6 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-4 group relative',
-
-                    activeLogoId === scheme.id
-
-                      ? 'bg-cyan-950/40 border-cyan-400 shadow-xl shadow-cyan-950/60 ring-2 ring-cyan-400/50'
-
-                      : 'bg-slate-950/80 border-slate-800 hover:border-cyan-500/40 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80'
-
-                  ]">
-
-                  <div class="space-y-4 text-center">
-
-                    <div class="relative mx-auto w-32 h-32 flex items-center justify-center p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/90 border border-slate-800 group-hover:border-cyan-400/50 transition">
-
-                      <div class="absolute inset-0 rounded-2xl blur-xl transition-opacity opacity-40 group-hover:opacity-75 bg-cyan-500/20"></div>
-
-                      <img :src="scheme.file" class="relative z-10 w-24 h-24 drop-shadow-[0_0_20px_rgba(0,210,255,0.6)] group-hover:scale-110 transition-transform duration-500" :alt="scheme.name" />
-
-                    </div>
-
-                    <div>
-
-                      <h4 class="text-sm font-bold text-white group-hover:text-sky-300 transition">{{ scheme.name }}</h4>
-
-                      <p class="text-xs text-slate-400 mt-2 text-left leading-relaxed">{{ scheme.desc }}</p>
-
-                    </div>
-
-                  </div>
-
-
-
-                  <div class="pt-2">
-
-                    <button
-
-                      type="button"
-
-                      :class="[
-
-                        'w-full py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow',
-
-                        activeLogoId === scheme.id
-
-                          ? 'bg-cyan-500 text-slate-950'
-
-                          : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-200'
-
-                      ]">
-
-                      <span>{{ activeLogoId === scheme.id ? '✓ 当前选用' : '选用此方案' }}</span>
-
-                    </button>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-
-
-              <div class="flex items-center justify-between pt-4 border-t border-sky-800/40 text-xs">
-
-                <span class="text-slate-400">💡 提示：在页面左侧边栏也可以随时点击 Logo 或下方标签快捷切换预览。</span>
-
-                <button @click="showLogoGalleryModal = false" class="px-5 py-2 rounded-xl bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-bold font-bold text-xs shadow-md">
-
-                  确定并返回
-
-                </button>
-
-              </div>
-
-            </div>
-
-          </div>
 
 
 
@@ -11363,46 +11243,6 @@ const currentTabTitle = computed(() => {
   return match ? match.label : '控制面板'
 
 })
-
-
-
-// ── Logo Design Schemes (CubeX 官方定稿 X-Cube 极光动力) ──
-
-const logoOptions = [
-
-  { id: 'cubex', label: '官方定稿·光曜X-Cube', name: 'CubeX 光曜极光 X-Cube (流动X光条 · 官方定稿)', desc: '3D等轴深蓝超立方体，只展示交汇形成X的边缘流光，伴随活体极光色彩渐变与双重星环公转。', file: '/logo-cubex.svg' },
-
-  { id: 'gemini-1', label: '方案1·星轨引力', name: '方案1 · 双子星轨引力超立方 (Binary Orbital Hypercube)', desc: '双子星沿双交叉对称轨道环绕超立方旋转，象征双引擎协同与极速网络引力，富有动感。', file: '/logo-gemini-cube-1.svg' },
-
-  { id: 'gemini-2', label: '方案2·双星共生', name: '方案2 · 双星共生微核能量动力体 (Symbiotic Core Dual-Star Cube)', desc: '两颗微核双子星在超立方深处共生共振，外层包裹科技深蓝动力框架与光束，沉稳内敛。', file: '/logo-gemini-cube-2.svg' },
-
-  { id: 'gemini-3', label: '方案3·星曜折叠', name: '方案3 · 双子星曜几何折叠立方 (Dual-Nova Geometric Prism Cube)', desc: '双子四芒星曜镶嵌于对角折叠棱晶立方，极具未来几何张力与锐利科技感。', file: '/logo-gemini-cube-3.svg' }
-
-]
-
-const activeLogoId = ref('cubex')
-
-const showLogoGalleryModal = ref(false)
-
-const activeLogoSrc = computed(() => {
-
-  const m = logoOptions.find(o => o.id === activeLogoId.value)
-
-  return m ? m.file : '/logo-cubex.svg'
-
-})
-
-function cycleLogo() {
-
-  const idx = logoOptions.findIndex(o => o.id === activeLogoId.value)
-
-  const next = (idx + 1) % logoOptions.length
-
-  activeLogoId.value = logoOptions[next].id
-
-  showToast(`已切换至: ${logoOptions[next].name}`)
-
-}
 
 
 
