@@ -567,6 +567,74 @@ func configureAdaptiveMemoryLimit() {
 
 
 
+// safeRecover provides panic interception and stack tracing for all asynchronous goroutines.
+func safeRecover(name string) {
+	if r := recover(); r != nil {
+		buf := make([]byte, 4096)
+		n := runtime.Stack(buf, false)
+		log.Printf("⚠️ [SafeGo] Recovered from panic in [%s]: %v\nStack:\n%s\n", name, r, string(buf[:n]))
+	}
+}
+
+// SafeGo launches a function in a protected goroutine with automatic panic recovery.
+func SafeGo(name string, fn func()) {
+	go func() {
+		defer safeRecover(name)
+		fn()
+	}()
+}
+
+// WriteFileAtomic writes data to a temporary file, fsyncs it to disk, and atomically renames
+// it to filename. This guarantees zero-byte file corruptions even during sudden power failure.
+func WriteFileAtomic(filename string, data []byte, perm os.FileMode) error {
+	dir := filepath.Dir(filename)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	tmpFile, err := os.CreateTemp(dir, filepath.Base(filename)+".*.tmp")
+	if err != nil {
+		return os.WriteFile(filename, data, perm)
+	}
+	tmpName := tmpFile.Name()
+	defer func() {
+		_ = os.Remove(tmpName)
+	}()
+
+	if _, err := tmpFile.Write(data); err != nil {
+		_ = tmpFile.Close()
+		return err
+	}
+	if err := tmpFile.Sync(); err != nil {
+		_ = tmpFile.Close()
+		return err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return err
+	}
+	_ = os.Chmod(tmpName, perm)
+	return os.Rename(tmpName, filename)
+}
+
+// recoveryMiddleware catches any unhandled HTTP panics and returns a structured 500 error.
+func recoveryMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				buf := make([]byte, 2048)
+				n := runtime.Stack(buf, false)
+				log.Printf("❌ [HTTP] Panic in handler %s %s: %v\nStack:\n%s\n", r.Method, r.URL.Path, rec, string(buf[:n]))
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusInternalServerError)
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"error":  "Internal server panic recovered",
+					"detail": fmt.Sprintf("%v", rec),
+				})
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 
 	// OOM Defense & Adaptive Garbage Collection tuning
@@ -1241,17 +1309,18 @@ func main() {
 	// Dual-port listening: if port 80 is available (e.g. standalone container), also serve on port 80 for seamless access (http://<IP>)
 	if *listenAddr != ":80" && *listenAddr != "0.0.0.0:80" {
 		go func() {
+			defer safeRecover("WebDirectPort80")
 			ln80, err80 := net.Listen("tcp", ":80")
 			if err80 == nil {
 				log.Printf("🌐 [Web Direct] Port 80 is free! Also serving dashboard directly at http://<host-ip>/ (Port 80)\n")
-				_ = http.Serve(ln80, gzipMiddleware(corsMiddleware(mux)))
+				_ = http.Serve(ln80, recoveryMiddleware(gzipMiddleware(corsMiddleware(mux))))
 			} else {
 				log.Printf("ℹ️ [Web Direct] Port 80 is reserved or occupied by host (%v), continuing on %s\n", err80, actualAddr)
 			}
 		}()
 	}
 
-	if err := http.Serve(ln, gzipMiddleware(corsMiddleware(mux))); err != nil {
+	if err := http.Serve(ln, recoveryMiddleware(gzipMiddleware(corsMiddleware(mux)))); err != nil {
 		log.Fatalf("Fatal: %v", err)
 	}
 
@@ -1640,6 +1709,7 @@ func (s *Server) handleSystemPanic(w http.ResponseWriter, r *http.Request) {
 // purgeConntrackForDirectBypass cleans up stale Fake-IP connections and conntrack entries
 func (s *Server) purgeConntrackForDirectBypass() {
 	go func() {
+		defer safeRecover("PurgeConntrackBypass")
 		time.Sleep(300 * time.Millisecond)
 		// 1. Linux 内核连接跟踪表定向刷洗 198.18.0.0/15 (仅清退已重定向的 Fake-IP 僵尸流，保护本地管理端口)
 		_ = exec.Command("conntrack", "-D", "-d", "198.18.0.0/15").Run()
@@ -1816,6 +1886,7 @@ func (s *Server) handleRestartService(w http.ResponseWriter, r *http.Request) {
 	})
 
 	go func() {
+		defer safeRecover("RestartDaemon")
 		time.Sleep(500 * time.Millisecond)
 		if s.engMgr != nil {
 			_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
@@ -1850,6 +1921,7 @@ func (s *Server) handleSystemPoweroff(w http.ResponseWriter, r *http.Request) {
 		"message": "CubeX 已主动执行逃生切流，系统正在安全关机...",
 	})
 	go func() {
+		defer safeRecover("Poweroff")
 		time.Sleep(600 * time.Millisecond)
 		_ = exec.Command("poweroff").Run()
 		_ = exec.Command("shutdown", "-h", "now").Run()
@@ -1877,6 +1949,7 @@ func (s *Server) handleSystemReboot(w http.ResponseWriter, r *http.Request) {
 		"message": "CubeX 已主动执行逃生切流，整机系统正在重启 (预计 10 秒后恢复)...",
 	})
 	go func() {
+		defer safeRecover("Reboot")
 		time.Sleep(600 * time.Millisecond)
 		_ = exec.Command("reboot").Run()
 		_ = exec.Command("shutdown", "-r", "now").Run()
@@ -1906,7 +1979,7 @@ func (s *Server) handleUIState(w http.ResponseWriter, r *http.Request) {
 		}
 		_ = os.MkdirAll(filepath.Dir(stateFile), 0755)
 		b, _ := json.MarshalIndent(payload, "", "  ")
-		_ = os.WriteFile(stateFile, b, 0644)
+		_ = WriteFileAtomic(stateFile, b, 0644)
 		sendJSON(w, map[string]any{"ok": true})
 		return
 	}
@@ -5302,25 +5375,23 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 		semaphore <- struct{}{}
 
 		go func(item testItem) {
-
 			defer wg.Done()
-
 			defer func() { <-semaphore }()
-
-
+			defer safeRecover("BatchNodeDelay")
 
 			res := s.testNodeRealDelay(item.node, clashPort, clashSecret)
 
 			mu.Lock()
-			ir.Proxies[item.index].Delay = res.Delay
-			ir.Proxies[item.index].DelayStatus = res.Status
-			ir.Proxies[item.index].DelayText = res.StatusText
-			if res.Delay > 0 {
-				onlineCount++
-				totalDelay += int64(res.Delay)
+			if item.index >= 0 && item.index < len(ir.Proxies) {
+				ir.Proxies[item.index].Delay = res.Delay
+				ir.Proxies[item.index].DelayStatus = res.Status
+				ir.Proxies[item.index].DelayText = res.StatusText
+				if res.Delay > 0 {
+					onlineCount++
+					totalDelay += int64(res.Delay)
+				}
 			}
 			mu.Unlock()
-
 		}(it)
 
 	}
@@ -5519,19 +5590,18 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 		semaphore <- struct{}{}
 
 		go func(item testItem) {
-
 			defer wg.Done()
-
 			defer func() { <-semaphore }()
-
-
+			defer safeRecover("SingleNodeDelay")
 
 			res := s.testNodeRealDelay(item.node, clashPort, clashSecret)
 
 			mu.Lock()
-			ir.Proxies[item.index].Delay = res.Delay
-			ir.Proxies[item.index].DelayStatus = res.Status
-			ir.Proxies[item.index].DelayText = res.StatusText
+			if item.index >= 0 && item.index < len(ir.Proxies) {
+				ir.Proxies[item.index].Delay = res.Delay
+				ir.Proxies[item.index].DelayStatus = res.Status
+				ir.Proxies[item.index].DelayText = res.StatusText
+			}
 			results[item.node.Name] = res.Delay
 			diagnostics[item.node.Name] = res
 			if res.Delay > 0 {
@@ -5542,7 +5612,6 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 				}
 			}
 			mu.Unlock()
-
 		}(it)
 
 	}
@@ -6351,7 +6420,7 @@ func (s *Server) initTrafficState() {
 				return
 			} else if st.YearMonth != "" {
 				archiveFile := filepath.Join(s.workDir, "data", fmt.Sprintf("traffic_archive_%s.json", st.YearMonth))
-				_ = os.WriteFile(archiveFile, b, 0644)
+				_ = WriteFileAtomic(archiveFile, b, 0644)
 			}
 		}
 	}
@@ -6389,7 +6458,7 @@ func (s *Server) saveTrafficStateLocked(force bool) {
 	if err == nil {
 		stateFile := filepath.Join(s.workDir, "data", "traffic_state.json")
 		_ = os.MkdirAll(filepath.Dir(stateFile), 0755)
-		_ = os.WriteFile(stateFile, b, 0644)
+		_ = WriteFileAtomic(stateFile, b, 0644)
 		s.lastTrafficDiskSave = time.Now()
 		s.lastSavedOutBytes = s.monthOutboundBytes
 	}
@@ -6405,7 +6474,7 @@ func (s *Server) recordTrafficSample(coreOutbound, coreInbound int64) (int64, in
 		archiveFile := filepath.Join(s.workDir, "data", fmt.Sprintf("traffic_archive_%s.json", s.trafficMonth))
 		stateFile := filepath.Join(s.workDir, "data", "traffic_state.json")
 		if b, err := os.ReadFile(stateFile); err == nil {
-			_ = os.WriteFile(archiveFile, b, 0644)
+			_ = WriteFileAtomic(archiveFile, b, 0644)
 		}
 		s.trafficMonth = currentMonth
 		s.monthOutboundBytes = 0
@@ -6588,6 +6657,7 @@ func (s *Server) startTrafficCollector() {
 
 			// Background periodic physical connections sampler
 			go func() {
+				defer safeRecover("PhysicalConnectionsSampler")
 				for {
 					time.Sleep(3 * time.Second)
 					cp := 9090
@@ -8064,6 +8134,7 @@ func (s *Server) handleUpgradePanel(w http.ResponseWriter, r *http.Request) {
 	ver, err := s.rosMgr.UpgradePanel(force, func() error {
 		log.Printf("[CubeX] Restarting process for upgrade...")
 		go func() {
+			defer safeRecover("PanelRestart")
 			time.Sleep(1200 * time.Millisecond)
 			if _, err := exec.LookPath("rc-service"); err == nil {
 				log.Printf("[CubeX] Executing rc-service cubexd restart...")

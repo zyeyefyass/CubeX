@@ -1324,7 +1324,7 @@
 
                   <div class="flex items-end gap-[2.5px] sm:gap-[3px] h-6 shrink-0 py-0.5" title="最近 8 次测速柱状走势 (绿:畅通 | 黄:延迟偏高 | 红:阻断超时)">
 
-                    <span v-for="(bar, hi) in getProbeBars(item, bi)" :key="hi"
+                    <span v-for="(bar, hi) in (serviceProbesBars[bi] || [])" :key="hi"
 
                       class="w-[3px] rounded-full transition-all duration-300"
 
@@ -2514,7 +2514,7 @@
 
                         <option v-if="canAddCandidate(grp, 'DIRECT')" value="DIRECT">🇨🇳 直连</option>
 
-                        <option v-for="r in getExcludedRegionsForGroup(grp)" :key="r.id" :value="r.id">
+                        <option v-for="r in (excludedRegionsMap[grp.name] || [])" :key="r.id" :value="r.id">
 
                           {{ r.flag || '🌍' }} {{ r.name }}
 
@@ -3174,7 +3174,7 @@
 
                   class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2 pt-1 transition-all duration-300 animate-in fade-in">
 
-                  <button v-for="node in getSubNodes(sub.id)" :key="node.name"
+                  <button v-for="node in (subNodesMap[sub.id] || [])" :key="node.name"
 
                     @click="testSingleNode(node)"
 
@@ -8927,7 +8927,7 @@
 
                 <div v-if="isSubDrawerExpanded(sub.id)" class="p-2.5 bg-black/50 rounded-xl border border-cyan-900/40 space-y-1.5 max-h-48 overflow-y-auto text-xs font-mono">
 
-                  <div v-for="(node, nIdx) in getSubNodes(sub.id)" :key="node.name"
+                  <div v-for="(node, nIdx) in (subNodesMap[sub.id] || [])" :key="node.name"
 
                     class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/90 border border-slate-800 flex items-center justify-between gap-1.5">
 
@@ -13404,6 +13404,10 @@ function onToggleAutoSpeedtest() {
 }
 
 
+
+const serviceProbesBars = computed(() => {
+  return (serviceProbes.value || []).map((item, bi) => getProbeBars(item, bi))
+})
 
 function getProbeBars(item, index) {
 
@@ -21884,6 +21888,17 @@ function restoreCandidateToGroup(grp, candKey) {
 
 
 
+const excludedRegionsMap = computed(() => {
+  const map = {}
+  const allDefs = allRegionDefs.value || []
+  const candidates = groupExcludedCandidates.value || {}
+  for (const grpName in candidates) {
+    const excludedKeys = candidates[grpName] || []
+    map[grpName] = allDefs.filter(r => r.id !== 'CUSTOM' && r.id !== 'OTHERS' && excludedKeys.includes(r.id))
+  }
+  return map
+})
+
 function getExcludedRegionsForGroup(grp) {
 
   const excludedKeys = groupExcludedCandidates.value[grp.name] || []
@@ -26023,6 +26038,19 @@ function getSubQuota(sub) {
 }
 
 
+
+const subNodesMap = computed(() => {
+  const map = {}
+  const proxies = ir.value?.proxies || []
+  for (let i = 0; i < proxies.length; i++) {
+    const p = proxies[i]
+    if (!map[p.sub_id]) {
+      map[p.sub_id] = []
+    }
+    map[p.sub_id].push(p)
+  }
+  return map
+})
 
 function getSubNodes(subId) {
 
