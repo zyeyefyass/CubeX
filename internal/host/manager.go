@@ -44,8 +44,6 @@ type HostInfo struct {
 	HostName           string `json:"hostname"`
 	Uptime             string `json:"uptime"`
 	IPForward          bool   `json:"ip_forward"`
-	WireGuardReady     bool   `json:"wireguard_ready"`
-	WireGuardActive    bool   `json:"wireguard_active"`
 	FirewallConfigured bool   `json:"firewall_configured"`
 	DockerRunning      bool   `json:"docker_running"`
 	RawError           string `json:"raw_error,omitempty"`
@@ -1009,23 +1007,6 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 		_ = session.Run("cat /proc/sys/net/ipv4/ip_forward")
 		session.Close()
 		info.IPForward = strings.TrimSpace(out.String()) == "1"
-	}
-
-	// 5. Check WireGuard installed & active
-	if session, err := client.NewSession(); err == nil {
-		var out bytes.Buffer
-		session.Stdout = &out
-		_ = session.Run("which wg; which wg-quick")
-		session.Close()
-		info.WireGuardReady = strings.Contains(out.String(), "wg")
-	}
-
-	if session, err := client.NewSession(); err == nil {
-		var out bytes.Buffer
-		session.Stdout = &out
-		_ = session.Run("ip link show wg0 2>/dev/null")
-		session.Close()
-		info.WireGuardActive = strings.Contains(out.String(), "wg0")
 	}
 
 	// 6. Check Firewall iptables rule for 2026 TCP

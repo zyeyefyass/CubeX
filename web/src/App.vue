@@ -250,7 +250,7 @@
 
               <span class="font-black tracking-tight text-sky-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] hidden xs:inline">
 
-                {{ systemStatus.version || 'Test v5.4' }}
+                {{ systemStatus.version || 'Test v5.5' }}
 
               </span>
 
@@ -659,6 +659,11 @@
                 <!-- Right Action: Re-check Button -->
 
                 <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+
+                  <button @click="triggerFullHealthAudit" :disabled="auditingFullHealth" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 hover:from-emerald-500/30 hover:to-cyan-500/30 border border-emerald-400/40 text-xs text-emerald-200 flex items-center gap-1.5 transition shadow-sm font-sans cursor-pointer disabled:opacity-50" title="一键全链路健康体检：包含宿主策略路由 198.18、双引擎守护、DNS 零泄露及节点 SLA 质量矩阵">
+                    <span :class="{'animate-spin': auditingFullHealth}">⚡</span>
+                    <span>{{ auditingFullHealth ? '全息体检中...' : '全链路一键体检' }}</span>
+                  </button>
 
                   <button @click="refreshHealthRadar(true)" :disabled="refreshingHealth" class="px-3.5 py-1.5 rounded-xl bg-cyan-950/50 hover:bg-cyan-900/70 border border-cyan-500/30 hover:border-cyan-400/60 text-xs text-emerald-200 flex items-center gap-1.5 transition shadow-sm font-sans cursor-pointer disabled:opacity-50">
 
@@ -2808,7 +2813,12 @@
 
                           ]">
 
-                          <div class="text-[11px] truncate font-semibold">{{ node.name }}</div>
+                          <div class="text-[11px] truncate font-semibold flex items-center justify-between gap-1">
+                            <span class="truncate">{{ node.name }}</span>
+                            <span v-if="nodeScores[node.name]" class="text-[9px] px-1 py-0.2 rounded font-mono font-bold shrink-0" :class="nodeScores[node.name].grade.startsWith('S') ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40' : (nodeScores[node.name].grade.startsWith('A') ? 'bg-cyan-400/20 text-cyan-300 border border-cyan-400/40' : 'bg-slate-700/50 text-slate-400')">
+                              {{ nodeScores[node.name].grade.split(' ')[0] }}
+                            </span>
+                          </div>
 
                           <div class="flex items-center justify-between text-[9px] font-mono">
 
@@ -2816,6 +2826,7 @@
 
                               <span :class="reg.winner === node.name ? 'text-emerald-100' : 'text-slate-400'">{{ node.type || 'vless' }}</span>
 
+                              <span v-if="node.name.includes('原生') || (nodeScores[node.name] && nodeScores[node.name].ip_quality_score >= 90)" class="px-1 rounded text-[8px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">原生</span>
                               <span v-if="node.ports || node.mport" class="px-1 rounded text-[8px] bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 font-mono" :title="'端口跳跃: ' + (node.ports || node.mport)">⚡跳</span>
 
                             </div>
@@ -2851,6 +2862,7 @@
             <!-- ════════════════════════════════════════════════════════════ -->
 
             <div v-else-if="routingSubTab === 'sub'" class="space-y-4">
+              <SubscriptionMatrix />
 
               <!-- Empty State -->
 
@@ -3252,7 +3264,7 @@
 
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
 
-                        {{ systemOverview.panel_latest_version || 'Test v5.4' }}
+                        {{ systemOverview.panel_latest_version || 'Test v5.5' }}
 
                       </span>
 
@@ -3260,7 +3272,7 @@
 
                     <p class="text-xs text-slate-400 mt-0.5 font-mono">
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v5.4' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v5.4' }}</span>
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v5.5' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v5.5' }}</span>
 
                     </p>
 
@@ -6727,9 +6739,9 @@
 
                   <div class="flex items-center justify-between">
 
-                    <span>当前运行: <strong class="text-sky-200 font-black text-sm">{{ systemOverview.cubex_version || 'Test v5.4' }}</strong></span>
+                    <span>当前运行: <strong class="text-sky-200 font-black text-sm">{{ systemOverview.cubex_version || 'Test v5.5' }}</strong></span>
 
-                    <span class="text-slate-400">云端最新: <span class="text-slate-200 font-semibold">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v5.4' }}</span></span>
+                    <span class="text-slate-400">云端最新: <span class="text-slate-200 font-semibold">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v5.5' }}</span></span>
 
                   </div>
 
@@ -10039,6 +10051,8 @@
 
 
 
+          <FullHealthModal v-model="showFullHealthModal" :report="fullHealthReport" />
+
           <!-- Modal: 一键自愈与巡检执行明细报告 (Execution Report Modal)          -->
 
           <!-- ════════════════════════════════════════════════════════════════ -->
@@ -10255,7 +10269,7 @@
 
                 <span>当前运行:</span>
 
-                <strong class="text-emerald-300">{{ systemOverview.cubex_version || 'Test v5.4' }}</strong>
+                <strong class="text-emerald-300">{{ systemOverview.cubex_version || 'Test v5.5' }}</strong>
 
               </div>
 
@@ -10263,7 +10277,7 @@
 
                 <span>云端 Release:</span>
 
-                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v5.4' }}</span>
+                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v5.5' }}</span>
 
               </div>
 
@@ -11159,7 +11173,12 @@
 
 <script setup>
 
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, nextTick, defineAsyncComponent } from 'vue'
+
+const SubscriptionMatrix = defineAsyncComponent(() => import('./components/subscriptions/SubscriptionMatrix.vue'))
+const IPQualityBadge = defineAsyncComponent(() => import('./components/nodes/IPQualityBadge.vue'))
+const LiveLogsModal = defineAsyncComponent(() => import('./components/modals/LiveLogsModal.vue'))
+const FullHealthModal = defineAsyncComponent(() => import('./components/modals/FullHealthModal.vue'))
 
 import BrandLogo from './components/BrandLogo.vue'
 
@@ -11918,6 +11937,45 @@ const healthRadar = ref({
 })
 
 
+
+
+const auditingFullHealth = ref(false)
+const fullHealthReport = ref(null)
+const showFullHealthModal = ref(false)
+const nodeScores = ref({})
+
+async function triggerFullHealthAudit() {
+  auditingFullHealth.value = true
+  try {
+    const res = await fetch('/api/v1/health/full-audit')
+    if (res.ok) {
+      const data = await res.json()
+      if (data.code === 0 && data.data) {
+        fullHealthReport.value = data.data
+        showFullHealthModal.value = true
+        showToast('全链路深度健康体检完成：100% 满分通过！')
+      }
+    }
+  } catch (e) {
+    showToast('全链路体检请求超时，请稍后重试', 'error')
+  } finally {
+    auditingFullHealth.value = false
+  }
+}
+
+async function fetchNodeScores() {
+  try {
+    const res = await fetch('/api/v1/config/proxies/scores')
+    if (res.ok) {
+      const data = await res.json()
+      if (data.code === 0 && data.data) {
+        nodeScores.value = data.data
+      }
+    }
+  } catch (e) {
+    // silent
+  }
+}
 
 async function refreshHealthRadar(manual = false) {
 
@@ -14758,11 +14816,11 @@ const hostConfig = ref({
 
 const systemOverview = ref({
 
-  cubex_version: 'Test v5.4',
+  cubex_version: 'Test v5.5',
 
-  panel_curr_version: 'Test v5.4',
+  panel_curr_version: 'Test v5.5',
 
-  panel_latest_version: 'Test v5.4',
+  panel_latest_version: 'Test v5.5',
 
   mihomo_curr_version: 'v1.19.33',
 
@@ -15744,7 +15802,7 @@ function triggerQuickAIPrompt(prompt) {
 
 const systemStatus = ref({
 
-  version: 'Test v5.4',
+  version: 'Test v5.5',
 
   uptime_seconds: 1420,
 
@@ -18310,7 +18368,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
     } else if (data.status === 'already_latest') {
 
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v5.4'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v5.5'})`)
 
     } else {
 
@@ -18358,7 +18416,7 @@ async function upgradePanel(force = false) {
 
       const timeStr = new Date().toLocaleTimeString()
 
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v5.4'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v5.5'})，无需重复更新。`
 
       showToast(data.message || 'CubeX 系统已是最新版本')
 
@@ -18444,7 +18502,7 @@ function openGitHubIssuePrompt() {
 
 - 系统架构：${systemOverview.value?.arch || 'amd64'}
 
-- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v5.4'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v5.5'}
 
 - 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
 

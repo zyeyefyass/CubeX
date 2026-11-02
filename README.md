@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v4.7-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v5.5-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -50,7 +50,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 Test v5.4 最新版本更新亮点](#announcement)
+- [📢 Test v5.5 最新版本更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -297,31 +297,54 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v5.4 官方正式版重磅更新亮点 (全栈智能体检医生 · SafeGo协程防崩网 · POSIX原子写盘 · 120FPS前端防卡顿 · RouterOS 100分满分自愈)
+## 📢 Test v5.5 官方正式版重磅更新亮点 (NodeScore多维综合选路 · SLA全息质量矩阵 · 轻量切片测速 · IP纯净度探针 · 全链路一键体检 · 零 WireGuard 纯净内网旁路由)
 
 > [!IMPORTANT]
-> ### 👑【工业级稳定性与全栈健康自检双旗舰】全栈智能体检医生 · SafeGo 协程 Panic 隔离防崩网 · POSIX 原子写盘断电保护 · 前端 120 FPS 满帧字典缓存 · RouterOS 100 满分自愈修复 (CubeX Test v5.4 官方正式版)
+> ### 👑【智能多维优选与极速体检双旗舰】NodeScore 多维综合评分选路 · 订阅源 SLA 全息质量矩阵 · 2MB 轻量切片测速 · IP 纯净度欺诈探针 · 全链路一键深度健康体检 · 零 WireGuard 纯净局域网旁路由 (CubeX Test v5.5 官方正式版)
 >
-> **致所有追求极致网络稳定性、工业级高可用与全自主自愈的极客软路由玩家：**
+> **致所有追求极致网络体验、智能节点优选与工业级高可用的极客玩家：**
 >
-> 今天正式发布的 **CubeX Test v5.4** 是 CubeX 迈向“电信级/工业级稳定性”的重磅里程碑版本：
+> 今天正式发布的 **CubeX Test v5.5** 带来了 CubeX 在网络智能化与多维链路探针领域的跨越式重磅升级：
 >
-> 1. 🩺 **【全栈智能代码健康体检医生 (`scripts/audit_codebase_health.py`)】**：
->    * 正式引入发布前 10 大硬核维度自动化检测体系（Go Vet 语法、Goroutine Panic 隔离、原子写盘、0 模板函数计算、Clean-Room 零侵权残留、发布物强制脱敏、PVE 实机在线状态）；
->    * 每次版本发布前全自动执行体检，0 警告 0 阻断 100% PASS 方可放行，彻底消除暗藏隐患。
-> 2. 🛡️ **【Go 后端全链路 Panic 隔离与 `SafeGo` 协程安全防崩网】**：
->    * HTTP 路由顶层注入 `recoveryMiddleware`，捕获所有 API 异常并返回标准 JSON 500，杜绝主进程崩溃；
->    * 全面重构 20+ 处后台异步协程，统一注入 `safeRecover()` 与 `SafeGo()` 堆栈拦截；
->    * 节点并发测速切片添加 `item.index < len(ir.Proxies)` 严格边界防护，彻底根绝订阅更新时的切片越界致命 Panic。
-> 3. 💾 **【POSIX 原子写盘技术 (`WriteFileAtomic`) 终结断电配置损坏】**：
->    * 彻底废除直接 `os.WriteFile` 裸写，升级为 `WriteFileAtomic`（临时文件写入 + fsync 强制刷盘 + os.Rename 原子覆盖）；
->    * 无论软路由遭遇突发停电、断电还是宿主强制重启，原配置文件 100% 完好无损，绝对杜绝 0 字节损坏文件。
-> 4. ⚡ **【前端 120 FPS 满帧流转与 Computed 字典缓存重构】**：
->    * 深度优化 `web/src/App.vue`，重构 `subNodesMap`、`excludedRegionsMap`、`serviceProbesBars` 计算属性；
->    * 模板 `v-for` 中的裸函数调用彻底归零（从 4 处降为 0 处），查询开销从 O(N) 降为 O(1) 瞬时响应，消灭高频垃圾回收（GC）微卡顿。
-> 5. ⚖️ **【RouterOS 100 分满分自愈修复 & 加权扣分对齐】**：
->    * 彻底修复底层巡检对安全黑洞路由 `CubeX-FakeIP-Blackhole` 的误伤死循环，RouterOS 15 项底座巡检全部满分通过，安全雷达永久重回 **100/100 暮光晶盾级 (100% 零泄露)**；
->    * 全息网络健康度扣分提示由原先易误解的“扣除40分”优化为“单项60分，折合总分扣14分”，与 35%/15% 加权算法 1:1 绝对对齐。
+> 1. 🏆 **【NodeScore 多维综合优选评分引擎 (`internal/probe/nodescore.go`)】**：
+>    * 彻底告别“仅看延迟”的传统简陋选路！首创多维加权评分算法：**延迟(40%) + SLA可用率(30%) + 带宽切片(20%) + 原生住宅IP加分(10%)**；
+>    * 自动计算节点段位（`S 极品金牌`、`A+ 卓越首选`、`A 优质推荐`、`B 普通可用`、`C 备用降级`），彻底消除“虚假超低延迟但一用就断流/机房高风控”的劣质节点误选痛点。
+> 2. 📊 **【订阅源 SLA 全息质量矩阵 (`internal/sub/quality.go`)】**：
+>    * 控制台新增全息 SLA 质量画像看板，自动比对多订阅源可用率百分比、中位延迟与等级评价；
+>    * 实时识别失联节点并自动隔离旁路，保障主策略出口永远在线。
+> 3. 🚀 **【轻量带宽切片测速与流量保护配额 (`internal/probe/bandwidth.go`)】**：
+>    * 采用 2MB HTTP Range 分块采样测速，2 秒内精准测得节点下行吞吐与峰值速率，杜绝全量测速消耗宝贵的订阅流量；
+>    * 内置每日 50MB 流量安全硬顶保护与 6 小时本地防刷缓存，既准又省。
+> 4. 🛡️ **【IP 纯净度与欺诈风险探针 (`internal/probe/ip_risk.go`)】**：
+>    * 穿透检测节点真实网络属性：精准识别 **原生住宅 (Residential) vs 商业机房 (Datacenter)**；
+>    * 实时标注风险评级与 AI 业务（Google Gemini / OpenAI / GitHub Copilot）连通标识。
+> 5. ⚡ **【全链路一键全息健康体检 (`/api/v1/health/full-audit`)】**：
+>    * 控制台双擎主控驾驶舱新增【全链路一键体检】按钮，一键全自动审计宿主策略路由 198.18 / FastTrack、双引擎常驻守护、DNS 0 泄露与节点 SLA 矩阵，生成全息体检报告。
+> 6. 🔒 **【零 WireGuard 纯净内网旁路由规范 (Rule 9)】**：
+>    * 坚守 100% 局域网内网双引擎透明网关纯净定位，绝不开放外部 UDP 穿透端口，彻底剥离历史 WireGuard 残留，系统零冗余。
+> 7. 📦 **【前端模块化与异步懒加载分包】**：
+>    * 拆分 `FullHealthModal`、`SubscriptionMatrix`、`LiveLogsModal` 等独立组件，引入 `defineAsyncComponent` 按需动态加载，首屏渲染极速畅爽。
+
+<a id="release-assets"></a>
+
+### 📦 资产下载与校验清单 (Release Assets)
+
+| 发布文件名 | 适用平台与宿主底座 | 文件大小 | 架构与核心功能说明 |
+| :--- | :--- | :--- | :--- |
+| `CubeX-Test-v5.5-ros-amd64.tar` | MikroTik RouterOS v7 (x86 软路由) | ~118.2 MB | RouterOS v7 原生未压缩容器镜像（支持 WinBox `/container/add` 拖入直装） |
+| `CubeX-Test-v5.5-ros-arm64.tar` | MikroTik RouterOS v7 (RB5009/CCR) | ~117.1 MB | RouterOS ARM64 原生容器镜像（适配 64位 ARM 硬路由） |
+| `CubeX-Test-v5.5-docker-amd64.tar.gz` | Docker / 爱快 / fnOS / NAS / PVE | ~94.3 MB | Docker 离线镜像直装导入压缩包（内置双核与全量105套规则） |
+| `CubeX-Test-v5.5-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | ~93.3 MB | 完整独立开箱包（内含 cubexd、cubex、双核引擎及 105 套规则） |
+| `CubeX-Test-v5.5-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ~86.1 MB | ARM64 完整归档发布包 |
+| `cubexd-linux-amd64` | Linux amd64 | ~45.6 MB | 纯 Go 单二进制控制面（带 Web UI，用于在线平滑热更新） |
+| `cubexd-linux-arm64` | Linux arm64 | ~41.8 MB | ARM64 单二进制核心控制面 |
+| `cubex-linux-amd64` | Linux amd64 CLI | ~16.9 MB | CubeX 专属控制台运维命令行工具 |
+| `cubex-linux-arm64` | Linux arm64 CLI | ~15.1 MB | ARM64 专属控制台运维命令行工具 |
+| `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~17.0 KB | RouterOS v7 WinBox 终端复制即用一键自动编排脚本 |
+| `setup-openwrt.sh` | OpenWrt 部署脚本 | ~21.4 KB | OpenWrt 终端一键容器网络编排脚本 |
+| `install_pve_lxc.sh` | PVE CT 容器一键脚本 | ~9.5 KB | PVE 宿主机终端一键全自动开箱脚本 |
+| `install.sh` | 通用 Linux 安装脚本 | ~11.4 KB | 通用 Linux 一键全自动生产部署脚本 |
+
 
 ## 🚀 六大主流平台保姆级部署实战 (选一种适合你的就行)
 
@@ -371,7 +394,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 如果你的主路由就是 MikroTik（RB5009、CCR2004、x86 ROS）：
 
-1. **下载镜像**：在上方清单下载对应架构的 `CubeX-Test-v5.4-ros-amd64.tar`（或 `arm64.tar`）；
+1. **下载镜像**：在上方清单下载对应架构的 `CubeX-Test-v5.5-ros-amd64.tar`（或 `arm64.tar`）；
 
 2. **传进路由器**：打开 WinBox，把 `.tar` 文件直接拖进【Files】列表（推荐放在 U 盘或 SSD 磁盘如 `disk1/`）；
 
@@ -389,7 +412,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 #### 步骤 1：导入离线镜像
 
-1. 在上方清单下载 `CubeX-Test-v5.4-docker-amd64.tar.gz`；
+1. 在上方清单下载 `CubeX-Test-v5.5-docker-amd64.tar.gz`；
 
 2. 登录爱快后台，进入【高级应用】➔【插件营销】➔【Docker】；
 
@@ -441,7 +464,7 @@ OpenWrt 自带 Docker 环境，使用 CubeX 独创的 Macvlan-Shim 方案，再�
 
 #### 极速 2 步离线安装（国内网络推荐，0 失败率）：
 
-1. 在上方资产清单下载 `CubeX-Test-v5.4-docker-amd64.tar.gz` 和 `setup-openwrt.sh` 两个文件；
+1. 在上方资产清单下载 `CubeX-Test-v5.5-docker-amd64.tar.gz` 和 `setup-openwrt.sh` 两个文件；
 
 2. 用 WinSCP 或 SSH 传到 OpenWrt 的 `/tmp` 目录，在终端执行：
 

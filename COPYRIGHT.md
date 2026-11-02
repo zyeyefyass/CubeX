@@ -9,7 +9,7 @@
 ## 📢 特别维权与历史溯源声明 (Special Intellectual Property Declaration)
 
 1. **原创技术血脉**：  
-   `CubeX（CubeX）` 架构及相关控制套件，系原作者 **zyeyefyass** 针对 Mihomo 与 sing-box v1.14.4+ 打造的次世代双擎高可用旁路由网关系统。全面集成双擎无感毫秒级热切、RouterOS v7 原生 API 联动与硬件级 WireGuard 穿透对齐、局域网设备策略控制（Per-Device Control）、严格防 DNS 泄露体系与四维在线升级体系。
+   `CubeX（CubeX）` 架构及相关控制套件，系原作者 **zyeyefyass** 针对 Mihomo 与 sing-box v1.14.4+ 打造的次世代双擎高可用旁路由网关系统。全面集成双擎无感毫秒级热切、RouterOS v7 原生 API 联动局域网设备策略控制（Per-Device Control）、严格防 DNS 泄露体系与四维在线升级体系。
    
 2. **闭源决策背景**：  
    鉴于作者早期发布的开源项目成果曾遭受外部个别商业项目未经实质商业授权的恶意代码窃取、去署名化封装、包装专有闭源分发以及捆绑商业引流推广，严重侵害了开源贡献者与原作者的合法劳动成果与知识产权。  
@@ -33,7 +33,7 @@
 
 ### 3. 第三方开源组件遵约 (Third-Party Components)
 - `CubeX` 自身服务端程序架构（`cubexd`）与 WebUI 属于闭源专有程序；
-- 系统底层调用的第三方开源核心组件（包括但不限于 Go 运行时、Mihomo 内核、sing-box 内核、WireGuard 等）均严格遵循其原始开源许可证（GPL-3.0 / Apache 2.0 / MIT）。本专有声明不限制第三方组件在原许可范围内的合法权利。
+- 系统底层调用的第三方开源核心组件（包括但不限于 Go 运行时、Mihomo 内核、sing-box 内核）均严格遵循其原始开源许可证（GPL-3.0 / Apache 2.0 / MIT）。本专有声明不限制第三方组件在原许可范围内的合法权利。
 
 ---
 
