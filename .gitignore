@@ -36,6 +36,7 @@ scripts/benchmark_*.json
 scripts/hhost_*.json
 scripts/update_sh.txt
 scripts/*.py
+*.mp4
 !scripts/audit_release_artifacts.py
 !scripts/audit_codebase_health.py
 !scripts/desensitize.py
