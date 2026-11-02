@@ -1,0 +1,34 @@
+# ==============================================================================
+# 🌌 CubeX Test v5.3 · 飞牛 fnOS 专属 Compose 编排文件
+# 官方应用中心 / 第三方应用源标准定义
+# ==============================================================================
+version: '3.8'
+
+services:
+  cubex:
+    image: fyasshole/cubex:latest
+    container_name: cubex
+    restart: always
+    network_mode: host
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - /vol1/1000/docker/cubex/etc:/opt/CubeX/etc
+      - /vol1/1000/docker/cubex/data:/opt/CubeX/data
+      - /vol1/1000/docker/cubex/rules:/opt/CubeX/rules
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - CUBEX_ENV=production
+      - GOMEMLIMIT=128MiB
+      - CUBEX_PORT=2026
+      - CUBEX_LISTEN=:2026
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

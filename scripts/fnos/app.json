@@ -1,0 +1,49 @@
+{
+  "name": "cubex",
+  "title": "CubeX",
+  "version": "Test v5.3",
+  "description": "宿主共生双引擎智能透明网关 · 网关+DNS全双双指主路由 · 全家终端0改动 · Docker Hub 10K+里程碑",
+  "icon": "https://raw.githubusercontent.com/zyeyefyass/CubeX/main/logo-cubex.svg",
+  "developer": "fyasshole",
+  "homepage": "https://github.com/zyeyefyass/CubeX",
+  "categories": [
+    "network",
+    "utilities"
+  ],
+  "compose": {
+    "version": "3.8",
+    "services": {
+      "cubex": {
+        "image": "fyasshole/cubex:latest",
+        "container_name": "cubex",
+        "restart": "always",
+        "network_mode": "host",
+        "privileged": true,
+        "cap_add": [
+          "NET_ADMIN",
+          "NET_RAW"
+        ],
+        "devices": [
+          "/dev/net/tun:/dev/net/tun"
+        ],
+        "volumes": [
+          "/vol1/1000/docker/cubex/etc:/opt/CubeX/etc",
+          "/vol1/1000/docker/cubex/data:/opt/CubeX/data",
+          "/vol1/1000/docker/cubex/rules:/opt/CubeX/rules",
+          "/etc/localtime:/etc/localtime:ro"
+        ],
+        "environment": [
+          "TZ=Asia/Shanghai",
+          "CUBEX_ENV=production",
+          "GOMEMLIMIT=128MiB",
+          "CUBEX_PORT=2026",
+          "CUBEX_LISTEN=:2026"
+        ]
+      }
+    }
+  },
+  "web": {
+    "port": 2026,
+    "path": "/"
+  }
+}

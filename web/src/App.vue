@@ -250,8 +250,12 @@
 
               <span class="font-black tracking-tight text-sky-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] hidden xs:inline">
 
-                {{ systemStatus.version || 'Test v5.2' }}
+                {{ systemStatus.version || 'Test v5.3' }}
 
+              </span>
+
+              <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30 shadow-[0_0_8px_rgba(251,191,36,0.25)] hidden sm:inline-flex" title="Docker Hub 突破 10,000+ 下载量里程碑认证">
+                <span class="animate-pulse">★</span> 10.0K+
               </span>
 
             </div>
@@ -664,11 +668,113 @@
 
                   </button>
 
+                  <button @click="toggleAdvantagesModal" :disabled="loadingAdvantages" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-500/20 via-indigo-500/20 to-emerald-500/20 hover:from-sky-500/30 hover:to-emerald-500/30 border border-sky-400/40 text-xs text-sky-200 flex items-center gap-1.5 transition shadow-sm font-sans cursor-pointer disabled:opacity-50" title="实打实展现 CubeX 对比传统软路由系统的 5 大核心架构降维打击优势与实机探针数据">
+                    <span :class="{'animate-spin': loadingAdvantages}">⚖️</span>
+                    <span>{{ loadingAdvantages ? '实机巡检中...' : (showAdvantagesCard ? '收起架构优势' : '对比传统软路由优势') }}</span>
+                  </button>
+
                 </div>
 
               </div>
 
+              <!-- ⚖️ CubeX vs 传统软路由系统 5大核心架构优势实机深度体检看板 -->
+              <div v-if="showAdvantagesCard && advantagesResult" class="p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-[#001f3f]/95 via-[#002d50]/90 to-[#001529]/95 border border-sky-500/30 backdrop-blur-xl shadow-2xl space-y-4 animate-in fade-in">
+                <!-- 标题与操作栏 -->
+                <div class="flex items-center justify-between border-b border-white/10 pb-3 flex-wrap gap-2">
+                  <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-lg text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.25)]">
+                      ⚖️
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm sm:text-base font-black text-white tracking-wide">CubeX vs 传统软路由系统 · 5大核心架构优势</span>
+                        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold">
+                          🛡️ 实机真实探针 (Live Probes)
+                        </span>
+                      </div>
+                      <p class="text-[11px] text-slate-300 font-sans mt-0.5">
+                        拒绝虚假测速数字 · 全项基于当前系统真实网络底层链路实机探测 · 原理降维打击
+                      </p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button @click="fetchAdvantages(true)" :disabled="loadingAdvantages" class="text-xs text-sky-200 hover:text-white bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/30 px-2.5 py-1 rounded-xl cursor-pointer flex items-center gap-1 transition">
+                      <span :class="{'animate-spin': loadingAdvantages}">🔄</span>
+                      <span>重新实机体检</span>
+                    </button>
+                    <button @click="showAdvantagesCard = false" class="text-xs text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-xl cursor-pointer transition">
+                      关闭 ✕
+                    </button>
+                  </div>
+                </div>
 
+                <!-- 5大优势对比卡片列表 -->
+                <div class="space-y-3">
+                  <div v-for="adv in advantagesResult.advantages" :key="adv.id" class="p-3.5 sm:p-4 rounded-xl bg-black/40 border border-white/10 hover:border-sky-500/30 transition space-y-2.5 shadow-sm">
+                    <!-- 维度标题与标签 -->
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                      <div class="flex items-center gap-2">
+                        <span class="text-base">{{ adv.icon }}</span>
+                        <span class="text-xs sm:text-sm font-bold text-white">{{ adv.dimension }}</span>
+                        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-950/80 text-sky-300 border border-sky-500/30 font-semibold">
+                          {{ adv.category }}
+                        </span>
+                      </div>
+                      <span class="text-[11px] font-sans px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold flex items-center gap-1">
+                        <span>✨</span> {{ adv.tag }}
+                      </span>
+                    </div>
+
+                    <!-- 核心对比：传统软路由痛点 vs CubeX 突破 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
+                      <!-- 传统痛点 -->
+                      <div class="p-2.5 rounded-lg bg-red-950/25 border border-red-500/30 text-red-200/90 space-y-1">
+                        <div class="text-[11px] font-bold text-red-400 flex items-center gap-1">
+                          <span>❌</span> 传统软路由 / 旁路由痛点
+                        </div>
+                        <p class="text-[11px] leading-relaxed text-red-200/80">{{ adv.softrouter_flaw }}</p>
+                      </div>
+
+                      <!-- CubeX 突破 -->
+                      <div class="p-2.5 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-emerald-200/90 space-y-1">
+                        <div class="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+                          <span>🛡️</span> CubeX 宿主共生突破
+                        </div>
+                        <p class="text-[11px] leading-relaxed text-emerald-100/90">{{ adv.cubex_breakthrough }}</p>
+                      </div>
+                    </div>
+
+                    <!-- 实机探针真实数据徽章 -->
+                    <div class="pt-1 flex items-center justify-between flex-wrap gap-2 text-[11px] font-mono bg-slate-950/60 p-2 rounded-lg border border-white/5">
+                      <div class="flex items-center gap-2 text-slate-300 flex-wrap">
+                        <span class="text-amber-400 font-bold flex items-center gap-1">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                          实机探针:
+                        </span>
+                        <span v-for="(val, key) in adv.probe_data" :key="key" class="px-2 py-0.5 rounded bg-white/5 text-slate-200 border border-white/10">
+                          <span class="text-slate-400">{{ key }}:</span> <strong class="text-sky-300">{{ val }}</strong>
+                        </span>
+                      </div>
+                      <span class="text-emerald-400 font-sans text-[10px] flex items-center gap-1 shrink-0">
+                        <span>✓</span> 现场已校验
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 底部真实探针摘要 -->
+                <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-white/10 font-mono flex-wrap gap-2">
+                  <div class="flex items-center gap-3">
+                    <span>主路由网关: <strong class="text-sky-300">{{ advantagesResult.gateway_ip }}</strong></span>
+                    <span>CubeX IP: <strong class="text-emerald-300">{{ advantagesResult.cubex_ip }}</strong></span>
+                    <span>双核运行: <strong class="text-amber-300">{{ advantagesResult.active_engine }}</strong> ⇄ {{ advantagesResult.standby_engine }}</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-slate-500">* 底层探针毫秒实测 · 零虚标模拟</span>
+                    <span class="text-sky-400">总耗时: {{ advantagesResult.total_elapsed_ms }}ms</span>
+                  </div>
+                </div>
+              </div>
 
               <!-- Middle Row: Full-Width Diagnostic / Escort Banner (Mandatory deduction reason when < 100) -->
 
@@ -3146,7 +3252,7 @@
 
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
 
-                        {{ systemOverview.panel_latest_version || 'Test v5.2' }}
+                        {{ systemOverview.panel_latest_version || 'Test v5.3' }}
 
                       </span>
 
@@ -3154,7 +3260,7 @@
 
                     <p class="text-xs text-slate-400 mt-0.5 font-mono">
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v5.2' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v5.2' }}</span>
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v5.3' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v5.3' }}</span>
 
                     </p>
 
@@ -6621,9 +6727,9 @@
 
                   <div class="flex items-center justify-between">
 
-                    <span>当前运行: <strong class="text-sky-200 font-black text-sm">{{ systemOverview.cubex_version || 'Test v5.2' }}</strong></span>
+                    <span>当前运行: <strong class="text-sky-200 font-black text-sm">{{ systemOverview.cubex_version || 'Test v5.3' }}</strong></span>
 
-                    <span class="text-slate-400">云端最新: <span class="text-slate-200 font-semibold">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v5.2' }}</span></span>
+                    <span class="text-slate-400">云端最新: <span class="text-slate-200 font-semibold">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v5.3' }}</span></span>
 
                   </div>
 
@@ -10149,7 +10255,7 @@
 
                 <span>当前运行:</span>
 
-                <strong class="text-emerald-300">{{ systemOverview.cubex_version || 'Test v5.2' }}</strong>
+                <strong class="text-emerald-300">{{ systemOverview.cubex_version || 'Test v5.3' }}</strong>
 
               </div>
 
@@ -10157,7 +10263,7 @@
 
                 <span>云端 Release:</span>
 
-                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v5.2' }}</span>
+                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v5.3' }}</span>
 
               </div>
 
@@ -11748,6 +11854,34 @@ const healingSteps = [
 
 
 const refreshingHealth = ref(false)
+const showAdvantagesCard = ref(false)
+const loadingAdvantages = ref(false)
+const advantagesResult = ref(null)
+
+const fetchAdvantages = async (manual = false) => {
+  loadingAdvantages.value = true
+  try {
+    const res = await fetch('/api/v1/netstack/advantages')
+    if (res.ok) {
+      advantagesResult.value = await res.json()
+      if (manual) showToast('⚖️ 架构优势实机体检完成，全量探针已更新！')
+    } else {
+      if (manual) showToast('⚠️ 获取优势实测数据失败，请重试', 'error')
+    }
+  } catch (e) {
+    if (manual) showToast('⚠️ 探测异常: ' + e.message, 'error')
+  } finally {
+    loadingAdvantages.value = false
+  }
+}
+
+const toggleAdvantagesModal = async () => {
+  showAdvantagesCard.value = !showAdvantagesCard.value
+  if (showAdvantagesCard.value && !advantagesResult.value) {
+    await fetchAdvantages(false)
+  }
+}
+
 
 
 
@@ -14620,11 +14754,11 @@ const hostConfig = ref({
 
 const systemOverview = ref({
 
-  cubex_version: 'Test v5.2',
+  cubex_version: 'Test v5.3',
 
-  panel_curr_version: 'Test v5.2',
+  panel_curr_version: 'Test v5.3',
 
-  panel_latest_version: 'Test v5.2',
+  panel_latest_version: 'Test v5.3',
 
   mihomo_curr_version: 'v1.19.33',
 
@@ -15606,7 +15740,7 @@ function triggerQuickAIPrompt(prompt) {
 
 const systemStatus = ref({
 
-  version: 'Test v5.2',
+  version: 'Test v5.3',
 
   uptime_seconds: 1420,
 
@@ -18172,7 +18306,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
     } else if (data.status === 'already_latest') {
 
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v5.2'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v5.3'})`)
 
     } else {
 
@@ -18220,7 +18354,7 @@ async function upgradePanel(force = false) {
 
       const timeStr = new Date().toLocaleTimeString()
 
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v5.2'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v5.3'})，无需重复更新。`
 
       showToast(data.message || 'CubeX 系统已是最新版本')
 
@@ -18306,7 +18440,7 @@ function openGitHubIssuePrompt() {
 
 - 系统架构：${systemOverview.value?.arch || 'amd64'}
 
-- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v5.2'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v5.3'}
 
 - 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
 
