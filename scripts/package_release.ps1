@@ -13,6 +13,14 @@ if (-not $IncludeWindows) {
     Write-Host "ℹ️  Windows 平台包发布已按策略暂停 (可通过 -IncludeWindows 显式启用)" -ForegroundColor DarkCyan
 }
 
+# 0. Mandatory Pre-Release Full-Stack Health Audit
+Write-Host "🩺 [0/4] Executing Mandatory Full-Stack Health Audit Doctor..." -ForegroundColor Yellow
+python "$PSScriptRoot\audit_codebase_health.py"
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Pre-release codebase health audit failed! Release aborted."
+    exit 1
+}
+
 # 1. Clean & Prepare Release Directory
 if (Test-Path $ReleaseDir) {
     Remove-Item -Path $ReleaseDir -Recurse -Force

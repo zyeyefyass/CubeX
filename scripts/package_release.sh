@@ -17,6 +17,10 @@ if [ "$INCLUDE_WINDOWS" != "1" ]; then
     echo "ℹ️  Windows 平台包发布已按策略暂停 (未收到明确指令前绝不发布 Windows 版本)"
 fi
 
+# 0. Mandatory Pre-Release Full-Stack Health Audit
+echo "🩺 [0/5] Executing Mandatory Full-Stack Health Audit Doctor..."
+python3 "$ROOT_DIR/scripts/audit_codebase_health.py"
+
 # 1. Clean and prepare output directories
 rm -rf "$RELEASE_DIR"
 mkdir -p "$RELEASE_DIR"

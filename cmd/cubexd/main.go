@@ -9810,11 +9810,11 @@ func (s *Server) handleHealthRadar(w http.ResponseWriter, r *http.Request) {
 	if !directOK {
 		directScore = 60
 		directStatus = "直连异常"
-		deductions = append(deductions, "国内访问异常 (未能连通国内测速点，扣除 40 分)")
+		deductions = append(deductions, "国内访问异常 (未能连通国内测速点，单项 60 分，折合总分扣 14 分)")
 	} else if directLatency > 300 {
 		directScore = 90
 		directStatus = fmt.Sprintf("%dms (略慢)", directLatency)
-		deductions = append(deductions, fmt.Sprintf("国内访问延迟偏高 (%dms > 300ms，扣除 10 分)", directLatency))
+		deductions = append(deductions, fmt.Sprintf("国内访问延迟偏高 (%dms > 300ms，折合总分扣 4 分)", directLatency))
 	} else {
 		directStatus = fmt.Sprintf("%dms 极速", directLatency)
 	}
@@ -9843,15 +9843,15 @@ func (s *Server) handleHealthRadar(w http.ResponseWriter, r *http.Request) {
 	if !proxyOK {
 		proxyScore = 60
 		proxyStatus = "连接超时"
-		deductions = append(deductions, "境外节点无响应 (代理端口超时，建议在节点列表切换存活节点，扣除 40 分)")
+		deductions = append(deductions, "境外节点无响应 (代理端口超时，建议在节点列表切换存活节点，单项 60 分，折合总分扣 14 分)")
 	} else if proxyLatency > 1200 {
 		proxyScore = 80
 		proxyStatus = fmt.Sprintf("%dms (较慢)", proxyLatency)
-		deductions = append(deductions, fmt.Sprintf("境外节点响应偏慢 (%dms > 1200ms，扣除 20 分)", proxyLatency))
+		deductions = append(deductions, fmt.Sprintf("境外节点响应偏慢 (%dms > 1200ms，折合总分扣 7 分)", proxyLatency))
 	} else if proxyLatency > 600 {
 		proxyScore = 90
 		proxyStatus = fmt.Sprintf("%dms (轻度延迟)", proxyLatency)
-		deductions = append(deductions, fmt.Sprintf("境外节点轻度延迟 (%dms > 600ms，扣除 10 分)", proxyLatency))
+		deductions = append(deductions, fmt.Sprintf("境外节点轻度延迟 (%dms > 600ms，折合总分扣 4 分)", proxyLatency))
 	} else {
 		proxyStatus = fmt.Sprintf("%dms 顺畅", proxyLatency)
 	}

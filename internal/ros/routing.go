@@ -176,15 +176,21 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		dst, _ := r["dst-address"].(string)
 		gw, _ := r["gateway"].(string)
 		table, _ := r["routing-table"].(string)
+		comm, _ := r["comment"].(string)
+		routeType, _ := r["type"].(string)
 		if table == "" || table == "main" {
 			if dst == "198.18.0.0/15" || dst == "198.18.0.0/16" {
+				// Deliberate CubeX blackhole guard route is a safety feature, not a conflicting route
+				if comm == "CubeX-FakeIP-Blackhole" || routeType == "blackhole" || strings.Contains(comm, "Blackhole") {
+					continue
+				}
 				fakeIPRouteCount++
 				if (gw == cubexIP || strings.Contains(gw, cubexIP)) && dst == "198.18.0.0/15" {
 					fakeIPCorrect = true
 				} else if gw == cubexIP && dst == "198.18.0.0/16" {
 					// Sub-optimal /16 instead of full /15
 					staleFakeIPGateways = append(staleFakeIPGateways, fmt.Sprintf("%s (建议升级为 /15)", dst))
-				} else {
+				} else if gw != "" && gw != cubexIP {
 					staleFakeIPGateways = append(staleFakeIPGateways, gw)
 				}
 			}
