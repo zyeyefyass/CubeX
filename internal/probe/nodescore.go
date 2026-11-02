@@ -10,7 +10,7 @@ import (
 type NodeScoreResult struct {
 	NodeName        string    `json:"node_name"`
 	TotalScore      float64   `json:"total_score"`      // 0 - 100
-	Grade           string    `json:"grade"`            // "S 极品金牌", "A+ 卓越首选", "A 优质推荐", "B 普通可用", "C 备用降级"
+	Grade           string    `json:"grade"`            // "S 极品金牌", "A+ 卓越首选", "A 优质推荐", "B 普通可用", "C 慢速备用"
 	LatencyScore    float64   `json:"latency_score"`    // 0 - 100 (Weight: 40%)
 	SLAScore        float64   `json:"sla_score"`        // 0 - 100 (Weight: 30%)
 	ThroughputScore float64   `json:"throughput_score"` // 0 - 100 (Weight: 20%)
@@ -41,7 +41,7 @@ func EvaluateNodeScore(
 	total := (0.40 * latScore) + (0.30 * slaScore) + (0.20 * tpScore) + (0.10 * ipScore)
 	total = math.Round(total*10) / 10 // 1 decimal place
 
-	grade := "C 备用降级"
+	grade := "C 慢速备用"
 	recommended := false
 
 	if total >= 90.0 {

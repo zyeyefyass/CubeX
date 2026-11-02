@@ -58,7 +58,7 @@ func TestEvaluateNodeScore(t *testing.T) {
 
 	// C-Grade Node: high latency, poor SLA, datacenter with high risk
 	resC := EvaluateNodeScore("US-Slow-09", 1200, 20.0, 1.0, "Datacenter", 80)
-	if resC.Grade != "C 备用降级" || resC.IsRecommended {
+	if resC.Grade != "C 慢速备用" || resC.IsRecommended {
 		t.Fatalf("expected C grade and not recommended, got %s (score: %.1f)", resC.Grade, resC.TotalScore)
 	}
 }

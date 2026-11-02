@@ -565,6 +565,8 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 
 
 
+	effectiveTag := strings.ReplaceAll(latestTag, " ", "-")
+
 	// Try candidate 1: direct binary asset
 
 	assetName := fmt.Sprintf("cubexd-linux-%s", arch)
@@ -579,7 +581,7 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 
 		"https://github.com/zyeyefyass/CubeX/releases/download/%s/%s",
 
-		latestTag, assetName,
+		effectiveTag, assetName,
 
 	)
 
@@ -597,15 +599,15 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 
 		// Try candidate 2: extract binary from zip release package
 
-		zipPkgName := fmt.Sprintf("CubeX-%s-linux-%s.zip", latestTag, arch)
+		zipPkgName := fmt.Sprintf("CubeX-%s-linux-%s.zip", effectiveTag, arch)
 
 		if runtime.GOOS == "windows" {
 
-			zipPkgName = fmt.Sprintf("CubeX-%s-windows-%s.zip", latestTag, arch)
+			zipPkgName = fmt.Sprintf("CubeX-%s-windows-%s.zip", effectiveTag, arch)
 
 		}
 
-		zipURL := fmt.Sprintf("https://github.com/zyeyefyass/CubeX/releases/download/%s/%s", latestTag, zipPkgName)
+		zipURL := fmt.Sprintf("https://github.com/zyeyefyass/CubeX/releases/download/%s/%s", effectiveTag, zipPkgName)
 
 		if m.URLOptimizer != nil {
 
@@ -3093,7 +3095,9 @@ func (m *Manager) downloadAndExtractZip(rawURL, targetBinaryName, destPath strin
 
 	for _, f := range zr.File {
 
-		base := filepath.Base(f.Name)
+		cleanName := strings.ReplaceAll(f.Name, "\\", "/")
+
+		base := path.Base(cleanName)
 
 		if base == targetBinaryName || base == targetBinaryName+".exe" {
 
