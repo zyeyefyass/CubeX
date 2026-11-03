@@ -81,7 +81,7 @@ import (
 )
 
 var (
-	version = "Test v5.7"
+	version = "Test v5.8"
 
 	startTime = time.Now()
 )
@@ -800,7 +800,7 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v5.7")
+	srv.mcpServer = mcp.NewServer(srv, "Test v5.8")
 
 	srv.initTrafficState()
 
@@ -4621,6 +4621,7 @@ func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSe
 	// 写入多策略组共享缓存
 	s.delayCacheMu.Lock()
 	s.delayCache[node.Name] = delayCacheEntry{result: res, testedAt: time.Now()}
+	go s.savePersistentDelayCache()
 	s.delayCacheMu.Unlock()
 
 	call.val = res
@@ -4695,6 +4696,58 @@ func (s *Server) executeNodeRealDelayProbe(node schema.ProxyNode, clashPort int,
 		Status:     lastStatus,
 		StatusText: lastStatusText,
 	}
+}
+
+
+func (s *Server) loadPersistentDelayCache() {
+	path := filepath.Join(s.workDir, "data", "node_diagnostics.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	var saved map[string]struct {
+		Result   NodeDelayResult `json:"result"`
+		TestedAt time.Time       `json:"tested_at"`
+	}
+	if err := json.Unmarshal(data, &saved); err != nil {
+		return
+	}
+	s.delayCacheMu.Lock()
+	defer s.delayCacheMu.Unlock()
+	for k, v := range saved {
+		if time.Since(v.TestedAt) < 24*time.Hour {
+			s.delayCache[k] = delayCacheEntry{
+				result:   v.Result,
+				testedAt: v.TestedAt,
+			}
+		}
+	}
+	log.Printf("[Diagnostics] Loaded %d persistent node diagnostics records from cache", len(s.delayCache))
+}
+
+func (s *Server) savePersistentDelayCache() {
+	s.delayCacheMu.RLock()
+	toSave := make(map[string]struct {
+		Result   NodeDelayResult `json:"result"`
+		TestedAt time.Time       `json:"tested_at"`
+	}, len(s.delayCache))
+	for k, v := range s.delayCache {
+		toSave[k] = struct {
+			Result   NodeDelayResult `json:"result"`
+			TestedAt time.Time       `json:"tested_at"`
+		}{
+			Result:   v.result,
+			TestedAt: v.testedAt,
+		}
+	}
+	s.delayCacheMu.RUnlock()
+
+	data, err := json.MarshalIndent(toSave, "", "  ")
+	if err != nil {
+		return
+	}
+	path := filepath.Join(s.workDir, "data", "node_diagnostics.json")
+	_ = WriteFileAtomic(path, data, 0644)
 }
 
 func (s *Server) handleProxyDelay(w http.ResponseWriter, r *http.Request) {

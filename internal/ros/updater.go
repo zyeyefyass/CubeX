@@ -345,7 +345,7 @@ func (m *Manager) GetOverview() map[string]any {
 
 	if latestPanel == "" {
 
-		latestPanel = "Test v5.7"
+		latestPanel = "Test v5.8"
 
 	}
 
@@ -1175,52 +1175,67 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 
 	}
 
-	url := fmt.Sprintf("%s://%s:%s/rest/system/package/update/install", scheme, cfg.Host, cfg.Port)
-
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer([]byte("{}")))
-
-	if err != nil {
-
-		return err
-
-	}
-
-	req.SetBasicAuth(cfg.User, cfg.Password)
-
-	req.Header.Set("Content-Type", "application/json")
-
 	tr := &http.Transport{
-
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-
 	client := &http.Client{
-
 		Transport: tr,
-
-		Timeout: 15 * time.Second,
+		Timeout:   120 * time.Second,
 	}
+
+	// 1. Check if firmware is already downloaded
+	statusUrl := fmt.Sprintf("%s://%s:%s/rest/system/package/update", scheme, cfg.Host, cfg.Port)
+	stReq, _ := http.NewRequest(http.MethodGet, statusUrl, nil)
+	stReq.SetBasicAuth(cfg.User, cfg.Password)
+	
+	alreadyDownloaded := false
+	if stResp, stErr := client.Do(stReq); stErr == nil {
+		var stObj struct {
+			Status string `json:"status"`
+		}
+		if json.NewDecoder(stResp.Body).Decode(&stObj) == nil {
+			if strings.Contains(strings.ToLower(stObj.Status), "downloaded") || strings.Contains(strings.ToLower(stObj.Status), "reboot") {
+				alreadyDownloaded = true
+			}
+		}
+		stResp.Body.Close()
+	}
+
+	// 2. If not downloaded yet, trigger download first
+	if !alreadyDownloaded {
+		dlUrl := fmt.Sprintf("%s://%s:%s/rest/system/package/update/download", scheme, cfg.Host, cfg.Port)
+		dlReq, _ := http.NewRequest(http.MethodPost, dlUrl, bytes.NewBuffer([]byte("{}")))
+		dlReq.SetBasicAuth(cfg.User, cfg.Password)
+		dlReq.Header.Set("Content-Type", "application/json")
+		if dlResp, dlErr := client.Do(dlReq); dlErr == nil {
+			dlResp.Body.Close()
+		}
+	}
+
+	// 3. Trigger install/reboot
+	url := fmt.Sprintf("%s://%s:%s/rest/system/package/update/install", scheme, cfg.Host, cfg.Port)
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer([]byte("{}")))
+	if err != nil {
+		return err
+	}
+	req.SetBasicAuth(cfg.User, cfg.Password)
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := client.Do(req)
-
 	if err != nil {
-
+		errStr := strings.ToLower(err.Error())
+		if strings.Contains(errStr, "reset") || strings.Contains(errStr, "eof") || strings.Contains(errStr, "broken pipe") {
+			log.Printf("[ROS] Firmware installation triggered and RouterOS is rebooting: %v", err)
+			return nil
+		}
 		return fmt.Errorf("RouterOS connection failed: %w", err)
-
 	}
-
 	defer resp.Body.Close()
-
 	if resp.StatusCode >= 400 {
-
 		body, _ := io.ReadAll(resp.Body)
-
 		return fmt.Errorf("RouterOS returned %d: %s", resp.StatusCode, string(body))
-
 	}
-
 	log.Printf("[ROS] Firmware upgrade triggered on %s", cfg.Host)
-
 	return nil
 
 }
@@ -1233,7 +1248,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 
 func (m *Manager) getLocalPanelVersion() string {
 
-	return "Test v5.7"
+	return "Test v5.8"
 
 }
 
