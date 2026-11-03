@@ -1,0 +1,1007 @@
+allow-lan: true
+dns:
+    cache-algorithm: arc
+    cache-size: 8192
+    default-nameserver:
+        - 223.5.5.5
+        - 119.29.29.29
+    direct-nameserver:
+        - 223.5.5.5
+        - 119.29.29.29
+    enable: true
+    enhanced-mode: fake-ip
+    fake-ip-filter:
+        - geosite:private
+        - geosite:cn
+        - '*.lan'
+        - '*.local'
+        - '*.home'
+        - '*.internal'
+        - localhost
+        - +.cn
+        - '*.ntp.org'
+        - +.pool.ntp.org
+        - pool.ntp.org
+        - +.time.windows.com
+        - time.windows.com
+        - +.time.apple.com
+        - time.apple.com
+        - time.asia.apple.com
+        - +.time.google.com
+        - time.google.com
+        - +.time.cloudflare.com
+        - time.cloudflare.com
+        - +.time.edu.cn
+        - +.ntp.aliyun.com
+        - +.ntp.tencent.com
+        - time1.cloud.tencent.com
+        - time.is
+        - time.nist.gov
+        - +.routeros.com
+        - +.mikrotik.com
+        - +.cloud.mikrotik.com
+        - +.msftconnecttest.com
+        - +.msftncsi.com
+        - +.connectivitycheck.gstatic.com
+        - +.cp.cloudflare.com
+        - +.baidu.com
+        - +.qq.com
+        - +.bilibili.com
+        - +.taobao.com
+        - +.jd.com
+        - +.alipay.com
+        - +.163.com
+        - +.zhihu.com
+        - +.douyin.com
+        - +.weibo.com
+        - +.aliyun.com
+        - +.tencent.com
+        - +.bytedance.com
+    fake-ip-range: 198.18.0.1/16
+    fallback:
+        - 223.5.5.5
+        - 119.29.29.29
+    fallback-filter:
+        geoip: true
+        geoip-code: CN
+        ipcidr:
+            - 240.0.0.0/4
+    ipv6: false
+    listen: 0.0.0.0:53
+    nameserver:
+        - 223.5.5.5
+        - 119.29.29.29
+    nameserver-policy:
+        geosite:cn:
+            - 223.5.5.5
+            - 119.29.29.29
+        geosite:cn,private:
+            - 223.5.5.5
+            - 119.29.29.29
+        geosite:private:
+            - 223.5.5.5
+            - 119.29.29.29
+    proxy-server-nameserver:
+        - 223.5.5.5
+        - 119.29.29.29
+    respect-rules: true
+    use-hosts: true
+    use-system-hosts: false
+external-controller: 0.0.0.0:9090
+find-process-mode: strict
+geodata-mode: true
+hosts:
+    cloudflare-dns.com:
+        - 1.1.1.1
+        - 1.0.0.1
+    dns.alidns.com:
+        - 223.5.5.5
+        - 223.6.6.6
+    dns.google:
+        - 8.8.8.8
+        - 8.8.4.4
+    doh.pub:
+        - 1.12.12.12
+        - 120.53.53.53
+ipv6: false
+keep-alive-idle: 600
+keep-alive-interval: 15
+log-level: info
+mixed-port: 7890
+mode: rule
+profile:
+    store-fake-ip: true
+    store-selected: true
+proxies: []
+proxy-groups:
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F1ED\U0001F1F0 香港自动"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      tolerance: 50
+      type: url-test
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F1ED\U0001F1F0 香港故转"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 180
+      lazy: false
+      name: "\U0001F1ED\U0001F1F0 香港容灾"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F1F9\U0001F1FC 台湾自动"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      tolerance: 50
+      type: url-test
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F1F9\U0001F1FC 台湾故转"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 180
+      lazy: false
+      name: "\U0001F1F9\U0001F1FC 台湾容灾"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F1EF\U0001F1F5 日本自动"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      tolerance: 50
+      type: url-test
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F1EF\U0001F1F5 日本故转"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 180
+      lazy: false
+      name: "\U0001F1EF\U0001F1F5 日本容灾"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F1F0\U0001F1F7 韩国自动"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      tolerance: 50
+      type: url-test
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F1F0\U0001F1F7 韩国故转"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 180
+      lazy: false
+      name: "\U0001F1F0\U0001F1F7 韩国容灾"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F1F8\U0001F1EC 新加坡自动"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      tolerance: 50
+      type: url-test
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F1F8\U0001F1EC 新加坡故转"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 180
+      lazy: false
+      name: "\U0001F1F8\U0001F1EC 新加坡容灾"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F1FA\U0001F1F8 美国自动"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      tolerance: 50
+      type: url-test
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F1FA\U0001F1F8 美国故转"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 180
+      lazy: false
+      name: "\U0001F1FA\U0001F1F8 美国容灾"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F3E0 自建自动"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      tolerance: 50
+      type: url-test
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F3E0 自建故转"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 180
+      lazy: false
+      name: "\U0001F3E0 自建容灾"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F310 其它自动"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      tolerance: 50
+      type: url-test
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 300
+      lazy: false
+      name: "\U0001F310 其它故转"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - expected-status: "204"
+      interval: 180
+      lazy: false
+      name: "\U0001F310 其它容灾"
+      proxies:
+        - DIRECT
+      timeout: 2500
+      type: fallback
+      url: https://www.gstatic.com/generate_204
+    - name: "\U0001F3AF 国内流量"
+      proxies:
+        - DIRECT
+        - "\U0001F1ED\U0001F1F0 香港自动"
+        - "\U0001F1ED\U0001F1F0 香港故转"
+        - "\U0001F1ED\U0001F1F0 香港容灾"
+        - "\U0001F1F9\U0001F1FC 台湾自动"
+        - "\U0001F1F9\U0001F1FC 台湾故转"
+        - "\U0001F1F9\U0001F1FC 台湾容灾"
+        - "\U0001F1EF\U0001F1F5 日本自动"
+        - "\U0001F1EF\U0001F1F5 日本故转"
+        - "\U0001F1EF\U0001F1F5 日本容灾"
+        - "\U0001F1F0\U0001F1F7 韩国自动"
+        - "\U0001F1F0\U0001F1F7 韩国故转"
+        - "\U0001F1F0\U0001F1F7 韩国容灾"
+        - "\U0001F1F8\U0001F1EC 新加坡自动"
+        - "\U0001F1F8\U0001F1EC 新加坡故转"
+        - "\U0001F1F8\U0001F1EC 新加坡容灾"
+        - "\U0001F1FA\U0001F1F8 美国自动"
+        - "\U0001F1FA\U0001F1F8 美国故转"
+        - "\U0001F1FA\U0001F1F8 美国容灾"
+        - "\U0001F3E0 自建自动"
+        - "\U0001F3E0 自建故转"
+        - "\U0001F3E0 自建容灾"
+        - "\U0001F310 其它自动"
+        - "\U0001F310 其它故转"
+        - "\U0001F310 其它容灾"
+      type: select
+    - name: "\U0001F310 国外流量"
+      proxies:
+        - "\U0001F1ED\U0001F1F0 香港自动"
+        - "\U0001F1ED\U0001F1F0 香港故转"
+        - "\U0001F1ED\U0001F1F0 香港容灾"
+        - "\U0001F1F9\U0001F1FC 台湾自动"
+        - "\U0001F1F9\U0001F1FC 台湾故转"
+        - "\U0001F1F9\U0001F1FC 台湾容灾"
+        - "\U0001F1EF\U0001F1F5 日本自动"
+        - "\U0001F1EF\U0001F1F5 日本故转"
+        - "\U0001F1EF\U0001F1F5 日本容灾"
+        - "\U0001F1F0\U0001F1F7 韩国自动"
+        - "\U0001F1F0\U0001F1F7 韩国故转"
+        - "\U0001F1F0\U0001F1F7 韩国容灾"
+        - "\U0001F1F8\U0001F1EC 新加坡自动"
+        - "\U0001F1F8\U0001F1EC 新加坡故转"
+        - "\U0001F1F8\U0001F1EC 新加坡容灾"
+        - "\U0001F1FA\U0001F1F8 美国自动"
+        - "\U0001F1FA\U0001F1F8 美国故转"
+        - "\U0001F1FA\U0001F1F8 美国容灾"
+        - "\U0001F3E0 自建自动"
+        - "\U0001F3E0 自建故转"
+        - "\U0001F3E0 自建容灾"
+        - "\U0001F310 其它自动"
+        - "\U0001F310 其它故转"
+        - "\U0001F310 其它容灾"
+        - DIRECT
+      type: select
+    - name: AI
+      proxies:
+        - "\U0001F1FA\U0001F1F8 美国自动"
+        - "\U0001F1F9\U0001F1FC 台湾自动"
+        - "\U0001F1F9\U0001F1FC 台湾故转"
+        - "\U0001F1F9\U0001F1FC 台湾容灾"
+        - "\U0001F1EF\U0001F1F5 日本自动"
+        - "\U0001F1EF\U0001F1F5 日本故转"
+        - "\U0001F1EF\U0001F1F5 日本容灾"
+        - "\U0001F1F0\U0001F1F7 韩国自动"
+        - "\U0001F1F0\U0001F1F7 韩国故转"
+        - "\U0001F1F0\U0001F1F7 韩国容灾"
+        - "\U0001F1F8\U0001F1EC 新加坡自动"
+        - "\U0001F1F8\U0001F1EC 新加坡故转"
+        - "\U0001F1F8\U0001F1EC 新加坡容灾"
+        - "\U0001F1FA\U0001F1F8 美国故转"
+        - "\U0001F1FA\U0001F1F8 美国容灾"
+        - "\U0001F3E0 自建自动"
+        - "\U0001F3E0 自建故转"
+        - "\U0001F3E0 自建容灾"
+        - "\U0001F310 其它自动"
+        - "\U0001F310 其它故转"
+        - "\U0001F310 其它容灾"
+      type: select
+    - name: Gemini & Antigravity
+      proxies:
+        - "\U0001F1FA\U0001F1F8 美国自动"
+        - "\U0001F1F9\U0001F1FC 台湾自动"
+        - "\U0001F1F9\U0001F1FC 台湾故转"
+        - "\U0001F1F9\U0001F1FC 台湾容灾"
+        - "\U0001F1EF\U0001F1F5 日本自动"
+        - "\U0001F1EF\U0001F1F5 日本故转"
+        - "\U0001F1EF\U0001F1F5 日本容灾"
+        - "\U0001F1F0\U0001F1F7 韩国自动"
+        - "\U0001F1F0\U0001F1F7 韩国故转"
+        - "\U0001F1F0\U0001F1F7 韩国容灾"
+        - "\U0001F1F8\U0001F1EC 新加坡自动"
+        - "\U0001F1F8\U0001F1EC 新加坡故转"
+        - "\U0001F1F8\U0001F1EC 新加坡容灾"
+        - "\U0001F1FA\U0001F1F8 美国故转"
+        - "\U0001F1FA\U0001F1F8 美国容灾"
+        - "\U0001F3E0 自建自动"
+        - "\U0001F3E0 自建故转"
+        - "\U0001F3E0 自建容灾"
+        - "\U0001F310 其它自动"
+        - "\U0001F310 其它故转"
+        - "\U0001F310 其它容灾"
+      type: select
+    - name: YouTube
+      proxies:
+        - "\U0001F1EF\U0001F1F5 日本自动"
+        - "\U0001F1ED\U0001F1F0 香港自动"
+        - "\U0001F1ED\U0001F1F0 香港故转"
+        - "\U0001F1ED\U0001F1F0 香港容灾"
+        - "\U0001F1F9\U0001F1FC 台湾自动"
+        - "\U0001F1F9\U0001F1FC 台湾故转"
+        - "\U0001F1F9\U0001F1FC 台湾容灾"
+        - "\U0001F1EF\U0001F1F5 日本故转"
+        - "\U0001F1EF\U0001F1F5 日本容灾"
+        - "\U0001F1F0\U0001F1F7 韩国自动"
+        - "\U0001F1F0\U0001F1F7 韩国故转"
+        - "\U0001F1F0\U0001F1F7 韩国容灾"
+        - "\U0001F1F8\U0001F1EC 新加坡自动"
+        - "\U0001F1F8\U0001F1EC 新加坡故转"
+        - "\U0001F1F8\U0001F1EC 新加坡容灾"
+        - "\U0001F1FA\U0001F1F8 美国自动"
+        - "\U0001F1FA\U0001F1F8 美国故转"
+        - "\U0001F1FA\U0001F1F8 美国容灾"
+        - "\U0001F3E0 自建自动"
+        - "\U0001F3E0 自建故转"
+        - "\U0001F3E0 自建容灾"
+        - "\U0001F310 其它自动"
+        - "\U0001F310 其它故转"
+        - "\U0001F310 其它容灾"
+        - DIRECT
+      type: select
+    - name: Google
+      proxies:
+        - "\U0001F1EF\U0001F1F5 日本自动"
+        - "\U0001F1ED\U0001F1F0 香港自动"
+        - "\U0001F1ED\U0001F1F0 香港故转"
+        - "\U0001F1ED\U0001F1F0 香港容灾"
+        - "\U0001F1F9\U0001F1FC 台湾自动"
+        - "\U0001F1F9\U0001F1FC 台湾故转"
+        - "\U0001F1F9\U0001F1FC 台湾容灾"
+        - "\U0001F1EF\U0001F1F5 日本故转"
+        - "\U0001F1EF\U0001F1F5 日本容灾"
+        - "\U0001F1F0\U0001F1F7 韩国自动"
+        - "\U0001F1F0\U0001F1F7 韩国故转"
+        - "\U0001F1F0\U0001F1F7 韩国容灾"
+        - "\U0001F1F8\U0001F1EC 新加坡自动"
+        - "\U0001F1F8\U0001F1EC 新加坡故转"
+        - "\U0001F1F8\U0001F1EC 新加坡容灾"
+        - "\U0001F1FA\U0001F1F8 美国自动"
+        - "\U0001F1FA\U0001F1F8 美国故转"
+        - "\U0001F1FA\U0001F1F8 美国容灾"
+        - "\U0001F3E0 自建自动"
+        - "\U0001F3E0 自建故转"
+        - "\U0001F3E0 自建容灾"
+        - "\U0001F310 其它自动"
+        - "\U0001F310 其它故转"
+        - "\U0001F310 其它容灾"
+        - DIRECT
+      type: select
+    - name: GitHub & Docker
+      proxies:
+        - "\U0001F1ED\U0001F1F0 香港自动"
+        - "\U0001F1ED\U0001F1F0 香港故转"
+        - "\U0001F1ED\U0001F1F0 香港容灾"
+        - "\U0001F1F9\U0001F1FC 台湾自动"
+        - "\U0001F1F9\U0001F1FC 台湾故转"
+        - "\U0001F1F9\U0001F1FC 台湾容灾"
+        - "\U0001F1EF\U0001F1F5 日本自动"
+        - "\U0001F1EF\U0001F1F5 日本故转"
+        - "\U0001F1EF\U0001F1F5 日本容灾"
+        - "\U0001F1F0\U0001F1F7 韩国自动"
+        - "\U0001F1F0\U0001F1F7 韩国故转"
+        - "\U0001F1F0\U0001F1F7 韩国容灾"
+        - "\U0001F1F8\U0001F1EC 新加坡自动"
+        - "\U0001F1F8\U0001F1EC 新加坡故转"
+        - "\U0001F1F8\U0001F1EC 新加坡容灾"
+        - "\U0001F1FA\U0001F1F8 美国自动"
+        - "\U0001F1FA\U0001F1F8 美国故转"
+        - "\U0001F1FA\U0001F1F8 美国容灾"
+        - "\U0001F3E0 自建自动"
+        - "\U0001F3E0 自建故转"
+        - "\U0001F3E0 自建容灾"
+        - "\U0001F310 其它自动"
+        - "\U0001F310 其它故转"
+        - "\U0001F310 其它容灾"
+        - DIRECT
+      type: select
+    - name: Telegram
+      proxies:
+        - "\U0001F1ED\U0001F1F0 香港自动"
+        - "\U0001F1ED\U0001F1F0 香港故转"
+        - "\U0001F1ED\U0001F1F0 香港容灾"
+        - "\U0001F1F9\U0001F1FC 台湾自动"
+        - "\U0001F1F9\U0001F1FC 台湾故转"
+        - "\U0001F1F9\U0001F1FC 台湾容灾"
+        - "\U0001F1EF\U0001F1F5 日本自动"
+        - "\U0001F1EF\U0001F1F5 日本故转"
+        - "\U0001F1EF\U0001F1F5 日本容灾"
+        - "\U0001F1F0\U0001F1F7 韩国自动"
+        - "\U0001F1F0\U0001F1F7 韩国故转"
+        - "\U0001F1F0\U0001F1F7 韩国容灾"
+        - "\U0001F1F8\U0001F1EC 新加坡自动"
+        - "\U0001F1F8\U0001F1EC 新加坡故转"
+        - "\U0001F1F8\U0001F1EC 新加坡容灾"
+        - "\U0001F1FA\U0001F1F8 美国自动"
+        - "\U0001F1FA\U0001F1F8 美国故转"
+        - "\U0001F1FA\U0001F1F8 美国容灾"
+        - "\U0001F3E0 自建自动"
+        - "\U0001F3E0 自建故转"
+        - "\U0001F3E0 自建容灾"
+        - "\U0001F310 其它自动"
+        - "\U0001F310 其它故转"
+        - "\U0001F310 其它容灾"
+        - DIRECT
+      type: select
+    - name: Twitter (X)
+      proxies:
+        - "\U0001F1ED\U0001F1F0 香港自动"
+        - "\U0001F1ED\U0001F1F0 香港故转"
+        - "\U0001F1ED\U0001F1F0 香港容灾"
+        - "\U0001F1F9\U0001F1FC 台湾自动"
+        - "\U0001F1F9\U0001F1FC 台湾故转"
+        - "\U0001F1F9\U0001F1FC 台湾容灾"
+        - "\U0001F1EF\U0001F1F5 日本自动"
+        - "\U0001F1EF\U0001F1F5 日本故转"
+        - "\U0001F1EF\U0001F1F5 日本容灾"
+        - "\U0001F1F0\U0001F1F7 韩国自动"
+        - "\U0001F1F0\U0001F1F7 韩国故转"
+        - "\U0001F1F0\U0001F1F7 韩国容灾"
+        - "\U0001F1F8\U0001F1EC 新加坡自动"
+        - "\U0001F1F8\U0001F1EC 新加坡故转"
+        - "\U0001F1F8\U0001F1EC 新加坡容灾"
+        - "\U0001F1FA\U0001F1F8 美国自动"
+        - "\U0001F1FA\U0001F1F8 美国故转"
+        - "\U0001F1FA\U0001F1F8 美国容灾"
+        - "\U0001F3E0 自建自动"
+        - "\U0001F3E0 自建故转"
+        - "\U0001F3E0 自建容灾"
+        - "\U0001F310 其它自动"
+        - "\U0001F310 其它故转"
+        - "\U0001F310 其它容灾"
+        - DIRECT
+      type: select
+    - name: Netflix & 流媒体
+      proxies:
+        - "\U0001F1EF\U0001F1F5 日本自动"
+        - "\U0001F1ED\U0001F1F0 香港自动"
+        - "\U0001F1ED\U0001F1F0 香港故转"
+        - "\U0001F1ED\U0001F1F0 香港容灾"
+        - "\U0001F1F9\U0001F1FC 台湾自动"
+        - "\U0001F1F9\U0001F1FC 台湾故转"
+        - "\U0001F1F9\U0001F1FC 台湾容灾"
+        - "\U0001F1EF\U0001F1F5 日本故转"
+        - "\U0001F1EF\U0001F1F5 日本容灾"
+        - "\U0001F1F0\U0001F1F7 韩国自动"
+        - "\U0001F1F0\U0001F1F7 韩国故转"
+        - "\U0001F1F0\U0001F1F7 韩国容灾"
+        - "\U0001F1F8\U0001F1EC 新加坡自动"
+        - "\U0001F1F8\U0001F1EC 新加坡故转"
+        - "\U0001F1F8\U0001F1EC 新加坡容灾"
+        - "\U0001F1FA\U0001F1F8 美国自动"
+        - "\U0001F1FA\U0001F1F8 美国故转"
+        - "\U0001F1FA\U0001F1F8 美国容灾"
+        - "\U0001F3E0 自建自动"
+        - "\U0001F3E0 自建故转"
+        - "\U0001F3E0 自建容灾"
+        - "\U0001F310 其它自动"
+        - "\U0001F310 其它故转"
+        - "\U0001F310 其它容灾"
+        - DIRECT
+      type: select
+    - name: Apple 服务
+      proxies:
+        - DIRECT
+        - "\U0001F1ED\U0001F1F0 香港自动"
+        - "\U0001F1ED\U0001F1F0 香港故转"
+        - "\U0001F1ED\U0001F1F0 香港容灾"
+        - "\U0001F1F9\U0001F1FC 台湾自动"
+        - "\U0001F1F9\U0001F1FC 台湾故转"
+        - "\U0001F1F9\U0001F1FC 台湾容灾"
+        - "\U0001F1EF\U0001F1F5 日本自动"
+        - "\U0001F1EF\U0001F1F5 日本故转"
+        - "\U0001F1EF\U0001F1F5 日本容灾"
+        - "\U0001F1F0\U0001F1F7 韩国自动"
+        - "\U0001F1F0\U0001F1F7 韩国故转"
+        - "\U0001F1F0\U0001F1F7 韩国容灾"
+        - "\U0001F1F8\U0001F1EC 新加坡自动"
+        - "\U0001F1F8\U0001F1EC 新加坡故转"
+        - "\U0001F1F8\U0001F1EC 新加坡容灾"
+        - "\U0001F1FA\U0001F1F8 美国自动"
+        - "\U0001F1FA\U0001F1F8 美国故转"
+        - "\U0001F1FA\U0001F1F8 美国容灾"
+        - "\U0001F3E0 自建自动"
+        - "\U0001F3E0 自建故转"
+        - "\U0001F3E0 自建容灾"
+        - "\U0001F310 其它自动"
+        - "\U0001F310 其它故转"
+        - "\U0001F310 其它容灾"
+      type: select
+    - name: Microsoft
+      proxies:
+        - DIRECT
+        - "\U0001F1ED\U0001F1F0 香港自动"
+        - "\U0001F1ED\U0001F1F0 香港故转"
+        - "\U0001F1ED\U0001F1F0 香港容灾"
+        - "\U0001F1F9\U0001F1FC 台湾自动"
+        - "\U0001F1F9\U0001F1FC 台湾故转"
+        - "\U0001F1F9\U0001F1FC 台湾容灾"
+        - "\U0001F1EF\U0001F1F5 日本自动"
+        - "\U0001F1EF\U0001F1F5 日本故转"
+        - "\U0001F1EF\U0001F1F5 日本容灾"
+        - "\U0001F1F0\U0001F1F7 韩国自动"
+        - "\U0001F1F0\U0001F1F7 韩国故转"
+        - "\U0001F1F0\U0001F1F7 韩国容灾"
+        - "\U0001F1F8\U0001F1EC 新加坡自动"
+        - "\U0001F1F8\U0001F1EC 新加坡故转"
+        - "\U0001F1F8\U0001F1EC 新加坡容灾"
+        - "\U0001F1FA\U0001F1F8 美国自动"
+        - "\U0001F1FA\U0001F1F8 美国故转"
+        - "\U0001F1FA\U0001F1F8 美国容灾"
+        - "\U0001F3E0 自建自动"
+        - "\U0001F3E0 自建故转"
+        - "\U0001F3E0 自建容灾"
+        - "\U0001F310 其它自动"
+        - "\U0001F310 其它故转"
+        - "\U0001F310 其它容灾"
+      type: select
+    - name: Spotify
+      proxies:
+        - "\U0001F1ED\U0001F1F0 香港自动"
+        - "\U0001F1ED\U0001F1F0 香港故转"
+        - "\U0001F1ED\U0001F1F0 香港容灾"
+        - "\U0001F1F9\U0001F1FC 台湾自动"
+        - "\U0001F1F9\U0001F1FC 台湾故转"
+        - "\U0001F1F9\U0001F1FC 台湾容灾"
+        - "\U0001F1EF\U0001F1F5 日本自动"
+        - "\U0001F1EF\U0001F1F5 日本故转"
+        - "\U0001F1EF\U0001F1F5 日本容灾"
+        - "\U0001F1F0\U0001F1F7 韩国自动"
+        - "\U0001F1F0\U0001F1F7 韩国故转"
+        - "\U0001F1F0\U0001F1F7 韩国容灾"
+        - "\U0001F1F8\U0001F1EC 新加坡自动"
+        - "\U0001F1F8\U0001F1EC 新加坡故转"
+        - "\U0001F1F8\U0001F1EC 新加坡容灾"
+        - "\U0001F1FA\U0001F1F8 美国自动"
+        - "\U0001F1FA\U0001F1F8 美国故转"
+        - "\U0001F1FA\U0001F1F8 美国容灾"
+        - "\U0001F3E0 自建自动"
+        - "\U0001F3E0 自建故转"
+        - "\U0001F3E0 自建容灾"
+        - "\U0001F310 其它自动"
+        - "\U0001F310 其它故转"
+        - "\U0001F310 其它容灾"
+        - DIRECT
+      type: select
+    - name: Steam 游戏
+      proxies:
+        - "\U0001F1ED\U0001F1F0 香港自动"
+        - "\U0001F1ED\U0001F1F0 香港故转"
+        - "\U0001F1ED\U0001F1F0 香港容灾"
+        - "\U0001F1F9\U0001F1FC 台湾自动"
+        - "\U0001F1F9\U0001F1FC 台湾故转"
+        - "\U0001F1F9\U0001F1FC 台湾容灾"
+        - "\U0001F1EF\U0001F1F5 日本自动"
+        - "\U0001F1EF\U0001F1F5 日本故转"
+        - "\U0001F1EF\U0001F1F5 日本容灾"
+        - "\U0001F1F0\U0001F1F7 韩国自动"
+        - "\U0001F1F0\U0001F1F7 韩国故转"
+        - "\U0001F1F0\U0001F1F7 韩国容灾"
+        - "\U0001F1F8\U0001F1EC 新加坡自动"
+        - "\U0001F1F8\U0001F1EC 新加坡故转"
+        - "\U0001F1F8\U0001F1EC 新加坡容灾"
+        - "\U0001F1FA\U0001F1F8 美国自动"
+        - "\U0001F1FA\U0001F1F8 美国故转"
+        - "\U0001F1FA\U0001F1F8 美国容灾"
+        - "\U0001F3E0 自建自动"
+        - "\U0001F3E0 自建故转"
+        - "\U0001F3E0 自建容灾"
+        - "\U0001F310 其它自动"
+        - "\U0001F310 其它故转"
+        - "\U0001F310 其它容灾"
+        - DIRECT
+      type: select
+    - name: "\U0001F41F 漏网之鱼"
+      proxies:
+        - "\U0001F1ED\U0001F1F0 香港自动"
+        - "\U0001F1ED\U0001F1F0 香港故转"
+        - "\U0001F1F9\U0001F1FC 台湾自动"
+        - "\U0001F1F9\U0001F1FC 台湾故转"
+        - "\U0001F1EF\U0001F1F5 日本自动"
+        - "\U0001F1EF\U0001F1F5 日本故转"
+        - "\U0001F1F0\U0001F1F7 韩国自动"
+        - "\U0001F1F0\U0001F1F7 韩国故转"
+        - "\U0001F1F8\U0001F1EC 新加坡自动"
+        - "\U0001F1F8\U0001F1EC 新加坡故转"
+        - "\U0001F1FA\U0001F1F8 美国自动"
+        - "\U0001F1FA\U0001F1F8 美国故转"
+        - "\U0001F3E0 自建自动"
+        - "\U0001F3E0 自建故转"
+        - "\U0001F310 其它自动"
+        - "\U0001F310 其它故转"
+        - DIRECT
+      type: select
+redir-port: 7892
+rule-providers:
+    217heidai_ads:
+        behavior: domain
+        format: mrs
+        path: ./rules/ads_domain.mrs
+        type: file
+    cn_domain:
+        behavior: domain
+        format: mrs
+        path: ./rules/cn_domain.mrs
+        type: file
+    cn_ip:
+        behavior: ipcidr
+        format: mrs
+        path: ./rules/cn_ip.mrs
+        type: file
+    privacy_domain:
+        behavior: domain
+        format: mrs
+        path: ./rules/privacy_domain.mrs
+        type: file
+rules:
+    - SRC-IP-CIDR,10.0.0.88/32,DIRECT
+    - AND,((NETWORK,UDP),(DST-PORT,123)),DIRECT
+    - DST-PORT,123,DIRECT
+    - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+    - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+    - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+    - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
+    - IP-CIDR,169.254.0.0/16,DIRECT,no-resolve
+    - DOMAIN-SUFFIX,pool.ntp.org,DIRECT
+    - DOMAIN-SUFFIX,time.windows.com,DIRECT
+    - DOMAIN-SUFFIX,time.apple.com,DIRECT
+    - DOMAIN-SUFFIX,time.google.com,DIRECT
+    - DOMAIN-SUFFIX,cloud.mikrotik.com,DIRECT
+    - DOMAIN-SUFFIX,routeros.com,DIRECT
+    - DOMAIN-SUFFIX,mikrotik.com,DIRECT
+    - AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(GEOIP,CN)),DIRECT
+    - AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT
+    - DOMAIN-SUFFIX,googlevideo.com,YouTube
+    - DOMAIN-SUFFIX,ytimg.com,YouTube
+    - DOMAIN-SUFFIX,youtube.com,YouTube
+    - DOMAIN-SUFFIX,youtu.be,YouTube
+    - DOMAIN-SUFFIX,ggpht.com,YouTube
+    - DOMAIN-KEYWORD,googlevideo,YouTube
+    - DOMAIN-KEYWORD,sponsorblock,YouTube
+    - DOMAIN,youtubei.googleapis.com,YouTube
+    - "DOMAIN,speed.cloudflare.com,\U0001F310 国外流量"
+    - "DOMAIN,challenges.cloudflare.com,\U0001F310 国外流量"
+    - "DOMAIN-SUFFIX,fast.com,\U0001F310 国外流量"
+    - "DOMAIN-SUFFIX,speedtest.net,\U0001F310 国外流量"
+    - "DOMAIN-SUFFIX,ooklaserver.net,\U0001F310 国外流量"
+    - DOMAIN-SUFFIX,openai.com,AI
+    - DOMAIN-SUFFIX,chatgpt.com,AI
+    - DOMAIN-SUFFIX,oaistatic.com,AI
+    - DOMAIN-SUFFIX,oaiusercontent.com,AI
+    - DOMAIN-SUFFIX,sora.com,AI
+    - DOMAIN-SUFFIX,claude.ai,AI
+    - DOMAIN-SUFFIX,claude.com,AI
+    - DOMAIN-SUFFIX,anthropic.com,AI
+    - DOMAIN-SUFFIX,claudecdn.com,AI
+    - DOMAIN-SUFFIX,claudecontent.com,AI
+    - DOMAIN-SUFFIX,perplexity.ai,AI
+    - DOMAIN-SUFFIX,x.ai,AI
+    - DOMAIN-SUFFIX,grok.com,AI
+    - DOMAIN-SUFFIX,copilot.microsoft.com,AI
+    - DOMAIN-SUFFIX,sydney.bing.com,AI
+    - DOMAIN-SUFFIX,mistral.ai,AI
+    - DOMAIN-SUFFIX,poe.com,AI
+    - DOMAIN-SUFFIX,midjourney.com,AI
+    - DOMAIN-SUFFIX,huggingface.co,AI
+    - DOMAIN-SUFFIX,civitai.com,AI
+    - DOMAIN,antigravity-unleash.goog,Gemini & Antigravity
+    - DOMAIN,antigravity.dev,Gemini & Antigravity
+    - DOMAIN-SUFFIX,antigravity.dev,Gemini & Antigravity
+    - DOMAIN-SUFFIX,antigravity.google,Gemini & Antigravity
+    - DOMAIN-SUFFIX,antigravity-unleash.goog,Gemini & Antigravity
+    - DOMAIN,generativelanguage.googleapis.com,Gemini & Antigravity
+    - DOMAIN-SUFFIX,generativelanguage.googleapis.com,Gemini & Antigravity
+    - DOMAIN,daily-cloudcode-pa.googleapis.com,Gemini & Antigravity
+    - DOMAIN-SUFFIX,daily-cloudcode-pa.googleapis.com,Gemini & Antigravity
+    - DOMAIN,cloudcode-pa.googleapis.com,Gemini & Antigravity
+    - DOMAIN-SUFFIX,cloudcode-pa.googleapis.com,Gemini & Antigravity
+    - DOMAIN,aiplatform.googleapis.com,Gemini & Antigravity
+    - DOMAIN-SUFFIX,aiplatform.googleapis.com,Gemini & Antigravity
+    - DOMAIN,alkalimakersuite-pa.clients6.google.com,Gemini & Antigravity
+    - DOMAIN-SUFFIX,alkalimakersuite-pa.clients6.google.com,Gemini & Antigravity
+    - DOMAIN,aistudio.google.com,Gemini & Antigravity
+    - DOMAIN-SUFFIX,aistudio.google.com,Gemini & Antigravity
+    - DOMAIN,makersuite.google.com,Gemini & Antigravity
+    - DOMAIN-SUFFIX,makersuite.google.com,Gemini & Antigravity
+    - DOMAIN,bard.google.com,Gemini & Antigravity
+    - DOMAIN-SUFFIX,bard.google.com,Gemini & Antigravity
+    - DOMAIN,gemini.google.com,Gemini & Antigravity
+    - DOMAIN-SUFFIX,gemini.google.com,Gemini & Antigravity
+    - DOMAIN,gemini.google,Gemini & Antigravity
+    - DOMAIN-SUFFIX,gemini.google,Gemini & Antigravity
+    - DOMAIN-SUFFIX,ai.studio,Gemini & Antigravity
+    - DOMAIN-SUFFIX,deepmind.google,Gemini & Antigravity
+    - DOMAIN-SUFFIX,deepmind.com,Gemini & Antigravity
+    - DOMAIN-SUFFIX,notebooklm.google,Gemini & Antigravity
+    - DOMAIN-SUFFIX,notebooklm.google.com,Gemini & Antigravity
+    - DOMAIN-SUFFIX,openai.com,AI
+    - DOMAIN-SUFFIX,chatgpt.com,AI
+    - DOMAIN-SUFFIX,anthropic.com,AI
+    - DOMAIN-SUFFIX,claude.ai,AI
+    - DOMAIN-SUFFIX,claude.com,AI
+    - DOMAIN-SUFFIX,claudecdn.com,AI
+    - DOMAIN-SUFFIX,claudecontent.com,AI
+    - DOMAIN-SUFFIX,oaistatic.com,AI
+    - DOMAIN-SUFFIX,oaiusercontent.com,AI
+    - DOMAIN-SUFFIX,sora.com,AI
+    - DOMAIN-SUFFIX,perplexity.ai,AI
+    - DOMAIN-SUFFIX,x.ai,AI
+    - DOMAIN-SUFFIX,grok.com,AI
+    - DOMAIN-SUFFIX,copilot.microsoft.com,AI
+    - DOMAIN-SUFFIX,sydney.bing.com,AI
+    - DOMAIN-SUFFIX,mistral.ai,AI
+    - DOMAIN-SUFFIX,poe.com,AI
+    - DOMAIN-SUFFIX,midjourney.com,AI
+    - DOMAIN-SUFFIX,huggingface.co,AI
+    - DOMAIN-SUFFIX,civitai.com,AI
+    - GEOSITE,openai,AI
+    - DOMAIN-SUFFIX,gemini.google.com,Gemini & Antigravity
+    - DOMAIN-SUFFIX,gemini.google,Gemini & Antigravity
+    - DOMAIN-SUFFIX,aistudio.google.com,Gemini & Antigravity
+    - DOMAIN-SUFFIX,ai.studio,Gemini & Antigravity
+    - DOMAIN-SUFFIX,deepmind.google,Gemini & Antigravity
+    - DOMAIN-SUFFIX,deepmind.com,Gemini & Antigravity
+    - DOMAIN-SUFFIX,antigravity.dev,Gemini & Antigravity
+    - DOMAIN-SUFFIX,antigravity.google,Gemini & Antigravity
+    - DOMAIN-SUFFIX,notebooklm.google,Gemini & Antigravity
+    - GEOSITE,google-gemini,Gemini & Antigravity
+    - DOMAIN-SUFFIX,youtube.com,YouTube
+    - DOMAIN-SUFFIX,ytimg.com,YouTube
+    - DOMAIN-SUFFIX,googlevideo.com,YouTube
+    - DOMAIN-SUFFIX,youtu.be,YouTube
+    - DOMAIN-SUFFIX,youtubei.googleapis.com,YouTube
+    - DOMAIN-SUFFIX,yt3.ggpht.com,YouTube
+    - DOMAIN-SUFFIX,yt4.ggpht.com,YouTube
+    - DOMAIN-SUFFIX,gvt1.com,YouTube
+    - DOMAIN-SUFFIX,1e100.net,YouTube
+    - DOMAIN-SUFFIX,googleusercontent.com,YouTube
+    - GEOSITE,youtube,YouTube
+    - DOMAIN-SUFFIX,google.com,Google
+    - DOMAIN-SUFFIX,googleapis.com,Google
+    - DOMAIN-SUFFIX,gstatic.com,Google
+    - DOMAIN-SUFFIX,googleusercontent.com,Google
+    - DOMAIN-SUFFIX,ggpht.com,Google
+    - DOMAIN-SUFFIX,goog,Google
+    - DOMAIN-SUFFIX,run.app,Google
+    - DOMAIN-SUFFIX,1e100.net,Google
+    - DOMAIN-SUFFIX,gvt1.com,Google
+    - GEOSITE,google,Google
+    - DOMAIN-SUFFIX,github.com,GitHub & Docker
+    - DOMAIN-SUFFIX,githubusercontent.com,GitHub & Docker
+    - DOMAIN-SUFFIX,docker.com,GitHub & Docker
+    - DOMAIN-SUFFIX,docker.io,GitHub & Docker
+    - DOMAIN-SUFFIX,ghcr.io,GitHub & Docker
+    - GEOSITE,github,GitHub & Docker
+    - DOMAIN-SUFFIX,telegram.org,Telegram
+    - DOMAIN-SUFFIX,t.me,Telegram
+    - DOMAIN-SUFFIX,telegram.me,Telegram
+    - DOMAIN-SUFFIX,telegra.ph,Telegram
+    - GEOSITE,telegram,Telegram
+    - GEOIP,telegram,Telegram
+    - DOMAIN-SUFFIX,twitter.com,Twitter (X)
+    - DOMAIN-SUFFIX,x.com,Twitter (X)
+    - DOMAIN-SUFFIX,twimg.com,Twitter (X)
+    - DOMAIN-SUFFIX,t.co,Twitter (X)
+    - GEOSITE,twitter,Twitter (X)
+    - DOMAIN-SUFFIX,netflix.com,Netflix & 流媒体
+    - DOMAIN-SUFFIX,netflix.net,Netflix & 流媒体
+    - DOMAIN-SUFFIX,nflximg.net,Netflix & 流媒体
+    - DOMAIN-SUFFIX,nflxvideo.net,Netflix & 流媒体
+    - DOMAIN-SUFFIX,nflxso.net,Netflix & 流媒体
+    - DOMAIN-SUFFIX,nflxext.com,Netflix & 流媒体
+    - DOMAIN-SUFFIX,disneyplus.com,Netflix & 流媒体
+    - DOMAIN-SUFFIX,hbo.com,Netflix & 流媒体
+    - GEOSITE,netflix,Netflix & 流媒体
+    - DOMAIN-SUFFIX,spotify.com,Spotify
+    - DOMAIN-SUFFIX,scdn.co,Spotify
+    - DOMAIN-SUFFIX,spoti.fi,Spotify
+    - GEOSITE,spotify,Spotify
+    - DOMAIN-SUFFIX,steampowered.com,Steam 游戏
+    - DOMAIN-SUFFIX,steamcommunity.com,Steam 游戏
+    - DOMAIN-SUFFIX,steamgames.com,Steam 游戏
+    - DOMAIN-SUFFIX,steamusercontent.com,Steam 游戏
+    - DOMAIN-SUFFIX,steamcontent.com,Steam 游戏
+    - GEOSITE,steam,Steam 游戏
+    - DOMAIN-SUFFIX,apple.com,Apple 服务
+    - DOMAIN-SUFFIX,icloud.com,Apple 服务
+    - DOMAIN-SUFFIX,aaplimg.com,Apple 服务
+    - DOMAIN-SUFFIX,itunes.com,Apple 服务
+    - GEOSITE,apple,Apple 服务
+    - DOMAIN-SUFFIX,microsoft.com,Microsoft
+    - DOMAIN-SUFFIX,windows.com,Microsoft
+    - DOMAIN-SUFFIX,live.com,Microsoft
+    - DOMAIN-SUFFIX,office.com,Microsoft
+    - DOMAIN-SUFFIX,azure.com,Microsoft
+    - DOMAIN-SUFFIX,msftconnecttest.com,Microsoft
+    - GEOSITE,microsoft,Microsoft
+    - "RULE-SET,cn_domain,\U0001F3AF 国内流量"
+    - "RULE-SET,cn_ip,\U0001F3AF 国内流量"
+    - "GEOIP,CN,\U0001F3AF 国内流量"
+    - GEOSITE,category-ads-all,REJECT
+    - GEOSITE,cn,DIRECT
+    - GEOIP,CN,DIRECT
+    - GEOIP,PRIVATE,DIRECT
+    - "MATCH,\U0001F41F 漏网之鱼"
+secret: ""
+sniffer:
+    enable: true
+    force-dns-mapping: true
+    override-destination: true
+    parse-pure-ip: true
+    skip-domain:
+        - dlg.io.mi.com
+        - +.mijia.tech
+        - +.io.mi.com
+        - +.apple.com
+        - +.push.apple.com
+    sniff:
+        HTTP:
+            ports:
+                - 80
+                - 8080-8880
+        QUIC:
+            ports:
+                - 443
+                - 8443
+        TLS:
+            ports:
+                - 443
+                - 8443
+tcp-concurrent: true
+tproxy-port: 7893
+tun:
+    auto-detect-interface: true
+    auto-redirect: false
+    auto-route: true
+    device: cubex-tun
+    dns-hijack:
+        - tcp://any:53
+        - udp://any:53
+    dns-mode: hijack
+    enable: true
+    endpoint-independent-nat: true
+    gso: true
+    gso-max-size: 65536
+    mtu: 1400
+    route-exclude-address:
+        - 10.0.0.0/8
+        - 100.64.0.0/10
+        - 127.0.0.0/8
+        - 169.254.0.0/16
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+        - 224.0.0.0/4
+    stack: system
+    strict-route: false
+unified-delay: true
