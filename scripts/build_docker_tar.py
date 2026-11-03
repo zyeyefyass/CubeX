@@ -7,15 +7,26 @@ import hashlib
 import tarfile
 import time
 
-print("🔨 Generating CubeX-Test-v5.9-docker-amd64.tar.gz from v2.7 base...")
-
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+meta_file = os.path.join(root_dir, "meta.json")
+version_tag = "Test-v5.9"
+if os.path.exists(meta_file):
+    try:
+        with open(meta_file, 'r', encoding='utf-8') as mf:
+            mdata = json.load(mf)
+            v_str = mdata.get("version", "Test v5.9")
+            version_tag = v_str.replace(" ", "-")
+    except Exception as e:
+        print(f"Warning: could not read version: {e}")
+
+print(f"Generating CubeX-{version_tag}-docker-amd64.tar.gz (Container-Slim Enabled)...")
+
 base_path = os.path.join(root_dir, "dist", "release", "CubeX-Test-v4.5-docker-amd64.tar.gz")
 if not os.path.exists(base_path):
     base_path = os.path.join(root_dir, "dist", "docker", "CubeX-Test-v2.6-docker-amd64.tar.gz")
 
 if not os.path.exists(base_path):
-    print(f"❌ Base file not found: {base_path}")
+    print(f"Base file not found: {base_path}")
     exit(1)
 
 with open(base_path, 'rb') as f:
@@ -41,11 +52,15 @@ for m in t_in.getmembers():
         else:
             blobs[m.name] = f.read()
 
-cubexd_path = os.path.join(root_dir, "dist", "cubexd-linux-amd64")
+# 第一刀瘦身：使用标准编译的 cubexd-container-amd64 (~19MB)
+cubexd_path = os.path.join(root_dir, "dist", "cubexd-container-amd64")
+if not os.path.exists(cubexd_path):
+    cubexd_path = os.path.join(root_dir, "dist", "cubexd-linux-amd64")
+
 with open(cubexd_path, 'rb') as f:
     new_cubexd = f.read()
 
-print(f"Read new cubexd Test v5.9: {len(new_cubexd)} bytes")
+print(f"Read new cubexd ({cubexd_path}): {len(new_cubexd)} bytes ({len(new_cubexd)/(1024*1024):.2f} MB)")
 
 # Build updated cubexd layer
 buf = io.BytesIO()
@@ -101,11 +116,11 @@ blobs[new_cfg_blob] = new_cfg_bytes
 # Update manifest
 manifest[0]['Config'] = new_cfg_blob
 manifest[0]['Layers'] = layers
-manifest[0]['RepoTags'] = ['cubex:Test-v5.9', 'cubex:latest']
+manifest[0]['RepoTags'] = [f'cubex:{version_tag}', 'cubex:latest']
 manifest_bytes = json.dumps(manifest, indent=2).encode('utf-8')
 
 # Write output tar.gz
-out_path = os.path.join(root_dir, "dist", "release", "CubeX-Test-v5.9-docker-amd64.tar.gz")
+out_path = os.path.join(root_dir, "dist", "release", f"CubeX-{version_tag}-docker-amd64.tar.gz")
 os.makedirs(os.path.dirname(out_path), exist_ok=True)
 with tarfile.open(out_path, mode='w:gz') as t_out:
     def add_data(name, b):
@@ -122,4 +137,4 @@ with tarfile.open(out_path, mode='w:gz') as t_out:
     for b_name in [new_cfg_blob] + layers:
         add_data(b_name, blobs[b_name])
 
-print(f"✅ Generated {out_path} ({os.path.getsize(out_path)/(1024*1024):.2f} MB)")
+print(f"Done! Generated {out_path} ({os.path.getsize(out_path)/(1024*1024):.2f} MB)")

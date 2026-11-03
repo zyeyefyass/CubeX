@@ -297,33 +297,24 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v5.9 官方正式版重磅更新亮点 (RouterOS 7.25.1 稳定版深度适配 · 极速 75s 官方爆款大片 · 节点持久化诊断) (分级内存自适应软限制 · 多宿主自愈暗影看门狗 · 120 FPS 智能节点矩阵 · 零 WireGuard 纯净内网 · 官方大片重制交付)
+## 📢 Test v6.0 官方正式版重磅更新亮点 (容器极简瘦身 · 纯净内网旁路加固 · 双核无损热重载)
 
 > [!IMPORTANT]
-> ### 👑【分级内存自适应与全域自愈双旗舰】分级物理内存自适应软限制 · 24H 宿主暗影自愈看门狗 · NodeScore 多维加权节点矩阵 · 120 FPS 顺滑交互 · 官方大片重制交付 · 零 WireGuard 纯净内网 (CubeX Test v5.7 官方正式版)
+> ### 👑【容器极简瘦身与纯净内网旁路旗舰】容器包体积大幅精简 18MB · 纯净局域网内网双引擎网关 · 105 套权威规则集全量内置 (CubeX Test v6.0 官方正式版)
 >
 > **致所有追求极致网络稳定性、工业级高可用与彻底免折腾的极客玩家：**
 >
-> 今天正式发布的 **CubeX Test v5.9** 带来了一系列由专家组深度论证并全面落地的重磅升级：
+> 今天正式发布的 **CubeX Test v6.0** 带来以下三大核心改进：
 >
-> 0. **RouterOS 最新稳定版本 7.25.1 官方深度适配**：完美适配 2026-11-02 发布的 RouterOS v7.25.1，全面兼容 upstream 修复的动态 IPv6 前缀生命周期，升级超时由 15s 扩充至 120s 并支持分段下载与自动重启捕获；
-> 0. **极速 75 秒官方爆款大片上线 (GeekMorning Episode 01)**：彻底告别晦涩专业术语与枯燥 PPT，温暖语速与 Santana Smooth 典雅吉他混音，直击“老公折腾旁路由导致全家断网、老婆怒拔插头”核心家庭痛点；
-> 0. **节点持久化诊断与 Top-10 聚焦**：在 `data/node_diagnostics.json` 自动落盘 SLA 与延迟状态，主进程秒级恢复延迟缓存；
->
-> 1. ⚡ **【分级内存自适应软限制与极致低驻留 (`cmd/cubexd/main.go`)】**：
->    * 启动时动态探查宿主物理内存总容量：对小主机/弱电箱低内存宿主（<1GB），自动注入 `debug.SetMemoryLimit` 软限制与自适应 GC 调优，常驻物理内存死锁在 **35MB** 极轻量区间；对万兆高吞吐宿主（4GB+）自动展开零拷贝环形缓冲池；
->    * 彻底告别传统虚拟机动辄割占 2G~4G 内存不还的资源浪费。
-> 2. 🐕 **【24H 宿主暗影自愈看门狗多底座覆盖 (`cmd/cubexd/main.go`, `internal/heal/`)】**：
->    * 后台驻留全天候轻量巡检总线：30 秒探针不仅深度巡检 RouterOS `table cubex` 与 `198.18.0.0/15` 回指路由，同时动态巡检爱快 Web-RPC 静态回指与伴生 Linux 内核转发；
->    * 出现意外脱钩或宿主重启时，0 秒静默重配自愈，保障全家网络固若金汤。
-> 3. 📊 **【NodeScore 智能矩阵多维加权与 120 FPS 顺滑交互 (`web/src/App.vue`)】**：
->    * 引入延迟抖动（Jitter）、全天候 SLA 连通率与节点纯净度综合加权算法；
->    * 深度采用 computed 预计算过滤，杜绝模板函数卡顿，即使拥有海量节点，交互流转跑满 120 FPS；
->    * C 级慢速备用节点支持一键折叠，界面清爽纯净。
-> 4. 🎬 **【官方重磅大片《极客晨曦》第 01 期重制完整交付 (`scratch/GeekMorning_Episode_01_CubeX.mp4`)】**：
->    * 彻底摒弃伪数字人机械咬合与 PPT 模板感，全片 100% 全屏无界动态视觉；
->    * 专属【赛博全息演播室 (Cyber Studio)】开篇与收尾，Santana Smooth 典雅吉他片头与片尾，去除一切高频啸叫，带来舒适视听盛宴；
->    * 深度呈现 10.0.0.7 暮光冰晶驾驶舱实录、瞬时双栈 2020.6 Mbps 超千兆测速与“网关DNS留主路由”双轨数据流拓扑。
+> 1. ⚡ **【容器原地极简大幅瘦身】**：
+>    * 容器内嵌主程序改用纯净编译并剥离冗余命令行，发布包体积直接减少近 18MB（整体降至 100MB 左右）；
+>    * 105 套完整规则集与地理数据库全部完整内嵌，开箱即用 0 体验损耗。
+> 2. 🛡️ **【纯净内网旁路架构彻底加固】**：
+>    * 坚持纯净局域网内网双引擎透明网关定位，绝不开设外部多余端口，杜绝一切历史冗余逻辑；
+>    * 严格保障内网网络安全，防解析泄露、防路由死锁。
+> 3. 🔄 **【工程清爽与双核稳定性实测】**：
+>    * 安全归档上百个历史临时脚本，构建工程清爽纯粹；
+>    * 实机完成双引擎四轮往返热重载无损实测，国内直连与海外加速零断网、零丢包、零解析泄露。
 
 <a id="release-assets"></a>
 
@@ -331,19 +322,19 @@
 
 | 发布文件名 | 适用平台与宿主底座 | 文件大小 | 架构与核心功能说明 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v5.9-ros-amd64.tar` | MikroTik RouterOS v7 (x86 软路由) | 118.2 MB | RouterOS v7 原生未压缩容器镜像（支持 WinBox `/container/add` 拖入直装） |
-| `CubeX-Test-v5.9-ros-arm64.tar` | MikroTik RouterOS v7 (RB5009/CCR) | 117.3 MB | RouterOS ARM64 原生容器镜像（适配 64位 ARM 硬路由） |
-| `CubeX-Test-v5.9-docker-amd64.tar.gz` | Docker / 爱快 / fnOS / NAS / PVE | 94.3 MB | Docker 离线镜像直装导入压缩包（内置双核与全量105套规则） |
-| `CubeX-Test-v5.9-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 93.4 MB | 完整独立开箱包（内含 cubexd、cubex、双核引擎及 105 套规则） |
-| `CubeX-Test-v5.9-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 86.2 MB | ARM64 完整归档发布包 |
-| `cubexd-linux-amd64` | Linux amd64 | 19.33 MB | 纯 Go 单二进制控制面（带 Web UI，用于在线平滑热更新） |
-| `cubexd-linux-arm64` | Linux arm64 | 18.56 MB | ARM64 单二进制核心控制面 |
-| `cubex-linux-amd64` | Linux amd64 CLI | 6.34 MB | 纯 Go 运维 CLI 工具（GitHub 页面显示 6.36 MB，终端直接运行） |
-| `cubex-linux-arm64` | Linux arm64 CLI | 5.81 MB | 纯 Go 运维 CLI 工具（GitHub 页面显示 5.88 MB，终端直接运行） |
-| `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | ~17.0 KB | RouterOS v7 WinBox 终端复制即用一键自动编排脚本 |
-| `setup-openwrt.sh` | OpenWrt 部署脚本 | ~21.4 KB | OpenWrt 终端一键容器网络编排脚本 |
-| `install_pve_lxc.sh` | PVE CT 容器一键脚本 | ~9.5 KB | PVE 宿主机终端一键全自动开箱脚本 |
-| `install.sh` | 通用 Linux 安装脚本 | ~11.4 KB | 通用 Linux 一键全自动生产部署脚本 |
+| `CubeX-Test-v6.0-ros-amd64.tar` | MikroTik RouterOS v7 (x86 软路由) | 100.4 MB | RouterOS v7 原生未压缩容器镜像（支持 WinBox `/container/add` 拖入直装） |
+| `CubeX-Test-v6.0-ros-arm64.tar` | MikroTik RouterOS v7 (RB5009/CCR) | 100.7 MB | RouterOS ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-Test-v6.0-docker-amd64.tar.gz` | Docker / 爱快 / fnOS / NAS / PVE | 83.6 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-Test-v6.0-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 93.5 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-Test-v6.0-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 86.2 MB | ARM64 完整归档发布包 |
+| `cubexd-linux-amd64` | Linux amd64 | 45.88 MB | 纯 Go 单二进制控制面（代码加固版，用于在线平滑热更新） |
+| `cubexd-linux-arm64` | Linux arm64 | 41.88 MB | ARM64 单二进制核心控制面（代码加固版） |
+| `cubex-linux-amd64` | Linux amd64 CLI | 17.03 MB | 纯 Go 运维 CLI 工具（终端直接运行） |
+| `cubex-linux-arm64` | Linux arm64 CLI | 15.19 MB | 纯 Go 运维 CLI 工具（终端直接运行） |
+| `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | 17.5 KB | RouterOS v7 WinBox 终端复制即用一键自动编排脚本 |
+| `setup-openwrt.sh` | OpenWrt 部署脚本 | 21.9 KB | OpenWrt 终端一键容器网络编排脚本 |
+| `install_pve_lxc.sh` | PVE CT 容器一键脚本 | 9.7 KB | PVE 宿主机终端一键全自动开箱脚本 |
+| `install.sh` | 通用 Linux 安装脚本 | 11.7 KB | 通用 Linux 一键全自动生产部署脚本 |
 
 ## 🚀 六大主流平台保姆级部署实战 (选一种适合你的就行)
 

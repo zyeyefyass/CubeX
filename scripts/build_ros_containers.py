@@ -7,22 +7,45 @@ import hashlib
 import tarfile
 import time
 
-print("🔨 Starting true OCI/Docker container packaging for RouterOS Test v5.9...")
-
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 dist_dir = os.path.join(root_dir, "dist")
 release_dir = os.path.join(dist_dir, "release")
 os.makedirs(release_dir, exist_ok=True)
 
-# ═════════════════════════════════════════════════════════════════════════════
+# 动态读取当前版本
+meta_file = os.path.join(root_dir, "meta.json")
+version_tag = "Test-v5.9"
+if os.path.exists(meta_file):
+    try:
+        with open(meta_file, 'r', encoding='utf-8') as mf:
+            mdata = json.load(mf)
+            v_str = mdata.get("version", "Test v5.9")
+            version_tag = v_str.replace(" ", "-")
+    except Exception as e:
+        print(f"Warning: could not read version from meta.json: {e}")
+
+print(f"🔨 Starting true OCI/Docker container packaging for RouterOS {version_tag} (Container-Slim Enabled)...")
+
+with open(meta_file, 'rb') as f:
+    meta_bytes = f.read()
+
+rules_dir = os.path.join(root_dir, "etc", "rules")
+etc_dir = os.path.join(root_dir, "etc")
+entrypoint_path = os.path.join(root_dir, "scripts", "docker", "entrypoint.sh")
+
+# ==============================================================================
 # 1. Package AMD64 RouterOS OCI Container
-# ═════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 base_tar_amd64 = os.path.join(dist_dir, "docker", "CubeX-Test-v0.99-ros-amd64-oci.tar")
-cubexd_amd64 = os.path.join(dist_dir, "cubexd-linux-amd64")
-cubex_cli_amd64 = os.path.join(dist_dir, "cubex-linux-amd64")
+# 第一刀瘦身：优先使用容器专用极简二进制 (cubexd-container-amd64, ~19MB vs Garble ~45MB)
+cubexd_amd64 = os.path.join(dist_dir, "cubexd-container-amd64")
+if not os.path.exists(cubexd_amd64):
+    print("⚠️  cubexd-container-amd64 not found, falling back to cubexd-linux-amd64")
+    cubexd_amd64 = os.path.join(dist_dir, "cubexd-linux-amd64")
+
 singbox_amd64 = os.path.join(root_dir, "bin", "amd64", "sing-box")
 mihomo_amd64 = os.path.join(root_dir, "bin", "amd64", "mihomo")
-out_tar_amd64 = os.path.join(release_dir, "CubeX-Test-v5.9-ros-amd64.tar")
+out_tar_amd64 = os.path.join(release_dir, f"CubeX-{version_tag}-ros-amd64.tar")
 
 print(f"\n📦 [AMD64] Opening base OCI tar: {base_tar_amd64}")
 blobs = {}
@@ -37,7 +60,6 @@ cfg_name = manifest[0]['Config']
 cfg = json.loads(blobs[cfg_name].decode())
 layers = list(manifest[0]['Layers'])
 
-# Locate the layer where app binaries/rules reside
 cubexd_layer_idx = 4
 for i, l in enumerate(layers):
     data = blobs[l]
@@ -53,23 +75,17 @@ print(f"📦 [AMD64] Target layer index to update: {cubexd_layer_idx}")
 
 with open(cubexd_amd64, 'rb') as f:
     new_cubexd = f.read()
+print(f"📦 [AMD64] Using cubexd binary: {cubexd_amd64} ({len(new_cubexd)/(1024*1024):.2f} MB)")
+
 with open(singbox_amd64, 'rb') as f:
     new_singbox = f.read()
-new_cubex_cli = b""
-if os.path.exists(cubex_cli_amd64):
-    with open(cubex_cli_amd64, 'rb') as f:
-        new_cubex_cli = f.read()
+
 new_mihomo = b""
 if os.path.exists(mihomo_amd64):
     with open(mihomo_amd64, 'rb') as f:
         new_mihomo = f.read()
 
-rules_dir = os.path.join(root_dir, "etc", "rules")
-meta_file = os.path.join(root_dir, "meta.json")
-with open(meta_file, 'rb') as f:
-    meta_bytes = f.read()
-
-# Build updated layer tarball
+# Build updated layer tarball (第二刀瘦身：完全不打入 cubex CLI，节省 17MB+)
 buf = io.BytesIO()
 with tarfile.open(fileobj=buf, mode='w') as sub:
     dirs = [
@@ -83,21 +99,13 @@ with tarfile.open(fileobj=buf, mode='w') as sub:
         ti.mtime = int(time.time())
         sub.addfile(ti)
 
-    # Binaries
+    # Binaries (cubexd + sing-box + mihomo, NO CLI)
     ti = tarfile.TarInfo(name='app/bin/cubexd')
     ti.type = tarfile.REGTYPE
     ti.mode = 0o755
     ti.size = len(new_cubexd)
     ti.mtime = int(time.time())
     sub.addfile(ti, io.BytesIO(new_cubexd))
-
-    if new_cubex_cli:
-        ti = tarfile.TarInfo(name='app/bin/cubex')
-        ti.type = tarfile.REGTYPE
-        ti.mode = 0o755
-        ti.size = len(new_cubex_cli)
-        ti.mtime = int(time.time())
-        sub.addfile(ti, io.BytesIO(new_cubex_cli))
 
     ti = tarfile.TarInfo(name='app/bin/sing-box')
     ti.type = tarfile.REGTYPE
@@ -123,7 +131,7 @@ with tarfile.open(fileobj=buf, mode='w') as sub:
         ti.mtime = int(time.time())
         sub.addfile(ti, io.BytesIO(meta_bytes))
 
-    # All 101 Rules fully bundled
+    # All 105 Rules fully bundled
     if os.path.exists(rules_dir):
         for r in os.listdir(rules_dir):
             rpath = os.path.join(rules_dir, r)
@@ -138,8 +146,7 @@ with tarfile.open(fileobj=buf, mode='w') as sub:
                     ti.mtime = int(time.time())
                     sub.addfile(ti, io.BytesIO(rdata))
 
-    # Top-level geodata files in etc/
-    etc_dir = os.path.join(root_dir, "etc")
+    # Geodata files
     for geofile in ['GeoIP.dat', 'geosite.dat', 'geoip.metadb']:
         geopath = os.path.join(etc_dir, geofile)
         if os.path.exists(geopath):
@@ -153,8 +160,7 @@ with tarfile.open(fileobj=buf, mode='w') as sub:
                 ti.mtime = int(time.time())
                 sub.addfile(ti, io.BytesIO(gdata))
 
-    # Entrypoint script
-    entrypoint_path = os.path.join(root_dir, "scripts", "docker", "entrypoint.sh")
+    # Entrypoint
     if os.path.exists(entrypoint_path):
         with open(entrypoint_path, 'rb') as ef:
             edata = ef.read()
@@ -171,14 +177,12 @@ compressed_layer = gzip.compress(uncompressed_layer)
 layer_digest = hashlib.sha256(compressed_layer).hexdigest()
 new_layer_blob_name = f"blobs/sha256/{layer_digest}"
 
-print(f"📦 [AMD64] New layer uncompressed: {len(uncompressed_layer)} bytes, compressed: {len(compressed_layer)} bytes")
+print(f"📦 [AMD64] New layer uncompressed: {len(uncompressed_layer)/(1024*1024):.2f} MB, compressed: {len(compressed_layer)/(1024*1024):.2f} MB")
 blobs[new_layer_blob_name] = compressed_layer
 
-# Prune obsolete/duplicate historical layers 5..10 (which contained old v0.99 binaries and bloated the archive by 57MB)
 layers = layers[:cubexd_layer_idx+1]
 layers[cubexd_layer_idx] = new_layer_blob_name
 
-# Update config json
 cfg['rootfs']['diff_ids'] = cfg['rootfs']['diff_ids'][:cubexd_layer_idx+1]
 cfg['rootfs']['diff_ids'][cubexd_layer_idx] = diff_id
 new_cfg_bytes = json.dumps(cfg, indent=2).encode('utf-8')
@@ -186,12 +190,10 @@ new_cfg_digest = hashlib.sha256(new_cfg_bytes).hexdigest()
 new_cfg_blob_name = f"blobs/sha256/{new_cfg_digest}"
 blobs[new_cfg_blob_name] = new_cfg_bytes
 
-# Update manifest
 manifest[0]['Config'] = new_cfg_blob_name
 manifest[0]['Layers'] = layers
 manifest_bytes = json.dumps(manifest, indent=2).encode('utf-8')
 
-# Build OCI manifest & index
 oci_manifest_layers = []
 for l in layers:
     oci_manifest_layers.append({
@@ -255,15 +257,18 @@ with tarfile.open(out_tar_amd64, 'w') as out:
 size_mb = os.path.getsize(out_tar_amd64) / (1024 * 1024)
 print(f"✅ [AMD64] Done! Generated {out_tar_amd64} ({size_mb:.2f} MB)")
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 # 2. Package ARM64 RouterOS OCI Container
-# ═════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
 base_tar_arm64 = r'd:\Micube\dist\MiCube-arm64.tar'
-cubexd_arm64 = os.path.join(dist_dir, "cubexd-linux-arm64")
-cubex_cli_arm64 = os.path.join(dist_dir, "cubex-linux-arm64")
+cubexd_arm64 = os.path.join(dist_dir, "cubexd-container-arm64")
+if not os.path.exists(cubexd_arm64):
+    print("⚠️  cubexd-container-arm64 not found, falling back to cubexd-linux-arm64")
+    cubexd_arm64 = os.path.join(dist_dir, "cubexd-linux-arm64")
+
 singbox_arm64 = os.path.join(root_dir, "bin", "arm64", "sing-box")
 mihomo_arm64 = os.path.join(root_dir, "bin", "arm64", "mihomo")
-out_tar_arm64 = os.path.join(release_dir, "CubeX-Test-v5.9-ros-arm64.tar")
+out_tar_arm64 = os.path.join(release_dir, f"CubeX-{version_tag}-ros-arm64.tar")
 
 if os.path.exists(base_tar_arm64):
     print(f"\n📦 [ARM64] Opening base OCI tar: {base_tar_arm64}")
@@ -292,12 +297,11 @@ if os.path.exists(base_tar_arm64):
 
     with open(cubexd_arm64, 'rb') as f:
         new_cubexd_arm = f.read()
+    print(f"📦 [ARM64] Using cubexd binary: {cubexd_arm64} ({len(new_cubexd_arm)/(1024*1024):.2f} MB)")
+
     with open(singbox_arm64, 'rb') as f:
         new_singbox_arm = f.read()
-    new_cli_arm = b""
-    if os.path.exists(cubex_cli_arm64):
-        with open(cubex_cli_arm64, 'rb') as f:
-            new_cli_arm = f.read()
+
     new_mihomo_arm = b""
     if os.path.exists(mihomo_arm64):
         with open(mihomo_arm64, 'rb') as f:
@@ -318,14 +322,6 @@ if os.path.exists(base_tar_arm64):
         ti.size = len(new_cubexd_arm)
         ti.mtime = int(time.time())
         sub.addfile(ti, io.BytesIO(new_cubexd_arm))
-
-        if new_cli_arm:
-            ti = tarfile.TarInfo(name='app/bin/cubex')
-            ti.type = tarfile.REGTYPE
-            ti.mode = 0o755
-            ti.size = len(new_cli_arm)
-            ti.mtime = int(time.time())
-            sub.addfile(ti, io.BytesIO(new_cli_arm))
 
         ti = tarfile.TarInfo(name='app/bin/sing-box')
         ti.type = tarfile.REGTYPE
@@ -350,7 +346,6 @@ if os.path.exists(base_tar_arm64):
             ti.mtime = int(time.time())
             sub.addfile(ti, io.BytesIO(meta_bytes))
 
-        # All 101 Rules fully bundled
         if os.path.exists(rules_dir):
             for r in os.listdir(rules_dir):
                 rpath = os.path.join(rules_dir, r)
@@ -377,6 +372,16 @@ if os.path.exists(base_tar_arm64):
                     ti.size = len(gdata)
                     ti.mtime = int(time.time())
                     sub.addfile(ti, io.BytesIO(gdata))
+
+        if os.path.exists(entrypoint_path):
+            with open(entrypoint_path, 'rb') as ef:
+                edata = ef.read()
+            ti = tarfile.TarInfo(name='app/entrypoint.sh')
+            ti.type = tarfile.REGTYPE
+            ti.mode = 0o755
+            ti.size = len(edata)
+            ti.mtime = int(time.time())
+            sub.addfile(ti, io.BytesIO(edata))
 
     uncompressed_arm = buf_arm.getvalue()
     diff_id_arm = f"sha256:{hashlib.sha256(uncompressed_arm).hexdigest()}"
@@ -462,4 +467,4 @@ if os.path.exists(base_tar_arm64):
 else:
     print(f"⚠️  Base ARM64 tar not found at {base_tar_arm64}, skipping ARM64 OCI container generation.")
 
-print("\n🎉 True RouterOS OCI Containers Packaging Complete!")
+print("\n🎉 True RouterOS OCI Containers Packaging Complete (Container-Slim Applied)!")

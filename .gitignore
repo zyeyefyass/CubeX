@@ -56,3 +56,6 @@ dist/docker/
 *.tar.gz
 *.zip
 tools/
+
+dist/cubexd-container-*
+scripts/.archive/

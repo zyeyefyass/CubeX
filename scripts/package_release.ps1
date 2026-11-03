@@ -8,7 +8,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$Version = "Test-v5.9"
+$Version = "Test-v6.0"
 
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 
@@ -22,7 +22,7 @@ Write-Host "📦 Starting CubeX Test v5.6 Complete Release Packaging (Dual-Core 
 
 if (-not $IncludeWindows) {
 
-    Write-Host "ℹ️  Windows 平台包发布已按策略暂停 (可通过 -IncludeWindows 显式启用)" -ForegroundColor DarkCyan
+    Write-Host "ℹ️  Windows 平台包发布已按策略暂?(可通过 -IncludeWindows 显式启用)" -ForegroundColor DarkCyan
 
 }
 
@@ -82,7 +82,7 @@ if ($IncludeWindows) {
 
 } else {
 
-    Write-Host "   -> Skipping Windows cubexd.exe build (暂时不发布windows包)" -ForegroundColor DarkGray
+    Write-Host "   -> Skipping Windows cubexd.exe build (暂时不发布windows?" -ForegroundColor DarkGray
 
 }
 
@@ -208,7 +208,7 @@ if ($IncludeWindows) {
 
 } else {
 
-    Write-Host "⏩ Skipping Windows amd64 packaging (暂时不发布 Windows 包)..." -ForegroundColor DarkGray
+    Write-Host "?Skipping Windows amd64 packaging (暂时不发?Windows ?..." -ForegroundColor DarkGray
 
 }
 
@@ -236,14 +236,16 @@ function Assemble-RosContainer($TargetName, $GatewayBinary, $ArchType) {
 
 
 
-    # Binaries inside container /app/bin
+    # Binaries inside container /app/bin (container-slim: standard build, NO cubex CLI)
+    # RouterOS containers only need cubexd daemon, cubex CLI is excluded
 
-    Copy-Item -Path $GatewayBinary -Destination "$RosStage\app\bin\cubexd" -Force
-
-    if (Test-Path "$DistDir\cubex-linux-$ArchType") {
-
-        Copy-Item -Path "$DistDir\cubex-linux-$ArchType" -Destination "$RosStage\app\bin\cubex" -Force
-
+    $ContainerBinary = "$DistDir\cubexd-container-$ArchType"
+    if (Test-Path $ContainerBinary) {
+        Write-Host "   -> Using container-slim binary: $ContainerBinary" -ForegroundColor Green
+        Copy-Item -Path $ContainerBinary -Destination "$RosStage\app\bin\cubexd" -Force
+    } else {
+        Write-Host "   -> Container-slim not found, falling back to garble binary" -ForegroundColor Yellow
+        Copy-Item -Path $GatewayBinary -Destination "$RosStage\app\bin\cubexd" -Force
     }
 
     Copy-Item -Path "$RootDir\bin\$ArchType\mihomo" -Destination "$RosStage\app\bin\mihomo" -Force
@@ -344,7 +346,7 @@ Get-ChildItem -Path $ReleaseDir | Select-Object Name, Length
 
 # 7. Strict Automated Post-Packaging Desensitization & Unpack Audit
 
-Write-Host "`n🛡️  Executing Mandatory Post-Packaging Desensitization Audit (.tar & .zip independent unpack)..." -ForegroundColor Cyan
+Write-Host "`n🛡? Executing Mandatory Post-Packaging Desensitization Audit (.tar & .zip independent unpack)..." -ForegroundColor Cyan
 
 $auditArgs = @("$ReleaseDir")
 
@@ -368,7 +370,7 @@ if ($LASTEXITCODE -ne 0) {
 
 
 
-# # ═════════════════════════════════════════════════════════════════════════════
+# # ════════════════════════════════════════════════════════════════════════════?
 
 # CubeX Release Packaging Script (Bundles Dual Cores + Geodata + Rules + Config)
 
@@ -376,4 +378,4 @@ if ($LASTEXITCODE -ne 0) {
 
 # Formats: Native .zip for General Releases + Uncompressed .tar for RouterOS
 
-# ═════════════════════════════════════════════════════════════════════════════
+# ════════════════════════════════════════════════════════════════════════════
