@@ -48,7 +48,7 @@ body::before {
 /* 🌅 Twilight Crystal 暮光冰晶 · 人体工程学护眼面板与 120 FPS 满帧硬件加速体系   */
 /* ══════════════════════════════════════════════════════════════════════════ */
 
-/* 一级大容器（疯狂动物城主题 · 每一板块背景图 50% 水晶穿透可见 · 零模糊原画透显） */
+/* 一级大容器（护眼温润水晶 · 88% 不透光率 · 彻底消除背景杂讯与文字穿透混叠 · 零模糊 120 FPS 极速渲染） */
 .macos-glass-card,
 .liquid-glass,
 .glass-aurora,
@@ -61,12 +61,12 @@ body::before {
 .bg-\[\#161e27\]\/90,
 .bg-\[\#161e27\]\/85,
 .bg-\[\#161e27\]\/80 {
-  background: rgba(0, 18, 36, 0.50) !important;
+  background: rgba(0, 20, 40, 0.88) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border-radius: 20px;
-  border: 1px solid rgba(56, 189, 248, 0.20) !important;
-  box-shadow: 0 10px 30px -5px rgba(0, 8, 20, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid rgba(56, 189, 248, 0.16) !important;
+  box-shadow: 0 10px 30px -5px rgba(0, 8, 20, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
   transform: translateZ(0);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
@@ -78,18 +78,18 @@ body::before {
 .glass-novice:hover,
 .glass-obsidian:hover,
 .host-card:hover {
-  background: rgba(0, 24, 48, 0.58) !important;
-  border-color: rgba(56, 189, 248, 0.40) !important;
-  box-shadow: 0 14px 40px -4px rgba(0, 8, 20, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.20) !important;
+  background: rgba(0, 26, 52, 0.94) !important;
+  border-color: rgba(56, 189, 248, 0.32) !important;
+  box-shadow: 0 14px 40px -4px rgba(0, 8, 20, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
 }
 
-/* 左侧导航栏 (Sidebar: 50% 纯净水晶穿透 · 海报完全穿透可见) */
+/* 左侧导航栏 (Sidebar: 90% 暮光深海不透光率 · 极客图标与菜单清晰无干扰) */
 .macos-sidebar {
-  background: rgba(0, 18, 36, 0.50) !important;
+  background: rgba(0, 18, 36, 0.90) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border-right: 1px solid rgba(56, 189, 248, 0.18) !important;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25) !important;
+  border-right: 1px solid rgba(56, 189, 248, 0.16) !important;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35) !important;
   contain: layout style;
   transform: translateZ(0);
 }
@@ -102,24 +102,24 @@ body::before {
   border-bottom: 1px solid rgba(56, 189, 248, 0.12) !important;
 }
 
-/* 顶部与全局胶囊组件 (35% 通透微晶) */
+/* 顶部与全局胶囊组件 (65% 纯净微晶) */
 .macos-capsule,
 .windhawk-pill {
-  background: rgba(0, 24, 48, 0.35) !important;
+  background: rgba(0, 24, 48, 0.65) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border: 1px solid rgba(56, 189, 248, 0.22) !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(56, 189, 248, 0.18) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.10) !important;
   transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
 }
 
 .macos-capsule:hover,
 .windhawk-pill:hover {
-  background: rgba(0, 36, 72, 0.50) !important;
-  border-color: rgba(56, 189, 248, 0.45) !important;
+  background: rgba(0, 36, 72, 0.80) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
 }
 
-/* 二级子卡片、项目行、指标块（极轻量微晶衬底 · 保证海报穿透率 50% 不衰减） */
+/* 二级子卡片、项目行、指标块（72% 温润衬底 · 0 背景混叠 · 保证高数据可读性） */
 .macos-sub-card,
 .sub-card-glass,
 .bg-slate-900,
@@ -140,7 +140,7 @@ body::before {
 .bg-black\/40,
 .bg-black\/50,
 .bg-black\/60 {
-  background: rgba(0, 10, 20, 0.20) !important;
+  background: rgba(0, 14, 28, 0.72) !important;
   border: 1px solid rgba(56, 189, 248, 0.14) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -152,8 +152,8 @@ body::before {
 .macos-sub-card:hover,
 .bg-slate-900:hover,
 .bg-slate-950:hover {
-  background: rgba(0, 24, 48, 0.35) !important;
-  border-color: rgba(56, 189, 248, 0.35) !important;
+  background: rgba(0, 24, 48, 0.85) !important;
+  border-color: rgba(56, 189, 248, 0.28) !important;
 }
 
 .hover\:bg-slate-800:hover,
@@ -203,10 +203,10 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════ */
-/* 🛡️ 护眼光学文字对比度系统 (纯净清晰 · 消除毛边光栅阴影 · 长时间注视最舒适)   */
+/* 🛡️ 护眼光学文字对比度系统 (温润纸白 · 消除高频过曝光晕 · 长时间注视最舒适)   */
 /* ══════════════════════════════════════════════════════════════════════════ */
 h1, h2, h3, .macos-title {
-  color: #f8fafc !important;
+  color: #f1f5f9 !important;
   text-shadow: none !important;
 }
 
