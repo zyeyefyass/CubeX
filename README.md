@@ -327,9 +327,9 @@
 
 | 发布文件名 | 适用平台与宿主底座 | 文件大小 | 架构与核心功能说明 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v5.7-ros-amd64.tar` | MikroTik RouterOS v7 (x86 软路由) | ~137.6 MB | RouterOS v7 原生未压缩容器镜像（支持 WinBox `/container/add` 拖入直装） |
-| `CubeX-Test-v5.7-ros-arm64.tar` | MikroTik RouterOS v7 (RB5009/CCR) | ~135.7 MB | RouterOS ARM64 原生容器镜像（适配 64位 ARM 硬路由） |
-| `CubeX-Test-v5.7-docker-amd64.tar.gz` | Docker / 爱快 / fnOS / NAS / PVE | ~106.8 MB | Docker 离线镜像直装导入压缩包（内置双核与全量105套规则） |
+| `CubeX-Test-v5.7-ros-amd64.tar` | MikroTik RouterOS v7 (x86 软路由) | ~103.1 MB | RouterOS v7 原生未压缩容器镜像（支持 WinBox `/container/add` 拖入直装） |
+| `CubeX-Test-v5.7-ros-arm64.tar` | MikroTik RouterOS v7 (RB5009/CCR) | ~103.2 MB | RouterOS ARM64 原生容器镜像（适配 64位 ARM 硬路由） |
+| `CubeX-Test-v5.7-docker-amd64.tar.gz` | Docker / 爱快 / fnOS / NAS / PVE | ~83.6 MB | Docker 离线镜像直装导入压缩包（内置双核与全量105套规则） |
 | `CubeX-Test-v5.7-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | ~80.0 MB | 完整独立开箱包（内含 cubexd、cubex、双核引擎及 105 套规则） |
 | `CubeX-Test-v5.7-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ~74.2 MB | ARM64 完整归档发布包 |
 | `cubexd-linux-amd64` | Linux amd64 | 19.32 MB | 纯 Go 单二进制控制面（带 Web UI，用于在线平滑热更新） |
