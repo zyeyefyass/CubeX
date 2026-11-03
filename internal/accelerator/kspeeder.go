@@ -27,13 +27,13 @@ type KSpeeder struct {
 
 // Config stores KSpeeder runtime settings and mirror definitions.
 type Config struct {
-	Enabled               bool           `json:"enabled"`
-	ActiveGitHubProxy     string         `json:"active_github_proxy"`
-	ActiveDockerMirror    string         `json:"active_docker_mirror"`
-	GitHubProxies         []ProxyNode    `json:"github_proxies"`
-	DockerMirrors         []ProxyNode    `json:"docker_mirrors"`
-	AutoSelectBest        bool           `json:"auto_select_best"`
-	LastTestedAt          string         `json:"last_tested_at"`
+	Enabled            bool        `json:"enabled"`
+	ActiveGitHubProxy  string      `json:"active_github_proxy"`
+	ActiveDockerMirror string      `json:"active_docker_mirror"`
+	GitHubProxies      []ProxyNode `json:"github_proxies"`
+	DockerMirrors      []ProxyNode `json:"docker_mirrors"`
+	AutoSelectBest     bool        `json:"auto_select_best"`
+	LastTestedAt       string      `json:"last_tested_at"`
 }
 
 // ProxyNode represents a single acceleration mirror or proxy endpoint.

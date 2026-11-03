@@ -1537,7 +1537,6 @@ echo "✅ [CubeX] 宿主机 WireGuard 规则与服务已彻底清理干净！"
 `
 }
 
-
 func probeLocalMetrics() (isContainer bool, containerType string, osName string, cores int, loadStr string, memUsed string, memTotal string, kernelVer string) {
 	cores = runtime.NumCPU()
 	if cores < 1 {
@@ -1895,7 +1894,6 @@ func (m *Manager) GetDockerRegistryMirror() (string, error) {
 	}
 	return "", nil
 }
-
 
 func wrapSudo(cmd, user, password string) string {
 	if user == "root" || user == "" {

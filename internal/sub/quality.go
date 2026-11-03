@@ -17,7 +17,7 @@ type SubQualityReport struct {
 	AvailabilityRate float64   `json:"availability_rate"` // e.g., 96.5%
 	MedianLatencyMs  int       `json:"median_latency_ms"`
 	AvgLatencyMs     int       `json:"avg_latency_ms"`
-	HealthGrade      string    `json:"health_grade"`       // "A+ 卓越", "A 优秀", "B 良好", "C 需关注"
+	HealthGrade      string    `json:"health_grade"` // "A+ 卓越", "A 优秀", "B 良好", "C 需关注"
 	OfflineNodeNames []string  `json:"offline_node_names"`
 	EvaluatedAt      time.Time `json:"evaluated_at"`
 }

@@ -1,9 +1,6 @@
 package engine
 
-
-
 import (
-
 	"bufio"
 
 	"bytes"
@@ -44,39 +41,30 @@ import (
 
 	"time"
 
-
-
 	"strconv"
 
 	"github.com/zyeyefyass/CubeX/internal/compiler"
 
 	"github.com/zyeyefyass/CubeX/internal/schema"
-
 )
-
-
 
 // SwitchResult contains statistics about the kernel switch.
 
 type SwitchResult struct {
+	FromEngine schema.EngineType `json:"from_engine"`
 
-	FromEngine      schema.EngineType `json:"from_engine"`
+	ToEngine schema.EngineType `json:"to_engine"`
 
-	ToEngine        schema.EngineType `json:"to_engine"`
+	ElapsedMs int64 `json:"elapsed_ms"`
 
-	ElapsedMs       int64             `json:"elapsed_ms"`
+	RestoredGroups int `json:"restored_groups"`
 
-	RestoredGroups  int               `json:"restored_groups"`
+	Success bool `json:"success"`
 
-	Success         bool              `json:"success"`
+	ErrorMessage string `json:"error_message,omitempty"`
 
-	ErrorMessage    string            `json:"error_message,omitempty"`
-
-	Timestamp       time.Time         `json:"timestamp"`
-
+	Timestamp time.Time `json:"timestamp"`
 }
-
-
 
 // Manager controls the dual-engine lifecycle, hot-swap state machine, and status.
 
@@ -84,41 +72,35 @@ type SwitchResult struct {
 
 type LogFunc func(level, module, msg string)
 
-
-
 type Manager struct {
+	mu sync.RWMutex
 
-	mu           sync.RWMutex
+	cbMu sync.RWMutex
 
-	cbMu         sync.RWMutex
+	ir *schema.ConfigIR
 
-	ir           *schema.ConfigIR
-
-	workDir      string
+	workDir string
 
 	activeEngine schema.EngineType
 
-	currentProc  *os.Process
+	currentProc *os.Process
 
-	procDone     chan struct{}
+	procDone chan struct{}
 
-	clashAPI     string
+	clashAPI string
 
-	httpClient   *http.Client
+	httpClient *http.Client
 
-	lastResult   *SwitchResult
+	lastResult *SwitchResult
 
-	statusCh     chan schema.EngineType
+	statusCh chan schema.EngineType
 
-	stopping     bool
+	stopping bool
 
-	crashCount   int
+	crashCount int
 
-	logCallback  LogFunc
-
+	logCallback LogFunc
 }
-
-
 
 // NewManager creates a dual-engine manager.
 
@@ -206,18 +188,17 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 
 	mgr := &Manager{
 
-		ir:           initialIR,
+		ir: initialIR,
 
-		workDir:      workDir,
+		workDir: workDir,
 
 		activeEngine: initialIR.Meta.ActiveEngine,
 
-		clashAPI:     apiAddr,
+		clashAPI: apiAddr,
 
-		httpClient:   &http.Client{Timeout: 3 * time.Second},
+		httpClient: &http.Client{Timeout: 3 * time.Second},
 
-		statusCh:     make(chan schema.EngineType, 10),
-
+		statusCh: make(chan schema.EngineType, 10),
 	}
 
 	mgr.StartSupervisor()
@@ -227,8 +208,6 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 	return mgr
 
 }
-
-
 
 // GetActiveEngine returns the currently active persona.
 
@@ -242,8 +221,6 @@ func (m *Manager) GetActiveEngine() schema.EngineType {
 
 }
 
-
-
 // SetLogCallback registers the receiver for real-time engine and core logs.
 
 func (m *Manager) SetLogCallback(fn LogFunc) {
@@ -255,8 +232,6 @@ func (m *Manager) SetLogCallback(fn LogFunc) {
 	m.logCallback = fn
 
 }
-
-
 
 func (m *Manager) log(level, module, msg string) {
 
@@ -273,10 +248,6 @@ func (m *Manager) log(level, module, msg string) {
 	}
 
 }
-
-
-
-
 
 // GetCurrentProcPID returns the OS PID of the running core process, or 0.
 
@@ -296,8 +267,6 @@ func (m *Manager) GetCurrentProcPID() int {
 
 }
 
-
-
 // GetCoreMemoryRSS returns the live real-time resident set size (RSS in MB) of the active engine process.
 
 func (m *Manager) GetCoreMemoryRSS() float64 {
@@ -309,8 +278,6 @@ func (m *Manager) GetCoreMemoryRSS() float64 {
 	eng := m.activeEngine
 
 	m.mu.RUnlock()
-
-
 
 	if proc != nil && proc.Pid > 0 && runtime.GOOS == "linux" {
 
@@ -356,10 +323,6 @@ func (m *Manager) GetCoreMemoryRSS() float64 {
 
 }
 
-
-
-
-
 // GetLastResult returns the telemetry of the most recent switch.
 
 func (m *Manager) GetLastResult() *SwitchResult {
@@ -372,8 +335,6 @@ func (m *Manager) GetLastResult() *SwitchResult {
 
 }
 
-
-
 // GetIR returns a reference to the active IR config.
 
 func (m *Manager) GetIR() *schema.ConfigIR {
@@ -385,8 +346,6 @@ func (m *Manager) GetIR() *schema.ConfigIR {
 	return m.ir
 
 }
-
-
 
 // UpdateIR safely updates the configuration IR in memory and persists to disk.
 
@@ -407,8 +366,6 @@ func (m *Manager) UpdateIR(newIR *schema.ConfigIR) {
 	}
 
 }
-
-
 
 // SnapshotClashState snapshots active selector node choices from 127.0.0.1:9090/proxies.
 
@@ -435,17 +392,13 @@ func (m *Manager) SnapshotClashState() map[string]string {
 				if body, err := io.ReadAll(resp.Body); err == nil {
 
 					var data struct {
-
 						Proxies map[string]struct {
-
 							Name string `json:"name"`
 
-							Now  string `json:"now"`
+							Now string `json:"now"`
 
 							Type string `json:"type"`
-
 						} `json:"proxies"`
-
 					}
 
 					if err := json.Unmarshal(body, &data); err == nil {
@@ -490,8 +443,6 @@ func (m *Manager) SnapshotClashState() map[string]string {
 
 }
 
-
-
 // RestoreClashState injects cached state into the newly launched core's Clash API concurrently.
 
 func (m *Manager) RestoreClashState(snapshot map[string]string) int {
@@ -507,8 +458,6 @@ func (m *Manager) RestoreClashState(snapshot map[string]string) int {
 	var restoredCount int64
 
 	sem := make(chan struct{}, 10)
-
-
 
 	for groupName, targetNode := range snapshot {
 
@@ -527,8 +476,6 @@ func (m *Manager) RestoreClashState(snapshot map[string]string) int {
 			defer wg.Done()
 
 			defer func() { <-sem }()
-
-
 
 			escapedGroup := url.PathEscape(grp)
 
@@ -580,8 +527,6 @@ func (m *Manager) RestoreClashState(snapshot map[string]string) int {
 
 }
 
-
-
 func (m *Manager) findBinary(binName string) string {
 
 	if runtime.GOOS == "windows" {
@@ -593,7 +538,6 @@ func (m *Manager) findBinary(binName string) string {
 			filepath.Join(m.workDir, "bin", "windows", binName+".exe"),
 
 			filepath.Join(m.workDir, binName+".exe"),
-
 		}
 
 		for _, c := range candidates {
@@ -619,7 +563,6 @@ func (m *Manager) findBinary(binName string) string {
 		filepath.Join(m.workDir, binName),
 
 		filepath.Join("/app/bin", binName),
-
 	}
 
 	for _, c := range candidates {
@@ -635,8 +578,6 @@ func (m *Manager) findBinary(binName string) string {
 	return binName
 
 }
-
-
 
 func getAdaptiveGOMEMLIMIT() string {
 
@@ -690,8 +631,6 @@ func getAdaptiveGOMEMLIMIT() string {
 
 }
 
-
-
 func (m *Manager) buildCmd(eng schema.EngineType, binPath, etcDir, configPath string) *exec.Cmd {
 
 	var cmd *exec.Cmd
@@ -708,8 +647,6 @@ func (m *Manager) buildCmd(eng schema.EngineType, binPath, etcDir, configPath st
 
 	}
 
-
-
 	// High-Performance Go Runtime & GC tuning:
 
 	// Adaptive GOMEMLIMIT ensures tight memory ceiling on routers and containers,
@@ -725,16 +662,11 @@ func (m *Manager) buildCmd(eng schema.EngineType, binPath, etcDir, configPath st
 		"GODEBUG=madvdontneed=1",
 
 		"ENABLE_DEPRECATED_OUTBOUND_DNS_RULE_ITEM=true",
-
 	)
 
 	return cmd
 
 }
-
-
-
-
 
 func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Reader) {
 
@@ -744,8 +676,6 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 
 	scanner.Buffer(buf, 64*1024)
 
-
-
 	module := "SINGBOX"
 
 	if eng == schema.EngineMihomo {
@@ -754,11 +684,7 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 
 	}
 
-
-
 	ansiStripRegex := regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07`)
-
-
 
 	for scanner.Scan() {
 
@@ -780,19 +706,13 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 
 		}
 
-
-
 		cleanLine := ansiStripRegex.ReplaceAllString(line, "")
-
-
 
 		level := "INFO"
 
 		lower := strings.ToLower(cleanLine)
 
-
-
-		// Benign socket cancellation & routine external network timeouts, client aborts, 
+		// Benign socket cancellation & routine external network timeouts, client aborts,
 
 		// connection resets, or container interface monitor events that should be categorized as DEBUG
 
@@ -834,8 +754,6 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 
 			strings.Contains(lower, "tls: first record does not look like a tls handshake")
 
-
-
 		isLifecycleInfo := strings.Contains(lower, "shutting down") ||
 
 			strings.Contains(lower, "shutdown complete") ||
@@ -845,8 +763,6 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 			strings.Contains(lower, "service reload") ||
 
 			strings.Contains(lower, "graceful shutdown")
-
-
 
 		if isBenign {
 
@@ -870,8 +786,6 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 
 		}
 
-
-
 		// Strip redundant timestamp & level prefix from sing-box lines
 
 		displayMsg := cleanLine
@@ -893,8 +807,6 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 			}
 
 		}
-
-
 
 		// Clean Mihomo logfmt envelope: time="..." level=... msg="..."
 
@@ -918,15 +830,11 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 
 		}
 
-
-
 		m.log(level, module, displayMsg)
 
 	}
 
 }
-
-
 
 func (m *Manager) startEngineProcess(eng schema.EngineType, cmd *exec.Cmd) error {
 
@@ -946,15 +854,11 @@ func (m *Manager) startEngineProcess(eng schema.EngineType, cmd *exec.Cmd) error
 
 	}
 
-
-
 	if err := cmd.Start(); err != nil {
 
 		return err
 
 	}
-
-
 
 	if stdoutPipe != nil {
 
@@ -971,8 +875,6 @@ func (m *Manager) startEngineProcess(eng schema.EngineType, cmd *exec.Cmd) error
 	return nil
 
 }
-
-
 
 func (m *Manager) dryRunCheck(eng schema.EngineType, binPath, etcDir, configPath string) error {
 
@@ -1024,8 +926,6 @@ func (m *Manager) dryRunCheck(eng schema.EngineType, binPath, etcDir, configPath
 
 }
 
-
-
 func (m *Manager) waitForPortsRelease(ports []int, timeout time.Duration) {
 
 	deadline := time.Now().Add(timeout)
@@ -1059,8 +959,6 @@ func (m *Manager) waitForPortsRelease(ports []int, timeout time.Duration) {
 	}
 
 }
-
-
 
 // Stop gracefully stops the active core and unbinds TUN interfaces before system shutdown.
 func (m *Manager) Stop() {
@@ -1149,8 +1047,6 @@ func (m *Manager) stopCurrentCore(binName string) {
 	}
 }
 
-
-
 func (m *Manager) probeCoreHealth(target schema.EngineType, maxWait time.Duration) bool {
 
 	deadline := time.Now().Add(maxWait)
@@ -1205,8 +1101,6 @@ func (m *Manager) probeCoreHealth(target schema.EngineType, maxWait time.Duratio
 
 }
 
-
-
 func (m *Manager) rollback(eng schema.EngineType, etcDir string, snapshot map[string]string) {
 
 	log.Printf("🛡️ [Engine] Initiating emergency self-healing rollback to %s...", eng)
@@ -1226,8 +1120,6 @@ func (m *Manager) rollback(eng schema.EngineType, etcDir string, snapshot map[st
 	binPath := m.findBinary(binName)
 
 	configPath := filepath.Join(etcDir, configFile)
-
-
 
 	cmd := m.buildCmd(eng, binPath, etcDir, configPath)
 
@@ -1271,8 +1163,6 @@ func (m *Manager) rollback(eng schema.EngineType, etcDir string, snapshot map[st
 
 }
 
-
-
 // SwitchEngine performs the Make-Before-Break Zero-Downtime Hot-Swap with health probe & auto-rollback.
 
 func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) {
@@ -1289,22 +1179,17 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	}()
 
-
-
 	startTime := time.Now()
 
 	fromEngine := m.activeEngine
-
-
 
 	res := &SwitchResult{
 
 		FromEngine: fromEngine,
 
-		ToEngine:   target,
+		ToEngine: target,
 
-		Timestamp:  startTime,
-
+		Timestamp: startTime,
 	}
 
 	if fromEngine == target {
@@ -1313,13 +1198,9 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 		m.log("INFO", "ENGINE", fmt.Sprintf("发起双核热切换: %s ➔ %s (Zero-Downtime 平滑容灾)", fromEngine, target))
 	}
 
-
-
 	// Step 1: Snapshot active selections
 
 	snapshot := m.SnapshotClashState()
-
-
 
 	// Step 2: Compile target config
 
@@ -1328,8 +1209,6 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	var configFileName string
 
 	var binName string
-
-
 
 	if target == schema.EngineMihomo {
 
@@ -1377,8 +1256,6 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	}
 
-
-
 	// Persist target config
 
 	etcDir := filepath.Join(m.workDir, "etc")
@@ -1399,11 +1276,7 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	}
 
-
-
 	binPath := m.findBinary(binName)
-
-
 
 	// Step 3: Stop old engine to release ports & TUN device
 
@@ -1416,8 +1289,6 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	}
 
 	m.stopCurrentCore(prevBin)
-
-
 
 	// Step 5: Start new engine
 
@@ -1443,8 +1314,6 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	}
 
-
-
 	m.currentProc = cmd.Process
 
 	done := make(chan struct{})
@@ -1462,8 +1331,6 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 		close(d)
 
 	}(cmd.Process, target, done)
-
-
 
 	// Step 6: Active Health Probe (verify Clash API and DNS readiness within 3s)
 
@@ -1489,15 +1356,11 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	}
 
-
-
 	// Step 7: Restore node states
 
 	restoredCount := m.RestoreClashState(snapshot)
 
 	res.RestoredGroups = restoredCount
-
-
 
 	m.activeEngine = target
 
@@ -1517,8 +1380,6 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 		m.log("INFO", "ENGINE", fmt.Sprintf("✅ 双核平滑切换完成: %s ➔ %s (耗时 %d ms, 恢复策略组: %d)", fromEngine, target, res.ElapsedMs, restoredCount))
 	}
 
-
-
 	select {
 
 	case m.statusCh <- target:
@@ -1527,17 +1388,11 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	}
 
-
-
 	go m.prewarmEngine(target)
-
-
 
 	return res, nil
 
 }
-
-
 
 // prewarmEngine pre-heats active proxy groups immediately after engine start
 
@@ -1546,8 +1401,6 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 func (m *Manager) prewarmEngine(target schema.EngineType) {
 
 	time.Sleep(150 * time.Millisecond)
-
-
 
 	// In Linux environments (PVE LXC / Container / Host), ensure Fake-IP route 198.18.0.0/15 dev cubex-tun is active
 
@@ -1564,8 +1417,6 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 		_ = exec.Command("ip", "route", "replace", "198.18.0.0/15", "dev", tunIface).Run()
 
 	}
-
-
 
 	warmGroups := []string{"🌐 国外流量", "YouTube", "Google", "AI"}
 
@@ -1603,8 +1454,6 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 
 		cancel()
 
-
-
 		// 2. Pre-warm entire group
 
 		uGroup := fmt.Sprintf("%s/group/%s/delay?url=%s&timeout=2000", m.clashAPI, escaped, url.QueryEscape(testURL))
@@ -1637,8 +1486,6 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 
 }
 
-
-
 // StartSupervisor runs the 2.5s periodic health heartbeat & auto-healing state machine
 
 func (m *Manager) StartSupervisor() {
@@ -1649,11 +1496,7 @@ func (m *Manager) StartSupervisor() {
 
 		defer ticker.Stop()
 
-
-
 		var healthyConsecutive int
-
-
 
 		for range ticker.C {
 
@@ -1667,15 +1510,11 @@ func (m *Manager) StartSupervisor() {
 
 			m.mu.Unlock()
 
-
-
 			if stopping || active == "" || proc == nil {
 
 				continue
 
 			}
-
-
 
 			// 1. Process Liveness Check
 
@@ -1691,8 +1530,6 @@ func (m *Manager) StartSupervisor() {
 
 			}
 
-
-
 			// 2. Health API Probe
 
 			if isAlive {
@@ -1700,8 +1537,6 @@ func (m *Manager) StartSupervisor() {
 				isAlive = m.probeCoreHealth(active, 1200*time.Millisecond)
 
 			}
-
-
 
 			if !isAlive {
 
@@ -1715,8 +1550,6 @@ func (m *Manager) StartSupervisor() {
 
 				m.mu.Unlock()
 
-
-
 				pid := 0
 
 				if proc != nil {
@@ -1729,8 +1562,6 @@ func (m *Manager) StartSupervisor() {
 
 				log.Printf("🚨 [Supervisor] Detected active engine %s (PID %d) unhealthy/crashed! (Crash count: %d)", active, pid, count)
 
-
-
 				standby := schema.EngineSingbox
 
 				if active == schema.EngineSingbox {
@@ -1738,8 +1569,6 @@ func (m *Manager) StartSupervisor() {
 					standby = schema.EngineMihomo
 
 				}
-
-
 
 				if count == 1 {
 
@@ -1827,10 +1656,6 @@ func (m *Manager) StartSupervisor() {
 
 }
 
-
-
-
-
 func (m *Manager) saveLastKnownGoodConfig() {
 
 	if m.workDir == "" {
@@ -1851,8 +1676,6 @@ func (m *Manager) saveLastKnownGoodConfig() {
 
 }
 
-
-
 // GetLastKnownGoodTime returns when the last known good snapshot was persisted.
 
 func (m *Manager) GetLastKnownGoodTime() string {
@@ -1869,8 +1692,6 @@ func (m *Manager) GetLastKnownGoodTime() string {
 
 }
 
-
-
 // PatrolCircuitBreaker audits all Selector groups in Clash API (127.0.0.1:9090).
 
 // If any group is statically locked to a single concrete node that has timed out (Delay <= 0)
@@ -1884,8 +1705,6 @@ func (m *Manager) PatrolCircuitBreaker() int {
 	ctx, cancel := context.WithTimeout(context.Background(), 1200*time.Millisecond)
 
 	defer cancel()
-
-
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 
@@ -1901,8 +1720,6 @@ func (m *Manager) PatrolCircuitBreaker() int {
 
 	}
 
-
-
 	resp, err := m.httpClient.Do(req)
 
 	if err != nil || resp.StatusCode != http.StatusOK {
@@ -1913,8 +1730,6 @@ func (m *Manager) PatrolCircuitBreaker() int {
 
 	defer resp.Body.Close()
 
-
-
 	body, err := io.ReadAll(resp.Body)
 
 	if err != nil {
@@ -1923,28 +1738,20 @@ func (m *Manager) PatrolCircuitBreaker() int {
 
 	}
 
-
-
 	var data struct {
-
 		Proxies map[string]struct {
+			Name string `json:"name"`
 
-			Name    string   `json:"name"`
+			Type string `json:"type"`
 
-			Type    string   `json:"type"`
+			Now string `json:"now"`
 
-			Now     string   `json:"now"`
-
-			All     []string `json:"all"`
+			All []string `json:"all"`
 
 			History []struct {
-
 				Delay int `json:"delay"`
-
 			} `json:"history"`
-
 		} `json:"proxies"`
-
 	}
 
 	if err := json.Unmarshal(body, &data); err != nil {
@@ -1953,11 +1760,7 @@ func (m *Manager) PatrolCircuitBreaker() int {
 
 	}
 
-
-
 	healedCount := 0
-
-
 
 	isSafeTarget := func(name string) bool {
 
@@ -1967,8 +1770,6 @@ func (m *Manager) PatrolCircuitBreaker() int {
 
 	}
 
-
-
 	for grpName, grp := range data.Proxies {
 
 		if grp.Type != "Selector" || grp.Now == "" || isSafeTarget(grp.Now) {
@@ -1976,8 +1777,6 @@ func (m *Manager) PatrolCircuitBreaker() int {
 			continue
 
 		}
-
-
 
 		// grp.Now is a single physical node (e.g. "[HHost-JP] xtls-reality"). Check its health.
 
@@ -1988,8 +1787,6 @@ func (m *Manager) PatrolCircuitBreaker() int {
 			continue
 
 		}
-
-
 
 		isDead := false
 
@@ -2006,8 +1803,6 @@ func (m *Manager) PatrolCircuitBreaker() int {
 			}
 
 		}
-
-
 
 		if isDead {
 
@@ -2059,8 +1854,6 @@ func (m *Manager) PatrolCircuitBreaker() int {
 
 			}
 
-
-
 			if fallbackTarget != "" && fallbackTarget != grp.Now {
 
 				putURL := fmt.Sprintf("%s/proxies/%s", m.clashAPI, url.PathEscape(grpName))
@@ -2109,8 +1902,6 @@ func (m *Manager) PatrolCircuitBreaker() int {
 
 						m.mu.Unlock()
 
-
-
 						healedCount++
 
 						log.Printf("🛡️ [CircuitBreaker] 策略组 [%s] 节点 [%s] 延迟异常(%dms)，已触发智能熔断回退至 [%s]！", grpName, grp.Now, lastDelay, fallbackTarget)
@@ -2127,13 +1918,9 @@ func (m *Manager) PatrolCircuitBreaker() int {
 
 	}
 
-
-
 	return healedCount
 
 }
-
-
 
 // StartEndToEndWatchdog periodically verifies actual outbound data flow through the proxy.
 
@@ -2149,11 +1936,7 @@ func (m *Manager) StartEndToEndWatchdog() {
 
 		defer ticker.Stop()
 
-
-
 		var failCount int
-
-
 
 		for range ticker.C {
 
@@ -2167,15 +1950,11 @@ func (m *Manager) StartEndToEndWatchdog() {
 
 			m.mu.RUnlock()
 
-
-
 			if stopping || active == "" || ir == nil || len(ir.Proxies) == 0 {
 
 				continue
 
 			}
-
-
 
 			proxyPort := 7890
 
@@ -2185,8 +1964,6 @@ func (m *Manager) StartEndToEndWatchdog() {
 
 			}
 
-
-
 			proxyURL, err := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", proxyPort))
 
 			if err != nil {
@@ -2195,8 +1972,6 @@ func (m *Manager) StartEndToEndWatchdog() {
 
 			}
 
-
-
 			transport := &http.Transport{
 
 				Proxy: http.ProxyURL(proxyURL),
@@ -2204,24 +1979,19 @@ func (m *Manager) StartEndToEndWatchdog() {
 				DialContext: (&net.Dialer{
 
 					Timeout: 4 * time.Second,
-
 				}).DialContext,
 
 				ResponseHeaderTimeout: 4 * time.Second,
 
-				DisableKeepAlives:     true,
-
+				DisableKeepAlives: true,
 			}
 
 			client := &http.Client{
 
 				Transport: transport,
 
-				Timeout:   5 * time.Second,
-
+				Timeout: 5 * time.Second,
 			}
-
-
 
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
@@ -2248,8 +2018,6 @@ func (m *Manager) StartEndToEndWatchdog() {
 			}
 
 			cancel()
-
-
 
 			if ok {
 
@@ -2296,4 +2064,3 @@ func (m *Manager) StartEndToEndWatchdog() {
 	}()
 
 }
-

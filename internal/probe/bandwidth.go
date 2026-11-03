@@ -31,25 +31,25 @@ type BandwidthResult struct {
 
 // QuotaConfig defines safety boundaries to prevent depleting user subscription traffic.
 type QuotaConfig struct {
-	MaxChunkBytes    int64 // Max bytes to download per test (e.g., 2MB)
-	DailyQuotaBytes  int64 // Max total bytes per 24 hours (e.g., 50MB)
-	CacheTTL         time.Duration
+	MaxChunkBytes   int64 // Max bytes to download per test (e.g., 2MB)
+	DailyQuotaBytes int64 // Max total bytes per 24 hours (e.g., 50MB)
+	CacheTTL        time.Duration
 }
 
 // DefaultQuotaConfig provides conservative defaults.
 var DefaultQuotaConfig = QuotaConfig{
-	MaxChunkBytes:   2 * 1024 * 1024,      // 2 MB chunk
-	DailyQuotaBytes: 50 * 1024 * 1024,     // 50 MB / day
-	CacheTTL:        6 * time.Hour,        // Reuse results for 6 hours
+	MaxChunkBytes:   2 * 1024 * 1024,  // 2 MB chunk
+	DailyQuotaBytes: 50 * 1024 * 1024, // 50 MB / day
+	CacheTTL:        6 * time.Hour,    // Reuse results for 6 hours
 }
 
 // BandwidthProber safely measures downstream throughput through a proxy.
 type BandwidthProber struct {
-	mu          sync.RWMutex
-	cfg         QuotaConfig
-	dailyUsage  int64
-	lastReset   time.Time
-	cache       map[string]BandwidthResult // key: proxy identifier
+	mu         sync.RWMutex
+	cfg        QuotaConfig
+	dailyUsage int64
+	lastReset  time.Time
+	cache      map[string]BandwidthResult // key: proxy identifier
 }
 
 // NewBandwidthProber creates an initialized prober instance.

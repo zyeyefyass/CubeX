@@ -14,7 +14,7 @@ var ValidSSCiphers = map[string]bool{
 	"xchacha20-ietf-poly1305": true,
 	"2022-blake3-aes-128-gcm": true, "2022-blake3-aes-256-gcm": true,
 	"2022-blake3-chacha20-poly1305": true,
-	"none": true, "dummy": true,
+	"none":                          true, "dummy": true,
 }
 
 // cleanSingleSSKey decodes and validates a single base64 key against expectedLen.

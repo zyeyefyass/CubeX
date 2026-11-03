@@ -13,16 +13,16 @@ import (
 
 // IPQualityResult contains intelligence on the outbound node's IP address.
 type IPQualityResult struct {
-	IP          string   `json:"ip"`
-	Country     string   `json:"country"`
-	City        string   `json:"city"`
-	ASN         string   `json:"asn"`
-	Org         string   `json:"org"`
-	IPType      string   `json:"ip_type"`     // "Residential" (原生住宅), "Datacenter" (商业机房), "Business" (企业专线)
-	RiskLevel   string   `json:"risk_level"`  // "Clean" (极净), "Low", "Medium", "High"
-	RiskScore   int      `json:"risk_score"`  // 0 - 100 (0=cleanest, 100=blacklisted)
-	Features    []string `json:"features"`    // ["Google Gemini", "OpenAI", "GitHub Copilot", "4K Streaming"]
-	TestedAt    time.Time`json:"tested_at"`
+	IP        string    `json:"ip"`
+	Country   string    `json:"country"`
+	City      string    `json:"city"`
+	ASN       string    `json:"asn"`
+	Org       string    `json:"org"`
+	IPType    string    `json:"ip_type"`    // "Residential" (原生住宅), "Datacenter" (商业机房), "Business" (企业专线)
+	RiskLevel string    `json:"risk_level"` // "Clean" (极净), "Low", "Medium", "High"
+	RiskScore int       `json:"risk_score"` // 0 - 100 (0=cleanest, 100=blacklisted)
+	Features  []string  `json:"features"`   // ["Google Gemini", "OpenAI", "GitHub Copilot", "4K Streaming"]
+	TestedAt  time.Time `json:"tested_at"`
 }
 
 // IPQualityProber probes IP intelligence and capability matrix.
@@ -74,13 +74,13 @@ func (p *IPQualityProber) Inspect(ctx context.Context, proxyURL string) (*IPQual
 	defer resp.Body.Close()
 
 	var geo struct {
-		IP           string  `json:"ip"`
-		Country      string  `json:"country"`
-		City         string  `json:"city"`
-		ASN          int     `json:"asn"`
-		Org          string  `json:"organization"`
-		ISP          string  `json:"isp"`
-		ASNOrg       string  `json:"asn_organization"`
+		IP      string `json:"ip"`
+		Country string `json:"country"`
+		City    string `json:"city"`
+		ASN     int    `json:"asn"`
+		Org     string `json:"organization"`
+		ISP     string `json:"isp"`
+		ASNOrg  string `json:"asn_organization"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&geo); err != nil {

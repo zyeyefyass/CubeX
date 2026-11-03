@@ -1,7 +1,5 @@
 package main
 
-
-
 import (
 	"context"
 	"math"
@@ -47,8 +45,6 @@ import (
 
 	"time"
 
-
-
 	"github.com/zyeyefyass/CubeX/internal/accelerator"
 
 	"github.com/zyeyefyass/CubeX/internal/adblock"
@@ -82,54 +78,39 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/sub"
 
 	"github.com/zyeyefyass/CubeX/internal/webrtc"
-
 )
-
-
 
 var (
-
-	version = "Test v5.5"
+	version = "Test v5.6"
 
 	startTime = time.Now()
-
 )
-
-
 
 // LogEntry represents a single timestamped diagnostic telemetry event.
 
 type LogEntry struct {
-
-	ID        int64  `json:"id"`
+	ID int64 `json:"id"`
 
 	Timestamp string `json:"time"`
 
-	Level     string `json:"level"`  // INFO, WARN, ERROR, DEBUG
+	Level string `json:"level"` // INFO, WARN, ERROR, DEBUG
 
-	Module    string `json:"module"` // ROS, ENGINE, ROUTING, SECURITY, DNSREWRITE, DOCKER
+	Module string `json:"module"` // ROS, ENGINE, ROUTING, SECURITY, DNSREWRITE, DOCKER
 
-	Message   string `json:"msg"`
-
+	Message string `json:"msg"`
 }
-
-
 
 // RingLogBuffer is a thread-safe in-memory ring buffer with strict capacity gating (<2MB RAM limit).
 
 type RingLogBuffer struct {
-
-	mu      sync.RWMutex
+	mu sync.RWMutex
 
 	entries []LogEntry
 
 	maxSize int
 
 	counter int64
-
 }
-
-
 
 func NewRingLogBuffer(maxSize int) *RingLogBuffer {
 
@@ -144,7 +125,6 @@ func NewRingLogBuffer(maxSize int) *RingLogBuffer {
 		entries: make([]LogEntry, 0, maxSize),
 
 		maxSize: maxSize,
-
 	}
 
 	buf.Add("INFO", "CORE", "CubeX 宿主共生零感网络系统守护进程已成功启动")
@@ -165,8 +145,6 @@ func NewRingLogBuffer(maxSize int) *RingLogBuffer {
 
 }
 
-
-
 func (b *RingLogBuffer) Add(level, module, msg string) {
 
 	b.mu.Lock()
@@ -177,16 +155,15 @@ func (b *RingLogBuffer) Add(level, module, msg string) {
 
 	entry := LogEntry{
 
-		ID:        b.counter,
+		ID: b.counter,
 
 		Timestamp: time.Now().Format("15:04:05"),
 
-		Level:     level,
+		Level: level,
 
-		Module:    module,
+		Module: module,
 
-		Message:   msg,
-
+		Message: msg,
 	}
 
 	if len(b.entries) >= b.maxSize {
@@ -198,8 +175,6 @@ func (b *RingLogBuffer) Add(level, module, msg string) {
 	b.entries = append(b.entries, entry)
 
 }
-
-
 
 func (b *RingLogBuffer) GetLogs(limit int) []LogEntry {
 
@@ -221,8 +196,6 @@ func (b *RingLogBuffer) GetLogs(limit int) []LogEntry {
 
 }
 
-
-
 func (b *RingLogBuffer) Clear() {
 
 	b.mu.Lock()
@@ -237,43 +210,32 @@ func (b *RingLogBuffer) Clear() {
 
 	b.entries = append(b.entries, LogEntry{
 
-		ID:        b.counter,
+		ID: b.counter,
 
 		Timestamp: time.Now().Format("15:04:05"),
 
-		Level:     "INFO",
+		Level: "INFO",
 
-		Module:    "SYS",
+		Module: "SYS",
 
-		Message:   "环形实时日志缓冲区已手动清空",
-
+		Message: "环形实时日志缓冲区已手动清空",
 	})
 
 }
 
-
-
 // LogBufferWriter captures standard log output and streams it into the ring log buffer.
 
 type LogBufferWriter struct {
-
 	buf *RingLogBuffer
-
 }
 
-
-
 var ansiStripRegexGlobal = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07`)
-
-
 
 func stripANSILog(s string) string {
 
 	return ansiStripRegexGlobal.ReplaceAllString(s, "")
 
 }
-
-
 
 func (w *LogBufferWriter) Write(p []byte) (n int, err error) {
 
@@ -286,8 +248,6 @@ func (w *LogBufferWriter) Write(p []byte) (n int, err error) {
 		return n, nil
 
 	}
-
-
 
 	for _, line := range strings.Split(raw, "\n") {
 
@@ -306,8 +266,6 @@ func (w *LogBufferWriter) Write(p []byte) (n int, err error) {
 			msg = strings.TrimSpace(msg[20:])
 
 		}
-
-
 
 		module := "SYS"
 
@@ -328,8 +286,6 @@ func (w *LogBufferWriter) Write(p []byte) (n int, err error) {
 			}
 
 		}
-
-
 
 		level := "INFO"
 
@@ -373,8 +329,6 @@ func (w *LogBufferWriter) Write(p []byte) (n int, err error) {
 
 			strings.Contains(lower, "graceful shutdown")
 
-
-
 		if isBenign {
 
 			continue
@@ -393,8 +347,6 @@ func (w *LogBufferWriter) Write(p []byte) (n int, err error) {
 
 		}
 
-
-
 		w.buf.Add(level, module, msg)
 
 	}
@@ -402,8 +354,6 @@ func (w *LogBufferWriter) Write(p []byte) (n int, err error) {
 	return n, nil
 
 }
-
-
 
 type delayCacheEntry struct {
 	result   NodeDelayResult
@@ -416,84 +366,80 @@ type delayFlightCall struct {
 }
 
 type Server struct {
+	workDir string
 
-	workDir       string
+	ir *schema.ConfigIR
 
-	ir            *schema.ConfigIR
+	engMgr *engine.Manager
 
-	engMgr        *engine.Manager
+	netCtrl *netstack.Controller
 
-	netCtrl       *netstack.Controller
+	rosClient *netstack.RosClient
 
-	rosClient     *netstack.RosClient
+	subCenter *sub.Center
 
-	subCenter     *sub.Center
-
-	adblockMgr    *adblock.Manager
+	adblockMgr *adblock.Manager
 
 	dnsRewriteMgr *dnsrewrite.Manager
 
-	backupMgr     *backup.Manager
+	backupMgr *backup.Manager
 
-	aiCopilot     *ai.Copilot
+	aiCopilot *ai.Copilot
 
-	hostMgr       *host.Manager
+	hostMgr *host.Manager
 
-	rosMgr        *ros.Manager
+	rosMgr *ros.Manager
 
-	devMgr        *device.Manager
+	devMgr *device.Manager
 
-	kspeeder      *accelerator.KSpeeder
+	kspeeder *accelerator.KSpeeder
 
-	logBuffer     *RingLogBuffer
+	logBuffer *RingLogBuffer
 
-	liveUpSpeed   atomic.Int64
+	liveUpSpeed atomic.Int64
 
 	liveDownSpeed atomic.Int64
 
-	httpClient    *http.Client
+	httpClient *http.Client
 
-	trafficMu             sync.Mutex
+	trafficMu sync.Mutex
 
-	trafficMonth          string
+	trafficMonth string
 
-	monthOutboundBytes    int64
+	monthOutboundBytes int64
 
-	monthInboundBytes     int64
+	monthInboundBytes int64
 
 	// In-Flight Singleflight & Multi-Strategy Group Delay Cache
-	delayCacheMu          sync.RWMutex
-	delayCache            map[string]delayCacheEntry
-	delaySFMu             sync.Mutex
-	delaySFGroup          map[string]*delayFlightCall
+	delayCacheMu sync.RWMutex
+	delayCache   map[string]delayCacheEntry
+	delaySFMu    sync.Mutex
+	delaySFGroup map[string]*delayFlightCall
 
 	lastCoreOutboundBytes int64
 
-	lastCoreInboundBytes  int64
+	lastCoreInboundBytes int64
 
-	lastTrafficDiskSave   time.Time
+	lastTrafficDiskSave time.Time
 
-	lastSavedOutBytes     int64
+	lastSavedOutBytes int64
 
-	mcpServer             *mcp.Server
+	mcpServer *mcp.Server
 
-	smartPingMutex       sync.RWMutex
+	smartPingMutex sync.RWMutex
 
-	smartPingEnabled     bool
+	smartPingEnabled bool
 
 	smartPingIntervalMin int
 
-	smartPingLastCheck   int64
+	smartPingLastCheck int64
 
-	smartPingFailovers   int
+	smartPingFailovers int
 
-	smartPingLastLog     string
+	smartPingLastLog string
 
 	smartPingGroupHealth []SmartPingGroupState
-
 }
-
-
 
 func configureAdaptiveMemoryLimit() {
 
@@ -502,8 +448,6 @@ func configureAdaptiveMemoryLimit() {
 	limit := int64(32 * 1024 * 1024)
 
 	gcPercent := 50
-
-
 
 	// Check total system RAM on Linux via /proc/meminfo
 
@@ -566,8 +510,6 @@ func configureAdaptiveMemoryLimit() {
 	log.Printf("🛡️ [Supervisor] Adaptive GOMEMLIMIT configured: %d MiB (GCPercent=%d)\n", limit/(1024*1024), gcPercent)
 
 }
-
-
 
 // safeRecover provides panic interception and stack tracing for all asynchronous goroutines.
 func safeRecover(name string) {
@@ -643,8 +585,6 @@ func main() {
 
 	configureAdaptiveMemoryLimit()
 
-
-
 	// Periodic OOM Defense & Memory Scavenger: Reclaims idle heap pages back to OS
 
 	go func() {
@@ -663,8 +603,6 @@ func main() {
 
 	}()
 
-
-
 	listenAddr := flag.String("listen", ":2026", "Listen address (e.g. :2026 or 0.0.0.0:2026)")
 
 	workDir := flag.String("dir", "", "Working directory (defaults to current dir or /opt/CubeX)")
@@ -677,8 +615,6 @@ func main() {
 	} else if envPort := os.Getenv("PORT"); envPort != "" && *listenAddr == ":2026" {
 		*listenAddr = ":" + envPort
 	}
-
-
 
 	dir := *workDir
 
@@ -708,8 +644,6 @@ func main() {
 
 	_ = os.MkdirAll(filepath.Join(dir, "data"), 0755)
 
-
-
 	// Ensure kernel forwarding and NAT Masquerade on Linux (veth / gateway mode)
 
 	if runtime.GOOS == "linux" {
@@ -718,25 +652,17 @@ func main() {
 
 	}
 
-
-
 	// Initialize Universal IR
 
 	cfgIR := schema.NewDefaultIR()
-
-
 
 	// Engine Manager
 
 	engMgr := engine.NewManager(dir, cfgIR)
 
-
-
 	// Netstack Controller
 
 	netCtrl := netstack.NewController(cfgIR.Network.TProxyPort, cfgIR.Network.DNSPort, cfgIR.Network.TunInterface)
-
-
 
 	// ROS Client with dynamic gateway and outbound IP discovery (Rule 7 Zero-Hardcode)
 	detectedGW := detectDefaultGateway()
@@ -747,8 +673,6 @@ func main() {
 		Username: "admin",
 	})
 
-
-
 	// Sub Center
 
 	subCenter := sub.NewCenter(func() *schema.ConfigIR {
@@ -757,19 +681,13 @@ func main() {
 
 	})
 
-
-
 	// Host Base Manager
 
 	hostMgr := host.NewManager(dir)
 
-
-
 	// ROS Manager
 
 	rosMgr := ros.NewManager(dir)
-
-
 
 	// Adblock & Domain Filter Manager
 
@@ -783,8 +701,6 @@ func main() {
 
 	cfgIR.AdBlockWhitelist = filterCfg.WhitelistDomains
 
-
-
 	// DNS Rewrite Manager (CNAME & Static A Mapping)
 
 	dnsRewriteMgr := dnsrewrite.NewManager(dir)
@@ -795,13 +711,9 @@ func main() {
 
 	cfgIR.DNSRewrites = rwCfg.Rules
 
-
-
 	// Backup Time Machine Manager
 
 	backupMgr := backup.NewManager(dir)
-
-
 
 	// AI Copilot
 
@@ -813,19 +725,13 @@ func main() {
 
 	})
 
-
-
 	// LAN Device Discovery & Alias Manager
 
 	devMgr := device.NewManager(dir, rosMgr, fmt.Sprintf("http://127.0.0.1:%d", cfgIR.Network.ClashAPIPort))
 
-
-
 	// KSpeeder Engine (GitHub CDN & Docker Registry Acceleration)
 
 	kspeeder := accelerator.NewKSpeeder(dir)
-
-
 
 	// Ring Log Buffer (Fixed 500 entries FIFO, strict RAM <2MB)
 
@@ -845,61 +751,56 @@ func main() {
 
 	})
 
-
-
 	srv := &Server{
 
-		workDir:       dir,
+		workDir: dir,
 
-		ir:            cfgIR,
+		ir: cfgIR,
 
-		engMgr:        engMgr,
+		engMgr: engMgr,
 
-		netCtrl:       netCtrl,
+		netCtrl: netCtrl,
 
-		rosClient:     rosClient,
+		rosClient: rosClient,
 
-		subCenter:     subCenter,
+		subCenter: subCenter,
 
-		adblockMgr:    adblockMgr,
+		adblockMgr: adblockMgr,
 
 		dnsRewriteMgr: dnsRewriteMgr,
 
-		backupMgr:     backupMgr,
+		backupMgr: backupMgr,
 
-		aiCopilot:     aiCopilot,
+		aiCopilot: aiCopilot,
 
-		hostMgr:       hostMgr,
+		hostMgr: hostMgr,
 
-		rosMgr:        rosMgr,
+		rosMgr: rosMgr,
 
-		devMgr:        devMgr,
+		devMgr: devMgr,
 
-		kspeeder:      kspeeder,
+		kspeeder: kspeeder,
 
-		logBuffer:     logBuffer,
-		delayCache:    make(map[string]delayCacheEntry),
-		delaySFGroup:  make(map[string]*delayFlightCall),
+		logBuffer:    logBuffer,
+		delayCache:   make(map[string]delayCacheEntry),
+		delaySFGroup: make(map[string]*delayFlightCall),
 
 		httpClient: &http.Client{
 
 			Transport: &http.Transport{
 
-				MaxIdleConns:        20,
+				MaxIdleConns: 20,
 
 				MaxIdleConnsPerHost: 10,
 
-				IdleConnTimeout:     30 * time.Second,
-
+				IdleConnTimeout: 30 * time.Second,
 			},
 
 			Timeout: 2 * time.Second,
-
 		},
-
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v5.5")
+	srv.mcpServer = mcp.NewServer(srv, "Test v5.6")
 
 	srv.initTrafficState()
 
@@ -918,11 +819,7 @@ func main() {
 
 	})
 
-
-
 	mux := http.NewServeMux()
-
-
 
 	// 1. Subscription Routes
 
@@ -935,8 +832,6 @@ func main() {
 	mux.HandleFunc("/sub/mihomo", subCenter.HandleClash)
 
 	mux.HandleFunc("/sub/shadowrocket", subCenter.HandleShadowrocket)
-
-
 
 	// 2. REST API v1
 
@@ -1041,8 +936,6 @@ func main() {
 
 	mux.HandleFunc("/api/v1/ros/conntrack/clean", srv.handleRosConntrackClean)
 
-
-
 	// 5. Host Base Probing & Firewall Linkage
 
 	mux.HandleFunc("/api/v1/host/info", srv.handleHostInfo)
@@ -1055,8 +948,6 @@ func main() {
 
 	mux.HandleFunc("/api/v1/host/firewall/script", srv.handleHostFirewallScript)
 
-
-
 	// 6. RouterOS v7 REST API Inspection & 1-Click Linkage
 
 	mux.HandleFunc("/api/v1/ros/inspect", srv.handleROSInspect)
@@ -1064,8 +955,6 @@ func main() {
 	mux.HandleFunc("/api/v1/ros/apply", srv.handleROSApply)
 
 	mux.HandleFunc("/api/v1/ros/config", srv.handleROSConfig)
-
-
 
 	// 7. 4-Tier Version Overview & Upgrades (CubeX, Cores, GeoData, Host)
 
@@ -1080,8 +969,6 @@ func main() {
 	mux.HandleFunc("/api/v1/host/upgrade/check", srv.handleHostUpgradeCheck)
 
 	mux.HandleFunc("/api/v1/host/upgrade/execute", srv.handleHostUpgradeExecute)
-
-
 
 	// 8. Adblock & Domain Filter Hub
 
@@ -1105,8 +992,6 @@ func main() {
 
 	mux.HandleFunc("/api/v1/adblock/whitelist/delete", srv.handleAdblockWhitelistDelete)
 
-
-
 	// 8.1. DNS Rewrite (CNAME & Static A Record Mapping)
 
 	mux.HandleFunc("/api/v1/dns/rewrite/config", srv.handleDNSRewriteConfig)
@@ -1123,15 +1008,11 @@ func main() {
 
 	mux.HandleFunc("/api/v1/dns/rewrite/reset", srv.handleDNSRewriteReset)
 
-
-
 	// 9. Time Machine Backup & Restore
 
 	mux.HandleFunc("/api/v1/backup/export", srv.handleBackupExport)
 
 	mux.HandleFunc("/api/v1/backup/import", srv.handleBackupImport)
-
-
 
 	// 10. AI Copilot
 
@@ -1140,8 +1021,6 @@ func main() {
 	mux.HandleFunc("/api/v1/ai/diagnose", srv.handleAIDiagnose)
 	mux.HandleFunc("/api/v1/system/heal", srv.handleSystemHeal)
 	mux.HandleFunc("/api/v1/failover/trigger", srv.handleSmartPingTrigger)
-
-
 
 	// 10.1 KSpeeder Engine (GitHub CDN & Docker Mirrors)
 
@@ -1159,16 +1038,12 @@ func main() {
 
 	mux.HandleFunc("/api/v1/accelerator/host-docker-status", srv.handleKSpeederHostRegistryStatus)
 
-
-
 	// 10.2 Realtime Telemetry & Traffic Speed (Overview Module)
 
 	mux.HandleFunc("/api/v1/telemetry/traffic", srv.handleTelemetryTraffic)
 
 	// 10.3 Native Model Context Protocol (MCP Server JSON-RPC 2.0 / SSE)
 	mux.Handle("/api/v1/mcp", srv.mcpServer)
-
-
 
 	// 11. LAN Devices & Per-Device Policy Matrix
 
@@ -1177,8 +1052,6 @@ func main() {
 	mux.HandleFunc("/api/v1/devices/alias", srv.handleDeviceAlias)
 
 	mux.HandleFunc("/api/v1/devices/policy", srv.handleDevicePolicy)
-
-
 
 	// 12. Host Unified Auto-Setup & Compatible Aliases
 
@@ -1212,8 +1085,6 @@ func main() {
 
 	mux.HandleFunc("/api/v1/rules/trace", srv.handleRulesTrace)
 
-
-
 	// 13. Ring Log Terminal & Desensitized Diagnostic Package Export
 
 	mux.HandleFunc("/api/v1/system/logs", srv.handleSystemLogs)
@@ -1224,8 +1095,6 @@ func main() {
 
 	mux.HandleFunc("/api/v1/health/radar", srv.handleHealthRadar)
 	mux.HandleFunc("/api/v1/system/failover/drill", srv.handleFailoverDrill)
-
-
 
 	// 3. Static Web UI (Embedded with SPA fallback & strict anti-caching for HTML)
 
@@ -1261,8 +1130,6 @@ func main() {
 
 	})
 
-
-
 	// Automatically boot the active engine immediately on daemon startup (Zero-wait cold boot)
 
 	go func() {
@@ -1294,18 +1161,25 @@ func main() {
 				}
 
 				if purged := rosMgr.PurgeStaleFakeIPConnections(); purged > 0 {
-
 					log.Printf("🧹 [ROS] Auto-boot: Purged %d stale conntrack entries\n", purged)
-
 				}
-
+				// 🛡️ 24H Autonomous Self-Healing Watchdog (Checks ROS table & routes every 30s)
+				ticker := time.NewTicker(30 * time.Second)
+				defer ticker.Stop()
+				for range ticker.C {
+					if rosMgr.IsConnected() {
+						rep, err := rosMgr.InspectRouting()
+						if err == nil && rep != nil && !rep.AllOK {
+							log.Printf("⚠️ [ROS Watchdog] Route anomaly detected (AllOK=false). Auto-rehealing...")
+							_ = rosMgr.RestoreRulesAfterBoot()
+						}
+					}
+				}
 			}()
 
 		}
 
 	}()
-
-
 
 	ln, actualAddr, err := bindWithFallback(*listenAddr)
 	if err != nil {
@@ -1332,8 +1206,6 @@ func main() {
 	}
 
 }
-
-
 
 // bindWithFallback attempts to bind listen address, and automatically auto-increments to next free ports (2027..2036) if 2026 is occupied.
 func bindWithFallback(initialAddr string) (net.Listener, string, error) {
@@ -1375,7 +1247,6 @@ func bindWithFallback(initialAddr string) (net.Listener, string, error) {
 
 	return nil, initialAddr, fmt.Errorf("端口 %s 及其后 10 个端口均已被占用: %w", initialAddr, err)
 }
-
 
 type gzipResponseWriter struct {
 	http.ResponseWriter
@@ -1449,8 +1320,6 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 }
 
-
-
 // getCgroupMemoryMB reads host cgroup memory usage for the container (standard in Docker, Podman, PVE LXC, fnOS).
 
 func getCgroupMemoryMB() float64 {
@@ -1474,7 +1343,6 @@ func getCgroupMemoryMB() float64 {
 		"/sys/fs/cgroup/memory/memory.usage_in_bytes",
 
 		"/sys/fs/cgroup/memory.usage_in_bytes",
-
 	} {
 
 		if data, err := os.ReadFile(p); err == nil {
@@ -1493,8 +1361,6 @@ func getCgroupMemoryMB() float64 {
 
 }
 
-
-
 func (s *Server) getLiveMemoryMetrics() (appRSS float64, coreRSS float64, totalOverhead float64) {
 
 	appRSS = getProcessRSS()
@@ -1509,8 +1375,6 @@ func (s *Server) getLiveMemoryMetrics() (appRSS float64, coreRSS float64, totalO
 
 	}
 
-
-
 	// Total resident overhead is strictly the sum of active proxy engine core RSS and cubexd control plane RSS
 
 	totalOverhead = appRSS + coreRSS
@@ -1519,85 +1383,74 @@ func (s *Server) getLiveMemoryMetrics() (appRSS float64, coreRSS float64, totalO
 
 }
 
-
-
 func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 
 	var m runtime.MemStats
 
 	runtime.ReadMemStats(&m)
 
-
-
 	ir := s.engMgr.GetIR()
 
 	lastRes := s.engMgr.GetLastResult()
 
-
-
 	appRSS, coreRSS, totalOverhead := s.getLiveMemoryMetrics()
-
-
 
 	resp := map[string]any{
 
-		"version":           version,
+		"version": version,
 
-		"host_ip":           s.detectHostIP(),
+		"host_ip": s.detectHostIP(),
 
-		"uptime_seconds":    int64(time.Since(startTime).Seconds()),
+		"uptime_seconds": int64(time.Since(startTime).Seconds()),
 
-		"active_engine":     s.engMgr.GetActiveEngine(),
+		"active_engine": s.engMgr.GetActiveEngine(),
 
-		"edition":           ir.Meta.Edition,
+		"edition": ir.Meta.Edition,
 
-		"proxy_mode":        ir.Meta.ProxyMode,
+		"proxy_mode": ir.Meta.ProxyMode,
 
-		"active_profile":    ir.Meta.ActiveProfile,
+		"active_profile": ir.Meta.ActiveProfile,
 
-		"memory_mb":         appRSS + coreRSS,
+		"memory_mb": appRSS + coreRSS,
 
-		"app_memory_mb":     appRSS,
+		"app_memory_mb": appRSS,
 
-		"memory_alloc_mb":   float64(m.Alloc) / 1024 / 1024,
+		"memory_alloc_mb": float64(m.Alloc) / 1024 / 1024,
 
-		"memory_sys_mb":     float64(m.Sys) / 1024 / 1024,
+		"memory_sys_mb": float64(m.Sys) / 1024 / 1024,
 
-		"core_memory_mb":    coreRSS,
+		"core_memory_mb": coreRSS,
 
 		"total_overhead_mb": totalOverhead,
 
-		"goroutines":        runtime.NumGoroutine(),
+		"goroutines": runtime.NumGoroutine(),
 
-		"os":                runtime.GOOS,
+		"os": runtime.GOOS,
 
-		"arch":              runtime.GOARCH,
+		"arch": runtime.GOARCH,
 
-		"last_switch_res":   lastRes,
+		"last_switch_res": lastRes,
 
-		"tun_interface":     ir.Network.TunInterface,
+		"tun_interface": ir.Network.TunInterface,
 
-		"tproxy_port":       ir.Network.TProxyPort,
+		"tproxy_port": ir.Network.TProxyPort,
 
-		"dns_port":          ir.Network.DNSPort,
+		"dns_port": ir.Network.DNSPort,
 
-		"clash_api_port":    ir.Network.ClashAPIPort,
+		"clash_api_port": ir.Network.ClashAPIPort,
 
-		"total_proxies":     len(ir.Proxies),
+		"total_proxies": len(ir.Proxies),
 
 		"total_subscriptions": len(ir.Subscriptions),
 
-		"initialized":       len(ir.Proxies) > 0 || len(ir.Subscriptions) > 0,
+		"initialized": len(ir.Proxies) > 0 || len(ir.Subscriptions) > 0,
 
-		"total_groups":      len(ir.Groups),
-
+		"total_groups": len(ir.Groups),
 	}
 
 	sendJSON(w, resp)
 
 }
-
-
 
 func (s *Server) handleSystemEdition(w http.ResponseWriter, r *http.Request) {
 
@@ -1608,7 +1461,6 @@ func (s *Server) handleSystemEdition(w http.ResponseWriter, r *http.Request) {
 		sendJSON(w, map[string]any{
 
 			"edition": ir.Meta.Edition,
-
 		})
 
 		return
@@ -1618,9 +1470,7 @@ func (s *Server) handleSystemEdition(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 
 		var req struct {
-
 			Edition string `json:"edition"`
-
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -1643,10 +1493,9 @@ func (s *Server) handleSystemEdition(w http.ResponseWriter, r *http.Request) {
 
 		sendJSON(w, map[string]any{
 
-			"status":  "ok",
+			"status": "ok",
 
 			"edition": ir.Meta.Edition,
-
 		})
 
 		return
@@ -1656,8 +1505,6 @@ func (s *Server) handleSystemEdition(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 
 }
-
-
 
 func (s *Server) handleSystemPanic(w http.ResponseWriter, r *http.Request) {
 
@@ -1670,7 +1517,6 @@ func (s *Server) handleSystemPanic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
 		Action string `json:"action"` // "bypass" or "restore"
 
 	}
@@ -1685,12 +1531,11 @@ func (s *Server) handleSystemPanic(w http.ResponseWriter, r *http.Request) {
 
 		sendJSON(w, map[string]any{
 
-			"status":   "restored",
+			"status": "restored",
 
-			"message":  "已恢复极光网关双核智能加速",
+			"message": "已恢复极光网关双核智能加速",
 
 			"bypassed": false,
-
 		})
 
 		return
@@ -1701,17 +1546,14 @@ func (s *Server) handleSystemPanic(w http.ResponseWriter, r *http.Request) {
 
 	sendJSON(w, map[string]any{
 
-		"status":   "bypassed",
+		"status": "bypassed",
 
-		"message":  "已触发 1 秒一键急救：已清空转发规则，恢复纯物理直连逃生！",
+		"message": "已触发 1 秒一键急救：已清空转发规则，恢复纯物理直连逃生！",
 
 		"bypassed": true,
-
 	})
 
 }
-
-
 
 // purgeConntrackForDirectBypass cleans up stale Fake-IP connections and conntrack entries
 func (s *Server) purgeConntrackForDirectBypass() {
@@ -1759,17 +1601,14 @@ func (s *Server) handleReloadConfig(w http.ResponseWriter, r *http.Request) {
 
 	sendJSON(w, map[string]any{
 
-		"status":  "ok",
+		"status": "ok",
 
 		"message": "分流策略与配置已成功同步重载",
 
-		"result":  res,
-
+		"result": res,
 	})
 
 }
-
-
 
 func (s *Server) handleSystemReset(w http.ResponseWriter, r *http.Request) {
 
@@ -1799,17 +1638,14 @@ func (s *Server) handleSystemReset(w http.ResponseWriter, r *http.Request) {
 
 	sendJSON(w, map[string]any{
 
-		"status":  "ok",
+		"status": "ok",
 
 		"message": "系统所有网络与分流配置已全量初始化清空，恢复至出厂洁净状态！",
 
-		"result":  res,
-
+		"result": res,
 	})
 
 }
-
-
 
 func (s *Server) handleReloadCore(w http.ResponseWriter, r *http.Request) {
 
@@ -1833,19 +1669,16 @@ func (s *Server) handleReloadCore(w http.ResponseWriter, r *http.Request) {
 
 	sendJSON(w, map[string]any{
 
-		"status":  "ok",
+		"status": "ok",
 
 		"message": "代理内核已成功毫秒级重载",
 
-		"engine":  s.engMgr.GetActiveEngine(),
+		"engine": s.engMgr.GetActiveEngine(),
 
-		"result":  res,
-
+		"result": res,
 	})
 
 }
-
-
 
 func (s *Server) handleHostHotRestart(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -1874,11 +1707,11 @@ func (s *Server) handleHostHotRestart(w http.ResponseWriter, r *http.Request) {
 	}
 	s.logBuffer.Add("INFO", "ENGINE", fmt.Sprintf("🔥 宿主共生服务热重启完成: 双核引擎 %s 已平滑重载, 清理 %d 条残留连接 (耗时: %dms)", activeEng, purged, elapsed))
 	sendJSON(w, map[string]any{
-		"success":             true,
-		"engine":              activeEng,
+		"success":            true,
+		"engine":             activeEng,
 		"purged_connections": purged,
-		"elapsed_ms":          elapsed,
-		"message":             fmt.Sprintf("双核引擎 (%s) 与宿主网络栈已完成热重启，全链路 100%% 干净重载", activeEng),
+		"elapsed_ms":         elapsed,
+		"message":            fmt.Sprintf("双核引擎 (%s) 与宿主网络栈已完成热重启，全链路 100%% 干净重载", activeEng),
 	})
 }
 
@@ -1965,8 +1798,6 @@ func (s *Server) handleSystemReboot(w http.ResponseWriter, r *http.Request) {
 	}()
 }
 
-
-
 func (s *Server) handleUIState(w http.ResponseWriter, r *http.Request) {
 	stateFile := filepath.Join(s.workDir, "data", "ui_state.json")
 	if r.Method == http.MethodGet {
@@ -2033,8 +1864,6 @@ func (s *Server) handleConfigIR(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleEngineSwitch(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -2046,9 +1875,7 @@ func (s *Server) handleEngineSwitch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
 		Engine string `json:"engine"`
-
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -2068,8 +1895,6 @@ func (s *Server) handleEngineSwitch(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-
-
 
 	result, err := s.engMgr.SwitchEngine(target)
 
@@ -2101,8 +1926,6 @@ func (s *Server) handleEngineSwitch(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleEngineMode(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -2114,9 +1937,7 @@ func (s *Server) handleEngineMode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
 		Mode string `json:"mode"`
-
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -2128,8 +1949,6 @@ func (s *Server) handleEngineMode(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, map[string]any{"status": "ok", "mode": ir.Meta.ProxyMode})
 
 }
-
-
 
 func resolveProxyFromIR(ir *schema.ConfigIR, name string, depth int) *schema.ProxyNode {
 
@@ -2191,29 +2010,21 @@ func resolveProxyFromIR(ir *schema.ConfigIR, name string, depth int) *schema.Pro
 
 }
 
-
-
 func (s *Server) handleBenchmark(w http.ResponseWriter, r *http.Request) {
 
 	var req struct {
-
-		NodeName  string `json:"node_name"`
+		NodeName string `json:"node_name"`
 
 		GroupName string `json:"group_name"`
 
-		URL       string `json:"url"`
-
+		URL string `json:"url"`
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
 
-
-
 	ir := s.engMgr.GetIR()
 
 	var targetNode *schema.ProxyNode
-
-
 
 	// 1. If explicit real node name passed, resolve it
 
@@ -2223,8 +2034,6 @@ func (s *Server) handleBenchmark(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	// 2. If node not resolved yet, resolve through business group
 
 	if targetNode == nil && req.GroupName != "" {
@@ -2233,27 +2042,22 @@ func (s *Server) handleBenchmark(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	// 3. If direct connection mode
 
 	if req.NodeName == "DIRECT" || strings.Contains(req.NodeName, "直连") {
 
 		targetNode = &schema.ProxyNode{
 
-			Name:   "本地直连 (DIRECT)",
+			Name: "本地直连 (DIRECT)",
 
 			Server: "127.0.0.1",
 
-			Port:   80,
+			Port: 80,
 
-			Type:   "direct",
-
+			Type: "direct",
 		}
 
 	}
-
-
 
 	// 4. Fallback: first real proxy node from actual subscriptions
 
@@ -2275,8 +2079,6 @@ func (s *Server) handleBenchmark(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if targetNode == nil {
 
 		sendJSON(w, map[string]any{"error": "当前未配置任何出站代理节点，请先在订阅管理中导入订阅"})
@@ -2284,8 +2086,6 @@ func (s *Server) handleBenchmark(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	res := engine.RunABBenchmark(targetNode, req.URL)
 
@@ -2320,8 +2120,6 @@ func (s *Server) handleBenchmark(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, res)
 
 }
-
-
 
 func detectInterfaceSpeed() int {
 	entries, err := os.ReadDir("/sys/class/net")
@@ -2407,13 +2205,13 @@ func (s *Server) handleNetstackAdvantages(w http.ResponseWriter, r *http.Request
 
 	items := []map[string]any{
 		{
-			"id":        "host_survivability",
-			"category":  "高可用与容灾",
-			"dimension": "宿主生死解耦 (全屋断网防御)",
-			"icon":      "🛡️",
-			"softrouter_flaw": "将全屋默认网关强行指向旁路由。一旦容器崩溃、重启升级、OOM 内存溢出或死机，全屋瞬间断网瘫痪，连主路由后台都进不去。",
+			"id":                 "host_survivability",
+			"category":           "高可用与容灾",
+			"dimension":          "宿主生死解耦 (全屋断网防御)",
+			"icon":               "🛡️",
+			"softrouter_flaw":    "将全屋默认网关强行指向旁路由。一旦容器崩溃、重启升级、OOM 内存溢出或死机，全屋瞬间断网瘫痪，连主路由后台都进不去。",
 			"cubex_breakthrough": "宿主共生旁路架构 + MikroTik RouterOS Netwatch 0 秒逃生。全屋物理网关保持独立，容器异常停止主路由 0 毫秒切回直连，网络绝不断网。",
-			"probe_status": "VERIFIED_ACTIVE",
+			"probe_status":       "VERIFIED_ACTIVE",
 			"probe_data": map[string]any{
 				"gateway_ip":      gwIP,
 				"cubex_ip":        selfIP,
@@ -2423,13 +2221,13 @@ func (s *Server) handleNetstackAdvantages(w http.ResponseWriter, r *http.Request
 			"tag": "0秒逃生不断网",
 		},
 		{
-			"id":        "hsts_lan_bypass",
-			"category":  "协议与兼容性",
-			"dimension": "光猫与私网管理 0 劫持 (HSTS/SSL 证书无损)",
-			"icon":      "⚡",
-			"softrouter_flaw": "传统旁路由暴力拦截所有 80/443 流量，访问 192.168.1.1 光猫或内网 NAS 时浏览器弹出红色 NET::ERR_CERT_COMMON_NAME_INVALID 证书报警，被 HSTS 阻断打不开。",
+			"id":                 "hsts_lan_bypass",
+			"category":           "协议与兼容性",
+			"dimension":          "光猫与私网管理 0 劫持 (HSTS/SSL 证书无损)",
+			"icon":               "⚡",
+			"softrouter_flaw":    "传统旁路由暴力拦截所有 80/443 流量，访问 192.168.1.1 光猫或内网 NAS 时浏览器弹出红色 NET::ERR_CERT_COMMON_NAME_INVALID 证书报警，被 HSTS 阻断打不开。",
 			"cubex_breakthrough": "全量保留地址 (192.168/16, 10/8, 172.16/12, 100.64/10) 内核级芯片直通，绝对不碰代理核心，100% 保持原生证书无损直连。",
-			"probe_status": "VERIFIED_ACTIVE",
+			"probe_status":       "VERIFIED_ACTIVE",
 			"probe_data": map[string]any{
 				"target_gateway": gwIP,
 				"live_latency":   fmt.Sprintf("%d ms", gwLatencyMs),
@@ -2439,13 +2237,13 @@ func (s *Server) handleNetstackAdvantages(w http.ResponseWriter, r *http.Request
 			"tag": "光猫/NAS 原生安全",
 		},
 		{
-			"id":        "dns_pureness_leak",
-			"category":  "DNS 与双栈",
-			"dimension": "IPv6 DNS 防侧漏与 AAAA 假黑洞清洗",
-			"icon":      "🌐",
-			"softrouter_flaw": "IPv6 环境下频发 DNS 侧漏导致规则失效；或暴力分配 fc00::/18 Fake-IP，导致手机 App 优先请求 AAAA 时陷入 5 秒白屏“转圈卡顿”。",
+			"id":                 "dns_pureness_leak",
+			"category":           "DNS 与双栈",
+			"dimension":          "IPv6 DNS 防侧漏与 AAAA 假黑洞清洗",
+			"icon":               "🌐",
+			"softrouter_flaw":    "IPv6 环境下频发 DNS 侧漏导致规则失效；或暴力分配 fc00::/18 Fake-IP，导致手机 App 优先请求 AAAA 时陷入 5 秒白屏“转圈卡顿”。",
 			"cubex_breakthrough": "严格 0 侧漏引擎 + 双栈分离清洗。国内流量直通权威 DNS 秒解真实公网 IP；海外流量走 Fake-IP IPv4 精准调度，彻底清洗 IPv6 黑洞。",
-			"probe_status": "VERIFIED_ACTIVE",
+			"probe_status":       "VERIFIED_ACTIVE",
 			"probe_data": map[string]any{
 				"upstream_dns":     "系统/国内权威 DNS (直连秒解)",
 				"resolve_latency":  fmt.Sprintf("%d ms", dnsDurationMs),
@@ -2455,13 +2253,13 @@ func (s *Server) handleNetstackAdvantages(w http.ResponseWriter, r *http.Request
 			"tag": "0侧漏 · 0转圈白屏",
 		},
 		{
-			"id":        "hardware_fasttrack",
-			"category":  "吞吐与能耗",
-			"dimension": "国内流量芯片级 0 损耗直出 (FastTrack)",
-			"icon":      "🚀",
-			"softrouter_flaw": "国内爱奇艺、B站、大文件下载强行过 TUN 虚拟网卡与 iptables NAT，千兆宽带被打折至 300M，小主机 CPU 飙升 90% 狂发热。",
+			"id":                 "hardware_fasttrack",
+			"category":           "吞吐与能耗",
+			"dimension":          "国内流量芯片级 0 损耗直出 (FastTrack)",
+			"icon":               "🚀",
+			"softrouter_flaw":    "国内爱奇艺、B站、大文件下载强行过 TUN 虚拟网卡与 iptables NAT，千兆宽带被打折至 300M，小主机 CPU 飙升 90% 狂发热。",
 			"cubex_breakthrough": "105 套高精 MRS/SRS 规则体系 + 宿主硬件 FastTrack 绕行。国内真实流量由物理交换芯片硬件转发，容器 CPU 维持 <1%，2.5G/万兆线速无损。",
-			"probe_status": "VERIFIED_ACTIVE",
+			"probe_status":       "VERIFIED_ACTIVE",
 			"probe_data": map[string]any{
 				"rulesets_loaded":  fmt.Sprintf("%d 套权威规则集", rulesetCount),
 				"fasttrack_bypass": "主路由物理芯片 FastTrack 直接转发",
@@ -2471,13 +2269,13 @@ func (s *Server) handleNetstackAdvantages(w http.ResponseWriter, r *http.Request
 			"tag": "105套规则 · 0CPU损耗",
 		},
 		{
-			"id":        "dual_engine_failover",
-			"category":  "双核引擎架构",
-			"dimension": "双引擎毫秒容灾 (Mihomo × sing-box v1.14+)",
-			"icon":      "🔄",
-			"softrouter_flaw": "单一内核（只有 Clash 或只有 sing-box）。改配置或内核崩溃必须全量杀进程重启，断开正在进行的游戏与长连接，需手动进终端排查。",
+			"id":                 "dual_engine_failover",
+			"category":           "双核引擎架构",
+			"dimension":          "双引擎毫秒容灾 (Mihomo × sing-box v1.14+)",
+			"icon":               "🔄",
+			"softrouter_flaw":    "单一内核（只有 Clash 或只有 sing-box）。改配置或内核崩溃必须全量杀进程重启，断开正在进行的游戏与长连接，需手动进终端排查。",
 			"cubex_breakthrough": "双引擎混动架构 + CubeX IR 统一中间表示层。秒级无感热重载，守护进程 24 小时存活巡检，单核异常 0 延迟自动故障转移无感接管。",
-			"probe_status": "VERIFIED_ACTIVE",
+			"probe_status":       "VERIFIED_ACTIVE",
 			"probe_data": map[string]any{
 				"active_core":    activeEngine,
 				"standby_core":   standbyEngine,
@@ -2507,8 +2305,6 @@ func (s *Server) handleNetstackStatus(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleNetstackBypass(w http.ResponseWriter, r *http.Request) {
 
 	_ = s.netCtrl.EmergencyBypass()
@@ -2517,8 +2313,6 @@ func (s *Server) handleNetstackBypass(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleNetstackApply(w http.ResponseWriter, r *http.Request) {
 
 	_ = s.netCtrl.ApplyNFTables()
@@ -2526,8 +2320,6 @@ func (s *Server) handleNetstackApply(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, map[string]any{"status": "applied", "message": "nftables 规则已重新装载"})
 
 }
-
-
 
 func (s *Server) handleWebRTCAudit(w http.ResponseWriter, r *http.Request) {
 
@@ -2539,15 +2331,11 @@ func (s *Server) handleWebRTCAudit(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleSecurityRadar(w http.ResponseWriter, r *http.Request) {
 
 	ir := s.engMgr.GetIR()
 
 	report := security.RunSecurityAudit(ir)
-
-
 
 	// 联动宿主底座安全与路由巡检 (RouterOS, 爱快 iKuai 或 OpenWrt)
 	if s.hostMgr != nil {
@@ -2621,13 +2409,9 @@ func (s *Server) handleSecurityRadar(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	sendJSON(w, report)
 
 }
-
-
 
 func (s *Server) handleSecurityRemediate(w http.ResponseWriter, r *http.Request) {
 
@@ -2636,8 +2420,6 @@ func (s *Server) handleSecurityRemediate(w http.ResponseWriter, r *http.Request)
 	result := security.AutoRemediateAll(ir)
 
 	s.engMgr.UpdateIR(ir)
-
-
 
 	// 同步联动宿主底层自愈与加固 (RouterOS Netwatch/Table/FastTrack, 爱快静态路由/DHCP 或 Linux 内核转发/防火墙)
 	cached := s.hostMgr.GetCachedHostInfo()
@@ -2690,8 +2472,6 @@ func (s *Server) handleSecurityRemediate(w http.ResponseWriter, r *http.Request)
 
 	}
 
-
-
 	if _, err := s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine()); err != nil {
 
 		log.Printf("[SecurityRemediate] Engine reload notice: %v", err)
@@ -2701,8 +2481,6 @@ func (s *Server) handleSecurityRemediate(w http.ResponseWriter, r *http.Request)
 	sendJSON(w, result)
 
 }
-
-
 
 func (s *Server) handleRosScript(w http.ResponseWriter, r *http.Request) {
 	targetIP := ""
@@ -2730,8 +2508,6 @@ func (s *Server) handleRosScript(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-
-
 func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -2743,15 +2519,13 @@ func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
+		Name string `json:"name"`
 
-		Name    string `json:"name"`
+		URL string `json:"url"`
 
-		URL     string `json:"url"`
-
-		Type    string `json:"type"`
+		Type string `json:"type"`
 
 		Content string `json:"content"`
-
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -2770,13 +2544,11 @@ func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	var res *sub.FetchResult
 
 	if req.Content != "" {
 
-		nodes, err := sub.ParseSubscription([]byte(req.Content))
+		nodes, err := sub.UniversalSmartParse(req.Content)
 
 		if err != nil {
 
@@ -2788,12 +2560,11 @@ func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
 
 		res = &sub.FetchResult{
 
-			Nodes:      nodes,
+			Nodes: nodes,
 
-			NodeCount:  len(nodes),
+			NodeCount: len(nodes),
 
 			DurationMs: 1,
-
 		}
 
 	} else if strings.HasPrefix(req.URL, "http://") || strings.HasPrefix(req.URL, "https://") {
@@ -2838,17 +2609,14 @@ func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
 
 		res = &sub.FetchResult{
 
-			Nodes:      nodes,
+			Nodes: nodes,
 
-			NodeCount:  len(nodes),
+			NodeCount: len(nodes),
 
 			DurationMs: 1,
-
 		}
 
 	}
-
-
 
 	ir := s.engMgr.GetIR()
 
@@ -2860,37 +2628,30 @@ func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	newSub := schema.Subscription{
 
-		ID:         subID,
+		ID: subID,
 
-		Name:       req.Name,
+		Name: req.Name,
 
-		URL:        req.URL,
+		URL: req.URL,
 
-		Type:       req.Type,
+		Type: req.Type,
 
-		Enabled:    true,
+		Enabled: true,
 
-		NodeCount:  res.NodeCount,
+		NodeCount: res.NodeCount,
 
-		UsedBytes:  res.Upload + res.Download,
+		UsedBytes: res.Upload + res.Download,
 
 		TotalBytes: res.Total,
 
-		ExpireAt:   res.Expire,
+		ExpireAt: res.Expire,
 
-		UpdatedAt:  time.Now(),
-
+		UpdatedAt: time.Now(),
 	}
 
-
-
 	ir.Subscriptions = append(ir.Subscriptions, newSub)
-
-
 
 	// Merge new nodes into Proxies with airport prefix
 
@@ -2914,37 +2675,28 @@ func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	schema.SyncAllStrategyGroups(ir)
 
 	s.engMgr.UpdateIR(ir)
-
-
 
 	// Re-trigger compilation for active engine
 
 	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
 
-
-
 	sendJSON(w, map[string]any{
 
-		"ok":          true,
+		"ok": true,
 
-		"status":      "added",
+		"status": "added",
 
-		"sub_id":      subID,
+		"sub_id": subID,
 
-		"node_count":  res.NodeCount,
+		"node_count": res.NodeCount,
 
 		"duration_ms": res.DurationMs,
-
 	})
 
 }
-
-
 
 func (s *Server) handleSubBatchAdd(w http.ResponseWriter, r *http.Request) {
 
@@ -2957,15 +2709,11 @@ func (s *Server) handleSubBatchAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
 		Items []struct {
-
 			Name string `json:"name"`
 
-			URL  string `json:"url"`
-
+			URL string `json:"url"`
 		} `json:"items"`
-
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -2984,19 +2732,13 @@ func (s *Server) handleSubBatchAdd(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	ir := s.engMgr.GetIR()
 
 	fetcher := sub.NewFetcher()
 
-
-
 	addedCount := 0
 
 	totalNodes := 0
-
-
 
 	for i, item := range req.Items {
 
@@ -3016,11 +2758,7 @@ func (s *Server) handleSubBatchAdd(w http.ResponseWriter, r *http.Request) {
 
 		}
 
-
-
 		subID := fmt.Sprintf("sub_%d_%d", time.Now().Unix(), i)
-
-
 
 		res, err := fetcher.Fetch(url)
 
@@ -3028,41 +2766,35 @@ func (s *Server) handleSubBatchAdd(w http.ResponseWriter, r *http.Request) {
 
 			res = &sub.FetchResult{
 
-				Nodes:     nil,
+				Nodes: nil,
 
 				NodeCount: 0,
-
 			}
 
 		}
 
-
-
 		newSub := schema.Subscription{
 
-			ID:         subID,
+			ID: subID,
 
-			Name:       name,
+			Name: name,
 
-			URL:        url,
+			URL: url,
 
-			Enabled:    true,
+			Enabled: true,
 
-			NodeCount:  res.NodeCount,
+			NodeCount: res.NodeCount,
 
-			UsedBytes:  res.Upload + res.Download,
+			UsedBytes: res.Upload + res.Download,
 
 			TotalBytes: res.Total,
 
-			ExpireAt:   res.Expire,
+			ExpireAt: res.Expire,
 
-			UpdatedAt:  time.Now(),
-
+			UpdatedAt: time.Now(),
 		}
 
 		ir.Subscriptions = append(ir.Subscriptions, newSub)
-
-
 
 		for _, n := range res.Nodes {
 
@@ -3086,8 +2818,6 @@ func (s *Server) handleSubBatchAdd(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if addedCount > 0 {
 
 		schema.SyncAllStrategyGroups(ir)
@@ -3098,21 +2828,16 @@ func (s *Server) handleSubBatchAdd(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	sendJSON(w, map[string]any{
 
-		"ok":          true,
+		"ok": true,
 
-		"added_subs":  addedCount,
+		"added_subs": addedCount,
 
 		"total_nodes": totalNodes,
-
 	})
 
 }
-
-
 
 func (s *Server) handleSubList(w http.ResponseWriter, r *http.Request) {
 
@@ -3120,17 +2845,14 @@ func (s *Server) handleSubList(w http.ResponseWriter, r *http.Request) {
 
 	sendJSON(w, map[string]any{
 
-		"ok":            true,
+		"ok": true,
 
 		"subscriptions": ir.Subscriptions,
 
-		"proxies":       ir.Proxies,
-
+		"proxies": ir.Proxies,
 	})
 
 }
-
-
 
 func (s *Server) handleSubDelete(w http.ResponseWriter, r *http.Request) {
 
@@ -3143,9 +2865,7 @@ func (s *Server) handleSubDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
 		ID string `json:"id"`
-
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -3157,8 +2877,6 @@ func (s *Server) handleSubDelete(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	ir := s.engMgr.GetIR()
 
@@ -3175,8 +2893,6 @@ func (s *Server) handleSubDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ir.Subscriptions = newSubs
-
-
 
 	// Remove proxies belonging to this sub
 
@@ -3199,8 +2915,6 @@ func (s *Server) handleSubDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ir.Proxies = newProxies
-
-
 
 	// Clean up groups
 
@@ -3228,19 +2942,13 @@ func (s *Server) handleSubDelete(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	s.engMgr.UpdateIR(ir)
 
 	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
 
-
-
 	sendJSON(w, map[string]any{"ok": true, "deleted_id": req.ID})
 
 }
-
-
 
 func (s *Server) handleSubToggle(w http.ResponseWriter, r *http.Request) {
 
@@ -3253,11 +2961,9 @@ func (s *Server) handleSubToggle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
+		ID string `json:"id"`
 
-		ID      string `json:"id"`
-
-		Enabled bool   `json:"enabled"`
-
+		Enabled bool `json:"enabled"`
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -3286,8 +2992,6 @@ func (s *Server) handleSubToggle(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleSubRename(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -3299,11 +3003,9 @@ func (s *Server) handleSubRename(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
-		ID   string `json:"id"`
+		ID string `json:"id"`
 
 		Name string `json:"name"`
-
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -3372,8 +3074,6 @@ func (s *Server) handleSubRename(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleNodeAdd(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -3385,11 +3085,9 @@ func (s *Server) handleNodeAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
 		Name string `json:"name"`
 
 		Link string `json:"link"`
-
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -3410,13 +3108,9 @@ func (s *Server) handleNodeAdd(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	var node schema.ProxyNode
 
 	var err error
-
-
 
 	if strings.Contains(req.Link, "://") {
 
@@ -3424,7 +3118,7 @@ func (s *Server) handleNodeAdd(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 
-		nodes, pErr := sub.ParseSubscription([]byte(req.Link))
+		nodes, pErr := sub.UniversalSmartParse(req.Link)
 
 		if pErr == nil && len(nodes) > 0 {
 
@@ -3438,8 +3132,6 @@ func (s *Server) handleNodeAdd(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if err != nil || node.Server == "" {
 
 		sendJSON(w, map[string]any{"ok": false, "error": "节点格式无法识别，请检查 ss://, vmess://, vless://, trojan://, hysteria2:// 链接"})
@@ -3447,8 +3139,6 @@ func (s *Server) handleNodeAdd(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	if req.Name != "" {
 
@@ -3469,8 +3159,6 @@ func (s *Server) handleNodeAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	node.SubID = "custom"
-
-
 
 	ir := s.engMgr.GetIR()
 
@@ -3496,31 +3184,22 @@ func (s *Server) handleNodeAdd(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	ir.Proxies = append(ir.Proxies, node)
 
 	schema.SyncAllStrategyGroups(ir)
-
-
 
 	s.engMgr.UpdateIR(ir)
 
 	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
 
-
-
 	sendJSON(w, map[string]any{
 
-		"ok":   true,
+		"ok": true,
 
 		"node": node,
-
 	})
 
 }
-
-
 
 func (s *Server) handleNodeBatchAdd(w http.ResponseWriter, r *http.Request) {
 
@@ -3533,15 +3212,11 @@ func (s *Server) handleNodeBatchAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
 		Items []struct {
-
 			Name string `json:"name"`
 
 			Link string `json:"link"`
-
 		} `json:"items"`
-
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -3560,13 +3235,9 @@ func (s *Server) handleNodeBatchAdd(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	ir := s.engMgr.GetIR()
 
 	addedCount := 0
-
-
 
 	for i, item := range req.Items {
 
@@ -3580,13 +3251,9 @@ func (s *Server) handleNodeBatchAdd(w http.ResponseWriter, r *http.Request) {
 
 		name := strings.TrimSpace(item.Name)
 
-
-
 		var node schema.ProxyNode
 
 		var err error
-
-
 
 		if strings.Contains(link, "://") {
 
@@ -3594,7 +3261,7 @@ func (s *Server) handleNodeBatchAdd(w http.ResponseWriter, r *http.Request) {
 
 		} else {
 
-			nodes, pErr := sub.ParseSubscription([]byte(link))
+			nodes, pErr := sub.UniversalSmartParse(link)
 
 			if pErr == nil && len(nodes) > 0 {
 
@@ -3608,15 +3275,11 @@ func (s *Server) handleNodeBatchAdd(w http.ResponseWriter, r *http.Request) {
 
 		}
 
-
-
 		if err != nil || node.Server == "" {
 
 			continue
 
 		}
-
-
 
 		if name != "" {
 
@@ -3638,8 +3301,6 @@ func (s *Server) handleNodeBatchAdd(w http.ResponseWriter, r *http.Request) {
 
 		node.SubID = "custom"
 
-
-
 		for _, p := range ir.Proxies {
 
 			if p.Name == node.Name {
@@ -3652,15 +3313,11 @@ func (s *Server) handleNodeBatchAdd(w http.ResponseWriter, r *http.Request) {
 
 		}
 
-
-
 		ir.Proxies = append(ir.Proxies, node)
 
 		addedCount++
 
 	}
-
-
 
 	if addedCount > 0 {
 
@@ -3672,19 +3329,14 @@ func (s *Server) handleNodeBatchAdd(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	sendJSON(w, map[string]any{
 
-		"ok":          true,
+		"ok": true,
 
 		"added_nodes": addedCount,
-
 	})
 
 }
-
-
 
 func (s *Server) handleNodeDelete(w http.ResponseWriter, r *http.Request) {
 
@@ -3697,9 +3349,7 @@ func (s *Server) handleNodeDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
 		Name string `json:"name"`
-
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -3711,8 +3361,6 @@ func (s *Server) handleNodeDelete(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	ir := s.engMgr.GetIR()
 
@@ -3729,8 +3377,6 @@ func (s *Server) handleNodeDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ir.Proxies = newProxies
-
-
 
 	for i := range ir.Groups {
 
@@ -3756,15 +3402,11 @@ func (s *Server) handleNodeDelete(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	s.engMgr.UpdateIR(ir)
 
 	sendJSON(w, map[string]any{"ok": true, "deleted_name": req.Name})
 
 }
-
-
 
 func (s *Server) handleGroupSelect(w http.ResponseWriter, r *http.Request) {
 
@@ -3777,11 +3419,9 @@ func (s *Server) handleGroupSelect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
 		Group string `json:"group"`
 
-		Node  string `json:"node"`
-
+		Node string `json:"node"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -3799,8 +3439,6 @@ func (s *Server) handleGroupSelect(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	ir := s.engMgr.GetIR()
 
@@ -3868,21 +3506,16 @@ func (s *Server) handleGroupSelect(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	sendJSON(w, map[string]any{
 
-		"ok":    true,
+		"ok": true,
 
 		"group": req.Group,
 
-		"now":   req.Node,
-
+		"now": req.Node,
 	})
 
 }
-
-
 
 func (s *Server) handleRoutingRegions(w http.ResponseWriter, r *http.Request) {
 
@@ -3892,15 +3525,12 @@ func (s *Server) handleRoutingRegions(w http.ResponseWriter, r *http.Request) {
 
 	sendJSON(w, map[string]any{
 
-		"ok":      true,
+		"ok": true,
 
 		"regions": stats,
-
 	})
 
 }
-
-
 
 func (s *Server) handleCustomGroupAdd(w http.ResponseWriter, r *http.Request) {
 
@@ -3913,27 +3543,25 @@ func (s *Server) handleCustomGroupAdd(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
+		Name string `json:"name"`
 
-		Name           string   `json:"name"`
+		Icon string `json:"icon"`
 
-		Icon           string   `json:"icon"`
+		Type string `json:"type"`
 
-		Type           string   `json:"type"`
+		Proxies []string `json:"proxies"`
 
-		Proxies        []string `json:"proxies"`
+		Now string `json:"now"`
 
-		Now            string   `json:"now"`
+		RuleType string `json:"rule_type"`
 
-		RuleType       string   `json:"rule_type"`
-
-		RuleValue      string   `json:"rule_value"`
+		RuleValue string `json:"rule_value"`
 
 		FilterKeywords []string `json:"filter_keywords"`
 
-		FilterLogic    string   `json:"filter_logic"`
+		FilterLogic string `json:"filter_logic"`
 
-		FilterRegex    string   `json:"filter_regex"`
-
+		FilterRegex string `json:"filter_regex"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -3967,8 +3595,6 @@ func (s *Server) handleCustomGroupAdd(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-
-
 
 	if req.Type == "" {
 
@@ -4010,35 +3636,30 @@ func (s *Server) handleCustomGroupAdd(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	newGroup := schema.StrategyGroup{
 
-		Name:           req.Name,
+		Name: req.Name,
 
-		Type:           req.Type,
+		Type: req.Type,
 
-		Proxies:        req.Proxies,
+		Proxies: req.Proxies,
 
-		Now:            req.Now,
+		Now: req.Now,
 
-		Icon:           req.Icon,
+		Icon: req.Icon,
 
-		Category:       "business",
+		Category: "business",
 
-		IsCustom:       true,
+		IsCustom: true,
 
 		FilterKeywords: req.FilterKeywords,
 
-		FilterLogic:    req.FilterLogic,
+		FilterLogic: req.FilterLogic,
 
-		FilterRegex:    req.FilterRegex,
-
+		FilterRegex: req.FilterRegex,
 	}
 
 	ir.Groups = append(ir.Groups, newGroup)
-
-
 
 	if req.RuleValue != "" {
 
@@ -4054,19 +3675,15 @@ func (s *Server) handleCustomGroupAdd(w http.ResponseWriter, r *http.Request) {
 
 			{
 
-				Type:   rType,
+				Type: rType,
 
-				Value:  req.RuleValue,
+				Value: req.RuleValue,
 
 				Target: req.Name,
-
 			},
-
 		}, ir.Rules...)
 
 	}
-
-
 
 	s.engMgr.UpdateIR(ir)
 
@@ -4077,8 +3694,6 @@ func (s *Server) handleCustomGroupAdd(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, map[string]any{"ok": true, "group": newGroup})
 
 }
-
-
 
 func (s *Server) handleCustomGroupUpdate(w http.ResponseWriter, r *http.Request) {
 
@@ -4091,25 +3706,23 @@ func (s *Server) handleCustomGroupUpdate(w http.ResponseWriter, r *http.Request)
 	}
 
 	var req struct {
+		Name string `json:"name"`
 
-		Name           string   `json:"name"`
+		NewName string `json:"new_name"`
 
-		NewName        string   `json:"new_name"`
+		Icon string `json:"icon"`
 
-		Icon           string   `json:"icon"`
+		Type string `json:"type"`
 
-		Type           string   `json:"type"`
+		Proxies []string `json:"proxies"`
 
-		Proxies        []string `json:"proxies"`
-
-		Now            string   `json:"now"`
+		Now string `json:"now"`
 
 		FilterKeywords []string `json:"filter_keywords"`
 
-		FilterLogic    string   `json:"filter_logic"`
+		FilterLogic string `json:"filter_logic"`
 
-		FilterRegex    string   `json:"filter_regex"`
-
+		FilterRegex string `json:"filter_regex"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -4174,8 +3787,6 @@ func (s *Server) handleCustomGroupUpdate(w http.ResponseWriter, r *http.Request)
 
 			ir.Groups[i].FilterRegex = req.FilterRegex
 
-
-
 			if len(req.FilterKeywords) > 0 || req.FilterRegex != "" {
 
 				matched := schema.FilterNodesByKeywords(ir.Proxies, req.FilterKeywords, req.FilterLogic, req.FilterRegex)
@@ -4232,8 +3843,6 @@ func (s *Server) handleCustomGroupUpdate(w http.ResponseWriter, r *http.Request)
 
 }
 
-
-
 func (s *Server) handleSubEdit(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -4245,13 +3854,11 @@ func (s *Server) handleSubEdit(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
-		ID   string `json:"id"`
+		ID string `json:"id"`
 
 		Name string `json:"name"`
 
-		URL  string `json:"url"`
-
+		URL string `json:"url"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -4338,7 +3945,7 @@ func (s *Server) handleSubEdit(w http.ResponseWriter, r *http.Request) {
 
 			s.engMgr.UpdateIR(ir)
 
-		s.ir = ir
+			s.ir = ir
 
 			_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
 
@@ -4346,14 +3953,13 @@ func (s *Server) handleSubEdit(w http.ResponseWriter, r *http.Request) {
 
 		sendJSON(w, map[string]any{
 
-			"ok":         true,
+			"ok": true,
 
 			"node_count": ir.Subscriptions[subIdx].NodeCount,
 
-			"name":       ir.Subscriptions[subIdx].Name,
+			"name": ir.Subscriptions[subIdx].Name,
 
-			"url":        ir.Subscriptions[subIdx].URL,
-
+			"url": ir.Subscriptions[subIdx].URL,
 		})
 
 		return
@@ -4382,8 +3988,6 @@ func (s *Server) handleSubEdit(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	// Fetch succeeded: atomically replace nodes for this subscription
 
 	if req.Name != "" {
@@ -4403,8 +4007,6 @@ func (s *Server) handleSubEdit(w http.ResponseWriter, r *http.Request) {
 	ir.Subscriptions[subIdx].ExpireAt = res.Expire
 
 	ir.Subscriptions[subIdx].UpdatedAt = time.Now()
-
-
 
 	newProxies := make([]schema.ProxyNode, 0, len(ir.Proxies))
 
@@ -4446,19 +4048,16 @@ func (s *Server) handleSubEdit(w http.ResponseWriter, r *http.Request) {
 
 	sendJSON(w, map[string]any{
 
-		"ok":         true,
+		"ok": true,
 
 		"node_count": res.NodeCount,
 
-		"name":       ir.Subscriptions[subIdx].Name,
+		"name": ir.Subscriptions[subIdx].Name,
 
-		"url":        ir.Subscriptions[subIdx].URL,
-
+		"url": ir.Subscriptions[subIdx].URL,
 	})
 
 }
-
-
 
 func (s *Server) handleCustomGroupDelete(w http.ResponseWriter, r *http.Request) {
 
@@ -4471,9 +4070,7 @@ func (s *Server) handleCustomGroupDelete(w http.ResponseWriter, r *http.Request)
 	}
 
 	var req struct {
-
 		Name string `json:"name"`
-
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -4500,8 +4097,6 @@ func (s *Server) handleCustomGroupDelete(w http.ResponseWriter, r *http.Request)
 
 	ir.Groups = newGroups
 
-
-
 	newRules := make([]schema.Rule, 0)
 
 	for _, r := range ir.Rules {
@@ -4516,8 +4111,6 @@ func (s *Server) handleCustomGroupDelete(w http.ResponseWriter, r *http.Request)
 
 	ir.Rules = newRules
 
-
-
 	s.engMgr.UpdateIR(ir)
 
 	s.ir = ir
@@ -4527,8 +4120,6 @@ func (s *Server) handleCustomGroupDelete(w http.ResponseWriter, r *http.Request)
 	sendJSON(w, map[string]any{"ok": true, "deleted_group": req.Name})
 
 }
-
-
 
 func (s *Server) handleCustomGroupToggle(w http.ResponseWriter, r *http.Request) {
 
@@ -4541,9 +4132,7 @@ func (s *Server) handleCustomGroupToggle(w http.ResponseWriter, r *http.Request)
 	}
 
 	var req struct {
-
 		Name string `json:"name"`
-
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -4594,8 +4183,6 @@ func (s *Server) handleCustomGroupToggle(w http.ResponseWriter, r *http.Request)
 
 }
 
-
-
 func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -4606,17 +4193,11 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	var req struct {
-
 		ID string `json:"id"`
-
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
-
-
 
 	if req.ID == "" {
 
@@ -4632,29 +4213,24 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 
 		sendJSON(w, map[string]any{
 
-			"ok":           true,
+			"ok": true,
 
-			"status":       "updated",
+			"status": "updated",
 
 			"subs_updated": subsUpdated,
 
-			"total_nodes":  totalNodes,
-
+			"total_nodes": totalNodes,
 		})
 
 		return
 
 	}
 
-
-
 	ir := s.engMgr.GetIR()
 
 	fetcher := sub.NewFetcher()
 
 	totalNodes := 0
-
-
 
 	var updatedProxies []schema.ProxyNode
 
@@ -4671,8 +4247,6 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-
-
 
 	for i := range ir.Subscriptions {
 
@@ -4742,21 +4316,15 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	ir.Proxies = updatedProxies
 
 	schema.SyncAllStrategyGroups(ir)
 
 	s.engMgr.UpdateIR(ir)
 
-
-
 	// Re-trigger compilation
 
 	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
-
-
 
 	// Reclaim memory
 
@@ -4764,16 +4332,13 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 
 	debug.FreeOSMemory()
 
-
-
 	sendJSON(w, map[string]any{
 
-		"ok":          true,
+		"ok": true,
 
-		"status":      "updated",
+		"status": "updated",
 
 		"total_nodes": totalNodes,
-
 	})
 
 }
@@ -4792,15 +4357,11 @@ func (s *Server) UpdateAllSubscriptions() (int, int, error) {
 
 	}
 
-
-
 	fetcher := sub.NewFetcher()
 
 	totalNodes := 0
 
 	subsUpdated := 0
-
-
 
 	var updatedProxies []schema.ProxyNode
 
@@ -4815,8 +4376,6 @@ func (s *Server) UpdateAllSubscriptions() (int, int, error) {
 		}
 
 	}
-
-
 
 	for i := range ir.Subscriptions {
 
@@ -4880,21 +4439,15 @@ func (s *Server) UpdateAllSubscriptions() (int, int, error) {
 
 	}
 
-
-
 	ir.Proxies = updatedProxies
 
 	schema.SyncAllStrategyGroups(ir)
 
 	s.engMgr.UpdateIR(ir)
 
-
-
 	// Re-trigger compilation for active engine
 
 	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
-
-
 
 	// Reclaim subscription download buffers and JSON heaps
 
@@ -4902,13 +4455,9 @@ func (s *Server) UpdateAllSubscriptions() (int, int, error) {
 
 	debug.FreeOSMemory()
 
-
-
 	return subsUpdated, totalNodes, nil
 
 }
-
-
 
 // startDailySubscriptionAutoUpdate runs a continuous background cron loop that triggers
 
@@ -4940,8 +4489,6 @@ func (s *Server) startDailySubscriptionAutoUpdate() {
 				durationUntil.Round(time.Second), nextSync.Format("2006-01-02 15:04:05"))
 
 			s.logBuffer.Add("INFO", "SUB", fmt.Sprintf("定时任务: 12小时双周期订阅自动同步就绪 (下次触发: %s)", nextSync.Format("2006-01-02 15:04:05")))
-
-
 
 			select {
 
@@ -4975,8 +4522,6 @@ func (s *Server) startDailySubscriptionAutoUpdate() {
 
 }
 
-
-
 func (s *Server) handleSubCronStatus(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
@@ -4985,23 +4530,18 @@ func (s *Server) handleSubCronStatus(w http.ResponseWriter, r *http.Request) {
 
 	sendJSON(w, map[string]any{
 
-		"enabled":         true,
+		"enabled": true,
 
-		"schedule":        "daily_00_00",
+		"schedule": "daily_00_00",
 
-		"description":     "每天 00:00 自动拉取更新所有已启用的网络订阅",
+		"description": "每天 00:00 自动拉取更新所有已启用的网络订阅",
 
-		"next_run":        nextMidnight.Format("2006-01-02 15:04:05"),
+		"next_run": nextMidnight.Format("2006-01-02 15:04:05"),
 
 		"seconds_to_next": int(nextMidnight.Sub(now).Seconds()),
-
 	})
 
 }
-
-
-
-
 
 type NodeDelayResult struct {
 	Delay      int    `json:"delay"`
@@ -5157,8 +4697,6 @@ func (s *Server) executeNodeRealDelayProbe(node schema.ProxyNode, clashPort int,
 	}
 }
 
-
-
 func (s *Server) handleProxyDelay(w http.ResponseWriter, r *http.Request) {
 
 	name := strings.TrimSpace(r.URL.Query().Get("name"))
@@ -5170,8 +4708,6 @@ func (s *Server) handleProxyDelay(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-
-
 
 	ir := s.engMgr.GetIR()
 
@@ -5193,8 +4729,6 @@ func (s *Server) handleProxyDelay(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if targetNode == nil {
 		sendJSON(w, map[string]any{
 			"ok":          false,
@@ -5206,8 +4740,6 @@ func (s *Server) handleProxyDelay(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-
-
 
 	clashPort := 9090
 
@@ -5225,8 +4757,6 @@ func (s *Server) handleProxyDelay(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	res := s.testNodeRealDelay(*targetNode, clashPort, clashSecret)
 
 	if targetIdx >= 0 {
@@ -5239,25 +4769,20 @@ func (s *Server) handleProxyDelay(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	sendJSON(w, map[string]any{
 
-		"ok":          true,
+		"ok": true,
 
-		"name":        name,
+		"name": name,
 
-		"delay":       res.Delay,
+		"delay": res.Delay,
 
-		"status":      res.Status,
+		"status": res.Status,
 
 		"status_text": res.StatusText,
-
 	})
 
 }
-
-
 
 func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 
@@ -5270,25 +4795,17 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
 		ID string `json:"id"`
-
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
 
-
-
 	ir := s.engMgr.GetIR()
 
-
-
 	type testItem struct {
-
 		index int
 
-		node  schema.ProxyNode
-
+		node schema.ProxyNode
 	}
 
 	var items []testItem
@@ -5319,29 +4836,24 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if len(items) == 0 {
 
 		sendJSON(w, map[string]any{
 
-			"ok":           true,
+			"ok": true,
 
-			"sub_id":       req.ID,
+			"sub_id": req.ID,
 
 			"tested_count": 0,
 
 			"online_count": 0,
 
-			"avg_delay":    0,
-
+			"avg_delay": 0,
 		})
 
 		return
 
 	}
-
-
 
 	clashPort := 9090
 
@@ -5359,8 +4871,6 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	var wg sync.WaitGroup
 
 	// Throttle to 8 concurrent tests to protect router memory
@@ -5372,8 +4882,6 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 	onlineCount := 0
 
 	totalDelay := int64(0)
-
-
 
 	for _, it := range items {
 
@@ -5405,15 +4913,11 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 
 	wg.Wait()
 
-
-
 	// Immediate memory reclamation after sub test
 
 	runtime.GC()
 
 	debug.FreeOSMemory()
-
-
 
 	avgDelay := 0
 
@@ -5423,29 +4927,22 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	s.engMgr.UpdateIR(ir)
-
-
 
 	sendJSON(w, map[string]any{
 
-		"ok":           true,
+		"ok": true,
 
-		"sub_id":       req.ID,
+		"sub_id": req.ID,
 
 		"tested_count": len(items),
 
 		"online_count": onlineCount,
 
-		"avg_delay":    avgDelay,
-
+		"avg_delay": avgDelay,
 	})
 
 }
-
-
 
 func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) {
 
@@ -5458,29 +4955,21 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var req struct {
-
 		Names []string `json:"names"`
 
-		Group string   `json:"group"`
+		Group string `json:"group"`
 
-		SubID string   `json:"sub_id"`
-
+		SubID string `json:"sub_id"`
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
 
-
-
 	ir := s.engMgr.GetIR()
 
-
-
 	type testItem struct {
-
 		index int
 
-		node  schema.ProxyNode
-
+		node schema.ProxyNode
 	}
 
 	var items []testItem
@@ -5492,8 +4981,6 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 		nameSet[n] = true
 
 	}
-
-
 
 	for i, p := range ir.Proxies {
 
@@ -5527,31 +5014,26 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	if len(items) == 0 {
 
 		sendJSON(w, map[string]any{
 
-			"ok":           true,
+			"ok": true,
 
 			"tested_count": 0,
 
 			"online_count": 0,
 
-			"avg_delay":    0,
+			"avg_delay": 0,
 
-			"min_delay":    0,
+			"min_delay": 0,
 
-			"results":      map[string]int{},
-
+			"results": map[string]int{},
 		})
 
 		return
 
 	}
-
-
 
 	clashPort := 9090
 
@@ -5569,8 +5051,6 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	var wg sync.WaitGroup
 
 	// Throttle concurrency to 8 to avoid memory explosion and TLS socket exhaustion on routers
@@ -5587,8 +5067,6 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 
 	results := make(map[string]int)
 	diagnostics := make(map[string]NodeDelayResult)
-
-
 
 	for _, it := range items {
 
@@ -5625,15 +5103,11 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 
 	wg.Wait()
 
-
-
 	// Immediate memory reclamation after batch node test
 
 	runtime.GC()
 
 	debug.FreeOSMemory()
-
-
 
 	avgDelay := 0
 
@@ -5647,11 +5121,7 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	s.engMgr.UpdateIR(ir)
-
-
 
 	if req.Group != "" && ir.Network.ClashAPIPort > 0 {
 
@@ -5673,28 +5143,23 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	sendJSON(w, map[string]any{
 
-		"ok":           true,
+		"ok": true,
 
 		"tested_count": len(items),
 
 		"online_count": onlineCount,
 
-		"avg_delay":    avgDelay,
+		"avg_delay": avgDelay,
 
-		"min_delay":    minDelay,
+		"min_delay": minDelay,
 
-		"results":      results,
-		"diagnostics":  diagnostics,
-
+		"results":     results,
+		"diagnostics": diagnostics,
 	})
 
 }
-
-
 
 func sendJSON(w http.ResponseWriter, data any) {
 
@@ -5704,8 +5169,6 @@ func sendJSON(w http.ResponseWriter, data any) {
 
 }
 
-
-
 func (s *Server) handleAdblockStats(w http.ResponseWriter, r *http.Request) {
 
 	stats := s.adblockMgr.GetStats(true, 0)
@@ -5713,8 +5176,6 @@ func (s *Server) handleAdblockStats(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, stats)
 
 }
-
-
 
 func (s *Server) handleAdblockConfig(w http.ResponseWriter, r *http.Request) {
 
@@ -5758,8 +5219,6 @@ func (s *Server) handleAdblockConfig(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleAdblockToggle(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -5771,9 +5230,7 @@ func (s *Server) handleAdblockToggle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
 		Enabled bool `json:"enabled"`
-
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -5787,8 +5244,6 @@ func (s *Server) handleAdblockToggle(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, map[string]any{"ok": true, "enabled": req.Enabled})
 
 }
-
-
 
 func (s *Server) handleAdblockSourceAdd(w http.ResponseWriter, r *http.Request) {
 
@@ -5824,8 +5279,6 @@ func (s *Server) handleAdblockSourceAdd(w http.ResponseWriter, r *http.Request) 
 
 }
 
-
-
 func (s *Server) handleAdblockSourceUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -5858,8 +5311,6 @@ func (s *Server) handleAdblockSourceUpdate(w http.ResponseWriter, r *http.Reques
 
 }
 
-
-
 func (s *Server) handleAdblockSourceDelete(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -5871,9 +5322,7 @@ func (s *Server) handleAdblockSourceDelete(w http.ResponseWriter, r *http.Reques
 	}
 
 	var req struct {
-
 		ID string `json:"id"`
-
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -5883,8 +5332,6 @@ func (s *Server) handleAdblockSourceDelete(w http.ResponseWriter, r *http.Reques
 	sendJSON(w, map[string]any{"ok": true, "config": s.adblockMgr.GetFilterConfig()})
 
 }
-
-
 
 func (s *Server) handleAdblockSourceToggle(w http.ResponseWriter, r *http.Request) {
 
@@ -5897,11 +5344,9 @@ func (s *Server) handleAdblockSourceToggle(w http.ResponseWriter, r *http.Reques
 	}
 
 	var req struct {
+		ID string `json:"id"`
 
-		ID      string `json:"id"`
-
-		Enabled bool   `json:"enabled"`
-
+		Enabled bool `json:"enabled"`
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -5914,8 +5359,6 @@ func (s *Server) handleAdblockSourceToggle(w http.ResponseWriter, r *http.Reques
 
 }
 
-
-
 func (s *Server) handleAdblockSourceRefresh(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -5927,9 +5370,7 @@ func (s *Server) handleAdblockSourceRefresh(w http.ResponseWriter, r *http.Reque
 	}
 
 	var req struct {
-
 		ID string `json:"id"`
-
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -5952,8 +5393,6 @@ func (s *Server) handleAdblockSourceRefresh(w http.ResponseWriter, r *http.Reque
 
 }
 
-
-
 func (s *Server) handleAdblockWhitelistAdd(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -5965,9 +5404,7 @@ func (s *Server) handleAdblockWhitelistAdd(w http.ResponseWriter, r *http.Reques
 	}
 
 	var req struct {
-
 		Domain string `json:"domain"`
-
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -5988,8 +5425,6 @@ func (s *Server) handleAdblockWhitelistAdd(w http.ResponseWriter, r *http.Reques
 
 }
 
-
-
 func (s *Server) handleAdblockWhitelistDelete(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -6001,9 +5436,7 @@ func (s *Server) handleAdblockWhitelistDelete(w http.ResponseWriter, r *http.Req
 	}
 
 	var req struct {
-
 		Domain string `json:"domain"`
-
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -6017,8 +5450,6 @@ func (s *Server) handleAdblockWhitelistDelete(w http.ResponseWriter, r *http.Req
 	sendJSON(w, map[string]any{"ok": true, "whitelist": s.adblockMgr.GetWhitelistDomains()})
 
 }
-
-
 
 func (s *Server) syncAdblockToEngines() {
 
@@ -6048,8 +5479,6 @@ func (s *Server) syncAdblockToEngines() {
 
 }
 
-
-
 func (s *Server) syncDNSRewriteToEngines() {
 
 	if s.dnsRewriteMgr == nil || s.engMgr == nil {
@@ -6077,8 +5506,6 @@ func (s *Server) syncDNSRewriteToEngines() {
 	}
 
 }
-
-
 
 func (s *Server) handleDNSRewriteConfig(w http.ResponseWriter, r *http.Request) {
 
@@ -6122,8 +5549,6 @@ func (s *Server) handleDNSRewriteConfig(w http.ResponseWriter, r *http.Request) 
 
 }
 
-
-
 func (s *Server) handleDNSRewriteToggle(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -6135,9 +5560,7 @@ func (s *Server) handleDNSRewriteToggle(w http.ResponseWriter, r *http.Request) 
 	}
 
 	var req struct {
-
 		Enabled bool `json:"enabled"`
-
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -6165,8 +5588,6 @@ func (s *Server) handleDNSRewriteToggle(w http.ResponseWriter, r *http.Request) 
 	sendJSON(w, map[string]any{"ok": true, "enabled": req.Enabled, "config": s.dnsRewriteMgr.GetConfig()})
 
 }
-
-
 
 func (s *Server) handleDNSRewriteRuleAdd(w http.ResponseWriter, r *http.Request) {
 
@@ -6206,8 +5627,6 @@ func (s *Server) handleDNSRewriteRuleAdd(w http.ResponseWriter, r *http.Request)
 
 }
 
-
-
 func (s *Server) handleDNSRewriteRuleUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -6244,8 +5663,6 @@ func (s *Server) handleDNSRewriteRuleUpdate(w http.ResponseWriter, r *http.Reque
 
 }
 
-
-
 func (s *Server) handleDNSRewriteRuleDelete(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -6257,9 +5674,7 @@ func (s *Server) handleDNSRewriteRuleDelete(w http.ResponseWriter, r *http.Reque
 	}
 
 	var req struct {
-
 		ID string `json:"id"`
-
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -6286,8 +5701,6 @@ func (s *Server) handleDNSRewriteRuleDelete(w http.ResponseWriter, r *http.Reque
 
 }
 
-
-
 func (s *Server) handleDNSRewriteRuleToggle(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -6299,11 +5712,9 @@ func (s *Server) handleDNSRewriteRuleToggle(w http.ResponseWriter, r *http.Reque
 	}
 
 	var req struct {
+		ID string `json:"id"`
 
-		ID      string `json:"id"`
-
-		Enabled bool   `json:"enabled"`
-
+		Enabled bool `json:"enabled"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -6327,8 +5738,6 @@ func (s *Server) handleDNSRewriteRuleToggle(w http.ResponseWriter, r *http.Reque
 	sendJSON(w, map[string]any{"ok": true, "config": s.dnsRewriteMgr.GetConfig()})
 
 }
-
-
 
 func (s *Server) handleDNSRewriteReset(w http.ResponseWriter, r *http.Request) {
 
@@ -6355,8 +5764,6 @@ func (s *Server) handleDNSRewriteReset(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, map[string]any{"ok": true, "config": s.dnsRewriteMgr.GetConfig()})
 
 }
-
-
 
 func getProcessRSS() float64 {
 
@@ -6395,9 +5802,6 @@ func getProcessRSS() float64 {
 	return float64(m.Alloc) / (1024 * 1024)
 
 }
-
-
-
 
 type TrafficMonthState struct {
 	YearMonth        string    `json:"year_month"`
@@ -6533,8 +5937,6 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 
 	memMB, coreMem, totalOverhead := s.getLiveMemoryMetrics()
 
-
-
 	clashPort := 9090
 
 	if ir := s.engMgr.GetIR(); ir != nil && ir.Network.ClashAPIPort > 0 {
@@ -6542,8 +5944,6 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 		clashPort = ir.Network.ClashAPIPort
 
 	}
-
-
 
 	connCount := 0
 	var uploadTotal, downloadTotal int64 = 0, 0
@@ -6564,61 +5964,53 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 		resp.Body.Close()
 	}
 
-
-
 	monthOutBytes, monthInBytes := s.recordTrafficSample(uploadTotal, downloadTotal)
 
 	upSpeed = s.liveUpSpeed.Load()
 
 	downSpeed = s.liveDownSpeed.Load()
 
-
-
 	sendJSON(w, map[string]any{
 
-		"connections_count":  connCount,
+		"connections_count": connCount,
 
-		"memory_mb":          memMB + coreMem,
+		"memory_mb": memMB + coreMem,
 
-		"total_overhead_mb":  totalOverhead,
+		"total_overhead_mb": totalOverhead,
 
-		"core_memory_mb":     coreMem,
+		"core_memory_mb": coreMem,
 
-		"app_memory_mb":      memMB,
+		"app_memory_mb": memMB,
 
-		"rss_mb":             memMB + coreMem,
+		"rss_mb": memMB + coreMem,
 
-		"inbound_total_mb":   float64(downloadTotal) / (1024 * 1024),
+		"inbound_total_mb": float64(downloadTotal) / (1024 * 1024),
 
-		"inbound_speed_bps":  downSpeed,
+		"inbound_speed_bps": downSpeed,
 
-		"outbound_total_mb":  float64(uploadTotal) / (1024 * 1024),
+		"outbound_total_mb": float64(uploadTotal) / (1024 * 1024),
 
 		"outbound_speed_bps": upSpeed,
 
-		"month_outbound_mb":  float64(monthOutBytes) / (1024 * 1024),
+		"month_outbound_mb": float64(monthOutBytes) / (1024 * 1024),
 
-		"month_inbound_mb":   float64(monthInBytes) / (1024 * 1024),
+		"month_inbound_mb": float64(monthInBytes) / (1024 * 1024),
 
-		"month_total_gb":     math.Round((float64(monthOutBytes)/(1024*1024*1024))*100) / 100,
+		"month_total_gb": math.Round((float64(monthOutBytes)/(1024*1024*1024))*100) / 100,
 
 		"probes": map[string]int{
 
 			"bilibili": 143,
 
-			"youtube":  307,
+			"youtube": 307,
 
-			"github":   95,
+			"github": 95,
 
-			"gemini":   351,
-
+			"gemini": 351,
 		},
-
 	})
 
 }
-
-
 
 // startTrafficCollector keeps a long-lived streaming connection to Clash /traffic endpoint,
 
@@ -6660,8 +6052,6 @@ func (s *Server) startTrafficCollector() {
 
 			}
 
-
-
 			// Background periodic physical connections sampler
 			go func() {
 				defer safeRecover("PhysicalConnectionsSampler")
@@ -6690,11 +6080,9 @@ func (s *Server) startTrafficCollector() {
 			for {
 
 				var tf struct {
-
-					Up   int64 `json:"up"`
+					Up int64 `json:"up"`
 
 					Down int64 `json:"down"`
-
 				}
 
 				if err := dec.Decode(&tf); err != nil {
@@ -6718,8 +6106,6 @@ func (s *Server) startTrafficCollector() {
 	}()
 
 }
-
-
 
 // startConntrackSweeper periodically purges lingering Fake-IP (198.18.0.0/15) connections
 
@@ -6745,27 +6131,25 @@ func (s *Server) startConntrackSweeper() {
 				}
 			}
 			if targetIP != "" {
-			if restored := s.rosMgr.EnsureFakeIPRoute(targetIP); restored {
+				if restored := s.rosMgr.EnsureFakeIPRoute(targetIP); restored {
 
-				s.logBuffer.Add("INFO", "ROS", "RouterOS 宿主启动守护: 自动补齐 198.18.0.0/15 回指路由")
+					s.logBuffer.Add("INFO", "ROS", "RouterOS 宿主启动守护: 自动补齐 198.18.0.0/15 回指路由")
 
-			}
+				}
 
-			purgedConns := s.rosMgr.PurgeStaleFakeIPConnections()
+				purgedConns := s.rosMgr.PurgeStaleFakeIPConnections()
 
-			purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes(targetIP)
+				purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes(targetIP)
 
-			if purgedConns > 0 || purgedRoutes > 0 {
+				if purgedConns > 0 || purgedRoutes > 0 {
 
-				s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("RouterOS 宿主启动自愈巡检: 已清算 %d 条僵尸连接与 %d 条失效回指路由", purgedConns, purgedRoutes))
+					s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("RouterOS 宿主启动自愈巡检: 已清算 %d 条僵尸连接与 %d 条失效回指路由", purgedConns, purgedRoutes))
 
-			}
+				}
 
-			s.rosMgr.AdaptHostMemoryWatermark()
+				s.rosMgr.AdaptHostMemoryWatermark()
 			}
 		}
-
-
 
 		// Fast route guard every 15 seconds (accelerated for ROS 7.25) & deep self-healing every 10 minutes
 
@@ -6791,47 +6175,43 @@ func (s *Server) startConntrackSweeper() {
 					}
 				}
 				if targetIP != "" {
-				// 1. Route guard every 15s: ensure route exists
+					// 1. Route guard every 15s: ensure route exists
 
-				if restored := s.rosMgr.EnsureFakeIPRoute(targetIP); restored {
+					if restored := s.rosMgr.EnsureFakeIPRoute(targetIP); restored {
 
-					s.logBuffer.Add("WARN", "ROS", "RouterOS 路由常驻看门狗: 检测到 198.18.0.0/15 回指路由丢失，已全自动 0 秒自愈恢复！")
-
-				}
-
-
-
-				// 2. ROS 7.25 DAI & Bridge trust guard every 60s (15s * 4)
-
-				if loopCount%4 == 0 {
-
-					if restored, _ := s.rosMgr.EnsureBridgeDAIProtection(targetIP); restored {
-
-						s.logBuffer.Add("INFO", "ROS", "RouterOS 7.25+ 安全守护: 自动补齐 veth-cubex trusted=true 与 trusted-arp=true 信任标志")
+						s.logBuffer.Add("WARN", "ROS", "RouterOS 路由常驻看门狗: 检测到 198.18.0.0/15 回指路由丢失，已全自动 0 秒自愈恢复！")
 
 					}
 
-				}
+					// 2. ROS 7.25 DAI & Bridge trust guard every 60s (15s * 4)
 
+					if loopCount%4 == 0 {
 
+						if restored, _ := s.rosMgr.EnsureBridgeDAIProtection(targetIP); restored {
 
-				// 3. Conntrack sweeper and memory optimization every 10 minutes (15s * 40)
+							s.logBuffer.Add("INFO", "ROS", "RouterOS 7.25+ 安全守护: 自动补齐 veth-cubex trusted=true 与 trusted-arp=true 信任标志")
 
-				if loopCount%40 == 0 {
-
-					purgedConns := s.rosMgr.PurgeStaleFakeIPConnections()
-
-					purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes(targetIP)
-
-					if purgedConns > 0 || purgedRoutes > 0 {
-
-						s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("RouterOS 宿主 10分钟静默周期自愈: 已清算 %d 条僵尸连接与 %d 条失效回指路由", purgedConns, purgedRoutes))
+						}
 
 					}
 
-					s.rosMgr.AdaptHostMemoryWatermark()
+					// 3. Conntrack sweeper and memory optimization every 10 minutes (15s * 40)
 
-				}
+					if loopCount%40 == 0 {
+
+						purgedConns := s.rosMgr.PurgeStaleFakeIPConnections()
+
+						purgedRoutes := s.rosMgr.PurgeConflictingFakeIPRoutes(targetIP)
+
+						if purgedConns > 0 || purgedRoutes > 0 {
+
+							s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("RouterOS 宿主 10分钟静默周期自愈: 已清算 %d 条僵尸连接与 %d 条失效回指路由", purgedConns, purgedRoutes))
+
+						}
+
+						s.rosMgr.AdaptHostMemoryWatermark()
+
+					}
 				}
 
 			}
@@ -6841,8 +6221,6 @@ func (s *Server) startConntrackSweeper() {
 	}()
 
 }
-
-
 
 func (s *Server) handleFailoverDrill(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -6920,8 +6298,6 @@ func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) 
 
 	activeEngine := s.engMgr.GetActiveEngine()
 
-
-
 	// 1. Direct latency test (to baidu.com)
 
 	t0 := time.Now()
@@ -6940,8 +6316,6 @@ func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	// 2. Proxy latency test (via local proxy port 7890)
 
 	proxyURL, _ := url.Parse("http://127.0.0.1:7890")
@@ -6953,9 +6327,7 @@ func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) 
 		Transport: &http.Transport{
 
 			Proxy: http.ProxyURL(proxyURL),
-
 		},
-
 	}
 
 	t1 := time.Now()
@@ -6971,8 +6343,6 @@ func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) 
 		proxyResp.Body.Close()
 
 	}
-
-
 
 	// 3. Fake-IP DNS Check
 
@@ -6991,7 +6361,6 @@ func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) 
 	probeTargets := []string{
 
 		fmt.Sprintf("127.0.0.1:%d", dnsPort),
-
 	}
 
 	if s.rosMgr != nil {
@@ -7056,8 +6425,6 @@ func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	// 4. RouterOS Route Check
 
 	rosRouteOK := false
@@ -7098,8 +6465,6 @@ func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	rosVer := ""
 
 	if s.rosMgr != nil {
@@ -7112,43 +6477,38 @@ func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	sendJSON(w, map[string]any{
 
-		"success":           true,
+		"success": true,
 
-		"active_engine":     activeEngine,
+		"active_engine": activeEngine,
 
-		"direct_ok":         directOK,
+		"direct_ok": directOK,
 
 		"direct_latency_ms": directLatency,
 
-		"proxy_ok":          proxyOK,
+		"proxy_ok": proxyOK,
 
-		"proxy_latency_ms":  proxyLatency,
+		"proxy_latency_ms": proxyLatency,
 
-		"dns_fakeip_ok":     dnsOK,
+		"dns_fakeip_ok": dnsOK,
 
-		"fakeip_address":    fakeIP,
+		"fakeip_address": fakeIP,
 
-		"ros_route_ok":      rosRouteOK,
+		"ros_route_ok": rosRouteOK,
 
-		"ros_gateway":       rosGW,
+		"ros_gateway": rosGW,
 
-		"ros_version":       rosVer,
+		"ros_version": rosVer,
 
-		"dai_ready":         true,
+		"dai_ready": true,
 
-		"all_healthy":       directOK && proxyOK && dnsOK && rosRouteOK,
+		"all_healthy": directOK && proxyOK && dnsOK && rosRouteOK,
 
-		"timestamp":         time.Now().Unix(),
-
+		"timestamp": time.Now().Unix(),
 	})
 
 }
-
-
 
 func (s *Server) handleRosConntrackClean(w http.ResponseWriter, r *http.Request) {
 
@@ -7176,17 +6536,14 @@ func (s *Server) handleRosConntrackClean(w http.ResponseWriter, r *http.Request)
 
 	sendJSON(w, map[string]any{
 
-		"ok":     true,
+		"ok": true,
 
 		"purged": purged,
 
-		"msg":    fmt.Sprintf("已成功清算 %d 条 Fake-IP 僵尸连接", purged),
-
+		"msg": fmt.Sprintf("已成功清算 %d 条 Fake-IP 僵尸连接", purged),
 	})
 
 }
-
-
 
 func (s *Server) handleBackupExport(w http.ResponseWriter, r *http.Request) {
 
@@ -7218,8 +6575,6 @@ func (s *Server) handleBackupExport(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleBackupImport(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -7248,8 +6603,6 @@ func (s *Server) handleBackupImport(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	// Reload IR into running engine manager
 
 	irFile := filepath.Join(s.workDir, "data", "config.ir.json")
@@ -7276,23 +6629,18 @@ func (s *Server) handleBackupImport(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	sendJSON(w, map[string]any{
 
-		"status":      "restored",
+		"status": "restored",
 
-		"message":     "配置快照已成功恢复并装载！",
+		"message": "配置快照已成功恢复并装载！",
 
-		"sub_count":   subCount,
+		"sub_count": subCount,
 
 		"proxy_count": proxyCount,
-
 	})
 
 }
-
-
 
 func (s *Server) handleAIChat(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -7404,8 +6752,6 @@ func (s *Server) handleSystemHeal(w http.ResponseWriter, r *http.Request) {
 
 // ──────────────────────────────────────────────
 
-
-
 func (s *Server) handleHostInfo(w http.ResponseWriter, r *http.Request) {
 
 	info, err := s.hostMgr.ProbeHost()
@@ -7419,8 +6765,6 @@ func (s *Server) handleHostInfo(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, info)
 
 }
-
-
 
 func (s *Server) handleHostConfig(w http.ResponseWriter, r *http.Request) {
 
@@ -7454,14 +6798,13 @@ func (s *Server) handleHostConfig(w http.ResponseWriter, r *http.Request) {
 
 			_ = s.rosMgr.SaveConfig(map[string]string{
 
-				"host":     cfg.Host,
+				"host": cfg.Host,
 
-				"port":     strconv.Itoa(cfg.Port),
+				"port": strconv.Itoa(cfg.Port),
 
-				"user":     cfg.User,
+				"user": cfg.User,
 
 				"password": cfg.Password,
-
 			})
 
 		}
@@ -7475,8 +6818,6 @@ func (s *Server) handleHostConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-
-
 
 func (s *Server) handleHostTest(w http.ResponseWriter, r *http.Request) {
 
@@ -7512,8 +6853,6 @@ func (s *Server) handleHostTest(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleHostFirewallApply(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -7525,11 +6864,9 @@ func (s *Server) handleHostFirewallApply(w http.ResponseWriter, r *http.Request)
 	}
 
 	var req struct {
+		Mode string `json:"mode"`
 
-		Mode              string `json:"mode"`
-
-		EnablePenetration *bool  `json:"enable_penetration"`
-
+		EnablePenetration *bool `json:"enable_penetration"`
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -7547,8 +6884,6 @@ func (s *Server) handleHostFirewallApply(w http.ResponseWriter, r *http.Request)
 		enablePenetration = *req.EnablePenetration
 
 	}
-
-
 
 	// 1. 本端核心安全基线与双核规则自愈 (统一将原按钮 2 的自愈中枢全量合并入全宿主自愈总线)
 
@@ -7580,8 +6915,6 @@ func (s *Server) handleHostFirewallApply(w http.ResponseWriter, r *http.Request)
 
 	}
 
-
-
 	// 2. 宿主防火墙与网络编排 (自动适配 OpenWrt、爱快 iKuai、Linux / 飞牛 fnOS / PVE 等宿主底座)
 
 	res, err := s.hostMgr.ApplyFirewall(req.Mode, enablePenetration)
@@ -7590,12 +6923,11 @@ func (s *Server) handleHostFirewallApply(w http.ResponseWriter, r *http.Request)
 
 		sendJSON(w, map[string]any{
 
-			"success":            false,
+			"success": false,
 
-			"error":              err.Error(),
+			"error": err.Error(),
 
 			"local_remediations": localRemediations,
-
 		})
 
 		return
@@ -7611,8 +6943,6 @@ func (s *Server) handleHostFirewallApply(w http.ResponseWriter, r *http.Request)
 	sendJSON(w, res)
 
 }
-
-
 
 func (s *Server) handleHostFirewallScript(w http.ResponseWriter, r *http.Request) {
 
@@ -7630,25 +6960,20 @@ func (s *Server) handleHostFirewallScript(w http.ResponseWriter, r *http.Request
 
 	sendJSON(w, map[string]any{
 
-		"mode":               mode,
+		"mode": mode,
 
 		"enable_penetration": enablePenetration,
 
-		"script":             script,
-
+		"script": script,
 	})
 
 }
-
-
 
 // ──────────────────────────────────────────────
 
 // RouterOS v7 REST API Handlers
 
 // ──────────────────────────────────────────────
-
-
 
 func (s *Server) handleROSInspect(w http.ResponseWriter, r *http.Request) {
 
@@ -7666,8 +6991,6 @@ func (s *Server) handleROSInspect(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleROSApply(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -7679,9 +7002,7 @@ func (s *Server) handleROSApply(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
 		TargetIP string `json:"target_ip"`
-
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -7700,8 +7021,6 @@ func (s *Server) handleROSApply(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleROSCleanAndReapply(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -7713,14 +7032,10 @@ func (s *Server) handleROSCleanAndReapply(w http.ResponseWriter, r *http.Request
 	}
 
 	var req struct {
-
 		TargetIP string `json:"target_ip"`
-
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
-
-
 
 	// 1. 本端核心安全基线与双核规则自愈 (原按钮 2 核心功能全量合并入总线)
 
@@ -7752,8 +7067,6 @@ func (s *Server) handleROSCleanAndReapply(w http.ResponseWriter, r *http.Request
 
 	}
 
-
-
 	// 2. 外部宿主与主路由全栈网络编排 (原按钮 1 核心功能)
 
 	res, err := s.rosMgr.CleanAndReapplyRouting(req.TargetIP)
@@ -7775,8 +7088,6 @@ func (s *Server) handleROSCleanAndReapply(w http.ResponseWriter, r *http.Request
 	sendJSON(w, res)
 
 }
-
-
 
 func (s *Server) handleROSIpv6Setup(w http.ResponseWriter, r *http.Request) {
 
@@ -7808,10 +7119,9 @@ func (s *Server) handleROSIpv6Setup(w http.ResponseWriter, r *http.Request) {
 
 				"success": true,
 
-				"logs":    logs,
+				"logs": logs,
 
 				"message": "OpenWrt 原生 IPv6 锁定与防 DNS 泄露配置完成",
-
 			})
 
 			return
@@ -7821,9 +7131,7 @@ func (s *Server) handleROSIpv6Setup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
 		WanInterface string `json:"wan_interface"`
-
 	}
 
 	_ = json.NewDecoder(r.Body).Decode(&req)
@@ -7841,8 +7149,6 @@ func (s *Server) handleROSIpv6Setup(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, res)
 
 }
-
-
 
 func (s *Server) handleROSConfig(w http.ResponseWriter, r *http.Request) {
 
@@ -7884,16 +7190,15 @@ func (s *Server) handleROSConfig(w http.ResponseWriter, r *http.Request) {
 
 			_ = s.hostMgr.SaveConfig(host.HostConfig{
 
-				Enabled:  true,
+				Enabled: true,
 
-				Host:     cfg["host"],
+				Host: cfg["host"],
 
-				Port:     port,
+				Port: port,
 
-				User:     cfg["user"],
+				User: cfg["user"],
 
 				Password: cfg["password"],
-
 			})
 
 		}
@@ -7908,15 +7213,11 @@ func (s *Server) handleROSConfig(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 // ──────────────────────────────────────────────
 
 // 4-Tier Version Overview & Upgrades
 
 // ──────────────────────────────────────────────
-
-
 
 func (s *Server) handleSystemOverview(w http.ResponseWriter, r *http.Request) {
 
@@ -7925,8 +7226,6 @@ func (s *Server) handleSystemOverview(w http.ResponseWriter, r *http.Request) {
 	overview["cubex_version"] = version
 
 	overview["panel_curr_version"] = version
-
-
 
 	latestVer, _ := overview["panel_latest_version"].(string)
 
@@ -7942,8 +7241,6 @@ func (s *Server) handleSystemOverview(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	mihomoAvail, _ := overview["mihomo_update_avail"].(bool)
 
 	singboxAvail, _ := overview["singbox_update_avail"].(bool)
@@ -7951,8 +7248,6 @@ func (s *Server) handleSystemOverview(w http.ResponseWriter, r *http.Request) {
 	panelAvail, _ := overview["panel_update_avail"].(bool)
 
 	overview["update_available"] = mihomoAvail || singboxAvail || panelAvail
-
-
 
 	overview["active_engine"] = s.engMgr.GetActiveEngine()
 
@@ -7970,8 +7265,6 @@ func (s *Server) handleSystemOverview(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleUpgradeCore(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -7983,7 +7276,6 @@ func (s *Server) handleUpgradeCore(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-
 		Core string `json:"core"` // "mihomo" or "singbox"
 
 	}
@@ -8056,8 +7348,6 @@ func (s *Server) handleUpgradeCore(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleUpgradeGeoData(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodGet {
@@ -8124,8 +7414,6 @@ func (s *Server) handleUpgradeGeoData(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleUpgradePanel(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -8187,8 +7475,6 @@ func (s *Server) handleUpgradePanel(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleHostUpgradeCheck(w http.ResponseWriter, r *http.Request) {
 
 	cached := s.hostMgr.GetCachedHostInfo()
@@ -8209,8 +7495,6 @@ func (s *Server) handleHostUpgradeCheck(w http.ResponseWriter, r *http.Request) 
 
 	}
 
-
-
 	// 1. If currently linked host is iKuai
 
 	if platID == "ikuai" || (cached != nil && strings.Contains(strings.ToLower(cached.OSName), "ikuai")) {
@@ -8225,29 +7509,26 @@ func (s *Server) handleHostUpgradeCheck(w http.ResponseWriter, r *http.Request) 
 
 		sendJSON(w, map[string]any{
 
-			"output":            fmt.Sprintf("爱快 iKuai 固件运行状态正常 (当前版本: %s, 平台: 官方商用云端镜像通道, 状态: 就绪)", ver),
+			"output": fmt.Sprintf("爱快 iKuai 固件运行状态正常 (当前版本: %s, 平台: 官方商用云端镜像通道, 状态: 就绪)", ver),
 
 			"installed_version": ver,
 
-			"latest_version":    ver,
+			"latest_version": ver,
 
-			"channel":           "stable/beta",
+			"channel": "stable/beta",
 
-			"status":            "System is up to date",
+			"status": "System is up to date",
 
-			"has_update":        false,
+			"has_update": false,
 
-			"is_routeros":       false,
+			"is_routeros": false,
 
-			"platform_id":       "ikuai",
-
+			"platform_id": "ikuai",
 		})
 
 		return
 
 	}
-
-
 
 	// 2. If currently linked host is OpenWrt
 
@@ -8263,29 +7544,26 @@ func (s *Server) handleHostUpgradeCheck(w http.ResponseWriter, r *http.Request) 
 
 		sendJSON(w, map[string]any{
 
-			"output":            fmt.Sprintf("OpenWrt 固件与系统包运行正常 (当前版本: %s, 状态: 就绪)", ver),
+			"output": fmt.Sprintf("OpenWrt 固件与系统包运行正常 (当前版本: %s, 状态: 就绪)", ver),
 
 			"installed_version": ver,
 
-			"latest_version":    ver,
+			"latest_version": ver,
 
-			"channel":           "official",
+			"channel": "official",
 
-			"status":            "System is up to date",
+			"status": "System is up to date",
 
-			"has_update":        false,
+			"has_update": false,
 
-			"is_routeros":       false,
+			"is_routeros": false,
 
-			"platform_id":       "openwrt",
-
+			"platform_id": "openwrt",
 		})
 
 		return
 
 	}
-
-
 
 	// 3. RouterOS check (strictly isolated from Linux SSH)
 	if platID == "routeros" {
@@ -8308,9 +7586,9 @@ func (s *Server) handleHostUpgradeCheck(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		sendJSON(w, map[string]any{
-			"error":             "RouterOS REST API 尚未连通认证。请在上方【宿主共生凭据】核对 RouterOS 的 IP 与 WinBox/Web 管理账号密码（并确认 IP -> Services 中 www 端口 80 或 443 已开启）",
-			"is_routeros":       true,
-			"platform_id":       "routeros",
+			"error":       "RouterOS REST API 尚未连通认证。请在上方【宿主共生凭据】核对 RouterOS 的 IP 与 WinBox/Web 管理账号密码（并确认 IP -> Services 中 www 端口 80 或 443 已开启）",
+			"is_routeros": true,
+			"platform_id": "routeros",
 		})
 		return
 	}
@@ -8414,15 +7692,11 @@ func (s *Server) handleHostUpgradeExecute(w http.ResponseWriter, r *http.Request
 
 }
 
-
-
 // ──────────────────────────────────────────────
 
 // LAN Devices & Policy Matrix Handlers
 
 // ──────────────────────────────────────────────
-
-
 
 func (s *Server) handleDevices(w http.ResponseWriter, r *http.Request) {
 
@@ -8432,13 +7706,10 @@ func (s *Server) handleDevices(w http.ResponseWriter, r *http.Request) {
 
 		"devices": devices,
 
-		"total":   len(devices),
-
+		"total": len(devices),
 	})
 
 }
-
-
 
 func (s *Server) handleDeviceAlias(w http.ResponseWriter, r *http.Request) {
 
@@ -8451,13 +7722,11 @@ func (s *Server) handleDeviceAlias(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
+		IP string `json:"ip"`
 
-		IP   string `json:"ip"`
-
-		MAC  string `json:"mac"`
+		MAC string `json:"mac"`
 
 		Name string `json:"name"`
-
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -8480,8 +7749,6 @@ func (s *Server) handleDeviceAlias(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleDevicePolicy(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -8493,14 +7760,13 @@ func (s *Server) handleDevicePolicy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
+		IP string `json:"ip"`
 
-		IP        string `json:"ip"`
+		MAC string `json:"mac"`
 
-		MAC       string `json:"mac"`
+		Name string `json:"name"`
 
-		Name      string `json:"name"`
-
-		Mode      string `json:"mode"`       // "rule" | "bypass" | "node"
+		Mode string `json:"mode"` // "rule" | "bypass" | "node"
 
 		BoundNode string `json:"bound_node"` // specific node or proxy group
 
@@ -8534,23 +7800,18 @@ func (s *Server) handleDevicePolicy(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	sendJSON(w, map[string]any{
 
-		"status":     "saved",
+		"status": "saved",
 
-		"ip":         req.IP,
+		"ip": req.IP,
 
-		"mode":       req.Mode,
+		"mode": req.Mode,
 
 		"bound_node": req.BoundNode,
-
 	})
 
 }
-
-
 
 func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
 
@@ -8576,14 +7837,13 @@ func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
 
 			sendJSON(w, map[string]any{
 
-				"ok":        true,
+				"ok": true,
 
 				"host_type": "ikuai",
 
-				"message":   "🎉 已成功原生联动爱快 iKuai 宿主！198.18.0.0/15 静态回指路由与 DHCP 联动已全自动配置生效！",
+				"message": "🎉 已成功原生联动爱快 iKuai 宿主！198.18.0.0/15 静态回指路由与 DHCP 联动已全自动配置生效！",
 
-				"result":    fwRes,
-
+				"result": fwRes,
 			})
 
 			return
@@ -8591,8 +7851,6 @@ func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-
-
 
 	// 2. Check if ROS is connected
 
@@ -8604,14 +7862,13 @@ func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
 
 			sendJSON(w, map[string]any{
 
-				"ok":        true,
+				"ok": true,
 
 				"host_type": "routeros",
 
-				"message":   "🎉 已成功原生联动 RouterOS 宿主！策略路由与防DNS泄露规则已全自动配置生效！",
+				"message": "🎉 已成功原生联动 RouterOS 宿主！策略路由与防DNS泄露规则已全自动配置生效！",
 
-				"result":    res,
-
+				"result": res,
 			})
 
 			return
@@ -8619,8 +7876,6 @@ func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-
-
 
 	// 3. Check if Host SSH is connected (Linux/fnOS/PVE)
 
@@ -8632,14 +7887,13 @@ func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
 
 			sendJSON(w, map[string]any{
 
-				"ok":        true,
+				"ok": true,
 
 				"host_type": cached.PlatformID,
 
-				"message":   fmt.Sprintf("🎉 已成功原生联动 %s 宿主！内核数据包转发 (ip_forward=1) 与防火墙放行规则已全自动配置生效！", cached.OSName),
+				"message": fmt.Sprintf("🎉 已成功原生联动 %s 宿主！内核数据包转发 (ip_forward=1) 与防火墙放行规则已全自动配置生效！", cached.OSName),
 
-				"result":    fwRes,
-
+				"result": fwRes,
 			})
 
 			return
@@ -8656,14 +7910,13 @@ func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
 
 		sendJSON(w, map[string]any{
 
-			"ok":        true,
+			"ok": true,
 
 			"host_type": "routeros",
 
-			"message":   "🎉 已成功原生联动 RouterOS 宿主！",
+			"message": "🎉 已成功原生联动 RouterOS 宿主！",
 
-			"result":    res,
-
+			"result": res,
 		})
 
 		return
@@ -8672,31 +7925,23 @@ func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
 
 	sendJSON(w, map[string]any{
 
-		"ok":    false,
+		"ok": false,
 
 		"error": "未能自动探测到有效宿主连接。请在「宿主共生」凭据中配置 RouterOS 或宿主机 SSH 凭证后再试。",
-
 	})
 
 }
-
-
 
 func (s *Server) handleSystemLatency(w http.ResponseWriter, r *http.Request) {
 
 	client := &http.Client{
 
 		Timeout: 2 * time.Second,
-
 	}
-
-
 
 	directTarget := "connectivitycheck.platform.hicloud.com"
 
 	proxyTarget := "cp.cloudflare.com"
-
-
 
 	// Measure direct latency (China mainland probe)
 
@@ -8720,8 +7965,6 @@ func (s *Server) handleSystemLatency(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	// Measure proxy/overseas latency
 
 	startProxy := time.Now()
@@ -8744,27 +7987,22 @@ func (s *Server) handleSystemLatency(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	sendJSON(w, map[string]any{
 
-		"ok":            true,
+		"ok": true,
 
-		"direct_ms":     directMs,
+		"direct_ms": directMs,
 
 		"direct_target": directTarget,
 
-		"proxy_ms":      proxyMs,
+		"proxy_ms": proxyMs,
 
-		"proxy_target":  proxyTarget,
+		"proxy_target": proxyTarget,
 
-		"timestamp":     time.Now().Format(time.RFC3339),
-
+		"timestamp": time.Now().Format(time.RFC3339),
 	})
 
 }
-
-
 
 func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 
@@ -8773,9 +8011,7 @@ func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 	if target == "" && r.Method == http.MethodPost {
 
 		var req struct {
-
 			Target string `json:"target"`
-
 		}
 
 		_ = json.NewDecoder(r.Body).Decode(&req)
@@ -8789,8 +8025,6 @@ func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 		target = "youku"
 
 	}
-
-
 
 	// Clean target (strip protocol, slashes, port)
 
@@ -8812,11 +8046,7 @@ func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	ir := s.engMgr.GetIR()
-
-
 
 	// Helper to find group's active node
 
@@ -8850,8 +8080,6 @@ func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	// Domestic keywords for GeoSite:cn
 
 	cnKeywords := []string{
@@ -8865,10 +8093,7 @@ func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 		"amap", "autonavi", "ctrip", "xunlei", "douyu", "huya", "tieba", "cctv", "smzdm", "csdn",
 
 		"gitee", "aliyun", "bce", "qcloud", "volces", "v2ex", "dianping",
-
 	}
-
-
 
 	isCN := false
 
@@ -8896,38 +8121,31 @@ func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-
-
 	if isCN {
 
 		sendJSON(w, map[string]any{
 
-			"target":      target,
+			"target": target,
 
-			"rule":        "GEOSITE, cn / GEOIP, CN, DIRECT (国内直连)",
+			"rule": "GEOSITE, cn / GEOIP, CN, DIRECT (国内直连)",
 
-			"group":       "🎯 全球直连",
+			"group": "🎯 全球直连",
 
 			"active_node": "🎯 本地直连出站 (DIRECT - 真实公网IP直出)",
-
 		})
 
 		return
 
 	}
 
-
-
 	// Foreign business routing matching
 
 	type bizMatch struct {
-
 		Keywords []string
 
 		RuleName string
 
-		GrpName  string
-
+		GrpName string
 	}
 
 	bizRules := []bizMatch{
@@ -8955,10 +8173,7 @@ func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 		{Keywords: []string{"spotify"}, RuleName: "GEOSITE, spotify", GrpName: "Spotify"},
 
 		{Keywords: []string{"steam", "steampowered", "steamcommunity"}, RuleName: "GEOSITE, steam", GrpName: "Steam 游戏"},
-
 	}
-
-
 
 	for _, bm := range bizRules {
 
@@ -8994,14 +8209,13 @@ func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 
 			sendJSON(w, map[string]any{
 
-				"target":      target,
+				"target": target,
 
-				"rule":        fmt.Sprintf("%s, %s", bm.RuleName, bm.GrpName),
+				"rule": fmt.Sprintf("%s, %s", bm.RuleName, bm.GrpName),
 
-				"group":       bm.GrpName,
+				"group": bm.GrpName,
 
 				"active_node": getActiveNode(bm.GrpName),
-
 			})
 
 			return
@@ -9009,8 +8223,6 @@ func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
-
-
 
 	// Fallback to 🐟 漏网之鱼
 
@@ -9024,27 +8236,22 @@ func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 
 	sendJSON(w, map[string]any{
 
-		"target":      target,
+		"target": target,
 
-		"rule":        "MATCH, 🐟 漏网之鱼",
+		"rule": "MATCH, 🐟 漏网之鱼",
 
-		"group":       "🐟 漏网之鱼",
+		"group": "🐟 漏网之鱼",
 
 		"active_node": fishNode,
-
 	})
 
 }
-
-
 
 // ──────────────────────────────────────────────
 
 // KSpeeder Acceleration Handlers
 
 // ──────────────────────────────────────────────
-
-
 
 func (s *Server) queryLiveHostDockerRegistry(activeMirror string) (liveRegistry string, synced bool, platID string) {
 
@@ -9063,8 +8270,6 @@ func (s *Server) queryLiveHostDockerRegistry(activeMirror string) (liveRegistry 
 	rosConnected := s.rosMgr != nil && s.rosMgr.IsConnected()
 
 	isROS := rosConnected || (hostInfo != nil && hostInfo.PlatformID == "routeros")
-
-
 
 	if isROS {
 
@@ -9102,8 +8307,6 @@ func (s *Server) queryLiveHostDockerRegistry(activeMirror string) (liveRegistry 
 
 	}
 
-
-
 	if liveRegistry != "" && activeMirror != "" {
 
 		synced = strings.TrimRight(strings.ToLower(liveRegistry), "/") == strings.TrimRight(strings.ToLower(activeMirror), "/")
@@ -9114,8 +8317,6 @@ func (s *Server) queryLiveHostDockerRegistry(activeMirror string) (liveRegistry 
 
 }
 
-
-
 func (s *Server) handleKSpeederStatus(w http.ResponseWriter, r *http.Request) {
 
 	status := s.kspeeder.GetStatus()
@@ -9124,33 +8325,30 @@ func (s *Server) handleKSpeederStatus(w http.ResponseWriter, r *http.Request) {
 
 	resp := map[string]any{
 
-		"enabled":              status.Enabled,
+		"enabled": status.Enabled,
 
-		"active_github_proxy":  status.ActiveGitHubProxy,
+		"active_github_proxy": status.ActiveGitHubProxy,
 
 		"active_docker_mirror": status.ActiveDockerMirror,
 
-		"github_proxies":       status.GitHubProxies,
+		"github_proxies": status.GitHubProxies,
 
-		"docker_mirrors":       status.DockerMirrors,
+		"docker_mirrors": status.DockerMirrors,
 
-		"auto_select_best":     status.AutoSelectBest,
+		"auto_select_best": status.AutoSelectBest,
 
-		"last_tested_at":       status.LastTestedAt,
+		"last_tested_at": status.LastTestedAt,
 
-		"host_registry_url":    liveRegistry,
+		"host_registry_url": liveRegistry,
 
-		"host_docker_synced":   hostSynced,
+		"host_docker_synced": hostSynced,
 
-		"host_platform":        platID,
-
+		"host_platform": platID,
 	}
 
 	sendJSON(w, resp)
 
 }
-
-
 
 func (s *Server) handleKSpeederConfig(w http.ResponseWriter, r *http.Request) {
 
@@ -9184,8 +8382,6 @@ func (s *Server) handleKSpeederConfig(w http.ResponseWriter, r *http.Request) {
 
 }
 
-
-
 func (s *Server) handleKSpeederTestGitHub(w http.ResponseWriter, r *http.Request) {
 
 	nodes := s.kspeeder.TestGitHubProxies()
@@ -9194,8 +8390,6 @@ func (s *Server) handleKSpeederTestGitHub(w http.ResponseWriter, r *http.Request
 
 }
 
-
-
 func (s *Server) handleKSpeederTestDocker(w http.ResponseWriter, r *http.Request) {
 
 	mirrors := s.kspeeder.TestDockerMirrors()
@@ -9203,8 +8397,6 @@ func (s *Server) handleKSpeederTestDocker(w http.ResponseWriter, r *http.Request
 	sendJSON(w, map[string]any{"status": "ok", "mirrors": mirrors, "active": s.kspeeder.GetStatus().ActiveDockerMirror})
 
 }
-
-
 
 func (s *Server) handleKSpeederHostRegistryStatus(w http.ResponseWriter, r *http.Request) {
 
@@ -9230,27 +8422,22 @@ func (s *Server) handleKSpeederHostRegistryStatus(w http.ResponseWriter, r *http
 
 	}
 
-
-
 	sendJSON(w, map[string]any{
 
-		"ok":                   true,
+		"ok": true,
 
-		"platform":             platID,
+		"platform": platID,
 
-		"host_name":            hostName,
+		"host_name": hostName,
 
 		"active_docker_mirror": activeMirror,
 
-		"host_registry_url":    liveRegistry,
+		"host_registry_url": liveRegistry,
 
-		"synced":               synced,
-
+		"synced": synced,
 	})
 
 }
-
-
 
 func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.Request) {
 
@@ -9262,12 +8449,8 @@ func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.
 
 	}
 
-
-
 	var reqBody struct {
-
 		Mirror string `json:"mirror"`
-
 	}
 
 	if r.Body != nil {
@@ -9275,8 +8458,6 @@ func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.
 		_ = json.NewDecoder(r.Body).Decode(&reqBody)
 
 	}
-
-
 
 	mirror := strings.TrimSpace(reqBody.Mirror)
 
@@ -9292,8 +8473,6 @@ func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.
 
 	}
 
-
-
 	// Update local kspeeder config with this mirror if different
 
 	currCfg := s.kspeeder.GetStatus()
@@ -9305,8 +8484,6 @@ func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.
 		_ = s.kspeeder.UpdateConfig(currCfg)
 
 	}
-
-
 
 	// 1. Probe or retrieve cached host info
 
@@ -9322,11 +8499,7 @@ func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.
 
 	}
 
-
-
 	rosConnected := s.rosMgr != nil && s.rosMgr.IsConnected()
-
-
 
 	// 2. Check if host is RouterOS
 
@@ -9350,21 +8523,18 @@ func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.
 
 			sendJSON(w, map[string]any{
 
-				"status":    "error",
+				"status": "error",
 
-				"platform":  "routeros",
+				"platform": "routeros",
 
 				"host_name": "MikroTik RouterOS",
 
-				"error":     "未能通过 REST 写入 RouterOS: " + err.Error(),
-
+				"error": "未能通过 REST 写入 RouterOS: " + err.Error(),
 			})
 
 			return
 
 		}
-
-
 
 		// Read back to verify live status
 
@@ -9378,31 +8548,26 @@ func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.
 
 		synced := strings.TrimRight(strings.ToLower(liveReg), "/") == strings.TrimRight(strings.ToLower(mirror), "/")
 
-
-
 		sendJSON(w, map[string]any{
 
-			"status":            "applied",
+			"status": "applied",
 
-			"platform":          "routeros",
+			"platform": "routeros",
 
-			"host_name":         "MikroTik RouterOS",
+			"host_name": "MikroTik RouterOS",
 
-			"applied_mirror":    mirror,
+			"applied_mirror": mirror,
 
 			"host_registry_url": liveReg,
 
-			"synced":            synced,
+			"synced": synced,
 
-			"message":           fmt.Sprintf("🎉 已成功识别宿主【MikroTik RouterOS】，已将 Docker 镜像加速源【%s】一键写入容器仓库配置并核验生效！", liveReg),
-
+			"message": fmt.Sprintf("🎉 已成功识别宿主【MikroTik RouterOS】，已将 Docker 镜像加速源【%s】一键写入容器仓库配置并核验生效！", liveReg),
 		})
 
 		return
 
 	}
-
-
 
 	// 3. Linux / fnOS / PVE / Debian / Ubuntu / Synology host branch
 
@@ -9426,29 +8591,24 @@ func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.
 
 	}
 
-
-
 	err := s.hostMgr.SetDockerRegistryMirror(mirror)
 
 	if err != nil {
 
 		sendJSON(w, map[string]any{
 
-			"status":    "error",
+			"status": "error",
 
-			"platform":  platID,
+			"platform": platID,
 
 			"host_name": hostName,
 
-			"error":     fmt.Sprintf("已识别宿主【%s】，但自动注入未完成 (%s)。请在「宿主共生」中保存 SSH 凭据以实现免密全自动直写。", hostName, err.Error()),
-
+			"error": fmt.Sprintf("已识别宿主【%s】，但自动注入未完成 (%s)。请在「宿主共生」中保存 SSH 凭据以实现免密全自动直写。", hostName, err.Error()),
 		})
 
 		return
 
 	}
-
-
 
 	liveReg, _ := s.hostMgr.GetDockerRegistryMirror()
 
@@ -9460,29 +8620,24 @@ func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.
 
 	synced := strings.TrimRight(strings.ToLower(liveReg), "/") == strings.TrimRight(strings.ToLower(mirror), "/")
 
-
-
 	sendJSON(w, map[string]any{
 
-		"status":            "applied",
+		"status": "applied",
 
-		"platform":          platID,
+		"platform": platID,
 
-		"host_name":         hostName,
+		"host_name": hostName,
 
-		"applied_mirror":    mirror,
+		"applied_mirror": mirror,
 
 		"host_registry_url": liveReg,
 
-		"synced":            synced,
+		"synced": synced,
 
-		"message":           fmt.Sprintf("🎉 已成功识别宿主【%s】，已自动将镜像源写入 /etc/docker/daemon.json 并平滑重载 Docker 守护进程！", hostName),
-
+		"message": fmt.Sprintf("🎉 已成功识别宿主【%s】，已自动将镜像源写入 /etc/docker/daemon.json 并平滑重载 Docker 守护进程！", hostName),
 	})
 
 }
-
-
 
 func (s *Server) handleKSpeederROSRegistryApply(w http.ResponseWriter, r *http.Request) {
 
@@ -9490,15 +8645,11 @@ func (s *Server) handleKSpeederROSRegistryApply(w http.ResponseWriter, r *http.R
 
 }
 
-
-
 // ──────────────────────────────────────────────
 
 // Ring Log Buffer & Fully Desensitized Diagnostic Export
 
 // ──────────────────────────────────────────────
-
-
 
 func (s *Server) handleSystemLogs(w http.ResponseWriter, r *http.Request) {
 
@@ -9508,17 +8659,14 @@ func (s *Server) handleSystemLogs(w http.ResponseWriter, r *http.Request) {
 
 		sendJSON(w, map[string]any{
 
-			"status":  "cleared",
+			"status": "cleared",
 
 			"message": "环形实时日志已成功清空",
-
 		})
 
 		return
 
 	}
-
-
 
 	limit := 500
 
@@ -9536,19 +8684,16 @@ func (s *Server) handleSystemLogs(w http.ResponseWriter, r *http.Request) {
 
 	sendJSON(w, map[string]any{
 
-		"status":   "success",
+		"status": "success",
 
-		"total":    len(logs),
+		"total": len(logs),
 
 		"max_size": 500,
 
-		"logs":     logs,
-
+		"logs": logs,
 	})
 
 }
-
-
 
 func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Request) {
 
@@ -9556,33 +8701,28 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 
 	runtime.ReadMemStats(&memStats)
 
-
-
 	meta := map[string]any{
 
-		"brand":           "CubeX",
+		"brand": "CubeX",
 
-		"version":         version,
+		"version": version,
 
-		"export_time":     time.Now().Format(time.RFC3339),
+		"export_time": time.Now().Format(time.RFC3339),
 
-		"uptime_seconds":  int64(time.Since(startTime).Seconds()),
+		"uptime_seconds": int64(time.Since(startTime).Seconds()),
 
-		"os":              runtime.GOOS,
+		"os": runtime.GOOS,
 
-		"arch":            runtime.GOARCH,
+		"arch": runtime.GOARCH,
 
-		"num_cpu":         runtime.NumCPU(),
+		"num_cpu": runtime.NumCPU(),
 
-		"goroutines":      runtime.NumGoroutine(),
+		"goroutines": runtime.NumGoroutine(),
 
 		"memory_alloc_mb": float64(memStats.Alloc) / (1024 * 1024),
 
-		"memory_sys_mb":   float64(memStats.Sys) / (1024 * 1024),
-
+		"memory_sys_mb": float64(memStats.Sys) / (1024 * 1024),
 	}
-
-
 
 	lastRes := s.engMgr.GetLastResult()
 
@@ -9612,29 +8752,25 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 
 	liveHealth := map[string]any{
 
-		"dns_53":         probePort("udp", "127.0.0.1:53", 250*time.Millisecond),
+		"dns_53": probePort("udp", "127.0.0.1:53", 250*time.Millisecond),
 
 		"clash_api_9090": probePort("tcp", "127.0.0.1:9090", 250*time.Millisecond),
 
-		"mixed_7890":     probePort("tcp", "127.0.0.1:7890", 250*time.Millisecond),
-
+		"mixed_7890": probePort("tcp", "127.0.0.1:7890", 250*time.Millisecond),
 	}
 
 	engineStatus := map[string]any{
 
 		"active_engine": s.engMgr.GetActiveEngine(),
 
-		"running":       engineRunning,
+		"running": engineRunning,
 
-		"core_pid":      s.engMgr.GetCurrentProcPID(),
+		"core_pid": s.engMgr.GetCurrentProcPID(),
 
-		"last_switch":   lastRes,
+		"last_switch": lastRes,
 
 		"health_probes": liveHealth,
-
 	}
-
-
 
 	var safeHost map[string]any
 
@@ -9642,31 +8778,29 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 
 		safeHost = map[string]any{
 
-			"platform_id":         hInfo.PlatformID,
+			"platform_id": hInfo.PlatformID,
 
-			"os_name":             hInfo.OSName,
+			"os_name": hInfo.OSName,
 
-			"hostname":            hInfo.HostName,
+			"hostname": hInfo.HostName,
 
-			"kernel_version":      hInfo.KernelVersion,
+			"kernel_version": hInfo.KernelVersion,
 
-			"arch":                hInfo.Arch,
+			"arch": hInfo.Arch,
 
-			"cpu_cores":           hInfo.CPUCores,
+			"cpu_cores": hInfo.CPUCores,
 
-			"cpu_load":            hInfo.CPULoad,
+			"cpu_load": hInfo.CPULoad,
 
-			"memory_total":        hInfo.MemoryTotal,
+			"memory_total": hInfo.MemoryTotal,
 
-			"memory_used":         hInfo.MemoryUsed,
+			"memory_used": hInfo.MemoryUsed,
 
-			"ip_forward":          hInfo.IPForward,
+			"ip_forward": hInfo.IPForward,
 
-			"docker_running":      hInfo.DockerRunning,
-
+			"docker_running": hInfo.DockerRunning,
 
 			"firewall_configured": hInfo.FirewallConfigured,
-
 		}
 
 	} else {
@@ -9675,23 +8809,18 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 
 	}
 
-
-
 	rosStatus := s.rosMgr.GetOverview()
 
 	safeROS := map[string]any{
 
-		"connected":      rosStatus["ros_connected"],
+		"connected": rosStatus["ros_connected"],
 
-		"version":        rosStatus["ros_version"],
+		"version": rosStatus["ros_version"],
 
-		"model":          rosStatus["ros_model"],
+		"model": rosStatus["ros_model"],
 
 		"routing_synced": rosStatus["routing_synced"],
-
 	}
-
-
 
 	subSummary := []map[string]any{}
 
@@ -9705,14 +8834,13 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 
 			subSummary = append(subSummary, map[string]any{
 
-				"id":         sub.ID,
+				"id": sub.ID,
 
-				"name":       sub.Name,
+				"name": sub.Name,
 
 				"node_count": sub.NodeCount,
 
-				"url":        "***DESENSITIZED_TOKEN_STRIPPED***",
-
+				"url": "***DESENSITIZED_TOKEN_STRIPPED***",
 			})
 
 		}
@@ -9725,41 +8853,34 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 
 	}
 
-
-
 	adStats := s.adblockMgr.GetStats(true, 0)
 
 	recentLogs := s.logBuffer.GetLogs(500)
-
-
 
 	pack := map[string]any{
 
 		"cubex_diagnostic_report": true,
 
-		"desensitized":            true,
+		"desensitized": true,
 
-		"compliance":              "ZERO_CREDENTIAL_LEAKAGE_STRICT",
+		"compliance": "ZERO_CREDENTIAL_LEAKAGE_STRICT",
 
-		"meta":                    meta,
+		"meta": meta,
 
-		"engine":                  engineStatus,
+		"engine": engineStatus,
 
-		"host":                    safeHost,
+		"host": safeHost,
 
-		"routeros":                safeROS,
+		"routeros": safeROS,
 
-		"subscriptions_summary":   subSummary,
+		"subscriptions_summary": subSummary,
 
 		"proxy_protocols_summary": proxyTypeCount,
 
-		"adblock_stats":           adStats,
+		"adblock_stats": adStats,
 
-		"recent_logs":             recentLogs,
-
+		"recent_logs": recentLogs,
 	}
-
-
 
 	// If mode=json requested, return JSON object directly (e.g. for frontend inspection)
 
@@ -9771,8 +8892,6 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 
 	}
 
-
-
 	filename := fmt.Sprintf("cubex_diagnostic_%s.json", time.Now().Format("20060102_150405"))
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -9781,8 +8900,6 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 
 	w.WriteHeader(http.StatusOK)
 
-
-
 	enc := json.NewEncoder(w)
 
 	enc.SetIndent("", "  ")
@@ -9790,8 +8907,6 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 	_ = enc.Encode(pack)
 
 }
-
-
 
 func (s *Server) handleHealthRadar(w http.ResponseWriter, r *http.Request) {
 	activeEngine := s.engMgr.GetActiveEngine()
@@ -9934,9 +9049,6 @@ func (s *Server) handleHealthRadar(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, radar)
 }
 
-
-
-
 func (s *Server) handleIkuaiDockerParams(w http.ResponseWriter, r *http.Request) {
 	hostIP := ""
 	cubexIP := ""
@@ -10024,12 +9136,12 @@ services:
 		"image_fallback":    imageFallback,
 		"network_mode":      "host",
 		"network_mode_desc": "Host 模式 (推荐 · 性能极速 · 无端口映射开销)",
-		"privileged":         true,
-		"restart_policy":     "always",
-		"memory_limit":       "512M",
+		"privileged":        true,
+		"restart_policy":    "always",
+		"memory_limit":      "512M",
 		"env": map[string]string{
 			"TZ":                  "Asia/Shanghai",
-			"CUBEX_PORT":           "2026",
+			"CUBEX_PORT":          "2026",
 			"CUBEX_HOST_PLATFORM": "ikuai",
 		},
 		"volumes": []map[string]string{
@@ -10487,7 +9599,6 @@ func (s *Server) handleProxyBandwidthProbe(w http.ResponseWriter, r *http.Reques
 		},
 	})
 }
-
 
 func (s *Server) handleProxyNodeScores(w http.ResponseWriter, r *http.Request) {
 	ir := s.engMgr.GetIR()

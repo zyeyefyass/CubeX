@@ -112,3 +112,42 @@ func TestParseHysteria2PortHopping(t *testing.T) {
 		t.Errorf("Expected mport in raw config, got %v", node.RawConfig["mport"])
 	}
 }
+
+func TestParseVlessRealityWithSpiderX(t *testing.T) {
+	link := "vless://12345678-1234-1234-1234-1234567890ab@reality.example.com:443?encryption=none&flow=xtls-rprx-vision&security=reality&sni=www.apple.com&fp=chrome&pbk=fakePublicKey1234567890abcdefghijklmnop&sid=12345678&spx=%2Fnews#US-Reality-Node"
+	node, err := sub.ParseURILink(link)
+	if err != nil {
+		t.Fatalf("ParseURILink reality failed: %v", err)
+	}
+	if node.Type != "vless" {
+		t.Fatalf("Expected vless, got %s", node.Type)
+	}
+	raw := node.RawConfig
+	if raw["client-fingerprint"] != "chrome" {
+		t.Errorf("Expected client-fingerprint chrome, got %v", raw["client-fingerprint"])
+	}
+	realityOpts, ok := raw["reality-opts"].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected reality-opts map, got %v", raw["reality-opts"])
+	}
+	if realityOpts["public-key"] != "fakePublicKey1234567890abcdefghijklmnop" {
+		t.Errorf("Expected public-key match, got %v", realityOpts["public-key"])
+	}
+	if realityOpts["short-id"] != "12345678" {
+		t.Errorf("Expected short-id 12345678, got %v", realityOpts["short-id"])
+	}
+	if realityOpts["spider-x"] != "/news" {
+		t.Errorf("Expected spider-x /news, got %v", realityOpts["spider-x"])
+	}
+}
+
+func TestUniversalSmartParse(t *testing.T) {
+	markdownInput := "```yaml\nproxies:\n  - name: \"SG-01\"\n    type: ss\n    server: 1.1.1.1\n    port: 8388\n    cipher: aes-128-gcm\n    password: pass\n```"
+	nodes, err := sub.UniversalSmartParse(markdownInput)
+	if err != nil {
+		t.Fatalf("UniversalSmartParse failed: %v", err)
+	}
+	if len(nodes) != 1 || nodes[0].Name != "SG-01" {
+		t.Errorf("Unexpected nodes: %+v", nodes)
+	}
+}

@@ -27,20 +27,20 @@ const (
 // ConfigIR is the Universal Intermediate Representation for CubeX.
 // Both Mihomo YAML and sing-box v1.14+ JSON are compiled from this single source of truth.
 type ConfigIR struct {
-	Meta           MetaConfig       `json:"meta" yaml:"meta"`
-	Network        NetworkConfig    `json:"network" yaml:"network"`
-	DNS            DNSConfig        `json:"dns" yaml:"dns"`
-	Subscriptions  []Subscription   `json:"subscriptions" yaml:"subscriptions"`
-	Proxies        []ProxyNode      `json:"proxies" yaml:"proxies"`
-	Groups         []StrategyGroup  `json:"groups" yaml:"groups"`
-	Rules          []Rule           `json:"rules" yaml:"rules"`
-	DevicePolicies []DevicePolicy   `json:"device_policies" yaml:"device_policies"`
-	Profiles       []Profile        `json:"profiles" yaml:"profiles"`
-	AdBlockWhitelist []string       `json:"adblock_whitelist,omitempty" yaml:"adblock_whitelist,omitempty"`
-	AdBlockEnabled   bool           `json:"adblock_enabled" yaml:"adblock_enabled"`
-	DNSRewriteEnabled bool          `json:"dns_rewrite_enabled" yaml:"dns_rewrite_enabled"`
+	Meta              MetaConfig       `json:"meta" yaml:"meta"`
+	Network           NetworkConfig    `json:"network" yaml:"network"`
+	DNS               DNSConfig        `json:"dns" yaml:"dns"`
+	Subscriptions     []Subscription   `json:"subscriptions" yaml:"subscriptions"`
+	Proxies           []ProxyNode      `json:"proxies" yaml:"proxies"`
+	Groups            []StrategyGroup  `json:"groups" yaml:"groups"`
+	Rules             []Rule           `json:"rules" yaml:"rules"`
+	DevicePolicies    []DevicePolicy   `json:"device_policies" yaml:"device_policies"`
+	Profiles          []Profile        `json:"profiles" yaml:"profiles"`
+	AdBlockWhitelist  []string         `json:"adblock_whitelist,omitempty" yaml:"adblock_whitelist,omitempty"`
+	AdBlockEnabled    bool             `json:"adblock_enabled" yaml:"adblock_enabled"`
+	DNSRewriteEnabled bool             `json:"dns_rewrite_enabled" yaml:"dns_rewrite_enabled"`
 	DNSRewrites       []DNSRewriteRule `json:"dns_rewrites,omitempty" yaml:"dns_rewrites,omitempty"`
-	UpdatedAt      time.Time        `json:"updated_at" yaml:"updated_at"`
+	UpdatedAt         time.Time        `json:"updated_at" yaml:"updated_at"`
 }
 
 type MetaConfig struct {
@@ -53,14 +53,14 @@ type MetaConfig struct {
 }
 
 type NetworkConfig struct {
-	TunInterface string `json:"tun_interface" yaml:"tun_interface"` // e.g. cubex-tun
-	TunIPv4      string `json:"tun_ipv4" yaml:"tun_ipv4"`           // e.g. 172.19.0.1/30
-	TunMTU       int    `json:"tun_mtu" yaml:"tun_mtu"`             // e.g. 9000
-	TunStack     string `json:"tun_stack" yaml:"tun_stack"`         // mixed / system / gvisor
-	TProxyPort   int    `json:"tproxy_port" yaml:"tproxy_port"`     // 7893
-	MixedPort    int    `json:"mixed_port" yaml:"mixed_port"`       // 7890
-	RedirPort    int    `json:"redir_port" yaml:"redir_port"`       // 7892
-	DNSPort      int    `json:"dns_port" yaml:"dns_port"`           // 53
+	TunInterface string `json:"tun_interface" yaml:"tun_interface"`   // e.g. cubex-tun
+	TunIPv4      string `json:"tun_ipv4" yaml:"tun_ipv4"`             // e.g. 172.19.0.1/30
+	TunMTU       int    `json:"tun_mtu" yaml:"tun_mtu"`               // e.g. 9000
+	TunStack     string `json:"tun_stack" yaml:"tun_stack"`           // mixed / system / gvisor
+	TProxyPort   int    `json:"tproxy_port" yaml:"tproxy_port"`       // 7893
+	MixedPort    int    `json:"mixed_port" yaml:"mixed_port"`         // 7890
+	RedirPort    int    `json:"redir_port" yaml:"redir_port"`         // 7892
+	DNSPort      int    `json:"dns_port" yaml:"dns_port"`             // 53
 	ClashAPIPort int    `json:"clash_api_port" yaml:"clash_api_port"` // 9090
 	ClashSecret  string `json:"clash_secret" yaml:"clash_secret"`
 	AllowLAN     bool   `json:"allow_lan" yaml:"allow_lan"`
@@ -68,12 +68,12 @@ type NetworkConfig struct {
 }
 
 type DNSConfig struct {
-	EnableFakeIP bool     `json:"enable_fake_ip" yaml:"enable_fake_ip"`
-	FakeIPRange  string   `json:"fake_ip_range" yaml:"fake_ip_range"` // 198.18.0.1/16
-	FakeIPFilter []string `json:"fake_ip_filter" yaml:"fake_ip_filter"`
-	DirectDNS    []string `json:"direct_dns" yaml:"direct_dns"`
-	RemoteDNS    []string `json:"remote_dns" yaml:"remote_dns"`
-	FallbackDNS  []string `json:"fallback_dns" yaml:"fallback_dns"`
+	EnableFakeIP bool      `json:"enable_fake_ip" yaml:"enable_fake_ip"`
+	FakeIPRange  string    `json:"fake_ip_range" yaml:"fake_ip_range"` // 198.18.0.1/16
+	FakeIPFilter []string  `json:"fake_ip_filter" yaml:"fake_ip_filter"`
+	DirectDNS    []string  `json:"direct_dns" yaml:"direct_dns"`
+	RemoteDNS    []string  `json:"remote_dns" yaml:"remote_dns"`
+	FallbackDNS  []string  `json:"fallback_dns" yaml:"fallback_dns"`
 	DNSRules     []DNSRule `json:"dns_rules" yaml:"dns_rules"`
 }
 
@@ -97,43 +97,43 @@ type Subscription struct {
 
 // ProxyNode represents an outbound node in standard representation.
 type ProxyNode struct {
-	Name           string            `json:"name" yaml:"name"`
-	Type           string            `json:"type" yaml:"type"` // ss, vmess, vless, trojan, hysteria2, tuic, wireguard, direct, block
-	Server         string            `json:"server" yaml:"server"`
-	Port           int               `json:"port" yaml:"port"`
-	Ports          string            `json:"ports,omitempty" yaml:"ports,omitempty"` // Port hopping range (e.g. 20000-40000 or 20000:40000)
-	UUID           string            `json:"uuid,omitempty" yaml:"uuid,omitempty"`
-	Password       string            `json:"password,omitempty" yaml:"password,omitempty"`
-	Cipher         string            `json:"cipher,omitempty" yaml:"cipher,omitempty"`
-	TLS            bool              `json:"tls,omitempty" yaml:"tls,omitempty"`
-	SNI            string            `json:"sni,omitempty" yaml:"sni,omitempty"`
-	ALPN           []string          `json:"alpn,omitempty" yaml:"alpn,omitempty"`
-	SkipCertVerify bool              `json:"skip_cert_verify,omitempty" yaml:"skip_cert_verify,omitempty"`
-	Network        string            `json:"network,omitempty" yaml:"network,omitempty"` // tcp, ws, grpc, http
-	Path           string            `json:"path,omitempty" yaml:"path,omitempty"`
-	Flow           string            `json:"flow,omitempty" yaml:"flow,omitempty"`
-	Congestion     string            `json:"congestion,omitempty" yaml:"congestion,omitempty"`
-	Delay          int               `json:"delay" yaml:"delay"` // measured latency ms
-	DelayStatus    string            `json:"delay_status,omitempty" yaml:"delay_status,omitempty"` // ok, timeout, dns_failed, conn_refused, resource_limit, tls_failed, conn_reset, error
-	DelayText      string            `json:"delay_text,omitempty" yaml:"delay_text,omitempty"`     // 正常, 握手超时, DNS解析失败, 连接被拒, 系统资源受限, TLS握手异常, 连接重置, 连接异常
-	SubID          string            `json:"sub_id,omitempty" yaml:"sub_id,omitempty"`
-	RawConfig      map[string]any    `json:"raw_config,omitempty" yaml:"raw_config,omitempty"`
+	Name           string         `json:"name" yaml:"name"`
+	Type           string         `json:"type" yaml:"type"` // ss, vmess, vless, trojan, hysteria2, tuic, wireguard, direct, block
+	Server         string         `json:"server" yaml:"server"`
+	Port           int            `json:"port" yaml:"port"`
+	Ports          string         `json:"ports,omitempty" yaml:"ports,omitempty"` // Port hopping range (e.g. 20000-40000 or 20000:40000)
+	UUID           string         `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	Password       string         `json:"password,omitempty" yaml:"password,omitempty"`
+	Cipher         string         `json:"cipher,omitempty" yaml:"cipher,omitempty"`
+	TLS            bool           `json:"tls,omitempty" yaml:"tls,omitempty"`
+	SNI            string         `json:"sni,omitempty" yaml:"sni,omitempty"`
+	ALPN           []string       `json:"alpn,omitempty" yaml:"alpn,omitempty"`
+	SkipCertVerify bool           `json:"skip_cert_verify,omitempty" yaml:"skip_cert_verify,omitempty"`
+	Network        string         `json:"network,omitempty" yaml:"network,omitempty"` // tcp, ws, grpc, http
+	Path           string         `json:"path,omitempty" yaml:"path,omitempty"`
+	Flow           string         `json:"flow,omitempty" yaml:"flow,omitempty"`
+	Congestion     string         `json:"congestion,omitempty" yaml:"congestion,omitempty"`
+	Delay          int            `json:"delay" yaml:"delay"`                                   // measured latency ms
+	DelayStatus    string         `json:"delay_status,omitempty" yaml:"delay_status,omitempty"` // ok, timeout, dns_failed, conn_refused, resource_limit, tls_failed, conn_reset, error
+	DelayText      string         `json:"delay_text,omitempty" yaml:"delay_text,omitempty"`     // 正常, 握手超时, DNS解析失败, 连接被拒, 系统资源受限, TLS握手异常, 连接重置, 连接异常
+	SubID          string         `json:"sub_id,omitempty" yaml:"sub_id,omitempty"`
+	RawConfig      map[string]any `json:"raw_config,omitempty" yaml:"raw_config,omitempty"`
 }
 
 type StrategyGroup struct {
-	Name      string   `json:"name" yaml:"name"`
-	Type      string   `json:"type" yaml:"type"` // select, urltest, fallback, loadbalance
-	Proxies   []string `json:"proxies" yaml:"proxies"`
-	Now       string   `json:"now" yaml:"now"` // currently active node
-	URL       string   `json:"url,omitempty" yaml:"url,omitempty"`
-	Interval  int      `json:"interval,omitempty" yaml:"interval,omitempty"`
-	Timeout   int      `json:"timeout,omitempty" yaml:"timeout,omitempty"`
-	Strategy  string   `json:"strategy,omitempty" yaml:"strategy,omitempty"`
-	Tolerance int      `json:"tolerance,omitempty" yaml:"tolerance,omitempty"`
-	Icon      string   `json:"icon,omitempty" yaml:"icon,omitempty"`           // openai, youtube, google, github, telegram, twitter, netflix, apple, microsoft, default
-	Category  string   `json:"category,omitempty" yaml:"category,omitempty"`   // business / region
-	Region    string   `json:"region,omitempty" yaml:"region,omitempty"`       // HK, TW, SG, JPKR, US, OTHERS
-	Policy    string   `json:"policy,omitempty" yaml:"policy,omitempty"`       // auto, fallback, disaster
+	Name           string   `json:"name" yaml:"name"`
+	Type           string   `json:"type" yaml:"type"` // select, urltest, fallback, loadbalance
+	Proxies        []string `json:"proxies" yaml:"proxies"`
+	Now            string   `json:"now" yaml:"now"` // currently active node
+	URL            string   `json:"url,omitempty" yaml:"url,omitempty"`
+	Interval       int      `json:"interval,omitempty" yaml:"interval,omitempty"`
+	Timeout        int      `json:"timeout,omitempty" yaml:"timeout,omitempty"`
+	Strategy       string   `json:"strategy,omitempty" yaml:"strategy,omitempty"`
+	Tolerance      int      `json:"tolerance,omitempty" yaml:"tolerance,omitempty"`
+	Icon           string   `json:"icon,omitempty" yaml:"icon,omitempty"`                       // openai, youtube, google, github, telegram, twitter, netflix, apple, microsoft, default
+	Category       string   `json:"category,omitempty" yaml:"category,omitempty"`               // business / region
+	Region         string   `json:"region,omitempty" yaml:"region,omitempty"`                   // HK, TW, SG, JPKR, US, OTHERS
+	Policy         string   `json:"policy,omitempty" yaml:"policy,omitempty"`                   // auto, fallback, disaster
 	IsCustom       bool     `json:"is_custom,omitempty" yaml:"is_custom,omitempty"`             // whether user manually added this
 	Disabled       bool     `json:"disabled,omitempty" yaml:"disabled,omitempty"`               // whether rule routing for this group is temporarily bypassed
 	FilterKeywords []string `json:"filter_keywords,omitempty" yaml:"filter_keywords,omitempty"` // dynamic node filtering keywords
@@ -142,7 +142,7 @@ type StrategyGroup struct {
 }
 
 type Rule struct {
-	Type   string `json:"type" yaml:"type"`     // domain, domain_suffix, domain_keyword, geosite, geoip, ip_cidr, src_ip_cidr, port, process_name, match
+	Type   string `json:"type" yaml:"type"` // domain, domain_suffix, domain_keyword, geosite, geoip, ip_cidr, src_ip_cidr, port, process_name, match
 	Value  string `json:"value" yaml:"value"`
 	Target string `json:"target" yaml:"target"` // Proxy, Direct, Reject, or Group Name
 	Invert bool   `json:"invert,omitempty" yaml:"invert,omitempty"`
@@ -157,12 +157,12 @@ type DevicePolicy struct {
 }
 
 type Profile struct {
-	ID          string `json:"id" yaml:"id"`
-	Name        string `json:"name" yaml:"name"`
-	Description string `json:"description" yaml:"description"`
-	DirectBypass bool  `json:"direct_bypass" yaml:"direct_bypass"`
-	QuicBlock   bool   `json:"quic_block" yaml:"quic_block"`
-	AdBlock     bool   `json:"ad_block" yaml:"ad_block"`
+	ID           string `json:"id" yaml:"id"`
+	Name         string `json:"name" yaml:"name"`
+	Description  string `json:"description" yaml:"description"`
+	DirectBypass bool   `json:"direct_bypass" yaml:"direct_bypass"`
+	QuicBlock    bool   `json:"quic_block" yaml:"quic_block"`
+	AdBlock      bool   `json:"ad_block" yaml:"ad_block"`
 	SpeedtestURL string `json:"speedtest_url" yaml:"speedtest_url"`
 }
 
@@ -323,8 +323,6 @@ func WriteFileAtomicSecure(destPath string, data []byte) error {
 	}
 	return os.Rename(tmpPath, destPath)
 }
-
-
 
 type DNSRewriteType string
 

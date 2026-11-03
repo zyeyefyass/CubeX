@@ -96,6 +96,36 @@ func ParseSubscription(raw []byte) ([]schema.ProxyNode, error) {
 	return nil, fmt.Errorf("unrecognized subscription format or no valid nodes found")
 }
 
+// UniversalSmartParse strips markdown formatting, HTML entities, and carriage returns,
+// then automatically identifies and parses single/multi-line proxy links, base64 blobs, Clash YAML, or sing-box JSON.
+func UniversalSmartParse(rawInput string) ([]schema.ProxyNode, error) {
+	trimmed := strings.TrimSpace(rawInput)
+	if trimmed == "" {
+		return nil, fmt.Errorf("empty input")
+	}
+
+	// 1. Strip markdown fences (```yaml ... ``` or ```json ... ``` or ``` ...)
+	if strings.HasPrefix(trimmed, "```") {
+		lines := strings.Split(trimmed, "\n")
+		if len(lines) >= 2 {
+			lines = lines[1:]
+			if len(lines) > 0 && strings.HasPrefix(strings.TrimSpace(lines[len(lines)-1]), "```") {
+				lines = lines[:len(lines)-1]
+			}
+			trimmed = strings.TrimSpace(strings.Join(lines, "\n"))
+		}
+	}
+
+	// 2. Unescape common HTML encoded entities
+	trimmed = strings.ReplaceAll(trimmed, "&amp;", "&")
+	trimmed = strings.ReplaceAll(trimmed, "&lt;", "<")
+	trimmed = strings.ReplaceAll(trimmed, "&gt;", ">")
+	trimmed = strings.ReplaceAll(trimmed, "&quot;", "\"")
+	trimmed = strings.ReplaceAll(trimmed, "&#39;", "'")
+
+	return ParseSubscription([]byte(trimmed))
+}
+
 func parseClashNode(p map[string]any) schema.ProxyNode {
 	getString := func(key string) string {
 		if v, ok := p[key]; ok && v != nil {
@@ -265,6 +295,11 @@ func parseSingboxNode(ob map[string]any) schema.ProxyNode {
 			}
 			if sid, ok := realityMap["short_id"].(string); ok {
 				realityOpts["short-id"] = sid
+			}
+			if spx, ok := realityMap["spider_x"].(string); ok && spx != "" {
+				realityOpts["spider-x"] = spx
+			} else if spx, ok := realityMap["spider-x"].(string); ok && spx != "" {
+				realityOpts["spider-x"] = spx
 			}
 			raw["reality-opts"] = realityOpts
 		}
@@ -447,6 +482,11 @@ func ParseURILink(link string) (schema.ProxyNode, error) {
 			}
 			if sid := q.Get("sid"); sid != "" {
 				realityOpts["short-id"] = sid
+			}
+			if spx := q.Get("spx"); spx != "" {
+				realityOpts["spider-x"] = spx
+			} else if spiderX := q.Get("spider_x"); spiderX != "" {
+				realityOpts["spider-x"] = spiderX
 			}
 			raw["reality-opts"] = realityOpts
 		}

@@ -27,13 +27,13 @@ type BenchmarkMetric struct {
 
 // ABComparisonResult holds the head-to-head comparison between Mihomo and Sing-box.
 type ABComparisonResult struct {
-	NodeName      string          `json:"node_name"`
-	MihomoMetric  BenchmarkMetric `json:"mihomo"`
-	SingboxMetric BenchmarkMetric `json:"singbox"`
-	Winner        string          `json:"winner"`
-	DeltaMs       int64           `json:"delta_ms"`
-	Recommendation string         `json:"recommendation"`
-	TestedAt      time.Time       `json:"tested_at"`
+	NodeName       string          `json:"node_name"`
+	MihomoMetric   BenchmarkMetric `json:"mihomo"`
+	SingboxMetric  BenchmarkMetric `json:"singbox"`
+	Winner         string          `json:"winner"`
+	DeltaMs        int64           `json:"delta_ms"`
+	Recommendation string          `json:"recommendation"`
+	TestedAt       time.Time       `json:"tested_at"`
 }
 
 // RunABBenchmark conducts a live AB test comparing both engines on a specific proxy node.

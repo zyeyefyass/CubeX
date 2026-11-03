@@ -25,12 +25,12 @@ func TestStreamLogPipeClassification(t *testing.T) {
 	})
 
 	tests := []struct {
-		engine      schema.EngineType
-		input       string
-		wantLevel   string
-		wantModule  string
-		wantMsgSub  string
-		shouldDrop  bool
+		engine     schema.EngineType
+		input      string
+		wantLevel  string
+		wantModule string
+		wantMsgSub string
+		shouldDrop bool
 	}{
 		{
 			engine:     schema.EngineSingbox,

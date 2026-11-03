@@ -1,11 +1,7 @@
 package ros
 
-
-
 import (
-
 	"context"
-
 
 	"archive/tar"
 
@@ -48,78 +44,65 @@ import (
 	"sync"
 
 	"time"
-
 )
-
-
 
 // Manager handles RouterOS connectivity, Mihomo core upgrades,
 
 // CubeX web panel upgrades, and firmware upgrade triggers.
 
 type Manager struct {
+	isUpdatingGeo bool
 
-	isUpdatingGeo     bool
+	geoStatusCache *GeoDataStatus
 
-	geoStatusCache    *GeoDataStatus
+	geoCacheTime time.Time
 
-	geoCacheTime      time.Time
+	rootDir string
 
-	rootDir    string
+	binDir string
 
-	binDir     string
+	dataDir string
 
-	dataDir    string
+	metaFile string
 
-	metaFile   string
+	mu sync.RWMutex
 
-	mu         sync.RWMutex
-
-	config     ROSConfig
+	config ROSConfig
 
 	configFile string
-
-
 
 	// URLOptimizer optionally rewrites download URLs through KSpeeder acceleration
 
 	URLOptimizer func(rawURL string) string
 
+	lastConnected bool
 
+	lastConnectedAt time.Time
 
-	lastConnected     bool
+	lastVersion string
 
-	lastConnectedAt   time.Time
-
-	lastVersion       string
-
-	lastFreeHddSpace  int64
+	lastFreeHddSpace int64
 
 	lastTotalHddSpace int64
 
+	cachedLatestMihomo string
 
+	cachedLatestSingbox string
 
-	cachedLatestMihomo   string
+	cachedLatestPanel string
 
-	cachedLatestSingbox  string
-
-	cachedLatestPanel    string
-
-	cachedLatestGeoVer   string
+	cachedLatestGeoVer string
 
 	cachedLatestGeoRules int
 
-	cachedVerTime        time.Time
+	cachedVerTime time.Time
 
-	lastContainerMem    float64
+	lastContainerMem float64
 
-	lastContainerMemAt  time.Time
+	lastContainerMemAt time.Time
 
-	httpClient          *http.Client
-
+	httpClient *http.Client
 }
-
-
 
 func (m *Manager) getHTTPClient() *http.Client {
 
@@ -127,7 +110,7 @@ func (m *Manager) getHTTPClient() *http.Client {
 
 		dialer := &net.Dialer{
 
-			Timeout:   10 * time.Second,
+			Timeout: 10 * time.Second,
 
 			KeepAlive: 30 * time.Second,
 
@@ -156,33 +139,29 @@ func (m *Manager) getHTTPClient() *http.Client {
 					return conn, nil
 
 				},
-
 			},
-
 		}
 
 		tr := &http.Transport{
 
-			Proxy:               http.ProxyFromEnvironment,
+			Proxy: http.ProxyFromEnvironment,
 
-			DialContext:         dialer.DialContext,
+			DialContext: dialer.DialContext,
 
-			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 
-			MaxIdleConns:        10,
+			MaxIdleConns: 10,
 
 			MaxIdleConnsPerHost: 5,
 
-			IdleConnTimeout:     30 * time.Second,
-
+			IdleConnTimeout: 30 * time.Second,
 		}
 
 		m.httpClient = &http.Client{
 
 			Transport: tr,
 
-			Timeout:   15 * time.Second,
-
+			Timeout: 15 * time.Second,
 		}
 
 	}
@@ -191,23 +170,17 @@ func (m *Manager) getHTTPClient() *http.Client {
 
 }
 
-
-
 // ROSConfig stores the RouterOS connection settings.
 
 type ROSConfig struct {
+	Host string `json:"host"`
 
-	Host     string `json:"host"`
+	Port string `json:"port"`
 
-	Port     string `json:"port"`
-
-	User     string `json:"user"`
+	User string `json:"user"`
 
 	Password string `json:"password"`
-
 }
-
-
 
 // NewManager initialises the ROS and system upgrade manager.
 
@@ -215,43 +188,34 @@ func NewManager(rootDir string) *Manager {
 
 	m := &Manager{
 
-		rootDir:    rootDir,
+		rootDir: rootDir,
 
-		binDir:     filepath.Join(rootDir, "bin"),
+		binDir: filepath.Join(rootDir, "bin"),
 
-		dataDir:    filepath.Join(rootDir, "data"),
+		dataDir: filepath.Join(rootDir, "data"),
 
-		metaFile:   filepath.Join(rootDir, "meta.json"),
+		metaFile: filepath.Join(rootDir, "meta.json"),
 
 		configFile: filepath.Join(rootDir, "data", "ros-config.json"),
 
-		config:     ROSConfig{Host: "10.0.0.1", Port: "80", User: "", Password: ""},
-
+		config: ROSConfig{Host: "10.0.0.1", Port: "80", User: "", Password: ""},
 	}
 
 	m.loadConfig()
-
-
 
 	// Launch background worker for periodic non-blocking version checks
 
 	go m.startAsyncVersionWorker()
 
-
-
 	return m
 
 }
-
-
 
 func (m *Manager) startAsyncVersionWorker() {
 
 	time.Sleep(1 * time.Second)
 
 	m.refreshVersionsAsync()
-
-
 
 	ticker := time.NewTicker(2 * time.Hour)
 
@@ -263,8 +227,6 @@ func (m *Manager) startAsyncVersionWorker() {
 
 }
 
-
-
 func (m *Manager) refreshVersionsAsync() {
 
 	var wg sync.WaitGroup
@@ -274,8 +236,6 @@ func (m *Manager) refreshVersionsAsync() {
 	var latestGeoRules int
 
 	var latestGeoVer string
-
-
 
 	wg.Add(4)
 
@@ -312,8 +272,6 @@ func (m *Manager) refreshVersionsAsync() {
 	}()
 
 	wg.Wait()
-
-
 
 	m.mu.Lock()
 
@@ -353,15 +311,11 @@ func (m *Manager) refreshVersionsAsync() {
 
 }
 
-
-
 // ──────────────────────────────────────────────
 
 // Overview
 
 // ──────────────────────────────────────────────
-
-
 
 // GetOverview returns system, core, and panel version information.
 
@@ -371,8 +325,6 @@ func (m *Manager) GetOverview() map[string]any {
 
 	defer m.mu.Unlock()
 
-
-
 	mihomoVer := m.getLocalMihomoVersion()
 
 	panelVer := m.getLocalPanelVersion()
@@ -380,8 +332,6 @@ func (m *Manager) GetOverview() map[string]any {
 	singboxVer := m.getLocalSingboxVersion()
 
 	rosConnected, rosVersion := m.checkROSConnection()
-
-
 
 	latestMihomo := m.cachedLatestMihomo
 
@@ -407,15 +357,11 @@ func (m *Manager) GetOverview() map[string]any {
 
 	}
 
-
-
 	panelUpdateAvail := IsVersionNewer(latestPanel, panelVer)
 
 	mihomoUpdateAvail := IsVersionNewer(latestMihomo, mihomoVer)
 
 	singboxUpdateAvail := IsVersionNewer(latestSingbox, singboxVer)
-
-
 
 	// Geo rules update detection
 
@@ -439,71 +385,63 @@ func (m *Manager) GetOverview() map[string]any {
 
 	geoUpdateAvail := latestGeo != "" && geoVer != "" && latestGeo > geoVer
 
-
-
 	result := map[string]any{
 
-		"ros_connected":          rosConnected,
+		"ros_connected": rosConnected,
 
-		"ros_version":            rosVersion,
+		"ros_version": rosVersion,
 
-		"ros_free_hdd_mb":        m.lastFreeHddSpace / (1024 * 1024),
+		"ros_free_hdd_mb": m.lastFreeHddSpace / (1024 * 1024),
 
-		"ros_total_hdd_mb":       m.lastTotalHddSpace / (1024 * 1024),
+		"ros_total_hdd_mb": m.lastTotalHddSpace / (1024 * 1024),
 
-		"ros_hdd_warning":        m.lastFreeHddSpace > 0 && (m.lastFreeHddSpace < 200*1024*1024),
+		"ros_hdd_warning": m.lastFreeHddSpace > 0 && (m.lastFreeHddSpace < 200*1024*1024),
 
-		"mihomo_curr_version":    mihomoVer,
+		"mihomo_curr_version": mihomoVer,
 
-		"mihomo_latest_version":  latestMihomo,
+		"mihomo_latest_version": latestMihomo,
 
-		"mihomo_update_avail":    mihomoUpdateAvail,
+		"mihomo_update_avail": mihomoUpdateAvail,
 
-		"singbox_curr_version":   singboxVer,
+		"singbox_curr_version": singboxVer,
 
 		"singbox_latest_version": latestSingbox,
 
-		"singbox_update_avail":   singboxUpdateAvail,
+		"singbox_update_avail": singboxUpdateAvail,
 
-		"panel_curr_version":     panelVer,
+		"panel_curr_version": panelVer,
 
-		"panel_latest_version":   latestPanel,
+		"panel_latest_version": latestPanel,
 
-		"panel_update_avail":     panelUpdateAvail,
+		"panel_update_avail": panelUpdateAvail,
 
-		"geodata_update_avail":   geoUpdateAvail,
+		"geodata_update_avail": geoUpdateAvail,
 
 		"geodata_latest_version": latestGeo,
 
-		"update_available":       mihomoUpdateAvail || singboxUpdateAvail || panelUpdateAvail || geoUpdateAvail,
+		"update_available": mihomoUpdateAvail || singboxUpdateAvail || panelUpdateAvail || geoUpdateAvail,
 
-		"arch":                   runtime.GOARCH,
+		"arch": runtime.GOARCH,
 
 		"geodata": map[string]any{
 
-			"geoip_date":    "2026-10-15",
+			"geoip_date": "2026-10-15",
 
-			"geosite_date":  "2026-10-15",
+			"geosite_date": "2026-10-15",
 
 			"adblock_rules": 233481,
-
 		},
-
 	}
 
 	return result
 
 }
 
-
-
 // ──────────────────────────────────────────────
 
 // Panel Self-Upgrade
 
 // ──────────────────────────────────────────────
-
-
 
 // UpgradePanel downloads the latest cubexd binary and restarts the panel process.
 
@@ -513,8 +451,6 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 
 	defer m.mu.Unlock()
 
-
-
 	latestTag, err := m.fetchLatestPanelVersion()
 
 	if err != nil {
@@ -522,8 +458,6 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 		return "", fmt.Errorf("cannot check latest panel release: %w", err)
 
 	}
-
-
 
 	currTag := m.getLocalPanelVersion()
 
@@ -533,11 +467,7 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 
 	}
 
-
-
 	log.Printf("[Upgrade] Starting CubeX panel upgrade: %s -> %s", currTag, latestTag)
-
-
 
 	arch := runtime.GOARCH
 
@@ -557,13 +487,9 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 
 	}
 
-
-
 	tmpPath := destPath + ".new"
 
 	backupPath := destPath + ".bak"
-
-
 
 	effectiveTag := strings.ReplaceAll(latestTag, " ", "-")
 
@@ -582,7 +508,6 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 		"https://github.com/zyeyefyass/CubeX/releases/download/%s/%s",
 
 		effectiveTag, assetName,
-
 	)
 
 	if m.URLOptimizer != nil {
@@ -590,8 +515,6 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 		binURL = m.URLOptimizer(binURL)
 
 	}
-
-
 
 	downloadErr := m.downloadFile(binURL, tmpPath)
 
@@ -627,19 +550,13 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 
 	}
 
-
-
 	if downloadErr != nil {
 
 		return "", fmt.Errorf("download panel binary failed: %w", downloadErr)
 
 	}
 
-
-
 	_ = os.Chmod(tmpPath, 0755)
-
-
 
 	// Verify new binary by executing quick version test if possible
 
@@ -655,15 +572,11 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 
 	}
 
-
-
 	// Backup current binary
 
 	_ = os.Remove(backupPath)
 
 	_ = os.Rename(destPath, backupPath)
-
-
 
 	// Move new binary in place
 
@@ -677,13 +590,9 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 
 	_ = os.Chmod(destPath, 0755)
 
-
-
 	// Update meta.json with new version
 
 	m.updateLocalMetaVersion(latestTag)
-
-
 
 	// If restart function is provided, call it
 
@@ -699,23 +608,17 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 
 	}
 
-
-
 	log.Printf("[Upgrade] CubeX panel successfully upgraded to %s", latestTag)
 
 	return latestTag, nil
 
 }
 
-
-
 // ──────────────────────────────────────────────
 
 // Mihomo Core Upgrade
 
 // ──────────────────────────────────────────────
-
-
 
 // UpgradeMihomoCore downloads the latest mihomo binary and restarts the core.
 
@@ -725,8 +628,6 @@ func (m *Manager) UpgradeMihomoCore(restartFn func() error) (string, error) {
 
 	defer m.mu.Unlock()
 
-
-
 	latestTag, err := m.fetchLatestMihomoVersion()
 
 	if err != nil {
@@ -734,8 +635,6 @@ func (m *Manager) UpgradeMihomoCore(restartFn func() error) (string, error) {
 		return "", fmt.Errorf("cannot fetch latest version: %w", err)
 
 	}
-
-
 
 	currentVer := m.getLocalMihomoVersion()
 
@@ -745,11 +644,7 @@ func (m *Manager) UpgradeMihomoCore(restartFn func() error) (string, error) {
 
 	}
 
-
-
 	log.Printf("[ROS] Upgrading mihomo from %s to %s", currentVer, latestTag)
-
-
 
 	arch := runtime.GOARCH
 
@@ -771,14 +666,11 @@ func (m *Manager) UpgradeMihomoCore(restartFn func() error) (string, error) {
 
 	}
 
-
-
 	downloadURL := fmt.Sprintf(
 
 		"https://github.com/MetaCubeX/mihomo/releases/download/%s/%s",
 
 		latestTag, assetName,
-
 	)
 
 	if m.URLOptimizer != nil {
@@ -786,8 +678,6 @@ func (m *Manager) UpgradeMihomoCore(restartFn func() error) (string, error) {
 		downloadURL = m.URLOptimizer(downloadURL)
 
 	}
-
-
 
 	tmpPath := filepath.Join(m.binDir, "mihomo.new")
 
@@ -797,11 +687,7 @@ func (m *Manager) UpgradeMihomoCore(restartFn func() error) (string, error) {
 
 	}
 
-
-
 	_ = os.Chmod(tmpPath, 0755)
-
-
 
 	out, err := exec.Command(tmpPath, "-v").CombinedOutput()
 
@@ -813,13 +699,9 @@ func (m *Manager) UpgradeMihomoCore(restartFn func() error) (string, error) {
 
 	}
 
-
-
 	mihomoPath := filepath.Join(m.binDir, "mihomo")
 
 	backupPath := filepath.Join(m.binDir, "mihomo.bak")
-
-
 
 	_ = os.Rename(mihomoPath, backupPath)
 
@@ -831,11 +713,7 @@ func (m *Manager) UpgradeMihomoCore(restartFn func() error) (string, error) {
 
 	}
 
-
-
 	_ = os.Chmod(mihomoPath, 0755)
-
-
 
 	if restartFn != nil {
 
@@ -847,8 +725,6 @@ func (m *Manager) UpgradeMihomoCore(restartFn func() error) (string, error) {
 
 	}
 
-
-
 	_ = os.Remove(backupPath)
 
 	log.Printf("[ROS] Mihomo upgraded to %s successfully", latestTag)
@@ -856,8 +732,6 @@ func (m *Manager) UpgradeMihomoCore(restartFn func() error) (string, error) {
 	return latestTag, nil
 
 }
-
-
 
 // UpgradeSingboxCore downloads the latest sing-box binary and restarts the core.
 
@@ -867,8 +741,6 @@ func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
 
 	defer m.mu.Unlock()
 
-
-
 	latestTag, err := m.fetchLatestSingboxVersion()
 
 	if err != nil {
@@ -876,8 +748,6 @@ func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
 		return "", fmt.Errorf("cannot fetch latest sing-box version: %w", err)
 
 	}
-
-
 
 	currentVer := m.getLocalSingboxVersion()
 
@@ -887,11 +757,7 @@ func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
 
 	}
 
-
-
 	log.Printf("[ROS] Upgrading sing-box from %s to %s", currentVer, latestTag)
-
-
 
 	arch := runtime.GOARCH
 
@@ -913,8 +779,6 @@ func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
 
 	}
 
-
-
 	verNum := strings.TrimPrefix(latestTag, "v")
 
 	// Try musl first (mandatory for Alpine Linux in RouterOS container)
@@ -928,8 +792,6 @@ func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
 		downloadURL = m.URLOptimizer(downloadURL)
 
 	}
-
-
 
 	tmpPath := filepath.Join(m.binDir, "sing-box.new")
 
@@ -955,11 +817,7 @@ func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
 
 	}
 
-
-
 	_ = os.Chmod(tmpPath, 0755)
-
-
 
 	out, err := exec.Command(tmpPath, "version").CombinedOutput()
 
@@ -971,13 +829,9 @@ func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
 
 	}
 
-
-
 	singboxPath := filepath.Join(m.binDir, "sing-box")
 
 	backupPath := filepath.Join(m.binDir, "sing-box.bak")
-
-
 
 	_ = os.Rename(singboxPath, backupPath)
 
@@ -989,11 +843,7 @@ func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
 
 	}
 
-
-
 	_ = os.Chmod(singboxPath, 0755)
-
-
 
 	if restartFn != nil {
 
@@ -1005,8 +855,6 @@ func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
 
 	}
 
-
-
 	_ = os.Remove(backupPath)
 
 	log.Printf("[ROS] sing-box upgraded to %s successfully", latestTag)
@@ -1015,35 +863,27 @@ func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
 
 }
 
-
-
 // ──────────────────────────────────────────────
 
 // RouterOS Firmware Upgrade
 
 // ──────────────────────────────────────────────
 
-
-
 // ROSFirmwareCheckResult holds parsed RouterOS package update status.
 
 type ROSFirmwareCheckResult struct {
-
 	InstalledVersion string `json:"installed_version"`
 
-	LatestVersion    string `json:"latest_version"`
+	LatestVersion string `json:"latest_version"`
 
-	Channel          string `json:"channel"`
+	Channel string `json:"channel"`
 
-	Status           string `json:"status"`
+	Status string `json:"status"`
 
-	HasUpdate        bool   `json:"has_update"`
+	HasUpdate bool `json:"has_update"`
 
-	Message          string `json:"message"`
-
+	Message string `json:"message"`
 }
-
-
 
 func parseROSUpdateJSON(data []byte) (installed, latest, channel, status string) {
 
@@ -1115,8 +955,6 @@ func parseROSUpdateJSON(data []byte) (installed, latest, channel, status string)
 
 }
 
-
-
 // CheckROSFirmwareUpgradeDetails queries RouterOS system package updates and returns structured details.
 
 func (m *Manager) CheckROSFirmwareUpgradeDetails() (*ROSFirmwareCheckResult, error) {
@@ -1127,15 +965,11 @@ func (m *Manager) CheckROSFirmwareUpgradeDetails() (*ROSFirmwareCheckResult, err
 
 	m.mu.Unlock()
 
-
-
 	if cfg.Host == "" {
 
 		return nil, fmt.Errorf("RouterOS host not configured")
 
 	}
-
-
 
 	scheme := "https"
 
@@ -1148,12 +982,9 @@ func (m *Manager) CheckROSFirmwareUpgradeDetails() (*ROSFirmwareCheckResult, err
 	tr := &http.Transport{
 
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-
 	}
 
 	client := &http.Client{Transport: tr, Timeout: 15 * time.Second}
-
-
 
 	checkURL := fmt.Sprintf("%s://%s:%s/rest/system/package/update/check-for-updates", scheme, cfg.Host, cfg.Port)
 
@@ -1162,8 +993,6 @@ func (m *Manager) CheckROSFirmwareUpgradeDetails() (*ROSFirmwareCheckResult, err
 	checkReq.SetBasicAuth(cfg.User, cfg.Password)
 
 	checkReq.Header.Set("Content-Type", "application/json")
-
-
 
 	var installed, latest, channel, status string
 
@@ -1176,8 +1005,6 @@ func (m *Manager) CheckROSFirmwareUpgradeDetails() (*ROSFirmwareCheckResult, err
 		installed, latest, channel, status = parseROSUpdateJSON(postBody)
 
 	}
-
-
 
 	getURL := fmt.Sprintf("%s://%s:%s/rest/system/package/update", scheme, cfg.Host, cfg.Port)
 
@@ -1241,8 +1068,6 @@ func (m *Manager) CheckROSFirmwareUpgradeDetails() (*ROSFirmwareCheckResult, err
 
 	}
 
-
-
 	if channel == "" {
 
 		channel = "stable"
@@ -1260,8 +1085,6 @@ func (m *Manager) CheckROSFirmwareUpgradeDetails() (*ROSFirmwareCheckResult, err
 		latest = installed
 
 	}
-
-
 
 	hasUpdate := IsVersionNewer(latest, installed)
 
@@ -1281,27 +1104,22 @@ func (m *Manager) CheckROSFirmwareUpgradeDetails() (*ROSFirmwareCheckResult, err
 
 	}
 
-
-
 	return &ROSFirmwareCheckResult{
 
 		InstalledVersion: installed,
 
-		LatestVersion:    latest,
+		LatestVersion: latest,
 
-		Channel:          channel,
+		Channel: channel,
 
-		Status:           status,
+		Status: status,
 
-		HasUpdate:        hasUpdate,
+		HasUpdate: hasUpdate,
 
-		Message:          msg,
-
+		Message: msg,
 	}, nil
 
 }
-
-
 
 // CheckROSFirmwareUpgrade queries RouterOS system package updates via REST API.
 
@@ -1318,8 +1136,6 @@ func (m *Manager) CheckROSFirmwareUpgrade() (string, error) {
 	return res.Message, nil
 
 }
-
-
 
 // TriggerROSFirmwareUpgrade sends an upgrade command to RouterOS via its REST API.
 
@@ -1339,23 +1155,17 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 
 	}
 
-
-
 	m.mu.Lock()
 
 	cfg := m.config
 
 	m.mu.Unlock()
 
-
-
 	if cfg.Host == "" {
 
 		return fmt.Errorf("RouterOS host not configured")
 
 	}
-
-
 
 	scheme := "https"
 
@@ -1379,23 +1189,17 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 
 	req.Header.Set("Content-Type", "application/json")
 
-
-
 	tr := &http.Transport{
 
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-
 	}
 
 	client := &http.Client{
 
 		Transport: tr,
 
-		Timeout:   15 * time.Second,
-
+		Timeout: 15 * time.Second,
 	}
-
-
 
 	resp, err := client.Do(req)
 
@@ -1407,8 +1211,6 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 
 	defer resp.Body.Close()
 
-
-
 	if resp.StatusCode >= 400 {
 
 		body, _ := io.ReadAll(resp.Body)
@@ -1417,15 +1219,11 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 
 	}
 
-
-
 	log.Printf("[ROS] Firmware upgrade triggered on %s", cfg.Host)
 
 	return nil
 
 }
-
-
 
 // ──────────────────────────────────────────────
 
@@ -1433,15 +1231,11 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 
 // ──────────────────────────────────────────────
 
-
-
 func (m *Manager) getLocalPanelVersion() string {
 
 	return "Test v5.4"
 
 }
-
-
 
 // IsConnected returns whether the RouterOS host is currently reachable and authenticated.
 
@@ -1462,8 +1256,6 @@ func (m *Manager) IsConnected() bool {
 	return conn
 
 }
-
-
 
 func (m *Manager) updateLocalMetaVersion(newVer string) {
 
@@ -1491,8 +1283,6 @@ func (m *Manager) updateLocalMetaVersion(newVer string) {
 
 }
 
-
-
 func normalizeVersion(v string) string {
 
 	v = strings.ToLower(strings.TrimSpace(v))
@@ -1508,8 +1298,6 @@ func normalizeVersion(v string) string {
 	return v
 
 }
-
-
 
 // extractVersionNumbers parses major, minor, patch, prerelease from strings like "Test v3.9", "Test-v1.4", "v1.19.0".
 
@@ -1562,8 +1350,6 @@ func extractVersionNumbers(v string) []int {
 	return nums
 
 }
-
-
 
 // isVersionNewer returns true only if candidate is strictly greater than current.
 
@@ -1639,8 +1425,6 @@ func IsVersionNewer(candidate, current string) bool {
 
 }
 
-
-
 func fetchGitHubLatestTag(repo string) (string, error) {
 
 	// Tier 0: Direct query via local active proxy port (127.0.0.1:7890) if engine is running
@@ -1653,14 +1437,12 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 
 			Transport: &http.Transport{
 
-				Proxy:           http.ProxyURL(proxyURL),
+				Proxy: http.ProxyURL(proxyURL),
 
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-
 			},
 
 			Timeout: 4 * time.Second,
-
 		}
 
 		pReq, err := http.NewRequest(http.MethodGet, "https://api.github.com/repos/"+repo+"/releases/latest", nil)
@@ -1676,9 +1458,7 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 			if err == nil && pResp.StatusCode == http.StatusOK {
 
 				var rel struct {
-
 					TagName string `json:"tag_name"`
-
 				}
 
 				if json.NewDecoder(pResp.Body).Decode(&rel) == nil && rel.TagName != "" {
@@ -1697,8 +1477,6 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 
 	}
 
-
-
 	// Tier 1: Web 302 Redirect via verified fast GitHub mirrors
 
 	redirectCandidates := []string{
@@ -1710,10 +1488,7 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 		"https://ghfast.top/https://github.com/" + repo + "/releases/latest",
 
 		"https://github.com/" + repo + "/releases/latest",
-
 	}
-
-
 
 	client := &http.Client{
 
@@ -1724,10 +1499,7 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 			return http.ErrUseLastResponse
 
 		},
-
 	}
-
-
 
 	for _, targetURL := range redirectCandidates {
 
@@ -1740,8 +1512,6 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 		}
 
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-
-
 
 		resp, err := client.Do(req)
 
@@ -1759,13 +1529,9 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 
 		}
 
-
-
 		loc := resp.Header.Get("Location")
 
 		resp.Body.Close()
-
-
 
 		if loc != "" && strings.Contains(loc, "/releases/tag/") {
 
@@ -1795,14 +1561,11 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 
 	}
 
-
-
 	// Tier 2: GitHub API fallback (direct)
 
 	apiCandidates := []string{
 
 		"https://api.github.com/repos/" + repo + "/releases/latest",
-
 	}
 
 	apiClient := &http.Client{Timeout: 6 * time.Second}
@@ -1825,8 +1588,6 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 
 		req.Header.Set("Accept", "application/vnd.github.v3+json")
 
-
-
 		resp, err := apiClient.Do(req)
 
 		if err != nil {
@@ -1847,12 +1608,8 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 
 		}
 
-
-
 		var release struct {
-
 			TagName string `json:"tag_name"`
-
 		}
 
 		err = json.NewDecoder(resp.Body).Decode(&release)
@@ -1867,8 +1624,6 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 
 	}
 
-
-
 	// Tier 3: If repo is CubeX itself, fallback to raw meta.json on main branch
 
 	if strings.Contains(strings.ToLower(repo), "cubex") {
@@ -1878,7 +1633,6 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 			"https://ghfast.top/https://raw.githubusercontent.com/" + repo + "/main/meta.json",
 
 			"https://raw.githubusercontent.com/" + repo + "/main/meta.json",
-
 		}
 
 		for _, mURL := range metaURLs {
@@ -1898,9 +1652,7 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 			if err == nil && resp.StatusCode == http.StatusOK {
 
 				var meta struct {
-
 					Version string `json:"version"`
-
 				}
 
 				if json.NewDecoder(resp.Body).Decode(&meta) == nil && meta.Version != "" {
@@ -1919,13 +1671,9 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 
 	}
 
-
-
 	return "", lastErr
 
 }
-
-
 
 func (m *Manager) fetchLatestPanelVersion() (string, error) {
 
@@ -1940,8 +1688,6 @@ func (m *Manager) fetchLatestPanelVersion() (string, error) {
 	return tag, nil
 
 }
-
-
 
 func (m *Manager) getLocalMihomoVersion() string {
 
@@ -1971,8 +1717,6 @@ func (m *Manager) getLocalMihomoVersion() string {
 
 }
 
-
-
 func (m *Manager) fetchLatestMihomoVersion() (string, error) {
 
 	tag, _ := fetchGitHubLatestTag("MetaCubeX/mihomo")
@@ -1986,8 +1730,6 @@ func (m *Manager) fetchLatestMihomoVersion() (string, error) {
 	return "v1.19.33", nil
 
 }
-
-
 
 func (m *Manager) getLocalSingboxVersion() string {
 
@@ -2049,8 +1791,6 @@ func (m *Manager) getLocalSingboxVersion() string {
 
 }
 
-
-
 func (m *Manager) fetchLatestSingboxVersion() (string, error) {
 
 	tag, _ := fetchGitHubLatestTag("SagerNet/sing-box")
@@ -2065,8 +1805,6 @@ func (m *Manager) fetchLatestSingboxVersion() (string, error) {
 
 }
 
-
-
 func (m *Manager) checkROSConnection() (connected bool, version string) {
 
 	if m.config.Host == "" || m.config.User == "" {
@@ -2074,8 +1812,6 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 		return false, ""
 
 	}
-
-
 
 	ports := []string{m.config.Port}
 
@@ -2088,8 +1824,6 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 		ports = []string{"80", "443"}
 
 	}
-
-
 
 	for _, p := range ports {
 
@@ -2113,8 +1847,6 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 
 		req.SetBasicAuth(m.config.User, m.config.Password)
 
-
-
 		client := &http.Client{
 
 			Timeout: 3 * time.Second,
@@ -2122,9 +1854,7 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 			Transport: &http.Transport{
 
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-
 			},
-
 		}
 
 		resp, err := client.Do(req)
@@ -2157,18 +1887,14 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 
 		defer resp.Body.Close()
 
-
-
 		var resource struct {
+			Version string `json:"version"`
 
-			Version       string `json:"version"`
+			BoardName string `json:"board-name"`
 
-			BoardName     string `json:"board-name"`
+			FreeHddSpace any `json:"free-hdd-space"`
 
-			FreeHddSpace  any    `json:"free-hdd-space"`
-
-			TotalHddSpace any    `json:"total-hdd-space"`
-
+			TotalHddSpace any `json:"total-hdd-space"`
 		}
 
 		if err := json.NewDecoder(resp.Body).Decode(&resource); err == nil && resource.Version != "" {
@@ -2253,8 +1979,6 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 
 }
 
-
-
 // GetFullPlatformInfo returns whether ROS is connected and its formatted platform string.
 
 func (m *Manager) GetFullPlatformInfo() (connected bool, platformName string) {
@@ -2281,8 +2005,6 @@ func (m *Manager) GetFullPlatformInfo() (connected bool, platformName string) {
 
 }
 
-
-
 func (m *Manager) downloadFile(rawURL, destPath string) error {
 
 	cleanGitHubURL := rawURL
@@ -2297,8 +2019,6 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 
 	}
 
-
-
 	isBinaryPackage := strings.Contains(destPath, "cubexd") || strings.Contains(destPath, "cubex") ||
 
 		strings.Contains(destPath, "mihomo") || strings.Contains(destPath, "sing-box") ||
@@ -2308,8 +2028,6 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 	isLargeDatabase := strings.Contains(destPath, "geoip.metadb") || strings.Contains(destPath, "geosite.dat") ||
 
 		strings.Contains(destPath, "GeoIP.dat") || strings.Contains(destPath, "GeoSite.dat")
-
-
 
 	// Determine dynamic timeout & min file size based on payload type
 
@@ -2321,17 +2039,15 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 
 		timeout = 300 * time.Second // 5 minutes for large binaries (45MB - 120MB)
 
-		minSize = 5 * 1024 * 1024   // at least 5 MB
+		minSize = 5 * 1024 * 1024 // at least 5 MB
 
 	} else if isLargeDatabase {
 
 		timeout = 180 * time.Second // 3 minutes for databases
 
-		minSize = 1000000           // at least 1 MB
+		minSize = 1000000 // at least 1 MB
 
 	}
-
-
 
 	// Helper to stream write and validate without buffering entire file in memory
 
@@ -2357,15 +2073,11 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 
 		defer resp.Body.Close()
 
-
-
 		if resp.StatusCode != http.StatusOK {
 
 			return fmt.Errorf("server returned HTTP %d", resp.StatusCode)
 
 		}
-
-
 
 		tmpFile := destPath + ".dl_tmp"
 
@@ -2376,8 +2088,6 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 			return fmt.Errorf("create tmp file failed: %w", err)
 
 		}
-
-
 
 		written, copyErr := io.Copy(out, resp.Body)
 
@@ -2391,8 +2101,6 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 
 		}
 
-
-
 		if written < minSize {
 
 			_ = os.Remove(tmpFile)
@@ -2400,8 +2108,6 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 			return fmt.Errorf("payload too small (%d bytes, min required: %d)", written, minSize)
 
 		}
-
-
 
 		// Inspect the first 512 bytes for HTML / error JSON
 
@@ -2429,8 +2135,6 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 
 		}
 
-
-
 		// Success: atomically rename to destination
 
 		_ = os.Remove(destPath)
@@ -2449,8 +2153,6 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 
 	}
 
-
-
 	// 1. If local proxy 127.0.0.1:7890 is active, try direct download via local proxy first!
 
 	proxyURL, pErr := url.Parse("http://127.0.0.1:7890")
@@ -2461,14 +2163,12 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 
 			Transport: &http.Transport{
 
-				Proxy:           http.ProxyURL(proxyURL),
+				Proxy: http.ProxyURL(proxyURL),
 
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-
 			},
 
 			Timeout: timeout,
-
 		}
 
 		if err := streamDownload(pClient, cleanGitHubURL); err == nil {
@@ -2478,8 +2178,6 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 		}
 
 	}
-
-
 
 	// 2. Candidates with fast CDN mirrors (ghproxy.cn excluded due to captive HTML challenge pages)
 
@@ -2494,7 +2192,6 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 			strings.ReplaceAll(rawURL, "gcore.jsdelivr.net", "fastly.jsdelivr.net"),
 
 			strings.ReplaceAll(rawURL, "gcore.jsdelivr.net", "cdn.jsdelivr.net"),
-
 		}
 
 	} else {
@@ -2508,18 +2205,13 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 			"https://mirror.ghproxy.com/" + cleanGitHubURL,
 
 			cleanGitHubURL,
-
 		}
 
 	}
 
-
-
 	client := &http.Client{Timeout: timeout}
 
 	var lastErr error
-
-
 
 	for _, targetURL := range candidates {
 
@@ -2535,13 +2227,9 @@ func (m *Manager) downloadFile(rawURL, destPath string) error {
 
 	}
 
-
-
 	return fmt.Errorf("download failed: %w", lastErr)
 
 }
-
-
 
 func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
 
@@ -2563,8 +2251,6 @@ func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
 
 	}
 
-
-
 	// 1. Try high-speed download through local proxy 127.0.0.1:7890 if active (0-downtime hot download)
 
 	if proxyURL, pErr := url.Parse("http://127.0.0.1:7890"); pErr == nil {
@@ -2573,14 +2259,12 @@ func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
 
 			Transport: &http.Transport{
 
-				Proxy:           http.ProxyURL(proxyURL),
+				Proxy: http.ProxyURL(proxyURL),
 
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-
 			},
 
 			Timeout: 300 * time.Second,
-
 		}
 
 		pReq, err := http.NewRequest(http.MethodGet, cleanGitHubURL, nil)
@@ -2637,8 +2321,6 @@ func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
 
 	}
 
-
-
 	candidates := []string{
 
 		"https://ghproxy.net/" + cleanGitHubURL,
@@ -2652,16 +2334,11 @@ func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
 		"https://mirror.ghproxy.com/" + cleanGitHubURL,
 
 		cleanGitHubURL,
-
 	}
-
-
 
 	client := &http.Client{Timeout: 300 * time.Second}
 
 	var lastErr error
-
-
 
 	for _, targetURL := range candidates {
 
@@ -2678,8 +2355,6 @@ func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
 		}
 
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-
-
 
 		resp, err := client.Do(req)
 
@@ -2705,8 +2380,6 @@ func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
 
 		}
 
-
-
 		gzReader, err := gzip.NewReader(resp.Body)
 
 		if err != nil {
@@ -2721,8 +2394,6 @@ func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
 
 		}
 
-
-
 		outFile, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
 
 		if err != nil {
@@ -2735,8 +2406,6 @@ func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
 
 		}
 
-
-
 		written, copyErr := io.Copy(outFile, gzReader)
 
 		outFile.Close()
@@ -2744,8 +2413,6 @@ func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
 		gzReader.Close()
 
 		resp.Body.Close()
-
-
 
 		if copyErr != nil {
 
@@ -2759,8 +2426,6 @@ func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
 
 		}
 
-
-
 		if written < 5000000 { // Mihomo core is >10MB
 
 			_ = os.Remove(destPath)
@@ -2773,21 +2438,15 @@ func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
 
 		}
 
-
-
 		log.Printf("[ROS] Successfully downloaded and decompressed %d bytes to %s", written, destPath)
 
 		return nil
 
 	}
 
-
-
 	return fmt.Errorf("all download mirrors failed: %w", lastErr)
 
 }
-
-
 
 func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath string) error {
 
@@ -2803,8 +2462,6 @@ func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath str
 
 	}
 
-
-
 	// 1. Try high-speed download through local proxy 127.0.0.1:7890 if active (0-downtime hot download)
 
 	if proxyURL, pErr := url.Parse("http://127.0.0.1:7890"); pErr == nil {
@@ -2813,14 +2470,12 @@ func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath str
 
 			Transport: &http.Transport{
 
-				Proxy:           http.ProxyURL(proxyURL),
+				Proxy: http.ProxyURL(proxyURL),
 
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-
 			},
 
 			Timeout: 300 * time.Second,
-
 		}
 
 		pReq, err := http.NewRequest(http.MethodGet, cleanGitHubURL, nil)
@@ -2903,8 +2558,6 @@ func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath str
 
 	}
 
-
-
 	candidates := []string{
 
 		"https://ghproxy.net/" + cleanGitHubURL,
@@ -2918,16 +2571,11 @@ func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath str
 		"https://mirror.ghproxy.com/" + cleanGitHubURL,
 
 		cleanGitHubURL,
-
 	}
-
-
 
 	client := &http.Client{Timeout: 300 * time.Second}
 
 	var lastErr error
-
-
 
 	for _, targetURL := range candidates {
 
@@ -2944,8 +2592,6 @@ func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath str
 		}
 
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-
-
 
 		resp, err := client.Do(req)
 
@@ -2967,8 +2613,6 @@ func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath str
 
 		}
 
-
-
 		gzReader, err := gzip.NewReader(resp.Body)
 
 		if err != nil {
@@ -2981,13 +2625,9 @@ func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath str
 
 		}
 
-
-
 		tarReader := tar.NewReader(gzReader)
 
 		found := false
-
-
 
 		for {
 
@@ -3006,8 +2646,6 @@ func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath str
 				break
 
 			}
-
-
 
 			base := filepath.Base(header.Name)
 
@@ -3045,13 +2683,9 @@ func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath str
 
 		}
 
-
-
 		gzReader.Close()
 
 		resp.Body.Close()
-
-
 
 		if found {
 
@@ -3066,8 +2700,6 @@ func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath str
 	return fmt.Errorf("all download mirrors failed: %w", lastErr)
 
 }
-
-
 
 func (m *Manager) downloadAndExtractZip(rawURL, targetBinaryName, destPath string) error {
 
@@ -3090,8 +2722,6 @@ func (m *Manager) downloadAndExtractZip(rawURL, targetBinaryName, destPath strin
 	}
 
 	defer zr.Close()
-
-
 
 	for _, f := range zr.File {
 
@@ -3145,8 +2775,6 @@ func (m *Manager) downloadAndExtractZip(rawURL, targetBinaryName, destPath strin
 
 }
 
-
-
 func (m *Manager) GetConfig() map[string]string {
 
 	m.mu.Lock()
@@ -3155,27 +2783,22 @@ func (m *Manager) GetConfig() map[string]string {
 
 	return map[string]string{
 
-		"host":     m.config.Host,
+		"host": m.config.Host,
 
-		"port":     m.config.Port,
+		"port": m.config.Port,
 
-		"user":     m.config.User,
+		"user": m.config.User,
 
 		"password": m.config.Password,
-
 	}
 
 }
-
-
 
 func (m *Manager) SaveConfig(v any) error {
 
 	m.mu.Lock()
 
 	defer m.mu.Unlock()
-
-
 
 	data, err := json.Marshal(v)
 
@@ -3192,8 +2815,6 @@ func (m *Manager) SaveConfig(v any) error {
 		return err
 
 	}
-
-
 
 	if cfg.Host != "" {
 
@@ -3219,13 +2840,9 @@ func (m *Manager) SaveConfig(v any) error {
 
 	}
 
-
-
 	return m.saveConfigLocked()
 
 }
-
-
 
 func (m *Manager) loadConfig() {
 
@@ -3241,8 +2858,6 @@ func (m *Manager) loadConfig() {
 
 }
 
-
-
 func (m *Manager) saveConfigLocked() error {
 
 	_ = os.MkdirAll(filepath.Dir(m.configFile), 0755)
@@ -3252,8 +2867,6 @@ func (m *Manager) saveConfigLocked() error {
 	return os.WriteFile(m.configFile, data, 0644)
 
 }
-
-
 
 // QueryROS executes an authenticated GET request against RouterOS REST API.
 
@@ -3270,8 +2883,6 @@ func (m *Manager) QueryROS(path string) ([]byte, error) {
 	pass := m.config.Password
 
 	m.mu.RUnlock()
-
-
 
 	if host == "" {
 
@@ -3321,8 +2932,6 @@ func (m *Manager) QueryROS(path string) ([]byte, error) {
 
 }
 
-
-
 // PatchROS executes an authenticated PATCH request against RouterOS REST API.
 
 func (m *Manager) PatchROS(path string, body any) error {
@@ -3338,8 +2947,6 @@ func (m *Manager) PatchROS(path string, body any) error {
 	pass := m.config.Password
 
 	m.mu.RUnlock()
-
-
 
 	if host == "" {
 
@@ -3399,8 +3006,6 @@ func (m *Manager) PatchROS(path string, body any) error {
 
 }
 
-
-
 // PutROS executes an authenticated PUT request against RouterOS REST API.
 
 // In RouterOS REST API, PUT maps directly to the CLI "add" command to create a new item.
@@ -3418,8 +3023,6 @@ func (m *Manager) PutROS(path string, body any) ([]byte, error) {
 	pass := m.config.Password
 
 	m.mu.RUnlock()
-
-
 
 	if host == "" {
 
@@ -3489,8 +3092,6 @@ func (m *Manager) PutROS(path string, body any) ([]byte, error) {
 
 }
 
-
-
 // DeleteROS executes an authenticated DELETE request against RouterOS REST API.
 
 func (m *Manager) DeleteROS(path string) error {
@@ -3506,8 +3107,6 @@ func (m *Manager) DeleteROS(path string) error {
 	pass := m.config.Password
 
 	m.mu.RUnlock()
-
-
 
 	if host == "" {
 
@@ -3559,8 +3158,6 @@ func (m *Manager) DeleteROS(path string) error {
 
 }
 
-
-
 // PostROS executes an authenticated POST command request against RouterOS REST API.
 
 func (m *Manager) PostROS(path string, body any) ([]byte, error) {
@@ -3576,8 +3173,6 @@ func (m *Manager) PostROS(path string, body any) ([]byte, error) {
 	pass := m.config.Password
 
 	m.mu.RUnlock()
-
-
 
 	if host == "" {
 
@@ -3647,11 +3242,7 @@ func (m *Manager) PostROS(path string, body any) ([]byte, error) {
 
 }
 
-
-
 // GetROS executes an authenticated GET request against RouterOS REST API.
-
-
 
 // GetContainerMemoryCurrent returns the live memory-current (in MB) of the CubeX container as reported by RouterOS.
 
@@ -3672,8 +3263,6 @@ func (m *Manager) GetContainerMemoryCurrent() (float64, error) {
 	cached := m.lastContainerMem
 
 	m.mu.RUnlock()
-
-
 
 	data, err := m.GetROS("/container")
 
@@ -3763,8 +3352,6 @@ func (m *Manager) GetContainerMemoryCurrent() (float64, error) {
 
 }
 
-
-
 func (m *Manager) GetROS(path string) ([]byte, error) {
 
 	m.mu.RLock()
@@ -3778,8 +3365,6 @@ func (m *Manager) GetROS(path string) ([]byte, error) {
 	pass := m.config.Password
 
 	m.mu.RUnlock()
-
-
 
 	if host == "" {
 
@@ -3831,10 +3416,6 @@ func (m *Manager) GetROS(path string) ([]byte, error) {
 
 }
 
-
-
-
-
 // GetOutboundIP attempts to discover the local IP of the container/host used to reach RouterOS.
 
 func (m *Manager) GetOutboundIP() string {
@@ -3844,8 +3425,6 @@ func (m *Manager) GetOutboundIP() string {
 	host := m.config.Host
 
 	m.mu.Unlock()
-
-
 
 	if host == "" {
 
@@ -3891,2029 +3470,1898 @@ func (m *Manager) GetOutboundIP() string {
 
 }
 
-
-
 // ──────────────────────────────────────────────
 
 // Geo Data & 217heidai MRS/SRS Rule Providers Management
 
 // ──────────────────────────────────────────────
 
-
-
 type GeoRuleFile struct {
+	Name string `json:"name"`
 
-	Name        string `json:"name"`
+	Filename string `json:"filename"`
 
-	Filename    string `json:"filename"`
+	SizeBytes int64 `json:"size_bytes"`
 
-	SizeBytes   int64  `json:"size_bytes"`
+	SizeStr string `json:"size_str"`
 
-	SizeStr     string `json:"size_str"`
+	Category string `json:"category"`
 
-	Category    string `json:"category"`
-
-	UpdatedAt   string `json:"updated_at"`
+	UpdatedAt string `json:"updated_at"`
 
 	Description string `json:"description"`
 
-	Status      string `json:"status"`
+	Status string `json:"status"`
 
-	Engine      string `json:"engine"` // "Mihomo" | "sing-box" | "双核通用"
+	Engine string `json:"engine"` // "Mihomo" | "sing-box" | "双核通用"
 
-	Group       string `json:"group"`  // 对应策略组
+	Group string `json:"group"` // 对应策略组
 
 }
-
-
 
 type GeoDataStatus struct {
+	TotalRules int `json:"total_rules"`
 
-	TotalRules     int           `json:"total_rules"`
+	Version string `json:"version"`
 
-	Version        string        `json:"version"`
+	LatestVersion string `json:"latest_version"`
 
-	LatestVersion  string        `json:"latest_version"`
+	HasUpdate bool `json:"has_update"`
 
-	HasUpdate      bool          `json:"has_update"`
+	LastUpdated string `json:"last_updated"`
 
-	LastUpdated    string        `json:"last_updated"`
+	GeoIPSize int64 `json:"geoip_size"`
 
-	GeoIPSize      int64         `json:"geoip_size"`
+	GeoIPSizeStr string `json:"geoip_size_str"`
 
-	GeoIPSizeStr   string        `json:"geoip_size_str"`
+	GeoIPUpdated string `json:"geoip_updated"`
 
-	GeoIPUpdated   string        `json:"geoip_updated"`
+	GeoSiteSize int64 `json:"geosite_size"`
 
-	GeoSiteSize    int64         `json:"geosite_size"`
+	GeoSiteSizeStr string `json:"geosite_size_str"`
 
-	GeoSiteSizeStr string        `json:"geosite_size_str"`
+	GeoSiteUpdated string `json:"geosite_updated"`
 
-	GeoSiteUpdated string        `json:"geosite_updated"`
+	RulesCount int `json:"rules_count"`
 
-	RulesCount     int           `json:"rules_count"`
+	FilesCount int `json:"files_count"`
 
-	FilesCount     int           `json:"files_count"`
-
-	Files          []GeoRuleFile `json:"files"`
-
-	RecentLogs     []string      `json:"recent_logs"`
-
-	IsUpdating     bool          `json:"is_updating"`
-
-}
-
-
-
-type GeoUpdateResult struct {
-
-	Success      bool          `json:"success"`
-
-	TotalRules   int           `json:"total_rules"`
-
-	Version      string        `json:"version"`
-
-	FilesUpdated int           `json:"files_updated"`
-
-	Logs         []string      `json:"logs"`
-
-	UpdatedAt    string        `json:"updated_at"`
-
-	Files        []GeoRuleFile `json:"files"`
-
-}
-
-
-
-type RulesMeta struct {
-
-	TotalRules int      `json:"total_rules"`
-
-	Version    string   `json:"version"`
-
-	UpdatedAt  string   `json:"updated_at"`
+	Files []GeoRuleFile `json:"files"`
 
 	RecentLogs []string `json:"recent_logs"`
 
+	IsUpdating bool `json:"is_updating"`
 }
 
+type GeoUpdateResult struct {
+	Success bool `json:"success"`
 
+	TotalRules int `json:"total_rules"`
+
+	Version string `json:"version"`
+
+	FilesUpdated int `json:"files_updated"`
+
+	Logs []string `json:"logs"`
+
+	UpdatedAt string `json:"updated_at"`
+
+	Files []GeoRuleFile `json:"files"`
+}
+
+type RulesMeta struct {
+	TotalRules int `json:"total_rules"`
+
+	Version string `json:"version"`
+
+	UpdatedAt string `json:"updated_at"`
+
+	RecentLogs []string `json:"recent_logs"`
+}
 
 type ruleItemDef struct {
+	Name string
 
-	Name        string
+	Filename string
 
-	Filename    string
+	URL string
 
-	URL         string
-
-	Category    string
+	Category string
 
 	Description string
 
-	Engine      string
+	Engine string
 
-	Group       string
-
+	Group string
 }
-
-
 
 var allGeoRuleDefs = []ruleItemDef{
 
 	{
 
-		Name:        "Mihomo 高性能 GeoIP 数据库 (geoip.metadb)",
+		Name: "Mihomo 高性能 GeoIP 数据库 (geoip.metadb)",
 
-		Filename:    "geoip.metadb",
+		Filename: "geoip.metadb",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/geoip.metadb",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/geoip.metadb",
 
-		Category:    "基础数据库",
+		Category: "基础数据库",
 
 		Description: "全球 IP 归属地高精度数据库 (MaxMind 格式，Mihomo 专享)",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "双核基础IP库",
-
+		Group: "双核基础IP库",
 	},
 
 	{
 
-		Name:        "官方全量 GeoSite 域名分类库 (geosite.dat)",
+		Name: "官方全量 GeoSite 域名分类库 (geosite.dat)",
 
-		Filename:    "geosite.dat",
+		Filename: "geosite.dat",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/geosite.dat",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/geosite.dat",
 
-		Category:    "基础数据库",
+		Category: "基础数据库",
 
 		Description: "全量分类域名数据库，包含国内外各大服务与 CDN 顶级标识",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "双核基础域名库",
-
+		Group: "双核基础域名库",
 	},
 
 	{
 
-		Name:        "官方全量 GeoIP 数据库 (GeoIP.dat)",
+		Name: "官方全量 GeoIP 数据库 (GeoIP.dat)",
 
-		Filename:    "GeoIP.dat",
+		Filename: "GeoIP.dat",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/GeoIP.dat",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/release/GeoIP.dat",
 
-		Category:    "基础数据库",
+		Category: "基础数据库",
 
 		Description: "全量全球 IP 数据库 (MaxMind MMDB 兼容格式)",
 
-		Engine:      "双核通用",
+		Engine: "双核通用",
 
-		Group:       "双核基础IP库",
-
+		Group: "双核基础IP库",
 	},
 
 	{
 
-		Name:        "217heidai Mihomo 专享去广告规则 (ads_domain.mrs)",
+		Name: "217heidai Mihomo 专享去广告规则 (ads_domain.mrs)",
 
-		Filename:    "rules/ads_domain.mrs",
+		Filename: "rules/ads_domain.mrs",
 
-		URL:         "https://gcore.jsdelivr.net/gh/217heidai/adblockfilters@main/rules/adblockmihomo.mrs",
+		URL: "https://gcore.jsdelivr.net/gh/217heidai/adblockfilters@main/rules/adblockmihomo.mrs",
 
-		Category:    "广告与恶意追踪拦截",
+		Category: "广告与恶意追踪拦截",
 
 		Description: "Mihomo 专用 MRS 格式 217heidai 全网去广告与恶意追踪过滤",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🛑 全网广告拦截",
-
+		Group: "🛑 全网广告拦截",
 	},
 
 	{
 
-		Name:        "217heidai sing-box 专享去广告规则 (adblocksingbox.srs)",
+		Name: "217heidai sing-box 专享去广告规则 (adblocksingbox.srs)",
 
-		Filename:    "rules/adblocksingbox.srs",
+		Filename: "rules/adblocksingbox.srs",
 
-		URL:         "https://gcore.jsdelivr.net/gh/217heidai/adblockfilters@main/rules/adblocksingbox.srs",
+		URL: "https://gcore.jsdelivr.net/gh/217heidai/adblockfilters@main/rules/adblocksingbox.srs",
 
-		Category:    "广告与恶意追踪拦截",
+		Category: "广告与恶意追踪拦截",
 
 		Description: "sing-box 1.14+ 专用 SRS 格式 217heidai 全网去广告过滤",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🛑 全网广告拦截",
-
+		Group: "🛑 全网广告拦截",
 	},
 
 	{
 
-		Name:        "局域网与私网保留规则集 (privacy_domain.mrs)",
+		Name: "局域网与私网保留规则集 (privacy_domain.mrs)",
 
-		Filename:    "rules/privacy_domain.mrs",
+		Filename: "rules/privacy_domain.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/privacy_domain.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/privacy_domain.mrs",
 
-		Category:    "广告与恶意追踪拦截",
+		Category: "广告与恶意追踪拦截",
 
 		Description: "局域网保留 IP、本地私有子网、mDNS 及路由管理网段直连直出",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🛑 全网广告拦截",
-
+		Group: "🛑 全网广告拦截",
 	},
 
 	{
 
-		Name:        "局域网反追踪规则集 (privacy.srs)",
+		Name: "局域网反追踪规则集 (privacy.srs)",
 
-		Filename:    "rules/privacy.srs",
+		Filename: "rules/privacy.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/privacy.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/privacy.srs",
 
-		Category:    "广告与恶意追踪拦截",
+		Category: "广告与恶意追踪拦截",
 
 		Description: "sing-box 专用反指纹嗅探与本地隐私保护二进制规则",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🛑 全网广告拦截",
-
+		Group: "🛑 全网广告拦截",
 	},
 
 	{
 
-		Name:        "国内直连域名规则集 (cn_domain.mrs)",
+		Name: "国内直连域名规则集 (cn_domain.mrs)",
 
-		Filename:    "rules/cn_domain.mrs",
+		Filename: "rules/cn_domain.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/cn_domain.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/cn_domain.mrs",
 
-		Category:    "基础路由分流",
+		Category: "基础路由分流",
 
 		Description: "中国大陆各大互联网公司、政企官网、银行及云服务器直连",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "国内直连域名规则集 (cn_domain.srs)",
+		Name: "国内直连域名规则集 (cn_domain.srs)",
 
-		Filename:    "rules/cn_domain.srs",
+		Filename: "rules/cn_domain.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/cn_domain.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/cn_domain.srs",
 
-		Category:    "基础路由分流",
+		Category: "基础路由分流",
 
 		Description: "中国大陆各大互联网公司、政企官网直连 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "国内 IP 分流规则集 (cn_ip.mrs)",
+		Name: "国内 IP 分流规则集 (cn_ip.mrs)",
 
-		Filename:    "rules/cn_ip.mrs",
+		Filename: "rules/cn_ip.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/rules/cn_ip.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/rules/cn_ip.mrs",
 
-		Category:    "基础路由分流",
+		Category: "基础路由分流",
 
 		Description: "中国电信/联通/移动/广电真实公网 IP 地址段零延迟物理直连",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "国内 IP 分流规则集 (cn_ip.srs)",
+		Name: "国内 IP 分流规则集 (cn_ip.srs)",
 
-		Filename:    "rules/cn_ip.srs",
+		Filename: "rules/cn_ip.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/rules/cn_ip.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/rules/cn_ip.srs",
 
-		Category:    "基础路由分流",
+		Category: "基础路由分流",
 
 		Description: "中国电信/联通/移动/广电真实公网 IP 地址段物理直连 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "国外加速域名规则集 (cn_not_domain.mrs)",
+		Name: "国外加速域名规则集 (cn_not_domain.mrs)",
 
-		Filename:    "rules/cn_not_domain.mrs",
+		Filename: "rules/cn_not_domain.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/cn_not_domain.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/cn_not_domain.mrs",
 
-		Category:    "基础路由分流",
+		Category: "基础路由分流",
 
 		Description: "非国内境外网站与全球互联网节点加速分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "国外加速域名规则集 (cn_not_domain.srs)",
+		Name: "国外加速域名规则集 (cn_not_domain.srs)",
 
-		Filename:    "rules/cn_not_domain.srs",
+		Filename: "rules/cn_not_domain.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/cn_not_domain.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/cn_not_domain.srs",
 
-		Category:    "基础路由分流",
+		Category: "基础路由分流",
 
 		Description: "非国内境外网站与全球互联网节点加速分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "GFW 拦截域名规则集 (gfw_domain.mrs)",
+		Name: "GFW 拦截域名规则集 (gfw_domain.mrs)",
 
-		Filename:    "rules/gfw_domain.mrs",
+		Filename: "rules/gfw_domain.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/gfw_domain.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/gfw_domain.mrs",
 
-		Category:    "基础路由分流",
+		Category: "基础路由分流",
 
 		Description: "GFW 精准匹配走代理出站，确保敏感受限网站秒级穿透",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "GFW 拦截域名规则集 (gfw.srs)",
+		Name: "GFW 拦截域名规则集 (gfw.srs)",
 
-		Filename:    "rules/gfw.srs",
+		Filename: "rules/gfw.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/gfw.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/gfw.srs",
 
-		Category:    "基础路由分流",
+		Category: "基础路由分流",
 
 		Description: "GFW 精准匹配走代理出站 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "Telegram 全球专有 IP 段 (telegram_ip.mrs)",
+		Name: "Telegram 全球专有 IP 段 (telegram_ip.mrs)",
 
-		Filename:    "rules/telegram_ip.mrs",
+		Filename: "rules/telegram_ip.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/rules/telegram_ip.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/rules/telegram_ip.mrs",
 
-		Category:    "基础路由分流",
+		Category: "基础路由分流",
 
 		Description: "Telegram 官方 DC1~DC5 全球数据中心专有网段秒级路由",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Telegram",
-
+		Group: "Telegram",
 	},
 
 	{
 
-		Name:        "Telegram 全球专有 IP 段 (telegram_ip.srs)",
+		Name: "Telegram 全球专有 IP 段 (telegram_ip.srs)",
 
-		Filename:    "rules/telegram_ip.srs",
+		Filename: "rules/telegram_ip.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/rules/telegram_ip.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/rules/telegram_ip.srs",
 
-		Category:    "基础路由分流",
+		Category: "基础路由分流",
 
 		Description: "Telegram 官方 DC1~DC5 全球数据中心专有网段 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Telegram",
-
+		Group: "Telegram",
 	},
 
 	{
 
-		Name:        "OpenAI / ChatGPT (openai.mrs)",
+		Name: "OpenAI / ChatGPT (openai.mrs)",
 
-		Filename:    "rules/openai.mrs",
+		Filename: "rules/openai.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/openai.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/openai.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "ChatGPT、Codex、Sora 及 OpenAI 官方 API 智能分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "AI",
-
+		Group: "AI",
 	},
 
 	{
 
-		Name:        "OpenAI / ChatGPT (openai.srs)",
+		Name: "OpenAI / ChatGPT (openai.srs)",
 
-		Filename:    "rules/openai.srs",
+		Filename: "rules/openai.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/openai.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/openai.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "ChatGPT、Codex、Sora 及 OpenAI 官方 API 智能分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "AI",
-
+		Group: "AI",
 	},
 
 	{
 
-		Name:        "Google Gemini (google-gemini.mrs)",
+		Name: "Google Gemini (google-gemini.mrs)",
 
-		Filename:    "rules/google-gemini.mrs",
+		Filename: "rules/google-gemini.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google-gemini.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google-gemini.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Google Gemini 对话界面、多模态与核心大模型分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Gemini & Antigravity",
-
+		Group: "Gemini & Antigravity",
 	},
 
 	{
 
-		Name:        "Google Gemini (google-gemini.srs)",
+		Name: "Google Gemini (google-gemini.srs)",
 
-		Filename:    "rules/google-gemini.srs",
+		Filename: "rules/google-gemini.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/google-gemini.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/google-gemini.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Google Gemini 对话界面、多模态与核心大模型分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Gemini & Antigravity",
-
+		Group: "Gemini & Antigravity",
 	},
 
 	{
 
-		Name:        "Google DeepMind & Antigravity (google-deepmind.mrs)",
+		Name: "Google DeepMind & Antigravity (google-deepmind.mrs)",
 
-		Filename:    "rules/google-deepmind.mrs",
+		Filename: "rules/google-deepmind.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google-deepmind.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google-deepmind.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Antigravity、AI Studio、MakerSuite 与 DeepMind API 极速专线",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Gemini & Antigravity",
-
+		Group: "Gemini & Antigravity",
 	},
 
 	{
 
-		Name:        "Google DeepMind & Antigravity (google-deepmind.srs)",
+		Name: "Google DeepMind & Antigravity (google-deepmind.srs)",
 
-		Filename:    "rules/google-deepmind.srs",
+		Filename: "rules/google-deepmind.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/google-deepmind.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/google-deepmind.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Antigravity、AI Studio、MakerSuite 与 DeepMind API 极速专线 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Gemini & Antigravity",
-
+		Group: "Gemini & Antigravity",
 	},
 
 	{
 
-		Name:        "YouTube 视频流 (youtube.mrs)",
+		Name: "YouTube 视频流 (youtube.mrs)",
 
-		Filename:    "rules/youtube.mrs",
+		Filename: "rules/youtube.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/youtube.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/youtube.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "YouTube 官方主站、Googlevideo 4K/8K 视频分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "YouTube",
-
+		Group: "YouTube",
 	},
 
 	{
 
-		Name:        "YouTube 视频流 (youtube.srs)",
+		Name: "YouTube 视频流 (youtube.srs)",
 
-		Filename:    "rules/youtube.srs",
+		Filename: "rules/youtube.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/youtube.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/youtube.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "YouTube 官方主站、Googlevideo 4K/8K 视频分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "YouTube",
-
+		Group: "YouTube",
 	},
 
 	{
 
-		Name:        "Google 核心服务 (google.mrs)",
+		Name: "Google 核心服务 (google.mrs)",
 
-		Filename:    "rules/google.mrs",
+		Filename: "rules/google.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/google.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/google.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Google 搜索、Gmail、Play 商店及全球基础设施分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Google",
-
+		Group: "Google",
 	},
 
 	{
 
-		Name:        "Google 核心服务 (google.srs)",
+		Name: "Google 核心服务 (google.srs)",
 
-		Filename:    "rules/google.srs",
+		Filename: "rules/google.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/google.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/google.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Google 搜索、Gmail、Play 商店及全球基础设施分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Google",
-
+		Group: "Google",
 	},
 
 	{
 
-		Name:        "Apple 官方服务 (apple.mrs)",
+		Name: "Apple 官方服务 (apple.mrs)",
 
-		Filename:    "rules/apple.mrs",
+		Filename: "rules/apple.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/apple.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/apple.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Apple 固件更新、iCloud 同步与 App Store 官方分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Apple 服务",
-
+		Group: "Apple 服务",
 	},
 
 	{
 
-		Name:        "Apple 官方服务 (apple.srs)",
+		Name: "Apple 官方服务 (apple.srs)",
 
-		Filename:    "rules/apple.srs",
+		Filename: "rules/apple.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/apple.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/apple.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Apple 固件更新、iCloud 同步与 App Store 官方分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Apple 服务",
-
+		Group: "Apple 服务",
 	},
 
 	{
 
-		Name:        "Microsoft 微软 (microsoft.mrs)",
+		Name: "Microsoft 微软 (microsoft.mrs)",
 
-		Filename:    "rules/microsoft.mrs",
+		Filename: "rules/microsoft.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/microsoft.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/microsoft.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Windows Update、Office 365 及 Azure 云服务分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Microsoft",
-
+		Group: "Microsoft",
 	},
 
 	{
 
-		Name:        "Microsoft 微软 (microsoft.srs)",
+		Name: "Microsoft 微软 (microsoft.srs)",
 
-		Filename:    "rules/microsoft.srs",
+		Filename: "rules/microsoft.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/microsoft.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/microsoft.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Windows Update、Office 365 及 Azure 云服务分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Microsoft",
-
+		Group: "Microsoft",
 	},
 
 	{
 
-		Name:        "OneDrive 云盘 (onedrive.mrs)",
+		Name: "OneDrive 云盘 (onedrive.mrs)",
 
-		Filename:    "rules/onedrive.mrs",
+		Filename: "rules/onedrive.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/onedrive.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/onedrive.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "微软 OneDrive 个人与企业版大文件极速同步分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Microsoft",
-
+		Group: "Microsoft",
 	},
 
 	{
 
-		Name:        "OneDrive 云盘 (onedrive.srs)",
+		Name: "OneDrive 云盘 (onedrive.srs)",
 
-		Filename:    "rules/onedrive.srs",
+		Filename: "rules/onedrive.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/onedrive.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/onedrive.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "微软 OneDrive 个人与企业版大文件极速同步分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Microsoft",
-
+		Group: "Microsoft",
 	},
 
 	{
 
-		Name:        "GitHub 开发协同 (github.mrs)",
+		Name: "GitHub 开发协同 (github.mrs)",
 
-		Filename:    "rules/github.mrs",
+		Filename: "rules/github.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/github.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/github.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "GitHub 代码托管、Git Clone、Releases 极速加速",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "GitHub & Docker",
-
+		Group: "GitHub & Docker",
 	},
 
 	{
 
-		Name:        "GitHub 开发协同 (github.srs)",
+		Name: "GitHub 开发协同 (github.srs)",
 
-		Filename:    "rules/github.srs",
+		Filename: "rules/github.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/github.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/github.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "GitHub 代码托管、Git Clone、Releases 极速加速 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "GitHub & Docker",
-
+		Group: "GitHub & Docker",
 	},
 
 	{
 
-		Name:        "Telegram 官方域名 (telegram.mrs)",
+		Name: "Telegram 官方域名 (telegram.mrs)",
 
-		Filename:    "rules/telegram.mrs",
+		Filename: "rules/telegram.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/telegram.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/telegram.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Telegram 官方网页端、API 节点及文件直连分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Telegram",
-
+		Group: "Telegram",
 	},
 
 	{
 
-		Name:        "Telegram 官方域名 (telegram.srs)",
+		Name: "Telegram 官方域名 (telegram.srs)",
 
-		Filename:    "rules/telegram.srs",
+		Filename: "rules/telegram.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/telegram.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/telegram.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Telegram 官方网页端、API 节点及文件直连分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Telegram",
-
+		Group: "Telegram",
 	},
 
 	{
 
-		Name:        "Twitter / X (twitter.mrs)",
+		Name: "Twitter / X (twitter.mrs)",
 
-		Filename:    "rules/twitter.mrs",
+		Filename: "rules/twitter.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/twitter.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/twitter.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Twitter 社交平台、X 媒体流及 Twimg 资源加速分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Twitter (X)",
-
+		Group: "Twitter (X)",
 	},
 
 	{
 
-		Name:        "Twitter / X (twitter.srs)",
+		Name: "Twitter / X (twitter.srs)",
 
-		Filename:    "rules/twitter.srs",
+		Filename: "rules/twitter.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/twitter.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/twitter.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Twitter 社交平台、X 媒体流及 Twimg 资源加速分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Twitter (X)",
-
+		Group: "Twitter (X)",
 	},
 
 	{
 
-		Name:        "Netflix 流媒体 (netflix.mrs)",
+		Name: "Netflix 流媒体 (netflix.mrs)",
 
-		Filename:    "rules/netflix.mrs",
+		Filename: "rules/netflix.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/netflix.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/netflix.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "奈飞全球原生流媒体与 CDN 节点定向解锁分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Netflix & 流媒体",
-
+		Group: "Netflix & 流媒体",
 	},
 
 	{
 
-		Name:        "Netflix 流媒体 (netflix.srs)",
+		Name: "Netflix 流媒体 (netflix.srs)",
 
-		Filename:    "rules/netflix.srs",
+		Filename: "rules/netflix.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/netflix.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/netflix.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "奈飞全球原生流媒体与 CDN 节点定向解锁分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Netflix & 流媒体",
-
+		Group: "Netflix & 流媒体",
 	},
 
 	{
 
-		Name:        "Disney+ 流媒体 (disney.mrs)",
+		Name: "Disney+ 流媒体 (disney.mrs)",
 
-		Filename:    "rules/disney.mrs",
+		Filename: "rules/disney.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/disney.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/disney.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "迪士尼 Disney+、Star+ 全球专线加速分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Netflix & 流媒体",
-
+		Group: "Netflix & 流媒体",
 	},
 
 	{
 
-		Name:        "Disney+ 流媒体 (disney.srs)",
+		Name: "Disney+ 流媒体 (disney.srs)",
 
-		Filename:    "rules/disney.srs",
+		Filename: "rules/disney.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/disney.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/disney.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "迪士尼 Disney+、Star+ 全球专线加速分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Netflix & 流媒体",
-
+		Group: "Netflix & 流媒体",
 	},
 
 	{
 
-		Name:        "Spotify 音乐 (spotify.mrs)",
+		Name: "Spotify 音乐 (spotify.mrs)",
 
-		Filename:    "rules/spotify.mrs",
+		Filename: "rules/spotify.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/spotify.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/spotify.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Spotify 高品质流媒体音乐与歌曲数据加载分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Spotify",
-
+		Group: "Spotify",
 	},
 
 	{
 
-		Name:        "Spotify 音乐 (spotify.srs)",
+		Name: "Spotify 音乐 (spotify.srs)",
 
-		Filename:    "rules/spotify.srs",
+		Filename: "rules/spotify.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/spotify.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/spotify.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Spotify 高品质流媒体音乐与歌曲数据加载分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Spotify",
-
+		Group: "Spotify",
 	},
 
 	{
 
-		Name:        "Steam 游戏平台 (steam.mrs)",
+		Name: "Steam 游戏平台 (steam.mrs)",
 
-		Filename:    "rules/steam.mrs",
+		Filename: "rules/steam.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/steam.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/steam.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Steam 商店、社区讨论区及游戏下载 CDN 分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Steam 游戏",
-
+		Group: "Steam 游戏",
 	},
 
 	{
 
-		Name:        "Steam 游戏平台 (steam.srs)",
+		Name: "Steam 游戏平台 (steam.srs)",
 
-		Filename:    "rules/steam.srs",
+		Filename: "rules/steam.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/steam.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/steam.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Steam 商店、社区讨论区及游戏下载 CDN 分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Steam 游戏",
-
+		Group: "Steam 游戏",
 	},
 
 	{
 
-		Name:        "Epic Games (epicgames.mrs)",
+		Name: "Epic Games (epicgames.mrs)",
 
-		Filename:    "rules/epicgames.mrs",
+		Filename: "rules/epicgames.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/epicgames.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/epicgames.mrs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Epic 游戏平台、虚幻引擎商城领取代连",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Steam 游戏",
-
+		Group: "Steam 游戏",
 	},
 
 	{
 
-		Name:        "Epic Games (epicgames.srs)",
+		Name: "Epic Games (epicgames.srs)",
 
-		Filename:    "rules/epicgames.srs",
+		Filename: "rules/epicgames.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/epicgames.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/epicgames.srs",
 
-		Category:    "应用专线分流",
+		Category: "应用专线分流",
 
 		Description: "Epic 游戏平台、虚幻引擎商城领取代连 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Steam 游戏",
-
+		Group: "Steam 游戏",
 	},
 
 	{
 
-		Name:        "腾讯生态 / 微信 / QQ (tencent.mrs)",
+		Name: "腾讯生态 / 微信 / QQ (tencent.mrs)",
 
-		Filename:    "rules/tencent.mrs",
+		Filename: "rules/tencent.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/tencent.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/tencent.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "微信、QQ、腾讯会议、腾讯视频及腾讯云直连分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "腾讯生态 / 微信 / QQ (tencent.srs)",
+		Name: "腾讯生态 / 微信 / QQ (tencent.srs)",
 
-		Filename:    "rules/tencent.srs",
+		Filename: "rules/tencent.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/tencent.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/tencent.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "微信、QQ、腾讯会议、腾讯视频及腾讯云直连分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "阿里生态 / 淘宝 / 支付宝 (alibaba.mrs)",
+		Name: "阿里生态 / 淘宝 / 支付宝 (alibaba.mrs)",
 
-		Filename:    "rules/alibaba.mrs",
+		Filename: "rules/alibaba.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/alibaba.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/alibaba.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "淘宝、天猫、支付宝、阿里云及高德地图服务直连",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "阿里生态 / 淘宝 / 支付宝 (alibaba.srs)",
+		Name: "阿里生态 / 淘宝 / 支付宝 (alibaba.srs)",
 
-		Filename:    "rules/alibaba.srs",
+		Filename: "rules/alibaba.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/alibaba.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/alibaba.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "淘宝、天猫、支付宝、阿里云及高德地图服务直连 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "百度服务 / 百度网盘 (baidu.mrs)",
+		Name: "百度服务 / 百度网盘 (baidu.mrs)",
 
-		Filename:    "rules/baidu.mrs",
+		Filename: "rules/baidu.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/baidu.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/baidu.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "百度搜索、百度网盘下载加速与百度智能云直连",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "百度服务 / 百度网盘 (baidu.srs)",
+		Name: "百度服务 / 百度网盘 (baidu.srs)",
 
-		Filename:    "rules/baidu.srs",
+		Filename: "rules/baidu.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/baidu.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/baidu.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "百度搜索、百度网盘下载加速与百度智能云直连 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "字节跳动 / 抖音 / 飞书 (bytedance.mrs)",
+		Name: "字节跳动 / 抖音 / 飞书 (bytedance.mrs)",
 
-		Filename:    "rules/bytedance.mrs",
+		Filename: "rules/bytedance.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/bytedance.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/bytedance.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "抖音、今日头条、飞书协作及火山引擎加速分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "字节跳动 / 抖音 / 飞书 (bytedance.srs)",
+		Name: "字节跳动 / 抖音 / 飞书 (bytedance.srs)",
 
-		Filename:    "rules/bytedance.srs",
+		Filename: "rules/bytedance.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/bytedance.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/bytedance.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "抖音、今日头条、飞书协作及火山引擎加速分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "网易云音乐 / 网易游戏 (netease.mrs)",
+		Name: "网易云音乐 / 网易游戏 (netease.mrs)",
 
-		Filename:    "rules/netease.mrs",
+		Filename: "rules/netease.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/netease.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/netease.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "网易云音乐无损音频、有道词典与网易游戏直连",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "网易云音乐 / 网易游戏 (netease.srs)",
+		Name: "网易云音乐 / 网易游戏 (netease.srs)",
 
-		Filename:    "rules/netease.srs",
+		Filename: "rules/netease.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/netease.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/netease.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "网易云音乐无损音频、有道词典与网易游戏直连 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "Bilibili 哔哩哔哩 (bilibili.mrs)",
+		Name: "Bilibili 哔哩哔哩 (bilibili.mrs)",
 
-		Filename:    "rules/bilibili.mrs",
+		Filename: "rules/bilibili.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/bilibili.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/bilibili.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "哔哩哔哩视频流与海外番剧解锁分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "Bilibili 哔哩哔哩 (bilibili.srs)",
+		Name: "Bilibili 哔哩哔哩 (bilibili.srs)",
 
-		Filename:    "rules/bilibili.srs",
+		Filename: "rules/bilibili.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/bilibili.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/bilibili.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "哔哩哔哩视频流与海外番剧解锁分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🎯 国内流量",
-
+		Group: "🎯 国内流量",
 	},
 
 	{
 
-		Name:        "Discord 语音与社群 (discord.mrs)",
+		Name: "Discord 语音与社群 (discord.mrs)",
 
-		Filename:    "rules/discord.mrs",
+		Filename: "rules/discord.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/discord.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/discord.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "Discord 极客社群、语音频道与 Bot 机器人高速分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "Discord 语音与社群 (discord.srs)",
+		Name: "Discord 语音与社群 (discord.srs)",
 
-		Filename:    "rules/discord.srs",
+		Filename: "rules/discord.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/discord.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/discord.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "Discord 极客社群、语音频道与 Bot 机器人高速分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "WhatsApp 通讯 (whatsapp.mrs)",
+		Name: "WhatsApp 通讯 (whatsapp.mrs)",
 
-		Filename:    "rules/whatsapp.mrs",
+		Filename: "rules/whatsapp.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/whatsapp.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/whatsapp.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "WhatsApp 即时文字、高清语音与视频通话专线",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Telegram",
-
+		Group: "Telegram",
 	},
 
 	{
 
-		Name:        "WhatsApp 通讯 (whatsapp.srs)",
+		Name: "WhatsApp 通讯 (whatsapp.srs)",
 
-		Filename:    "rules/whatsapp.srs",
+		Filename: "rules/whatsapp.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/whatsapp.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/whatsapp.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "WhatsApp 即时文字、高清语音与视频通话专线 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Telegram",
-
+		Group: "Telegram",
 	},
 
 	{
 
-		Name:        "LINE 通讯服务 (line.mrs)",
+		Name: "LINE 通讯服务 (line.mrs)",
 
-		Filename:    "rules/line.mrs",
+		Filename: "rules/line.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/line.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/line.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "LINE 亚洲流行即时通讯与表情包加载专线",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Telegram",
-
+		Group: "Telegram",
 	},
 
 	{
 
-		Name:        "LINE 通讯服务 (line.srs)",
+		Name: "LINE 通讯服务 (line.srs)",
 
-		Filename:    "rules/line.srs",
+		Filename: "rules/line.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/line.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/line.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "LINE 亚洲流行即时通讯与表情包加载专线 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Telegram",
-
+		Group: "Telegram",
 	},
 
 	{
 
-		Name:        "Signal 加密通讯 (signal.mrs)",
+		Name: "Signal 加密通讯 (signal.mrs)",
 
-		Filename:    "rules/signal.mrs",
+		Filename: "rules/signal.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/signal.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/signal.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "Signal 端到端强加密隐私通讯低延迟专线",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Telegram",
-
+		Group: "Telegram",
 	},
 
 	{
 
-		Name:        "Signal 加密通讯 (signal.srs)",
+		Name: "Signal 加密通讯 (signal.srs)",
 
-		Filename:    "rules/signal.srs",
+		Filename: "rules/signal.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/signal.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/signal.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "Signal 端到端强加密隐私通讯低延迟专线 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Telegram",
-
+		Group: "Telegram",
 	},
 
 	{
 
-		Name:        "Amazon Prime Video (primevideo.mrs)",
+		Name: "Amazon Prime Video (primevideo.mrs)",
 
-		Filename:    "rules/primevideo.mrs",
+		Filename: "rules/primevideo.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/primevideo.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/primevideo.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "亚马逊 Prime Video 原生流媒体与 4K 超清影视专线",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Netflix & 流媒体",
-
+		Group: "Netflix & 流媒体",
 	},
 
 	{
 
-		Name:        "Amazon Prime Video (primevideo.srs)",
+		Name: "Amazon Prime Video (primevideo.srs)",
 
-		Filename:    "rules/primevideo.srs",
+		Filename: "rules/primevideo.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/primevideo.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/primevideo.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "亚马逊 Prime Video 原生流媒体与 4K 超清影视专线 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Netflix & 流媒体",
-
+		Group: "Netflix & 流媒体",
 	},
 
 	{
 
-		Name:        "HBO Max / Max (hbo.mrs)",
+		Name: "HBO Max / Max (hbo.mrs)",
 
-		Filename:    "rules/hbo.mrs",
+		Filename: "rules/hbo.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/hbo.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/hbo.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "HBO Max 原创美剧与华纳影视极速解锁分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Netflix & 流媒体",
-
+		Group: "Netflix & 流媒体",
 	},
 
 	{
 
-		Name:        "HBO Max / Max (hbo.srs)",
+		Name: "HBO Max / Max (hbo.srs)",
 
-		Filename:    "rules/hbo.srs",
+		Filename: "rules/hbo.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/hbo.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/hbo.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "HBO Max 原创美剧与华纳影视极速解锁分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Netflix & 流媒体",
-
+		Group: "Netflix & 流媒体",
 	},
 
 	{
 
-		Name:        "Twitch 游戏直播 (twitch.mrs)",
+		Name: "Twitch 游戏直播 (twitch.mrs)",
 
-		Filename:    "rules/twitch.mrs",
+		Filename: "rules/twitch.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/twitch.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/twitch.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "Twitch 全球游戏电竞赛事与互动直播流畅分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Netflix & 流媒体",
-
+		Group: "Netflix & 流媒体",
 	},
 
 	{
 
-		Name:        "Twitch 游戏直播 (twitch.srs)",
+		Name: "Twitch 游戏直播 (twitch.srs)",
 
-		Filename:    "rules/twitch.srs",
+		Filename: "rules/twitch.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/twitch.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/twitch.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "Twitch 全球游戏电竞赛事与互动直播流畅分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Netflix & 流媒体",
-
+		Group: "Netflix & 流媒体",
 	},
 
 	{
 
-		Name:        "巴哈姆特动画疯 (bahamut.mrs)",
+		Name: "巴哈姆特动画疯 (bahamut.mrs)",
 
-		Filename:    "rules/bahamut.mrs",
+		Filename: "rules/bahamut.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/bahamut.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/bahamut.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "巴哈姆特动画疯台湾地区独占番剧解锁分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Netflix & 流媒体",
-
+		Group: "Netflix & 流媒体",
 	},
 
 	{
 
-		Name:        "巴哈姆特动画疯 (bahamut.srs)",
+		Name: "巴哈姆特动画疯 (bahamut.srs)",
 
-		Filename:    "rules/bahamut.srs",
+		Filename: "rules/bahamut.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/bahamut.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/bahamut.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "巴哈姆特动画疯台湾地区独占番剧解锁分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Netflix & 流媒体",
-
+		Group: "Netflix & 流媒体",
 	},
 
 	{
 
-		Name:        "PlayStation / PSN (playstation.mrs)",
+		Name: "PlayStation / PSN (playstation.mrs)",
 
-		Filename:    "rules/playstation.mrs",
+		Filename: "rules/playstation.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/playstation.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/playstation.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "索尼 PS4/PS5 商店下载、联机对战与 PSN 会员专线",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Steam 游戏",
-
+		Group: "Steam 游戏",
 	},
 
 	{
 
-		Name:        "PlayStation / PSN (playstation.srs)",
+		Name: "PlayStation / PSN (playstation.srs)",
 
-		Filename:    "rules/playstation.srs",
+		Filename: "rules/playstation.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/playstation.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/playstation.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "索尼 PS4/PS5 商店下载、联机对战与 PSN 会员专线 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Steam 游戏",
-
+		Group: "Steam 游戏",
 	},
 
 	{
 
-		Name:        "Nintendo 任天堂 (nintendo.mrs)",
+		Name: "Nintendo 任天堂 (nintendo.mrs)",
 
-		Filename:    "rules/nintendo.mrs",
+		Filename: "rules/nintendo.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/nintendo.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/nintendo.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "任天堂 Switch eShop 商店下载与 NSO 联机专线",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Steam 游戏",
-
+		Group: "Steam 游戏",
 	},
 
 	{
 
-		Name:        "Nintendo 任天堂 (nintendo.srs)",
+		Name: "Nintendo 任天堂 (nintendo.srs)",
 
-		Filename:    "rules/nintendo.srs",
+		Filename: "rules/nintendo.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/nintendo.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/nintendo.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "任天堂 Switch eShop 商店下载与 NSO 联机专线 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Steam 游戏",
-
+		Group: "Steam 游戏",
 	},
 
 	{
 
-		Name:        "EA 艺电平台 (ea.mrs)",
+		Name: "EA 艺电平台 (ea.mrs)",
 
-		Filename:    "rules/ea.mrs",
+		Filename: "rules/ea.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/ea.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/ea.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "EA App / Origin 战地、Apex 英雄联机专线",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Steam 游戏",
-
+		Group: "Steam 游戏",
 	},
 
 	{
 
-		Name:        "EA 艺电平台 (ea.srs)",
+		Name: "EA 艺电平台 (ea.srs)",
 
-		Filename:    "rules/ea.srs",
+		Filename: "rules/ea.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/ea.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/ea.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "EA App / Origin 战地、Apex 英雄联机专线 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Steam 游戏",
-
+		Group: "Steam 游戏",
 	},
 
 	{
 
-		Name:        "暴雪战网 / Battle.net (blizzard.mrs)",
+		Name: "暴雪战网 / Battle.net (blizzard.mrs)",
 
-		Filename:    "rules/blizzard.mrs",
+		Filename: "rules/blizzard.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/blizzard.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/blizzard.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "暴雪战网国服/外服魔兽、暗黑4、守望先锋专线",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Steam 游戏",
-
+		Group: "Steam 游戏",
 	},
 
 	{
 
-		Name:        "暴雪战网 / Battle.net (blizzard.srs)",
+		Name: "暴雪战网 / Battle.net (blizzard.srs)",
 
-		Filename:    "rules/blizzard.srs",
+		Filename: "rules/blizzard.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/blizzard.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/blizzard.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "暴雪战网国服/外服魔兽、暗黑4、守望先锋专线 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Steam 游戏",
-
+		Group: "Steam 游戏",
 	},
 
 	{
 
-		Name:        "币安 Binance (binance.mrs)",
+		Name: "币安 Binance (binance.mrs)",
 
-		Filename:    "rules/binance.mrs",
+		Filename: "rules/binance.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/binance.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/binance.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "全球最大加密货币交易所 Web/App 与 API 毫秒交易专线",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "币安 Binance (binance.srs)",
+		Name: "币安 Binance (binance.srs)",
 
-		Filename:    "rules/binance.srs",
+		Filename: "rules/binance.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/binance.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/binance.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "全球最大加密货币交易所 Web/App 与 API 毫秒交易专线 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "欧易 OKX (okx.mrs)",
+		Name: "欧易 OKX (okx.mrs)",
 
-		Filename:    "rules/okx.mrs",
+		Filename: "rules/okx.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/okx.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/okx.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "OKX 欧易交易平台与 Web3 钱包极速连接专线",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "欧易 OKX (okx.srs)",
+		Name: "欧易 OKX (okx.srs)",
 
-		Filename:    "rules/okx.srs",
+		Filename: "rules/okx.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/okx.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/okx.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "OKX 欧易交易平台与 Web3 钱包极速连接专线 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "PayPal 贝宝 (paypal.mrs)",
+		Name: "PayPal 贝宝 (paypal.mrs)",
 
-		Filename:    "rules/paypal.mrs",
+		Filename: "rules/paypal.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/paypal.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/paypal.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "PayPal 全球跨境支付与电商结账安全直通",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "PayPal 贝宝 (paypal.srs)",
+		Name: "PayPal 贝宝 (paypal.srs)",
 
-		Filename:    "rules/paypal.srs",
+		Filename: "rules/paypal.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/paypal.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/paypal.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "PayPal 全球跨境支付与电商结账安全直通 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "GitLab 源码托管 (gitlab.mrs)",
+		Name: "GitLab 源码托管 (gitlab.mrs)",
 
-		Filename:    "rules/gitlab.mrs",
+		Filename: "rules/gitlab.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/gitlab.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/gitlab.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "GitLab 企业与个人自建/官方代码仓库极速同步",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "GitHub & Docker",
-
+		Group: "GitHub & Docker",
 	},
 
 	{
 
-		Name:        "GitLab 源码托管 (gitlab.srs)",
+		Name: "GitLab 源码托管 (gitlab.srs)",
 
-		Filename:    "rules/gitlab.srs",
+		Filename: "rules/gitlab.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/gitlab.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/gitlab.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "GitLab 企业与个人自建/官方代码仓库极速同步 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "GitHub & Docker",
-
+		Group: "GitHub & Docker",
 	},
 
 	{
 
-		Name:        "Notion 笔记协作 (notion.mrs)",
+		Name: "Notion 笔记协作 (notion.mrs)",
 
-		Filename:    "rules/notion.mrs",
+		Filename: "rules/notion.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/notion.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/notion.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "Notion 全球云端知识库与协作看板低延迟分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Microsoft",
-
+		Group: "Microsoft",
 	},
 
 	{
 
-		Name:        "Notion 笔记协作 (notion.srs)",
+		Name: "Notion 笔记协作 (notion.srs)",
 
-		Filename:    "rules/notion.srs",
+		Filename: "rules/notion.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/notion.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/notion.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "Notion 全球云端知识库与协作看板低延迟分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Microsoft",
-
+		Group: "Microsoft",
 	},
 
 	{
 
-		Name:        "Zoom 视频会议 (zoom.mrs)",
+		Name: "Zoom 视频会议 (zoom.mrs)",
 
-		Filename:    "rules/zoom.mrs",
+		Filename: "rules/zoom.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/zoom.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/zoom.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "Zoom 全球音视频跨国会议与屏幕共享分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "Microsoft",
-
+		Group: "Microsoft",
 	},
 
 	{
 
-		Name:        "Zoom 视频会议 (zoom.srs)",
+		Name: "Zoom 视频会议 (zoom.srs)",
 
-		Filename:    "rules/zoom.srs",
+		Filename: "rules/zoom.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/zoom.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/zoom.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "Zoom 全球音视频跨国会议与屏幕共享分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "Microsoft",
-
+		Group: "Microsoft",
 	},
 
 	{
 
-		Name:        "Amazon / AWS 云服务 (amazon.mrs)",
+		Name: "Amazon / AWS 云服务 (amazon.mrs)",
 
-		Filename:    "rules/amazon.mrs",
+		Filename: "rules/amazon.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/amazon.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/amazon.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "AWS 云控制台、S3 存储桶与亚马逊全球电商专线",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "Amazon / AWS 云服务 (amazon.srs)",
+		Name: "Amazon / AWS 云服务 (amazon.srs)",
 
-		Filename:    "rules/amazon.srs",
+		Filename: "rules/amazon.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/amazon.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/amazon.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "AWS 云控制台、S3 存储桶与亚马逊全球电商专线 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "Speedtest 测速节点 (speedtest.mrs)",
+		Name: "Speedtest 测速节点 (speedtest.mrs)",
 
-		Filename:    "rules/speedtest.mrs",
+		Filename: "rules/speedtest.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/speedtest.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/speedtest.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "Ookla Speedtest 全球网络测速服务器分流",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "Speedtest 测速节点 (speedtest.srs)",
+		Name: "Speedtest 测速节点 (speedtest.srs)",
 
-		Filename:    "rules/speedtest.srs",
+		Filename: "rules/speedtest.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/speedtest.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/speedtest.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "Ookla Speedtest 全球网络测速服务器分流 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "TikTok 国际版 (tiktok.mrs)",
+		Name: "TikTok 国际版 (tiktok.mrs)",
 
-		Filename:    "rules/tiktok.mrs",
+		Filename: "rules/tiktok.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/tiktok.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/tiktok.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "字节跳动 TikTok 全球短视频与电商专线",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "TikTok 国际版 (tiktok.srs)",
+		Name: "TikTok 国际版 (tiktok.srs)",
 
-		Filename:    "rules/tiktok.srs",
+		Filename: "rules/tiktok.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/tiktok.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/tiktok.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "字节跳动 TikTok 全球短视频与电商专线 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "Reddit 极客社区 (reddit.mrs)",
+		Name: "Reddit 极客社区 (reddit.mrs)",
 
-		Filename:    "rules/reddit.mrs",
+		Filename: "rules/reddit.mrs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/reddit.mrs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/rules/reddit.mrs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "Reddit 极客社区讨论区与媒体流高速加载",
 
-		Engine:      "Mihomo",
+		Engine: "Mihomo",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
 
 	{
 
-		Name:        "Reddit 极客社区 (reddit.srs)",
+		Name: "Reddit 极客社区 (reddit.srs)",
 
-		Filename:    "rules/reddit.srs",
+		Filename: "rules/reddit.srs",
 
-		URL:         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/reddit.srs",
+		URL: "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/rules/reddit.srs",
 
-		Category:    "常用生态与自定义扩展",
+		Category: "常用生态与自定义扩展",
 
 		Description: "Reddit 极客社区讨论区与媒体流高速加载 (sing-box 专享)",
 
-		Engine:      "sing-box",
+		Engine: "sing-box",
 
-		Group:       "🌐 国外流量",
-
+		Group: "🌐 国外流量",
 	},
-
 }
-
-
 
 func formatBytes(b int64) string {
 
@@ -5939,8 +5387,6 @@ func formatBytes(b int64) string {
 
 }
 
-
-
 // GetGeoDataStatus returns the file sizes, modification timestamps, total rules, and full file list.
 
 func (m *Manager) GetGeoDataStatus() *GeoDataStatus {
@@ -5951,27 +5397,22 @@ func (m *Manager) GetGeoDataStatus() *GeoDataStatus {
 
 	m.mu.Unlock()
 
-
-
 	st := &GeoDataStatus{
 
-		TotalRules:  236255,
+		TotalRules: 236255,
 
-		Version:     "最新稳定版",
+		Version: "最新稳定版",
 
-		IsUpdating:  isUp,
+		IsUpdating: isUp,
 
-		Files:       make([]GeoRuleFile, 0, len(allGeoRuleDefs)),
+		Files: make([]GeoRuleFile, 0, len(allGeoRuleDefs)),
 
-		RecentLogs:  make([]string, 0),
-
+		RecentLogs: make([]string, 0),
 	}
 
 	etcDir := filepath.Join(m.rootDir, "etc")
 
 	metaPath := filepath.Join(etcDir, "rules_meta.json")
-
-
 
 	// 1. Try reading cached metadata
 
@@ -6009,8 +5450,6 @@ func (m *Manager) GetGeoDataStatus() *GeoDataStatus {
 
 	}
 
-
-
 	// 2. Check geoip.metadb
 
 	geoipFile := filepath.Join(etcDir, "geoip.metadb")
@@ -6045,8 +5484,6 @@ func (m *Manager) GetGeoDataStatus() *GeoDataStatus {
 
 	}
 
-
-
 	// 3. Check geosite.dat
 
 	geositeFile := filepath.Join(etcDir, "geosite.dat")
@@ -6067,8 +5504,6 @@ func (m *Manager) GetGeoDataStatus() *GeoDataStatus {
 
 	}
 
-
-
 	// 4. Inspect each rule file
 
 	installedCount := 0
@@ -6079,18 +5514,17 @@ func (m *Manager) GetGeoDataStatus() *GeoDataStatus {
 
 		rf := GeoRuleFile{
 
-			Name:        def.Name,
+			Name: def.Name,
 
-			Filename:    filepath.Base(def.Filename),
+			Filename: filepath.Base(def.Filename),
 
-			Category:    def.Category,
+			Category: def.Category,
 
 			Description: def.Description,
 
-			Engine:      def.Engine,
+			Engine: def.Engine,
 
-			Group:       def.Group,
-
+			Group: def.Group,
 		}
 
 		if fi, err := os.Stat(targetPath); err == nil {
@@ -6117,13 +5551,9 @@ func (m *Manager) GetGeoDataStatus() *GeoDataStatus {
 
 	}
 
-
-
 	st.RulesCount = len(allGeoRuleDefs)
 
 	st.FilesCount = installedCount
-
-
 
 	m.mu.Lock()
 
@@ -6132,8 +5562,6 @@ func (m *Manager) GetGeoDataStatus() *GeoDataStatus {
 	cachedGeoRules := m.cachedLatestGeoRules
 
 	m.mu.Unlock()
-
-
 
 	st.LatestVersion = cachedGeoVer
 
@@ -6153,13 +5581,9 @@ func (m *Manager) GetGeoDataStatus() *GeoDataStatus {
 
 	}
 
-
-
 	return st
 
 }
-
-
 
 // CheckGeoDataUpdate queries upstream metadata and updates cache
 
@@ -6183,8 +5607,6 @@ func (m *Manager) CheckGeoDataUpdate() (bool, string, int) {
 
 	m.mu.Unlock()
 
-
-
 	st := m.GetGeoDataStatus()
 
 	hasUpdate := false
@@ -6203,8 +5625,6 @@ func (m *Manager) CheckGeoDataUpdate() (bool, string, int) {
 
 }
 
-
-
 // fetch217HeidaiMeta attempts to read Blocked domains and Version from 217heidai rules header.
 
 func (m *Manager) fetch217HeidaiMeta() (int, string) {
@@ -6214,7 +5634,6 @@ func (m *Manager) fetch217HeidaiMeta() (int, string) {
 		"https://gcore.jsdelivr.net/gh/217heidai/adblockfilters@main/rules/adblockmihomo.yaml",
 
 		"https://raw.githubusercontent.com/217heidai/adblockfilters/main/rules/adblockmihomo.yaml",
-
 	}
 
 	client := &http.Client{Timeout: 6 * time.Second}
@@ -6255,8 +5674,6 @@ func (m *Manager) fetch217HeidaiMeta() (int, string) {
 
 		content := string(body)
 
-
-
 		totalRules := 0
 
 		version := ""
@@ -6295,8 +5712,6 @@ func (m *Manager) fetch217HeidaiMeta() (int, string) {
 
 }
 
-
-
 // UpdateGeoData downloads the latest GeoIP, GeoSite, and 39 217heidai MRS/SRS rules, saves metadata, and reloads core.
 
 func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, error) {
@@ -6315,8 +5730,6 @@ func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, er
 
 	m.mu.Unlock()
 
-
-
 	defer func() {
 
 		m.mu.Lock()
@@ -6327,27 +5740,20 @@ func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, er
 
 	}()
 
-
-
 	res := &GeoUpdateResult{
 
 		Success: false,
 
-		Logs:    make([]string, 0),
+		Logs: make([]string, 0),
 
-		Files:   make([]GeoRuleFile, 0),
-
+		Files: make([]GeoRuleFile, 0),
 	}
-
-
 
 	etcDir := filepath.Join(m.rootDir, "etc")
 
 	rulesDir := filepath.Join(etcDir, "rules")
 
 	_ = os.MkdirAll(rulesDir, 0755)
-
-
 
 	// Step 1: Probe 217heidai upstream metadata
 
@@ -6359,16 +5765,12 @@ func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, er
 
 	res.Logs = append(res.Logs, fmt.Sprintf("📡 连线 217heidai 权威规则源成功 (版本: %s, 规则总计: %d 条)", ruleVer, totalRules))
 
-
-
 	// Step 2: Download queue
 
 	type downloadJob struct {
-
-		def  ruleItemDef
+		def ruleItemDef
 
 		dest string
-
 	}
 
 	jobs := make(chan downloadJob, len(allGeoRuleDefs))
@@ -6377,25 +5779,20 @@ func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, er
 
 		jobs <- downloadJob{
 
-			def:  def,
+			def: def,
 
 			dest: filepath.Join(etcDir, def.Filename),
-
 		}
 
 	}
 
 	close(jobs)
 
-
-
 	var wg sync.WaitGroup
 
 	var mu sync.Mutex
 
 	successCount := 0
-
-
 
 	workerCount := 5
 
@@ -6461,15 +5858,11 @@ func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, er
 
 	wg.Wait()
 
-
-
 	nowStr := time.Now().Format("2006-01-02 15:04:05")
 
 	res.FilesUpdated = successCount
 
 	res.UpdatedAt = nowStr
-
-
 
 	// Save metadata to etc/rules_meta.json
 
@@ -6477,12 +5870,11 @@ func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, er
 
 		TotalRules: totalRules,
 
-		Version:    ruleVer,
+		Version: ruleVer,
 
-		UpdatedAt:  nowStr,
+		UpdatedAt: nowStr,
 
 		RecentLogs: res.Logs,
-
 	}
 
 	if metaBytes, err := json.MarshalIndent(meta, "", "  "); err == nil {
@@ -6490,8 +5882,6 @@ func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, er
 		_ = os.WriteFile(filepath.Join(etcDir, "rules_meta.json"), metaBytes, 0644)
 
 	}
-
-
 
 	if successCount > 0 {
 
@@ -6517,17 +5907,12 @@ func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, er
 
 	}
 
-
-
 	// Update live status for response
 
 	st := m.GetGeoDataStatus()
 
 	res.Files = st.Files
 
-
-
 	return res, nil
 
 }
-

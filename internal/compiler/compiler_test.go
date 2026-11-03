@@ -251,61 +251,61 @@ func TestDefensiveNodeSanitation(t *testing.T) {
 	ir := schema.NewDefaultIR()
 	ir.Proxies = []schema.ProxyNode{
 		{
-			Name: "Valid-SS",
-			Type: "shadowsocks",
-			Server: "1.1.1.1",
-			Port: 8388,
-			Cipher: "aes-256-gcm",
+			Name:     "Valid-SS",
+			Type:     "shadowsocks",
+			Server:   "1.1.1.1",
+			Port:     8388,
+			Cipher:   "aes-256-gcm",
 			Password: "password123",
 		},
 		{
-			Name: "Invalid-SS-MultiUser",
-			Type: "shadowsocks",
-			Server: "1.1.1.2",
-			Port: 8388,
-			Cipher: "2022-blake3-aes-256-gcm",
+			Name:     "Invalid-SS-MultiUser",
+			Type:     "shadowsocks",
+			Server:   "1.1.1.2",
+			Port:     8388,
+			Cipher:   "2022-blake3-aes-256-gcm",
 			Password: "MjAyNjJrNXN6WWtHQVZPeA==:NkJGM0FGOTAtQURCRS00Mw==",
 		},
 		{
-			Name: "Valid-SS-MultiUser",
-			Type: "shadowsocks",
-			Server: "1.1.1.20",
-			Port: 8388,
-			Cipher: "2022-blake3-aes-128-gcm",
+			Name:     "Valid-SS-MultiUser",
+			Type:     "shadowsocks",
+			Server:   "1.1.1.20",
+			Port:     8388,
+			Cipher:   "2022-blake3-aes-128-gcm",
 			Password: "MjAyNjJrNXN6WWtHQVZPeA==:NkJGM0FGOTAtQURCRS00Mw==",
 		},
 		{
-			Name: "URLSafe-SS2022",
-			Type: "shadowsocks",
-			Server: "1.1.1.3",
-			Port: 8388,
-			Cipher: "2022-blake3-aes-256-gcm",
+			Name:     "URLSafe-SS2022",
+			Type:     "shadowsocks",
+			Server:   "1.1.1.3",
+			Port:     8388,
+			Cipher:   "2022-blake3-aes-256-gcm",
 			Password: "a6EHVcxkpKGp-XSY32DhL86p46IngnTqouoD8dYgNnc",
 		},
 		{
-			Name: "Hysteria2-NoTLS",
-			Type: "hysteria2",
-			Server: "1.1.1.4",
-			Port: 8443,
+			Name:     "Hysteria2-NoTLS",
+			Type:     "hysteria2",
+			Server:   "1.1.1.4",
+			Port:     8443,
 			Password: "secretpassword",
-			SNI: "example.com",
-			TLS: false, // Intentionally false to verify auto-TLS
+			SNI:      "example.com",
+			TLS:      false, // Intentionally false to verify auto-TLS
 		},
 		{
-			Name: "VLESS-Flow-NoTLS",
-			Type: "vless",
+			Name:   "VLESS-Flow-NoTLS",
+			Type:   "vless",
 			Server: "1.1.1.5",
-			Port: 443,
-			UUID: "9442a3e9-48f2-49b7-8e8e-0bfb446e9669",
-			Flow: "xtls-rprx-vision",
-			SNI: "example.com",
-			TLS: false, // Intentionally false to verify auto-TLS
+			Port:   443,
+			UUID:   "9442a3e9-48f2-49b7-8e8e-0bfb446e9669",
+			Flow:   "xtls-rprx-vision",
+			SNI:    "example.com",
+			TLS:    false, // Intentionally false to verify auto-TLS
 		},
 		{
-			Name: "Empty-Type-Node",
-			Type: "",
+			Name:   "Empty-Type-Node",
+			Type:   "",
 			Server: "1.1.1.6",
-			Port: 443,
+			Port:   443,
 		},
 	}
 
@@ -411,8 +411,6 @@ func TestDefensiveNodeSanitation(t *testing.T) {
 		t.Errorf("Mihomo URLSafe-SS2022 password was not normalized properly: %v", p["password"])
 	}
 }
-
-
 
 func TestDNSRewriteCompilers(t *testing.T) {
 	ir := schema.NewDefaultIR()

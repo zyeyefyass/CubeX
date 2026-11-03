@@ -1129,11 +1129,19 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 			comment, _ := n["comment"].(string)
 			proto, _ := n["protocol"].(string)
 			if strings.Contains(comment, "CubeX-DNS-Hijack") {
-				if proto == "udp" { hasDNSUdpHijack = true }
-				if proto == "tcp" { hasDNSTcpHijack = true }
+				if proto == "udp" {
+					hasDNSUdpHijack = true
+				}
+				if proto == "tcp" {
+					hasDNSTcpHijack = true
+				}
 			} else if strings.Contains(comment, "CubeX-DNS-Hairpin") {
-				if proto == "udp" { hasDNSHairpinUdp = true }
-				if proto == "tcp" { hasDNSHairpinTcp = true }
+				if proto == "udp" {
+					hasDNSHairpinUdp = true
+				}
+				if proto == "tcp" {
+					hasDNSHairpinTcp = true
+				}
 			}
 		}
 	}
@@ -1177,24 +1185,24 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 	}
 	if !hasDNSHairpinUdp {
 		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
-			"chain":        "srcnat",
-			"src-address":  subnetCIDR,
-			"dst-address":  targetIP,
-			"protocol":     "udp",
-			"dst-port":     "53",
-			"action":       "masquerade",
-			"comment":      "CubeX-DNS-Hairpin",
+			"chain":       "srcnat",
+			"src-address": subnetCIDR,
+			"dst-address": targetIP,
+			"protocol":    "udp",
+			"dst-port":    "53",
+			"action":      "masquerade",
+			"comment":     "CubeX-DNS-Hairpin",
 		})
 	}
 	if !hasDNSHairpinTcp {
 		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
-			"chain":        "srcnat",
-			"src-address":  subnetCIDR,
-			"dst-address":  targetIP,
-			"protocol":     "tcp",
-			"dst-port":     "53",
-			"action":       "masquerade",
-			"comment":      "CubeX-DNS-Hairpin",
+			"chain":       "srcnat",
+			"src-address": subnetCIDR,
+			"dst-address": targetIP,
+			"protocol":    "tcp",
+			"dst-port":    "53",
+			"action":      "masquerade",
+			"comment":     "CubeX-DNS-Hairpin",
 		})
 	}
 	res.Actions = append(res.Actions, "已确认就绪「主路由全接管 · 伴生透明加速与0秒逃生」DNS 劫持与 Hairpin NAT")
@@ -2129,4 +2137,3 @@ func (m *Manager) EnsureBridgeDAIProtection(targetIP string) (bool, string) {
 
 	return restored, "ROS 7.25 DAI 防护就绪 · veth 端口自动信任完毕"
 }
-

@@ -343,16 +343,16 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 
 		// (2) 地区故转 (fallback 顺位主备)
 		fallGrp := StrategyGroup{
-			Name:      reg.FallName,
-			Type:      "fallback",
-			Proxies:   nodes,
-			Now:       nodes[0],
-			URL:       "https://www.gstatic.com/generate_204",
-			Interval:  300,
-			Category:  "region",
-			Region:    reg.ID,
-			Policy:    "fallback",
-			Icon:      reg.Flag,
+			Name:     reg.FallName,
+			Type:     "fallback",
+			Proxies:  nodes,
+			Now:      nodes[0],
+			URL:      "https://www.gstatic.com/generate_204",
+			Interval: 300,
+			Category: "region",
+			Region:   reg.ID,
+			Policy:   "fallback",
+			Icon:     reg.Flag,
 		}
 		if eg, exists := existingMap[reg.FallName]; exists && eg.Now != "" && (reg.ID == "CUSTOM" || eg.Now != "DIRECT") && containsString(nodes, eg.Now) {
 			fallGrp.Now = eg.Now
@@ -376,16 +376,16 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			disasterNodes = append(disasterNodes, "DIRECT")
 		}
 		disasterGrp := StrategyGroup{
-			Name:      reg.DisasterName,
-			Type:      "fallback",
-			Proxies:   disasterNodes,
-			Now:       disasterNodes[0],
-			URL:       "https://www.gstatic.com/generate_204",
-			Interval:  180,
-			Category:  "region",
-			Region:    reg.ID,
-			Policy:    "disaster",
-			Icon:      reg.Flag,
+			Name:     reg.DisasterName,
+			Type:     "fallback",
+			Proxies:  disasterNodes,
+			Now:      disasterNodes[0],
+			URL:      "https://www.gstatic.com/generate_204",
+			Interval: 180,
+			Category: "region",
+			Region:   reg.ID,
+			Policy:   "disaster",
+			Icon:     reg.Flag,
 		}
 		if eg, exists := existingMap[reg.DisasterName]; exists && eg.Now != "" && containsString(disasterNodes, eg.Now) {
 			disasterGrp.Now = eg.Now
@@ -411,16 +411,16 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 
 	isAIOrSensitiveGroup := func(name string) bool {
 		lower := strings.ToLower(name)
-		return strings.Contains(lower, "ai") || strings.Contains(lower, "gemini") || 
-		       strings.Contains(lower, "antigravity") || strings.Contains(lower, "openai") || 
-		       strings.Contains(lower, "claude") || strings.Contains(lower, "chatgpt") || 
-		       strings.Contains(lower, "tiktok")
+		return strings.Contains(lower, "ai") || strings.Contains(lower, "gemini") ||
+			strings.Contains(lower, "antigravity") || strings.Contains(lower, "openai") ||
+			strings.Contains(lower, "claude") || strings.Contains(lower, "chatgpt") ||
+			strings.Contains(lower, "tiktok")
 	}
 
 	for _, bg := range StandardBusinessGroups {
 		candidates := append([]string{}, allRegionalCandidateProxies...)
 
-		// 严格合规隔离与专属优化：AI与敏感服务 (Gemini / Antigravity / OpenAI / Claude / TikTok) 
+		// 严格合规隔离与专属优化：AI与敏感服务 (Gemini / Antigravity / OpenAI / Claude / TikTok)
 		// 严格禁止中国大陆、中国香港、中国澳门出站，并优先将专线与流媒体/AI解锁节点前置
 		if isAIOrSensitiveGroup(bg.Name) {
 			aiCandidates := make([]string, 0, len(candidates))
@@ -437,8 +437,8 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			for _, c := range candidates {
 				cLower := strings.ToLower(c)
 				if strings.Contains(c, "香港") || strings.Contains(cLower, "hk") || strings.Contains(c, "🇭🇰") ||
-				   strings.Contains(c, "澳门") || strings.Contains(cLower, "macau") || strings.Contains(c, "🇲🇴") ||
-				   c == "DIRECT" || c == "REJECT" || c == "block" {
+					strings.Contains(c, "澳门") || strings.Contains(cLower, "macau") || strings.Contains(c, "🇲🇴") ||
+					c == "DIRECT" || c == "REJECT" || c == "block" {
 					continue
 				}
 
@@ -448,9 +448,9 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 				}
 
 				// Check if it's an explicit AI/Streaming certified node
-				if strings.Contains(cLower, "ai") || strings.Contains(cLower, "openai") || 
-				   strings.Contains(cLower, "claude") || strings.Contains(cLower, "chatgpt") || 
-				   strings.Contains(c, "流媒体") || strings.Contains(cLower, "mpls") {
+				if strings.Contains(cLower, "ai") || strings.Contains(cLower, "openai") ||
+					strings.Contains(cLower, "claude") || strings.Contains(cLower, "chatgpt") ||
+					strings.Contains(c, "流媒体") || strings.Contains(cLower, "mpls") {
 					aiSpecialNodes = append(aiSpecialNodes, c)
 				} else {
 					otherNodes = append(otherNodes, c)
@@ -628,8 +628,8 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 				for _, px := range g.Proxies {
 					pxLower := strings.ToLower(px)
 					if strings.Contains(px, "香港") || strings.Contains(pxLower, "hk") || strings.Contains(px, "🇭🇰") ||
-					   strings.Contains(px, "澳门") || strings.Contains(pxLower, "macau") || strings.Contains(px, "🇲🇴") ||
-					   px == "DIRECT" {
+						strings.Contains(px, "澳门") || strings.Contains(pxLower, "macau") || strings.Contains(px, "🇲🇴") ||
+						px == "DIRECT" {
 						continue
 					}
 					filteredProxies = append(filteredProxies, px)
