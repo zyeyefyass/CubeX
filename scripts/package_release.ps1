@@ -8,7 +8,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$Version = "Test-v6.1"
+$Version = "Test-v6.2"
 
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 
@@ -18,7 +18,7 @@ $ReleaseDir = "$DistDir\release"
 
 
 
-Write-Host "📦 Starting CubeX Test v5.6 Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
+Write-Host "📦 Starting CubeX $Version Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
 
 if (-not $IncludeWindows) {
 
@@ -359,10 +359,13 @@ if ($IncludeWindows) {
 python "$RootDir\scripts\audit_release_artifacts.py" @auditArgs
 
 if ($LASTEXITCODE -ne 0) {
-
     Write-Error "🚨 Post-Packaging Desensitization Audit Failed! Release is blocked."
-
+    exit 1
 }
+
+# Enforce Strict 10-Version Retention Policy Across All Platforms
+python "$RootDir\scripts\enforce_10_version_retention.py"
+
 
 
 

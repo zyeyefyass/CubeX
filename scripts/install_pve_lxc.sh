@@ -426,21 +426,21 @@ else
     ARCH="$1"
     echo "🌐 正在从 GitHub Releases 拉取最新完整发布包 (${ARCH} 双内核 + 101套规则集 + 控制面)..."
     REL_TAG=""
-    for MIRROR in "https://gh-proxy.com" "https://gh.ddlc.top" "https://mirror.ghproxy.com"; do
+    for MIRROR in "https://ghproxy.net" "https://gh-proxy.com" "https://mirror.ghproxy.com" "https://github.moeyy.xyz" "https://ghps.cc"; do
         LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 3 -m 5 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
         if [ -n "$LATEST_JSON" ]; then
             REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
             [ -n "$REL_TAG" ] && break
         fi
     done
-    [ -z "$REL_TAG" ] && REL_TAG="Test-v4.9"
+    [ -z "$REL_TAG" ] && REL_TAG="Test-v6.2"
 
     ZIP_NAME="CubeX-${REL_TAG}-linux-${ARCH}.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"
     rm -f "$TMP_ZIP"
 
     DOWNLOAD_SUCCESS=0
-    DOWNLOAD_URLS="https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://gh.ddlc.top/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
+    DOWNLOAD_URLS="https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://mirror.ghproxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.moeyy.xyz/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
 
     for DL_URL in $DOWNLOAD_URLS; do
         echo "   -> 正在尝试拉取: ${DL_URL}..."

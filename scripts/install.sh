@@ -454,30 +454,38 @@ else
 
     if [ "$NEED_DOWNLOAD" -eq 1 ] && [ ! -f "$INSTALL_DIR/bin/cubexd" ]; then
         echo -e "${CYAN}🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 101套规则集 + 控制面)...${NC}"
-        REL_TAG=$(curl -4 -sSL --connect-timeout 3 -m 5 -I "https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
-        if [ -z "$REL_TAG" ]; then
-            REL_TAG=$(curl -4 -sSL --connect-timeout 3 -m 5 -I "https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
-        fi
-        [ -z "$REL_TAG" ] && REL_TAG="Test-v4.9"
+        GH_MIRRORS=("https://ghproxy.net" "https://gh-proxy.com" "https://mirror.ghproxy.com" "https://github.moeyy.xyz" "https://ghps.cc" "")
+        REL_TAG=""
+        for M in "${GH_MIRRORS[@]}"; do
+            PREFIX=""
+            [ -n "$M" ] && PREFIX="${M}/"
+            REL_TAG=$(curl -4 -sSL --connect-timeout 3 -m 5 -I "${PREFIX}https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
+            if [ -n "$REL_TAG" ]; then
+                break
+            fi
+        done
+        [ -z "$REL_TAG" ] && REL_TAG="Test-v6.2"
         ZIP_NAME="CubeX-${REL_TAG}-linux-${TARGET_ARCH}.zip"
         ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
-        ZIP_MIRROR="https://gh-proxy.com/${ZIP_URL}"
 
         TMP_ZIP="/tmp/${ZIP_NAME}"
         if [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
             echo -e "${GREEN}📦 发现本地已缓存的完整归档: ${TMP_ZIP}，秒级解压部署...${NC}"
         else
             rm -f "$TMP_ZIP"
-            echo -e "${CYAN}   -> 正在通过高速镜像源下载 ${ZIP_NAME} (约 84MB，免代理极速拉取)...${NC}"
+            echo -e "${CYAN}   -> 正在通过国内多级高速镜像源智能轮询下载 ${ZIP_NAME} (约 84MB，免代理极速拉取)...${NC}"
             DOWNLOAD_OK=0
-            for MIRROR in "https://gh-proxy.com" "https://gh.ddlc.top" ""; do
+            for MIRROR in "${GH_MIRRORS[@]}"; do
                 if [ -n "$MIRROR" ]; then
                     DL_LINK="${MIRROR}/${ZIP_URL}"
+                    echo -e "${CYAN}      [镜像尝试] 正在连接: ${MIRROR}...${NC}"
                 else
                     DL_LINK="${ZIP_URL}"
+                    echo -e "${CYAN}      [官方直连] 正在连接: GitHub...${NC}"
                 fi
-                if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 300 -o "$TMP_ZIP" "$DL_LINK" 2>/dev/null && [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
+                if curl -4 --http1.1 -fsSL --connect-timeout 6 -m 300 -o "$TMP_ZIP" "$DL_LINK" 2>/dev/null && [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
                     DOWNLOAD_OK=1
+                    echo -e "${GREEN}      ✓ 高速通道连接成功并完成完整性校验！${NC}"
                     break
                 fi
                 rm -f "$TMP_ZIP"
@@ -490,11 +498,14 @@ else
         else
             echo -e "${YELLOW}⚠️ 完整归档拉取失败，尝试降级拉取单二进制核心控制面...${NC}"
             DL_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${TARGET_ARCH}"
-            DL_MIRROR="https://gh-proxy.com/${DL_URL}"
-            curl -4 -sSL --connect-timeout 8 -m 120 -o "$INSTALL_DIR/bin/cubexd" "$DL_URL" 2>/dev/null || \
-            curl -4 -sSL --connect-timeout 10 -m 120 -o "$INSTALL_DIR/bin/cubexd" "$DL_MIRROR" 2>/dev/null || true
+            for MIRROR in "${GH_MIRRORS[@]}"; do
+                BIN_LINK="${DL_URL}"
+                [ -n "$MIRROR" ] && BIN_LINK="${MIRROR}/${DL_URL}"
+                if curl -4 -sSL --connect-timeout 6 -m 120 -o "$INSTALL_DIR/bin/cubexd" "$BIN_LINK" 2>/dev/null && [ -s "$INSTALL_DIR/bin/cubexd" ]; then
+                    break
+                fi
+            done
         fi
-    fi
     chmod +x "$INSTALL_DIR/bin/"* 2>/dev/null || true
 
     if [ ! -f "$INSTALL_DIR/bin/cubexd" ] || [ ! -s "$INSTALL_DIR/bin/cubexd" ]; then

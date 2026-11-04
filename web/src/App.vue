@@ -19188,7 +19188,7 @@ async function sendAIChat() {
 
 
 
-async function cleanActionLabel(label) {
+function cleanActionLabel(label) {
 
   if (!label) return ''
 

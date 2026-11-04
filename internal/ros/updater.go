@@ -1248,7 +1248,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 
 func (m *Manager) getLocalPanelVersion() string {
 
-	return "Test v6.1"
+	return "Test v6.2"
 
 }
 
