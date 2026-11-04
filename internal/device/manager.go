@@ -30,7 +30,8 @@ type Device struct {
 	Source    string `json:"source"`
 	Online    bool   `json:"online"`
 	LastSeen  int64  `json:"last_seen"`
-	Mode      string `json:"mode"`       // "rule" | "bypass" | "node"
+	Mode      string `json:"mode"`       // "proxy" (走旁路加速) | "direct" (主路由直连) | "rule" | "bypass" | "node"
+	IsProxied bool   `json:"is_proxied"`  // true: in cubex-clients or proxy active; false: direct
 	BoundNode string `json:"bound_node"` // specific node or proxy group when mode == "node"
 }
 
@@ -194,7 +195,44 @@ func (m *Manager) SetPolicy(ip, mac, mode, boundNode string) error {
 		m.store.Policies[mac] = policy
 	}
 
-	return m.saveStoreLocked()
+	if err := m.saveStoreLocked(); err != nil {
+		return err
+	}
+
+	// Sync to RouterOS cubex-clients if connected
+	if m.rosMgr != nil && ip != "" && ip != "-" {
+		enable := (mode == "proxy" || mode == "rule" || mode == "node")
+		aliasName := ""
+		if mac != "" {
+			aliasName = m.store.Aliases[mac]
+		}
+		if aliasName == "" {
+			aliasName = m.store.Aliases[ip]
+		}
+		_ = m.rosMgr.SetClientProxy(ip, enable, aliasName)
+	}
+
+	return nil
+}
+
+// ToggleDeviceProxy switches a single device between CubeX proxy acceleration and router direct.
+func (m *Manager) ToggleDeviceProxy(ip, mac string, enable bool) error {
+	targetMode := "direct"
+	if enable {
+		targetMode = "proxy"
+	}
+	return m.SetPolicy(ip, mac, targetMode, "")
+}
+
+// BatchSetDeviceProxy enables or disables proxy for all discovered devices or given IPs.
+func (m *Manager) BatchSetDeviceProxy(enable bool) error {
+	devices := m.GetDevices()
+	for _, d := range devices {
+		if d.IP != "" && d.IP != "-" {
+			_ = m.ToggleDeviceProxy(d.IP, d.MAC, enable)
+		}
+	}
+	return nil
 }
 
 // GetPolicies returns all stored routing policies.
@@ -218,6 +256,16 @@ func (m *Manager) GetDevices() []Device {
 	macToIP := make(map[string]string)
 
 	now := time.Now().Unix()
+
+	var rosProxiedClients map[string]bool
+	if m.rosMgr != nil {
+		if proxiedIPs, err := m.rosMgr.GetProxiedClients(); err == nil {
+			rosProxiedClients = make(map[string]bool)
+			for _, pIP := range proxiedIPs {
+				rosProxiedClients[pIP] = true
+			}
+		}
+	}
 
 	// 1. Fetch from RouterOS DHCP server leases (richest info)
 	if m.rosMgr != nil {
@@ -420,6 +468,21 @@ func (m *Manager) GetDevices() []Device {
 			d.Mode = "rule"
 		}
 
+		// When RouterOS is connected, cubex-clients address list is authoritative for proxy state
+		if rosProxiedClients != nil {
+			if rosProxiedClients[d.IP] {
+				d.IsProxied = true
+				d.Mode = "proxy"
+			} else {
+				d.IsProxied = false
+				if d.Mode == "rule" || d.Mode == "proxy" {
+					d.Mode = "direct"
+				}
+			}
+		} else {
+			d.IsProxied = (d.Mode == "proxy" || d.Mode == "rule" || d.Mode == "node")
+		}
+
 		result = append(result, *d)
 	}
 
@@ -451,6 +514,7 @@ func (m *Manager) GetDevices() []Device {
 						dev.Mode = pol.Mode
 						dev.BoundNode = pol.BoundNode
 					}
+					dev.IsProxied = (dev.Mode == "proxy" || dev.Mode == "rule" || dev.Mode == "node")
 					result = append(result, dev)
 				}
 			}
@@ -480,6 +544,7 @@ func (m *Manager) GetDevices() []Device {
 						dev.Mode = pol.Mode
 						dev.BoundNode = pol.BoundNode
 					}
+					dev.IsProxied = (dev.Mode == "proxy" || dev.Mode == "rule" || dev.Mode == "node")
 					result = append(result, dev)
 				}
 			}
@@ -505,6 +570,7 @@ func (m *Manager) GetDevices() []Device {
 				presets[i].Name = alias
 				presets[i].IsCustom = true
 			}
+			presets[i].IsProxied = (presets[i].Mode == "proxy" || presets[i].Mode == "rule" || presets[i].Mode == "node")
 		}
 		result = presets
 	}

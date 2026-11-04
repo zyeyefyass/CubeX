@@ -6626,6 +6626,305 @@
             </div>
           </div>
 
+          <!-- 🧭 方向一：【主旁合一 · 物理主路由全景透视驾驶舱与全家设备单键分流控制台】 -->
+          <div class="space-y-6">
+
+            <!-- 1. 物理主路由全景透视驾驶舱 (Router Panorama Cockpit) -->
+            <div class="macos-card p-5 sm:p-6 rounded-3xl space-y-5 border border-sky-500/25 bg-gradient-to-br from-[#001529]/95 via-[#00223e]/90 to-[#001020]/95 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+              <div class="absolute -right-20 -top-20 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div class="absolute -left-20 -bottom-20 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+              <!-- 驾驶舱头部 -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4 relative z-10">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-500 to-teal-400 p-0.5 shadow-lg shadow-sky-500/20 shrink-0">
+                    <div class="w-full h-full bg-[#001e38] rounded-[14px] flex items-center justify-center text-xl">
+                      🧭
+                    </div>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <h3 class="text-base sm:text-lg font-black text-white tracking-wide">物理主路由全景透视驾驶舱</h3>
+                      <span :class="['text-[11px] font-mono px-2.5 py-0.5 rounded-full font-bold shadow-sm flex items-center gap-1.5', routerHW.connected ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40']">
+                        <span :class="['w-2 h-2 rounded-full', routerHW.connected ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_#10b981]' : 'bg-amber-400']"></span>
+                        <span>{{ routerHW.connected ? 'REST API 实时直通' : '主路由连接中' }}</span>
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-300 mt-1">
+                      {{ routerHW.model ? `${routerHW.model} · MikroTik RouterOS ${routerHW.ros_version || 'v7'}` : '直连上级主路由物理硬件底层 · 实时采集 CPU / 芯片温度 / WAN IP 与端口协商' }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2 self-start sm:self-auto">
+                  <button @click="fetchRouterHardware(false)" :disabled="fetchingRouterHW"
+                    class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-slate-200 hover:text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
+                    <span :class="{'inline-block animate-spin': fetchingRouterHW}">↻</span>
+                    <span>{{ fetchingRouterHW ? '遥测采集...' : '刷新遥测' }}</span>
+                  </button>
+                  <a v-if="routerHW.lan_ip" :href="`http://${routerHW.lan_ip}`" target="_blank"
+                    class="px-3.5 py-1.5 rounded-xl bg-sky-600/30 hover:bg-sky-500/40 border border-sky-400/40 text-sky-200 hover:text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                    <span>↗</span>
+                    <span>打开主路由 Web</span>
+                  </a>
+                </div>
+              </div>
+
+              <!-- 四大核心遥测指标卡 -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 relative z-10">
+                <!-- 1. CPU 核心与动态负载 -->
+                <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-sky-400/30 transition shadow-inner">
+                  <div class="flex items-center justify-between text-[11px] text-slate-300">
+                    <span class="flex items-center gap-1.5">
+                      <span>⚡</span> <span>CPU 负载与算力</span>
+                    </span>
+                    <span class="font-mono text-cyan-300 font-bold">{{ routerHW.cpu_frequency ? `${routerHW.cpu_frequency} MHz` : '动态调频' }}</span>
+                  </div>
+                  <div class="mt-2 flex items-baseline justify-between">
+                    <span class="text-2xl font-black text-white font-mono tracking-tight">{{ routerHW.cpu_load || 0 }}<span class="text-xs text-slate-400 font-normal">%</span></span>
+                    <span class="text-[11px] text-slate-300">{{ routerHW.cpu_count || 1 }} 核心 · {{ routerHW.cpu || 'x86/ARM' }}</span>
+                  </div>
+                  <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-2">
+                    <div class="h-full rounded-full transition-all duration-500"
+                      :class="(routerHW.cpu_load || 0) > 80 ? 'bg-rose-500' : (routerHW.cpu_load || 0) > 40 ? 'bg-amber-400' : 'bg-gradient-to-r from-sky-400 to-emerald-400'"
+                      :style="{ width: Math.max(3, routerHW.cpu_load || 0) + '%' }"></div>
+                  </div>
+                </div>
+
+                <!-- 2. 物理内存使用基线 -->
+                <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-sky-400/30 transition shadow-inner">
+                  <div class="flex items-center justify-between text-[11px] text-slate-300">
+                    <span class="flex items-center gap-1.5">
+                      <span>🧠</span> <span>主路由内存基线</span>
+                    </span>
+                    <span class="font-mono text-emerald-300 font-bold">{{ routerHW.memory_used_pct || 0 }}%</span>
+                  </div>
+                  <div class="mt-2 flex items-baseline justify-between">
+                    <span class="text-lg font-black text-white font-mono tracking-tight">
+                      {{ formatBytes(routerHW.total_memory - routerHW.free_memory) }}
+                    </span>
+                    <span class="text-[11px] text-slate-300">/ {{ formatBytes(routerHW.total_memory) }}</span>
+                  </div>
+                  <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-2">
+                    <div class="bg-gradient-to-r from-emerald-500 to-cyan-400 h-full rounded-full transition-all duration-500"
+                      :style="{ width: Math.max(3, routerHW.memory_used_pct || 0) + '%' }"></div>
+                  </div>
+                </div>
+
+                <!-- 3. 外网 WAN 拨号与真实公网 -->
+                <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-sky-400/30 transition shadow-inner">
+                  <div class="flex items-center justify-between text-[11px] text-slate-300">
+                    <span class="flex items-center gap-1.5">
+                      <span>🌐</span> <span>外网 WAN 拨号 IP</span>
+                    </span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">{{ routerHW.wan_interface || 'WAN' }}</span>
+                  </div>
+                  <div class="mt-2 flex items-baseline justify-between">
+                    <span class="text-base font-bold text-cyan-300 font-mono truncate" :title="routerHW.wan_ip || '未获取'">
+                      {{ routerHW.wan_ip || '获取中...' }}
+                    </span>
+                  </div>
+                  <div class="text-[10px] text-slate-400 font-mono mt-1.5 truncate">
+                    内网网关: {{ routerHW.lan_ip || '10.0.0.1' }} ({{ routerHW.lan_interface || 'bridge1' }})
+                  </div>
+                </div>
+
+                <!-- 4. 固件健康与连续运行时间 -->
+                <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-sky-400/30 transition shadow-inner">
+                  <div class="flex items-center justify-between text-[11px] text-slate-300">
+                    <span class="flex items-center gap-1.5">
+                      <span>⏱️</span> <span>运行时间 & 健康度</span>
+                    </span>
+                    <span v-if="routerHW.temperature" class="font-mono text-emerald-400 font-bold">{{ routerHW.temperature }}°C</span>
+                    <span v-else class="text-[10px] text-emerald-400 font-bold">● 状态平稳</span>
+                  </div>
+                  <div class="mt-2">
+                    <span class="text-sm font-bold text-white font-mono">{{ routerHW.uptime || '1d 0h 0m' }}</span>
+                  </div>
+                  <div class="text-[10px] text-slate-400 font-mono mt-1.5 truncate">
+                    固件: {{ routerHW.ros_version || 'RouterOS v7' }} · {{ routerHW.architecture || 'x86_64' }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- 物理以太网端口协商矩阵 (Port Matrix) -->
+              <div v-if="routerHW.interfaces && routerHW.interfaces.length > 0" class="pt-3 border-t border-white/10 space-y-2.5 relative z-10">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <span>🔌</span> <span>物理网口协商阵列 (2.5G/万兆全双工硬件级透视)</span>
+                  </span>
+                  <span class="text-[11px] text-slate-400 font-mono">{{ routerHW.interfaces.length }} 物理端口</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+                  <div v-for="iface in routerHW.interfaces" :key="iface.name"
+                    class="p-2.5 rounded-xl border transition flex flex-col justify-between"
+                    :class="iface.running ? 'bg-sky-950/30 border-sky-500/40 hover:border-sky-400' : 'bg-white/5 border-white/10 opacity-60'">
+                    <div class="flex items-center justify-between">
+                      <span class="font-bold text-xs font-mono text-white">{{ iface.name }}</span>
+                      <span :class="['w-2 h-2 rounded-full', iface.running ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]' : 'bg-slate-600']"></span>
+                    </div>
+                    <div class="mt-2">
+                      <span class="text-[11px] font-bold block truncate" :class="iface.running ? 'text-cyan-300' : 'text-slate-500'">
+                        {{ iface.speed || (iface.running ? 'Link OK' : '断开') }}
+                      </span>
+                      <span class="text-[10px] text-slate-400 font-mono block truncate">
+                        {{ iface.running ? (iface.full_duplex ? '全双工 (FD)' : '半双工') : '未连线' }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. 全家设备单键分流控制台 (LAN Device Switchboard) -->
+            <div class="macos-card p-5 sm:p-6 rounded-3xl space-y-5 border border-sky-500/25 bg-gradient-to-br from-[#001529]/95 via-[#00223e]/90 to-[#001020]/95 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+              <!-- 控制台头部工具栏 -->
+              <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div>
+                  <div class="flex items-center gap-2.5 flex-wrap">
+                    <h3 class="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
+                      <span>🎛️</span>
+                      <span>全家设备单键分流控制台</span>
+                    </h3>
+                    <span class="px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[11px] font-bold">
+                      0秒免改网关 · 策略路由打标
+                    </span>
+                  </div>
+                  <p class="text-xs text-slate-300 mt-1">
+                    全家终端设备一键秒级切换【CubeX 旁路极速加速】或【主路由原生物理直连】，断电0秒逃生坚如磐石
+                  </p>
+                </div>
+
+                <!-- 统计徽章与批量操作按钮 -->
+                <div class="flex items-center gap-2 flex-wrap">
+                  <div class="flex items-center gap-1.5 text-xs font-mono mr-2">
+                    <span class="px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                      ⚡ 旁路加速中: {{ proxiedClientsCount }} 台
+                    </span>
+                    <span class="px-2.5 py-1 rounded-xl bg-white/10 text-slate-300 border border-white/15">
+                      🛡️ 原生直连: {{ directClientsCount }} 台
+                    </span>
+                  </div>
+
+                  <button @click="batchSetClients('all_proxy')" :disabled="batchProcessingClients"
+                    class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 active:scale-95 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
+                    <span>⚡ 一键全家旁路加速</span>
+                  </button>
+
+                  <button @click="batchSetClients('all_direct')" :disabled="batchProcessingClients"
+                    class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-200 hover:text-white font-bold text-xs active:scale-95 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
+                    <span>🏠 一键全体直连</span>
+                  </button>
+
+                  <button @click="fetchLanClients(false)" :disabled="fetchingClients"
+                    class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-slate-300 hover:text-white transition cursor-pointer"
+                    title="刷新局域网设备列表">
+                    <span :class="{'inline-block animate-spin': fetchingClients}">↻</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 搜索与分类过滤器 -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-1.5 bg-black/40 border border-white/10 rounded-xl p-1 text-xs">
+                  <button @click="clientFilterMode = 'all'"
+                    :class="['px-3 py-1 rounded-lg transition font-medium', clientFilterMode === 'all' ? 'bg-sky-500 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
+                    全部 ({{ lanClients.length }})
+                  </button>
+                  <button @click="clientFilterMode = 'proxy'"
+                    :class="['px-3 py-1 rounded-lg transition font-medium', clientFilterMode === 'proxy' ? 'bg-emerald-500 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
+                    ⚡ 旁路中 ({{ proxiedClientsCount }})
+                  </button>
+                  <button @click="clientFilterMode = 'direct'"
+                    :class="['px-3 py-1 rounded-lg transition font-medium', clientFilterMode === 'direct' ? 'bg-sky-700 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
+                    🛡️ 直连中 ({{ directClientsCount }})
+                  </button>
+                  <button @click="clientFilterMode = 'online'"
+                    :class="['px-3 py-1 rounded-lg transition font-medium', clientFilterMode === 'online' ? 'bg-cyan-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
+                    🟢 在线
+                  </button>
+                </div>
+
+                <div class="relative sm:w-64">
+                  <input v-model="clientSearchQuery" type="text" placeholder="搜索设备名 / IP / MAC..."
+                    class="w-full px-3 py-1.5 pl-8 rounded-xl bg-black/40 border border-white/15 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-400 transition" />
+                  <span class="absolute left-2.5 top-2 text-xs text-slate-500">🔍</span>
+                  <button v-if="clientSearchQuery" @click="clientSearchQuery = ''" class="absolute right-2.5 top-1.5 text-xs text-slate-400 hover:text-white">✕</button>
+                </div>
+              </div>
+
+              <!-- 全家设备卡片流 (Grid) -->
+              <div v-if="filteredLanClients.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div v-for="dev in filteredLanClients" :key="dev.mac || dev.ip"
+                  class="p-4 rounded-2xl border transition-all duration-300 relative group flex flex-col justify-between"
+                  :class="dev.is_proxied ? 'bg-gradient-to-br from-emerald-950/40 to-teal-950/30 border-emerald-500/40 shadow-lg shadow-emerald-950/20' : 'bg-white/5 border-white/10 hover:border-white/20'">
+
+                  <!-- 设备头部：图标、名称、在线状态 -->
+                  <div class="flex items-start gap-3">
+                    <span class="text-2xl p-2 rounded-xl bg-black/40 border border-white/10 shrink-0">
+                      {{ getDeviceIcon(dev) }}
+                    </span>
+                    <div class="min-w-0 flex-1">
+                      <!-- 名称与就地编辑 -->
+                      <div v-if="editingClientMAC === dev.mac && dev.mac !== '-'" class="flex items-center gap-1.5">
+                        <input v-model="editingClientName" @keyup.enter="saveClientAlias(dev)" @keyup.esc="editingClientMAC = ''"
+                          class="w-full px-2 py-0.5 rounded-lg bg-black/60 border border-sky-400 text-xs text-white focus:outline-none font-bold" />
+                        <button @click="saveClientAlias(dev)" class="px-2 py-0.5 rounded-lg bg-sky-500 text-white text-xs font-bold">✓</button>
+                        <button @click="editingClientMAC = ''" class="px-2 py-0.5 rounded-lg bg-white/10 text-slate-300 text-xs">✕</button>
+                      </div>
+                      <div v-else class="flex items-center justify-between gap-1">
+                        <div class="font-black text-sm text-white truncate flex items-center gap-1.5" :title="dev.name">
+                          <span>{{ dev.name }}</span>
+                          <span v-if="dev.is_custom" class="text-[10px] text-amber-300 font-normal">✎</span>
+                        </div>
+                        <button @click="editingClientMAC = dev.mac; editingClientName = dev.name"
+                          class="opacity-0 group-hover:opacity-100 text-[11px] text-slate-400 hover:text-sky-300 transition shrink-0 p-0.5">
+                          编辑备注
+                        </button>
+                      </div>
+
+                      <!-- IP 与 MAC 地址 -->
+                      <div class="text-[11px] font-mono text-slate-400 flex items-center gap-2 mt-1">
+                        <span class="text-cyan-300">{{ dev.ip }}</span>
+                        <span class="text-slate-600">·</span>
+                        <span class="text-slate-400 truncate">{{ dev.mac || '未知 MAC' }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 分隔线与分流控制 Toggle 开关 -->
+                  <div class="pt-3.5 mt-3.5 border-t border-white/10 flex items-center justify-between">
+                    <div>
+                      <div class="text-xs font-bold flex items-center gap-1.5" :class="dev.is_proxied ? 'text-emerald-300' : 'text-slate-300'">
+                        <span>{{ dev.is_proxied ? '⚡ 旁路加速生效中' : '🛡️ 主路由直连' }}</span>
+                      </div>
+                      <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                        {{ dev.is_proxied ? '走 CubeX 10.0.0.7 双核分流' : '走主路由默认物理网关直出' }}
+                      </div>
+                    </div>
+
+                    <!-- 交互开关按钮 -->
+                    <button @click="toggleClientProxy(dev)" :disabled="togglingClientIP === dev.ip"
+                      class="px-3 py-1.5 rounded-xl font-black text-xs transition-all duration-300 flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95 disabled:opacity-50"
+                      :class="dev.is_proxied ? 'bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 shadow-emerald-500/25' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/15'">
+                      <span v-if="togglingClientIP === dev.ip" class="inline-block animate-spin text-xs">↻</span>
+                      <span v-else>{{ dev.is_proxied ? '✓ 旁路加速' : '○ 直连模式' }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 空状态提示 -->
+              <div v-else class="text-center py-10 space-y-2 text-slate-400">
+                <div class="text-3xl">🔍</div>
+                <div class="text-sm font-bold text-slate-300">未找到匹配的局域网终端</div>
+                <div class="text-xs text-slate-500">点击右上角刷新，或清除搜索条件</div>
+              </div>
+            </div>
+
+          </div>
+
+
           <!-- 🚀 四维版本在线检查与升级 -->
 
           <div class="space-y-4">
@@ -15527,6 +15826,41 @@ async function uploadToGithubIssue() {
 
 
 // ── LAN Devices (Per-Device Matrix) ──
+// ── 方向一：主路由全景透视驾驶舱与全家设备分流状态 ──
+const routerHW = ref({
+  connected: false,
+  model: '',
+  architecture: '',
+  ros_version: '',
+  uptime: '',
+  cpu: '',
+  cpu_count: 0,
+  cpu_frequency: 0,
+  cpu_load: 0,
+  free_memory: 0,
+  total_memory: 0,
+  memory_used_pct: 0,
+  free_hdd_space: 0,
+  total_hdd_space: 0,
+  temperature: 0,
+  voltage: 0,
+  wan_interface: '',
+  wan_ip: '',
+  lan_interface: '',
+  lan_ip: '',
+  interfaces: [],
+  last_updated: 0
+})
+const fetchingRouterHW = ref(false)
+
+const lanClients = ref([])
+const fetchingClients = ref(false)
+const clientSearchQuery = ref('')
+const clientFilterMode = ref('all') // 'all' | 'proxy' | 'direct' | 'online'
+const togglingClientIP = ref('')
+const batchProcessingClients = ref(false)
+const editingClientMAC = ref('')
+const editingClientName = ref('')
 
 const lanDevices = ref([])
 
@@ -17881,6 +18215,156 @@ function triggerReload() {
 }
 
 
+
+async function fetchRouterHardware(silent = false) {
+  if (!silent) fetchingRouterHW.value = true
+  try {
+    const res = await fetch('/api/v1/host/router/hardware')
+    const data = await res.json()
+    if (data.status === 'ok' && data.hardware) {
+      routerHW.value = data.hardware
+    }
+  } catch (e) {
+    console.error('Fetch router hardware error:', e)
+  } finally {
+    fetchingRouterHW.value = false
+  }
+}
+
+async function fetchLanClients(silent = false) {
+  if (!silent) fetchingClients.value = true
+  try {
+    const res = await fetch('/api/v1/host/router/clients')
+    const data = await res.json()
+    if (data.status === 'ok' && Array.isArray(data.clients)) {
+      lanClients.value = data.clients
+      lanDevices.value = data.clients
+    }
+  } catch (e) {
+    console.error('Fetch clients error:', e)
+  } finally {
+    fetchingClients.value = false
+  }
+}
+
+async function toggleClientProxy(client) {
+  if (!client || !client.ip || client.ip === '-' || togglingClientIP.value) return
+  togglingClientIP.value = client.ip
+  const targetEnable = !client.is_proxied
+  try {
+    const res = await fetch('/api/v1/host/router/clients/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ip: client.ip,
+        mac: client.mac,
+        enable: targetEnable
+      })
+    })
+    const data = await res.json()
+    if (data.status === 'ok') {
+      client.is_proxied = targetEnable
+      client.mode = targetEnable ? 'proxy' : 'direct'
+      showToast(targetEnable ? `⚡ [${client.name || client.ip}] 已切换为【CubeX 旁路极速加速】` : `🛡️ [${client.name || client.ip}] 已切换为【主路由原生直连】`)
+      fetchRouterHardware(true)
+    } else {
+      showToast('⚠️ 切换失败: ' + (data.error || '未知错误'), true)
+    }
+  } catch (e) {
+    showToast('⚠️ 请求异常: ' + e.message, true)
+  } finally {
+    togglingClientIP.value = ''
+  }
+}
+
+async function batchSetClients(action) {
+  if (batchProcessingClients.value) return
+  batchProcessingClients.value = true
+  try {
+    const res = await fetch('/api/v1/host/router/clients/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action })
+    })
+    const data = await res.json()
+    if (data.status === 'ok') {
+      showToast(action === 'all_proxy' ? '⚡ 已一键将全家设备接入 CubeX 旁路加速！' : '🏠 已一键将全家设备回归主路由直连！')
+      await fetchLanClients(true)
+    } else {
+      showToast('⚠️ 批量操作失败: ' + (data.error || '未知错误'), true)
+    }
+  } catch (e) {
+    showToast('⚠️ 请求异常: ' + e.message, true)
+  } finally {
+    batchProcessingClients.value = false
+  }
+}
+
+async function saveClientAlias(client) {
+  if (!client) return
+  const newName = editingClientName.value.trim()
+  try {
+    const res = await fetch('/api/v1/devices/alias', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ip: client.ip,
+        mac: client.mac,
+        name: newName
+      })
+    })
+    const data = await res.json()
+    if (data.status === 'saved') {
+      client.name = newName || client.hostname || client.ip
+      client.is_custom = !!newName
+      editingClientMAC.value = ''
+      showToast('✓ 设备备注已保存并持久化')
+    }
+  } catch (e) {
+    showToast('⚠️ 保存失败: ' + e.message, true)
+  }
+}
+
+const filteredLanClients = computed(() => {
+  let list = lanClients.value || []
+  const q = clientSearchQuery.value.trim().toLowerCase()
+  if (q) {
+    list = list.filter(c => 
+      (c.name && c.name.toLowerCase().includes(q)) ||
+      (c.ip && c.ip.toLowerCase().includes(q)) ||
+      (c.mac && c.mac.toLowerCase().includes(q)) ||
+      (c.hostname && c.hostname.toLowerCase().includes(q))
+    )
+  }
+  if (clientFilterMode.value === 'proxy') {
+    list = list.filter(c => c.is_proxied)
+  } else if (clientFilterMode.value === 'direct') {
+    list = list.filter(c => !c.is_proxied)
+  } else if (clientFilterMode.value === 'online') {
+    list = list.filter(c => c.online)
+  }
+  return list
+})
+
+const proxiedClientsCount = computed(() => {
+  return (lanClients.value || []).filter(c => c.is_proxied).length
+})
+
+const directClientsCount = computed(() => {
+  return (lanClients.value || []).filter(c => !c.is_proxied).length
+})
+
+function getDeviceIcon(client) {
+  const name = ((client.name || '') + ' ' + (client.hostname || '')).toLowerCase()
+  if (name.includes('phone') || name.includes('s24') || name.includes('s23') || name.includes('iphone') || name.includes('xiaomi') || name.includes('huawei')) return '📱'
+  if (name.includes('tv') || name.includes('apple tv') || name.includes('box') || name.includes('sony') || name.includes('bravia')) return '📺'
+  if (name.includes('pc') || name.includes('desktop') || name.includes('mac') || name.includes('laptop') || name.includes('workstation')) return '🖥️'
+  if (name.includes('nas') || name.includes('synology') || name.includes('zspace') || name.includes('qnap')) return '🗄️'
+  if (name.includes('ps5') || name.includes('playstation') || name.includes('switch') || name.includes('xbox')) return '🎮'
+  if (name.includes('sound') || name.includes('audio') || name.includes('speaker') || name.includes('q990') || name.includes('samsung')) return '🔊'
+  if (name.includes('router') || name.includes('ap') || name.includes('mesh')) return '🔀'
+  return '🔌'
+}
 
 async function fetchLanDevices() {
 
@@ -27302,6 +27786,13 @@ onMounted(async () => {
 
   // Fetch LAN Devices
 
+  fetchRouterHardware(true)
+  fetchLanClients(true)
+  setInterval(() => {
+    if (activeMasterTab.value === 'overview' && !document.hidden) {
+      fetchRouterHardware(true)
+    }
+  }, 10000)
   fetchLanDevices()
 
 

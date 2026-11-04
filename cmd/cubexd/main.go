@@ -1057,6 +1057,20 @@ func main() {
 
 	mux.HandleFunc("/api/v1/devices/policy", srv.handleDevicePolicy)
 
+	mux.HandleFunc("/api/v1/devices/toggle", srv.handleDeviceToggle)
+
+	mux.HandleFunc("/api/v1/devices/batch", srv.handleDeviceBatch)
+
+	// 11.1 Router Panorama & Hardware Telemetry (方向一：主路由全景透视驾驶舱)
+
+	mux.HandleFunc("/api/v1/host/router/hardware", srv.handleRouterHardware)
+
+	mux.HandleFunc("/api/v1/host/router/clients", srv.handleRouterClients)
+
+	mux.HandleFunc("/api/v1/host/router/clients/toggle", srv.handleDeviceToggle)
+
+	mux.HandleFunc("/api/v1/host/router/clients/batch", srv.handleDeviceBatch)
+
 	// 12. Host Unified Auto-Setup & Compatible Aliases
 
 	mux.HandleFunc("/api/v1/host/auto-setup", srv.handleHostAutoSetup)
@@ -7874,6 +7888,109 @@ func (s *Server) handleDevicePolicy(w http.ResponseWriter, r *http.Request) {
 		"bound_node": req.BoundNode,
 	})
 
+}
+
+func (s *Server) handleRouterHardware(w http.ResponseWriter, r *http.Request) {
+	if s.rosMgr == nil {
+		sendJSON(w, map[string]any{"status": "ok", "hardware": map[string]any{"connected": false}})
+		return
+	}
+	info, err := s.rosMgr.GetRouterHardwareInfo()
+	if err != nil {
+		sendJSON(w, map[string]any{
+			"status":   "ok",
+			"hardware": info,
+			"warning":  err.Error(),
+		})
+		return
+	}
+	sendJSON(w, map[string]any{
+		"status":   "ok",
+		"hardware": info,
+	})
+}
+
+func (s *Server) handleRouterClients(w http.ResponseWriter, r *http.Request) {
+	if s.devMgr == nil {
+		sendJSON(w, map[string]any{"status": "ok", "clients": []any{}, "total": 0})
+		return
+	}
+	devices := s.devMgr.GetDevices()
+	sendJSON(w, map[string]any{
+		"status":  "ok",
+		"clients": devices,
+		"total":   len(devices),
+	})
+}
+
+func (s *Server) handleDeviceToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		IP     string `json:"ip"`
+		MAC    string `json:"mac"`
+		Enable bool   `json:"enable"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if s.devMgr == nil {
+		http.Error(w, "device manager not initialized", http.StatusInternalServerError)
+		return
+	}
+	if err := s.devMgr.ToggleDeviceProxy(req.IP, req.MAC, req.Enable); err != nil {
+		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+		return
+	}
+	msg := fmt.Sprintf("设备 %s 已切换为【CubeX 旁路极速加速】！", req.IP)
+	if !req.Enable {
+		msg = fmt.Sprintf("设备 %s 已切换为【主路由原生直连】！", req.IP)
+	}
+	sendJSON(w, map[string]any{
+		"status":  "ok",
+		"ip":      req.IP,
+		"enable":  req.Enable,
+		"message": msg,
+	})
+}
+
+func (s *Server) handleDeviceBatch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Action string   `json:"action"` // "all_proxy" | "all_direct"
+		IPs    []string `json:"ips,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if s.devMgr == nil {
+		http.Error(w, "device manager not initialized", http.StatusInternalServerError)
+		return
+	}
+	enable := req.Action == "all_proxy"
+	if len(req.IPs) > 0 {
+		for _, ip := range req.IPs {
+			_ = s.devMgr.ToggleDeviceProxy(ip, "", enable)
+		}
+	} else {
+		_ = s.devMgr.BatchSetDeviceProxy(enable)
+	}
+	actionName := "全部设备切换为旁路加速"
+	if !enable {
+		actionName = "全部设备回归主路由直连"
+	}
+	sendJSON(w, map[string]any{
+		"status":  "ok",
+		"action":  req.Action,
+		"message": fmt.Sprintf("已成功完成：%s", actionName),
+	})
 }
 
 func (s *Server) handleHostAutoSetup(w http.ResponseWriter, r *http.Request) {
