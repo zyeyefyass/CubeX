@@ -32,6 +32,33 @@
 
 ---
 
+---
+
+### 🎁【白嫖党的自我修养】极客老哥请留步！求一键三连支持！
+
+> **俗话说得好：白嫖一时爽，一直白嫖一直爽……但白嫖也要有自我修养！** 😆
+>
+> CubeX 纯自主研发、纯 Go 单二进制、嵌入双核无感热备、千兆跑满仅占 35MB 物理内存，且 **100% 纯净开源、零外部后门、零商业收费**。作者为了调优多宿主底座兼容性与秒级逃生，熬过了无数个通宵。
+>
+> 如果这个项目切实解决了你家里 **“旁路由总死机断网、DNS老泄露、被家人抱怨拔插头”** 的终极大痛点，让你的家庭重归和睦，**请务必动动发财的小手，去作者的官方视频捧个场，来个一键三连（点赞 · 转发 · 订阅/关注）！** 你的每一次互动，都是支持本项目持续迭代与高质量维护的最大动力！
+
+<p align="center">
+  <a href="https://www.bilibili.com/video/BV14fxU67Ewa/" target="_blank">
+    <img src="https://img.shields.io/badge/Bilibili_官方首发-去B站一键三连_(点赞%2F投币%2F收藏)-FB7299?style=for-the-badge&logo=bilibili&logoColor=white" alt="B站一键三连" />
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://www.youtube.com/watch?v=mWsczIS19fM" target="_blank">
+    <img src="https://img.shields.io/badge/YouTube_官方首发-去YouTube点赞并订阅-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube点赞订阅" />
+  </a>
+</p>
+
+| 📺 播放平台 | 🎬 官方首发实测大片 | 🎯 核心看点 | 🚀 一键直达支持 |
+| :--- | :--- | :--- | :--- |
+| **Bilibili (B站)** | [《【极客晨曦EP01】别再改全家网关了！故意拔掉电源竟还能全速上网？实测颠覆级双引擎旁路由CubeX》](https://www.bilibili.com/video/BV14fxU67Ewa/) | 千兆线速 35M 极简内存、双核无感热重载、爱快/ROS/iStoreOS 实机联调 | 👉 [点击前往 B 站三连](https://www.bilibili.com/video/BV14fxU67Ewa/) |
+| **YouTube** | [《千兆跑满只吃35兆内存？我把双引擎透明网关做成容器，软路由三巨头直接看傻了 1080p 60fps》](https://www.youtube.com/watch?v=mWsczIS19fM) | 1080P 60FPS 极客大片、Netwatch 50ms 逃生看门狗实机推演 | 👉 [点击前往 YouTube 点赞订阅](https://www.youtube.com/watch?v=mWsczIS19fM) |
+
+---
+
 ### 📚 快速直达目录
 
 - [📜 郑重声明与合规免责条款](#legal-statement)

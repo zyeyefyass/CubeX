@@ -546,6 +546,45 @@
 
         <div v-if="activeMasterTab === 'overview'" class="space-y-6 animate-in fade-in">
 
+          <!-- 🎁 白嫖党的自我修养 · 官方视频互动号召横幅 -->
+          <div v-if="!dismissCommunityBanner" class="relative overflow-hidden rounded-3xl p-5 sm:p-6 border border-amber-400/40 bg-gradient-to-r from-amber-500/15 via-purple-500/15 to-sky-500/15 backdrop-blur-2xl shadow-[0_8px_32px_rgba(245,158,11,0.15)] transition-all duration-300">
+            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 relative z-10">
+              <div class="space-y-1.5 max-w-3xl">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xl">🎁</span>
+                  <h3 class="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                    <span>【白嫖党的自我修养】极客老哥请留步！</span>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 font-bold">求一键三连</span>
+                  </h3>
+                </div>
+                <p class="text-xs sm:text-[13px] text-slate-200 leading-relaxed font-sans">
+                  白嫖一时爽，一直白嫖一直爽……但<strong class="text-amber-300">白嫖也要有自我修养</strong>！千兆跑满只吃 35M、双擎秒级容灾、零后门纯净自研！如果 CubeX 解决了您家里断网、DNS 泄露的终极大痛点，请务必动动发财的小手去作者的官方视频捧个场，来个<strong class="text-emerald-300">一键三连（点赞 · 转发 · 订阅）</strong>！您的每一次互动都是支持作者持续优化最大的动力！
+                </p>
+              </div>
+
+              <div class="flex items-center gap-3 shrink-0 flex-wrap w-full lg:w-auto">
+                <a href="https://www.bilibili.com/video/BV14fxU67Ewa/" target="_blank" rel="noopener noreferrer"
+                  class="flex-1 lg:flex-initial px-4 py-2.5 rounded-2xl bg-gradient-to-r from-pink-500/80 to-rose-600/80 hover:from-pink-500 hover:to-rose-600 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20 hover:scale-102 active:scale-98 transition duration-200 cursor-pointer">
+                  <span class="text-base">📺</span>
+                  <span>前往 B站 一键三连</span>
+                </a>
+
+                <a href="https://www.youtube.com/watch?v=mWsczIS19fM" target="_blank" rel="noopener noreferrer"
+                  class="flex-1 lg:flex-initial px-4 py-2.5 rounded-2xl bg-gradient-to-r from-red-600/80 to-rose-700/80 hover:from-red-600 hover:to-rose-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 hover:scale-102 active:scale-98 transition duration-200 cursor-pointer">
+                  <span class="text-base">▶️</span>
+                  <span>前往 YouTube 点赞订阅</span>
+                </a>
+
+                <button @click="dismissCommunityBanner = true" title="已三连支持，稍后提醒"
+                  class="px-2.5 py-2 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 text-slate-400 hover:text-white text-xs transition cursor-pointer">
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          </div>
+
+
           
 
           <!-- 双核状态驾驶舱 Hero Bento -->
@@ -12061,6 +12100,7 @@ function onMainContentScroll(e) {
 
 
 
+const dismissCommunityBanner = ref(false)
 const activeEngine = ref('singbox')
 
 const switchingEngine = ref(false)
