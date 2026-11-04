@@ -571,6 +571,18 @@ uci commit firewall
 # 3. Universal Firewall Forwarding (Natively compatible with fw4 nftables & fw3 iptables)
 rm -f /etc/nftables.d/10-cubex-bypass.nft 2>/dev/null || true
 
+# Flow Offloading (流量加速) 避坑加固: 豁免 198.18.0.0/15, 杜绝旁路规则被快路径跳过
+if [ "$(uci -q get firewall.@defaults[0].flow_offloading)" = "1" ] || [ "$(uci -q get firewall.@defaults[0].flow_offloading_hw)" = "1" ]; then
+    mkdir -p /etc/nftables.d 2>/dev/null || true
+    cat << 'NFT_EOF' > /etc/nftables.d/10-cubex-offload-exempt.nft
+chain cubex_flow_exempt {
+    type filter hook forward priority -5; policy accept;
+    ip daddr 198.18.0.0/15 counter accept
+    ip saddr 198.18.0.0/15 counter accept
+}
+NFT_EOF
+fi
+
 # UCI Firewall Rule: allow 198.18.0.0/15 bypass traffic across all zones
 uci -q delete firewall.cubex_bypass || true
 uci set firewall.cubex_bypass=rule
@@ -615,6 +627,7 @@ fi
 		"✓ [OpenWrt] 锁定 LAN 区域转发策略为 ACCEPT",
 		fmt.Sprintf("✓ [OpenWrt] 检测并适配底座防火墙: %s", fwMode),
 		"✓ [OpenWrt] 注入 198.18.0.0/15 极速放行链，免除连接跟踪无效包丢弃",
+		"✓ [OpenWrt] 加固 Flow Offloading 快路径豁免链，确保 100% 规则分流命中",
 	}
 	return logs, nil
 }

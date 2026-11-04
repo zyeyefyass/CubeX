@@ -664,11 +664,13 @@ func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
 		}
 
 		if !hasRoute {
-			addResp, addErr := c.Call("static_rt", "add", map[string]string{
+			addResp, addErr := c.Call("static_rt", "add", map[string]any{
+				"enabled":   "yes",
 				"ip_type":   "4",
 				"tagname":   "CubeX-FakeIP-Bypass",
-				"prio":      "1",
-				"dst_addr":  "198.18.0.0/15",
+				"prio":      1,
+				"dst_addr":  "198.18.0.0",
+				"netmask":   "255.254.0.0",
 				"gateway":   cubexIP,
 				"interface": lanIf,
 			})

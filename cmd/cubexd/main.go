@@ -81,7 +81,7 @@ import (
 )
 
 var (
-	version = "Test v6.0"
+	version = "Test v6.1"
 
 	startTime = time.Now()
 )
@@ -589,7 +589,11 @@ func main() {
 
 	go func() {
 
-		ticker := time.NewTicker(2 * time.Minute)
+		scavengeInterval := 2 * time.Minute
+		if runtime.GOOS == "linux" {
+			scavengeInterval = 30 * time.Second
+		}
+		ticker := time.NewTicker(scavengeInterval)
 
 		defer ticker.Stop()
 
@@ -800,7 +804,7 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v6.0")
+	srv.mcpServer = mcp.NewServer(srv, "Test v6.1")
 
 	srv.initTrafficState()
 
@@ -1921,6 +1925,12 @@ func (s *Server) handleEngineSwitch(w http.ResponseWriter, r *http.Request) {
 		}()
 
 	}
+
+	go func() {
+		time.Sleep(250 * time.Millisecond)
+		runtime.GC()
+		debug.FreeOSMemory()
+	}()
 
 	sendJSON(w, map[string]any{"status": "switched", "success": true, "result": result})
 
