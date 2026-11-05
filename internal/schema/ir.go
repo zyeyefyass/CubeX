@@ -65,6 +65,7 @@ type NetworkConfig struct {
 	ClashSecret  string `json:"clash_secret" yaml:"clash_secret"`
 	AllowLAN     bool   `json:"allow_lan" yaml:"allow_lan"`
 	IPv6         bool   `json:"ipv6" yaml:"ipv6"`
+	QUICPolicy   string `json:"quic_policy" yaml:"quic_policy"` // smart (default) / block / direct
 }
 
 type DNSConfig struct {
@@ -189,6 +190,7 @@ func NewDefaultIR() *ConfigIR {
 			ClashSecret:  "",
 			AllowLAN:     true,
 			IPv6:         false,
+			QUICPolicy:   "direct",
 		},
 		DNS: DNSConfig{
 			EnableFakeIP: true,

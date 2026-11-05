@@ -1831,31 +1831,56 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"action": "hijack-dns",
 	})
 
-	// B. Reject foreign UDP 443/8443 (QUIC) so YouTube / Google automatically use line-speed TCP (xtls-reality/BBR)
+	// B. Intelligent QUIC Strategy (Smart Fallback / Full Block / Direct Pass-through)
+	quicPolicy := ir.Network.QUICPolicy
+	if quicPolicy == "" {
+		quicPolicy = "direct"
+	}
 
-	// Domestic CN UDP 443 (e.g. Bilibili, Tencent Video) is allowed direct
-
-	routeRules = append(routeRules, map[string]any{
-
-		"network": []string{"udp"},
-
-		"port": []int{443, 8443},
-
-		"rule_set": []string{"geosite-cn"},
-
-		"outbound": "direct",
-	})
-
-	routeRules = append(routeRules, map[string]any{
-
-		"network": []string{"udp"},
-
-		"port": []int{443, 8443},
-
-		"action": "reject",
-
-		"method": "drop",
-	})
+	if quicPolicy == "block" {
+		if tags, ok := activeSRSByGroup["🎯 国内流量"]; ok && len(tags) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"network":  []string{"udp"},
+				"port":     []int{443, 8443},
+				"rule_set": tags,
+				"outbound": "direct",
+			})
+		}
+		routeRules = append(routeRules, map[string]any{
+			"network": []string{"udp"},
+			"port":    []int{443, 8443},
+			"action":  "reject",
+			"method":  "drop",
+		})
+	} else if quicPolicy == "smart" {
+		quicDropRule := map[string]any{
+			"network": []string{"udp"},
+			"port":    []int{443, 8443},
+			"domain_suffix": []string{
+				"googlevideo.com",
+				"youtube.com",
+				"ytimg.com",
+				"youtu.be",
+				"youtubei.googleapis.com",
+				"google.com",
+				"googleapis.com",
+				"1e100.net",
+			},
+			"action": "reject",
+			"method": "drop",
+		}
+		var ytTags []string
+		if tags, ok := activeSRSByGroup["YouTube"]; ok {
+			ytTags = append(ytTags, tags...)
+		}
+		if tags, ok := activeSRSByGroup["Google"]; ok {
+			ytTags = append(ytTags, tags...)
+		}
+		if len(ytTags) > 0 {
+			quicDropRule["rule_set"] = ytTags
+		}
+		routeRules = append(routeRules, quicDropRule)
+	}
 
 	// YouTube & Google Video Fast-Path (Line-speed TCP XTLS-Reality / BBR fallback)
 

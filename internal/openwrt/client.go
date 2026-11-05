@@ -390,6 +390,15 @@ if uci -q get dhcp.lan.dhcp_option 2>/dev/null | grep -q "6,%[1]s"; then
 else
     echo "DNS_MISSING"
 fi
+if [ "$(uci -q get firewall.@defaults[0].flow_offloading)" = "1" ] || [ "$(uci -q get firewall.@defaults[0].flow_offloading_hw)" = "1" ]; then
+    if uci -q get firewall.cubex_bypass.no_flow_offload 2>/dev/null | grep -q "1"; then
+        echo "FLOW_EXEMPT_OK"
+    else
+        echo "FLOW_EXEMPT_MISSING"
+    fi
+else
+    echo "FLOW_OFF"
+fi
 `, cubexIP)
 
 	out, err := c.runSSHCommand(script)
@@ -414,6 +423,11 @@ fi
 		msgParts = append(msgParts, fmt.Sprintf("DHCP Option 6 已引导至 CubeX (%s)", cubexIP))
 	} else {
 		msgParts = append(msgParts, "DHCP Option 6 尚未引导至 CubeX")
+	}
+	if strings.Contains(out, "FLOW_EXEMPT_OK") {
+		msgParts = append(msgParts, "硬件/软件流量加速(Flow Offload)豁免已加固")
+	} else if strings.Contains(out, "FLOW_EXEMPT_MISSING") {
+		msgParts = append(msgParts, "流量加速未注入豁免(待自愈)")
 	}
 	details = strings.Join(msgParts, " · ")
 
@@ -589,13 +603,15 @@ if [ "$(uci -q get firewall.@defaults[0].flow_offloading)" = "1" ] || [ "$(uci -
     cat << 'NFT_EOF' > /etc/nftables.d/10-cubex-offload-exempt.nft
 chain cubex_flow_exempt {
     type filter hook forward priority -5; policy accept;
-    ip daddr 198.18.0.0/15 counter accept
-    ip saddr 198.18.0.0/15 counter accept
+    ip daddr 198.18.0.0/15 counter return
+    ip saddr 198.18.0.0/15 counter return
 }
 NFT_EOF
+    nft insert rule inet fw4 forward ip daddr 198.18.0.0/15 counter return 2>/dev/null || true
+    nft insert rule inet fw4 forward ip saddr 198.18.0.0/15 counter return 2>/dev/null || true
 fi
 
-# UCI Firewall Rule: allow 198.18.0.0/15 bypass traffic across all zones
+# UCI Firewall Rule: allow 198.18.0.0/15 bypass traffic across all zones with flow offloading disabled
 uci -q delete firewall.cubex_bypass || true
 uci set firewall.cubex_bypass=rule
 uci set firewall.cubex_bypass.name='CubeX-Bypass-Forward'
@@ -603,6 +619,7 @@ uci set firewall.cubex_bypass.src='*'
 uci set firewall.cubex_bypass.dest='*'
 uci set firewall.cubex_bypass.proto='all'
 uci set firewall.cubex_bypass.target='ACCEPT'
+uci set firewall.cubex_bypass.no_flow_offload='1'
 uci commit firewall
 
 # Immediate runtime kernel iptables rules (works across all Linux/OpenWrt kernels via iptables/xtables-nft)

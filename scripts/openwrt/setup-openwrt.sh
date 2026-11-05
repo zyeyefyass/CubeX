@@ -224,11 +224,12 @@ if [ "$(uci -q get firewall.@defaults[0].flow_offloading)" = "1" ] || [ "$(uci -
     cat << 'NFT_EOF' > /etc/nftables.d/10-cubex-offload-exempt.nft
 chain cubex_flow_exempt {
     type filter hook forward priority -5; policy accept;
-    ip daddr 198.18.0.0/15 counter accept
-    ip saddr 198.18.0.0/15 counter accept
+    ip daddr 198.18.0.0/15 counter return
+    ip saddr 198.18.0.0/15 counter return
 }
 NFT_EOF
-fi
+    nft insert rule inet fw4 forward ip daddr 198.18.0.0/15 counter return 2>/dev/null || true
+    nft insert rule inet fw4 forward ip saddr 198.18.0.0/15 counter return 2>/dev/null || true
     /etc/init.d/firewall reload >/dev/null 2>&1 || true
 fi
 
@@ -403,10 +404,13 @@ if [ "$(uci -q get firewall.@defaults[0].flow_offloading)" = "1" ] || [ "$(uci -
     cat << 'NFT_EOF' > /etc/nftables.d/10-cubex-offload-exempt.nft
 chain cubex_flow_exempt {
     type filter hook forward priority -5; policy accept;
-    ip daddr 198.18.0.0/15 counter accept
-    ip saddr 198.18.0.0/15 counter accept
+    ip daddr 198.18.0.0/15 counter return
+    ip saddr 198.18.0.0/15 counter return
 }
 NFT_EOF
+    nft insert rule inet fw4 forward ip daddr 198.18.0.0/15 counter return 2>/dev/null || true
+    nft insert rule inet fw4 forward ip saddr 198.18.0.0/15 counter return 2>/dev/null || true
+    /etc/init.d/firewall reload >/dev/null 2>&1 || true
 fi
 iptables -C FORWARD -d 198.18.0.0/15 -j ACCEPT 2>/dev/null || iptables -I FORWARD 1 -d 198.18.0.0/15 -j ACCEPT 2>/dev/null || true
 iptables -C FORWARD -s 198.18.0.0/15 -j ACCEPT 2>/dev/null || iptables -I FORWARD 1 -s 198.18.0.0/15 -j ACCEPT 2>/dev/null || true

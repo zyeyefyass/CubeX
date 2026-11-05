@@ -187,19 +187,28 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		"enable": true,
 
-		"force-dns-mapping": true,
+		"force-dns-mapping": false,
 
 		"parse-pure-ip": true,
 
-		"override-destination": true,
+		"override-destination": false,
 
 		"sniff": map[string]any{
 
-			"HTTP": map[string]any{"ports": []any{80, "8080-8880"}},
+			"HTTP": map[string]any{
+				"ports": []any{80, "8080-8880"},
+				"override-destination": true,
+			},
 
-			"TLS": map[string]any{"ports": []int{443, 8443}},
+			"TLS": map[string]any{
+				"ports": []int{443, 8443},
+				"override-destination": false,
+			},
 
-			"QUIC": map[string]any{"ports": []int{443, 8443}},
+			"QUIC": map[string]any{
+				"ports": []int{443, 8443},
+				"override-destination": false,
+			},
 		},
 
 		"skip-domain": []string{
@@ -253,9 +262,9 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	fallbackDNSList := []string{
 
-		"223.5.5.5",
+		"https://1.1.1.1/dns-query",
 
-		"119.29.29.29",
+		"https://8.8.8.8/dns-query",
 	}
 
 	cleanFakeIPFilter := []string{
@@ -476,6 +485,13 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 				"223.5.5.5",
 
 				"119.29.29.29",
+			},
+
+			"geosite:geolocation-!cn": []string{
+
+				"https://1.1.1.1/dns-query",
+
+				"https://8.8.8.8/dns-query",
 			},
 		},
 	}
@@ -1519,13 +1535,29 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	}
 
-	// Reject foreign UDP 443/8443 (QUIC) BEFORE business rules so YouTube / Google automatically use line-speed TCP (xtls-reality/BBR)
+	// Intelligent QUIC Strategy (Smart Fallback / Full Block / Direct Pass-through)
+	quicPolicy := ir.Network.QUICPolicy
+	if quicPolicy == "" {
+		quicPolicy = "direct"
+	}
 
-	// Eliminates the ~5000 Kbps ISP UDP throttling and restores 100+ Mbps 4K 60fps streaming
-
-	rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(GEOIP,CN)),DIRECT")
-
-	rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT")
+	if quicPolicy == "block" {
+		rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(GEOIP,CN)),DIRECT")
+		rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT")
+	} else if quicPolicy == "smart" {
+		rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(GEOIP,CN)),DIRECT")
+		if _, ok := ruleProviders["youtube_mrs"]; ok {
+			rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(RULE-SET,youtube_mrs)),REJECT")
+		} else {
+			rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(DOMAIN-SUFFIX,googlevideo.com)),REJECT")
+			rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(DOMAIN-SUFFIX,youtube.com)),REJECT")
+		}
+		if _, ok := ruleProviders["google_mrs"]; ok {
+			rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(RULE-SET,google_mrs)),REJECT")
+		} else {
+			rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(DOMAIN-SUFFIX,google.com)),REJECT")
+		}
+	}
 
 	// High-Performance Dynamic MRS Business Rules (Dual-Engine Symmetrical Acceleration)
 

@@ -1372,11 +1372,16 @@ func (m *Manager) SyncHostBypass() ([]string, error) {
 			User:     cfg.User,
 			Password: cfg.Password,
 		})
-		hasRoute, hasDNS, _, err := client.InspectRouting(cubexIP)
-		if err == nil && hasRoute && hasDNS {
-			return []string{"✓ OpenWrt 静态回指路由与 DHCP Option 6 状态健康"}, nil
+		hasRoute, hasDNS, details, err := client.InspectRouting(cubexIP)
+		if err == nil && hasRoute && hasDNS && !strings.Contains(details, "待自愈") {
+			return []string{"✓ OpenWrt 静态回指路由、DHCP Option 6 及 Flow Offloading 豁免状态健康"}, nil
 		}
-		return client.ApplyBypass(cubexIP)
+		logs, err := client.ApplyBypass(cubexIP)
+		if err == nil {
+			fwLogs, _ := client.ApplyFirewall()
+			logs = append(logs, fwLogs...)
+		}
+		return logs, err
 	}
 
 	// 3. Linux / fnOS / PVE Host
