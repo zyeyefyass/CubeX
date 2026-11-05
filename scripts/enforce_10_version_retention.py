@@ -33,6 +33,11 @@ def get_github_token():
 
 TOKEN = get_github_token()
 
+PROXY = os.environ.get('HTTP_PROXY') or 'http://10.0.0.7:7890'
+if PROXY:
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({'http': PROXY, 'https': PROXY}))
+    urllib.request.install_opener(opener)
+
 HEADERS = {
     'Accept': 'application/vnd.github.v3+json',
     'User-Agent': 'CubeX-Retention-Manager'
