@@ -347,7 +347,7 @@
           <!-- Outbound Cards List (Exact Height 382px: 5 Cards Equal Height) -->
           <div class="h-[396px] max-h-[396px] space-y-1.5 flex flex-col">
 
-            <!-- 1. 🇨🇳 真实国内直连通道 (Direct Pipeline) -->
+            <!-- 1. 真实国内直连通道 (Direct Pipeline) -->
             <div id="outbound-direct-node"
               class="p-2.5 sm:px-3 sm:py-2 rounded-2xl bg-white/[0.03] hover:bg-white/[0.08] border border-emerald-500/20 hover:border-emerald-400/50 transition-all duration-200 relative overflow-hidden group cursor-pointer shadow-sm h-[68px] min-h-[68px] flex items-center"
               @click="highlightOutbound('direct')">
@@ -684,7 +684,7 @@ const displayOutboundRoutes = computed(() => {
       name: 'Gemini · AI 智脑',
       category: 'AI 穿透',
       flag: '🤖',
-      activeNode: '🇺🇸 美国极速 MPLS 专线',
+      activeNode: '美国极速 MPLS 专线',
       latency: 185,
       strategy: '低延迟优选'
     },
@@ -693,7 +693,7 @@ const displayOutboundRoutes = computed(() => {
       name: '国际流媒体 · 4K',
       category: '影音加速',
       flag: '🎬',
-      activeNode: '🇭🇰 香港 BGP 4K 专线',
+      activeNode: '香港 BGP 4K 专线',
       latency: 42,
       strategy: '带宽最优'
     },
@@ -702,7 +702,7 @@ const displayOutboundRoutes = computed(() => {
       name: 'GitHub · 代码开发',
       category: '开发者',
       flag: '💻',
-      activeNode: '🇯🇵 日本 IPLC 专线',
+      activeNode: '日本 IPLC 专线',
       latency: 68,
       strategy: '故障转移'
     },
@@ -711,7 +711,7 @@ const displayOutboundRoutes = computed(() => {
       name: '全球节点聚合',
       category: '全域出站',
       flag: '🌏',
-      activeNode: '🇸🇬 新加坡核心集群',
+      activeNode: '新加坡核心集群',
       latency: 75,
       strategy: '智能容灾'
     }

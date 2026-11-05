@@ -250,7 +250,7 @@
 
               <span class="font-black tracking-tight text-sky-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] hidden xs:inline">
 
-                {{ systemStatus.version || 'Test v6.1' }}
+                {{ systemStatus.version || 'Test v6.3' }}
 
               </span>
 
@@ -2184,7 +2184,7 @@
 
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2.5 sm:gap-3 items-stretch">
 
-                  <!-- 1. 🎯 直连 (DIRECT) - 国外流量不可选国内直连 -->
+                  <!-- 1. 🎯直连 (DIRECT) - 国外流量不可选国内直连 -->
 
                   <div v-if="!isForeignGroup(grp) && !isCandidateExcluded(grp.name, 'DIRECT')"
 
@@ -2556,7 +2556,7 @@
 
                         <option value="" disabled selected>增加出站</option>
 
-                        <option v-if="canAddCandidate(grp, 'DIRECT')" value="DIRECT">🇨🇳 直连</option>
+                        <option v-if="canAddCandidate(grp, 'DIRECT')" value="DIRECT">国内直连</option>
 
                         <option v-for="r in (excludedRegionsMap[grp.name] || [])" :key="r.id" :value="r.id">
 
@@ -3309,7 +3309,7 @@
 
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
 
-                        {{ systemOverview.panel_latest_version || 'Test v6.1' }}
+                        {{ systemOverview.panel_latest_version || 'Test v6.3' }}
 
                       </span>
 
@@ -3317,7 +3317,7 @@
 
                     <p class="text-xs text-slate-400 mt-0.5 font-mono">
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v6.1' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v6.1' }}</span>
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v6.3' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v6.3' }}</span>
 
                     </p>
 
@@ -6140,463 +6140,310 @@
           <!-- 🖥️ 宿主共生底座 (Host Base Interconnect) -->
 
           <div class="p-6 sm:p-7 rounded-2xl sm:rounded-3xl macos-glass-card hover:border-sky-400/40 transition-all duration-300 space-y-5 group relative overflow-hidden">
-
             <div class="absolute -top-32 -right-32 w-80 h-80 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none"></div>
 
-
-
-            <!-- Tier 1: Header (Synchronized Hero Bar) -->
-
+            <!-- Tier 1: 统一头部 (Unified Hero Header) -->
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-cyan-500/20 pb-4 relative z-10">
-
               <div class="space-y-1">
-
                 <div class="text-base sm:text-lg font-extrabold text-white flex flex-wrap items-center gap-2.5">
+                  <span class="tracking-wide flex items-center gap-2">
+                    <ZootopiaIcon name="host-base" :size="24" class="shrink-0" />
+                    <span>宿主共生底座 · 物理全景驾驶舱</span>
+                  </span>
 
-                  <span class="tracking-wide flex items-center gap-2"><ZootopiaIcon name="host-base" :size="24" class="shrink-0" /><span>宿主共生底座</span></span>
-
-                  <!-- Auto-Detected Host Badge with glowing status -->
-
+                  <!-- Auto-Detected Host Badge -->
                   <span class="h-7 px-3 inline-flex items-center gap-2 text-xs font-mono font-bold rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm shadow-sm select-none whitespace-nowrap shrink-0">
-
-                    <span class="w-2 h-2 rounded-full shrink-0" :class="hostBadge.online ? 'bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse' : 'bg-amber-400'"></span>
-
+                    <span class="w-2 h-2 rounded-full shrink-0" :class="hostBadge.online || routerHW.connected ? 'bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse' : 'bg-amber-400'"></span>
                     <img :src="hostBadge.svg" class="w-4 h-4 min-w-[16px] max-w-[16px] h-[16px] max-h-[16px] object-contain shrink-0 drop-shadow-[0_0_6px_rgba(56,189,248,0.5)]" :alt="hostBadge.shortName" />
-
                     <span class="whitespace-nowrap">{{ hostBadge.name }}</span>
-
                   </span>
 
-                  <span class="h-7 px-3 inline-flex items-center text-xs font-mono font-semibold rounded-full bg-[#201630]/80 text-sky-200 border border-sky-500/30 shadow-sm select-none whitespace-nowrap shrink-0">
-
-                    全自动智能联动 · 安全不伤主路由
-
+                  <span :class="['h-7 px-3 inline-flex items-center gap-1.5 text-xs font-mono font-semibold rounded-full border shadow-sm select-none whitespace-nowrap shrink-0', routerHW.connected ? 'bg-emerald-950/60 text-emerald-300 border-emerald-500/40' : 'bg-[#201630]/80 text-sky-200 border-sky-500/30']">
+                    <span v-if="routerHW.connected" class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span>{{ routerHW.connected ? 'REST API 硬件直通' : '全自动智能联动 · 永不断网' }}</span>
                   </span>
-
-
-
                 </div>
-
                 <div class="text-xs text-slate-400">
-
-                  自动识别 RouterOS / 爱快 iKuai / OpenWrt / 飞牛 / PVE / Linux 底座，一键安全联动策略路由与转发，容器意外启闭绝不影响主网。
-
+                  {{ routerHW.model ? `${routerHW.model} · 固件 ${routerHW.ros_version || 'RouterOS v7'} · 硬件底层毫秒级透视 · 0秒逃生不伤物理主网` : '自动识别 RouterOS / 爱快 iKuai / OpenWrt / 飞牛 / PVE / Linux 底座，硬件级遥测直通，容器意外启闭绝不影响主网。' }}
                 </div>
-
               </div>
 
+              <!-- 右侧快捷操作：刷新、主路由Web直达、凭据折叠切换 -->
+              <div class="flex items-center gap-2 self-start lg:self-auto shrink-0 flex-wrap">
+                <button @click="fetchRouterHardware(false)" :disabled="fetchingRouterHW"
+                  class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-slate-200 hover:text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
+                  <span :class="{'inline-block animate-spin': fetchingRouterHW}">↻</span>
+                  <span>{{ fetchingRouterHW ? '采集遥测...' : '刷新硬件遥测' }}</span>
+                </button>
+                <a v-if="routerHW.lan_ip || hostConfig.host" :href="`http://${routerHW.lan_ip || hostConfig.host}`" target="_blank"
+                  class="px-3 py-1.5 rounded-xl bg-sky-600/30 hover:bg-sky-500/40 border border-sky-400/40 text-sky-200 hover:text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
+                  <span>↗</span>
+                  <span>主路由 Web</span>
+                </a>
+                <button @click="showHostCredentialsDeck = !showHostCredentialsDeck"
+                  class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/15 text-slate-300 hover:text-white text-xs transition flex items-center gap-1 cursor-pointer">
+                  <span>🔑</span>
+                  <span>{{ showHostCredentialsDeck ? '收起凭据' : '配置凭据' }}</span>
+                </button>
+              </div>
             </div>
 
-
-
-            <!-- Tier 2: Live Host Telemetry 4-Column Grid -->
-
+            <!-- Tier 2: 核心硬件与网络四维遥测大屏 (Live Host & Router Telemetry 4-Column Grid · 彻底去重) -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 relative z-10">
-
-              <!-- 1. 宿主运行环境 -->
-
+              <!-- 1. CPU 负载与算力 -->
               <div class="macos-sub-card p-3.5 rounded-xl flex flex-col justify-between shadow-sm">
-
-                <span class="text-slate-300 text-[11px] block font-medium">宿主运行环境</span>
-
-                <span class="text-emerald-300 font-extrabold text-xs sm:text-[13px] block mt-1 truncate drop-shadow-sm" :title="hostInfo.os_name || 'MikroTik RouterOS v7'">
-
-                  {{ hostInfo.os_name || 'MikroTik RouterOS v7' }}
-
-                </span>
-
-                <span class="text-[10px] text-slate-300 font-mono mt-1 block">平台适配: {{ hostBadge.shortName }}</span>
-
+                <div class="flex items-center justify-between text-[11px] text-slate-300">
+                  <span class="font-medium">CPU 负载与算力</span>
+                  <span class="font-mono text-cyan-300 font-bold">{{ routerHW.cpu_frequency ? `${routerHW.cpu_frequency} MHz` : (routerHW.temperature ? `${routerHW.temperature}°C` : '● 正常') }}</span>
+                </div>
+                <div class="mt-1 flex items-baseline justify-between">
+                  <span class="text-xl font-black text-white font-mono tracking-tight">{{ routerHW.cpu_load || hostInfo.cpu_cores ? (routerHW.cpu_load || 0) : 0 }}<span class="text-xs text-slate-400 font-normal">%</span></span>
+                  <span class="text-[10px] text-slate-300 truncate">{{ routerHW.cpu_count || hostInfo.cpu_cores || 1 }} 核心 · {{ routerHW.cpu || hostInfo.arch || 'x86_64' }}</span>
+                </div>
+                <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-1.5">
+                  <div class="h-full rounded-full transition-all duration-500"
+                    :class="(routerHW.cpu_load || 0) > 80 ? 'bg-rose-500' : (routerHW.cpu_load || 0) > 40 ? 'bg-amber-400' : 'bg-gradient-to-r from-sky-400 to-emerald-400'"
+                    :style="{ width: Math.max(4, routerHW.cpu_load || 4) + '%' }"></div>
+                </div>
               </div>
 
-
-
-              <!-- 2. 系统内核与架构 (统一高亮绿) -->
-
+              <!-- 2. 物理内存与沙盒负载 -->
               <div class="macos-sub-card p-3.5 rounded-xl flex flex-col justify-between shadow-sm">
-
-                <span class="text-slate-300 text-[11px] block font-medium">沙盒内核 & 架构</span>
-
-                <span class="text-emerald-300 font-extrabold text-xs sm:text-[13px] block mt-1 truncate drop-shadow-sm" :title="hostInfo.kernel_version">
-
-                  {{ hostInfo.kernel_version || 'Linux 6.6.30-amd64' }}
-
-                </span>
-
-                <span class="text-[10px] text-slate-300 font-mono mt-1 block truncate">
-
-                  {{ hostInfo.arch || 'x86_64' }} · {{ hostInfo.is_container ? (hostInfo.container_type || '伴生容器') : '宿主原生' }}
-
-                </span>
-
-              </div>
-
-
-
-              <!-- 3. 沙盒内存负载 -->
-
-              <div class="macos-sub-card p-3.5 rounded-xl flex flex-col justify-between shadow-sm">
-
-                <div class="flex items-center justify-between">
-
-                  <span class="text-slate-300 text-[11px] truncate pr-1 font-medium" :title="hostInfo.is_container ? '容器分配内存 (与宿主物理内存隔离)' : '宿主硬件负载'">
-
-                    {{ hostInfo.is_container ? '容器分配内存' : '宿主硬件负载' }}
-
+                <div class="flex items-center justify-between text-[11px] text-slate-300">
+                  <span class="font-medium">主路由物理内存</span>
+                  <span class="font-mono text-emerald-300 font-bold">{{ routerHW.memory_used_pct ? `${routerHW.memory_used_pct}%` : `${hostMemoryPercentNum}%` }}</span>
+                </div>
+                <div class="mt-1 flex items-baseline justify-between">
+                  <span class="text-xs sm:text-[13px] font-extrabold text-emerald-300 font-mono tracking-tight truncate">
+                    {{ routerHW.total_memory ? `${formatBytes(routerHW.total_memory - routerHW.free_memory)} / ${formatBytes(routerHW.total_memory)}` : `${hostInfo.memory_used || '70MB'} / ${hostInfo.memory_total || '256MB'}` }}
                   </span>
-
-                  <span class="text-[10px] text-slate-300 font-mono shrink-0">{{ hostInfo.cpu_cores || 1 }}核</span>
-
                 </div>
-
-                <span class="text-emerald-300 font-extrabold text-xs sm:text-[13px] block mt-1 truncate drop-shadow-sm">
-
-                  {{ hostInfo.memory_used || '70MB' }} / {{ hostInfo.memory_total || '256MB' }}
-
+                <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-1.5">
+                  <div class="bg-gradient-to-r from-emerald-500 to-cyan-400 h-full rounded-full transition-all duration-500"
+                    :style="{ width: Math.min(100, Math.max(5, routerHW.memory_used_pct || hostMemoryPercentNum)) + '%' }"></div>
+                </div>
+                <span class="text-[9px] text-slate-400 font-mono mt-1 block truncate">
+                  伴生容器占用: {{ hostInfo.memory_used || '70MB' }} (硬件完全隔离)
                 </span>
-
-                <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-1.5 flex">
-
-                  <div class="bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 h-full rounded-full transition-all duration-500" :style="{ width: Math.min(100, Math.max(5, hostMemoryPercentNum)) + '%' }"></div>
-
-                </div>
-
               </div>
 
-
-
-              <!-- 4. 内核转发状态 -->
-
-              <div :class="['p-3.5 rounded-xl border flex flex-col justify-between shadow-inner transition', hostInfo.ip_forward ? 'bg-emerald-950/30 border-emerald-500/40' : 'bg-amber-950/40 border-amber-500/50']">
-
-                <span class="text-slate-400 text-[11px] block">内核转发 (ip_forward)</span>
-
-                <span :class="['font-extrabold text-xs sm:text-[13px] block mt-1 truncate', hostInfo.ip_forward ? 'text-emerald-400' : 'text-amber-400']">
-
-                  {{ hostInfo.ip_forward ? '● 完整就绪 (Forward: 1)' : '○ 待开启 (点击自愈)' }}
-
-                </span>
-
-                <span class="text-[10px] text-slate-300 font-mono mt-1 block">Bypass 防死锁白名单</span>
-
+              <!-- 3. 外网 WAN 拨号与内网网关 -->
+              <div class="macos-sub-card p-3.5 rounded-xl flex flex-col justify-between shadow-sm">
+                <div class="flex items-center justify-between text-[11px] text-slate-300">
+                  <span class="font-medium">外网 WAN 拨号 IP</span>
+                  <span class="text-[10px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 font-mono">{{ routerHW.wan_interface || 'WAN' }}</span>
+                </div>
+                <div class="mt-1">
+                  <span class="text-xs sm:text-[13px] font-extrabold text-cyan-300 font-mono truncate block" :title="routerHW.wan_ip || hostInfo.ip || '已连接'">
+                    {{ routerHW.wan_ip || hostInfo.ip || '在线连通' }}
+                  </span>
+                </div>
+                <div class="text-[10px] text-slate-400 font-mono mt-1 flex items-center justify-between truncate">
+                  <span>内网网关: {{ routerHW.lan_ip || '10.0.0.1' }}</span>
+                  <span :class="hostInfo.ip_forward ? 'text-emerald-400' : 'text-amber-400'">{{ hostInfo.ip_forward ? '● 转发就绪' : '○ 待开启' }}</span>
+                </div>
               </div>
 
+              <!-- 4. 固件底座与连续运行时间 -->
+              <div class="macos-sub-card p-3.5 rounded-xl flex flex-col justify-between shadow-sm">
+                <div class="flex items-center justify-between text-[11px] text-slate-300">
+                  <span class="font-medium">固件与运行时间</span>
+                  <span class="text-[10px] text-emerald-400 font-bold">● 稳定运行</span>
+                </div>
+                <div class="mt-1">
+                  <span class="text-xs sm:text-[13px] font-bold text-white font-mono truncate block">
+                    {{ routerHW.uptime || '1d 3h' }}
+                  </span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono mt-1 block truncate" :title="routerHW.ros_version ? `MikroTik RouterOS ${routerHW.ros_version}` : (hostInfo.os_name || 'MikroTik RouterOS v7')">
+                  {{ routerHW.ros_version ? `RouterOS ${routerHW.ros_version}` : (hostInfo.os_name || 'RouterOS v7') }}
+                </span>
+              </div>
             </div>
 
-
-
-            <!-- Tier 3: Host Credentials Panel (Integrated Credential Deck) -->
-
-            <div class="macos-sub-card p-4 sm:p-5 rounded-2xl space-y-3.5 shadow-sm relative z-10">
-
-              <div class="text-xs font-semibold text-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-2.5">
-
-                <div class="flex items-center gap-2 flex-wrap">
-
-                  <ZootopiaIcon name="auth-key" :size="18" class="shrink-0" />
-
-                  <span class="font-bold text-white tracking-wide">宿主共生凭据与鉴权</span>
-
-                  <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 border border-emerald-400/30 font-semibold shadow-sm">
-
-                    RouterOS · 爱快 · OpenWrt · Linux
-
-                  </span>
-
-                </div>
-
-                <span class="text-[11px] text-slate-300 font-normal">通常为主路由 IP（例: 10.0.0.1 或 192.168.1.1）或 Docker 网关（172.17.0.1）</span>
-
+            <!-- 物理以太网端口协商矩阵 (Port Matrix - 仅当主路由端口在线时紧凑展示) -->
+            <div v-if="routerHW.interfaces && routerHW.interfaces.length > 0" class="pt-2.5 border-t border-white/10 space-y-2 relative z-10">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-slate-300 flex items-center gap-1.5">
+                  <span>🔌</span> <span>物理以太网端口协商阵列 (2.5G/万兆全双工硬件指示)</span>
+                </span>
+                <span class="text-[10px] text-slate-400 font-mono">{{ routerHW.interfaces.length }} 物理端口</span>
               </div>
+              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                <div v-for="iface in routerHW.interfaces" :key="iface.name"
+                  class="p-2 rounded-xl border transition flex items-center justify-between gap-2"
+                  :class="iface.running ? 'bg-sky-950/30 border-sky-500/40 hover:border-sky-400' : 'bg-white/5 border-white/10 opacity-60'">
+                  <div class="min-w-0 flex-1">
+                    <div class="font-bold text-xs font-mono text-white truncate">{{ iface.name }}</div>
+                    <div class="text-[10px] font-bold truncate mt-0.5" :class="iface.running ? 'text-cyan-300' : 'text-slate-500'">
+                      {{ iface.speed || (iface.running ? '2.5G/10G VirtIO' : '断开') }}
+                    </div>
+                  </div>
+                  <span :class="['w-2 h-2 rounded-full shrink-0', iface.running ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]' : 'bg-slate-600']"></span>
+                </div>
+              </div>
+            </div>
 
-
+            <!-- Tier 3: 宿主共生凭据与鉴权面板 (支持点击展开/折叠，默认清爽折叠) -->
+            <div v-show="showHostCredentialsDeck" class="macos-sub-card p-4 sm:p-5 rounded-2xl space-y-3.5 shadow-sm relative z-10 transition-all">
+              <div class="text-xs font-semibold text-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-2.5">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <ZootopiaIcon name="auth-key" :size="18" class="shrink-0" />
+                  <span class="font-bold text-white tracking-wide">宿主共生凭据与鉴权</span>
+                  <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 border border-emerald-400/30 font-semibold shadow-sm">
+                    RouterOS · 爱快 · OpenWrt · Linux
+                  </span>
+                </div>
+                <span class="text-[11px] text-slate-300 font-normal">通常为主路由 IP（例: 10.0.0.1 或 192.168.1.1）或 Docker 网关（172.17.0.1）</span>
+              </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-
                 <div class="flex flex-col justify-end">
-
                   <label class="block text-[11px] text-slate-300 font-bold mb-1.5 min-h-[32px] sm:min-h-[34px] flex items-end leading-snug">
-
                     <span>宿主 / 主路由 IP <span class="text-[10px] text-amber-300 font-mono font-normal">(切勿填 CubeX 自身 IP)</span></span>
-
                   </label>
-
-                  <input v-model="hostConfig.host" placeholder="例: 10.0.0.88 / 10.0.0.1 (主路由 IP)" class="w-full h-10 bg-black/25 hover:bg-black/35 border border-white/15 focus:border-sky-400 rounded-xl px-3 text-xs font-mono text-white outline-none shadow-inner transition" />
-
+                  <input v-model="hostConfig.host" placeholder="例: 10.0.0.1 (主路由 IP)" class="w-full h-10 bg-black/25 hover:bg-black/35 border border-white/15 focus:border-sky-400 rounded-xl px-3 text-xs font-mono text-white outline-none shadow-inner transition" />
                 </div>
-
                 <div class="flex flex-col justify-end">
-
                   <label class="block text-[11px] text-slate-300 font-bold mb-1.5 min-h-[32px] sm:min-h-[34px] flex items-end leading-snug">
-
                     <span>通信端口 <span class="text-[10px] text-slate-400 font-mono font-normal">(ROS/爱快/OpenWrt: 80, Linux: 22)</span></span>
-
                   </label>
-
                   <input v-model.number="hostConfig.port" type="number" placeholder="80 / 22" class="w-full h-10 bg-black/25 hover:bg-black/35 border border-white/15 focus:border-sky-400 rounded-xl px-3 text-xs font-mono text-white outline-none shadow-inner transition" />
-
                 </div>
-
                 <div class="flex flex-col justify-end">
-
                   <label class="block text-[11px] text-slate-300 font-bold mb-1.5 min-h-[32px] sm:min-h-[34px] flex items-end leading-snug">
-
                     <span>管理员账号 <span class="text-[10px] text-slate-400 font-mono font-normal">(WinBox / Web / SSH 账号)</span></span>
-
                   </label>
-
                   <input v-model="hostConfig.user" placeholder="管理用户名 (例: admin / root / 自建)" class="w-full h-10 bg-black/25 hover:bg-black/35 border border-white/15 focus:border-sky-400 rounded-xl px-3 text-xs font-mono text-white outline-none shadow-inner transition" />
-
                 </div>
-
                 <div class="flex flex-col justify-end">
-
                   <label class="block text-[11px] text-slate-300 font-bold mb-1.5 min-h-[32px] sm:min-h-[34px] flex items-end leading-snug">
-
                     <span>登录认证密码 <span class="text-[10px] text-slate-400 font-mono font-normal">(WinBox / Web / SSH 密码)</span></span>
-
                   </label>
-
                   <input type="password" v-model="hostConfig.password" placeholder="Web / WinBox登录密码 (无密码留空)" class="w-full h-10 bg-black/25 hover:bg-black/35 border border-white/15 focus:border-sky-400 rounded-xl px-3 text-xs font-mono text-white outline-none shadow-inner transition" />
-
                 </div>
-
               </div>
-
-
 
               <div class="p-3 rounded-xl bg-sky-950/40 border border-sky-500/30 text-[11px] text-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-
                 <div class="flex items-center gap-2">
-
                   <span>💡</span>
-
                   <span>对于 <b>MikroTik RouterOS</b> 填 WinBox 账号密码；对于 <b>爱快 iKuai / OpenWrt</b> 填 Web 管理密码；对于 <b>Linux / 飞牛 fnOS / PVE</b> 填宿主 SSH 凭据。</span>
-
                 </div>
-
                 <button @click="saveCredentialsAndLinkHost" :disabled="savingAndLinkingHost" class="px-5 py-2 rounded-xl bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white font-extrabold text-xs shadow-md shadow-sky-500/25 active:scale-95 transition shrink-0 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer">
-
                   <span v-if="savingAndLinkingHost" class="inline-block animate-spin">↻</span>
-
                   <span>{{ savingAndLinkingHost ? '正在测试并联动宿主...' : '⚡ 保存凭据并一键联动宿主' }}</span>
-
                 </button>
-
               </div>
-
             </div>
-
-
 
             <!-- Tier 4: Unified All-in-One Super-Healing Action Bar (全栈自愈总线) -->
-
             <div class="pt-2 border-t border-cyan-500/20 relative z-10">
-
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-
-                <!-- 1. 当前宿主全栈网络自愈主按钮 (左右严格等宽，文案精炼，去除晦涩术语) -->
-
+                <!-- 1. 当前宿主全栈网络自愈主按钮 -->
                 <button v-if="isRouterOS" @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
-
                   class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 border border-white/20 text-white text-xs sm:text-[13px] font-black transition flex items-center justify-center gap-2 shadow-lg shadow-sky-500/30 active:scale-98 disabled:opacity-50 cursor-pointer"
-
                   title="一键全栈自愈：自动加固核心规则配置、主路由回指路由、故障毫秒逃生与原生 IPv6 纯净防泄露">
-
                   <span v-if="cleaningRosFirewall" class="inline-block animate-spin text-sm">↻</span>
-
                   <span v-else class="text-base">⚡</span>
-
                   <span>一键全栈自愈 RouterOS</span>
-
                 </button>
-
                 <button v-else-if="isOpenWrt" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall"
-
                   class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-sky-950/90 via-blue-950/90 to-teal-950/90 hover:from-sky-900/90 hover:to-teal-900/90 border border-sky-500/50 hover:border-sky-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-sky-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
-
                   title="一键全栈自愈：自动加固核心规则配置、OpenWrt 策略回指、DHCP 故障逃生与 IPv6 原生防泄露">
-
                   <span v-if="applyingLinuxFirewall" class="inline-block animate-spin text-sm">↻</span>
-
                   <span v-else class="text-base text-emerald-300">📡</span>
-
                   <span>一键全栈自愈 OpenWrt</span>
-
                 </button>
-
                 <button v-else-if="isIKuai" @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall"
-
                   class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-950/90 via-teal-950/90 to-cyan-950/90 hover:from-emerald-900/90 hover:to-cyan-900/90 border border-emerald-500/50 hover:border-emerald-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 active:scale-98 disabled:opacity-50 cursor-pointer"
-
                   title="一键全栈自愈：自动加固核心规则配置、爱快静态回指路由与 DHCP 联动加固">
-
                   <span v-if="applyingLinuxFirewall" class="inline-block animate-spin text-sm">↻</span>
-
                   <span v-else class="text-base text-emerald-400">⚡</span>
-
                   <span>一键全栈自愈爱快主路由</span>
-
                 </button>
-
                 <button v-else @click="applyLinuxHostFirewall" :disabled="applyingLinuxFirewall"
-
-                  class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-950/90 via-blue-950/90 to-indigo-950/90 hover:from-cyan-900/90 hover:to-indigo-900/90 border border-cyan-500/50 hover:border-cyan-400 text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 active:scale-98 disabled:opacity-50 cursor-pointer">
-
+                  class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 border border-white/20 text-white text-xs sm:text-[13px] font-black transition flex items-center justify-center gap-2 shadow-lg shadow-sky-500/30 active:scale-98 disabled:opacity-50 cursor-pointer"
+                  title="一键全栈自愈：自动加固 Linux / 飞牛 / PVE 宿主底层内核转发、ARP 放行与防死锁规则">
                   <span v-if="applyingLinuxFirewall" class="inline-block animate-spin text-sm">↻</span>
-
-                  <span v-else class="text-base text-emerald-300">⚡</span>
-
-                  <span>一键全栈自愈 {{ hostBadge.name }}</span>
-
+                  <span v-else class="text-base">🛡️</span>
+                  <span>一键联动伴生 Linux 防火墙</span>
                 </button>
 
-
-
-                <!-- 2. 混合双宿主协同辅助入口 (与左侧严格等宽等高，统一视觉) -->
-
-                <!-- 非当前宿主安全冻结 (根据宿主探针智能防误触与避免脏规则) -->
-
+                <!-- 2. 混合双宿主协同辅助入口 -->
                 <button v-if="isRouterOS" disabled
-
                   class="h-12 py-3 px-4 rounded-xl bg-slate-950/60 border border-slate-800/80 text-slate-300 text-xs sm:text-[13px] font-bold flex items-center justify-center gap-2 shadow-inner opacity-50 cursor-not-allowed select-none"
-
                   title="🔒 安全冻结：当前运行在 MikroTik RouterOS 容器宿主底座，Linux 宿主防火墙联动已智能锁定，无需且不可执行">
-
                   <span class="text-sm">🔒</span>
-
                   <span>Linux 宿主防火墙 (非当前宿主 · 安全冻结)</span>
-
                 </button>
-
                 <button v-else-if="isRosConnected" @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
-
                   class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-slate-900/90 to-slate-950/90 hover:from-slate-800/90 hover:to-slate-900/90 border border-slate-700/80 hover:border-cyan-500/50 text-slate-200 hover:text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-md active:scale-98 cursor-pointer"
-
                   title="上级主路由 MikroTik RouterOS REST 已连通，可协同加固主路由策略路由与逃生探针">
-
                   <span v-if="cleaningRosFirewall" class="inline-block animate-spin text-sm">↻</span>
-
                   <span v-else class="text-base text-emerald-300">📶</span>
-
                   <span>联动 RouterOS 主路由</span>
-
                 </button>
-
                 <button v-else disabled
-
                   class="h-12 py-3 px-4 rounded-xl bg-slate-950/60 border border-slate-800/80 text-slate-300 text-xs sm:text-[13px] font-bold flex items-center justify-center gap-2 shadow-inner opacity-50 cursor-not-allowed select-none"
-
                   title="🔒 安全冻结：当前运行在 Linux/PVE 宿主底座，未配置上级 RouterOS REST 凭据，已智能锁定">
-
                   <span class="text-sm">🔒</span>
-
                   <span>RouterOS 策略路由 (非当前宿主 · 安全冻结)</span>
-
                 </button>
 
-
-
-                <!-- 3. 爱快 Docker 插件开箱部署参数助手 (仅当前宿主为爱快时启用，非爱快宿主安全冻结) -->
-
+                <!-- 3. 爱快 Docker 插件开箱部署参数助手 -->
                 <button v-if="isIKuai" @click="openIkuaiDockerModal"
-
                   class="h-12 py-3 px-4 rounded-xl bg-gradient-to-r from-teal-950/90 via-emerald-950/90 to-cyan-950/90 hover:from-teal-900/90 hover:to-cyan-900/90 border border-teal-500/50 hover:border-teal-400 text-teal-200 hover:text-white text-xs sm:text-[13px] font-extrabold transition flex items-center justify-center gap-2 shadow-lg shadow-teal-950/40 active:scale-98 cursor-pointer"
-
                   title="打开爱快 Docker 插件应用 1 分钟开箱部署助手，支持各字段独立复制、Docker Run 与 Compose 命令行一键生成">
-
                   <span class="text-base text-emerald-300">🐬</span>
-
                   <span>爱快 Docker 1分钟开箱参数</span>
-
                 </button>
-
                 <button v-else disabled
-
                   class="h-12 py-3 px-4 rounded-xl bg-slate-950/60 border border-slate-800/80 text-slate-300 text-xs sm:text-[13px] font-bold flex items-center justify-center gap-2 shadow-inner opacity-50 cursor-not-allowed select-none"
-
                   :title="`🔒 安全冻结：当前运行在 ${hostBadge.name} 宿主底座，非爱快 iKuai 平台已智能锁定`">
-
                   <span class="text-sm">🔒</span>
-
                   <span>爱快 Docker 参数 (非当前宿主 · 安全冻结)</span>
-
                 </button>
-
               </div>
-
-
 
               <!-- 实时执行反馈卡片 (Inline Execution Feedback Card) -->
-
               <div v-if="hostLastExecution.title" class="mt-3 p-3.5 rounded-xl border border-cyan-500/40 bg-gradient-to-r from-[#001f3f]/80 to-[#00172e]/90 text-xs text-slate-200 animate-in fade-in space-y-2 shadow-lg">
-
                 <div class="flex items-center justify-between">
-
                   <div class="flex items-center gap-2 font-bold" :class="hostLastExecution.success ? 'text-emerald-300' : 'text-amber-300'">
-
                     <span>{{ hostLastExecution.success ? '✅' : '⚠️' }}</span>
-
                     <span>{{ hostLastExecution.title }}</span>
-
                     <span class="text-[10px] text-slate-400 font-mono font-normal">({{ hostLastExecution.time }})</span>
-
                   </div>
-
                   <button @click="openExecutionModalFromLast" class="text-[11px] text-emerald-300 hover:text-emerald-200 underline cursor-pointer">
-
                     查看执行报告 ({{ hostLastExecution.actions.length }} 项)
-
                   </button>
-
                 </div>
-
                 <p class="text-xs text-slate-300 leading-relaxed">{{ hostLastExecution.message }}</p>
-
               </div>
-
             </div>
-
           </div>
-
-
 
           <!-- 📡 OpenWrt / ImmortalWrt 宿主共生智能大屏 (UBUS / SSH 双通道探针驾驶舱) -->
           <div v-if="isOpenWrt || (hostBadge.shortName && (hostBadge.shortName.includes('OpenWrt') || hostBadge.shortName.includes('LEDE')))"
-            class="p-5 sm:p-6 rounded-2xl macos-glass-card border border-sky-500/30 space-y-4 relative overflow-hidden animate-in fade-in">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
-              <div class="flex items-center gap-3">
-                <img src="/host-openwrt.svg" class="w-7 h-7 object-contain drop-shadow" alt="OpenWrt" />
-                <div>
-                  <h4 class="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
-                    <span>OpenWrt / ImmortalWrt 智能路由底座大屏</span>
-                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full" :class="openwrtStatus.connected ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-400 border border-slate-700'">
-                      {{ openwrtStatus.connected ? '● UBUS/SSH 探针在线' : '○ 待探活巡检' }}
-                    </span>
-                  </h4>
-                  <p class="text-xs text-slate-400 mt-0.5">原生 UBUS JSON-RPC 与 Dropbear SSH 双通道深度感知 · 旁路静态回指与 DHCP 劫持防护</p>
-                </div>
+            class="p-6 sm:p-7 rounded-2xl sm:rounded-3xl macos-glass-card hover:border-sky-400/40 transition-all duration-300 space-y-5 group relative overflow-hidden">
+            <div class="flex items-center justify-between border-b border-cyan-500/20 pb-4">
+              <div class="flex items-center gap-2.5">
+                <ZootopiaIcon name="host-base" :size="22" class="shrink-0" />
+                <span class="font-extrabold text-white text-base">OpenWrt / LEDE 原生共生中枢</span>
+                <span :class="['text-[11px] font-mono px-2.5 py-0.5 rounded-full font-bold', openwrtStatus.connected ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-400']">
+                  {{ openwrtStatus.connected ? '● UBUS/SSH 探针在线' : '○ 待探活巡检' }}
+                </span>
               </div>
-              <div class="flex items-center gap-2">
-                <button @click="inspectOpenWrt" :disabled="inspectingOpenWrt" class="px-3.5 py-1.5 rounded-xl bg-sky-950/80 hover:bg-sky-900 border border-sky-500/40 text-sky-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
-                  <span v-if="inspectingOpenWrt" class="inline-block animate-spin">↻</span>
-                  <span v-else>📡</span>
-                  <span>深度探活巡检</span>
-                </button>
-                <button @click="applyOpenWrtDirect" :disabled="applyingOpenWrt" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 text-white text-xs font-black shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
-                  <span v-if="applyingOpenWrt" class="inline-block animate-spin">↻</span>
-                  <span v-else>⚡</span>
-                  <span>一键加固回指</span>
-                </button>
-              </div>
+              <button @click="probeOpenWrtHost" :disabled="probingOpenWrt"
+                class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
+                <span :class="{'inline-block animate-spin': probingOpenWrt}">↻</span>
+                <span>深度探活巡检</span>
+              </button>
             </div>
-
-            <!-- 4-Grid Status -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
               <div class="macos-sub-card p-3 rounded-xl">
-                <span class="text-slate-400 text-[11px] block">固件系统与版本</span>
-                <span class="text-emerald-300 font-extrabold text-xs sm:text-[13px] block mt-1 truncate" :title="openwrtStatus.release || hostInfo.os_name">
-                  {{ openwrtStatus.release || hostInfo.os_name || 'OpenWrt 智能路由' }}
+                <span class="text-slate-400 text-[11px] block">底座硬件型号</span>
+                <span class="text-emerald-300 font-extrabold text-xs sm:text-[13px] block mt-1 truncate" :title="openwrtStatus.model">
+                  {{ openwrtStatus.model || 'OpenWrt 兼容设备' }}
                 </span>
                 <span class="text-[10px] text-slate-400 font-mono mt-0.5 block truncate">
                   {{ openwrtStatus.model || '标准软路由平台' }}
@@ -6626,306 +6473,8 @@
             </div>
           </div>
 
-          <!-- 🧭 方向一：【主旁合一 · 物理主路由全景透视驾驶舱与全家设备单键分流控制台】 -->
-          <div class="space-y-6">
 
-            <!-- 1. 物理主路由全景透视驾驶舱 (Router Panorama Cockpit) -->
-            <div class="macos-card p-5 sm:p-6 rounded-3xl space-y-5 border border-sky-500/25 bg-gradient-to-br from-[#001529]/95 via-[#00223e]/90 to-[#001020]/95 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-              <div class="absolute -right-20 -top-20 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
-              <div class="absolute -left-20 -bottom-20 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-              <!-- 驾驶舱头部 -->
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4 relative z-10">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-500 to-teal-400 p-0.5 shadow-lg shadow-sky-500/20 shrink-0">
-                    <div class="w-full h-full bg-[#001e38] rounded-[14px] flex items-center justify-center text-xl">
-                      🧭
-                    </div>
-                  </div>
-                  <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <h3 class="text-base sm:text-lg font-black text-white tracking-wide">物理主路由全景透视驾驶舱</h3>
-                      <span :class="['text-[11px] font-mono px-2.5 py-0.5 rounded-full font-bold shadow-sm flex items-center gap-1.5', routerHW.connected ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40']">
-                        <span :class="['w-2 h-2 rounded-full', routerHW.connected ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_#10b981]' : 'bg-amber-400']"></span>
-                        <span>{{ routerHW.connected ? 'REST API 实时直通' : '主路由连接中' }}</span>
-                      </span>
-                    </div>
-                    <p class="text-xs text-slate-300 mt-1">
-                      {{ routerHW.model ? `${routerHW.model} · MikroTik RouterOS ${routerHW.ros_version || 'v7'}` : '直连上级主路由物理硬件底层 · 实时采集 CPU / 芯片温度 / WAN IP 与端口协商' }}
-                    </p>
-                  </div>
-                </div>
-
-                <div class="flex items-center gap-2 self-start sm:self-auto">
-                  <button @click="fetchRouterHardware(false)" :disabled="fetchingRouterHW"
-                    class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-slate-200 hover:text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
-                    <span :class="{'inline-block animate-spin': fetchingRouterHW}">↻</span>
-                    <span>{{ fetchingRouterHW ? '遥测采集...' : '刷新遥测' }}</span>
-                  </button>
-                  <a v-if="routerHW.lan_ip" :href="`http://${routerHW.lan_ip}`" target="_blank"
-                    class="px-3.5 py-1.5 rounded-xl bg-sky-600/30 hover:bg-sky-500/40 border border-sky-400/40 text-sky-200 hover:text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm">
-                    <span>↗</span>
-                    <span>打开主路由 Web</span>
-                  </a>
-                </div>
-              </div>
-
-              <!-- 四大核心遥测指标卡 -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 relative z-10">
-                <!-- 1. CPU 核心与动态负载 -->
-                <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-sky-400/30 transition shadow-inner">
-                  <div class="flex items-center justify-between text-[11px] text-slate-300">
-                    <span class="flex items-center gap-1.5">
-                      <span>⚡</span> <span>CPU 负载与算力</span>
-                    </span>
-                    <span class="font-mono text-cyan-300 font-bold">{{ routerHW.cpu_frequency ? `${routerHW.cpu_frequency} MHz` : '动态调频' }}</span>
-                  </div>
-                  <div class="mt-2 flex items-baseline justify-between">
-                    <span class="text-2xl font-black text-white font-mono tracking-tight">{{ routerHW.cpu_load || 0 }}<span class="text-xs text-slate-400 font-normal">%</span></span>
-                    <span class="text-[11px] text-slate-300">{{ routerHW.cpu_count || 1 }} 核心 · {{ routerHW.cpu || 'x86/ARM' }}</span>
-                  </div>
-                  <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-2">
-                    <div class="h-full rounded-full transition-all duration-500"
-                      :class="(routerHW.cpu_load || 0) > 80 ? 'bg-rose-500' : (routerHW.cpu_load || 0) > 40 ? 'bg-amber-400' : 'bg-gradient-to-r from-sky-400 to-emerald-400'"
-                      :style="{ width: Math.max(3, routerHW.cpu_load || 0) + '%' }"></div>
-                  </div>
-                </div>
-
-                <!-- 2. 物理内存使用基线 -->
-                <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-sky-400/30 transition shadow-inner">
-                  <div class="flex items-center justify-between text-[11px] text-slate-300">
-                    <span class="flex items-center gap-1.5">
-                      <span>🧠</span> <span>主路由内存基线</span>
-                    </span>
-                    <span class="font-mono text-emerald-300 font-bold">{{ routerHW.memory_used_pct || 0 }}%</span>
-                  </div>
-                  <div class="mt-2 flex items-baseline justify-between">
-                    <span class="text-lg font-black text-white font-mono tracking-tight">
-                      {{ formatBytes(routerHW.total_memory - routerHW.free_memory) }}
-                    </span>
-                    <span class="text-[11px] text-slate-300">/ {{ formatBytes(routerHW.total_memory) }}</span>
-                  </div>
-                  <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-2">
-                    <div class="bg-gradient-to-r from-emerald-500 to-cyan-400 h-full rounded-full transition-all duration-500"
-                      :style="{ width: Math.max(3, routerHW.memory_used_pct || 0) + '%' }"></div>
-                  </div>
-                </div>
-
-                <!-- 3. 外网 WAN 拨号与真实公网 -->
-                <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-sky-400/30 transition shadow-inner">
-                  <div class="flex items-center justify-between text-[11px] text-slate-300">
-                    <span class="flex items-center gap-1.5">
-                      <span>🌐</span> <span>外网 WAN 拨号 IP</span>
-                    </span>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">{{ routerHW.wan_interface || 'WAN' }}</span>
-                  </div>
-                  <div class="mt-2 flex items-baseline justify-between">
-                    <span class="text-base font-bold text-cyan-300 font-mono truncate" :title="routerHW.wan_ip || '未获取'">
-                      {{ routerHW.wan_ip || '获取中...' }}
-                    </span>
-                  </div>
-                  <div class="text-[10px] text-slate-400 font-mono mt-1.5 truncate">
-                    内网网关: {{ routerHW.lan_ip || '10.0.0.1' }} ({{ routerHW.lan_interface || 'bridge1' }})
-                  </div>
-                </div>
-
-                <!-- 4. 固件健康与连续运行时间 -->
-                <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 hover:border-sky-400/30 transition shadow-inner">
-                  <div class="flex items-center justify-between text-[11px] text-slate-300">
-                    <span class="flex items-center gap-1.5">
-                      <span>⏱️</span> <span>运行时间 & 健康度</span>
-                    </span>
-                    <span v-if="routerHW.temperature" class="font-mono text-emerald-400 font-bold">{{ routerHW.temperature }}°C</span>
-                    <span v-else class="text-[10px] text-emerald-400 font-bold">● 状态平稳</span>
-                  </div>
-                  <div class="mt-2">
-                    <span class="text-sm font-bold text-white font-mono">{{ routerHW.uptime || '1d 0h 0m' }}</span>
-                  </div>
-                  <div class="text-[10px] text-slate-400 font-mono mt-1.5 truncate">
-                    固件: {{ routerHW.ros_version || 'RouterOS v7' }} · {{ routerHW.architecture || 'x86_64' }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- 物理以太网端口协商矩阵 (Port Matrix) -->
-              <div v-if="routerHW.interfaces && routerHW.interfaces.length > 0" class="pt-3 border-t border-white/10 space-y-2.5 relative z-10">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                    <span>🔌</span> <span>物理网口协商阵列 (2.5G/万兆全双工硬件级透视)</span>
-                  </span>
-                  <span class="text-[11px] text-slate-400 font-mono">{{ routerHW.interfaces.length }} 物理端口</span>
-                </div>
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
-                  <div v-for="iface in routerHW.interfaces" :key="iface.name"
-                    class="p-2.5 rounded-xl border transition flex flex-col justify-between"
-                    :class="iface.running ? 'bg-sky-950/30 border-sky-500/40 hover:border-sky-400' : 'bg-white/5 border-white/10 opacity-60'">
-                    <div class="flex items-center justify-between">
-                      <span class="font-bold text-xs font-mono text-white">{{ iface.name }}</span>
-                      <span :class="['w-2 h-2 rounded-full', iface.running ? 'bg-emerald-400 shadow-[0_0_6px_#10b981]' : 'bg-slate-600']"></span>
-                    </div>
-                    <div class="mt-2">
-                      <span class="text-[11px] font-bold block truncate" :class="iface.running ? 'text-cyan-300' : 'text-slate-500'">
-                        {{ iface.speed || (iface.running ? 'Link OK' : '断开') }}
-                      </span>
-                      <span class="text-[10px] text-slate-400 font-mono block truncate">
-                        {{ iface.running ? (iface.full_duplex ? '全双工 (FD)' : '半双工') : '未连线' }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 2. 全家设备单键分流控制台 (LAN Device Switchboard) -->
-            <div class="macos-card p-5 sm:p-6 rounded-3xl space-y-5 border border-sky-500/25 bg-gradient-to-br from-[#001529]/95 via-[#00223e]/90 to-[#001020]/95 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-              <!-- 控制台头部工具栏 -->
-              <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-4">
-                <div>
-                  <div class="flex items-center gap-2.5 flex-wrap">
-                    <h3 class="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
-                      <span>🎛️</span>
-                      <span>全家设备单键分流控制台</span>
-                    </h3>
-                    <span class="px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[11px] font-bold">
-                      0秒免改网关 · 策略路由打标
-                    </span>
-                  </div>
-                  <p class="text-xs text-slate-300 mt-1">
-                    全家终端设备一键秒级切换【CubeX 旁路极速加速】或【主路由原生物理直连】，断电0秒逃生坚如磐石
-                  </p>
-                </div>
-
-                <!-- 统计徽章与批量操作按钮 -->
-                <div class="flex items-center gap-2 flex-wrap">
-                  <div class="flex items-center gap-1.5 text-xs font-mono mr-2">
-                    <span class="px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
-                      ⚡ 旁路加速中: {{ proxiedClientsCount }} 台
-                    </span>
-                    <span class="px-2.5 py-1 rounded-xl bg-white/10 text-slate-300 border border-white/15">
-                      🛡️ 原生直连: {{ directClientsCount }} 台
-                    </span>
-                  </div>
-
-                  <button @click="batchSetClients('all_proxy')" :disabled="batchProcessingClients"
-                    class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-xs shadow-md shadow-emerald-500/20 active:scale-95 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
-                    <span>⚡ 一键全家旁路加速</span>
-                  </button>
-
-                  <button @click="batchSetClients('all_direct')" :disabled="batchProcessingClients"
-                    class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-200 hover:text-white font-bold text-xs active:scale-95 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
-                    <span>🏠 一键全体直连</span>
-                  </button>
-
-                  <button @click="fetchLanClients(false)" :disabled="fetchingClients"
-                    class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-slate-300 hover:text-white transition cursor-pointer"
-                    title="刷新局域网设备列表">
-                    <span :class="{'inline-block animate-spin': fetchingClients}">↻</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- 搜索与分类过滤器 -->
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="flex items-center gap-1.5 bg-black/40 border border-white/10 rounded-xl p-1 text-xs">
-                  <button @click="clientFilterMode = 'all'"
-                    :class="['px-3 py-1 rounded-lg transition font-medium', clientFilterMode === 'all' ? 'bg-sky-500 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
-                    全部 ({{ lanClients.length }})
-                  </button>
-                  <button @click="clientFilterMode = 'proxy'"
-                    :class="['px-3 py-1 rounded-lg transition font-medium', clientFilterMode === 'proxy' ? 'bg-emerald-500 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
-                    ⚡ 旁路中 ({{ proxiedClientsCount }})
-                  </button>
-                  <button @click="clientFilterMode = 'direct'"
-                    :class="['px-3 py-1 rounded-lg transition font-medium', clientFilterMode === 'direct' ? 'bg-sky-700 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
-                    🛡️ 直连中 ({{ directClientsCount }})
-                  </button>
-                  <button @click="clientFilterMode = 'online'"
-                    :class="['px-3 py-1 rounded-lg transition font-medium', clientFilterMode === 'online' ? 'bg-cyan-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
-                    🟢 在线
-                  </button>
-                </div>
-
-                <div class="relative sm:w-64">
-                  <input v-model="clientSearchQuery" type="text" placeholder="搜索设备名 / IP / MAC..."
-                    class="w-full px-3 py-1.5 pl-8 rounded-xl bg-black/40 border border-white/15 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-400 transition" />
-                  <span class="absolute left-2.5 top-2 text-xs text-slate-500">🔍</span>
-                  <button v-if="clientSearchQuery" @click="clientSearchQuery = ''" class="absolute right-2.5 top-1.5 text-xs text-slate-400 hover:text-white">✕</button>
-                </div>
-              </div>
-
-              <!-- 全家设备卡片流 (Grid) -->
-              <div v-if="filteredLanClients.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                <div v-for="dev in filteredLanClients" :key="dev.mac || dev.ip"
-                  class="p-4 rounded-2xl border transition-all duration-300 relative group flex flex-col justify-between"
-                  :class="dev.is_proxied ? 'bg-gradient-to-br from-emerald-950/40 to-teal-950/30 border-emerald-500/40 shadow-lg shadow-emerald-950/20' : 'bg-white/5 border-white/10 hover:border-white/20'">
-
-                  <!-- 设备头部：图标、名称、在线状态 -->
-                  <div class="flex items-start gap-3">
-                    <span class="text-2xl p-2 rounded-xl bg-black/40 border border-white/10 shrink-0">
-                      {{ getDeviceIcon(dev) }}
-                    </span>
-                    <div class="min-w-0 flex-1">
-                      <!-- 名称与就地编辑 -->
-                      <div v-if="editingClientMAC === dev.mac && dev.mac !== '-'" class="flex items-center gap-1.5">
-                        <input v-model="editingClientName" @keyup.enter="saveClientAlias(dev)" @keyup.esc="editingClientMAC = ''"
-                          class="w-full px-2 py-0.5 rounded-lg bg-black/60 border border-sky-400 text-xs text-white focus:outline-none font-bold" />
-                        <button @click="saveClientAlias(dev)" class="px-2 py-0.5 rounded-lg bg-sky-500 text-white text-xs font-bold">✓</button>
-                        <button @click="editingClientMAC = ''" class="px-2 py-0.5 rounded-lg bg-white/10 text-slate-300 text-xs">✕</button>
-                      </div>
-                      <div v-else class="flex items-center justify-between gap-1">
-                        <div class="font-black text-sm text-white truncate flex items-center gap-1.5" :title="dev.name">
-                          <span>{{ dev.name }}</span>
-                          <span v-if="dev.is_custom" class="text-[10px] text-amber-300 font-normal">✎</span>
-                        </div>
-                        <button @click="editingClientMAC = dev.mac; editingClientName = dev.name"
-                          class="opacity-0 group-hover:opacity-100 text-[11px] text-slate-400 hover:text-sky-300 transition shrink-0 p-0.5">
-                          编辑备注
-                        </button>
-                      </div>
-
-                      <!-- IP 与 MAC 地址 -->
-                      <div class="text-[11px] font-mono text-slate-400 flex items-center gap-2 mt-1">
-                        <span class="text-cyan-300">{{ dev.ip }}</span>
-                        <span class="text-slate-600">·</span>
-                        <span class="text-slate-400 truncate">{{ dev.mac || '未知 MAC' }}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- 分隔线与分流控制 Toggle 开关 -->
-                  <div class="pt-3.5 mt-3.5 border-t border-white/10 flex items-center justify-between">
-                    <div>
-                      <div class="text-xs font-bold flex items-center gap-1.5" :class="dev.is_proxied ? 'text-emerald-300' : 'text-slate-300'">
-                        <span>{{ dev.is_proxied ? '⚡ 旁路加速生效中' : '🛡️ 主路由直连' }}</span>
-                      </div>
-                      <div class="text-[10px] text-slate-400 font-mono mt-0.5">
-                        {{ dev.is_proxied ? '走 CubeX 10.0.0.7 双核分流' : '走主路由默认物理网关直出' }}
-                      </div>
-                    </div>
-
-                    <!-- 交互开关按钮 -->
-                    <button @click="toggleClientProxy(dev)" :disabled="togglingClientIP === dev.ip"
-                      class="px-3 py-1.5 rounded-xl font-black text-xs transition-all duration-300 flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95 disabled:opacity-50"
-                      :class="dev.is_proxied ? 'bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 shadow-emerald-500/25' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/15'">
-                      <span v-if="togglingClientIP === dev.ip" class="inline-block animate-spin text-xs">↻</span>
-                      <span v-else>{{ dev.is_proxied ? '✓ 旁路加速' : '○ 直连模式' }}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 空状态提示 -->
-              <div v-else class="text-center py-10 space-y-2 text-slate-400">
-                <div class="text-3xl">🔍</div>
-                <div class="text-sm font-bold text-slate-300">未找到匹配的局域网终端</div>
-                <div class="text-xs text-slate-500">点击右上角刷新，或清除搜索条件</div>
-              </div>
-            </div>
-
-          </div>
-
-
-          <!-- 🚀 四维版本在线检查与升级 -->
+<!-- 🚀 四维版本在线检查与升级 -->
 
           <div class="space-y-4">
 
@@ -7083,9 +6632,9 @@
 
                   <div class="flex items-center justify-between">
 
-                    <span>当前运行: <strong class="text-sky-200 font-black text-sm">{{ systemOverview.cubex_version || 'Test v6.1' }}</strong></span>
+                    <span>当前运行: <strong class="text-sky-200 font-black text-sm">{{ systemOverview.cubex_version || 'Test v6.3' }}</strong></span>
 
-                    <span class="text-slate-400">云端最新: <span class="text-slate-200 font-semibold">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v6.1' }}</span></span>
+                    <span class="text-slate-400">云端最新: <span class="text-slate-200 font-semibold">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v6.3' }}</span></span>
 
                   </div>
 
@@ -10613,7 +10162,7 @@
 
                 <span>当前运行:</span>
 
-                <strong class="text-emerald-300">{{ systemOverview.cubex_version || 'Test v6.1' }}</strong>
+                <strong class="text-emerald-300">{{ systemOverview.cubex_version || 'Test v6.3' }}</strong>
 
               </div>
 
@@ -10621,7 +10170,7 @@
 
                 <span>云端 Release:</span>
 
-                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v6.1' }}</span>
+                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v6.3' }}</span>
 
               </div>
 
@@ -15019,11 +14568,11 @@ const hostConfig = ref({
 
 const systemOverview = ref({
 
-  cubex_version: 'Test v6.1',
+  cubex_version: 'Test v6.3',
 
-  panel_curr_version: 'Test v6.1',
+  panel_curr_version: 'Test v6.3',
 
-  panel_latest_version: 'Test v6.1',
+  panel_latest_version: 'Test v6.3',
 
   mihomo_curr_version: 'v1.19.33',
 
@@ -15827,6 +15376,7 @@ async function uploadToGithubIssue() {
 
 // ── LAN Devices (Per-Device Matrix) ──
 // ── 方向一：主路由全景透视驾驶舱与全家设备分流状态 ──
+const showHostCredentialsDeck = ref(false)
 const routerHW = ref({
   connected: false,
   model: '',
@@ -16040,7 +15590,7 @@ function triggerQuickAIPrompt(prompt) {
 
 const systemStatus = ref({
 
-  version: 'Test v6.1',
+  version: 'Test v6.3',
 
   uptime_seconds: 1420,
 
@@ -17456,9 +17006,9 @@ function inferPacketRoute(input) {
 
       rule: 'GEOSITE, cn / GEOIP, CN, DIRECT (国内直连)',
 
-      group: '🇨🇳 国内直连',
+      group: '国内直连',
 
-      node: '🇨🇳 本地直连出站 (DIRECT - 真实公网IP直出)'
+      node: '本地直连出站 (DIRECT - 真实公网IP直出)'
 
     }
 
@@ -17476,7 +17026,7 @@ function inferPacketRoute(input) {
 
     if (sel) {
 
-      if (sel === 'DIRECT' || sel.includes('直连')) return '🇨🇳 本地直连 (DIRECT)'
+      if (sel === 'DIRECT' || sel.includes('直连')) return '本地直连 (DIRECT)'
 
       if (sel === 'REJECT' || sel.includes('拒绝')) return '🛑 规则拦截 (REJECT)'
 
@@ -17644,70 +17194,48 @@ function inferPacketRoute(input) {
 
 // 递归向下解析策略组或节点名，直达真实的物理代理节点 (或 DIRECT / REJECT)
 
+const actualProxyNodeCache = new Map()
+
 function resolveActualProxyNode(name, depth = 0) {
-
   if (!name || depth > 8) return ''
-
   const trimmed = name.trim()
-
+  if (depth === 0 && actualProxyNodeCache.has(trimmed)) {
+    return actualProxyNodeCache.get(trimmed)
+  }
   if (trimmed === 'DIRECT' || trimmed.includes('直连')) {
-
-    return '🇨🇳 本地直连出站 (DIRECT)'
-
+    return '本地直连出站 (DIRECT)'
   }
-
   if (trimmed === 'REJECT' || trimmed.includes('拦截')) {
-
-    return '🛑 规则拦截 (REJECT)'
-
+    return '规则拦截 (REJECT)'
   }
-
-
 
   // 1. 如果匹配策略组，则顺着策略组当前选中的出站继续向下解析
-
   const grp = (ir.value.groups || []).find(g => g.name === trimmed || g.name.toLowerCase() === trimmed.toLowerCase())
-
   if (grp) {
-
     const nextTarget = grp.now || (grp.proxies && grp.proxies.length > 0 ? grp.proxies[0] : '')
-
     if (nextTarget && nextTarget !== trimmed) {
-
-      return resolveActualProxyNode(nextTarget, depth + 1)
-
+      const res = resolveActualProxyNode(nextTarget, depth + 1)
+      if (depth === 0) actualProxyNodeCache.set(trimmed, res)
+      return res
     }
-
   }
-
-
 
   // 2. 检查是否直接精确匹配真实代理节点
-
   const exactProxy = (ir.value.proxies || []).find(p => p.name === trimmed && p.type !== 'direct' && p.type !== 'block' && p.type !== 'reject')
-
   if (exactProxy) {
-
+    if (depth === 0) actualProxyNodeCache.set(trimmed, exactProxy.name)
     return exactProxy.name
-
   }
-
-
 
   // 3. 模糊匹配代理节点
-
   const partialProxy = (ir.value.proxies || []).find(p => p.name.includes(trimmed) && p.type !== 'direct' && p.type !== 'block' && p.type !== 'reject')
-
   if (partialProxy) {
-
+    if (depth === 0) actualProxyNodeCache.set(trimmed, partialProxy.name)
     return partialProxy.name
-
   }
 
-
-
+  if (depth === 0) actualProxyNodeCache.set(trimmed, trimmed)
   return trimmed
-
 }
 
 
@@ -17728,7 +17256,7 @@ const currentBenchmarkRoute = computed(() => {
 
   if (targetGroup === 'DIRECT' || targetGroup.includes('直连')) {
 
-    targetGroup = '🇨🇳 本地直连 (DIRECT)'
+    targetGroup = '本地直连 (DIRECT)'
 
   } else if (targetGroup === 'REJECT' || targetGroup.includes('拦截')) {
 
@@ -17936,7 +17464,7 @@ async function runDualCoreDiagnose() {
 
       dualCoreHealthy.value = true
 
-      const rosTag = data.ros_version ? ` | 宿主: ROS v${data.ros_version}` : ''; showToast(`🎉【全息体检 100% 健康】核心: ${data.active_engine} | 直连: ${data.direct_latency_ms}ms | 代理: ${data.proxy_latency_ms}ms | DNS: ${data.fakeip_address} | 宿主回指: 正常就绪${rosTag}！`)
+      const rosTag = data.ros_version ? ` | 宿主: ROS v${data.ros_version}` : ''; showToast(`🎉【全息体检 100% 健康】核心: ${data.active_engine} |直连: ${data.direct_latency_ms}ms | 代理: ${data.proxy_latency_ms}ms | DNS: ${data.fakeip_address} | 宿主回指: 正常就绪${rosTag}！`)
 
     } else {
 
@@ -18756,7 +18284,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
     } else if (data.status === 'already_latest') {
 
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v6.1'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v6.3'})`)
 
     } else {
 
@@ -18804,7 +18332,7 @@ async function upgradePanel(force = false) {
 
       const timeStr = new Date().toLocaleTimeString()
 
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v6.1'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v6.3'})，无需重复更新。`
 
       showToast(data.message || 'CubeX 系统已是最新版本')
 
@@ -18890,7 +18418,7 @@ function openGitHubIssuePrompt() {
 
 - 系统架构：${systemOverview.value?.arch || 'amd64'}
 
-- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v6.1'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v6.3'}
 
 - 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
 
@@ -19986,23 +19514,23 @@ async function triggerHotRestart() {
 
 
 
-// ── Region Clusters & Strategies (Default 8 Regions: 香港, 台湾, 日本, 韩国, 新加坡, 美国, 自建, 其它) ──
+// ── Region Clusters & Strategies (Default 8 Regions: 香港, 台湾,日本, 韩国, 新加坡, 美国, 自建, 其它) ──
 
 // 严格遵循排序：地区自动，地区故转，地区容灾 (各地区组支持拖拽排序与自定义订阅源订阅分组)
 
 const defaultRegionDefs = [
 
-  { id: 'HK', country_code: 'HK', name: '香港', flag: '🇭🇰', auto: '🇭🇰 香港自动', fall: '🇭🇰 香港故转', disaster: '🇭🇰 香港容灾', regex: /(港|hk|hong kong)/i, type: 'region' },
+  { id: 'HK', country_code: 'HK', name: '香港', flag: 'CODE', auto: '香港自动', fall: '香港故转', disaster: '香港容灾', regex: /(港|hk|hong kong)/i, type: 'region' },
 
-  { id: 'TW', country_code: 'TW', name: '台湾', flag: '🇹🇼', auto: '🇹🇼 台湾自动', fall: '🇹🇼 台湾故转', disaster: '🇹🇼 台湾容灾', regex: /(台|tw|taiwan)/i, type: 'region' },
+  { id: 'TW', country_code: 'TW', name: '台湾', flag: 'CODE', auto: '台湾自动', fall: '台湾故转', disaster: '台湾容灾', regex: /(台|tw|taiwan)/i, type: 'region' },
 
-  { id: 'JP', country_code: 'JP', name: '日本', flag: '🇯🇵', auto: '🇯🇵 日本自动', fall: '🇯🇵 日本故转', disaster: '🇯🇵 日本容灾', regex: /(日|jp|japan|东京|大阪)/i, type: 'region' },
+  { id: 'JP', country_code: 'JP', name: '日本', flag: 'CODE', auto: '日本自动', fall: '日本故转', disaster: '日本容灾', regex: /(日|jp|japan|东京|大阪)/i, type: 'region' },
 
-  { id: 'KR', country_code: 'KR', name: '韩国', flag: '🇰🇷', auto: '🇰🇷 韩国自动', fall: '🇰🇷 韩国故转', disaster: '🇰🇷 韩国容灾', regex: /(韩|kr|korea|首尔)/i, type: 'region' },
+  { id: 'KR', country_code: 'KR', name: '韩国', flag: 'CODE', auto: '韩国自动', fall: '韩国故转', disaster: '韩国容灾', regex: /(韩|kr|korea|首尔)/i, type: 'region' },
 
-  { id: 'SG', country_code: 'SG', name: '新加坡', flag: '🇸🇬', auto: '🇸🇬 新加坡自动', fall: '🇸🇬 新加坡故转', disaster: '🇸🇬 新加坡容灾', regex: /(新|sg|singapore|狮城)/i, type: 'region' },
+  { id: 'SG', country_code: 'SG', name: '新加坡', flag: 'CODE', auto: '新加坡自动', fall: '新加坡故转', disaster: '新加坡容灾', regex: /(新|sg|singapore|狮城)/i, type: 'region' },
 
-  { id: 'US', country_code: 'US', name: '美国', flag: '🇺🇸', auto: '🇺🇸 美国自动', fall: '🇺🇸 美国故转', disaster: '🇺🇸 美国容灾', regex: /(美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯)/i, type: 'region' },
+  { id: 'US', country_code: 'US', name: '美国', flag: 'CODE', auto: '美国自动', fall: '美国故转', disaster: '美国容灾', regex: /(美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯)/i, type: 'region' },
 
   { id: 'CUSTOM', country_code: 'CUSTOM', name: '自建', flag: '🏠', auto: '🏠 自建自动', fall: '🏠 自建故转', disaster: '🏠 自建容灾', regex: null, type: 'custom' },
 
@@ -20016,67 +19544,67 @@ const defaultRegionDefs = [
 
 const availableCountryPresets = [
 
-  { code: 'GB', name: '英国', flag: '🇬🇧', keywords: '英|uk|gb|britain|london|伦敦' },
+  { code: 'GB', name: '英国', flag: 'CODE', keywords: '英|uk|gb|britain|london|伦敦' },
 
-  { code: 'DE', name: '德国', flag: '🇩🇪', keywords: '德|de|germany|deutschland|法兰克福|柏林' },
+  { code: 'DE', name: '德国', flag: 'CODE', keywords: '德|de|germany|deutschland|法兰克福|柏林' },
 
-  { code: 'FR', name: '法国', flag: '🇫🇷', keywords: '法|fr|france|paris|巴黎' },
+  { code: 'FR', name: '法国', flag: 'CODE', keywords: '法|fr|france|paris|巴黎' },
 
-  { code: 'CA', name: '加拿大', flag: '🇨🇦', keywords: '加|ca|canada|温哥华|多伦多|蒙特利尔' },
+  { code: 'CA', name: '加拿大', flag: 'CODE', keywords: '加|ca|canada|温哥华|多伦多|蒙特利尔' },
 
-  { code: 'AU', name: '澳大利亚', flag: '🇦🇺', keywords: '澳|au|australia|悉尼|墨尔本' },
+  { code: 'AU', name: '澳大利亚', flag: 'CODE', keywords: '澳|au|australia|悉尼|墨尔本' },
 
-  { code: 'NL', name: '荷兰', flag: '🇳🇱', keywords: '荷|nl|netherlands|阿姆斯特丹' },
+  { code: 'NL', name: '荷兰', flag: 'CODE', keywords: '荷|nl|netherlands|阿姆斯特丹' },
 
-  { code: 'RU', name: '俄罗斯', flag: '🇷🇺', keywords: '俄|ru|russia|莫斯科|圣彼得堡' },
+  { code: 'RU', name: '俄罗斯', flag: 'CODE', keywords: '俄|ru|russia|莫斯科|圣彼得堡' },
 
-  { code: 'IN', name: '印度', flag: '🇮🇳', keywords: '印|in|india|孟买|德里' },
+  { code: 'IN', name: '印度', flag: 'CODE', keywords: '印|in|india|孟买|德里' },
 
-  { code: 'MY', name: '马来西亚', flag: '🇲🇾', keywords: '马|my|malaysia|吉隆坡' },
+  { code: 'MY', name: '马来西亚', flag: 'CODE', keywords: '马|my|malaysia|吉隆坡' },
 
-  { code: 'TH', name: '泰国', flag: '🇹🇭', keywords: '泰|th|thailand|曼谷' },
+  { code: 'TH', name: '泰国', flag: 'CODE', keywords: '泰|th|thailand|曼谷' },
 
-  { code: 'VN', name: '越南', flag: '🇻🇳', keywords: '越|vn|vietnam|胡志明|河内' },
+  { code: 'VN', name: '越南', flag: 'CODE', keywords: '越|vn|vietnam|胡志明|河内' },
 
-  { code: 'PH', name: '菲律宾', flag: '🇵🇭', keywords: '菲|ph|philippines|马尼拉' },
+  { code: 'PH', name: '菲律宾', flag: 'CODE', keywords: '菲|ph|philippines|马尼拉' },
 
-  { code: 'ID', name: '印尼', flag: '🇮🇩', keywords: '印尼|id|indonesia|雅加达' },
+  { code: 'ID', name: '印尼', flag: 'CODE', keywords: '印尼|id|indonesia|雅加达' },
 
-  { code: 'TR', name: '土耳其', flag: '🇹🇷', keywords: '土|tr|turkey|伊斯坦布尔' },
+  { code: 'TR', name: '土耳其', flag: 'CODE', keywords: '土|tr|turkey|伊斯坦布尔' },
 
-  { code: 'AR', name: '阿根廷', flag: '🇦🇷', keywords: '阿根廷|ar|argentina|布宜诺斯' },
+  { code: 'AR', name: '阿根廷', flag: 'CODE', keywords: '阿根廷|ar|argentina|布宜诺斯' },
 
-  { code: 'BR', name: '巴西', flag: '🇧🇷', keywords: '巴|br|brazil|圣保罗' },
+  { code: 'BR', name: '巴西', flag: 'CODE', keywords: '巴|br|brazil|圣保罗' },
 
-  { code: 'CH', name: '瑞士', flag: '🇨🇭', keywords: '瑞士|ch|switzerland|苏黎世' },
+  { code: 'CH', name: '瑞士', flag: 'CODE', keywords: '瑞士|ch|switzerland|苏黎世' },
 
-  { code: 'SE', name: '瑞典', flag: '🇸🇪', keywords: '瑞典|se|sweden|斯德哥尔摩' },
+  { code: 'SE', name: '瑞典', flag: 'CODE', keywords: '瑞典|se|sweden|斯德哥尔摩' },
 
-  { code: 'IT', name: '意大利', flag: '🇮🇹', keywords: '意|it|italy|米兰|罗马' },
+  { code: 'IT', name: '意大利', flag: 'CODE', keywords: '意|it|italy|米兰|罗马' },
 
-  { code: 'ES', name: '西班牙', flag: '🇪🇸', keywords: '西|es|spain|马德里' },
+  { code: 'ES', name: '西班牙', flag: 'CODE', keywords: '西|es|spain|马德里' },
 
-  { code: 'MO', name: '澳门', flag: '🇲🇴', keywords: '澳|mo|macau|macao|澳门' },
+  { code: 'MO', name: '澳门', flag: 'CODE', keywords: '澳|mo|macau|macao|澳门' },
 
-  { code: 'CN', name: '中国', flag: '🇨🇳', keywords: '中|cn|china|北京|上海|深圳|广州' },
+  { code: 'CN', name: '中国', flag: 'CODE', keywords: '中|cn|china|北京|上海|深圳|广州' },
 
-  { code: 'AE', name: '阿联酋', flag: '🇦🇪', keywords: '迪拜|ae|uae|dubai|阿布扎比' },
+  { code: 'AE', name: '阿联酋', flag: 'CODE', keywords: '迪拜|ae|uae|dubai|阿布扎比' },
 
-  { code: 'IE', name: '爱尔兰', flag: '🇮🇪', keywords: '爱尔兰|ie|ireland|都柏林' },
+  { code: 'IE', name: '爱尔兰', flag: 'CODE', keywords: '爱尔兰|ie|ireland|都柏林' },
 
-  { code: 'UA', name: '乌克兰', flag: '🇺🇦', keywords: '乌克兰|ua|ukraine|基辅' },
+  { code: 'UA', name: '乌克兰', flag: 'CODE', keywords: '乌克兰|ua|ukraine|基辅' },
 
-  { code: 'HK', name: '香港', flag: '🇭🇰', keywords: '港|hk|hong kong' },
+  { code: 'HK', name: '香港', flag: 'CODE', keywords: '港|hk|hong kong' },
 
-  { code: 'TW', name: '台湾', flag: '🇹🇼', keywords: '台|tw|taiwan' },
+  { code: 'TW', name: '台湾', flag: 'CODE', keywords: '台|tw|taiwan' },
 
-  { code: 'JP', name: '日本', flag: '🇯🇵', keywords: '日|jp|japan|东京|大阪' },
+  { code: 'JP', name: '日本', flag: 'CODE', keywords: '日|jp|japan|东京|大阪' },
 
-  { code: 'KR', name: '韩国', flag: '🇰🇷', keywords: '韩|kr|korea|首尔' },
+  { code: 'KR', name: '韩国', flag: 'CODE', keywords: '韩|kr|korea|首尔' },
 
-  { code: 'SG', name: '新加坡', flag: '🇸🇬', keywords: '新|sg|singapore|狮城' },
+  { code: 'SG', name: '新加坡', flag: 'CODE', keywords: '新|sg|singapore|狮城' },
 
-  { code: 'US', name: '美国', flag: '🇺🇸', keywords: '美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯' }
+  { code: 'US', name: '美国', flag: 'CODE', keywords: '美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯' }
 
 ]
 
@@ -20485,11 +20013,7 @@ const matchedKeywordNodes = computed(() => {
 
 
 function getCountryFlag(code) {
-
-  const p = availableCountryPresets.find(item => item.code === code)
-
-  return p ? p.flag : '🌍'
-
+  return code || '全球'
 }
 
 
@@ -21876,7 +21400,7 @@ const newGroupForm = ref({
 
   icon: 'default',
 
-  target: '🇭🇰 香港自动',
+  target: '香港自动',
 
   rule_value: ''
 
@@ -22258,7 +21782,7 @@ function removeCandidateFromGroup(grp, candKey) {
 
   const labelMap = {
 
-    'DIRECT': '🇨🇳 直连',
+    'DIRECT': '国内直连',
 
     'REJECT': '🛑 拒绝',
 
@@ -22314,7 +21838,7 @@ function restoreCandidateToGroup(grp, candKey) {
 
   const labelMap = {
 
-    'DIRECT': '🇨🇳 直连',
+    'DIRECT': '国内直连',
 
     'REJECT': '🛑 拒绝',
 
@@ -22481,7 +22005,7 @@ const businessGroups = computed(() => {
 
       tag: '国内直连',
 
-      proxies: ['DIRECT', '🇭🇰 香港自动', 'REJECT']
+      proxies: ['DIRECT', '香港自动', 'REJECT']
 
     },
 
@@ -22491,13 +22015,13 @@ const businessGroups = computed(() => {
 
       icon: 'globe',
 
-      now: '🇭🇰 香港自动',
+      now: '香港自动',
 
       is_immutable: true,
 
       tag: '常规国外',
 
-      proxies: ['DIRECT', '🇭🇰 香港自动', '🇹🇼 台湾自动', '🇯🇵 日本自动', '🇰🇷 韩国自动', '🇸🇬 新加坡自动', '🇺🇸 美国自动', '🏠 自建自动', '🌐 其它自动', 'REJECT']
+      proxies: ['DIRECT', '香港自动', '台湾自动', '日本自动', '韩国自动', '新加坡自动', '美国自动', '🏠 自建自动', '🌐 其它自动', 'REJECT']
 
     },
 
@@ -22507,13 +22031,13 @@ const businessGroups = computed(() => {
 
       icon: 'fish',
 
-      now: '🇭🇰 香港自动',
+      now: '香港自动',
 
       is_immutable: true,
 
       tag: '终极兜底',
 
-      proxies: ['DIRECT', '🇭🇰 香港自动', '🇹🇼 台湾自动', '🇯🇵 日本自动', '🇰🇷 韩国自动', '🇸🇬 新加坡自动', '🇺🇸 美国自动', '🏠 自建自动', '🌐 其它自动', 'REJECT']
+      proxies: ['DIRECT', '香港自动', '台湾自动', '日本自动', '韩国自动', '新加坡自动', '美国自动', '🏠 自建自动', '🌐 其它自动', 'REJECT']
 
     }
 
@@ -22591,27 +22115,27 @@ const businessGroups = computed(() => {
 
   const standardBusinessPresets = [
 
-    { name: 'AI', icon: 'openai', now: '🇯🇵 日本自动' },
+    { name: 'AI', icon: 'openai', now: '日本自动' },
 
-    { name: 'Gemini & Antigravity', icon: 'google', now: '🇺🇸 美国自动' },
+    { name: 'Gemini & Antigravity', icon: 'google', now: '美国自动' },
 
-    { name: 'YouTube', icon: 'youtube', now: '🇭🇰 香港自动' },
+    { name: 'YouTube', icon: 'youtube', now: '香港自动' },
 
-    { name: 'Google', icon: 'google', now: '🇭🇰 香港自动' },
+    { name: 'Google', icon: 'google', now: '香港自动' },
 
-    { name: 'GitHub & Docker', icon: 'github', now: '🇭🇰 香港自动' },
+    { name: 'GitHub & Docker', icon: 'github', now: '香港自动' },
 
-    { name: 'Telegram', icon: 'telegram', now: '🇸🇬 新加坡自动' },
+    { name: 'Telegram', icon: 'telegram', now: '新加坡自动' },
 
-    { name: 'Twitter (X)', icon: 'twitter', now: '🇭🇰 香港自动' },
+    { name: 'Twitter (X)', icon: 'twitter', now: '香港自动' },
 
-    { name: 'Netflix & 流媒体', icon: 'netflix', now: '🇸🇬 新加坡自动' },
+    { name: 'Netflix & 流媒体', icon: 'netflix', now: '新加坡自动' },
 
     { name: 'Apple 服务', icon: 'apple', now: 'DIRECT' },
 
     { name: 'Microsoft', icon: 'microsoft', now: 'DIRECT' },
 
-    { name: 'Spotify', icon: 'spotify', now: '🇸🇬 新加坡自动' },
+    { name: 'Spotify', icon: 'spotify', now: '新加坡自动' },
 
     { name: 'Steam 游戏', icon: 'steam', now: 'DIRECT' }
 
@@ -22659,7 +22183,7 @@ const businessGroups = computed(() => {
 
         now: p.now,
 
-        proxies: ['DIRECT', '🇭🇰 香港自动', '🇹🇼 台湾自动', '🇯🇵 日本自动', '🇰🇷 韩国自动', '🇸🇬 新加坡自动', '🇺🇸 美国自动', '🏠 自建自动', '🌐 其它自动', 'REJECT'],
+        proxies: ['DIRECT', '香港自动', '台湾自动', '日本自动', '韩国自动', '新加坡自动', '美国自动', '🏠 自建自动', '🌐 其它自动', 'REJECT'],
 
         is_custom: false
 
@@ -22998,29 +22522,17 @@ function getRegionLatencyById(id) {
 
 
 function getCandidateFlag(name) {
-
   if (!name) return '🌐'
-
-  if (name.includes('直连') || name === 'DIRECT') return '🇨🇳'
-
-  if (name.includes('拒绝') || name === 'REJECT') return '🛑'
-
-  if (name.includes('港') || /hk/i.test(name)) return '🇭🇰'
-
-  if (name.includes('台') || /tw/i.test(name)) return '🇹🇼'
-
-  if (name.includes('新') || /sg/i.test(name)) return '🇸🇬'
-
-  if (name.includes('日') || /(jp|japan)/i.test(name)) return '🇯🇵'
-
-  if (name.includes('韩') || /(kr|korea)/i.test(name)) return '🇰🇷'
-
-  if (name.includes('美') || /us/i.test(name)) return '🇺🇸'
-
-  if (name.includes('自建') || name.includes('🏠')) return '🏠'
-
+  if (name.includes('直连') || name === 'DIRECT') return '⚡直连'
+  if (name.includes('拒绝') || name === 'REJECT') return '🛑 拦截'
+  if (name.includes('港') || /hk/i.test(name)) return 'HK'
+  if (name.includes('台') || /tw/i.test(name)) return 'TW'
+  if (name.includes('新') || /sg/i.test(name)) return 'SG'
+  if (name.includes('日') || /(jp|japan)/i.test(name)) return 'JP'
+  if (name.includes('韩') || /(kr|korea)/i.test(name)) return 'KR'
+  if (name.includes('美') || /us/i.test(name)) return 'US'
+  if (name.includes('自建') || name.includes('🏠')) return '自建'
   return '🌐'
-
 }
 
 
@@ -23233,12 +22745,21 @@ function getActiveRegionIdForGroup(grp) {
 
 
 
+const groupActiveRegionIdMap = computed(() => {
+  const map = {}
+  const groups = ir.value?.groups || []
+  for (let i = 0; i < groups.length; i++) {
+    const grp = groups[i]
+    map[grp.name] = getActiveRegionIdForGroup(grp)
+  }
+  return map
+})
+
 function isRegionActiveInGroup(grp, reg) {
-
+  if (!grp || !reg) return false
   if (isDirectActive(grp) || isRejectActive(grp)) return false
-
-  return getActiveRegionIdForGroup(grp) === reg.id
-
+  const activeId = groupActiveRegionIdMap.value[grp.name] ?? getActiveRegionIdForGroup(grp)
+  return activeId === reg.id
 }
 
 
@@ -23355,7 +22876,22 @@ function onPolicyRegionStrategyChange(grp, reg, newStrategy) {
 
 
 
+const groupActiveLatencyMap = computed(() => {
+  const map = {}
+  const groups = ir.value?.groups || []
+  for (let i = 0; i < groups.length; i++) {
+    const grp = groups[i]
+    map[grp.name] = computeGroupActiveLatency(grp)
+  }
+  return map
+})
+
 function getGroupActiveLatency(grp) {
+  if (!grp) return 0
+  return groupActiveLatencyMap.value[grp.name] ?? computeGroupActiveLatency(grp)
+}
+
+function computeGroupActiveLatency(grp) {
 
   const activeNow = grp.now || grp.proxies?.[0] || 'DIRECT'
 
@@ -23877,7 +23413,22 @@ function getLatencyTextColor(delay) {
 
 
 
+const groupCandidateCountMap = computed(() => {
+  const map = {}
+  const groups = ir.value?.groups || []
+  for (let i = 0; i < groups.length; i++) {
+    const grp = groups[i]
+    map[grp.name] = computeCandidateCountText(grp)
+  }
+  return map
+})
+
 function getCandidateCountText(grp) {
+  if (!grp) return ''
+  return groupCandidateCountMap.value[grp.name] || computeCandidateCountText(grp)
+}
+
+function computeCandidateCountText(grp) {
 
   if (isChinaGroup(grp)) return '1/1'
 
@@ -24353,12 +23904,23 @@ function formatSubExpire(expireAt) {
 
 
 
+const subTestedCountMap = computed(() => {
+  const map = {}
+  const nodeMap = subNodesMap.value || {}
+  for (const subId in nodeMap) {
+    const list = nodeMap[subId] || []
+    let count = 0
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].delay > 0) count++
+    }
+    map[subId] = count
+  }
+  return map
+})
+
 function getSubTestedCount(sub) {
-
-  const nodes = getSubNodes(sub.id)
-
-  return nodes.filter(n => n.delay > 0).length
-
+  if (!sub) return 0
+  return subTestedCountMap.value[sub.id] ?? 0
 }
 
 
@@ -24473,55 +24035,55 @@ async function testProviderNodes(nodes) {
 
 const defaultPresets = [
 
-  { id: 'openai', name: 'OpenAI / ChatGPT', icon: 'openai', rule_value: 'geosite:openai,geosite:chatgpt', target: '🇭🇰 香港自动' },
+  { id: 'openai', name: 'OpenAI / ChatGPT', icon: 'openai', rule_value: 'geosite:openai,geosite:chatgpt', target: '香港自动' },
 
-  { id: 'claude', name: 'Claude / Anthropic', icon: 'claude', rule_value: 'geosite:claude', target: '🇺🇸 美国自动' },
+  { id: 'claude', name: 'Claude / Anthropic', icon: 'claude', rule_value: 'geosite:claude', target: '美国自动' },
 
-  { id: 'youtube', name: 'YouTube 视频', icon: 'youtube', rule_value: 'geosite:youtube', target: '🇭🇰 香港自动' },
+  { id: 'youtube', name: 'YouTube 视频', icon: 'youtube', rule_value: 'geosite:youtube', target: '香港自动' },
 
-  { id: 'netflix', name: 'Netflix 奈飞', icon: 'netflix', rule_value: 'geosite:netflix', target: '🇸🇬🇯🇵🇰🇷 新日韩自动' },
+  { id: 'netflix', name: 'Netflix 奈飞', icon: 'netflix', rule_value: 'geosite:netflix', target: ' 新日韩自动' },
 
-  { id: 'disney', name: 'Disney+ 流媒体', icon: 'disney', rule_value: 'geosite:disney', target: '🇸🇬🇯🇵🇰🇷 新日韩自动' },
+  { id: 'disney', name: 'Disney+ 流媒体', icon: 'disney', rule_value: 'geosite:disney', target: ' 新日韩自动' },
 
-  { id: 'google', name: 'Google 搜索', icon: 'google', rule_value: 'geosite:google', target: '🇭🇰 香港自动' },
+  { id: 'google', name: 'Google 搜索', icon: 'google', rule_value: 'geosite:google', target: '香港自动' },
 
-  { id: 'github', name: 'GitHub & Docker', icon: 'github', rule_value: 'geosite:github,geosite:docker', target: '🇭🇰 香港自动' },
+  { id: 'github', name: 'GitHub & Docker', icon: 'github', rule_value: 'geosite:github,geosite:docker', target: '香港自动' },
 
-  { id: 'telegram', name: 'Telegram 通信', icon: 'telegram', rule_value: 'geosite:telegram', target: '🇸🇬🇯🇵🇰🇷 新日韩自动' },
+  { id: 'telegram', name: 'Telegram 通信', icon: 'telegram', rule_value: 'geosite:telegram', target: ' 新日韩自动' },
 
-  { id: 'twitter', name: 'Twitter (X)', icon: 'twitter', rule_value: 'geosite:twitter', target: '🇭🇰 香港自动' },
+  { id: 'twitter', name: 'Twitter (X)', icon: 'twitter', rule_value: 'geosite:twitter', target: '香港自动' },
 
-  { id: 'spotify', name: 'Spotify 音乐', icon: 'spotify', rule_value: 'geosite:spotify', target: '🇭🇰 香港自动' },
+  { id: 'spotify', name: 'Spotify 音乐', icon: 'spotify', rule_value: 'geosite:spotify', target: '香港自动' },
 
-  { id: 'steam', name: 'Steam 游戏', icon: 'steam', rule_value: 'geosite:steam', target: '🇭🇰 香港自动' },
+  { id: 'steam', name: 'Steam 游戏', icon: 'steam', rule_value: 'geosite:steam', target: '香港自动' },
 
-  { id: 'epicgames', name: 'Epic Games', icon: 'epicgames', rule_value: 'geosite:epicgames', target: '🇭🇰 香港自动' },
+  { id: 'epicgames', name: 'Epic Games', icon: 'epicgames', rule_value: 'geosite:epicgames', target: '香港自动' },
 
-  { id: 'playstation', name: 'PlayStation (PSN)', icon: 'playstation', rule_value: 'geosite:playstation', target: '🇭🇰 香港自动' },
+  { id: 'playstation', name: 'PlayStation (PSN)', icon: 'playstation', rule_value: 'geosite:playstation', target: '香港自动' },
 
-  { id: 'nintendo', name: 'Nintendo Switch', icon: 'nintendo', rule_value: 'geosite:nintendo', target: '🇭🇰 香港自动' },
+  { id: 'nintendo', name: 'Nintendo Switch', icon: 'nintendo', rule_value: 'geosite:nintendo', target: '香港自动' },
 
-  { id: 'bahamut', name: '巴哈姆特动画疯', icon: 'bahamut', rule_value: 'geosite:bahamut', target: '🇹🇼 台湾自动' },
+  { id: 'bahamut', name: '巴哈姆特动画疯', icon: 'bahamut', rule_value: 'geosite:bahamut', target: '台湾自动' },
 
-  { id: 'emby', name: 'Emby 私有影院', icon: 'emby', rule_value: 'geosite:emby', target: '🇭🇰 香港手动' },
+  { id: 'emby', name: 'Emby 私有影院', icon: 'emby', rule_value: 'geosite:emby', target: '香港手动' },
 
-  { id: 'tiktok', name: 'TikTok 国际版', icon: 'tiktok', rule_value: 'geosite:tiktok', target: '🇺🇸 美国自动' },
+  { id: 'tiktok', name: 'TikTok 国际版', icon: 'tiktok', rule_value: 'geosite:tiktok', target: '美国自动' },
 
-  { id: 'bilibili', name: 'Bilibili 港澳台', icon: 'bilibili', rule_value: 'geosite:bilibili@!cn', target: '🇭🇰 香港自动' },
+  { id: 'bilibili', name: 'Bilibili 港澳台', icon: 'bilibili', rule_value: 'geosite:bilibili@!cn', target: '香港自动' },
 
-  { id: 'discord', name: 'Discord 社区', icon: 'discord', rule_value: 'geosite:discord', target: '🇸🇬🇯🇵🇰🇷 新日韩自动' },
+  { id: 'discord', name: 'Discord 社区', icon: 'discord', rule_value: 'geosite:discord', target: ' 新日韩自动' },
 
-  { id: 'amazon', name: 'Amazon 亚马逊', icon: 'amazon', rule_value: 'geosite:amazon', target: '🇺🇸 美国自动' },
+  { id: 'amazon', name: 'Amazon 亚马逊', icon: 'amazon', rule_value: 'geosite:amazon', target: '美国自动' },
 
-  { id: 'paypal', name: 'PayPal 国际支付', icon: 'paypal', rule_value: 'geosite:paypal', target: '🇭🇰 香港手动' },
+  { id: 'paypal', name: 'PayPal 国际支付', icon: 'paypal', rule_value: 'geosite:paypal', target: '香港手动' },
 
   { id: 'speedtest', name: 'Speedtest 测速', icon: 'speedtest', rule_value: 'geosite:speedtest', target: 'DIRECT' },
 
-  { id: 'reddit', name: 'Reddit 讨论区', icon: 'reddit', rule_value: 'geosite:reddit', target: '🇺🇸 美国自动' },
+  { id: 'reddit', name: 'Reddit 讨论区', icon: 'reddit', rule_value: 'geosite:reddit', target: '美国自动' },
 
-  { id: 'notion', name: 'Notion 笔记', icon: 'notion', rule_value: 'geosite:notion', target: '🇺🇸 美国自动' },
+  { id: 'notion', name: 'Notion 笔记', icon: 'notion', rule_value: 'geosite:notion', target: '美国自动' },
 
-  { id: 'binance', name: 'Binance / 加密货币', icon: 'binance', rule_value: 'geosite:binance,geosite:okx', target: '🇸🇬🇯🇵🇰🇷 新日韩自动' },
+  { id: 'binance', name: 'Binance / 加密货币', icon: 'binance', rule_value: 'geosite:binance,geosite:okx', target: ' 新日韩自动' },
 
   { id: 'apple', name: 'Apple 服务', icon: 'apple', rule_value: 'geosite:apple', target: 'DIRECT' },
 
@@ -24529,7 +24091,7 @@ const defaultPresets = [
 
   { id: 'onedrive', name: 'OneDrive 微软云盘', icon: 'onedrive', rule_value: 'geosite:onedrive', target: 'DIRECT' },
 
-  { id: 'zoom', name: 'Zoom 远程会议', icon: 'zoom', rule_value: 'geosite:zoom', target: '🇭🇰 香港自动' }
+  { id: 'zoom', name: 'Zoom 远程会议', icon: 'zoom', rule_value: 'geosite:zoom', target: '香港自动' }
 
 ]
 
@@ -24611,7 +24173,7 @@ const newCustomPreset = ref({
 
   rule_value: '',
 
-  target: '🇭🇰 香港自动'
+  target: '香港自动'
 
 })
 
@@ -24641,7 +24203,7 @@ function submitAddCustomPreset() {
 
     rule_value: (newCustomPreset.value.rule_value || '').trim(),
 
-    target: newCustomPreset.value.target || '🇭🇰 香港自动'
+    target: newCustomPreset.value.target || '香港自动'
 
   })
 
@@ -24651,7 +24213,7 @@ function submitAddCustomPreset() {
 
   showAddCustomPresetForm.value = false
 
-  newCustomPreset.value = { id: '', name: '', icon: 'default', rule_value: '', target: '🇭🇰 香港自动' }
+  newCustomPreset.value = { id: '', name: '', icon: 'default', rule_value: '', target: '香港自动' }
 
 }
 
@@ -24863,19 +24425,19 @@ const allUniqueGeoRules = computed(() => {
 
 
 
-      let target = '🇭🇰 香港自动'
+      let target = '香港自动'
 
       if (base.includes('openai') || base.includes('claude') || base.includes('tiktok') || base.includes('amazon') || base.includes('reddit')) {
 
-        target = '🇺🇸 美国自动'
+        target = '美国自动'
 
       } else if (base.includes('netflix') || base.includes('disney') || base.includes('telegram') || base.includes('binance') || base.includes('okx') || base.includes('discord') || base.includes('hbo') || base.includes('twitch')) {
 
-        target = '🇸🇬🇯🇵🇰🇷 新日韩自动'
+        target = ' 新日韩自动'
 
       } else if (base.includes('bahamut')) {
 
-        target = '🇹🇼 台湾自动'
+        target = '台湾自动'
 
       } else if (base.includes('apple') || base.includes('speedtest') || base.includes('tencent') || base.includes('alibaba') || base.includes('baidu') || base.includes('bytedance') || base.includes('netease')) {
 
@@ -24937,7 +24499,7 @@ const geoRuleCategories = computed(() => {
 
     { id: 'finance', name: '金融支付', icon: '💰', count: all.filter(r => r.catId === 'finance').length },
 
-    { id: 'cn', name: '国内生态', icon: '🇨🇳', count: all.filter(r => r.catId === 'cn').length },
+    { id: 'cn', name: '国内生态', icon: 'cn', count: all.filter(r => r.catId === 'cn').length },
 
   ]
 
@@ -25045,7 +24607,7 @@ function applyPreset(preset) {
 
   newGroupForm.value.icon = preset.icon
 
-  newGroupForm.value.target = preset.target || '🇭🇰 香港自动'
+  newGroupForm.value.target = preset.target || '香港自动'
 
   newGroupForm.value.rule_value = preset.rule_value || ''
 
@@ -25065,7 +24627,7 @@ async function quickAddPreset(preset) {
 
   try {
 
-    const target = preset.target || '🇭🇰 香港自动'
+    const target = preset.target || '香港自动'
 
     const res = await fetch('/api/v1/config/routing/group/add', {
 
@@ -25127,7 +24689,7 @@ async function submitAddCustomGroup() {
 
   }
 
-  const target = newGroupForm.value.target || '🇭🇰 香港自动'
+  const target = newGroupForm.value.target || '香港自动'
 
   try {
 
@@ -25159,7 +24721,7 @@ async function submitAddCustomGroup() {
 
       showAddGroupModal.value = false
 
-      newGroupForm.value = { name: '', icon: 'default', target: '🇭🇰 香港自动', rule_value: '' }
+      newGroupForm.value = { name: '', icon: 'default', target: '香港自动', rule_value: '' }
 
       await fetchIR()
 
@@ -25323,7 +24885,7 @@ function getGroupIcon(name) {
 
   if (name.includes('AI') || name.includes('OpenAI')) return '🤖'
 
-  if (name.includes('直连')) return '🇨🇳'
+  if (name.includes('直连')) return '直连'
 
   if (name.includes('漏网')) return '🐟'
 
@@ -25397,13 +24959,13 @@ function getFilteredGroupProxies(grp) {
 
   if (filter === '日本') {
 
-    return proxies.filter(p => /(hhost[-_ ]?jp)/i.test(p) || p.includes('🇯🇵 日本'))
+    return proxies.filter(p => /(hhost[-_ ]?jp)/i.test(p) || p.includes('日本'))
 
   }
 
   if (filter === '新日韩') {
 
-    return proxies.filter(p => !/(hhost[-_ ]?jp)/i.test(p) && (p.includes('新日韩') || p.includes('🇸🇬🇯🇵🇰🇷') || p.includes('新加坡') || p.includes('日韩') || /(新|sg|singapore|狮城|日|jp|japan|东京|大阪|韩|kr|korea|首尔)/i.test(p)))
+    return proxies.filter(p => !/(hhost[-_ ]?jp)/i.test(p) && (p.includes('新日韩') || p.includes('') || p.includes('新加坡') || p.includes('日韩') || /(新|sg|singapore|狮城|日|jp|japan|东京|大阪|韩|kr|korea|首尔)/i.test(p)))
 
   }
 
@@ -26590,74 +26152,50 @@ function getSubHealth(sub) {
 
 
 
-function getSubRegions(sub) {
+const staticSubRegionDefs = [
+  { flag: 'HK', name: '香港', keywords: ['香港', 'hk', 'hongkong'] },
+  { flag: 'JP', name: '日本', keywords: ['日本', 'jp', 'japan', '东京', '大阪'] },
+  { flag: 'US', name: '美国', keywords: ['美国', 'us', 'usa', '洛杉矶', '圣何塞', '西雅图'] },
+  { flag: 'SG', name: '新加坡', keywords: ['新加坡', 'sg', 'singapore'] },
+  { flag: 'TW', name: '台湾', keywords: ['台湾', 'tw', 'taiwan'] },
+  { flag: 'GB', name: '英国', keywords: ['英国', 'uk', 'london'] },
+  { flag: 'DE', name: '德国', keywords: ['德国', 'de', 'germany', '法兰克福'] },
+  { flag: 'KR', name: '韩国', keywords: ['韩国', 'kr', 'korea', '首尔'] }
+]
 
-  const nodes = getSubNodes(sub.id)
-
-  const counts = {}
-
-  const regionDefs = [
-
-    { flag: '🇭🇰', name: '香港', keywords: ['香港', 'hk', 'hongkong'] },
-
-    { flag: '🇯🇵', name: '日本', keywords: ['日本', 'jp', 'japan', '东京', '大阪'] },
-
-    { flag: '🇺🇸', name: '美国', keywords: ['美国', 'us', 'usa', '洛杉矶', '圣何塞', '西雅图'] },
-
-    { flag: '🇸🇬', name: '新加坡', keywords: ['新加坡', 'sg', 'singapore'] },
-
-    { flag: '🇹🇼', name: '台湾', keywords: ['台湾', 'tw', 'taiwan'] },
-
-    { flag: '🇬🇧', name: '英国', keywords: ['英国', 'uk', 'london'] },
-
-    { flag: '🇩🇪', name: '德国', keywords: ['德国', 'de', 'germany', '法兰克福'] },
-
-    { flag: '🇰🇷', name: '韩国', keywords: ['韩国', 'kr', 'korea', '首尔'] }
-
-  ]
-
-
-
-  for (const n of nodes) {
-
-    const lower = (n.name || '').toLowerCase()
-
-    let matched = false
-
-    for (const r of regionDefs) {
-
-      if (r.keywords.some(k => lower.includes(k))) {
-
-        counts[r.name] = counts[r.name] || { flag: r.flag, name: r.name, count: 0 }
-
-        counts[r.name].count++
-
-        matched = true
-
-        break
-
+const subRegionsMap = computed(() => {
+  const map = {}
+  const nodeMap = subNodesMap.value || {}
+  for (const subId in nodeMap) {
+    const nodes = nodeMap[subId] || []
+    const counts = {}
+    for (let i = 0; i < nodes.length; i++) {
+      const lower = (nodes[i].name || '').toLowerCase()
+      let matched = false
+      for (let j = 0; j < staticSubRegionDefs.length; j++) {
+        const r = staticSubRegionDefs[j]
+        if (r.keywords.some(k => lower.includes(k))) {
+          counts[r.name] = counts[r.name] || { flag: r.flag, name: r.name, count: 0 }
+          counts[r.name].count++
+          matched = true
+          break
+        }
       }
-
-    }
-
-    if (!matched) {
-
-      if (!lower.includes('剩余流量') && !lower.includes('套餐到期') && !lower.includes('重置') && !lower.includes('官网') && !lower.includes('续费')) {
-
-        counts['其他'] = counts['其他'] || { flag: '🌐', name: '其他', count: 0 }
-
-        counts['其他'].count++
-
+      if (!matched) {
+        if (!lower.includes('剩余流量') && !lower.includes('套餐到期') && !lower.includes('重置') && !lower.includes('官网') && !lower.includes('续费')) {
+          counts['其他'] = counts['其他'] || { flag: '🌐', name: '其他', count: 0 }
+          counts['其他'].count++
+        }
       }
-
     }
-
+    map[subId] = Object.values(counts).sort((a, b) => b.count - a.count)
   }
+  return map
+})
 
-
-
-  return Object.values(counts).sort((a, b) => b.count - a.count)
-
+function getSubRegions(sub) {
+  if (!sub) return []
+  return subRegionsMap.value[sub.id] || []
 }
 
 

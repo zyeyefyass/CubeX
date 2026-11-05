@@ -176,6 +176,40 @@ else:
     results["checks"]["frontend_build"] = {"status": "FAIL", "output": out}
     results["failures"] += 1
 
+# Check for Zero-Flag-Emoji Compliance (Rule 5 & Rule 13)
+flag_pattern = re.compile(r'[\U0001F1E6-\U0001F1FF]{2}')
+flag_violations = []
+for root, dirs, files in os.walk(os.path.join(ROOT, "web", "src")):
+    for f in files:
+        if f.endswith(('.vue', '.js', '.ts', '.html')):
+            p = os.path.join(root, f)
+            with open(p, 'r', encoding='utf-8', errors='ignore') as fp:
+                for lno, line in enumerate(fp, 1):
+                    if flag_pattern.search(line):
+                        flag_violations.append((os.path.relpath(p, ROOT), lno, line.strip()))
+
+if len(flag_violations) > 0:
+    print(f"  ⚠️  WARNING: Found {len(flag_violations)} forbidden flag emojis in frontend code!")
+    for p, lno, l in flag_violations[:5]:
+        print(f"    {p}:{lno} -> {l[:60]}")
+    results["checks"]["frontend_flags"] = {"status": "FAIL", "count": len(flag_violations)}
+    results["failures"] += 1
+else:
+    print("  ✓ Zero flag emojis in UI verified (Rule 5 & Rule 13 clean).")
+    results["checks"]["frontend_flags"] = {"status": "PASS"}
+    results["passed"] += 1
+
+# Check for Legacy Scripts Bloat in scripts/ root (Rule 13)
+scripts_root_files = [f for f in os.listdir(os.path.join(ROOT, "scripts")) if os.path.isfile(os.path.join(ROOT, "scripts", f))]
+if len(scripts_root_files) > 25:
+    print(f"  ⚠️  WARNING: scripts/ contains {len(scripts_root_files)} files (excessive clutter, limit is 25).")
+    results["checks"]["scripts_hygiene"] = {"status": "WARN", "file_count": len(scripts_root_files)}
+    results["warnings"] += 1
+else:
+    print(f"  ✓ scripts/ root hygiene verified ({len(scripts_root_files)}/25 core production files).")
+    results["checks"]["scripts_hygiene"] = {"status": "PASS"}
+    results["passed"] += 1
+
 # -------------------------------------------------------------
 # CHECK 5: Clean-Room & Zero-Hardcode Network Compliance
 # -------------------------------------------------------------

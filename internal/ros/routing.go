@@ -1093,119 +1093,51 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		routerIP = "192.168.1.1"
 	}
 
-	// 5a. Set RouterOS DNS servers and allow remote requests
+	// 5a. Set RouterOS DNS servers to targetIP with 223.5.5.5 fallback and allow remote requests
 	_, _ = m.PostROS("/ip/dns/set", map[string]any{
 		"allow-remote-requests": "yes",
-		"servers":               "223.5.5.5,119.29.29.29",
+		"servers":               targetIP,
 	})
+	_, _ = m.PostROS("/ip/dns/cache/flush", map[string]any{})
 
-	// 5b. Update DHCP networks: gateway=routerIP, dns-server=routerIP
+	// 5b. Update DHCP networks: gateway=routerIP, dns-server=routerIP (确保客户端网关与DNS全留主路由，拔电绝不断网)
 	if dhcpData, err := m.QueryROS("/ip/dhcp-server/network"); err == nil {
 		var dhcpNets []map[string]any
 		if json.Unmarshal(dhcpData, &dhcpNets) == nil {
 			for _, dn := range dhcpNets {
 				dnID, _ := dn[".id"].(string)
 				currDNS, _ := dn["dns-server"].(string)
-				if dnID != "" && currDNS != routerIP {
-					_ = m.PatchROS("/ip/dhcp-server/network/"+dnID, map[string]any{
-						"dns-server": routerIP,
-					})
-					res.Actions = append(res.Actions, fmt.Sprintf("已优化 DHCP 网络配置：DNS 与网关收归主路由 (%s)，消除旁路由关机 ARP 黑洞", routerIP))
+				currGW, _ := dn["gateway"].(string)
+				patchMap := make(map[string]any)
+				if currDNS != routerIP {
+					patchMap["dns-server"] = routerIP
+				}
+				if currGW != routerIP {
+					patchMap["gateway"] = routerIP
+				}
+				if dnID != "" && len(patchMap) > 0 {
+					_ = m.PatchROS("/ip/dhcp-server/network/"+dnID, patchMap)
+					res.Actions = append(res.Actions, fmt.Sprintf("已优化 DHCP 网络配置：DNS 与网关统一收归主路由 (%s)，消除旁路由关机全网瘫痪", routerIP))
 				}
 			}
 		}
 	}
 
-	// 5c. Ensure CubeX-DNS-Hijack and CubeX-DNS-Hairpin NAT rules
-	hasDNSUdpHijack := false
-	hasDNSTcpHijack := false
-	hasDNSHairpinUdp := false
-	hasDNSHairpinTcp := false
-
+	// 5c. Strictly Purge Intrusive DNS Hijack NAT rules to guarantee Main Router Zero Downtime
 	var existingNats []map[string]any
 	if data, err := m.QueryROS("/ip/firewall/nat"); err == nil {
 		_ = json.Unmarshal(data, &existingNats)
 		for _, n := range existingNats {
 			comment, _ := n["comment"].(string)
-			proto, _ := n["protocol"].(string)
-			if strings.Contains(comment, "CubeX-DNS-Hijack") {
-				if proto == "udp" {
-					hasDNSUdpHijack = true
-				}
-				if proto == "tcp" {
-					hasDNSTcpHijack = true
-				}
-			} else if strings.Contains(comment, "CubeX-DNS-Hairpin") {
-				if proto == "udp" {
-					hasDNSHairpinUdp = true
-				}
-				if proto == "tcp" {
-					hasDNSHairpinTcp = true
+			id, _ := n[".id"].(string)
+			if strings.Contains(comment, "CubeX-DNS-Hijack") || strings.Contains(comment, "CubeX-DNS-Hairpin") {
+				if id != "" {
+					_ = m.DeleteROS("/ip/firewall/nat/" + id)
 				}
 			}
 		}
 	}
-
-	if !hasDNSUdpHijack {
-		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
-			"chain":        "dstnat",
-			"src-address":  "!" + targetIP,
-			"dst-address":  routerIP,
-			"protocol":     "udp",
-			"dst-port":     "53",
-			"action":       "dst-nat",
-			"to-addresses": targetIP,
-			"to-ports":     "53",
-			"comment":      "CubeX-DNS-Hijack",
-		})
-	}
-	if !hasDNSTcpHijack {
-		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
-			"chain":        "dstnat",
-			"src-address":  "!" + targetIP,
-			"dst-address":  routerIP,
-			"protocol":     "tcp",
-			"dst-port":     "53",
-			"action":       "dst-nat",
-			"to-addresses": targetIP,
-			"to-ports":     "53",
-			"comment":      "CubeX-DNS-Hijack",
-		})
-	}
-	subnetCIDR := "192.168.1.0/24"
-	baseIP := targetIP
-	if baseIP == "" {
-		baseIP = routerIP
-	}
-	if len(baseIP) > 0 {
-		parts := strings.Split(baseIP, ".")
-		if len(parts) == 4 {
-			subnetCIDR = fmt.Sprintf("%s.%s.%s.0/24", parts[0], parts[1], parts[2])
-		}
-	}
-	if !hasDNSHairpinUdp {
-		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
-			"chain":       "srcnat",
-			"src-address": subnetCIDR,
-			"dst-address": targetIP,
-			"protocol":    "udp",
-			"dst-port":    "53",
-			"action":      "masquerade",
-			"comment":     "CubeX-DNS-Hairpin",
-		})
-	}
-	if !hasDNSHairpinTcp {
-		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
-			"chain":       "srcnat",
-			"src-address": subnetCIDR,
-			"dst-address": targetIP,
-			"protocol":    "tcp",
-			"dst-port":    "53",
-			"action":      "masquerade",
-			"comment":     "CubeX-DNS-Hairpin",
-		})
-	}
-	res.Actions = append(res.Actions, "已确认就绪「主路由全接管 · 伴生透明加速与0秒逃生」DNS 劫持与 Hairpin NAT")
+	res.Actions = append(res.Actions, "已固化主路由原生安全防线：杜绝强制 DNS 劫持，主路由自身解析永不断网")
 
 	// 6. Anti-Block & Ultra-Low Latency Suite:
 	// 6a. Inject TCP MSS Clamping to prevent fragmentation blackholes (消除 IP 分片黑洞，降低 20% 握手延迟，杜绝 GFW 分片特征重组审计)
@@ -1304,19 +1236,20 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 			}
 		}
 	}
-	if !hasValidNetwatch {
-		upScript := `/ip firewall nat enable [find comment~"CubeX-DNS-Hijack"]; /ip route enable [find comment~"CubeX-FakeIP-Backtrack"]; :log info "CubeX is UP: Restored DNS Hijack & Fake-IP backtrack"`
-		downScript := `/ip firewall nat disable [find comment~"CubeX-DNS-Hijack"]; /ip route disable [find comment~"CubeX-FakeIP-Backtrack"]; /ip dns cache flush; :log warn "CubeX is DOWN: 0-second Failover to RouterOS native DNS!"`
+	upScript := fmt.Sprintf(`/ip route enable [find comment~"CubeX-FakeIP-Backtrack"]; /ip dns set servers=%s; /ip dns cache flush; :log info "CubeX is UP: Restored Fake-IP backtrack and DNS"`, targetIP)
+	downScript := `/ip route disable [find comment~"CubeX-FakeIP-Backtrack"]; /ip dns set servers=223.5.5.5,119.29.29.29; /ip dns cache flush; :log warn "CubeX is DOWN: 0-second Failover to RouterOS native DNS!"`
 
+	if !hasValidNetwatch {
 		nwPayload := map[string]any{
-			"host":        targetIP,
-			"port":        "2026",
-			"interval":    "3s",
-			"timeout":     "2s",
-			"type":        "tcp-conn",
-			"comment":     "CubeX-HA-Failover",
-			"up-script":   upScript,
-			"down-script": downScript,
+			"host":          targetIP,
+			"port":          "2026",
+			"interval":      "3s",
+			"timeout":       "2s",
+			"startup-delay": "0s",
+			"type":          "tcp-conn",
+			"comment":       "CubeX-HA-Failover",
+			"up-script":     upScript,
+			"down-script":   downScript,
 		}
 		if _, err := m.PutROS("/tool/netwatch", nwPayload); err == nil {
 			res.Actions = append(res.Actions, fmt.Sprintf("已注入 Netwatch 应用级 TCP 心跳探针 (3秒探测 %s:2026 · 服务异常 0 秒降级直连与原生 DNS)", targetIP))
@@ -1326,11 +1259,13 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 			comment, _ := nw["comment"].(string)
 			if strings.Contains(comment, "CubeX") {
 				id, _ := nw[".id"].(string)
-				to, _ := nw["timeout"].(string)
-				if id != "" && (to == "800ms" || to == "500ms" || to == "1s") {
+				if id != "" {
 					_ = m.PatchROS("/tool/netwatch/"+id, map[string]any{
-						"interval": "3s",
-						"timeout":  "2s",
+						"interval":      "3s",
+						"timeout":       "2s",
+						"startup-delay": "0s",
+						"up-script":     upScript,
+						"down-script":   downScript,
 					})
 				}
 			}
@@ -1684,9 +1619,10 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 	sb.WriteString("# 7. Mangle 策略分流打标 (终端出国流量标记至 cubex 路由表)\n")
 	sb.WriteString("/ip/firewall/mangle add chain=prerouting src-address-list=!CUBEX_BYPASS dst-address-list=!LAN_SUBNET dst-address-type=!local action=mark-routing new-routing-mark=cubex passthrough=yes comment=\"CubeX Policy Routing\"\n\n")
 
-	sb.WriteString("# 8. 严格防 DNS 泄露重定向 (仅劫持目标为 RouterOS 本机 IP 的 53 查询，绝不干扰同网段其他网关/DNS)\n")
-	sb.WriteString(fmt.Sprintf("/ip/firewall/nat add chain=dstnat src-address-list=!CUBEX_BYPASS dst-address-type=local protocol=udp dst-port=53 action=dst-nat to-addresses=%s to-ports=53 comment=\"CubeX DNS UDP Hijack\"\n", targetIP))
-	sb.WriteString(fmt.Sprintf("/ip/firewall/nat add chain=dstnat src-address-list=!CUBEX_BYPASS dst-address-type=local protocol=tcp dst-port=53 action=dst-nat to-addresses=%s to-ports=53 comment=\"CubeX DNS TCP Hijack\"\n\n", targetIP))
+	sb.WriteString("# 8. 严格防 DNS 泄露与原生 DNS 联动架构 (DNS 指向 CubeX 极速解析，绝不破坏物理主网)\n")
+	sb.WriteString(fmt.Sprintf("/ip/dns/set allow-remote-requests=yes servers=%s\n", targetIP))
+	sb.WriteString("/ip/dns/cache/flush\n\n")
+
 	sb.WriteString("# 8b. 防恶意/私有 DoT 侧漏阻断 (阻断外发 TCP/UDP 853，防止终端绕过 Fake-IP 进行直连明文/私有探测)\n")
 	sb.WriteString("/ip/firewall/filter remove [find comment~\"CubeX Block DoT\"]\n")
 	sb.WriteString("/ip/firewall/filter add chain=forward src-address-list=!CUBEX_BYPASS protocol=tcp dst-port=853 action=reject reject-with=tcp-reset comment=\"CubeX Block DoT TCP\"\n")
@@ -1703,11 +1639,7 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 
 	sb.WriteString("# 11. 注入 Netwatch 应用级 TCP 2026 心跳看门狗 (服务异常或容器宕机时全自动 0秒直连与原生 DNS)\n")
 	sb.WriteString("/tool/netwatch remove [find comment~\"CubeX\"]\n")
-	sb.WriteString(fmt.Sprintf("/tool/netwatch add host=%s port=2026 type=tcp-conn interval=3s timeout=2s comment=\"CubeX-HA-Failover\" up-script=\"/ip firewall nat enable [find comment~\\\"CubeX-DNS-Hijack\\\"]; /ip route enable [find comment~\\\"CubeX-FakeIP-Backtrack\\\"]\" down-script=\"/ip firewall nat disable [find comment~\\\"CubeX-DNS-Hijack\\\"]; /ip route disable [find comment~\\\"CubeX-FakeIP-Backtrack\\\"]; /ip dns cache flush; :log warn \\\"CubeX Service is DOWN: 0-second Failover to RouterOS native DNS!\\\"\"\n\n", targetIP))
-
-	sb.WriteString("# 12. 清理遗留 WireGuard 防火墙规则与接口\n")
-	sb.WriteString("/ip/firewall/filter remove [find comment~\"WireGuard\" or dst-port=\"13231\" or dst-port=\"51820\"]\n")
-	sb.WriteString("/interface/wireguard remove [find name~\"wg\"]\n\n")
+	sb.WriteString(fmt.Sprintf("/tool/netwatch add host=%s port=2026 type=tcp-conn interval=3s timeout=2s comment=\"CubeX-HA-Failover\" up-script=\"/ip route enable [find comment~\\\"CubeX-FakeIP-Backtrack\\\"]; /ip dns set servers=%s; /ip dns cache flush; :log info \\\"CubeX is UP: Restored Fake-IP backtrack and DNS\\\"\" down-script=\"/ip route disable [find comment~\\\"CubeX-FakeIP-Backtrack\\\"]; /ip dns set servers=223.5.5.5,119.29.29.29; /ip dns cache flush; :log warn \\\"CubeX Service is DOWN: 0-second Failover to RouterOS native DNS!\\\"\"\n\n", targetIP, targetIP))
 
 	sb.WriteString(":put \"==========================================================\"\n")
 	sb.WriteString(":put \"✅ CubeX RouterOS 防火墙与策略路由已全自动配置完毕！\"\n")
