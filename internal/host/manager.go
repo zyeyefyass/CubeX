@@ -640,7 +640,7 @@ func isSelfLANIP(host string) bool {
 func (m *Manager) TestSSH(cfg HostConfig) (map[string]any, error) {
 	// 0. Defense: Verify user is not inadvertently targeting CubeX's own container IP
 	if isSelfLANIP(cfg.Host) {
-		return nil, fmt.Errorf("检测到输入的 IP (%s) 为 CubeX 容器/本机自身 IP！此处必须填写上级主路由的管理 IP (例如 OpenWrt 的实际 LAN IP，如 10.0.0.88 或 10.0.0.1)，切勿填写 CubeX 自身 IP", cfg.Host)
+		return nil, fmt.Errorf("检测到输入的 IP (%s) 为 CubeX 容器/本机自身 IP！此处必须填写上级主路由的管理 IP (例如主路由的真实 LAN IP，如 192.168.88.1 或当前网关)，切勿填写 CubeX 自身 IP", cfg.Host)
 	}
 
 	// 1. If explicitly set to ikuai or openwrt, test directly

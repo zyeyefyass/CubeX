@@ -1078,46 +1078,98 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		}
 	}
 
-	// 5. Ensure RouterOS Native DNS & DHCP Failover Architecture (网关与DNS留主路由 + 0秒逃生)
-	routerIP := m.config.Host
-	if routerIP == "" || routerIP == "127.0.0.1" {
-		outIP := m.GetOutboundIP()
-		if outIP != "" && outIP != "127.0.0.1" {
-			parts := strings.Split(outIP, ".")
-			if len(parts) == 4 {
-				routerIP = parts[0] + "." + parts[1] + "." + parts[2] + ".1"
-			}
-		}
-	}
-	if routerIP == "" || routerIP == "127.0.0.1" {
-		routerIP = "192.168.1.1"
-	}
-
-	// 5a. Set RouterOS DNS servers to targetIP with 223.5.5.5 fallback and allow remote requests
+		// 5. Ensure RouterOS Native DNS & Subnet-Adaptive DHCP Architecture (网关与DNS留主路由 + 0秒逃生)
+	// 5a. Set RouterOS DNS servers to targetIP with allow remote requests
 	_, _ = m.PostROS("/ip/dns/set", map[string]any{
 		"allow-remote-requests": "yes",
 		"servers":               targetIP,
 	})
 	_, _ = m.PostROS("/ip/dns/cache/flush", map[string]any{})
 
-	// 5b. Update DHCP networks: gateway=routerIP, dns-server=routerIP (确保客户端网关与DNS全留主路由，拔电绝不断网)
+	// 5b. Subnet-Adaptive DHCP networks check:
+	// 严格遵循零硬编码与用户网段保护原则：
+	// 只有当 DHCP 的 gateway 或 dns-server 被错误地指向了 CubeX 旁路由自身 (targetIP) 时，
+	// 才将其自愈恢复为该 DHCP 子网所属的 RouterOS 接口真实 IP！
+	// 若原有网关/DNS 并非 targetIP (即用户自己正常配置的主路由或外部DNS)，绝对严禁跨网段盲目篡改！
 	if dhcpData, err := m.QueryROS("/ip/dhcp-server/network"); err == nil {
 		var dhcpNets []map[string]any
-		if json.Unmarshal(dhcpData, &dhcpNets) == nil {
+		if json.Unmarshal(dhcpData, &dhcpNets) == nil && len(dhcpNets) > 0 {
+			// 查询 RouterOS 所有接口配置的 IP，建立子网到真实主路由 IP 的映射
+			type ifaceAddr struct {
+				ip  net.IP
+				net *net.IPNet
+			}
+			var rosIfAddrs []ifaceAddr
+			if addrData, err := m.QueryROS("/ip/address"); err == nil {
+				var addrList []map[string]any
+				if json.Unmarshal(addrData, &addrList) == nil {
+					for _, item := range addrList {
+						addrStr, _ := item["address"].(string)
+						if ip, ipnet, err := net.ParseCIDR(addrStr); err == nil && ip.To4() != nil {
+							rosIfAddrs = append(rosIfAddrs, ifaceAddr{ip: ip.To4(), net: ipnet})
+						}
+					}
+				}
+			}
+
 			for _, dn := range dhcpNets {
 				dnID, _ := dn[".id"].(string)
 				currDNS, _ := dn["dns-server"].(string)
 				currGW, _ := dn["gateway"].(string)
+				dnAddr, _ := dn["address"].(string) // 例如 "192.168.88.0/24" 或 "10.0.0.0/24"
+				if dnID == "" {
+					continue
+				}
+
+				// 仅当 gateway 或 dns-server 错误指向旁路由自身 targetIP 时才需要自愈重置
+				needFixGW := (currGW == targetIP)
+				needFixDNS := (currDNS == targetIP)
+				if !needFixGW && !needFixDNS {
+					continue
+				}
+
+				// 动态确定当前 DHCP 子网对应的主路由真实 IP
+				var subnetRouterIP string
+				_, dhcpSubnet, parseErr := net.ParseCIDR(dnAddr)
+				if parseErr == nil && dhcpSubnet != nil {
+					// 1. 优先从 /ip/address 找到属于该子网的 RouterOS 接口 IP
+					for _, ifa := range rosIfAddrs {
+						if dhcpSubnet.Contains(ifa.ip) {
+							subnetRouterIP = ifa.ip.String()
+							break
+						}
+					}
+					// 2. 若未匹配到接口且 m.config.Host 处于同一子网内，使用 m.config.Host
+					if subnetRouterIP == "" && m.config.Host != "" {
+						if hIP := net.ParseIP(m.config.Host); hIP != nil && dhcpSubnet.Contains(hIP) {
+							subnetRouterIP = m.config.Host
+						}
+					}
+					// 3. 兜底：若仍未匹配，取子网首地址 (例如 192.168.88.1)
+					if subnetRouterIP == "" {
+						ip4 := dhcpSubnet.IP.To4()
+						if ip4 != nil {
+							fallbackIP := net.IPv4(ip4[0], ip4[1], ip4[2], 1)
+							subnetRouterIP = fallbackIP.String()
+						}
+					}
+				}
+
+				if subnetRouterIP == "" {
+					continue
+				}
+
 				patchMap := make(map[string]any)
-				if currDNS != routerIP {
-					patchMap["dns-server"] = routerIP
+				if needFixGW {
+					patchMap["gateway"] = subnetRouterIP
 				}
-				if currGW != routerIP {
-					patchMap["gateway"] = routerIP
+				if needFixDNS {
+					patchMap["dns-server"] = subnetRouterIP
 				}
-				if dnID != "" && len(patchMap) > 0 {
+
+				if len(patchMap) > 0 {
 					_ = m.PatchROS("/ip/dhcp-server/network/"+dnID, patchMap)
-					res.Actions = append(res.Actions, fmt.Sprintf("已优化 DHCP 网络配置：DNS 与网关统一收归主路由 (%s)，消除旁路由关机全网瘫痪", routerIP))
+					res.Actions = append(res.Actions, fmt.Sprintf("已优化 DHCP 网络 (%s)：网关/DNS 自动校准为主路由当前网段接口 (%s)，杜绝关机全网瘫痪", dnAddr, subnetRouterIP))
 				}
 			}
 		}

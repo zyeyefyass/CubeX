@@ -6239,7 +6239,7 @@
                   </span>
                 </div>
                 <div class="text-[10px] text-slate-400 font-mono mt-1 flex items-center justify-between truncate">
-                  <span>内网网关: {{ routerHW.lan_ip || '10.0.0.1' }}</span>
+                  <span>内网网关: {{ routerHW.lan_ip || hostConfig.host || '自动探查中...' }}</span>
                   <span :class="hostInfo.ip_forward ? 'text-emerald-400' : 'text-amber-400'">{{ hostInfo.ip_forward ? '● 转发就绪' : '○ 待开启' }}</span>
                 </div>
               </div>
