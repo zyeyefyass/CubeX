@@ -1519,6 +1519,8 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 			gType = "urltest"
 
+			schema.SortNodesByQuality(proxies)
+
 		}
 
 		// If g.Now is specified, move it to the front of proxies list so sing-box selects it by default

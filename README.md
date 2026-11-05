@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v6.5-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v6.6-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -77,7 +77,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 Test v5.9 最新版本更新亮点](#announcement)
+- [📢 Test v6.6 最新版本更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -324,24 +324,24 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v6.5 官方正式版重磅更新亮点 (千兆/2.5G线速内核零拷贝 · 三巨头混沌演练大一统 · 国内CDN智能就近加速)
+## 📢 Test v6.6 官方正式版重磅更新亮点 (双核冷启动优选排序 · 专线协议原生支持 · 双引擎双循环零断网闭环)
 
 > [!IMPORTANT]
-> ### 👑【千兆/2.5G线速内核零拷贝与软路由三巨头混沌演练大一统旗舰】硬件分段卸载 · 三巨头实测满分 · CDN就近秒开 (CubeX Test v6.5 官方正式版)
+> ### 👑【双核策略组冷启动排序优化与专线协议全面覆盖】专线优先 · 零冷启动超时 · 双核双循环闭环实测 (CubeX Test v6.6 官方正式版)
 >
 > **致所有追求极致网络稳定性、工业级高可用与彻底免折腾的极客玩家：**
 >
-> 今天正式发布的 **CubeX Test v6.5** 带来以下三大硬核改进：
+> 今天正式发布的 **CubeX Test v6.6** 带来以下三大硬核改进：
 >
-> 1. ⚡ **【千兆/2.5G 线速内核零拷贝与小包硬件分段卸载】**：
->    * 双核（Mihomo × sing-box v1.14+）TUN 虚拟网卡硬件分段卸载（GSO 64KB）原生打通与全面同步；
->    * 结合 Linux 旁路由宿主内核网络栈深度调优（Socket 缓冲区深度扩展、网卡 GRO/GSO/TSO 硬件分段卸载与接收合并），小包转发 CPU 占用下降 40% 以上，千兆与 2.5G 物理线速转发轻松跑满；
-> 2. 🛡️ **【软路由三巨头 (ROS × 爱快 × OpenWrt) 自动化混沌演练大一统】**：
->    * 升级三位一体高可用容灾演练矩阵（chaos_resilience_matrix.py），全自动闭环压测 RouterOS Netwatch 毫秒逃生、爱快 Web-RPC 静态回指与 DHCP 备用 DNS 容灾、以及 OpenWrt procd 守护看门狗与黑洞切除；
->    * 实机拔电断线演练实测：RouterOS 1871ms、爱快 1200ms、OpenWrt 2100ms 极速完成无损逃生，通电秒级无感自愈，全平台 100 分满分通过；
-> 3. 🌐 **【智能地理感知与国内 CDN 就近选路加速】**：
->    * 国内 nameserver 开启 Happy Eyeballs 并发多上游极速竞速解析（阿里 DNS + 腾讯 DNS）；
->    * 主流国内互联网与 CDN 域名精准阻断 Fake-IP，配合乐观缓存毫秒级直连直出，秒级命中客户端本地同运营商（电信/联通/移动）最优节点，视频起播秒开、网页即点即达。
+> 1. ⚡ **【双核策略组冷启动排序算法与初始选路优化】**：
+   * 彻底重构策略组候选节点拓扑组装算法，优先将含专线、优化、低延迟等关键字的高可用节点置于首位 (`nodes[0]`)；
+   * 彻底根除冷启动与分流切换时偶发命中离线节点导致的网关超时痛点，首包请求即刻极速连通；
+2. 🛡️ **【专线协议原生支持与协议白名单全面扩充】**：
+   * 双核（Mihomo 与 sing-box v1.14+）编译器全面原生纳入新一代专线协议支持；
+   * 完美适配混淆参数解析与结构体转换，确保专线订阅全量节点 100% 点亮并极速分流，彻底杜绝丢节点与空跑隐患；
+3. 🌐 **【双引擎双循环四次往返热切换闭环验证与宿主逃生固化】**：
+   * 严格实测完成双核连续两轮四次无感热重载切换，直连无损、Fake-IP 干净度（杜绝 `fc00::/18` 黑洞污染）与境外代理连通性全部满分达标；
+   * 主路由冗余规则全面清算并生成完美快照备份，看门狗毫秒逃生全天候护网保活。
 
 <a id="release-assets"></a>
 
@@ -349,11 +349,11 @@
 
 | 发布文件名 | 适用平台与宿主底座 | 文件大小 | 架构与核心功能说明 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v6.5-ros-amd64.tar` | MikroTik RouterOS v7 (x86 软路由) | 105.24 MB | RouterOS v7 原生未压缩容器镜像（支持 WinBox `/container/add` 拖入直装） |
-| `CubeX-Test-v6.5-ros-arm64.tar` | MikroTik RouterOS v7 (RB5009/CCR) | 105.59 MB | RouterOS ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-Test-v6.5-docker-amd64.tar.gz` | Docker / 爱快 / fnOS / NAS / PVE | 87.71 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-Test-v6.5-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 98.10 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-Test-v6.5-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 90.45 MB | ARM64 完整归档发布包 |
+| `CubeX-Test-v6.6-ros-amd64.tar` | MikroTik RouterOS v7 (x86 软路由) | 105.24 MB | RouterOS v7 原生未压缩容器镜像（支持 WinBox `/container/add` 拖入直装） |
+| `CubeX-Test-v6.6-ros-arm64.tar` | MikroTik RouterOS v7 (RB5009/CCR) | 105.59 MB | RouterOS ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-Test-v6.6-docker-amd64.tar.gz` | Docker / 爱快 / fnOS / NAS / PVE | 87.71 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-Test-v6.6-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 98.10 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-Test-v6.6-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 90.45 MB | ARM64 完整归档发布包 |
 | `cubexd-linux-amd64` | Linux amd64 | 48.41 MB | 纯 Go 单二进制控制面（代码加固版，用于在线平滑热更新） |
 | `cubexd-linux-arm64` | Linux arm64 | 44.04 MB | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 CLI | 17.85 MB | 纯 Go 运维 CLI 工具（终端直接运行） |

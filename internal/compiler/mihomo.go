@@ -973,19 +973,64 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 			}
 
+			// 🛡️ 修复：若 obfs 为 map (如 sing-box 订阅解析出的 {"type":"salamander","password":"..."})，转换为 Mihomo 格式
+			if obfsMap, ok := pMap["obfs"].(map[string]any); ok {
+				if oType, ok := obfsMap["type"].(string); ok && oType != "" {
+					pMap["obfs"] = oType
+				}
+				if oPwd, ok := obfsMap["password"].(string); ok && oPwd != "" {
+					pMap["obfs-password"] = oPwd
+				}
+			} else if obfsMap, ok := pMap["obfs"].(map[string]interface{}); ok {
+				if oType, ok := obfsMap["type"].(string); ok && oType != "" {
+					pMap["obfs"] = oType
+				}
+				if oPwd, ok := obfsMap["password"].(string); ok && oPwd != "" {
+					pMap["obfs-password"] = oPwd
+				}
+			}
+
+		} else if ptype == "anytls" {
+
+			pMap["type"] = "anytls"
+
+			if pwd, ok := pMap["password"].(string); !ok || pwd == "" {
+				pMap["password"] = p.Password
+			}
+
+			sni := p.SNI
+			if sni == "" {
+				if s, ok := pMap["sni"].(string); ok && s != "" {
+					sni = s
+				} else if s, ok := pMap["servername"].(string); ok && s != "" {
+					sni = s
+				}
+			}
+			if sni != "" {
+				pMap["sni"] = sni
+				pMap["servername"] = sni
+			}
+			pMap["skip-cert-verify"] = true
+			pMap["udp"] = true
+			if _, ok := pMap["client-fingerprint"]; !ok && p.RawConfig != nil {
+				if fp, ok := p.RawConfig["client-fingerprint"].(string); ok && fp != "" {
+					pMap["client-fingerprint"] = fp
+				}
+			}
+
 		}
 
 		// Filter out protocols that Mihomo cannot parse to avoid daemon abort
 
 		switch ptype {
 
-		case "ss", "ssr", "vmess", "vless", "trojan", "socks5", "http", "snell", "wireguard", "tuic", "hysteria", "hysteria2":
+		case "ss", "ssr", "vmess", "vless", "trojan", "socks5", "http", "snell", "wireguard", "tuic", "hysteria", "hysteria2", "anytls":
 
 			proxiesList = append(proxiesList, pMap)
 
 		default:
 
-			// Unsupported protocol in Mihomo (e.g. anytls) - safely skip
+			// Unsupported protocol in Mihomo - safely skip
 
 			continue
 
@@ -1087,6 +1132,11 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 			}
 
+		}
+
+		// Quality sort proxies for url-test/fallback so the best dedicated lines are at index 0
+		if gType == "url-test" || gType == "fallback" {
+			schema.SortNodesByQuality(proxies)
 		}
 
 		// If g.Now is specified, move it to the front of proxies list so Mihomo selects it by default

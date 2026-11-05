@@ -47,4 +47,9 @@ with open("web/src/App.vue", "w", encoding="utf-8") as f:
     f.write(vue_text)
 print("✓ Updated web/src/App.vue fallback versions")
 
+# 8. install scripts fallback tags
+replace_in_file("scripts/install.sh", r'REL_TAG="Test-v6\.[0-9]+"', f'REL_TAG="{TARGET_TAG}"')
+replace_in_file("install.sh", r'REL_TAG="Test-v6\.[0-9]+"', f'REL_TAG="{TARGET_TAG}"')
+replace_in_file("scripts/install_pve_lxc.sh", r'REL_TAG="Test-v6\.[0-9]+"', f'REL_TAG="{TARGET_TAG}"')
+
 print(f"\n🎉 Successfully bumped version to {TARGET_VER} ({TARGET_TAG}) across all files!")

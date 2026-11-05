@@ -17,7 +17,21 @@ import subprocess
 
 MAX_VERSIONS = 10
 REPO = "zyeyefyass/CubeX"
-TOKEN = os.environ.get("GITHUB_TOKEN", "")
+def get_github_token():
+    tok = os.environ.get("GITHUB_TOKEN", "")
+    if tok:
+        return tok
+    try:
+        p = subprocess.Popen(['git', 'credential', 'fill'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        out, _ = p.communicate('protocol=https\nhost=github.com\n')
+        for line in out.splitlines():
+            if line.startswith('password='):
+                return line.split('=', 1)[1].strip()
+    except Exception:
+        pass
+    return ""
+
+TOKEN = get_github_token()
 
 HEADERS = {
     'Accept': 'application/vnd.github.v3+json',

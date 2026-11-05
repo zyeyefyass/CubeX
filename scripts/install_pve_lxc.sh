@@ -445,7 +445,7 @@ else
             fi
         done
     fi
-    [ -z "$REL_TAG" ] && REL_TAG="Test-v6.4"
+    [ -z "$REL_TAG" ] && REL_TAG="Test-v6.6"
 
     ZIP_NAME="CubeX-${REL_TAG}-linux-${ARCH}.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"
@@ -473,11 +473,34 @@ else
         rm -f "$TMP_ZIP"
         echo "✅ 完整发布包解压完成！"
     else
-        echo "⚠️ 归档下载超时，降级拉取单二进制..."
+        echo "⚠️ 归档下载超时，降级独立拉取控制面与双引擎核心..."
         BIN_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${ARCH}"
         BIN_MIRROR="https://gh-proxy.com/$BIN_URL"
         curl -4 --http1.1 -sSL --connect-timeout 8 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_URL" 2>/dev/null || curl -4 --http1.1 -sSL --connect-timeout 10 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_MIRROR" 2>/dev/null || true
         chmod 755 /opt/CubeX/bin/cubexd 2>/dev/null || true
+
+        # 尝试拉取 sing-box 核心
+        if [ ! -f /opt/CubeX/bin/sing-box ]; then
+            SB_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/sing-box-linux-${ARCH}"
+            curl -4 --http1.1 -sSL --connect-timeout 8 -m 120 -o /opt/CubeX/bin/sing-box "$SB_URL" 2>/dev/null || curl -4 --http1.1 -sSL --connect-timeout 10 -m 120 -o /opt/CubeX/bin/sing-box "https://gh-proxy.com/$SB_URL" 2>/dev/null || true
+            chmod 755 /opt/CubeX/bin/sing-box 2>/dev/null || true
+        fi
+        # 尝试拉取 mihomo 核心
+        if [ ! -f /opt/CubeX/bin/mihomo ]; then
+            MH_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/mihomo-linux-${ARCH}"
+            curl -4 --http1.1 -sSL --connect-timeout 8 -m 120 -o /opt/CubeX/bin/mihomo "$MH_URL" 2>/dev/null || curl -4 --http1.1 -sSL --connect-timeout 10 -m 120 -o /opt/CubeX/bin/mihomo "https://gh-proxy.com/$MH_URL" 2>/dev/null || true
+            chmod 755 /opt/CubeX/bin/mihomo 2>/dev/null || true
+        fi
+    fi
+
+    if [ ! -f /opt/CubeX/bin/cubexd ] || [ ! -s /opt/CubeX/bin/cubexd ]; then
+        echo "❌ 致命错误: 未能获取到有效的 cubexd 控制面二进制文件，请检查网络后重试！"
+        exit 1
+    fi
+    if [ ! -f /opt/CubeX/bin/sing-box ] && [ ! -f /opt/CubeX/bin/mihomo ]; then
+        echo "❌ 致命错误: 双引擎核心文件 (sing-box / mihomo) 均缺失！"
+        echo "👉 严重警告: 控制面在没有代理内核的情况下无法转发任何网络流量！请确保网络正常或手动放置发布压缩包至宿主机 /tmp/ 目录后重试！"
+        exit 1
     fi
 EOF
 fi

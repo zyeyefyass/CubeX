@@ -145,6 +145,7 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────
 AUTO_CONFIRM=0
 DEPLOY_MODE=""
+CUSTOM_VER=""
 
 for arg in "$@"; do
     case "$arg" in
@@ -160,8 +161,14 @@ for arg in "$@"; do
         --dir=*)
             DEFAULT_INSTALL_DIR="${arg#*=}"
             ;;
+        --version=*|-v=*)
+            CUSTOM_VER="${arg#*=}"
+            ;;
     esac
 done
+
+# 环境变量补充支持
+[ -z "$CUSTOM_VER" ] && CUSTOM_VER="${CUBEX_VERSION:-}"
 
 INSTALL_DIR="${DEFAULT_INSTALL_DIR}"
 
@@ -442,7 +449,7 @@ else
     
     # 优先查找本地完整发行归档，或自动从 GitHub Releases 下载全量包 (包含双引擎与101套规则)
     NEED_DOWNLOAD=1
-    LOCAL_ZIP=$(ls "$CURRENT_SCRIPT_DIR/../dist/release/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "$CURRENT_SCRIPT_DIR/../dist/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "./dist/release/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "./dist/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" 2>/dev/null | sort -V | tail -n1 || true)
+    LOCAL_ZIP=$(ls "$CURRENT_SCRIPT_DIR/../dist/release/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "$CURRENT_SCRIPT_DIR/../dist/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "./dist/release/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "./dist/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "/tmp/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "/tmp/CubeX-"*"-linux-$TARGET_ARCH.zip" 2>/dev/null | sort -V | tail -n1 || true)
     if [ -n "$LOCAL_ZIP" ] && [ -f "$LOCAL_ZIP" ]; then
         echo -e "${GREEN}📦 发现本地发行归档包 (${LOCAL_ZIP})，直接解压部署...${NC}"
         unzip -q -o "$LOCAL_ZIP" -d "$INSTALL_DIR" 2>/dev/null || true
@@ -453,18 +460,24 @@ else
     fi
 
     if [ "$NEED_DOWNLOAD" -eq 1 ] && [ ! -f "$INSTALL_DIR/bin/cubexd" ]; then
-        echo -e "${CYAN}🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 101套规则集 + 控制面)...${NC}"
+        echo -e "${CYAN}🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 105套规则集 + 控制面)...${NC}"
         GH_MIRRORS=("https://ghproxy.net" "https://gh-proxy.com" "https://mirror.ghproxy.com" "https://github.moeyy.xyz" "https://ghps.cc" "")
-        REL_TAG=""
-        for M in "${GH_MIRRORS[@]}"; do
-            PREFIX=""
-            [ -n "$M" ] && PREFIX="${M}/"
-            REL_TAG=$(curl -4 -sSL --connect-timeout 3 -m 5 -I "${PREFIX}https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
-            if [ -n "$REL_TAG" ]; then
-                break
-            fi
-        done
-        [ -z "$REL_TAG" ] && REL_TAG="Test-v6.2"
+        REL_TAG="$CUSTOM_VER"
+        if [ -z "$REL_TAG" ]; then
+            for M in "${GH_MIRRORS[@]}"; do
+                PREFIX=""
+                [ -n "$M" ] && PREFIX="${M}/"
+                LATEST_JSON=$(curl -4 -sSL --connect-timeout 4 -m 8 "${PREFIX}https://api.github.com/repos/zyeyefyass/CubeX/releases" 2>/dev/null || true)
+                TAG_CANDIDATE=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
+                if [ -n "$TAG_CANDIDATE" ]; then
+                    REL_TAG="$TAG_CANDIDATE"
+                    break
+                fi
+                REL_TAG=$(curl -4 -sSL --connect-timeout 3 -m 5 -I "${PREFIX}https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
+                [ -n "$REL_TAG" ] && break
+            done
+        fi
+        [ -z "$REL_TAG" ] && REL_TAG="Test-v6.6"
         ZIP_NAME="CubeX-${REL_TAG}-linux-${TARGET_ARCH}.zip"
         ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
 
@@ -473,7 +486,7 @@ else
             echo -e "${GREEN}📦 发现本地已缓存的完整归档: ${TMP_ZIP}，秒级解压部署...${NC}"
         else
             rm -f "$TMP_ZIP"
-            echo -e "${CYAN}   -> 正在通过国内多级高速镜像源智能轮询下载 ${ZIP_NAME} (约 84MB，免代理极速拉取)...${NC}"
+            echo -e "${CYAN}   -> 正在通过国内多级高速镜像源智能轮询下载 ${ZIP_NAME} (约 80MB，免代理极速拉取)...${NC}"
             DOWNLOAD_OK=0
             for MIRROR in "${GH_MIRRORS[@]}"; do
                 if [ -n "$MIRROR" ]; then
@@ -496,7 +509,7 @@ else
             unzip -q -o "$TMP_ZIP" -d "$INSTALL_DIR" 2>/dev/null || true
             echo -e "${GREEN}✅ 完整归档已成功释放至 ${INSTALL_DIR} (包含 Mihomo + sing-box 双核及全量规则)${NC}"
         else
-            echo -e "${YELLOW}⚠️ 完整归档拉取失败，尝试降级拉取单二进制核心控制面...${NC}"
+            echo -e "${YELLOW}⚠️ 完整归档拉取失败，尝试独立拉取控制面与双引擎独立内核...${NC}"
             DL_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${TARGET_ARCH}"
             for MIRROR in "${GH_MIRRORS[@]}"; do
                 BIN_LINK="${DL_URL}"
@@ -505,11 +518,44 @@ else
                     break
                 fi
             done
+
+            # 2. 检查并拉取 sing-box 核心
+            if [ ! -f "$INSTALL_DIR/bin/sing-box" ]; then
+                echo -e "${CYAN}   -> 正在独立拉取 sing-box 核心...${NC}"
+                SB_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/sing-box-linux-${TARGET_ARCH}"
+                for MIRROR in "${GH_MIRRORS[@]}"; do
+                    BIN_LINK="${SB_URL}"
+                    [ -n "$MIRROR" ] && BIN_LINK="${MIRROR}/${SB_URL}"
+                    if curl -4 -sSL --connect-timeout 6 -m 120 -o "$INSTALL_DIR/bin/sing-box" "$BIN_LINK" 2>/dev/null && [ -s "$INSTALL_DIR/bin/sing-box" ]; then
+                        break
+                    fi
+                done
+            fi
+
+            # 3. 检查并拉取 mihomo 核心
+            if [ ! -f "$INSTALL_DIR/bin/mihomo" ]; then
+                echo -e "${CYAN}   -> 正在独立拉取 mihomo 核心...${NC}"
+                MH_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/mihomo-linux-${TARGET_ARCH}"
+                for MIRROR in "${GH_MIRRORS[@]}"; do
+                    BIN_LINK="${MH_URL}"
+                    [ -n "$MIRROR" ] && BIN_LINK="${MIRROR}/${MH_URL}"
+                    if curl -4 -sSL --connect-timeout 6 -m 120 -o "$INSTALL_DIR/bin/mihomo" "$BIN_LINK" 2>/dev/null && [ -s "$INSTALL_DIR/bin/mihomo" ]; then
+                        break
+                    fi
+                done
+            fi
         fi
     chmod +x "$INSTALL_DIR/bin/"* 2>/dev/null || true
 
     if [ ! -f "$INSTALL_DIR/bin/cubexd" ] || [ ! -s "$INSTALL_DIR/bin/cubexd" ]; then
-        echo -e "${RED}❌ 错误: 未能获取到有效的 cubexd 二进制文件，请检查网络连接或权限后重试。${NC}"
+        echo -e "${RED}❌ 致命错误: 未能获取到有效的 cubexd 控制面二进制文件，请检查网络连接或权限后重试。${NC}"
+        exit 1
+    fi
+
+    if [ ! -f "$INSTALL_DIR/bin/sing-box" ] && [ ! -f "$INSTALL_DIR/bin/mihomo" ]; then
+        echo -e "${RED}❌ 致命错误: 双引擎核心文件 (sing-box / mihomo) 均缺失！${NC}"
+        echo -e "${YELLOW}👉 严重警告: 控制面在没有底层代理内核的情况下无法转发任何网络流量！${NC}"
+        echo -e "${YELLOW}👉 解决建议: 请检查宿主网络/镜像源连接，或将完整的 ${ZIP_NAME} 放置于 /tmp/ 目录后重新运行本脚本。${NC}"
         exit 1
     fi
 

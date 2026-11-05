@@ -289,7 +289,7 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 
 	// Universal Node Quality Sorting: place dedicated lines (MPLS / IPLC / BGP / 优化) at the top
 	for regID, nList := range regionNodes {
-		sortNodesByQuality(nList)
+		SortNodesByQuality(nList)
 		regionNodes[regID] = nList
 	}
 
@@ -398,15 +398,18 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 	for _, reg := range StandardRegions {
 		allRegionalCandidateProxies = append(allRegionalCandidateProxies, reg.AutoName, reg.FallName, reg.DisasterName)
 	}
-	// Append concrete proxy nodes as well for granular manual override
+	// Append concrete proxy nodes as well for granular manual override (with quality sorting)
+	concreteNodes := make([]string, 0)
 	for _, p := range ir.Proxies {
 		if p.Type != "direct" && p.Type != "block" && p.Type != "reject" && !isProxyDisabled(&p) {
 			if IsInformationalOrInvalidNode(p.Name) {
 				continue
 			}
-			allRegionalCandidateProxies = append(allRegionalCandidateProxies, p.Name)
+			concreteNodes = append(concreteNodes, p.Name)
 		}
 	}
+	SortNodesByQuality(concreteNodes)
+	allRegionalCandidateProxies = append(allRegionalCandidateProxies, concreteNodes...)
 	allRegionalCandidateProxies = append(allRegionalCandidateProxies, "DIRECT")
 
 	isAIOrSensitiveGroup := func(name string) bool {
@@ -795,8 +798,8 @@ func IsInformationalOrInvalidNode(name string) bool {
 	return false
 }
 
-// sortNodesByQuality prioritizes high-speed, dedicated, low-latency nodes
-func sortNodesByQuality(nodes []string) {
+// SortNodesByQuality prioritizes high-speed, dedicated, low-latency nodes
+func SortNodesByQuality(nodes []string) {
 	sort.SliceStable(nodes, func(i, j int) bool {
 		return getNodeQualityScore(nodes[i]) < getNodeQualityScore(nodes[j])
 	})
@@ -810,11 +813,14 @@ func getNodeQualityScore(name string) int {
 	if strings.Contains(lower, "优化") || strings.Contains(lower, "bgp") || strings.Contains(lower, "cn2") || strings.Contains(lower, "gia") || strings.Contains(lower, "9929") {
 		return 1
 	}
-	if strings.Contains(lower, "hy2") || strings.Contains(lower, "hysteria") || strings.Contains(lower, "tuic") {
+	if strings.Contains(lower, "reality") || strings.Contains(lower, "vless") || strings.Contains(lower, "trojan") {
 		return 2
 	}
-	if strings.Contains(lower, "原生") || strings.Contains(lower, "直连") {
+	if strings.Contains(lower, "hy2") || strings.Contains(lower, "hysteria") || strings.Contains(lower, "tuic") {
 		return 3
+	}
+	if strings.Contains(lower, "原生") || strings.Contains(lower, "直连") {
+		return 4
 	}
 	return 5
 }
