@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v6.6-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v6.7-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -77,7 +77,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 Test v6.6 最新版本更新亮点](#announcement)
+- [📢 Test v6.7 最新版本更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -324,24 +324,27 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v6.6 官方正式版重磅更新亮点 (双核冷启动优选排序 · 专线协议原生支持 · 双引擎双循环零断网闭环)
+## 📢 Test v6.7 官方正式版重磅更新亮点 (爱快联动总线 · 全息策略组健康热力矩阵 · 自动测速组质量排序加固 · 双核双循环闭环)
 
 > [!IMPORTANT]
-> ### 👑【双核策略组冷启动排序优化与专线协议全面覆盖】专线优先 · 零冷启动超时 · 双核双循环闭环实测 (CubeX Test v6.6 官方正式版)
+> ### 👑【爱快深度联动 · 全息策略组健康热力矩阵 · 双核策略组排序加固】(CubeX Test v6.7 官方正式版)
 >
 > **致所有追求极致网络稳定性、工业级高可用与彻底免折腾的极客玩家：**
 >
-> 今天正式发布的 **CubeX Test v6.6** 带来以下三大硬核改进：
+> 今天正式发布的 **CubeX Test v6.7** 带来以下核心改进：
 >
-> 1. ⚡ **【双核策略组冷启动排序算法与初始选路优化】**：
-   * 彻底重构策略组候选节点拓扑组装算法，优先将含专线、优化、低延迟等关键字的高可用节点置于首位 (`nodes[0]`)；
-   * 彻底根除冷启动与分流切换时偶发命中离线节点导致的网关超时痛点，首包请求即刻极速连通；
-2. 🛡️ **【专线协议原生支持与协议白名单全面扩充】**：
-   * 双核（Mihomo 与 sing-box v1.14+）编译器全面原生纳入新一代专线协议支持；
-   * 完美适配混淆参数解析与结构体转换，确保专线订阅全量节点 100% 点亮并极速分流，彻底杜绝丢节点与空跑隐患；
-3. 🌐 **【双引擎双循环四次往返热切换闭环验证与宿主逃生固化】**：
-   * 严格实测完成双核连续两轮四次无感热重载切换，直连无损、Fake-IP 干净度（杜绝 `fc00::/18` 黑洞污染）与境外代理连通性全部满分达标；
-   * 主路由冗余规则全面清算并生成完美快照备份，看门狗毫秒逃生全天候护网保活。
+> 1. ⚡ **【爱快流控路由 Web-RPC 深度联动与 DHCP Option 6 自动下发】**：
+>    * 深度打通爱快流控主路由底座，支持自动下发静态回指路由并自动同步 DHCP Option 6 旁路配置；
+>    * 局域网终端接入彻底免去手动修改网关与 DNS，伴生守护看门狗 60 秒自检自愈，杜绝路由配置漂移；
+> 2. 🛡️ **【控制台全息策略组健康度热力矩阵】**：
+>    * 网络中枢概览全新嵌入全息策略组健康度热力矩阵，极轻量聚合 8 大核心出口的实时延迟、可用率与主选节点；
+>    * 纯计算属性缓存化，彻底杜绝模板循环求值开销，确保界面 60 帧极速丝滑，严格遵从零敏感图示规范；
+> 3. 🌐 **【双核自动测速与顺位主备组质量排序加固】**：
+>    * 彻底根治历史残留离线节点导致的冷启动超时，严格限定仅手动选择组执行自定义节点置顶；
+>    * 自动测速组与顺位主备组始终保持专用线质量排序（优质专线/Reality 优先），冷启动首包请求毫秒级极速穿透；
+> 4. 🔄 **【双核双循环四次实机往返热重载满分通过】**：
+>    * 在真实生产级容器环境中完成双核（Mihomo ⇄ sing-box）连续两轮四次无感热切换实测闭环；
+>    * 国内真实流量直连、海外代理与 Fake-IP 解析干净度（严防 `fc00::/18` 污染）全部 100% 满分通过。
 
 <a id="release-assets"></a>
 
@@ -349,19 +352,19 @@
 
 | 发布文件名 | 适用平台与宿主底座 | 文件大小 | 架构与核心功能说明 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v6.6-ros-amd64.tar` | MikroTik RouterOS v7 (x86 软路由) | 105.24 MB | RouterOS v7 原生未压缩容器镜像（支持 WinBox `/container/add` 拖入直装） |
-| `CubeX-Test-v6.6-ros-arm64.tar` | MikroTik RouterOS v7 (RB5009/CCR) | 105.59 MB | RouterOS ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-Test-v6.6-docker-amd64.tar.gz` | Docker / 爱快 / fnOS / NAS / PVE | 87.71 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-Test-v6.6-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 98.10 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-Test-v6.6-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 90.45 MB | ARM64 完整归档发布包 |
-| `cubexd-linux-amd64` | Linux amd64 | 48.41 MB | 纯 Go 单二进制控制面（代码加固版，用于在线平滑热更新） |
-| `cubexd-linux-arm64` | Linux arm64 | 44.04 MB | ARM64 单二进制核心控制面（代码加固版） |
-| `cubex-linux-amd64` | Linux amd64 CLI | 17.85 MB | 纯 Go 运维 CLI 工具（终端直接运行） |
-| `cubex-linux-arm64` | Linux arm64 CLI | 15.93 MB | 纯 Go 运维 CLI 工具（终端直接运行） |
-| `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | 17.5 KB | RouterOS v7 WinBox 终端复制即用一键自动编排脚本 |
+| `CubeX-Test-v6.7-ros-amd64.tar` | MikroTik RouterOS v7 (x86 软路由) | 100.38 MB | RouterOS v7 原生未压缩容器镜像（支持 WinBox `/container/add` 拖入直装） |
+| `CubeX-Test-v6.7-ros-arm64.tar` | MikroTik RouterOS v7 (RB5009/CCR) | 100.72 MB | RouterOS ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-Test-v6.7-docker-amd64.tar.gz` | Docker / 爱快 / fnOS / NAS / PVE | 83.67 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-Test-v6.7-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 93.59 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-Test-v6.7-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 86.36 MB | ARM64 完整归档发布包 |
+| `cubexd-linux-amd64` | Linux amd64 | 46.27 MB | 纯 Go 单二进制控制面（代码加固版，用于在线平滑热更新） |
+| `cubexd-linux-arm64` | Linux arm64 | 42.38 MB | ARM64 单二进制核心控制面（代码加固版） |
+| `cubex-linux-amd64` | Linux amd64 CLI | 17.00 MB | 纯 Go 运维 CLI 工具（终端直接运行） |
+| `cubex-linux-arm64` | Linux arm64 CLI | 15.25 MB | 纯 Go 运维 CLI 工具（终端直接运行） |
+| `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | 17.1 KB | RouterOS v7 WinBox 终端复制即用一键自动编排脚本 |
 | `setup-openwrt.sh` | OpenWrt 部署脚本 | 22.8 KB | OpenWrt 终端一键容器网络编排脚本 |
-| `install_pve_lxc.sh` | PVE CT 容器一键脚本 | 9.7 KB | PVE 宿主机终端一键全自动开箱脚本 |
-| `install.sh` | 通用 Linux 安装脚本 | 12.0 KB | 通用 Linux 一键全自动生产部署脚本 |
+| `install_pve_lxc.sh` | PVE CT 容器一键脚本 | 10.1 KB | PVE 宿主机终端一键全自动开箱脚本 |
+| `install.sh` | 通用 Linux 安装脚本 | 12.3 KB | 通用 Linux 一键全自动生产部署脚本 |
 
 ## 🚀 六大主流平台保姆级部署实战 (选一种适合你的就行)
 
