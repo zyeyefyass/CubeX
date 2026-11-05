@@ -334,11 +334,19 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		"+.baidu.com",
 
+		"+.bdstatic.com",
+
 		"+.qq.com",
+
+		"+.qpic.cn",
 
 		"+.bilibili.com",
 
+		"+.hdslb.com",
+
 		"+.taobao.com",
+
+		"+.alicdn.com",
 
 		"+.jd.com",
 
@@ -350,9 +358,15 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		"+.douyin.com",
 
+		"+.bytecdntp.com",
+
+		"+.volces.com",
+
 		"+.weibo.com",
 
 		"+.aliyun.com",
+
+		"+.aliyuncs.com",
 
 		"+.tencent.com",
 

@@ -3,9 +3,10 @@
 import sys
 import re
 
-TARGET_VER = "Test v6.4"
-TARGET_TAG = "Test-v6.4"
-TARGET_WEB = "6.4.0"
+TARGET_NUM = sys.argv[1] if len(sys.argv) > 1 else "6.5"
+TARGET_VER = f"Test v{TARGET_NUM}"
+TARGET_TAG = f"Test-v{TARGET_NUM}"
+TARGET_WEB = f"{TARGET_NUM}.0"
 
 def replace_in_file(path, pattern, repl):
     with open(path, 'r', encoding='utf-8') as f:
@@ -41,9 +42,7 @@ replace_in_file("web/package.json", r'"version":\s*"6\.[0-9]+\.[0-9]+"', f'"vers
 # 7. web/src/App.vue fallbacks
 with open("web/src/App.vue", "r", encoding="utf-8") as f:
     vue_text = f.read()
-vue_text = vue_text.replace("'Test v6.1'", f"'{TARGET_VER}'")
-vue_text = vue_text.replace("'Test v6.2'", f"'{TARGET_VER}'")
-vue_text = vue_text.replace("'Test v6.3'", f"'{TARGET_VER}'")
+vue_text = re.sub(r"'Test v6\.[0-9]+'", f"'{TARGET_VER}'", vue_text)
 with open("web/src/App.vue", "w", encoding="utf-8") as f:
     f.write(vue_text)
 print("✓ Updated web/src/App.vue fallback versions")

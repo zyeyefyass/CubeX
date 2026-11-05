@@ -548,17 +548,35 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 						"bilibili.com",
 
+						"hdslb.com",
+
 						"baidu.com",
+
+						"bdstatic.com",
 
 						"qq.com",
 
+						"qpic.cn",
+
 						"taobao.com",
+
+						"alicdn.com",
+
+						"aliyun.com",
+
+						"aliyuncs.com",
 
 						"jd.com",
 
 						"alipay.com",
 
 						"163.com",
+
+						"douyin.com",
+
+						"bytecdntp.com",
+
+						"volces.com",
 
 						"msftconnecttest.com",
 
@@ -675,6 +693,10 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"address": []string{net.TunIPv4},
 
 				"mtu": tunMTU,
+
+				"gso": true,
+
+				"gso_max_size": 65536,
 
 				"auto_route": true,
 

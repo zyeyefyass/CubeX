@@ -775,7 +775,7 @@ func (m *Manager) RunCommand(cfg HostConfig, cmdStr string) (string, error) {
 	return out, nil
 }
 
-// ProbeHost telemetry inspects the host OS, kernel, network, and WireGuard status.
+// ProbeHost telemetry inspects the host OS, kernel, network, and firewall status.
 func (m *Manager) ProbeHost() (*HostInfo, error) {
 	m.mu.RLock()
 	cfg := m.config
@@ -1070,9 +1070,9 @@ func (m *Manager) GetOutboundIP(targetHost string) string {
 	return "127.0.0.1"
 }
 
-// ApplyFirewall configures IP forwarding, WireGuard UDP port, panel TCP port, and NAT masquerade on the host.
+// ApplyFirewall configures IP forwarding, panel TCP port, and line-speed sysctl optimization on the host.
 // Supported modes: "permissive" (default, recommended for novices) and "strict" (least privilege).
-// If enablePenetration is false, no WireGuard UDP penetration ports will be opened (pure LAN bypass).
+// If enablePenetration is false, pure LAN bypass is preserved with zero open external ports.
 func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallResult, error) {
 	m.mu.RLock()
 	cfg := m.config
@@ -1183,14 +1183,22 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 			struct {
 				desc string
 				cmd  string
+			}{"千兆/2.5G 内核 Socket 缓冲区与并发连接队列调优", "sysctl -w net.core.rmem_max=67108864 2>/dev/null || true; sysctl -w net.core.wmem_max=67108864 2>/dev/null || true; sysctl -w net.core.rmem_default=262144 2>/dev/null || true; sysctl -w net.core.wmem_default=262144 2>/dev/null || true; sysctl -w net.core.netdev_max_backlog=100000 2>/dev/null || true; sysctl -w net.core.somaxconn=65535 2>/dev/null || true; sysctl -w net.ipv4.tcp_rmem=\"4096 87380 67108864\" 2>/dev/null || true; sysctl -w net.ipv4.tcp_wmem=\"4096 65536 67108864\" 2>/dev/null || true; sysctl -w net.ipv4.tcp_tw_reuse=1 2>/dev/null || true; sysctl -w net.ipv4.tcp_fin_timeout=15 2>/dev/null || true; sysctl -w net.ipv4.ip_local_port_range=\"1024 65535\" 2>/dev/null || true"},
+			struct {
+				desc string
+				cmd  string
+			}{"动态激活网卡硬件分段卸载与接收合并 (GRO/GSO/TSO)", "IFACE=$(ip route show default 2>/dev/null | awk '{print $5}' | head -n1); [ -n \"$IFACE\" ] && ethtool -K \"$IFACE\" gro on gso on tso on rx on tx on 2>/dev/null || true"},
+			struct {
+				desc string
+				cmd  string
 			}{"IPv6 海外断流与泄露防护 (迫使 0ms 回退至 IPv4 极速代理)", "ip6tables -C FORWARD -d 2000::/3 -j REJECT --reject-with icmp6-adm-prohibited 2>/dev/null || ip6tables -A FORWARD -d 2000::/3 -j REJECT --reject-with icmp6-adm-prohibited 2>/dev/null || true"},
 		)
-		// Clean up any legacy WireGuard rules from iptables
+		// Clean up any legacy rules from iptables
 		commands = append(commands,
 			struct {
 				desc string
 				cmd  string
-			}{"清理 WireGuard 端口与伪装规则", "iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true; iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true; iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true; iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; ip link delete wg0 2>/dev/null || true; ip link delete cubex-wg 2>/dev/null || true"},
+			}{"清理历史遗留冗余端口与伪装规则", "iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true; iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true; iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true; iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; ip link delete wg0 2>/dev/null || true; ip link delete cubex-wg 2>/dev/null || true"},
 		)
 	} else {
 		// Strict mode
@@ -1230,14 +1238,22 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 			struct {
 				desc string
 				cmd  string
+			}{"千兆/2.5G 内核 Socket 缓冲区与并发连接队列调优", "sysctl -w net.core.rmem_max=67108864 2>/dev/null || true; sysctl -w net.core.wmem_max=67108864 2>/dev/null || true; sysctl -w net.core.rmem_default=262144 2>/dev/null || true; sysctl -w net.core.wmem_default=262144 2>/dev/null || true; sysctl -w net.core.netdev_max_backlog=100000 2>/dev/null || true; sysctl -w net.core.somaxconn=65535 2>/dev/null || true; sysctl -w net.ipv4.tcp_rmem=\"4096 87380 67108864\" 2>/dev/null || true; sysctl -w net.ipv4.tcp_wmem=\"4096 65536 67108864\" 2>/dev/null || true; sysctl -w net.ipv4.tcp_tw_reuse=1 2>/dev/null || true; sysctl -w net.ipv4.tcp_fin_timeout=15 2>/dev/null || true; sysctl -w net.ipv4.ip_local_port_range=\"1024 65535\" 2>/dev/null || true"},
+			struct {
+				desc string
+				cmd  string
+			}{"动态激活网卡硬件分段卸载与接收合并 (GRO/GSO/TSO)", "IFACE=$(ip route show default 2>/dev/null | awk '{print $5}' | head -n1); [ -n \"$IFACE\" ] && ethtool -K \"$IFACE\" gro on gso on tso on rx on tx on 2>/dev/null || true"},
+			struct {
+				desc string
+				cmd  string
 			}{"IPv6 海外断流与泄露防护 (迫使 0ms 回退至 IPv4 极速代理)", "ip6tables -C FORWARD -d 2000::/3 -j REJECT --reject-with icmp6-adm-prohibited 2>/dev/null || ip6tables -A FORWARD -d 2000::/3 -j REJECT --reject-with icmp6-adm-prohibited 2>/dev/null || true"},
 		)
-		// Clean up any legacy WireGuard rules from iptables
+		// Clean up any legacy rules from iptables
 		commands = append(commands,
 			struct {
 				desc string
 				cmd  string
-			}{"清理 WireGuard 端口与伪装规则", "iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true; iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true; iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true; iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; ip link delete wg0 2>/dev/null || true; ip link delete cubex-wg 2>/dev/null || true"},
+			}{"清理历史遗留冗余端口与伪装规则", "iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true; iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true; iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true; iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true; ip link delete wg0 2>/dev/null || true; ip link delete cubex-wg 2>/dev/null || true"},
 		)
 	}
 
@@ -1304,7 +1320,7 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 	return res, nil
 }
 
-// CleanupHostWireGuard stops and purges all wireguard services and rules on fnOS / Linux host.
+// CleanupHostWireGuard stops and purges all legacy tunnel services and rules on fnOS / Linux host.
 func (m *Manager) CleanupHostWireGuard() (string, error) {
 	m.mu.RLock()
 	cfg := m.config
@@ -1322,12 +1338,12 @@ func (m *Manager) CleanupHostWireGuard() (string, error) {
 
 	var logs []string
 
-	// 1. Stop & disable WireGuard services
+	// 1. Stop & disable legacy services
 	stopCmd := "systemctl stop wg-quick@wg0 2>/dev/null; systemctl disable wg-quick@wg0 2>/dev/null; wg-quick down wg0 2>/dev/null; ip link delete wg0 2>/dev/null || true"
 	if session, err := client.NewSession(); err == nil {
 		_ = session.Run(stopCmd)
 		session.Close()
-		logs = append(logs, "✅ 已停止并下线宿主机 WireGuard 服务与虚拟接口")
+		logs = append(logs, "✅ 已停止并下线宿主机历史遗留服务与虚拟接口")
 	}
 
 	// 2. Remove configuration files
@@ -1335,7 +1351,7 @@ func (m *Manager) CleanupHostWireGuard() (string, error) {
 	if session, err := client.NewSession(); err == nil {
 		_ = session.Run(rmCmd)
 		session.Close()
-		logs = append(logs, "✅ 已彻底清除宿主机 WireGuard 配置文件")
+		logs = append(logs, "✅ 已彻底清除宿主机历史遗留配置文件")
 	}
 
 	// 3. Remove iptables firewall rules
@@ -1348,13 +1364,13 @@ command -v netfilter-persistent &>/dev/null && netfilter-persistent save || true
 	if session, err := client.NewSession(); err == nil {
 		_ = session.Run(cleanFwCmd)
 		session.Close()
-		logs = append(logs, "✅ 已从宿主机防火墙彻底注销 WireGuard 规则")
+		logs = append(logs, "✅ 已从宿主机防火墙彻底注销历史遗留端口与规则")
 	}
 
 	return strings.Join(logs, "\n"), nil
 }
 
-// DeployHostWireGuard is deprecated. It cleans up WireGuard on the host.
+// DeployHostWireGuard is deprecated. It cleans up legacy rules on the host.
 func (m *Manager) DeployHostWireGuard(wgServerConf string) (string, error) {
 	return m.CleanupHostWireGuard()
 }
@@ -1464,8 +1480,8 @@ iptables -C FORWARD -s 10.0.0.0/8 -d 10.0.0.0/8 -j ACCEPT 2>/dev/null || iptable
 echo "  -> 放行 CubeX Web 面板端口 (TCP 2026)..."
 iptables -C INPUT -p tcp --dport 2026 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 2026 -j ACCEPT
 
-# 6. 彻底清理遗留的 WireGuard 防火墙规则与接口
-echo "  -> 清理废弃 WireGuard 规则与接口..."
+# 6. 彻底清理遗留的冗余防火墙规则与接口
+echo "  -> 清理废弃规则与接口..."
 iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true
 iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true
 iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true
@@ -1508,8 +1524,8 @@ iptables -C FORWARD -j ACCEPT 2>/dev/null || iptables -I FORWARD 1 -j ACCEPT
 echo "  -> 放行 CubeX Web 面板端口 (TCP 2026)..."
 iptables -C INPUT -p tcp --dport 2026 -j ACCEPT 2>/dev/null || iptables -I INPUT -p tcp --dport 2026 -j ACCEPT
 
-# 4. 彻底清理遗留的 WireGuard 防火墙规则与接口
-echo "  -> 清理废弃 WireGuard 规则与接口..."
+# 4. 彻底清理遗留的冗余防火墙规则与接口
+echo "  -> 清理废弃规则与接口..."
 iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true
 iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true
 iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true
@@ -1527,15 +1543,15 @@ echo "✅ [CubeX] 宿主机网络与防火墙已以【🟢 宽松模式】成功
 `
 }
 
-// GenerateCleanupWireGuardScript creates a 1-click script to purge all wireguard artifacts from host.
+// GenerateCleanupWireGuardScript creates a 1-click script to purge all legacy artifacts from host.
 func (m *Manager) GenerateCleanupWireGuardScript() string {
 	return `#!/usr/bin/env bash
 # ========================================================
-#  CubeX · 宿主机 WireGuard 残留清理脚本
+#  CubeX · 宿主机历史遗留接口残留清理脚本
 # ========================================================
 set -e
 
-echo "🧹 [CubeX] 正在清理宿主机 WireGuard 残留与防火墙规则..."
+echo "🧹 [CubeX] 正在清理宿主机历史遗留残留与防火墙规则..."
 
 systemctl stop wg-quick@wg0 2>/dev/null || true
 systemctl disable wg-quick@wg0 2>/dev/null || true
@@ -1552,7 +1568,7 @@ iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true
 iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true
 which netfilter-persistent &>/dev/null && netfilter-persistent save || (which iptables-save &>/dev/null && iptables-save > /etc/iptables.rules 2>/dev/null || true)
 
-echo "✅ [CubeX] 宿主机 WireGuard 规则与服务已彻底清理干净！"
+echo "✅ [CubeX] 宿主机历史遗留规则与服务已彻底清理干净！"
 `
 }
 
