@@ -694,10 +694,6 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 				"mtu": tunMTU,
 
-				"gso": true,
-
-				"gso_max_size": 65536,
-
 				"auto_route": true,
 
 				"auto_redirect": false,

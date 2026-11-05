@@ -48,6 +48,7 @@ AUTO_CONFIRM=0
 CUSTOM_IP=""
 CUSTOM_VMID=""
 CUSTOM_GW=""
+CUSTOM_VER="${CUBEX_VERSION:-}"
 
 for arg in "$@"; do
     case "$arg" in
@@ -62,6 +63,9 @@ for arg in "$@"; do
             ;;
         --gw=*)
             CUSTOM_GW="${arg#*=}"
+            ;;
+        --version=*|-v=*)
+            CUSTOM_VER="${arg#*=}"
             ;;
     esac
 done
@@ -392,10 +396,15 @@ fi
 rc-update add cubexd default >/dev/null 2>&1
 EOF
 
-echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX Test v4.9 双核完整发布包 (${PVE_ARCH})...${NC}"
+echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX ${CUSTOM_VER:-Test v6.4} 双核完整发布包 (${PVE_ARCH})...${NC}"
 # 10. 推送或下载 CubeX 完整发布包 (按架构自动匹配)
-LOCAL_PKG=$(ls dist/release/CubeX-Test-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
-CACHE_PKG=$(ls /tmp/CubeX-Test-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+if [ -n "$CUSTOM_VER" ]; then
+    LOCAL_PKG=$(ls dist/release/CubeX-${CUSTOM_VER}*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+    CACHE_PKG=$(ls /tmp/CubeX-${CUSTOM_VER}*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+else
+    LOCAL_PKG=$(ls dist/release/CubeX-Test-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+    CACHE_PKG=$(ls /tmp/CubeX-Test-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+fi
 
 if [ -n "$LOCAL_PKG" ] && [ -f "$LOCAL_PKG" ]; then
     echo -e "${BLUE}检测到本地发布包 (${LOCAL_PKG})，直接推送至容器: /opt/CubeX...${NC}"
@@ -421,19 +430,22 @@ elif [ -f "dist/cubexd-linux-${PVE_ARCH}" ]; then
 elif [ -f "/opt/cubex/bin/cubexd" ]; then
     pct push "$CT_ID" /opt/cubex/bin/cubexd /opt/CubeX/bin/cubexd -perms 755
 else
-    pct exec "$CT_ID" -- sh -s "$PVE_ARCH" << 'EOF'
+    pct exec "$CT_ID" -- sh -s "$PVE_ARCH" "$CUSTOM_VER" << 'EOF'
     set -e
     ARCH="$1"
-    echo "🌐 正在从 GitHub Releases 拉取最新完整发布包 (${ARCH} 双内核 + 101套规则集 + 控制面)..."
-    REL_TAG=""
-    for MIRROR in "https://ghproxy.net" "https://gh-proxy.com" "https://mirror.ghproxy.com" "https://github.moeyy.xyz" "https://ghps.cc"; do
-        LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 3 -m 5 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
-        if [ -n "$LATEST_JSON" ]; then
-            REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
-            [ -n "$REL_TAG" ] && break
-        fi
-    done
-    [ -z "$REL_TAG" ] && REL_TAG="Test-v6.2"
+    TARGET_VER="$2"
+    echo "🌐 正在从 GitHub Releases 拉取完整发布包 (${ARCH} 双内核 + 105套规则集 + 控制面)..."
+    REL_TAG="$TARGET_VER"
+    if [ -z "$REL_TAG" ]; then
+        for MIRROR in "https://ghproxy.net" "https://gh-proxy.com" "https://mirror.ghproxy.com" "https://github.moeyy.xyz" "https://ghps.cc"; do
+            LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 3 -m 5 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
+            if [ -n "$LATEST_JSON" ]; then
+                REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
+                [ -n "$REL_TAG" ] && break
+            fi
+        done
+    fi
+    [ -z "$REL_TAG" ] && REL_TAG="Test-v6.4"
 
     ZIP_NAME="CubeX-${REL_TAG}-linux-${ARCH}.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"
