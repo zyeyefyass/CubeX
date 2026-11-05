@@ -1320,6 +1320,77 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 	return res, nil
 }
 
+// IsIKuaiOrOpenWrtConfigured checks if host integration is enabled and configured as iKuai or OpenWrt.
+func (m *Manager) IsIKuaiOrOpenWrtConfigured() bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if !m.config.Enabled || m.config.Host == "" {
+		return false
+	}
+	plat := strings.ToLower(m.config.PlatformType)
+	if plat == "ikuai" || plat == "openwrt" {
+		return true
+	}
+	if m.cachedInfo != nil {
+		cPlat := strings.ToLower(m.cachedInfo.PlatformID)
+		if cPlat == "ikuai" || cPlat == "openwrt" {
+			return true
+		}
+	}
+	return false
+}
+
+// SyncHostBypass checks and self-heals bypass routes and DHCP on the connected host.
+func (m *Manager) SyncHostBypass() ([]string, error) {
+	m.mu.RLock()
+	cfg := m.config
+	cached := m.cachedInfo
+	m.mu.RUnlock()
+
+	if !cfg.Enabled || cfg.Host == "" {
+		return nil, nil
+	}
+
+	cubexIP := m.GetOutboundIP(cfg.Host)
+
+	// 1. iKuai Host
+	if (cached != nil && cached.PlatformID == "ikuai") || cfg.PlatformType == "ikuai" {
+		client := ikuai.NewClient(ikuai.Config{
+			Host:     cfg.Host,
+			Port:     cfg.Port,
+			User:     cfg.User,
+			Password: cfg.Password,
+		})
+		return client.SyncSelfHealing(cubexIP)
+	}
+
+	// 2. OpenWrt Host
+	if (cached != nil && cached.PlatformID == "openwrt") || cfg.PlatformType == "openwrt" {
+		client := openwrt.NewClient(openwrt.Config{
+			Host:     cfg.Host,
+			Port:     cfg.Port,
+			User:     cfg.User,
+			Password: cfg.Password,
+		})
+		hasRoute, hasDNS, _, err := client.InspectRouting(cubexIP)
+		if err == nil && hasRoute && hasDNS {
+			return []string{"✓ OpenWrt 静态回指路由与 DHCP Option 6 状态健康"}, nil
+		}
+		return client.ApplyBypass(cubexIP)
+	}
+
+	// 3. Linux / fnOS / PVE Host
+	if (cached != nil && (cached.PlatformID == "linux" || cached.PlatformID == "fnos" || cached.PlatformID == "pve")) || cfg.PlatformType == "linux" {
+		res, err := m.ApplyFirewall("permissive", true)
+		if err != nil {
+			return nil, err
+		}
+		return res.Logs, nil
+	}
+
+	return nil, nil
+}
+
 // CleanupHostWireGuard stops and purges all legacy tunnel services and rules on fnOS / Linux host.
 func (m *Manager) CleanupHostWireGuard() (string, error) {
 	m.mu.RLock()

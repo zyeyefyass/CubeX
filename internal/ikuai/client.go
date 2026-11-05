@@ -478,6 +478,103 @@ func (c *Client) getDHCPConfig() (string, []map[string]any, error) {
 	return "", nil, fmt.Errorf("无法查询爱快 DHCP 服务配置")
 }
 
+// InspectDHCPOption6 queries custom DHCP options to check if Option 6 (Domain Name Server) is configured.
+func (c *Client) InspectDHCPOption6(cubexIP string) (hasOpt6 bool, opt6Val string, err error) {
+	funcs := []string{"dhcp_option", "dhcp_opts"}
+	for _, fn := range funcs {
+		resp, callErr := c.Call(fn, "show", map[string]string{
+			"TYPE":  "data,total",
+			"limit": "0,50",
+		})
+		if callErr == nil && resp.IsSuccess() && len(resp.Payload()) > 0 {
+			var optData struct {
+				Data []map[string]any `json:"data"`
+			}
+			if jsonErr := json.Unmarshal(resp.Payload(), &optData); jsonErr == nil && len(optData.Data) > 0 {
+				for _, item := range optData.Data {
+					optCode := fmt.Sprintf("%v", item["opt"])
+					if optCode == "<nil>" || optCode == "" {
+						optCode = fmt.Sprintf("%v", item["code"])
+					}
+					if optCode == "6" {
+						val := fmt.Sprintf("%v", item["ip"])
+						if val == "" || val == "<nil>" {
+							val = fmt.Sprintf("%v", item["content"])
+						}
+						if val == "" || val == "<nil>" {
+							val = fmt.Sprintf("%v", item["val"])
+						}
+						if cubexIP == "" || val == cubexIP {
+							return true, val, nil
+						}
+						return false, val, nil
+					}
+				}
+			}
+		}
+	}
+	return false, "", nil
+}
+
+// ApplyDHCPOption6 ensures custom DHCP Option 6 is configured to point to cubexIP.
+func (c *Client) ApplyDHCPOption6(cubexIP, lanIf string) ([]string, error) {
+	logs := []string{}
+	funcs := []string{"dhcp_option", "dhcp_opts"}
+	for _, fn := range funcs {
+		resp, err := c.Call(fn, "show", map[string]string{
+			"TYPE":  "data,total",
+			"limit": "0,50",
+		})
+		if err == nil && resp.IsSuccess() {
+			var optData struct {
+				Data []map[string]any `json:"data"`
+			}
+			_ = json.Unmarshal(resp.Payload(), &optData)
+			found := false
+			for _, item := range optData.Data {
+				optCode := fmt.Sprintf("%v", item["opt"])
+				if optCode == "<nil>" || optCode == "" {
+					optCode = fmt.Sprintf("%v", item["code"])
+				}
+				if optCode == "6" {
+					found = true
+					val := fmt.Sprintf("%v", item["ip"])
+					if val == cubexIP {
+						logs = append(logs, fmt.Sprintf("爱快自定义 DHCP Option 6 已正确指向 CubeX (%s)", cubexIP))
+					} else {
+						item["ip"] = cubexIP
+						item["content"] = cubexIP
+						item["val"] = cubexIP
+						editResp, editErr := c.Call(fn, "edit", item)
+						if editErr == nil && editResp.IsSuccess() {
+							logs = append(logs, fmt.Sprintf("成功修正爱快 DHCP Option 6 指向: %s (原值: %s)", cubexIP, val))
+						}
+					}
+					break
+				}
+			}
+			if !found {
+				addPayload := map[string]any{
+					"enabled":   "yes",
+					"opt":       "6",
+					"code":      6,
+					"ip":        cubexIP,
+					"content":   cubexIP,
+					"val":       cubexIP,
+					"interface": lanIf,
+					"comment":   "CubeX-DNS-Option6",
+				}
+				addResp, addErr := c.Call(fn, "add", addPayload)
+				if addErr == nil && addResp.IsSuccess() {
+					logs = append(logs, fmt.Sprintf("成功下发爱快自定义 DHCP Option 6 -> %s (接口: %s)", cubexIP, lanIf))
+				}
+			}
+			return logs, nil
+		}
+	}
+	return logs, nil
+}
+
 // InspectRouting checks if 198.18.0.0/15 static route and DHCP DNS are configured.
 // Automatically adapts to iKuai 4.0+ (static_rt) and 3.x (route_static).
 func (c *Client) InspectRouting(cubexIP string) (hasRoute bool, hasDNS bool, details string, err error) {
@@ -574,6 +671,9 @@ func (c *Client) InspectRouting(cubexIP string) (hasRoute bool, hasDNS bool, det
 	} else {
 		msgParts = append(msgParts, "DHCP 首选 DNS 尚未指向 CubeX")
 	}
+	if hasOpt6, opt6Val, _ := c.InspectDHCPOption6(cubexIP); hasOpt6 {
+		msgParts = append(msgParts, fmt.Sprintf("DHCP Option 6 联动就绪 (%s)", opt6Val))
+	}
 	details = strings.Join(msgParts, " · ")
 
 	return hasRoute, hasDNS, details, nil
@@ -628,6 +728,12 @@ func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
 				logs = append(logs, fmt.Sprintf("爱快 DHCP 首选 DNS 已是 CubeX IP (%s)，备用DNS: %s，状态健康", cubexIP, currDNS2))
 			}
 		}
+	}
+
+	// 1.1 Custom DHCP Option 6 synchronization
+	opt6Logs, _ := c.ApplyDHCPOption6(cubexIP, lanIf)
+	if len(opt6Logs) > 0 {
+		logs = append(logs, opt6Logs...)
 	}
 
 	// 2. Static route injection: Try 4.0 static_rt first
@@ -756,4 +862,21 @@ func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
 	}
 
 	return logs, nil
+}
+
+// SyncSelfHealing verifies and auto-repairs iKuai's static route 198.18.0.0/15, DHCP DNS, and Option 6.
+func (c *Client) SyncSelfHealing(cubexIP string) ([]string, error) {
+	hasRoute, hasDNS, details, err := c.InspectRouting(cubexIP)
+	if err != nil {
+		return nil, fmt.Errorf("爱快状态自愈巡检失败: %w", err)
+	}
+	if hasRoute && hasDNS {
+		return []string{fmt.Sprintf("✓ 爱快 Web-RPC 联动巡检正常: %s", details)}, nil
+	}
+	// Anomaly detected, auto-reheal
+	logs, applyErr := c.ApplyBypass(cubexIP)
+	if applyErr != nil {
+		return nil, fmt.Errorf("爱快自愈修复失败: %w", applyErr)
+	}
+	return append([]string{fmt.Sprintf("⚠️ 检测到爱快旁路配置漂移 (%s)，已触发自动自愈加固：", details)}, logs...), nil
 }

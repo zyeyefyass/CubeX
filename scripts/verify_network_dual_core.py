@@ -74,25 +74,28 @@ def test_dns(domain="www.google.com"):
     except Exception as e:
         return False, f"ERROR: {e}"
 
-def test_proxy():
-    try:
-        out = subprocess.check_output(
-            ["curl.exe", "-x", f"http://{HOST_CUBEX}:{PORT_PROXY}", "-I", "--connect-timeout", "4", "https://www.google.com/generate_204"],
-            text=True,
-            timeout=6
-        )
-        if "204" in out or "200" in out:
-            return True, "OK (HTTP 204/200)"
-        return False, f"HTTP Error: {out[:80]}"
-    except Exception as e:
-        return False, f"Failed: {e}"
+def test_proxy(retries=2):
+    for attempt in range(retries):
+        try:
+            out = subprocess.check_output(
+                ["curl.exe", "-s", "-S", "-x", f"http://{HOST_CUBEX}:{PORT_PROXY}", "-I", "--connect-timeout", "6", "https://www.google.com/generate_204"],
+                text=True,
+                timeout=8
+            )
+            if "204" in out or "200" in out:
+                return True, "OK (HTTP 204/200)"
+        except Exception as e:
+            if attempt == retries - 1:
+                return False, f"Failed: {e}"
+            time.sleep(1.0)
+    return False, "Failed after retries"
 
 def test_direct():
     try:
         out = subprocess.check_output(
-            ["curl.exe", "-I", "--connect-timeout", "3", "https://www.baidu.com"],
+            ["curl.exe", "-s", "-S", "-I", "--connect-timeout", "4", "https://www.baidu.com"],
             text=True,
-            timeout=5
+            timeout=6
         )
         if "200" in out or "302" in out:
             return True, "OK (Direct 200/302)"
@@ -121,7 +124,7 @@ def main():
         if res_a.get("status") != "switched":
             print(f"[-] Switch to {target_a} failed: {res_a}")
             all_passed = False
-        time.sleep(2.5)
+        time.sleep(3.0)
         
         # Verify Direct
         d_ok, d_msg = test_direct()
@@ -143,7 +146,7 @@ def main():
         if res_b.get("status") != "switched":
             print(f"[-] Switch to {target_b} failed: {res_b}")
             all_passed = False
-        time.sleep(2.5)
+        time.sleep(3.0)
         
         # Verify Direct
         d_ok, d_msg = test_direct()

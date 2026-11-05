@@ -1076,6 +1076,7 @@ func main() {
 	mux.HandleFunc("/api/v1/host/auto-setup", srv.handleHostAutoSetup)
 
 	mux.HandleFunc("/api/v1/host/ikuai/docker-params", srv.handleIkuaiDockerParams)
+	mux.HandleFunc("/api/v1/host/ikuai/sync", srv.handleIkuaiSync)
 
 	mux.HandleFunc("/api/v1/host/openwrt/inspect", srv.handleOpenWrtInspect)
 
@@ -1195,6 +1196,31 @@ func main() {
 				}
 			}()
 
+		}
+
+		if hostMgr != nil {
+			go func() {
+				time.Sleep(10 * time.Second)
+				if hostMgr.IsIKuaiOrOpenWrtConfigured() {
+					if logs, err := hostMgr.SyncHostBypass(); err == nil && len(logs) > 0 {
+						log.Printf("🛡️ [Host] Auto-boot: Synced bypass rules with companion host: %v", logs)
+					}
+				}
+				// 🛡️ 24H Host Companion Watchdog (Checks iKuai/OpenWrt routes & DHCP every 60s)
+				hTicker := time.NewTicker(60 * time.Second)
+				defer hTicker.Stop()
+				for range hTicker.C {
+					if hostMgr.IsIKuaiOrOpenWrtConfigured() {
+						if logs, err := hostMgr.SyncHostBypass(); err == nil && len(logs) > 0 {
+							for _, l := range logs {
+								if strings.Contains(l, "自愈") || strings.Contains(l, "修正") || strings.Contains(l, "成功") {
+									log.Printf("🛡️ [Host Watchdog] %s", l)
+								}
+							}
+						}
+					}
+				}
+			}()
 		}
 
 	}()
@@ -1938,6 +1964,17 @@ func (s *Server) handleEngineSwitch(w http.ResponseWriter, r *http.Request) {
 
 		}()
 
+	}
+
+	if s.hostMgr != nil {
+		go func() {
+			time.Sleep(200 * time.Millisecond)
+			if s.hostMgr.IsIKuaiOrOpenWrtConfigured() {
+				if logs, err := s.hostMgr.SyncHostBypass(); err == nil && len(logs) > 0 {
+					s.logBuffer.Add("INFO", "HOST", fmt.Sprintf("双核切换底座自愈联动: %s", strings.Join(logs, " | ")))
+				}
+			}
+		}()
 	}
 
 	go func() {
@@ -9196,6 +9233,7 @@ func (s *Server) handleHealthRadar(w http.ResponseWriter, r *http.Request) {
 		"e2e_watchdog_status": "稳定畅通",
 		"deductions":          deductions,
 		"deduction_reason":    deductionReason,
+		"heatmap": s.getRegionalHeatmap(),
 		"metrics": map[string]any{
 			"direct": map[string]any{
 				"name":       "国内直连",
@@ -9227,6 +9265,20 @@ func (s *Server) handleHealthRadar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sendJSON(w, radar)
+}
+
+func (s *Server) handleIkuaiSync(w http.ResponseWriter, r *http.Request) {
+	if s.hostMgr == nil {
+		sendJSON(w, map[string]any{"ok": false, "error": "宿主管理器未就绪"})
+		return
+	}
+	logs, err := s.hostMgr.SyncHostBypass()
+	if err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error(), "logs": logs})
+		return
+	}
+	s.logBuffer.Add("INFO", "IKUAI", "爱快 Web-RPC 静态回指路由与 DHCP 联动同步完成")
+	sendJSON(w, map[string]any{"ok": true, "message": "爱快静态回指路由与 DHCP Option 6 联动同步加固成功", "logs": logs})
 }
 
 func (s *Server) handleIkuaiDockerParams(w http.ResponseWriter, r *http.Request) {

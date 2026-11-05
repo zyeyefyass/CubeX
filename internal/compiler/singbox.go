@@ -1514,33 +1514,23 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		}
 
 		gType := "selector"
-
 		if g.Type == "urltest" || g.Type == "url-test" {
-
 			gType = "urltest"
-
 			schema.SortNodesByQuality(proxies)
-
+		} else if g.Type == "fallback" {
+			schema.SortNodesByQuality(proxies)
 		}
 
 		// If g.Now is specified, move it to the front of proxies list so sing-box selects it by default
-
-		if g.Now != "" && validOutbounds[g.Now] && !schema.IsInformationalOrInvalidNode(g.Now) {
-
+		// Only apply to manual selector groups; urltest/fallback must preserve quality sort order
+		if g.Type != "urltest" && g.Type != "url-test" && g.Type != "fallback" && g.Now != "" && validOutbounds[g.Now] && !schema.IsInformationalOrInvalidNode(g.Now) {
 			reordered := []string{g.Now}
-
 			for _, p := range proxies {
-
 				if p != g.Now {
-
 					reordered = append(reordered, p)
-
 				}
-
 			}
-
 			proxies = reordered
-
 		}
 
 		// v1.14.4 strict syntax requirement: reject duplicate tags in outbound groups

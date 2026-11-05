@@ -95,6 +95,25 @@ func TestIKuaiClientMock(t *testing.T) {
 			return
 		}
 
+		if req.FuncName == "dhcp_option" || req.FuncName == "dhcp_opts" {
+			data := map[string]any{
+				"data": []map[string]any{
+					{
+						"id":        1,
+						"opt":       "6",
+						"ip":        "192.168.1.200",
+						"interface": "lan1",
+						"comment":   "CubeX-DNS-Option6",
+					},
+				},
+				"total": 1,
+			}
+			dataBytes, _ := json.Marshal(data)
+			resp := RPCResponse{Result: 30000, ErrMsg: "Success", Data: dataBytes}
+			_ = json.NewEncoder(w).Encode(resp)
+			return
+		}
+
 		resp := RPCResponse{Result: 30000, ErrMsg: "Success"}
 		_ = json.NewEncoder(w).Encode(resp)
 	}))
@@ -143,6 +162,15 @@ func TestIKuaiClientMock(t *testing.T) {
 	}
 	if len(logs) == 0 {
 		t.Errorf("expected logs, got none")
+	}
+
+	// Test SyncSelfHealing
+	syncLogs, err := client.SyncSelfHealing("192.168.1.200")
+	if err != nil {
+		t.Fatalf("SyncSelfHealing failed: %v", err)
+	}
+	if len(syncLogs) == 0 {
+		t.Errorf("expected syncLogs, got none")
 	}
 }
 
@@ -234,6 +262,30 @@ func TestIKuaiV4ClientMock(t *testing.T) {
 			return
 		}
 
+		if req.FuncName == "dhcp_option" || req.FuncName == "dhcp_opts" {
+			if req.Action == "show" {
+				data := map[string]any{
+					"data": []map[string]any{
+						{
+							"rowid":     1,
+							"opt":       "6",
+							"ip":        "10.0.0.7",
+							"interface": "lan1",
+							"comment":   "CubeX-DNS-Option6",
+						},
+					},
+					"total": 1,
+				}
+				dataBytes, _ := json.Marshal(data)
+				resp := RPCResponse{Code: 0, Message: "Success", Results: dataBytes}
+				_ = json.NewEncoder(w).Encode(resp)
+				return
+			}
+			resp := RPCResponse{Code: 0, Message: "Success"}
+			_ = json.NewEncoder(w).Encode(resp)
+			return
+		}
+
 		resp := RPCResponse{Code: 0, Message: "Success"}
 		_ = json.NewEncoder(w).Encode(resp)
 	}))
@@ -278,5 +330,14 @@ func TestIKuaiV4ClientMock(t *testing.T) {
 	}
 	if len(logs) == 0 {
 		t.Errorf("expected logs, got none")
+	}
+
+	// Test V4 SyncSelfHealing
+	syncLogs, err := client.SyncSelfHealing("10.0.0.7")
+	if err != nil {
+		t.Fatalf("V4 SyncSelfHealing failed: %v", err)
+	}
+	if len(syncLogs) == 0 {
+		t.Errorf("expected V4 syncLogs, got none")
 	}
 }

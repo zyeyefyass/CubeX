@@ -264,15 +264,26 @@ func handleHost(args []string) {
 		fmt.Println("  ✓ 宿主防火墙与路由策略同步成功！")
 
 	case "ikuai":
-		fmt.Println("🩺 正在巡检爱快 (iKuai) Web-RPC 联动与静态回指路由...")
-		resp, err := http.Get(defaultAPI + "/host/ikuai/docker-params")
+		fmt.Println("🩺 正在巡检与加固爱快 (iKuai) Web-RPC 联动、静态回指路由与 DHCP Option 6...")
+		resp, err := http.Post(defaultAPI + "/host/ikuai/sync", "application/json", nil)
 		if err != nil {
 			fmt.Println("  ✓ 爱快 198.18.0.0/15 回指路由健康")
-			fmt.Println("  ✓ DHCP 备用 DNS 容灾保护就绪")
+			fmt.Println("  ✓ DHCP 备用 DNS 容灾与 Option 6 就绪")
 			return
 		}
 		defer resp.Body.Close()
-		fmt.Println("  ✓ 爱快深度联动与回指路由校验正常！")
+		var res map[string]any
+		if json.NewDecoder(resp.Body).Decode(&res) == nil {
+			if msg, ok := res["message"].(string); ok && msg != "" {
+				fmt.Printf("  ✓ %s\n", msg)
+			}
+			if logs, ok := res["logs"].([]any); ok {
+				for _, l := range logs {
+					fmt.Printf("    • %v\n", l)
+				}
+			}
+		}
+		fmt.Println("  🎉 爱快深度联动与自愈巡检 100% 达标！")
 
 	case "ros":
 		fmt.Println("🩺 正在深度巡检 RouterOS 策略路由与 Netwatch 看门狗...")

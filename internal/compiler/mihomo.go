@@ -1140,23 +1140,15 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		}
 
 		// If g.Now is specified, move it to the front of proxies list so Mihomo selects it by default
-
-		if g.Now != "" && validTargets[g.Now] && !schema.IsInformationalOrInvalidNode(g.Now) {
-
+		// Only apply to manual selector groups; url-test/fallback must preserve quality sort order
+		if gType != "url-test" && gType != "fallback" && g.Now != "" && validTargets[g.Now] && !schema.IsInformationalOrInvalidNode(g.Now) {
 			reordered := []string{g.Now}
-
 			for _, p := range proxies {
-
 				if p != g.Now {
-
 					reordered = append(reordered, p)
-
 				}
-
 			}
-
 			proxies = reordered
-
 		}
 
 		gMap := map[string]any{

@@ -336,9 +336,6 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			Policy:    "auto",
 			Icon:      reg.Flag,
 		}
-		if eg, exists := existingMap[reg.AutoName]; exists && eg.Now != "" && (reg.ID == "CUSTOM" || eg.Now != "DIRECT") && containsString(nodes, eg.Now) {
-			autoGrp.Now = eg.Now
-		}
 		newGroups = append(newGroups, autoGrp)
 
 		// (2) 地区故转 (fallback 顺位主备)
@@ -353,9 +350,6 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			Region:   reg.ID,
 			Policy:   "fallback",
 			Icon:     reg.Flag,
-		}
-		if eg, exists := existingMap[reg.FallName]; exists && eg.Now != "" && (reg.ID == "CUSTOM" || eg.Now != "DIRECT") && containsString(nodes, eg.Now) {
-			fallGrp.Now = eg.Now
 		}
 		newGroups = append(newGroups, fallGrp)
 
@@ -386,9 +380,6 @@ func SyncAllStrategyGroups(ir *ConfigIR) {
 			Region:   reg.ID,
 			Policy:   "disaster",
 			Icon:     reg.Flag,
-		}
-		if eg, exists := existingMap[reg.DisasterName]; exists && eg.Now != "" && containsString(disasterNodes, eg.Now) {
-			disasterGrp.Now = eg.Now
 		}
 		newGroups = append(newGroups, disasterGrp)
 	}
