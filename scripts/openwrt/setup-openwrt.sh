@@ -412,39 +412,59 @@ iptables -C FORWARD -d 198.18.0.0/15 -j ACCEPT 2>/dev/null || iptables -I FORWAR
 iptables -C FORWARD -s 198.18.0.0/15 -j ACCEPT 2>/dev/null || iptables -I FORWARD 1 -s 198.18.0.0/15 -j ACCEPT 2>/dev/null || true
 /etc/init.d/firewall reload >/dev/null 2>&1 || true
 
-# 6.5 植入 0 秒毫秒级自愈逃生看门狗
+# 6.5 植入原生 procd 秒级自愈断电逃生看门狗 (2秒极速故障转移与回指热切除)
 cat << EOF > /usr/bin/cubex-watchdog.sh
 #!/bin/sh
 CUBEX_IP="${CUBEX_IP}"
 BACKUP_DNS="223.5.5.5"
 
-if docker exec "${CONTAINER_NAME}" curl -fsSL -m 2 http://127.0.0.1:2026/api/health 2>/dev/null | grep -q "status" || curl -fsSL -m 2 "http://\${CUBEX_IP}:2026/api/health" 2>/dev/null | grep -q "status" || wget -q -T 2 -O - "http://\${CUBEX_IP}:2026/api/health" 2>/dev/null | grep -q "status"; then
-    CURRENT=\$(uci -q get dhcp.lan.dhcp_option | grep -o "\${CUBEX_IP}" || true)
-    if [ -z "\$CURRENT" ]; then
-        logger -t cubex-watchdog "🛡️ CubeX Gateway revived! Restoring DHCP Option 6 to \${CUBEX_IP}"
-        uci -q del_list dhcp.lan.dhcp_option="6,\${BACKUP_DNS}" || true
-        uci add_list dhcp.lan.dhcp_option="6,\${CUBEX_IP}"
-        uci commit dhcp
-        /etc/init.d/dnsmasq reload >/dev/null 2>&1
+is_down=0
+while true; do
+    if docker exec "${CONTAINER_NAME}" curl -fsSL -m 1 http://127.0.0.1:2026/api/health 2>/dev/null | grep -q "status" || nc -z -w 1 "\${CUBEX_IP}" 2026 >/dev/null 2>&1 || wget -q -T 1 -O - "http://\${CUBEX_IP}:2026/api/health" 2>/dev/null | grep -q "status"; then
+        if [ "\$is_down" -eq 1 ]; then
+            logger -t cubex-watchdog "🛡️ CubeX Gateway revived! Restoring Fake-IP route and DHCP Option 6 to \${CUBEX_IP}"
+            ip route replace 198.18.0.0/15 via "\${CUBEX_IP}" 2>/dev/null || true
+            uci -q del_list dhcp.lan.dhcp_option="6,\${BACKUP_DNS}" || true
+            uci add_list dhcp.lan.dhcp_option="6,\${CUBEX_IP}"
+            uci commit dhcp
+            /etc/init.d/dnsmasq reload >/dev/null 2>&1
+            is_down=0
+        fi
+    else
+        if [ "\$is_down" -eq 0 ]; then
+            logger -t cubex-watchdog "🚨 CubeX Gateway DOWN! 0-second failover: cutting Fake-IP route and switching to \${BACKUP_DNS}"
+            ip route replace blackhole 198.18.0.0/15 2>/dev/null || true
+            uci -q del_list dhcp.lan.dhcp_option="6,\${CUBEX_IP}" || true
+            uci add_list dhcp.lan.dhcp_option="6,\${BACKUP_DNS}"
+            uci commit dhcp
+            /etc/init.d/dnsmasq reload >/dev/null 2>&1
+            is_down=1
+        fi
     fi
-else
-    CURRENT=\$(uci -q get dhcp.lan.dhcp_option | grep -o "\${CUBEX_IP}" || true)
-    if [ -n "\$CURRENT" ]; then
-        logger -t cubex-watchdog "🚨 CubeX Gateway unreachable! Activating 0-second failover to \${BACKUP_DNS}"
-        uci -q del_list dhcp.lan.dhcp_option="6,\${CUBEX_IP}" || true
-        uci add_list dhcp.lan.dhcp_option="6,\${BACKUP_DNS}"
-        uci commit dhcp
-        /etc/init.d/dnsmasq reload >/dev/null 2>&1
-    fi
-fi
+    sleep 2
+done
 EOF
 chmod +x /usr/bin/cubex-watchdog.sh
 
-if ! grep -q "cubex-watchdog.sh" /etc/crontabs/root 2>/dev/null; then
-    echo "* * * * * /usr/bin/cubex-watchdog.sh" >> /etc/crontabs/root 2>/dev/null || true
-    /etc/init.d/cron enable >/dev/null 2>&1 || true
-    /etc/init.d/cron restart >/dev/null 2>&1 || true
-fi
+# 注册并启动标准 procd 守护服务
+cat << 'EOF' > /etc/init.d/cubex-watchdog
+#!/bin/sh /etc/rc.common
+START=95
+STOP=10
+USE_PROCD=1
+
+start_service() {
+    procd_open_instance
+    procd_set_param command /usr/bin/cubex-watchdog.sh
+    procd_set_param respawn 3600 5 0
+    procd_set_param stdout 1
+    procd_set_param stderr 1
+    procd_close_instance
+}
+EOF
+chmod +x /etc/init.d/cubex-watchdog
+/etc/init.d/cubex-watchdog enable >/dev/null 2>&1 || true
+/etc/init.d/cubex-watchdog restart >/dev/null 2>&1 || true
 
 echo -e "${GREEN}========================================================================${NC}"
 echo -e "${GREEN}🎉 恭喜！CubeX OpenWrt Docker 宿主共生系统已全自动部署并加固完毕！${NC}"

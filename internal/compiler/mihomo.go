@@ -1866,7 +1866,14 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	}
 
-	cfg["rules"] = rulesList
+	// Compact Radix Tree Optimization for Mihomo rules
+	optimizedRules, stats := OptimizeMihomoRules(rulesList)
+	if stats.PrunedCount > 0 {
+		log.Printf("[RuleOptimizer] Mihomo Radix Tree pruned %d redundant rules (%.1f%% reduction, %d -> %d)",
+			stats.PrunedCount, stats.CompressionPct, stats.OriginalCount, stats.OptimizedCount)
+	}
+
+	cfg["rules"] = optimizedRules
 
 	return yaml.Marshal(cfg)
 

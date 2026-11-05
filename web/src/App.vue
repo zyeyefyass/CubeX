@@ -250,7 +250,7 @@
 
               <span class="font-black tracking-tight text-sky-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] hidden xs:inline">
 
-                {{ systemStatus.version || 'Test v6.3' }}
+                {{ systemStatus.version || 'Test v6.4' }}
 
               </span>
 
@@ -3309,7 +3309,7 @@
 
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
 
-                        {{ systemOverview.panel_latest_version || 'Test v6.3' }}
+                        {{ systemOverview.panel_latest_version || 'Test v6.4' }}
 
                       </span>
 
@@ -3317,7 +3317,7 @@
 
                     <p class="text-xs text-slate-400 mt-0.5 font-mono">
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v6.3' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v6.3' }}</span>
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v6.4' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v6.4' }}</span>
 
                     </p>
 
@@ -6227,15 +6227,18 @@
                 </span>
               </div>
 
-              <!-- 3. 外网 WAN 拨号与内网网关 -->
+                            <!-- 3. 外网 WAN 拨号与内网网关 (支持多 WAN 智能流控感知) -->
               <div class="macos-sub-card p-3.5 rounded-xl flex flex-col justify-between shadow-sm">
                 <div class="flex items-center justify-between text-[11px] text-slate-300">
-                  <span class="font-medium">外网 WAN 拨号 IP</span>
-                  <span class="text-[10px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 font-mono">{{ routerHW.wan_interface || 'WAN' }}</span>
+                  <span class="font-medium flex items-center gap-1.5">
+                    <span>外网 WAN 拨号</span>
+                    <span v-if="hostInfo.multi_wan_enabled" class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono font-bold">双宽带聚合</span>
+                  </span>
+                  <span class="text-[10px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 font-mono">{{ routerHW.wan_interface || (hostInfo.wan_list && hostInfo.wan_list.length ? `${hostInfo.wan_list.length} 个出口` : 'WAN') }}</span>
                 </div>
                 <div class="mt-1">
                   <span class="text-xs sm:text-[13px] font-extrabold text-cyan-300 font-mono truncate block" :title="routerHW.wan_ip || hostInfo.ip || '已连接'">
-                    {{ routerHW.wan_ip || hostInfo.ip || '在线连通' }}
+                    {{ routerHW.wan_ip || (hostInfo.wan_list && hostInfo.wan_list[0] ? hostInfo.wan_list[0].ip : hostInfo.ip) || '在线连通' }}
                   </span>
                 </div>
                 <div class="text-[10px] text-slate-400 font-mono mt-1 flex items-center justify-between truncate">
@@ -6632,9 +6635,9 @@
 
                   <div class="flex items-center justify-between">
 
-                    <span>当前运行: <strong class="text-sky-200 font-black text-sm">{{ systemOverview.cubex_version || 'Test v6.3' }}</strong></span>
+                    <span>当前运行: <strong class="text-sky-200 font-black text-sm">{{ systemOverview.cubex_version || 'Test v6.4' }}</strong></span>
 
-                    <span class="text-slate-400">云端最新: <span class="text-slate-200 font-semibold">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v6.3' }}</span></span>
+                    <span class="text-slate-400">云端最新: <span class="text-slate-200 font-semibold">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v6.4' }}</span></span>
 
                   </div>
 
@@ -10162,7 +10165,7 @@
 
                 <span>当前运行:</span>
 
-                <strong class="text-emerald-300">{{ systemOverview.cubex_version || 'Test v6.3' }}</strong>
+                <strong class="text-emerald-300">{{ systemOverview.cubex_version || 'Test v6.4' }}</strong>
 
               </div>
 
@@ -10170,7 +10173,7 @@
 
                 <span>云端 Release:</span>
 
-                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v6.3' }}</span>
+                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v6.4' }}</span>
 
               </div>
 
@@ -14568,11 +14571,11 @@ const hostConfig = ref({
 
 const systemOverview = ref({
 
-  cubex_version: 'Test v6.3',
+  cubex_version: 'Test v6.4',
 
-  panel_curr_version: 'Test v6.3',
+  panel_curr_version: 'Test v6.4',
 
-  panel_latest_version: 'Test v6.3',
+  panel_latest_version: 'Test v6.4',
 
   mihomo_curr_version: 'v1.19.33',
 
@@ -15590,7 +15593,7 @@ function triggerQuickAIPrompt(prompt) {
 
 const systemStatus = ref({
 
-  version: 'Test v6.3',
+  version: 'Test v6.4',
 
   uptime_seconds: 1420,
 
@@ -18284,7 +18287,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
     } else if (data.status === 'already_latest') {
 
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v6.3'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v6.4'})`)
 
     } else {
 
@@ -18332,7 +18335,7 @@ async function upgradePanel(force = false) {
 
       const timeStr = new Date().toLocaleTimeString()
 
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v6.3'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v6.4'})，无需重复更新。`
 
       showToast(data.message || 'CubeX 系统已是最新版本')
 
@@ -18418,7 +18421,7 @@ function openGitHubIssuePrompt() {
 
 - 系统架构：${systemOverview.value?.arch || 'amd64'}
 
-- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v6.3'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v6.4'}
 
 - 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
 

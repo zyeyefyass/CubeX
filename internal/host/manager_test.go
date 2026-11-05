@@ -100,3 +100,30 @@ func TestTestSSH_RouterOSPort80_Success(t *testing.T) {
 		t.Errorf("expected kernel version 7.24.5 (stable), got: %v", res["kernel"])
 	}
 }
+
+func TestProbeRouterOSWANList(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/rest/ip/address" {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode([]map[string]any{
+				{"address": "10.0.0.1/24", "interface": "bridge", "disabled": "false"},
+				{"address": "116.23.45.67/24", "interface": "pppoe-out1", "disabled": "false"},
+				{"address": "120.52.88.99/24", "interface": "wan2-unicom", "disabled": "false"},
+			})
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer ts.Close()
+
+	wanList := probeRouterOSWANList(ts.Client(), ts.URL, "admin", "admin")
+	if len(wanList) != 2 {
+		t.Fatalf("expected 2 WAN interfaces, got %d", len(wanList))
+	}
+	if wanList[0].Role != "primary" || wanList[1].Role != "secondary" {
+		t.Errorf("unexpected roles: %s, %s", wanList[0].Role, wanList[1].Role)
+	}
+	if wanList[0].IP != "116.23.45.67" || wanList[1].IP != "120.52.88.99" {
+		t.Errorf("unexpected IPs: %s, %s", wanList[0].IP, wanList[1].IP)
+	}
+}

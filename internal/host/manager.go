@@ -59,6 +59,20 @@ type HostInfo struct {
 	LinkedGateway      string `json:"linked_gateway,omitempty"`
 	GatewayMemoryTotal string `json:"gateway_memory_total,omitempty"`
 	GatewayMemoryUsed  string `json:"gateway_memory_used,omitempty"`
+
+	// Multi-WAN Multi-Broadband Telemetry
+	MultiWANEnabled bool           `json:"multi_wan_enabled"`
+	WANList         []WANInterface `json:"wan_list,omitempty"`
+}
+
+// WANInterface represents a physical or PPPoE WAN interface on the gateway.
+type WANInterface struct {
+	Name    string `json:"name"`    // e.g. "wan1", "pppoe-out1"
+	ISP     string `json:"isp"`     // e.g. "高速外网出口", "备用/分流出口"
+	IP      string `json:"ip"`      // e.g. "116.23.45.67"
+	Gateway string `json:"gateway"` // e.g. "动态网关"
+	Status  string `json:"status"`  // "active", "standby"
+	Role    string `json:"role"`    // "primary", "secondary"
 }
 
 // FirewallResult represents the status of firewall rule deployment on the host.
@@ -282,7 +296,8 @@ func (m *Manager) testRouterOSRest(cfg HostConfig) (map[string]any, error) {
 		if p == "443" {
 			scheme = "https"
 		}
-		url := fmt.Sprintf("%s://%s:%s/rest/system/resource", scheme, cfg.Host, p)
+		baseURL := fmt.Sprintf("%s://%s:%s", scheme, cfg.Host, p)
+		url := fmt.Sprintf("%s/rest/system/resource", baseURL)
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
 			lastErr = err
@@ -408,6 +423,10 @@ func (m *Manager) testRouterOSRest(cfg HostConfig) (map[string]any, error) {
 			} else {
 				hInfo.KernelVersion = fmt.Sprintf("RouterOS v%s", res.Version)
 			}
+
+			wanList := probeRouterOSWANList(client, baseURL, cfg.User, cfg.Password)
+			hInfo.WANList = wanList
+			hInfo.MultiWANEnabled = len(wanList) >= 2
 
 			m.mu.Lock()
 			m.cachedInfo = hInfo
@@ -1902,4 +1921,73 @@ func wrapSudo(cmd, user, password string) string {
 	safePwd := strings.ReplaceAll(password, "'", `'\''`)
 	safeCmd := strings.ReplaceAll(cmd, "'", `'\''`)
 	return fmt.Sprintf("echo '%s' | sudo -S -p '' sh -c '%s'", safePwd, safeCmd)
+}
+
+func probeRouterOSWANList(client *http.Client, baseURL, user, password string) []WANInterface {
+	var wanList []WANInterface
+	req, err := http.NewRequest("GET", baseURL+"/rest/ip/address", nil)
+	if err != nil {
+		return wanList
+	}
+	req.SetBasicAuth(user, password)
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return wanList
+	}
+	defer resp.Body.Close()
+
+	var addrs []map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&addrs); err == nil {
+		for _, a := range addrs {
+			addrStr, _ := a["address"].(string)
+			iface, _ := a["interface"].(string)
+			disabled, _ := a["disabled"].(string)
+			if disabled == "true" {
+				continue
+			}
+
+			ip, _, _ := net.ParseCIDR(addrStr)
+			if ip != nil && ip.To4() != nil && !ip.IsPrivate() && !ip.IsLoopback() {
+				role := "primary"
+				isp := "高速外网出口"
+				if len(wanList) > 0 {
+					role = "secondary"
+					isp = "备用/分流出口"
+				}
+				wanList = append(wanList, WANInterface{
+					Name:    iface,
+					ISP:     isp,
+					IP:      ip.String(),
+					Gateway: "主路由动态下发",
+					Status:  "active",
+					Role:    role,
+				})
+			}
+		}
+	}
+
+	if len(wanList) == 0 {
+		for _, a := range addrs {
+			addrStr, _ := a["address"].(string)
+			iface, _ := a["interface"].(string)
+			lowerIface := strings.ToLower(iface)
+			if strings.Contains(lowerIface, "wan") || strings.Contains(lowerIface, "pppoe") || lowerIface == "ether1" {
+				ip, _, _ := net.ParseCIDR(addrStr)
+				ipStr := ""
+				if ip != nil {
+					ipStr = ip.String()
+				}
+				wanList = append(wanList, WANInterface{
+					Name:    iface,
+					ISP:     "主互联网接入",
+					IP:      ipStr,
+					Gateway: "动态网关",
+					Status:  "active",
+					Role:    "primary",
+				})
+			}
+		}
+	}
+
+	return wanList
 }

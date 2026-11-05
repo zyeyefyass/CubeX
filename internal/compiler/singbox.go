@@ -2653,6 +2653,13 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 	}
 
+	// Compact Radix Tree Optimization for route rules
+	optimizedRouteRules, stats := OptimizeSingboxRules(routeRules)
+	if stats.PrunedCount > 0 {
+		log.Printf("[RuleOptimizer] Singbox Radix Tree pruned %d redundant rule entries (%.1f%% reduction)",
+			stats.PrunedCount, stats.CompressionPct)
+	}
+
 	cfg["route"] = map[string]any{
 
 		"auto_detect_interface": false,
@@ -2663,7 +2670,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 		"rule_set": ruleSets,
 
-		"rules": routeRules,
+		"rules": optimizedRouteRules,
 
 		"final": finalOutbound,
 	}

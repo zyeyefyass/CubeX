@@ -491,51 +491,63 @@ uci add_list dhcp.lan.dhcp_option='6,%[1]s'
 uci commit dhcp
 /etc/init.d/dnsmasq reload >/dev/null 2>&1 || /etc/init.d/dnsmasq restart >/dev/null 2>&1 || true
 
-# 3. Deploy 0-Second Failover Watchdog Script in OpenWrt
+# 3. Deploy Industrial 0-Second Failover Procd Watchdog in OpenWrt
 cat << 'EOF' > /usr/bin/cubex-watchdog.sh
 #!/bin/sh
 CUBEX_IP="%[1]s"
 BACKUP_DNS="223.5.5.5"
 
-# Lightweight microsecond probe (dual fallback: /api/health & /api/v1/system/status)
-if wget -q -T 2 -O - "http://${CUBEX_IP}:2026/api/health" 2>/dev/null | grep -q "status" || wget -q -T 2 -O - "http://${CUBEX_IP}:2026/api/v1/system/status" 2>/dev/null | grep -q "status"; then
-    # Healthy: ensure DHCP option points to CubeX
-    CURRENT=$(uci -q get dhcp.lan.dhcp_option | grep -o "${CUBEX_IP}" || true)
-    if [ -z "$CURRENT" ]; then
-        logger -t cubex-watchdog "🛡️ CubeX Gateway revived! Restoring DHCP Option 6 to ${CUBEX_IP}"
-        for opt in $(uci -q get dhcp.lan.dhcp_option 2>/dev/null); do
-            case "$opt" in
-                6,*) uci -q del_list dhcp.lan.dhcp_option="$opt" ;;
-            esac
-        done
-        uci add_list dhcp.lan.dhcp_option="6,${CUBEX_IP}"
-        uci commit dhcp
-        /etc/init.d/dnsmasq reload >/dev/null 2>&1
+is_down=0
+while true; do
+    if nc -z -w 1 "${CUBEX_IP}" 2026 >/dev/null 2>&1 || wget -q -T 1 -O - "http://${CUBEX_IP}:2026/api/health" 2>/dev/null | grep -q "status"; then
+        if [ "$is_down" -eq 1 ]; then
+            logger -t cubex-watchdog "🛡️ CubeX Gateway revived! Restoring Fake-IP route and DHCP DNS to ${CUBEX_IP}"
+            ip route replace 198.18.0.0/15 via "${CUBEX_IP}" 2>/dev/null || true
+            for opt in $(uci -q get dhcp.lan.dhcp_option 2>/dev/null); do
+                case "$opt" in 6,*) uci -q del_list dhcp.lan.dhcp_option="$opt" ;; esac
+            done
+            uci add_list dhcp.lan.dhcp_option="6,${CUBEX_IP}"
+            uci commit dhcp
+            /etc/init.d/dnsmasq reload >/dev/null 2>&1
+            is_down=0
+        fi
+    else
+        if [ "$is_down" -eq 0 ]; then
+            logger -t cubex-watchdog "🚨 CubeX Gateway DOWN! 0-second failover: cutting return route and switching to ${BACKUP_DNS}"
+            ip route replace blackhole 198.18.0.0/15 2>/dev/null || true
+            for opt in $(uci -q get dhcp.lan.dhcp_option 2>/dev/null); do
+                case "$opt" in 6,*) uci -q del_list dhcp.lan.dhcp_option="$opt" ;; esac
+            done
+            uci add_list dhcp.lan.dhcp_option="6,${BACKUP_DNS}"
+            uci commit dhcp
+            /etc/init.d/dnsmasq reload >/dev/null 2>&1
+            is_down=1
+        fi
     fi
-else
-    # Down: trigger 0-second emergency escape
-    CURRENT=$(uci -q get dhcp.lan.dhcp_option | grep -o "${CUBEX_IP}" || true)
-    if [ -n "$CURRENT" ]; then
-        logger -t cubex-watchdog "🚨 CubeX Gateway unreachable! Activating 0-second failover to ${BACKUP_DNS}"
-        for opt in $(uci -q get dhcp.lan.dhcp_option 2>/dev/null); do
-            case "$opt" in
-                6,*) uci -q del_list dhcp.lan.dhcp_option="$opt" ;;
-            esac
-        done
-        uci add_list dhcp.lan.dhcp_option="6,${BACKUP_DNS}"
-        uci commit dhcp
-        /etc/init.d/dnsmasq reload >/dev/null 2>&1
-    fi
-fi
+    sleep 2
+done
 EOF
 chmod +x /usr/bin/cubex-watchdog.sh
 
-# Install or ensure crontab heartbeat every minute (or loop daemon)
-if ! grep -q "cubex-watchdog.sh" /etc/crontabs/root 2>/dev/null; then
-    echo "* * * * * /usr/bin/cubex-watchdog.sh" >> /etc/crontabs/root
-    /etc/init.d/cron enable >/dev/null 2>&1 || true
-    /etc/init.d/cron restart >/dev/null 2>&1 || true
-fi
+# Install standard procd service for 0-second watchdog
+cat << 'EOF' > /etc/init.d/cubex-watchdog
+#!/bin/sh /etc/rc.common
+START=95
+STOP=10
+USE_PROCD=1
+
+start_service() {
+    procd_open_instance
+    procd_set_param command /usr/bin/cubex-watchdog.sh
+    procd_set_param respawn 3600 5 0
+    procd_set_param stdout 1
+    procd_set_param stderr 1
+    procd_close_instance
+}
+EOF
+chmod +x /etc/init.d/cubex-watchdog
+/etc/init.d/cubex-watchdog enable >/dev/null 2>&1 || true
+/etc/init.d/cubex-watchdog restart >/dev/null 2>&1 || true
 `, cubexIP)
 
 	out, err := c.runSSHCommand(script)
