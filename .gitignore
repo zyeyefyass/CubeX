@@ -61,6 +61,7 @@ dist/docker/
 *.tar.gz
 *.zip
 tools/
+cleanyourtv/
 
 dist/cubexd-container-*
 scripts/.archive/

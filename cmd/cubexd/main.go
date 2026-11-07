@@ -46,6 +46,8 @@ import (
 	"time"
 
 	"github.com/zyeyefyass/CubeX/internal/accelerator"
+	"github.com/zyeyefyass/CubeX/internal/affinity"
+	"github.com/zyeyefyass/CubeX/internal/perf"
 
 	"github.com/zyeyefyass/CubeX/internal/adblock"
 
@@ -454,6 +456,8 @@ type Server struct {
 	dnsPrefetchMgr *dnsradar.DNSPrefetchManager
 
 	shadowAuditorMgr *host.ShadowAuditorManager
+	sessionAffinityMgr *affinity.SessionAffinityManager
+	memoryConntrackMgr *perf.MemoryConntrackManager
 
 	logBuffer *RingLogBuffer
 
@@ -870,6 +874,8 @@ func main() {
 		lanGuardianMgr:     security.GetLANGuardianManager(filepath.Join(dir, "data")),
 		dnsPrefetchMgr:     dnsradar.NewDNSPrefetchManager(filepath.Join(dir, "data")),
 		shadowAuditorMgr:   host.NewShadowAuditorManager(filepath.Join(dir, "data")),
+		sessionAffinityMgr: affinity.NewSessionAffinityManager(filepath.Join(dir, "data", "session_affinity.json")),
+		memoryConntrackMgr: perf.NewMemoryConntrackManager(filepath.Join(dir, "data", "memory_conntrack.json")),
 
 		logBuffer:    logBuffer,
 		delayCache:   make(map[string]delayCacheEntry),
@@ -1144,6 +1150,18 @@ func main() {
 	mux.HandleFunc("/api/v1/host/shadow/status", srv.handleShadowAuditorStatus)
 	mux.HandleFunc("/api/v1/host/shadow/audit", srv.handleShadowAuditorRun)
 	mux.HandleFunc("/api/v1/host/shadow/toggle", srv.handleShadowAuditorToggle)
+
+	// ── Test v7.5 核心进阶架构路由 ──
+	// 维度一：高防风控自适应会话粘滞一致性哈希调度
+	mux.HandleFunc("/api/v1/proxy/session-affinity/status", srv.handleSessionAffinityStatus)
+	mux.HandleFunc("/api/v1/proxy/session-affinity/toggle", srv.handleSessionAffinityToggle)
+	mux.HandleFunc("/api/v1/proxy/session-affinity/reset", srv.handleSessionAffinityReset)
+
+	// 维度二：双引擎内存极简回收与连接池热清洗
+	mux.HandleFunc("/api/v1/system/memory-conntrack/status", srv.handleMemoryConntrackStatus)
+	mux.HandleFunc("/api/v1/system/memory/reclaim", srv.handleMemoryReclaim)
+	mux.HandleFunc("/api/v1/system/conntrack/flush", srv.handleConntrackFlush)
+	mux.HandleFunc("/api/v1/system/memory-conntrack/toggle", srv.handleMemoryConntrackToggle)
 
 	mux.HandleFunc("/api/v1/security/radar", srv.handleSecurityRadar)
 
@@ -3567,6 +3585,92 @@ func (s *Server) handleShadowAuditorToggle(w http.ResponseWriter, r *http.Reques
 	}
 	s.logBuffer.Add("INFO", "HOST", fmt.Sprintf("宿主策略路由影子巡检器已%s", action))
 	sendJSON(w, map[string]any{"status": "ok", "shadow": st})
+}
+
+// ── Test v7.5 核心进阶架构接口 ──
+
+// 维度一：高防风控自适应会话粘滞一致性哈希调度
+func (s *Server) handleSessionAffinityStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.sessionAffinityMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "session_affinity": st})
+}
+
+func (s *Server) handleSessionAffinityToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled  bool   `json:"enabled"`
+		Strategy string `json:"strategy,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	s.sessionAffinityMgr.SetEnabled(req.Enabled)
+	if req.Strategy != "" {
+		s.sessionAffinityMgr.SetStrategy(req.Strategy)
+	}
+	s.logBuffer.Add("INFO", "PROXY", fmt.Sprintf("会话粘滞一致性哈希调度状态变更: enabled=%v, strategy=%s", req.Enabled, req.Strategy))
+	sendJSON(w, map[string]any{"status": "ok", "session_affinity": s.sessionAffinityMgr.GetStatus()})
+}
+
+func (s *Server) handleSessionAffinityReset(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	s.sessionAffinityMgr.ResetBindings()
+	s.logBuffer.Add("INFO", "PROXY", "已重置清空全部会话粘滞绑定条目")
+	sendJSON(w, map[string]any{"status": "ok", "session_affinity": s.sessionAffinityMgr.GetStatus()})
+}
+
+// 维度二：双引擎内存极简回收与连接池热清洗
+func (s *Server) handleMemoryConntrackStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.memoryConntrackMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "memory_conntrack": st})
+}
+
+func (s *Server) handleMemoryReclaim(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	freedMB, currentHeapMB := s.memoryConntrackMgr.ReclaimMemory()
+	s.logBuffer.Add("INFO", "SYSTEM", fmt.Sprintf("主动执行 Go 运行时内存回收: 已退还 %.2f MB 物理内存至宿主系统, 当前堆内存: %.2f MB", freedMB, currentHeapMB))
+	sendJSON(w, map[string]any{"status": "ok", "freed_mb": freedMB, "current_heap_mb": currentHeapMB, "memory_conntrack": s.memoryConntrackMgr.GetStatus()})
+}
+
+func (s *Server) handleConntrackFlush(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	flushed, err := s.memoryConntrackMgr.FlushConntrack()
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	s.logBuffer.Add("INFO", "SYSTEM", fmt.Sprintf("已执行内核连接池热清洗: 快速清算 %d 个僵尸/超时半开连接", flushed))
+	sendJSON(w, map[string]any{"status": "ok", "flushed_count": flushed, "memory_conntrack": s.memoryConntrackMgr.GetStatus()})
+}
+
+func (s *Server) handleMemoryConntrackToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	s.memoryConntrackMgr.SetAutoReclaim(req.Enabled)
+	s.logBuffer.Add("INFO", "SYSTEM", fmt.Sprintf("双引擎内存主动回收守护调整: enabled=%v", req.Enabled))
+	sendJSON(w, map[string]any{"status": "ok", "memory_conntrack": s.memoryConntrackMgr.GetStatus()})
 }
 
 
