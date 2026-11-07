@@ -92,7 +92,7 @@ import (
 )
 
 var (
-	version = "Test v7.1"
+	version = "Test v7.2"
 
 	startTime = time.Now()
 )
@@ -430,6 +430,12 @@ type Server struct {
 	timeMachine *telemetry.TimeMachine
 
 	dnsRadarMgr *dnsradar.DNSRadarManager
+
+	multiWANBindingMgr *host.MultiWANBindingManager
+
+	jitterRadarMgr *netstack.JitterRadarManager
+
+	weeklyReportMgr *telemetry.WeeklyReportManager
 
 	logBuffer *RingLogBuffer
 
@@ -834,7 +840,10 @@ func main() {
 		quicMgr:       netstack.NewQUICMigrationManager(),
 		sceneMgr:      profile.NewScenePresetManager(filepath.Join(dir, "data")),
 		timeMachine:   telemetry.NewTimeMachine(288),
-		dnsRadarMgr:   dnsradar.NewDNSRadarManager(filepath.Join(dir, "data")),
+		dnsRadarMgr:        dnsradar.NewDNSRadarManager(filepath.Join(dir, "data")),
+		multiWANBindingMgr: host.GetMultiWANBindingManager(filepath.Join(dir, "data")),
+		jitterRadarMgr:     netstack.GetJitterRadarManager(),
+		weeklyReportMgr:    telemetry.GetWeeklyReportManager(),
 
 		logBuffer:    logBuffer,
 		delayCache:   make(map[string]delayCacheEntry),
@@ -1027,6 +1036,17 @@ func main() {
 	mux.HandleFunc("/api/v1/dns/radar/probe", srv.handleDNSRadarProbe)
 	mux.HandleFunc("/api/v1/devices/sandbox", srv.handleDevicesSandbox)
 	mux.HandleFunc("/api/v1/devices/sandbox/approve", srv.handleDevicesSandboxApprove)
+
+	// ── Test v7.2 三大进阶演进路由 ──
+	// 维度一：双宽带多路径智能分流与毫秒容灾
+	mux.HandleFunc("/api/v1/host/multiwan/binding", srv.handleMultiWANBinding)
+
+	// 维度二：全链路微突发抖动探测雷达
+	mux.HandleFunc("/api/v1/network/jitter/status", srv.handleJitterRadarStatus)
+	mux.HandleFunc("/api/v1/network/jitter/probe", srv.handleJitterRadarProbe)
+
+	// 维度三：AI 全维网络健康周报
+	mux.HandleFunc("/api/v1/telemetry/weekly", srv.handleWeeklyReport)
 
 	mux.HandleFunc("/api/v1/security/radar", srv.handleSecurityRadar)
 
@@ -3076,6 +3096,56 @@ func (s *Server) handleDevicesSandboxApprove(w http.ResponseWriter, r *http.Requ
 	}
 	s.logBuffer.Add("INFO", "SECURITY", fmt.Sprintf("设备沙盒手动放行设备: %s", req.MAC))
 	sendJSON(w, map[string]any{"status": "ok", "message": "设备已放行至主网络"})
+}
+
+// ── Test v7.2 三大进阶演进接口 ──
+
+// 维度一：双宽带多路径智能分流与毫秒容灾
+func (s *Server) handleMultiWANBinding(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		status := s.multiWANBindingMgr.GetStatus()
+		sendJSON(w, map[string]any{"status": "ok", "binding": status})
+		return
+	}
+	if r.Method == http.MethodPost {
+		var req struct {
+			Mode host.MultiWANPolicyMode `json:"mode"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		if err := s.multiWANBindingMgr.SetPolicyMode(req.Mode); err != nil {
+			sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+			return
+		}
+		s.logBuffer.Add("INFO", "MULTIWAN", fmt.Sprintf("多宽带策略模式切换为: %s", req.Mode))
+		sendJSON(w, map[string]any{"status": "ok", "binding": s.multiWANBindingMgr.GetStatus()})
+		return
+	}
+	http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+}
+
+// 维度二：全链路微突发抖动探测雷达
+func (s *Server) handleJitterRadarStatus(w http.ResponseWriter, r *http.Request) {
+	rep := s.jitterRadarMgr.GetReport()
+	sendJSON(w, map[string]any{"status": "ok", "jitter": rep})
+}
+
+func (s *Server) handleJitterRadarProbe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	rep := s.jitterRadarMgr.RunHopProbe()
+	s.logBuffer.Add("INFO", "NETSTACK", fmt.Sprintf("全链路微突发抖动测距完成，综合抖动: %.2fms", rep.OverallJitterMs))
+	sendJSON(w, map[string]any{"status": "ok", "jitter": rep})
+}
+
+// 维度三：AI 全维网络健康周报
+func (s *Server) handleWeeklyReport(w http.ResponseWriter, r *http.Request) {
+	rep := s.weeklyReportMgr.GetReport()
+	sendJSON(w, map[string]any{"status": "ok", "weekly": rep})
 }
 
 

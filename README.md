@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v7.1-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v7.2-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -77,7 +77,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 Test v7.1 最新版本更新亮点](#announcement)
+- [📢 Test v7.2 最新版本更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -324,56 +324,58 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v7.1 官方正式版重磅更新亮点 (QUIC 0-RTT连接迁移 · 三大极客场景预设 · 全网24h流量时光机 · DNS防劫持盲测雷达)
+## 📢 Test v7.2 官方正式版重磅更新亮点 (多宽带5G应急热备 · 全链路微突发抖动雷达 · AI全维网络健康周报)
 
 > [!IMPORTANT]
-> ### 👑【QUIC 0-RTT连接迁移 · 三大极客场景预设 · 全网24h流量时光机 · DNS防劫持雷达】(CubeX Test v7.1 官方正式版)
+> ### 👑【多宽带5G热备 · 全链路微突发抖动雷达 · AI全维网络健康周报】(CubeX Test v7.2 官方正式版)
 >
 > **致所有追求极致网络稳定性、工业级高可用与彻底免折腾的极客玩家：**
 >
-> 今天正式发布的 **CubeX Test v7.1** 带来以下核心改进与突破：
+> 今天正式发布的 **CubeX Test v7.2** 带来以下核心改进与突破：
 >
-> 1. ⚡ **【RFC 9000 QUIC 0-RTT 连接迁移与 Wi-Fi 漫游无感防重连】**：
->    * 传输层基于 Connection ID (CID) 动态映射表，移动设备在不同房间 Wi-Fi AP 间穿梭漫游时，底层活跃连接无感瞬时漂移，彻底告别视频拉流与游戏语音卡顿；
->    * 预热持久化 TLS 1.3 / QUIC 会话票据（Session Ticket），高频访问域名二次握手实现 0-RTT 起播；
->    * 内置自适应抗丢包前向纠错 (Adaptive FEC) 调度，弱网与突发丢包环境下毫秒级平滑自愈；
-> 2. 🎮 **【三大一键极客场景模式秒级切换 (电竞低延 · 4K/8K影音 · 全家安全)】**：
->    * **极限电竞低延模式**：启用 DSCP EF 极速加速标记，UDP 快转通道直出，CoDel 目标延迟压缩至 1.0ms，跳 ping 物理归零；
->    * **4K/8K 极致影音模式**：TCP 32MB 满血读写缓冲区全开，Happy Eyeballs 双栈优先并发拉取极速边缘 CDN，首包 0 缓冲秒开；
->    * **全家安全静默模式**：启用 217heidai 深度广告拦截，未决解析绝对阻断防侧漏，陌生设备自动入沙盒隔离；
->    * **经典均衡模式**：多设备日常对等调度，功耗与延迟最优兼顾；控制台一键秒切，全家无需改动任何设置；
-> 3. ⏱️ **【全网 24h 流量时光机 (Time Machine) 与历史回溯】**：
->    * 采用极简轻量内存环形数据结构（288 个采样切片），5 分钟粒度自动采样并记录全网下载/上传峰值、直连与加速分流占比及平均延迟；
->    * Twilight Crystal 全息暮光波形热力柱状图呈现，过去 24 小时流量激增与网络波动随时随地可溯源；
-> 4. 🛡️ **【DNS 主动防劫持盲测雷达与未登记设备动态隔离沙盒】**：
->    * 创新引入周期性隐秘盲测探针（针对阿里、腾讯、114 上游公共 DNS），毫秒级透视明文 DNS 劫持与 NXDOMAIN 污染，输出百分制纯净度评级；
->    * 陌生/新加入 Wi-Fi 设备自动识别并动态纳入隔离沙盒（严格阻断内网横向渗透与投毒风险），支持管理控制台一键安全放行；
-> 5. 🔄 **【双核双循环四次实机往返热重载满分通过】**：
->    * 在真实生产级容器环境中完成双核（Mihomo ⇄ sing-box）连续两轮四次无感热切换实测闭环；
->    * 国内真实流量直连、海外代理与 Fake-IP 解析干净度（严防 `fc00::/18` 污染）全部 100% 满分通过。
+> 1. 🔀 **【多宽带 / 5G CPE 多路径智能分流与毫秒容灾 (Multi-WAN Binding)】**：
+>    * 原生支持电信、联通、移动多宽带接入 + 5G CPE / 移动热点应急备份链路；
+>    * 提供最低延时优先 (latency)、多线带宽聚合 (bandwidth)、毫秒级主备容灾 (failover) 三大动态分流调度模式；
+>    * 内置实时路径健康心跳探针与 0ms 故障自动无感切流，状态机与策略原子持久化存盘；
+> 2. 📡 **【全链路微突发抖动与跳 Ping 主动探测雷达 (Jitter Radar)】**：
+>    * 逐跳探测 Hop 1~4（终端到旁路由、旁路由到主路由、主路由到光猫、光猫到骨干网出口）微秒级延时与抖动标准差；
+>    * 微突发丢包告警与 Wi-Fi 边缘信道劣化智能诊断，毫秒级锁定局域网跳 Ping 根因；
+> 3. 📊 **【AI 全维网络健康周报与全景卡片 (Weekly Health Card)】**：
+>    * 7日滚动网络综合健康评分、全网吞吐与上行总流量智能汇总；
+>    * 广告与威胁拦截统计、0 明文防泄露阻断率 (100.0%) 与局域网活跃终端 TOP 5 吞吐排名；
+> 4. ⚡ **【内核连接池与测速内存削峰调优】**：
+>    * 采用固定大小环形预分配数组与 sync.Pool 对象池无分配复用，定时遥测采样 GC 停顿归零；
+>    * 针对移动客户端 HTTP 过滤增加短响应头边界防御，杜绝连接池悬挂；
+> 5. 🚀 **【宿主共生零侵权与双核双循环秒切保障】**：
+>    * 历经 RouterOS、爱快 iKuai、OpenWrt (iStoreOS)、飞牛 fnOS 与 PVE 虚拟机平台严格全链路双核双循环 4 次往返热切换压力测试，100% 零连接丢失。
+>
+> 无论是追求秒开的高刷极客，还是守护全家上网安静环境的家庭主管，CubeX Test v7.2 都能为您提供毫无顾虑的安心保障！
+
+---
 
 <a id="release-assets"></a>
-
 ### 📦 资产下载与校验清单 (Release Assets)
 
-| 发布文件名 | 适用平台与宿主底座 | 文件大小 | 架构与核心功能说明 |
+> [!TIP]
+> **各平台底座发布物对照表**：请根据您的宿主底座与 CPU 架构选择对应的下载资产（统一推荐使用内置双核与全量规则的完整包）：
+
+| 发布物文件名 | 适用宿主与架构 | 估算大小 | 说明与用途 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v7.1-ros-amd64.tar` | MikroTik RouterOS v7 (x86 软路由) | 100.46 MB | RouterOS v7 原生未压缩容器镜像（支持 WinBox `/container/add` 拖入直装） |
-| `CubeX-Test-v7.1-ros-arm64.tar` | MikroTik RouterOS v7 (RB5009/CCR) | 100.80 MB | RouterOS ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-Test-v7.1-docker-amd64.tar.gz` | Docker / 爱快 / fnOS / NAS / PVE | 83.75 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-Test-v7.1-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 93.97 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-Test-v7.1-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 86.71 MB | ARM64 完整归档发布包 |
-| `cubexd-linux-amd64` | Linux amd64 | 47.27 MB | 纯 Go 单二进制控制面（代码加固版，用于在线平滑热更新） |
-| `cubexd-linux-arm64` | Linux arm64 | 43.19 MB | ARM64 单二进制核心控制面（代码加固版） |
-| `cubex-linux-amd64` | Linux amd64 CLI | 16.99 MB | 纯 Go 运维 CLI 工具（终端直接运行） |
-| `cubex-linux-arm64` | Linux arm64 CLI | 15.25 MB | 纯 Go 运维 CLI 工具（终端直接运行） |
-| `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | 17.1 KB | RouterOS v7 WinBox 终端复制即用一键自动编排脚本 |
-| `setup-openwrt.sh` | OpenWrt 部署脚本 | 23.2 KB | OpenWrt 终端一键容器网络编排脚本 |
-| `install_pve_lxc.sh` | PVE CT 容器一键脚本 | 10.1 KB | PVE 宿主机终端一键全自动开箱脚本 |
-| `install.sh` | 通用 Linux 安装脚本 | 12.3 KB | 通用 Linux 一键全自动生产部署脚本 |
-| `setup-openwrt.sh` | OpenWrt 部署脚本 | 23.2 KB | OpenWrt 终端一键容器网络编排脚本 |
-| `install_pve_lxc.sh` | PVE CT 容器一键脚本 | 10.1 KB | PVE 宿主机终端一键全自动开箱脚本 |
-| `install.sh` | 通用 Linux 安装脚本 | 12.3 KB | 通用 Linux 一键全自动生产部署脚本 |
+| `CubeX-Test-v7.2-ros-amd64.tar` | MikroTik RouterOS v7 (x86 软路由) | 100.48 MB | RouterOS v7 原生未压缩容器镜像（支持 WinBox `/container/add` 拖入直装） |
+| `CubeX-Test-v7.2-ros-arm64.tar` | MikroTik RouterOS v7 (RB5009/CCR) | 100.81 MB | RouterOS ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-Test-v7.2-docker-amd64.tar.gz` | Docker / 爱快 / fnOS / NAS / PVE | 83.76 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-Test-v7.2-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 93.99 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-Test-v7.2-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 86.80 MB | ARM64 完整归档发布包 |
+| `cubexd-linux-amd64` | Linux amd64 | 47.34 MB | 纯 Go 单二进制控制面（代码加固版，用于在线平滑热更新） |
+| `cubexd-linux-arm64` | Linux arm64 | 43.44 MB | ARM64 单二进制核心控制面（代码加固版） |
+| `cubex-linux-amd64` | Linux amd64 CLI | 16.99 MB | 纯 Go 运维 CLI 工具（终端直接运行，精简运维命令行） |
+| `cubex-linux-arm64` | Linux arm64 CLI | 15.25 MB | 纯 Go 运维 CLI 工具（终端直接运行，精简运维命令行） |
+| `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | 17.5 KB | RouterOS v7 WinBox 终端复制即用一键自动编排脚本 |
+| `setup-openwrt.sh` | OpenWrt 一键安装脚本 | 23.7 KB | OpenWrt / iStoreOS 原生适配安装脚本 |
+| `install_pve_lxc.sh` | PVE LXC 一键脚本 | 10.4 KB | Proxmox VE 极简特权容器一键安装脚本 |
+| `install.sh` | Linux 通用一键安装脚本 | 12.6 KB | 通用 Linux/Debian 一键部署主脚本 |
+
+---
 
 ## 🚀 六大主流平台保姆级部署实战 (选一种适合你的就行)
 
