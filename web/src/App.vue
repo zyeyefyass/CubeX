@@ -12985,47 +12985,49 @@
             <!-- 左栏: DNS 常访预取与负缓存免疫引擎 -->
             <div class="p-5 sm:p-6 rounded-2xl macos-glass-card hover:border-cyan-400/40 transition-all duration-300 space-y-4 shadow-lg flex flex-col justify-between">
               <div>
-                <div class="flex items-center justify-between border-b border-cyan-500/20 pb-3">
-                  <div class="flex items-center gap-2.5">
-                    <span class="text-xl">⚡</span>
-                    <div>
-                      <h3 class="text-sm sm:text-base font-black text-white tracking-wide">
-                        DNS 常访域名主动预取与负缓存免疫
-                      </h3>
-                      <p class="text-xs text-slate-300 mt-0.5">常访高频域名内存级预解析 · 阻断上游负缓存污染 · 0 延时直出</p>
+                <div class="flex items-center justify-between gap-3 border-b border-cyan-500/20 pb-3">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-400/30 flex items-center justify-center text-base shrink-0 shadow-sm">
+                      ⚡
                     </div>
+                    <h3 class="text-sm sm:text-base font-black text-white tracking-wide whitespace-nowrap">
+                      DNS 智能预取与负缓存免疫
+                    </h3>
                   </div>
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 shrink-0 whitespace-nowrap">
                     <button @click="flushDNSPrefetch" :disabled="flushingDNSPrefetch"
-                      class="px-2.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 text-xs font-bold font-mono transition-all flex items-center gap-1 shrink-0 shadow-sm">
+                      class="px-2.5 py-1 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-400/30 text-cyan-200 text-xs font-bold font-mono transition-all flex items-center gap-1 shrink-0 whitespace-nowrap shadow-sm">
                       <span v-if="flushingDNSPrefetch" class="animate-spin">↻</span>
                       <span v-else>↻</span>
                       <span>刷新热池</span>
                     </button>
                     <button @click="toggleDNSPrefetch" :disabled="togglingDNSPrefetch"
-                      class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all shadow-sm"
-                      :class="dnsPrefetchStatus.enabled ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/40 hover:bg-cyan-500/30' : 'bg-slate-700/50 text-slate-400 border-slate-600'">
+                      class="px-2.5 py-1 rounded-xl text-xs font-bold border transition-all shadow-sm shrink-0 whitespace-nowrap"
+                      :class="dnsPrefetchStatus.enabled ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30 hover:bg-emerald-500/25' : 'bg-slate-700/50 text-slate-400 border-slate-600'">
                       {{ dnsPrefetchStatus.enabled ? '● 巡航中' : '○ 已暂停' }}
                     </button>
                   </div>
                 </div>
+                <p class="text-[11px] text-slate-300 mt-2.5 leading-relaxed">
+                  高频常访域名微秒级内存解析 · 免疫上游 DNS 负缓存污染 · 0 延时极速直出
+                </p>
 
                 <!-- 4 格核心遥测 -->
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3.5 text-xs font-mono text-center">
                   <div class="macos-sub-card p-2.5 rounded-xl">
-                    <span class="text-[10px] text-slate-400 block">内存直出时延</span>
+                    <span class="text-[10px] text-slate-400 block whitespace-nowrap truncate">内存直出时延</span>
                     <span class="text-xs font-bold text-cyan-300 mt-0.5 block">{{ (dnsPrefetchStatus.avg_memory_latency_us || 48.5).toFixed(1) }} μs</span>
                   </div>
                   <div class="macos-sub-card p-2.5 rounded-xl">
-                    <span class="text-[10px] text-slate-400 block">热点域名缓存命中</span>
+                    <span class="text-[10px] text-slate-400 block whitespace-nowrap truncate">热池命中率</span>
                     <span class="text-xs font-bold text-emerald-300 mt-0.5 block">{{ (dnsPrefetchStatus.cache_hit_rate_pct || 97.4).toFixed(1) }}%</span>
                   </div>
                   <div class="macos-sub-card p-2.5 rounded-xl">
-                    <span class="text-[10px] text-slate-400 block">累计内存直应答</span>
+                    <span class="text-[10px] text-slate-400 block whitespace-nowrap truncate">累计内存直出</span>
                     <span class="text-xs font-bold text-sky-300 mt-0.5 block">{{ ((dnsPrefetchStatus.total_queries_served || 142850) / 1000).toFixed(1) }} K次</span>
                   </div>
                   <div class="macos-sub-card p-2.5 rounded-xl">
-                    <span class="text-[10px] text-slate-400 block">负缓存污染免疫</span>
+                    <span class="text-[10px] text-slate-400 block whitespace-nowrap truncate">负缓存免疫</span>
                     <span class="text-xs font-bold text-emerald-400 mt-0.5 block">{{ dnsPrefetchStatus.negative_pollution_prevented || 326 }} 次</span>
                   </div>
                 </div>
@@ -13056,47 +13058,49 @@
             <!-- 右栏: 宿主底座策略路由影子巡检器 -->
             <div class="p-5 sm:p-6 rounded-2xl macos-glass-card hover:border-emerald-400/40 transition-all duration-300 space-y-4 shadow-lg flex flex-col justify-between">
               <div>
-                <div class="flex items-center justify-between border-b border-emerald-500/20 pb-3">
-                  <div class="flex items-center gap-2.5">
-                    <span class="text-xl">🛡️</span>
-                    <div>
-                      <h3 class="text-sm sm:text-base font-black text-white tracking-wide">
-                        宿主底座策略路由影子巡检器
-                      </h3>
-                      <p class="text-xs text-slate-300 mt-0.5">影子巡检核心策略路由与回指 · 篡改误删微秒级静默自愈</p>
+                <div class="flex items-center justify-between gap-3 border-b border-emerald-500/20 pb-3">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center text-base shrink-0 shadow-sm">
+                      🛡️
                     </div>
+                    <h3 class="text-sm sm:text-base font-black text-white tracking-wide whitespace-nowrap">
+                      宿主策略路由影子巡检器
+                    </h3>
                   </div>
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 shrink-0 whitespace-nowrap">
                     <button @click="runShadowAudit" :disabled="auditingShadow"
-                      class="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 text-xs font-bold font-mono transition-all flex items-center gap-1 shrink-0 shadow-sm">
+                      class="px-2.5 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/30 text-emerald-200 text-xs font-bold font-mono transition-all flex items-center gap-1 shrink-0 whitespace-nowrap shadow-sm">
                       <span v-if="auditingShadow" class="animate-spin">↻</span>
                       <span v-else>🔍</span>
                       <span>{{ auditingShadow ? '巡检中...' : '深度巡检' }}</span>
                     </button>
                     <button @click="toggleShadowAuditor" :disabled="togglingShadow"
-                      class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all shadow-sm"
-                      :class="shadowAuditorStatus.enabled ? 'bg-emerald-500/20 text-emerald-200 border-emerald-400/40 hover:bg-emerald-500/30' : 'bg-slate-700/50 text-slate-400 border-slate-600'">
+                      class="px-2.5 py-1 rounded-xl text-xs font-bold border transition-all shadow-sm shrink-0 whitespace-nowrap"
+                      :class="shadowAuditorStatus.enabled ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30 hover:bg-emerald-500/25' : 'bg-slate-700/50 text-slate-400 border-slate-600'">
                       {{ shadowAuditorStatus.enabled ? '● 守护中' : '○ 已暂停' }}
                     </button>
                   </div>
                 </div>
+                <p class="text-[11px] text-slate-300 mt-2.5 leading-relaxed">
+                  双核策略路由与回指链路影子校验 · 策略误删与配置篡改微秒静默自愈
+                </p>
 
                 <!-- 4 格核心遥测 -->
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3.5 text-xs font-mono text-center">
                   <div class="macos-sub-card p-2.5 rounded-xl">
-                    <span class="text-[10px] text-slate-400 block">规则一致性</span>
+                    <span class="text-[10px] text-slate-400 block whitespace-nowrap truncate">规则一致性</span>
                     <span class="text-xs font-bold text-emerald-300 mt-0.5 block">{{ (shadowAuditorStatus.consistency_score_pct || 100.0).toFixed(1) }}%</span>
                   </div>
                   <div class="macos-sub-card p-2.5 rounded-xl">
-                    <span class="text-[10px] text-slate-400 block">静默自愈次数</span>
+                    <span class="text-[10px] text-slate-400 block whitespace-nowrap truncate">静默自愈次数</span>
                     <span class="text-xs font-bold text-cyan-300 mt-0.5 block">{{ shadowAuditorStatus.silentAutoHealsCompleted || 4 }} 次 (100%)</span>
                   </div>
                   <div class="macos-sub-card p-2.5 rounded-xl">
-                    <span class="text-[10px] text-slate-400 block">影子巡检执行</span>
+                    <span class="text-[10px] text-slate-400 block whitespace-nowrap truncate">影子巡检执行</span>
                     <span class="text-xs font-bold text-sky-300 mt-0.5 block">{{ shadowAuditorStatus.total_audits_executed || 8640 }} 次</span>
                   </div>
                   <div class="macos-sub-card p-2.5 rounded-xl">
-                    <span class="text-[10px] text-slate-400 block">后台巡检周期</span>
+                    <span class="text-[10px] text-slate-400 block whitespace-nowrap truncate">后台巡检周期</span>
                     <span class="text-xs font-bold text-emerald-400 mt-0.5 block">{{ shadowAuditorStatus.audit_interval_seconds || 30 }} 秒/轮</span>
                   </div>
                 </div>
