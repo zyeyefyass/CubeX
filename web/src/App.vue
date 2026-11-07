@@ -14999,7 +14999,7 @@
           <!-- 🌌 AI 全维智能感知与自愈治理矩阵 (3组双子星矩阵 · 6大极客看板)                         -->
           <!-- ════════════════════════════════════════════════════════════════════════════════ -->
           <div class="space-y-4">
-            <!-- ⚡ 双子星 1: 全链路神经感知与极速直出 (跳 Ping 雷达 × DNS 智能预取) -->
+            <!-- ⚡ 双子星 1: 全链路抖动雷达与主动自愈总线 (微突发跳 Ping 雷达 × AI 智能自愈总线) -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <!-- 右栏: 全链路微突发抖动与跳 Ping 探测雷达 (Jitter Radar) -->
             <div class="p-5 sm:p-6 rounded-2xl macos-glass-card hover:border-amber-400/40 transition-all duration-300 space-y-4 shadow-lg">
@@ -15039,6 +15039,41 @@
               </div>
             </div>
 
+              <!-- AI 智能自愈主动干预总线 -->
+            <div class="p-5 rounded-2xl macos-glass-card hover:border-emerald-400/40 transition-all duration-300 space-y-3.5 shadow-lg">
+              <div class="flex items-center justify-between border-b border-emerald-500/20 pb-2.5">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">🤖</span>
+                  <h4 class="text-xs sm:text-sm font-black text-white tracking-wide">AI 智能自愈主动干预总线</h4>
+                </div>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold">
+                  预测性主动自愈
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-300 leading-relaxed">
+                被动超时升级为预测性主动干预 · Conntrack 僵尸流表自动清算 · 路由回指丢包秒级恢复
+              </p>
+              <div class="grid grid-cols-3 gap-2 text-xs font-mono text-center">
+                <button v-for="mode in ['autonomous', 'balanced', 'passive']" :key="mode"
+                  @click="updateHealingMode(mode)"
+                  class="p-2 rounded-xl border text-[11px] font-bold transition-all"
+                  :class="activeHealingStatus.mode === mode ? 'bg-emerald-500/25 text-white border-emerald-400/50 shadow-sm' : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'">
+                  {{ mode === 'autonomous' ? '⚡ 全自主' : (mode === 'balanced' ? '⚖️ 均衡' : '👁️ 纯监控') }}
+                </button>
+              </div>
+              <div class="p-2.5 rounded-xl bg-white/5 border border-white/5 text-xs font-mono flex items-center justify-between">
+                <span class="text-slate-300">本周累计自愈处置:</span>
+                <span class="text-emerald-300 font-bold">{{ activeHealingStatus.total_heals || 12 }} 次 (100% 成功)</span>
+                <button @click="triggerSentinelHeal"
+                  class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 text-[11px] font-bold transition-all flex items-center gap-1">
+                  <span>⚡ 一键自愈</span>
+                </button>
+              </div>
+            </div>
+            </div>
+
+            <!-- 🛡️ 双子星 2: 域名预取与策略路由影子巡检 (DNS 智能预取 × 宿主策略路由影子巡检器) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <!-- 左栏: DNS 常访预取与负缓存免疫引擎 -->
             <div class="p-5 sm:p-6 rounded-2xl macos-glass-card hover:border-cyan-400/40 transition-all duration-300 space-y-4 shadow-lg flex flex-col justify-between">
               <div>
@@ -15109,41 +15144,6 @@
               <div class="pt-2 border-t border-white/5 text-[11px] font-mono text-slate-400 flex items-center justify-between">
                 <span>{{ dnsPrefetchStatus.summary || '常访域名内存热池巡航就绪 · 负缓存污染 100% 免疫' }}</span>
                 <span class="text-emerald-300 font-bold">微秒级秒开</span>
-              </div>
-            </div>
-            </div>
-
-            <!-- 🛡️ 双子星 2: 主动防御与策略路由自愈 (AI 智能自愈总线 × 宿主策略路由影子巡检器) -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <!-- AI 智能自愈主动干预总线 -->
-            <div class="p-5 rounded-2xl macos-glass-card hover:border-emerald-400/40 transition-all duration-300 space-y-3.5 shadow-lg">
-              <div class="flex items-center justify-between border-b border-emerald-500/20 pb-2.5">
-                <div class="flex items-center gap-2">
-                  <span class="text-base">🤖</span>
-                  <h4 class="text-xs sm:text-sm font-black text-white tracking-wide">AI 智能自愈主动干预总线</h4>
-                </div>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold">
-                  预测性主动自愈
-                </span>
-              </div>
-              <p class="text-[11px] text-slate-300 leading-relaxed">
-                被动超时升级为预测性主动干预 · Conntrack 僵尸流表自动清算 · 路由回指丢包秒级恢复
-              </p>
-              <div class="grid grid-cols-3 gap-2 text-xs font-mono text-center">
-                <button v-for="mode in ['autonomous', 'balanced', 'passive']" :key="mode"
-                  @click="updateHealingMode(mode)"
-                  class="p-2 rounded-xl border text-[11px] font-bold transition-all"
-                  :class="activeHealingStatus.mode === mode ? 'bg-emerald-500/25 text-white border-emerald-400/50 shadow-sm' : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'">
-                  {{ mode === 'autonomous' ? '⚡ 全自主' : (mode === 'balanced' ? '⚖️ 均衡' : '👁️ 纯监控') }}
-                </button>
-              </div>
-              <div class="p-2.5 rounded-xl bg-white/5 border border-white/5 text-xs font-mono flex items-center justify-between">
-                <span class="text-slate-300">本周累计自愈处置:</span>
-                <span class="text-emerald-300 font-bold">{{ activeHealingStatus.total_heals || 12 }} 次 (100% 成功)</span>
-                <button @click="triggerSentinelHeal"
-                  class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 text-[11px] font-bold transition-all flex items-center gap-1">
-                  <span>⚡ 一键自愈</span>
-                </button>
               </div>
             </div>
 
