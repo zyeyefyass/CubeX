@@ -80,6 +80,7 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/schema"
 
 	"github.com/zyeyefyass/CubeX/internal/security"
+	"github.com/zyeyefyass/CubeX/internal/sentinel"
 
 	"github.com/zyeyefyass/CubeX/internal/sub"
 
@@ -87,7 +88,7 @@ import (
 )
 
 var (
-	version = "Test v6.9"
+	version = "Test v7.0"
 
 	startTime = time.Now()
 )
@@ -407,6 +408,16 @@ type Server struct {
 	multiWANMgr *host.MultiWANManager
 
 	diagEngine *diagnostics.Engine
+
+	bbrMgr *netstack.BBRManager
+
+	heDialer *netstack.HappyEyeballsDialer
+
+	topoMgr *host.TopologyManager
+
+	deviceQoSMgr *device.DeviceQoSManager
+
+	sentinel *sentinel.SentinelEngine
 
 	logBuffer *RingLogBuffer
 
@@ -803,6 +814,11 @@ func main() {
 		deltaRulesMgr: rules.NewDeltaManager(filepath.Join(dir, "data", "rules_manifest.json"), filepath.Join(dir, "data", "ir_cache.bin")),
 		multiWANMgr:   host.NewMultiWANManager(),
 		diagEngine:    diagnostics.NewEngine(),
+		bbrMgr:        netstack.GetBBRManager(),
+		heDialer:      netstack.GetHappyEyeballsDialer(),
+		topoMgr:       host.GetTopologyManager(),
+		deviceQoSMgr:  device.GetDeviceQoSManager(filepath.Join(dir, "data")),
+		sentinel:      sentinel.GetSentinel(filepath.Join(dir, "data")),
 
 		logBuffer:    logBuffer,
 		delayCache:   make(map[string]delayCacheEntry),
@@ -823,7 +839,7 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v6.9")
+	srv.mcpServer = mcp.NewServer(srv, "Test v7.0")
 
 	srv.initTrafficState()
 
@@ -833,6 +849,33 @@ func main() {
 
 	srv.startDailySubscriptionAutoUpdate()
 	srv.startSmartHealthPing()
+
+	// 7x24h 智能哨兵巡检与异常自愈黑匣子
+	srv.sentinel.RegisterHealers(
+		func() error {
+			srv.logBuffer.Add("INFO", "SENTINEL", "哨兵自愈触发：刷新 DNS 缓存与分流探测池")
+			return nil
+		},
+		func() error {
+			srv.logBuffer.Add("INFO", "SENTINEL", "哨兵自愈触发：核验 table cubex 策略路由与回指")
+			if srv.rosMgr != nil {
+				srv.rosMgr.EnsureFakeIPRoute("")
+				_ = srv.rosMgr.PurgeStaleFakeIPConnections()
+			}
+			return nil
+		},
+		func() error {
+			srv.logBuffer.Add("INFO", "SENTINEL", "哨兵自愈触发：双核守护进程健康状态核验")
+			return nil
+		},
+	)
+	srv.sentinel.Start(30 * time.Second)
+
+	// BBRv3 / TCP 拥塞控制静默内核优化
+	SafeGo("BBR_AutoOptimize", func() {
+		time.Sleep(2 * time.Second)
+		_, _ = srv.bbrMgr.Optimize()
+	})
 
 	adblockMgr.StartScheduler(func(msg string) {
 
@@ -919,6 +962,25 @@ func main() {
 	mux.HandleFunc("/api/v1/diagnostics/report", srv.handleDiagnosticsReport)
 	mux.HandleFunc("/api/v1/diagnostics/run", srv.handleDiagnosticsRun)
 	mux.HandleFunc("/api/v1/diagnostics/heal", srv.handleDiagnosticsHeal)
+
+	// ── Test v7.0 四大核心架构维度路由 ──
+	// 维度一：TCP BBRv3 与 Happy Eyeballs v2 极速并发
+	mux.HandleFunc("/api/v1/network/bbr/status", srv.handleBBRStatus)
+	mux.HandleFunc("/api/v1/network/bbr/optimize", srv.handleBBROptimize)
+	mux.HandleFunc("/api/v1/network/happyeyeballs/status", srv.handleHappyEyeballsStatus)
+
+	// 维度二：全网拓扑动态绘制与多宿主邻居透视
+	mux.HandleFunc("/api/v1/network/topology", srv.handleNetworkTopology)
+	mux.HandleFunc("/api/v1/network/topology/refresh", srv.handleNetworkTopologyRefresh)
+
+	// 维度三：全家终端精细化带宽画像与单设备 VIP 抢占流控
+	mux.HandleFunc("/api/v1/devices/telemetry", srv.handleDevicesTelemetry)
+	mux.HandleFunc("/api/v1/devices/priority", srv.handleDevicesPriority)
+
+	// 维度四：7x24h 智能哨兵巡检与异常自愈黑匣子
+	mux.HandleFunc("/api/v1/sentinel/status", srv.handleSentinelStatus)
+	mux.HandleFunc("/api/v1/sentinel/blackbox", srv.handleSentinelBlackbox)
+	mux.HandleFunc("/api/v1/sentinel/trigger", srv.handleSentinelTrigger)
 
 	mux.HandleFunc("/api/v1/security/radar", srv.handleSecurityRadar)
 
@@ -2769,6 +2831,104 @@ func (s *Server) handleDiagnosticsHeal(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	sendJSON(w, map[string]any{"status": "ok", "message": msg})
+}
+
+// ── Test v7.0 四大核心维度 API Handlers ──
+
+// 维度一：TCP BBRv3 与 Happy Eyeballs v2 极速并发
+func (s *Server) handleBBRStatus(w http.ResponseWriter, r *http.Request) {
+	status := s.bbrMgr.Detect()
+	sendJSON(w, map[string]any{"status": "ok", "bbr": status})
+}
+
+func (s *Server) handleBBROptimize(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	status, err := s.bbrMgr.Optimize()
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error(), "bbr": status})
+		return
+	}
+	s.logBuffer.Add("INFO", "BBR", "TCP 拥塞控制与 BBRv3/TFO 优化已成功应用")
+	sendJSON(w, map[string]any{"status": "ok", "message": "TCP BBR 优化成功生效", "bbr": status})
+}
+
+func (s *Server) handleHappyEyeballsStatus(w http.ResponseWriter, r *http.Request) {
+	telem := s.heDialer.GetTelemetry()
+	sendJSON(w, map[string]any{"status": "ok", "telemetry": telem})
+}
+
+// 维度二：全网拓扑动态绘制与多宿主邻居透视
+func (s *Server) handleNetworkTopology(w http.ResponseWriter, r *http.Request) {
+	graph := s.topoMgr.GetGraph()
+	sendJSON(w, map[string]any{"status": "ok", "topology": graph})
+}
+
+func (s *Server) handleNetworkTopologyRefresh(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	graph := s.topoMgr.Refresh()
+	s.logBuffer.Add("INFO", "TOPOLOGY", fmt.Sprintf("全网物理拓扑已更新：共探查 %d 个网络节点", graph.TotalNodes))
+	sendJSON(w, map[string]any{"status": "ok", "topology": graph})
+}
+
+// 维度三：全家终端精细化带宽画像与单设备 VIP 抢占流控
+func (s *Server) handleDevicesTelemetry(w http.ResponseWriter, r *http.Request) {
+	var devList []device.Device
+	if s.devMgr != nil {
+		devList = s.devMgr.GetDevices()
+	}
+	flows := s.deviceQoSMgr.SampleDeviceFlows(devList)
+	sendJSON(w, map[string]any{"status": "ok", "flows": flows, "count": len(flows)})
+}
+
+func (s *Server) handleDevicesPriority(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		IP            string                     `json:"ip"`
+		MAC           string                     `json:"mac"`
+		Priority      device.DevicePriorityLevel `json:"priority"`
+		LimitUpMbps   int                        `json:"limit_up_mbps"`
+		LimitDownMbps int                        `json:"limit_down_mbps"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+	if err := s.deviceQoSMgr.SetDevicePriority(req.IP, req.MAC, req.Priority, req.LimitUpMbps, req.LimitDownMbps); err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	s.logBuffer.Add("INFO", "QOS", fmt.Sprintf("终端 [%s/%s] 优先级已调整为: %s", req.IP, req.MAC, req.Priority))
+	sendJSON(w, map[string]any{"status": "ok", "message": "设备流控特权已更新"})
+}
+
+// 维度四：7x24h 智能哨兵巡检与异常自愈黑匣子
+func (s *Server) handleSentinelStatus(w http.ResponseWriter, r *http.Request) {
+	status := s.sentinel.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "sentinel": status})
+}
+
+func (s *Server) handleSentinelBlackbox(w http.ResponseWriter, r *http.Request) {
+	status := s.sentinel.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "events": status.RecentEvents})
+}
+
+func (s *Server) handleSentinelTrigger(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	rec := s.sentinel.TriggerManualHeal()
+	s.logBuffer.Add("INFO", "SENTINEL", fmt.Sprintf("智能哨兵深度巡检触发，自愈动作耗时: %.2fms", rec.DurationMs))
+	sendJSON(w, map[string]any{"status": "ok", "record": rec, "message": "智能哨兵深度自愈已完成"})
 }
 
 

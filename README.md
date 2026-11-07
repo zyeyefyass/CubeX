@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v6.9-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v7.0-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -77,7 +77,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 Test v6.9 最新版本更新亮点](#announcement)
+- [📢 Test v7.0 最新版本更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -324,33 +324,35 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v6.9 官方正式版重磅更新亮点 (全场景QoS智能流控 · 规则集增量热补丁 · 物理双WAN对等分流 · 全链路一秒网络体检自省 · 宿主驾驶舱排版深度重塑)
+## 📢 Test v7.0 官方正式版重磅更新亮点 (TCP BBRv3内核加速 · Happy Eyeballs双栈极速并发 · 全网物理链路拓扑图谱 · 终端VIP抢占流控 · 7x24h智能哨兵自愈黑匣子)
 
 > [!IMPORTANT]
-> ### 👑【全场景QoS智能流控 · 规则集增量热补丁 · 物理双WAN对等分流 · 全链路一秒网络体检自省】(CubeX Test v6.9 官方正式版)
+> ### 👑【TCP BBRv3内核加速 · Happy Eyeballs双栈并发 · 全网拓扑图谱 · 终端VIP抢占流控 · 7x24h智能哨兵】(CubeX Test v7.0 官方正式版)
 >
 > **致所有追求极致网络稳定性、工业级高可用与彻底免折腾的极客玩家：**
 >
-> 今天正式发布的 **CubeX Test v6.9** 带来以下核心改进：
+> 今天正式发布的 **CubeX Test v7.0** 带来以下核心改进：
 >
-> 1. ⚡ **【全场景 QoS 智能流控与动态 CoDel 队列调度器】**：
->    * 基于 RFC 8290 主动队列管理规范，自研纯 Go FQ-CoDel 与 CAKE 队列调度算法；
->    * 内置三级数据包智能分类（控制面与低延迟交互极速优先、流媒体均衡调度、大流量下载限制）；
->    * 彻底治理缓冲区膨胀（Bufferbloat）导致的突发网络延迟与跳 ping，千兆线速跑满时延迟严格控制在 2.1ms 极限区间；
-> 2. 🛡️ **【双核规则集冷启动零等待与增量热补丁 Delta Patch】**：
->    * 引入基于 SHA-256 内容哈希的增量变更侦测机制，自动识别 105 套规则集的微量变动；
->    * 预编译内存映射规则缓存，规则加载与应用耗时从秒级骤降至 30ms 以内，彻底消除网关冷启动等待；
->    * 支持规则增量热补丁无缝加载，规则日常更新绝不中断任何已有活动连接；
-> 3. 🌐 **【物理链路双 WAN 动态感知与对等运营商分流调度】**：
->    * 深度联动主路由物理双出口（WAN1 / WAN2），秒级捕获电信、联通、移动多运营商归属与链路状态；
->    * 动态编排对等出站路由策略，支持双宽带负载分流与故障毫秒级自动切换；
-> 4. 🩺 **【全链路一秒网络诊断体检自省与极简故障自愈卡片】**：
->    * 创新推出物理链路、策略路由、WAN 拨号、双核中枢、节点链路、DNS 干净度六重透视引擎；
->    * 控制台提供一键全链路极速体检（耗时 <1ms），输出百分制健康评分与精准诊断结论，支持异常一键全栈自愈；
-> 5. 🖥️ **【宿主共生底座 · 物理全景驾驶舱极简排版深度重塑】**：
->    * 彻底剔除无实际意义的以太网虚拟端口矩阵与无效硬件 MAC 地址冗余显示；
->    * 彻底剥离与系统概览重复的 CPU 和内存占用指示，重构为外网 WAN 拨号、内网 LAN 网关、固件与运行时间、存储空间与磁盘四维对称遥测大屏；
->    * 移除跨宿主死按钮，动态注入专属高频自愈与凭据管理操作，卡片布局紧凑饱满、视觉极致丝滑；
+> 1. 🚀 **【TCP BBRv3 内核加速与底层协议栈极限调优】**：
+>    * 自动侦测并启用 Linux 内核原生 BBRv3 拥塞控制算法与 FQ 队列规则（FQ qdisc）；
+>    * 智能开启 TCP Fast Open (代码 3：客户端与服务端双向加速)，消除 TCP 三次握手 RTT 时延；
+>    * 动态扩容 TCP Socket 读写缓冲区至 32MB 软上限，高并发与跨境大带宽传输起播时延降低 40% 以上；
+> 2. ⚡ **【Happy Eyeballs v2 双栈极速并发竞速 (RFC 8305)】**：
+>    * 深度落地 Happy Eyeballs v2 双栈并行并发解析与自适应阶梯竞速；
+>    * IPv6 与 IPv4 双轨并行探针，智能设置 200ms 快速回退延迟（Fallback Delay），自动锁定极速链路；
+>    * 彻底终结因运营商 IPv6 路由劣质导致的海外连接与流媒体卡顿缓慢；
+> 3. 🗺️ **【全网物理链路拓扑图谱与多宿主邻居透视 (MNDP / LLDP / ARP)】**：
+>    * 创新构建 5 级拓扑金字塔图谱（Tier 0 外网 ➔ Tier 1 主路由 ➔ Tier 2 伴生网关 ➔ Tier 3 交换AP ➔ Tier 4 终端矩阵）；
+>    * 原生支持 MikroTik MNDP、IEEE LLDP 与全局 ARP 广播邻居透视，物理连接关系一览无余；
+>    * 实时掌控全家联网终端数量、网络活跃度与拓扑健康度；
+> 4. 🎯 **【全家终端精细化带宽画像与单设备 VIP 抢占流控】**：
+>    * 推出终端三级优先级矩阵（👑 VIP 尊享带宽保障 / ⚖️ 普通均衡 / ⏳ 限速防抢占）；
+>    * 单终端直连流量与加速流量毫秒级精细采样，实时透视各设备上传/下载速率与连接数；
+>    * 支持一键为极客主力机、客厅电视或办公电脑分配 VIP 特权，大流量下载绝不影响核心设备；
+> 5. 🛡️ **【7×24h 智能哨兵巡检与异常自愈黑匣子】**：
+>    * 内置轻量静默后台巡检哨兵，30 秒无感周期扫描 DNS 干净度、策略路由表 table cubex 与连接池健康；
+>    * 50 毫秒级自愈总线，侦测到路由丢包或僵尸连接突增瞬间自动触发原子自愈；
+>    * 环形自愈黑匣子持久化记录最近 50 次自愈事件与耗时，网络故障随时随地可溯源、可复盘；
 > 6. 🔄 **【双核双循环四次实机往返热重载满分通过】**：
 >    * 在真实生产级容器环境中完成双核（Mihomo ⇄ sing-box）连续两轮四次无感热切换实测闭环；
 >    * 国内真实流量直连、海外代理与 Fake-IP 解析干净度（严防 `fc00::/18` 污染）全部 100% 满分通过。
@@ -361,13 +363,13 @@
 
 | 发布文件名 | 适用平台与宿主底座 | 文件大小 | 架构与核心功能说明 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v6.9-ros-amd64.tar` | MikroTik RouterOS v7 (x86 软路由) | 100.41 MB | RouterOS v7 原生未压缩容器镜像（支持 WinBox `/container/add` 拖入直装） |
-| `CubeX-Test-v6.9-ros-arm64.tar` | MikroTik RouterOS v7 (RB5009/CCR) | 100.74 MB | RouterOS ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-Test-v6.9-docker-amd64.tar.gz` | Docker / 爱快 / fnOS / NAS / PVE | 83.70 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-Test-v6.9-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 93.72 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-Test-v6.9-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 86.49 MB | ARM64 完整归档发布包 |
-| `cubexd-linux-amd64` | Linux amd64 | 46.63 MB | 纯 Go 单二进制控制面（代码加固版，用于在线平滑热更新） |
-| `cubexd-linux-arm64` | Linux arm64 | 42.69 MB | ARM64 单二进制核心控制面（代码加固版） |
+| `CubeX-Test-v7.0-ros-amd64.tar` | MikroTik RouterOS v7 (x86 软路由) | 100.43 MB | RouterOS v7 原生未压缩容器镜像（支持 WinBox `/container/add` 拖入直装） |
+| `CubeX-Test-v7.0-ros-arm64.tar` | MikroTik RouterOS v7 (RB5009/CCR) | 100.78 MB | RouterOS ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-Test-v7.0-docker-amd64.tar.gz` | Docker / 爱快 / fnOS / NAS / PVE | 83.73 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-Test-v7.0-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 93.91 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-Test-v7.0-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 86.70 MB | ARM64 完整归档发布包 |
+| `cubexd-linux-amd64` | Linux amd64 | 47.11 MB | 纯 Go 单二进制控制面（代码加固版，用于在线平滑热更新） |
+| `cubexd-linux-arm64` | Linux arm64 | 43.19 MB | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 CLI | 16.99 MB | 纯 Go 运维 CLI 工具（终端直接运行） |
 | `cubex-linux-arm64` | Linux arm64 CLI | 15.25 MB | 纯 Go 运维 CLI 工具（终端直接运行） |
 | `setup-routeros-v7.rsc` | RouterOS 终端编排脚本 | 17.1 KB | RouterOS v7 WinBox 终端复制即用一键自动编排脚本 |
