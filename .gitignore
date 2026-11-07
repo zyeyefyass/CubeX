@@ -62,6 +62,9 @@ dist/docker/
 *.zip
 tools/
 cleanyourtv/
+aerial-tv/
+aerial-guard.apk
+*.apk
 
 dist/cubexd-container-*
 scripts/.archive/

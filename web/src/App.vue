@@ -22644,19 +22644,14 @@ watch(activeMasterTab, (newTab) => {
     fetchLANGuardian()
     fetchMultiWANStatus()
   } else if (newTab === 'ai') {
-    fetchJitterReport()
-    fetchDNSPrefetch()
-    fetchActiveHealer()
-    fetchShadowAuditor()
-  fetchSessionAffinity()
-  fetchMemoryConntrack()
-    fetchSessionAffinity()
-    fetchMemoryConntrack()
+    try { fetchJitterReport?.() } catch(e){}
+    try { fetchDNSPrefetch?.() } catch(e){}
+    try { fetchActiveHealing?.() } catch(e){}
+    try { fetchShadowAuditor?.() } catch(e){}
+    try { fetchSessionAffinity?.() } catch(e){}
+    try { fetchMemoryConntrack?.() } catch(e){}
   }
-
-
-
-}, { immediate: true })
+})
 
 
 
@@ -26141,7 +26136,12 @@ const toggleShadowAuditor = async () => {
       if (data.shadow) shadowAuditorStatus.value = data.shadow
       showToast('宿主策略路由影子巡检器已' + (next ? '启用' : '暂停'))
     }
-
+  } catch (e) {
+    showToast('切换影子巡检状态失败: ' + e.message, true)
+  } finally {
+    togglingShadow.value = false
+  }
+}
 
 // ── Test v7.5 核心进阶特性：高防风控自适应会话粘滞一致性哈希调度 ──
 const sessionAffinityStatus = ref({
@@ -26262,16 +26262,6 @@ const runConntrackFlush = async () => {
     flushingConntrack.value = false
   }
 }
-  } catch (e) {
-    showToast('切换影子巡检状态失败: ' + e.message, true)
-  } finally {
-    togglingShadow.value = false
-  }
-}
-
-
-
-
 
 const rootBgClass = computed(() => {
 
