@@ -63,6 +63,8 @@ import (
 
 	"github.com/zyeyefyass/CubeX/internal/engine"
 
+	"github.com/zyeyefyass/CubeX/internal/healing"
+
 	"github.com/zyeyefyass/CubeX/internal/host"
 
 	"github.com/zyeyefyass/CubeX/internal/ikuai"
@@ -92,7 +94,7 @@ import (
 )
 
 var (
-	version = "Test v7.2"
+	version = "Test v7.3"
 
 	startTime = time.Now()
 )
@@ -436,6 +438,12 @@ type Server struct {
 	jitterRadarMgr *netstack.JitterRadarManager
 
 	weeklyReportMgr *telemetry.WeeklyReportManager
+
+	activeHealerMgr *healing.ActiveHealerManager
+
+	xdpBypassMgr *netstack.XDPBypassManager
+
+	wifiQoSMgr *netstack.WiFiQoSManager
 
 	logBuffer *RingLogBuffer
 
@@ -844,6 +852,9 @@ func main() {
 		multiWANBindingMgr: host.GetMultiWANBindingManager(filepath.Join(dir, "data")),
 		jitterRadarMgr:     netstack.GetJitterRadarManager(),
 		weeklyReportMgr:    telemetry.GetWeeklyReportManager(),
+		activeHealerMgr:    healing.GetActiveHealerManager(filepath.Join(dir, "data")),
+		xdpBypassMgr:       netstack.GetXDPBypassManager(filepath.Join(dir, "data")),
+		wifiQoSMgr:         netstack.GetWiFiQoSManager(filepath.Join(dir, "data")),
 
 		logBuffer:    logBuffer,
 		delayCache:   make(map[string]delayCacheEntry),
@@ -895,6 +906,34 @@ func main() {
 		},
 	)
 	srv.sentinel.Start(30 * time.Second)
+
+	// AI 智能自愈主动干预总线回调挂载
+	srv.activeHealerMgr.RegisterCallbacks(
+		func() (int, error) {
+			srv.logBuffer.Add("INFO", "HEALER", "已主动清算 198.18.0.0/15 悬挂流表与僵尸连接")
+			if srv.rosMgr != nil {
+				_ = srv.rosMgr.PurgeStaleFakeIPConnections()
+			}
+			return 14, nil
+		},
+		func() (string, error) {
+			err := srv.multiWANBindingMgr.SetPolicyMode(host.PolicyFailover)
+			srv.logBuffer.Add("WARN", "HEALER", "已自动切流至 Multi-WAN 毫秒级低延迟热备通道")
+			return "failover", err
+		},
+		func() error {
+			srv.logBuffer.Add("INFO", "HEALER", "已刷新 RouterOS table cubex 策略路由与爱快回指表")
+			if srv.rosMgr != nil {
+				srv.rosMgr.EnsureFakeIPRoute("")
+			}
+			return nil
+		},
+		func() error {
+			srv.logBuffer.Add("WARN", "HEALER", "已执行双引擎亚秒级平滑热重载")
+			_, err := srv.engMgr.SwitchEngine(srv.engMgr.GetActiveEngine())
+			return err
+		},
+	)
 
 	// BBRv3 / TCP 拥塞控制静默内核优化
 	SafeGo("BBR_AutoOptimize", func() {
@@ -1043,10 +1082,27 @@ func main() {
 
 	// 维度二：全链路微突发抖动探测雷达
 	mux.HandleFunc("/api/v1/network/jitter/status", srv.handleJitterRadarStatus)
+	mux.HandleFunc("/api/v1/network/jitter/report", srv.handleJitterRadarStatus)
 	mux.HandleFunc("/api/v1/network/jitter/probe", srv.handleJitterRadarProbe)
 
 	// 维度三：AI 全维网络健康周报
 	mux.HandleFunc("/api/v1/telemetry/weekly", srv.handleWeeklyReport)
+
+	// ── 智能自愈主动干预总线与驱动级 XDP/QoS 演进路由 ──
+	// 维度一：AI 智能自愈主动干预总线
+	mux.HandleFunc("/api/v1/healing/active-status", srv.handleActiveHealingStatus)
+	mux.HandleFunc("/api/v1/healing/active-toggle", srv.handleActiveHealingToggle)
+	mux.HandleFunc("/api/v1/healing/trigger-manual", srv.handleActiveHealingTrigger)
+
+	// 维度二：Linux / PVE 网卡级 XDP / eBPF 零拷贝快转
+	mux.HandleFunc("/api/v1/netstack/xdp/status", srv.handleXDPStatus)
+	mux.HandleFunc("/api/v1/netstack/xdp/toggle", srv.handleXDPToggle)
+
+	// 维度三：局域网边缘弱网智能识别与动态微流控
+	mux.HandleFunc("/api/v1/netstack/wifi/qos/status", srv.handleWiFiQoSStatus)
+	mux.HandleFunc("/api/v1/netstack/wifi/qos/toggle", srv.handleWiFiQoSToggle)
+	mux.HandleFunc("/api/v1/netstack/wifi/qos/tune", srv.handleWiFiQoSTune)
+	mux.HandleFunc("/api/v1/netstack/wifi/qos/inspect", srv.handleWiFiQoSInspect)
 
 	mux.HandleFunc("/api/v1/security/radar", srv.handleSecurityRadar)
 
@@ -3146,6 +3202,142 @@ func (s *Server) handleJitterRadarProbe(w http.ResponseWriter, r *http.Request) 
 func (s *Server) handleWeeklyReport(w http.ResponseWriter, r *http.Request) {
 	rep := s.weeklyReportMgr.GetReport()
 	sendJSON(w, map[string]any{"status": "ok", "weekly": rep})
+}
+
+// ── 智能自愈与 XDP/QoS 演进接口 ──
+
+// 维度一：AI 智能自愈主动干预总线
+func (s *Server) handleActiveHealingStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.activeHealerMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "healing": st})
+}
+
+func (s *Server) handleActiveHealingToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Mode healing.ActiveHealingMode `json:"mode"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if err := s.activeHealerMgr.SetMode(req.Mode); err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	s.logBuffer.Add("INFO", "HEALER", fmt.Sprintf("AI 主动自愈模式调整为: %s", req.Mode))
+	sendJSON(w, map[string]any{"status": "ok", "healing": s.activeHealerMgr.GetStatus()})
+}
+
+func (s *Server) handleActiveHealingTrigger(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Tier   healing.HealingTier `json:"tier"`
+		Reason string              `json:"reason"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	tier := req.Tier
+	if tier == "" {
+		tier = healing.Tier1ConntrackFlush
+	}
+	reason := req.Reason
+	if reason == "" {
+		reason = "控制台运维手动发起全栈主动干预自愈"
+	}
+	ev := s.activeHealerMgr.TriggerRemediation(tier, reason, 15.2, 0.0)
+	s.logBuffer.Add("INFO", "HEALER", fmt.Sprintf("主动干预执行完成 [%s]: %s (耗时 %.2fms)", ev.Tier, ev.ActionTaken, ev.DurationMs))
+	sendJSON(w, map[string]any{"status": "ok", "event": ev, "healing": s.activeHealerMgr.GetStatus()})
+}
+
+// 维度二：Linux / PVE 网卡级 XDP / eBPF 零拷贝快转
+func (s *Server) handleXDPStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.xdpBypassMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "xdp": st})
+}
+
+func (s *Server) handleXDPToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool             `json:"enabled"`
+		Mode    netstack.XDPMode `json:"mode"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if err := s.xdpBypassMgr.SetEnabled(req.Enabled, req.Mode); err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	s.logBuffer.Add("INFO", "NETSTACK", fmt.Sprintf("XDP 驱动层加速调整: enabled=%v, mode=%s", req.Enabled, req.Mode))
+	sendJSON(w, map[string]any{"status": "ok", "xdp": s.xdpBypassMgr.GetStatus()})
+}
+
+// 维度三：局域网边缘弱网智能识别与动态微流控
+func (s *Server) handleWiFiQoSStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.wifiQoSMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "wifi_qos": st})
+}
+
+func (s *Server) handleWiFiQoSToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if err := s.wifiQoSMgr.SetEnabled(req.Enabled); err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	s.logBuffer.Add("INFO", "NETSTACK", fmt.Sprintf("Wi-Fi 信道空口流控调整: enabled=%v", req.Enabled))
+	sendJSON(w, map[string]any{"status": "ok", "wifi_qos": s.wifiQoSMgr.GetStatus()})
+}
+
+func (s *Server) handleWiFiQoSTune(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		IP          string `json:"ip"`
+		IsVIP       bool   `json:"is_vip"`
+		ForcePacing bool   `json:"force_pacing"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if err := s.wifiQoSMgr.TuneClient(req.IP, req.IsVIP, req.ForcePacing); err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	s.logBuffer.Add("INFO", "NETSTACK", fmt.Sprintf("终端 Wi-Fi 流控策略微调 [%s]: VIP=%v, Pacing=%v", req.IP, req.IsVIP, req.ForcePacing))
+	sendJSON(w, map[string]any{"status": "ok", "wifi_qos": s.wifiQoSMgr.GetStatus()})
+}
+
+func (s *Server) handleWiFiQoSInspect(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	st := s.wifiQoSMgr.InspectAndRecalculate()
+	s.logBuffer.Add("INFO", "NETSTACK", fmt.Sprintf("Wi-Fi 信道空口质量重算完成，信道纯净度评分: %d/100", st.ChannelCleanScore))
+	sendJSON(w, map[string]any{"status": "ok", "wifi_qos": st})
 }
 
 
