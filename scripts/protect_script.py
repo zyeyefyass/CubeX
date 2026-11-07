@@ -3,19 +3,30 @@ import sys
 import gzip
 import base64
 import re
+import json
 
-LOADER_TEMPLATE = """#!/bin/sh
+def get_current_version():
+    try:
+        with open('meta.json', 'r', encoding='utf-8') as f:
+            return json.load(f).get('version', 'Test v7.6')
+    except Exception:
+        return 'Test v7.6'
+
+CUR_VER = get_current_version()
+LOADER_VER = CUR_VER.replace('Test v', '')
+
+LOADER_TEMPLATE = f"""#!/bin/sh
 # ==============================================================================
 # 🌌 CubeX Host-Symbiotic Zero-Perception Gateway
-# Automated Deployment & Execution Engine (Test v4.2)
+# Automated Deployment & Execution Engine ({CUR_VER})
 #
 # Copyright (c) 2024-2026 CubeX Project. All Rights Reserved.
 # Proprietary & Confidential Software. Unauthorized copying, reverse engineering,
 # decompilation, or redistribution is strictly prohibited.
 # ==============================================================================
 set -e
-_CUBEX_LOADER_VERSION="4.2"
-_CUBEX_PAYLOAD="{payload}"
+_CUBEX_LOADER_VERSION="{LOADER_VER}"
+_CUBEX_PAYLOAD="{{payload}}"
 
 if command -v bash >/dev/null 2>&1; then
     _RUNNER="bash"
@@ -129,7 +140,7 @@ def main():
     release_dir = os.path.join(root, "dist", "release")
     os.makedirs(release_dir, exist_ok=True)
 
-    print("🛡️ Protecting deployment scripts for Test v4.2...")
+    print(f"🛡️ Protecting deployment scripts for {CUR_VER}...")
     # 1. OpenWrt (OpenWrt Busybox 默认未编译 base64 工具，必须保持原生纯 POSIX 脚本分发，确保 100% 免外部解码依赖)
     openwrt_src = os.path.join(root, "scripts", "openwrt", "setup-openwrt.sh")
     openwrt_dst = os.path.join(release_dir, "setup-openwrt.sh")
