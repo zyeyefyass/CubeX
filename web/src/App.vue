@@ -12467,12 +12467,8 @@
                 </div>
               </div>
 
-              <!-- 右侧快捷操作：一秒体检、刷新、主路由Web直达、凭据折叠切换 -->
+              <!-- 右侧快捷操作：刷新硬件遥测、主路由Web直达、配置凭据折叠切换 -->
               <div class="flex flex-wrap items-center gap-2">
-                <button @click="runFullHealthAudit"
-                  class="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-200 hover:text-white text-xs font-bold font-mono transition-all flex items-center gap-1.5 shadow-sm">
-                  <span>🛡️</span> 一秒全链路体检
-                </button>
                 <button @click="fetchRouterHardware"
                   class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white text-xs font-bold font-mono transition-all flex items-center gap-1.5">
                   <span :class="{'animate-spin': refreshingHW}">↻</span> 刷新硬件遥测
@@ -12644,7 +12640,7 @@
               </div>
             </div>
 
-            <!-- Tier 4: 宿主共生自愈控制中枢 (按当前宿主智能编排 · 告别死锁) -->
+            <!-- Tier 4: 宿主共生自愈控制中枢 (方案 A · 统一自适应全链路深度自愈) -->
             <div class="pt-2.5 border-t border-cyan-500/20 relative z-10 space-y-3">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -12654,78 +12650,47 @@
                     Netwatch 0秒逃生守护就绪
                   </span>
                 </div>
-                <button @click="runChaosDrill" :disabled="chaosDrilling"
-                  class="px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/30 text-purple-200 text-[11px] font-bold font-mono transition-all flex items-center gap-1 shadow-sm">
-                  <span v-if="chaosDrilling" class="animate-spin text-xs">↻</span>
-                  <span v-else>⚡</span>
-                  <span>{{ chaosDrilling ? '容灾演练推演中...' : '容灾演练推演' }}</span>
-                </button>
+                <span class="text-[11px] text-slate-400 font-mono hidden sm:inline-block">底座状态微秒级感知 · 故障全自动无损切换</span>
               </div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs font-mono">
-                <!-- 按钮 1: 核心自愈主操作 -->
+              <!-- 统一自适应全链路自愈主操作卡片 (全宽通栏) -->
+              <div class="w-full">
                 <button @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
-                  class="p-3 rounded-xl bg-gradient-to-r from-sky-500/20 to-cyan-500/20 hover:from-sky-500/30 hover:to-cyan-500/30 border border-cyan-400/40 text-left text-cyan-100 transition-all flex items-center justify-between group shadow-sm">
-                  <div>
-                    <div class="font-bold flex items-center gap-1.5 text-white">
-                      <span>⚡</span> 深度巡检策略路由
+                  class="w-full p-4 rounded-2xl bg-gradient-to-r from-cyan-500/20 via-sky-500/15 to-blue-500/15 hover:from-cyan-500/30 hover:via-sky-500/25 hover:to-blue-500/25 border border-cyan-400/40 hover:border-cyan-400 text-white transition-all flex items-center justify-between group shadow-lg cursor-pointer">
+                  <div class="flex items-center gap-3.5">
+                    <div class="w-11 h-11 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-xl shrink-0 shadow-inner">
+                      <span v-if="cleaningRosFirewall" class="animate-spin text-cyan-300">↻</span>
+                      <span v-else>⚡</span>
                     </div>
-                    <div class="text-[10px] text-slate-300 mt-0.5">重配 table cubex 与逃生</div>
-                  </div>
-                  <span v-if="cleaningRosFirewall" class="animate-spin text-sm">↻</span>
-                  <span v-else class="text-cyan-400 group-hover:translate-x-0.5 transition-transform font-bold">➔</span>
-                </button>
-
-                <!-- 按钮 2: 伴生 Linux/飞牛防火墙放行 -->
-                <button @click="applyLinuxFirewall" :disabled="applyingLinuxFirewall"
-                  class="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-left text-slate-200 hover:text-white transition-all flex items-center justify-between group">
-                  <div>
-                    <div class="font-bold flex items-center gap-1.5">
-                      <span>🐧</span> 联动伴生防火墙
+                    <div class="text-left">
+                      <div class="font-black text-sm sm:text-base text-white flex items-center gap-2 flex-wrap">
+                        <span>宿主全链路深度自愈与规则加固</span>
+                        <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold">
+                          自适应当前底座: {{ hostBadge.name || 'RouterOS' }}
+                        </span>
+                      </div>
+                      <div class="text-xs text-slate-300 mt-1 font-mono">
+                        一键原子化联动：策略路由重配 · 伴生防火墙放行 · IPv6 双栈防 DNS 泄露 · 0秒逃生看门狗校准
+                      </div>
                     </div>
-                    <div class="text-[10px] text-slate-400 mt-0.5">放行转发/ARP防风暴</div>
                   </div>
-                  <span v-if="applyingLinuxFirewall" class="animate-spin text-sm">↻</span>
-                  <span v-else class="text-slate-400 group-hover:translate-x-0.5 transition-transform font-bold">➔</span>
-                </button>
-
-                <!-- 按钮 3: 原生 IPv6 双栈自愈 -->
-                <button @click="setupRosIpv6" :disabled="settingUpRosIpv6"
-                  class="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-left text-slate-200 hover:text-white transition-all flex items-center justify-between group">
-                  <div>
-                    <div class="font-bold flex items-center gap-1.5">
-                      <span>🌐</span> 自愈 IPv6 双栈防泄露
-                    </div>
-                    <div class="text-[10px] text-slate-400 mt-0.5">0DNS泄露 · 毫秒回退</div>
+                  <div class="flex items-center gap-2 text-cyan-300 font-bold font-mono text-xs sm:text-sm shrink-0 pl-3">
+                    <span>{{ cleaningRosFirewall ? '全栈自愈执行中...' : '立即自愈' }}</span>
+                    <span class="group-hover:translate-x-1.5 transition-transform text-sm sm:text-base">➔</span>
                   </div>
-                  <span v-if="settingUpRosIpv6" class="animate-spin text-sm">↻</span>
-                  <span v-else class="text-slate-400 group-hover:translate-x-0.5 transition-transform font-bold">➔</span>
-                </button>
-
-                <!-- 按钮 4: 爱快静态路由与 DHCP 联动 -->
-                <button @click="inspectAndCleanReapplyRos" :disabled="cleaningRosFirewall"
-                  class="p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-left text-slate-200 hover:text-white transition-all flex items-center justify-between group">
-                  <div>
-                    <div class="font-bold flex items-center gap-1.5">
-                      <span>🚀</span> 巡检爱快回指路由
-                    </div>
-                    <div class="text-[10px] text-slate-400 mt-0.5">198.18.0.0/15 回指加固</div>
-                  </div>
-                  <span v-if="cleaningRosFirewall" class="animate-spin text-sm">↻</span>
-                  <span v-else class="text-slate-400 group-hover:translate-x-0.5 transition-transform font-bold">➔</span>
                 </button>
               </div>
 
               <!-- 实时执行反馈卡片 -->
               <div v-if="hostLastExecution.title" class="p-3 rounded-xl border border-cyan-500/30 bg-black/40 text-xs font-mono flex items-center justify-between">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 truncate">
                   <span :class="hostLastExecution.success ? 'text-emerald-400' : 'text-rose-400'">
                     {{ hostLastExecution.success ? '✓' : '✗' }}
                   </span>
                   <span class="font-bold text-white">{{ hostLastExecution.title }}</span>
-                  <span class="text-slate-400">{{ hostLastExecution.detail }}</span>
+                  <span class="text-slate-400 truncate">{{ hostLastExecution.detail || hostLastExecution.message }}</span>
                 </div>
-                <span class="text-[10px] text-slate-500">{{ hostLastExecution.time }}</span>
+                <span class="text-[10px] text-slate-500 shrink-0 ml-2">{{ hostLastExecution.time }}</span>
               </div>
             </div>
           </div>
