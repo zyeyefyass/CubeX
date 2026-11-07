@@ -9,10 +9,13 @@ import (
 // WeeklyDeviceRanking 周报活跃终端排行
 type WeeklyDeviceRanking struct {
 	DeviceName     string  `json:"device_name"`
+	Hostname       string  `json:"hostname"`
 	IP             string  `json:"ip"`
 	DownloadedMB   float64 `json:"downloaded_mb"`
 	UploadedMB     float64 `json:"uploaded_mb"`
+	TotalMB        float64 `json:"total_mb"`
 	TrafficPercent float64 `json:"traffic_percent"`
+	Percent        float64 `json:"percent"`
 }
 
 // WeeklyHealthReport 全维网络健康周报数据结构
@@ -22,9 +25,12 @@ type WeeklyHealthReport struct {
 	Rating                 string                `json:"rating"`
 	TotalDownloadedGB      float64               `json:"total_downloaded_gb"`
 	TotalUploadedGB        float64               `json:"total_uploaded_gb"`
+	TotalDownloadMB        float64               `json:"total_download_mb"`
+	TotalUploadMB          float64               `json:"total_upload_mb"`
 	DirectTrafficRatio     float64               `json:"direct_traffic_ratio"`
 	ProxyTrafficRatio      float64               `json:"proxy_traffic_ratio"`
 	TotalAdBlocked         int64                 `json:"total_ad_blocked"`
+	TotalAdThreatBlocks    int64                 `json:"total_ad_threat_blocks"`
 	TotalDNSQueries        int64                 `json:"total_dns_queries"`
 	AvgResolutionLatencyMs float64               `json:"avg_resolution_latency_ms"`
 	SentinelSelfHeals      int64                 `json:"sentinel_self_heals"`
@@ -64,11 +70,56 @@ func (m *WeeklyReportManager) GenerateWeeklyReport() WeeklyHealthReport {
 	dateRange := fmt.Sprintf("%s ~ %s", sevenDaysAgo.Format("2006.01.02"), now.Format("2006.01.02"))
 
 	topDevs := []WeeklyDeviceRanking{
-		{DeviceName: "极客主力开发机 (MacBook Pro)", IP: "10.0.0.88", DownloadedMB: 18450.0, UploadedMB: 4210.0, TrafficPercent: 42.5},
-		{DeviceName: "客厅 4K 电视盒子 (Apple TV)", IP: "10.0.0.120", DownloadedMB: 14200.0, UploadedMB: 850.0, TrafficPercent: 28.2},
-		{DeviceName: "主卧智能手机", IP: "10.0.0.155", DownloadedMB: 6300.0, UploadedMB: 1100.0, TrafficPercent: 13.9},
-		{DeviceName: "全屋智能家居中控", IP: "10.0.0.201", DownloadedMB: 1850.0, UploadedMB: 540.0, TrafficPercent: 4.5},
-		{DeviceName: "NAS 私有云存储", IP: "10.0.0.9", DownloadedMB: 4800.0, UploadedMB: 3900.0, TrafficPercent: 10.9},
+		{
+			DeviceName:     "极客主力开发机 (MacBook Pro)",
+			Hostname:       "极客主力开发机 (MacBook Pro)",
+			IP:             "10.0.0.88",
+			DownloadedMB:   18450.0,
+			UploadedMB:     4210.0,
+			TotalMB:        22660.0,
+			TrafficPercent: 42.5,
+			Percent:        42.5,
+		},
+		{
+			DeviceName:     "客厅 4K 电视盒子 (Apple TV)",
+			Hostname:       "客厅 4K 电视盒子 (Apple TV)",
+			IP:             "10.0.0.120",
+			DownloadedMB:   14200.0,
+			UploadedMB:     850.0,
+			TotalMB:        15050.0,
+			TrafficPercent: 28.2,
+			Percent:        28.2,
+		},
+		{
+			DeviceName:     "主卧智能手机",
+			Hostname:       "主卧智能手机",
+			IP:             "10.0.0.155",
+			DownloadedMB:   6300.0,
+			UploadedMB:     1100.0,
+			TotalMB:        7400.0,
+			TrafficPercent: 13.9,
+			Percent:        13.9,
+		},
+		{
+			DeviceName:     "全屋智能家居中控",
+			Hostname:       "全屋智能家居中控",
+			IP:             "10.0.0.201",
+			DownloadedMB:   1850.0,
+			UploadedMB:     540.0,
+			TotalMB:        2390.0,
+			TrafficPercent: 4.5,
+			Percent:        4.5,
+		},
+		{
+			DeviceName:     "NAS 私有云存储",
+			Hostname:       "NAS 私有云存储",
+			IP:             "10.0.0.9",
+			DownloadedMB:   4800.0,
+			UploadedMB:     3900.0,
+			TotalMB:        8700.0,
+			TrafficPercent: 10.9,
+			Percent:        10.9,
+		},
 	}
 
 	highlights := []string{
@@ -84,9 +135,12 @@ func (m *WeeklyReportManager) GenerateWeeklyReport() WeeklyHealthReport {
 		Rating:                 "工业级高可用 · 极度稳定",
 		TotalDownloadedGB:      54.8,
 		TotalUploadedGB:        12.4,
+		TotalDownloadMB:        54.8 * 1024,
+		TotalUploadMB:          12.4 * 1024,
 		DirectTrafficRatio:     91.5,
 		ProxyTrafficRatio:      8.5,
 		TotalAdBlocked:         14820,
+		TotalAdThreatBlocks:    14820,
 		TotalDNSQueries:        89540,
 		AvgResolutionLatencyMs: 1.8,
 		SentinelSelfHeals:      2,
