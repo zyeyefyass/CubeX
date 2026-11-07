@@ -68,3 +68,7 @@ aerial-guard.apk
 
 dist/cubexd-container-*
 scripts/.archive/
+
+fetch_screenshot.py
+launch_aerial.py
+list_apps.py

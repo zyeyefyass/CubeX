@@ -219,8 +219,8 @@ hardcoded_ip_matches = []
 legacy_regex = re.compile(r'open[-_]?box|ros[-_]?box', re.I)
 hardcoded_ip_regex = re.compile(r'(?<![0-9])(?:10\.0\.0\.(?:1|2|7|11|228)|192\.168\.(?:1|0)\.(?:1|2|7|11))(?!/[0-9])')
 
-EXCLUDE_DIRS = {".git", "dist", "node_modules", "bin", "scratch", ".gemini", "docs", "video_materials", "scripts"}
-EXCLUDE_EXTS = {".dat", ".bin", ".png", ".jpg", ".svg", ".ico", ".mp4", ".tar", ".gz", ".zip", ".md"}
+EXCLUDE_DIRS = {".git", "dist", "node_modules", "bin", "scratch", ".gemini", "docs", "video_materials", "scripts", "aerial-tv", "cleanyourtv"}
+EXCLUDE_EXTS = {".dat", ".bin", ".png", ".jpg", ".svg", ".ico", ".mp4", ".tar", ".gz", ".zip", ".md", ".ttf", ".woff", ".woff2", ".otf"}
 for root, dirs, files in os.walk(ROOT):
     dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
     for file in files:
