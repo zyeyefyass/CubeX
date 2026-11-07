@@ -35,6 +35,10 @@ type RouterHardwareInfo struct {
 	CPULoad       int               `json:"cpu_load"`
 	FreeMemory    int64             `json:"free_memory"`
 	TotalMemory   int64             `json:"total_memory"`
+	FreeMemoryMB  float64           `json:"free_memory_mb"`
+	TotalMemoryMB float64           `json:"total_memory_mb"`
+	Version       string            `json:"version"`
+	Arch          string            `json:"arch"`
 	MemoryUsedPct float64           `json:"memory_used_pct"`
 	FreeHDDSpace  int64             `json:"free_hdd_space"`
 	TotalHDDSpace int64             `json:"total_hdd_space"`
@@ -128,6 +132,10 @@ func (m *Manager) GetRouterHardwareInfo() (*RouterHardwareInfo, error) {
 			pct := float64(used) / float64(info.TotalMemory) * 100
 			info.MemoryUsedPct = float64(int(pct*10)) / 10.0
 		}
+		info.FreeMemoryMB = float64(info.FreeMemory) / (1024 * 1024)
+		info.TotalMemoryMB = float64(info.TotalMemory) / (1024 * 1024)
+		info.Version = info.ROSVersion
+		info.Arch = info.Architecture
 	}
 
 	// 2. Fetch /system/health (Optional on CHR/VM)

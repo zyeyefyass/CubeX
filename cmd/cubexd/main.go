@@ -451,6 +451,10 @@ type Server struct {
 
 	lanGuardianMgr *security.LANGuardianManager
 
+	dnsPrefetchMgr *dnsradar.DNSPrefetchManager
+
+	shadowAuditorMgr *host.ShadowAuditorManager
+
 	logBuffer *RingLogBuffer
 
 	liveUpSpeed atomic.Int64
@@ -864,6 +868,8 @@ func main() {
 		flowOffloadMgr:     host.GetFlowOffloadManager(filepath.Join(dir, "data")),
 		pmtuRadarMgr:       netstack.GetPMTUManager(filepath.Join(dir, "data")),
 		lanGuardianMgr:     security.GetLANGuardianManager(filepath.Join(dir, "data")),
+		dnsPrefetchMgr:     dnsradar.NewDNSPrefetchManager(filepath.Join(dir, "data")),
+		shadowAuditorMgr:   host.NewShadowAuditorManager(filepath.Join(dir, "data")),
 
 		logBuffer:    logBuffer,
 		delayCache:   make(map[string]delayCacheEntry),
@@ -1128,6 +1134,16 @@ func main() {
 	mux.HandleFunc("/api/v1/security/guardian/status", srv.handleLANGuardianStatus)
 	mux.HandleFunc("/api/v1/security/guardian/scan", srv.handleLANGuardianScan)
 	mux.HandleFunc("/api/v1/security/guardian/isolate", srv.handleLANGuardianIsolate)
+
+	// ── DNS 负缓存免疫与常访域名预取引擎 ──
+	mux.HandleFunc("/api/v1/network/dns/prefetch/status", srv.handleDNSPrefetchStatus)
+	mux.HandleFunc("/api/v1/network/dns/prefetch/toggle", srv.handleDNSPrefetchToggle)
+	mux.HandleFunc("/api/v1/network/dns/prefetch/flush", srv.handleDNSPrefetchFlush)
+
+	// ── 宿主底座策略路由影子巡检与防篡改自愈器 ──
+	mux.HandleFunc("/api/v1/host/shadow/status", srv.handleShadowAuditorStatus)
+	mux.HandleFunc("/api/v1/host/shadow/audit", srv.handleShadowAuditorRun)
+	mux.HandleFunc("/api/v1/host/shadow/toggle", srv.handleShadowAuditorToggle)
 
 	mux.HandleFunc("/api/v1/security/radar", srv.handleSecurityRadar)
 
@@ -3475,6 +3491,82 @@ func (s *Server) handleLANGuardianIsolate(w http.ResponseWriter, r *http.Request
 	}
 	s.logBuffer.Add("WARN", "SECURITY", fmt.Sprintf("已隔离局域网违规伪造物理 MAC: %s", req.MAC))
 	sendJSON(w, map[string]any{"status": "ok", "guardian": s.lanGuardianMgr.GetStatus()})
+}
+
+// ── DNS 负缓存免疫与常访域名预取引擎 API ──
+
+func (s *Server) handleDNSPrefetchStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.dnsPrefetchMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "prefetch": st})
+}
+
+func (s *Server) handleDNSPrefetchToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	st := s.dnsPrefetchMgr.Toggle(req.Enabled)
+	action := "启用"
+	if !req.Enabled {
+		action = "暂停"
+	}
+	s.logBuffer.Add("INFO", "DNS", fmt.Sprintf("DNS 常访域名主动预取与负缓存免疫巡航已%s", action))
+	sendJSON(w, map[string]any{"status": "ok", "prefetch": st})
+}
+
+func (s *Server) handleDNSPrefetchFlush(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	st := s.dnsPrefetchMgr.Flush()
+	s.logBuffer.Add("INFO", "DNS", "已刷新常访域名内存热池并重置负缓存免疫计数")
+	sendJSON(w, map[string]any{"status": "ok", "prefetch": st})
+}
+
+// ── 宿主底座策略路由影子巡检与防篡改自愈器 API ──
+
+func (s *Server) handleShadowAuditorStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.shadowAuditorMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "shadow": st})
+}
+
+func (s *Server) handleShadowAuditorRun(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	st := s.shadowAuditorMgr.RunImmediateAudit()
+	s.logBuffer.Add("INFO", "HOST", fmt.Sprintf("宿主策略路由影子巡检完成，已完成 %d 项规则校验与自愈闭环", len(st.Items)))
+	sendJSON(w, map[string]any{"status": "ok", "shadow": st})
+}
+
+func (s *Server) handleShadowAuditorToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	st := s.shadowAuditorMgr.Toggle(req.Enabled)
+	action := "启用"
+	if !req.Enabled {
+		action = "暂停"
+	}
+	s.logBuffer.Add("INFO", "HOST", fmt.Sprintf("宿主策略路由影子巡检器已%s", action))
+	sendJSON(w, map[string]any{"status": "ok", "shadow": st})
 }
 
 
