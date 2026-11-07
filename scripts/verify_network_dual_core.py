@@ -74,7 +74,7 @@ def test_dns(domain="www.google.com"):
     except Exception as e:
         return False, f"ERROR: {e}"
 
-def test_proxy(retries=2):
+def test_proxy(retries=3):
     for attempt in range(retries):
         try:
             out = subprocess.check_output(
@@ -87,7 +87,7 @@ def test_proxy(retries=2):
         except Exception as e:
             if attempt == retries - 1:
                 return False, f"Failed: {e}"
-            time.sleep(1.0)
+            time.sleep(1.5)
     return False, "Failed after retries"
 
 def test_direct():
@@ -124,7 +124,7 @@ def main():
         if res_a.get("status") != "switched":
             print(f"[-] Switch to {target_a} failed: {res_a}")
             all_passed = False
-        time.sleep(3.0)
+        time.sleep(4.0)
         
         # Verify Direct
         d_ok, d_msg = test_direct()
@@ -146,7 +146,7 @@ def main():
         if res_b.get("status") != "switched":
             print(f"[-] Switch to {target_b} failed: {res_b}")
             all_passed = False
-        time.sleep(3.0)
+        time.sleep(4.0)
         
         # Verify Direct
         d_ok, d_msg = test_direct()

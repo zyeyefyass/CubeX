@@ -48,6 +48,9 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/accelerator"
 	"github.com/zyeyefyass/CubeX/internal/affinity"
 	"github.com/zyeyefyass/CubeX/internal/perf"
+	"github.com/zyeyefyass/CubeX/internal/happyeyeballs"
+	"github.com/zyeyefyass/CubeX/internal/splice"
+	"github.com/zyeyefyass/CubeX/internal/bidirheartbeat"
 
 	"github.com/zyeyefyass/CubeX/internal/adblock"
 
@@ -458,6 +461,9 @@ type Server struct {
 	shadowAuditorMgr *host.ShadowAuditorManager
 	sessionAffinityMgr *affinity.SessionAffinityManager
 	memoryConntrackMgr *perf.MemoryConntrackManager
+	happyEyeballsMgr   *happyeyeballs.Manager
+	spliceMgr          *splice.Manager
+	bidirHeartbeatMgr  *bidirheartbeat.Manager
 
 	logBuffer *RingLogBuffer
 
@@ -876,6 +882,9 @@ func main() {
 		shadowAuditorMgr:   host.NewShadowAuditorManager(filepath.Join(dir, "data")),
 		sessionAffinityMgr: affinity.NewSessionAffinityManager(filepath.Join(dir, "data", "session_affinity.json")),
 		memoryConntrackMgr: perf.NewMemoryConntrackManager(filepath.Join(dir, "data", "memory_conntrack.json")),
+		happyEyeballsMgr:   happyeyeballs.NewManager(),
+		spliceMgr:          splice.NewManager(),
+		bidirHeartbeatMgr:  bidirheartbeat.NewManager(),
 
 		logBuffer:    logBuffer,
 		delayCache:   make(map[string]delayCacheEntry),
@@ -1162,6 +1171,22 @@ func main() {
 	mux.HandleFunc("/api/v1/system/memory/reclaim", srv.handleMemoryReclaim)
 	mux.HandleFunc("/api/v1/system/conntrack/flush", srv.handleConntrackFlush)
 	mux.HandleFunc("/api/v1/system/memory-conntrack/toggle", srv.handleMemoryConntrackToggle)
+
+	// ── Test v7.6 核心进阶架构路由 ──
+	// 维度一：RFC 8305 Happy Eyeballs v2 双栈竞速与 IPv6 零侧漏阻断引擎
+	mux.HandleFunc("/api/v1/network/happyeyeballs/v2/status", srv.handleRFC8305HappyEyeballsStatus)
+	mux.HandleFunc("/api/v1/network/happyeyeballs/v2/toggle", srv.handleRFC8305HappyEyeballsToggle)
+	mux.HandleFunc("/api/v1/network/happyeyeballs/v2/probe", srv.handleRFC8305HappyEyeballsProbe)
+
+	// 维度二：Linux 原生 Splice 零拷贝与 Socket 直通数据流管道
+	mux.HandleFunc("/api/v1/system/splice/status", srv.handleSpliceStatus)
+	mux.HandleFunc("/api/v1/system/splice/toggle", srv.handleSpliceToggle)
+	mux.HandleFunc("/api/v1/system/splice/flush", srv.handleSpliceFlush)
+
+	// 维度三：RouterOS / 爱快 20ms 双向心跳与热修补影子总线
+	mux.HandleFunc("/api/v1/ros/bidirheartbeat/status", srv.handleBidirHeartbeatStatus)
+	mux.HandleFunc("/api/v1/ros/bidirheartbeat/probe", srv.handleBidirHeartbeatProbe)
+	mux.HandleFunc("/api/v1/ros/bidirheartbeat/patch", srv.handleBidirHeartbeatPatch)
 
 	mux.HandleFunc("/api/v1/security/radar", srv.handleSecurityRadar)
 
@@ -11230,4 +11255,101 @@ func (s *Server) handleFullHealthAudit(w http.ResponseWriter, r *http.Request) {
 			"audited_at":    time.Now().Format(time.RFC3339),
 		},
 	})
+}
+
+
+// ── Test v7.6 维度一：RFC 8305 Happy Eyeballs v2 双栈竞速与 IPv6 零侧漏阻断 ──
+func (s *Server) handleRFC8305HappyEyeballsStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.happyEyeballsMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "happy_eyeballs": st})
+}
+
+func (s *Server) handleRFC8305HappyEyeballsToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	st := s.happyEyeballsMgr.Toggle(req.Enabled)
+	s.logBuffer.Add("INFO", "NETWORK", fmt.Sprintf("Happy Eyeballs v2 双栈竞速状态切换: enabled=%v", req.Enabled))
+	sendJSON(w, map[string]any{"status": "ok", "happy_eyeballs": st})
+}
+
+func (s *Server) handleRFC8305HappyEyeballsProbe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Domain string `json:"domain"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	res := s.happyEyeballsMgr.RunProbe(req.Domain)
+	s.logBuffer.Add("INFO", "NETWORK", fmt.Sprintf("RFC 8305 双栈竞速测算完成: domain=%s, winner=%s, IPv4=%.1fms, IPv6=%.1fms", res.Domain, res.Winner, res.IPv4Latency, res.IPv6Latency))
+	sendJSON(w, map[string]any{"status": "ok", "probe_result": res})
+}
+
+// ── Test v7.6 维度二：Linux 原生 Splice 零拷贝与 Socket 直通数据流管道 ──
+func (s *Server) handleSpliceStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.spliceMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "splice": st})
+}
+
+func (s *Server) handleSpliceToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	st := s.spliceMgr.Toggle(req.Enabled)
+	s.logBuffer.Add("INFO", "SYSTEM", fmt.Sprintf("Splice 零拷贝直通状态切换: enabled=%v", req.Enabled))
+	sendJSON(w, map[string]any{"status": "ok", "splice": st})
+}
+
+func (s *Server) handleSpliceFlush(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	res := s.spliceMgr.FlushPipes()
+	s.logBuffer.Add("INFO", "SYSTEM", fmt.Sprintf("已清空并重置内核零拷贝管道: freed_pipes=%d, flushed_flows=%d", res.FreedPipes, res.FlushedFlows))
+	sendJSON(w, map[string]any{"status": "ok", "flush_result": res})
+}
+
+// ── Test v7.6 维度三：RouterOS / 爱快 20ms 双向心跳与热修补影子总线 ──
+func (s *Server) handleBidirHeartbeatStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.bidirHeartbeatMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "bidir_heartbeat": st})
+}
+
+func (s *Server) handleBidirHeartbeatProbe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	res := s.bidirHeartbeatMgr.RunProbe()
+	s.logBuffer.Add("INFO", "ROS", fmt.Sprintf("20ms 宿主双向心跳巡检完成: latency=%.1fms, verified=%d/%d", res.LatencyMs, res.RulesVerified, res.RulesTotal))
+	sendJSON(w, map[string]any{"status": "ok", "probe_result": res})
+}
+
+func (s *Server) handleBidirHeartbeatPatch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	res := s.bidirHeartbeatMgr.ApplyInstantPatch()
+	s.logBuffer.Add("INFO", "ROS", res.Message)
+	sendJSON(w, map[string]any{"status": "ok", "patch_result": res})
 }
