@@ -94,7 +94,7 @@ import (
 )
 
 var (
-	version = "Test v7.3"
+	version = "Test v7.4"
 
 	startTime = time.Now()
 )
@@ -444,6 +444,12 @@ type Server struct {
 	xdpBypassMgr *netstack.XDPBypassManager
 
 	wifiQoSMgr *netstack.WiFiQoSManager
+
+	flowOffloadMgr *host.FlowOffloadManager
+
+	pmtuRadarMgr *netstack.PMTUManager
+
+	lanGuardianMgr *security.LANGuardianManager
 
 	logBuffer *RingLogBuffer
 
@@ -855,6 +861,9 @@ func main() {
 		activeHealerMgr:    healing.GetActiveHealerManager(filepath.Join(dir, "data")),
 		xdpBypassMgr:       netstack.GetXDPBypassManager(filepath.Join(dir, "data")),
 		wifiQoSMgr:         netstack.GetWiFiQoSManager(filepath.Join(dir, "data")),
+		flowOffloadMgr:     host.GetFlowOffloadManager(filepath.Join(dir, "data")),
+		pmtuRadarMgr:       netstack.GetPMTUManager(filepath.Join(dir, "data")),
+		lanGuardianMgr:     security.GetLANGuardianManager(filepath.Join(dir, "data")),
 
 		logBuffer:    logBuffer,
 		delayCache:   make(map[string]delayCacheEntry),
@@ -1103,6 +1112,22 @@ func main() {
 	mux.HandleFunc("/api/v1/netstack/wifi/qos/toggle", srv.handleWiFiQoSToggle)
 	mux.HandleFunc("/api/v1/netstack/wifi/qos/tune", srv.handleWiFiQoSTune)
 	mux.HandleFunc("/api/v1/netstack/wifi/qos/inspect", srv.handleWiFiQoSInspect)
+
+	// ── Test v7.4 三大深度协同与物理防护路由 ──
+	// 维度一：软路由硬件 NAT 流表加速深度协同
+	mux.HandleFunc("/api/v1/host/flow-offload/status", srv.handleFlowOffloadStatus)
+	mux.HandleFunc("/api/v1/host/flow-offload/toggle", srv.handleFlowOffloadToggle)
+	mux.HandleFunc("/api/v1/host/flow-offload/optimize", srv.handleFlowOffloadOptimize)
+
+	// 维度二：全链路智能 MTU / MSS 动态自协商与分片消除雷达
+	mux.HandleFunc("/api/v1/network/pmtu/status", srv.handlePMTUStatus)
+	mux.HandleFunc("/api/v1/network/pmtu/probe", srv.handlePMTUProbe)
+	mux.HandleFunc("/api/v1/network/pmtu/clamp", srv.handlePMTUClamp)
+
+	// 维度三：局域网全拓扑 ARP 动态防欺骗与非法 DHCP 探针
+	mux.HandleFunc("/api/v1/security/guardian/status", srv.handleLANGuardianStatus)
+	mux.HandleFunc("/api/v1/security/guardian/scan", srv.handleLANGuardianScan)
+	mux.HandleFunc("/api/v1/security/guardian/isolate", srv.handleLANGuardianIsolate)
 
 	mux.HandleFunc("/api/v1/security/radar", srv.handleSecurityRadar)
 
@@ -3338,6 +3363,118 @@ func (s *Server) handleWiFiQoSInspect(w http.ResponseWriter, r *http.Request) {
 	st := s.wifiQoSMgr.InspectAndRecalculate()
 	s.logBuffer.Add("INFO", "NETSTACK", fmt.Sprintf("Wi-Fi 信道空口质量重算完成，信道纯净度评分: %d/100", st.ChannelCleanScore))
 	sendJSON(w, map[string]any{"status": "ok", "wifi_qos": st})
+}
+
+// ── Test v7.4 三大深度协同与物理防护接口 ──
+
+// 维度一：软路由硬件 NAT 流表加速深度协同
+func (s *Server) handleFlowOffloadStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.flowOffloadMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "flow_offload": st})
+}
+
+func (s *Server) handleFlowOffloadToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool                 `json:"enabled"`
+		Mode    host.FlowOffloadMode `json:"mode"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if err := s.flowOffloadMgr.SetEnabled(req.Enabled, req.Mode); err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	s.logBuffer.Add("INFO", "HOST", fmt.Sprintf("硬件 NAT 流表加速状态调整: enabled=%v, mode=%s", req.Enabled, req.Mode))
+	sendJSON(w, map[string]any{"status": "ok", "flow_offload": s.flowOffloadMgr.GetStatus()})
+}
+
+func (s *Server) handleFlowOffloadOptimize(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	st := s.flowOffloadMgr.OptimizeRules()
+	s.logBuffer.Add("INFO", "HOST", fmt.Sprintf("硬件流表协同优化完成，芯片级透传率: %.1f%%", st.OffloadedPercent))
+	sendJSON(w, map[string]any{"status": "ok", "flow_offload": st})
+}
+
+// 维度二：全链路智能 MTU / MSS 动态自协商与分片消除雷达
+func (s *Server) handlePMTUStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.pmtuRadarMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "pmtu": st})
+}
+
+func (s *Server) handlePMTUProbe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	rep := s.pmtuRadarMgr.RunPMTUProbe()
+	s.logBuffer.Add("INFO", "NETSTACK", fmt.Sprintf("RFC 4821 PMTU 路径探测完成，测得洁净 MTU: %d (MSS: %d)", rep.DetectedPMTU, rep.ClampedMSS))
+	sendJSON(w, map[string]any{"status": "ok", "pmtu": rep})
+}
+
+func (s *Server) handlePMTUClamp(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+		MSS     int  `json:"mss"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if err := s.pmtuRadarMgr.SetAutoClamping(req.Enabled, req.MSS); err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	s.logBuffer.Add("INFO", "NETSTACK", fmt.Sprintf("TCP MSS 钳制策略更新: auto=%v, mss=%d", req.Enabled, req.MSS))
+	sendJSON(w, map[string]any{"status": "ok", "pmtu": s.pmtuRadarMgr.GetStatus()})
+}
+
+// 维度三：局域网全拓扑 ARP 动态防欺骗与非法 DHCP 探针
+func (s *Server) handleLANGuardianStatus(w http.ResponseWriter, r *http.Request) {
+	st := s.lanGuardianMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "guardian": st})
+}
+
+func (s *Server) handleLANGuardianScan(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	st := s.lanGuardianMgr.RunScan()
+	s.logBuffer.Add("INFO", "SECURITY", fmt.Sprintf("局域网物理安全扫描完成，纳管终端: %d, 冲突数: %d", st.TotalMonitoredIPs, st.IPConflictsCount))
+	sendJSON(w, map[string]any{"status": "ok", "guardian": st})
+}
+
+func (s *Server) handleLANGuardianIsolate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		MAC string `json:"mac"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	if err := s.lanGuardianMgr.IsolateAttacker(req.MAC); err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	s.logBuffer.Add("WARN", "SECURITY", fmt.Sprintf("已隔离局域网违规伪造物理 MAC: %s", req.MAC))
+	sendJSON(w, map[string]any{"status": "ok", "guardian": s.lanGuardianMgr.GetStatus()})
 }
 
 
