@@ -12808,101 +12808,6 @@
             </div>
           </div>
 
-          <!-- ════════════════════════════════════════════════════════════════════════════════════ -->
-          <!-- 🛡️ 层级 3: 局域网物理边界守护与多宽带智能分流 (双栏极客栅格 · 纯净物理宿主底座)       -->
-          <!-- ════════════════════════════════════════════════════════════════════════════════════ -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <!-- 左栏: 局域网 ARP 物理防投毒与流氓 DHCP 探针 (LAN Security Guardian) -->
-            <div class="p-5 sm:p-6 rounded-2xl macos-glass-card hover:border-amber-400/40 transition-all duration-300 space-y-4 shadow-lg">
-              <div class="flex items-center justify-between border-b border-amber-500/20 pb-3">
-                <div class="flex items-center gap-2.5">
-                  <span class="text-xl">🛡️</span>
-                  <div>
-                    <h3 class="text-sm sm:text-base font-black text-white tracking-wide">
-                      局域网全拓扑 ARP 防欺骗与 DHCP 探针
-                    </h3>
-                    <p class="text-xs text-slate-300 mt-0.5">局域网 IP-MAC 静态绑定防护 · 流氓 DHCP 误插污染拦截 · 终端 IP 冲突秒级自愈</p>
-                  </div>
-                </div>
-                <button @click="runLANGuardianScan" :disabled="scanningLANGuardian"
-                  class="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-xs font-bold font-mono transition-all flex items-center gap-1.5 shrink-0 shadow-sm">
-                  <span v-if="scanningLANGuardian" class="animate-spin">↻</span>
-                  <span>{{ scanningLANGuardian ? '正在巡检...' : '↻ 物理安全巡检' }}</span>
-                </button>
-              </div>
-
-              <!-- 状态 4 格 -->
-              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono text-center">
-                <div class="macos-sub-card p-2.5 rounded-xl">
-                  <span class="text-[10px] text-slate-400 block">网关 MAC 绑定</span>
-                  <span class="text-xs font-bold text-emerald-300 mt-0.5 block truncate">{{ lanGuardianStatus.gateway_mac_bound ? '已绑定 (防篡改)' : '已锁定' }}</span>
-                </div>
-                <div class="macos-sub-card p-2.5 rounded-xl">
-                  <span class="text-[10px] text-slate-400 block">受保护局域网终端</span>
-                  <span class="text-xs font-bold text-cyan-300 mt-0.5 block">{{ lanGuardianStatus.monitored_devices_count || 18 }} 台</span>
-                </div>
-                <div class="macos-sub-card p-2.5 rounded-xl">
-                  <span class="text-[10px] text-slate-400 block">ARP 欺骗投毒</span>
-                  <span class="text-xs font-bold text-emerald-300 mt-0.5 block">0 攻击 (安全)</span>
-                </div>
-                <div class="macos-sub-card p-2.5 rounded-xl">
-                  <span class="text-[10px] text-slate-400 block">流氓 DHCP 探针</span>
-                  <span class="text-xs font-bold text-amber-300 mt-0.5 block">0 误插 (已过滤)</span>
-                </div>
-              </div>
-
-              <!-- 静态保护绑定列表预览 (极简轻量化) -->
-              <div class="space-y-1.5 text-xs font-mono">
-                <div class="text-[11px] text-slate-400 flex items-center justify-between px-1">
-                  <span>静态防欺骗锁定清单 (网关与核心旁路)</span>
-                  <span class="text-emerald-400 font-bold">100% 免疫投毒</span>
-                </div>
-                <div v-for="dev in (lanGuardianStatus.static_bindings || []).slice(0, 3)" :key="dev.ip"
-                  class="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5 text-[11px]">
-                  <div class="flex items-center gap-2">
-                    <span class="text-emerald-400 font-bold">🔒</span>
-                    <span class="text-white font-semibold">{{ dev.hostname }}</span>
-                    <span class="text-slate-400">({{ dev.ip }})</span>
-                  </div>
-                  <span class="text-cyan-300 font-mono">{{ dev.mac }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 多宽带 / 5G CPE 多路径智能分流 -->
-            <div class="p-5 rounded-2xl macos-glass-card hover:border-cyan-400/40 transition-all duration-300 space-y-3.5 shadow-lg">
-              <div class="flex items-center justify-between border-b border-cyan-500/20 pb-2.5">
-                <div class="flex items-center gap-2">
-                  <span class="text-base">🔀</span>
-                  <h4 class="text-xs sm:text-sm font-black text-white tracking-wide">多宽带 / 5G CPE 多路径分流</h4>
-                </div>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-bold">
-                  多线毫秒避障
-                </span>
-              </div>
-              <p class="text-[11px] text-slate-300 leading-relaxed">
-                电信 / 联通 / 移动多宽带 + 5G CPE 应急热备 · 毫秒级多路径分流与断网 0 秒避障
-              </p>
-              <div class="grid grid-cols-3 gap-2 text-xs font-mono text-center">
-                <button v-for="mode in ['latency', 'bandwidth', 'failover']" :key="mode"
-                  @click="updateMultiwanPolicy(mode)" :disabled="switchingMultiwanPolicy"
-                  class="p-2 rounded-xl border text-[11px] font-bold transition-all"
-                  :class="multiwanBinding.active_policy === mode ? 'bg-cyan-500/25 text-white border-cyan-400/50 shadow-sm' : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'">
-                  {{ mode === 'latency' ? '⚡ 最低延时' : (mode === 'bandwidth' ? '🚀 带宽聚合' : '🛡️ 毫秒容灾') }}
-                </button>
-              </div>
-              <div class="space-y-1.5 text-xs font-mono">
-                <div v-for="wan in (multiwanBinding.wan_interfaces || []).slice(0, 2)" :key="wan.name"
-                  class="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5 text-[11px]">
-                  <span class="text-white font-semibold">{{ wan.name }} ({{ wan.isp }})</span>
-                  <span :class="wan.status === 'online' ? 'text-emerald-300' : 'text-amber-300'" class="font-bold">
-                    ● {{ wan.latency_ms }} ms ({{ wan.status === 'online' ? '在线' : '备用' }})
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <!-- 🚀 四维版本在线检查与升级 -->
 
 
@@ -15884,6 +15789,116 @@
               </div>
             </div>
             </div>
+
+          <!-- 🛡️ 双子星 4: 局域网物理边界守护与多宽带智能分流 (ARP 物理防投毒 × 多宽带/5G CPE 分流) -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <!-- 卡片 7: 局域网全拓扑 ARP 防欺骗与 DHCP 探针 (LAN Security Guardian) -->
+            <div class="p-5 sm:p-6 rounded-2xl macos-glass-card hover:border-amber-400/40 transition-all duration-300 space-y-4 shadow-lg flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between border-b border-amber-500/20 pb-3">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-base shrink-0 shadow-sm">
+                      🛡️
+                    </div>
+                    <div>
+                      <h3 class="text-sm sm:text-base font-black text-white tracking-wide truncate">
+                        局域网全拓扑 ARP 防欺骗与 DHCP 探针
+                      </h3>
+                      <p class="text-xs text-slate-300 mt-0.5 leading-relaxed">局域网 IP-MAC 静态绑定防护 · 流氓 DHCP 误插污染拦截 · 终端 IP 冲突秒级自愈</p>
+                    </div>
+                  </div>
+                  <button @click="runLANGuardianScan" :disabled="scanningLANGuardian"
+                    class="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-xs font-bold font-mono transition-all flex items-center gap-1.5 shrink-0 shadow-sm">
+                    <span v-if="scanningLANGuardian" class="animate-spin">↻</span>
+                    <span>{{ scanningLANGuardian ? '正在巡检...' : '↻ 物理安全巡检' }}</span>
+                  </button>
+                </div>
+
+                <!-- 状态 4 格 -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3.5 text-xs font-mono text-center">
+                  <div class="macos-sub-card p-2.5 rounded-xl">
+                    <span class="text-[10px] text-slate-400 block whitespace-nowrap truncate">网关 MAC 绑定</span>
+                    <span class="text-xs font-bold text-emerald-300 mt-0.5 block truncate">{{ lanGuardianStatus.gateway_mac_bound ? '已绑定 (防篡改)' : '已锁定' }}</span>
+                  </div>
+                  <div class="macos-sub-card p-2.5 rounded-xl">
+                    <span class="text-[10px] text-slate-400 block whitespace-nowrap truncate">受保护局域网终端</span>
+                    <span class="text-xs font-bold text-cyan-300 mt-0.5 block">{{ lanGuardianStatus.monitored_devices_count || 18 }} 台</span>
+                  </div>
+                  <div class="macos-sub-card p-2.5 rounded-xl">
+                    <span class="text-[10px] text-slate-400 block whitespace-nowrap truncate">ARP 欺骗投毒</span>
+                    <span class="text-xs font-bold text-emerald-300 mt-0.5 block">0 攻击 (安全)</span>
+                  </div>
+                  <div class="macos-sub-card p-2.5 rounded-xl">
+                    <span class="text-[10px] text-slate-400 block whitespace-nowrap truncate">流氓 DHCP 探针</span>
+                    <span class="text-xs font-bold text-amber-300 mt-0.5 block">0 误插 (已过滤)</span>
+                  </div>
+                </div>
+
+                <!-- 静态保护绑定列表预览 (极简轻量化) -->
+                <div class="mt-3.5 space-y-1.5 text-xs font-mono">
+                  <div class="text-[11px] text-slate-400 flex items-center justify-between px-1">
+                    <span>静态防欺骗锁定清单 (网关与核心旁路)</span>
+                    <span class="text-emerald-400 font-bold">100% 免疫投毒</span>
+                  </div>
+                  <div v-for="dev in (lanGuardianStatus.static_bindings || []).slice(0, 3)" :key="dev.ip"
+                    class="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5 text-[11px]">
+                    <div class="flex items-center gap-2">
+                      <span class="text-emerald-400 font-bold">🔒</span>
+                      <span class="text-white font-semibold">{{ dev.hostname }}</span>
+                      <span class="text-slate-400">({{ dev.ip }})</span>
+                    </div>
+                    <span class="text-cyan-300 font-mono">{{ dev.mac }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="pt-2.5 border-t border-amber-500/10 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                <span>静态锁定: 100% 免疫投毒</span>
+                <span class="text-amber-300 font-bold">物理边界防御</span>
+              </div>
+            </div>
+
+            <!-- 卡片 8: 多宽带 / 5G CPE 多路径智能分流 -->
+            <div class="p-5 sm:p-6 rounded-2xl macos-glass-card hover:border-cyan-400/40 transition-all duration-300 space-y-4 shadow-lg flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between border-b border-cyan-500/20 pb-3">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-400/30 flex items-center justify-center text-base shrink-0 shadow-sm">
+                      🔀
+                    </div>
+                    <div>
+                      <h3 class="text-sm sm:text-base font-black text-white tracking-wide truncate">多宽带 / 5G CPE 多路径分流</h3>
+                      <p class="text-xs text-slate-300 mt-0.5 leading-relaxed">电信 / 联通 / 移动多宽带 + 5G CPE 应急热备 · 毫秒级多路径分流与断网 0 秒避障</p>
+                    </div>
+                  </div>
+                  <span class="text-[10px] px-2.5 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-bold shrink-0">
+                    多线毫秒避障
+                  </span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 mt-3.5 text-xs font-mono text-center">
+                  <button v-for="mode in ['latency', 'bandwidth', 'failover']" :key="mode"
+                    @click="updateMultiwanPolicy(mode)" :disabled="switchingMultiwanPolicy"
+                    class="p-2.5 rounded-xl border text-[11px] font-bold transition-all"
+                    :class="multiwanBinding.active_policy === mode ? 'bg-cyan-500/25 text-white border-cyan-400/50 shadow-sm' : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10'">
+                    {{ mode === 'latency' ? '⚡ 最低延时' : (mode === 'bandwidth' ? '🚀 带宽聚合' : '🛡️ 毫秒容灾') }}
+                  </button>
+                </div>
+                <div class="mt-3.5 space-y-1.5 text-xs font-mono">
+                  <div v-for="wan in (multiwanBinding.wan_interfaces || []).slice(0, 2)" :key="wan.name"
+                    class="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5 text-[11px]">
+                    <span class="text-white font-semibold">{{ wan.name }} ({{ wan.isp }})</span>
+                    <span :class="wan.status === 'online' ? 'text-emerald-300' : 'text-amber-300'" class="font-bold">
+                      ● {{ wan.latency_ms }} ms ({{ wan.status === 'online' ? '在线' : '备用' }})
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="pt-2.5 border-t border-cyan-500/10 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                <span>活跃分流策略: {{ multiwanBinding.active_policy || 'latency' }}</span>
+                <span class="text-cyan-300 font-bold">多路径避障就绪</span>
+              </div>
+            </div>
+          </div>
+
           </div>
 
 
@@ -22650,6 +22665,8 @@ watch(activeMasterTab, (newTab) => {
     try { fetchShadowAuditor?.() } catch(e){}
     try { fetchSessionAffinity?.() } catch(e){}
     try { fetchMemoryConntrack?.() } catch(e){}
+    try { fetchLANGuardian?.() } catch(e){}
+    try { fetchMultiwanBinding?.() } catch(e){}
   }
 })
 
