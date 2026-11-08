@@ -99,7 +99,7 @@ import (
 )
 
 var (
-	version = "Test v7.7"
+	version = "Test v7.8"
 
 	startTime = time.Now()
 )
@@ -468,6 +468,10 @@ type Server struct {
 	fastTrackMgr       *host.FastTrackSymbiosisManager
 	iotGuardMgr        *device.IoTBehaviorGuard
 	rootCauseRadar     *diagnostics.RootCauseRadar
+	streamingProbeMgr  *diagnostics.StreamingDiagnosticManager
+	adaptiveSlicingMgr *netstack.AdaptiveSlicingManager
+	bpfBypassMgr       *host.BpfBypassManager
+	privacyMeshMgr     *dnsradar.PrivacyMeshManager
 
 	logBuffer *RingLogBuffer
 
@@ -893,6 +897,10 @@ func main() {
 		fastTrackMgr:       host.GetFastTrackSymbiosisManager(filepath.Join(dir, "data")),
 		iotGuardMgr:        device.GetIoTBehaviorGuard(filepath.Join(dir, "data")),
 		rootCauseRadar:     diagnostics.GetRootCauseRadar(filepath.Join(dir, "data")),
+		streamingProbeMgr:  diagnostics.NewStreamingDiagnosticManager(filepath.Join(dir, "data")),
+		adaptiveSlicingMgr: netstack.NewAdaptiveSlicingManager(filepath.Join(dir, "data")),
+		bpfBypassMgr:       host.NewBpfBypassManager(filepath.Join(dir, "data")),
+		privacyMeshMgr:     dnsradar.NewPrivacyMeshManager(filepath.Join(dir, "data")),
 
 		logBuffer:    logBuffer,
 		delayCache:   make(map[string]delayCacheEntry),
@@ -913,7 +921,7 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v7.7")
+	srv.mcpServer = mcp.NewServer(srv, "Test v7.8")
 
 	srv.initTrafficState()
 
@@ -1196,7 +1204,7 @@ func main() {
 	mux.HandleFunc("/api/v1/ros/bidirheartbeat/probe", srv.handleBidirHeartbeatProbe)
 	mux.HandleFunc("/api/v1/ros/bidirheartbeat/patch", srv.handleBidirHeartbeatPatch)
 
-	// ── Test v7.7 核心进阶架构路由 ──
+	// ── Test v7.8 核心进阶架构路由 ──
 	// 维度一：UDP 智能避障与并发极速竞速总线
 	mux.HandleFunc("/api/v1/network/udp-racing/status", srv.handleUDPRacingStatus)
 	mux.HandleFunc("/api/v1/network/udp-racing/probe", srv.handleUDPRacingProbe)
@@ -1216,6 +1224,27 @@ func main() {
 	// 维度四：AI 伴生管家三秒全网根因拓扑雷达与一键自愈
 	mux.HandleFunc("/api/v1/ai/root-cause/report", srv.handleRootCauseReport)
 	mux.HandleFunc("/api/v1/ai/root-cause/heal", srv.handleRootCauseHeal)
+
+	// ── Test v7.8 四大核心演进架构路由 ──
+	// 维度一：流媒体 4K 秒开专项诊断与单流吞吐深度体检卡
+	mux.HandleFunc("/api/v1/diagnostics/streaming/report", srv.handleStreamingReport)
+	mux.HandleFunc("/api/v1/diagnostics/streaming/run", srv.handleStreamingRun)
+	mux.HandleFunc("/api/v1/diagnostics/streaming/heal", srv.handleStreamingHeal)
+
+	// 维度二：微流吞吐采样与多出口拥塞自适应智能切流
+	mux.HandleFunc("/api/v1/network/adaptive-slicing/status", srv.handleAdaptiveSlicingStatus)
+	mux.HandleFunc("/api/v1/network/adaptive-slicing/tune", srv.handleAdaptiveSlicingTune)
+	mux.HandleFunc("/api/v1/network/adaptive-slicing/sample", srv.handleAdaptiveSlicingSample)
+
+	// 维度三：基于 BPF/XDP 的极速网络数据流旁路短路直通
+	mux.HandleFunc("/api/v1/host/bpf-bypass/status", srv.handleBpfBypassStatus)
+	mux.HandleFunc("/api/v1/host/bpf-bypass/toggle", srv.handleBpfBypassToggle)
+	mux.HandleFunc("/api/v1/host/bpf-bypass/optimize", srv.handleBpfBypassOptimize)
+
+	// 维度四：全协议 DNS 泄漏深度阻断与客户端网格防污染
+	mux.HandleFunc("/api/v1/dns/privacy-mesh/status", srv.handlePrivacyMeshStatus)
+	mux.HandleFunc("/api/v1/dns/privacy-mesh/tune", srv.handlePrivacyMeshTune)
+	mux.HandleFunc("/api/v1/dns/privacy-mesh/optimize", srv.handlePrivacyMeshOptimize)
 
 	mux.HandleFunc("/api/v1/security/radar", srv.handleSecurityRadar)
 
@@ -11571,4 +11600,177 @@ func (s *Server) handleRootCauseHeal(w http.ResponseWriter, r *http.Request) {
 	res := s.rootCauseRadar.TriggerHeal()
 	s.logBuffer.Add("INFO", "AI", "AI 伴生管家全链路一键智能自愈执行成功")
 	sendJSON(w, map[string]any{"status": "ok", "heal_result": res})
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Test v7.8 四大核心演进架构 Handler 实现
+// ════════════════════════════════════════════════════════════════════════════════
+
+// 维度一：流媒体 4K 秒开专项诊断与单流吞吐深度体检卡
+func (s *Server) handleStreamingReport(w http.ResponseWriter, r *http.Request) {
+	if s.streamingProbeMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "streaming probe manager not initialized"})
+		return
+	}
+	rep := s.streamingProbeMgr.GetReport()
+	sendJSON(w, map[string]any{"status": "ok", "report": rep})
+}
+
+func (s *Server) handleStreamingRun(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.streamingProbeMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "streaming probe manager not initialized"})
+		return
+	}
+	rep, err := s.streamingProbeMgr.RunDiagnostic()
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	s.logBuffer.Add("INFO", "AI", "完成流媒体 4K 秒开专项深度穿透诊断")
+	sendJSON(w, map[string]any{"status": "ok", "report": rep})
+}
+
+func (s *Server) handleStreamingHeal(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.streamingProbeMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "streaming probe manager not initialized"})
+		return
+	}
+	res, err := s.streamingProbeMgr.ExecuteHeal()
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	s.logBuffer.Add("INFO", "AI", "执行流媒体 4K 秒开专属自愈与 MSS 1420 保护锁定")
+	sendJSON(w, map[string]any{"status": "ok", "heal_result": res})
+}
+
+// 维度二：微流吞吐采样与多出口拥塞自适应智能切流
+func (s *Server) handleAdaptiveSlicingStatus(w http.ResponseWriter, r *http.Request) {
+	if s.adaptiveSlicingMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "adaptive slicing manager not initialized"})
+		return
+	}
+	st := s.adaptiveSlicingMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "slicing": st})
+}
+
+func (s *Server) handleAdaptiveSlicingTune(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.adaptiveSlicingMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "adaptive slicing manager not initialized"})
+		return
+	}
+	var req struct {
+		Enabled       bool    `json:"enabled"`
+		ThresholdMbps float64 `json:"threshold_mbps"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	_ = s.adaptiveSlicingMgr.Tune(req.Enabled, req.ThresholdMbps)
+	sendJSON(w, map[string]any{"status": "ok", "slicing": s.adaptiveSlicingMgr.GetStatus()})
+}
+
+func (s *Server) handleAdaptiveSlicingSample(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.adaptiveSlicingMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "adaptive slicing manager not initialized"})
+		return
+	}
+	st := s.adaptiveSlicingMgr.SampleAndEvaluate()
+	sendJSON(w, map[string]any{"status": "ok", "slicing": st})
+}
+
+// 维度三：基于 BPF/XDP 的极速网络数据流旁路短路直通
+func (s *Server) handleBpfBypassStatus(w http.ResponseWriter, r *http.Request) {
+	if s.bpfBypassMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "bpf bypass manager not initialized"})
+		return
+	}
+	st := s.bpfBypassMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "bpf_bypass": st})
+}
+
+func (s *Server) handleBpfBypassToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.bpfBypassMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "bpf bypass manager not initialized"})
+		return
+	}
+	var req struct {
+		RuleID string `json:"rule_id"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	_ = s.bpfBypassMgr.ToggleRule(req.RuleID)
+	sendJSON(w, map[string]any{"status": "ok", "bpf_bypass": s.bpfBypassMgr.GetStatus()})
+}
+
+func (s *Server) handleBpfBypassOptimize(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.bpfBypassMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "bpf bypass manager not initialized"})
+		return
+	}
+	_ = s.bpfBypassMgr.Optimize()
+	s.logBuffer.Add("INFO", "HOST", "完成 BPF/XDP 快速短路流表热同步与优化")
+	sendJSON(w, map[string]any{"status": "ok", "bpf_bypass": s.bpfBypassMgr.GetStatus()})
+}
+
+// 维度四：全协议 DNS 泄漏深度阻断与客户端网格防污染
+func (s *Server) handlePrivacyMeshStatus(w http.ResponseWriter, r *http.Request) {
+	if s.privacyMeshMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "privacy mesh manager not initialized"})
+		return
+	}
+	st := s.privacyMeshMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "privacy_mesh": st})
+}
+
+func (s *Server) handlePrivacyMeshTune(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.privacyMeshMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "privacy mesh manager not initialized"})
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	_ = s.privacyMeshMgr.Tune(req.Enabled)
+	sendJSON(w, map[string]any{"status": "ok", "privacy_mesh": s.privacyMeshMgr.GetStatus()})
+}
+
+func (s *Server) handlePrivacyMeshOptimize(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.privacyMeshMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "privacy mesh manager not initialized"})
+		return
+	}
+	_ = s.privacyMeshMgr.Optimize()
+	s.logBuffer.Add("INFO", "DNS", "完成全协议 DNS 隐私网格防泄漏热校验")
+	sendJSON(w, map[string]any{"status": "ok", "privacy_mesh": s.privacyMeshMgr.GetStatus()})
 }

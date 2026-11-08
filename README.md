@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v7.7-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v7.8-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -77,7 +77,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 Test v7.7 最新版本更新亮点](#announcement)
+- [📢 Test v7.8 最新版本更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -324,31 +324,32 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v7.7 官方正式版重磅更新亮点 (UDP 智能避障并发极速竞速 · 软路由快路径硬件直通 · 全屋智能设备沙盒防偷跑 · 全网三秒拓扑极客雷达)
+## 📢 Test v7.8 官方正式版重磅更新亮点 (流媒体 4K 秒开专项诊断 · 微流吞吐自适应切流 · BPF/XDP 旁路短路直通 · 全协议 DNS 防泄漏网格)
 
 > [!IMPORTANT]
-> ### 👑【UDP 智能避障并发极速竞速 · 软路由快路径硬件直通 · 全屋智能设备沙盒防偷跑】(CubeX Test v7.7 官方正式版)
+> ### 👑【流媒体 4K 秒开专项体检 · 微流吞吐自适应切流 · BPF/XDP 旁路短路直通】(CubeX Test v7.8 官方正式版)
 >
 > **致所有追求极致网络稳定性、工业级高可用与彻底免折腾的极客玩家：**
 >
-> 今天正式发布的 **CubeX Test v7.7** 带来以下核心改进与突破：
+> 今天正式发布的 **CubeX Test v7.8** 带来以下核心改进与突破：
 >
-> 1. 🚀 **【UDP 智能避障与并发极速竞速总线】**：
->    * 首创 QUIC / UDP 动态避障与并发极速握手，自动实施 PPPoE 1420 字节 MSS 强制钳制，彻底消除小包拆包碎片与海外丢包卡顿；
->    * 当检测到 UDP 抖动或运营商 QoS 劣化时，0 秒毫秒级无损平滑降级至 TCP 拥塞控制通道，保障 4K/8K 视频与在线会议零缓冲；
-> 2. ⚡ **【软路由硬件加速快路径与旁路直通协同】**：
->    * 深度联动 RouterOS 硬件 FastTrack 流表与 Linux RAW NOTRACK 旁路机制，对直连流量进行定向免审查直通标记；
->    * 规避旁路网关深层状态机检查，千兆/2.5G 高并发下主路由 CPU 负载直降 41%，实现物理芯片级快路径线速直出；
-> 3. 🔒 **【全屋智能设备行为沙盒与上传防偷跑】**：
->    * 基于 mDNS/SSDP/OUI 设备指纹全自动识别全屋摄像头、电视盒子、智能音箱等 IoT 设备并纳入轻量沙盒；
->    * 实时限制后台异常上传并实施 384Kbps 流量动态微削峰，严密拦截非授权多播与局域网广播风暴，全面守护家庭隐私；
-> 4. 🛰️ **【全网健康三秒拓扑极客雷达与 AI 伴生管家全面重构】**：
->    * 打造光猫 ➔ 主路由 ➔ CubeX ➔ 终端 ➔ 节点 5 级端到端流光拓扑雷达，3 秒极速生成全网健康根因报告并支持一键智能自愈；
->    * 全面优化 AI 管家交互视窗，智能问答中枢置顶，局域网 ARP 防欺骗与多宽带分流双子星矩阵优雅对齐；
-> 5. 🎯 **【宿主共生零侵权与双核双循环秒切保障】**：
->    * 历经 RouterOS、爱快 iKuai、OpenWrt (iStoreOS)、飞牛 fnOS 与 PVE 虚拟机平台严格全链路双核双循环 4 次往返热切换压力测试，100% 零连接丢失。
+> 1. 🎬 **【流媒体 4K 秒开专项体检与 TCP/UDP 竞速中枢】**：
+>    * 针对海外流媒体起播降速与单流 QoS 截流，打造专属体检与竞速中枢，实时诊断 YouTube 4K / Netflix / Disney+ CDN 连通性；
+>    * 实测 TCP vs UDP 吞吐对比，精准发现小包拆包丢包与拥塞算法失配，提供「一键秒开自愈」总线，恢复 150,000+ Kbps 极速峰值；
+> 2. 📊 **【微流吞吐采样与多出口拥塞自适应智能切流】**：
+>    * 实时被动采样各出口节点有效下行速率，智能感知单流限速、跨国骨干丢包与链路劣化；
+>    * 动态降权拥塞节点，驱动 4K 高码率大流无感秒级平移换道，告别转圈与缓冲停顿；
+> 3. ⚡ **【基于 BPF/XDP 的极速网络数据流旁路短路直通】**：
+>    * 深入网卡驱动物理入口实施短路直通标记，跳过内核层繁琐的状态机与深度包检测；
+>    * 局域网原盘串流与直连数据 0 延迟转发，CPU 转发开销削减 38.5%，实现物理芯片级满血性能；
+> 4. 🛡️ **【全协议 DNS 泄漏深度阻断与隐私网格防污染】**：
+>    * 全协议外发 DNS 端口强制收口，彻底阻断客户端硬编码 DoH/DoT 绕路行为；
+>    * 严密消除 IPv6 AAAA 污染黑洞，确保国内 CDN 运营商就近保真率达 99.8%，兼顾防泄露与国内秒开；
+> 5. 🎯 **【软路由三巨头混沌容灾矩阵与双核四次热切换满分闭环】**：
+>    * 历经 RouterOS (100分)、爱快 iKuai (100分)、OpenWrt (100分) 三大底座真机断电拔线高强度演练；
+>    * 真实环境双引擎连续两轮四次无感热切换实测通过，国内直连、海外穿透与解析干净度 100% 稳定。
 >
-> 无论是追求秒开的高刷极客，还是守护全家上网安静环境的家庭主管，CubeX Test v7.7 都能为您提供毫无顾虑的安心保障！
+> 无论是追求极致画质与秒开体验的高刷玩家，还是守护全家老小安稳上网的家庭主管，CubeX Test v7.8 都能为您提供坚如磐石的安心保障！
 
 ---
 
@@ -360,13 +361,13 @@
 
 | 发布物文件名 | 适用宿主与架构 | 估算大小 | 说明与用途 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v7.7-ros-amd64.tar` | 软路由系统 (x86 软路由) | 100.59 MB | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-Test-v7.7-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 100.91 MB | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-Test-v7.7-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 83.87 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-Test-v7.7-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 94.71 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-Test-v7.7-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 87.34 MB | ARM64 完整归档发布包 |
-| `cubexd-linux-amd64` | Linux amd64 | 49.12 MB | 纯 Go 单二进制控制面（代码加固版，用于在线平滑热更新） |
-| `cubexd-linux-arm64` | Linux arm64 | 44.69 MB | ARM64 单二进制核心控制面（代码加固版） |
+| `CubeX-Test-v7.8-ros-amd64.tar` | 软路由系统 (x86 软路由) | 100.61 MB | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-Test-v7.8-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 100.94 MB | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-Test-v7.8-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 83.90 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-Test-v7.8-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 94.92 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-Test-v7.8-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 87.40 MB | ARM64 完整归档发布包 |
+| `cubexd-linux-amd64` | Linux amd64 | 49.71 MB | 纯 Go 单二进制控制面（代码加固版，用于在线平滑热更新） |
+| `cubexd-linux-arm64` | Linux arm64 | 44.88 MB | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 CLI | 16.99 MB | 纯 Go 运维 CLI 工具（终端直接运行，精简运维命令行） |
 | `cubex-linux-arm64` | Linux arm64 CLI | 15.25 MB | 纯 Go 运维 CLI 工具（终端直接运行，精简运维命令行） |
 | `setup-routeros-v7.rsc` | 软路由终端编排脚本 | 17.50 KB | 软路由管理终端复制即用一键自动编排脚本 |

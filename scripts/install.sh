@@ -477,7 +477,7 @@ else
                 [ -n "$REL_TAG" ] && break
             done
         fi
-        [ -z "$REL_TAG" ] && REL_TAG="Test-v7.7"
+        [ -z "$REL_TAG" ] && REL_TAG="Test-v7.8"
         ZIP_NAME="CubeX-${REL_TAG}-linux-${TARGET_ARCH}.zip"
         ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
 
