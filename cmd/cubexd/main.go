@@ -965,7 +965,7 @@ func main() {
 			return nil
 		},
 	)
-	srv.sentinel.Start(30 * time.Second)
+	// Negative optimization: srv.sentinel background ticker permanently stopped for silent stability
 
 	// AI 智能自愈主动干预总线回调挂载
 	srv.activeHealerMgr.RegisterCallbacks(
@@ -1001,18 +1001,7 @@ func main() {
 		_, _ = srv.bbrMgr.Optimize()
 	})
 
-	// 24小时流量时光机周期采样 (5分钟粒度)
-	srv.timeMachine.RecordPoint(12500000, 1850000, 8750000, 3750000, 28, 142, 11.2)
-	SafeGo("TimeMachine_Sampler", func() {
-		ticker := time.NewTicker(5 * time.Minute)
-		defer ticker.Stop()
-		for range ticker.C {
-			up := srv.liveUpSpeed.Load()
-			down := srv.liveDownSpeed.Load()
-			conns := 20
-			srv.timeMachine.RecordPoint(down, up, int64(float64(down)*0.75), int64(float64(down)*0.25), conns, 110, 10.8)
-		}
-	})
+	// Negative optimization: TimeMachine_Sampler dummy ticker removed for resource conservation
 
 	adblockMgr.StartScheduler(func(msg string) {
 
@@ -3638,23 +3627,12 @@ func (s *Server) handleLANGuardianScan(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLANGuardianIsolate(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	var req struct {
-		MAC string `json:"mac"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
-		return
-	}
-	if err := s.lanGuardianMgr.IsolateAttacker(req.MAC); err != nil {
-		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
-		return
-	}
-	s.logBuffer.Add("WARN", "SECURITY", fmt.Sprintf("已隔离局域网违规伪造物理 MAC: %s", req.MAC))
-	sendJSON(w, map[string]any{"status": "ok", "guardian": s.lanGuardianMgr.GetStatus()})
+	// Negative optimization disabled: never isolate local LAN devices to prevent false-positives
+	sendJSON(w, map[string]any{
+		"status": "ok",
+		"message": "局域网设备物理隔离已停用，保障全屋电视投屏与智能家居零断网",
+		"guardian": s.lanGuardianMgr.GetStatus(),
+	})
 }
 
 // ── DNS 负缓存免疫与常访域名预取引擎 API ──
@@ -7559,7 +7537,7 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 // continuously streaming real-time inbound and outbound bandwidth into atomic counters.
 
 func (s *Server) startTrafficCollector() {
-
+	var samplerOnce sync.Once
 	go func() {
 
 		for {
@@ -7594,28 +7572,30 @@ func (s *Server) startTrafficCollector() {
 
 			}
 
-			// Background periodic physical connections sampler
-			go func() {
-				defer safeRecover("PhysicalConnectionsSampler")
-				for {
-					time.Sleep(3 * time.Second)
-					cp := 9090
-					if ir := s.engMgr.GetIR(); ir != nil && ir.Network.ClashAPIPort > 0 {
-						cp = ir.Network.ClashAPIPort
-					}
-					r, err := s.httpClient.Get(fmt.Sprintf("http://127.0.0.1:%d/connections", cp))
-					if err == nil && r.StatusCode == http.StatusOK {
-						var cr struct {
-							DownloadTotal int64 `json:"downloadTotal"`
-							UploadTotal   int64 `json:"uploadTotal"`
+			// Background periodic physical connections sampler (guaranteed single instance via sync.Once)
+			samplerOnce.Do(func() {
+				go func() {
+					defer safeRecover("PhysicalConnectionsSampler")
+					for {
+						time.Sleep(3 * time.Second)
+						cp := 9090
+						if ir := s.engMgr.GetIR(); ir != nil && ir.Network.ClashAPIPort > 0 {
+							cp = ir.Network.ClashAPIPort
 						}
-						if json.NewDecoder(r.Body).Decode(&cr) == nil {
-							s.recordTrafficSample(cr.UploadTotal, cr.DownloadTotal)
+						r, err := s.httpClient.Get(fmt.Sprintf("http://127.0.0.1:%d/connections", cp))
+						if err == nil && r.StatusCode == http.StatusOK {
+							var cr struct {
+								DownloadTotal int64 `json:"downloadTotal"`
+								UploadTotal   int64 `json:"uploadTotal"`
+							}
+							if json.NewDecoder(r.Body).Decode(&cr) == nil {
+								s.recordTrafficSample(cr.UploadTotal, cr.DownloadTotal)
+							}
+							r.Body.Close()
 						}
-						r.Body.Close()
 					}
-				}
-			}()
+				}()
+			})
 
 			dec := json.NewDecoder(resp.Body)
 
@@ -11232,30 +11212,19 @@ func (s *Server) handleProxyIPQuality(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleProxyBandwidthProbe(w http.ResponseWriter, r *http.Request) {
-	prober := probe.NewBandwidthProber(probe.DefaultQuotaConfig)
-	proxyURL := "http://127.0.0.1:7890"
-	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
-	defer cancel()
-
-	forceRefresh := r.URL.Query().Get("force") == "true"
-	result, err := prober.Probe(ctx, proxyURL, "", forceRefresh)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"code": 1,
-			"msg":  err.Error(),
-		})
-		return
-	}
-
-	used, limit := prober.GetDailyUsage()
+	// Negative optimization disabled: auto bandwidth probing permanently halted to prevent proxy traffic exhaustion
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"code": 0,
-		"data": result,
+		"data": map[string]any{
+			"status":   "disabled",
+			"bandwidth": 0,
+			"latency":   0,
+			"message":   "自动带宽压测已停用，保障节点流量纯净与连接池零虚高",
+		},
 		"quota": map[string]any{
-			"daily_used_bytes":  used,
-			"daily_limit_bytes": limit,
+			"daily_used_bytes":  0,
+			"daily_limit_bytes": 0,
 		},
 	})
 }
@@ -12069,26 +12038,12 @@ func (s *Server) handleZeroTrustDevicePolicy(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *Server) handleZeroTrustDeviceQuarantine(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	if s.zeroTrustMgr == nil {
-		sendJSON(w, map[string]any{"status": "error", "message": "zero trust manager not initialized"})
-		return
-	}
-	var req struct {
-		MAC    string `json:"mac"`
-		Reason string `json:"reason"`
-	}
-	_ = json.NewDecoder(r.Body).Decode(&req)
-	st, err := s.zeroTrustMgr.QuarantineDevice(req.MAC, req.Reason)
-	if err != nil {
-		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
-		return
-	}
-	s.logBuffer.Add("WARN", "SECURITY", fmt.Sprintf("设备 %s 已被强制送入气隙隔离沙盒", req.MAC))
-	sendJSON(w, map[string]any{"status": "ok", "zerotrust": st})
+	// Negative optimization disabled: never quarantine local LAN devices to maintain home harmony
+	sendJSON(w, map[string]any{
+		"status": "ok",
+		"message": "零信任气隙隔离已停用，保障全屋智能终端正常互联与投屏",
+		"zerotrust": s.zeroTrustMgr.GetStatus(),
+	})
 }
 
 func (s *Server) handleZeroTrustScan(w http.ResponseWriter, r *http.Request) {

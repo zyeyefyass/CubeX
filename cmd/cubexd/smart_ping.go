@@ -49,47 +49,10 @@ type SmartPingStatus struct {
 // startSmartHealthPing initiates background periodic probe and auto-failover
 func (s *Server) startSmartHealthPing() {
 	s.smartPingMutex.Lock()
-	if s.smartPingIntervalMin <= 0 {
-		s.smartPingIntervalMin = 15 // Default 15 minutes
-	}
-	s.smartPingEnabled = true
+	s.smartPingEnabled = false // Negative optimization permanently pruned: prevent proxy oscillation & probe storms
+	s.smartPingIntervalMin = 0
 	s.smartPingMutex.Unlock()
-
-	go func() {
-		// Initial delay 20s to allow proxy cores to settle
-		time.Sleep(20 * time.Second)
-
-		// Run first probe pass
-		s.executeSmartHealthPing(false)
-
-		ticker := time.NewTicker(15 * time.Second)
-		defer ticker.Stop()
-
-		fastWatchdogCounter := 0
-		for range ticker.C {
-			s.smartPingMutex.RLock()
-			enabled := s.smartPingEnabled
-			intervalMin := s.smartPingIntervalMin
-			lastCheck := s.smartPingLastCheck
-			s.smartPingMutex.RUnlock()
-
-			if !enabled || intervalMin <= 0 {
-				continue
-			}
-
-			fastWatchdogCounter++
-			elapsed := time.Now().Unix() - lastCheck
-
-			// 1. Full-group standard ping check (e.g. every intervalMin minutes)
-			if elapsed >= int64(intervalMin*60) {
-				s.executeSmartHealthPing(false)
-				fastWatchdogCounter = 0
-			} else if fastWatchdogCounter >= 3 { // Every 45 seconds: agile exit check
-				fastWatchdogCounter = 0
-				s.executeAgileExitProbe()
-			}
-		}
-	}()
+	// Background periodic ping and auto-switching loop permanently deactivated for stability
 }
 
 // executeAgileExitProbe performs ultra-lightweight 45s health probe on active primary exit
