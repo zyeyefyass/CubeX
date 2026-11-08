@@ -99,7 +99,7 @@ import (
 )
 
 var (
-	version = "Test v7.8"
+	version = "Test v7.9"
 
 	startTime = time.Now()
 )
@@ -8975,7 +8975,7 @@ func (s *Server) handleUpgradePanel(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 
-		if strings.Contains(err.Error(), "already at the latest version") {
+		if strings.Contains(err.Error(), "already at the latest version") || strings.Contains(err.Error(), "已是最新") {
 
 			sendJSON(w, map[string]any{"status": "already_latest", "version": ver, "message": "CubeX 系统已是最新版本"})
 

@@ -502,7 +502,7 @@
 
 
 
-                {{ systemStatus.version || 'Test v7.8' }}
+                {{ systemStatus.version || 'Test v7.9' }}
 
 
 
@@ -6782,7 +6782,7 @@
 
 
 
-                        {{ systemOverview.panel_latest_version || 'Test v7.8' }}
+                        {{ systemOverview.panel_latest_version || 'Test v7.9' }}
 
 
 
@@ -6798,7 +6798,7 @@
 
 
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v7.8' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v7.8' }}</span>
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v7.9' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v7.9' }}</span>
 
 
 
@@ -13235,11 +13235,11 @@
 
 
 
-                    <span>当前运行: <strong class="text-sky-200 font-black text-sm">{{ systemOverview.cubex_version || 'Test v7.8' }}</strong></span>
+                    <span>当前运行: <strong class="text-sky-200 font-black text-sm">{{ systemOverview.cubex_version || 'Test v7.9' }}</strong></span>
 
 
 
-                    <span class="text-slate-400">云端最新: <span class="text-slate-200 font-semibold">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v7.8' }}</span></span>
+                    <span class="text-slate-400">云端最新: <span class="text-slate-200 font-semibold">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v7.9' }}</span></span>
 
 
 
@@ -21781,7 +21781,7 @@
 
 
 
-                <strong class="text-emerald-300">{{ systemOverview.cubex_version || 'Test v7.8' }}</strong>
+                <strong class="text-emerald-300">{{ systemOverview.cubex_version || 'Test v7.9' }}</strong>
 
 
 
@@ -21797,7 +21797,7 @@
 
 
 
-                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v7.8' }}</span>
+                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v7.9' }}</span>
 
 
 
@@ -33655,15 +33655,15 @@ const systemOverview = ref({
 
 
 
-  cubex_version: 'Test v7.8',
+  cubex_version: 'Test v7.9',
 
 
 
-  panel_curr_version: 'Test v7.8',
+  panel_curr_version: 'Test v7.9',
 
 
 
-  panel_latest_version: 'Test v7.8',
+  panel_latest_version: 'Test v7.9',
 
 
 
@@ -35731,7 +35731,7 @@ const systemStatus = ref({
 
 
 
-  version: 'Test v7.8',
+  version: 'Test v7.9',
 
 
 
@@ -41119,7 +41119,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
 
 
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v7.8'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v7.9'})`)
 
 
 
@@ -41215,7 +41215,7 @@ async function upgradePanel(force = false) {
 
 
 
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v7.8'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v7.9'})，无需重复更新。`
 
 
 
@@ -41387,7 +41387,7 @@ function openGitHubIssuePrompt() {
 
 
 
-- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v7.8'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v7.9'}
 
 
 
