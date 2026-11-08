@@ -482,73 +482,7 @@
 
         <div v-if="activeMasterTab === 'overview'" class="space-y-6 animate-in fade-in">
 
-          <!-- 🎁 白嫖党的自我修养 · 官方视频互动号召横幅 -->
-
-          <div v-if="!dismissCommunityBanner" class="relative overflow-hidden rounded-3xl p-5 sm:p-6 border border-amber-400/40 bg-gradient-to-r from-amber-500/15 via-purple-500/15 to-sky-500/15 backdrop-blur-2xl shadow-[0_8px_32px_rgba(245,158,11,0.15)] transition-all duration-300">
-
-            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 relative z-10">
-
-              <div class="space-y-1.5 max-w-3xl">
-
-                <div class="flex items-center gap-2 flex-wrap">
-
-                  <span class="text-xl">🎁</span>
-
-                  <h3 class="text-base sm:text-lg font-black text-white flex items-center gap-2">
-
-                    <span>【白嫖党的自我修养】极客老哥请留步！</span>
-
-                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 font-bold">求一键三连</span>
-
-                  </h3>
-
-                </div>
-
-                <p class="text-xs sm:text-[13px] text-slate-200 leading-relaxed font-sans">
-
-                  白嫖一时爽，一直白嫖一直爽……但<strong class="text-amber-300">白嫖也要有自我修养</strong>！千兆跑满只吃 35M、双擎秒级容灾、零后门纯净自研！如果 CubeX 解决了您家里断网、DNS 泄露的终极大痛点，请务必动动发财的小手去作者的官方视频捧个场，来个<strong class="text-emerald-300">一键三连（点赞 · 转发 · 订阅）</strong>！您的每一次互动都是支持作者持续优化最大的动力！
-
-                </p>
-
-              </div>
-
-              <div class="flex items-center gap-3 shrink-0 flex-wrap w-full lg:w-auto">
-
-                <a href="https://www.bilibili.com/video/BV14fxU67Ewa/" target="_blank" rel="noopener noreferrer"
-
-                  class="flex-1 lg:flex-initial px-4 py-2.5 rounded-2xl bg-gradient-to-r from-pink-500/80 to-rose-600/80 hover:from-pink-500 hover:to-rose-600 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-pink-500/20 hover:scale-102 active:scale-98 transition duration-200 cursor-pointer">
-
-                  <span class="text-base">📺</span>
-
-                  <span>前往 B站 一键三连</span>
-
-                </a>
-
-                <a href="https://www.youtube.com/watch?v=mWsczIS19fM" target="_blank" rel="noopener noreferrer"
-
-                  class="flex-1 lg:flex-initial px-4 py-2.5 rounded-2xl bg-gradient-to-r from-red-600/80 to-rose-700/80 hover:from-red-600 hover:to-rose-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-red-600/20 hover:scale-102 active:scale-98 transition duration-200 cursor-pointer">
-
-                  <span class="text-base">▶️</span>
-
-                  <span>前往 YouTube 点赞订阅</span>
-
-                </a>
-
-                <button @click="dismissCommunityBanner = true" title="已三连支持，稍后提醒"
-
-                  class="px-2.5 py-2 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 text-slate-400 hover:text-white text-xs transition cursor-pointer">
-
-                  ✕
-
-                </button>
-
-              </div>
-
-            </div>
-
-            <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-          </div>
+          
 
           <!-- 双核状态驾驶舱 Hero Bento -->
 
@@ -674,203 +608,13 @@
 
                   </button>
 
-                  <button @click="toggleAdvantagesModal" :disabled="loadingAdvantages" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-500/20 via-indigo-500/20 to-emerald-500/20 hover:from-sky-500/30 hover:to-emerald-500/30 border border-sky-400/40 text-xs text-sky-200 flex items-center gap-1.5 transition shadow-sm font-sans cursor-pointer disabled:opacity-50" title="实打实展现 CubeX 对比传统软路由系统的 5 大核心架构降维打击优势与实机探针数据">
-
-                    <span :class="{'animate-spin': loadingAdvantages}">⚖️</span>
-
-                    <span>{{ loadingAdvantages ? '实机巡检中...' : (showAdvantagesCard ? '收起架构优势' : '对比传统软路由优势') }}</span>
-
-                  </button>
+                  
 
                 </div>
 
               </div>
 
-              <!-- ⚖️ CubeX vs 传统软路由系统 5大核心架构优势实机深度体检看板 -->
-
-              <div v-if="showAdvantagesCard && advantagesResult" class="p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-[#001f3f]/95 via-[#002d50]/90 to-[#001529]/95 border border-sky-500/30 backdrop-blur-xl shadow-2xl space-y-4 animate-in fade-in">
-
-                <!-- 标题与操作栏 -->
-
-                <div class="flex items-center justify-between border-b border-white/10 pb-3 flex-wrap gap-2">
-
-                  <div class="flex items-center gap-2.5">
-
-                    <div class="w-8 h-8 rounded-xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-lg text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.25)]">
-
-                      ⚖️
-
-                    </div>
-
-                    <div>
-
-                      <div class="flex items-center gap-2 flex-wrap">
-
-                        <span class="text-sm sm:text-base font-black text-white tracking-wide">CubeX vs 传统软路由系统 · 5大核心架构优势</span>
-
-                        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold">
-
-                          🛡️ 实机真实探针 (Live Probes)
-
-                        </span>
-
-                      </div>
-
-                      <p class="text-[11px] text-slate-300 font-sans mt-0.5">
-
-                        拒绝虚假测速数字 · 全项基于当前系统真实网络底层链路实机探测 · 原理降维打击
-
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                  <div class="flex items-center gap-2">
-
-                    <button @click="fetchAdvantages(true)" :disabled="loadingAdvantages" class="text-xs text-sky-200 hover:text-white bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/30 px-2.5 py-1 rounded-xl cursor-pointer flex items-center gap-1 transition">
-
-                      <span :class="{'animate-spin': loadingAdvantages}">🔄</span>
-
-                      <span>重新实机体检</span>
-
-                    </button>
-
-                    <button @click="showAdvantagesCard = false" class="text-xs text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-xl cursor-pointer transition">
-
-                      关闭 ✕
-
-                    </button>
-
-                  </div>
-
-                </div>
-
-                <!-- 5大优势对比卡片列表 -->
-
-                <div class="space-y-3">
-
-                  <div v-for="adv in advantagesResult.advantages" :key="adv.id" class="p-3.5 sm:p-4 rounded-xl bg-black/40 border border-white/10 hover:border-sky-500/30 transition space-y-2.5 shadow-sm">
-
-                    <!-- 维度标题与标签 -->
-
-                    <div class="flex items-center justify-between flex-wrap gap-2">
-
-                      <div class="flex items-center gap-2">
-
-                        <span class="text-base">{{ adv.icon }}</span>
-
-                        <span class="text-xs sm:text-sm font-bold text-white">{{ adv.dimension }}</span>
-
-                        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-950/80 text-sky-300 border border-sky-500/30 font-semibold">
-
-                          {{ adv.category }}
-
-                        </span>
-
-                      </div>
-
-                      <span class="text-[11px] font-sans px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold flex items-center gap-1">
-
-                        <span>✨</span> {{ adv.tag }}
-
-                      </span>
-
-                    </div>
-
-                    <!-- 核心对比：传统软路由痛点 vs CubeX 突破 -->
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
-
-                      <!-- 传统痛点 -->
-
-                      <div class="p-2.5 rounded-lg bg-red-950/25 border border-red-500/30 text-red-200/90 space-y-1">
-
-                        <div class="text-[11px] font-bold text-red-400 flex items-center gap-1">
-
-                          <span>❌</span> 传统软路由 / 旁路由痛点
-
-                        </div>
-
-                        <p class="text-[11px] leading-relaxed text-red-200/80">{{ adv.softrouter_flaw }}</p>
-
-                      </div>
-
-                      <!-- CubeX 突破 -->
-
-                      <div class="p-2.5 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-emerald-200/90 space-y-1">
-
-                        <div class="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
-
-                          <span>🛡️</span> CubeX 宿主共生突破
-
-                        </div>
-
-                        <p class="text-[11px] leading-relaxed text-emerald-100/90">{{ adv.cubex_breakthrough }}</p>
-
-                      </div>
-
-                    </div>
-
-                    <!-- 实机探针真实数据徽章 -->
-
-                    <div class="pt-1 flex items-center justify-between flex-wrap gap-2 text-[11px] font-mono bg-slate-950/60 p-2 rounded-lg border border-white/5">
-
-                      <div class="flex items-center gap-2 text-slate-300 flex-wrap">
-
-                        <span class="text-amber-400 font-bold flex items-center gap-1">
-
-                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-
-                          实机探针:
-
-                        </span>
-
-                        <span v-for="(val, key) in adv.probe_data" :key="key" class="px-2 py-0.5 rounded bg-white/5 text-slate-200 border border-white/10">
-
-                          <span class="text-slate-400">{{ key }}:</span> <strong class="text-sky-300">{{ val }}</strong>
-
-                        </span>
-
-                      </div>
-
-                      <span class="text-emerald-400 font-sans text-[10px] flex items-center gap-1 shrink-0">
-
-                        <span>✓</span> 现场已校验
-
-                      </span>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-                <!-- 底部真实探针摘要 -->
-
-                <div class="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-white/10 font-mono flex-wrap gap-2">
-
-                  <div class="flex items-center gap-3">
-
-                    <span>主路由网关: <strong class="text-sky-300">{{ advantagesResult.gateway_ip }}</strong></span>
-
-                    <span>CubeX IP: <strong class="text-emerald-300">{{ advantagesResult.cubex_ip }}</strong></span>
-
-                    <span>双核运行: <strong class="text-amber-300">{{ advantagesResult.active_engine }}</strong> ⇄ {{ advantagesResult.standby_engine }}</span>
-
-                  </div>
-
-                  <div class="flex items-center gap-2">
-
-                    <span class="text-slate-500">* 底层探针毫秒实测 · 零虚标模拟</span>
-
-                    <span class="text-sky-400">总耗时: {{ advantagesResult.total_elapsed_ms }}ms</span>
-
-                  </div>
-
-                </div>
-
-              </div>
+              
 
               <!-- Middle Row: Full-Width Diagnostic / Escort Banner (Mandatory deduction reason when < 100) -->
 
@@ -1146,53 +890,7 @@
 
                   </div>
 
-                  <!-- QUIC / HTTP3 智能分流降级选择器 -->
-
-                  <div class="flex items-center justify-between py-1 border-t border-white/5 pt-1.5">
-
-                    <div class="flex items-center gap-1.5" title="QUIC / HTTP3 智能降级控制：拦截海外高丢包 UDP 443 迫使回退 TCP TLS-Reality，防止运营商限速">
-
-                      <span class="text-[11px] text-slate-300 font-medium">QUIC 流控</span>
-
-                      <span class="text-[9px] px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 border border-sky-400/30 font-mono">RFC 9000</span>
-
-                    </div>
-
-                    <div class="flex items-center gap-1 bg-black/40 p-0.5 rounded-lg border border-white/10">
-
-                      <button @click="setQUICPolicy('smart')" :disabled="quicUpdating"
-
-                        :class="['px-2 py-0.5 text-[10px] font-bold rounded transition-all cursor-pointer', quicPolicy === 'smart' ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-sm' : 'text-slate-400 hover:text-white']"
-
-                        title="智能降级：仅阻断境外 YouTube/Google UDP 443，平滑回退 TCP TLS-Reality 消除限速；国内音视频与直连 100% 畅通">
-
-                        智能
-
-                      </button>
-
-                      <button @click="setQUICPolicy('block')" :disabled="quicUpdating"
-
-                        :class="['px-2 py-0.5 text-[10px] font-bold rounded transition-all cursor-pointer', quicPolicy === 'block' ? 'bg-gradient-to-r from-amber-500 to-red-500 text-white shadow-sm' : 'text-slate-400 hover:text-white']"
-
-                        title="全面阻断：拦截全部境外 UDP 443/8443，100% 走 TCP 快路径">
-
-                        阻断
-
-                      </button>
-
-                      <button @click="setQUICPolicy('direct')" :disabled="quicUpdating"
-
-                        :class="['px-2 py-0.5 text-[10px] font-bold rounded transition-all cursor-pointer', quicPolicy === 'direct' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-sm' : 'text-slate-400 hover:text-white']"
-
-                        title="原生直通：放行所有境外 UDP 443，适合纯净专线">
-
-                        直通
-
-                      </button>
-
-                    </div>
-
-                  </div>
+                  
 
                   <!-- Live probe badges for direct and proxy in their own dedicated row (No Ellipsis) -->
 
@@ -1246,135 +944,9 @@
 
           <!-- ════════════════════════════════════════════════════════════════ -->
 
-          <!-- 🗺️ 全息策略组健康度热力矩阵 (Holographic Routing Group Health Heatmap) -->
+          
 
-          <!-- ════════════════════════════════════════════════════════════════ -->
-
-          <section :class="['rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 transition shadow-2xl relative', activeEngine === 'singbox' ? 'glass-aurora' : 'glass-matrix']">
-
-            <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-700/40">
-
-              <div class="space-y-1">
-
-                <div class="flex items-center gap-2.5">
-
-                  <span class="text-xl">🗺️</span>
-
-                  <h3 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-
-                    <span>全息策略组健康度热力矩阵</span>
-
-                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 font-semibold">
-
-                      智能无感自愈
-
-                    </span>
-
-                  </h3>
-
-                </div>
-
-                <p class="text-xs text-slate-300/80">多区域出站质量雷达 · 静默嗅探各地区最优节点与实时可用率 · 故障毫秒级自动热备转移</p>
-
-              </div>
-
-              <div class="flex items-center gap-2 shrink-0">
-
-                <button @click="triggerSmartPing" :disabled="triggeringSmartPing"
-
-                  class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 hover:from-cyan-500/30 hover:to-emerald-500/30 border border-cyan-400/40 text-xs text-cyan-200 flex items-center gap-1.5 transition shadow-sm font-sans cursor-pointer disabled:opacity-50"
-
-                  title="立即触发全网静默嗅探与最优出口预热">
-
-                  <span :class="{'animate-spin': triggeringSmartPing}">⚡</span>
-
-                  <span>{{ triggeringSmartPing ? '嗅探中...' : '轻量雷达嗅探' }}</span>
-
-                </button>
-
-              </div>
-
-            </div>
-
-            <!-- Heatmap Chips Grid -->
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-
-              <div v-for="item in regionalHeatmapList" :key="item.id"
-
-                :class="item.cardClass">
-
-                <div class="flex items-center justify-between">
-
-                  <span class="text-xs font-bold text-white flex items-center gap-1.5">
-
-                    <span class="w-2 h-2 rounded-full shrink-0" :class="item.dotClass"></span>
-
-                    <span>{{ item.cleanName }}</span>
-
-                  </span>
-
-                  <span :class="item.statusBadgeClass">
-
-                    {{ item.statusText }}
-
-                  </span>
-
-                </div>
-
-                <div class="py-1 min-w-0">
-
-                  <div class="text-[11px] font-mono text-slate-300 truncate font-semibold" :title="item.active_node">
-
-                    {{ item.active_node || '自动调和中' }}
-
-                  </div>
-
-                </div>
-
-                <div class="flex items-center justify-between text-[11px] font-mono pt-1 border-t border-white/5">
-
-                  <span class="text-slate-400">可用率: <strong class="text-emerald-300">{{ item.availability }}%</strong></span>
-
-                  <span :class="item.latencyClass">{{ item.latencyText }}</span>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </section>
-
-          <!-- ════════════════════════════════════════════════════════════════ -->
-
-          <!-- 🌌 全息动态流量拓扑大屏 (Twilight Crystal 2.0 Dynamic Topology Canvas) -->
-
-          <!-- ════════════════════════════════════════════════════════════════ -->
-
-          <TopologyCanvas
-
-            :lan-devices="lanDevices"
-
-            :active-engine="activeEngine"
-
-            :system-status="systemStatus"
-
-            :ir="ir"
-
-            :health-radar="healthRadar"
-
-            :telemetry-metrics="telemetryMetrics"
-
-            :traffic-insights="trafficInsights"
-
-            @refresh="fetchLanDevices"
-
-            @update-device-mode="onTopoUpdateDeviceMode"
-
-            @rename-device="onTopoRenameDevice"
-
-          />
+          
 
           <!-- ════════════════════════════════════════════════════════════════ -->
 
@@ -2224,7 +1796,7 @@
 
                           <span class="text-slate-300">➔</span>
 
-                          <span class="text-slate-300 truncate max-w-[280px] sm:max-w-md">{{ actualProxyNodeCacheMap[grp.name] || (grp.now || grp.proxies?.[0]) }}</span>
+                          <span class="text-slate-300 truncate max-w-[280px] sm:max-w-md">{{ actualProxyNodeCacheMap?.[grp.name] || (grp.now || grp.proxies?.[0]) }}</span>
 
                         </template>
 
@@ -10839,6 +10411,9 @@ const FullHealthModal = defineAsyncComponent(() => import('./components/modals/F
 import ZootopiaIcon from './components/ZootopiaIcon.vue'
 
 import CubeXLogo from './components/CubeXLogo.vue'
+import BrandLogo from './components/BrandLogo.vue'
+import LogoPicker from './components/LogoPicker.vue'
+import RegionFlag from './components/RegionFlag.vue'
 
 // ── Master Navigation Hubs (核心模块导航 - 支持全状态记忆与 F5 刷新锁定) ──
 
@@ -11423,55 +10998,7 @@ const healingSteps = [
 
 const refreshingHealth = ref(false)
 
-const showAdvantagesCard = ref(false)
 
-const loadingAdvantages = ref(false)
-
-const advantagesResult = ref(null)
-
-const fetchAdvantages = async (manual = false) => {
-
-  loadingAdvantages.value = true
-
-  try {
-
-    const res = await fetch('/api/v1/netstack/advantages')
-
-    if (res.ok) {
-
-      advantagesResult.value = await res.json()
-
-      if (manual) showToast('⚖️ 架构优势实机体检完成，全量探针已更新！')
-
-    } else {
-
-      if (manual) showToast('⚠️ 获取优势实测数据失败，请重试', 'error')
-
-    }
-
-  } catch (e) {
-
-    if (manual) showToast('⚠️ 探测异常: ' + e.message, 'error')
-
-  } finally {
-
-    loadingAdvantages.value = false
-
-  }
-
-}
-
-const toggleAdvantagesModal = async () => {
-
-  showAdvantagesCard.value = !showAdvantagesCard.value
-
-  if (showAdvantagesCard.value && !advantagesResult.value) {
-
-    await fetchAdvantages(false)
-
-  }
-
-}
 
 const healthRadar = ref({
 
@@ -11651,95 +11178,7 @@ const executionModal = ref({
 
 })
 
-// ── QUIC / HTTP3 智能分流降级总线 ──
 
-const quicPolicy = ref('direct')
-
-const quicUpdating = ref(false)
-
-const quicStatus = ref({
-
-  current_policy: 'direct',
-
-  policies: [
-
-    { id: 'smart', name: '智能降级', desc: '智能识别并阻断高丢包境外 UDP 443 (YouTube/Google)，平滑降级至 TCP TLS-Reality / BBR；国内应用与音视频 100% 直连' },
-
-    { id: 'block', name: '全面阻断', desc: '强制拦截全部境外 UDP 443/8443，100% 走 TCP TLS-Reality / BBR 满血快路径' },
-
-    { id: 'direct', name: '原生直通', desc: '全面放行所有境外 UDP 443，适合纯净无 QoS 的专线网络' }
-
-  ]
-
-})
-
-const fetchQUICStatus = async () => {
-
-  try {
-
-    const res = await fetch('/api/v1/network/quic/status')
-
-    if (res.ok) {
-
-      const data = await res.json()
-
-      if (data.current_policy) {
-
-        quicPolicy.value = data.current_policy
-
-        quicStatus.value = data
-
-      }
-
-    }
-
-  } catch (e) {}
-
-}
-
-const setQUICPolicy = async (policy) => {
-
-  if (quicUpdating.value || quicPolicy.value === policy) return
-
-  quicUpdating.value = true
-
-  try {
-
-    const res = await fetch('/api/v1/network/quic/mode', {
-
-      method: 'POST',
-
-      headers: { 'Content-Type': 'application/json' },
-
-      body: JSON.stringify({ policy })
-
-    })
-
-    const data = await res.json()
-
-    if (res.ok) {
-
-      quicPolicy.value = policy
-
-      showToast(data.message || `QUIC 智能流控已切换为: ${policy}`)
-
-    } else {
-
-      showToast(data.error || '切换 QUIC 模式失败', true)
-
-    }
-
-  } catch (e) {
-
-    showToast('切换 QUIC 模式异常: ' + e.message, true)
-
-  } finally {
-
-    quicUpdating.value = false
-
-  }
-
-}
 
 // ── 混沌容灾逃生演练中心总线 ──
 
@@ -19676,6 +19115,16 @@ function resolveActualProxyNode(name, depth = 0) {
 
 }
 
+const actualProxyNodeCacheMap = computed(() => {
+  const map = {}
+  const groups = ir.value?.groups || []
+  for (let i = 0; i < groups.length; i++) {
+    const grp = groups[i]
+    map[grp.name] = resolveActualProxyNode(grp.now || grp.proxies?.[0] || grp.name)
+  }
+  return map
+})
+
 // 压测出口节点计算属性：100% 依循实际应用分流与目标网站自动解析，展示对应应用分流所配置的实际节点组
 
 const currentBenchmarkRoute = computed(() => {
@@ -25123,12 +24572,22 @@ const subQuotaMap = computed(() => {
   return map
 })
 
+const groupActiveLatencyMap = computed(() => {
+  const map = {}
+  const groups = ir.value?.groups || []
+  for (let i = 0; i < groups.length; i++) {
+    const grp = groups[i]
+    map[grp.name] = computeGroupActiveLatency(grp)
+  }
+  return map
+})
+
 const groupActiveLatencyDotClassMap = computed(() => {
   const map = {}
   const groups = ir.value?.groups || []
   for (let i = 0; i < groups.length; i++) {
     const grp = groups[i]
-    const lat = groupActiveLatencyMap.value[grp.name] || 0
+    const lat = (groupActiveLatencyMap.value && groupActiveLatencyMap.value?.[grp.name]) || 0
     map[grp.name] = getLatencyDotClass(lat)
   }
   return map
@@ -25155,7 +24614,7 @@ function isRegionActiveInGroup(grp, reg) {
 
   if (isDirectActive(grp) || isRejectActive(grp)) return false
 
-  const activeId = groupActiveRegionIdMap.value[grp.name] ?? getActiveRegionIdForGroup(grp)
+  const activeId = groupActiveRegionIdMap.value?.[grp.name] ?? getActiveRegionIdForGroup(grp)
 
   return activeId === reg.id
 
@@ -25259,29 +24718,11 @@ function onPolicyRegionStrategyChange(grp, reg, newStrategy) {
 
 }
 
-const groupActiveLatencyMap = computed(() => {
-
-  const map = {}
-
-  const groups = ir.value?.groups || []
-
-  for (let i = 0; i < groups.length; i++) {
-
-    const grp = groups[i]
-
-    map[grp.name] = computeGroupActiveLatency(grp)
-
-  }
-
-  return map
-
-})
-
 function getGroupActiveLatency(grp) {
 
   if (!grp) return 0
 
-  return groupActiveLatencyMap.value[grp.name] ?? computeGroupActiveLatency(grp)
+  return groupActiveLatencyMap.value?.[grp.name] ?? computeGroupActiveLatency(grp)
 
 }
 
@@ -25767,7 +25208,7 @@ function getCandidateCountText(grp) {
 
   if (!grp) return ''
 
-  return groupCandidateCountMap.value[grp.name] || computeCandidateCountText(grp)
+  return groupCandidateCountMap.value?.[grp.name] || computeCandidateCountText(grp)
 
 }
 
@@ -29291,8 +28732,7 @@ onMounted(async () => {
 
   fetchAIConfig()
 
-  fetchQUICPassthrough()
-
+  
   fetchChaosStatus()
 
   fetchQoSStatus()
