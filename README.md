@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v7.6-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v7.7-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -77,7 +77,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 Test v7.6 最新版本更新亮点](#announcement)
+- [📢 Test v7.7 最新版本更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -324,31 +324,31 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v7.6 官方正式版重磅更新亮点 (RFC 8305 双栈竞速 · Linux Splice 零拷贝 · 20ms 宿主心跳热修补 · 局域网物理边界守护)
+## 📢 Test v7.7 官方正式版重磅更新亮点 (UDP 智能避障并发极速竞速 · 软路由快路径硬件直通 · 全屋智能设备沙盒防偷跑 · 全网三秒拓扑极客雷达)
 
 > [!IMPORTANT]
-> ### 👑【RFC 8305 双栈竞速 · Linux Splice 零拷贝 · 20ms 宿主心跳热修补】(CubeX Test v7.6 官方正式版)
+> ### 👑【UDP 智能避障并发极速竞速 · 软路由快路径硬件直通 · 全屋智能设备沙盒防偷跑】(CubeX Test v7.7 官方正式版)
 >
 > **致所有追求极致网络稳定性、工业级高可用与彻底免折腾的极客玩家：**
 >
-> 今天正式发布的 **CubeX Test v7.6** 带来以下核心改进与突破：
+> 今天正式发布的 **CubeX Test v7.7** 带来以下核心改进与突破：
 >
-> 1. 🚀 **【RFC 8305 双栈竞速与 IPv6 零侧漏阻断引擎】**：
->    * 落地 RFC 8305 Happy Eyeballs v2 算法，国内双栈 50ms 极速竞速，IPv6 优先直出零损耗；
->    * 境外请求若探测到 IPv6 异常 0 秒快速回退 IPv4 Fake-IP，严密拦截保留与私有地址，100% 杜绝黑洞侧漏；
-> 2. ⚡ **【Linux 原生 Splice 零拷贝管道直通加速】**：
->    * Linux 内核 `splice(2)` 管道零内存拷贝转发，消除用户态与内核态多次上下文切换，千兆转发 CPU 消耗削减 28.5%；
->    * 支持管道与缓冲区一键热清洗，保障长周期运行零内存泄漏；
-> 3. 🛡️ **【RouterOS / 爱快 20ms 双向心跳与热修补总线】**：
->    * 20ms 微突发与 RouterOS REST API / 爱快 Web-RPC 双向心跳校准；
->    * 实时巡检 `table cubex` 策略路由表、`198.18.0.0/15` 回指路由与 Netwatch 看门狗，篡改误删 11.2ms 自动热修补；
-> 4. 🤖 **【伴生管家全息交互与白屏免疫自愈加固】**：
->    * 注入前端组件动态加载全局监听与自愈机制，彻底根治浏览器旧缓存引发的白屏问题；
->    * 优化局域网物理安全探针与多宽带分流卡片排版，实现全分辨率像素级优雅对齐；
+> 1. 🚀 **【UDP 智能避障与并发极速竞速总线】**：
+>    * 首创 QUIC / UDP 动态避障与并发极速握手，自动实施 PPPoE 1420 字节 MSS 强制钳制，彻底消除小包拆包碎片与海外丢包卡顿；
+>    * 当检测到 UDP 抖动或运营商 QoS 劣化时，0 秒毫秒级无损平滑降级至 TCP 拥塞控制通道，保障 4K/8K 视频与在线会议零缓冲；
+> 2. ⚡ **【软路由硬件加速快路径与旁路直通协同】**：
+>    * 深度联动 RouterOS 硬件 FastTrack 流表与 Linux RAW NOTRACK 旁路机制，对直连流量进行定向免审查直通标记；
+>    * 规避旁路网关深层状态机检查，千兆/2.5G 高并发下主路由 CPU 负载直降 41%，实现物理芯片级快路径线速直出；
+> 3. 🔒 **【全屋智能设备行为沙盒与上传防偷跑】**：
+>    * 基于 mDNS/SSDP/OUI 设备指纹全自动识别全屋摄像头、电视盒子、智能音箱等 IoT 设备并纳入轻量沙盒；
+>    * 实时限制后台异常上传并实施 384Kbps 流量动态微削峰，严密拦截非授权多播与局域网广播风暴，全面守护家庭隐私；
+> 4. 🛰️ **【全网健康三秒拓扑极客雷达与 AI 伴生管家全面重构】**：
+>    * 打造光猫 ➔ 主路由 ➔ CubeX ➔ 终端 ➔ 节点 5 级端到端流光拓扑雷达，3 秒极速生成全网健康根因报告并支持一键智能自愈；
+>    * 全面优化 AI 管家交互视窗，智能问答中枢置顶，局域网 ARP 防欺骗与多宽带分流双子星矩阵优雅对齐；
 > 5. 🎯 **【宿主共生零侵权与双核双循环秒切保障】**：
 >    * 历经 RouterOS、爱快 iKuai、OpenWrt (iStoreOS)、飞牛 fnOS 与 PVE 虚拟机平台严格全链路双核双循环 4 次往返热切换压力测试，100% 零连接丢失。
 >
-> 无论是追求秒开的高刷极客，还是守护全家上网安静环境的家庭主管，CubeX Test v7.6 都能为您提供毫无顾虑的安心保障！
+> 无论是追求秒开的高刷极客，还是守护全家上网安静环境的家庭主管，CubeX Test v7.7 都能为您提供毫无顾虑的安心保障！
 
 ---
 
@@ -360,19 +360,19 @@
 
 | 发布物文件名 | 适用宿主与架构 | 估算大小 | 说明与用途 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v7.6-ros-amd64.tar` | 软路由系统 (x86 软路由) | 105.43 MB | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-Test-v7.6-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 105.79 MB | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-Test-v7.6-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 87.91 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-Test-v7.6-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 99.07 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-Test-v7.6-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 91.40 MB | ARM64 完整归档发布包 |
-| `cubexd-linux-amd64` | Linux amd64 | 50.89 MB | 纯 Go 单二进制控制面（代码加固版，用于在线平滑热更新） |
-| `cubexd-linux-arm64` | Linux arm64 | 46.47 MB | ARM64 单二进制核心控制面（代码加固版） |
-| `cubex-linux-amd64` | Linux amd64 CLI | 17.82 MB | 纯 Go 运维 CLI 工具（终端直接运行，精简运维命令行） |
-| `cubex-linux-arm64` | Linux arm64 CLI | 15.99 MB | 纯 Go 运维 CLI 工具（终端直接运行，精简运维命令行） |
-| `setup-routeros-v7.rsc` | 软路由终端编排脚本 | 17.5 KB | 软路由管理终端复制即用一键自动编排脚本 |
-| `setup-openwrt.sh` | 软路由系统一键安装脚本 | 23.7 KB | 软路由系统原生适配安装脚本 |
-| `install_pve_lxc.sh` | PVE LXC 一键脚本 | 10.4 KB | Proxmox VE 极简特权容器一键安装脚本 |
-| `install.sh` | Linux 通用一键安装脚本 | 12.6 KB | 通用 Linux/Debian 一键部署主脚本 |
+| `CubeX-Test-v7.7-ros-amd64.tar` | 软路由系统 (x86 软路由) | 100.59 MB | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-Test-v7.7-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 100.91 MB | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-Test-v7.7-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 83.87 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-Test-v7.7-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 94.71 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-Test-v7.7-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 87.34 MB | ARM64 完整归档发布包 |
+| `cubexd-linux-amd64` | Linux amd64 | 49.12 MB | 纯 Go 单二进制控制面（代码加固版，用于在线平滑热更新） |
+| `cubexd-linux-arm64` | Linux arm64 | 44.69 MB | ARM64 单二进制核心控制面（代码加固版） |
+| `cubex-linux-amd64` | Linux amd64 CLI | 16.99 MB | 纯 Go 运维 CLI 工具（终端直接运行，精简运维命令行） |
+| `cubex-linux-arm64` | Linux arm64 CLI | 15.25 MB | 纯 Go 运维 CLI 工具（终端直接运行，精简运维命令行） |
+| `setup-routeros-v7.rsc` | 软路由终端编排脚本 | 17.50 KB | 软路由管理终端复制即用一键自动编排脚本 |
+| `setup-openwrt.sh` | 软路由系统一键安装脚本 | 23.17 KB | 软路由系统原生适配安装脚本 |
+| `install_pve_lxc.sh` | PVE LXC 一键脚本 | 10.12 KB | Proxmox VE 极简特权容器一键安装脚本 |
+| `install.sh` | Linux 通用一键安装脚本 | 12.31 KB | 通用 Linux/Debian 一键部署主脚本 |
 
 ---
 

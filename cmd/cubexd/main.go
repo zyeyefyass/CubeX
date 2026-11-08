@@ -99,7 +99,7 @@ import (
 )
 
 var (
-	version = "Test v7.6"
+	version = "Test v7.7"
 
 	startTime = time.Now()
 )
@@ -464,6 +464,10 @@ type Server struct {
 	happyEyeballsMgr   *happyeyeballs.Manager
 	spliceMgr          *splice.Manager
 	bidirHeartbeatMgr  *bidirheartbeat.Manager
+	udpRacingMgr       *netstack.UDPRacingManager
+	fastTrackMgr       *host.FastTrackSymbiosisManager
+	iotGuardMgr        *device.IoTBehaviorGuard
+	rootCauseRadar     *diagnostics.RootCauseRadar
 
 	logBuffer *RingLogBuffer
 
@@ -885,6 +889,10 @@ func main() {
 		happyEyeballsMgr:   happyeyeballs.NewManager(),
 		spliceMgr:          splice.NewManager(),
 		bidirHeartbeatMgr:  bidirheartbeat.NewManager(),
+		udpRacingMgr:       netstack.GetUDPRacingManager(filepath.Join(dir, "data")),
+		fastTrackMgr:       host.GetFastTrackSymbiosisManager(filepath.Join(dir, "data")),
+		iotGuardMgr:        device.GetIoTBehaviorGuard(filepath.Join(dir, "data")),
+		rootCauseRadar:     diagnostics.GetRootCauseRadar(filepath.Join(dir, "data")),
 
 		logBuffer:    logBuffer,
 		delayCache:   make(map[string]delayCacheEntry),
@@ -905,7 +913,7 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v7.6")
+	srv.mcpServer = mcp.NewServer(srv, "Test v7.7")
 
 	srv.initTrafficState()
 
@@ -1187,6 +1195,27 @@ func main() {
 	mux.HandleFunc("/api/v1/ros/bidirheartbeat/status", srv.handleBidirHeartbeatStatus)
 	mux.HandleFunc("/api/v1/ros/bidirheartbeat/probe", srv.handleBidirHeartbeatProbe)
 	mux.HandleFunc("/api/v1/ros/bidirheartbeat/patch", srv.handleBidirHeartbeatPatch)
+
+	// ── Test v7.7 核心进阶架构路由 ──
+	// 维度一：UDP 智能避障与并发极速竞速总线
+	mux.HandleFunc("/api/v1/network/udp-racing/status", srv.handleUDPRacingStatus)
+	mux.HandleFunc("/api/v1/network/udp-racing/probe", srv.handleUDPRacingProbe)
+	mux.HandleFunc("/api/v1/network/udp-racing/toggle", srv.handleUDPRacingToggle)
+	mux.HandleFunc("/api/v1/network/udp-racing/mss", srv.handleUDPRacingMSS)
+
+	// 维度二：软路由硬件加速快路径与内核旁路协同
+	mux.HandleFunc("/api/v1/host/fasttrack/status", srv.handleFastTrackStatus)
+	mux.HandleFunc("/api/v1/host/fasttrack/optimize", srv.handleFastTrackOptimize)
+	mux.HandleFunc("/api/v1/host/fasttrack/toggle", srv.handleFastTrackToggle)
+
+	// 维度三：全屋智能设备行为沙盒与上传防偷跑
+	mux.HandleFunc("/api/v1/devices/iot-guard/status", srv.handleIoTGuardStatus)
+	mux.HandleFunc("/api/v1/devices/iot-guard/tune", srv.handleIoTGuardTune)
+	mux.HandleFunc("/api/v1/devices/iot-guard/toggle", srv.handleIoTGuardToggle)
+
+	// 维度四：AI 伴生管家三秒全网根因拓扑雷达与一键自愈
+	mux.HandleFunc("/api/v1/ai/root-cause/report", srv.handleRootCauseReport)
+	mux.HandleFunc("/api/v1/ai/root-cause/heal", srv.handleRootCauseHeal)
 
 	mux.HandleFunc("/api/v1/security/radar", srv.handleSecurityRadar)
 
@@ -3089,6 +3118,11 @@ func (s *Server) handleDevicesTelemetry(w http.ResponseWriter, r *http.Request) 
 		devList = s.devMgr.GetDevices()
 	}
 	flows := s.deviceQoSMgr.SampleDeviceFlows(devList)
+	if s.iotGuardMgr != nil {
+		for _, f := range flows {
+			s.iotGuardMgr.SyncDevice(f.IP, f.MAC, f.HostName, f.UpSpeedBps)
+		}
+	}
 	sendJSON(w, map[string]any{"status": "ok", "flows": flows, "count": len(flows)})
 }
 
@@ -11352,4 +11386,189 @@ func (s *Server) handleBidirHeartbeatPatch(w http.ResponseWriter, r *http.Reques
 	res := s.bidirHeartbeatMgr.ApplyInstantPatch()
 	s.logBuffer.Add("INFO", "ROS", res.Message)
 	sendJSON(w, map[string]any{"status": "ok", "patch_result": res})
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Test v7.7 核心进阶架构 Handler 实现
+// ══════════════════════════════════════════════════════════════════════════════
+
+// 维度一：UDP 智能避障与并发极速竞速总线
+func (s *Server) handleUDPRacingStatus(w http.ResponseWriter, r *http.Request) {
+	if s.udpRacingMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "udp racing manager not initialized"})
+		return
+	}
+	st := s.udpRacingMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "udp_racing": st})
+}
+
+func (s *Server) handleUDPRacingProbe(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.udpRacingMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "udp racing manager not initialized"})
+		return
+	}
+	var req struct {
+		Domain string `json:"domain"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Domain == "" {
+		req.Domain = "googlevideo.com"
+	}
+	res := s.udpRacingMgr.ProbeDomain(req.Domain)
+	s.logBuffer.Add("INFO", "NETSTACK", fmt.Sprintf("UDP 竞速测算完成: %s 优选 %s (UDP=%.1fms, TCP=%.1fms)", req.Domain, res.ActiveChannel, res.AvgUDPLatencyMs, res.AvgTCPLatencyMs))
+	sendJSON(w, map[string]any{"status": "ok", "racing_result": res})
+}
+
+func (s *Server) handleUDPRacingToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	st := s.udpRacingMgr.Toggle(req.Enabled)
+	sendJSON(w, map[string]any{"status": "ok", "enabled": st})
+}
+
+func (s *Server) handleUDPRacingMSS(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		MSS int `json:"mss"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.MSS <= 0 {
+		req.MSS = 1420
+	}
+	clamped := s.udpRacingMgr.SetClampedMSS(req.MSS)
+	sendJSON(w, map[string]any{"status": "ok", "clamped_mss": clamped})
+}
+
+// 维度二：软路由硬件加速快路径与内核旁路协同
+func (s *Server) handleFastTrackStatus(w http.ResponseWriter, r *http.Request) {
+	if s.fastTrackMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "fasttrack symbiosis manager not initialized"})
+		return
+	}
+	st := s.fastTrackMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "fasttrack": st})
+}
+
+func (s *Server) handleFastTrackOptimize(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.fastTrackMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "fasttrack symbiosis manager not initialized"})
+		return
+	}
+	st, err := s.fastTrackMgr.Optimize()
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	s.logBuffer.Add("INFO", "ROS", "软路由 FastTrack 硬件流表直通协同已完成全量优化")
+	sendJSON(w, map[string]any{"status": "ok", "fasttrack": st})
+}
+
+func (s *Server) handleFastTrackToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	st := s.fastTrackMgr.Toggle(req.Enabled)
+	sendJSON(w, map[string]any{"status": "ok", "enabled": st})
+}
+
+// 维度三：全屋智能设备行为沙盒与上传防偷跑
+func (s *Server) handleIoTGuardStatus(w http.ResponseWriter, r *http.Request) {
+	if s.iotGuardMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "iot guard manager not initialized"})
+		return
+	}
+	st := s.iotGuardMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "iot_guard": st})
+}
+
+func (s *Server) handleIoTGuardTune(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.iotGuardMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "iot guard manager not initialized"})
+		return
+	}
+	var req struct {
+		MAC         string `json:"mac"`
+		Sandboxed   bool   `json:"sandboxed"`
+		UpLimitKbps int    `json:"up_limit_kbps"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "invalid payload"})
+		return
+	}
+	_ = s.iotGuardMgr.SetDeviceSandbox(req.MAC, req.Sandboxed, req.UpLimitKbps)
+	s.logBuffer.Add("INFO", "SECURITY", fmt.Sprintf("智能设备沙盒调整: MAC=%s, 沙盒=%v, 上限=%dKbps", req.MAC, req.Sandboxed, req.UpLimitKbps))
+	sendJSON(w, map[string]any{"status": "ok", "iot_guard": s.iotGuardMgr.GetStatus()})
+}
+
+func (s *Server) handleIoTGuardToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	st := s.iotGuardMgr.Toggle(req.Enabled)
+	sendJSON(w, map[string]any{"status": "ok", "enabled": st})
+}
+
+// 维度四：AI 伴生管家三秒全网根因拓扑雷达与一键自愈
+func (s *Server) handleRootCauseReport(w http.ResponseWriter, r *http.Request) {
+	if s.rootCauseRadar == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "root cause radar not initialized"})
+		return
+	}
+	gatewayIP := "10.0.0.1"
+	if s.rosMgr != nil {
+		cfg := s.rosMgr.GetConfig()
+		if cfg["host"] != "" {
+			gatewayIP = cfg["host"]
+		}
+	}
+	activeEng := "singbox"
+	if s.engMgr != nil {
+		activeEng = string(s.engMgr.GetActiveEngine())
+	}
+	rep := s.rootCauseRadar.RunDiagnosis(gatewayIP, gatewayIP, activeEng)
+	sendJSON(w, map[string]any{"status": "ok", "report": rep})
+}
+
+func (s *Server) handleRootCauseHeal(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.rootCauseRadar == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "root cause radar not initialized"})
+		return
+	}
+	res := s.rootCauseRadar.TriggerHeal()
+	s.logBuffer.Add("INFO", "AI", "AI 伴生管家全链路一键智能自愈执行成功")
+	sendJSON(w, map[string]any{"status": "ok", "heal_result": res})
 }

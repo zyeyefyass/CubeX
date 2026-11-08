@@ -465,6 +465,11 @@ set memory-high=256M registry-url="https://registry-1.docker.io" tmpdir=$pullDir
     add chain=forward protocol=udp dst-port=853 action=reject reject-with=icmp-network-unreachable comment="CubeX Block DoT UDP"
     $printMsg "✅ [5/5 Filter防火墙] 已配置 DoT (端口853) 侧漏防御阻断规则";
 }
+:if ([:len [find comment="CubeX FastTrack Hardware Acceleration"]] = 0) do={
+    add chain=forward action=fasttrack-connection connection-state=established,related connection-mark=cubex_direct comment="CubeX FastTrack Hardware Acceleration"
+    add chain=forward action=accept connection-state=established,related comment="CubeX Established Accept"
+    $printMsg "✅ [5/5 Filter防火墙] 已配置 RouterOS FastTrack 硬件快路径直通规则 (直连流量零 CPU 消耗)";
+}
 
 # 清理既有异常状态的容器残留 (若之前解压失败)
 /container
