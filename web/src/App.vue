@@ -1998,7 +1998,7 @@
 
 
 
-                      <span class="font-bold text-emerald-400">{{ formatBytes(systemStatus.memory_bytes || 100500000) }} <span class="text-[9px] text-emerald-500/80">(超轻量)</span></span>
+                      <span class="font-bold text-emerald-400">{{ systemMemoryFormatted }} <span class="text-[9px] text-emerald-500/80">(超轻量)</span></span>
 
 
 
@@ -4336,7 +4336,7 @@
 
 
 
-                        <span class="text-base font-bold text-white tracking-wide truncate">{{ getCleanGroupName(grp.name) }}</span>
+                        <span class="text-base font-bold text-white tracking-wide truncate">{{ cleanGroupNameMap[grp.name] || grp.name }}</span>
 
 
 
@@ -4344,7 +4344,7 @@
 
 
 
-                          {{ isChinaGroup(grp) ? '国内穿透' : (grp.name.includes('Speed') ? '测速穿透' : '域名穿透') }}
+                          {{ chinaGroupMap[grp.name] ? '国内穿透' : (grp.name.includes('Speed') ? '测速穿透' : '域名穿透') }}
 
 
 
@@ -4356,7 +4356,7 @@
 
 
 
-                          Selector ({{ getCandidateCountText(grp) }})
+                          Selector ({{ groupCandidateCountMap[grp.name] || 0 }})
 
 
 
@@ -4392,7 +4392,7 @@
 
 
 
-                        <span class="text-slate-400">{{ getCandidateFlag(grp.now || grp.proxies?.[0]) }}</span>
+                        <span class="text-slate-400">{{ candidateFlagMap[grp.now || grp.proxies?.[0]] || '🌐' }}</span>
 
 
 
@@ -4408,7 +4408,7 @@
 
 
 
-                          <span class="text-slate-300 truncate max-w-[280px] sm:max-w-md">{{ resolveActualProxyNode(grp.now || grp.proxies?.[0]) }}</span>
+                          <span class="text-slate-300 truncate max-w-[280px] sm:max-w-md">{{ actualProxyNodeCacheMap[grp.name] || (grp.now || grp.proxies?.[0]) }}</span>
 
 
 
@@ -6090,7 +6090,7 @@
 
 
 
-                          ({{ getSubTestedCount(sub) }}/{{ getSubNodes(sub.id).length }})
+                          {{ subMetaMap[sub.id]?.testedText }}
 
 
 
@@ -6122,7 +6122,7 @@
 
 
 
-                        更新于 {{ formatSubUpdatedAt(sub.updated_at) }} · 每天 00:00 自动更新
+                        {{ subMetaMap[sub.id]?.updatedAtText }}
 
 
 
@@ -6274,7 +6274,7 @@
 
 
 
-                        <span class="text-slate-400">{{ formatSubExpire(sub.expire_at) }}</span>
+                        <span class="text-slate-400">{{ subMetaMap[sub.id]?.expireText }}</span>
 
 
 
@@ -6334,7 +6334,7 @@
 
 
 
-                        当前节点数: {{ getSubNodes(sub.id).length }} 个
+                        当前节点数: {{ subNodesMap[sub.id]?.length || 0 }} 个
 
 
 
@@ -6582,11 +6582,11 @@
 
 
 
-                    <span class="font-bold">{{ isSubDrawerExpanded(sub.id) ? '收起节点列表' : '展开全部节点' }}</span>
+                    <span class="font-bold">{{ expandedSubDrawers.has(sub.id) ? '收起节点列表' : '展开全部节点' }}</span>
 
 
 
-                    <span class="text-slate-400 group-hover:text-emerald-300">({{ getSubNodes(sub.id).length }} 个节点)</span>
+                    <span class="text-slate-400 group-hover:text-emerald-300">({{ subNodesMap[sub.id]?.length || 0 }} 个节点)</span>
 
 
 
@@ -6598,7 +6598,7 @@
 
 
 
-                    {{ isSubDrawerExpanded(sub.id) ? '已展开全部节点' : '默认收起 · 点击展开查看并测速' }}
+                    {{ expandedSubDrawers.has(sub.id) ? '已展开全部节点' : '默认收起 · 点击展开查看并测速' }}
 
 
 
@@ -8886,11 +8886,11 @@
 
 
 
-                        <span>{{ getCountryFlag(code) }}</span>
+                        <span>{{ code || '全球' }}</span>
 
 
 
-                        <span>{{ getCountryName(code) }}</span>
+                        <span>{{ countryNameMap[code] || code }}</span>
 
 
 
@@ -9054,7 +9054,7 @@
 
 
 
-                      {{ sub.name }} ({{ getSubNodes(sub.id).length }} 个节点)
+                      {{ sub.name }} ({{ subNodesMap[sub.id]?.length || 0 }} 个节点)
 
 
 
@@ -15375,7 +15375,7 @@
 
 
 
-                          <span>{{ cleanActionLabel(act.label) }}</span>
+                          <span>{{ cleanActionLabelMap[act.label] || act.label }}</span>
 
 
 
@@ -17550,7 +17550,7 @@
 
 
 
-                      {{ formatExpire(sub.expire_at).text }}
+                      {{ subMetaMap[sub.id]?.expireObj?.text }}
 
 
 
@@ -17582,11 +17582,11 @@
 
 
 
-                    <span>📅 重置: {{ getSubResetInfo(sub) }}</span>
+                    <span>📅 重置: {{ subMetaMap[sub.id]?.resetInfo }}</span>
 
 
 
-                    <span>⏱️ 更新于: {{ formatTimeAgo(sub.updated_at) }}</span>
+                    <span>⏱️ 更新于: {{ subMetaMap[sub.id]?.timeAgo }}</span>
 
 
 
@@ -17638,7 +17638,7 @@
 
 
 
-                    {{ isSubDrawerExpanded(sub.id) ? '收起详情' : `展开节点 (${sub.node_count || 0})` }}
+                    {{ expandedSubDrawers.has(sub.id) ? '收起详情' : `展开节点 (${sub.node_count || 0})` }}
 
 
 
@@ -42259,6 +42259,8 @@ const availableCountryPresets = [
 
 
 ]
+const countryNameMap = computed(() => Object.fromEntries(availableCountryPresets.map(item => [item.code, item.name])))
+
 
 
 
@@ -48576,6 +48578,58 @@ const chinaGroupMap = computed(() => {
     map[grp.name] = isChinaGroup(grp)
   }
   return map
+})
+
+const cleanActionLabelMap = computed(() => {
+  const m = {}
+  const list = actionHistory.value || []
+  for (let i = 0; i < list.length; i++) {
+    const l = list[i].label || ''
+    m[l] = cleanActionLabel(l)
+  }
+  return m
+})
+
+const cleanGroupNameMap = computed(() => {
+  const map = {}
+  const groups = ir.value?.groups || []
+  for (let i = 0; i < groups.length; i++) {
+    const grp = groups[i]
+    map[grp.name] = getCleanGroupName(grp.name)
+  }
+  return map
+})
+
+const candidateFlagMap = computed(() => {
+  const map = {}
+  const groups = ir.value?.groups || []
+  for (let i = 0; i < groups.length; i++) {
+    const name = groups[i].now || groups[i].proxies?.[0] || ''
+    map[name] = getCandidateFlag(name)
+  }
+  return map
+})
+
+const subMetaMap = computed(() => {
+  const map = {}
+  const subs = subscriptions.value || []
+  for (let i = 0; i < subs.length; i++) {
+    const s = subs[i]
+    map[s.id || s.name || i] = {
+      testedText: `(${subTestedCountMap.value[s.id] || 0}/${subNodesMap.value[s.id]?.length || 0})`,
+      updatedAtText: `更新于 ${formatSubUpdatedAt(s.updated_at)} · 每天 00:00 自动更新`,
+      expireText: formatSubExpire(s.expire_at),
+      nodeCountText: `${subNodesMap.value[s.id]?.length || 0} 个节点`,
+      resetInfo: getSubResetInfo(s),
+      timeAgo: formatTimeAgo(s.updated_at),
+      expireObj: formatExpire(s.expire_at)
+    }
+  }
+  return map
+})
+
+const systemMemoryFormatted = computed(() => {
+  return formatBytes(systemStatus.value.memory_bytes || 100500000)
 })
 
 const subQuotaMap = computed(() => {

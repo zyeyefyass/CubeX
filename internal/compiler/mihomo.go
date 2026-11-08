@@ -103,7 +103,9 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		"geodata-mode": true,
 
-		"find-process-mode": "strict",
+		"geodata-loader": "memconservative",
+
+		"find-process-mode": "off",
 
 		"keep-alive-idle": 600,
 
