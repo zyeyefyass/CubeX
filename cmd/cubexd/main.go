@@ -675,10 +675,7 @@ func main() {
 
 	go func() {
 
-		scavengeInterval := 2 * time.Minute
-		if runtime.GOOS == "linux" {
-			scavengeInterval = 30 * time.Second
-		}
+		scavengeInterval := 5 * time.Minute
 		ticker := time.NewTicker(scavengeInterval)
 
 		defer ticker.Stop()
@@ -1594,18 +1591,6 @@ func main() {
 
 				if purged := rosMgr.PurgeStaleFakeIPConnections(); purged > 0 {
 					log.Printf("🧹 [ROS] Auto-boot: Purged %d stale conntrack entries\n", purged)
-				}
-				// 🛡️ 24H Autonomous Self-Healing Watchdog (Checks ROS table & routes every 30s)
-				ticker := time.NewTicker(30 * time.Second)
-				defer ticker.Stop()
-				for range ticker.C {
-					if rosMgr.IsConnected() {
-						rep, err := rosMgr.InspectRouting()
-						if err == nil && rep != nil && !rep.AllOK {
-							log.Printf("⚠️ [ROS Watchdog] Route anomaly detected (AllOK=false). Auto-rehealing...")
-							_ = rosMgr.RestoreRulesAfterBoot()
-						}
-					}
 				}
 			}()
 
@@ -7673,9 +7658,9 @@ func (s *Server) startConntrackSweeper() {
 			}
 		}
 
-		// Fast route guard every 15 seconds (accelerated for ROS 7.25) & deep self-healing every 10 minutes
+		// Authoritative consolidated RouterOS Watchdog: 30s route guard & 60s deep self-healing
 
-		ticker := time.NewTicker(15 * time.Second)
+		ticker := time.NewTicker(30 * time.Second)
 
 		defer ticker.Stop()
 
@@ -7697,7 +7682,7 @@ func (s *Server) startConntrackSweeper() {
 					}
 				}
 				if targetIP != "" {
-					// 1. Route guard every 15s: ensure route exists
+					// 1. Route guard every 30s: ensure route exists
 
 					if restored := s.rosMgr.EnsureFakeIPRoute(targetIP); restored {
 
@@ -7705,9 +7690,9 @@ func (s *Server) startConntrackSweeper() {
 
 					}
 
-					// 2. ROS 7.25 DAI & Bridge trust guard every 60s (15s * 4)
+					// 2. ROS 7.25 DAI trust guard & deep routing inspection every 60s (30s * 2)
 
-					if loopCount%4 == 0 {
+					if loopCount%2 == 0 {
 
 						if restored, _ := s.rosMgr.EnsureBridgeDAIProtection(targetIP); restored {
 
@@ -7715,11 +7700,19 @@ func (s *Server) startConntrackSweeper() {
 
 						}
 
+						if rep, err := s.rosMgr.InspectRouting(); err == nil && rep != nil && !rep.AllOK {
+
+							s.logBuffer.Add("WARN", "ROS", "RouterOS 策略路由异常: 自动执行规则自愈...")
+
+							_ = s.rosMgr.RestoreRulesAfterBoot()
+
+						}
+
 					}
 
-					// 3. Conntrack sweeper and memory optimization every 10 minutes (15s * 40)
+					// 3. Conntrack sweeper and memory optimization every 10 minutes (30s * 20)
 
-					if loopCount%40 == 0 {
+					if loopCount%20 == 0 {
 
 						purgedConns := s.rosMgr.PurgeStaleFakeIPConnections()
 

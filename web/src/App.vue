@@ -4456,11 +4456,11 @@
 
 
 
-                      <span class="w-1.5 h-1.5 rounded-full" :class="getLatencyDotClass(getGroupActiveLatency(grp))"></span>
+                      <span class="w-1.5 h-1.5 rounded-full" :class="groupActiveLatencyDotClassMap[grp.name] || 'bg-slate-500'"></span>
 
 
 
-                      <span>{{ getGroupActiveLatency(grp) > 0 ? getGroupActiveLatency(grp) + 'ms' : (isDirectActive(grp) ? '22ms' : '⚡ 优选') }}</span>
+                      <span>{{ (groupActiveLatencyMap[grp.name] || 0) > 0 ? (groupActiveLatencyMap[grp.name] + 'ms') : (groupDirectMap[grp.name] ? '22ms' : '⚡ 优选') }}</span>
 
 
 
@@ -4712,11 +4712,11 @@
 
 
 
-                          :class="isDirectActive(grp) ? 'text-emerald-200' : 'group-hover:text-emerald-300'">
+                          :class="groupDirectMap[grp.name] ? 'text-emerald-200' : 'group-hover:text-emerald-300'">
 
 
 
-                          {{ isChinaGroup(grp) ? '直连 (独占)' : '直连' }}
+                          {{ chinaGroupMap[grp.name] ? '直连 (独占)' : '直连' }}
 
 
 
@@ -4940,7 +4940,7 @@
 
 
 
-                              :class="isRegionActiveInGroup(grp, reg) ? 'text-white' : 'group-hover:text-emerald-300'">
+                              :class="groupActiveRegionIdMap[grp.name] === reg.id ? 'text-white' : 'group-hover:text-emerald-300'">
 
 
 
@@ -5184,7 +5184,7 @@
 
 
 
-                            :class="isRejectActive(grp) ? 'text-rose-200' : 'group-hover:text-rose-300'">
+                            :class="groupRejectMap[grp.name] ? 'text-rose-200' : 'group-hover:text-rose-300'">
 
 
 
@@ -5604,7 +5604,7 @@
 
 
 
-                        <span class="w-1.5 h-1.5 rounded-full" :class="getLatencyDotClass(reg.winnerLatency)"></span>
+                        <span class="w-1.5 h-1.5 rounded-full" :class="reg.winnerLatency > 0 ? (reg.winnerLatency < 60 ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : (reg.winnerLatency < 150 ? 'bg-cyan-400 shadow-[0_0_6px_#22d3ee]' : (reg.winnerLatency < 300 ? 'bg-amber-400' : 'bg-rose-500'))) : 'bg-slate-500'"></span>
 
 
 
@@ -6258,11 +6258,11 @@
 
 
 
-                        <span :class="getSubQuota(sub).percent >= 90 ? 'text-rose-400 font-bold' : 'text-slate-300'">
+                        <span :class="(subQuotaMap[sub.id || sub.name]?.percent || 0) >= 90 ? 'text-rose-400 font-bold' : 'text-slate-300'">
 
 
 
-                          已用 {{ getSubQuota(sub).usedStr }} / {{ getSubQuota(sub).totalStr }}, 剩 {{ getSubQuota(sub).remStr }}
+                          已用 {{ subQuotaMap[sub.id || sub.name]?.usedStr }} / {{ subQuotaMap[sub.id || sub.name]?.totalStr }}, 剩 {{ subQuotaMap[sub.id || sub.name]?.remStr }}
 
 
 
@@ -6538,11 +6538,11 @@
 
 
 
-                      getSubQuota(sub).percent >= 90 ? 'bg-rose-500' : 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500']"
+                      (subQuotaMap[sub.id || sub.name]?.percent || 0) >= 90 ? 'bg-rose-500' : 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500']"
 
 
 
-                      :style="{ width: `${Math.min(100, getSubQuota(sub).percent)}%` }">
+                      :style="{ width: `${Math.min(100, subQuotaMap[sub.id || sub.name]?.percent || 0)}%` }">
 
 
 
@@ -17450,11 +17450,11 @@
 
 
 
-                    <span :class="['text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold border shrink-0', getSubHealth(sub).class]">
+                    <span :class="['text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold border shrink-0', subHealthMap[sub.id || sub.name]?.class]">
 
 
 
-                      {{ getSubHealth(sub).icon }} {{ getSubHealth(sub).text }}
+                      {{ subHealthMap[sub.id || sub.name]?.icon }} {{ subHealthMap[sub.id || sub.name]?.text }}
 
 
 
@@ -17534,11 +17534,11 @@
 
 
 
-                      剩余流量: <strong class="text-white">{{ getSubQuota(sub).remStr }}</strong>
+                      剩余流量: <strong class="text-white">{{ subQuotaMap[sub.id || sub.name]?.remStr }}</strong>
 
 
 
-                      <span class="text-slate-300" v-if="getSubQuota(sub).hasQuota"> / {{ getSubQuota(sub).totalStr }}</span>
+                      <span class="text-slate-300" v-if="subQuotaMap[sub.id || sub.name]?.hasQuota"> / {{ subQuotaMap[sub.id || sub.name]?.totalStr }}</span>
 
 
 
@@ -17566,11 +17566,11 @@
 
 
 
-                    <div :class="['h-full rounded-full transition-all duration-500', getSubQuota(sub).barClass]"
+                    <div :class="['h-full rounded-full transition-all duration-500', subQuotaMap[sub.id || sub.name]?.barClass]"
 
 
 
-                         :style="{ width: getSubQuota(sub).percent + '%' }"></div>
+                         :style="{ width: (subQuotaMap[sub.id || sub.name]?.percent || 0) + '%' }"></div>
 
 
 
@@ -19454,431 +19454,6 @@
 
 
 
-          <div v-if="showSmartPingModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-xl animate-in fade-in">
-
-
-
-            <div class="w-full max-w-2xl rounded-3xl macos-glass-card shadow-2xl p-5 sm:p-7 space-y-5 text-slate-200 max-h-[85vh] flex flex-col border border-white/10">
-
-
-
-              <!-- Modal Header -->
-
-
-
-              <div class="flex items-center justify-between border-b border-white/10 pb-4 shrink-0">
-
-
-
-                <div class="flex items-center gap-3">
-
-
-
-                  <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 flex items-center justify-center text-xl shadow-[0_0_12px_rgba(16,185,129,0.2)]">
-
-
-
-                    ⚡
-
-
-
-                  </div>
-
-
-
-                  <div>
-
-
-
-                    <h3 class="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
-
-
-
-                      <span>智能健康探活与预热自愈中枢</span>
-
-
-
-                      <span :class="['text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold', smartPing.enabled ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30' : 'bg-slate-500/20 text-slate-400 border border-slate-500/30']">
-
-
-
-                        {{ smartPing.enabled ? '巡检中' : '已暂停' }}
-
-
-
-                      </span>
-
-
-
-                    </h3>
-
-
-
-                    <p class="text-xs text-slate-400 mt-0.5 font-sans">
-
-
-
-                      低频定期全网探活 · 0 秒预热无感剔除失效节点 · 告别看流媒体或使用 AI 时偶尔卡顿 5 秒
-
-
-
-                    </p>
-
-
-
-                  </div>
-
-
-
-                </div>
-
-
-
-                <button @click="showSmartPingModal = false" class="p-1.5 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer">✕</button>
-
-
-
-              </div>
-
-
-
-
-
-
-
-              <!-- Telemetry & Settings Grid -->
-
-
-
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0">
-
-
-
-                <!-- Switch Card -->
-
-
-
-                <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
-
-
-
-                  <div class="flex items-center justify-between">
-
-
-
-                    <span class="text-xs font-bold text-slate-300">后台自动探活</span>
-
-
-
-                    <button @click="saveSmartPingConfig(!smartPing.enabled, smartPing.interval_min)" :class="['w-10 h-5 rounded-full transition-colors relative cursor-pointer', smartPing.enabled ? 'bg-emerald-500' : 'bg-slate-700']">
-
-
-
-                      <span :class="['w-4 h-4 rounded-full bg-white absolute top-0.5 transition-transform', smartPing.enabled ? 'left-5' : 'left-1']"></span>
-
-
-
-                    </button>
-
-
-
-                  </div>
-
-
-
-                  <div class="text-[11px] text-slate-400 mt-2 font-mono">
-
-
-
-                    状态: {{ smartPing.enabled ? '自动守护开启' : '已停用' }}
-
-
-
-                  </div>
-
-
-
-                </div>
-
-
-
-
-
-
-
-                <!-- Interval Selector Card -->
-
-
-
-                <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
-
-
-
-                  <span class="text-xs font-bold text-slate-300">巡检探测周期</span>
-
-
-
-                  <div class="flex items-center gap-1.5 mt-2">
-
-
-
-                    <button v-for="interval in [5, 15, 30, 60]" :key="interval"
-
-
-
-                      @click="saveSmartPingConfig(smartPing.enabled, interval)"
-
-
-
-                      :class="[
-
-
-
-                        'flex-1 py-1 rounded-lg text-xs font-mono font-bold transition cursor-pointer',
-
-
-
-                        smartPing.interval_min === interval ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40' : 'bg-white/5 text-slate-400 hover:bg-white/10'
-
-
-
-                      ]">
-
-
-
-                      {{ interval }}m
-
-
-
-                    </button>
-
-
-
-                  </div>
-
-
-
-                </div>
-
-
-
-
-
-
-
-                <!-- Failover Counter Card -->
-
-
-
-                <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col justify-between">
-
-
-
-                  <span class="text-xs font-bold text-slate-300">无感自愈逃生</span>
-
-
-
-                  <div class="flex items-baseline gap-1.5 mt-1">
-
-
-
-                    <span class="text-xl font-mono font-black text-amber-300">{{ smartPing.failover_count || 0 }}</span>
-
-
-
-                    <span class="text-xs text-slate-400">次失效拦截</span>
-
-
-
-                  </div>
-
-
-
-                  <div class="text-[10px] text-slate-400 font-mono truncate" :title="smartPing.last_log || '暂无异常切换'">
-
-
-
-                    {{ smartPing.last_log ? '最近: ' + smartPing.last_log : '节点状态稳定良好' }}
-
-
-
-                  </div>
-
-
-
-                </div>
-
-
-
-              </div>
-
-
-
-
-
-
-
-              <!-- Groups Real-Time Latency & Health List -->
-
-
-
-              <div class="space-y-2 flex-1 overflow-y-auto pr-1">
-
-
-
-                <div class="flex items-center justify-between text-xs font-bold text-slate-400 px-1">
-
-
-
-                  <span>各分流策略组当前健康状态</span>
-
-
-
-                  <span class="font-mono text-[11px]">上次探活: {{ smartPing.last_check_time ? new Date(smartPing.last_check_time * 1000).toLocaleTimeString() : '尚未探活' }}</span>
-
-
-
-                </div>
-
-
-
-
-
-
-
-                <div v-if="!smartPing.group_health || smartPing.group_health.length === 0" class="p-6 text-center text-xs text-slate-500 bg-white/[0.02] rounded-2xl border border-white/5">
-
-
-
-                  暂无探活快照，点击下方按钮可立即执行首次全网端到端深度巡检
-
-
-
-                </div>
-
-
-
-
-
-
-
-                <div v-else class="space-y-1.5">
-
-
-
-                  <div v-for="gh in smartPing.group_health" :key="gh.group" class="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.05] border border-white/5 flex items-center justify-between text-xs transition">
-
-
-
-                    <div class="flex items-center gap-2.5 min-w-0">
-
-
-
-                      <span class="w-2 h-2 rounded-full shrink-0" :class="gh.status === 'healthy' ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : gh.status === 'switched' ? 'bg-amber-400 shadow-[0_0_6px_#fbbf24]' : 'bg-rose-400'"></span>
-
-
-
-                      <span class="font-bold text-white truncate max-w-[120px] sm:max-w-[160px]">{{ gh.group }}</span>
-
-
-
-                      <span class="text-slate-400 text-[11px] font-mono truncate max-w-[140px] sm:max-w-[200px]">{{ gh.active_node }}</span>
-
-
-
-                    </div>
-
-
-
-                    <div class="flex items-center gap-2 shrink-0 font-mono">
-
-
-
-                      <span :class="['px-2 py-0.5 rounded-full text-[10px] font-semibold', gh.status === 'healthy' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30' : gh.status === 'switched' ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30' : 'bg-rose-500/20 text-rose-300 border border-rose-400/30']">
-
-
-
-                        {{ gh.status === 'healthy' ? '畅通' : gh.status === 'switched' ? '已自愈切流' : '异常' }}
-
-
-
-                      </span>
-
-
-
-                      <span :class="['w-14 text-right font-bold', gh.latency > 0 && gh.latency < 400 ? 'text-emerald-400' : gh.latency >= 400 ? 'text-amber-400' : 'text-slate-500']">
-
-
-
-                        {{ gh.latency > 0 ? gh.latency + 'ms' : '超时' }}
-
-
-
-                      </span>
-
-
-
-                    </div>
-
-
-
-                  </div>
-
-
-
-                </div>
-
-
-
-              </div>
-
-
-
-
-
-
-
-              <!-- Modal Footer Actions -->
-
-
-
-              <div class="flex items-center justify-between border-t border-white/10 pt-4 shrink-0">
-
-
-
-                <button @click="triggerSmartPing" :disabled="triggeringSmartPing" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] cursor-pointer active:scale-95 transition disabled:opacity-50">
-
-
-
-                  <span>{{ triggeringSmartPing ? '⚡ 探活测速中...' : '⚡ 立即全网探活预热' }}</span>
-
-
-
-                </button>
-
-
-
-                <button @click="showSmartPingModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 text-xs font-bold cursor-pointer transition">
-
-
-
-                  关闭
-
-
-
-                </button>
-
-
-
-              </div>
-
-
-
-            </div>
-
-
-
-          </div>
 
 
 
@@ -20422,103 +19997,6 @@
 
           <!-- 📜 智能哨兵自愈黑匣子全息日志弹窗 (Blackbox Modal) -->
 
-          <div v-if="showBlackboxModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
-
-            <div class="w-full max-w-2xl bg-[#00172e] border border-emerald-500/40 rounded-2xl shadow-2xl p-6 space-y-4">
-
-              <div class="flex items-center justify-between border-b border-white/10 pb-3">
-
-                <div class="flex items-center gap-2.5">
-
-                  <span class="text-xl">📜</span>
-
-                  <div>
-
-                    <h3 class="text-base font-black text-white">7×24h 智能哨兵 · 异常自愈黑匣子</h3>
-
-                    <p class="text-[11px] text-slate-400">仅在发生丢包、死锁或缓存漂移时生成记录 · 50ms 闭环自愈</p>
-
-                  </div>
-
-                </div>
-
-                <button @click="showBlackboxModal = false" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-300 hover:text-white transition cursor-pointer">✕</button>
-
-              </div>
-
-
-
-              <div class="max-h-96 overflow-y-auto space-y-2.5 pr-1">
-
-                <div v-if="!sentinelStatus.recent_events || sentinelStatus.recent_events.length === 0" class="text-center py-10 text-slate-400 text-xs font-mono space-y-2">
-
-                  <div class="text-2xl">🎉</div>
-
-                  <div class="text-white font-bold">暂无异常自愈记录</div>
-
-                  <div class="text-slate-400 text-[11px]">全链路运行在巅峰状态，策略路由、DNS 解析与双核守护 100% 健康！</div>
-
-                </div>
-
-                <div v-for="rec in sentinelStatus.recent_events" :key="rec.id"
-
-                  class="p-3.5 rounded-xl bg-white/5 border border-white/10 text-xs space-y-1.5 font-mono">
-
-                  <div class="flex items-center justify-between">
-
-                    <span class="text-emerald-400 font-bold flex items-center gap-1.5">
-
-                      <span class="px-1.5 py-0.2 rounded bg-emerald-500/20 border border-emerald-400/30 text-[10px]">[{{ rec.category }}]</span>
-
-                      <span class="text-white font-normal">{{ rec.anomaly }}</span>
-
-                    </span>
-
-                    <span class="text-[10px] text-slate-400">{{ rec.timestamp }}</span>
-
-                  </div>
-
-                  <div class="text-slate-300 flex items-center justify-between pt-1 border-t border-white/5 text-[11px]">
-
-                    <span class="text-sky-300">➔ {{ rec.action }}</span>
-
-                    <span class="text-emerald-300 font-bold">{{ rec.duration_ms }}ms ({{ rec.result }})</span>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-
-
-              <div class="flex items-center justify-between pt-3 border-t border-white/10 text-xs">
-
-                <button @click="triggerSentinelHeal" :disabled="triggeringSentinel"
-
-                  class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 text-white font-bold transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
-
-                  <span v-if="triggeringSentinel" class="inline-block animate-spin">↻</span>
-
-                  <span v-else>⚡</span>
-
-                  <span>{{ triggeringSentinel ? '自愈中...' : '手动执行深度自愈' }}</span>
-
-                </button>
-
-                <button @click="showBlackboxModal = false"
-
-                  class="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold transition cursor-pointer">
-
-                  关闭
-
-                </button>
-
-              </div>
-
-            </div>
-
-          </div>
 
 
 
@@ -24733,7 +24211,6 @@ const sentinelStatus = ref({
 
 const triggeringSentinel = ref(false)
 
-const showBlackboxModal = ref(false)
 
 
 
@@ -30984,7 +30461,6 @@ function toggleDensityMode() {
 
 
 
-const showSmartPingModal = ref(false)
 
 
 
@@ -49060,22 +48536,82 @@ function getActiveRegionIdForGroup(grp) {
 
 
 
-const groupActiveRegionIdMap = computed(() => {
-
+const groupDirectMap = computed(() => {
   const map = {}
-
   const groups = ir.value?.groups || []
-
   for (let i = 0; i < groups.length; i++) {
-
     const grp = groups[i]
-
-    map[grp.name] = getActiveRegionIdForGroup(grp)
-
+    const activeNow = grp.now || grp.proxies?.[0] || 'DIRECT'
+    map[grp.name] = activeNow === 'DIRECT' || activeNow.includes('直连')
   }
-
   return map
+})
 
+const groupRejectMap = computed(() => {
+  const map = {}
+  const groups = ir.value?.groups || []
+  for (let i = 0; i < groups.length; i++) {
+    const grp = groups[i]
+    const activeNow = grp.now || grp.proxies?.[0] || 'DIRECT'
+    map[grp.name] = activeNow === 'REJECT' || activeNow.includes('拒绝') || activeNow.includes('拦截')
+  }
+  return map
+})
+
+const subHealthMap = computed(() => {
+  const map = {}
+  const subs = subscriptions.value || []
+  for (let i = 0; i < subs.length; i++) {
+    const s = subs[i]
+    map[s.id || s.name || i] = getSubHealth(s)
+  }
+  return map
+})
+
+const chinaGroupMap = computed(() => {
+  const map = {}
+  const groups = ir.value?.groups || []
+  for (let i = 0; i < groups.length; i++) {
+    const grp = groups[i]
+    map[grp.name] = isChinaGroup(grp)
+  }
+  return map
+})
+
+const subQuotaMap = computed(() => {
+  const map = {}
+  const subs = subscriptions.value || []
+  for (let i = 0; i < subs.length; i++) {
+    const s = subs[i]
+    map[s.id || s.name || i] = getSubQuota(s)
+  }
+  return map
+})
+
+const groupActiveLatencyDotClassMap = computed(() => {
+  const map = {}
+  const groups = ir.value?.groups || []
+  for (let i = 0; i < groups.length; i++) {
+    const grp = groups[i]
+    const lat = groupActiveLatencyMap.value[grp.name] || 0
+    map[grp.name] = getLatencyDotClass(lat)
+  }
+  return map
+})
+
+const groupActiveRegionIdMap = computed(() => {
+  const map = {}
+  const groups = ir.value?.groups || []
+  for (let i = 0; i < groups.length; i++) {
+    const grp = groups[i]
+    const activeNow = grp.now || grp.proxies?.[0] || 'DIRECT'
+    if (activeNow === 'DIRECT' || activeNow.includes('直连') || activeNow === 'REJECT' || activeNow.includes('拒绝') || activeNow.includes('拦截')) {
+      map[grp.name] = ''
+    } else {
+      map[grp.name] = getActiveRegionIdForGroup(grp)
+    }
+  }
+  return map
 })
 
 
