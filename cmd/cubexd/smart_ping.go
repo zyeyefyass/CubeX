@@ -55,59 +55,6 @@ func (s *Server) startSmartHealthPing() {
 	// Background periodic ping and auto-switching loop permanently deactivated for stability
 }
 
-// executeAgileExitProbe performs ultra-lightweight 45s health probe on active primary exit
-func (s *Server) executeAgileExitProbe() {
-	ir := s.engMgr.GetIR()
-	if ir == nil || len(ir.Proxies) == 0 || len(ir.Groups) == 0 {
-		return
-	}
-
-	clashPort := 9090
-	clashSecret := ""
-	if ir.Network.ClashAPIPort > 0 {
-		clashPort = ir.Network.ClashAPIPort
-	}
-	if ir.Network.ClashSecret != "" {
-		clashSecret = ir.Network.ClashSecret
-	}
-
-	// Index proxies
-	proxyMap := make(map[string]*schema.ProxyNode, len(ir.Proxies))
-	for i := range ir.Proxies {
-		proxyMap[ir.Proxies[i].Name] = &ir.Proxies[i]
-	}
-
-	for gIdx := range ir.Groups {
-		grp := &ir.Groups[gIdx]
-		gUpper := strings.ToUpper(grp.Name)
-		// Only inspect major exit groups
-		if !strings.Contains(gUpper, "PROXY") && !strings.Contains(gUpper, "节点") && !strings.Contains(gUpper, "GLOBAL") && !strings.Contains(gUpper, "MATCH") && !strings.Contains(gUpper, "漏网") {
-			continue
-		}
-		if len(grp.Proxies) <= 1 {
-			continue
-		}
-
-		activeName := grp.Now
-		if activeName == "" {
-			activeName = grp.Proxies[0]
-		}
-		node, ok := proxyMap[activeName]
-		if !ok || node == nil || node.Type == "direct" || node.Type == "block" {
-			continue
-		}
-
-		// Light single-packet probe
-		res := s.testNodeRealDelay(*node, clashPort, clashSecret)
-		if res.Delay <= 0 {
-			// Pre-emptive immediate failover!
-			log.Printf("[SMART-FAILOVER] Active exit [%s] in group [%s] timed out! Triggering immediate fallback...", activeName, grp.Name)
-			s.executeSmartHealthPing(true)
-			break
-		}
-	}
-}
-
 // executeSmartHealthPing performs end-to-end latency checks and zero-perception failover
 func (s *Server) executeSmartHealthPing(force bool) {
 	ir := s.engMgr.GetIR()
