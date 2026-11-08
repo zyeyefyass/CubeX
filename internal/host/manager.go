@@ -413,10 +413,18 @@ func (m *Manager) testRouterOSRest(cfg HostConfig) (map[string]any, error) {
 				MemoryTotal:        memTotalStr,
 			}
 			if isCt {
-				hInfo.CPUCores = locCores
-				hInfo.CPULoad = locLoad
-				hInfo.MemoryUsed = locMemUsed
-				hInfo.MemoryTotal = locMemTotal
+				if memUsedStr != "" && memTotalStr != "" {
+					// Propagate true physical host gateway telemetry
+					hInfo.MemoryUsed = memUsedStr
+					hInfo.MemoryTotal = memTotalStr
+					hInfo.CPUCores = cores
+					hInfo.CPULoad = loadStr
+				} else {
+					hInfo.CPUCores = locCores
+					hInfo.CPULoad = locLoad
+					hInfo.MemoryUsed = locMemUsed
+					hInfo.MemoryTotal = locMemTotal
+				}
 				if locKernel != "" {
 					hInfo.KernelVersion = locKernel
 				}
@@ -871,13 +879,12 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 			if l, ok := restRes["cpu_load"].(string); ok && l != "" {
 				info.CPULoad = l
 			}
-			if !isCt {
-				if u, ok := restRes["memory_used"].(string); ok {
-					info.MemoryUsed = u
-				}
-				if t, ok := restRes["memory_total"].(string); ok {
-					info.MemoryTotal = t
-				}
+			// Always propagate real physical host gateway memory
+			if u, ok := restRes["memory_used"].(string); ok && u != "" {
+				info.MemoryUsed = u
+			}
+			if t, ok := restRes["memory_total"].(string); ok && t != "" {
+				info.MemoryTotal = t
 			}
 			m.mu.Lock()
 			m.cachedInfo = info

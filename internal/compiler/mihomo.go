@@ -189,11 +189,11 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		"enable": true,
 
-		"force-dns-mapping": false,
+		"force-dns-mapping": true,
 
 		"parse-pure-ip": true,
 
-		"override-destination": false,
+		"override-destination": true,
 
 		"sniff": map[string]any{
 
@@ -204,7 +204,12 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 			"TLS": map[string]any{
 				"ports": []int{443, 8443},
-				"override-destination": false,
+				"override-destination": true,
+			},
+
+			"QUIC": map[string]any{
+				"ports": []int{443, 8443},
+				"override-destination": true,
 			},
 		},
 
@@ -377,6 +382,20 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"+.tencent.com",
 
 		"+.bytedance.com",
+
+		// NAS & Domestic Direct Resolving (Prevent Fake-IP Outbound Drop)
+		"+.zspace.com",
+		"+.zspace.cn",
+		"+.zspace.com.cn",
+		"+.zspace.cc",
+	}
+
+	// Append user-customized Fake-IP filter whitelist from IR
+	for _, f := range ir.DNS.FakeIPFilter {
+		trimmed := strings.TrimSpace(f)
+		if trimmed != "" {
+			cleanFakeIPFilter = append(cleanFakeIPFilter, trimmed)
+		}
 	}
 
 	// Dynamically exclude all proxy server domains from fake-ip to eliminate Fake-IP loops

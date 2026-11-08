@@ -1300,6 +1300,17 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	binPath := m.findBinary(binName)
 
+	// Step 2.5: Mandatory Pre-Switch Dry-Run Guard (Guarantees zero crashes from corrupt airport nodes)
+	if binPath != "" && runtime.GOOS == "linux" {
+		if err := m.dryRunCheck(target, binPath, etcDir, targetConfigPath); err != nil {
+			m.log("ERROR", "ENGINE", fmt.Sprintf("⚠️ 目标内核配置预检失败，阻断热重载以保护当前稳定运行态: %v", err))
+			res.Success = false
+			res.ErrorMessage = "dry-run verification failed: " + err.Error()
+			m.lastResult = res
+			return res, err
+		}
+	}
+
 	// Step 3: Stop old engine to release ports & TUN device
 
 	prevBin := "mihomo"

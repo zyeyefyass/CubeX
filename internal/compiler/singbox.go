@@ -541,72 +541,54 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				},
 
 				{
-
-					"domain_suffix": []string{
-
-						".cn",
-
-						"bilibili.com",
-
-						"hdslb.com",
-
-						"baidu.com",
-
-						"bdstatic.com",
-
-						"qq.com",
-
-						"qpic.cn",
-
-						"taobao.com",
-
-						"alicdn.com",
-
-						"aliyun.com",
-
-						"aliyuncs.com",
-
-						"jd.com",
-
-						"alipay.com",
-
-						"163.com",
-
-						"douyin.com",
-
-						"bytecdntp.com",
-
-						"volces.com",
-
-						"msftconnecttest.com",
-
-						"ntp.org",
-
-						"pool.ntp.org",
-
-						"time.windows.com",
-
-						"time.apple.com",
-
-						"time.google.com",
-
-						"time.cloudflare.com",
-
-						"time.edu.cn",
-
-						"ntp.aliyun.com",
-
-						"ntp.tencent.com",
-
-						"cloud.mikrotik.com",
-
-						"routeros.com",
-
-						"mikrotik.com",
-					},
-
+					"domain_suffix": func() []string {
+						suffixes := []string{
+							".cn",
+							"bilibili.com",
+							"hdslb.com",
+							"baidu.com",
+							"bdstatic.com",
+							"qq.com",
+							"qpic.cn",
+							"taobao.com",
+							"alicdn.com",
+							"aliyun.com",
+							"aliyuncs.com",
+							"jd.com",
+							"alipay.com",
+							"163.com",
+							"douyin.com",
+							"bytecdntp.com",
+							"volces.com",
+							"msftconnecttest.com",
+							"ntp.org",
+							"pool.ntp.org",
+							"time.windows.com",
+							"time.apple.com",
+							"time.google.com",
+							"time.cloudflare.com",
+							"time.edu.cn",
+							"ntp.aliyun.com",
+							"ntp.tencent.com",
+							"cloud.mikrotik.com",
+							"routeros.com",
+							"mikrotik.com",
+							"zspace.com",
+							"zspace.cn",
+							"zspace.com.cn",
+							"zspace.cc",
+						}
+						for _, f := range ir.DNS.FakeIPFilter {
+							clean := strings.TrimSpace(f)
+							clean = strings.TrimPrefix(clean, "+.")
+							clean = strings.TrimPrefix(clean, "*.")
+							if clean != "" && !strings.HasPrefix(clean, "geosite:") {
+								suffixes = append(suffixes, clean)
+							}
+						}
+						return suffixes
+					}(),
 					"rule_set": []string{"geosite-cn"},
-
 					"server": "dns-direct",
 				},
 

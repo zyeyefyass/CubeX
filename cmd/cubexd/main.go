@@ -98,7 +98,7 @@ import (
 )
 
 var (
-	version = "Test v8.2"
+	version = "Test v8.3"
 
 	startTime = time.Now()
 )
@@ -1448,6 +1448,7 @@ func main() {
 	mux.HandleFunc("/api/v1/dns/rewrite/rule/toggle", srv.handleDNSRewriteRuleToggle)
 
 	mux.HandleFunc("/api/v1/dns/rewrite/reset", srv.handleDNSRewriteReset)
+	mux.HandleFunc("/api/v1/dns/fake-ip-filter", srv.handleFakeIPFilter)
 
 	// 9. Time Machine Backup & Restore
 
@@ -7125,6 +7126,93 @@ func (s *Server) handleDNSRewriteReset(w http.ResponseWriter, r *http.Request) {
 
 	sendJSON(w, map[string]any{"ok": true, "config": s.dnsRewriteMgr.GetConfig()})
 
+}
+
+func (s *Server) handleFakeIPFilter(w http.ResponseWriter, r *http.Request) {
+	ir := s.engMgr.GetIR()
+	if ir == nil {
+		sendJSON(w, map[string]any{"status": "error", "error": "IR not initialized"})
+		return
+	}
+
+	defaults := []string{
+		"+.zspace.com", "+.zspace.cn", "+.zspace.com.cn", "+.zspace.cc",
+		"geosite:cn", "+.cn", "*.lan", "*.local", "localhost",
+		"+.msftconnecttest.com", "+.msftncsi.com", "+.routeros.com", "+.mikrotik.com",
+	}
+
+	if r.Method == http.MethodGet {
+		sendJSON(w, map[string]any{
+			"status":   "ok",
+			"filters":  ir.DNS.FakeIPFilter,
+			"defaults": defaults,
+		})
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Filters []string `json:"filters"`
+		Add     string   `json:"add"`
+		Remove  string   `json:"remove"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		sendJSON(w, map[string]any{"status": "error", "error": "invalid json: " + err.Error()})
+		return
+	}
+
+	currentMap := make(map[string]bool)
+	var newFilters []string
+
+	if len(req.Filters) > 0 {
+		for _, f := range req.Filters {
+			t := strings.TrimSpace(f)
+			if t != "" && !currentMap[t] {
+				currentMap[t] = true
+				newFilters = append(newFilters, t)
+			}
+		}
+	} else {
+		for _, f := range ir.DNS.FakeIPFilter {
+			t := strings.TrimSpace(f)
+			if t != "" && !currentMap[t] {
+				currentMap[t] = true
+				newFilters = append(newFilters, t)
+			}
+		}
+		if req.Add != "" {
+			t := strings.TrimSpace(req.Add)
+			if t != "" && !currentMap[t] {
+				currentMap[t] = true
+				newFilters = append(newFilters, t)
+			}
+		}
+		if req.Remove != "" {
+			t := strings.TrimSpace(req.Remove)
+			filtered := make([]string, 0, len(newFilters))
+			for _, f := range newFilters {
+				if f != t {
+					filtered = append(filtered, f)
+				}
+			}
+			newFilters = filtered
+		}
+	}
+
+	ir.DNS.FakeIPFilter = newFilters
+	s.engMgr.UpdateIR(ir)
+	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+	s.logBuffer.Add("INFO", "DNS", fmt.Sprintf("Fake-IP 白名单已更新并持久化，当前自定义项: %d", len(newFilters)))
+
+	sendJSON(w, map[string]any{
+		"status":   "ok",
+		"filters":  ir.DNS.FakeIPFilter,
+		"defaults": defaults,
+	})
 }
 
 func getProcessRSS() float64 {

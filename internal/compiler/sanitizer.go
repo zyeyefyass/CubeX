@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"strconv"
@@ -90,6 +91,26 @@ func SanitizeIR(ir *schema.ConfigIR) {
 	for _, p := range ir.Proxies {
 		p.Name = strings.TrimSpace(p.Name)
 		p.Server = strings.TrimSpace(p.Server)
+
+		// 🛡️ Guard against stringified array in Server (e.g. "[1.2.3.4 5.6.7.8]")
+		if strings.HasPrefix(p.Server, "[") && strings.HasSuffix(p.Server, "]") {
+			// Check if it's a valid IPv6 literal like "[2001:db8::1]"
+			rawHost := strings.Trim(p.Server, "[]")
+			if net.ParseIP(rawHost) == nil {
+				// Not a valid IPv6, it's a stringified slice from bad subscription!
+				fields := strings.Fields(rawHost)
+				if len(fields) > 0 {
+					p.Server = strings.TrimSpace(fields[0])
+					log.Printf("[ProxySanitizer] Recovered array-polluted server host for %q -> %s", p.Name, p.Server)
+				}
+			}
+		}
+
+		// Sanitize RawConfig if present
+		if len(p.RawConfig) > 0 {
+			p.RawConfig = SanitizeNodeRawConfig(p.RawConfig)
+		}
+
 		if p.Name == "" || p.Server == "" || p.Port <= 0 || p.Port > 65535 {
 			log.Printf("[ProxySanitizer] Dropped invalid proxy (name=%q, server=%q, port=%d)", p.Name, p.Server, p.Port)
 			continue
@@ -116,6 +137,61 @@ func SanitizeIR(ir *schema.ConfigIR) {
 
 	// 3. Sanitize DNS (Anti-Recursive DNS Deadlock Guard)
 	SanitizeDNS(&ir.DNS)
+}
+
+// SanitizeNodeRawConfig cleans and normalizes raw map keys from third-party airport subscriptions,
+// strictly guaranteeing that scalar fields (server, port, password, uuid, type) are never arrays.
+func SanitizeNodeRawConfig(raw map[string]any) map[string]any {
+	cleaned := make(map[string]any, len(raw))
+	for k, v := range raw {
+		if v == nil {
+			continue
+		}
+		// String scalar fields: if slice, unwrap first element
+		switch k {
+		case "server", "name", "tag", "type", "password", "uuid", "cipher", "method", "network", "flow", "sni", "servername":
+			switch val := v.(type) {
+			case string:
+				cleaned[k] = strings.TrimSpace(val)
+			case []any:
+				if len(val) > 0 && val[0] != nil {
+					cleaned[k] = strings.TrimSpace(fmt.Sprintf("%v", val[0]))
+				}
+			case []string:
+				if len(val) > 0 {
+					cleaned[k] = strings.TrimSpace(val[0])
+				}
+			default:
+				cleaned[k] = strings.TrimSpace(fmt.Sprintf("%v", val))
+			}
+		case "port", "server_port":
+			switch val := v.(type) {
+			case int:
+				cleaned[k] = val
+			case float64:
+				cleaned[k] = int(val)
+			case string:
+				if p, err := strconv.Atoi(strings.TrimSpace(val)); err == nil {
+					cleaned[k] = p
+				}
+			case []any:
+				if len(val) > 0 && val[0] != nil {
+					if p, err := strconv.Atoi(fmt.Sprintf("%v", val[0])); err == nil {
+						cleaned[k] = p
+					}
+				}
+			case []int:
+				if len(val) > 0 {
+					cleaned[k] = val[0]
+				}
+			default:
+				cleaned[k] = v
+			}
+		default:
+			cleaned[k] = v
+		}
+	}
+	return cleaned
 }
 
 // IsLoopbackOrDeadlockDNS checks whether a DNS address is a loopback, unspecified,
