@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v8.1-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v8.2-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -77,7 +77,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 Test v8.1 最新版本更新亮点](#announcement)
+- [📢 Test v8.2 最新版本更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -324,14 +324,14 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v8.1 官方正式版重磅更新亮点 (工业级高可用稳态调优 · 极简低开销守护 · 60FPS 极速丝滑加固)
+## 📢 Test v8.2 官方正式版重磅更新亮点 (工业级高可用稳态调优 · 极简低开销守护 · 60FPS 极速丝滑加固)
 
 > [!IMPORTANT]
-> ### 👑【工业级高可用稳态调优 · 极简低开销守护 · 60FPS 极速丝滑加固】(CubeX Test v8.1 官方正式版)
+> ### 👑【工业级高可用稳态调优 · 极简低开销守护 · 60FPS 极速丝滑加固】(CubeX Test v8.2 官方正式版)
 >
 > **致所有追求极致网络稳定性、工业级高可用与彻底免折腾的极客玩家：**
 >
-> 今天正式发布的 **CubeX Test v8.1** 带来以下核心改进与突破：
+> 今天正式发布的 **CubeX Test v8.2** 带来以下核心改进与突破：
 >
 > 1. 🛡️ **【后台 0 自动测速与探针偷跑 · 连接池零虚高】**：
 >    * 停用后台自发性高频自动探测与空转轮询，彻底杜绝因网络瞬间轻微抖动导致的自动频繁切节点和网络会话重置；
@@ -349,7 +349,7 @@
 >    * 历经 RouterOS、爱快 iKuai、OpenWrt 三大底座真机断电拔线高强度演练，全部满分通过；
 >    * 真实环境双引擎连续两轮四次无感热切换实测通过，国内直连、海外穿透与解析干净度 100% 稳定可靠。
 >
-> 无论是追求极致画质与秒开体验的高刷玩家，还是守护全家老小安稳上网的家庭主管，CubeX Test v8.1 都能为您提供坚如磐石的安心保障！
+> 无论是追求极致画质与秒开体验的高刷玩家，还是守护全家老小安稳上网的家庭主管，CubeX Test v8.2 都能为您提供坚如磐石的安心保障！
 
 ---
 
@@ -361,11 +361,11 @@
 
 | 发布物文件名 | 适用宿主与架构 | 估算大小 | 说明与用途 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v8.1-ros-amd64.tar` | 软路由系统 (x86 软路由) | 100.65 MB | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-Test-v8.1-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 100.99 MB | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-Test-v8.1-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 83.95 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-Test-v8.1-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 95.22 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-Test-v8.1-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 87.80 MB | ARM64 完整归档发布包 |
+| `CubeX-Test-v8.2-ros-amd64.tar` | 软路由系统 (x86 软路由) | 100.65 MB | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-Test-v8.2-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 100.99 MB | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-Test-v8.2-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 83.95 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-Test-v8.2-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 95.22 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-Test-v8.2-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 87.80 MB | ARM64 完整归档发布包 |
 | `cubexd-linux-amd64` | Linux amd64 | 50.47 MB | 纯 Go 单二进制控制面（代码加固版，用于在线平滑热更新） |
 | `cubexd-linux-arm64` | Linux arm64 | 45.94 MB | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 CLI | 16.99 MB | 纯 Go 运维 CLI 工具（终端直接运行，精简运维命令行） |
