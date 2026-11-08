@@ -2828,7 +2828,7 @@
 
                     <span class="text-xs transition-transform duration-200" :class="{ 'rotate-180': isSubDrawerExpanded(sub.id) }">▾</span>
 
-                    <span class="font-bold">{{ expandedSubDrawers.has(sub.id) ? '收起节点列表' : '展开全部节点' }}</span>
+                    <span class="font-bold">{{ isSubDrawerExpanded(sub.id) ? '收起节点列表' : '展开全部节点' }}</span>
 
                     <span class="text-slate-400 group-hover:text-emerald-300">({{ subNodesMap[sub.id]?.length || 0 }} 个节点)</span>
 
@@ -2836,7 +2836,7 @@
 
                   <span class="text-[11px] font-mono text-slate-300">
 
-                    {{ expandedSubDrawers.has(sub.id) ? '已展开全部节点' : '默认收起 · 点击展开查看并测速' }}
+                    {{ isSubDrawerExpanded(sub.id) ? '已展开全部节点' : '默认收起 · 点击展开查看并测速' }}
 
                   </span>
 
@@ -7949,7 +7949,7 @@
 
                   <button @click="toggleSubDrawer(sub.id)" class="text-emerald-300 hover:text-emerald-300 font-bold underline">
 
-                    {{ expandedSubDrawers.has(sub.id) ? '收起详情' : `展开节点 (${sub.node_count || 0})` }}
+                    {{ isSubDrawerExpanded(sub.id) ? '收起详情' : `展开节点 (${sub.node_count || 0})` }}
 
                   </button>
 
@@ -24053,7 +24053,7 @@ const groupRejectMap = computed(() => {
 
 const subHealthMap = computed(() => {
   const map = {}
-  const subs = subscriptions.value || []
+  const subs = ir.value?.subscriptions || []
   for (let i = 0; i < subs.length; i++) {
     const s = subs[i]
     map[s.id || s.name || i] = getSubHealth(s)
@@ -24103,14 +24103,14 @@ const candidateFlagMap = computed(() => {
 
 const subMetaMap = computed(() => {
   const map = {}
-  const subs = subscriptions.value || []
+  const subs = ir.value?.subscriptions || []
   for (let i = 0; i < subs.length; i++) {
     const s = subs[i]
     map[s.id || s.name || i] = {
-      testedText: `(${subTestedCountMap.value[s.id] || 0}/${subNodesMap.value[s.id]?.length || 0})`,
+      testedText: `(${subTestedCountMap.value?.[s.id] || 0}/${subNodesMap.value?.[s.id]?.length || 0})`,
       updatedAtText: `更新于 ${formatSubUpdatedAt(s.updated_at)} · 每天 00:00 自动更新`,
       expireText: formatSubExpire(s.expire_at),
-      nodeCountText: `${subNodesMap.value[s.id]?.length || 0} 个节点`,
+      nodeCountText: `${subNodesMap.value?.[s.id]?.length || 0} 个节点`,
       resetInfo: getSubResetInfo(s),
       timeAgo: formatTimeAgo(s.updated_at),
       expireObj: formatExpire(s.expire_at)
@@ -24125,7 +24125,7 @@ const systemMemoryFormatted = computed(() => {
 
 const subQuotaMap = computed(() => {
   const map = {}
-  const subs = subscriptions.value || []
+  const subs = ir.value?.subscriptions || []
   for (let i = 0; i < subs.length; i++) {
     const s = subs[i]
     map[s.id || s.name || i] = getSubQuota(s)

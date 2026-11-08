@@ -15,9 +15,6 @@
         <div>
           <h3 class="text-white font-semibold text-base tracking-wide flex items-center gap-2">
             全息订阅源 SLA 质量矩阵
-            <span class="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30">
-              Test v5.5 动态画像
-            </span>
           </h3>
           <p class="text-xs text-slate-400 mt-0.5">多源可用率比对 · 中位数延迟透视 · 故障节点自动筛查</p>
         </div>
