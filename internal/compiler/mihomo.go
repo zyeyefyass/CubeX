@@ -107,7 +107,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		"find-process-mode": "off",
 
-		"keep-alive-idle": 600,
+		"keep-alive-idle": 30,
 
 		"keep-alive-interval": 15,
 	}
@@ -203,11 +203,6 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			},
 
 			"TLS": map[string]any{
-				"ports": []int{443, 8443},
-				"override-destination": false,
-			},
-
-			"QUIC": map[string]any{
 				"ports": []int{443, 8443},
 				"override-destination": false,
 			},
@@ -402,7 +397,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		"cache-algorithm": "arc",
 
-		"cache-size": 8192,
+		"cache-size": 2048,
 
 		"prefer-h3": false,
 

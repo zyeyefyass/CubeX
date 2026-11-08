@@ -628,7 +628,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 		"strategy": "prefer_ipv4",
 
-		"cache_capacity": 8192,
+		"cache_capacity": 2048,
 
 		"optimistic": map[string]any{
 
@@ -1806,6 +1806,8 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		"inbound": []string{"tun-in", "tproxy-in", "redir-in", "mixed-in"},
 
 		"action": "sniff",
+
+		"sniffer": []string{"http", "tls"},
 
 		"timeout": "150ms",
 	})

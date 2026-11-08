@@ -529,13 +529,41 @@ type Server struct {
 
 func configureAdaptiveMemoryLimit() {
 
-	// Base fallback: 32MiB default ceiling for cubexd control plane
+	// Base fallback: 24MiB default ceiling for cubexd control plane
 
-	limit := int64(32 * 1024 * 1024)
+	limit := int64(24 * 1024 * 1024)
 
-	gcPercent := 50
+	gcPercent := 40
 
-	// Check total system RAM on Linux via /proc/meminfo
+	totalMb := int64(1024)
+
+	// 1. Check cgroups v2 memory.max
+	if data, err := os.ReadFile("/sys/fs/cgroup/memory.max"); err == nil {
+		str := strings.TrimSpace(string(data))
+		if str != "" && str != "max" {
+			if bytesVal, err := strconv.ParseInt(str, 10, 64); err == nil && bytesVal > 0 {
+				mb := bytesVal / (1024 * 1024)
+				if mb > 0 && mb < totalMb {
+					totalMb = mb
+				}
+			}
+		}
+	}
+
+	// 2. Check cgroups v1 memory.limit_in_bytes
+	if data, err := os.ReadFile("/sys/fs/cgroup/memory/memory.limit_in_bytes"); err == nil {
+		str := strings.TrimSpace(string(data))
+		if str != "" {
+			if bytesVal, err := strconv.ParseInt(str, 10, 64); err == nil && bytesVal > 0 && bytesVal < (1<<60) {
+				mb := bytesVal / (1024 * 1024)
+				if mb > 0 && mb < totalMb {
+					totalMb = mb
+				}
+			}
+		}
+	}
+
+	// 3. Check total system RAM on Linux via /proc/meminfo
 
 	if data, err := os.ReadFile("/proc/meminfo"); err == nil {
 
@@ -549,31 +577,11 @@ func configureAdaptiveMemoryLimit() {
 
 					if totalKb, err := strconv.ParseInt(fields[1], 10, 64); err == nil {
 
-						totalMb := totalKb / 1024
+						mb := totalKb / 1024
 
-						if totalMb <= 512 {
+						if mb > 0 && (totalMb == 1024 || mb < totalMb) {
 
-							limit = 24 * 1024 * 1024 // 512M CHR: 24MiB
-
-							gcPercent = 40
-
-						} else if totalMb <= 1024 {
-
-							limit = 32 * 1024 * 1024 // 1GB router: 32MiB
-
-							gcPercent = 50
-
-						} else if totalMb <= 2048 {
-
-							limit = 40 * 1024 * 1024 // 2GB host: 40MiB
-
-							gcPercent = 50
-
-						} else {
-
-							limit = 64 * 1024 * 1024 // 4GB+ PVE/fnOS: 64MiB
-
-							gcPercent = 60
+							totalMb = mb
 
 						}
 
@@ -589,11 +597,43 @@ func configureAdaptiveMemoryLimit() {
 
 	}
 
+	if totalMb <= 256 {
+
+		limit = 16 * 1024 * 1024 // 256M container: 16MiB
+
+		gcPercent = 30
+
+	} else if totalMb <= 512 {
+
+		limit = 20 * 1024 * 1024 // 512M CHR: 20MiB
+
+		gcPercent = 35
+
+	} else if totalMb <= 1024 {
+
+		limit = 28 * 1024 * 1024 // 1GB router: 28MiB
+
+		gcPercent = 45
+
+	} else if totalMb <= 2048 {
+
+		limit = 36 * 1024 * 1024 // 2GB host: 36MiB
+
+		gcPercent = 50
+
+	} else {
+
+		limit = 48 * 1024 * 1024 // 4GB+ PVE/fnOS: 48MiB
+
+		gcPercent = 50
+
+	}
+
 	debug.SetMemoryLimit(limit)
 
 	debug.SetGCPercent(gcPercent)
 
-	log.Printf("🛡️ [Supervisor] Adaptive GOMEMLIMIT configured: %d MiB (GCPercent=%d)\n", limit/(1024*1024), gcPercent)
+	log.Printf("🛡️ [Supervisor] Adaptive GOMEMLIMIT configured: %d MiB (GCPercent=%d, DetectedRAM=%dMB)\n", limit/(1024*1024), gcPercent, totalMb)
 
 }
 
@@ -674,20 +714,18 @@ func main() {
 	// Periodic OOM Defense & Memory Scavenger: Reclaims idle heap pages back to OS
 
 	go func() {
+		// Initial post-boot scavenge: prompt cleanup after config compilation
+		time.Sleep(15 * time.Second)
+		runtime.GC()
+		debug.FreeOSMemory()
 
-		scavengeInterval := 5 * time.Minute
+		scavengeInterval := 3 * time.Minute
 		ticker := time.NewTicker(scavengeInterval)
-
 		defer ticker.Stop()
-
 		for range ticker.C {
-
 			runtime.GC()
-
 			debug.FreeOSMemory()
-
 		}
-
 	}()
 
 	listenAddr := flag.String("listen", ":2026", "Listen address (e.g. :2026 or 0.0.0.0:2026)")

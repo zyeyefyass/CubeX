@@ -359,7 +359,7 @@ sed -i 's|http://|https://|g' /etc/apk/repositories 2>/dev/null || true
 mkdir -p /opt/CubeX/bin /opt/CubeX/data /opt/CubeX/etc /opt/CubeX/rules
 EOF
 
-echo -e "   -> ${BOLD}[5.3/5.4] 正在配置 OpenRC 系统级守护进程 (含 180MB GOMEMLIMIT 防爆保护)...${NC}"
+echo -e "   -> ${BOLD}[5.3/5.4] 正在配置 OpenRC 系统级守护进程 (含 自适应 GOMEMLIMIT 防爆保护)...${NC}"
 pct exec "$CT_ID" -- sh -s << 'EOF'
 set -e
 cat << "INIT" > /etc/init.d/cubexd
@@ -374,8 +374,9 @@ respawn_max=0
 output_log="/var/log/cubexd.log"
 error_log="/var/log/cubexd.err"
 
-export GOMEMLIMIT="180MiB"
-export GOGC="80"
+export GOMEMLIMIT="35MiB"
+export GOGC="30"
+export GODEBUG="madvdontneed=1"
 export TZ="Asia/Shanghai"
 
 depend() {

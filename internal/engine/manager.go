@@ -579,56 +579,84 @@ func (m *Manager) findBinary(binName string) string {
 
 }
 
-func getAdaptiveGOMEMLIMIT() string {
+func detectTotalRAMMb() int64 {
+	totalMb := int64(1024) // Sensible default
 
-	limitMb := 90
-
-	if data, err := os.ReadFile("/proc/meminfo"); err == nil {
-
-		for _, line := range strings.Split(string(data), "\n") {
-
-			if strings.HasPrefix(line, "MemTotal:") {
-
-				fields := strings.Fields(line)
-
-				if len(fields) >= 2 {
-
-					if totalKb, err := strconv.ParseInt(fields[1], 10, 64); err == nil {
-
-						totalMb := totalKb / 1024
-
-						if totalMb <= 512 {
-
-							limitMb = 70 // 512M CHR / router: 70MiB ceiling prevents OOM
-
-						} else if totalMb <= 1024 {
-
-							limitMb = 85 // 1GB host: 85MiB
-
-						} else if totalMb <= 2048 {
-
-							limitMb = 96 // 2GB host: 96MiB ceiling prevents container OOM
-
-						} else {
-
-							limitMb = 160 // 4GB+ fnOS / PVE: 160MiB for line-speed multi-gigabit
-
-						}
-
-					}
-
+	// 1. Check cgroups v2 memory.max
+	if data, err := os.ReadFile("/sys/fs/cgroup/memory.max"); err == nil {
+		str := strings.TrimSpace(string(data))
+		if str != "" && str != "max" {
+			if bytesVal, err := strconv.ParseInt(str, 10, 64); err == nil && bytesVal > 0 {
+				mb := bytesVal / (1024 * 1024)
+				if mb > 0 && mb < totalMb {
+					totalMb = mb
 				}
-
-				break
-
 			}
-
 		}
-
 	}
 
-	return fmt.Sprintf("GOMEMLIMIT=%dMiB", limitMb)
+	// 2. Check cgroups v1 memory.limit_in_bytes
+	if data, err := os.ReadFile("/sys/fs/cgroup/memory/memory.limit_in_bytes"); err == nil {
+		str := strings.TrimSpace(string(data))
+		if str != "" {
+			if bytesVal, err := strconv.ParseInt(str, 10, 64); err == nil && bytesVal > 0 && bytesVal < (1<<60) {
+				mb := bytesVal / (1024 * 1024)
+				if mb > 0 && mb < totalMb {
+					totalMb = mb
+				}
+			}
+		}
+	}
 
+	// 3. Check /proc/meminfo
+	if data, err := os.ReadFile("/proc/meminfo"); err == nil {
+		for _, line := range strings.Split(string(data), "\n") {
+			if strings.HasPrefix(line, "MemTotal:") {
+				fields := strings.Fields(line)
+				if len(fields) >= 2 {
+					if totalKb, err := strconv.ParseInt(fields[1], 10, 64); err == nil {
+						mb := totalKb / 1024
+						if mb > 0 && (totalMb == 1024 || mb < totalMb) {
+							totalMb = mb
+						}
+					}
+				}
+				break
+			}
+		}
+	}
+
+	return totalMb
+}
+
+func getAdaptiveEngineMemoryLimits() (gomemlimit string, gogc string) {
+	totalMb := detectTotalRAMMb()
+	limitMb := 80
+	gc := 40
+
+	if totalMb <= 256 {
+		limitMb = 45 // 256M container / CHR: 45MiB keeps core RSS under 60MB
+		gc = 25
+	} else if totalMb <= 512 {
+		limitMb = 60 // 512M CHR / router: 60MiB
+		gc = 30
+	} else if totalMb <= 1024 {
+		limitMb = 80 // 1GB host: 80MiB
+		gc = 40
+	} else if totalMb <= 2048 {
+		limitMb = 96 // 2GB host: 96MiB
+		gc = 45
+	} else {
+		limitMb = 120 // 4GB+ host: 120MiB for line-speed multi-gigabit
+		gc = 50
+	}
+
+	return fmt.Sprintf("GOMEMLIMIT=%dMiB", limitMb), fmt.Sprintf("GOGC=%d", gc)
+}
+
+func getAdaptiveGOMEMLIMIT() string {
+	limit, _ := getAdaptiveEngineMemoryLimits()
+	return limit
 }
 
 func (m *Manager) buildCmd(eng schema.EngineType, binPath, etcDir, configPath string) *exec.Cmd {
@@ -648,19 +676,13 @@ func (m *Manager) buildCmd(eng schema.EngineType, binPath, etcDir, configPath st
 	}
 
 	// High-Performance Go Runtime & GC tuning:
-
 	// Adaptive GOMEMLIMIT ensures tight memory ceiling on routers and containers,
-
-	// with GOGC=50 for prompt garbage reclamation of network packets and TLS buffers.
-
+	// with dynamic GOGC for prompt garbage reclamation of network packets and TLS buffers.
+	limitEnv, gcEnv := getAdaptiveEngineMemoryLimits()
 	cmd.Env = append(os.Environ(),
-
-		getAdaptiveGOMEMLIMIT(),
-
-		"GOGC=50",
-
+		limitEnv,
+		gcEnv,
 		"GODEBUG=madvdontneed=1",
-
 		"ENABLE_DEPRECATED_OUTBOUND_DNS_RULE_ITEM=true",
 	)
 
