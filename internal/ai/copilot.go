@@ -642,7 +642,7 @@ func (c *Copilot) offlineResponse(prompt string) string {
 		report += "⚡ 优化与加速建议：\n"
 		report += "1. 建议在「订阅配置」中开启「最低延迟 (url-test)」，系统将自动探测并切换最优节点；\n"
 		report += "2. 建议定期在「规则分流」中更新 217heidai 拦截规则库，保持最新的反追踪与纯净解析能力；\n"
-		report += "3. 国内拉取 Docker 镜像或更新规则缓慢时，可在「下载加速」中一键启用 KSpeeder 镜像加速通道。\n\n"
+		report += "3. 系统已支持双核秒级热切换与路由自动保活，可在诊断板块进行故障演练。\n\n"
 		report += "💡 提示：当前由 CubeX 内置零折腾智能专家引擎实时生成。您也可以在右上角配置 OpenCode Zen 或通义千问 API Key 启用云端深度推理。"
 		return report
 

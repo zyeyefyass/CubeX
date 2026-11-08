@@ -169,9 +169,9 @@
     </svg>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <!-- 4. KSPEEDER (容器加速 / 极速): 动物城穿梭特快磁悬浮列车 · 极速光轨 -->
+    <!-- 4. TRAIN / SPEED (动车 / 极速): 动物城穿梭特快磁悬浮列车 · 极速光轨 -->
     <!-- ══════════════════════════════════════════════════════════════════════ -->
-    <svg v-else-if="normalizedName === 'kspeeder' || normalizedName === 'train' || normalizedName === 'speed'"
+    <svg v-else-if="normalizedName === 'train' || normalizedName === 'speed'"
       :width="computedSize" :height="computedSize" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="zt-train-body" x1="6" y1="26" x2="26" y2="6" gradientUnits="userSpaceOnUse">
@@ -579,7 +579,6 @@ const defaultTitle = computed(() => {
     overview: '网络中枢 · 动物城中央生态大都会全景',
     routing: '应用分流 · 动物城全生态领航罗盘',
     rules: '安全防护 · ZPD 朱迪警官荣誉金星八角警徽',
-    kspeeder: '容器加速 · 动物城穿梭特快磁悬浮列车',
     system: '宿主共生 · 生态调控动力晶核双环齿轮',
     ai: 'AI管家 · 动物城全息智慧晶核与伴生网络领航员',
     copilot: 'AI管家 · 动物城全息智慧晶核与伴生网络领航员',

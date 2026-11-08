@@ -45,7 +45,6 @@ import (
 
 	"time"
 
-	"github.com/zyeyefyass/CubeX/internal/accelerator"
 	"github.com/zyeyefyass/CubeX/internal/affinity"
 	"github.com/zyeyefyass/CubeX/internal/perf"
 	"github.com/zyeyefyass/CubeX/internal/happyeyeballs"
@@ -409,8 +408,6 @@ type Server struct {
 	rosMgr *ros.Manager
 
 	devMgr *device.Manager
-
-	kspeeder *accelerator.KSpeeder
 
 	qosScheduler *qos.Scheduler
 
@@ -854,10 +851,6 @@ func main() {
 
 	devMgr := device.NewManager(dir, rosMgr, fmt.Sprintf("http://127.0.0.1:%d", cfgIR.Network.ClashAPIPort))
 
-	// KSpeeder Engine (GitHub CDN & Docker Registry Acceleration)
-
-	kspeeder := accelerator.NewKSpeeder(dir)
-
 	// Ring Log Buffer (Fixed 500 entries FIFO, strict RAM <2MB)
 
 	logBuffer := NewRingLogBuffer(500)
@@ -903,8 +896,6 @@ func main() {
 		rosMgr: rosMgr,
 
 		devMgr: devMgr,
-
-		kspeeder: kspeeder,
 
 		qosScheduler:  qos.NewScheduler(filepath.Join(dir, "data", "qos-config.json")),
 		deltaRulesMgr: rules.NewDeltaManager(filepath.Join(dir, "data", "rules_manifest.json"), filepath.Join(dir, "data", "ir_cache.bin")),
@@ -1472,22 +1463,6 @@ func main() {
 	mux.HandleFunc("/api/v1/system/heal", srv.handleSystemHeal)
 	mux.HandleFunc("/api/v1/failover/trigger", srv.handleSmartPingTrigger)
 
-	// 10.1 KSpeeder Engine (GitHub CDN & Docker Mirrors)
-
-	mux.HandleFunc("/api/v1/accelerator/status", srv.handleKSpeederStatus)
-
-	mux.HandleFunc("/api/v1/accelerator/config", srv.handleKSpeederConfig)
-
-	mux.HandleFunc("/api/v1/accelerator/test-github", srv.handleKSpeederTestGitHub)
-
-	mux.HandleFunc("/api/v1/accelerator/test-docker", srv.handleKSpeederTestDocker)
-
-	mux.HandleFunc("/api/v1/accelerator/ros-docker-apply", srv.handleKSpeederHostRegistryApply)
-
-	mux.HandleFunc("/api/v1/accelerator/host-docker-apply", srv.handleKSpeederHostRegistryApply)
-
-	mux.HandleFunc("/api/v1/accelerator/host-docker-status", srv.handleKSpeederHostRegistryStatus)
-
 	// 10.2 Realtime Telemetry & Traffic Speed (Overview Module)
 
 	mux.HandleFunc("/api/v1/telemetry/traffic", srv.handleTelemetryTraffic)
@@ -1900,6 +1875,8 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 		"core_memory_mb": coreRSS,
 
 		"total_overhead_mb": totalOverhead,
+
+		"memory_bytes": int64(totalOverhead * 1024 * 1024),
 
 		"goroutines": runtime.NumGoroutine(),
 
@@ -7363,6 +7340,8 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 
 		"total_overhead_mb": totalOverhead,
 
+		"memory_bytes": int64(totalOverhead * 1024 * 1024),
+
 		"core_memory_mb": coreMem,
 
 		"app_memory_mb": memMB,
@@ -9742,404 +9721,6 @@ func (s *Server) handleRulesTrace(w http.ResponseWriter, r *http.Request) {
 
 		"active_node": fishNode,
 	})
-
-}
-
-// ──────────────────────────────────────────────
-
-// KSpeeder Acceleration Handlers
-
-// ──────────────────────────────────────────────
-
-func (s *Server) queryLiveHostDockerRegistry(activeMirror string) (liveRegistry string, synced bool, platID string) {
-
-	hostInfo := s.hostMgr.GetCachedHostInfo()
-
-	if hostInfo == nil || !hostInfo.Connected {
-
-		if probed, err := s.hostMgr.ProbeHost(); err == nil && probed != nil {
-
-			hostInfo = probed
-
-		}
-
-	}
-
-	rosConnected := s.rosMgr != nil && s.rosMgr.IsConnected()
-
-	isROS := rosConnected || (hostInfo != nil && hostInfo.PlatformID == "routeros")
-
-	if isROS {
-
-		platID = "routeros"
-
-		if s.rosMgr != nil {
-
-			if reg, err := s.rosMgr.GetContainerRegistryURL(); err == nil {
-
-				liveRegistry = reg
-
-			}
-
-		}
-
-	} else {
-
-		platID = "linux"
-
-		if hostInfo != nil && hostInfo.PlatformID != "" {
-
-			platID = hostInfo.PlatformID
-
-		}
-
-		if s.hostMgr != nil {
-
-			if reg, err := s.hostMgr.GetDockerRegistryMirror(); err == nil {
-
-				liveRegistry = reg
-
-			}
-
-		}
-
-	}
-
-	if liveRegistry != "" && activeMirror != "" {
-
-		synced = strings.TrimRight(strings.ToLower(liveRegistry), "/") == strings.TrimRight(strings.ToLower(activeMirror), "/")
-
-	}
-
-	return
-
-}
-
-func (s *Server) handleKSpeederStatus(w http.ResponseWriter, r *http.Request) {
-
-	status := s.kspeeder.GetStatus()
-
-	liveRegistry, hostSynced, platID := s.queryLiveHostDockerRegistry(status.ActiveDockerMirror)
-
-	resp := map[string]any{
-
-		"enabled": status.Enabled,
-
-		"active_github_proxy": status.ActiveGitHubProxy,
-
-		"active_docker_mirror": status.ActiveDockerMirror,
-
-		"github_proxies": status.GitHubProxies,
-
-		"docker_mirrors": status.DockerMirrors,
-
-		"auto_select_best": status.AutoSelectBest,
-
-		"last_tested_at": status.LastTestedAt,
-
-		"host_registry_url": liveRegistry,
-
-		"host_docker_synced": hostSynced,
-
-		"host_platform": platID,
-	}
-
-	sendJSON(w, resp)
-
-}
-
-func (s *Server) handleKSpeederConfig(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method != http.MethodPost {
-
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-
-		return
-
-	}
-
-	var cfg accelerator.Config
-
-	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
-
-		http.Error(w, err.Error(), http.StatusBadRequest)
-
-		return
-
-	}
-
-	if err := s.kspeeder.UpdateConfig(cfg); err != nil {
-
-		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
-
-		return
-
-	}
-
-	sendJSON(w, map[string]any{"status": "ok", "config": s.kspeeder.GetStatus()})
-
-}
-
-func (s *Server) handleKSpeederTestGitHub(w http.ResponseWriter, r *http.Request) {
-
-	nodes := s.kspeeder.TestGitHubProxies()
-
-	sendJSON(w, map[string]any{"status": "ok", "proxies": nodes, "active": s.kspeeder.GetStatus().ActiveGitHubProxy})
-
-}
-
-func (s *Server) handleKSpeederTestDocker(w http.ResponseWriter, r *http.Request) {
-
-	mirrors := s.kspeeder.TestDockerMirrors()
-
-	sendJSON(w, map[string]any{"status": "ok", "mirrors": mirrors, "active": s.kspeeder.GetStatus().ActiveDockerMirror})
-
-}
-
-func (s *Server) handleKSpeederHostRegistryStatus(w http.ResponseWriter, r *http.Request) {
-
-	activeMirror := s.kspeeder.GetStatus().ActiveDockerMirror
-
-	liveRegistry, synced, platID := s.queryLiveHostDockerRegistry(activeMirror)
-
-	hostName := "MikroTik RouterOS"
-
-	if platID != "routeros" {
-
-		hostInfo := s.hostMgr.GetCachedHostInfo()
-
-		if hostInfo != nil && hostInfo.OSName != "" {
-
-			hostName = hostInfo.OSName
-
-		} else {
-
-			hostName = "Linux 宿主"
-
-		}
-
-	}
-
-	sendJSON(w, map[string]any{
-
-		"ok": true,
-
-		"platform": platID,
-
-		"host_name": hostName,
-
-		"active_docker_mirror": activeMirror,
-
-		"host_registry_url": liveRegistry,
-
-		"synced": synced,
-	})
-
-}
-
-func (s *Server) handleKSpeederHostRegistryApply(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method != http.MethodPost {
-
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-
-		return
-
-	}
-
-	var reqBody struct {
-		Mirror string `json:"mirror"`
-	}
-
-	if r.Body != nil {
-
-		_ = json.NewDecoder(r.Body).Decode(&reqBody)
-
-	}
-
-	mirror := strings.TrimSpace(reqBody.Mirror)
-
-	if mirror == "" {
-
-		mirror = s.kspeeder.GetStatus().ActiveDockerMirror
-
-	}
-
-	if mirror == "" {
-
-		mirror = "https://atomhub.openatom.cn"
-
-	}
-
-	// Update local kspeeder config with this mirror if different
-
-	currCfg := s.kspeeder.GetStatus()
-
-	if currCfg.ActiveDockerMirror != mirror {
-
-		currCfg.ActiveDockerMirror = mirror
-
-		_ = s.kspeeder.UpdateConfig(currCfg)
-
-	}
-
-	// 1. Probe or retrieve cached host info
-
-	hostInfo := s.hostMgr.GetCachedHostInfo()
-
-	if hostInfo == nil || !hostInfo.Connected {
-
-		if probed, err := s.hostMgr.ProbeHost(); err == nil && probed != nil {
-
-			hostInfo = probed
-
-		}
-
-	}
-
-	rosConnected := s.rosMgr != nil && s.rosMgr.IsConnected()
-
-	// 2. Check if host is RouterOS
-
-	isROS := rosConnected || (hostInfo != nil && hostInfo.PlatformID == "routeros")
-
-	if isROS {
-
-		var err error
-
-		if s.rosMgr != nil {
-
-			err = s.rosMgr.SetContainerRegistryURL(mirror)
-
-		} else {
-
-			err = fmt.Errorf("RouterOS 组件未初始化")
-
-		}
-
-		if err != nil {
-
-			sendJSON(w, map[string]any{
-
-				"status": "error",
-
-				"platform": "routeros",
-
-				"host_name": "MikroTik RouterOS",
-
-				"error": "未能通过 REST 写入 RouterOS: " + err.Error(),
-			})
-
-			return
-
-		}
-
-		// Read back to verify live status
-
-		liveReg, _ := s.rosMgr.GetContainerRegistryURL()
-
-		if liveReg == "" {
-
-			liveReg = mirror
-
-		}
-
-		synced := strings.TrimRight(strings.ToLower(liveReg), "/") == strings.TrimRight(strings.ToLower(mirror), "/")
-
-		sendJSON(w, map[string]any{
-
-			"status": "applied",
-
-			"platform": "routeros",
-
-			"host_name": "MikroTik RouterOS",
-
-			"applied_mirror": mirror,
-
-			"host_registry_url": liveReg,
-
-			"synced": synced,
-
-			"message": fmt.Sprintf("🎉 已成功识别宿主【MikroTik RouterOS】，已将 Docker 镜像加速源【%s】一键写入容器仓库配置并核验生效！", liveReg),
-		})
-
-		return
-
-	}
-
-	// 3. Linux / fnOS / PVE / Debian / Ubuntu / Synology host branch
-
-	hostName := "Linux 宿主"
-
-	platID := "linux"
-
-	if hostInfo != nil {
-
-		if hostInfo.OSName != "" {
-
-			hostName = hostInfo.OSName
-
-		}
-
-		if hostInfo.PlatformID != "" {
-
-			platID = hostInfo.PlatformID
-
-		}
-
-	}
-
-	err := s.hostMgr.SetDockerRegistryMirror(mirror)
-
-	if err != nil {
-
-		sendJSON(w, map[string]any{
-
-			"status": "error",
-
-			"platform": platID,
-
-			"host_name": hostName,
-
-			"error": fmt.Sprintf("已识别宿主【%s】，但自动注入未完成 (%s)。请在「宿主共生」中保存 SSH 凭据以实现免密全自动直写。", hostName, err.Error()),
-		})
-
-		return
-
-	}
-
-	liveReg, _ := s.hostMgr.GetDockerRegistryMirror()
-
-	if liveReg == "" {
-
-		liveReg = mirror
-
-	}
-
-	synced := strings.TrimRight(strings.ToLower(liveReg), "/") == strings.TrimRight(strings.ToLower(mirror), "/")
-
-	sendJSON(w, map[string]any{
-
-		"status": "applied",
-
-		"platform": platID,
-
-		"host_name": hostName,
-
-		"applied_mirror": mirror,
-
-		"host_registry_url": liveReg,
-
-		"synced": synced,
-
-		"message": fmt.Sprintf("🎉 已成功识别宿主【%s】，已自动将镜像源写入 /etc/docker/daemon.json 并平滑重载 Docker 守护进程！", hostName),
-	})
-
-}
-
-func (s *Server) handleKSpeederROSRegistryApply(w http.ResponseWriter, r *http.Request) {
-
-	s.handleKSpeederHostRegistryApply(w, r)
 
 }
 

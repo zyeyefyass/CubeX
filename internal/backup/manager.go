@@ -18,7 +18,6 @@ type BackupData struct {
 	HostConfig json.RawMessage `json:"host_config,omitempty"`
 	ROSConfig  json.RawMessage `json:"ros_config,omitempty"`
 	Devices    json.RawMessage `json:"devices,omitempty"`
-	KSpeeder   json.RawMessage `json:"kspeeder,omitempty"`
 }
 
 // Manager handles exporting and importing full system configuration.
@@ -67,12 +66,6 @@ func (m *Manager) ExportBackup(version string) (*BackupData, error) {
 	devFile := filepath.Join(dataDir, "devices.json")
 	if d, err := os.ReadFile(devFile); err == nil {
 		b.Devices = json.RawMessage(d)
-	}
-
-	// 6. Export KSpeeder Config
-	kFile := filepath.Join(dataDir, "kspeeder-config.json")
-	if d, err := os.ReadFile(kFile); err == nil {
-		b.KSpeeder = json.RawMessage(d)
 	}
 
 	return b, nil
@@ -185,12 +178,6 @@ func (m *Manager) ImportBackup(b *BackupData) error {
 	if len(b.Devices) > 0 {
 		devFile := filepath.Join(dataDir, "devices.json")
 		_ = os.WriteFile(devFile, b.Devices, 0644)
-	}
-
-	// 6. Restore kspeeder-config.json if present
-	if len(b.KSpeeder) > 0 {
-		kFile := filepath.Join(dataDir, "kspeeder-config.json")
-		_ = os.WriteFile(kFile, b.KSpeeder, 0644)
 	}
 
 	return nil

@@ -71,7 +71,7 @@ type Manager struct {
 
 	configFile string
 
-	// URLOptimizer optionally rewrites download URLs through KSpeeder acceleration
+	// URLOptimizer optionally rewrites download URLs through custom mirror
 
 	URLOptimizer func(rawURL string) string
 
