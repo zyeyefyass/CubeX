@@ -6,7 +6,7 @@
 # ═════════════════════════════════════════════════════════════════════════════
 set -e
 
-VERSION="Test-v7.8"
+VERSION="Test-v7.9"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 RELEASE_DIR="$DIST_DIR/release"

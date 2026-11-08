@@ -472,6 +472,10 @@ type Server struct {
 	adaptiveSlicingMgr *netstack.AdaptiveSlicingManager
 	bpfBypassMgr       *host.BpfBypassManager
 	privacyMeshMgr     *dnsradar.PrivacyMeshManager
+	multiPathMgr       *netstack.MultiPathBondingManager
+	microQoSMgr        *netstack.MicroQoSManager
+	ecsDispatcherMgr   *dnsradar.ECSDispatcherManager
+	zeroTrustMgr       *security.ZeroTrustSandboxManager
 
 	logBuffer *RingLogBuffer
 
@@ -901,6 +905,10 @@ func main() {
 		adaptiveSlicingMgr: netstack.NewAdaptiveSlicingManager(filepath.Join(dir, "data")),
 		bpfBypassMgr:       host.NewBpfBypassManager(filepath.Join(dir, "data")),
 		privacyMeshMgr:     dnsradar.NewPrivacyMeshManager(filepath.Join(dir, "data")),
+		multiPathMgr:       netstack.NewMultiPathBondingManager(filepath.Join(dir, "data")),
+		microQoSMgr:        netstack.NewMicroQoSManager(filepath.Join(dir, "data")),
+		ecsDispatcherMgr:   dnsradar.NewECSDispatcherManager(filepath.Join(dir, "data")),
+		zeroTrustMgr:       security.NewZeroTrustSandboxManager(filepath.Join(dir, "data")),
 
 		logBuffer:    logBuffer,
 		delayCache:   make(map[string]delayCacheEntry),
@@ -921,7 +929,7 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v7.8")
+	srv.mcpServer = mcp.NewServer(srv, "Test v7.9")
 
 	srv.initTrafficState()
 
@@ -1245,6 +1253,32 @@ func main() {
 	mux.HandleFunc("/api/v1/dns/privacy-mesh/status", srv.handlePrivacyMeshStatus)
 	mux.HandleFunc("/api/v1/dns/privacy-mesh/tune", srv.handlePrivacyMeshTune)
 	mux.HandleFunc("/api/v1/dns/privacy-mesh/optimize", srv.handlePrivacyMeshOptimize)
+
+	// ── Test v7.9 四大核心演进架构路由 ──
+	// 维度一：多通道多路径智能微流并发聚合
+	mux.HandleFunc("/api/v1/network/multipath-bonding/status", srv.handleMultiPathBondingStatus)
+	mux.HandleFunc("/api/v1/network/multipath-bonding/toggle", srv.handleMultiPathBondingToggle)
+	mux.HandleFunc("/api/v1/network/multipath-bonding/channel/toggle", srv.handleMultiPathChannelToggle)
+	mux.HandleFunc("/api/v1/network/multipath-bonding/optimize", srv.handleMultiPathBondingOptimize)
+
+	// 维度二：微秒级流量特征感知与智能 QoS 抢占调度
+	mux.HandleFunc("/api/v1/network/micro-qos/status", srv.handleMicroQoSStatus)
+	mux.HandleFunc("/api/v1/network/micro-qos/toggle", srv.handleMicroQoSToggle)
+	mux.HandleFunc("/api/v1/network/micro-qos/gaming/toggle", srv.handleMicroQoSGamingToggle)
+	mux.HandleFunc("/api/v1/network/micro-qos/flush", srv.handleMicroQoSFlush)
+
+	// 维度三：运营商级智能 ECS 保真与 Anycast 就近调度总线
+	mux.HandleFunc("/api/v1/dns/ecs-dispatcher/status", srv.handleECSDispatcherStatus)
+	mux.HandleFunc("/api/v1/dns/ecs-dispatcher/toggle", srv.handleECSDispatcherToggle)
+	mux.HandleFunc("/api/v1/dns/ecs-dispatcher/mode", srv.handleECSDispatcherMode)
+	mux.HandleFunc("/api/v1/dns/ecs-dispatcher/optimize", srv.handleECSDispatcherOptimize)
+
+	// 维度四：局域网全协议零信任微隔离与设备沙盒
+	mux.HandleFunc("/api/v1/security/zerotrust/status", srv.handleZeroTrustStatus)
+	mux.HandleFunc("/api/v1/security/zerotrust/toggle", srv.handleZeroTrustToggle)
+	mux.HandleFunc("/api/v1/security/zerotrust/device/policy", srv.handleZeroTrustDevicePolicy)
+	mux.HandleFunc("/api/v1/security/zerotrust/device/quarantine", srv.handleZeroTrustDeviceQuarantine)
+	mux.HandleFunc("/api/v1/security/zerotrust/scan", srv.handleZeroTrustScan)
 
 	mux.HandleFunc("/api/v1/security/radar", srv.handleSecurityRadar)
 
@@ -11773,4 +11807,276 @@ func (s *Server) handlePrivacyMeshOptimize(w http.ResponseWriter, r *http.Reques
 	_ = s.privacyMeshMgr.Optimize()
 	s.logBuffer.Add("INFO", "DNS", "完成全协议 DNS 隐私网格防泄漏热校验")
 	sendJSON(w, map[string]any{"status": "ok", "privacy_mesh": s.privacyMeshMgr.GetStatus()})
+}
+
+
+// ── Test v7.9 四大核心演进架构 HTTP 处理句柄 ──
+
+// 维度一：多通道多路径智能微流并发聚合
+func (s *Server) handleMultiPathBondingStatus(w http.ResponseWriter, r *http.Request) {
+	if s.multiPathMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "multipath manager not initialized"})
+		return
+	}
+	st := s.multiPathMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "multipath_bonding": st})
+}
+
+func (s *Server) handleMultiPathBondingToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.multiPathMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "multipath manager not initialized"})
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	st := s.multiPathMgr.ToggleEnabled(req.Enabled)
+	sendJSON(w, map[string]any{"status": "ok", "multipath_bonding": st})
+}
+
+func (s *Server) handleMultiPathChannelToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.multiPathMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "multipath manager not initialized"})
+		return
+	}
+	var req struct {
+		ChannelID string `json:"channel_id"`
+		Active    bool   `json:"active"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	st, err := s.multiPathMgr.ToggleChannel(req.ChannelID, req.Active)
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{"status": "ok", "multipath_bonding": st})
+}
+
+func (s *Server) handleMultiPathBondingOptimize(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.multiPathMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "multipath manager not initialized"})
+		return
+	}
+	st := s.multiPathMgr.OptimizeAndRebalance()
+	s.logBuffer.Add("INFO", "NETSTACK", "已完成多路径链路探针，通道权重自适应再平衡")
+	sendJSON(w, map[string]any{"status": "ok", "multipath_bonding": st})
+}
+
+// 维度二：微秒级流量特征感知与智能 QoS 抢占调度
+func (s *Server) handleMicroQoSStatus(w http.ResponseWriter, r *http.Request) {
+	if s.microQoSMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "micro qos manager not initialized"})
+		return
+	}
+	st := s.microQoSMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "micro_qos": st})
+}
+
+func (s *Server) handleMicroQoSToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.microQoSMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "micro qos manager not initialized"})
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	st := s.microQoSMgr.ToggleEnabled(req.Enabled)
+	sendJSON(w, map[string]any{"status": "ok", "micro_qos": st})
+}
+
+func (s *Server) handleMicroQoSGamingToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.microQoSMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "micro qos manager not initialized"})
+		return
+	}
+	var req struct {
+		GamingPreemption bool `json:"gaming_preemption"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	st := s.microQoSMgr.SetGamingPreemption(req.GamingPreemption)
+	sendJSON(w, map[string]any{"status": "ok", "micro_qos": st})
+}
+
+func (s *Server) handleMicroQoSFlush(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.microQoSMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "micro qos manager not initialized"})
+		return
+	}
+	st := s.microQoSMgr.TriggerEmergencyFlush()
+	s.logBuffer.Add("INFO", "NETSTACK", "已执行网关积压缓冲区清算，电竞超车通道就绪")
+	sendJSON(w, map[string]any{"status": "ok", "micro_qos": st})
+}
+
+// 维度三：运营商级智能 ECS 保真与 Anycast 就近调度总线
+func (s *Server) handleECSDispatcherStatus(w http.ResponseWriter, r *http.Request) {
+	if s.ecsDispatcherMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "ecs dispatcher manager not initialized"})
+		return
+	}
+	st := s.ecsDispatcherMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "ecs_dispatcher": st})
+}
+
+func (s *Server) handleECSDispatcherToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.ecsDispatcherMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "ecs dispatcher manager not initialized"})
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	st := s.ecsDispatcherMgr.ToggleEnabled(req.Enabled)
+	sendJSON(w, map[string]any{"status": "ok", "ecs_dispatcher": st})
+}
+
+func (s *Server) handleECSDispatcherMode(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.ecsDispatcherMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "ecs dispatcher manager not initialized"})
+		return
+	}
+	var req struct {
+		Mode string `json:"mode"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	st, err := s.ecsDispatcherMgr.SetPreservationMode(req.Mode)
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{"status": "ok", "ecs_dispatcher": st})
+}
+
+func (s *Server) handleECSDispatcherOptimize(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.ecsDispatcherMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "ecs dispatcher manager not initialized"})
+		return
+	}
+	st := s.ecsDispatcherMgr.OptimizeECSProfiles()
+	s.logBuffer.Add("INFO", "DNS", "完成运营商 Anycast CDN 命中率深度巡检与优化")
+	sendJSON(w, map[string]any{"status": "ok", "ecs_dispatcher": st})
+}
+
+// 维度四：局域网全协议零信任微隔离与设备沙盒
+func (s *Server) handleZeroTrustStatus(w http.ResponseWriter, r *http.Request) {
+	if s.zeroTrustMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "zero trust manager not initialized"})
+		return
+	}
+	st := s.zeroTrustMgr.GetStatus()
+	sendJSON(w, map[string]any{"status": "ok", "zerotrust": st})
+}
+
+func (s *Server) handleZeroTrustToggle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.zeroTrustMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "zero trust manager not initialized"})
+		return
+	}
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	st := s.zeroTrustMgr.ToggleEnabled(req.Enabled)
+	sendJSON(w, map[string]any{"status": "ok", "zerotrust": st})
+}
+
+func (s *Server) handleZeroTrustDevicePolicy(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.zeroTrustMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "zero trust manager not initialized"})
+		return
+	}
+	var req struct {
+		MAC    string `json:"mac"`
+		Policy string `json:"policy"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	st, err := s.zeroTrustMgr.SetDevicePolicy(req.MAC, req.Policy)
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{"status": "ok", "zerotrust": st})
+}
+
+func (s *Server) handleZeroTrustDeviceQuarantine(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.zeroTrustMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "zero trust manager not initialized"})
+		return
+	}
+	var req struct {
+		MAC    string `json:"mac"`
+		Reason string `json:"reason"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	st, err := s.zeroTrustMgr.QuarantineDevice(req.MAC, req.Reason)
+	if err != nil {
+		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
+		return
+	}
+	s.logBuffer.Add("WARN", "SECURITY", fmt.Sprintf("设备 %s 已被强制送入气隙隔离沙盒", req.MAC))
+	sendJSON(w, map[string]any{"status": "ok", "zerotrust": st})
+}
+
+func (s *Server) handleZeroTrustScan(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.zeroTrustMgr == nil {
+		sendJSON(w, map[string]any{"status": "error", "message": "zero trust manager not initialized"})
+		return
+	}
+	st := s.zeroTrustMgr.HealAndScan()
+	s.logBuffer.Add("INFO", "SECURITY", "完成局域网零信任横向渗透巡检与微隔离加固")
+	sendJSON(w, map[string]any{"status": "ok", "zerotrust": st})
 }
