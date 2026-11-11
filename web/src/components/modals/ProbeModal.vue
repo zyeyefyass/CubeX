@@ -227,9 +227,9 @@
 
             </div>
 
-            <button v-if="app.hostUpgradeDetails.hasUpdate" @click="app.executeHostUpgrade" :disabled="upgradingHost" class="w-full py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition">
+            <button v-if="app.hostUpgradeDetails.hasUpdate" @click="app.executeHostUpgrade" :disabled="app.executingHostUpgrade" class="w-full py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition">
 
-              {{ upgradingHost ? '正在升级宿主...' : '一键升级宿主固件' }}
+              {{ app.executingHostUpgrade ? '正在升级宿主...' : '一键升级宿主固件' }}
 
             </button>
 

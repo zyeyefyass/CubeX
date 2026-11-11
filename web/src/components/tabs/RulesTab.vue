@@ -1068,7 +1068,8 @@
 </template>
 
 <script setup>
-import { inject } from 'vue'
+import { inject, ref } from 'vue'
 import ZootopiaIcon from '../ZootopiaIcon.vue'
 const app = inject('cubexApp')
+const showWhitelistSection = ref(false)
 </script>

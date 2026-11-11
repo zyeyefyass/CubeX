@@ -1,5 +1,5 @@
 <template>
-          <div v-if="showGeodataDetailModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div v-if="app.showGeodataDetailModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
 
             <div class="glass-matrix border border-emerald-500/40 rounded-3xl p-6 max-w-4xl w-full max-h-[85vh] flex flex-col shadow-2xl relative space-y-4">
 
@@ -35,7 +35,7 @@
 
                 </div>
 
-                <button @click="showGeodataDetailModal = false" class="text-slate-400 hover:text-white px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-sm font-bold transition cursor-pointer">✕</button>
+                <button @click="app.showGeodataDetailModal = false" class="text-slate-400 hover:text-white px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-sm font-bold transition cursor-pointer">✕</button>
 
               </div>
 
@@ -281,7 +281,7 @@
 
                   </button>
 
-                  <button @click="showGeodataDetailModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer">
+                  <button @click="app.showGeodataDetailModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer">
 
                     关闭
 

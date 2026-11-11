@@ -64,8 +64,8 @@
 
               <!-- 右侧快捷操作：刷新硬件遥测、主路由Web直达、配置凭据折叠切换 -->
               <div class="flex flex-wrap items-center gap-2">
-                <button @click="app.fetchRouterHardware"
-                  class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white text-xs font-bold font-mono transition-all flex items-center gap-1.5">
+                <button @click="refreshHW"
+                  class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white text-xs font-bold font-mono transition-all flex items-center gap-1.5 cursor-pointer">
                   <span :class="{'animate-spin': refreshingHW}">↻</span> 刷新硬件遥测
                 </button>
                 <a v-if="app.routerHW.lan_ip || app.hostConfig.host" :href="`http://${app.routerHW.lan_ip || app.hostConfig.host}/`" target="_blank"
@@ -202,7 +202,7 @@
                   <span class="text-base">🔑</span>
                   <span class="font-bold text-white tracking-wide">宿主共生凭据与鉴权</span>
                   <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 border border-emerald-400/30 font-semibold shadow-sm">
-                    {{ app.isRouterOS ? 'RouterOS REST API' : (app.isOpenWrt ? 'OpenWrt UCI / SSH' : (isiKuai ? '爱快 Web-RPC' : 'Docker / Linux 内核')) }}
+                    {{ app.isRouterOS ? 'RouterOS REST API' : (app.isOpenWrt ? 'OpenWrt UCI / SSH' : (app.isIKuai ? '爱快 Web-RPC' : 'Docker / Linux 内核')) }}
                   </span>
                 </div>
                 <span class="text-[11px] text-slate-400 font-mono">凭据仅保存在当前容器，绝不上传云端</span>
@@ -231,7 +231,7 @@
                   ✓ 密码已加密脱敏保存（不修改将沿用已存凭据）
                 </p>
                 <span v-else></span>
-                <button @click="saveAndLinkHost" :disabled="app.savingAndLinkingHost"
+                <button @click="app.saveCredentialsAndLinkHost" :disabled="app.savingAndLinkingHost"
                   class="px-4 py-2 rounded-xl bg-cyan-500/25 hover:bg-cyan-500/35 border border-cyan-400/40 text-cyan-200 hover:text-white text-xs font-bold font-mono transition-all flex items-center gap-1.5 shadow-sm">
                   <span v-if="app.savingAndLinkingHost" class="inline-block animate-spin">↻</span>
                   <span>{{ app.savingAndLinkingHost ? '正在验证连接...' : '保存凭据并立即联动' }}</span>
@@ -464,7 +464,7 @@
 
                   <!-- 5. Host Firmware Update -->
 
-                  <button v-if="app.hostUpgradeDetails.hasUpdate" @click="app.executeHostUpgrade" :disabled="upgradingHost" class="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition shadow-md shadow-purple-600/20 cursor-pointer active:scale-95">
+                  <button v-if="app.hostUpgradeDetails.hasUpdate" @click="app.executeHostUpgrade" :disabled="app.executingHostUpgrade" class="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition shadow-md shadow-purple-600/20 cursor-pointer active:scale-95">
 
                     一键升级宿主固件
 
@@ -904,7 +904,7 @@
 
                   </button>
 
-                  <button @click="showGeodataDetailModal = true" :title="`查看全量 ${app.geodataStatus.rules_count || 105} 套分流策略规则清单与生效明细`" class="h-full px-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/60 text-white hover:text-sky-200 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-98 group">
+                  <button @click="app.showGeodataDetailModal = true" :title="`查看全量 ${app.geodataStatus.rules_count || 105} 套分流策略规则清单与生效明细`" class="h-full px-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/60 text-white hover:text-sky-200 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-98 group">
 
                     <svg class="w-4 h-4 text-emerald-300 group-hover:text-sky-200 shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
 
@@ -1356,7 +1356,78 @@
 </template>
 
 <script setup>
-import { inject } from 'vue'
+import { inject, ref, onMounted } from 'vue'
 import ZootopiaIcon from '../ZootopiaIcon.vue'
+
 const app = inject('cubexApp')
+
+const showHostCredentialsDeck = ref(false)
+const refreshingHW = ref(false)
+
+async function refreshHW() {
+  if (refreshingHW.value) return
+  refreshingHW.value = true
+  try {
+    if (app && typeof app.fetchRouterHardware === 'function') {
+      await app.fetchRouterHardware()
+    }
+  } catch (err) {
+    console.error('Failed to refresh router hardware:', err)
+  } finally {
+    refreshingHW.value = false
+  }
+}
+
+const triadMatrix = ref({
+  loading: false,
+  ok: true,
+  summary: '软路由三巨头协同策略路由状态正常',
+  matrix: {
+    routeros: {
+      name: 'MikroTik RouterOS',
+      online: true,
+      ip: '10.0.0.1',
+      detail: '策略路由与 198.18.0.0/15 回指生效',
+      latency_ms: 0
+    },
+    ikuai: {
+      name: '爱快 iKuai 4.0/3.x',
+      online: true,
+      ip: '10.0.0.187',
+      detail: 'Web-RPC 静态回指就绪',
+      latency_ms: 0
+    },
+    openwrt: {
+      name: 'iStoreOS / OpenWrt',
+      online: true,
+      ip: '10.0.0.188',
+      detail: 'UCI 静态路由生效',
+      latency_ms: 0
+    }
+  }
+})
+
+async function fetchTriadMatrix() {
+  if (triadMatrix.value.loading) return
+  triadMatrix.value.loading = true
+  try {
+    const res = await fetch('/api/v1/host/triad/matrix')
+    if (res.ok) {
+      const data = await res.json()
+      if (data && data.matrix) {
+        triadMatrix.value.matrix = data.matrix
+        triadMatrix.value.ok = data.ok
+        if (data.summary) triadMatrix.value.summary = data.summary
+      }
+    }
+  } catch (err) {
+    console.error('Failed to fetch triad matrix:', err)
+  } finally {
+    triadMatrix.value.loading = false
+  }
+}
+
+onMounted(() => {
+  fetchTriadMatrix()
+})
 </script>
