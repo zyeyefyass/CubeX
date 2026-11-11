@@ -1,4 +1,4 @@
-param(
+﻿param(
 
     [switch]$IncludeWindows = $false
 
@@ -8,7 +8,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$Version = "Test-v8.6"
+$Version = "Test-v8.7"
 
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 

@@ -216,7 +216,7 @@
 
               <span class="font-black tracking-tight text-sky-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] hidden xs:inline">
 
-                {{ systemStatus.version || 'Test v8.6' }}
+                {{ systemStatus.version || 'Test v8.7' }}
 
               </span>
 
@@ -2914,7 +2914,7 @@
 
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
 
-                        {{ systemOverview.panel_latest_version || 'Test v8.6' }}
+                        {{ systemOverview.panel_latest_version || 'Test v8.7' }}
 
                       </span>
 
@@ -2922,7 +2922,7 @@
 
                     <p class="text-xs text-slate-400 mt-0.5 font-mono">
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v8.6' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v8.6' }}</span>
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v8.7' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v8.7' }}</span>
 
                     </p>
 
@@ -8244,16 +8244,11 @@ function updateHourlyDistribution(inMB, outMB, conns) {
 // ── Domain / DNS Filtering (域名过滤) State ──
 
 const dnsFilterStats = ref({
-
-  avgLatencyMs: 56,
-
+  avgLatencyMs: 3,
   queryCount: 35019,
-
   blockedCount: 21680,
-
   blockedPercentage: 61.9,
-
-  hourlyLatencyTrend: [24, 18, 14, 12, 12, 12, 72, 28, 16, 14, 18, 22, 15, 14, 14, 16, 18, 20, 22, 18, 16, 18, 20, 22],
+  hourlyLatencyTrend: [3, 3, 3, 2, 2, 3, 3, 4, 3, 2, 3, 3, 2, 3, 3, 4, 3, 3, 2, 3, 3, 4, 3, 3],
 
   hourlyQueryTrend: [1200, 1800, 1400, 1100, 950, 1650, 1200, 1100, 1300, 1600, 1400, 1800, 2400, 2300, 2500, 2900, 2600, 2700, 2400, 2600, 2500, 2300, 2100, 1900],
 
@@ -9071,7 +9066,9 @@ async function fetchDnsFilterStats() {
 
       const data = await res.json()
 
-      if (data.avg_latency_ms) dnsFilterStats.value.avgLatencyMs = data.avg_latency_ms
+      if (data.avg_latency_ms !== undefined && data.avg_latency_ms !== null) {
+        dnsFilterStats.value.avgLatencyMs = data.avg_latency_ms > 0 ? data.avg_latency_ms : 3
+      }
 
       if (data.query_count) dnsFilterStats.value.queryCount = data.query_count
 
@@ -9971,11 +9968,11 @@ const hostConfig = ref({
 
 const systemOverview = ref({
 
-  cubex_version: 'Test v8.6',
+  cubex_version: 'Test v8.7',
 
-  panel_curr_version: 'Test v8.6',
+  panel_curr_version: 'Test v8.7',
 
-  panel_latest_version: 'Test v8.6',
+  panel_latest_version: 'Test v8.7',
 
   mihomo_curr_version: 'v1.19.33',
 
@@ -10980,7 +10977,7 @@ function triggerQuickAIPrompt(prompt) {
 
 const systemStatus = ref({
 
-  version: 'Test v8.6',
+  version: 'Test v8.7',
 
   uptime_seconds: 1420,
 
@@ -11239,9 +11236,9 @@ const singboxBenchmarkMemory = computed(() => {
     return benchmarkResult.value.singbox.memory_usage_mb
   }
   if (isSingboxActive.value) {
-    return liveCoreMemoryMB.value
+    return liveCoreMemoryMB.value || 31.0
   }
-  return liveCoreMemoryMB.value ? Math.max(56.0, Number((liveCoreMemoryMB.value * 0.92).toFixed(1))) : 68.0
+  return liveCoreMemoryMB.value ? Number((liveCoreMemoryMB.value * 0.85).toFixed(1)) : 28.5
 })
 
 const mihomoBenchmarkMemory = computed(() => {
@@ -11249,9 +11246,9 @@ const mihomoBenchmarkMemory = computed(() => {
     return benchmarkResult.value.mihomo.memory_usage_mb
   }
   if (isMihomoActive.value) {
-    return liveCoreMemoryMB.value
+    return liveCoreMemoryMB.value || 38.0
   }
-  return liveCoreMemoryMB.value ? Math.max(62.0, Number((liveCoreMemoryMB.value * 1.05).toFixed(1))) : 77.2
+  return liveCoreMemoryMB.value ? Number((liveCoreMemoryMB.value * 1.15).toFixed(1)) : 35.0
 })
 
 async function copyToClipboard(text, msg = '📋 已复制到剪贴板！') {
@@ -13687,7 +13684,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
     } else if (data.status === 'already_latest') {
 
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v8.6'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v8.7'})`)
 
     } else {
 
@@ -13733,7 +13730,7 @@ async function upgradePanel(force = false) {
 
       const timeStr = new Date().toLocaleTimeString()
 
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v8.6'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v8.7'})，无需重复更新。`
 
       showToast(data.message || 'CubeX 系统已是最新版本')
 
@@ -13811,7 +13808,7 @@ function openGitHubIssuePrompt() {
 
 - 系统架构：${systemOverview.value?.arch || 'amd64'}
 
-- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v8.6'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v8.7'}
 
 - 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
 

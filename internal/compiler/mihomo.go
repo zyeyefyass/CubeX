@@ -216,10 +216,10 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		},
 	}
 
-	// Profile for persistent selection storage (store-fake-ip disabled to prevent stale cross-core desync)
+	// Profile for persistent selection storage
 	cfg["profile"] = map[string]any{
 		"store-selected": true,
-		"store-fake-ip":  false,
+		"store-fake-ip":  true,
 	}
 
 	// Determine outbound proxy group for remote DoH queries

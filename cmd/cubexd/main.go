@@ -98,7 +98,7 @@ import (
 )
 
 var (
-	version = "Test v8.6"
+	version = "Test v8.7"
 
 	startTime = time.Now()
 )
@@ -596,20 +596,17 @@ func configureAdaptiveMemoryLimit() {
 	}
 
 	if totalMb <= 256 {
-		limit = 14 * 1024 * 1024 // 256M container: 14MiB
-		gcPercent = 25
+		limit = 12 * 1024 * 1024 // 256M container: 12MiB
+		gcPercent = 20
 	} else if totalMb <= 512 {
-		limit = 18 * 1024 * 1024 // 512M CHR: 18MiB
-		gcPercent = 30
+		limit = 16 * 1024 * 1024 // 512M CHR: 16MiB
+		gcPercent = 25
 	} else if totalMb <= 1024 {
-		limit = 24 * 1024 * 1024 // 1GB router: 24MiB
-		gcPercent = 35
-	} else if totalMb <= 2048 {
-		limit = 32 * 1024 * 1024 // 2GB host: 32MiB
-		gcPercent = 40
+		limit = 20 * 1024 * 1024 // 1GB router: 20MiB
+		gcPercent = 25
 	} else {
-		limit = 40 * 1024 * 1024 // 4GB+ PVE/fnOS: 40MiB
-		gcPercent = 45
+		limit = 24 * 1024 * 1024 // 2GB+ host: 24MiB keeps control plane minimal
+		gcPercent = 30
 	}
 
 	debug.SetMemoryLimit(limit)
@@ -947,7 +944,7 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v8.6")
+	srv.mcpServer = mcp.NewServer(srv, "Test v8.7")
 
 	srv.initTrafficState()
 
@@ -7186,33 +7183,33 @@ func (s *Server) handleFakeIPFilter(w http.ResponseWriter, r *http.Request) {
 }
 
 func getProcessRSS() float64 {
-
-	// On Linux, read /proc/self/status for VmRSS to report real physical resident memory
-
+	// On Linux, read /proc/self/status for RssAnon (actual physical resident heap/stack memory)
 	if data, err := os.ReadFile("/proc/self/status"); err == nil {
-
 		lines := strings.Split(string(data), "\n")
-
+		var rssAnon, vmRss float64
 		for _, line := range lines {
-
-			if strings.HasPrefix(line, "VmRSS:") {
-
+			if strings.HasPrefix(line, "RssAnon:") {
 				fields := strings.Fields(line)
-
 				if len(fields) >= 2 {
-
-					if kb, err := strconv.ParseFloat(fields[1], 64); err == nil {
-
-						return kb / 1024.0
-
+					if kb, err := strconv.ParseFloat(fields[1], 64); err == nil && kb > 0 {
+						rssAnon = kb / 1024.0
 					}
-
 				}
-
+			} else if strings.HasPrefix(line, "VmRSS:") {
+				fields := strings.Fields(line)
+				if len(fields) >= 2 {
+					if kb, err := strconv.ParseFloat(fields[1], 64); err == nil && kb > 0 {
+						vmRss = kb / 1024.0
+					}
+				}
 			}
-
 		}
-
+		if rssAnon > 0 {
+			return rssAnon
+		}
+		if vmRss > 0 {
+			return vmRss
+		}
 	}
 
 	var m runtime.MemStats

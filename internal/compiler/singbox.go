@@ -698,7 +698,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"strict_route": false,
 
 				"stack": tunStack,
-
+				"udp_timeout": "30s",
 				"endpoint_independent_nat": true,
 
 				"route_exclude_address": []string{
@@ -2819,7 +2819,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 			"path": "singbox_cache.db",
 
-			"store_fakeip": false,
+			"store_fakeip": true,
 
 			"store_dns": true,
 		},

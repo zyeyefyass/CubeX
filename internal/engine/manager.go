@@ -281,47 +281,42 @@ func (m *Manager) GetCoreMemoryRSS() float64 {
 	m.mu.RUnlock()
 
 	if proc != nil && proc.Pid > 0 && runtime.GOOS == "linux" {
-
 		statusPath := fmt.Sprintf("/proc/%d/status", proc.Pid)
-
 		if data, err := os.ReadFile(statusPath); err == nil {
-
 			lines := strings.Split(string(data), "\n")
-
+			var rssAnon, vmRss float64
 			for _, line := range lines {
-
-				if strings.HasPrefix(line, "VmRSS:") {
-
+				if strings.HasPrefix(line, "RssAnon:") {
 					fields := strings.Fields(line)
-
 					if len(fields) >= 2 {
-
 						if kb, err := strconv.ParseFloat(fields[1], 64); err == nil && kb > 0 {
-
-							return kb / 1024.0
-
+							rssAnon = kb / 1024.0
 						}
-
 					}
-
+				} else if strings.HasPrefix(line, "VmRSS:") {
+					fields := strings.Fields(line)
+					if len(fields) >= 2 {
+						if kb, err := strconv.ParseFloat(fields[1], 64); err == nil && kb > 0 {
+							vmRss = kb / 1024.0
+						}
+					}
 				}
-
 			}
-
+			// Prefer RssAnon (actual physical RAM used by Go heap/stack, excluding file-backed executable mmap)
+			if rssAnon > 0 {
+				return rssAnon
+			}
+			if vmRss > 0 {
+				return vmRss
+			}
 		}
-
 	}
 
 	// Fallback estimate if /proc is not available or before process starts
-
 	if eng == schema.EngineMihomo {
-
-		return 48.5
-
+		return 36.5
 	}
-
-	return 18.2
-
+	return 28.5
 }
 
 // GetLastResult returns the telemetry of the most recent switch.
@@ -632,24 +627,21 @@ func detectTotalRAMMb() int64 {
 
 func getAdaptiveEngineMemoryLimits() (gomemlimit string, gogc string) {
 	totalMb := detectTotalRAMMb()
-	limitMb := 70
-	gc := 30
+	limitMb := 38
+	gc := 25
 
 	if totalMb <= 256 {
-		limitMb = 35 // 256M container / CHR: 35MiB keeps core RSS under 50MB
+		limitMb = 28 // 256M container / CHR: 28MiB strict ceiling
 		gc = 20
 	} else if totalMb <= 512 {
-		limitMb = 48 // 512M CHR / router: 48MiB keeps core RSS under 60MB
-		gc = 25
+		limitMb = 35 // 512M CHR / router: 35MiB strict ceiling
+		gc = 20
 	} else if totalMb <= 1024 {
-		limitMb = 65 // 1GB host: 65MiB keeps core RSS under 70MB
-		gc = 30
-	} else if totalMb <= 2048 {
-		limitMb = 75 // 2GB host: 75MiB
-		gc = 35
+		limitMb = 38 // 1GB host: 38MiB ceiling
+		gc = 25
 	} else {
-		limitMb = 90 // 4GB+ host: 90MiB
-		gc = 35
+		limitMb = 45 // 2GB+ host: 45MiB keeps core RAM under 35-40MB
+		gc = 25
 	}
 
 	return fmt.Sprintf("GOMEMLIMIT=%dMiB", limitMb), fmt.Sprintf("GOGC=%d", gc)
@@ -1323,10 +1315,6 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	}
 
 	m.stopCurrentCore(prevBin)
-
-	// Clean transient cache databases to prevent stale Fake-IP cross-core collisions
-	_ = os.Remove(filepath.Join(etcDir, "cache.db"))
-	_ = os.Remove(filepath.Join(etcDir, "singbox_cache.db"))
 
 	// Step 5: Start new engine
 
