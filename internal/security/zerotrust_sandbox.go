@@ -1,12 +1,13 @@
 package security
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -84,82 +85,101 @@ func (m *ZeroTrustSandboxManager) loadOrInit() {
 	m.status = ZeroTrustStatus{
 		Enabled:                   true,
 		AirGapEnforcement:         true,
-		TotalDevicesTracked:       4,
-		QuarantinedDevicesCount:   1,
-		WanRestrictedDevicesCount: 2,
-		LateralIntrusionsSevered:  1852,
-		Devices: []ZeroTrustDevice{
-			{
-				MAC:                   "AA:BB:CC:11:22:33",
-				CurrentIP:             "10.0.0.125",
-				DeviceName:            "客厅全景智能摄像头",
-				Vendor:                "Tuya / SmartIoT",
-				Policy:                "WAN_RESTRICTED",
-				TrustScore:            82,
-				LateralPacketsBlocked: 742,
-				LastAnomalyEvent:      "试图探测局域网 445 (SMB) 端口已阻断",
-				UpdatedAt:             time.Now().Format("2006-01-02 15:04:05"),
-			},
-			{
-				MAC:                   "AA:BB:CC:44:55:66",
-				CurrentIP:             "10.0.0.138",
-				DeviceName:            "主卧激光扫地机器人",
-				Vendor:                "Roborock / Ecovacs",
-				Policy:                "WAN_RESTRICTED",
-				TrustScore:            88,
-				LateralPacketsBlocked: 310,
-				LastAnomalyEvent:      "试图广播局域网 mDNS 已收敛过滤",
-				UpdatedAt:             time.Now().Format("2006-01-02 15:04:05"),
-			},
-			{
-				MAC:                   "AA:BB:CC:77:88:99",
-				CurrentIP:             "10.0.0.199",
-				DeviceName:            "第三方不明电视伴侣盒子",
-				Vendor:                "Unknown Android",
-				Policy:                "AIR_GAP_QUARANTINE",
-				TrustScore:            35,
-				LateralPacketsBlocked: 800,
-				LastAnomalyEvent:      "高频向未知境外服务器发送未加密信标，已全面气隙隔离",
-				UpdatedAt:             time.Now().Format("2006-01-02 15:04:05"),
-			},
-			{
-				MAC:                   "AA:BB:CC:00:AA:FF",
-				CurrentIP:             "10.0.0.50",
-				DeviceName:            "主工作站 Mac / PC",
-				Vendor:                "Apple / Intel",
-				Policy:                "TRUSTED",
-				TrustScore:            100,
-				LateralPacketsBlocked: 0,
-				LastAnomalyEvent:      "正常白名单流量，无异常行为",
-				UpdatedAt:             time.Now().Format("2006-01-02 15:04:05"),
-			},
-		},
-		RecentAnomalies: []ZeroTrustAnomalyEvent{
-			{
-				ID:          "EVT-9081",
-				Timestamp:   time.Now().Add(-5 * time.Minute).Format("15:04:05"),
-				SourceMAC:   "AA:BB:CC:77:88:99",
-				SourceIP:    "10.0.0.199",
-				AnomalyType: "LATERAL_PORT_SCAN",
-				Target:      "LAN 10.0.0.0/24 (Port 22/80/445)",
-				ActionTaken: "AIR_GAP_QUARANTINED",
-				RiskLevel:   "CRITICAL",
-			},
-			{
-				ID:          "EVT-9080",
-				Timestamp:   time.Now().Add(-18 * time.Minute).Format("15:04:05"),
-				SourceMAC:   "AA:BB:CC:11:22:33",
-				SourceIP:    "10.0.0.125",
-				AnomalyType: "UNAUTHORIZED_PROBE",
-				Target:      "10.0.0.50 (Port 445)",
-				ActionTaken: "LATERAL_SEVERED",
-				RiskLevel:   "HIGH",
-			},
-		},
-		UpdatedAt: time.Now().Format("2006-01-02 15:04:05"),
-		Summary:   "零信任微隔离沙盒全域防护中，已对 2 台智能设备实施仅云端气隙隔离，1 台高危设备执行全面阻断",
+		TotalDevicesTracked:       0,
+		QuarantinedDevicesCount:   0,
+		WanRestrictedDevicesCount: 0,
+		LateralIntrusionsSevered:  0,
+		Devices:                   []ZeroTrustDevice{},
+		RecentAnomalies:           []ZeroTrustAnomalyEvent{},
+		UpdatedAt:                 time.Now().Format("2006-01-02 15:04:05"),
+		Summary:                   "零信任微隔离沙盒防护就绪，等待局域网设备接入扫描",
 	}
+	m.syncARPDevicesLocked()
 	m.saveLocked()
+}
+
+// UpsertDevice registers or updates a real LAN device inside the zero-trust sandbox.
+func (m *ZeroTrustSandboxManager) UpsertDevice(dev ZeroTrustDevice) ZeroTrustStatus {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if dev.Policy == "" {
+		dev.Policy = "TRUSTED"
+		dev.TrustScore = 100
+	}
+	if dev.UpdatedAt == "" {
+		dev.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
+	}
+
+	updated := false
+	for i := range m.status.Devices {
+		if strings.EqualFold(m.status.Devices[i].MAC, dev.MAC) {
+			m.status.Devices[i].CurrentIP = dev.CurrentIP
+			if dev.DeviceName != "" {
+				m.status.Devices[i].DeviceName = dev.DeviceName
+			}
+			if dev.Vendor != "" {
+				m.status.Devices[i].Vendor = dev.Vendor
+			}
+			m.status.Devices[i].UpdatedAt = dev.UpdatedAt
+			updated = true
+			break
+		}
+	}
+	if !updated {
+		m.status.Devices = append(m.status.Devices, dev)
+	}
+
+	m.recalculateCountsLocked()
+	m.status.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
+	m.saveLocked()
+	return m.status
+}
+
+func (m *ZeroTrustSandboxManager) syncARPDevicesLocked() {
+	f, err := os.Open("/proc/net/arp")
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	existing := make(map[string]int, len(m.status.Devices))
+	for i, d := range m.status.Devices {
+		existing[strings.ToUpper(d.MAC)] = i
+	}
+
+	scanner := bufio.NewScanner(f)
+	_ = scanner.Scan() // header
+	nowStr := time.Now().Format("2006-01-02 15:04:05")
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 6 {
+			continue
+		}
+		ip := fields[0]
+		mac := strings.ToUpper(fields[3])
+		dev := fields[5]
+		if mac == "00:00:00:00:00:00" || strings.HasPrefix(ip, "127.") {
+			continue
+		}
+		if idx, ok := existing[mac]; ok {
+			m.status.Devices[idx].CurrentIP = ip
+			m.status.Devices[idx].UpdatedAt = nowStr
+		} else {
+			m.status.Devices = append(m.status.Devices, ZeroTrustDevice{
+				MAC:              mac,
+				CurrentIP:        ip,
+				DeviceName:       "局域网终端 (" + ip + ")",
+				Vendor:           dev,
+				Policy:           "TRUSTED",
+				TrustScore:       100,
+				LastAnomalyEvent: "ARP 实时纳管在线，未检出异常横向行为",
+				UpdatedAt:        nowStr,
+			})
+			existing[mac] = len(m.status.Devices) - 1
+		}
+	}
+	m.recalculateCountsLocked()
 }
 
 func (m *ZeroTrustSandboxManager) saveLocked() {
@@ -299,16 +319,10 @@ func (m *ZeroTrustSandboxManager) HealAndScan() ZeroTrustStatus {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for i := range m.status.Devices {
-		if m.status.Devices[i].Policy == "WAN_RESTRICTED" || m.status.Devices[i].Policy == "AIR_GAP_QUARANTINE" {
-			m.status.Devices[i].LateralPacketsBlocked += int64(10 + r.Intn(30))
-		}
-	}
-
-	m.status.LateralIntrusionsSevered += int64(50 + r.Intn(100))
+	m.syncARPDevicesLocked()
+	m.recalculateCountsLocked()
 	m.status.UpdatedAt = time.Now().Format("2006-01-02 15:04:05")
-	m.status.Summary = "局域网零信任横向渗透防御规则已全量加固，所有 IoT 隔离气隙稳定受控"
+	m.status.Summary = fmt.Sprintf("局域网零信任深度巡检完成，已纳管 %d 台设备，隔离策略校验一致", m.status.TotalDevicesTracked)
 	m.saveLocked()
 	return m.status
 }

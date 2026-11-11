@@ -83,71 +83,19 @@ func GetWiFiQoSManager(dataPath ...string) *WiFiQoSManager {
 		}
 
 		wifiQoSInst.load()
-		wifiQoSInst.initDefaultClientsIfEmpty()
 	})
 	return wifiQoSInst
 }
 
-func (m *WiFiQoSManager) initDefaultClientsIfEmpty() {
+// UpsertClient registers or updates RF metrics for a monitored client.
+func (m *WiFiQoSManager) UpsertClient(c WiFiClientMetrics) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-
-	if len(m.clients) > 0 {
-		return
+	if c.LastSeenAt.IsZero() {
+		c.LastSeenAt = time.Now()
 	}
-
-	now := time.Now()
-	defaults := []WiFiClientMetrics{
-		{
-			IP:                  "10.0.0.12",
-			MAC:                 "AA:BB:CC:11:22:33",
-			HostName:            "Gaming-PC-Ethernet",
-			RSSIdBm:             -35,
-			JitterMs:            0.4,
-			RetransmitRate:      0.0,
-			EstimatedAirtimePct: 2.1,
-			IsWeakLink:          false,
-			IsVIP:               true,
-			QueueClass:          QueueExemptVIP,
-			ShapedBytes:         0,
-			SuppressedBursts:    0,
-			LastSeenAt:          now,
-		},
-		{
-			IP:                  "10.0.0.88",
-			MAC:                 "68:D7:9A:88:99:AA",
-			HostName:            "LivingRoom-TV-AppleTV",
-			RSSIdBm:             -52,
-			JitterMs:            1.2,
-			RetransmitRate:      0.4,
-			EstimatedAirtimePct: 15.2,
-			IsWeakLink:          false,
-			IsVIP:               false,
-			QueueClass:          QueueStandardFair,
-			ShapedBytes:         0,
-			SuppressedBursts:    0,
-			LastSeenAt:          now,
-		},
-		{
-			IP:                  "10.0.0.194",
-			MAC:                 "F4:60:E2:44:55:66",
-			HostName:            "Balcony-Cam-IoT",
-			RSSIdBm:             -79, // 边缘弱信号
-			JitterMs:            18.2,
-			RetransmitRate:      16.5,
-			EstimatedAirtimePct: 28.4,
-			IsWeakLink:          true,
-			IsVIP:               false,
-			QueueClass:          QueueAirtimePaced,
-			ShapedBytes:         41280000,
-			SuppressedBursts:    42,
-			LastSeenAt:          now,
-		},
-	}
-
-	for _, c := range defaults {
-		m.clients[c.IP] = &c
-	}
+	copyC := c
+	m.clients[c.IP] = &copyC
 }
 
 // GetStatus returns the live Wi-Fi Channel QoS telemetry.

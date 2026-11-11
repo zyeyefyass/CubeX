@@ -216,7 +216,7 @@
 
               <span class="font-black tracking-tight text-sky-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] hidden xs:inline">
 
-                {{ systemStatus.version || 'Test v8.2' }}
+                {{ systemStatus.version || 'Test v8.4' }}
 
               </span>
 
@@ -326,9 +326,19 @@
 
         </div>
 
-        <!-- Right: 宿主机平台胶囊 -->
+        <!-- Right: 控制台安全锁 + 宿主机平台胶囊 -->
 
         <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+
+          <button @click="showAuthManageModal = true"
+            :title="authState.enabled ? '控制台访问密码已开启（点击管理或立即锁定）' : '点击设置控制台访问密码锁'"
+            :class="[
+              'h-[30px] sm:h-[42px] md:h-[46px] inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 rounded-lg sm:rounded-2xl macos-capsule transition-all duration-300 cursor-pointer shrink-0 select-none text-xs font-bold',
+              authState.enabled ? 'border-emerald-400/40 text-emerald-200 hover:border-emerald-300' : 'text-slate-300 hover:text-white hover:border-sky-400/50'
+            ]">
+            <span>{{ authState.enabled ? '🔐' : '🔓' }}</span>
+            <span class="hidden xl:inline font-mono">{{ authState.enabled ? '已锁定保护' : '访问锁' }}</span>
+          </button>
 
           <button @click="activeMasterTab = 'system'"
 
@@ -534,7 +544,7 @@
 
                     </span>
 
-                    <span class="text-[9px] font-black bg-gradient-to-r from-sky-300 to-cyan-400 text-white px-1.5 py-0.2 rounded-full tracking-wider mt-1 shadow-sm">HEALTH</span>
+                    <span class="text-[11px] font-black bg-gradient-to-r from-sky-300 to-cyan-400 text-white px-1.5 py-0.2 rounded-full tracking-wider mt-1 shadow-sm">HEALTH</span>
 
                     <span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#34D399] animate-ping opacity-75"></span>
 
@@ -674,7 +684,7 @@
 
                 <!-- 1. Dual-Engine HA Sentinel & Hot-Standby (双擎热备与自愈) -->
 
-                <div class="p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 border border-cyan-500/40 hover:border-cyan-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
+                <div class="p-4 rounded-xl bg-white/10 text-white/85 border border-cyan-500/40 hover:border-cyan-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
 
                   <div class="flex items-center justify-between">
 
@@ -732,7 +742,7 @@
 
                   <div class="pt-2">
 
-                    <div class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white h-1.5 rounded-full overflow-hidden flex">
+                    <div class="w-full bg-white/10 text-white h-1.5 rounded-full overflow-hidden flex">
 
                       <div :class="['h-full transition-all duration-500', activeEngine === 'singbox' ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 w-3/5' : 'bg-slate-700 w-2/5']"></div>
 
@@ -746,7 +756,7 @@
 
                 <!-- 2. Host System Telemetry (宿主机硬件负载与 CubeX 专属常驻) -->
 
-                <div class="p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 border border-purple-500/30 hover:border-purple-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
+                <div class="p-4 rounded-xl bg-white/10 text-white/85 border border-purple-500/30 hover:border-purple-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
 
                   <div class="flex items-center justify-between">
 
@@ -760,7 +770,7 @@
 
                     <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-950/90 text-purple-300 border border-purple-500/40 font-bold flex items-center gap-1 shrink-0">
 
-                      <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>{{ hostInfo.cpu_cores ? hostInfo.cpu_cores + '核 CPU' : '1核 CPU' }}
+                      <span class="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>{{ hostInfo.cpu_cores ? hostInfo.cpu_cores + '核 CPU' : '探测中' }}
 
                     </span>
 
@@ -778,9 +788,9 @@
 
                     <div class="flex items-center justify-between text-slate-300 pt-1">
 
-                      <span class="text-slate-400">宿主机内存已用 {{ hostInfo.gateway_memory_used || hostInfo.memory_used || hostInfo.mem_used || '77MiB' }}</span>
+                      <span class="text-slate-400">宿主机内存已用 {{ hostInfo.gateway_memory_used || hostInfo.memory_used || hostInfo.mem_used || '待采集' }}</span>
 
-                      <span class="text-slate-200 font-bold">总量 {{ hostInfo.gateway_memory_total || hostInfo.memory_total || hostInfo.mem_total || '256MiB' }}</span>
+                      <span class="text-slate-200 font-bold">总量 {{ hostInfo.gateway_memory_total || hostInfo.memory_total || hostInfo.mem_total || '-' }}</span>
 
                     </div>
 
@@ -790,7 +800,7 @@
 
                   <div class="pt-2.5">
 
-                    <div class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white h-1.5 rounded-full overflow-hidden">
+                    <div class="w-full bg-white/10 text-white h-1.5 rounded-full overflow-hidden">
 
                       <div class="bg-gradient-to-r from-purple-500 to-indigo-400 h-full rounded-full transition-all duration-500" :style="{ width: Math.min(100, Math.max(8, hostMemoryPercentNum)) + '%' }"></div>
 
@@ -802,7 +812,7 @@
 
                 <!-- 3. DNS 智能防污染 (DNS & Anti-Leak) -->
 
-                <div class="p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 border border-emerald-500/30 hover:border-emerald-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
+                <div class="p-4 rounded-xl bg-white/10 text-white/85 border border-emerald-500/30 hover:border-emerald-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
 
                   <div class="flex items-center justify-between">
 
@@ -842,7 +852,7 @@
 
                   <div class="pt-2">
 
-                    <div class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white h-1.5 rounded-full overflow-hidden">
+                    <div class="w-full bg-white/10 text-white h-1.5 rounded-full overflow-hidden">
 
                       <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full w-full"></div>
 
@@ -854,7 +864,7 @@
 
                 <!-- 4. 核心网络协议栈与实时测速 (Protocol Stack & Live Latencies) -->
 
-                <div class="p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 border border-amber-500/30 hover:border-amber-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
+                <div class="p-4 rounded-xl bg-white/10 text-white/85 border border-amber-500/30 hover:border-amber-400/60 transition flex flex-col justify-between shadow-lg min-h-[156px]">
 
                   <div class="flex items-center justify-between">
 
@@ -918,7 +928,7 @@
 
                   <div class="pt-2">
 
-                    <div class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white h-1.5 rounded-full overflow-hidden">
+                    <div class="w-full bg-white/10 text-white h-1.5 rounded-full overflow-hidden">
 
                       <div class="bg-gradient-to-r from-amber-500 to-orange-400 h-full rounded-full w-full"></div>
 
@@ -1038,7 +1048,7 @@
 
                       <span class="truncate max-w-[60px] sm:max-w-[72px]">{{ item.name }}</span>
 
-                      <span class="text-[9px] text-emerald-300 shrink-0 transition-transform duration-200" :class="activeProbeDropdown === bi ? 'rotate-180' : ''">▾</span>
+                      <span class="text-[11px] text-emerald-300 shrink-0 transition-transform duration-200" :class="activeProbeDropdown === bi ? 'rotate-180' : ''">▾</span>
 
                     </button>
 
@@ -1058,7 +1068,7 @@
 
                         class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition text-left cursor-pointer"
 
-                        :class="item.id === target.id ? 'bg-cyan-500/25 text-emerald-200 font-bold border border-cyan-400/40 shadow-sm' : 'hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-300 hover:text-white'">
+                        :class="item.id === target.id ? 'bg-cyan-500/25 text-emerald-200 font-bold border border-cyan-400/40 shadow-sm' : 'hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-300 hover:text-white'">
 
                         <BrandLogo :name="target.logo" size="w-4 h-4" class="shrink-0" />
 
@@ -1218,7 +1228,7 @@
 
                       ? 'bg-gradient-to-r from-cyan-500/25 to-blue-500/25 text-emerald-300 border-cyan-400/60 shadow-[0_0_12px_rgba(0,210,255,0.25)] font-bold'
 
-                      : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-400 hover:text-slate-200 border-slate-800 hover:border-slate-700'
+                      : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-400 hover:text-slate-200 border-slate-800 hover:border-slate-700'
 
                   ]">
 
@@ -1338,7 +1348,7 @@
 
                     <span class="text-slate-300">💾 内核独立常驻:</span>
 
-                    <div class="flex items-center gap-1.5 font-mono"><strong class="text-purple-300 font-bold">{{ singboxBenchmarkMemory.toFixed(1) }} MB</strong><span v-if="!isSingboxActive && !benchmarkResult.singbox" class="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 font-normal">待机预估</span><span class="text-slate-400 text-[10px]">(整机: {{ currentHostRealMemory.toFixed(1) }} MB)</span></div>
+                    <div class="flex items-center gap-1.5 font-mono"><strong class="text-purple-300 font-bold">{{ singboxBenchmarkMemory.toFixed(1) }} MB</strong><span v-if="!isSingboxActive && !benchmarkResult.singbox" class="text-[11px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 font-normal">待机预估</span><span class="text-slate-400 text-[10px]">(整机: {{ currentHostRealMemory.toFixed(1) }} MB)</span></div>
 
                   </div>
 
@@ -1448,7 +1458,7 @@
 
                     <span class="text-slate-300">💾 内核独立常驻:</span>
 
-                    <div class="flex items-center gap-1.5 font-mono"><strong class="text-emerald-300 font-bold">{{ mihomoBenchmarkMemory.toFixed(1) }} MB</strong><span v-if="!isMihomoActive && !benchmarkResult.mihomo" class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-normal">待机预估</span><span class="text-slate-400 text-[10px]">(整机: {{ currentHostRealMemory.toFixed(1) }} MB)</span></div>
+                    <div class="flex items-center gap-1.5 font-mono"><strong class="text-emerald-300 font-bold">{{ mihomoBenchmarkMemory.toFixed(1) }} MB</strong><span v-if="!isMihomoActive && !benchmarkResult.mihomo" class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-normal">待机预估</span><span class="text-slate-400 text-[10px]">(整机: {{ currentHostRealMemory.toFixed(1) }} MB)</span></div>
 
                   </div>
 
@@ -1460,7 +1470,7 @@
 
             <!-- Recommendation Alert if Available -->
 
-            <div v-if="benchmarkResult.recommendation" class="p-3.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/90 border border-sky-800/40 text-xs text-emerald-200 flex items-center gap-2">
+            <div v-if="benchmarkResult.recommendation" class="p-3.5 rounded-xl bg-white/10 text-white/90 border border-sky-800/40 text-xs text-emerald-200 flex items-center gap-2">
 
               <span>💡</span>
 
@@ -1678,7 +1688,7 @@
 
             <div v-if="routingSubTab === 'policy'" class="space-y-4">
 
-              <div v-if="filteredPolicies.length === 0" class="p-8 text-center rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 border border-slate-800 text-slate-400">
+              <div v-if="filteredPolicies.length === 0" class="p-8 text-center rounded-3xl bg-white/10 text-white/85 border border-slate-800 text-slate-400">
 
                 <span class="text-2xl block mb-2">🔍</span>
 
@@ -1756,7 +1766,7 @@
 
                         <span class="text-base font-bold text-white tracking-wide truncate">{{ cleanGroupNameMap[grp.name] || grp.name }}</span>
 
-                        <span class="text-xs px-2 py-0.5 rounded-md font-mono bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-300 border border-slate-700/60">
+                        <span class="text-xs px-2 py-0.5 rounded-md font-mono bg-white/10 text-white text-slate-300 border border-slate-700/60">
 
                           {{ chinaGroupMap[grp.name] ? '国内穿透' : (grp.name.includes('Speed') ? '测速穿透' : '域名穿透') }}
 
@@ -1912,7 +1922,7 @@
 
                       </div>
 
-                      <span v-else class="text-[9px] text-emerald-300 font-mono font-bold px-1 rounded bg-emerald-900/80 border border-emerald-500/40">
+                      <span v-else class="text-[11px] text-emerald-300 font-mono font-bold px-1 rounded bg-emerald-900/80 border border-emerald-500/40">
 
                         🔒
 
@@ -2234,7 +2244,7 @@
 
             <div v-else-if="routingSubTab === 'node'" class="space-y-3">
 
-              <div v-if="regionalAutoGroups.length === 0" class="p-8 text-center rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 border border-slate-800 text-slate-400">
+              <div v-if="regionalAutoGroups.length === 0" class="p-8 text-center rounded-2xl bg-white/10 text-white/85 border border-slate-800 text-slate-400">
 
                 <span class="text-2xl block mb-2">🔍</span>
 
@@ -2324,7 +2334,7 @@
 
                         </span>
 
-                        <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/90 text-slate-300 border border-slate-700/60 whitespace-nowrap shrink-0">
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-white/10 text-white/90 text-slate-300 border border-slate-700/60 whitespace-nowrap shrink-0">
 
                           {{ reg.totalCount }} 节点
 
@@ -2422,7 +2432,7 @@
 
                       <button @click.stop="toggleRegionExpand(reg.id)"
 
-                        class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-700/80 text-slate-200 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+                        class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-700/80 text-slate-200 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
 
                         :title="expandedRegion[reg.id] ? '收起节点清单' : '展开查看该组全部节点'">
 
@@ -2450,7 +2460,7 @@
 
                           <span class="font-bold text-slate-300">{{ provider.name }} ({{ (provider.displayNodes || provider.nodes).length }} 节点)</span>
 
-                          <span v-if="hideSlowNodes && provider.hiddenCount > 0" class="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-amber-300/90 border border-slate-700/60 font-sans">
+                          <span v-if="hideSlowNodes && provider.hiddenCount > 0" class="text-[11px] px-1.5 py-0.2 rounded bg-slate-800 text-amber-300/90 border border-slate-700/60 font-sans">
 
                             已折叠 {{ provider.hiddenCount }} 个慢速备用
 
@@ -2480,7 +2490,7 @@
 
                               ? 'bg-emerald-500 text-white font-bold border-emerald-400 shadow-sm ring-1 ring-emerald-300/40'
 
-                              : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-300 border-slate-800/90 hover:border-cyan-500/40'
+                              : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-300 border-slate-800/90 hover:border-cyan-500/40'
 
                           ]">
 
@@ -2488,7 +2498,7 @@
 
                             <span class="truncate">{{ node.name }}</span>
 
-                            <span v-if="nodeScores[node.name]" class="text-[9px] px-1 py-0.2 rounded font-mono font-bold shrink-0" :class="nodeScores[node.name].grade.startsWith('S') ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40' : (nodeScores[node.name].grade.startsWith('A') ? 'bg-cyan-400/20 text-cyan-300 border border-cyan-400/40' : 'bg-slate-700/50 text-slate-400')">
+                            <span v-if="nodeScores[node.name]" class="text-[11px] px-1 py-0.2 rounded font-mono font-bold shrink-0" :class="nodeScores[node.name].grade.startsWith('S') ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40' : (nodeScores[node.name].grade.startsWith('A') ? 'bg-cyan-400/20 text-cyan-300 border border-cyan-400/40' : 'bg-slate-700/50 text-slate-400')">
 
                               {{ nodeScores[node.name].grade.split(' ')[0] }}
 
@@ -2496,7 +2506,7 @@
 
                           </div>
 
-                          <div class="flex items-center justify-between text-[9px] font-mono">
+                          <div class="flex items-center justify-between text-[11px] font-mono">
 
                             <div class="flex items-center gap-1 truncate">
 
@@ -2542,11 +2552,11 @@
 
               <!-- Empty State -->
 
-              <div v-if="filteredSubscriptions.length === 0" class="p-10 text-center rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 border border-slate-800 text-slate-400 space-y-3">
+              <div v-if="filteredSubscriptions.length === 0" class="p-10 text-center rounded-3xl bg-white/10 text-white/85 border border-slate-800 text-slate-400 space-y-3">
 
                 <span class="text-3xl block">✈️</span>
 
-                <div class="text-sm font-bold text-white">尚未接入订阅源订阅或无匹配项</div>
+                <div class="text-sm font-bold text-white">尚未接入订阅源或无匹配项</div>
 
                 <p class="text-xs text-slate-400 max-w-md mx-auto">
 
@@ -2558,7 +2568,7 @@
 
                   class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-bold shadow-md shadow-sky-500/20 active:scale-95 transition inline-flex items-center gap-1.5">
 
-                  <span>➕ 立即导入订阅源订阅</span>
+                  <span>➕ 立即导入订阅源</span>
 
                 </button>
 
@@ -2630,7 +2640,7 @@
 
                         <button @click="startSubEdit(sub)" title="修改此订阅名称与链接"
 
-                          class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 hover:border-cyan-500/40 text-slate-200 text-xs transition flex items-center gap-1">
+                          class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 hover:border-cyan-500/40 text-slate-200 text-xs transition flex items-center gap-1">
 
                           <span>✏️</span>
 
@@ -2640,7 +2650,7 @@
 
                         <button @click="updateSubscription(sub.id)" title="重新同步拉取此订阅源"
 
-                          class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 text-slate-200 text-xs transition flex items-center gap-1">
+                          class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 text-slate-200 text-xs transition flex items-center gap-1">
 
                           <span>🔄</span>
 
@@ -2650,13 +2660,13 @@
 
                         <button @click="toggleSubscription(sub.id, !sub.enabled)" :title="sub.enabled ? '停用此订阅' : '启用此订阅'"
 
-                          class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 text-xs transition">
+                          class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 text-xs transition">
 
                           {{ sub.enabled ? '⏸️' : '▶️' }}
 
                         </button>
 
-                        <button @click="deleteSubscription(sub.id)" title="删除此订阅订阅"
+                        <button @click="deleteSubscription(sub.id)" title="删除此订阅"
 
                           class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-rose-950/60 border border-slate-800 hover:border-rose-500/40 text-rose-400 text-xs transition">
 
@@ -2816,7 +2826,7 @@
 
                   <button @click="toggleSubDrawer(sub.id)"
 
-                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/90 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 hover:border-cyan-500/40 text-xs font-mono text-emerald-300 hover:text-emerald-300 transition-all select-none group shadow-sm active:scale-95">
+                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 hover:border-cyan-500/40 text-xs font-mono text-emerald-300 hover:text-emerald-300 transition-all select-none group shadow-sm active:scale-95">
 
                     <span class="text-xs transition-transform duration-200" :class="{ 'rotate-180': isSubDrawerExpanded(sub.id) }">▾</span>
 
@@ -2844,7 +2854,7 @@
 
                     @click="testSingleNode(node)"
 
-                    class="p-2 rounded-xl text-left transition-all duration-200 flex flex-col justify-between gap-1.5 border border-slate-800/90 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:border-cyan-500/40 shadow-sm active:scale-95 group">
+                    class="p-2 rounded-xl text-left transition-all duration-200 flex flex-col justify-between gap-1.5 border border-slate-800/90 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:border-cyan-500/40 shadow-sm active:scale-95 group">
 
                     <div class="text-xs truncate font-semibold text-slate-300 group-hover:text-sky-300">
 
@@ -2864,7 +2874,7 @@
 
                       </div>
 
-                      <span :class="['px-1.5 py-0.2 rounded font-bold text-[9px]', getNodePillClass(node.delay, false, node.delay_status)]">
+                      <span :class="['px-1.5 py-0.2 rounded font-bold text-[11px]', getNodePillClass(node.delay, false, node.delay_status)]">
 
                         {{ node.delay > 0 ? `${node.delay}ms` : (node.delay_text || '⚡') }}
 
@@ -2914,7 +2924,7 @@
 
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
 
-                        {{ systemOverview.panel_latest_version || 'Test v8.2' }}
+                        {{ systemOverview.panel_latest_version || 'Test v8.4' }}
 
                       </span>
 
@@ -2922,7 +2932,7 @@
 
                     <p class="text-xs text-slate-400 mt-0.5 font-mono">
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v8.2' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v8.2' }}</span>
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v8.4' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v8.4' }}</span>
 
                     </p>
 
@@ -2930,7 +2940,7 @@
 
                 </div>
 
-                <button v-if="!upgradingPanel" @click="showUpgradeModal = false" class="p-1.5 rounded-xl hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-400 hover:text-white transition cursor-pointer">✕</button>
+                <button v-if="!upgradingPanel" @click="showUpgradeModal = false" class="p-1.5 rounded-xl hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-400 hover:text-white transition cursor-pointer">✕</button>
 
               </div>
 
@@ -3078,7 +3088,7 @@
 
                         <span v-else-if="upgradeStep === idx" class="w-4 h-4 rounded-full bg-cyan-500/20 text-emerald-300 border border-cyan-500/50 flex items-center justify-center text-[10px] animate-spin font-bold">↻</span>
 
-                        <span v-else class="w-4 h-4 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-300 flex items-center justify-center text-[10px] font-bold">{{ idx + 1 }}</span>
+                        <span v-else class="w-4 h-4 rounded-full bg-white/10 text-white text-slate-300 flex items-center justify-center text-[10px] font-bold">{{ idx + 1 }}</span>
 
                         <span :class="upgradeStep >= idx ? 'text-slate-200' : 'text-slate-300'">{{ st.title }}</span>
 
@@ -3192,7 +3202,7 @@
 
                     <span>🔥 快捷常用应用</span>
 
-                    <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-300 font-mono">{{ availablePresetServices.length }}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-white text-slate-300 font-mono">{{ availablePresetServices.length }}</span>
 
                   </button>
 
@@ -3256,7 +3266,7 @@
 
                 <!-- Custom Add Preset Form (Collapsible) -->
 
-                <div v-if="showAddCustomPresetForm" class="p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/95 border border-emerald-500/50 space-y-2 text-xs animate-in fade-in">
+                <div v-if="showAddCustomPresetForm" class="p-3 rounded-2xl bg-slate-900/90 text-white border border-emerald-500/50 space-y-2 text-xs animate-in fade-in">
 
                   <div class="font-bold text-emerald-300 flex items-center justify-between">
 
@@ -3348,7 +3358,7 @@
 
                 <!-- 解释提示：消除用户认知困惑 -->
 
-                <div class="text-[10px] text-slate-400 flex items-center justify-between p-1 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/40 rounded-lg border border-slate-800/60">
+                <div class="text-[10px] text-slate-400 flex items-center justify-between p-1 bg-white/5 text-white/70 rounded-lg border border-slate-800/60">
 
                   <span class="truncate">💡 看板已自动运行主流应用组。更多海量分流，请切换上方全量库：</span>
 
@@ -3382,7 +3392,7 @@
 
                     <span>{{ cat.name }}</span>
 
-                    <span class="text-[9px] px-1 py-0.2 rounded-full font-mono" :class="geoRulePickerCategory === cat.id ? 'bg-cyan-950 text-emerald-300' : 'bg-slate-950 text-slate-300'">{{ cat.count }}</span>
+                    <span class="text-[11px] px-1 py-0.2 rounded-full font-mono" :class="geoRulePickerCategory === cat.id ? 'bg-cyan-950 text-emerald-300' : 'bg-slate-950 text-slate-300'">{{ cat.count }}</span>
 
                   </button>
 
@@ -3574,7 +3584,7 @@
 
           <!-- ════════════════════════════════════════════════════════════════ -->
 
-          <!-- MODAL: 添加自定义节点分组 (支持按国家预设 / 订阅源订阅 / 多关键词智能筛选) -->
+          <!-- MODAL: 添加自定义节点分组 (支持按国家预设 / 订阅源 / 多关键词智能筛选) -->
 
           <!-- ════════════════════════════════════════════════════════════════ -->
 
@@ -3626,7 +3636,7 @@
 
                       </div>
 
-                      <div class="text-[9px] text-slate-400 mt-0.5 truncate">多选批量建组</div>
+                      <div class="text-[11px] text-slate-400 mt-0.5 truncate">多选批量建组</div>
 
                     </button>
 
@@ -3646,7 +3656,7 @@
 
                       </div>
 
-                      <div class="text-[9px] text-slate-400 mt-0.5 truncate">按订阅源单独归集</div>
+                      <div class="text-[11px] text-slate-400 mt-0.5 truncate">按订阅源单独归集</div>
 
                     </button>
 
@@ -3666,7 +3676,7 @@
 
                       </div>
 
-                      <div class="text-[9px] text-slate-400 mt-0.5 truncate">多词 OR/AND</div>
+                      <div class="text-[11px] text-slate-400 mt-0.5 truncate">多词 OR/AND</div>
 
                     </button>
 
@@ -3676,7 +3686,7 @@
 
                 <!-- Case 0: Dynamic Keyword Filter Mode (OR / AND logic) -->
 
-                <div v-if="customNodeGroupForm.source_type === 'keyword'" class="space-y-3 p-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/90 border border-cyan-500/30 animate-in fade-in">
+                <div v-if="customNodeGroupForm.source_type === 'keyword'" class="space-y-3 p-3 rounded-2xl bg-white/10 text-white/90 border border-cyan-500/30 animate-in fade-in">
 
                   <div>
 
@@ -3926,7 +3936,7 @@
 
                           <div>⚡ 批量创建各独立分组 (推荐)</div>
 
-                          <div class="text-[9px] text-slate-400 font-normal mt-0.5">一键生成 {{ customNodeGroupForm.selected_countries.length }} 个独立地区组，各自带国旗</div>
+                          <div class="text-[11px] text-slate-300 font-normal mt-0.5">一键生成 {{ customNodeGroupForm.selected_countries.length }} 个独立地区组，各自带区域标识</div>
 
                         </button>
 
@@ -3942,7 +3952,7 @@
 
                           <div>🌐 合并为一个复合分组</div>
 
-                          <div class="text-[9px] text-slate-400 font-normal mt-0.5">将这 {{ customNodeGroupForm.selected_countries.length }} 个地区节点归并为同一组</div>
+                          <div class="text-[11px] text-slate-400 font-normal mt-0.5">将这 {{ customNodeGroupForm.selected_countries.length }} 个地区节点归并为同一组</div>
 
                         </button>
 
@@ -3958,7 +3968,7 @@
 
                 <div v-else class="space-y-2">
 
-                  <label class="block text-slate-300 font-mono mb-1 font-bold">选择绑定的订阅源订阅</label>
+                  <label class="block text-slate-300 font-mono mb-1 font-bold">选择绑定的订阅源</label>
 
                   <select v-model="customNodeGroupForm.sub_id"
 
@@ -3966,7 +3976,7 @@
 
                     class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono">
 
-                    <option value="" disabled>-- 请选择已绑定的订阅源订阅 --</option>
+                    <option value="" disabled>-- 请选择已绑定的订阅源 --</option>
 
                     <option v-for="sub in (ir.subscriptions || [])" :key="sub.id" :value="sub.id">
 
@@ -4122,7 +4132,7 @@
 
               </button>
 
-              <div class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 border border-slate-700/60 text-xs text-slate-400 flex items-center gap-1.5">
+              <div class="px-3 py-1.5 rounded-xl bg-white/10 text-white/85 border border-slate-700/60 text-xs text-slate-400 flex items-center gap-1.5">
 
                 <span class="text-emerald-300">💡</span>
 
@@ -4156,7 +4166,7 @@
 
                   <div class="absolute inset-1 rounded-full border-2 border-emerald-500/40"></div>
 
-                  <div class="w-20 h-20 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-emerald-500/40 flex flex-col items-center justify-center shadow-inner">
+                  <div class="w-20 h-20 rounded-full bg-white/10 text-white border border-emerald-500/40 flex flex-col items-center justify-center shadow-inner">
 
                     <span class="text-2xl font-black font-mono text-emerald-300 tracking-tighter">
 
@@ -4164,7 +4174,7 @@
 
                     </span>
 
-                    <span class="text-[9px] font-mono text-slate-400 uppercase tracking-widest">/ 100 分</span>
+                    <span class="text-[11px] font-mono text-slate-400 uppercase tracking-widest">/ 100 分</span>
 
                   </div>
 
@@ -4214,7 +4224,7 @@
 
               <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-2.5 w-full lg:w-auto shrink-0">
 
-                <div class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/90 border border-slate-800 flex items-center gap-2.5 text-xs font-mono">
+                <div class="px-3 py-2 rounded-xl bg-white/10 text-white/90 border border-slate-800 flex items-center gap-2.5 text-xs font-mono">
 
                   <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400"></span>
 
@@ -4224,7 +4234,7 @@
 
                 </div>
 
-                <div class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/90 border border-slate-800 flex items-center gap-2.5 text-xs font-mono">
+                <div class="px-3 py-2 rounded-xl bg-white/10 text-white/90 border border-slate-800 flex items-center gap-2.5 text-xs font-mono">
 
                   <span class="w-2 h-2 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400"></span>
 
@@ -4234,7 +4244,7 @@
 
                 </div>
 
-                <div class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/90 border border-slate-800 flex items-center gap-2.5 text-xs font-mono">
+                <div class="px-3 py-2 rounded-xl bg-white/10 text-white/90 border border-slate-800 flex items-center gap-2.5 text-xs font-mono">
 
                   <span class="w-2 h-2 rounded-full bg-teal-400 shadow-sm shadow-teal-400"></span>
 
@@ -4336,7 +4346,7 @@
 
                 </div>
 
-                <div class="w-full h-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white overflow-hidden">
+                <div class="w-full h-1.5 rounded-full bg-white/10 text-white overflow-hidden">
 
                   <div class="h-full rounded-full transition-all duration-500"
 
@@ -4438,7 +4448,7 @@
 
                   </label>
 
-                  <span :class="['text-xs px-2.5 py-0.5 rounded-full font-bold border transition', filterConfig.enabled ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-400 border-slate-700']">
+                  <span :class="['text-xs px-2.5 py-0.5 rounded-full font-bold border transition', filterConfig.enabled ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-white/10 text-white text-slate-400 border-slate-700']">
 
                     {{ filterConfig.enabled ? '已生效' : '已暂停' }}
 
@@ -4678,7 +4688,7 @@
 
             <!-- ════════════════════════════════════════════════════════════════ -->
 
-            <div class="rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/90 border border-slate-800/90 hover:border-cyan-500/30 transition-all duration-300 p-5 space-y-4 shadow-xl backdrop-blur-xl">
+            <div class="rounded-3xl bg-white/10 text-white/90 border border-slate-800/90 hover:border-cyan-500/30 transition-all duration-300 p-5 space-y-4 shadow-xl backdrop-blur-xl">
 
               <!-- Top Row: Title, Master Toggle, Status Badge, Action Buttons -->
 
@@ -4704,7 +4714,7 @@
 
                   </label>
 
-                  <span :class="['text-xs px-2.5 py-0.5 rounded-full font-bold border transition', dnsRewriteConfig.enabled ? 'bg-cyan-500/20 text-emerald-300 border-cyan-500/40' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-400 border-slate-700']">
+                  <span :class="['text-xs px-2.5 py-0.5 rounded-full font-bold border transition', dnsRewriteConfig.enabled ? 'bg-cyan-500/20 text-emerald-300 border-cyan-500/40' : 'bg-white/10 text-white text-slate-400 border-slate-700']">
 
                     {{ dnsRewriteConfig.enabled ? '已生效' : '已暂停' }}
 
@@ -4754,7 +4764,7 @@
 
                     <div class="flex items-center gap-2 flex-wrap">
 
-                      <span class="font-mono text-xs font-bold text-white tracking-wide bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white px-2 py-0.5 rounded border border-slate-800">{{ rule.domain }}</span>
+                      <span class="font-mono text-xs font-bold text-white tracking-wide bg-white/10 text-white px-2 py-0.5 rounded border border-slate-800">{{ rule.domain }}</span>
 
                       <span class="text-emerald-300 text-xs">➔</span>
 
@@ -4994,7 +5004,7 @@
 
                 <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800/60 text-[10px] font-mono text-center">
 
-                  <div class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/60 border border-slate-800/60">
+                  <div class="p-1.5 rounded-lg bg-slate-900/70 text-white/75 border border-slate-800/60">
 
                     <div class="text-slate-400">广告弹窗</div>
 
@@ -5002,7 +5012,7 @@
 
                   </div>
 
-                  <div class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/60 border border-slate-800/60">
+                  <div class="p-1.5 rounded-lg bg-slate-900/70 text-white/75 border border-slate-800/60">
 
                     <div class="text-slate-400">隐私追踪</div>
 
@@ -5010,7 +5020,7 @@
 
                   </div>
 
-                  <div class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/60 border border-slate-800/60">
+                  <div class="p-1.5 rounded-lg bg-slate-900/70 text-white/75 border border-slate-800/60">
 
                     <div class="text-slate-400">恶意劫持</div>
 
@@ -5048,7 +5058,7 @@
 
                       </div>
 
-                      <div class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 h-1.5 rounded-full overflow-hidden">
+                      <div class="w-full bg-white/10 text-white/85 h-1.5 rounded-full overflow-hidden">
 
                         <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-full rounded-full transition-all duration-500"
 
@@ -5237,10 +5247,10 @@
                   <span class="text-emerald-300 font-bold">● 在线</span>
                 </div>
                 <div class="text-sm sm:text-base font-black text-white truncate">
-                  {{ routerHW.wan_ip || hostInfo.wan_ip || '100.96.77.209' }}
+                  {{ routerHW.wan_ip || hostInfo.wan_ip || '待探测' }}
                 </div>
                 <div class="text-[10px] text-slate-400 flex items-center justify-between">
-                  <span>{{ routerHW.wan_interface || 'pppoe-out1' }}</span>
+                  <span>{{ routerHW.wan_interface || 'WAN 上行接口' }}</span>
                   <span class="text-cyan-300">动态物理出口</span>
                 </div>
               </div>
@@ -5252,7 +5262,7 @@
                   <span class="text-sky-300 font-bold">内核转发就绪</span>
                 </div>
                 <div class="text-sm sm:text-base font-black text-sky-200 truncate">
-                  {{ routerHW.lan_ip || hostConfig.host || '10.0.0.1' }}
+                  {{ routerHW.lan_ip || hostConfig.host || '自动探测中' }}
                 </div>
                 <div class="text-[10px] text-slate-400 flex items-center justify-between">
                   <span>{{ routerHW.lan_interface || 'bridge1' }}</span>
@@ -5360,7 +5370,7 @@
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div>
                   <label class="block text-[11px] text-slate-300 font-medium mb-1">主路由 IP / 域名</label>
-                  <input v-model="hostConfig.host" type="text" placeholder="10.0.0.1"
+                  <input v-model="hostConfig.host" type="text" placeholder="自动探测或输入主路由 IP"
                     class="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/15 text-white placeholder-slate-500 text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all" />
                 </div>
                 <div>
@@ -5375,7 +5385,11 @@
                 </div>
               </div>
 
-              <div class="flex items-center justify-end gap-2 pt-1">
+              <div class="flex items-center justify-between gap-3 pt-1">
+                <p v-if="hostConfig.password === '******'" class="text-[11px] text-emerald-300/90 font-mono">
+                  ✓ 密码已加密脱敏保存（不修改将沿用已存凭据）
+                </p>
+                <span v-else></span>
                 <button @click="saveAndLinkHost" :disabled="savingAndLinkingHost"
                   class="px-4 py-2 rounded-xl bg-cyan-500/25 hover:bg-cyan-500/35 border border-cyan-400/40 text-cyan-200 hover:text-white text-xs font-bold font-mono transition-all flex items-center gap-1.5 shadow-sm">
                   <span v-if="savingAndLinkingHost" class="inline-block animate-spin">↻</span>
@@ -5593,9 +5607,9 @@
 
                   <div class="flex items-center justify-between">
 
-                    <span>当前运行: <strong class="text-sky-200 font-black text-sm">{{ systemOverview.cubex_version || 'Test v8.2' }}</strong></span>
+                    <span>当前运行: <strong class="text-sky-200 font-black text-sm">{{ systemOverview.cubex_version || 'Test v8.4' }}</strong></span>
 
-                    <span class="text-slate-400">云端最新: <span class="text-slate-200 font-semibold">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v8.2' }}</span></span>
+                    <span class="text-slate-400">云端最新: <span class="text-slate-200 font-semibold">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v8.4' }}</span></span>
 
                   </div>
 
@@ -5921,7 +5935,7 @@
 
                   </span>
 
-                  <span v-else-if="checkingGeoUpgrade" class="text-xs font-mono px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-400 border border-slate-700/50 flex items-center gap-1.5 shadow-sm shrink-0 font-semibold">
+                  <span v-else-if="checkingGeoUpgrade" class="text-xs font-mono px-3 py-1 rounded-lg bg-white/10 text-white text-slate-400 border border-slate-700/50 flex items-center gap-1.5 shadow-sm shrink-0 font-semibold">
 
                     <span class="inline-block animate-spin text-[10px]">↻</span>
 
@@ -6403,6 +6417,36 @@
 
               </div>
 
+            </div>
+
+            <!-- 控制台安全访问锁卡片 -->
+            <div class="p-5 sm:p-6 rounded-2xl sm:rounded-3xl macos-glass-card border border-cyan-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-2xl bg-cyan-500/15 border border-cyan-400/35 flex items-center justify-center text-xl shrink-0">
+                  {{ authState.enabled ? '🔐' : '🔓' }}
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h4 class="text-sm sm:text-base font-bold text-white">Web 控制台访问安全锁</h4>
+                    <span :class="['text-[11px] font-mono px-2 py-0.5 rounded-full border font-semibold', authState.enabled ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/35' : 'bg-white/10 text-slate-300 border-white/20']">
+                      {{ authState.enabled ? '口令保护已启用' : '默认免密直连' }}
+                    </span>
+                  </div>
+                  <p class="text-xs text-slate-300 mt-1">
+                    {{ authState.enabled ? '已启用访问口令校验（采用加盐哈希与 HttpOnly 会话 Cookie 保护）' : '开启后访问 Web 控制台与 API 需输入密码解锁，不开启则保持局域网零配置直连' }}
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <button v-if="authState.enabled" @click="lockConsoleNow"
+                  class="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-xs font-bold transition cursor-pointer">
+                  🔒 立即锁定
+                </button>
+                <button @click="showAuthManageModal = true"
+                  class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white text-xs font-extrabold transition cursor-pointer shadow-md">
+                  {{ authState.enabled ? '🔑 修改 / 关闭密码锁' : '🔐 启用控制台密码锁' }}
+                </button>
+              </div>
             </div>
 
           </div>
@@ -7119,7 +7163,7 @@
 
               <h3 class="text-base font-black text-white flex items-center gap-2">
 
-                <span>订阅源订阅与自建节点批量导入中枢</span>
+                <span>订阅源与自建节点批量导入中枢</span>
 
                 <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
 
@@ -7145,7 +7189,7 @@
 
           <button @click="subModalTab = 'sub'" :class="['flex-1 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5', subModalTab === 'sub' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-sky-500/20' : 'text-slate-400 hover:text-slate-200']">
 
-            <span>🌐 批量导入订阅订阅</span>
+            <span>🌐 批量导入订阅</span>
 
             <span v-if="parsedBatchSubs.length > 0" class="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-950 text-emerald-300 font-mono">
 
@@ -7175,7 +7219,7 @@
 
         </div>
 
-        <!-- Tab 1: 批量导入订阅订阅 -->
+        <!-- Tab 1: 批量导入订阅 -->
 
         <div v-if="subModalTab === 'sub'" class="space-y-3.5 overflow-y-auto pr-1 flex-1">
 
@@ -7197,7 +7241,7 @@
 
               <div>• <span class="text-white font-bold">订阅链接#名称</span> (如: <code>https://sub.link.net/api#日本BGP专线</code>)</div>
 
-              <div>• <span class="text-white font-bold">直接粘贴纯链接</span> (系统将自动按序号命名: <code>订阅源订阅 1, 2...</code>)</div>
+              <div>• <span class="text-white font-bold">直接粘贴纯链接</span> (系统将自动按序号命名: <code>订阅源 1, 2...</code>)</div>
 
             </div>
 
@@ -7211,7 +7255,7 @@
 
               <span class="flex items-center gap-1.5">
 
-                <span>粘贴订阅源订阅列表 (每行一条)</span>
+                <span>粘贴订阅源列表 (每行一条)</span>
 
                 <span class="text-[11px] text-slate-400 font-normal">支持 Clash / sing-box / V2Ray 协议</span>
 
@@ -7229,7 +7273,7 @@
 
             <textarea v-model="batchSubText" rows="6"
 
-              placeholder="每行一条订阅源订阅，支持直接指定自定义名称。例如：&#10;香港主力专线, https://sub.network1.com/api/v1/client/subscribe?token=abc&#10;备用海外节点 | https://sub.network2.com/clash/token123&#10;https://sub.myfast.net/singbox#游戏低延迟加速"
+              placeholder="每行一条订阅源，支持直接指定自定义名称。例如：&#10;香港主力专线, https://sub.network1.com/api/v1/client/subscribe?token=abc&#10;备用海外节点 | https://sub.network2.com/clash/token123&#10;https://sub.myfast.net/singbox#游戏低延迟加速"
 
               class="w-full bg-slate-950 border border-slate-700/80 rounded-2xl p-3 text-xs text-slate-100 font-mono outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 shadow-inner resize-y leading-relaxed" />
 
@@ -7249,7 +7293,7 @@
 
             <div class="max-h-36 overflow-y-auto space-y-1.5 pr-1 font-mono text-[11px]">
 
-              <div v-for="(item, idx) in parsedBatchSubs" :key="idx" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800">
+              <div v-for="(item, idx) in parsedBatchSubs" :key="idx" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/10 text-white border border-slate-800">
 
                 <div class="flex items-center gap-2 truncate">
 
@@ -7281,7 +7325,7 @@
 
               <span v-if="batchImportingSubs" class="inline-block animate-spin">↻</span>
 
-              <span>{{ batchImportingSubs ? '正在并发拉取并解析所有订阅...' : `🚀 立即一键导入 (${parsedBatchSubs.length} 条订阅源订阅)` }}</span>
+              <span>{{ batchImportingSubs ? '正在并发拉取并解析所有订阅...' : `🚀 立即一键导入 (${parsedBatchSubs.length} 条订阅源)` }}</span>
 
             </button>
 
@@ -7375,7 +7419,7 @@
 
             <div class="max-h-36 overflow-y-auto space-y-1.5 pr-1 font-mono text-[11px]">
 
-              <div v-for="(item, idx) in parsedBatchNodes" :key="idx" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800">
+              <div v-for="(item, idx) in parsedBatchNodes" :key="idx" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/10 text-white border border-slate-800">
 
                 <div class="flex items-center gap-2 truncate">
 
@@ -7387,7 +7431,7 @@
 
                   </span>
 
-                  <span class="px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-white text-xs font-bold shrink-0 truncate max-w-[140px]">
+                  <span class="px-2 py-0.5 rounded bg-white/10 text-white text-white text-xs font-bold shrink-0 truncate max-w-[140px]">
 
                     🔗 {{ item.name }}
 
@@ -7445,7 +7489,7 @@
 
               <span class="flex items-center gap-1.5">
 
-                <span>✈️ 已保存订阅源订阅</span>
+                <span>✈️ 已保存订阅源</span>
 
                 <span class="text-emerald-300 font-mono">({{ ir.subscriptions?.length || 0 }} 个)</span>
 
@@ -7525,7 +7569,7 @@
 
                 <!-- Telemetry Progress Bar & Data -->
 
-                <div class="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 p-2 rounded-xl border border-slate-800 space-y-1">
+                <div class="bg-white/10 text-white/85 p-2 rounded-xl border border-slate-800 space-y-1">
 
                   <div class="flex items-center justify-between text-[10px] font-mono">
 
@@ -7571,7 +7615,7 @@
 
                     <span class="text-slate-300">地区:</span>
 
-                    <span v-for="reg in getSubRegions(sub).slice(0, 4)" :key="reg.name" class="px-1.5 py-0.2 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-300 border border-slate-800">
+                    <span v-for="reg in getSubRegions(sub).slice(0, 4)" :key="reg.name" class="px-1.5 py-0.2 rounded bg-white/10 text-white text-slate-300 border border-slate-800">
 
                       {{ reg.flag }} {{ reg.count }}
 
@@ -7599,7 +7643,7 @@
 
                       <span class="text-slate-300 text-[10px]">{{ nIdx + 1 }}.</span>
 
-                      <span class="text-[9px] px-1 rounded uppercase bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-emerald-300 font-bold">{{ node.type }}</span>
+                      <span class="text-[11px] px-1 rounded uppercase bg-white/10 text-white text-emerald-300 font-bold">{{ node.type }}</span>
 
                       <span v-if="node.ports || node.mport" class="text-[8px] px-1 py-0.2 rounded font-mono bg-cyan-950 text-cyan-300 border border-cyan-500/40 animate-pulse" :title="'端口跳跃: ' + (node.ports || node.mport)">⚡跳跃</span>
 
@@ -7609,13 +7653,13 @@
 
                     <div class="flex items-center gap-1.5 shrink-0">
 
-                      <span :class="['px-1.5 py-0.2 rounded text-[9px] font-bold border', getNodeDelayClass(node.delay, node.delay_status)]">
+                      <span :class="['px-1.5 py-0.2 rounded text-[11px] font-bold border', getNodeDelayClass(node.delay, node.delay_status)]">
 
                         {{ node.delay > 0 ? `${node.delay}ms` : (node.delay_text || '未测速') }}
 
                       </span>
 
-                      <button @click="setNodeAsPrimaryOutbound(node.name)" class="px-1.5 py-0.2 rounded bg-cyan-950 hover:bg-cyan-900 text-emerald-300 border border-cyan-500/30 text-[9px]">
+                      <button @click="setNodeAsPrimaryOutbound(node.name)" class="px-1.5 py-0.2 rounded bg-cyan-950 hover:bg-cyan-900 text-emerald-300 border border-cyan-500/30 text-[11px]">
 
                         设为出口
 
@@ -7633,7 +7677,7 @@
 
             <div v-else class="text-xs text-slate-300 p-4 text-center border border-dashed border-slate-800 rounded-xl">
 
-              暂无保存的订阅源订阅，点击「批量导入订阅订阅」即可添加。
+              暂无保存的订阅源，点击「批量导入订阅」即可添加。
 
             </div>
 
@@ -7669,7 +7713,7 @@
 
                     </span>
 
-                    <span v-if="node.ports || node.mport" class="text-[9px] px-1.5 py-0.5 rounded font-mono bg-cyan-950 text-cyan-300 border border-cyan-500/40 animate-pulse">
+                    <span v-if="node.ports || node.mport" class="text-[11px] px-1.5 py-0.5 rounded font-mono bg-cyan-950 text-cyan-300 border border-cyan-500/40 animate-pulse">
 
                       ⚡ 跳频: {{ node.ports || node.mport }}
 
@@ -7749,7 +7793,7 @@
 
           </div>
 
-          <button @click="showInitWizardModal = false; stopFireworks()" class="text-slate-400 hover:text-white text-lg font-bold p-1 rounded-lg hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 transition">✕</button>
+          <button @click="showInitWizardModal = false; stopFireworks()" class="text-slate-400 hover:text-white text-lg font-bold p-1 rounded-lg hover:bg-white/20 border border-transparent hover:border-sky-400/50 text-white/80 transition">✕</button>
 
         </div>
 
@@ -7757,19 +7801,19 @@
 
         <div class="grid grid-cols-4 gap-2 text-xs font-mono relative z-10">
 
-          <div :class="['p-2 rounded-xl border text-center transition', initWizardStep === 1 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (initWizardStep > 1 ? 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300')]">
+          <div :class="['p-2 rounded-xl border text-center transition', initWizardStep === 1 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (initWizardStep > 1 ? 'bg-white/10 text-white border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300')]">
 
             <span>① 模式选择</span>
 
           </div>
 
-          <div :class="['p-2 rounded-xl border text-center transition', initWizardStep === 2 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (initWizardStep > 2 ? 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300')]">
+          <div :class="['p-2 rounded-xl border text-center transition', initWizardStep === 2 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (initWizardStep > 2 ? 'bg-white/10 text-white border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300')]">
 
             <span>② 连通宿主</span>
 
           </div>
 
-          <div :class="['p-2 rounded-xl border text-center transition', initWizardStep === 3 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (initWizardStep > 3 ? 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300')]">
+          <div :class="['p-2 rounded-xl border text-center transition', initWizardStep === 3 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (initWizardStep > 3 ? 'bg-white/10 text-white border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300')]">
 
             <span>③ 探测编排</span>
 
@@ -7899,7 +7943,7 @@
 
                   <p class="text-xs text-slate-400 mt-1 leading-relaxed">
 
-                    从本地已导出的 CubeX 备份文件（.json 快照）一键还原全量订阅源订阅、代理节点、分流规则与宿主凭据。
+                    从本地已导出的 CubeX 备份文件（.json 快照）一键还原全量订阅源、代理节点、分流规则与宿主凭据。
 
                   </p>
 
@@ -7973,13 +8017,13 @@
 
               <div v-if="initImportSuccess" class="grid grid-cols-2 gap-2 pt-1">
 
-                <button @click="initWizardStep = 3; startInitStep3Execution()" class="py-2.5 px-3 rounded-xl bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-bold font-bold text-xs shadow-md shadow-sky-500/20 active:scale-95 transition flex items-center justify-center gap-1">
+                <button @click="initWizardStep = 3; startInitStep3Execution()" class="py-2.5 px-3 rounded-xl bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-bold text-xs shadow-md shadow-sky-500/20 active:scale-95 transition flex items-center justify-center gap-1">
 
                   <span>探测并同步宿主 ➔</span>
 
                 </button>
 
-                <button @click="initWizardStep = 4; launchFireworks()" class="py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-emerald-300 border border-cyan-500/40 font-bold text-xs active:scale-95 transition flex items-center justify-center gap-1">
+                <button @click="initWizardStep = 4; launchFireworks()" class="py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-emerald-300 border border-cyan-500/40 font-bold text-xs active:scale-95 transition flex items-center justify-center gap-1">
 
                   <span>跳过直接启航 🚀</span>
 
@@ -8035,7 +8079,7 @@
 
               <label class="block text-slate-400 mb-1">宿主管理地址 (Host IP)</label>
 
-              <input v-model="initHostForm.host_ip" placeholder="例: 192.168.88.1"
+              <input v-model="initHostForm.host_ip" placeholder="请输入或自动探测主路由 IP"
 
                 class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white shadow-inner font-mono" />
 
@@ -8085,13 +8129,13 @@
 
           <div class="flex items-center justify-between pt-4 border-t border-sky-900/40">
 
-            <button @click="initWizardStep = 1" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 text-slate-300 text-xs font-semibold active:scale-95 transition">
+            <button @click="initWizardStep = 1" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 text-slate-300 text-xs font-semibold active:scale-95 transition">
 
               ⬅ 返回模式选择
 
             </button>
 
-            <button @click="startInitStep3Execution" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-bold font-bold text-xs shadow-md shadow-sky-500/20 active:scale-95 transition flex items-center gap-1.5">
+            <button @click="startInitStep3Execution" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-bold text-xs shadow-md shadow-sky-500/20 active:scale-95 transition flex items-center gap-1.5">
 
               <span>下一步：探测宿主并自动编排 ➔</span>
 
@@ -8109,7 +8153,7 @@
 
         <div v-else-if="initWizardStep === 3" class="space-y-4 animate-in fade-in relative z-10">
 
-          <div class="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/90 border border-slate-800 flex items-center justify-between">
+          <div class="p-4 rounded-2xl bg-white/10 text-white/90 border border-slate-800 flex items-center justify-between">
 
             <div class="flex items-center gap-3">
 
@@ -8161,7 +8205,7 @@
 
           </div>
 
-          <div class="p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/60 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+          <div class="p-3 rounded-xl bg-slate-900/70 text-white/75 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
 
             <span>正在执行：巡检隔离策略路由表 (table cubex)、下发 Mangle 防火墙规则与配置防 DNS 泄露...</span>
 
@@ -8203,7 +8247,7 @@
 
               <p class="text-xs text-slate-300 mt-0.5 truncate">
 
-                最后一步：可直接粘贴订阅源订阅或节点链接一键启航，也可跳过进入主控台后续再导。
+                最后一步：可直接粘贴订阅源或节点链接一键启航，也可跳过进入主控台后续再导。
 
               </p>
 
@@ -8255,11 +8299,11 @@
 
             <!-- 2-Segment Switcher -->
 
-            <div class="flex p-1 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white rounded-xl border border-slate-800 text-xs font-mono">
+            <div class="flex p-1 bg-white/10 text-white rounded-xl border border-slate-800 text-xs font-mono">
 
               <button type="button" @click="initWizardImportTab = 'sub'" :class="['flex-1 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5', initWizardImportTab === 'sub' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-sky-500/20' : 'text-slate-400 hover:text-slate-200']">
 
-                <span>🌐 批量导入订阅订阅</span>
+                <span>🌐 批量导入订阅</span>
 
                 <span v-if="parsedBatchSubs.length > 0" class="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-950 text-emerald-300 font-mono">
 
@@ -8301,13 +8345,13 @@
 
               <textarea v-model="batchSubText" rows="3"
 
-                placeholder="直接粘贴订阅源订阅链接，每行一条。例如：&#10;香港主力专线, https://sub.network1.com/api/v1/client/subscribe?token=abc&#10;备用海外节点 | https://sub.network2.com/clash/token123"
+                placeholder="直接粘贴订阅源链接，每行一条。例如：&#10;香港主力专线, https://sub.network1.com/api/v1/client/subscribe?token=abc&#10;备用海外节点 | https://sub.network2.com/clash/token123"
 
-                class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-100 font-mono outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 shadow-inner resize-y leading-relaxed" />
+                class="w-full bg-white/10 text-white border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-100 font-mono outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 shadow-inner resize-y leading-relaxed" />
 
               <!-- Parsed Preview -->
 
-              <div v-if="parsedBatchSubs.length > 0" class="max-h-24 overflow-y-auto space-y-1 font-mono text-[11px] bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/60 p-2 rounded-xl border border-cyan-500/20">
+              <div v-if="parsedBatchSubs.length > 0" class="max-h-24 overflow-y-auto space-y-1 font-mono text-[11px] bg-slate-900/70 text-white/75 p-2 rounded-xl border border-cyan-500/20">
 
                 <div v-for="(item, idx) in parsedBatchSubs" :key="idx" class="flex items-center gap-2 truncate text-slate-300">
 
@@ -8341,11 +8385,11 @@
 
                 placeholder="直接粘贴节点链接，每行一条。例如：&#10;东京落地 01, ss://YWVzLTI1Ni1nY206cGFzc0AxLjIuMy40OjgzODg=#东京&#10;vless://uuid@us.example.com:443?security=reality&sni=yahoo.com#美西"
 
-                class="w-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-100 font-mono outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 shadow-inner resize-y leading-relaxed" />
+                class="w-full bg-white/10 text-white border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-100 font-mono outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 shadow-inner resize-y leading-relaxed" />
 
               <!-- Parsed Preview -->
 
-              <div v-if="parsedBatchNodes.length > 0" class="max-h-24 overflow-y-auto space-y-1 font-mono text-[11px] bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/60 p-2 rounded-xl border border-purple-500/20">
+              <div v-if="parsedBatchNodes.length > 0" class="max-h-24 overflow-y-auto space-y-1 font-mono text-[11px] bg-slate-900/70 text-white/75 p-2 rounded-xl border border-purple-500/20">
 
                 <div v-for="(item, idx) in parsedBatchNodes" :key="idx" class="flex items-center gap-2 truncate text-slate-300">
 
@@ -8367,7 +8411,7 @@
 
           <div class="pt-3 border-t border-sky-800/40 flex flex-col sm:flex-row items-center justify-between gap-3">
 
-            <button @click="completeInitWizard" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-700 text-slate-300 text-xs font-semibold active:scale-95 transition">
+            <button @click="completeInitWizard" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-700 text-slate-300 text-xs font-semibold active:scale-95 transition">
 
               跳过直接进入主控台 ➔
 
@@ -8423,6 +8467,33 @@
 
           <FullHealthModal v-model="showFullHealthModal" :report="fullHealthReport" />
 
+          <ConfirmDialog
+            v-model="confirmDialogState.visible"
+            :title="confirmDialogState.title"
+            :message="confirmDialogState.message"
+            :confirm-text="confirmDialogState.confirmText"
+            :cancel-text="confirmDialogState.cancelText"
+            :variant="confirmDialogState.variant"
+            @confirm="resolveConfirmDialog(true)"
+            @cancel="resolveConfirmDialog(false)"
+          />
+
+          <ConsoleAuthModal
+            mode="manage"
+            :visible="showAuthManageModal"
+            :auth-enabled="authState.enabled"
+            @updated="handleAuthSettingsUpdated"
+            @locked="handleAuthLocked"
+            @close="showAuthManageModal = false"
+          />
+
+          <ConsoleAuthModal
+            mode="login"
+            :visible="needsAuthUnlock"
+            :auth-enabled="authState.enabled"
+            @unlocked="handleAuthUnlocked"
+          />
+
           <!-- Modal: 一键自愈与巡检执行明细报告 (Execution Report Modal)          -->
 
           <!-- ════════════════════════════════════════════════════════════════ -->
@@ -8463,7 +8534,7 @@
 
                 </div>
 
-                <button @click="executionModal.visible = false" class="p-1.5 rounded-xl hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-400 hover:text-white transition cursor-pointer">✕</button>
+                <button @click="executionModal.visible = false" class="p-1.5 rounded-xl hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-400 hover:text-white transition cursor-pointer">✕</button>
 
               </div>
 
@@ -8731,7 +8802,7 @@
 
                       <span class="font-bold text-xs text-white">{{ chk.name }}</span>
 
-                      <span class="text-[9px] px-1.5 py-0.2 rounded bg-white/10 text-slate-400 font-mono">{{ chk.category }}</span>
+                      <span class="text-[11px] px-1.5 py-0.2 rounded bg-white/10 text-slate-400 font-mono">{{ chk.category }}</span>
 
                     </div>
 
@@ -8837,7 +8908,7 @@
 
           <!-- 维度 1: CubeX 主控守护进程 -->
 
-          <div class="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 border border-slate-800 space-y-3 flex flex-col justify-between">
+          <div class="p-4 rounded-2xl bg-white/10 text-white/85 border border-slate-800 space-y-3 flex flex-col justify-between">
 
             <div class="flex justify-between items-center">
 
@@ -8861,7 +8932,7 @@
 
                 <span>当前运行:</span>
 
-                <strong class="text-emerald-300">{{ systemOverview.cubex_version || 'Test v8.2' }}</strong>
+                <strong class="text-emerald-300">{{ systemOverview.cubex_version || 'Test v8.4' }}</strong>
 
               </div>
 
@@ -8869,7 +8940,7 @@
 
                 <span>云端 Release:</span>
 
-                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v8.2' }}</span>
+                <span class="text-slate-200">{{ systemOverview.panel_latest_version || systemOverview.cubex_version || 'Test v8.4' }}</span>
 
               </div>
 
@@ -8887,7 +8958,7 @@
 
           <!-- 维度 2: 双核驱动引擎 -->
 
-          <div class="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 border border-slate-800 space-y-3 flex flex-col justify-between">
+          <div class="p-4 rounded-2xl bg-white/10 text-white/85 border border-slate-800 space-y-3 flex flex-col justify-between">
 
             <div class="flex justify-between items-center">
 
@@ -8935,7 +9006,7 @@
 
           <!-- 维度 3: 217heidai 规则库 -->
 
-          <div class="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 border border-slate-800 space-y-3 flex flex-col justify-between">
+          <div class="p-4 rounded-2xl bg-white/10 text-white/85 border border-slate-800 space-y-3 flex flex-col justify-between">
 
             <div class="flex justify-between items-center">
 
@@ -8981,7 +9052,7 @@
 
           <!-- 维度 4: 宿主底座与固件 -->
 
-          <div class="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 border border-slate-800 space-y-3 flex flex-col justify-between">
+          <div class="p-4 rounded-2xl bg-white/10 text-white/85 border border-slate-800 space-y-3 flex flex-col justify-between">
 
             <div class="flex justify-between items-center">
 
@@ -9237,7 +9308,7 @@
 
                 <table class="w-full text-left text-xs">
 
-                  <thead class="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/95 text-slate-400 font-mono border-b border-slate-800 sticky top-0 backdrop-blur z-10">
+                  <thead class="bg-slate-900/90 text-white text-slate-400 font-mono border-b border-slate-800 sticky top-0 backdrop-blur z-10">
 
                     <tr>
 
@@ -9259,7 +9330,7 @@
 
                   <tbody class="divide-y divide-slate-800/40">
 
-                    <tr v-for="(f, idx) in filteredGeodataFiles" :key="idx" class="hover:bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/30 transition">
+                    <tr v-for="(f, idx) in filteredGeodataFiles" :key="idx" class="hover:bg-white/10 transition">
 
                       <td class="py-2.5 px-3 max-w-[280px]">
 
@@ -9289,7 +9360,7 @@
 
                       <td class="py-2.5 px-2.5">
 
-                        <span class="text-[10px] px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-200 border border-slate-700/80 font-mono">
+                        <span class="text-[10px] px-2 py-0.5 rounded bg-white/10 text-white text-slate-200 border border-slate-700/80 font-mono">
 
                           {{ f.group || '通用分流' }}
 
@@ -9369,7 +9440,7 @@
 
     <div v-if="showDnsRewriteModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in overflow-y-auto">
 
-      <div class="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 p-4 sm:p-6 space-y-4 shadow-2xl relative custom-scrollbar">
+      <div class="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-[#001e36]/95 backdrop-blur-2xl text-white border border-cyan-500/30 p-4 sm:p-6 space-y-4 shadow-2xl relative custom-scrollbar">
 
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
 
@@ -9403,7 +9474,7 @@
 
               <option value="CNAME">CNAME 域名别名重定向 (如 services.googleapis.com)</option>
 
-              <option value="A">A 记录静态 IP 映射 (如 10.0.0.100)</option>
+              <option value="A">A 记录静态 IP 映射 (指定内网 IP)</option>
 
             </select>
 
@@ -9413,7 +9484,7 @@
 
             <label class="block text-slate-300 font-bold mb-1">重写目标 (Target Domain / IP)</label>
 
-            <input type="text" v-model="editingDnsRewriteRule.target" placeholder="例: services.googleapis.com 或 10.0.0.100" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 font-mono">
+            <input type="text" v-model="editingDnsRewriteRule.target" placeholder="例: services.googleapis.com 或局域网静态 IP" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 font-mono">
 
           </div>
 
@@ -9443,7 +9514,7 @@
 
     <div v-if="showRuleSourceModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in overflow-y-auto">
 
-      <div class="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 p-4 sm:p-6 space-y-4 shadow-2xl relative custom-scrollbar">
+      <div class="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-[#001e36]/95 backdrop-blur-2xl text-white border border-cyan-500/30 p-4 sm:p-6 space-y-4 shadow-2xl relative custom-scrollbar">
 
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
 
@@ -9511,7 +9582,7 @@
 
     <div v-if="showSourcePreviewModal && previewingSource" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
 
-      <div class="w-full max-w-lg rounded-3xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 p-6 space-y-4 shadow-2xl relative">
+      <div class="w-full max-w-lg rounded-3xl bg-[#001e36]/95 backdrop-blur-2xl text-white border border-cyan-500/30 p-6 space-y-4 shadow-2xl relative">
 
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
 
@@ -9600,6 +9671,99 @@ import { ref, computed, watch, onMounted, nextTick, defineAsyncComponent } from 
 const SubscriptionMatrix = defineAsyncComponent(() => import('./components/subscriptions/SubscriptionMatrix.vue'))
 
 const FullHealthModal = defineAsyncComponent(() => import('./components/modals/FullHealthModal.vue'))
+import ConfirmDialog from './components/modals/ConfirmDialog.vue'
+import ConsoleAuthModal from './components/modals/ConsoleAuthModal.vue'
+
+// ── Global Console Auth & Unified Confirm Dialog ──
+if (typeof window !== 'undefined' && !window.__cubexNativeFetch) {
+  window.__cubexNativeFetch = window.fetch.bind(window)
+  window.fetch = async (...args) => {
+    const res = await window.__cubexNativeFetch(...args)
+    try {
+      const reqUrl = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '')
+      if (res.status === 401 && !reqUrl.includes('/api/v1/auth/')) {
+        authState.value.enabled = true
+        authState.value.authenticated = false
+      }
+    } catch (e) {}
+    return res
+  }
+}
+
+const authState = ref({ checked: false, enabled: false, authenticated: true })
+const showAuthManageModal = ref(false)
+const needsAuthUnlock = computed(() => authState.value.enabled && !authState.value.authenticated)
+
+const confirmDialogState = ref({
+  visible: false,
+  title: '操作确认',
+  message: '',
+  confirmText: '确认执行',
+  cancelText: '取消',
+  variant: 'warning'
+})
+let confirmResolver = null
+
+function askConfirm(options) {
+  const opts = typeof options === 'string' ? { message: options } : (options || {})
+  return new Promise((resolve) => {
+    confirmResolver = resolve
+    confirmDialogState.value = {
+      visible: true,
+      title: opts.title || '操作确认',
+      message: opts.message || '',
+      confirmText: opts.confirmText || '确认执行',
+      cancelText: opts.cancelText || '取消',
+      variant: opts.variant || 'warning'
+    }
+  })
+}
+
+function resolveConfirmDialog(accepted) {
+  const fn = confirmResolver
+  confirmResolver = null
+  if (fn) fn(Boolean(accepted))
+}
+
+async function refreshConsoleAuthStatus() {
+  try {
+    const fn = window.__cubexNativeFetch || fetch
+    const res = await fn('/api/v1/auth/status')
+    if (res.ok) {
+      const data = await res.json()
+      authState.value = {
+        checked: true,
+        enabled: Boolean(data.enabled),
+        authenticated: Boolean(data.authenticated)
+      }
+      return authState.value
+    }
+  } catch (e) {}
+  authState.value.checked = true
+  return authState.value
+}
+
+async function lockConsoleNow() {
+  try {
+    const fn = window.__cubexNativeFetch || fetch
+    await fn('/api/v1/auth/logout', { method: 'POST' })
+    authState.value.authenticated = false
+    showToast('🔒 控制台已锁定')
+  } catch (e) {
+    showToast('锁定失败: ' + e.message, true)
+  }
+}
+
+function handleAuthSettingsUpdated(enabled) {
+  authState.value.enabled = enabled
+  authState.value.authenticated = true
+  showToast(enabled ? '🔐 控制台访问密码锁已启用' : '🔓 控制台访问密码锁已关闭')
+}
+
+function handleAuthLocked() {
+  authState.value.authenticated = false
+  showToast('🔒 控制台已锁定')
+}
 
 import ZootopiaIcon from './components/ZootopiaIcon.vue'
 
@@ -11077,25 +11241,17 @@ function toggleAntiBlueLight() {
 
 const multiwanBinding = ref({
 
-  enabled: true,
+  enabled: false,
 
   policy: 'latency',
 
-  active_wan: 'wan1',
+  active_wan: '',
 
   failover_count: 0,
 
-  last_failover_time: '刚刚',
+  last_failover_time: '待同步',
 
-  paths: [
-
-    { id: 'wan1', name: '主宽带 (电信千兆)', interface: 'eth0', gateway: '192.168.1.1', priority: 1, latency_ms: 8.5, loss_rate: 0, weight: 60, status: 'active' },
-
-    { id: 'wan2', name: '副宽带 (联通/移动)', interface: 'eth1', gateway: '192.168.2.1', priority: 2, latency_ms: 14.2, loss_rate: 0, weight: 40, status: 'standby' },
-
-    { id: 'wan3_5g', name: '5G CPE 应急热备', interface: 'usb0', gateway: '192.168.8.1', priority: 3, latency_ms: 22.0, loss_rate: 0, weight: 10, status: 'standby' }
-
-  ]
+  paths: []
 
 })
 
@@ -11161,25 +11317,15 @@ const updateMultiwanPolicy = async (newPolicy) => {
 
 const jitterRadarReport = ref({
 
-  overall_jitter_ms: 0.8,
+  overall_jitter_ms: 0,
 
   micro_burst_drops: 0,
 
   wifi_degradation_detected: false,
 
-  last_probe_time: '刚刚',
+  last_probe_time: '待探查',
 
-  hops: [
-
-    { hop_number: 1, target: '终端 ➔ CubeX 网关 (Wi-Fi 接入)', ip: '10.0.0.7', avg_latency_ms: 1.2, jitter_ms: 0.4, packet_loss: 0, status: 'normal' },
-
-    { hop_number: 2, target: 'CubeX ➔ 宿主主路由物理栈 (ROS/爱快)', ip: '10.0.0.1', avg_latency_ms: 0.6, jitter_ms: 0.2, packet_loss: 0, status: 'normal' },
-
-    { hop_number: 3, target: '主路由 ➔ 运营商光猫汇聚 (WAN PPPoE)', ip: '192.168.1.1', avg_latency_ms: 3.1, jitter_ms: 0.6, packet_loss: 0, status: 'normal' },
-
-    { hop_number: 4, target: '运营商 ➔ 公共骨干出口 (公共 DNS/国际落地)', ip: '223.5.5.5', avg_latency_ms: 9.8, jitter_ms: 1.1, packet_loss: 0, status: 'normal' }
-
-  ]
+  hops: []
 
 })
 
@@ -11241,33 +11387,21 @@ const weeklyReport = ref({
 
   end_date: '',
 
-  total_download_mb: 24576,
+  total_download_mb: 0,
 
-  total_upload_mb: 4096,
+  total_upload_mb: 0,
 
-  total_ad_threat_blocks: 12890,
+  total_ad_threat_blocks: 0,
 
   dns_zero_leak_rate: 100.0,
 
-  stability_score: 99.8,
+  stability_score: 100.0,
 
   high_latency_spikes: 0,
 
-  top_devices: [
+  top_devices: [],
 
-    { ip: '10.0.0.12', hostname: 'MacBook-Pro', total_mb: 12400, percent: 50.4 },
-
-    { ip: '10.0.0.18', hostname: 'Apple-TV-4K', total_mb: 6140, percent: 25.0 },
-
-    { ip: '10.0.0.22', hostname: 'iPhone-15-Pro', total_mb: 3200, percent: 13.0 },
-
-    { ip: '10.0.0.45', hostname: 'iPad-Air', total_mb: 1800, percent: 7.3 },
-
-    { ip: '10.0.0.88', hostname: 'HomePod-Mini', total_mb: 1036, percent: 4.3 }
-
-  ],
-
-  generated_at: '刚刚'
+  generated_at: '待同步'
 
 })
 
@@ -11501,29 +11635,21 @@ const toggleXDP = async () => {
 
 const wifiQoSStatus = ref({
 
-  enabled: true,
+  enabled: false,
 
-  airtime_protection_active: true,
+  airtime_protection_active: false,
 
-  weak_links_count: 1,
+  weak_links_count: 0,
 
-  vip_clients_count: 1,
+  vip_clients_count: 0,
 
-  total_monitored_clients: 3,
+  total_monitored_clients: 0,
 
-  channel_clean_score: 96,
+  channel_clean_score: 100,
 
-  summary: 'Wi-Fi 信道空口微流控运行中',
+  summary: '等待空口巡检采样实时局域网终端状态',
 
-  monitored_clients: [
-
-    { ip: '10.0.0.12', hostname: 'Gaming-PC-Ethernet', rssi_dbm: -35, jitter_ms: 0.4, retransmit_rate: 0.0, is_weak_link: false, is_vip: true, queue_class: 'EXEMPT_VIP', shaped_bytes: 0 },
-
-    { ip: '10.0.0.88', hostname: 'LivingRoom-TV-AppleTV', rssi_dbm: -52, jitter_ms: 1.2, retransmit_rate: 0.4, is_weak_link: false, is_vip: false, queue_class: 'STANDARD_FAIR', shaped_bytes: 0 },
-
-    { ip: '10.0.0.194', hostname: 'Balcony-Cam-IoT', rssi_dbm: -79, jitter_ms: 18.2, retransmit_rate: 16.5, is_weak_link: true, is_vip: false, queue_class: 'AIRTIME_PACED', shaped_bytes: 41280000 }
-
-  ]
+  monitored_clients: []
 
 })
 
@@ -11670,17 +11796,12 @@ const optimizeFlowOffload = async () => {
 
 // ── 全链路智能 MTU / MSS 动态自协商雷达 ──
 const pmtuRadarReport = ref({
-  detected_pmtu: 1492,
-  clamped_mss: 1452,
+  detected_pmtu: 0,
+  clamped_mss: 0,
   fragmentation_detected: false,
   fragmentation_drop_rate: 0.0,
   auto_clamping_enabled: true,
-  hops: [
-    { hop_number: 1, target: '终端 ➔ 旁路由网桥 (LAN Ethernet)', ip: '10.0.0.7', max_clean_mtu: 1500, status: 'CLEAN_PASS' },
-    { hop_number: 2, target: '旁路由 ➔ 主路由交换栈 (RouterOS / 爱快)', ip: '10.0.0.1', max_clean_mtu: 1500, status: 'CLEAN_PASS' },
-    { hop_number: 3, target: '主路由 ➔ 运营商光猫 (PPPoE 封装链路)', ip: '192.168.1.1', max_clean_mtu: 1492, status: 'CLAMPED_OPTIMIZED' },
-    { hop_number: 4, target: '光猫 ➔ 骨干网出境网关 (国际协作接入点)', ip: '223.5.5.5', max_clean_mtu: 1492, status: 'CLAMPED_OPTIMIZED' }
-  ]
+  hops: []
 })
 const probingPMTU = ref(false)
 
@@ -11714,15 +11835,11 @@ const runPMTUProbe = async () => {
 const lanGuardianStatus = ref({
   arp_defense_active: true,
   rogue_dhcp_blocked: true,
-  total_monitored_ips: 36,
+  total_monitored_ips: 0,
   ip_conflicts_count: 0,
-  spoof_alerts_count: 1,
-  alerts: [
-    { id: 'ARP-DEF-01', target_ip: '10.0.0.1', original_mac: 'B8:69:F4:11:22:33', spoofed_mac: 'D8:32:14:AA:BB:CC', action_taken: '静态绑定已固化，阻断网关伪造', status: 'BLOCKED' }
-  ],
-  rogue_offers: [
-    { server_ip: '192.168.1.1', server_mac: 'E4:A7:C5:99:88:77', offered_gateway: '192.168.1.1', status: 'BLOCKED' }
-  ]
+  spoof_alerts_count: 0,
+  alerts: [],
+  rogue_offers: []
 })
 const scanningLANGuardian = ref(false)
 
@@ -11823,18 +11940,12 @@ const flushDNSPrefetch = async () => {
 const shadowAuditorStatus = ref({
   enabled: true,
   audit_interval_seconds: 30,
-  total_audits_executed: 8640,
-  tampered_or_lost_detected: 4,
-  silentAutoHealsCompleted: 4,
+  total_audits_executed: 0,
+  tampered_or_lost_detected: 0,
+  silentAutoHealsCompleted: 0,
   consistency_score_pct: 100.0,
-  items: [
-    { target_rule: 'RouterOS table cubex 策略路由', platform: 'routeros', status: 'HEALTHY', auto_healed_count: 2, details: 'Routing rule dst=198.18.0.0/15 lookup=cubex active & consistent' },
-    { target_rule: 'RouterOS 198.18.0.0/15 回指路由', platform: 'routeros', status: 'HEALTHY', auto_healed_count: 1, details: 'IP Route 198.18.0.0/15 -> 10.0.0.7 reachable & hardware FastTrack exempted' },
-    { target_rule: 'Netwatch 毫秒逃生看门狗', platform: 'routeros', status: 'HEALTHY', auto_healed_count: 1, details: 'Netwatch host=10.0.0.7 interval=50ms failover script ready' },
-    { target_rule: '爱快 Web-RPC 静态回指路由', platform: 'ikuai', status: 'HEALTHY', auto_healed_count: 0, details: 'Static route 198.18.0.0/15 -> gateway 10.0.0.7 synchronized' },
-    { target_rule: 'OpenWrt Flow Offloading 豁免链', platform: 'openwrt', status: 'HEALTHY', auto_healed_count: 0, details: 'nftables bypass flowtable 198.18.0.0/15 active' }
-  ],
-  summary: '宿主策略路由影子巡检中 · 篡改误删微秒级静默自愈'
+  items: [],
+  summary: '等待宿主策略路由实时巡检同步'
 })
 const auditingShadow = ref(false)
 const togglingShadow = ref(false)
@@ -12027,31 +12138,21 @@ const headerBgClass = computed(() => {
 // ── Test v7.8 核心进阶特性：AI 伴生管家全网三秒健康拓扑极客雷达与根因自愈 ──
 const rootCauseReport = ref({
   timestamp: '',
-  overall_score: 99,
-  health_rating: '卓越',
-  summary: '全链路端到端体检完成：光猫、软路由主路由、CubeX 旁路与业务节点全部 0 丢包，网络状态极佳！',
-  can_auto_heal: true,
-  hops: [
-    { hop_index: 1, name: '光猫 / 上游宽带', target_ip: '192.168.1.1', status: 'green', latency_ms: 1.2, jitter_ms: 0.2, packet_loss_pct: 0, diagnosis: '光猫链路畅通 · 未决明文与 PPPoE 握手正常' },
-    { hop_index: 2, name: '软路由主路由底座', target_ip: '10.0.0.1', status: 'green', latency_ms: 0.5, jitter_ms: 0.1, packet_loss_pct: 0, diagnosis: '策略路由 table cubex 命中正常 · 198.18.0.0/15 回指就绪' },
-    { hop_index: 3, name: 'CubeX 双引擎网关', target_ip: '10.0.0.7', status: 'green', latency_ms: 0.2, jitter_ms: 0.05, packet_loss_pct: 0, diagnosis: '双核守护进程健康 · Linux Splice 零拷贝直通 · 内存压制在极简基线' },
-    { hop_index: 4, name: '局域网接入终端', target_ip: '10.0.0.0/24', status: 'green', latency_ms: 0.8, jitter_ms: 0.2, packet_loss_pct: 0, diagnosis: 'IP-MAC 静态防欺骗锁定 · 全屋智能设备沙盒生效中' },
-    { hop_index: 5, name: '跨境加速与国际节点', target_ip: '198.18.0.1', status: 'green', latency_ms: 38.5, jitter_ms: 0.8, packet_loss_pct: 0, diagnosis: 'RFC 8305 双栈竞速就绪 · UDP 智能避障生效 · 4K 零缓冲' }
-  ],
-  elapsed_ms: 2.4
+  overall_score: 0,
+  health_rating: '待体检',
+  summary: '点击发起全链路端到端实时诊断',
+  can_auto_heal: false,
+  hops: [],
+  elapsed_ms: 0
 })
 // ── Test v7.8 核心进阶特性：流媒体 4K 秒开专项诊断与 TCP/UDP 竞速 ──
 const streamingReport = ref({
-  overall_score: 98,
+  overall_score: 0,
   udp_qos_risk: false,
-  bbr_status_text: '远端节点已启用 BBR 高性能拥塞控制',
-  mtu_status_text: 'PPPoE MSS 1420 字节动态钳制就绪 (0 拆包碎片)',
-  summary: '流媒体 4K60 链路极速通畅 · TCP/UDP 双栈均衡 · 4K 起播秒开无压力',
-  probes: [
-    { target_service: 'YouTube 4K60 HDR', target_domain: 'googlevideo.com', tcp_speed_mbps: 168.5, udp_speed_mbps: 154.2, tcp_latency_ms: 38.2, udp_latency_ms: 36.5, udp_qos_throttled: false, mtu_fragmentation: false, mss_clamped_bytes: 1420, bbr_detected: true, optimal_resolution: '4K (2160p60 HDR)', diagnosis_details: 'TCP 与 UDP 吞吐双双突破 150Mbps，SABR 起播极速匹配 4K 档位，首包时延极佳。', recommendation_text: '链路状态处于巅峰，已自动开启 MSS 1420 保护。' },
-    { target_service: 'Netflix 4K Ultra HD', target_domain: 'netflix.com', tcp_speed_mbps: 142.0, udp_speed_mbps: 138.6, tcp_latency_ms: 42.5, udp_latency_ms: 41.8, udp_qos_throttled: false, mtu_fragmentation: false, mss_clamped_bytes: 1420, bbr_detected: true, optimal_resolution: '4K (Dolby Vision)', diagnosis_details: 'CDN 边缘机房就近接入，首包延迟在 45ms 以内，无任何运营商 QoS 限速。', recommendation_text: '高质量骨干网穿透，支持多设备并发 4K 播放无卡顿。' },
-    { target_service: 'Disney+ 4K IMAX', target_domain: 'disneyplus.com', tcp_speed_mbps: 135.8, udp_speed_mbps: 129.4, tcp_latency_ms: 45.1, udp_latency_ms: 44.0, udp_qos_throttled: false, mtu_fragmentation: false, mss_clamped_bytes: 1420, bbr_detected: true, optimal_resolution: '4K (IMAX Enhanced)', diagnosis_details: '高并发握手建立平顺，无乱序重传与分包丢包异常。', recommendation_text: '已激活智能预取与会话粘滞，播放流畅不跳点。' }
-  ],
+  bbr_status_text: '等待专项测速实测',
+  mtu_status_text: '等待路径 MTU 校验',
+  summary: '点击发起流媒体链路实测探查',
+  probes: [],
   last_heal_time: '',
   actions_executed: []
 })
@@ -12156,19 +12257,15 @@ const toggleAdaptiveSlicing = async () => {
 
 // ── Test v7.8 核心进阶特性：基于 BPF/XDP 的极速网络数据流旁路短路直通 ──
 const bpfBypassStatus = ref({
-  engine_mode: 'TC BPF + Linux RAW NOTRACK (双模极速短路)',
-  kernel_hook_active: true,
-  hardware_offload_ready: true,
-  cpu_overhead_saved_pct: 38.5,
-  total_packets_bypassed: 1845200,
-  total_traffic_offloaded_gb: 68.4,
+  engine_mode: 'TC BPF + Linux RAW NOTRACK',
+  kernel_hook_active: false,
+  hardware_offload_ready: false,
+  cpu_overhead_saved_pct: 0,
+  total_packets_bypassed: 0,
+  total_traffic_offloaded_gb: 0,
   updated_at: '',
-  summary: '内网数据流物理驱动层短路直通 · 跳过软路由 netfilter 状态机 · 万兆原盘串流 0 延迟',
-  active_rules: [
-    { id: 'nas_smb_direct', description: '局域网 NAS SMB / NFS 4K 原盘直通', source_subnet: '10.0.0.0/24', dest_subnet: '10.0.0.0/24', protocol: 'TCP', port_range: '445, 139, 2049', bypass_action: 'TC_ACT_OK (FastPass)', packets_fast_tracked: 954000, bytes_offloaded_mb: 42500.0, enabled: true },
-    { id: 'lan_multimedia_streaming', description: '全屋 Apple TV / 电视盒子 DLNA 串流', source_subnet: '10.0.0.0/24', dest_subnet: '10.0.0.0/24', protocol: 'TCP/UDP', port_range: '8000-9000, 1900', bypass_action: 'XDP_PASS (Driver Mode)', packets_fast_tracked: 620000, bytes_offloaded_mb: 18600.0, enabled: true },
-    { id: 'iot_camera_rtsp', description: '全屋监控摄像头 RTSP 实时视频流免审查', source_subnet: '10.0.0.0/24', dest_subnet: '10.0.0.0/24', protocol: 'TCP/UDP', port_range: '554, 8554', bypass_action: 'TC_ACT_OK (FastPass)', packets_fast_tracked: 215000, bytes_offloaded_mb: 6450.0, enabled: true }
-  ]
+  summary: '等待检测内网物理驱动旁路规则',
+  active_rules: []
 })
 const optimizingBpfBypass = ref(false)
 
@@ -12378,19 +12475,14 @@ const optimizeECSDispatcher = async () => {
 // 4. 局域网全协议零信任微隔离 (Zero-Trust IoT Sandbox)
 const zeroTrustStatus = ref({
   enabled: true,
-  air_gap_enforcement: true,
-  total_devices_tracked: 4,
-  quarantined_devices_count: 1,
-  wan_restricted_devices_count: 2,
-  lateral_intrusions_severed: 1852,
-  devices: [
-    { mac: 'AA:BB:CC:11:22:33', current_ip: '10.0.0.125', device_name: '客厅全景智能摄像头', vendor: 'Tuya / SmartIoT', policy: 'WAN_RESTRICTED', trust_score: 82, lateral_packets_blocked: 742, last_anomaly_event: '试图探测局域网 445 (SMB) 端口已阻断', updated_at: '' },
-    { mac: 'AA:BB:CC:44:55:66', current_ip: '10.0.0.138', device_name: '主卧激光扫地机器人', vendor: 'Roborock / Ecovacs', policy: 'WAN_RESTRICTED', trust_score: 88, lateral_packets_blocked: 310, last_anomaly_event: '试图广播局域网 mDNS 已收敛过滤', updated_at: '' },
-    { mac: 'AA:BB:CC:77:88:99', current_ip: '10.0.0.199', device_name: '第三方不明电视伴侣盒子', vendor: 'Unknown Android', policy: 'AIR_GAP_QUARANTINE', trust_score: 35, lateral_packets_blocked: 800, last_anomaly_event: '高频向未知境外服务器发送未加密信标，已全面气隙隔离', updated_at: '' },
-    { mac: 'AA:BB:CC:00:AA:FF', current_ip: '10.0.0.50', device_name: '主工作站 Mac / PC', vendor: 'Apple / Intel', policy: 'TRUSTED', trust_score: 100, lateral_packets_blocked: 0, last_anomaly_event: '正常白名单流量，无异常行为', updated_at: '' }
-  ],
+  air_gap_enforcement: false,
+  total_devices_tracked: 0,
+  quarantined_devices_count: 0,
+  wan_restricted_devices_count: 0,
+  lateral_intrusions_severed: 0,
+  devices: [],
   updated_at: '',
-  summary: '零信任微隔离沙盒全域防护中，已对 2 台智能设备实施仅云端气隙隔离，1 台高危设备执行全面阻断'
+  summary: '零信任微隔离沙盒就绪，点击扫描从真实 ARP 邻接表发现设备'
 })
 const scanningZeroTrust = ref(false)
 
@@ -12663,21 +12755,16 @@ const toggleFastTrack = async () => {
   }
 }
 
-// ── Test v7.8 核心进阶特性：全屋智能设备行为沙盒与上传防偷跑 ──
+// ── Test v7.8 核心进阶特性：全屋智能设备行为沙盒与异常上传拦截 ──
 const iotGuardStatus = ref({
-  enabled: true,
-  total_monitored_devices: 4,
-  sandboxed_devices_count: 4,
-  abnormal_broadcasts_intercepted: 193,
-  p2p_upload_peaks_clipped: 48,
-  bandwidth_saved_mb: 1425,
-  sandboxed_devices: [
-    { mac: '64:90:C1:2A:44:01', ip: '10.0.0.181', hostname: 'Xiaomi-SmartCamera-C400', vendor: '小米智能硬件', category: '智能监控摄像头', sandboxed: true, up_limit_kbps: 384, current_up_speed_kbps: 210.4, abnormal_broadcasts_count: 42, clipped_events_count: 18 },
-    { mac: 'D8:0D:17:B2:77:88', ip: '10.0.0.182', hostname: 'TmallGenius-IN-Box', vendor: '天猫精灵/阿里', category: '智能音箱/语音', sandboxed: true, up_limit_kbps: 256, current_up_speed_kbps: 48.0, abnormal_broadcasts_count: 15, clipped_events_count: 4 },
-    { mac: '00:1A:22:98:33:FF', ip: '10.0.0.183', hostname: 'Tuya-Zigbee-Gateway', vendor: '涂鸦智能', category: '智能家居中枢网关', sandboxed: true, up_limit_kbps: 128, current_up_speed_kbps: 12.5, abnormal_broadcasts_count: 128, clipped_events_count: 0 },
-    { mac: '50:EC:50:88:99:AA', ip: '10.0.0.184', hostname: 'Roborock-Vacuum-S8', vendor: '石头科技', category: '智能家电/扫地机', sandboxed: true, up_limit_kbps: 256, current_up_speed_kbps: 18.2, abnormal_broadcasts_count: 8, clipped_events_count: 2 }
-  ],
-  summary: '全屋智能沙盒巡航中 · 拦截非授权广播 · 杜绝后台偷跑带宽'
+  enabled: false,
+  total_monitored_devices: 0,
+  sandboxed_devices_count: 0,
+  abnormal_broadcasts_intercepted: 0,
+  p2p_upload_peaks_clipped: 0,
+  bandwidth_saved_mb: 0,
+  sandboxed_devices: [],
+  summary: '等待真实在线智能设备行为采样'
 })
 const togglingIoTGuard = ref(false)
 
@@ -14976,21 +15063,21 @@ const currentHostIP = computed(() => {
 
 const hostInfo = ref({
 
-  connected: true,
+  connected: false,
 
-  os_name: 'MikroTik RouterOS 7.24.5 (stable)',
+  os_name: '自动探测中...',
 
-  platform_id: 'routeros',
+  platform_id: 'linux',
 
-  kernel_version: 'Linux 6.6.30-amd64',
+  kernel_version: '-',
 
-  arch: 'x86_64',
+  arch: '-',
 
-  cpu_cores: 4,
+  cpu_cores: 0,
 
-  memory_used: '1.8GB',
+  memory_used: '待采集',
 
-  memory_total: '16GB',
+  memory_total: '-',
 
   ip_forward: true
 
@@ -15360,11 +15447,11 @@ const hostConfig = ref({
 
 const systemOverview = ref({
 
-  cubex_version: 'Test v8.2',
+  cubex_version: 'Test v8.4',
 
-  panel_curr_version: 'Test v8.2',
+  panel_curr_version: 'Test v8.4',
 
-  panel_latest_version: 'Test v8.2',
+  panel_latest_version: 'Test v8.4',
 
   mihomo_curr_version: 'v1.19.33',
 
@@ -16304,7 +16391,7 @@ const aiProviders = [
 
   { id: 'doubao', name: '火山引擎 (豆包)', icon: '🌋', desc: '字节跳动 Doubao-pro-32k', defaultModel: 'doubao-pro-32k', defaultBase: 'https://ark.cn-beijing.volces.com/api/v3' },
 
-  { id: 'ollama', name: '本地 Ollama / LM Studio', icon: '🦙', desc: '局域网纯离线私有化', defaultModel: 'deepseek-r1:8b', defaultBase: 'http://10.0.0.9:11434/v1' },
+  { id: 'ollama', name: '本地 Ollama / LM Studio', icon: '🦙', desc: '局域网纯离线私有化', defaultModel: 'deepseek-r1:8b', defaultBase: 'http://127.0.0.1:11434/v1' },
 
   { id: 'custom', name: '自定义端点 (OpenAI 兼容)', icon: '🛠️', desc: '第三方反向代理/聚合端点', defaultModel: '', defaultBase: '' },
 
@@ -16368,7 +16455,7 @@ function triggerQuickAIPrompt(prompt) {
 
 const systemStatus = ref({
 
-  version: 'Test v8.2',
+  version: 'Test v8.4',
 
   uptime_seconds: 1420,
 
@@ -16688,7 +16775,7 @@ async function copyToClipboard(text, msg = '📋 已复制到剪贴板！') {
 
   }
 
-  // 2. Fallback to textarea + execCommand('copy') for HTTP LAN access (e.g. http://10.0.0.11:2026)
+  // 2. Fallback to textarea + execCommand('copy') for HTTP LAN access (LAN gateway UI)
 
   if (!copied) {
 
@@ -16838,7 +16925,7 @@ const dnsRewriteConfig = ref({
 
       type: 'A',
 
-      target: '10.0.0.100',
+      target: '127.0.0.1',
 
       comment: '局域网 A 记录静态映射示例 (如将自定义域名直连私有 NAS 或服务器)',
 
@@ -16956,7 +17043,12 @@ const toggleDnsRewriteRule = async (rule) => {
 
 const resetDnsRewriteDefaults = async () => {
 
-  if (!confirm('确定要恢复默认设置吗？将重置为两条 Google 重写规则及一条局域网 A 记录静态映射示例。')) return
+  if (!(await askConfirm({
+    title: '恢复 DNS 重写默认设置',
+    message: '确定要恢复默认设置吗？将重置为两条 Google 重写规则及一条局域网 A 记录静态映射示例。',
+    confirmText: '确认重置',
+    variant: 'warning'
+  }))) return
 
   try {
 
@@ -17066,7 +17158,12 @@ const saveDnsRewriteRule = async () => {
 
 const deleteDnsRewriteRule = async (rule) => {
 
-  if (!confirm(`确定要删除规则 [${rule.domain} -> ${rule.target}] 吗？`)) return
+  if (!(await askConfirm({
+    title: '删除 DNS 重写规则',
+    message: `确定要删除规则 [${rule.domain} -> ${rule.target}] 吗？`,
+    confirmText: '确认删除',
+    variant: 'danger'
+  }))) return
 
   try {
 
@@ -17412,7 +17509,12 @@ const saveRuleSource = async () => {
 
 const deleteSourceItem = async (src) => {
 
-  if (!confirm(`确定删除规则源 [${src.name}] 吗？`)) return
+  if (!(await askConfirm({
+    title: '删除广告拦截规则源',
+    message: `确定删除规则源 [${src.name}] 吗？`,
+    confirmText: '确认删除',
+    variant: 'danger'
+  }))) return
 
   try {
 
@@ -17659,16 +17761,6 @@ const securityAudit = ref({
   }
 
 })
-
-const sampleBlocked = [
-
-  { id: 1, time: '19:24:02', domain: 'adservice.google.com', rule: '217heidai-ads.mrs', device: '客厅电视', client_ip: '192.168.88.135' },
-
-  { id: 2, time: '19:23:45', domain: 'tracker.metrics.apple.com', rule: 'privacy-tracking.mrs', device: '我的 iPhone', client_ip: '192.168.88.112' },
-
-  { id: 3, time: '19:21:10', domain: 'sdk.open.e.kuaishou.com', rule: '217heidai-ads.mrs', device: 'iPad Pro', client_ip: '192.168.88.140' }
-
-]
 
 // ── High-Fidelity Packet Tracer Route Inference ──
 
@@ -18901,16 +18993,16 @@ async function fetchHostConfig() {
     if (data && data.host) {
 
       hostConfig.value = {
-
         host: data.host || '',
-
         port: data.port || 80,
-
         user: data.user || '',
-
         password: data.password || ''
-
       }
+      if (!initHostForm.value.host_ip && data.host) {
+        initHostForm.value.host_ip = data.host
+      }
+      if (data.port) initHostForm.value.port = String(data.port)
+      if (data.user) initHostForm.value.username = data.user
 
     }
 
@@ -19086,7 +19178,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
     } else if (data.status === 'already_latest') {
 
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v8.2'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v8.4'})`)
 
     } else {
 
@@ -19132,7 +19224,7 @@ async function upgradePanel(force = false) {
 
       const timeStr = new Date().toLocaleTimeString()
 
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v8.2'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v8.4'})，无需重复更新。`
 
       showToast(data.message || 'CubeX 系统已是最新版本')
 
@@ -19210,7 +19302,7 @@ function openGitHubIssuePrompt() {
 
 - 系统架构：${systemOverview.value?.arch || 'amd64'}
 
-- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v8.2'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v8.4'}
 
 - 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
 
@@ -19242,7 +19334,12 @@ async function upgradeCore(type) {
 
   const confirmMsg = `【内核升级自主决策确认】\n\n确定要升级 ${type} 内核吗？${latestVer ? `(最新目标版本: ${latestVer})` : ''}\n\n⚠️ 重要提示：请自行决定是否更新到最新版，因为更新会由于配置文件语法、特性、功能等未对齐可能影响使用。\n\n是否确认继续升级？`
 
-  if (!confirm(confirmMsg)) {
+  if (!(await askConfirm({
+    title: '内核升级确认',
+    message: confirmMsg,
+    confirmText: '确认升级',
+    variant: 'warning'
+  }))) {
 
     return
 
@@ -19574,7 +19671,12 @@ async function executeHostUpgrade() {
 
     : `确定要为当前宿主 (${hostBadge.value.name}) 执行系统与内核升级吗？`
 
-  if (!confirm(confirmMsg)) {
+  if (!(await askConfirm({
+    title: '宿主系统升级确认',
+    message: confirmMsg,
+    confirmText: '确认升级',
+    variant: 'warning'
+  }))) {
 
     return
 
@@ -20154,17 +20256,13 @@ async function saveAIConfig() {
 const rfcQUICStatus = ref({
   enabled: true,
   mode: 'adaptive',
-  active_flows_count: 3,
-  total_passthrough_mb: 482.5,
-  total_fallback_count: 12,
-  average_loss_rate: 0.012,
-  average_rtt_ms: 22.4,
-  carrier_throttle_rate: 4.2,
-  flows: [
-    { id: 'flow-1', client_ip: '10.0.0.101', target_domain: 'cloudflare-quic.com', target_port: 443, loss_rate: 0.005, rtt_ms: 18.2, active_mode: 'passthrough' },
-    { id: 'flow-2', client_ip: '10.0.0.108', target_domain: 'google-video.quic', target_port: 443, loss_rate: 0.014, rtt_ms: 24.5, active_mode: 'passthrough' },
-    { id: 'flow-3', client_ip: '10.0.0.115', target_domain: 'udp-carrier-probe', target_port: 443, loss_rate: 0.065, rtt_ms: 85.0, active_mode: 'tcp_fallback' }
-  ]
+  active_flows_count: 0,
+  total_passthrough_mb: 0,
+  total_fallback_count: 0,
+  average_loss_rate: 0,
+  average_rtt_ms: 0,
+  carrier_throttle_rate: 0,
+  flows: []
 })
 const settingQUICMode = ref(false)
 
@@ -20218,14 +20316,11 @@ const triggerQUICFallback = async () => {
 
 // ── Test v8.0 核心进阶特性：多宽带出口毫秒级智能避障与选路中枢 ──
 const multiWANRacingStatus = ref({
-  enabled: true,
+  enabled: false,
   policy: 'loss_avoidance',
   primary_wan: 'wan1',
-  total_switches: 2,
-  interfaces: [
-    { id: 'wan1', name: '主力宽带 (电信千兆)', gateway: '192.168.1.1', rtt_ms: 16.5, jitter_ms: 1.2, loss_rate: 0.0, status: 'optimal', is_active: true },
-    { id: 'wan2', name: '备用宽带 (联通/移动)', gateway: '192.168.2.1', rtt_ms: 22.0, jitter_ms: 2.5, loss_rate: 0.0, status: 'normal', is_active: false }
-  ]
+  total_switches: 0,
+  interfaces: []
 })
 const probingMultiWAN = ref(false)
 
@@ -20380,7 +20475,7 @@ async function triggerHotRestart() {
 
 // ── Region Clusters & Strategies (Default 8 Regions: 香港, 台湾,日本, 韩国, 新加坡, 美国, 自建, 其它) ──
 
-// 严格遵循排序：地区自动，地区故转，地区容灾 (各地区组支持拖拽排序与自定义订阅源订阅分组)
+// 严格遵循排序：地区自动，地区故转，地区容灾 (各地区组支持拖拽排序与自定义订阅源分组)
 
 const defaultRegionDefs = [
 
@@ -20607,13 +20702,18 @@ const allRegionDefs = computed(() => {
 
 })
 
-function deleteRegionDef(id) {
+async function deleteRegionDef(id) {
 
   const target = defaultRegionDefs.find(r => r.id === id) || customRegionGroups.value.find(r => r.id === id)
 
   const name = target ? target.name : id
 
-  if (!confirm(`确定要移除「${name}」地区节点组吗？\n移除后该地区将从全域策略分流与地区列表中隐去。`)) return
+  if (!(await askConfirm({
+    title: '移除地区节点组',
+    message: `确定要移除「${name}」地区节点组吗？\n移除后该地区将从全域策略分流与地区列表中隐去。`,
+    confirmText: '确认移除',
+    variant: 'danger'
+  }))) return
 
   if (target && target.is_custom) {
 
@@ -21285,7 +21385,7 @@ function submitAddCustomNodeGroup() {
 
     if (!customNodeGroupForm.value.sub_id) {
 
-      showToast('请选择绑定的订阅订阅', true)
+      showToast('请选择绑定的订阅', true)
 
       return
 
@@ -21433,7 +21533,7 @@ function getRegionNodes(reg) {
 
   const proxies = (ir.value.proxies || []).filter(p => p.type !== 'direct' && p.type !== 'block' && p.type !== 'reject')
 
-  // 1. Custom Group by Subscription (如把某个订阅源订阅单独添加为一组)
+  // 1. Custom Group by Subscription (如把某个订阅源单独添加为一组)
 
   if (merged.type === 'sub' && merged.sub_id) {
 
@@ -22239,7 +22339,7 @@ try {
 
 } catch (e) {}
 
-function deletePolicyGroup(groupName) {
+async function deletePolicyGroup(groupName) {
 
   if (isImmutableGroup(groupName)) {
 
@@ -22249,7 +22349,12 @@ function deletePolicyGroup(groupName) {
 
   }
 
-  if (!confirm(`确定要移除应用分流策略组【${groupName}】吗？\n移除后该分流规则将不再生效。`)) return
+  if (!(await askConfirm({
+    title: '移除应用分流策略组',
+    message: `确定要移除应用分流策略组【${groupName}】吗？\n移除后该分流规则将不再生效。`,
+    confirmText: '确认移除',
+    variant: 'danger'
+  }))) return
 
   if (!deletedPolicyGroupNames.value.includes(groupName)) {
 
@@ -22585,7 +22690,7 @@ function isRegionalOrInfrastructureGroup(grp) {
 
   }
 
-  // 4. 订阅源订阅分组或带专属/节点特征名
+  // 4. 订阅源分组或带专属/节点特征名
 
   if (clean.includes('专属') || raw.includes('专属')) return true
 
@@ -23922,15 +24027,15 @@ function triggerSinglePolicyGroupSpeedtest(grp) {
 
 async function confirmSystemPoweroff() {
 
-  const confirmed = window.confirm(
-
-    '⚠️ 确定要关闭 CubeX 宿主系统吗？\n\n' +
-
-    '• 系统将在断电前【主动通知主路由解除劫持】，国内直连上网 100% 毫秒级无感逃生！\n' +
-
-    '• 停机后 Web 控制台将关闭，如需开机请前往 PVE / RouterOS 手动启动容器。'
-
-  )
+  const confirmed = await askConfirm({
+    title: '安全关机确认',
+    message:
+      '确定要关闭 CubeX 宿主系统吗？\n\n' +
+      '• 系统将在断电前【主动通知主路由解除劫持】，国内直连上网 100% 毫秒级无感逃生！\n' +
+      '• 停机后 Web 控制台将关闭，如需开机请前往 PVE / RouterOS 手动启动容器。',
+    confirmText: '确认安全关机',
+    variant: 'danger'
+  })
 
   if (!confirmed) return
 
@@ -23958,15 +24063,15 @@ async function confirmSystemPoweroff() {
 
 async function confirmSystemReboot() {
 
-  const confirmed = window.confirm(
-
-    '🔄 确定要重启 CubeX 宿主系统吗？\n\n' +
-
-    '• 重启前系统将主动通知主路由逃生，重启期间国内上网不受任何影响。\n' +
-
-    '• 预计 10~15 秒后自动恢复在线。'
-
-  )
+  const confirmed = await askConfirm({
+    title: '整机重启确认',
+    message:
+      '确定要重启 CubeX 宿主系统吗？\n\n' +
+      '• 重启前系统将主动通知主路由逃生，重启期间国内上网不受任何影响。\n' +
+      '• 预计 10~15 秒后自动恢复在线。',
+    confirmText: '确认重启',
+    variant: 'warning'
+  })
 
   if (!confirmed) return
 
@@ -24288,7 +24393,7 @@ const regionalAutoGroups = computed(() => {
 
         } else {
 
-          provName = '订阅源订阅'
+          provName = '订阅源'
 
         }
 
@@ -25318,7 +25423,12 @@ async function submitAddCustomGroup() {
 
 async function deleteCustomGroup(groupName) {
 
-  if (!confirm(`确定要移除应用分流策略组【${groupName}】吗？`)) return
+  if (!(await askConfirm({
+    title: '移除自定义分流组',
+    message: `确定要移除应用分流策略组【${groupName}】吗？`,
+    confirmText: '确认移除',
+    variant: 'danger'
+  }))) return
 
   try {
 
@@ -25710,7 +25820,7 @@ function parseSubscriptionLine(rawLine, index = 0) {
 
   if (!name) {
 
-    name = `订阅源订阅 ${index + 1}`
+    name = `订阅源 ${index + 1}`
 
   }
 
@@ -25882,7 +25992,7 @@ async function submitBatchSubs() {
 
   if (!items || items.length === 0) {
 
-    showToast('未能识别到有效的订阅源订阅链接，请检查输入格式', true)
+    showToast('未能识别到有效的订阅源链接，请检查输入格式', true)
 
     return
 
@@ -25910,7 +26020,7 @@ async function submitBatchSubs() {
 
     if (data.ok) {
 
-      showToast(`🎉 批量导入完成！成功添加 ${data.added_subs} 个订阅源订阅，共收录 ${data.total_nodes} 个节点`)
+      showToast(`🎉 批量导入完成！成功添加 ${data.added_subs} 个订阅源，共收录 ${data.total_nodes} 个节点`)
 
       batchSubText.value = ''
 
@@ -26030,7 +26140,7 @@ async function submitAddSubscription() {
 
       body: JSON.stringify({
 
-        name: newSubName.value.trim() || '订阅源订阅',
+        name: newSubName.value.trim() || '订阅源',
 
         url: newSubUrl.value.trim()
 
@@ -26238,7 +26348,12 @@ const saveSubRename = saveSubEdit
 
 async function deleteSubscription(subId) {
 
-  if (!confirm('确定要删除此订阅订阅及其所属节点吗？')) return
+  if (!(await askConfirm({
+    title: '删除订阅源',
+    message: '确定要删除此订阅及其所属节点吗？',
+    confirmText: '确认删除',
+    variant: 'danger'
+  }))) return
 
   try {
 
@@ -26256,7 +26371,7 @@ async function deleteSubscription(subId) {
 
     if (data.ok) {
 
-      showToast('已成功移除该订阅源订阅及所属节点')
+      showToast('已成功移除该订阅源及所属节点')
 
       await fetchIR()
 
@@ -26284,7 +26399,7 @@ async function toggleSubscription(subId, enabled) {
 
     if (data.ok) {
 
-      showToast(enabled ? '订阅源订阅已启用' : '订阅源订阅已停用')
+      showToast(enabled ? '订阅源已启用' : '订阅源已停用')
 
       await fetchIR()
 
@@ -26364,7 +26479,12 @@ async function updateAllSubscriptions() {
 
 async function deleteNode(nodeName) {
 
-  if (!confirm(`确定要移除节点「${nodeName}」吗？`)) return
+  if (!(await askConfirm({
+    title: '移除自建节点',
+    message: `确定要移除节点「${nodeName}」吗？`,
+    confirmText: '确认移除',
+    variant: 'danger'
+  }))) return
 
   try {
 
@@ -26890,7 +27010,7 @@ const initBackupFileInput = ref(null)
 
 const initHostForm = ref({
 
-  host_ip: hostConfig.value?.host || '192.168.88.1',
+  host_ip: hostConfig.value?.host || '',
 
   port: hostConfig.value?.port || '80',
 
@@ -27004,7 +27124,7 @@ async function handleInitBackupFile(file) {
 
   } catch (err) {
 
-    alert('导入备份失败：' + (err.message || '格式错误'))
+    showToast('导入备份失败：' + (err.message || '格式错误'), true)
 
   } finally {
 
@@ -27042,7 +27162,12 @@ function handleInitFileDrop(event) {
 
 async function chooseFreshStart() {
 
-  if (!confirm('⚠️ 确定要全新开始初始化吗？\n\n系统将清空当前所有网络代理、节点与分流配置，恢复洁净纯净状态，并进入宿主连通向导。')) {
+  if (!(await askConfirm({
+    title: '全新开始初始化确认',
+    message: '系统将清空当前所有网络代理、节点与分流配置，恢复洁净纯净状态，并进入宿主连通向导。',
+    confirmText: '确认清空并初始化',
+    variant: 'danger'
+  }))) {
 
     return
 
@@ -27213,6 +27338,18 @@ function confirmAndStartInitWizard() {
 }
 
 function openInitWizard(fromReset = false) {
+
+  if (!initHostForm.value.host_ip) {
+
+    const detectedHost = hostConfig.value?.host || (routerHW.value?.lan_ip && !['待探测', '自动探测中'].includes(routerHW.value.lan_ip) ? routerHW.value.lan_ip : '')
+
+    if (detectedHost) {
+
+      initHostForm.value.host_ip = detectedHost
+
+    }
+
+  }
 
   initWizardStep.value = 1
 
@@ -27592,7 +27729,14 @@ function syncUIStateToCloud() {
 
 }
 
-onMounted(async () => {
+async function handleAuthUnlocked() {
+  authState.value.authenticated = true
+  showToast('🔓 控制台已解锁')
+  await runAuthorizedMountLoad()
+}
+
+let dashboardInitialLoaded = false
+async function runAuthorizedMountLoad() {
   fetchFakeIpFilters()
 
   fetchUIState()
@@ -27646,25 +27790,8 @@ onMounted(async () => {
   fetchDNSPrefetch()
   fetchShadowAuditor()
 
-  // Global shortcut: press "/" to focus routing search input
-
-  window.addEventListener('keydown', (e) => {
-
-    if (e.key === '/' && activeMasterTab.value === 'routing') {
-
-      const tag = document.activeElement?.tagName?.toLowerCase()
-
-      if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') {
-
-        e.preventDefault()
-
-        routingSearchInput.value?.focus()
-
-      }
-
-    }
-
-  })
+  if (dashboardInitialLoaded) return
+  dashboardInitialLoaded = true
 
   try {
 
@@ -27797,10 +27924,28 @@ onMounted(async () => {
     setTimeout(triggerAllServiceProbes, 500)
 
   }
+}
 
-  // ⚡ 智能按需调度器：仅在页面可见且对应 Tab 激活时才轮询，后台或未激活时静默休眠
+onMounted(async () => {
+  // Global shortcut: press "/" to focus routing search input
+  window.addEventListener('keydown', (e) => {
+    if (e.key === '/' && activeMasterTab.value === 'routing') {
+      const tag = document.activeElement?.tagName?.toLowerCase()
+      if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') {
+        e.preventDefault()
+        routingSearchInput.value?.focus()
+      }
+    }
+  })
 
-  const isPageVisible = () => typeof document !== 'undefined' && !document.hidden
+  const _authInit = await refreshConsoleAuthStatus()
+  if (!_authInit.enabled || _authInit.authenticated) {
+    await runAuthorizedMountLoad()
+  }
+
+  // ⚡ 智能按需调度器：仅在页面可见、已解锁且对应 Tab 激活时才轮询，后台或锁定时静默休眠
+
+  const isPageVisible = () => !needsAuthUnlock.value && typeof document !== 'undefined' && !document.hidden
 
   let isFetchingTelemetry = false
 

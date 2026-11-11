@@ -6,6 +6,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // Status provides runtime telemetry for the host bidirectional heartbeat and hot-patch shadow bus.
@@ -141,8 +143,15 @@ func (m *Manager) RunProbe() ProbeResult {
 	total := len(m.verifiedRules)
 	m.mu.Unlock()
 
+	gw := schema.DetectDefaultGateway()
+	if gw == "" {
+		gw = "主路由网关"
+	} else {
+		gw += " (主路由网关)"
+	}
+
 	return ProbeResult{
-		Host:             "10.0.0.1 (主路由网关)",
+		Host:             gw,
 		LatencyMs:        lat,
 		RulesVerified:    total,
 		RulesTotal:       total,

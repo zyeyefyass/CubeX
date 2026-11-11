@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // TopologyNodeType categorizes elements in the physical/logical network graph.
@@ -94,16 +96,25 @@ func (m *TopologyManager) Refresh() TopologyGraph {
 	}
 	nodes = append(nodes, wanNode)
 
+	gatewayIP := schema.DetectDefaultGateway()
+	cubexIP := schema.DetectOutboundIP(gatewayIP)
+	if gatewayIP == "" {
+		gatewayIP = "自动探测中"
+	}
+	if cubexIP == "" {
+		cubexIP = "本机网桥"
+	}
+
 	// 2. Tier 1: 主物理路由器 (RouterOS / 爱快 / OpenWrt 主机)
 	routerNode := TopologyNode{
 		ID:        "node-main-router",
-		Label:     "MikroTik RouterOS 物理主路由",
+		Label:     "物理主路由网关",
 		Type:      TypeRouter,
-		IP:        "10.0.0.1",
-		MAC:       "BC:24:11:80:67:B9",
-		Vendor:    "MikroTik",
-		Interface: "bridge1 / LAN",
-		Online:    true,
+		IP:        gatewayIP,
+		MAC:       "AUTO",
+		Vendor:    "Main Gateway",
+		Interface: "LAN",
+		Online:    gatewayIP != "自动探测中",
 		Tier:      1,
 	}
 	nodes = append(nodes, routerNode)
@@ -111,8 +122,8 @@ func (m *TopologyManager) Refresh() TopologyGraph {
 	links = append(links, TopologyLink{
 		Source:   "node-wan",
 		Target:   "node-main-router",
-		Protocol: "PPPoE 动态拨号",
-		Speed:    "千兆物理线速",
+		Protocol: "WAN 动态拨号",
+		Speed:    "物理线速",
 		Status:   "active",
 	})
 
@@ -121,10 +132,10 @@ func (m *TopologyManager) Refresh() TopologyGraph {
 		ID:        "node-cubex-gateway",
 		Label:     "CubeX 双核透明网关 (伴生中枢)",
 		Type:      TypeGateway,
-		IP:        "10.0.0.7",
-		MAC:       "BC:24:11:9B:AE:98",
+		IP:        cubexIP,
+		MAC:       "AUTO",
 		Vendor:    "CubeX Dual-Core Gateway",
-		Interface: "eth0 / veth-cubex",
+		Interface: "eth0 / tun",
 		Online:    true,
 		IsProxied: true,
 		Tier:      2,
@@ -135,43 +146,12 @@ func (m *TopologyManager) Refresh() TopologyGraph {
 		Source:   "node-main-router",
 		Target:   "node-cubex-gateway",
 		Protocol: "table cubex 策略路由 + 198.18 回指",
-		Speed:    "10Gbps VirtIO 内存级极速总线",
+		Speed:    "VirtIO / VETH 内核直通",
 		Status:   "active",
 	})
 
-	// 4. Tier 3: 交换机 / AP 节点 (基于 ARP 或 MNDP 嗅探)
-	apNode := TopologyNode{
-		ID:        "node-ap-switch",
-		Label:     "客厅 Wi-Fi 7 / 2.5G 核心交换机",
-		Type:      TypeSwitchAP,
-		IP:        "10.0.0.2",
-		MAC:       "68:D7:9A:12:34:56",
-		Vendor:    "TP-Link / Switch",
-		Interface: "lan1",
-		Online:    true,
-		Tier:      3,
-	}
-	nodes = append(nodes, apNode)
-
-	links = append(links, TopologyLink{
-		Source:   "node-main-router",
-		Target:   "node-ap-switch",
-		Protocol: "802.3ad 聚合链路",
-		Speed:    "2.5Gbps 全双工",
-		Status:   "active",
-	})
-
-	// 5. Tier 4: 解析真实局域网客户端 (读取 /proc/net/arp 或内置探针)
-	discoveredClients := m.parseARPTable()
-	if len(discoveredClients) == 0 {
-		// 默认终端示例，保证图谱开箱即显丰富
-		discoveredClients = []TopologyNode{
-			{ID: "client-pc", Label: "开发工作站 PC", Type: TypeEndpoint, IP: "10.0.0.4", MAC: "00:E0:4C:68:01:22", Vendor: "Intel", Interface: "bridge1", IsProxied: true, Online: true, Tier: 4},
-			{ID: "client-phone", Label: "极客主力手机", Type: TypeEndpoint, IP: "10.0.0.12", MAC: "F0:99:B6:33:44:55", Vendor: "Apple", Interface: "wlan0", IsProxied: true, Online: true, Tier: 4},
-			{ID: "client-tv", Label: "客厅 4K 电视盒", Type: TypeEndpoint, IP: "10.0.0.15", MAC: "28:6C:07:77:88:99", Vendor: "Xiaomi", Interface: "wlan0", IsProxied: true, Online: true, Tier: 4},
-			{ID: "client-nas", Label: "全闪存家庭私有云 NAS", Type: TypeEndpoint, IP: "10.0.0.9", MAC: "00:11:32:AA:BB:CC", Vendor: "Synology", Interface: "lan1", IsProxied: false, Online: true, Tier: 4},
-		}
-	}
+	// 4. Tier 4: 解析真实局域网客户端 (读取 /proc/net/arp)
+	discoveredClients := m.parseARPTable(gatewayIP, cubexIP)
 
 	proxiedCount := 1 // CubeX itself
 	for _, c := range discoveredClients {
@@ -220,7 +200,7 @@ func (m *TopologyManager) Refresh() TopologyGraph {
 }
 
 // parseARPTable parses the host's /proc/net/arp table if available.
-func (m *TopologyManager) parseARPTable() []TopologyNode {
+func (m *TopologyManager) parseARPTable(gatewayIP, cubexIP string) []TopologyNode {
 	file, err := os.Open("/proc/net/arp")
 	if err != nil {
 		return nil
@@ -250,8 +230,8 @@ func (m *TopologyManager) parseARPTable() []TopologyNode {
 			nodeID := "client-" + strings.ReplaceAll(ip, ".", "-")
 			vendor := detectVendor(mac)
 			isProxied := true
-			if ip == "10.0.0.1" || ip == "10.0.0.7" || ip == "10.0.0.9" {
-				continue // Skip router / cubex / pve host
+			if ip == gatewayIP || ip == cubexIP {
+				continue // Skip router / cubex gateway itself
 			}
 
 			clients = append(clients, TopologyNode{

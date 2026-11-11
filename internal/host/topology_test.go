@@ -8,11 +8,11 @@ func TestTopologyManager(t *testing.T) {
 	mgr := GetTopologyManager()
 	graph := mgr.Refresh()
 
-	if len(graph.Nodes) < 4 {
-		t.Errorf("expected at least 4 nodes (WAN, Router, CubeX, Switch), got %d", len(graph.Nodes))
+	if len(graph.Nodes) < 3 {
+		t.Errorf("expected at least 3 core nodes (WAN, Router, CubeX), got %d", len(graph.Nodes))
 	}
-	if len(graph.Links) < 3 {
-		t.Errorf("expected at least 3 links, got %d", len(graph.Links))
+	if len(graph.Links) < 2 {
+		t.Errorf("expected at least 2 core links, got %d", len(graph.Links))
 	}
 
 	cached := mgr.GetGraph()

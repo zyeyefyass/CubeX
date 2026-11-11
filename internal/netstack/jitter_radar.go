@@ -5,6 +5,8 @@ import (
 	"net"
 	"sync"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // HopMetric 单跳网络质量度量
@@ -55,16 +57,26 @@ func (m *JitterRadarManager) RunHopProbe() JitterRadarReport {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	gw := schema.DetectDefaultGateway()
 	hopDefs := []struct {
 		num  int
 		name string
 		ip   string
 	}{
 		{1, "局域网终端 ➔ CubeX 伴生网关", "127.0.0.1"},
-		{2, "CubeX 网关 ➔ 物理主路由", "10.0.0.1"},
-		{3, "物理主路由 ➔ 上游光猫出口", "192.168.1.1"},
-		{4, "光猫出口 ➔ 国家骨干骨干汇聚", "223.5.5.5"},
 	}
+	if gw != "" {
+		hopDefs = append(hopDefs, struct {
+			num  int
+			name string
+			ip   string
+		}{2, "CubeX 网关 ➔ 物理主路由", gw})
+	}
+	hopDefs = append(hopDefs, struct {
+		num  int
+		name string
+		ip   string
+	}{len(hopDefs) + 1, "外网出口 ➔ 国内公共骨干节点", "223.5.5.5"})
 
 	hops := make([]HopMetric, 0, len(hopDefs))
 	var sumJitter float64

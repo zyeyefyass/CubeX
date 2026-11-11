@@ -252,13 +252,7 @@ func NewDefaultIR() *ConfigIR {
 			{Type: "geoip", Value: "private", Target: "🎯 全球直连"},
 			{Type: "match", Value: "", Target: "🐟 漏网之鱼"},
 		},
-		DevicePolicies: []DevicePolicy{
-			{Name: "家庭极空间 NAS (数据中心)", IP: "10.0.0.88", Mode: "bypass"},
-			{Name: "客厅 Apple TV 4K", IP: "10.0.0.120", Mode: "rule"},
-			{Name: "主卧智能电视", IP: "10.0.0.122", Mode: "rule"},
-			{Name: "书房主力 PC (开发工作站)", IP: "10.0.0.101", Mode: "rule"},
-			{Name: "索尼 PS5 游戏主机", IP: "10.0.0.199", Mode: "rule"},
-		},
+		DevicePolicies: []DevicePolicy{},
 		Profiles: []Profile{
 			{
 				ID:           "balanced",

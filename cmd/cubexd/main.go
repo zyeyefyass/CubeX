@@ -98,7 +98,7 @@ import (
 )
 
 var (
-	version = "Test v8.3"
+	version = "Test v8.4"
 
 	startTime = time.Now()
 )
@@ -476,6 +476,7 @@ type Server struct {
 	quicPassthroughMgr *netstack.QUICPassthroughManager
 	multiWANRacingMgr  *netstack.MultiWANRacingManager
 	snapshotMgr        *backup.StateSnapshotManager
+	authMgr            *ConsoleAuthManager
 
 	logBuffer *RingLogBuffer
 
@@ -709,8 +710,7 @@ func main() {
 	configureAdaptiveMemoryLimit()
 
 	// Periodic OOM Defense & Memory Scavenger: Reclaims idle heap pages back to OS
-
-	go func() {
+	SafeGo("MemoryScavenger", func() {
 		// Initial post-boot scavenge: prompt cleanup after config compilation
 		time.Sleep(15 * time.Second)
 		runtime.GC()
@@ -723,7 +723,7 @@ func main() {
 			runtime.GC()
 			debug.FreeOSMemory()
 		}
-	}()
+	})
 
 	listenAddr := flag.String("listen", ":2026", "Listen address (e.g. :2026 or 0.0.0.0:2026)")
 
@@ -940,7 +940,8 @@ func main() {
 		zeroTrustMgr:       security.NewZeroTrustSandboxManager(filepath.Join(dir, "data")),
 		quicPassthroughMgr: netstack.NewQUICPassthroughManager(nil),
 		multiWANRacingMgr:  netstack.NewMultiWANRacingManager(nil),
-	snapshotMgr:        backup.NewStateSnapshotManager(filepath.Join(dir, "data")),
+		snapshotMgr:        backup.NewStateSnapshotManager(filepath.Join(dir, "data")),
+		authMgr:            NewConsoleAuthManager(dir),
 
 		logBuffer:    logBuffer,
 		delayCache:   make(map[string]delayCacheEntry),
@@ -961,7 +962,7 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v8.2")
+	srv.mcpServer = mcp.NewServer(srv, "Test v8.4")
 
 	srv.initTrafficState()
 
@@ -1057,6 +1058,10 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok","healthy":true}`))
 	})
+	mux.HandleFunc("/api/v1/auth/status", srv.handleAuthStatus)
+	mux.HandleFunc("/api/v1/auth/login", srv.handleAuthLogin)
+	mux.HandleFunc("/api/v1/auth/logout", srv.handleAuthLogout)
+	mux.HandleFunc("/api/v1/auth/password", srv.handleAuthPassword)
 	mux.HandleFunc("/api/v1/system/status", srv.handleSystemStatus)
 
 	mux.HandleFunc("/api/v1/system/edition", srv.handleSystemEdition)
@@ -1243,7 +1248,7 @@ func main() {
 	mux.HandleFunc("/api/v1/host/fasttrack/optimize", srv.handleFastTrackOptimize)
 	mux.HandleFunc("/api/v1/host/fasttrack/toggle", srv.handleFastTrackToggle)
 
-	// 维度三：全屋智能设备行为沙盒与上传防偷跑
+	// 维度三：全屋智能设备行为沙盒与异常上传拦截
 	mux.HandleFunc("/api/v1/devices/iot-guard/status", srv.handleIoTGuardStatus)
 	mux.HandleFunc("/api/v1/devices/iot-guard/tune", srv.handleIoTGuardTune)
 	mux.HandleFunc("/api/v1/devices/iot-guard/toggle", srv.handleIoTGuardToggle)
@@ -1573,7 +1578,7 @@ func main() {
 
 	// Automatically boot the active engine immediately on daemon startup (Zero-wait cold boot)
 
-	go func() {
+	SafeGo("DaemonBoot", func() {
 
 		activeEng := engMgr.GetActiveEngine()
 
@@ -1595,7 +1600,7 @@ func main() {
 
 		if rosMgr != nil {
 
-			go func() {
+			SafeGo("DaemonROSBoot", func() {
 
 				if err := rosMgr.RestoreRulesAfterBoot(); err == nil {
 					log.Println("🛡️ [ROS] Auto-boot: Restored DNS Hijack and Fake-IP backtrack routes")
@@ -1604,12 +1609,12 @@ func main() {
 				if purged := rosMgr.PurgeStaleFakeIPConnections(); purged > 0 {
 					log.Printf("🧹 [ROS] Auto-boot: Purged %d stale conntrack entries\n", purged)
 				}
-			}()
+			})
 
 		}
 
 		if hostMgr != nil {
-			go func() {
+			SafeGo("DaemonHostBoot", func() {
 				time.Sleep(10 * time.Second)
 				if hostMgr.IsIKuaiOrOpenWrtConfigured() {
 					if logs, err := hostMgr.SyncHostBypass(); err == nil && len(logs) > 0 {
@@ -1630,10 +1635,10 @@ func main() {
 						}
 					}
 				}
-			}()
+			})
 		}
 
-	}()
+	})
 
 	ln, actualAddr, err := bindWithFallback(*listenAddr)
 	if err != nil {
@@ -1643,19 +1648,18 @@ func main() {
 
 	// Dual-port listening: if port 80 is available (e.g. standalone container), also serve on port 80 for seamless access (http://<IP>)
 	if *listenAddr != ":80" && *listenAddr != "0.0.0.0:80" {
-		go func() {
-			defer safeRecover("WebDirectPort80")
+		SafeGo("WebDirectPort80", func() {
 			ln80, err80 := net.Listen("tcp", ":80")
 			if err80 == nil {
 				log.Printf("🌐 [Web Direct] Port 80 is free! Also serving dashboard directly at http://<host-ip>/ (Port 80)\n")
-				_ = http.Serve(ln80, recoveryMiddleware(gzipMiddleware(corsMiddleware(mux))))
+				_ = http.Serve(ln80, recoveryMiddleware(gzipMiddleware(corsMiddleware(authMiddleware(srv.authMgr, mux)))))
 			} else {
 				log.Printf("ℹ️ [Web Direct] Port 80 is reserved or occupied by host (%v), continuing on %s\n", err80, actualAddr)
 			}
-		}()
+		})
 	}
 
-	if err := http.Serve(ln, recoveryMiddleware(gzipMiddleware(corsMiddleware(mux)))); err != nil {
+	if err := http.Serve(ln, recoveryMiddleware(gzipMiddleware(corsMiddleware(authMiddleware(srv.authMgr, mux))))); err != nil {
 		log.Fatalf("Fatal: %v", err)
 	}
 
@@ -1751,10 +1755,13 @@ func gzipMiddleware(next http.Handler) http.Handler {
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := r.Header.Get("Origin")
+		if origin != "" && isTrustedOrigin(origin, r.Host) {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+		}
 
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 
@@ -2013,8 +2020,7 @@ func (s *Server) handleSystemPanic(w http.ResponseWriter, r *http.Request) {
 
 // purgeConntrackForDirectBypass cleans up stale Fake-IP connections and conntrack entries
 func (s *Server) purgeConntrackForDirectBypass() {
-	go func() {
-		defer safeRecover("PurgeConntrackBypass")
+	SafeGo("PurgeConntrackBypass", func() {
 		time.Sleep(300 * time.Millisecond)
 		// 1. Linux 内核连接跟踪表定向刷洗 198.18.0.0/15 (仅清退已重定向的 Fake-IP 僵尸流，保护本地管理端口)
 		_ = exec.Command("conntrack", "-D", "-d", "198.18.0.0/15").Run()
@@ -2024,7 +2030,7 @@ func (s *Server) purgeConntrackForDirectBypass() {
 		if s.rosMgr != nil && s.rosMgr.IsConnected() {
 			_ = s.rosMgr.PurgeStaleFakeIPConnections()
 		}
-	}()
+	})
 }
 
 func (s *Server) handleReloadConfig(w http.ResponseWriter, r *http.Request) {
@@ -2181,8 +2187,7 @@ func (s *Server) handleRestartService(w http.ResponseWriter, r *http.Request) {
 		"message": "CubeX 守护服务正在平滑重启...",
 	})
 
-	go func() {
-		defer safeRecover("RestartDaemon")
+	SafeGo("RestartDaemon", func() {
 		time.Sleep(500 * time.Millisecond)
 		if s.engMgr != nil {
 			_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
@@ -2195,7 +2200,7 @@ func (s *Server) handleRestartService(w http.ResponseWriter, r *http.Request) {
 			_ = cmd.Start()
 		}
 		os.Exit(0)
-	}()
+	})
 }
 
 func (s *Server) handleSystemPoweroff(w http.ResponseWriter, r *http.Request) {
@@ -2216,14 +2221,13 @@ func (s *Server) handleSystemPoweroff(w http.ResponseWriter, r *http.Request) {
 		"status":  "powering_off",
 		"message": "CubeX 已主动执行逃生切流，系统正在安全关机...",
 	})
-	go func() {
-		defer safeRecover("Poweroff")
+	SafeGo("Poweroff", func() {
 		time.Sleep(600 * time.Millisecond)
 		_ = exec.Command("poweroff").Run()
 		_ = exec.Command("shutdown", "-h", "now").Run()
 		_ = exec.Command("systemctl", "poweroff").Run()
 		os.Exit(0)
-	}()
+	})
 }
 
 func (s *Server) handleSystemReboot(w http.ResponseWriter, r *http.Request) {
@@ -2244,14 +2248,13 @@ func (s *Server) handleSystemReboot(w http.ResponseWriter, r *http.Request) {
 		"status":  "rebooting",
 		"message": "CubeX 已主动执行逃生切流，整机系统正在重启 (预计 10 秒后恢复)...",
 	})
-	go func() {
-		defer safeRecover("Reboot")
+	SafeGo("Reboot", func() {
 		time.Sleep(600 * time.Millisecond)
 		_ = exec.Command("reboot").Run()
 		_ = exec.Command("shutdown", "-r", "now").Run()
 		_ = exec.Command("systemctl", "reboot").Run()
 		os.Exit(0)
-	}()
+	})
 }
 
 func (s *Server) handleUIState(w http.ResponseWriter, r *http.Request) {
@@ -2363,37 +2366,30 @@ func (s *Server) handleEngineSwitch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if s.rosMgr != nil {
-
-		go func() {
-
+		SafeGo("SwitchEngineROSPurge", func() {
 			time.Sleep(150 * time.Millisecond)
-
 			if purged := s.rosMgr.PurgeStaleFakeIPConnections(); purged > 0 {
-
 				s.logBuffer.Add("INFO", "ENGINE", fmt.Sprintf("双核无感切换调和: 已清理 RouterOS 连接跟踪表中 %d 条残留 Fake-IP 僵尸连接", purged))
-
 			}
-
-		}()
-
+		})
 	}
 
 	if s.hostMgr != nil {
-		go func() {
+		SafeGo("SwitchEngineHostSync", func() {
 			time.Sleep(200 * time.Millisecond)
 			if s.hostMgr.IsIKuaiOrOpenWrtConfigured() {
 				if logs, err := s.hostMgr.SyncHostBypass(); err == nil && len(logs) > 0 {
 					s.logBuffer.Add("INFO", "HOST", fmt.Sprintf("双核切换底座自愈联动: %s", strings.Join(logs, " | ")))
 				}
 			}
-		}()
+		})
 	}
 
-	go func() {
+	SafeGo("SwitchEngineGC", func() {
 		time.Sleep(250 * time.Millisecond)
 		runtime.GC()
 		debug.FreeOSMemory()
-	}()
+	})
 
 	sendJSON(w, map[string]any{"status": "switched", "success": true, "result": result})
 
@@ -2691,9 +2687,9 @@ func (s *Server) handleQUICMode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Trigger dual-core hot reload with updated QUIC policy
-	go func() {
+	SafeGo("QUICPolicyHotReload", func() {
 		_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
-	}()
+	})
 
 	sendJSON(w, map[string]any{
 		"status":      "updated",
@@ -2739,7 +2735,7 @@ func (s *Server) handleChaosDrill(w http.ResponseWriter, r *http.Request) {
 		cubexIP = s.rosMgr.GetOutboundIP()
 	}
 	if cubexIP == "" {
-		cubexIP = "10.0.0.7"
+		cubexIP = schema.DetectOutboundIP("")
 	}
 
 	// Phase 1: RouterOS Netwatch & table cubex check
@@ -4773,8 +4769,7 @@ func (s *Server) handleGroupSelect(w http.ResponseWriter, r *http.Request) {
 		s.engMgr.UpdateIR(ir)
 
 		// If Clash API is available, notify Mihomo / sing-box and purge stale connections
-
-		go func() {
+		SafeGo("GroupSelectPurge", func() {
 
 			payload, _ := json.Marshal(map[string]string{"name": req.Node})
 
@@ -4812,7 +4807,7 @@ func (s *Server) handleGroupSelect(w http.ResponseWriter, r *http.Request) {
 
 			}
 
-		}()
+		})
 
 	}
 
@@ -5774,8 +5769,7 @@ func (s *Server) UpdateAllSubscriptions() (int, int, error) {
 // at exactly 00:00 (midnight local time) every day to keep all airport subscriptions fresh.
 
 func (s *Server) startDailySubscriptionAutoUpdate() {
-
-	go func() {
+	SafeGo("DailySubCron", func() {
 
 		for {
 
@@ -5828,7 +5822,7 @@ func (s *Server) startDailySubscriptionAutoUpdate() {
 
 		}
 
-	}()
+	})
 
 }
 
@@ -6251,11 +6245,10 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 		wg.Add(1)
 
 		semaphore <- struct{}{}
-
-		go func(item testItem) {
+		item := it
+		SafeGo("BatchNodeDelay", func() {
 			defer wg.Done()
 			defer func() { <-semaphore }()
-			defer safeRecover("BatchNodeDelay")
 
 			res := s.testNodeRealDelay(item.node, clashPort, clashSecret)
 
@@ -6270,7 +6263,7 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			mu.Unlock()
-		}(it)
+		})
 
 	}
 
@@ -6436,11 +6429,10 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 		wg.Add(1)
 
 		semaphore <- struct{}{}
-
-		go func(item testItem) {
+		item := it
+		SafeGo("SingleNodeDelay", func() {
 			defer wg.Done()
 			defer func() { <-semaphore }()
-			defer safeRecover("SingleNodeDelay")
 
 			res := s.testNodeRealDelay(item.node, clashPort, clashSecret)
 
@@ -6460,7 +6452,7 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 				}
 			}
 			mu.Unlock()
-		}(it)
+		})
 
 	}
 
@@ -6487,23 +6479,15 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 	s.engMgr.UpdateIR(ir)
 
 	if req.Group != "" && ir.Network.ClashAPIPort > 0 {
-
-		go func(grp string, port int) {
-
+		grp, port := req.Group, ir.Network.ClashAPIPort
+		SafeGo("GroupDelayProbe", func() {
 			escaped := url.PathEscape(grp)
-
 			u := fmt.Sprintf("http://127.0.0.1:%d/group/%s/delay?url=https://cp.cloudflare.com/generate_204&timeout=2500", port, escaped)
-
 			client := http.Client{Timeout: 3 * time.Second}
-
 			if resp, err := client.Get(u); err == nil && resp != nil {
-
 				_ = resp.Body.Close()
-
 			}
-
-		}(req.Group, ir.Network.ClashAPIPort)
-
+		})
 	}
 
 	sendJSON(w, map[string]any{
@@ -6832,11 +6816,9 @@ func (s *Server) syncAdblockToEngines() {
 
 		ir.AdBlockWhitelist = cfg.WhitelistDomains
 
-		go func() {
-
+		SafeGo("AdBlockSyncReload", func() {
 			_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
-
-		}()
+		})
 
 	}
 
@@ -6860,11 +6842,9 @@ func (s *Server) syncDNSRewriteToEngines() {
 
 		ir.DNSRewrites = cfg.Rules
 
-		go func() {
-
+		SafeGo("DNSRewriteSyncReload", func() {
 			_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
-
-		}()
+		})
 
 	}
 
@@ -7470,7 +7450,7 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 
 func (s *Server) startTrafficCollector() {
 	var samplerOnce sync.Once
-	go func() {
+	SafeGo("TrafficCollector", func() {
 
 		for {
 
@@ -7506,8 +7486,7 @@ func (s *Server) startTrafficCollector() {
 
 			// Background periodic physical connections sampler (guaranteed single instance via sync.Once)
 			samplerOnce.Do(func() {
-				go func() {
-					defer safeRecover("PhysicalConnectionsSampler")
+				SafeGo("PhysicalConnectionsSampler", func() {
 					for {
 						time.Sleep(3 * time.Second)
 						cp := 9090
@@ -7526,7 +7505,7 @@ func (s *Server) startTrafficCollector() {
 							r.Body.Close()
 						}
 					}
-				}()
+				})
 			})
 
 			dec := json.NewDecoder(resp.Body)
@@ -7557,7 +7536,7 @@ func (s *Server) startTrafficCollector() {
 
 		}
 
-	}()
+	})
 
 }
 
@@ -7567,7 +7546,7 @@ func (s *Server) startTrafficCollector() {
 
 func (s *Server) startConntrackSweeper() {
 
-	go func() {
+	SafeGo("ConntrackSweeper", func() {
 
 		// Initial purge 5 seconds after boot
 
@@ -7680,7 +7659,7 @@ func (s *Server) startConntrackSweeper() {
 
 		}
 
-	}()
+	})
 
 }
 
@@ -8228,13 +8207,28 @@ func (s *Server) handleHostInfo(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func maskHostConfigResponse(cfg host.HostConfig) host.HostConfig {
+	cfg.Password = schema.MaskSecret(cfg.Password)
+	cfg.PrivateKey = schema.MaskSecret(cfg.PrivateKey)
+	return cfg
+}
+
+func restoreHostMaskedSecrets(cfg *host.HostConfig, existing host.HostConfig) {
+	if schema.IsMaskedSecret(cfg.Password) {
+		cfg.Password = existing.Password
+	}
+	if schema.IsMaskedSecret(cfg.PrivateKey) {
+		cfg.PrivateKey = existing.PrivateKey
+	}
+}
+
 func (s *Server) handleHostConfig(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 
 	case http.MethodGet:
 
-		sendJSON(w, s.hostMgr.GetConfig())
+		sendJSON(w, maskHostConfigResponse(s.hostMgr.GetConfig()))
 
 	case http.MethodPost, http.MethodPut:
 
@@ -8247,6 +8241,8 @@ func (s *Server) handleHostConfig(w http.ResponseWriter, r *http.Request) {
 			return
 
 		}
+
+		restoreHostMaskedSecrets(&cfg, s.hostMgr.GetConfig())
 
 		if err := s.hostMgr.SaveConfig(cfg); err != nil {
 
@@ -8271,7 +8267,7 @@ func (s *Server) handleHostConfig(w http.ResponseWriter, r *http.Request) {
 
 		}
 
-		sendJSON(w, map[string]any{"ok": true, "config": s.hostMgr.GetConfig()})
+		sendJSON(w, map[string]any{"ok": true, "config": maskHostConfigResponse(s.hostMgr.GetConfig())})
 
 	default:
 
@@ -8300,6 +8296,8 @@ func (s *Server) handleHostTest(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
+
+	restoreHostMaskedSecrets(&cfg, s.hostMgr.GetConfig())
 
 	res, err := s.hostMgr.TestSSH(cfg)
 
@@ -8612,13 +8610,24 @@ func (s *Server) handleROSIpv6Setup(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func maskROSConfigResponse(raw map[string]string) map[string]string {
+	out := make(map[string]string, len(raw))
+	for k, v := range raw {
+		out[k] = v
+	}
+	if p := out["password"]; p != "" {
+		out["password"] = schema.MaskSecret(p)
+	}
+	return out
+}
+
 func (s *Server) handleROSConfig(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 
 	case http.MethodGet:
 
-		sendJSON(w, s.rosMgr.GetConfig())
+		sendJSON(w, maskROSConfigResponse(s.rosMgr.GetConfig()))
 
 	case http.MethodPost, http.MethodPut:
 
@@ -8630,6 +8639,10 @@ func (s *Server) handleROSConfig(w http.ResponseWriter, r *http.Request) {
 
 			return
 
+		}
+
+		if schema.IsMaskedSecret(cfg["password"]) {
+			cfg["password"] = s.rosMgr.GetConfig()["password"]
 		}
 
 		if err := s.rosMgr.SaveConfig(cfg); err != nil {
@@ -8890,8 +8903,7 @@ func (s *Server) handleUpgradePanel(w http.ResponseWriter, r *http.Request) {
 
 	ver, err := s.rosMgr.UpgradePanel(force, func() error {
 		log.Printf("[CubeX] Restarting process for upgrade...")
-		go func() {
-			defer safeRecover("PanelRestart")
+		SafeGo("PanelRestart", func() {
 			time.Sleep(1200 * time.Millisecond)
 			if _, err := exec.LookPath("rc-service"); err == nil {
 				log.Printf("[CubeX] Executing rc-service cubexd restart...")
@@ -8913,7 +8925,7 @@ func (s *Server) handleUpgradePanel(w http.ResponseWriter, r *http.Request) {
 				_ = cmd.Start()
 			}
 			os.Exit(0)
-		}()
+		})
 		return nil
 	})
 
@@ -11090,7 +11102,7 @@ func (s *Server) handleFastTrackToggle(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, map[string]any{"status": "ok", "enabled": st})
 }
 
-// 维度三：全屋智能设备行为沙盒与上传防偷跑
+// 维度三：全屋智能设备行为沙盒与异常上传拦截
 func (s *Server) handleIoTGuardStatus(w http.ResponseWriter, r *http.Request) {
 	if s.iotGuardMgr == nil {
 		sendJSON(w, map[string]any{"status": "error", "message": "iot guard manager not initialized"})
@@ -11724,9 +11736,8 @@ func (s *Server) handleMultiWANRacingProbe(w http.ResponseWriter, r *http.Reques
 		sendJSON(w, map[string]any{"status": "error", "message": "multiwan racing manager not initialized"})
 		return
 	}
-	s.multiWANRacingMgr.UpdateTelemetry("wan1", 16.5, 1.2, 0.0)
-	s.multiWANRacingMgr.UpdateTelemetry("wan2", 22.0, 2.5, 0.0)
-	s.logBuffer.Add("INFO", "NETSTACK", "已完成多宽带毫秒级全链路主动延迟与丢包探查")
+	s.multiWANRacingMgr.ProbeAll()
+	s.logBuffer.Add("INFO", "NETSTACK", "已完成多宽带链路实测探查")
 	sendJSON(w, map[string]any{"status": "ok", "multiwan_racing": s.multiWANRacingMgr.GetMetrics()})
 }
 

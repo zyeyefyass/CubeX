@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // FastTrackSymbiosisStatus 软路由硬件快路径与旁路协同状态
@@ -124,7 +126,7 @@ func (m *FastTrackSymbiosisManager) Toggle(enabled bool) bool {
 // GenerateROSFastTrackRSC 生成 RouterOS 终端专用的 FastTrack 与 table cubex 兼容配置
 func (m *FastTrackSymbiosisManager) GenerateROSFastTrackRSC(cubexIP string) string {
 	if cubexIP == "" {
-		cubexIP = "10.0.0.7"
+		cubexIP = schema.DetectOutboundIP("")
 	}
 	return fmt.Sprintf(`/ip firewall filter
 add chain=forward action=fasttrack-connection connection-state=established,related connection-mark=cubex_direct comment="CubeX FastTrack Hardware Acceleration"

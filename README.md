@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v8.3-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v8.4-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -38,7 +38,7 @@
 
 > **俗话说得好：白嫖一时爽，一直白嫖一直爽……但白嫖也要有自我修养！** 😆
 >
-> CubeX 纯自主研发、纯 Go 单二进制、嵌入双核无感热备、千兆跑满仅占 35MB 物理内存，且 **100% 纯净开源、零外部后门、零商业收费**。作者为了调优多宿主底座兼容性与秒级逃生，熬过了无数个通宵。
+> CubeX 纯自主研发、纯 Go 单二进制、嵌入双核无感热备、千兆跑满仅占 35MB 物理内存，且 **100% 纯净合规、零冗余组件、零商业收费**。作者为了调优多宿主底座兼容性与秒级逃生，熬过了无数个通宵。
 >
 > 如果这个项目切实解决了你家里 **“旁路由总死机断网、DNS老泄露、被家人抱怨拔插头”** 的终极大痛点，让你的家庭重归和睦，**请务必动动发财的小手，去作者的官方视频捧个场，来个一键三连（点赞 · 转发 · 订阅/关注）！** 你的每一次互动，都是支持本项目持续迭代与高质量维护的最大动力！
 
@@ -77,7 +77,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 Test v8.3 最新版本更新亮点](#announcement)
+- [📢 Test v8.4 最新版本更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -169,7 +169,7 @@
 
 ## 👑 终极解法：大白话讲透“网关 + DNS 全双双指向主路由”
 
-这就是 **CubeX Test v5.4** 带来的终极形态：**把主路由和旁路由各自擅长的事彻底拆开！**
+这就是 **CubeX** 带来的终极形态：**把主路由和旁路由各自擅长的事彻底拆开！**
 
 用生活里的大白话打个比方：
 
@@ -310,13 +310,9 @@
 
 <img src="docs/assets/screenshots/cubex-live-host-symbiosis.png" alt="CubeX 宿主共生联动" width="95%" />
 
-### 5. 217heidai 权威去广告与 105 套全量分流规则体系
+### 4. 217heidai 权威去广告与 105 套全量分流规则体系
 
 <img src="docs/assets/screenshots/cubex-live-adblock-filter.png" alt="CubeX 权威规则分流体系" width="95%" />
-
-### 6. KSpeeder 容器镜像与 GitHub 极速加速中枢
-
-<img src="docs/assets/screenshots/cubex-kspeeder-docker-mirrors.png" alt="CubeX 容器加速引擎" width="95%" />
 
 </div>
 
@@ -324,28 +320,14 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v8.3 官方正式版重磅更新亮点 (深水区直连超时根治 · 真实硬件遥测穿透 · 机场脏数据免疫加固)
+## 📢 Test v8.4 最新版本更新亮点 (消除模拟假数据 · 新增后台访问安全锁 · 交互排版全面精简)
 
 > [!IMPORTANT]
-> ### 👑【深水区直连超时根治 · 真实硬件遥测穿透 · 机场脏数据免疫加固】(CubeX Test v8.3 官方正式版)
+> ### 👑【消除模拟假数据 · 新增后台访问安全锁 · 交互排版全面精简】(Test v8.4)
 >
-> **致所有追求极致网络稳定性、工业级高可用与彻底免折腾的极客玩家：**
->
-> 今天正式发布的 **CubeX Test v8.3** 深度响应社区核心开发者与极客用户的深水区实战反馈，带来以下重磅改进与全面加固：
->
-> 1. 🌐 **【根治 Fake-IP 直连拨号超时 & 极空间 NAS 流媒体转圈】**：
->    * 彻底解决透明代理下直连流量因目标 IP 为 Fake-IP 虚拟段导致的 dial tcp 198.18.0.x:443: i/o timeout 历史顽疾；
->    * 重构双核域名嗅探调度，全面激活 sniffer.force-dns-mapping 与真实 SNI 覆写，直连域名自动还原并由国内权威直连 DNS 解析真实公网 IP 拨出；
->    * 双核规则默认内置极空间与主流私有 NAS 直连名单，彻底告别 Apple TV / 局域网播放转圈卡死；
-> 2. 🛡️ **【新增【Fake-IP 白名单（真实 IP 直连解析中枢）】持久化控制面板】**：
->    * 安全防护板块全新上线 Fake-IP 直连白名单图形化管理面板，支持自由配置私有域名与内网直连资产；
->    * 配置数据原子化持久保存至底层核心配置，守护进程重启与模板刷新绝不丢失、绝不被覆盖；
-> 3. 🛡️ **【机场订阅脏数据强类型清洗与双核切核预检门禁】**：
->    * 引入订阅节点强类型自动清洗网关，自动识别并修复机场下发的数组型或异常畸形字段，杜绝脏数据落盘；
->    * 双引擎热重载前强制执行语法与拓扑预检门禁，预检不通过自动阻断切核并维持当前健康运行态，彻底根除启动即退出的死循环；
-> 4. 💻 **【宿主机硬件负载真实穿透与安全防护中枢满血恢复】**：
->    * 优化宿主机硬件监控，移除容易产生直觉歧义的常驻行，全面穿透展示物理主路由的真实内存水线与硬件配额；
->    * 100% 满血恢复安全防护中枢板块，包含 6 维网络渗透防泄露雷达、DNS 泄露体检及 MRS 规则流式提供者。
+> 1. **页面和后台全部改用真实数据**：删掉设备列表、硬件负载和多线测速里的模拟兜底数值，全部改为真实网络自动探测并支持初始化向导自动填入网关地址；
+> 2. **新增后台安全锁与密码脱敏**：支持在系统设置里开启控制台访问密码并随时锁屏，主路由等密码返回界面时统一隐藏为星号，防止内网误看泄露；
+> 3. **交互弹窗与页面排版全面清理**：统一全站操作确认弹窗，修复多处错别字、微小字号和悬停闪烁样式，清理废弃截图与冗余脚本。
 
 ---
 
@@ -353,23 +335,23 @@
 ### 📦 资产下载与校验清单 (Release Assets)
 
 > [!TIP]
-> **各平台底座发布物对照表**：请根据您的宿主底座与 CPU 架构选择对应的下载资产（统一推荐使用内置双核与全量规则的完整包）：
+> **各平台底座发布物对照表**：请根据您的宿主底座与硬件架构选择对应的下载资产（完整包内置双核与全量 105 套规则）：
 
-| 发布物文件名 | 适用宿主与架构 | 估算大小 | 说明与用途 |
+| 发布物文件名 | 适用宿主与架构 | 文件大小 | 说明与用途 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v8.3-ros-amd64.tar` | 软路由系统 (x86 软路由) | 100.65 MB | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-Test-v8.3-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 100.99 MB | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-Test-v8.3-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 83.95 MB | Docker 离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-Test-v8.3-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 95.22 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-Test-v8.3-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 87.80 MB | ARM64 完整归档发布包 |
-| `cubexd-linux-amd64` | Linux amd64 | 50.47 MB | 纯 Go 单二进制控制面（代码加固版，用于在线平滑热更新） |
-| `cubexd-linux-arm64` | Linux arm64 | 45.94 MB | ARM64 单二进制核心控制面（代码加固版） |
-| `cubex-linux-amd64` | Linux amd64 CLI | 16.99 MB | 纯 Go 运维 CLI 工具（终端直接运行，精简运维命令行） |
-| `cubex-linux-arm64` | Linux arm64 CLI | 15.25 MB | 纯 Go 运维 CLI 工具（终端直接运行，精简运维命令行） |
+| `CubeX-Test-v8.4-ros-amd64.tar` | 软路由系统 (x86 软路由) | 92.97 MB | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-Test-v8.4-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 93.29 MB | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-Test-v8.4-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 76.25 MB | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-Test-v8.4-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 87.18 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-Test-v8.4-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 79.89 MB | ARM64 完整归档发布包 |
+| `cubexd-linux-amd64` | Linux amd64 | 41.60 MB | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
+| `cubexd-linux-arm64` | Linux arm64 | 37.38 MB | ARM64 单二进制核心控制面（代码加固版） |
+| `cubex-linux-amd64` | Linux amd64 | 16.99 MB | 纯命令行运维工具（终端直接运行） |
+| `cubex-linux-arm64` | Linux arm64 | 15.25 MB | ARM64 纯命令行运维工具（终端直接运行） |
 | `setup-routeros-v7.rsc` | 软路由终端编排脚本 | 17.50 KB | 软路由管理终端复制即用一键自动编排脚本 |
-| `setup-openwrt.sh` | 软路由系统一键安装脚本 | 23.17 KB | 软路由系统原生适配安装脚本 |
-| `install_pve_lxc.sh` | PVE LXC 一键脚本 | 10.11 KB | Proxmox VE 极简特权容器一键安装脚本 |
-| `install.sh` | Linux 通用一键安装脚本 | 12.31 KB | 通用 Linux/Debian 一键部署主脚本 |
+| `setup-openwrt.sh` | 开源软路由系统一键安装脚本 | 23.17 KB | 开源软路由系统原生适配安装脚本 |
+| `install_pve_lxc.sh` | 容器一键脚本 | 10.14 KB | 极简容器一键安装脚本 |
+| `install.sh` | 通用一键安装脚本 | 12.31 KB | 通用一键部署主脚本 |
 
 ---
 
@@ -421,7 +403,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 如果你的主路由就是 MikroTik（RB5009、CCR2004、x86 ROS）：
 
-1. **下载镜像**：在上方清单下载对应架构的 `CubeX-Test-v5.6-ros-amd64.tar`（或 `arm64.tar`）；
+1. **下载镜像**：在上方清单下载对应架构的 `CubeX-Test-v8.4-ros-amd64.tar`（或 `arm64.tar`）；
 
 2. **传进路由器**：打开 WinBox，把 `.tar` 文件直接拖进【Files】列表（推荐放在 U 盘或 SSD 磁盘如 `disk1/`）；
 
@@ -439,7 +421,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 #### 步骤 1：导入离线镜像
 
-1. 在上方清单下载 `CubeX-Test-v5.6-docker-amd64.tar.gz`；
+1. 在上方清单下载 `CubeX-Test-v8.4-docker-amd64.tar.gz`；
 
 2. 登录爱快后台，进入【高级应用】➔【插件营销】➔【Docker】；
 
@@ -491,7 +473,7 @@ OpenWrt 自带 Docker 环境，使用 CubeX 独创的 Macvlan-Shim 方案，再�
 
 #### 极速 2 步离线安装（国内网络推荐，0 失败率）：
 
-1. 在上方资产清单下载 `CubeX-Test-v5.6-docker-amd64.tar.gz` 和 `setup-openwrt.sh` 两个文件；
+1. 在上方资产清单下载 `CubeX-Test-v8.4-docker-amd64.tar.gz` 和 `setup-openwrt.sh` 两个文件；
 
 2. 用 WinSCP 或 SSH 传到 OpenWrt 的 `/tmp` 目录，在终端执行：
 
@@ -513,13 +495,13 @@ OpenWrt 自带 Docker 环境，使用 CubeX 独创的 Macvlan-Shim 方案，再�
 
 #### 途径 ①：使用官方开箱即用 Docker Compose 极速编排（强烈推荐）
 
-官方开箱即用模版文件：[scripts/docker/docker-compose-fnos.yml](https://github.com/zyeyefyass/CubeX/blob/Test-v5.4/scripts/docker/docker-compose-fnos.yml)
+官方开箱即用模版文件：[scripts/docker/docker-compose-fnos.yml](https://github.com/zyeyefyass/CubeX/blob/main/scripts/docker/docker-compose-fnos.yml)
 
 ##### 1. 一行命令极速下载并启动：
 
 ```bash
 
-curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/Test-v5.4/scripts/docker/docker-compose-fnos.yml -o docker-compose.yml && docker compose up -d
+curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/scripts/docker/docker-compose-fnos.yml -o docker-compose.yml && docker compose up -d
 
 ```
 
@@ -695,7 +677,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 ## 🤖 AI 伴生管家 (Copilot) 全维实战与一键自愈中枢指南
 
-在 **CubeX Test v5.4** 中，AI 不再只是浮于表面的概念，而是深度融入底层网络控制面与日常运维流程的**全息伴生智能体**。
+在 **CubeX** 中，AI 不再只是浮于表面的概念，而是深度融入底层网络控制面与日常运维流程的**全息伴生智能体**。
 
 告别繁琐的命令行排错与晦涩的路由日志！点击控制台左侧/顶部导航栏中的 **【🤖 AI管家】**（Tab 6），即可直接唤起专属全息问答视窗与诊断中枢。AI 管家与底座 Go 核心守护进程（`cubexd`）同频共振，能够毫秒级嗅探网关实时遥测数据与宿主网络拓扑，赋予您通过自然语言对话**实时感知、掌控与自愈家庭网络**的超级能力！
 

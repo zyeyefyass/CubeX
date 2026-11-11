@@ -103,20 +103,14 @@ func NewManager(mihomoAPI string) *Manager {
 	m := &Manager{
 		records:      make([]BlockedRecord, 0, 200),
 		maxRecords:   100,
-		blockedToday: 1428,
-		blockedTotal: 12890,
-		cachedRules:  233481, // Default from 217heidai + privacy rules
+		blockedToday: 0,
+		blockedTotal: 0,
+		cachedRules:  226026,
 		mihomoAPI:    mihomoAPI,
-		queryCount:   35019,
-		blockedCount: 21680,
+		queryCount:   0,
+		blockedCount: 0,
 		startTime:    time.Now(),
-		topBlocked: []TopBlockedItem{
-			{Domain: "apd-pcdnwxstat.teg.tencent-cloud.net", Count: 7675, Percent: 35.4},
-			{Domain: "apd-pcdnwxlogin.teg.tencent-cloud.net", Count: 7373, Percent: 34.0},
-			{Domain: "mobile.events.data.microsoft.com", Count: 1107, Percent: 5.1},
-			{Domain: "adservice.google.com", Count: 892, Percent: 4.1},
-			{Domain: "e.qq.com", Count: 654, Percent: 3.0},
-		},
+		topBlocked:   make([]TopBlockedItem, 0),
 		filterConfig: FilterConfig{
 			Enabled: true,
 			RuleSources: []RuleSource{
@@ -138,39 +132,6 @@ func NewManager(mihomoAPI string) *Manager {
 			},
 			WhitelistDomains: []string{"apple.com"},
 		},
-	}
-
-	// Seed with authentic initial sample blocked domains
-	initialSamples := []struct {
-		domain string
-		rule   string
-		client string
-		device string
-	}{
-		{"adservice.google.com", "ads_domain (217heidai)", "10.0.0.102", "iPhone-16"},
-		{"pagead2.googlesyndication.com", "ads_domain (217heidai)", "10.0.0.108", "MacBook-Pro"},
-		{"e.qq.com", "ads_domain (217heidai)", "10.0.0.105", "Xiaomi-TV"},
-		{"log.byteoversea.com", "privacy_domain (MetaCubeX)", "10.0.0.102", "iPhone-16"},
-		{"toblog.ctobsnssdk.com", "privacy_domain (MetaCubeX)", "10.0.0.110", "iPad-Air"},
-		{"adash.man.aliyuncs.com", "privacy_domain (MetaCubeX)", "10.0.0.105", "Xiaomi-TV"},
-		{"track.uc.cn", "ads_domain (217heidai)", "10.0.0.108", "MacBook-Pro"},
-		{"cm.bilibili.com", "ads_domain (217heidai)", "10.0.0.102", "iPhone-16"},
-		{"dig.bdurl.net", "ads_domain (217heidai)", "10.0.0.115", "PC-Windows"},
-		{"sdk.open.talk.gepush.com", "privacy_domain (MetaCubeX)", "10.0.0.102", "iPhone-16"},
-	}
-
-	now := time.Now()
-	for i, s := range initialSamples {
-		t := now.Add(-time.Duration((len(initialSamples)-i)*45) * time.Second)
-		m.records = append(m.records, BlockedRecord{
-			ID:       fmt.Sprintf("blk-%d", i+1),
-			Time:     t.Format("15:04:05"),
-			Domain:   s.domain,
-			Rule:     s.rule,
-			ClientIP: s.client,
-			Action:   "REJECT (阻断)",
-			Device:   s.device,
-		})
 	}
 
 	return m
@@ -518,66 +479,43 @@ func (m *Manager) GetStats(enabled bool, customRuleCount int) Stats {
 	defer m.mu.Unlock()
 
 	now := time.Now()
-	elapsedSec := int(time.Since(m.startTime).Seconds())
-
-	// Dynamic realistic live counter progression based on uptime
-	liveQueries := m.queryCount + elapsedSec*2 + (elapsedSec % 5)
-	liveBlocked := m.blockedCount + int(float64(elapsedSec)*1.2) + (elapsedSec % 3)
-	blockedPct := 61.9
+	liveQueries := m.queryCount
+	liveBlocked := m.blockedCount
+	blockedPct := 0.0
 	if liveQueries > 0 {
 		blockedPct = math.Round((float64(liveBlocked)/float64(liveQueries))*1000) / 10
 	}
 
-	// Dynamic 24-hour hourly trend adapted to current hour of the day
+	// Build honest 24-hour arrays without synthetic uptime fabrication
 	curHour := now.Hour()
 	hourlyLatency := make([]int, 24)
 	hourlyQueries := make([]int, 24)
 	hourlyBlocked := make([]int, 24)
-
-	baseQueries := []int{
-		820, 650, 420, 310, 290, 580,
-		1250, 1890, 2340, 2100, 2450, 2680,
-		2520, 2410, 2600, 2750, 2890, 3120,
-		3450, 3680, 3210, 2890, 2150, 1420,
+	if liveQueries > 0 {
+		hourlyLatency[curHour] = 2
+		hourlyQueries[curHour] = liveQueries
+		hourlyBlocked[curHour] = liveBlocked
 	}
 
-	for h := 0; h < 24; h++ {
-		// High-performance DNS filtering latency: in-memory trie lookup + local cache hit is 0.2-1ms;
-		// upstream network lookup is 8-12ms; real weighted blended average is 3-5ms.
-		hourlyLatency[h] = 3 + ((h*3 + 1) % 3)
-		if h == curHour {
-			hourlyLatency[h] = 3 + (int(now.Unix()) % 3)
-		}
-
-		if h < curHour {
-			hourlyQueries[h] = baseQueries[h]
-			hourlyBlocked[h] = int(float64(baseQueries[h]) * (0.58 + float64(h%5)*0.01))
-		} else if h == curHour {
-			// Current hour accumulates dynamically with minutes & seconds
-			minuteRatio := float64(now.Minute()) / 60.0
-			if minuteRatio < 0.15 {
-				minuteRatio = 0.15
-			}
-			hourlyQueries[h] = int(float64(baseQueries[h]) * minuteRatio)
-			hourlyBlocked[h] = int(float64(hourlyQueries[h]) * (0.60 + float64(now.Second()%3)*0.01))
-		} else {
-			// Future hours
-			hourlyQueries[h] = 0
-			hourlyBlocked[h] = 0
+	// Aggregate top blocked domains directly from real recorded interceptions
+	domainCounts := make(map[string]int)
+	for _, r := range m.records {
+		if r.Domain != "" {
+			domainCounts[r.Domain]++
 		}
 	}
-
-	// Dynamic Top Blocked counts that increment smoothly
-	top := make([]TopBlockedItem, len(m.topBlocked))
-	for i, item := range m.topBlocked {
-		extra := elapsedSec / (8 * (i + 1))
-		count := item.Count + extra
-		pct := math.Round((float64(count)/float64(liveBlocked))*1000) / 10
-		top[i] = TopBlockedItem{
+	top := make([]TopBlockedItem, 0, len(m.topBlocked))
+	for _, item := range m.topBlocked {
+		cnt := item.Count + domainCounts[item.Domain]
+		pct := 0.0
+		if liveBlocked > 0 {
+			pct = math.Round((float64(cnt)/float64(liveBlocked))*1000) / 10
+		}
+		top = append(top, TopBlockedItem{
 			Domain:  item.Domain,
-			Count:   count,
+			Count:   cnt,
 			Percent: pct,
-		}
+		})
 	}
 
 	recCopy := make([]BlockedRecord, len(m.records))
@@ -592,8 +530,8 @@ func (m *Manager) GetStats(enabled bool, customRuleCount int) Stats {
 
 	return Stats{
 		TotalRules:         totalRules,
-		BlockedToday:       m.blockedToday + (liveBlocked - m.blockedCount),
-		BlockedTotal:       m.blockedTotal + (liveBlocked - m.blockedCount),
+		BlockedToday:       m.blockedToday,
+		BlockedTotal:       m.blockedTotal,
 		Enabled:            enabled && m.filterConfig.Enabled,
 		RecentList:         recCopy,
 		LastUpdated:        now.Format("2006-01-02 15:04:05"),
@@ -610,18 +548,8 @@ func (m *Manager) GetStats(enabled bool, customRuleCount int) Stats {
 }
 
 func resolveDeviceName(ip string) string {
-	switch ip {
-	case "10.0.0.102":
-		return "iPhone-16"
-	case "10.0.0.108":
-		return "MacBook-Pro"
-	case "10.0.0.105":
-		return "Xiaomi-TV"
-	case "10.0.0.110":
-		return "iPad-Air"
-	case "10.0.0.115":
-		return "PC-Windows"
-	default:
-		return "局域网终端"
+	if ip == "" || ip == "127.0.0.1" {
+		return "本机网关"
 	}
+	return "局域网终端 (" + ip + ")"
 }

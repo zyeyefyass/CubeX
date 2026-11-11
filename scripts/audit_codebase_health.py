@@ -85,24 +85,27 @@ main_go = os.path.join(ROOT, "cmd", "cubexd", "main.go")
 with open(main_go, "r", encoding="utf-8", errors="ignore") as f:
     main_content = f.read()
 
-# Count raw 'go func('
+# Count raw 'go func(' outside SafeGo wrapper (only 1 allowed inside SafeGo itself)
 raw_goroutines = len(re.findall(r'\bgo\s+func\(', main_content))
 recover_count = len(re.findall(r'\brecover\(\)', main_content))
+safego_calls = len(re.findall(r'\bSafeGo\(', main_content))
 
-print(f"  • Asynchronous Goroutines (go func) in main.go: {raw_goroutines}")
+print(f"  • Raw unguarded go func( in main.go: {raw_goroutines}")
+print(f"  • SafeGo() guarded goroutines in main.go: {safego_calls}")
 print(f"  • Panic Recovery blocks (recover()) in main.go: {recover_count}")
 
-if recover_count == 0:
-    print("  ⚠️  WARNING: Zero recover() guards found around raw goroutines. Unhandled panic in any goroutine will crash daemon.")
+if recover_count == 0 or raw_goroutines > 1:
+    print("  ⚠️  WARNING: Found unguarded raw go func() outside SafeGo(). Unhandled panic in any goroutine may crash daemon.")
     results["checks"]["panic_guard"] = {
         "status": "WARN",
         "raw_goroutines": raw_goroutines,
-        "recover_count": recover_count
+        "recover_count": recover_count,
+        "safego_calls": safego_calls
     }
     results["warnings"] += 1
-    results["recommendations"].append("Introduce SafeGo() wrapper with defer recover() for all 20+ background goroutines.")
+    results["recommendations"].append("Wrap every background go func() with SafeGo(name, fn) so panics are isolated.")
 else:
-    results["checks"]["panic_guard"] = {"status": "PASS"}
+    results["checks"]["panic_guard"] = {"status": "PASS", "safego_calls": safego_calls}
     results["passed"] += 1
 
 # -------------------------------------------------------------

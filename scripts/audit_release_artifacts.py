@@ -176,6 +176,17 @@ def check_file_content(archive_name, inner_path, content_bytes):
                     if pattern.search(line):
                         errors.append(f"[{archive_name} -> {inner_path}:{line_no}] CLEAN-ROOM VIOLATION: Legacy term detected: {line.strip()[:80]}")
 
+        # 4. Zero-Sensitive-Term & Zero-Flag-Image check (Rule 5)
+        for pattern in FORBIDDEN_SENSITIVE_WORDS:
+            if pattern.search(text):
+                for line_no, line in enumerate(text.splitlines(), 1):
+                    if pattern.search(line):
+                        errors.append(f"[{archive_name} -> {inner_path}:{line_no}] SENSITIVE WORD VIOLATION ({pattern.pattern}): {line.strip()[:80]}")
+
+        for pattern in FORBIDDEN_FLAG_IMAGE_PATTERNS:
+            if pattern.search(text):
+                errors.append(f"[{archive_name} -> {inner_path}] FORBIDDEN FLAG IMAGE REFERENCE: {pattern.pattern}")
+
     return errors
 
 def audit_zip(archive_path):
@@ -192,11 +203,14 @@ def audit_zip(archive_path):
             files_checked += 1
             filename = entry.filename
 
-            # Check forbidden files
+            # Check forbidden files & forbidden flag images
             base = os.path.basename(filename)
             for pat in FORBIDDEN_FILE_PATTERNS:
                 if re.search(pat, base, re.IGNORECASE) or re.search(pat, filename, re.IGNORECASE):
                     errors.append(f"[{archive_name}] FORBIDDEN FILE: {filename}")
+            for pat in FORBIDDEN_FLAG_IMAGE_PATTERNS:
+                if pat.search(filename):
+                    errors.append(f"[{archive_name}] FORBIDDEN FLAG IMAGE FILE: {filename}")
 
             # Check content
             if filename.endswith((".json", ".yaml", ".yml", ".rsc", ".conf", ".sh", ".env", ".txt", ".md")):
@@ -223,11 +237,14 @@ def audit_tar(archive_path):
             files_checked += 1
             filename = member.name
 
-            # Check forbidden files
+            # Check forbidden files & forbidden flag images
             base = os.path.basename(filename)
             for pat in FORBIDDEN_FILE_PATTERNS:
                 if re.search(pat, base, re.IGNORECASE) or re.search(pat, filename, re.IGNORECASE):
                     errors.append(f"[{archive_name}] FORBIDDEN FILE: {filename}")
+            for pat in FORBIDDEN_FLAG_IMAGE_PATTERNS:
+                if pat.search(filename):
+                    errors.append(f"[{archive_name}] FORBIDDEN FLAG IMAGE FILE: {filename}")
 
             # Check content
             if filename.endswith((".json", ".yaml", ".yml", ".rsc", ".conf", ".sh", ".env", ".txt", ".md")):

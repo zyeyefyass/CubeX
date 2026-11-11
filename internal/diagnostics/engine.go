@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // CheckItem 诊断子项
@@ -68,22 +70,30 @@ func (e *Engine) RunFullDiagnostic(gatewayIP, proxyAddr, activeEngine string) Re
 		Category: "策略路由",
 	}
 	if gatewayIP == "" {
-		gatewayIP = "10.0.0.1"
+		gatewayIP = schema.DetectDefaultGateway()
 	}
-	t0 := time.Now()
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(gatewayIP, "80"), 1200*time.Millisecond)
-	elapsed2 := float64(time.Since(t0).Microseconds()) / 1000.0
-	if err == nil {
-		conn.Close()
-		check2.Status = "pass"
-		check2.LatencyMs = elapsed2
-		check2.Detail = "主路由网关通信良好，策略回指链路在线"
-	} else {
+	if gatewayIP == "" {
 		check2.Status = "warning"
-		check2.LatencyMs = 999
-		check2.Detail = "主路由 Web 端口未响应或响应缓慢"
+		check2.LatencyMs = 0
+		check2.Detail = "尚未检测到或配置物理主路由网关 IP"
 		check2.SelfHealAction = "ros_clean_reapply"
 		score -= 10
+	} else {
+		t0 := time.Now()
+		conn, err := net.DialTimeout("tcp", net.JoinHostPort(gatewayIP, "80"), 1200*time.Millisecond)
+		elapsed2 := float64(time.Since(t0).Microseconds()) / 1000.0
+		if err == nil {
+			conn.Close()
+			check2.Status = "pass"
+			check2.LatencyMs = elapsed2
+			check2.Detail = "主路由网关通信良好，策略回指链路在线"
+		} else {
+			check2.Status = "warning"
+			check2.LatencyMs = 999
+			check2.Detail = "主路由 Web 端口未响应或响应缓慢"
+			check2.SelfHealAction = "ros_clean_reapply"
+			score -= 10
+		}
 	}
 	checks = append(checks, check2)
 
@@ -93,7 +103,7 @@ func (e *Engine) RunFullDiagnostic(gatewayIP, proxyAddr, activeEngine string) Re
 		Name:     "运营商 WAN 拨号与国内直连",
 		Category: "外网出口",
 	}
-	t0 = time.Now()
+	t0 := time.Now()
 	dnsConn, err := net.DialTimeout("udp", "223.5.5.5:53", 1500*time.Millisecond)
 	elapsed3 := float64(time.Since(t0).Microseconds()) / 1000.0
 	if err == nil {

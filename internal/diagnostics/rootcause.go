@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // HopStatus 拓扑节点健康状态
@@ -84,7 +86,8 @@ func NewRootCauseRadar(storePath string) *RootCauseRadar {
 	}
 	_ = radar.loadPersisted()
 	if radar.latestReport == nil {
-		initial := radar.buildReportInternal("10.0.0.1", "10.0.0.1", "singbox")
+		gw := schema.DetectDefaultGateway()
+		initial := radar.buildReportInternal(gw, gw, "singbox")
 		radar.latestReport = &initial
 	}
 	return radar
@@ -109,21 +112,33 @@ func (r *RootCauseRadar) GetLatestReport() RootCauseReport {
 	if r.latestReport != nil {
 		return *r.latestReport
 	}
-	return r.buildReportInternal("10.0.0.1", "10.0.0.1", "singbox")
+	gw := schema.DetectDefaultGateway()
+	return r.buildReportInternal(gw, gw, "singbox")
 }
 
 func (r *RootCauseRadar) buildReportInternal(gatewayIP, rosHost, activeEngine string) RootCauseReport {
 	start := time.Now()
 
 	if gatewayIP == "" {
-		gatewayIP = "10.0.0.1"
+		gatewayIP = schema.DetectDefaultGateway()
+	}
+	if gatewayIP == "" {
+		gatewayIP = "自动探测中"
+	}
+	cubexIP := schema.DetectOutboundIP(gatewayIP)
+	if cubexIP == "" {
+		cubexIP = "本机网桥"
+	}
+	lanSubnet := schema.DetectLANSubnet(cubexIP)
+	if lanSubnet == "" {
+		lanSubnet = "LAN 子网"
 	}
 
 	hops := []TopologyHopItem{
 		{
 			HopIndex:      1,
 			Name:          "光猫 / 上游宽带",
-			TargetIP:      "192.168.1.1",
+			TargetIP:      "WAN-PPPoE",
 			Status:        HopStatusGreen,
 			LatencyMs:     1.1 + rand.Float64()*0.4,
 			JitterMs:      0.2,
@@ -143,7 +158,7 @@ func (r *RootCauseRadar) buildReportInternal(gatewayIP, rosHost, activeEngine st
 		{
 			HopIndex:      3,
 			Name:          "CubeX 双引擎网关",
-			TargetIP:      "10.0.0.7",
+			TargetIP:      cubexIP,
 			Status:        HopStatusGreen,
 			LatencyMs:     0.2 + rand.Float64()*0.1,
 			JitterMs:      0.05,
@@ -153,7 +168,7 @@ func (r *RootCauseRadar) buildReportInternal(gatewayIP, rosHost, activeEngine st
 		{
 			HopIndex:      4,
 			Name:          "局域网接入终端",
-			TargetIP:      "10.0.0.0/24",
+			TargetIP:      lanSubnet,
 			Status:        HopStatusGreen,
 			LatencyMs:     0.6 + rand.Float64()*0.3,
 			JitterMs:      0.2,
@@ -208,7 +223,8 @@ func (r *RootCauseRadar) TriggerHeal() RootCauseHealResult {
 	}
 
 	// 重新生成一份满分体检报告
-	fresh := r.buildReportInternal("10.0.0.1", "10.0.0.1", "singbox")
+	gw := schema.DetectDefaultGateway()
+	fresh := r.buildReportInternal(gw, gw, "singbox")
 	fresh.OverallScore = 100
 	r.latestReport = &fresh
 	_ = r.persist()

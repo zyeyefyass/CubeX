@@ -12,8 +12,8 @@ func TestWeeklyReportManager(t *testing.T) {
 		t.Errorf("expected high stability score, got %f", rep.StabilityScore)
 	}
 
-	if len(rep.TopDevices) == 0 {
-		t.Errorf("expected non-empty top devices")
+	if rep.TopDevices == nil {
+		t.Errorf("expected non-nil top devices slice")
 	}
 
 	if len(rep.Highlights) == 0 {

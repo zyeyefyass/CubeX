@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // ShadowAuditItem 单个宿主策略路由影子巡检项
@@ -65,13 +67,17 @@ func NewShadowAuditorManager(dataDir string) *ShadowAuditorManager {
 
 func (m *ShadowAuditorManager) initDefaultAuditItems() {
 	now := time.Now()
+	cubexIP := schema.DetectOutboundIP("")
+	if cubexIP == "" {
+		cubexIP = "CubeX本机IP"
+	}
 	items := []ShadowAuditItem{
 		{
 			TargetRule:      "RouterOS table cubex 策略路由",
 			Platform:        "routeros",
 			Status:          "HEALTHY",
 			LastCheckTime:   now,
-			AutoHealedCount: 2,
+			AutoHealedCount: 0,
 			Details:         "Routing rule dst=198.18.0.0/15 lookup=cubex active & consistent",
 		},
 		{
@@ -79,16 +85,16 @@ func (m *ShadowAuditorManager) initDefaultAuditItems() {
 			Platform:        "routeros",
 			Status:          "HEALTHY",
 			LastCheckTime:   now,
-			AutoHealedCount: 1,
-			Details:         "IP Route 198.18.0.0/15 -> 10.0.0.7 reachable & hardware FastTrack exempted",
+			AutoHealedCount: 0,
+			Details:         "IP Route 198.18.0.0/15 -> " + cubexIP + " reachable & hardware FastTrack exempted",
 		},
 		{
 			TargetRule:      "Netwatch 毫秒逃生看门狗",
 			Platform:        "routeros",
 			Status:          "HEALTHY",
 			LastCheckTime:   now,
-			AutoHealedCount: 1,
-			Details:         "Netwatch host=10.0.0.7 interval=50ms failover script ready",
+			AutoHealedCount: 0,
+			Details:         "Netwatch host=" + cubexIP + " interval=50ms failover script ready",
 		},
 		{
 			TargetRule:      "爱快 Web-RPC 静态回指路由",
@@ -96,7 +102,7 @@ func (m *ShadowAuditorManager) initDefaultAuditItems() {
 			Status:          "HEALTHY",
 			LastCheckTime:   now,
 			AutoHealedCount: 0,
-			Details:         "Static route 198.18.0.0/15 -> gateway 10.0.0.7 synchronized",
+			Details:         "Static route 198.18.0.0/15 -> gateway " + cubexIP + " synchronized",
 		},
 		{
 			TargetRule:      "OpenWrt Flow Offloading 豁免链",

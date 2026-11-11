@@ -1,10 +1,12 @@
 package security
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -75,41 +77,34 @@ func GetLANGuardianManager(dataPath ...string) *LANGuardianManager {
 			storePath:         path,
 			arpDefenseActive:  true,
 			rogueDHCPBlocked:  true,
-			totalMonitoredIPs: 36,
+			totalMonitoredIPs: 0,
 			ipConflictsCount:  0,
+			alerts:            []ARPSpoofAlert{},
+			rogueOffers:       []RogueDHCPOffer{},
 			lastScanAt:        time.Now(),
 		}
-		guardianInst.initDefaultSamplesIfEmpty()
 		guardianInst.load()
+		guardianInst.countARPNeighborsLocked()
 	})
 	return guardianInst
 }
 
-func (m *LANGuardianManager) initDefaultSamplesIfEmpty() {
-	now := time.Now()
-	m.alerts = []ARPSpoofAlert{
-		{
-			ID:          "ARP-DEF-01",
-			TargetIP:    "10.0.0.1",
-			OriginalMAC: "B8:69:F4:11:22:33",
-			SpoofedMAC:  "D8:32:14:AA:BB:CC",
-			Timestamp:   now.Add(-2 * time.Hour),
-			ActionTaken: "下发静态 ARP 锁定，阻断非法网关伪造报文",
-			Status:      "BLOCKED",
-		},
+func (m *LANGuardianManager) countARPNeighborsLocked() {
+	f, err := os.Open("/proc/net/arp")
+	if err != nil {
+		return
 	}
-
-	m.rogueOffers = []RogueDHCPOffer{
-		{
-			ServerIP:       "192.168.1.1",
-			ServerMAC:      "E4:A7:C5:99:88:77",
-			OfferedGateway: "192.168.1.1",
-			OfferedSubnet:  "192.168.1.0/24",
-			IsRogue:        true,
-			CapturedAt:     now.Add(-5 * time.Hour),
-			Status:         "BLOCKED",
-		},
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	_ = scanner.Scan()
+	cnt := 0
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) >= 6 && fields[3] != "00:00:00:00:00:00" && !strings.HasPrefix(fields[0], "127.") {
+			cnt++
+		}
 	}
+	m.totalMonitoredIPs = cnt
 }
 
 // GetStatus returns the live LAN guardian telemetry.
@@ -155,6 +150,7 @@ func (m *LANGuardianManager) RunScan() LANGuardianStatus {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	m.countARPNeighborsLocked()
 	m.lastScanAt = time.Now()
 	m.ipConflictsCount = 0 // Clean network
 

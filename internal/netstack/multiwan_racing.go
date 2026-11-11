@@ -1,8 +1,11 @@
 package netstack
 
 import (
+	"net"
 	"sync"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // WANStatus represents the operational status of a physical/virtual WAN interface.
@@ -86,10 +89,55 @@ func NewMultiWANRacingManager(cfg *MultiWANRacingConfig) *MultiWANRacingManager 
 		interfaces: make(map[string]*WANInterface),
 	}
 
-	// Preset standard carrier WAN uplinks
-	mgr.RegisterWAN("wan1", "主力宽带 (电信千兆)", "192.168.1.1", 60)
-	mgr.RegisterWAN("wan2", "备用宽带 (联通/移动)", "192.168.2.1", 40)
+	// Register detected primary WAN and standby WAN slot (zero hardcoded ISP IPs)
+	primaryGW := schema.DetectDefaultGateway()
+	mgr.RegisterWAN("wan1", "主宽带链路", primaryGW, 60)
+	mgr.RegisterWAN("wan2", "备用宽带链路", "", 40)
 	return mgr
+}
+
+// ProbeAll measures real TCP reachability/RTT against configured WAN gateways (or public DNS for active uplink).
+func (m *MultiWANRacingManager) ProbeAll() {
+	m.mu.RLock()
+	targets := make([]struct {
+		id string
+		gw string
+	}, 0, len(m.interfaces))
+	for id, w := range m.interfaces {
+		targets = append(targets, struct {
+			id string
+			gw string
+		}{id: id, gw: w.Gateway})
+	}
+	m.mu.RUnlock()
+
+	for _, t := range targets {
+		probeAddr := ""
+		if t.gw != "" {
+			probeAddr = net.JoinHostPort(t.gw, "80")
+		} else if t.id == "wan1" {
+			probeAddr = "223.5.5.5:53"
+		}
+		if probeAddr == "" {
+			continue
+		}
+		start := time.Now()
+		conn, err := net.DialTimeout("tcp", probeAddr, 800*time.Millisecond)
+		if err != nil && t.gw != "" {
+			// Fallback to DNS port 53 if router web admin port is non-80 or closed
+			conn, err = net.DialTimeout("tcp", net.JoinHostPort(t.gw, "53"), 800*time.Millisecond)
+		}
+		elapsed := float64(time.Since(start).Microseconds()) / 1000.0
+		if err == nil {
+			_ = conn.Close()
+			if elapsed <= 0.1 {
+				elapsed = 0.5
+			}
+			m.UpdateTelemetry(t.id, elapsed, 0.2, 0.0)
+		} else {
+			m.UpdateTelemetry(t.id, 0, 0, 1.0)
+		}
+	}
 }
 
 // RegisterWAN adds or updates a monitored WAN interface.

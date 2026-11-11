@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // PMTUHop represents a single hop's MTU probe result.
@@ -74,31 +76,39 @@ func GetPMTUManager(dataPath ...string) *PMTUManager {
 }
 
 func (m *PMTUManager) initDefaultHopsIfEmpty() {
+	gw := schema.DetectDefaultGateway()
+	cubexIP := schema.DetectOutboundIP(gw)
+	if cubexIP == "" {
+		cubexIP = "本机网桥"
+	}
+	if gw == "" {
+		gw = "主路由网关"
+	}
 	m.hops = []PMTUHop{
 		{
 			HopNumber:   1,
 			Target:      "终端 ➔ 旁路由网桥 (LAN Ethernet)",
-			IP:          "10.0.0.7",
+			IP:          cubexIP,
 			MaxCleanMTU: 1500,
 			Status:      "CLEAN_PASS",
 		},
 		{
 			HopNumber:   2,
 			Target:      "旁路由 ➔ 主路由交换栈 (RouterOS / 爱快)",
-			IP:          "10.0.0.1",
+			IP:          gw,
 			MaxCleanMTU: 1500,
 			Status:      "CLEAN_PASS",
 		},
 		{
 			HopNumber:   3,
-			Target:      "主路由 ➔ 运营商光猫 (PPPoE 封装链路)",
-			IP:          "192.168.1.1",
+			Target:      "主路由 ➔ 上游光猫/PPPoE 封装链路",
+			IP:          "PPPoE-WAN",
 			MaxCleanMTU: 1492,
 			Status:      "CLAMPED_OPTIMIZED",
 		},
 		{
 			HopNumber:   4,
-			Target:      "光猫 ➔ 骨干网出境网关 (国际协作接入点)",
+			Target:      "骨干网公共基准网关 (DNS 探针)",
 			IP:          "223.5.5.5",
 			MaxCleanMTU: 1492,
 			Status:      "CLAMPED_OPTIMIZED",

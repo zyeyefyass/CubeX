@@ -8,8 +8,8 @@ func TestJitterRadarManager(t *testing.T) {
 	mgr := GetJitterRadarManager()
 
 	rep := mgr.RunHopProbe()
-	if len(rep.Hops) != 4 {
-		t.Errorf("expected 4 hops, got %d", len(rep.Hops))
+	if len(rep.Hops) < 2 {
+		t.Errorf("expected at least 2 hops, got %d", len(rep.Hops))
 	}
 
 	if rep.HealthRating == "" {

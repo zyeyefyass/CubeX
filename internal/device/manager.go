@@ -551,28 +551,28 @@ func (m *Manager) GetDevices() []Device {
 		}
 	}
 
-	// If no devices are discovered on this host, provide intelligent active LAN presets
-	if len(result) == 0 {
-		presets := []Device{
-			{IP: "10.0.0.88", MAC: "BC:24:11:8A:22:10", Name: "家庭极空间 NAS (数据中心)", HostName: "ZSpace-NAS", Mode: "bypass", Source: "局域网智能发现", Online: true, LastSeen: now},
-			{IP: "10.0.0.66", MAC: "A0:02:DC:71:33:F0", Name: "客厅蓝光播放机 (SMB1/4K)", HostName: "Sony-BDP-X800", Mode: "bypass", Source: "局域网智能发现", Online: true, LastSeen: now},
-			{IP: "10.0.0.120", MAC: "A4:C3:61:55:92:4E", Name: "客厅 Apple TV 4K", HostName: "Apple-TV-4K", Mode: "rule", Source: "局域网智能发现", Online: true, LastSeen: now},
-			{IP: "10.0.0.101", MAC: "E8:9C:25:7A:B4:90", Name: "书房主力 PC (开发工作站)", HostName: "Workstation-PC", Mode: "rule", Source: "局域网智能发现", Online: true, LastSeen: now},
-			{IP: "10.0.0.199", MAC: "00:D9:D1:6C:5F:88", Name: "索尼 PS5 游戏主机", HostName: "PlayStation-5", Mode: "rule", Source: "局域网智能发现", Online: true, LastSeen: now},
-		}
-		for i := range presets {
-			ip := presets[i].IP
-			if pol, ok := m.store.Policies[ip]; ok {
-				presets[i].Mode = pol.Mode
-				presets[i].BoundNode = pol.BoundNode
-			}
+	// Surface any explicitly persisted device policies that were not yet seen in ARP/leases
+	if len(result) == 0 && len(m.store.Policies) > 0 {
+		for ip, pol := range m.store.Policies {
+			name := ip
+			isCustom := false
 			if alias, ok := m.store.Aliases[ip]; ok && alias != "" {
-				presets[i].Name = alias
-				presets[i].IsCustom = true
+				name = alias
+				isCustom = true
 			}
-			presets[i].IsProxied = (presets[i].Mode == "proxy" || presets[i].Mode == "rule" || presets[i].Mode == "node")
+			result = append(result, Device{
+				IP:        ip,
+				Name:      name,
+				HostName:  name,
+				Mode:      pol.Mode,
+				BoundNode: pol.BoundNode,
+				Source:    "已保存策略",
+				IsCustom:  isCustom,
+				Online:    false,
+				LastSeen:  now,
+				IsProxied: pol.Mode == "proxy" || pol.Mode == "rule" || pol.Mode == "node",
+			})
 		}
-		result = presets
 	}
 
 	return result
