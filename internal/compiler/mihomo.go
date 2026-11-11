@@ -28,6 +28,8 @@ func isMRSAvailable(ruleFilename string) bool {
 
 	candidates := []string{
 
+		filepath.Join("/opt/CubeX/etc", clean),
+
 		filepath.Join("/cubex/app/etc", clean),
 
 		filepath.Join("etc", clean),
@@ -37,6 +39,8 @@ func isMRSAvailable(ruleFilename string) bool {
 		ruleFilename,
 
 		filepath.Join("..", "etc", clean),
+
+		filepath.Join("..", "..", "etc", clean),
 	}
 
 	for _, c := range candidates {
@@ -262,18 +266,53 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	}
 
-	fallbackDNSList := []string{
+	hasCNDomainMRS := isMRSAvailable("./rules/cn_domain.mrs")
 
-		"https://1.1.1.1/dns-query",
+	hasCNIPMRS := isMRSAvailable("./rules/cn_ip.mrs")
 
-		"https://8.8.8.8/dns-query",
+	hasCNNotDomainMRS := isMRSAvailable("./rules/cn_not_domain.mrs")
+
+	hasGFWMRS := isMRSAvailable("./rules/gfw_domain.mrs")
+
+	directDNSList := []string{
+
+		"223.5.5.5",
+
+		"119.29.29.29",
 	}
 
-	cleanFakeIPFilter := []string{
+	fallbackDNSList := []string{
 
-		"geosite:private",
+		"https://1.1.1.1/dns-query#disable-qtype-65=true",
 
-		"geosite:cn",
+		"https://8.8.8.8/dns-query#disable-qtype-65=true",
+	}
+
+	var cleanFakeIPFilter []string
+
+	if hasCNDomainMRS {
+
+		cleanFakeIPFilter = []string{
+
+			"rule-set:cn_domain",
+
+			"*.home.arpa",
+
+			"*.localdomain",
+		}
+
+	} else {
+
+		cleanFakeIPFilter = []string{
+
+			"geosite:private",
+
+			"geosite:cn",
+		}
+
+	}
+
+	cleanFakeIPFilter = append(cleanFakeIPFilter,
 
 		"*.lan",
 
@@ -388,14 +427,21 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"+.zspace.cn",
 		"+.zspace.com.cn",
 		"+.zspace.cc",
-	}
+	)
 
-	// Append user-customized Fake-IP filter whitelist from IR
+	// Append user-customized Fake-IP filter whitelist from IR (convert legacy geosite entries when MRS is active)
 	for _, f := range ir.DNS.FakeIPFilter {
 		trimmed := strings.TrimSpace(f)
-		if trimmed != "" {
-			cleanFakeIPFilter = append(cleanFakeIPFilter, trimmed)
+		if trimmed == "" {
+			continue
 		}
+		if hasCNDomainMRS {
+			lower := strings.ToLower(trimmed)
+			if lower == "geosite:private" || lower == "geosite:cn" || lower == "geosite:geolocation-!cn" {
+				continue
+			}
+		}
+		cleanFakeIPFilter = append(cleanFakeIPFilter, trimmed)
 	}
 
 	// Dynamically exclude all proxy server domains from fake-ip to eliminate Fake-IP loops
@@ -446,29 +492,67 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 			"119.29.29.29",
 		},
 
-		"direct-nameserver": []string{
+		"direct-nameserver": directDNSList,
+	}
 
-			"223.5.5.5",
+	if hasCNDomainMRS {
 
-			"119.29.29.29",
-		},
+		nsPolicy := map[string]any{
 
-		"nameserver": []string{
+			"rule-set:cn_domain": directDNSList,
 
-			"223.5.5.5",
+			"+.cn": directDNSList,
 
-			"119.29.29.29",
-		},
+			"*.lan": directDNSList,
 
-		"fallback": fallbackDNSList,
+			"*.local": directDNSList,
 
-		"respect-rules": true,
+			"*.home": directDNSList,
 
-		"use-hosts": true,
+			"*.internal": directDNSList,
 
-		"use-system-hosts": false,
+			"*.home.arpa": directDNSList,
 
-		"fallback-filter": map[string]any{
+			"*.localdomain": directDNSList,
+
+			"localhost": directDNSList,
+		}
+
+		if hasCNNotDomainMRS {
+
+			nsPolicy["rule-set:cn_not_domain_mrs"] = fallbackDNSList
+
+		}
+
+		if hasGFWMRS {
+
+			nsPolicy["rule-set:gfw_mrs"] = fallbackDNSList
+
+		}
+
+		dnsMap["nameserver"] = fallbackDNSList
+
+		dnsMap["respect-rules"] = true
+
+		dnsMap["use-hosts"] = true
+
+		dnsMap["use-system-hosts"] = false
+
+		dnsMap["nameserver-policy"] = nsPolicy
+
+	} else {
+
+		dnsMap["nameserver"] = directDNSList
+
+		dnsMap["fallback"] = fallbackDNSList
+
+		dnsMap["respect-rules"] = true
+
+		dnsMap["use-hosts"] = true
+
+		dnsMap["use-system-hosts"] = false
+
+		dnsMap["fallback-filter"] = map[string]any{
 
 			"geoip": true,
 
@@ -478,38 +562,19 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 				"240.0.0.0/4",
 			},
-		},
+		}
 
-		"nameserver-policy": map[string]any{
+		dnsMap["nameserver-policy"] = map[string]any{
 
-			"geosite:cn,private": []string{
+			"geosite:cn,private": directDNSList,
 
-				"223.5.5.5",
+			"geosite:cn": directDNSList,
 
-				"119.29.29.29",
-			},
+			"geosite:private": directDNSList,
 
-			"geosite:cn": []string{
+			"geosite:geolocation-!cn": fallbackDNSList,
+		}
 
-				"223.5.5.5",
-
-				"119.29.29.29",
-			},
-
-			"geosite:private": []string{
-
-				"223.5.5.5",
-
-				"119.29.29.29",
-			},
-
-			"geosite:geolocation-!cn": []string{
-
-				"https://1.1.1.1/dns-query",
-
-				"https://8.8.8.8/dns-query",
-			},
-		},
 	}
 
 	cfg["dns"] = dnsMap
@@ -591,111 +656,153 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		pMap := make(map[string]any)
 
-		if len(p.RawConfig) > 0 {
+		for k, v := range p.RawConfig {
 
-			for k, v := range p.RawConfig {
+			pMap[k] = v
 
-				pMap[k] = v
+		}
 
-			}
-
-		} else {
-
-			pMap["name"] = p.Name
+		if pMap["type"] == nil && p.Type != "" {
 
 			pMap["type"] = p.Type
 
-			pMap["server"] = p.Server
+		}
 
-			pMap["port"] = p.Port
+		if p.UUID != "" && pMap["uuid"] == nil {
 
-			if p.UUID != "" {
+			pMap["uuid"] = p.UUID
 
-				pMap["uuid"] = p.UUID
+		}
 
-			}
+		if p.Password != "" && pMap["password"] == nil && pMap["psk"] == nil {
 
-			if p.Password != "" {
+			pMap["password"] = p.Password
 
-				pMap["password"] = p.Password
+		}
 
-			}
+		if p.Cipher != "" && pMap["cipher"] == nil {
 
-			if p.Cipher != "" {
+			pMap["cipher"] = p.Cipher
 
-				pMap["cipher"] = p.Cipher
+		}
 
-			}
+		if p.TLS {
 
-			if p.TLS {
+			if _, ok := pMap["tls"]; !ok {
 
 				pMap["tls"] = true
 
-				if p.SNI != "" {
+			}
 
-					pMap["servername"] = p.SNI
+			if p.SNI != "" && pMap["servername"] == nil && pMap["sni"] == nil {
 
-				}
-
-				pMap["skip-cert-verify"] = true // 🛡️ 强制跳过验证，免疫机场多域名证书不匹配断网
-
-				if len(p.ALPN) > 0 {
-
-					pMap["alpn"] = p.ALPN
-
-				}
+				pMap["servername"] = p.SNI
 
 			}
 
-			if p.Network != "" {
+			pMap["skip-cert-verify"] = true // 🛡️ 强制跳过验证，免疫机场多域名证书不匹配断网
 
-				pMap["network"] = p.Network
+			if len(p.ALPN) > 0 && pMap["alpn"] == nil {
 
-			}
-
-			if p.Network == "grpc" {
-
-				grpcOpts, ok := pMap["grpc-opts"].(map[string]any)
-
-				if !ok {
-
-					grpcOpts = make(map[string]any)
-
-				}
-
-				if p.Path != "" && grpcOpts["grpc-service-name"] == nil {
-
-					grpcOpts["grpc-service-name"] = p.Path
-
-				}
-
-				pMap["grpc-opts"] = grpcOpts
-
-			} else if p.Network == "ws" {
-
-				wsOpts, ok := pMap["ws-opts"].(map[string]any)
-
-				if !ok {
-
-					wsOpts = make(map[string]any)
-
-				}
-
-				if p.Path != "" && wsOpts["path"] == nil {
-
-					wsOpts["path"] = p.Path
-
-				}
-
-				pMap["ws-opts"] = wsOpts
+				pMap["alpn"] = p.ALPN
 
 			}
 
-			if p.Flow != "" {
+		}
 
-				pMap["flow"] = p.Flow
+		if p.Network != "" && pMap["network"] == nil && pMap["transport"] == nil {
+
+			pMap["network"] = p.Network
+
+		}
+
+		netNorm := strings.ToLower(strings.TrimSpace(fmt.Sprintf("%v", pMap["network"])))
+
+		if pMap["network"] == nil {
+
+			netNorm = strings.ToLower(strings.TrimSpace(p.Network))
+
+		}
+
+		if netNorm == "grpc" {
+
+			grpcOpts, ok := pMap["grpc-opts"].(map[string]any)
+
+			if !ok {
+
+				grpcOpts = make(map[string]any)
 
 			}
+
+			if p.Path != "" && grpcOpts["grpc-service-name"] == nil {
+
+				grpcOpts["grpc-service-name"] = p.Path
+
+			}
+
+			pMap["grpc-opts"] = grpcOpts
+
+		} else if netNorm == "ws" {
+
+			wsOpts, ok := pMap["ws-opts"].(map[string]any)
+
+			if !ok {
+
+				wsOpts = make(map[string]any)
+
+			}
+
+			if p.Path != "" && wsOpts["path"] == nil {
+
+				wsOpts["path"] = p.Path
+
+			}
+
+			pMap["ws-opts"] = wsOpts
+
+		} else if netNorm == "httpupgrade" {
+
+			huOpts, ok := pMap["httpupgrade-opts"].(map[string]any)
+
+			if !ok {
+
+				huOpts = make(map[string]any)
+
+			}
+
+			if p.Path != "" && huOpts["path"] == nil {
+
+				huOpts["path"] = p.Path
+
+			}
+
+			pMap["httpupgrade-opts"] = huOpts
+
+		} else if netNorm == "xhttp" || netNorm == "splithttp" {
+
+			pMap["network"] = "xhttp"
+
+			xhOpts, ok := pMap["xhttp-opts"].(map[string]any)
+
+			if !ok {
+
+				xhOpts = make(map[string]any)
+
+			}
+
+			if p.Path != "" && xhOpts["path"] == nil {
+
+				xhOpts["path"] = p.Path
+
+			}
+
+			pMap["xhttp-opts"] = xhOpts
+
+		}
+
+		if p.Flow != "" && pMap["flow"] == nil {
+
+			pMap["flow"] = p.Flow
 
 		}
 
@@ -799,9 +906,19 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 			if tType, ok := transport["type"].(string); ok && tType != "" {
 
-				pMap["network"] = tType
+				tNorm := strings.ToLower(strings.TrimSpace(tType))
 
-				if tType == "ws" {
+				if tNorm == "splithttp" {
+
+					tNorm = "xhttp"
+
+				}
+
+				pMap["network"] = tNorm
+
+				switch tNorm {
+
+				case "ws":
 
 					wsOpts := make(map[string]any)
 
@@ -818,6 +935,66 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 					}
 
 					pMap["ws-opts"] = wsOpts
+
+				case "grpc":
+
+					grpcOpts := make(map[string]any)
+
+					if sn, ok := transport["service_name"].(string); ok && sn != "" {
+
+						grpcOpts["grpc-service-name"] = sn
+
+					}
+
+					pMap["grpc-opts"] = grpcOpts
+
+				case "httpupgrade":
+
+					huOpts := make(map[string]any)
+
+					if path, ok := transport["path"].(string); ok && path != "" {
+
+						huOpts["path"] = path
+
+					}
+
+					if host, ok := transport["host"].(string); ok && host != "" {
+
+						huOpts["host"] = host
+
+					}
+
+					if headers, ok := transport["headers"].(map[string]any); ok {
+
+						huOpts["headers"] = headers
+
+					}
+
+					pMap["httpupgrade-opts"] = huOpts
+
+				case "xhttp":
+
+					xhOpts := make(map[string]any)
+
+					if path, ok := transport["path"].(string); ok && path != "" {
+
+						xhOpts["path"] = path
+
+					}
+
+					if host, ok := transport["host"].(string); ok && host != "" {
+
+						xhOpts["host"] = host
+
+					}
+
+					if mode, ok := transport["mode"].(string); ok && mode != "" {
+
+						xhOpts["mode"] = mode
+
+					}
+
+					pMap["xhttp-opts"] = xhOpts
 
 				}
 
@@ -1048,6 +1225,34 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 				if fp, ok := p.RawConfig["client-fingerprint"].(string); ok && fp != "" {
 					pMap["client-fingerprint"] = fp
 				}
+			}
+
+		} else if ptype == "snell" {
+
+			pMap["type"] = "snell"
+
+			if psk, ok := pMap["psk"].(string); !ok || psk == "" {
+
+				if pwd, ok := pMap["password"].(string); ok && pwd != "" {
+
+					pMap["psk"] = pwd
+
+				} else if p.Password != "" {
+
+					pMap["psk"] = p.Password
+
+				}
+
+			}
+
+			delete(pMap, "password")
+
+			delete(pMap, "udp_over_tcp")
+
+			if _, ok := pMap["version"]; !ok {
+
+				pMap["version"] = 6
+
 			}
 
 		}
@@ -1557,11 +1762,16 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		quicPolicy = "direct"
 	}
 
+	cnQUICRule := "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(GEOIP,CN)),DIRECT"
+	if hasCNIPMRS {
+		cnQUICRule = "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(RULE-SET,cn_ip)),DIRECT"
+	}
+
 	if quicPolicy == "block" {
-		rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(GEOIP,CN)),DIRECT")
+		rulesList = append(rulesList, cnQUICRule)
 		rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443)))),REJECT")
 	} else if quicPolicy == "smart" {
-		rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(GEOIP,CN)),DIRECT")
+		rulesList = append(rulesList, cnQUICRule)
 		if _, ok := ruleProviders["youtube_mrs"]; ok {
 			rulesList = append(rulesList, "AND,((NETWORK,UDP),(OR,((DST-PORT,443),(DST-PORT,8443))),(RULE-SET,youtube_mrs)),REJECT")
 		} else {
@@ -1779,7 +1989,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	}
 
-	// 2b. High-Speed Business Service Rules (Native Domain-Suffix & GEOSITE)
+	// 2b. High-Speed Business Service Rules (Native Domain-Suffix + MRS-first with GEOSITE fallback only when MRS absent)
 
 	bizRules := []struct {
 		group string
@@ -1787,31 +1997,33 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		suffixes []string
 
 		geosite string
+
+		mrsTag string
 	}{
 
-		{"AI", []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "claude.com", "claudecdn.com", "claudecontent.com", "oaistatic.com", "oaiusercontent.com", "sora.com", "perplexity.ai", "x.ai", "grok.com", "copilot.microsoft.com", "sydney.bing.com", "mistral.ai", "poe.com", "midjourney.com", "huggingface.co", "civitai.com"}, "openai"},
+		{"AI", []string{"openai.com", "chatgpt.com", "anthropic.com", "claude.ai", "claude.com", "claudecdn.com", "claudecontent.com", "oaistatic.com", "oaiusercontent.com", "sora.com", "perplexity.ai", "x.ai", "grok.com", "copilot.microsoft.com", "sydney.bing.com", "mistral.ai", "poe.com", "midjourney.com", "huggingface.co", "civitai.com"}, "openai", "openai_mrs"},
 
-		{"Gemini & Antigravity", []string{"gemini.google.com", "gemini.google", "aistudio.google.com", "ai.studio", "deepmind.google", "deepmind.com", "antigravity.dev", "antigravity.google", "notebooklm.google"}, "google-gemini"},
+		{"Gemini & Antigravity", []string{"gemini.google.com", "gemini.google", "aistudio.google.com", "ai.studio", "deepmind.google", "deepmind.com", "antigravity.dev", "antigravity.google", "notebooklm.google"}, "google-gemini", ""},
 
-		{"YouTube", []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com", "yt3.ggpht.com", "yt4.ggpht.com", "gvt1.com", "1e100.net", "googleusercontent.com"}, "youtube"},
+		{"YouTube", []string{"youtube.com", "ytimg.com", "googlevideo.com", "youtu.be", "youtubei.googleapis.com", "yt3.ggpht.com", "yt4.ggpht.com", "gvt1.com", "1e100.net", "googleusercontent.com"}, "youtube", "youtube_mrs"},
 
-		{"Google", []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com", "goog", "run.app", "1e100.net", "gvt1.com"}, "google"},
+		{"Google", []string{"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com", "ggpht.com", "goog", "run.app", "1e100.net", "gvt1.com"}, "google", "google_mrs"},
 
-		{"GitHub & Docker", []string{"github.com", "githubusercontent.com", "docker.com", "docker.io", "ghcr.io"}, "github"},
+		{"GitHub & Docker", []string{"github.com", "githubusercontent.com", "docker.com", "docker.io", "ghcr.io"}, "github", "github_mrs"},
 
-		{"Telegram", []string{"telegram.org", "t.me", "telegram.me", "telegra.ph"}, "telegram"},
+		{"Telegram", []string{"telegram.org", "t.me", "telegram.me", "telegra.ph"}, "telegram", "telegram_mrs"},
 
-		{"Twitter (X)", []string{"twitter.com", "x.com", "twimg.com", "t.co"}, "twitter"},
+		{"Twitter (X)", []string{"twitter.com", "x.com", "twimg.com", "t.co"}, "twitter", "twitter_mrs"},
 
-		{"Netflix & 流媒体", []string{"netflix.com", "netflix.net", "nflximg.net", "nflxvideo.net", "nflxso.net", "nflxext.com", "disneyplus.com", "hbo.com"}, "netflix"},
+		{"Netflix & 流媒体", []string{"netflix.com", "netflix.net", "nflximg.net", "nflxvideo.net", "nflxso.net", "nflxext.com", "disneyplus.com", "hbo.com"}, "netflix", "netflix_mrs"},
 
-		{"Spotify", []string{"spotify.com", "scdn.co", "spoti.fi"}, "spotify"},
+		{"Spotify", []string{"spotify.com", "scdn.co", "spoti.fi"}, "spotify", "spotify_mrs"},
 
-		{"Steam 游戏", []string{"steampowered.com", "steamcommunity.com", "steamgames.com", "steamusercontent.com", "steamcontent.com"}, "steam"},
+		{"Steam 游戏", []string{"steampowered.com", "steamcommunity.com", "steamgames.com", "steamusercontent.com", "steamcontent.com"}, "steam", "steam_mrs"},
 
-		{"Apple 服务", []string{"apple.com", "icloud.com", "aaplimg.com", "itunes.com"}, "apple"},
+		{"Apple 服务", []string{"apple.com", "icloud.com", "aaplimg.com", "itunes.com"}, "apple", "apple_mrs"},
 
-		{"Microsoft", []string{"microsoft.com", "windows.com", "live.com", "office.com", "azure.com", "msftconnecttest.com"}, "microsoft"},
+		{"Microsoft", []string{"microsoft.com", "windows.com", "live.com", "office.com", "azure.com", "msftconnecttest.com"}, "microsoft", "microsoft_mrs"},
 	}
 
 	for _, br := range bizRules {
@@ -1824,7 +2036,9 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 			}
 
-			if br.geosite != "" {
+			_, hasMRS := ruleProviders[br.mrsTag]
+
+			if br.geosite != "" && !hasMRS && !hasCNDomainMRS {
 
 				rulesList = append(rulesList, fmt.Sprintf("GEOSITE,%s,%s", br.geosite, br.group))
 
@@ -1832,7 +2046,11 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 			if br.group == "Telegram" {
 
-				rulesList = append(rulesList, "GEOIP,telegram,Telegram")
+				if _, hasTgIP := ruleProviders["telegram_ip_mrs"]; !hasTgIP && !hasCNIPMRS {
+
+					rulesList = append(rulesList, "GEOIP,telegram,Telegram")
+
+				}
 
 			}
 
@@ -1854,7 +2072,11 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	rulesList = append(rulesList, fmt.Sprintf("RULE-SET,cn_ip,%s", cnOutbound))
 
-	rulesList = append(rulesList, fmt.Sprintf("GEOIP,CN,%s", cnOutbound))
+	if !hasCNIPMRS {
+
+		rulesList = append(rulesList, fmt.Sprintf("GEOIP,CN,%s", cnOutbound))
+
+	}
 
 	// 3. Generic Rules
 
@@ -1914,11 +2136,99 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		case "GEOSITE":
 
-			rulesList = append(rulesList, fmt.Sprintf("GEOSITE,%s,%s", r.Value, target))
+			val := strings.ToLower(strings.TrimSpace(r.Value))
+
+			if hasCNDomainMRS {
+
+				switch val {
+
+				case "category-ads-all":
+
+					if !ir.AdBlockEnabled {
+
+						rulesList = append(rulesList, fmt.Sprintf("RULE-SET,217heidai_ads,%s", target))
+
+					}
+
+				case "cn":
+
+					// Already emitted by RULE-SET,cn_domain in section 2c
+
+				case "geolocation-!cn":
+
+					if _, ok := ruleProviders["cn_not_domain_mrs"]; ok {
+
+						rulesList = append(rulesList, fmt.Sprintf("RULE-SET,cn_not_domain_mrs,%s", target))
+
+					}
+
+				default:
+
+					matched := false
+
+					for _, m := range bizMRSMappings {
+
+						expectedFile := "./rules/" + val + ".mrs"
+
+						if m.filename == expectedFile {
+
+							if _, ok := ruleProviders[m.tag]; ok {
+
+								rulesList = append(rulesList, fmt.Sprintf("RULE-SET,%s,%s", m.tag, target))
+
+								matched = true
+
+							}
+
+							break
+
+						}
+
+					}
+
+					if !matched {
+
+						rulesList = append(rulesList, fmt.Sprintf("GEOSITE,%s,%s", r.Value, target))
+
+					}
+
+				}
+
+			} else {
+
+				rulesList = append(rulesList, fmt.Sprintf("GEOSITE,%s,%s", r.Value, target))
+
+			}
 
 		case "GEOIP":
 
-			rulesList = append(rulesList, fmt.Sprintf("GEOIP,%s,%s", strings.ToUpper(r.Value), target))
+			val := strings.ToUpper(strings.TrimSpace(r.Value))
+
+			if val == "PRIVATE" {
+
+				// Explicitly omitted: GEOIP,private matches Fake-IP range 198.18.0.0/15 and private CIDRs are emitted in section 1c
+
+			} else if val == "CN" && hasCNIPMRS {
+
+				// Already emitted by RULE-SET,cn_ip in section 2c
+
+			} else if val == "TELEGRAM" {
+
+				if _, ok := ruleProviders["telegram_ip_mrs"]; ok {
+
+					rulesList = append(rulesList, fmt.Sprintf("RULE-SET,telegram_ip_mrs,%s", target))
+
+				} else if !hasCNIPMRS {
+
+					rulesList = append(rulesList, fmt.Sprintf("GEOIP,%s,%s", val, target))
+
+				}
+
+			} else {
+
+				rulesList = append(rulesList, fmt.Sprintf("GEOIP,%s,%s", val, target))
+
+			}
 
 		case "IP_CIDR", "IP-CIDR":
 

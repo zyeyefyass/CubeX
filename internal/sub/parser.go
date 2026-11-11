@@ -183,6 +183,9 @@ func parseClashNode(p map[string]any) schema.ProxyNode {
 		Flow:           getString("flow"),
 	}
 
+	if node.Password == "" {
+		node.Password = getString("psk")
+	}
 	if node.SNI == "" {
 		node.SNI = getString("sni")
 	}
@@ -212,6 +215,14 @@ func parseClashNode(p map[string]any) schema.ProxyNode {
 	} else if grpcOpts, ok := p["grpc-opts"].(map[string]any); ok {
 		if sn, ok := grpcOpts["grpc-service-name"].(string); ok {
 			node.Path = sn
+		}
+	} else if huOpts, ok := p["httpupgrade-opts"].(map[string]any); ok {
+		if path, ok := huOpts["path"].(string); ok {
+			node.Path = path
+		}
+	} else if xhOpts, ok := p["xhttp-opts"].(map[string]any); ok {
+		if path, ok := xhOpts["path"].(string); ok {
+			node.Path = path
 		}
 	}
 
@@ -380,21 +391,7 @@ func ParseURILink(link string) (schema.ProxyNode, error) {
 				raw["servername"] = node.SNI
 			}
 		}
-		if node.Network == "ws" {
-			raw["network"] = "ws"
-			wsOpts := map[string]any{
-				"path": node.Path,
-			}
-			if v.Host != "" {
-				wsOpts["headers"] = map[string]any{"Host": v.Host}
-			}
-			raw["ws-opts"] = wsOpts
-		} else if node.Network == "grpc" {
-			raw["network"] = "grpc"
-			raw["grpc-opts"] = map[string]any{
-				"grpc-service-name": node.Path,
-			}
-		}
+		applyURITransport(&node, raw, node.Network, node.Path, v.Host, node.Path, "", "")
 		node.RawConfig = raw
 		return node, nil
 	}
@@ -490,26 +487,7 @@ func ParseURILink(link string) (schema.ProxyNode, error) {
 			}
 			raw["reality-opts"] = realityOpts
 		}
-		if node.Network == "grpc" {
-			serviceName := q.Get("serviceName")
-			if serviceName == "" {
-				serviceName = q.Get("path")
-			}
-			node.Path = serviceName
-			raw["network"] = "grpc"
-			raw["grpc-opts"] = map[string]any{
-				"grpc-service-name": serviceName,
-			}
-		} else if node.Network == "ws" {
-			raw["network"] = "ws"
-			wsOpts := map[string]any{
-				"path": node.Path,
-			}
-			if host := q.Get("host"); host != "" {
-				wsOpts["headers"] = map[string]any{"Host": host}
-			}
-			raw["ws-opts"] = wsOpts
-		}
+		applyURITransport(&node, raw, node.Network, node.Path, q.Get("host"), q.Get("serviceName"), q.Get("mode"), q.Get("extra"))
 		node.RawConfig = raw
 	case "anytls":
 		node.Type = "anytls"
@@ -528,14 +506,21 @@ func ParseURILink(link string) (schema.ProxyNode, error) {
 			"tls":              true,
 		}
 	case "trojan":
+		q := u.Query()
 		node.Type = "trojan"
 		node.Password = u.User.Username()
-		node.SNI = u.Query().Get("sni")
+		node.SNI = q.Get("sni")
 		node.TLS = true
-		if u.Query().Get("insecure") == "1" || u.Query().Get("insecure") == "true" {
+		if q.Get("insecure") == "1" || q.Get("insecure") == "true" {
 			node.SkipCertVerify = true
 		}
-		node.RawConfig = map[string]any{
+		if netType := q.Get("type"); netType != "" {
+			node.Network = netType
+		}
+		if p := q.Get("path"); p != "" {
+			node.Path = p
+		}
+		raw := map[string]any{
 			"name":             node.Name,
 			"type":             "trojan",
 			"server":           node.Server,
@@ -546,6 +531,8 @@ func ParseURILink(link string) (schema.ProxyNode, error) {
 			"skip-cert-verify": node.SkipCertVerify,
 			"udp":              true,
 		}
+		applyURITransport(&node, raw, node.Network, node.Path, q.Get("host"), q.Get("serviceName"), q.Get("mode"), q.Get("extra"))
+		node.RawConfig = raw
 	case "hysteria2", "hy2":
 		node.Type = "hysteria2"
 		node.Password = u.User.Username()
@@ -630,9 +617,106 @@ func ParseURILink(link string) (schema.ProxyNode, error) {
 				node.Password = pass
 			}
 		}
+	case "snell":
+		q := u.Query()
+		node.Type = "snell"
+		if u.User != nil {
+			node.Password = u.User.Username()
+		}
+		if node.Password == "" {
+			node.Password = q.Get("psk")
+		}
+		ver := 6
+		if vStr := q.Get("version"); vStr != "" {
+			if v, err := strconv.Atoi(vStr); err == nil && v > 0 {
+				ver = v
+			}
+		} else if vStr := q.Get("ver"); vStr != "" {
+			if v, err := strconv.Atoi(vStr); err == nil && v > 0 {
+				ver = v
+			}
+		}
+		raw := map[string]any{
+			"name":    node.Name,
+			"type":    "snell",
+			"server":  node.Server,
+			"port":    node.Port,
+			"psk":     node.Password,
+			"version": ver,
+			"udp":     true,
+		}
+		if obfs := q.Get("obfs"); obfs != "" {
+			obfsOpts := map[string]any{"mode": obfs}
+			if h := q.Get("obfs-host"); h != "" {
+				obfsOpts["host"] = h
+			} else if h := q.Get("host"); h != "" {
+				obfsOpts["host"] = h
+			}
+			raw["obfs-opts"] = obfsOpts
+		}
+		node.RawConfig = raw
 	}
 
 	return node, nil
+}
+
+// applyURITransport normalizes ws, grpc, httpupgrade, and xhttp transports into IR + Mihomo RawConfig.
+func applyURITransport(node *schema.ProxyNode, raw map[string]any, netType, path, host, serviceName, mode, extra string) {
+	norm := strings.ToLower(strings.TrimSpace(netType))
+	if norm == "splithttp" {
+		norm = "xhttp"
+	}
+	node.Network = norm
+	switch norm {
+	case "grpc":
+		sn := serviceName
+		if sn == "" {
+			sn = path
+		}
+		node.Path = sn
+		raw["network"] = "grpc"
+		raw["grpc-opts"] = map[string]any{
+			"grpc-service-name": sn,
+		}
+	case "ws":
+		node.Path = path
+		raw["network"] = "ws"
+		wsOpts := map[string]any{
+			"path": path,
+		}
+		if host != "" {
+			wsOpts["headers"] = map[string]any{"Host": host}
+		}
+		raw["ws-opts"] = wsOpts
+	case "httpupgrade":
+		node.Path = path
+		raw["network"] = "httpupgrade"
+		huOpts := map[string]any{}
+		if path != "" {
+			huOpts["path"] = path
+		}
+		if host != "" {
+			huOpts["host"] = host
+		}
+		raw["httpupgrade-opts"] = huOpts
+	case "xhttp":
+		node.Path = path
+		raw["network"] = "xhttp"
+		xhOpts := map[string]any{}
+		if path != "" {
+			xhOpts["path"] = path
+		}
+		if host != "" {
+			xhOpts["host"] = host
+		}
+		if mode != "" {
+			xhOpts["mode"] = mode
+		}
+		if extra != "" {
+			xhOpts["extra"] = extra
+		}
+		raw["xhttp-opts"] = xhOpts
+	}
 }
 
 func toInt(v any) int {

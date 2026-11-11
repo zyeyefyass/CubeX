@@ -2,6 +2,7 @@ package compiler_test
 
 import (
 	"encoding/json"
+	"os"
 	"runtime"
 	"strings"
 	"testing"
@@ -203,11 +204,11 @@ func TestMihomoDNSLeakPrevention(t *testing.T) {
 		t.Errorf("Mihomo enhanced-mode must be fake-ip, got: %v", dnsSection["enhanced-mode"])
 	}
 
-	// 2. Verify fake-ip-filter exists and contains domestic domains
+	// 2. Verify fake-ip-filter exists and contains domestic domains (MRS rule-set or legacy geosite)
 	filters, _ := dnsSection["fake-ip-filter"].([]any)
 	hasCN := false
 	for _, f := range filters {
-		if f == "geosite:cn" || f == "+.cn" {
+		if f == "rule-set:cn_domain" || f == "geosite:cn" || f == "+.cn" {
 			hasCN = true
 			break
 		}
@@ -237,8 +238,18 @@ func TestMihomoDNSLeakPrevention(t *testing.T) {
 
 	// 5. Verify nameserver-policy for domestic domains
 	nsPolicy, _ := dnsSection["nameserver-policy"].(map[string]any)
-	if nsPolicy["geosite:cn,private"] == nil {
-		t.Errorf("Mihomo missing nameserver-policy for geosite:cn,private")
+	if nsPolicy["rule-set:cn_domain"] == nil && nsPolicy["geosite:cn,private"] == nil {
+		t.Errorf("Mihomo missing nameserver-policy for domestic rules (rule-set:cn_domain or geosite:cn,private)")
+	}
+
+	// 5b. When local MRS rule-sets exist, enforce zero .dat (geosite:/GEOSITE,/GEOIP,/geoip: true) emission
+	if _, err := os.Stat("../../etc/rules/cn_domain.mrs"); err == nil {
+		mihomoText := string(data)
+		for _, forbidden := range []string{"geosite:", "GEOSITE,", "GEOIP,", "geoip: true"} {
+			if strings.Contains(mihomoText, forbidden) {
+				t.Errorf("Mihomo YAML must NOT reference legacy .dat pattern %q when .mrs sets are available", forbidden)
+			}
+		}
 	}
 
 	// 6. Verify respect-rules
@@ -624,5 +635,210 @@ func TestStrategyGroupAndSpeedtestFeatures(t *testing.T) {
 	}
 	if !strings.Contains(sbStr, "speedtest.net") {
 		t.Errorf("Expected speedtest.net in Sing-box route rules")
+	}
+}
+
+func TestDualCoreProtocolsSnellHttpupgradeXhttp(t *testing.T) {
+	ir := schema.NewDefaultIR()
+	ir.Proxies = []schema.ProxyNode{
+		{
+			Name:     "Snell-v4",
+			Type:     "snell",
+			Server:   "1.2.3.4",
+			Port:     6160,
+			Password: "psk-v4-secret",
+			RawConfig: map[string]any{
+				"version":   4,
+				"obfs-opts": map[string]any{"mode": "http", "host": "bing.com"},
+			},
+		},
+		{
+			Name:     "Snell-v6",
+			Type:     "snell",
+			Server:   "1.2.3.5",
+			Port:     6161,
+			Password: "psk-v6-secret",
+			RawConfig: map[string]any{
+				"version": 6,
+			},
+		},
+		{
+			Name:     "Snell-v5-SkipSB",
+			Type:     "snell",
+			Server:   "1.2.3.6",
+			Port:     6162,
+			Password: "psk-v5-secret",
+			RawConfig: map[string]any{
+				"version": 5,
+			},
+		},
+		{
+			Name:    "VLESS-HttpUpgrade",
+			Type:    "vless",
+			Server:  "hu.example.com",
+			Port:    443,
+			UUID:    "11111111-2222-3333-4444-555555555555",
+			TLS:     true,
+			SNI:     "hu.example.com",
+			Network: "httpupgrade",
+			Path:    "/hu-path",
+			RawConfig: map[string]any{
+				"httpupgrade-opts": map[string]any{
+					"path": "/hu-path",
+					"host": "cdn.hu.example.com",
+				},
+			},
+		},
+		{
+			Name:    "VLESS-XHTTP-MihomoOnly",
+			Type:    "vless",
+			Server:  "xh.example.com",
+			Port:    443,
+			UUID:    "11111111-2222-3333-4444-555555555555",
+			TLS:     true,
+			SNI:     "xh.example.com",
+			Network: "xhttp",
+			Path:    "/xh-path",
+			RawConfig: map[string]any{
+				"xhttp-opts": map[string]any{
+					"path": "/xh-path",
+					"host": "cdn.xh.example.com",
+					"mode": "auto",
+				},
+			},
+		},
+	}
+	ir.Groups = append(ir.Groups, schema.StrategyGroup{
+		Name:    "Protocol-Test-Group",
+		Type:    "select",
+		Proxies: []string{"Snell-v4", "Snell-v6", "Snell-v5-SkipSB", "VLESS-HttpUpgrade", "VLESS-XHTTP-MihomoOnly"},
+	})
+
+	// 1. Verify Mihomo preserves all 5 nodes cleanly
+	mhBytes, err := compiler.BuildMihomo(ir)
+	if err != nil {
+		t.Fatalf("BuildMihomo failed: %v", err)
+	}
+	var mhCfg map[string]any
+	if err := yaml.Unmarshal(mhBytes, &mhCfg); err != nil {
+		t.Fatalf("Mihomo YAML unmarshal failed: %v", err)
+	}
+	mhProxies := map[string]map[string]any{}
+	for _, raw := range mhCfg["proxies"].([]any) {
+		if pm, ok := raw.(map[string]any); ok {
+			mhProxies[pm["name"].(string)] = pm
+		}
+	}
+	for _, want := range []string{"Snell-v4", "Snell-v6", "Snell-v5-SkipSB", "VLESS-HttpUpgrade", "VLESS-XHTTP-MihomoOnly"} {
+		if _, ok := mhProxies[want]; !ok {
+			t.Errorf("Mihomo missing expected proxy %s", want)
+		}
+	}
+	if mhProxies["Snell-v4"]["psk"] != "psk-v4-secret" || mhProxies["Snell-v4"]["password"] != nil {
+		t.Errorf("Mihomo Snell-v4 must use psk without password: %+v", mhProxies["Snell-v4"])
+	}
+	if mhProxies["VLESS-HttpUpgrade"]["network"] != "httpupgrade" {
+		t.Errorf("Mihomo httpupgrade network mismatch: %+v", mhProxies["VLESS-HttpUpgrade"])
+	}
+	if mhProxies["VLESS-XHTTP-MihomoOnly"]["network"] != "xhttp" {
+		t.Errorf("Mihomo xhttp network mismatch: %+v", mhProxies["VLESS-XHTTP-MihomoOnly"])
+	}
+
+	// 2. Verify Sing-box preserves snell v4/v6 & httpupgrade, skips snell v5 & xhttp cleanly without dangling group tags
+	sbBytes, err := compiler.BuildSingBox(ir)
+	if err != nil {
+		t.Fatalf("BuildSingBox failed: %v", err)
+	}
+	var sbCfg struct {
+		Outbounds []map[string]any `json:"outbounds"`
+	}
+	if err := json.Unmarshal(sbBytes, &sbCfg); err != nil {
+		t.Fatalf("SingBox JSON unmarshal failed: %v", err)
+	}
+	sbOutbounds := map[string]map[string]any{}
+	for _, ob := range sbCfg.Outbounds {
+		if tag, ok := ob["tag"].(string); ok {
+			sbOutbounds[tag] = ob
+		}
+	}
+	if ob, ok := sbOutbounds["Snell-v4"]; !ok || ob["psk"] != "psk-v4-secret" || int(ob["version"].(float64)) != 4 {
+		t.Errorf("SingBox Snell-v4 mismatch: %+v", ob)
+	}
+	if ob, ok := sbOutbounds["Snell-v6"]; !ok || ob["psk"] != "psk-v6-secret" || int(ob["version"].(float64)) != 6 {
+		t.Errorf("SingBox Snell-v6 mismatch: %+v", ob)
+	}
+	if _, ok := sbOutbounds["Snell-v5-SkipSB"]; ok {
+		t.Errorf("SingBox must skip unsupported snell v5")
+	}
+	if _, ok := sbOutbounds["VLESS-XHTTP-MihomoOnly"]; ok {
+		t.Errorf("SingBox must skip unsupported xhttp transport")
+	}
+	huOb, ok := sbOutbounds["VLESS-HttpUpgrade"]
+	if !ok {
+		t.Fatalf("SingBox missing VLESS-HttpUpgrade")
+	}
+	tr, _ := huOb["transport"].(map[string]any)
+	if tr["type"] != "httpupgrade" || tr["path"] != "/hu-path" || tr["host"] != "cdn.hu.example.com" {
+		t.Errorf("SingBox httpupgrade transport mismatch: %+v", tr)
+	}
+	// Ensure no dangling skipped tags remain in selector outbounds
+	if grp, ok := sbOutbounds["Protocol-Test-Group"]; ok {
+		members, _ := grp["outbounds"].([]any)
+		for _, m := range members {
+			if m == "VLESS-XHTTP-MihomoOnly" || m == "Snell-v5-SkipSB" {
+				t.Errorf("SingBox group must NOT contain skipped node tag %v", m)
+			}
+		}
+	}
+}
+
+func TestSingboxDNSFakeIPFilterSplitORRules(t *testing.T) {
+	ir := schema.NewDefaultIR()
+	ir.DNS.FakeIPFilter = []string{"+.custom-internal.corp"}
+
+	sbBytes, err := compiler.BuildSingBox(ir)
+	if err != nil {
+		t.Fatalf("BuildSingBox failed: %v", err)
+	}
+	var sbCfg struct {
+		DNS struct {
+			Rules []map[string]any `json:"rules"`
+		} `json:"dns"`
+	}
+	if err := json.Unmarshal(sbBytes, &sbCfg); err != nil {
+		t.Fatalf("SingBox JSON unmarshal failed: %v", err)
+	}
+
+	foundCustomSuffixOnly := false
+	foundGeositeCNOnly := false
+	for _, r := range sbCfg.DNS.Rules {
+		if r["server"] != "dns-direct" {
+			continue
+		}
+		_, hasSuffix := r["domain_suffix"]
+		_, hasRuleSet := r["rule_set"]
+		if hasSuffix && hasRuleSet {
+			t.Errorf("SingBox dns-direct rule must NOT combine domain_suffix and rule_set in the same AND map: %+v", r)
+		}
+		if hasSuffix {
+			for _, s := range r["domain_suffix"].([]any) {
+				if s == "custom-internal.corp" {
+					foundCustomSuffixOnly = true
+				}
+			}
+		}
+		if hasRuleSet {
+			for _, rs := range r["rule_set"].([]any) {
+				if rs == "geosite-cn" {
+					foundGeositeCNOnly = true
+				}
+			}
+		}
+	}
+	if !foundCustomSuffixOnly {
+		t.Errorf("SingBox dns.rules missing custom FakeIPFilter domain_suffix -> dns-direct OR rule")
+	}
+	if !foundGeositeCNOnly {
+		t.Errorf("SingBox dns.rules missing separate geosite-cn -> dns-direct OR rule")
 	}
 }

@@ -151,3 +151,44 @@ func TestUniversalSmartParse(t *testing.T) {
 		t.Errorf("Unexpected nodes: %+v", nodes)
 	}
 }
+
+func TestParseSnellAndTransports(t *testing.T) {
+	snellV6, err := sub.ParseURILink("snell://mypsk123@snell.example.com:6160?version=6&obfs=http&obfs-host=bing.com#SG-Snell-v6")
+	if err != nil {
+		t.Fatalf("ParseURILink snell v6 failed: %v", err)
+	}
+	if snellV6.Type != "snell" || snellV6.Password != "mypsk123" || snellV6.Port != 6160 {
+		t.Errorf("Snell v6 node mismatch: %+v", snellV6)
+	}
+	if snellV6.RawConfig["version"] != 6 || snellV6.RawConfig["psk"] != "mypsk123" {
+		t.Errorf("Snell v6 RawConfig mismatch: %+v", snellV6.RawConfig)
+	}
+	obfsOpts, _ := snellV6.RawConfig["obfs-opts"].(map[string]any)
+	if obfsOpts["mode"] != "http" || obfsOpts["host"] != "bing.com" {
+		t.Errorf("Snell v6 obfs-opts mismatch: %+v", obfsOpts)
+	}
+
+	huNode, err := sub.ParseURILink("vless://11111111-2222-3333-4444-555555555555@hu.example.com:443?security=tls&type=httpupgrade&path=%2Fhu&host=cdn.example.com#US-HttpUpgrade")
+	if err != nil {
+		t.Fatalf("ParseURILink httpupgrade failed: %v", err)
+	}
+	if huNode.Network != "httpupgrade" || huNode.Path != "/hu" {
+		t.Errorf("HttpUpgrade mismatch: %+v", huNode)
+	}
+	huOpts, _ := huNode.RawConfig["httpupgrade-opts"].(map[string]any)
+	if huOpts["path"] != "/hu" || huOpts["host"] != "cdn.example.com" {
+		t.Errorf("HttpUpgrade opts mismatch: %+v", huOpts)
+	}
+
+	xhNode, err := sub.ParseURILink("vless://11111111-2222-3333-4444-555555555555@xh.example.com:443?security=tls&type=xhttp&path=%2Fxh&host=edge.example.com&mode=auto#JP-XHTTP")
+	if err != nil {
+		t.Fatalf("ParseURILink xhttp failed: %v", err)
+	}
+	if xhNode.Network != "xhttp" || xhNode.Path != "/xh" {
+		t.Errorf("XHTTP mismatch: %+v", xhNode)
+	}
+	xhOpts, _ := xhNode.RawConfig["xhttp-opts"].(map[string]any)
+	if xhOpts["path"] != "/xh" || xhOpts["host"] != "edge.example.com" || xhOpts["mode"] != "auto" {
+		t.Errorf("XHTTP opts mismatch: %+v", xhOpts)
+	}
+}

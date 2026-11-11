@@ -98,7 +98,7 @@ import (
 )
 
 var (
-	version = "Test v8.4"
+	version = "Test v8.5"
 
 	startTime = time.Now()
 )
@@ -962,7 +962,7 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v8.4")
+	srv.mcpServer = mcp.NewServer(srv, "Test v8.5")
 
 	srv.initTrafficState()
 
@@ -2925,6 +2925,20 @@ func (s *Server) handleMultiWANConfig(w http.ResponseWriter, r *http.Request) {
 
 // --- 维度四：全链路一秒体检自省与极简故障自愈 ---
 
+// resolveGatewayIP resolves the configured primary router IP or dynamically probes the host default gateway.
+func (s *Server) resolveGatewayIP() string {
+	if s.rosMgr != nil {
+		rosCfg := s.rosMgr.GetConfig()
+		if host := strings.TrimSpace(rosCfg["host"]); host != "" {
+			return host
+		}
+	}
+	if gw := ros.DetectDefaultGatewayIP(); gw != "" {
+		return gw
+	}
+	return detectDefaultGateway()
+}
+
 func (s *Server) handleDiagnosticsReport(w http.ResponseWriter, r *http.Request) {
 	if s.diagEngine == nil {
 		sendJSON(w, map[string]any{"status": "error", "message": "diagnostic engine not initialized"})
@@ -2932,13 +2946,7 @@ func (s *Server) handleDiagnosticsReport(w http.ResponseWriter, r *http.Request)
 	}
 	rep := s.diagEngine.GetCachedReport()
 	if rep == nil {
-		gatewayIP := "10.0.0.1"
-		if s.rosMgr != nil {
-			rosCfg := s.rosMgr.GetConfig()
-			if rosCfg["host"] != "" {
-				gatewayIP = rosCfg["host"]
-			}
-		}
+		gatewayIP := s.resolveGatewayIP()
 		activeEng := "mihomo"
 		if s.engMgr != nil {
 			activeEng = string(s.engMgr.GetActiveEngine())
@@ -2954,13 +2962,7 @@ func (s *Server) handleDiagnosticsRun(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	gatewayIP := "10.0.0.1"
-	if s.rosMgr != nil {
-		rosCfg := s.rosMgr.GetConfig()
-		if rosCfg["host"] != "" {
-			gatewayIP = rosCfg["host"]
-		}
-	}
+	gatewayIP := s.resolveGatewayIP()
 	activeEng := "mihomo"
 	if s.engMgr != nil {
 		activeEng = string(s.engMgr.GetActiveEngine())
@@ -10571,7 +10573,7 @@ func detectDefaultGateway() string {
 			return parts[0] + "." + parts[1] + "." + parts[2] + ".1"
 		}
 	}
-	return "192.168.1.1"
+	return ""
 }
 
 // ============================================================================
@@ -11154,13 +11156,7 @@ func (s *Server) handleRootCauseReport(w http.ResponseWriter, r *http.Request) {
 		sendJSON(w, map[string]any{"status": "error", "message": "root cause radar not initialized"})
 		return
 	}
-	gatewayIP := "10.0.0.1"
-	if s.rosMgr != nil {
-		cfg := s.rosMgr.GetConfig()
-		if cfg["host"] != "" {
-			gatewayIP = cfg["host"]
-		}
-	}
+	gatewayIP := s.resolveGatewayIP()
 	activeEng := "singbox"
 	if s.engMgr != nil {
 		activeEng = string(s.engMgr.GetActiveEngine())

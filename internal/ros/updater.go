@@ -229,9 +229,6 @@ func DetectDefaultGatewayIP() string {
 
 func NewManager(rootDir string) *Manager {
 	defaultHost := DetectDefaultGatewayIP()
-	if defaultHost == "" {
-		defaultHost = "192.168.88.1"
-	}
 
 	m := &Manager{
 		rootDir:    rootDir,
@@ -389,7 +386,7 @@ func (m *Manager) GetOverview() map[string]any {
 
 	if latestPanel == "" {
 
-		latestPanel = "Test v8.4"
+		latestPanel = "Test v8.5"
 
 	}
 
@@ -1291,7 +1288,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 // ──────────────────────────────────────────────
 
 func (m *Manager) getLocalPanelVersion() string {
-	return "Test v8.4"
+	return "Test v8.5"
 
 }
 

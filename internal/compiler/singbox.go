@@ -151,15 +151,25 @@ func makeSingboxDNSServer(tag, rawAddr, detour string) map[string]any {
 
 func isSRSAvailable(ruleFilename string) bool {
 
+	clean := strings.TrimPrefix(ruleFilename, "./")
+
+	clean = strings.TrimPrefix(clean, "/")
+
 	candidates := []string{
 
-		filepath.Join("/cubex/app/etc", ruleFilename),
+		filepath.Join("/opt/CubeX/etc", clean),
 
-		filepath.Join("etc", ruleFilename),
+		filepath.Join("/cubex/app/etc", clean),
+
+		filepath.Join("etc", clean),
+
+		clean,
 
 		ruleFilename,
 
-		filepath.Join("..", "etc", ruleFilename),
+		filepath.Join("..", "etc", clean),
+
+		filepath.Join("..", "..", "etc", clean),
 	}
 
 	for _, c := range candidates {
@@ -582,14 +592,19 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 							clean := strings.TrimSpace(f)
 							clean = strings.TrimPrefix(clean, "+.")
 							clean = strings.TrimPrefix(clean, "*.")
-							if clean != "" && !strings.HasPrefix(clean, "geosite:") {
+							lower := strings.ToLower(clean)
+							if clean != "" && !strings.HasPrefix(lower, "geosite:") && !strings.HasPrefix(lower, "rule-set:") {
 								suffixes = append(suffixes, clean)
 							}
 						}
 						return suffixes
 					}(),
-					"rule_set": []string{"geosite-cn"},
 					"server": "dns-direct",
+				},
+
+				{
+					"rule_set": []string{"geosite-cn"},
+					"server":   "dns-direct",
 				},
 
 				{
@@ -846,6 +861,21 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 			continue
 
+		}
+
+		pNet := strings.ToLower(strings.TrimSpace(p.Network))
+		if pNet == "" && p.RawConfig != nil {
+			if n, ok := p.RawConfig["network"].(string); ok {
+				pNet = strings.ToLower(strings.TrimSpace(n))
+			} else if tr, ok := p.RawConfig["transport"].(map[string]any); ok {
+				if t, ok := tr["type"].(string); ok {
+					pNet = strings.ToLower(strings.TrimSpace(t))
+				}
+			}
+		}
+		if pNet == "xhttp" || pNet == "splithttp" {
+			log.Printf("[Singbox] Skipping %s transport proxy unsupported by sing-box v1.14+: %s", pNet, p.Name)
+			continue
 		}
 
 		nodeMap := map[string]any{
@@ -1160,6 +1190,39 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 			nodeMap["password"] = p.Password
 
+		case "snell":
+
+			psk := p.Password
+			ver := 0
+			if p.RawConfig != nil {
+				if psk == "" {
+					if s, ok := p.RawConfig["psk"].(string); ok {
+						psk = s
+					}
+				}
+				switch v := p.RawConfig["version"].(type) {
+				case int:
+					ver = v
+				case float64:
+					ver = int(v)
+				case string:
+					if parsed, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+						ver = parsed
+					}
+				}
+			}
+			if ver == 0 {
+				ver = 6
+			}
+			if psk == "" || (ver != 4 && ver != 6) {
+				log.Printf("[Singbox] Skipping incompatible snell proxy (version=%d, sing-box supports v4/v6): %s", ver, p.Name)
+				valid = false
+			} else {
+				nodeMap["type"] = "snell"
+				nodeMap["psk"] = psk
+				nodeMap["version"] = ver
+			}
+
 		default:
 
 			valid = false
@@ -1341,7 +1404,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 		}
 
-		if p.Network == "ws" {
+		if pNet == "ws" {
 
 			wsMap := map[string]any{
 
@@ -1382,7 +1445,59 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 			nodeMap["transport"] = wsMap
 
-		} else if p.Network == "grpc" {
+		} else if pNet == "httpupgrade" {
+
+			huMap := map[string]any{
+
+				"type": "httpupgrade",
+			}
+
+			huPath := p.Path
+			huHost := ""
+			huHeaders := make(map[string]string)
+
+			if huOpts, ok := p.RawConfig["httpupgrade-opts"].(map[string]any); ok {
+				if path, ok := huOpts["path"].(string); ok && path != "" {
+					huPath = path
+				}
+				if host, ok := huOpts["host"].(string); ok && host != "" {
+					huHost = host
+				}
+				if headers, ok := huOpts["headers"].(map[string]any); ok {
+					for k, v := range headers {
+						huHeaders[k] = fmt.Sprintf("%v", v)
+						if strings.EqualFold(k, "Host") && huHost == "" {
+							huHost = fmt.Sprintf("%v", v)
+						}
+					}
+				}
+			} else if trOpts, ok := p.RawConfig["transport"].(map[string]any); ok {
+				if path, ok := trOpts["path"].(string); ok && path != "" {
+					huPath = path
+				}
+				if host, ok := trOpts["host"].(string); ok && host != "" {
+					huHost = host
+				}
+				if headers, ok := trOpts["headers"].(map[string]any); ok {
+					for k, v := range headers {
+						huHeaders[k] = fmt.Sprintf("%v", v)
+					}
+				}
+			}
+
+			if huPath != "" {
+				huMap["path"] = huPath
+			}
+			if huHost != "" {
+				huMap["host"] = huHost
+			}
+			if len(huHeaders) > 0 {
+				huMap["headers"] = huHeaders
+			}
+
+			nodeMap["transport"] = huMap
+
+		} else if pNet == "grpc" {
 
 			grpcMap := map[string]any{
 
