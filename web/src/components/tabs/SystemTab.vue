@@ -291,6 +291,64 @@
                 </div>
                 <span class="text-[10px] text-slate-500 shrink-0 ml-2">{{ app.hostLastExecution.time }}</span>
               </div>
+
+              <!-- 软路由三巨头协同矩阵 (Triad Integration Matrix) -->
+              <div class="p-4 rounded-2xl bg-black/40 border border-cyan-500/25 space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm">🌐</span>
+                    <span class="text-xs sm:text-sm font-bold text-white tracking-wide">软路由三巨头原生共生矩阵</span>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/30">
+                      198.18.0.0/15 回指互保
+                    </span>
+                  </div>
+                  <button @click="fetchTriadMatrix" :disabled="triadMatrix.loading"
+                    class="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-[11px] font-mono text-cyan-300 hover:text-white transition flex items-center gap-1 cursor-pointer">
+                    <span :class="{'animate-spin': triadMatrix.loading}">↻</span> 巡检三巨头
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs font-mono">
+                  <!-- 1. RouterOS -->
+                  <div class="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                    <div class="flex items-center justify-between">
+                      <span class="font-bold text-slate-200">MikroTik RouterOS</span>
+                      <span class="inline-flex items-center gap-1 text-[10px] text-emerald-400">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        {{ triadMatrix.matrix.routeros?.online ? '在线' : '离线' }}
+                      </span>
+                    </div>
+                    <div class="text-[11px] text-cyan-300 truncate">{{ triadMatrix.matrix.routeros?.ip || '10.0.0.1' }}</div>
+                    <div class="text-[10px] text-slate-400 truncate">{{ triadMatrix.matrix.routeros?.detail || '策略路由与回指生效' }}</div>
+                  </div>
+
+                  <!-- 2. 爱快 iKuai -->
+                  <div class="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                    <div class="flex items-center justify-between">
+                      <span class="font-bold text-slate-200">爱快 iKuai 4.0/3.x</span>
+                      <span class="inline-flex items-center gap-1 text-[10px] text-emerald-400">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        {{ triadMatrix.matrix.ikuai?.online ? '在线' : '离线' }}
+                      </span>
+                    </div>
+                    <div class="text-[11px] text-cyan-300 truncate">{{ triadMatrix.matrix.ikuai?.ip || '10.0.0.187' }}</div>
+                    <div class="text-[10px] text-slate-400 truncate">{{ triadMatrix.matrix.ikuai?.detail || 'Web-RPC 静态回指就绪' }}</div>
+                  </div>
+
+                  <!-- 3. iStoreOS / OpenWrt -->
+                  <div class="p-3 rounded-xl bg-white/5 border border-white/10 space-y-1">
+                    <div class="flex items-center justify-between">
+                      <span class="font-bold text-slate-200">iStoreOS / OpenWrt</span>
+                      <span class="inline-flex items-center gap-1 text-[10px] text-emerald-400">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        {{ triadMatrix.matrix.openwrt?.online ? '在线' : '离线' }}
+                      </span>
+                    </div>
+                    <div class="text-[11px] text-cyan-300 truncate">{{ triadMatrix.matrix.openwrt?.ip || '10.0.0.188' }}</div>
+                    <div class="text-[10px] text-slate-400 truncate">{{ triadMatrix.matrix.openwrt?.detail || 'UCI 静态路由生效' }}</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

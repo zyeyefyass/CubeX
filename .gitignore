@@ -44,6 +44,9 @@ scripts/*.py
 !scripts/chaos_resilience_test.py
 !scripts/bump_version.py
 !scripts/protect_script.py
+!scripts/verify_big_three_routers.py
+!scripts/verify_network_dual_core.py
+!scripts/deploy_ct107.py
 !scripts/package_release.sh
 !scripts/package_release.ps1
 !scripts/build.sh

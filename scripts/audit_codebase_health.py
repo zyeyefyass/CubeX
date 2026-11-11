@@ -334,6 +334,25 @@ else:
     results["failures"] += 1
 
 # -------------------------------------------------------------
+# CHECK 9: Soft Router Triad Real-Machine / VM Gating (ROS x iKuai x iStoreOS)
+# -------------------------------------------------------------
+log_header("CHECK 9: Soft Router Triad Gating (ROS x iKuai x iStoreOS)")
+triad_script = os.path.join(ROOT, "scripts", "verify_big_three_routers.py")
+if os.path.exists(triad_script):
+    code, out = run_cmd(f"python \"{triad_script}\"")
+    if code == 0:
+        print("  ✓ Soft Router Triad (ROS x iKuai 4.0 x iStoreOS) 100% PASS.")
+        results["checks"]["triad_gate"] = {"status": "PASS"}
+        results["passed"] += 1
+    else:
+        print(f"  ✗ Soft Router Triad Verification Failed:\n{out}")
+        results["checks"]["triad_gate"] = {"status": "FAIL", "output": out}
+        results["failures"] += 1
+else:
+    print("  • scripts/verify_big_three_routers.py not found.")
+
+
+# -------------------------------------------------------------
 # SUMMARY & DIAGNOSTIC REPORT
 # -------------------------------------------------------------
 log_header("CUBEX HEALTH DOCTOR DIAGNOSTIC SUMMARY")

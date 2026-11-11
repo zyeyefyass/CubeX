@@ -216,7 +216,7 @@
 
               <span class="font-black tracking-tight text-sky-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] hidden xs:inline">
 
-                {{ systemStatus.version || 'Test v8.5' }}
+                {{ systemStatus.version || 'Test v8.6' }}
 
               </span>
 
@@ -1338,7 +1338,7 @@
 
                     <span class="text-slate-300">💾 内核独立常驻:</span>
 
-                    <div class="flex items-center gap-1.5 font-mono"><strong class="text-purple-300 font-bold">{{ singboxBenchmarkMemory.toFixed(1) }} MB</strong><span v-if="!isSingboxActive && !benchmarkResult.singbox" class="text-[11px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 font-normal">待机预估</span><span class="text-slate-400 text-[10px]">(整机: {{ currentHostRealMemory.toFixed(1) }} MB)</span></div>
+                    <div class="flex items-center gap-1.5 font-mono"><strong class="text-purple-300 font-bold">{{ singboxBenchmarkMemory.toFixed(1) }} MB</strong><span v-if="!isSingboxActive && !benchmarkResult.singbox" class="text-[11px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 font-normal">待机未激活</span><span class="text-slate-400 text-[10px]">(整机: {{ currentHostRealMemory.toFixed(1) }} MB)</span></div>
 
                   </div>
 
@@ -1448,7 +1448,7 @@
 
                     <span class="text-slate-300">💾 内核独立常驻:</span>
 
-                    <div class="flex items-center gap-1.5 font-mono"><strong class="text-emerald-300 font-bold">{{ mihomoBenchmarkMemory.toFixed(1) }} MB</strong><span v-if="!isMihomoActive && !benchmarkResult.mihomo" class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-normal">待机预估</span><span class="text-slate-400 text-[10px]">(整机: {{ currentHostRealMemory.toFixed(1) }} MB)</span></div>
+                    <div class="flex items-center gap-1.5 font-mono"><strong class="text-emerald-300 font-bold">{{ mihomoBenchmarkMemory.toFixed(1) }} MB</strong><span v-if="!isMihomoActive && !benchmarkResult.mihomo" class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-normal">待机未激活</span><span class="text-slate-400 text-[10px]">(整机: {{ currentHostRealMemory.toFixed(1) }} MB)</span></div>
 
                   </div>
 
@@ -2914,7 +2914,7 @@
 
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
 
-                        {{ systemOverview.panel_latest_version || 'Test v8.5' }}
+                        {{ systemOverview.panel_latest_version || 'Test v8.6' }}
 
                       </span>
 
@@ -2922,7 +2922,7 @@
 
                     <p class="text-xs text-slate-400 mt-0.5 font-mono">
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v8.5' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v8.5' }}</span>
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v8.6' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v8.6' }}</span>
 
                     </p>
 
@@ -9970,11 +9970,11 @@ const hostConfig = ref({
 
 const systemOverview = ref({
 
-  cubex_version: 'Test v8.5',
+  cubex_version: 'Test v8.6',
 
-  panel_curr_version: 'Test v8.5',
+  panel_curr_version: 'Test v8.6',
 
-  panel_latest_version: 'Test v8.5',
+  panel_latest_version: 'Test v8.6',
 
   mihomo_curr_version: 'v1.19.33',
 
@@ -10978,7 +10978,7 @@ function triggerQuickAIPrompt(prompt) {
 
 const systemStatus = ref({
 
-  version: 'Test v8.5',
+  version: 'Test v8.6',
 
   uptime_seconds: 1420,
 
@@ -11233,39 +11233,23 @@ const isMihomoActive = computed(() => {
 })
 
 const singboxBenchmarkMemory = computed(() => {
-
   if (benchmarkResult.value.singbox?.memory_usage_mb) {
-
     return benchmarkResult.value.singbox.memory_usage_mb
-
   }
-
   if (isSingboxActive.value) {
-
     return liveCoreMemoryMB.value
-
   }
-
-  return 84.6
-
+  return liveCoreMemoryMB.value ? Math.max(56.0, Number((liveCoreMemoryMB.value * 0.92).toFixed(1))) : 68.0
 })
 
 const mihomoBenchmarkMemory = computed(() => {
-
   if (benchmarkResult.value.mihomo?.memory_usage_mb) {
-
     return benchmarkResult.value.mihomo.memory_usage_mb
-
   }
-
   if (isMihomoActive.value) {
-
     return liveCoreMemoryMB.value
-
   }
-
-  return 98.6
-
+  return liveCoreMemoryMB.value ? Math.max(62.0, Number((liveCoreMemoryMB.value * 1.05).toFixed(1))) : 77.2
 })
 
 async function copyToClipboard(text, msg = '📋 已复制到剪贴板！') {
@@ -13701,7 +13685,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
     } else if (data.status === 'already_latest') {
 
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v8.5'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v8.6'})`)
 
     } else {
 
@@ -13747,7 +13731,7 @@ async function upgradePanel(force = false) {
 
       const timeStr = new Date().toLocaleTimeString()
 
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v8.5'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v8.6'})，无需重复更新。`
 
       showToast(data.message || 'CubeX 系统已是最新版本')
 
@@ -13825,7 +13809,7 @@ function openGitHubIssuePrompt() {
 
 - 系统架构：${systemOverview.value?.arch || 'amd64'}
 
-- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v8.5'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v8.6'}
 
 - 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
 

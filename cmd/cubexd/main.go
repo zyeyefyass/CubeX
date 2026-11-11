@@ -98,7 +98,7 @@ import (
 )
 
 var (
-	version = "Test v8.5"
+	version = "Test v8.6"
 
 	startTime = time.Now()
 )
@@ -596,35 +596,20 @@ func configureAdaptiveMemoryLimit() {
 	}
 
 	if totalMb <= 256 {
-
-		limit = 16 * 1024 * 1024 // 256M container: 16MiB
-
-		gcPercent = 30
-
+		limit = 14 * 1024 * 1024 // 256M container: 14MiB
+		gcPercent = 25
 	} else if totalMb <= 512 {
-
-		limit = 20 * 1024 * 1024 // 512M CHR: 20MiB
-
-		gcPercent = 35
-
+		limit = 18 * 1024 * 1024 // 512M CHR: 18MiB
+		gcPercent = 30
 	} else if totalMb <= 1024 {
-
-		limit = 28 * 1024 * 1024 // 1GB router: 28MiB
-
-		gcPercent = 45
-
+		limit = 24 * 1024 * 1024 // 1GB router: 24MiB
+		gcPercent = 35
 	} else if totalMb <= 2048 {
-
-		limit = 36 * 1024 * 1024 // 2GB host: 36MiB
-
-		gcPercent = 50
-
+		limit = 32 * 1024 * 1024 // 2GB host: 32MiB
+		gcPercent = 40
 	} else {
-
-		limit = 48 * 1024 * 1024 // 4GB+ PVE/fnOS: 48MiB
-
-		gcPercent = 50
-
+		limit = 40 * 1024 * 1024 // 4GB+ PVE/fnOS: 40MiB
+		gcPercent = 45
 	}
 
 	debug.SetMemoryLimit(limit)
@@ -962,7 +947,7 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v8.5")
+	srv.mcpServer = mcp.NewServer(srv, "Test v8.6")
 
 	srv.initTrafficState()
 
@@ -1508,6 +1493,9 @@ func main() {
 	mux.HandleFunc("/api/v1/host/openwrt/inspect", srv.handleOpenWrtInspect)
 
 	mux.HandleFunc("/api/v1/host/openwrt/apply", srv.handleOpenWrtApply)
+
+	mux.HandleFunc("/api/v1/host/triad/matrix", srv.handleHostTriadMatrix)
+	mux.HandleFunc("/api/v1/host/triad/heal", srv.handleHostTriadHeal)
 
 	mux.HandleFunc("/api/v1/ros/routing/status", srv.handleROSInspect)
 
@@ -10525,6 +10513,168 @@ func (s *Server) handleOpenWrtApply(w http.ResponseWriter, r *http.Request) {
 		"logs":     allLogs,
 		"error":    errMsg,
 		"cubex_ip": cubexIP,
+	})
+}
+
+func (s *Server) handleHostTriadMatrix(w http.ResponseWriter, r *http.Request) {
+	type TriadItem struct {
+		Name        string `json:"name"`
+		Platform    string `json:"platform"`
+		IP          string `json:"ip"`
+		Online      bool   `json:"online"`
+		FakeIPRoute bool   `json:"fakeip_route"`
+		Version     string `json:"version,omitempty"`
+		Detail      string `json:"detail,omitempty"`
+		LatencyMs   int    `json:"latency_ms"`
+	}
+
+	nodes := make(map[string]TriadItem)
+
+	// 1. RouterOS
+	rosItem := TriadItem{
+		Name:     "MikroTik RouterOS",
+		Platform: "routeros",
+		IP:       "10.0.0.1",
+	}
+	if s.rosMgr != nil {
+		start := time.Now()
+		report, err := s.rosMgr.InspectRouting()
+		rosItem.LatencyMs = int(time.Since(start).Milliseconds())
+		if err == nil && report != nil {
+			rosItem.Online = report.Connected
+			rosItem.FakeIPRoute = report.AllOK
+			rosItem.Version = report.ROSVersion
+			rosItem.Detail = fmt.Sprintf("策略路由与 198.18.0.0/15 回指生效 (校验项: %d)", len(report.Items))
+		} else {
+			rosItem.Detail = "无法连接 RouterOS 或策略回指未就绪"
+		}
+	}
+	nodes["routeros"] = rosItem
+
+	// 2. 爱快 iKuai
+	ikuaiItem := TriadItem{
+		Name:     "爱快 iKuai 4.0/3.x",
+		Platform: "ikuai",
+		IP:       "10.0.0.187",
+	}
+	if s.hostMgr != nil {
+		hostCfg := s.hostMgr.GetConfig()
+		targetIP := "10.0.0.187"
+		port := 443
+		user := "admin"
+		pass := "admin"
+		if hostCfg.PlatformType == "ikuai" && hostCfg.Host != "" {
+			targetIP = hostCfg.Host
+			port = hostCfg.Port
+			user = hostCfg.User
+			pass = hostCfg.Password
+		}
+		ikuaiItem.IP = targetIP
+		res, err := s.hostMgr.ProbeIKuaiMatrix(targetIP, port, user, pass, "")
+		if err == nil && res != nil && res.Online {
+			ikuaiItem.Online = true
+			ikuaiItem.FakeIPRoute = res.HasRoute
+			ikuaiItem.Version = res.Version
+			ikuaiItem.Detail = res.Details
+			ikuaiItem.LatencyMs = res.LatencyMs
+		} else {
+			ikuaiItem.Detail = "未探查到爱快实例或等待配置"
+		}
+	}
+	nodes["ikuai"] = ikuaiItem
+
+	// 3. iStoreOS / OpenWrt
+	openwrtItem := TriadItem{
+		Name:     "iStoreOS / OpenWrt",
+		Platform: "openwrt",
+		IP:       "10.0.0.188",
+	}
+	if s.hostMgr != nil {
+		hostCfg := s.hostMgr.GetConfig()
+		targetIP := "10.0.0.188"
+		port := 22
+		user := "root"
+		pass := "password"
+		if hostCfg.PlatformType == "openwrt" && hostCfg.Host != "" {
+			targetIP = hostCfg.Host
+			port = hostCfg.Port
+			user = hostCfg.User
+			pass = hostCfg.Password
+		}
+		openwrtItem.IP = targetIP
+		res, err := s.hostMgr.ProbeOpenWrtMatrix(targetIP, port, user, pass, "")
+		if err == nil && res != nil && res.Online {
+			openwrtItem.Online = true
+			openwrtItem.FakeIPRoute = res.HasRoute
+			openwrtItem.Version = res.Version
+			openwrtItem.Detail = res.Details
+			openwrtItem.LatencyMs = res.LatencyMs
+		} else {
+			openwrtItem.Detail = "未探查到 OpenWrt 实例或等待配置"
+		}
+	}
+	nodes["openwrt"] = openwrtItem
+
+	allGood := rosItem.Online && rosItem.FakeIPRoute
+	summary := "软路由协同策略路由状态正常，198.18.0.0/15 回指生效"
+	if !rosItem.Online {
+		summary = "主路由策略状态异常，请检查物理 ROS 联通性"
+	}
+
+	sendJSON(w, map[string]any{
+		"ok":        allGood,
+		"timestamp": time.Now().Format(time.RFC3339),
+		"matrix":    nodes,
+		"summary":   summary,
+	})
+}
+
+func (s *Server) handleHostTriadHeal(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var logs []string
+
+	// 1. Heal RouterOS
+	if s.rosMgr != nil {
+		res, err := s.rosMgr.ApplyRouting("")
+		if err == nil && res != nil {
+			logs = append(logs, "✓ RouterOS table cubex 策略路由与 198.18.0.0/15 回指已刷新")
+			purged := s.rosMgr.PurgeStaleFakeIPConnections()
+			if purged > 0 {
+				logs = append(logs, fmt.Sprintf("✓ 已清算 RouterOS %d 条僵尸 Fake-IP 连接", purged))
+			}
+		} else if err != nil {
+			logs = append(logs, "⚠️ RouterOS 策略刷新异常: "+err.Error())
+		}
+	}
+
+	// 2. Heal iKuai or OpenWrt if configured
+	if s.hostMgr != nil {
+		hLogs, hErr := s.hostMgr.SyncHostBypass()
+		if hErr == nil && len(hLogs) > 0 {
+			logs = append(logs, hLogs...)
+		} else if hErr != nil {
+			logs = append(logs, "⚠️ 伴生宿主回指刷新异常: "+hErr.Error())
+		}
+	}
+
+	// 3. Clean conntrack & reclaim memory
+	if runtime.GOOS == "linux" {
+		_ = exec.Command("conntrack", "-D", "-d", "198.18.0.0/15").Run()
+	}
+	runtime.GC()
+	debug.FreeOSMemory()
+	logs = append(logs, "✓ 系统底层连接池与内存已深度清算")
+
+	s.logBuffer.Add("INFO", "TRIAD", "软路由三巨头协同策略路由自愈巡检已全量执行完成")
+
+	sendJSON(w, map[string]any{
+		"ok":        true,
+		"logs":      logs,
+		"timestamp": time.Now().Format(time.RFC3339),
 	})
 }
 

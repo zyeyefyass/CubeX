@@ -187,57 +187,39 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		},
 	}
 
-	// Sniffer (Optimized for zero Fake-IP corruption & preserving original destination)
-
+	// Sniffer (Optimized for zero Fake-IP corruption & preserving true TLS SNI)
 	cfg["sniffer"] = map[string]any{
-
-		"enable": true,
-
-		"force-dns-mapping": true,
-
-		"parse-pure-ip": true,
-
+		"enable":               true,
+		"force-dns-mapping":    false, // Must be false so SNI strictly overrides stale Fake-IP collisions
+		"parse-pure-ip":        true,
 		"override-destination": true,
-
 		"sniff": map[string]any{
-
 			"HTTP": map[string]any{
-				"ports": []any{80, "8080-8880"},
+				"ports":                []any{80, "8080-8880"},
 				"override-destination": true,
 			},
-
 			"TLS": map[string]any{
-				"ports": []int{443, 8443},
+				"ports":                []int{443, 8443},
 				"override-destination": true,
 			},
-
 			"QUIC": map[string]any{
-				"ports": []int{443, 8443},
+				"ports":                []int{443, 8443},
 				"override-destination": true,
 			},
 		},
-
 		"skip-domain": []string{
-
 			"dlg.io.mi.com",
-
 			"+.mijia.tech",
-
 			"+.io.mi.com",
-
 			"+.apple.com",
-
 			"+.push.apple.com",
 		},
 	}
 
-	// Profile for persistent Fake-IP & selection storage
-
+	// Profile for persistent selection storage (store-fake-ip disabled to prevent stale cross-core desync)
 	cfg["profile"] = map[string]any{
-
 		"store-selected": true,
-
-		"store-fake-ip": true,
+		"store-fake-ip":  false,
 	}
 
 	// Determine outbound proxy group for remote DoH queries

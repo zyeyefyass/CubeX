@@ -2819,7 +2819,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 			"path": "singbox_cache.db",
 
-			"store_fakeip": true,
+			"store_fakeip": false,
 
 			"store_dns": true,
 		},

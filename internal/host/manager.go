@@ -1403,6 +1403,145 @@ func (m *Manager) SyncHostBypass() ([]string, error) {
 	return nil, nil
 }
 
+// TriadNodeResult represents status for one of the three soft routers.
+type TriadNodeResult struct {
+	Name      string `json:"name"`
+	Platform  string `json:"platform"`
+	IP        string `json:"ip"`
+	Online    bool   `json:"online"`
+	HasRoute  bool   `json:"has_route"`
+	HasDNS    bool   `json:"has_dns"`
+	Version   string `json:"version,omitempty"`
+	Details   string `json:"details,omitempty"`
+	LatencyMs int    `json:"latency_ms"`
+}
+
+// ProbeIKuaiMatrix probes the iKuai router and inspects 198.18.0.0/15 route.
+func (m *Manager) ProbeIKuaiMatrix(targetIP string, port int, user, pass, cubexIP string) (*TriadNodeResult, error) {
+	if targetIP == "" {
+		targetIP = "10.0.0.187"
+	}
+	if port <= 0 {
+		port = 443
+	}
+	if user == "" {
+		user = "admin"
+	}
+	if pass == "" {
+		pass = "admin"
+	}
+	if cubexIP == "" {
+		cubexIP = m.GetOutboundIP(targetIP)
+	}
+
+	start := time.Now()
+	client := ikuai.NewClient(ikuai.Config{
+		Host:     targetIP,
+		Port:     port,
+		User:     user,
+		Password: pass,
+	})
+
+	stat, err := client.GetSysStat()
+	latency := int(time.Since(start).Milliseconds())
+	if err != nil {
+		if port == 443 {
+			client80 := ikuai.NewClient(ikuai.Config{
+				Host:     targetIP,
+				Port:     80,
+				User:     user,
+				Password: pass,
+			})
+			if stat80, err80 := client80.GetSysStat(); err80 == nil {
+				client = client80
+				stat = stat80
+				err = nil
+			}
+		}
+	}
+
+	if err != nil || stat == nil {
+		return &TriadNodeResult{
+			Name:      "爱快 iKuai 4.0/3.x",
+			Platform:  "ikuai",
+			IP:        targetIP,
+			Online:    false,
+			LatencyMs: latency,
+			Details:   "未探查到 iKuai 活跃实例",
+		}, err
+	}
+
+	hasRoute, hasDNS, details, _ := client.InspectRouting(cubexIP)
+	return &TriadNodeResult{
+		Name:      "爱快 iKuai " + stat.Version,
+		Platform:  "ikuai",
+		IP:        targetIP,
+		Online:    true,
+		HasRoute:  hasRoute,
+		HasDNS:    hasDNS,
+		Version:   stat.Version,
+		Details:   details,
+		LatencyMs: latency,
+	}, nil
+}
+
+// ProbeOpenWrtMatrix probes the OpenWrt / iStoreOS router and inspects 198.18.0.0/15 route.
+func (m *Manager) ProbeOpenWrtMatrix(targetIP string, port int, user, pass, cubexIP string) (*TriadNodeResult, error) {
+	if targetIP == "" {
+		targetIP = "10.0.0.188"
+	}
+	if port <= 0 {
+		port = 22
+	}
+	if user == "" {
+		user = "root"
+	}
+	if pass == "" {
+		pass = "password"
+	}
+	if cubexIP == "" {
+		cubexIP = m.GetOutboundIP(targetIP)
+	}
+
+	start := time.Now()
+	client := openwrt.NewClient(openwrt.Config{
+		Host:     targetIP,
+		Port:     port,
+		User:     user,
+		Password: pass,
+	})
+
+	sysInfo, err := client.Probe()
+	latency := int(time.Since(start).Milliseconds())
+	if err != nil || sysInfo == nil {
+		return &TriadNodeResult{
+			Name:      "iStoreOS / OpenWrt",
+			Platform:  "openwrt",
+			IP:        targetIP,
+			Online:    false,
+			LatencyMs: latency,
+			Details:   "未探查到 OpenWrt 活跃实例",
+		}, err
+	}
+
+	hasRoute, hasDNS, details, _ := client.InspectRouting(cubexIP)
+	ver := sysInfo.Release
+	if ver == "" {
+		ver = sysInfo.Model
+	}
+	return &TriadNodeResult{
+		Name:      "iStoreOS / OpenWrt",
+		Platform:  "openwrt",
+		IP:        targetIP,
+		Online:    true,
+		HasRoute:  hasRoute,
+		HasDNS:    hasDNS,
+		Version:   ver,
+		Details:   details,
+		LatencyMs: latency,
+	}, nil
+}
+
 // CleanupHostWireGuard stops and purges all legacy tunnel services and rules on fnOS / Linux host.
 func (m *Manager) CleanupHostWireGuard() (string, error) {
 	m.mu.RLock()

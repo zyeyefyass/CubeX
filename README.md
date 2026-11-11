@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v8.5-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v8.6-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -77,7 +77,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 Test v8.5 最新版本更新亮点](#announcement)
+- [📢 Test v8.6 最新版本更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -320,15 +320,15 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v8.5 最新版本更新亮点 (双引擎规则精简 · 多协议全面对齐 · 前端分包提速)
+## 📢 Test v8.6 最新版本更新亮点 (软路由三巨头真机联动 · Fake-IP 证书漂移根治 · 双引擎内存深度优化)
 
 > [!IMPORTANT]
-> ### 👑【双引擎规则精简 · 多协议全面对齐 · 前端分包提速】(Test v8.5)
+> ### 👑【软路由三巨头真机联动 · Fake-IP 证书漂移根治 · 双引擎内存深度优化】(Test v8.6)
 >
-> 1. **Mihomo 规则集全面迁移 MRS/SRS**：彻底移除旧版 `.dat` 文件依赖，启用流式加载高性能规则集，核心内存从 96.2MB 降至 76.1MB，节省约 20.9%；
-> 2. **sing-box 多协议全面对齐**：新增 Snell v4/v6、httpupgrade、xhttp 协议支持，兼容更多订阅节点；修复 DNS 规则 AND-logic 分拆为独立直连规则；
-> 3. **前端异步拆分与界面优化**：异步拆分 10 个懒加载组件，主包体积从 730kB 压缩至 536kB，首屏加载提速 26.6%；移除页眉访问锁展示按钮；
-> 4. **工程架构自愈加固**：全面替换硬编码网关 IP 为动态探查机制，单元测试扩展至 33 个包全量通过。
+> 1. **软路由三巨头（ROS × 爱快 iKuai × iStoreOS）原生真机实测联动**：完成 RouterOS 策略路由与毫秒逃生、爱快 4.0 静态回指路由、iStoreOS 静态路由与防火墙放行三位一体实机自动化联调与验证；控制台新增三巨头共生矩阵状态卡片与一键深度自愈。
+> 2. **彻底根治 Fake-IP 证书域名不匹配与漂移隐患**：彻底优化 DNS 调度，关闭强制映射与持久化缓存，由客户端真实域名直接接管连接，根除由于历史脏记录导致的网站证书报错；引擎切换自动清空解析缓存。
+> 3. **双引擎内存深度优化与状态自愈**：双核热切换与预热时主动调用系统垃圾回收与底层内存释放，优化内存占用；纠正控制台双核内存统计展示，区分实时采集与待机预估。
+> 4. **宿主连接池清算与自愈**：引擎切换时自动清空历史虚拟网段连接，避免旧连接残留阻滞。
 
 ---
 
@@ -340,18 +340,18 @@
 
 | 发布物文件名 | 适用宿主与架构 | 文件大小 | 说明与用途 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v8.5-ros-amd64.tar` | 软路由系统 (x86 软路由) | 92.98 MB | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-Test-v8.5-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 93.31 MB | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-Test-v8.5-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 76.27 MB | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-Test-v8.5-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 87.20 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-Test-v8.5-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 79.98 MB | ARM64 完整归档发布包 |
-| `cubexd-linux-amd64` | Linux amd64 | 41.60 MB | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
-| `cubexd-linux-arm64` | Linux arm64 | 37.56 MB | ARM64 单二进制核心控制面（代码加固版） |
+| `CubeX-Test-v8.6-ros-amd64.tar` | 软路由系统 (x86 软路由) | 92.99 MB | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-Test-v8.6-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 93.32 MB | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-Test-v8.6-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 76.28 MB | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-Test-v8.6-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 87.23 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-Test-v8.6-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 79.94 MB | ARM64 完整归档发布包 |
+| `cubexd-linux-amd64` | Linux amd64 | 41.70 MB | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
+| `cubexd-linux-arm64` | Linux arm64 | 37.50 MB | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 | 16.99 MB | 纯命令行运维工具（终端直接运行） |
 | `cubex-linux-arm64` | Linux arm64 | 15.25 MB | ARM64 纯命令行运维工具（终端直接运行） |
 | `setup-routeros-v7.rsc` | 软路由终端编排脚本 | 17.50 KB | 软路由管理终端复制即用一键自动编排脚本 |
 | `setup-openwrt.sh` | 开源软路由系统一键安装脚本 | 23.17 KB | 开源软路由系统原生适配安装脚本 |
-| `install_pve_lxc.sh` | 容器一键脚本 | 10.14 KB | 极简容器一键安装脚本 |
+| `install_pve_lxc.sh` | 容器一键脚本 | 10.15 KB | 极简容器一键安装脚本 |
 | `install.sh` | 通用一键安装脚本 | 12.31 KB | 通用一键部署主脚本 |
 
 ---
@@ -404,7 +404,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 如果你的主路由就是 MikroTik（RB5009、CCR2004、x86 ROS）：
 
-1. **下载镜像**：在上方清单下载对应架构的 `CubeX-Test-v8.5-ros-amd64.tar`（或 `arm64.tar`）；
+1. **下载镜像**：在上方清单下载对应架构的 `CubeX-Test-v8.6-ros-amd64.tar`（或 `arm64.tar`）；
 
 2. **传进路由器**：打开 WinBox，把 `.tar` 文件直接拖进【Files】列表（推荐放在 U 盘或 SSD 磁盘如 `disk1/`）；
 
@@ -422,7 +422,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 #### 步骤 1：导入离线镜像
 
-1. 在上方清单下载 `CubeX-Test-v8.5-docker-amd64.tar.gz`；
+1. 在上方清单下载 `CubeX-Test-v8.6-docker-amd64.tar.gz`；
 
 2. 登录爱快后台，进入【高级应用】➔【插件营销】➔【Docker】；
 
@@ -474,7 +474,7 @@ OpenWrt 自带 Docker 环境，使用 CubeX 独创的 Macvlan-Shim 方案，再�
 
 #### 极速 2 步离线安装（国内网络推荐，0 失败率）：
 
-1. 在上方资产清单下载 `CubeX-Test-v8.5-docker-amd64.tar.gz` 和 `setup-openwrt.sh` 两个文件；
+1. 在上方资产清单下载 `CubeX-Test-v8.6-docker-amd64.tar.gz` 和 `setup-openwrt.sh` 两个文件；
 
 2. 用 WinSCP 或 SSH 传到 OpenWrt 的 `/tmp` 目录，在终端执行：
 

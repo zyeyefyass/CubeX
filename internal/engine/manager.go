@@ -30,6 +30,7 @@ import (
 	"path/filepath"
 
 	"runtime"
+	"runtime/debug"
 
 	"strings"
 
@@ -631,24 +632,24 @@ func detectTotalRAMMb() int64 {
 
 func getAdaptiveEngineMemoryLimits() (gomemlimit string, gogc string) {
 	totalMb := detectTotalRAMMb()
-	limitMb := 80
-	gc := 40
+	limitMb := 70
+	gc := 30
 
 	if totalMb <= 256 {
-		limitMb = 45 // 256M container / CHR: 45MiB keeps core RSS under 60MB
-		gc = 25
+		limitMb = 35 // 256M container / CHR: 35MiB keeps core RSS under 50MB
+		gc = 20
 	} else if totalMb <= 512 {
-		limitMb = 60 // 512M CHR / router: 60MiB
-		gc = 30
+		limitMb = 48 // 512M CHR / router: 48MiB keeps core RSS under 60MB
+		gc = 25
 	} else if totalMb <= 1024 {
-		limitMb = 80 // 1GB host: 80MiB
-		gc = 40
+		limitMb = 65 // 1GB host: 65MiB keeps core RSS under 70MB
+		gc = 30
 	} else if totalMb <= 2048 {
-		limitMb = 96 // 2GB host: 96MiB
-		gc = 45
+		limitMb = 75 // 2GB host: 75MiB
+		gc = 35
 	} else {
-		limitMb = 120 // 4GB+ host: 120MiB for line-speed multi-gigabit
-		gc = 50
+		limitMb = 90 // 4GB+ host: 90MiB
+		gc = 35
 	}
 
 	return fmt.Sprintf("GOMEMLIMIT=%dMiB", limitMb), fmt.Sprintf("GOGC=%d", gc)
@@ -1323,6 +1324,10 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	m.stopCurrentCore(prevBin)
 
+	// Clean transient cache databases to prevent stale Fake-IP cross-core collisions
+	_ = os.Remove(filepath.Join(etcDir, "cache.db"))
+	_ = os.Remove(filepath.Join(etcDir, "singbox_cache.db"))
+
 	// Step 5: Start new engine
 
 	cmd := m.buildCmd(target, binPath, etcDir, targetConfigPath)
@@ -1448,6 +1453,7 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 		}
 
 		_ = exec.Command("ip", "route", "replace", "198.18.0.0/15", "dev", tunIface).Run()
+		_ = exec.Command("conntrack", "-D", "-d", "198.18.0.0/15").Run()
 
 	}
 
@@ -1516,6 +1522,9 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 		cancel2()
 
 	}
+
+	runtime.GC()
+	debug.FreeOSMemory()
 
 }
 
