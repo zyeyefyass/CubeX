@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v8.4-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v8.5-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -77,7 +77,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 Test v8.4 最新版本更新亮点](#announcement)
+- [📢 Test v8.5 最新版本更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -320,14 +320,15 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v8.4 最新版本更新亮点 (消除模拟假数据 · 新增后台访问安全锁 · 交互排版全面精简)
+## 📢 Test v8.5 最新版本更新亮点 (双引擎规则精简 · 多协议全面对齐 · 前端分包提速)
 
 > [!IMPORTANT]
-> ### 👑【消除模拟假数据 · 新增后台访问安全锁 · 交互排版全面精简】(Test v8.4)
+> ### 👑【双引擎规则精简 · 多协议全面对齐 · 前端分包提速】(Test v8.5)
 >
-> 1. **页面和后台全部改用真实数据**：删掉设备列表、硬件负载和多线测速里的模拟兜底数值，全部改为真实网络自动探测并支持初始化向导自动填入网关地址；
-> 2. **新增后台安全锁与密码脱敏**：支持在系统设置里开启控制台访问密码并随时锁屏，主路由等密码返回界面时统一隐藏为星号，防止内网误看泄露；
-> 3. **交互弹窗与页面排版全面清理**：统一全站操作确认弹窗，修复多处错别字、微小字号和悬停闪烁样式，清理废弃截图与冗余脚本。
+> 1. **Mihomo 规则集全面迁移 MRS/SRS**：彻底移除旧版 `.dat` 文件依赖，启用流式加载高性能规则集，核心内存从 96.2MB 降至 76.1MB，节省约 20.9%；
+> 2. **sing-box 多协议全面对齐**：新增 Snell v4/v6、httpupgrade、xhttp 协议支持，兼容更多订阅节点；修复 DNS 规则 AND-logic 分拆为独立直连规则；
+> 3. **前端异步拆分与界面优化**：异步拆分 10 个懒加载组件，主包体积从 730kB 压缩至 536kB，首屏加载提速 26.6%；移除页眉访问锁展示按钮；
+> 4. **工程架构自愈加固**：全面替换硬编码网关 IP 为动态探查机制，单元测试扩展至 33 个包全量通过。
 
 ---
 
@@ -339,13 +340,13 @@
 
 | 发布物文件名 | 适用宿主与架构 | 文件大小 | 说明与用途 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v8.4-ros-amd64.tar` | 软路由系统 (x86 软路由) | 92.97 MB | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-Test-v8.4-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 93.29 MB | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-Test-v8.4-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 76.25 MB | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-Test-v8.4-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 87.18 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-Test-v8.4-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 79.89 MB | ARM64 完整归档发布包 |
+| `CubeX-Test-v8.5-ros-amd64.tar` | 软路由系统 (x86 软路由) | 92.98 MB | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-Test-v8.5-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 93.31 MB | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-Test-v8.5-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 76.27 MB | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-Test-v8.5-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 87.20 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-Test-v8.5-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 79.98 MB | ARM64 完整归档发布包 |
 | `cubexd-linux-amd64` | Linux amd64 | 41.60 MB | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
-| `cubexd-linux-arm64` | Linux arm64 | 37.38 MB | ARM64 单二进制核心控制面（代码加固版） |
+| `cubexd-linux-arm64` | Linux arm64 | 37.56 MB | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 | 16.99 MB | 纯命令行运维工具（终端直接运行） |
 | `cubex-linux-arm64` | Linux arm64 | 15.25 MB | ARM64 纯命令行运维工具（终端直接运行） |
 | `setup-routeros-v7.rsc` | 软路由终端编排脚本 | 17.50 KB | 软路由管理终端复制即用一键自动编排脚本 |
@@ -403,7 +404,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 如果你的主路由就是 MikroTik（RB5009、CCR2004、x86 ROS）：
 
-1. **下载镜像**：在上方清单下载对应架构的 `CubeX-Test-v8.4-ros-amd64.tar`（或 `arm64.tar`）；
+1. **下载镜像**：在上方清单下载对应架构的 `CubeX-Test-v8.5-ros-amd64.tar`（或 `arm64.tar`）；
 
 2. **传进路由器**：打开 WinBox，把 `.tar` 文件直接拖进【Files】列表（推荐放在 U 盘或 SSD 磁盘如 `disk1/`）；
 
@@ -421,7 +422,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 #### 步骤 1：导入离线镜像
 
-1. 在上方清单下载 `CubeX-Test-v8.4-docker-amd64.tar.gz`；
+1. 在上方清单下载 `CubeX-Test-v8.5-docker-amd64.tar.gz`；
 
 2. 登录爱快后台，进入【高级应用】➔【插件营销】➔【Docker】；
 
@@ -473,7 +474,7 @@ OpenWrt 自带 Docker 环境，使用 CubeX 独创的 Macvlan-Shim 方案，再�
 
 #### 极速 2 步离线安装（国内网络推荐，0 失败率）：
 
-1. 在上方资产清单下载 `CubeX-Test-v8.4-docker-amd64.tar.gz` 和 `setup-openwrt.sh` 两个文件；
+1. 在上方资产清单下载 `CubeX-Test-v8.5-docker-amd64.tar.gz` 和 `setup-openwrt.sh` 两个文件；
 
 2. 用 WinSCP 或 SSH 传到 OpenWrt 的 `/tmp` 目录，在终端执行：
 
