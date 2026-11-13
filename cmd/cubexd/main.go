@@ -76,7 +76,9 @@ import (
 
 	"github.com/zyeyefyass/CubeX/internal/netstack"
 
+	"github.com/zyeyefyass/CubeX/internal/config"
 	"github.com/zyeyefyass/CubeX/internal/openwrt"
+	"github.com/zyeyefyass/CubeX/internal/upstream"
 	"github.com/zyeyefyass/CubeX/internal/probe"
 	"github.com/zyeyefyass/CubeX/internal/profile"
 
@@ -98,7 +100,7 @@ import (
 )
 
 var (
-	version = "Test v8.8"
+	version = "Test v8.9"
 
 	startTime = time.Now()
 )
@@ -478,6 +480,10 @@ type Server struct {
 	snapshotMgr        *backup.StateSnapshotManager
 	authMgr            *ConsoleAuthManager
 	ewmaMgr            *probe.EWMAManager
+	ewmaSched          *probe.EWMAScheduler
+	coordinator        *RuntimeCoordinator
+	upstreamReg        *upstream.Registry
+	isMaintenance      atomic.Bool
 	draining           atomic.Bool
 
 	logBuffer *RingLogBuffer
@@ -947,7 +953,22 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v8.8")
+	srv.mcpServer = mcp.NewServer(srv, "Test v8.9")
+
+	srv.ewmaSched = probe.NewEWMAScheduler(probe.SchedulerConfig{
+		ClashAPIBase:   config.GlobalRuntimeSpec.ClashAPIAddr,
+		TickInterval:   15 * time.Second,
+		MaxConcurrency: 4,
+	}, srv.ewmaMgr, func(ev probe.SwitchEvent) {
+		srv.logBuffer.Add("INFO", "EWMA", fmt.Sprintf("微秒闭环选路: 组 [%s] 节点自适应切换: %s -> %s (原因: %s, 紧急: %v)", ev.Group, ev.FromNode, ev.ToNode, ev.Reason, ev.Emergency))
+	})
+	srv.coordinator = NewRuntimeCoordinator(srv.engMgr, srv.rosMgr, srv.ewmaSched)
+	srv.upstreamReg = upstream.NewRegistry(4, 30*time.Second)
+	srv.registerDefaultUpstreamProviders()
+
+	SafeGo("EWMAScheduler", func() {
+		srv.ewmaSched.Run(context.Background())
+	})
 
 	srv.initTrafficState()
 
@@ -1507,6 +1528,12 @@ func main() {
 
 	mux.HandleFunc("/api/v1/host/triad/matrix", srv.handleHostTriadMatrix)
 	mux.HandleFunc("/api/v1/host/triad/heal", srv.handleHostTriadHeal)
+
+	// 12.1 HA Drain & Upstream 4D Matrix & EWMA Closed-Loop Routing
+	mux.HandleFunc("/api/v1/ha/drain", srv.handleHADrain)
+	mux.HandleFunc("/api/v1/probe/ewma/matrix", srv.handleEWMAMatrix)
+	mux.HandleFunc("/api/v1/upstream/matrix", srv.handleUpstreamMatrix)
+	mux.HandleFunc("/api/v1/upstream/upgrade", srv.handleUpstreamUpgrade)
 
 	mux.HandleFunc("/api/v1/ros/routing/status", srv.handleROSInspect)
 
@@ -2354,14 +2381,17 @@ func (s *Server) handleEngineSwitch(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	result, err := s.engMgr.SwitchEngine(target)
+	var result *engine.SwitchResult
+	var err error
+	if s.coordinator != nil {
+		result, err = s.coordinator.CoordinatedSwitchEngine(r.Context(), string(target))
+	} else {
+		result, err = s.engMgr.SwitchEngine(target)
+	}
 
 	if err != nil {
-
 		sendJSON(w, map[string]any{"status": "error", "success": false, "error": err.Error(), "result": result})
-
 		return
-
 	}
 
 	if s.rosMgr != nil {

@@ -8,20 +8,14 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/zyeyefyass/CubeX/internal/engine"
 	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // EngineController 抽象双核生命周期调度器接口
 type EngineController interface {
 	GetActiveEngine() schema.EngineType
-	SwitchEngine(target schema.EngineType) (*struct {
-		Engine        schema.EngineType
-		Previous      schema.EngineType
-		StopCostMs    int64
-		StartupCostMs int64
-		TotalCostMs   int64
-		ActiveRules   int
-	}, error)
+	SwitchEngine(target schema.EngineType) (*engine.SwitchResult, error)
 	Stop()
 }
 
@@ -54,7 +48,7 @@ func NewRuntimeCoordinator(eng EngineController, ha HAGuard, sched ProbeSchedule
 
 // CoordinatedSwitchEngine 执行跨模块协同的双擎零感热切
 // 严格时序：1. 挂起 EWMA 采样 -> 2. 报备 ROS 热重载防抖 -> 3. 极速切核 -> 4. 通知 ROS 就绪 -> 5. 归还物理内存
-func (c *RuntimeCoordinator) CoordinatedSwitchEngine(ctx context.Context, targetEngine string) error {
+func (c *RuntimeCoordinator) CoordinatedSwitchEngine(ctx context.Context, targetEngine string) (*engine.SwitchResult, error) {
 	// Step 1: 提前锁死 EWMA 调度器静默窗，防止切核瞬间的连接断开被误判为节点超时
 	if c.scheduler != nil {
 		c.scheduler.NotifyEngineSwitched()
@@ -66,9 +60,12 @@ func (c *RuntimeCoordinator) CoordinatedSwitchEngine(ctx context.Context, target
 	}
 
 	// Step 3: 执行 60ms 进程组同步屏障切核与 VFS 预热启动
+	var res *engine.SwitchResult
+	var err error
 	if c.engineMgr != nil {
-		if _, err := c.engineMgr.SwitchEngine(schema.EngineType(targetEngine)); err != nil {
-			return fmt.Errorf("coordinated engine switch failed: %w", err)
+		res, err = c.engineMgr.SwitchEngine(schema.EngineType(targetEngine))
+		if err != nil {
+			return res, fmt.Errorf("coordinated engine switch failed: %w", err)
 		}
 	}
 
@@ -83,7 +80,7 @@ func (c *RuntimeCoordinator) CoordinatedSwitchEngine(ctx context.Context, target
 	// Step 5: 强制回收切核期间产生的临时堆对象与归还操作系统内存
 	runtime.GC()
 	debug.FreeOSMemory()
-	return nil
+	return res, nil
 }
 
 // BuildCorePostReloadHook 生成供第四攻坚 AtomicInstaller 使用的后置热重载验证钩子
@@ -92,7 +89,8 @@ func (c *RuntimeCoordinator) BuildCorePostReloadHook(targetEngine string) func(c
 	return func(ctx context.Context) error {
 		reloadCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		return c.CoordinatedSwitchEngine(reloadCtx, targetEngine)
+		_, err := c.CoordinatedSwitchEngine(reloadCtx, targetEngine)
+		return err
 	}
 }
 

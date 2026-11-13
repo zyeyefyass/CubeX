@@ -1,6 +1,7 @@
 package ros
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -2169,4 +2170,67 @@ func escapeROSQuotedString(s string) string {
 	s = strings.ReplaceAll(s, `"`, `\"`)
 	s = strings.ReplaceAll(s, `$`, `\$`)
 	return s
+}
+
+// GracefulDrain instructs RouterOS to bypass or absorb CubeX container restart/maintenance.
+// If maintenance is true: it disables the Fake-IP backtrack routes and points RouterOS DNS to fallback DNS,
+// ensuring the entire household has uninterrupted native internet while CubeX is in maintenance.
+// If maintenance is false: it prepares for hot reload (the 2.2s anti-flapping Netwatch absorbs restart).
+func (m *Manager) GracefulDrain(ctx context.Context, maintenance bool) error {
+	m.mu.RLock()
+	host := m.config.Host
+	m.mu.RUnlock()
+	if host == "" {
+		return nil
+	}
+	if maintenance {
+		// 1. Disable Fake-IP backtrack routes
+		if rData, err := m.QueryROS("/ip/route"); err == nil {
+			var routes []map[string]any
+			if json.Unmarshal(rData, &routes) == nil {
+				for _, r := range routes {
+					id, _ := r[".id"].(string)
+					comment, _ := r["comment"].(string)
+					if strings.Contains(comment, "CubeX-FakeIP-Backtrack") && id != "" {
+						_ = m.PatchROS("/ip/route/"+id, map[string]any{"disabled": "true"})
+					}
+				}
+			}
+		}
+		// 2. Set RouterOS DNS to fallback DNS and flush cache
+		_ = m.PatchROS("/ip/dns", map[string]any{"servers": "223.5.5.5,119.29.29.29"})
+		_, _ = m.PostROS("/ip/dns/cache/flush", nil)
+		return nil
+	}
+	return nil
+}
+
+// NotifyEngineReady restores the Fake-IP backtrack routes and sets RouterOS DNS back to CubeX IP.
+func (m *Manager) NotifyEngineReady(ctx context.Context) error {
+	m.mu.RLock()
+	host := m.config.Host
+	m.mu.RUnlock()
+	if host == "" {
+		return nil
+	}
+	targetIP := m.GetOutboundIP()
+	// 1. Enable Fake-IP backtrack routes
+	if rData, err := m.QueryROS("/ip/route"); err == nil {
+		var routes []map[string]any
+		if json.Unmarshal(rData, &routes) == nil {
+			for _, r := range routes {
+				id, _ := r[".id"].(string)
+				comment, _ := r["comment"].(string)
+				if strings.Contains(comment, "CubeX-FakeIP-Backtrack") && id != "" {
+					_ = m.PatchROS("/ip/route/"+id, map[string]any{"disabled": "false"})
+				}
+			}
+		}
+	}
+	// 2. Set RouterOS DNS to targetIP and flush cache
+	if targetIP != "" {
+		_ = m.PatchROS("/ip/dns", map[string]any{"servers": targetIP})
+		_, _ = m.PostROS("/ip/dns/cache/flush", nil)
+	}
+	return nil
 }

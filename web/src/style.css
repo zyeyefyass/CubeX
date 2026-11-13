@@ -83,23 +83,23 @@ body::before {
   box-shadow: 0 14px 40px -4px rgba(0, 8, 20, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
 }
 
-/* 左侧导航栏 (Sidebar: 90% 暮光深海不透光率 · 极客图标与菜单清晰无干扰) */
+/* 左侧导航栏 (Sidebar: 暮光深海真毛玻璃 · 顶层壳轻量透光) */
 .macos-sidebar {
-  background: rgba(0, 18, 36, 0.90) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border-right: 1px solid rgba(56, 189, 248, 0.16) !important;
+  background: rgba(0, 18, 36, 0.78) !important;
+  backdrop-filter: blur(10px) saturate(135%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(135%) !important;
+  border-right: 1px solid rgba(56, 189, 248, 0.18) !important;
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35) !important;
   contain: layout style;
   transform: translateZ(0);
 }
 
-/* 顶部状态栏 (Top Bar: 100% 全透明穿透) */
+/* 顶部状态栏 (Top Bar: 顶层壳真毛玻璃) */
 .macos-topbar {
-  background: transparent !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border-bottom: 1px solid rgba(56, 189, 248, 0.12) !important;
+  background: rgba(0, 20, 40, 0.68) !important;
+  backdrop-filter: blur(10px) saturate(135%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(135%) !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.14) !important;
 }
 
 /* 顶部与全局胶囊组件 (65% 纯净微晶) */
@@ -119,9 +119,15 @@ body::before {
   border-color: rgba(56, 189, 248, 0.35) !important;
 }
 
-/* 二级子卡片、项目行、指标块（72% 温润衬底 · 0 背景混叠 · 保证高数据可读性） */
+/* ══════════════════════════════════════════════════════════════════════════ */
+/* 🦊🐰 疯狂动物城三级景深流光玻璃体系 (Zootopia 3-Tier Depth-of-Field Glass)    */
+/* ══════════════════════════════════════════════════════════════════════════ */
+/* 滚动数据列表子项：严格禁止 backdrop-filter，彻底消除百级节点卡顿掉帧陷阱 */
+/* 采用纯色渐变半透明衬底 (46% 不透光率，充分透出 54% 动物城原画) + 朱迪蓝 x 尼克橙双色镜面内高光 */
 .macos-sub-card,
 .sub-card-glass,
+.virtualized-node-card,
+.virtualized-rule-row,
 .bg-slate-900,
 .bg-slate-900\/95,
 .bg-slate-900\/90,
@@ -140,20 +146,49 @@ body::before {
 .bg-black\/40,
 .bg-black\/50,
 .bg-black\/60 {
-  background: rgba(0, 14, 28, 0.72) !important;
-  border: 1px solid rgba(56, 189, 248, 0.14) !important;
+  background: linear-gradient(135deg, rgba(13, 18, 30, 0.46) 0%, rgba(20, 27, 45, 0.46) 100%) !important;
+  border: 1px solid rgba(56, 189, 248, 0.20) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  box-shadow: inset 0 1px 0 rgba(251, 146, 60, 0.18), inset 0 0 10px rgba(56, 189, 248, 0.05), 0 4px 16px rgba(0, 0, 0, 0.28) !important;
   border-radius: 14px !important;
-  text-shadow: none !important;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
+/* 悬停与聚焦：150ms 平滑过渡至高对比阅读态 (0.68) */
 .macos-sub-card:hover,
+.sub-card-glass:hover,
+.virtualized-node-card:hover,
+.virtualized-rule-row:hover,
 .bg-slate-900:hover,
 .bg-slate-950:hover {
-  background: rgba(0, 24, 48, 0.85) !important;
-  border-color: rgba(56, 189, 248, 0.28) !important;
+  background: linear-gradient(135deg, rgba(13, 18, 30, 0.68) 0%, rgba(20, 27, 45, 0.68) 100%) !important;
+  border-color: rgba(56, 189, 248, 0.42) !important;
+  box-shadow: inset 0 1px 0 rgba(251, 146, 60, 0.35), inset 0 0 14px rgba(56, 189, 248, 0.12), 0 8px 24px rgba(0, 8, 20, 0.45) !important;
+}
+
+/* ⚡ 浏览器原生虚拟化与极速重绘隔离 (视口外 0 重绘开销) */
+.virtualized-node-card,
+.virtualized-rule-row,
+.virtualized-item {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 64px;
+  contain: layout style paint;
+}
+
+/* 🐰🦊 一键赏景模式 (Peek Mode) - UI 主体隐退至 15% 透明度，充分透出疯狂动物城原画 */
+.zootopia-peek-active,
+body.wallpaper-peek-mode .zootopia-peek-active {
+  opacity: 0.15 !important;
+  pointer-events: none !important;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.zootopia-peek-banner {
+  pointer-events: auto !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
 }
 
 .hover\:bg-slate-800:hover,

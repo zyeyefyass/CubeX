@@ -50,9 +50,11 @@
 
       :class="[
 
-        'hidden md:flex md:flex-shrink-0 flex-col md:w-64 border-r transition-colors duration-300 z-30 select-none h-full overflow-hidden',
+        'hidden md:flex md:flex-shrink-0 flex-col md:w-64 border-r transition-all duration-300 z-30 select-none h-full overflow-hidden',
 
-        sidebarBgClass
+        sidebarBgClass,
+
+        isPeekMode ? 'zootopia-peek-active' : ''
 
       ]">
 
@@ -178,7 +180,7 @@
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
 
-    <div :class="['flex-1 min-h-0 flex flex-col h-full relative overflow-x-hidden w-full max-w-full', 'overflow-y-auto pb-32 md:pb-24']" style="-webkit-overflow-scrolling: touch; transform: translateZ(0);" @scroll="onMainContentScroll">
+    <div :class="['flex-1 min-h-0 flex flex-col h-full relative overflow-x-hidden w-full max-w-full transition-opacity duration-300', isPeekMode ? 'zootopia-peek-active' : '', 'overflow-y-auto pb-32 md:pb-24']" style="-webkit-overflow-scrolling: touch; transform: translateZ(0);" @scroll="onMainContentScroll">
 
       <!-- Top Holographic Bar (自适应手机/桌面双屏美学：手机端严丝合缝绝不溢出、桌面端全息大气) -->
 
@@ -326,9 +328,23 @@
 
         </div>
 
-        <!-- Right: 宿主机平台胶囊 -->
+        <!-- Right: 宿主机平台胶囊与一键赏景 -->
 
         <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+
+          <!-- 🐰🦊 一键赏景模式 (Peek Mode) -->
+          <button @click="togglePeekMode"
+            :title="isPeekMode ? '退出赏景模式 (或按 ESC)' : '一键赏景模式 (Peek Mode · 浸润疯狂动物城原画)'"
+            :class="[
+              'h-[30px] sm:h-[42px] md:h-[46px] inline-flex items-center gap-1.5 px-2 sm:px-3 rounded-lg sm:rounded-2xl macos-capsule select-none transition-all duration-300 cursor-pointer shrink-0',
+              isPeekMode ? 'border-amber-400/60 bg-amber-500/20 text-amber-200' : 'hover:border-sky-400/50 text-sky-200'
+            ]">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span class="hidden lg:inline text-xs font-bold font-sans">赏景</span>
+          </button>
 
           <button @click="activeMasterTab = 'system'"
 
@@ -351,6 +367,12 @@
         </div>
 
       </header>
+
+      <!-- 🐰🦊 赏景模式悬浮退出胶囊 -->
+      <div v-if="isPeekMode" @click="togglePeekMode" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full bg-[#001529]/90 border border-amber-400/60 text-amber-200 text-xs sm:text-sm font-black shadow-2xl flex items-center gap-2.5 cursor-pointer select-none zootopia-peek-banner animate-bounce">
+        <span class="text-base">🐰🦊</span>
+        <span>赏景模式已开启 · 点击任意处、移动鼠标或按 ESC 恢复</span>
+      </div>
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
 
@@ -4196,27 +4218,65 @@ const ProbeModal = defineAsyncComponent(() => import('./components/modals/ProbeM
 const GeodataDetailModal = defineAsyncComponent(() => import('./components/modals/GeodataDetailModal.vue'))
 const DiagnosticOpsModals = defineAsyncComponent(() => import('./components/modals/DiagnosticOpsModals.vue'))
 import ConsoleAuthModal from './components/modals/ConsoleAuthModal.vue'
+import { frameScheduler, enablePeekModeWithGuard } from './utils/scheduler'
 
 // ── Global Console Auth & Unified Confirm Dialog ──
 if (typeof window !== 'undefined' && !window.__cubexNativeFetch) {
   window.__cubexNativeFetch = window.fetch.bind(window)
   window.fetch = async (...args) => {
-    const res = await window.__cubexNativeFetch(...args)
-    try {
-      const reqUrl = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '')
-      if (res.status === 401 && !reqUrl.includes('/api/v1/auth/')) {
-        authState.value.enabled = true
-        authState.value.authenticated = false
+    const reqUrl = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '')
+    const isTelemetry = reqUrl.includes('/api/v1/probe') || reqUrl.includes('/api/v1/status') || reqUrl.includes('/api/v1/ir') || reqUrl.includes('/api/v1/traffic')
+
+    let tracker = null
+    if (isTelemetry) {
+      if (frameScheduler.isSilenced()) {
+        return new Response(JSON.stringify({ ok: false, silenced: true }), { status: 200, headers: { 'Content-Type': 'application/json' } })
       }
-    } catch (e) {}
-    return res
+      tracker = frameScheduler.trackFetchController()
+      if (args[1] && typeof args[1] === 'object') {
+        if (!args[1].signal) {
+          args[1].signal = tracker.signal
+        }
+      } else {
+        args[1] = { signal: tracker.signal }
+      }
+    }
+
+    try {
+      const res = await window.__cubexNativeFetch(...args)
+      if (tracker) tracker.done()
+      try {
+        if (res.status === 401 && !reqUrl.includes('/api/v1/auth/')) {
+          authState.value.enabled = true
+          authState.value.authenticated = false
+        }
+      } catch (e) {}
+      return res
+    } catch (err) {
+      if (tracker) tracker.done()
+      if (err?.name === 'AbortError' || err === 'engine-switching-silence') {
+        return new Response(JSON.stringify({ ok: false, aborted: true }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      }
+      throw err
+    }
   }
 }
 
 const authState = ref({ checked: false, enabled: false, authenticated: true })
 const showAuthManageModal = ref(false)
 const needsAuthUnlock = computed(() => authState.value.enabled && !authState.value.authenticated)
-const isPageVisible = () => !needsAuthUnlock.value && typeof document !== 'undefined' && !document.hidden
+const isPollingSuspended = ref(false)
+let pollingResumeTimer = null
+function pauseTelemetryPolling(durationMs = 3000) {
+  isPollingSuspended.value = true
+  frameScheduler.enterSwitchSilence(durationMs)
+  if (pollingResumeTimer) clearTimeout(pollingResumeTimer)
+  pollingResumeTimer = setTimeout(() => {
+    isPollingSuspended.value = false
+  }, durationMs)
+}
+
+const isPageVisible = () => !isPollingSuspended.value && !frameScheduler.isSilenced() && !needsAuthUnlock.value && typeof document !== 'undefined' && !document.hidden
 
 const confirmDialogState = ref({
   visible: false,
@@ -5759,6 +5819,27 @@ function toggleAntiBlueLight() {
 
   )
 
+}
+
+// 🐰🦊 疯狂动物城一键赏景模式 (Peek Mode: 400ms 激活保护窗 + 45px 欧氏位移阈值防微抖)
+const isPeekMode = ref(false)
+let peekModeGuardCleanup = null
+
+function togglePeekMode() {
+  if (isPeekMode.value) {
+    if (peekModeGuardCleanup) {
+      peekModeGuardCleanup()
+      peekModeGuardCleanup = null
+    }
+    isPeekMode.value = false
+  } else {
+    isPeekMode.value = true
+    peekModeGuardCleanup = enablePeekModeWithGuard(() => {
+      isPeekMode.value = false
+      peekModeGuardCleanup = null
+    })
+    showToast('🐰🦊 已开启赏景模式 · 移动鼠标(>45px)、点击或按 ESC 恢复')
+  }
 }
 
 // ── Test v7.2 维度一：多宽带 / 5G CPE 多路径智能分流与毫秒容灾 ──
@@ -12828,6 +12909,8 @@ async function switchEngine(target) {
 
   switchingEngine.value = true
 
+  pauseTelemetryPolling(3000)
+
   showToast(`正在从 ${activeEngine.value} 毫秒级热切至 ${target}...`)
 
   try {
@@ -12848,11 +12931,27 @@ async function switchEngine(target) {
 
     systemStatus.value.active_engine = target
 
-    const elapsed = data.result?.elapsed_ms || 800
+    isPollingSuspended.value = false
+
+    frameScheduler.exitSwitchSilenceEarly(() => {
+
+      fetchSystemStatus().catch(() => {})
+
+      fetchIR().catch(() => {})
+
+    })
+
+    const stopCost = data.result?.stop_cost_ms ?? 0
+
+    const startCost = data.result?.startup_cost_ms ?? 0
+
+    const totalCost = data.result?.total_cost_ms || data.result?.elapsed_ms || 0
+
+    const activeRules = data.result?.active_rules ?? 0
 
     const restored = data.result?.restored_groups || 0
 
-    showToast(`🎉 已成功无损热切换至 ${target === 'singbox' ? '⚡ sing-box' : '🛡️ mihomo'}（耗时 ${elapsed}ms，${restored} 个策略组恢复）！`)
+    showToast(`🎉 双核无感热切完成: ${target === 'singbox' ? '⚡ sing-box' : '🛡️ mihomo'}（停核: ${stopCost}ms · 启动: ${startCost}ms · 总耗时: ${totalCost}ms · 恢复组: ${restored} · 规则: ${activeRules}条）！`)
 
     await fetchSystemStatus().catch(() => {})
 

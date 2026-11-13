@@ -54,19 +54,17 @@ import (
 // SwitchResult contains statistics about the kernel switch.
 
 type SwitchResult struct {
-	FromEngine schema.EngineType `json:"from_engine"`
-
-	ToEngine schema.EngineType `json:"to_engine"`
-
-	ElapsedMs int64 `json:"elapsed_ms"`
-
-	RestoredGroups int `json:"restored_groups"`
-
-	Success bool `json:"success"`
-
-	ErrorMessage string `json:"error_message,omitempty"`
-
-	Timestamp time.Time `json:"timestamp"`
+	FromEngine     schema.EngineType `json:"from_engine"`
+	ToEngine       schema.EngineType `json:"to_engine"`
+	ElapsedMs      int64             `json:"elapsed_ms"`
+	TotalCostMs    int64             `json:"total_cost_ms"`
+	StopCostMs     int64             `json:"stop_cost_ms"`
+	StartupCostMs  int64             `json:"startup_cost_ms"`
+	ActiveRules    int               `json:"active_rules"`
+	RestoredGroups int               `json:"restored_groups"`
+	Success        bool              `json:"success"`
+	ErrorMessage   string            `json:"error_message,omitempty"`
+	Timestamp      time.Time         `json:"timestamp"`
 }
 
 // Manager controls the dual-engine lifecycle, hot-swap state machine, and status.
@@ -1409,9 +1407,15 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	restoredCount := len(snapshot)
 
 	res.RestoredGroups = restoredCount
+	res.StopCostMs = dStop
+	res.StartupCostMs = dStart
+	res.ElapsedMs = time.Since(startTime).Milliseconds()
+	res.TotalCostMs = res.ElapsedMs
+	if m.ir != nil {
+		res.ActiveRules = len(m.ir.Rules)
+	}
 	m.activeEngine = target
 	m.ir.Meta.ActiveEngine = target
-	res.ElapsedMs = time.Since(startTime).Milliseconds()
 	res.Success = true
 	m.lastResult = res
 

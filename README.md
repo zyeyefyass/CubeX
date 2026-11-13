@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v8.8-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v8.9-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -77,7 +77,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 Test v8.8 最新版本更新亮点](#announcement)
+- [📢 Test v8.9 最新版本更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -320,15 +320,16 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v8.8 最新版本更新亮点 (双核无感热切与进程组屏障 · 逃生两阶段平滑防抖 · 微秒级闭环选路 · 四维插件化解耦)
+## 📢 Test v8.9 最新版本更新亮点 (疯狂动物城三级景深流光玻璃 · 120FPS 零卡顿渲染调度 · 双擎切换毫秒耗时穿透 · 宿主旁路维护逃生模式)
 
 > [!IMPORTANT]
-> ### 👑【双核无感热切与进程组屏障 · 逃生两阶段平滑防抖 · 微秒级闭环选路 · 四维插件化解耦】(Test v8.8)
+> ### 👑【疯狂动物城三级景深流光玻璃 · 120FPS 零卡顿渲染调度 · 双擎切换毫秒耗时穿透 · 宿主旁路维护逃生】(Test v8.9)
 >
-> 1. **双核无感热切与进程组隔离**：引入独立进程组屏障与内核物理退出等待机制，彻底告别旧版盲扫停核；配合规则集按需动态剪枝与虚拟文件预热，热切换时间压缩至 60 毫秒以内，内存物理页即时归还。
-> 2. **逃生看门狗两阶段平滑防抖**：重构毫秒逃生脚本与状态判别逻辑，引入硬超时保护与路由真实状态唯一真值核验，彻底根除偶发性网络抖动引发的误切与缓存误刷。
-> 3. **微秒级闭环选路与金字塔分级削峰**：引入三级金字塔削峰架构与令牌桶并发控制，区分现役哨兵、热备与冷备巡检，实现稳态防抖与紧急熔断双模极速切流。
-> 4. **四维版本探针与原子安全更新**：重构控制面、双内核、规则库与宿主固件四维探针中心，支持流式下载、文件魔数预检与原地原子重命名，更新异常自动毫秒级事务回滚。
+> 1. **疯狂动物城三级景深流光玻璃**：顶层壳保留真毛玻璃，滚动列表子项严禁 backdrop-filter，改用 46% 渐变半透底（透出 54% 动物城原画）+ 朱迪蓝 `#38bdf8` × 尼克橙 `#fb923c` 双色镜面高光内边框；新增一键赏景模式（Peek Mode），UI 退隐至 15% 沉浸赏景，任意交互平滑恢复。
+> 2. **120FPS 零卡顿渲染调度**：百级节点矩阵与规则列表启用浏览器原生虚拟化（`content-visibility: auto`，视口外零重绘开销）；植入 `UIFrameScheduler` 帧调度器，自动合并高频遥测波形，后台标签页自动休眠。
+> 3. **双擎热切精准耗时穿透**：切核时自动挂起前端轮询 3 秒防抖，热切完成后实时穿透展示 `StopCostMs` 停核耗时、`StartupCostMs` 启动耗时、`TotalCostMs` 总耗时与 `ActiveRules` 激活规则数。
+> 4. **宿主旁路维护逃生模式**：新增「进入旁路维护（不断网停机）」极客开关，一键将 RouterOS / 伴生防火墙无感降级为直连与原生 DNS，无需拔插头即可安全停机维护容器。
+> 5. **四维版本中心与闭环选路看板**：控制面、双核引擎、规则库、宿主底座四维探针统一收敛，支持原子流式更新与自动回滚；EWMA 选路金字塔分级（T0 现役 / T1 热备 / T2 冷备）实时透视。
 
 ---
 
@@ -338,21 +339,21 @@
 > [!TIP]
 > **各平台底座发布物对照表**：请根据您的宿主底座与硬件架构选择对应的下载资产（完整包内置双核与全量 105 套规则）：
 
-| 发布物文件名 | 适用宿主与架构 | 文件大小 | 说明与用途 |
-| :--- | :--- | :--- | :--- |
-| `CubeX-Test-v8.8-ros-amd64.tar` | 软路由系统 (x86 软路由) | 92.99 MB | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-Test-v8.8-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 93.32 MB | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-Test-v8.8-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 76.28 MB | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-Test-v8.8-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 87.23 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-Test-v8.8-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 79.94 MB | ARM64 完整归档发布包 |
-| `cubexd-linux-amd64` | Linux amd64 | 41.70 MB | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
-| `cubexd-linux-arm64` | Linux arm64 | 37.50 MB | ARM64 单二进制核心控制面（代码加固版） |
-| `cubex-linux-amd64` | Linux amd64 | 16.99 MB | 纯命令行运维工具（终端直接运行） |
-| `cubex-linux-arm64` | Linux arm64 | 15.25 MB | ARM64 纯命令行运维工具（终端直接运行） |
-| `setup-routeros-v7.rsc` | 软路由终端编排脚本 | 17.50 KB | 软路由管理终端复制即用一键自动编排脚本 |
-| `setup-openwrt.sh` | 开源软路由系统一键安装脚本 | 23.17 KB | 开源软路由系统原生适配安装脚本 |
-| `install_pve_lxc.sh` | 容器一键脚本 | 10.15 KB | 极简容器一键安装脚本 |
-| `install.sh` | 通用一键安装脚本 | 12.31 KB | 通用一键部署主脚本 |
+| 发布物文件名 | 适用宿主与架构 | 说明与用途 |
+| :--- | :--- | :--- |
+| `CubeX-Test-v8.9-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-Test-v8.9-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-Test-v8.9-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-Test-v8.9-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-Test-v8.9-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
+| `cubexd-linux-amd64` | Linux amd64 | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
+| `cubexd-linux-arm64` | Linux arm64 | ARM64 单二进制核心控制面（代码加固版） |
+| `cubex-linux-amd64` | Linux amd64 | 纯命令行运维工具（终端直接运行） |
+| `cubex-linux-arm64` | Linux arm64 | ARM64 纯命令行运维工具（终端直接运行） |
+| `setup-routeros-v7.rsc` | 软路由终端编排脚本 | 软路由管理终端复制即用一键自动编排脚本 |
+| `setup-openwrt.sh` | 开源软路由系统一键安装脚本 | 开源软路由系统原生适配安装脚本 |
+| `install_pve_lxc.sh` | 容器一键脚本 | 极简容器一键安装脚本 |
+| `install.sh` | 通用一键安装脚本 | 通用一键部署主脚本 |
 
 ---
 
