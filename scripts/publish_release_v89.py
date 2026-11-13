@@ -66,7 +66,7 @@ def gh_api(token, method, path, data=None):
         "-H", "Accept: application/vnd.github.v3+json",
         "-H", "User-Agent: CubeX-Release-Agent",
     ]
-    cmd = ["curl.exe", "-s", "-x", PROXY, "-X", method] + headers
+    cmd = ["curl.exe", "-s", "-w", "\n%{http_code}", "-x", PROXY, "-X", method] + headers
 
     temp_file = None
     if data:
@@ -83,21 +83,18 @@ def gh_api(token, method, path, data=None):
         if temp_file and os.path.exists(temp_file.name):
             os.remove(temp_file.name)
 
-    status_cmd = ["curl.exe", "-s", "-o", "NUL", "-w", "%{http_code}", "-x", PROXY, "-X", method] + headers
-    if data:
-        status_cmd.extend(["-H", "Content-Type: application/json", "-d", json.dumps(data)])
-    status_cmd.append(url)
-    status_res = subprocess.run(status_cmd, capture_output=True, text=True, timeout=30)
-    try:
-        code = int(status_res.stdout.strip())
-    except Exception:
-        code = 200
-
-    return code, output
+    if "\n" in output:
+        body, code_str = output.rsplit("\n", 1)
+        try:
+            code = int(code_str.strip())
+        except Exception:
+            code = 200
+        return code, body
+    return 200, output
 
 
 def get_assets_map(token, release_id):
-    code, body = gh_api(token, "GET", f"/releases/{release_id}/assets")
+    code, body = gh_api(token, "GET", f"/releases/{release_id}/assets?per_page=100")
     if code != 200:
         return {}
     try:
@@ -140,13 +137,32 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
     ]
 
     for attempt in range(1, 4):
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-        out = res.stdout.strip()
+        # 每次上传前务必检查并清除可能残留的 starter 或不完整残片
+        assets = get_assets_map(token, release_id)
+        if name in assets:
+            cur_a = assets[name]
+            if cur_a.get("size") == size and cur_a.get("state") == "uploaded":
+                print(f"   ✅ [校验成功] {name} 云端字节校验通过！", flush=True)
+                return True
+            print(f"   - 发现未就绪残片 {name} (state: {cur_a.get('state')}, size: {cur_a.get('size')})，正在清理...", flush=True)
+            gh_api(token, "DELETE", f"/releases/assets/{cur_a['id']}")
+            time.sleep(2)
+
+        try:
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=1200)
+            out = res.stdout.strip()
+            err_msg = res.stderr.strip()
+        except subprocess.TimeoutExpired:
+            print(f"   ⚠️ 上传超时 (1200s)，正在重试 (尝试 {attempt}/3)...", flush=True)
+            continue
+
         try:
             asset_info = json.loads(out)
             if asset_info.get("state") == "uploaded" and asset_info.get("size") == size:
                 print(f"   ✅ [上传成功] {name} (ID: {asset_info.get('id')})", flush=True)
                 return True
+            if "already_exists" in out or "Validation Failed" in out:
+                print(f"   ⚠️ GitHub 提示已存在残片，正在刷新状态...", flush=True)
         except Exception:
             pass
 
@@ -155,13 +171,14 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
             print(f"   ✅ [校验成功] {name} 云端字节校验通过！", flush=True)
             return True
 
-        if name in assets and assets[name].get("size") != size:
-            print(f"   ⚠️ 字节不完整，正在清理残片并准备重试 (尝试 {attempt}/3)...", flush=True)
+        if name in assets:
+            print(f"   ⚠️ 资产状态不符 (state: {assets[name].get('state')}, size: {assets[name].get('size')})，正在清理残片 (尝试 {attempt}/3)...", flush=True)
             gh_api(token, "DELETE", f"/releases/assets/{assets[name]['id']}")
             time.sleep(3)
-
-        print(f"   ⚠️ 上传异常，第 {attempt} 次重试中...", flush=True)
-        time.sleep(3)
+        else:
+            msg = err_msg[-200:] if err_msg else (out[:150] if out else "无回显")
+            print(f"   ⚠️ 上传异常: {msg}，第 {attempt} 次重试中...", flush=True)
+            time.sleep(3)
 
     return False
 

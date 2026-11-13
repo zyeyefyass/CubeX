@@ -218,7 +218,7 @@
 
               <span class="font-black tracking-tight text-sky-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] hidden xs:inline">
 
-                {{ systemStatus.version || 'Test v8.8' }}
+                {{ systemStatus.version || 'Test v9.0' }}
 
               </span>
 
@@ -344,6 +344,14 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
             <span class="hidden lg:inline text-xs font-bold font-sans">赏景</span>
+          </button>
+
+          <!-- ⚡ Ctrl/Cmd+K 极客指令舱 -->
+          <button @click="openCommandPalette"
+            title="呼出极客指令舱 (快捷键 Ctrl+K / ⌘K)"
+            class="h-[30px] sm:h-[42px] md:h-[46px] inline-flex items-center gap-1.5 px-2 sm:px-3 rounded-lg sm:rounded-2xl macos-capsule select-none transition-all duration-300 cursor-pointer shrink-0 hover:border-sky-400/50 text-sky-200">
+            <span class="text-xs sm:text-sm">⚡</span>
+            <span class="hidden lg:inline text-xs font-mono font-bold text-slate-300">⌘K</span>
           </button>
 
           <button @click="activeMasterTab = 'system'"
@@ -504,7 +512,32 @@
 
         <div v-if="activeMasterTab === 'overview'" class="space-y-6 animate-in fade-in">
 
-          
+          <!-- 宿主共生实时分流光轨 (Dual-Rail Symbiotic Topology) -->
+          <div ref="topologyRailRef" class="cubex-topology-rail w-full px-4 py-2.5 rounded-2xl macos-sub-card border border-sky-400/25 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs select-none">
+            <div class="flex items-center gap-3 shrink-0">
+              <span class="text-base">🌌</span>
+              <div>
+                <div class="font-bold text-white tracking-wide">宿主共生实时分流光轨</div>
+                <div class="text-[11px] text-slate-400 font-mono">内核直通 (尼克橙) vs 双擎隧道 (朱迪蓝)</div>
+              </div>
+            </div>
+            <div class="flex-1 w-full max-w-md h-7 flex items-center justify-center px-2">
+              <svg class="w-full h-5 overflow-visible" viewBox="0 0 320 20" fill="none">
+                <path d="M 10 6 L 310 6" class="rail-path-direct" stroke-linecap="round" />
+                <path d="M 10 14 L 310 14" class="rail-path-proxy" stroke-linecap="round" />
+              </svg>
+            </div>
+            <div class="flex items-center gap-3 shrink-0 font-mono text-[11px]">
+              <div class="flex items-center gap-1.5 text-amber-300">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span>直出: {{ formatSpeed(liveStreamSpeed.direct || 0) }}</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-sky-300">
+                <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+                <span>代理: {{ formatSpeed(liveStreamSpeed.proxy || 0) }}</span>
+              </div>
+            </div>
+          </div>
 
           <!-- 双核状态驾驶舱 Hero Bento -->
 
@@ -524,7 +557,7 @@
 
                     <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
 
-                    当前内核: {{ activeEngine === 'singbox' ? 'sing-box (' + (systemOverview.singbox_curr_version || 'v1.14.4') + ')' : 'Mihomo (' + (systemOverview.mihomo_curr_version || 'v1.19.33') + ')' }}
+                    当前内核: {{ activeEngine === 'singbox' ? 'sing-box (' + (systemOverview.singbox_curr_version || 'v1.14.4') + ')' : 'Mihomo (' + (systemOverview.mihomo_curr_version || 'v1.19.34') + ')' }}
 
                   </span>
 
@@ -1388,7 +1421,7 @@
 
                         <span class="text-sm sm:text-base font-black text-emerald-200 tracking-wide">Mihomo</span>
 
-                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.mihomo_curr_version || 'v1.19.33' }}</span>
+                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.mihomo_curr_version || 'v1.19.34' }}</span>
 
                       </div>
 
@@ -2936,7 +2969,7 @@
 
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
 
-                        {{ systemOverview.panel_latest_version || 'Test v8.8' }}
+                        {{ systemOverview.panel_latest_version || 'Test v9.0' }}
 
                       </span>
 
@@ -2944,7 +2977,7 @@
 
                     <p class="text-xs text-slate-400 mt-0.5 font-mono">
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v8.8' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v8.8' }}</span>
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v9.0' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v9.0' }}</span>
 
                     </p>
 
@@ -4200,6 +4233,46 @@
 
   </nav>
 
+  <!-- Ctrl/Cmd + K 极客瞬态指令舱 (Command Palette) -->
+  <div v-if="showCommandPalette" class="cubex-cmd-backdrop animate-in fade-in duration-150" @click.self="closeCommandPalette">
+    <div class="cubex-cmd-modal flex flex-col shadow-2xl">
+      <div class="p-3.5 border-b border-white/10 flex items-center gap-3 bg-slate-900/40">
+        <span class="text-lg">⚡</span>
+        <input
+          ref="commandPaletteInputRef"
+          v-model="commandPaletteQuery"
+          @input="onCommandPaletteInput"
+          @keydown="onCommandPaletteKeyDown"
+          type="text"
+          placeholder="输入指令关键词或按上下键选择 (ESC 退出)..."
+          class="flex-1 bg-transparent text-sm text-white placeholder-slate-400 focus:outline-none font-mono"
+        />
+        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/10 text-slate-300 border border-white/15">ESC 退出</span>
+      </div>
+      <div class="max-h-[360px] overflow-y-auto p-2 space-y-1">
+        <div
+          v-for="(cmd, idx) in commandController.filtered"
+          :key="cmd.id"
+          :aria-selected="commandController.selectedIndex === idx"
+          @click="cmd.action(); closeCommandPalette()"
+          @mouseenter="commandController.selectedIndex = idx"
+          class="cubex-cmd-item p-2.5 rounded-lg flex items-center justify-between cursor-pointer transition select-none"
+        >
+          <div class="flex items-center gap-2.5">
+            <span class="text-base">{{ cmd.icon }}</span>
+            <span class="text-xs font-semibold text-slate-100 tracking-wide">{{ cmd.title }}</span>
+          </div>
+          <span class="text-[10px] font-mono font-bold text-sky-400 px-1.5 py-0.5 rounded bg-sky-950/60 border border-sky-500/30">
+            {{ cmd.shortcut }}
+          </span>
+        </div>
+        <div v-if="commandController.filtered.length === 0" class="p-6 text-center text-xs text-slate-400 font-mono">
+          未找到匹配指令
+        </div>
+      </div>
+    </div>
+  </div>
+
 </template>
 
 <script setup>
@@ -4219,6 +4292,8 @@ const GeodataDetailModal = defineAsyncComponent(() => import('./components/modal
 const DiagnosticOpsModals = defineAsyncComponent(() => import('./components/modals/DiagnosticOpsModals.vue'))
 import ConsoleAuthModal from './components/modals/ConsoleAuthModal.vue'
 import { frameScheduler, enablePeekModeWithGuard } from './utils/scheduler'
+import { GeekCommandController, updateTopologySpeedTiers } from './utils/command-palette'
+import { SymbioticStreamClient, bindGeekCommandPalette } from './utils/telemetry-stream'
 
 // ── Global Console Auth & Unified Confirm Dialog ──
 if (typeof window !== 'undefined' && !window.__cubexNativeFetch) {
@@ -4307,6 +4382,124 @@ function resolveConfirmDialog(accepted) {
   const fn = confirmResolver
   confirmResolver = null
   if (fn) fn(Boolean(accepted))
+}
+
+// ── Ctrl/Cmd + K 疯狂动物城极客瞬态指令舱 (Command Palette) ──
+const showCommandPalette = ref(false)
+const commandPaletteQuery = ref('')
+const commandPaletteInputRef = ref(null)
+const topologyRailRef = ref(null)
+const liveStreamSpeed = ref({ proxy: 0, direct: 0 })
+const isHADraining = ref(false)
+const ewmaMatrix = ref([])
+
+async function toggleHADrain() {
+  const next = !isHADraining.value
+  try {
+    const res = await fetch('/api/v1/ha/drain', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: next ? 'maintenance' : 'resume' })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      isHADraining.value = next
+      showToast(data.message || (next ? '已进入旁路维护模式' : '已恢复旁路接管'))
+    }
+  } catch (e) {
+    showToast('旁路维护模式切换失败: ' + (e?.message || e), true)
+  }
+}
+
+async function fetchEWMAMatrix() {
+  try {
+    const res = await fetch('/api/v1/probe/ewma/matrix')
+    if (res.ok) {
+      const data = await res.json()
+      ewmaMatrix.value = data.matrix || []
+      showToast('🎯 EWMA 闭环选路矩阵已刷新')
+    }
+  } catch (e) {}
+}
+
+const geekCommands = computed(() => [
+  {
+    id: 'switch-singbox',
+    title: '切换至 sing-box 极速轻量引擎',
+    shortcut: 'S',
+    keywords: 'switch core singbox 切换 内核',
+    action: () => switchEngine('singbox'),
+    icon: '⚡'
+  },
+  {
+    id: 'switch-mihomo',
+    title: '切换至 Mihomo 规则完备引擎',
+    shortcut: 'M',
+    keywords: 'switch core mihomo 切换 内核',
+    action: () => switchEngine('mihomo'),
+    icon: '🛡️'
+  },
+  {
+    id: 'toggle-peek',
+    title: '一键赏景模式 (Peek Mode)',
+    shortcut: 'P',
+    keywords: 'peek wallpaper 赏景 动物城',
+    action: () => togglePeekMode(),
+    icon: '🐰🦊'
+  },
+  {
+    id: 'ha-drain',
+    title: isHADraining.value ? '恢复旁路接管 (退出维护模式)' : '开启旁路维护模式 (不断网停机)',
+    shortcut: 'D',
+    keywords: 'drain ha maintenance 旁路 维护 逃生',
+    action: () => toggleHADrain(),
+    icon: '🛟'
+  },
+  {
+    id: 'refresh-ewma',
+    title: '刷新 EWMA 闭环选路矩阵',
+    shortcut: 'E',
+    keywords: 'ewma probe matrix 选路 测速',
+    action: () => fetchEWMAMatrix(),
+    icon: '🎯'
+  },
+  {
+    id: 'diag-bundle',
+    title: '导出脱敏诊断包 (0 磁盘写 · 0 凭据泄露)',
+    shortcut: 'X',
+    keywords: 'diag bundle export 诊断包 日志 脱敏',
+    action: () => window.open('/api/v1/diag/bundle', '_blank'),
+    icon: '📦'
+  }
+])
+
+const commandController = reactive(new GeekCommandController(geekCommands.value))
+
+watch(geekCommands, (cmds) => {
+  commandController.setCommands(cmds)
+})
+
+function openCommandPalette() {
+  commandPaletteQuery.value = ''
+  commandController.filter('')
+  commandController.isOpen = true
+  showCommandPalette.value = true
+  nextTick(() => {
+    commandPaletteInputRef.value?.focus()
+  })
+}
+
+function closeCommandPalette() {
+  commandController.isOpen = false
+  showCommandPalette.value = false
+}
+
+function onCommandPaletteInput() {
+  commandController.filter(commandPaletteQuery.value)
+}
+
+function onCommandPaletteKeyDown(e) {
+  commandController.handleKeyDown(e, closeCommandPalette)
 }
 
 async function refreshConsoleAuthStatus() {
@@ -10049,15 +10242,19 @@ const hostConfig = ref({
 
 const systemOverview = ref({
 
-  cubex_version: 'Test v8.8',
+  cubex_version: 'Test v9.0',
 
-  panel_curr_version: 'Test v8.8',
+  panel_curr_version: 'Test v9.0',
 
-  panel_latest_version: 'Test v8.8',
+  panel_latest_version: 'Test v9.0',
 
   mihomo_curr_version: 'v1.19.34',
 
+  mihomo_latest_version: 'v1.19.34',
+
   singbox_curr_version: 'v1.14.4',
+
+  singbox_latest_version: 'v1.14.4',
 
   panel_update_avail: false,
 
@@ -11058,7 +11255,7 @@ function triggerQuickAIPrompt(prompt) {
 
 const systemStatus = ref({
 
-  version: 'Test v8.8',
+  version: 'Test v9.0',
 
   uptime_seconds: 1420,
 
@@ -13783,7 +13980,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
     } else if (data.status === 'already_latest') {
 
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v8.8'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v9.0'})`)
 
     } else {
 
@@ -13829,7 +14026,7 @@ async function upgradePanel(force = false) {
 
       const timeStr = new Date().toLocaleTimeString()
 
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v8.8'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v9.0'})，无需重复更新。`
 
       showToast(data.message || 'CubeX 系统已是最新版本')
 
@@ -13881,7 +14078,7 @@ function openGitHubIssuePrompt() {
 
   if (systemOverview.value?.mihomo_update_avail) {
 
-    parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version} (当前: ${systemOverview.value.mihomo_curr_version || 'v1.19.33'})`)
+    parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version} (当前: ${systemOverview.value.mihomo_curr_version || 'v1.19.34'})`)
 
   }
 
@@ -13907,7 +14104,7 @@ function openGitHubIssuePrompt() {
 
 - 系统架构：${systemOverview.value?.arch || 'amd64'}
 
-- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v8.8'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v9.0'}
 
 - 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
 
@@ -22707,6 +22904,26 @@ onMounted(async () => {
   syncHash()
 
   window.addEventListener('hashchange', syncHash)
+
+  bindGeekCommandPalette(openCommandPalette)
+
+  const streamClient = new SymbioticStreamClient(frameScheduler, {
+    onTelemetry: (data) => {
+      if (data.system_status) {
+        systemStatus.value = { ...systemStatus.value, ...data.system_status }
+      }
+      if (data.speed) {
+        liveStreamSpeed.value = data.speed
+        updateTopologySpeedTiers(topologyRailRef.value, data.speed.proxy || 0, data.speed.direct || 0)
+      }
+    },
+    onFlightEvent: (ev) => {
+      if (ev.level === 'CRIT' || ev.level === 'WARN') {
+        showToast(`[黑匣子 ${ev.category}] ${ev.summary}`)
+      }
+    }
+  })
+  streamClient.connect()
 
 })
 

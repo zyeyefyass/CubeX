@@ -378,7 +378,7 @@ func (m *Manager) GetOverview() map[string]any {
 
 	if latestMihomo == "" {
 
-		latestMihomo = "v1.19.33"
+		latestMihomo = "v1.19.34"
 
 	}
 
@@ -386,7 +386,7 @@ func (m *Manager) GetOverview() map[string]any {
 
 	if latestPanel == "" {
 
-		latestPanel = "Test v8.8"
+		latestPanel = "Test v9.0"
 
 	}
 
@@ -1288,7 +1288,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 // ──────────────────────────────────────────────
 
 func (m *Manager) getLocalPanelVersion() string {
-	return "Test v8.9"
+	return "Test v9.0"
 
 }
 
@@ -1752,7 +1752,7 @@ func (m *Manager) getLocalMihomoVersion() string {
 
 	if err != nil {
 
-		return "v1.19.33"
+		return "v1.19.34"
 
 	}
 
@@ -1768,7 +1768,7 @@ func (m *Manager) getLocalMihomoVersion() string {
 
 	}
 
-	return "v1.19.33"
+	return "v1.19.34"
 
 }
 
@@ -1782,7 +1782,7 @@ func (m *Manager) fetchLatestMihomoVersion() (string, error) {
 
 	}
 
-	return "v1.19.33", nil
+	return "v1.19.34", nil
 
 }
 

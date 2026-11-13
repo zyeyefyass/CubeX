@@ -5,8 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/zyeyefyass/CubeX/internal/dataplane"
+	"github.com/zyeyefyass/CubeX/internal/onboarding"
+	"github.com/zyeyefyass/CubeX/internal/telemetry"
 	"github.com/zyeyefyass/CubeX/internal/upstream"
 )
 
@@ -35,6 +39,8 @@ func (s *Server) handleHADrain(w http.ResponseWriter, r *http.Request) {
 		if s.rosMgr != nil {
 			_ = s.rosMgr.GracefulDrain(r.Context(), true)
 		}
+		_ = dataplane.TeardownAtomicNftRules(r.Context())
+		telemetry.GetGlobalFlightRecorder().Record(telemetry.CatHAFailover, "WARN", "进入旁路维护（不断网停机）：RouterOS 策略路由与 DNS 已平滑降级", 0)
 		s.logBuffer.Add("WARN", "HA", "已进入「旁路维护（不断网停机）」模式：RouterOS 策略路由与 DNS 已无感降级直连，全家网络畅通，可安全维护容器！")
 		sendJSON(w, map[string]any{
 			"ok":          true,
@@ -49,6 +55,7 @@ func (s *Server) handleHADrain(w http.ResponseWriter, r *http.Request) {
 		if s.rosMgr != nil {
 			_ = s.rosMgr.NotifyEngineReady(r.Context())
 		}
+		telemetry.GetGlobalFlightRecorder().Record(telemetry.CatHAFailover, "INFO", "恢复旁路接管：RouterOS 策略路由与 DNS 已恢复接管", 0)
 		s.logBuffer.Add("INFO", "HA", "已恢复旁路接管：RouterOS 策略路由与 DNS 已恢复接管。")
 		sendJSON(w, map[string]any{
 			"ok":          true,
@@ -362,4 +369,24 @@ func (s *Server) registerDefaultUpstreamProviders() {
 			}, nil
 		},
 	})
+}
+
+// handleFlightLog 提供 64KB 内存环形黑匣子记录快照（零磁盘 I/O）
+func (s *Server) handleFlightLog(w http.ResponseWriter, r *http.Request) {
+	events := telemetry.GetGlobalFlightRecorder().Snapshot(100)
+	sendJSON(w, map[string]any{
+		"ok":     true,
+		"events": events,
+		"count":  len(events),
+	})
+}
+
+// handleOnboardingDoctor 提供环境预检自检与个性化宿主共生脚本
+func (s *Server) handleOnboardingDoctor(w http.ResponseWriter, r *http.Request) {
+	hostIP := detectOutboundIP()
+	if envIP := os.Getenv("CUBEX_HOST_IP"); envIP != "" {
+		hostIP = envIP
+	}
+	rep := onboarding.RunOnboardingDoctor(r.Context(), hostIP, 2026, "198.18.0.0/15")
+	sendJSON(w, rep)
 }

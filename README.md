@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v8.9-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v9.0_LTS-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -22,6 +22,7 @@
 
 <p align="center">
 
+📖 <b>新手 5 分钟极速上手？请直接阅读 👉 <a href="docs/QUICKSTART.md">《CubeX 全底座保姆级部署与共生指引 (Quickstart Guide)》</a></b><br>
 <b>纯 Go 单二进制自研架构 · 宿主机物理内存仅占 ~35MB~100MB · 国内千兆万兆芯片直出 · 零运营商 DNS 泄露 · 217heidai 权威去广告</b><br>
 
 <i>小白轻松照着做，老鸟多提宝贵调优建议。化解家庭网络痛点，守护极客家庭和睦！</i>

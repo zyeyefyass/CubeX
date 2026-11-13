@@ -591,9 +591,9 @@
 
                   <div class="flex items-center justify-between">
 
-                    <span>Mihomo 内核: <strong class="text-white font-bold text-sm">{{ app.systemOverview.mihomo_curr_version || 'v1.19.33' }}</strong></span>
+                    <span>Mihomo 内核: <strong class="text-white font-bold text-sm">{{ app.systemOverview.mihomo_curr_version || 'v1.19.34' }}</strong></span>
 
-                    <span class="text-slate-400">官方最新: <span :class="app.systemOverview.mihomo_update_avail ? 'text-amber-400 font-bold' : 'text-slate-200 font-semibold'">{{ app.systemOverview.mihomo_latest_version || 'v1.19.33' }}</span></span>
+                    <span class="text-slate-400">官方最新: <span :class="app.systemOverview.mihomo_update_avail ? 'text-amber-400 font-bold' : 'text-slate-200 font-semibold'">{{ app.systemOverview.mihomo_latest_version || 'v1.19.34' }}</span></span>
 
                   </div>
 

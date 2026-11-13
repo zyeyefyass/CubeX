@@ -95,12 +95,17 @@ import (
 
 	"github.com/zyeyefyass/CubeX/internal/sub"
 	"github.com/zyeyefyass/CubeX/internal/telemetry"
+	"github.com/zyeyefyass/CubeX/internal/dataplane"
+	"github.com/zyeyefyass/CubeX/internal/lifecycle"
+	"github.com/zyeyefyass/CubeX/internal/onboarding"
+	"os/signal"
+	"syscall"
 
 	"github.com/zyeyefyass/CubeX/internal/webrtc"
 )
 
 var (
-	version = "Test v8.9"
+	version = "Test v9.0"
 
 	startTime = time.Now()
 )
@@ -719,7 +724,16 @@ func main() {
 
 	workDir := flag.String("dir", "", "Working directory (defaults to current dir or /opt/CubeX)")
 
+	runDoctor := flag.Bool("doctor", false, "Run onboarding doctor environment preflight and print diagnostic report")
+
 	flag.Parse()
+
+	if *runDoctor {
+		rep := onboarding.RunOnboardingDoctor(context.Background(), detectOutboundIP(), 2026, "198.18.0.0/15")
+		b, _ := json.MarshalIndent(rep, "", "  ")
+		fmt.Println(string(b))
+		os.Exit(0)
+	}
 
 	// Environment variable port override (PORT or CUBEX_PORT)
 	if envPort := os.Getenv("CUBEX_PORT"); envPort != "" && *listenAddr == ":2026" {
@@ -953,7 +967,7 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v8.9")
+	srv.mcpServer = mcp.NewServer(srv, "Test v9.0")
 
 	srv.ewmaSched = probe.NewEWMAScheduler(probe.SchedulerConfig{
 		ClashAPIBase:   config.GlobalRuntimeSpec.ClashAPIAddr,
@@ -1535,6 +1549,29 @@ func main() {
 	mux.HandleFunc("/api/v1/upstream/matrix", srv.handleUpstreamMatrix)
 	mux.HandleFunc("/api/v1/upstream/upgrade", srv.handleUpstreamUpgrade)
 
+	// 12.2 Telemetry SSE Stream & FlightRecorder Blackbox (v9.0 LTS)
+	mux.Handle("/api/v1/telemetry/stream", telemetry.GetGlobalSSEBroadcaster())
+	mux.HandleFunc("/api/v1/diag/flight-log", srv.handleFlightLog)
+	mux.HandleFunc("/api/v1/onboarding/doctor", srv.handleOnboardingDoctor)
+	mux.HandleFunc("/api/v1/diag/bundle", telemetry.ServeDiagnosticBundle(
+		telemetry.GetGlobalFlightRecorder(),
+		func() string {
+			if srv.engMgr != nil {
+				return string(srv.engMgr.GetActiveEngine())
+			}
+			return "singbox"
+		},
+		func() []byte {
+			if srv.engMgr != nil {
+				if ir := srv.engMgr.GetIR(); ir != nil {
+					b, _ := json.Marshal(ir)
+					return b
+				}
+			}
+			return nil
+		},
+	))
+
 	mux.HandleFunc("/api/v1/ros/routing/status", srv.handleROSInspect)
 
 	mux.HandleFunc("/api/v1/ros/routing/apply", srv.handleROSApply)
@@ -1672,20 +1709,72 @@ func main() {
 	}
 	log.Printf("🌌 CubeX Daemon [%s] listening on %s (Engine: %s, Tuning: %s)\n", version, actualAddr, cfgIR.Meta.ActiveEngine, cfgIR.Network.TunInterface)
 
+	// 初始化 LTS 守护进程全生命周期合龙状态机
+	activeIRPath := filepath.Join(dir, "data", "config.ir.json")
+	lkgPath := filepath.Join(dir, "data", "lkg.json")
+	lkgGuard := telemetry.NewLKGConfigGuard(activeIRPath, lkgPath, telemetry.GetGlobalFlightRecorder())
+	ltsSupervisor := lifecycle.NewLTSDaemonSupervisor(
+		lkgGuard,
+		telemetry.GetGlobalFlightRecorder(),
+		telemetry.GetGlobalSSEBroadcaster(),
+		15*time.Second,
+	)
+
+	// 安全启用内核快速直通（若非特权容器则平滑降级）
+	ltsSupervisor.EnableKernelFastPathSafely(context.Background(), dataplane.FastPathSpec{
+		TunInterface:  cfgIR.Network.TunInterface,
+		DNSListenPort: cfgIR.Network.DNSPort,
+		BlockIPv6AAAA: true,
+	})
+
+	handler := recoveryMiddleware(gzipMiddleware(corsMiddleware(authMiddleware(srv.authMgr, mux))))
+	httpServer := &http.Server{
+		Handler: handler,
+	}
+
 	// Dual-port listening: if port 80 is available (e.g. standalone container), also serve on port 80 for seamless access (http://<IP>)
 	if *listenAddr != ":80" && *listenAddr != "0.0.0.0:80" {
 		SafeGo("WebDirectPort80", func() {
 			ln80, err80 := net.Listen("tcp", ":80")
 			if err80 == nil {
 				log.Printf("🌐 [Web Direct] Port 80 is free! Also serving dashboard directly at http://<host-ip>/ (Port 80)\n")
-				_ = http.Serve(ln80, recoveryMiddleware(gzipMiddleware(corsMiddleware(authMiddleware(srv.authMgr, mux)))))
+				_ = http.Serve(ln80, handler)
 			} else {
 				log.Printf("ℹ️ [Web Direct] Port 80 is reserved or occupied by host (%v), continuing on %s\n", err80, actualAddr)
 			}
 		})
 	}
 
-	if err := http.Serve(ln, recoveryMiddleware(gzipMiddleware(corsMiddleware(authMiddleware(srv.authMgr, mux))))); err != nil {
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
+
+	SafeGo("SignalSupervisor", func() {
+		sig := <-sigCh
+		log.Printf("🛑 接收到系统终止信号 [%v]，启动 LTS 确定性无阻塞退出序列...\n", sig)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+
+		ltsSupervisor.DeterministicShutdown(
+			shutdownCtx,
+			func(ctx context.Context) error {
+				if srv.rosMgr != nil {
+					_ = srv.rosMgr.GracefulDrain(ctx, true)
+				}
+				return nil
+			},
+			func() error {
+				engMgr.Stop()
+				return nil
+			},
+			func(ctx context.Context) error {
+				return httpServer.Shutdown(ctx)
+			},
+		)
+		log.Println("✅ LTS 守护进程已安全优雅停机。")
+		os.Exit(0)
+	})
+
+	if err := httpServer.Serve(ln); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("Fatal: %v", err)
 	}
 
@@ -2390,9 +2479,16 @@ func (s *Server) handleEngineSwitch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
+		telemetry.GetGlobalFlightRecorder().Record(telemetry.CatEngineSwitch, "CRIT", fmt.Sprintf("双核热切换至 %s 失败: %v", target, err), 0)
 		sendJSON(w, map[string]any{"status": "error", "success": false, "error": err.Error(), "result": result})
 		return
 	}
+
+	cost := int64(0)
+	if result != nil {
+		cost = result.TotalCostMs
+	}
+	telemetry.GetGlobalFlightRecorder().Record(telemetry.CatEngineSwitch, "INFO", fmt.Sprintf("双核热切换至 %s 成功（耗时 %dms）", target, cost), cost)
 
 	if s.rosMgr != nil {
 		SafeGo("SwitchEngineROSPurge", func() {
