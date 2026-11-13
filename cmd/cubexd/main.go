@@ -105,7 +105,7 @@ import (
 )
 
 var (
-	version = "Test v9.1"
+	version = "v9.2.0"
 
 	startTime = time.Now()
 )
@@ -968,12 +968,16 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v9.1")
+	srv.mcpServer = mcp.NewServer(srv, "v9.2.0")
 	srv.gatewayModeCtrl = onboarding.NewGatewayModeController()
 	srv.gatewayModeCtrl.BindPersistenceFile(filepath.Join(dir, "data", "gateway_mode.json"))
 	if err := srv.gatewayModeCtrl.RestoreOnBoot(context.Background()); err != nil {
 		log.Printf("[GatewayMode] Boot restore notice: %v", err)
 	}
+
+	tuneReport := dataplane.OptimizeKernelForHighThroughput(filepath.Join(dir, "data"))
+	log.Printf("[KernelTuner] UDP Buffer: %v, Conntrack: %v, BBR: %v",
+		tuneReport.UDPBuffersOptimized, tuneReport.ConntrackOptimized, tuneReport.BBRDetected)
 
 	srv.ewmaSched = probe.NewEWMAScheduler(probe.SchedulerConfig{
 		ClashAPIBase:   config.GlobalRuntimeSpec.ClashAPIAddr,
@@ -1560,6 +1564,8 @@ func main() {
 	mux.HandleFunc("/api/v1/diag/flight-log", srv.handleFlightLog)
 	mux.HandleFunc("/api/v1/onboarding/doctor", srv.handleOnboardingDoctor)
 	mux.HandleFunc("/api/v1/onboarding/gateway-mode", srv.handleGatewayMode)
+	mux.HandleFunc("/api/v1/onboarding/tri-router", srv.handleTriRouterBundle)
+	mux.HandleFunc("/api/v1/onboarding/verify-loop", srv.handleVerifySymbioticLoop)
 	mux.HandleFunc("/api/v1/diag/bundle", telemetry.ServeDiagnosticBundle(
 		telemetry.GetGlobalFlightRecorder(),
 		func() string {

@@ -416,3 +416,35 @@ func (s *Server) handleGatewayMode(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
 }
+
+// handleTriRouterBundle 提供针对软路由三巨头（ROS x OpenWrt x 爱快）的一键配置包
+func (s *Server) handleTriRouterBundle(w http.ResponseWriter, r *http.Request) {
+	if s.gatewayModeCtrl == nil {
+		s.gatewayModeCtrl = onboarding.NewGatewayModeController()
+	}
+	st := s.gatewayModeCtrl.InspectStatus(r.Context())
+	cubexIP := st.CurrentSpec.CubeXLocalIP
+	gwIP := st.CurrentSpec.UpstreamGatewayIP
+	bundle := onboarding.BuildTriRouterSymbiosisBundle(cubexIP, gwIP, "223.5.5.5", 2026)
+	sendJSON(w, bundle)
+}
+
+// handleVerifySymbioticLoop 实机自检与主路由网关的连通回路
+func (s *Server) handleVerifySymbioticLoop(w http.ResponseWriter, r *http.Request) {
+	if s.gatewayModeCtrl == nil {
+		s.gatewayModeCtrl = onboarding.NewGatewayModeController()
+	}
+	st := s.gatewayModeCtrl.InspectStatus(r.Context())
+	gwIP := st.CurrentSpec.UpstreamGatewayIP
+	if gwIP == "" {
+		gwIP = "10.0.0.1"
+	}
+	dnsPort := 53
+	if s.engMgr != nil {
+		if ir := s.engMgr.GetIR(); ir != nil && ir.Network.DNSPort > 0 {
+			dnsPort = ir.Network.DNSPort
+		}
+	}
+	res := onboarding.VerifySymbioticLoop(r.Context(), gwIP, dnsPort)
+	sendJSON(w, res)
+}

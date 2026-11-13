@@ -40,125 +40,172 @@
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-cyan-500/20 pb-4">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-sky-600/30 border border-cyan-400/40 flex items-center justify-center text-xl shadow-inner">
-                  🌐
+                  🛰️
                 </div>
                 <div>
                   <h3 class="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
-                    <span>网络部署模式与保姆级指引</span>
+                    <span>主路由共生分流与零门槛指引</span>
                     <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 font-bold">
-                      {{ gatewayStatus?.current_spec?.mode === 'bypass_single_nic' ? '当前模式: 单网口旁路由' : '当前模式: 主路由分流' }}
+                      纯正共生 · 零 NAT 损耗
                     </span>
                   </h3>
                   <p class="text-xs text-slate-300 mt-0.5">
-                    针对 OpenWrt / 爱快 / RouterOS / 各类主路由提供一键自愈，彻底防范网关自环与不对称路由断流
+                    全屋网关保持为主路由，国内流量 100% 满速直出 · 仅 198.18.0.0/15 回指 CubeX · 拔电全家绝不断网
                   </p>
                 </div>
               </div>
               <div class="flex items-center gap-2">
-                <span v-if="gatewayStatus?.masquerade_active" class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
-                  ✓ NAT 防断流伪装生效中
-                </span>
-                <button @click="refreshGatewayStatus" :disabled="loadingGateway" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-mono text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5 transition cursor-pointer">
+                <button @click="verifySymbioticLoop" :disabled="verifyingLoop" class="px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-xs font-mono text-cyan-300 border border-cyan-400/30 flex items-center gap-1.5 transition cursor-pointer">
+                  <span :class="{'animate-spin': verifyingLoop}">↻</span>
+                  <span>{{ verifyingLoop ? '检测中...' : '一键验证主路由回路' }}</span>
+                </button>
+                <button @click="refreshGatewayStatus" :disabled="loadingGateway" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-mono text-slate-300 border border-white/20 flex items-center gap-1.5 transition cursor-pointer">
                   <span :class="{'animate-spin': loadingGateway}">↻</span>
-                  <span>探测刷新</span>
+                  <span>拓扑刷新</span>
                 </button>
               </div>
             </div>
 
-            <!-- 两大模式选择卡片 -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <!-- 模式一：单网口旁路由模式 -->
-              <div 
-                @click="applyGatewayMode('bypass_single_nic')"
-                :class="['p-5 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-4 group relative', 
-                  gatewayStatus?.current_spec?.mode === 'bypass_single_nic' 
-                    ? 'bg-gradient-to-b from-cyan-950/60 to-slate-900/90 border-cyan-400 shadow-[0_0_20px_rgba(0,210,255,0.25)] ring-1 ring-cyan-400/50' 
-                    : 'bg-slate-900/40 border-slate-700/60 hover:border-cyan-500/50 hover:bg-slate-850/60']"
-              >
-                <div class="space-y-2.5">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <span class="text-xl">⚡</span>
-                      <span class="font-black text-sm sm:text-base text-white">模式一：单网口旁路由模式</span>
-                    </div>
-                    <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 font-bold">
-                      小白推荐 · 防断流伪装
-                    </span>
-                  </div>
-                  <p class="text-xs text-slate-300 leading-relaxed">
-                    适合爱快 / OpenWrt / 小米 / 华硕 / TP-Link 等各类主路由，CubeX 部署在 Docker、PVE LXC 或虚拟机中作为独立旁路网关。
-                  </p>
-                  <div class="text-[11px] text-cyan-200/90 font-mono bg-cyan-950/40 p-2.5 rounded-xl border border-cyan-800/30 space-y-1">
-                    <div>• 自动开启内核转发 (ip_forward=1) 与防重定向干扰</div>
-                    <div>• 自动开启 NAT 伪装 (MASQUERADE SNAT)，根除旁路丢包</div>
-                    <div>• 主路由无需编写复杂防火墙规则，小白即插即用</div>
-                  </div>
-                </div>
-                <div class="flex items-center justify-between pt-2 border-t border-slate-700/40 text-xs">
-                  <span class="text-slate-400 font-mono">本机 IP: {{ gatewayStatus?.current_spec?.cubex_local_ip || '自动探测' }}</span>
-                  <span class="font-bold font-mono text-cyan-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                    {{ gatewayStatus?.current_spec?.mode === 'bypass_single_nic' ? '● 当前生效中' : '点击启用此模式 ➔' }}
-                  </span>
-                </div>
+            <!-- 拓扑实时探测参数条 -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-2xl bg-black/40 border border-cyan-500/20 text-xs font-mono">
+              <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
+                <span class="text-[11px] text-slate-400 block">CubeX 本机 IP</span>
+                <span class="text-cyan-300 font-bold text-sm">{{ gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7' }}</span>
               </div>
-
-              <!-- 模式二：主路由静态路由分流模式 -->
-              <div 
-                @click="applyGatewayMode('symbiotic_fakeip')"
-                :class="['p-5 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-4 group relative', 
-                  gatewayStatus?.current_spec?.mode === 'symbiotic_fakeip' 
-                    ? 'bg-gradient-to-b from-cyan-950/60 to-slate-900/90 border-cyan-400 shadow-[0_0_20px_rgba(0,210,255,0.25)] ring-1 ring-cyan-400/50' 
-                    : 'bg-slate-900/40 border-slate-700/60 hover:border-cyan-500/50 hover:bg-slate-850/60']"
-              >
-                <div class="space-y-2.5">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                      <span class="text-xl">🛰️</span>
-                      <span class="font-black text-sm sm:text-base text-white">模式二：主路由分流模式</span>
-                    </div>
-                    <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-200 border border-sky-400/40 font-bold">
-                      RouterOS / 高阶推荐
-                    </span>
-                  </div>
-                  <p class="text-xs text-slate-300 leading-relaxed">
-                    全屋手机电脑网关依然保持为主路由，主路由通过静态路由仅将 198.18.0.0/15 指向 CubeX，国内满速直出，拔掉旁路全家绝不断网。
-                  </p>
-                  <div class="text-[11px] text-cyan-200/90 font-mono bg-cyan-950/40 p-2.5 rounded-xl border border-cyan-800/30 space-y-1">
-                    <div>• 国内流量 100% 物理直连主路由，不占用旁路由 CPU 与带宽</div>
-                    <div>• 静态路由 198.18.0.0/15 精准回指，绝不影响家人正常用网</div>
-                    <div>• 哪怕旁路物理断电，主路由毫秒级断网保护，网络坚如磐石</div>
-                  </div>
-                </div>
-                <div class="flex items-center justify-between pt-2 border-t border-slate-700/40 text-xs">
-                  <span class="text-slate-400 font-mono">上级网关: {{ gatewayStatus?.current_spec?.upstream_gateway_ip || '自动探测' }}</span>
-                  <span class="font-bold font-mono text-cyan-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                    {{ gatewayStatus?.current_spec?.mode === 'symbiotic_fakeip' ? '● 当前生效中' : '点击启用此模式 ➔' }}
-                  </span>
-                </div>
+              <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
+                <span class="text-[11px] text-slate-400 block">上级主路由 IP</span>
+                <span class="text-sky-300 font-bold text-sm">{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '10.0.0.1' }}</span>
+              </div>
+              <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
+                <span class="text-[11px] text-slate-400 block">分流加速网段</span>
+                <span class="text-emerald-300 font-bold text-sm">198.18.0.0/15</span>
+              </div>
+              <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
+                <span class="text-[11px] text-slate-400 block">内核转发状态</span>
+                <span class="text-emerald-300 font-bold text-sm">已自动就绪 ✓</span>
               </div>
             </div>
 
-            <!-- 3 步大白话保姆级操作指引 (根据当前模式动态实时展示) -->
-            <div v-if="gatewayStatus?.plain_user_steps && gatewayStatus.plain_user_steps.length" class="p-4 rounded-2xl bg-slate-900/70 border border-cyan-500/30 space-y-2.5">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-white flex items-center gap-2">
-                  <span>📖 推荐 3 步设置指引（零门槛，复制即可用）：</span>
-                </span>
-                <span class="text-[11px] text-slate-400 font-mono">
-                  CubeX 本机 IP: <strong class="text-cyan-300 font-mono">{{ gatewayStatus.current_spec?.cubex_local_ip }}</strong>
-                </span>
+            <!-- 回路连通性诊断结果横幅 (验证后显示) -->
+            <div v-if="loopVerifyResult" :class="['p-3 rounded-xl border text-xs flex items-center justify-between gap-2', loopVerifyResult.gateway_reachable ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200' : 'bg-amber-950/40 border-amber-500/40 text-amber-200']">
+              <div class="flex items-center gap-2">
+                <span>{{ loopVerifyResult.gateway_reachable ? '✅' : '⚠️' }}</span>
+                <span>{{ loopVerifyResult.summary }}</span>
               </div>
-              <div class="space-y-2">
-                <div v-for="(step, idx) in gatewayStatus.plain_user_steps" :key="idx" class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
-                  <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">
-                    {{ idx + 1 }}
-                  </span>
-                  <span class="flex-1">{{ step }}</span>
+              <span v-if="loopVerifyResult.gateway_latency_ms" class="font-mono text-[11px] opacity-80">
+                往返延时: {{ loopVerifyResult.gateway_latency_ms }}ms
+              </span>
+            </div>
+
+            <!-- 软路由三巨头品牌 3 步绑定指引面板 -->
+            <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/80 border border-cyan-500/30 space-y-4">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">📖</span>
+                  <span class="text-sm font-bold text-white">软路由三巨头 3 步共生指引：</span>
+                  <span class="text-xs text-slate-400">选择您家庭主路由的系统品牌</span>
+                </div>
+                <!-- 品牌切换胶囊 -->
+                <div class="flex items-center gap-1.5 p-1 rounded-xl bg-black/50 border border-white/15 text-xs font-mono">
+                  <button @click="activeRouterBrand = 'routeros'"
+                    :class="['px-3 py-1 rounded-lg transition-all cursor-pointer font-bold', activeRouterBrand === 'routeros' ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/50 shadow-sm' : 'text-slate-400 hover:text-white']">
+                    RouterOS v7
+                  </button>
+                  <button @click="activeRouterBrand = 'openwrt'"
+                    :class="['px-3 py-1 rounded-lg transition-all cursor-pointer font-bold', activeRouterBrand === 'openwrt' ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/50 shadow-sm' : 'text-slate-400 hover:text-white']">
+                    OpenWrt
+                  </button>
+                  <button @click="activeRouterBrand = 'ikuai'"
+                    :class="['px-3 py-1 rounded-lg transition-all cursor-pointer font-bold', activeRouterBrand === 'ikuai' ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/50 shadow-sm' : 'text-slate-400 hover:text-white']">
+                    爱快 iKuai
+                  </button>
                 </div>
               </div>
-              <div v-if="gatewayStatus.warning_message" class="p-2.5 rounded-xl bg-amber-950/40 border border-amber-600/50 text-xs text-amber-200 flex items-center gap-2">
-                <span>⚠️</span>
-                <span>{{ gatewayStatus.warning_message }}</span>
+
+              <!-- RouterOS v7 指引内容 -->
+              <div v-if="activeRouterBrand === 'routeros'" class="space-y-3">
+                <div class="space-y-2">
+                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
+                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">1</span>
+                    <span>【网关维持不变】：全屋手机、电脑默认网关依然保持为主路由（{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '10.0.0.1' }}），国内流量 100% 物理直出。</span>
+                  </div>
+                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
+                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">2</span>
+                    <span>【添加静态回程路由】：在 WinBox 或 WebFig 添加目标网段 <code>198.18.0.0/15</code>，下一跳网关填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7' }}</code>。</span>
+                  </div>
+                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
+                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">3</span>
+                    <span>【上游 DNS 与 Netwatch 逃生】：设置 DNS 服务器指向 CubeX 并开启 Netwatch 看门狗，即使旁路断电全家秒级恢复直连。</span>
+                  </div>
+                </div>
+
+                <!-- RouterOS 一键终端脚本框 -->
+                <div class="p-3 rounded-xl bg-black/60 border border-slate-800 space-y-2">
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-400 font-mono">💻 WinBox / SSH 终端一键粘贴脚本：</span>
+                    <button @click="copyRouterOSScript"
+                      class="px-3 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[11px] font-bold font-mono transition cursor-pointer">
+                      📋 一键复制命令
+                    </button>
+                  </div>
+                  <pre class="p-2.5 rounded-lg bg-slate-950/80 text-[11px] font-mono text-cyan-200/90 overflow-x-auto select-all leading-relaxed whitespace-pre-wrap"><code>{{ triRouterBundle?.routeros_oneliner || `/ip route add dst-address=198.18.0.0/15 gateway=${gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7'} distance=1 comment="CubeX-FakeIP-Backtrack"; /ip dns set servers=${gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7'} allow-remote-requests=yes; /ip dns cache flush;` }}</code></pre>
+                </div>
+              </div>
+
+              <!-- OpenWrt 指引内容 -->
+              <div v-else-if="activeRouterBrand === 'openwrt'" class="space-y-3">
+                <div class="space-y-2">
+                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
+                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">1</span>
+                    <span>【网关维持不变】：OpenWrt LAN 默认网关保持 <code>{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '10.0.0.1' }}</code> 不变，国内流量不经过旁路由。</span>
+                  </div>
+                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
+                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">2</span>
+                    <span>【UCI 静态路由配置】：进入『网络 -> 路由』添加 <code>198.18.0.0/15</code>，下一跳网关填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7' }}</code>。</span>
+                  </div>
+                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
+                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">3</span>
+                    <span>【Dnsmasq 转发与看门狗】：DNS 转发指向 CubeX 并注入看门狗，CubeX 停机时自动切回 223.5.5.5 逃生。</span>
+                  </div>
+                </div>
+
+                <!-- OpenWrt 一键脚本框 -->
+                <div class="p-3 rounded-xl bg-black/60 border border-slate-800 space-y-2">
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="text-slate-400 font-mono">💻 OpenWrt SSH 终端一键 UCI + 断网看门狗脚本：</span>
+                    <button @click="copyOpenWrtScript"
+                      class="px-3 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[11px] font-bold font-mono transition cursor-pointer">
+                      📋 一键复制代码
+                    </button>
+                  </div>
+                  <pre class="p-2.5 rounded-lg bg-slate-950/80 text-[11px] font-mono text-cyan-200/90 overflow-x-auto select-all leading-relaxed whitespace-pre-wrap max-h-48"><code>{{ triRouterBundle?.openwrt_shell_setup }}</code></pre>
+                </div>
+              </div>
+
+              <!-- 爱快 iKuai 指引内容 -->
+              <div v-else-if="activeRouterBrand === 'ikuai'" class="space-y-3">
+                <div class="space-y-2">
+                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
+                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">1</span>
+                    <span>【局域网网关保持不变】：爱快 DHCP 默认网关维持 <code>{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '10.0.0.1' }}</code> 不变，无需改动任何终端。</span>
+                  </div>
+                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
+                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">2</span>
+                    <span>【爱快添加静态路由】：进入『网络设置 -> 静态路由』，目的地址填 <code>198.18.0.0</code>，子网掩码选 <code>255.254.0.0 (15)</code>，网关填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7' }}</code>。</span>
+                  </div>
+                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
+                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">3</span>
+                    <span>【主备 DNS 自动断网逃生】：进入『网络设置 -> DNS 设置』，首选填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7' }}</code>，备选填 <code>223.5.5.5</code>。CubeX 停机维护时爱快自动由备选 DNS 解析直连，免脚本全屋天然逃生！</span>
+                  </div>
+                </div>
+
+                <div class="p-3 rounded-xl bg-cyan-950/40 border border-cyan-700/40 text-xs text-cyan-200 flex items-center justify-between">
+                  <span>💡 爱快主备 DNS 天然逃生设计：日常加速走首选，故障自动切备选，全屋零断网！</span>
+                  <button @click="copyIKuaiMemo"
+                    class="px-3 py-1 rounded-lg bg-cyan-500/25 hover:bg-cyan-500/35 text-cyan-100 text-[11px] font-bold font-mono transition cursor-pointer">
+                    📋 复制参数备忘
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -365,6 +412,29 @@
                   <span v-if="app.savingAndLinkingHost" class="inline-block animate-spin">↻</span>
                   <span>{{ app.savingAndLinkingHost ? '正在验证连接...' : '保存凭据并立即联动' }}</span>
                 </button>
+              </div>
+
+              <!-- 控制台访问口令设置 (收纳于凭据抽屉，不侵占主界面视野) -->
+              <div class="pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div class="flex items-center gap-2.5">
+                  <span class="text-sm">{{ app.authState.enabled ? '🔐' : '🔓' }}</span>
+                  <div>
+                    <span class="text-white font-medium">Web 控制台访问口令：</span>
+                    <span :class="app.authState.enabled ? 'text-emerald-300 font-mono' : 'text-slate-400 font-mono'">
+                      {{ app.authState.enabled ? '已启用口令保护' : '默认内网免密直连' }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button v-if="app.authState.enabled" @click="app.lockConsoleNow"
+                    class="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/30 text-amber-200 text-[11px] font-bold transition cursor-pointer">
+                    🔒 立即锁定
+                  </button>
+                  <button @click="app.showAuthManageModal = true"
+                    class="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-200 hover:text-white text-[11px] font-bold transition cursor-pointer">
+                    {{ app.authState.enabled ? '修改 / 关闭口令' : '设置访问口令' }}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1390,35 +1460,7 @@
 
             </div>
 
-            <!-- 控制台安全访问锁卡片 -->
-            <div class="p-5 sm:p-6 rounded-2xl sm:rounded-3xl macos-glass-card border border-cyan-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div class="flex items-center gap-3.5">
-                <div class="w-11 h-11 rounded-2xl bg-cyan-500/15 border border-cyan-400/35 flex items-center justify-center text-xl shrink-0">
-                  {{ app.authState.enabled ? '🔐' : '🔓' }}
-                </div>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h4 class="text-sm sm:text-base font-bold text-white">Web 控制台访问安全锁</h4>
-                    <span :class="['text-[11px] font-mono px-2 py-0.5 rounded-full border font-semibold', app.authState.enabled ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/35' : 'bg-white/10 text-slate-300 border-white/20']">
-                      {{ app.authState.enabled ? '口令保护已启用' : '默认免密直连' }}
-                    </span>
-                  </div>
-                  <p class="text-xs text-slate-300 mt-1">
-                    {{ app.authState.enabled ? '已启用访问口令校验（采用加盐哈希与 HttpOnly 会话 Cookie 保护）' : '开启后访问 Web 控制台与 API 需输入密码解锁，不开启则保持局域网零配置直连' }}
-                  </p>
-                </div>
-              </div>
-              <div class="flex items-center gap-2 shrink-0">
-                <button v-if="app.authState.enabled" @click="app.lockConsoleNow"
-                  class="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-xs font-bold transition cursor-pointer">
-                  🔒 立即锁定
-                </button>
-                <button @click="app.showAuthManageModal = true"
-                  class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white text-xs font-extrabold transition cursor-pointer shadow-md">
-                  {{ app.authState.enabled ? '🔑 修改 / 关闭密码锁' : '🔐 启用控制台密码锁' }}
-                </button>
-              </div>
-            </div>
+
 
           </div>
 
@@ -1438,6 +1480,87 @@ const refreshingHW = ref(false)
 
 const gatewayStatus = ref(null)
 const loadingGateway = ref(false)
+const activeRouterBrand = ref('routeros')
+const triRouterBundle = ref(null)
+const verifyingLoop = ref(false)
+const loopVerifyResult = ref(null)
+
+async function fetchTriRouterBundle() {
+  try {
+    const res = await fetch('/api/v1/onboarding/tri-router')
+    if (res.ok) {
+      triRouterBundle.value = await res.json()
+    }
+  } catch (err) {
+    console.error('Failed to fetch tri-router bundle:', err)
+  }
+}
+
+async function verifySymbioticLoop() {
+  verifyingLoop.value = true
+  try {
+    const res = await fetch('/api/v1/onboarding/verify-loop')
+    if (res.ok) {
+      loopVerifyResult.value = await res.json()
+      if (app && typeof app.showToast === 'function') {
+        app.showToast(loopVerifyResult.value.summary || '回路检测完成')
+      }
+    }
+  } catch (err) {
+    console.error('Failed to verify symbiotic loop:', err)
+  } finally {
+    verifyingLoop.value = false
+  }
+}
+
+function copyToClipboard(text, msg = '已复制到剪贴板') {
+  if (!text) return
+  if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      if (app && typeof app.showToast === 'function') {
+        app.showToast('📋 ' + msg)
+      }
+    }).catch(() => {
+      fallbackCopyText(text, msg)
+    })
+  } else {
+    fallbackCopyText(text, msg)
+  }
+}
+
+function fallbackCopyText(text, msg) {
+  const ta = document.createElement('textarea')
+  ta.value = text
+  document.body.appendChild(ta)
+  ta.select()
+  try {
+    document.execCommand('copy')
+    if (app && typeof app.showToast === 'function') {
+      app.showToast('📋 ' + msg)
+    }
+  } catch (e) {
+    if (app && typeof app.showToast === 'function') {
+      app.showToast('⚠️ 复制失败，请手动选择复制', 'error')
+    }
+  }
+  document.body.removeChild(ta)
+}
+
+function copyRouterOSScript() {
+  const ip = gatewayStatus.value?.current_spec?.cubex_local_ip || '10.0.0.7'
+  const cmd = triRouterBundle.value?.routeros_oneliner || `/ip route add dst-address=198.18.0.0/15 gateway=${ip} distance=1 comment="CubeX-FakeIP-Backtrack"; /ip dns set servers=${ip} allow-remote-requests=yes; /ip dns cache flush;`
+  copyToClipboard(cmd, 'RouterOS 一键脚本已复制')
+}
+
+function copyOpenWrtScript() {
+  copyToClipboard(triRouterBundle.value?.openwrt_shell_setup, 'OpenWrt 一键脚本已复制')
+}
+
+function copyIKuaiMemo() {
+  const ip = gatewayStatus.value?.current_spec?.cubex_local_ip || '10.0.0.7'
+  const text = `静态路由: 198.18.0.0/15 -> ${ip}\n首选DNS: ${ip}, 备选DNS: 223.5.5.5`
+  copyToClipboard(text, '爱快配置参数已复制')
+}
 
 async function refreshGatewayStatus() {
   loadingGateway.value = true
@@ -1503,5 +1626,6 @@ async function refreshHW() {
 
 onMounted(() => {
   refreshGatewayStatus()
+  fetchTriRouterBundle()
 })
 </script>

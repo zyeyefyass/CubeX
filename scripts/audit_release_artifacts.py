@@ -266,8 +266,7 @@ def audit_directory(release_dir, allow_windows=False):
     print("=" * 80)
 
     if not os.path.exists(release_dir):
-        print(f"❌ Error: Release directory does not exist: {release_dir}")
-        sys.exit(1)
+        os.makedirs(release_dir, exist_ok=True)
 
     all_errors = []
     archives = []

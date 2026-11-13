@@ -304,15 +304,15 @@ except Exception as e:
 # -------------------------------------------------------------
 log_header("CHECK 8: Atomic Multi-File Version Consistency Gating")
 files_to_verify = {
-    'cmd/cubexd/main.go': r'version\s*=\s*"Test v([0-9]+\.[0-9]+)"',
-    'internal/ros/updater.go': r'return\s*"Test v([0-9]+\.[0-9]+)"',
-    'meta.json': r'"version":\s*"Test v([0-9]+\.[0-9]+)"',
-    'web/package.json': r'"version":\s*"([0-9]+\.[0-9]+)\.0"',
-    'scripts/package_release.ps1': r'\$Version\s*=\s*"Test-v([0-9]+\.[0-9]+)"',
-    'scripts/package_release.sh': r'VERSION="Test-v([0-9]+\.[0-9]+)"',
-    'scripts/install.sh': r'REL_TAG="Test-v([0-9]+\.[0-9]+)"',
-    'install.sh': r'_CUBEX_LOADER_VERSION="([0-9]+\.[0-9]+)"',
-    'scripts/install_pve_lxc.sh': r'REL_TAG="Test-v([0-9]+\.[0-9]+)"',
+    'cmd/cubexd/main.go': r'version\s*=\s*"(?:Test\s+)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
+    'internal/ros/updater.go': r'return\s*"(?:Test\s+)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
+    'meta.json': r'"version":\s*"(?:Test\s+)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
+    'web/package.json': r'"version":\s*"([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
+    'scripts/package_release.ps1': r'\$Version\s*=\s*"(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
+    'scripts/package_release.sh': r'VERSION="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
+    'scripts/install.sh': r'REL_TAG="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
+    'install.sh': r'_CUBEX_LOADER_VERSION="([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
+    'scripts/install_pve_lxc.sh': r'REL_TAG="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
 }
 
 detected_versions = {}
@@ -325,8 +325,9 @@ for p, pat in files_to_verify.items():
 unique_versions = set(detected_versions.values())
 if len(unique_versions) == 1 and 'NOT_FOUND' not in unique_versions:
     v_num = list(unique_versions)[0]
-    print(f"  ✓ 100% Atomic Consistency PASS: All 9 core files strictly aligned at Test v{v_num} (Tag: Test-v{v_num})")
-    results["checks"]["version_consistency"] = {"status": "PASS", "version": f"Test v{v_num}"}
+    display_tag = f"v{v_num}" if not v_num.startswith("v") else v_num
+    print(f"  ✓ 100% Atomic Consistency PASS: All 9 core files strictly aligned at {display_tag} (Tag: {display_tag})")
+    results["checks"]["version_consistency"] = {"status": "PASS", "version": display_tag}
     results["passed"] += 1
 else:
     print(f"  ✗ Version divergence detected across files: {detected_versions}")
