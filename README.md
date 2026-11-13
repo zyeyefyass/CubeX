@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v9.0_LTS-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v9.1-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -78,7 +78,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 Test v8.9 最新版本更新亮点](#announcement)
+- [📢 Test v9.1 最新版本更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -321,16 +321,16 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v8.9 最新版本更新亮点 (疯狂动物城三级景深流光玻璃 · 120FPS 零卡顿渲染调度 · 双擎切换毫秒耗时穿透 · 宿主旁路维护逃生模式)
+## 📢 Test v9.1 最新版本更新亮点 (大道至简 · 零门槛主旁双模自愈版)
 
 > [!IMPORTANT]
-> ### 👑【疯狂动物城三级景深流光玻璃 · 120FPS 零卡顿渲染调度 · 双擎切换毫秒耗时穿透 · 宿主旁路维护逃生】(Test v8.9)
+> ### 👑【大道至简 · 零门槛主旁双模自愈版】(Test v9.1)
 >
-> 1. **疯狂动物城三级景深流光玻璃**：顶层壳保留真毛玻璃，滚动列表子项严禁 backdrop-filter，改用 46% 渐变半透底（透出 54% 动物城原画）+ 朱迪蓝 `#38bdf8` × 尼克橙 `#fb923c` 双色镜面高光内边框；新增一键赏景模式（Peek Mode），UI 退隐至 15% 沉浸赏景，任意交互平滑恢复。
-> 2. **120FPS 零卡顿渲染调度**：百级节点矩阵与规则列表启用浏览器原生虚拟化（`content-visibility: auto`，视口外零重绘开销）；植入 `UIFrameScheduler` 帧调度器，自动合并高频遥测波形，后台标签页自动休眠。
-> 3. **双擎热切精准耗时穿透**：切核时自动挂起前端轮询 3 秒防抖，热切完成后实时穿透展示 `StopCostMs` 停核耗时、`StartupCostMs` 启动耗时、`TotalCostMs` 总耗时与 `ActiveRules` 激活规则数。
-> 4. **宿主旁路维护逃生模式**：新增「进入旁路维护（不断网停机）」极客开关，一键将 RouterOS / 伴生防火墙无感降级为直连与原生 DNS，无需拔插头即可安全停机维护容器。
-> 5. **四维版本中心与闭环选路看板**：控制面、双核引擎、规则库、宿主底座四维探针统一收敛，支持原子流式更新与自动回滚；EWMA 选路金字塔分级（T0 现役 / T1 热备 / T2 冷备）实时透视。
+> 1. **物理切除分流光轨与 UI 去黑话化**：彻底移除首屏花哨的动态分流光轨，首屏黄金高度完整还给核心监控，改用流量卡片内部零高度纯文本离散状态标签（国内直连 XX% · 国际代理 XX%）；全站 UI 全面大扫除，清除一切生僻黑话与代号，统一采用大白话直观中文描述。
+> 2. **主路由 vs 单网口旁路由双模自愈引擎**：直击新手部署软路由最大痛点，内置网关自环死锁硬拦截；在「单网口旁路由模式」下一键自动配置内核转发 `ip_forward=1`、关闭 ICMP 重定向并自动挂载 nftables 源地址伪装（MASQUERADE SNAT），无需在主路由折腾复杂防火墙规则，小白即插即用彻底根除不对称路由断流。
+> 3. **主旁模式开机自愈与状态持久化**：新增主旁网络模式原子落盘快照，守护进程每次开机或容器重启时自动重放并幂等自愈内核与防火墙参数，防止容器意外重启全屋失忆断网。
+> 4. **订阅伪节点与策略组悬空引用深度净化**：自动清洗并剔除机场订阅中的“剩余流量 / 到期时间 / 官网”等伪节点与 127.0.0.1 假代理；联动清洗策略组引用，若策略组变空自动注入 DIRECT 兜底，严防内核启动崩溃。
+> 5. **跨代版本语义比对与资产存留升级**：植入统一语义版本比对器，支持测试版向未来正式版平滑检测更新；严格执行最新 10 版本自动存留清算，彻底杜绝历史陈旧资产堆积。
 
 ---
 
@@ -342,11 +342,11 @@
 
 | 发布物文件名 | 适用宿主与架构 | 说明与用途 |
 | :--- | :--- | :--- |
-| `CubeX-Test-v8.9-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-Test-v8.9-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-Test-v8.9-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-Test-v8.9-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-Test-v8.9-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
+| `CubeX-Test-v9.1-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-Test-v9.1-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-Test-v9.1-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-Test-v9.1-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-Test-v9.1-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
 | `cubexd-linux-amd64` | Linux amd64 | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
 | `cubexd-linux-arm64` | Linux arm64 | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 | 纯命令行运维工具（终端直接运行） |

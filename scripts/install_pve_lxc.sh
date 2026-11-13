@@ -465,7 +465,7 @@ else
             fi
         done
     fi
-    [ -z "$REL_TAG" ] && REL_TAG="Test-v9.0"
+    [ -z "$REL_TAG" ] && REL_TAG="Test-v9.1"
 
     ZIP_NAME="CubeX-${REL_TAG}-linux-${ARCH}.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"

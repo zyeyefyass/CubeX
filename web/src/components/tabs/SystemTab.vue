@@ -34,6 +34,135 @@
           <div class="space-y-6">
 
           <!-- ════════════════════════════════════════════════════════════════════════════════════ -->
+          <!-- 🚀 网络部署模式选择与自愈向导 (主路由 vs 单网口旁路由双模自愈引擎)                   -->
+          <!-- ════════════════════════════════════════════════════════════════════════════════════ -->
+          <div class="p-6 sm:p-7 rounded-2xl sm:rounded-3xl macos-glass-card hover:border-sky-400/40 transition-all duration-300 space-y-5 shadow-2xl relative overflow-hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-cyan-500/20 pb-4">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-sky-600/30 border border-cyan-400/40 flex items-center justify-center text-xl shadow-inner">
+                  🌐
+                </div>
+                <div>
+                  <h3 class="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
+                    <span>网络部署模式与保姆级指引</span>
+                    <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 font-bold">
+                      {{ gatewayStatus?.current_spec?.mode === 'bypass_single_nic' ? '当前模式: 单网口旁路由' : '当前模式: 主路由分流' }}
+                    </span>
+                  </h3>
+                  <p class="text-xs text-slate-300 mt-0.5">
+                    针对 OpenWrt / 爱快 / RouterOS / 各类主路由提供一键自愈，彻底防范网关自环与不对称路由断流
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span v-if="gatewayStatus?.masquerade_active" class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
+                  ✓ NAT 防断流伪装生效中
+                </span>
+                <button @click="refreshGatewayStatus" :disabled="loadingGateway" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-mono text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5 transition cursor-pointer">
+                  <span :class="{'animate-spin': loadingGateway}">↻</span>
+                  <span>探测刷新</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 两大模式选择卡片 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <!-- 模式一：单网口旁路由模式 -->
+              <div 
+                @click="applyGatewayMode('bypass_single_nic')"
+                :class="['p-5 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-4 group relative', 
+                  gatewayStatus?.current_spec?.mode === 'bypass_single_nic' 
+                    ? 'bg-gradient-to-b from-cyan-950/60 to-slate-900/90 border-cyan-400 shadow-[0_0_20px_rgba(0,210,255,0.25)] ring-1 ring-cyan-400/50' 
+                    : 'bg-slate-900/40 border-slate-700/60 hover:border-cyan-500/50 hover:bg-slate-850/60']"
+              >
+                <div class="space-y-2.5">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="text-xl">⚡</span>
+                      <span class="font-black text-sm sm:text-base text-white">模式一：单网口旁路由模式</span>
+                    </div>
+                    <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 font-bold">
+                      小白推荐 · 防断流伪装
+                    </span>
+                  </div>
+                  <p class="text-xs text-slate-300 leading-relaxed">
+                    适合爱快 / OpenWrt / 小米 / 华硕 / TP-Link 等各类主路由，CubeX 部署在 Docker、PVE LXC 或虚拟机中作为独立旁路网关。
+                  </p>
+                  <div class="text-[11px] text-cyan-200/90 font-mono bg-cyan-950/40 p-2.5 rounded-xl border border-cyan-800/30 space-y-1">
+                    <div>• 自动开启内核转发 (ip_forward=1) 与防重定向干扰</div>
+                    <div>• 自动开启 NAT 伪装 (MASQUERADE SNAT)，根除旁路丢包</div>
+                    <div>• 主路由无需编写复杂防火墙规则，小白即插即用</div>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between pt-2 border-t border-slate-700/40 text-xs">
+                  <span class="text-slate-400 font-mono">本机 IP: {{ gatewayStatus?.current_spec?.cubex_local_ip || '自动探测' }}</span>
+                  <span class="font-bold font-mono text-cyan-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    {{ gatewayStatus?.current_spec?.mode === 'bypass_single_nic' ? '● 当前生效中' : '点击启用此模式 ➔' }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- 模式二：主路由静态路由分流模式 -->
+              <div 
+                @click="applyGatewayMode('symbiotic_fakeip')"
+                :class="['p-5 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col justify-between space-y-4 group relative', 
+                  gatewayStatus?.current_spec?.mode === 'symbiotic_fakeip' 
+                    ? 'bg-gradient-to-b from-cyan-950/60 to-slate-900/90 border-cyan-400 shadow-[0_0_20px_rgba(0,210,255,0.25)] ring-1 ring-cyan-400/50' 
+                    : 'bg-slate-900/40 border-slate-700/60 hover:border-cyan-500/50 hover:bg-slate-850/60']"
+              >
+                <div class="space-y-2.5">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="text-xl">🛰️</span>
+                      <span class="font-black text-sm sm:text-base text-white">模式二：主路由分流模式</span>
+                    </div>
+                    <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-200 border border-sky-400/40 font-bold">
+                      RouterOS / 高阶推荐
+                    </span>
+                  </div>
+                  <p class="text-xs text-slate-300 leading-relaxed">
+                    全屋手机电脑网关依然保持为主路由，主路由通过静态路由仅将 198.18.0.0/15 指向 CubeX，国内满速直出，拔掉旁路全家绝不断网。
+                  </p>
+                  <div class="text-[11px] text-cyan-200/90 font-mono bg-cyan-950/40 p-2.5 rounded-xl border border-cyan-800/30 space-y-1">
+                    <div>• 国内流量 100% 物理直连主路由，不占用旁路由 CPU 与带宽</div>
+                    <div>• 静态路由 198.18.0.0/15 精准回指，绝不影响家人正常用网</div>
+                    <div>• 哪怕旁路物理断电，主路由毫秒级断网保护，网络坚如磐石</div>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between pt-2 border-t border-slate-700/40 text-xs">
+                  <span class="text-slate-400 font-mono">上级网关: {{ gatewayStatus?.current_spec?.upstream_gateway_ip || '自动探测' }}</span>
+                  <span class="font-bold font-mono text-cyan-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    {{ gatewayStatus?.current_spec?.mode === 'symbiotic_fakeip' ? '● 当前生效中' : '点击启用此模式 ➔' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3 步大白话保姆级操作指引 (根据当前模式动态实时展示) -->
+            <div v-if="gatewayStatus?.plain_user_steps && gatewayStatus.plain_user_steps.length" class="p-4 rounded-2xl bg-slate-900/70 border border-cyan-500/30 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-white flex items-center gap-2">
+                  <span>📖 推荐 3 步设置指引（零门槛，复制即可用）：</span>
+                </span>
+                <span class="text-[11px] text-slate-400 font-mono">
+                  CubeX 本机 IP: <strong class="text-cyan-300 font-mono">{{ gatewayStatus.current_spec?.cubex_local_ip }}</strong>
+                </span>
+              </div>
+              <div class="space-y-2">
+                <div v-for="(step, idx) in gatewayStatus.plain_user_steps" :key="idx" class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
+                  <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">
+                    {{ idx + 1 }}
+                  </span>
+                  <span class="flex-1">{{ step }}</span>
+                </div>
+              </div>
+              <div v-if="gatewayStatus.warning_message" class="p-2.5 rounded-xl bg-amber-950/40 border border-amber-600/50 text-xs text-amber-200 flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{{ gatewayStatus.warning_message }}</span>
+              </div>
+            </div>
+          </div>
+
           <!-- ════════════════════════════════════════════════════════════════════════════════════ -->
           <!-- 👑 层级 1: 宿主共生底座 · 物理全景驾驶舱与一体化自愈中枢                           -->
           <!-- ════════════════════════════════════════════════════════════════════════════════════ -->
@@ -246,7 +375,7 @@
                   <span class="text-sm">🛡️</span>
                   <span class="text-xs sm:text-sm font-bold text-white tracking-wide">宿主全链路自愈中枢</span>
                   <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
-                    Netwatch 0秒逃生守护就绪
+                    Netwatch 断网保护就绪（毫秒级恢复宽带直连）
                   </span>
                 </div>
                 <span class="text-[11px] text-slate-400 font-mono hidden sm:inline-block">底座状态微秒级感知 · 故障全自动无损切换</span>
@@ -269,7 +398,7 @@
                         </span>
                       </div>
                       <div class="text-xs text-slate-300 mt-1 font-mono">
-                        一键原子化联动：策略路由重配 · 伴生防火墙放行 · IPv6 双栈防 DNS 泄露 · 0秒逃生看门狗校准
+                        一键原子化联动：策略路由重配 · 伴生防火墙放行 · IPv6 双栈防 DNS 泄露 · 断网保护看门狗校准
                       </div>
                     </div>
                   </div>
@@ -295,7 +424,7 @@
             </div>
           </div>
 
-          <!-- 🚀 四维版本在线检查与升级 -->
+          <!-- 🚀 系统与规则在线检查与升级 -->
 
           <div class="space-y-4">
 
@@ -305,7 +434,7 @@
 
                 <h3 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
 
-                  <span>🚀 四维版本在线检查与升级</span>
+                  <span>🚀 系统与规则在线检查与升级</span>
 
                   <span v-if="app.hasAnyUpdate" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold animate-pulse">
 
@@ -333,13 +462,13 @@
 
                 <span :class="{'inline-block animate-spin': app.isProbingAll}">🛰️</span>
 
-                <span>{{ app.isProbingAll ? '正在进行四维体检...' : '四维智能探针实时体检' }}</span>
+                <span>{{ app.isProbingAll ? '正在检查系统与规则更新...' : '系统与规则更新体检' }}</span>
 
               </button>
 
             </div>
 
-            <!-- 四维版本智能探测横幅提示 (检测到更新时全息微光提醒) -->
+            <!-- 系统与规则版本探测横幅提示 (检测到更新时全息微光提醒) -->
 
             <transition name="fade">
 
@@ -353,7 +482,7 @@
 
                     <div class="text-xs font-bold text-white flex items-center gap-2">
 
-                      <span class="text-amber-300">【四维探针提醒】检测到可用系统升级项目！</span>
+                      <span class="text-amber-300">【系统更新提醒】检测到可用系统升级项目！</span>
 
                       <span class="text-[10px] px-2 py-0.5 rounded bg-amber-900/90 text-amber-200 border border-amber-600 font-mono">{{ app.updateSummaryText }}</span>
 
@@ -1299,13 +1428,64 @@
 </template>
 
 <script setup>
-import { inject, ref } from 'vue'
+import { inject, ref, onMounted } from 'vue'
 import ZootopiaIcon from '../ZootopiaIcon.vue'
 
 const app = inject('cubexApp')
 
 const showHostCredentialsDeck = ref(false)
 const refreshingHW = ref(false)
+
+const gatewayStatus = ref(null)
+const loadingGateway = ref(false)
+
+async function refreshGatewayStatus() {
+  loadingGateway.value = true
+  try {
+    const res = await fetch('/api/v1/onboarding/gateway-mode')
+    if (res.ok) {
+      gatewayStatus.value = await res.json()
+    }
+  } catch (err) {
+    console.error('Failed to fetch gateway status:', err)
+  } finally {
+    loadingGateway.value = false
+  }
+}
+
+async function applyGatewayMode(mode) {
+  loadingGateway.value = true
+  try {
+    const payload = {
+      mode: mode,
+      primary_interface: gatewayStatus.value?.current_spec?.primary_interface || '',
+      cubex_local_ip: gatewayStatus.value?.current_spec?.cubex_local_ip || '',
+      upstream_gateway_ip: gatewayStatus.value?.current_spec?.upstream_gateway_ip || '',
+      upstream_dns: '223.5.5.5',
+      enable_masquerade: true,
+    }
+    const res = await fetch('/api/v1/onboarding/gateway-mode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (res.ok) {
+      gatewayStatus.value = await res.json()
+      if (app && typeof app.showToast === 'function') {
+        app.showToast(mode === 'bypass_single_nic' ? '⚡ 已切换为单网口旁路由模式（已自动开启防断流伪装）' : '🛰️ 已切换为主路由分流模式')
+      }
+    } else {
+      const txt = await res.text()
+      if (app && typeof app.showToast === 'function') {
+        app.showToast('⚠️ 配置失败: ' + txt, 'error')
+      }
+    }
+  } catch (err) {
+    console.error('Failed to apply gateway mode:', err)
+  } finally {
+    loadingGateway.value = false
+  }
+}
 
 async function refreshHW() {
   if (refreshingHW.value) return
@@ -1320,4 +1500,8 @@ async function refreshHW() {
     refreshingHW.value = false
   }
 }
+
+onMounted(() => {
+  refreshGatewayStatus()
+})
 </script>

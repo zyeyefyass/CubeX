@@ -489,35 +489,8 @@ button, a, input, select, textarea, [role="button"] {
 }
 
 /* ==========================================================================
-   CubeX v9.0 Zootopia Dual-Rail Traffic Topology & Command Palette
+   CubeX Ctrl/Cmd + K 极客瞬态指令舱（复用顶层壳毛玻璃，子项零 blur）
    ========================================================================== */
-.cubex-topology-rail {
-  --judy-flow-duration: 2.4s;
-  --nick-flow-duration: 2.0s;
-  contain: layout paint style;
-}
-
-.rail-path-proxy {
-  stroke: #38bdf8;
-  stroke-width: 2.5;
-  stroke-dasharray: 10 14;
-  animation: cubex-rail-march var(--judy-flow-duration, 2.4s) linear infinite;
-}
-
-.rail-path-direct {
-  stroke: #fb923c;
-  stroke-width: 2.5;
-  stroke-dasharray: 10 14;
-  animation: cubex-rail-march var(--nick-flow-duration, 2.0s) linear infinite;
-}
-
-@keyframes cubex-rail-march {
-  to {
-    stroke-dashoffset: -48;
-  }
-}
-
-/* Ctrl/Cmd + K 极客瞬态指令舱（复用顶层壳毛玻璃，子项零 blur） */
 .cubex-cmd-backdrop {
   position: fixed;
   inset: 0;

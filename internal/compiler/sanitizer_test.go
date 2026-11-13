@@ -94,3 +94,83 @@ func TestIsLoopbackOrDeadlockDNS(t *testing.T) {
 		}
 	}
 }
+
+func TestSanitizeAndDeduplicateNodes(t *testing.T) {
+	rawNodes := []schema.ProxyNode{
+		{Name: "剩余流量：500GB", Server: "1.1.1.1", Port: 443, Type: "shadowsocks"},
+		{Name: "到期时间：2027-01-01", Server: "1.1.1.1", Port: 443, Type: "shadowsocks"},
+		{Name: "官网：https://airport.com", Server: "1.1.1.1", Port: 443, Type: "shadowsocks"},
+		{Name: "香港 01 高速专线", Server: "hk01.node.com", Port: 443, Type: "shadowsocks"},
+		{Name: "香港 01 高速专线", Server: "hk02.node.com", Port: 443, Type: "shadowsocks"}, // Duplicate
+		{Name: "本地伪节点", Server: "127.0.0.1", Port: 1080, Type: "socks5"},
+		{Name: "日本 01 优质节点", Server: "jp01.node.com", Port: 443, Type: "shadowsocks"},
+	}
+
+	clean := SanitizeAndDeduplicateNodes(rawNodes)
+	if len(clean) != 3 {
+		t.Fatalf("expected 3 clean nodes after filtering pseudo/duplicate nodes, got %d", len(clean))
+	}
+	if clean[0].Name != "香港 01 高速专线" {
+		t.Errorf("unexpected first node: %s", clean[0].Name)
+	}
+	if clean[1].Name != "香港 01 高速专线 2" {
+		t.Errorf("expected deduplicated name '香港 01 高速专线 2', got %s", clean[1].Name)
+	}
+	if clean[2].Name != "日本 01 优质节点" {
+		t.Errorf("unexpected third node: %s", clean[2].Name)
+	}
+}
+
+func TestReconcilePolicyGroups(t *testing.T) {
+	validNodes := []schema.ProxyNode{
+		{Name: "香港 01", Server: "hk01.com", Port: 443, Type: "shadowsocks"},
+		{Name: "日本 01", Server: "jp01.com", Port: 443, Type: "shadowsocks"},
+	}
+
+	groups := []schema.StrategyGroup{
+		{
+			Name:    "PROXY",
+			Type:    "select",
+			Proxies: []string{"香港 01", "香港 01", "剩余流量：500GB", "日本 01", "不存在的失效节点"},
+			Now:     "剩余流量：500GB",
+		},
+		{
+			Name:    "EMPTY_GROUP",
+			Type:    "select",
+			Proxies: []string{"剩余流量：500GB", "到期时间：2027-01-01"},
+			Now:     "到期时间：2027-01-01",
+		},
+		{
+			Name:    "NESTED_GROUP",
+			Type:    "select",
+			Proxies: []string{"PROXY", "DIRECT"},
+			Now:     "PROXY",
+		},
+	}
+
+	reconciled := ReconcilePolicyGroups(groups, validNodes)
+	if len(reconciled) != 3 {
+		t.Fatalf("expected 3 reconciled groups, got %d", len(reconciled))
+	}
+
+	// 1. PROXY 策略组应剔除重复节点与悬空脏节点
+	if len(reconciled[0].Proxies) != 2 || reconciled[0].Proxies[0] != "香港 01" || reconciled[0].Proxies[1] != "日本 01" {
+		t.Errorf("unexpected PROXY proxies: %+v", reconciled[0].Proxies)
+	}
+	if reconciled[0].Now != "香港 01" {
+		t.Errorf("expected Now healed to '香港 01', got: %s", reconciled[0].Now)
+	}
+
+	// 2. EMPTY_GROUP 策略组全部为脏节点时，必须自动注入 DIRECT 兜底，严防内核崩溃
+	if len(reconciled[1].Proxies) != 1 || reconciled[1].Proxies[0] != "DIRECT" {
+		t.Errorf("expected EMPTY_GROUP to fallback to [DIRECT], got: %+v", reconciled[1].Proxies)
+	}
+	if reconciled[1].Now != "DIRECT" {
+		t.Errorf("expected EMPTY_GROUP Now to fallback to DIRECT, got: %s", reconciled[1].Now)
+	}
+
+	// 3. NESTED_GROUP 嵌套引用 PROXY 与 DIRECT 应正常保留
+	if len(reconciled[2].Proxies) != 2 || reconciled[2].Proxies[0] != "PROXY" || reconciled[2].Proxies[1] != "DIRECT" {
+		t.Errorf("unexpected NESTED_GROUP proxies: %+v", reconciled[2].Proxies)
+	}
+}

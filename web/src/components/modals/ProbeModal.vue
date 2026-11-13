@@ -15,7 +15,7 @@
 
               <h3 class="text-lg font-bold text-white flex items-center gap-2">
 
-                <span>CubeX 四维全息智能体检中心</span>
+                <span>CubeX 系统与规则全栈体检中心</span>
 
                 <span v-if="app.isProbingAll" class="text-xs px-2.5 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm animate-pulse">正在并发探测...</span>
 

@@ -218,7 +218,7 @@
 
               <span class="font-black tracking-tight text-sky-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] hidden xs:inline">
 
-                {{ systemStatus.version || 'Test v9.0' }}
+                {{ systemStatus.version || 'Test v9.1' }}
 
               </span>
 
@@ -332,9 +332,9 @@
 
         <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
 
-          <!-- 🐰🦊 一键赏景模式 (Peek Mode) -->
+          <!-- 🐰🦊 隐藏面板 (查看背景) -->
           <button @click="togglePeekMode"
-            :title="isPeekMode ? '退出赏景模式 (或按 ESC)' : '一键赏景模式 (Peek Mode · 浸润疯狂动物城原画)'"
+            :title="isPeekMode ? '退出背景展示 (或按 ESC)' : '隐藏面板（查看背景）'"
             :class="[
               'h-[30px] sm:h-[42px] md:h-[46px] inline-flex items-center gap-1.5 px-2 sm:px-3 rounded-lg sm:rounded-2xl macos-capsule select-none transition-all duration-300 cursor-pointer shrink-0',
               isPeekMode ? 'border-amber-400/60 bg-amber-500/20 text-amber-200' : 'hover:border-sky-400/50 text-sky-200'
@@ -343,7 +343,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
-            <span class="hidden lg:inline text-xs font-bold font-sans">赏景</span>
+            <span class="hidden lg:inline text-xs font-bold font-sans">隐藏面板</span>
           </button>
 
           <!-- ⚡ Ctrl/Cmd+K 极客指令舱 -->
@@ -379,7 +379,7 @@
       <!-- 🐰🦊 赏景模式悬浮退出胶囊 -->
       <div v-if="isPeekMode" @click="togglePeekMode" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full bg-[#001529]/90 border border-amber-400/60 text-amber-200 text-xs sm:text-sm font-black shadow-2xl flex items-center gap-2.5 cursor-pointer select-none zootopia-peek-banner animate-bounce">
         <span class="text-base">🐰🦊</span>
-        <span>赏景模式已开启 · 点击任意处、移动鼠标或按 ESC 恢复</span>
+        <span>已隐藏面板 · 点击任意处、移动鼠标或按 ESC 恢复</span>
       </div>
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
@@ -512,33 +512,6 @@
 
         <div v-if="activeMasterTab === 'overview'" class="space-y-6 animate-in fade-in">
 
-          <!-- 宿主共生实时分流光轨 (Dual-Rail Symbiotic Topology) -->
-          <div ref="topologyRailRef" class="cubex-topology-rail w-full px-4 py-2.5 rounded-2xl macos-sub-card border border-sky-400/25 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs select-none">
-            <div class="flex items-center gap-3 shrink-0">
-              <span class="text-base">🌌</span>
-              <div>
-                <div class="font-bold text-white tracking-wide">宿主共生实时分流光轨</div>
-                <div class="text-[11px] text-slate-400 font-mono">内核直通 (尼克橙) vs 双擎隧道 (朱迪蓝)</div>
-              </div>
-            </div>
-            <div class="flex-1 w-full max-w-md h-7 flex items-center justify-center px-2">
-              <svg class="w-full h-5 overflow-visible" viewBox="0 0 320 20" fill="none">
-                <path d="M 10 6 L 310 6" class="rail-path-direct" stroke-linecap="round" />
-                <path d="M 10 14 L 310 14" class="rail-path-proxy" stroke-linecap="round" />
-              </svg>
-            </div>
-            <div class="flex items-center gap-3 shrink-0 font-mono text-[11px]">
-              <div class="flex items-center gap-1.5 text-amber-300">
-                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-                <span>直出: {{ formatSpeed(liveStreamSpeed.direct || 0) }}</span>
-              </div>
-              <div class="flex items-center gap-1.5 text-sky-300">
-                <span class="w-2 h-2 rounded-full bg-sky-400"></span>
-                <span>代理: {{ formatSpeed(liveStreamSpeed.proxy || 0) }}</span>
-              </div>
-            </div>
-          </div>
-
           <!-- 双核状态驾驶舱 Hero Bento -->
 
           <section :class="['rounded-3xl p-6 lg:p-8 space-y-6 transition', activeEngine === 'singbox' ? 'glass-aurora' : 'glass-matrix']">
@@ -547,11 +520,11 @@
 
               <div class="macos-title-shield space-y-1">
 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
 
                   <ZootopiaIcon name="overview" :size="24" class="shrink-0" />
 
-                  <h2 class="text-base sm:text-lg font-bold text-white tracking-wide">双擎主控驾驶舱</h2>
+                  <h2 class="text-base sm:text-lg font-bold text-white tracking-wide">双核主控驾驶舱</h2>
 
                   <span class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm flex items-center gap-1.5 shrink-0">
 
@@ -559,6 +532,18 @@
 
                     当前内核: {{ activeEngine === 'singbox' ? 'sing-box (' + (systemOverview.singbox_curr_version || 'v1.14.4') + ')' : 'Mihomo (' + (systemOverview.mihomo_curr_version || 'v1.19.34') + ')' }}
 
+                  </span>
+
+                  <!-- 零额外高度的分流占比胶囊标签 (无动画、0 CPU、直观实用) -->
+                  <span class="hidden md:inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-slate-900/50 border border-white/10 text-slate-300">
+                    <template v-if="(liveStreamSpeed.direct || 0) + (liveStreamSpeed.proxy || 0) > 1024">
+                      <span class="text-amber-400 font-bold">国内直连 {{ Math.round(((liveStreamSpeed.direct || 0) / ((liveStreamSpeed.direct || 0) + (liveStreamSpeed.proxy || 1))) * 100) }}%</span>
+                      <span class="text-slate-500">·</span>
+                      <span class="text-sky-400 font-bold">国际代理 {{ 100 - Math.round(((liveStreamSpeed.direct || 0) / ((liveStreamSpeed.direct || 0) + (liveStreamSpeed.proxy || 1))) * 100) }}%</span>
+                    </template>
+                    <template v-else>
+                      <span class="text-slate-400">分流状态: 待机中</span>
+                    </template>
                   </span>
 
                 </div>
@@ -2969,7 +2954,7 @@
 
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
 
-                        {{ systemOverview.panel_latest_version || 'Test v9.0' }}
+                        {{ systemOverview.panel_latest_version || 'Test v9.1' }}
 
                       </span>
 
@@ -2977,7 +2962,7 @@
 
                     <p class="text-xs text-slate-400 mt-0.5 font-mono">
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v9.0' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v9.0' }}</span>
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v9.1' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v9.1' }}</span>
 
                     </p>
 
@@ -3045,7 +3030,7 @@
 
                       <span>🔒</span>
 
-                      <span>config.last-known-good 原子安全快照保护与故障回滚</span>
+                      <span>配置错误自动恢复与原子安全快照保护</span>
 
                     </div>
 
@@ -4292,7 +4277,7 @@ const GeodataDetailModal = defineAsyncComponent(() => import('./components/modal
 const DiagnosticOpsModals = defineAsyncComponent(() => import('./components/modals/DiagnosticOpsModals.vue'))
 import ConsoleAuthModal from './components/modals/ConsoleAuthModal.vue'
 import { frameScheduler, enablePeekModeWithGuard } from './utils/scheduler'
-import { GeekCommandController, updateTopologySpeedTiers } from './utils/command-palette'
+import { GeekCommandController } from './utils/command-palette'
 import { SymbioticStreamClient, bindGeekCommandPalette } from './utils/telemetry-stream'
 
 // ── Global Console Auth & Unified Confirm Dialog ──
@@ -4404,10 +4389,10 @@ async function toggleHADrain() {
     const data = await res.json()
     if (data.ok) {
       isHADraining.value = next
-      showToast(data.message || (next ? '已进入旁路维护模式' : '已恢复旁路接管'))
+      showToast(data.message || (next ? '已临时关闭代理（全屋宽带直连）' : '已恢复正常代理'))
     }
   } catch (e) {
-    showToast('旁路维护模式切换失败: ' + (e?.message || e), true)
+    showToast('操作失败: ' + (e?.message || e), true)
   }
 }
 
@@ -4417,7 +4402,7 @@ async function fetchEWMAMatrix() {
     if (res.ok) {
       const data = await res.json()
       ewmaMatrix.value = data.matrix || []
-      showToast('🎯 EWMA 闭环选路矩阵已刷新')
+      showToast('🎯 智能低延迟选路矩阵已刷新')
     }
   } catch (e) {}
 }
@@ -4441,25 +4426,25 @@ const geekCommands = computed(() => [
   },
   {
     id: 'toggle-peek',
-    title: '一键赏景模式 (Peek Mode)',
+    title: '隐藏面板 (查看背景)',
     shortcut: 'P',
-    keywords: 'peek wallpaper 赏景 动物城',
+    keywords: 'peek wallpaper 背景 隐藏 面板',
     action: () => togglePeekMode(),
     icon: '🐰🦊'
   },
   {
     id: 'ha-drain',
-    title: isHADraining.value ? '恢复旁路接管 (退出维护模式)' : '开启旁路维护模式 (不断网停机)',
+    title: isHADraining.value ? '恢复正常代理 (退出临时维护)' : '临时关闭代理 (保持全屋不断网)',
     shortcut: 'D',
-    keywords: 'drain ha maintenance 旁路 维护 逃生',
+    keywords: 'drain ha maintenance 临时 关闭 代理 直连 维护',
     action: () => toggleHADrain(),
     icon: '🛟'
   },
   {
     id: 'refresh-ewma',
-    title: '刷新 EWMA 闭环选路矩阵',
+    title: '刷新智能低延迟选路矩阵',
     shortcut: 'E',
-    keywords: 'ewma probe matrix 选路 测速',
+    keywords: 'probe matrix 选路 测速 智能 低延迟',
     action: () => fetchEWMAMatrix(),
     icon: '🎯'
   },
@@ -10242,11 +10227,11 @@ const hostConfig = ref({
 
 const systemOverview = ref({
 
-  cubex_version: 'Test v9.0',
+  cubex_version: 'Test v9.1',
 
-  panel_curr_version: 'Test v9.0',
+  panel_curr_version: 'Test v9.1',
 
-  panel_latest_version: 'Test v9.0',
+  panel_latest_version: 'Test v9.1',
 
   mihomo_curr_version: 'v1.19.34',
 
@@ -11255,7 +11240,7 @@ function triggerQuickAIPrompt(prompt) {
 
 const systemStatus = ref({
 
-  version: 'Test v9.0',
+  version: 'Test v9.1',
 
   uptime_seconds: 1420,
 
@@ -13980,7 +13965,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
     } else if (data.status === 'already_latest') {
 
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v9.0'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v9.1'})`)
 
     } else {
 
@@ -14026,7 +14011,7 @@ async function upgradePanel(force = false) {
 
       const timeStr = new Date().toLocaleTimeString()
 
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v9.0'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v9.1'})，无需重复更新。`
 
       showToast(data.message || 'CubeX 系统已是最新版本')
 
@@ -14104,7 +14089,7 @@ function openGitHubIssuePrompt() {
 
 - 系统架构：${systemOverview.value?.arch || 'amd64'}
 
-- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v9.0'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v9.1'}
 
 - 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
 
@@ -14327,7 +14312,7 @@ async function probeAllFourDimensions() {
 
   if (!showProbeModal.value) {
 
-    showToast('🛰️ 四维版本智能探针正在并发探测...')
+    showToast('🛰️ 正在检查系统与规则更新...')
 
   }
 
@@ -14351,11 +14336,11 @@ async function probeAllFourDimensions() {
 
       if (hasAnyUpdate.value) {
 
-        showToast(`🎉 [版本探针] 检测到新版本！${updateSummaryText.value}`)
+        showToast(`🎉 [系统更新] 检测到新版本！${updateSummaryText.value}`)
 
       } else {
 
-        showToast('✓ [四维探针体检完毕] 主控、双核、规则库及宿主系统均处于最新稳定状态！')
+        showToast('✓ [更新体检完毕] 主控、双核、规则库及宿主系统均处于最新稳定状态！')
 
       }
 
@@ -22914,7 +22899,6 @@ onMounted(async () => {
       }
       if (data.speed) {
         liveStreamSpeed.value = data.speed
-        updateTopologySpeedTiers(topologyRailRef.value, data.speed.proxy || 0, data.speed.direct || 0)
       }
     },
     onFlightEvent: (ev) => {

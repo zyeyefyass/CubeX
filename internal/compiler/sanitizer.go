@@ -85,12 +85,82 @@ func SanitizeIR(ir *schema.ConfigIR) {
 	ir.Rules = cleanRules
 
 	// 2. Sanitize Proxies
-	cleanProxies := make([]schema.ProxyNode, 0, len(ir.Proxies))
+	ir.Proxies = SanitizeAndDeduplicateNodes(ir.Proxies)
+
+	// 3. Reconcile Policy Groups (Clean dangling references & guard against empty outbounds)
+	ir.Groups = ReconcilePolicyGroups(ir.Groups, ir.Proxies)
+
+	// 4. Sanitize DNS (Anti-Recursive DNS Deadlock Guard)
+	SanitizeDNS(&ir.DNS)
+}
+
+// ReconcilePolicyGroups 联动清洗所有策略组中的节点引用：
+// 1. 移除已被 SanitizeAndDeduplicateNodes 剔除的脏节点/伪节点名称悬空引用
+// 2. 剔除单个策略组内部的重复节点引用
+// 3. 若某策略组清洗后无任何有效节点，自动注入 "DIRECT" 兜底，严防 sing-box / Mihomo 启动崩溃
+func ReconcilePolicyGroups(groups []schema.StrategyGroup, validNodes []schema.ProxyNode) []schema.StrategyGroup {
+	validSet := make(map[string]struct{}, len(validNodes)+len(groups)+6)
+	for _, n := range validNodes {
+		validSet[n.Name] = struct{}{}
+	}
+	// 允许策略组互相嵌套引用及内置关键字
+	for _, g := range groups {
+		validSet[g.Name] = struct{}{}
+	}
+	for _, builtin := range []string{"DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE"} {
+		validSet[builtin] = struct{}{}
+	}
+
+	cleanedGroups := make([]schema.StrategyGroup, 0, len(groups))
+	for _, g := range groups {
+		seenInGroup := make(map[string]struct{}, len(g.Proxies))
+		kept := make([]string, 0, len(g.Proxies))
+
+		for _, member := range g.Proxies {
+			if _, ok := validSet[member]; !ok {
+				continue // 剔除已被净化的脏节点悬空引用
+			}
+			if _, dup := seenInGroup[member]; dup {
+				continue
+			}
+			seenInGroup[member] = struct{}{}
+			kept = append(kept, member)
+		}
+
+		// 空池防崩兜底：若该组所有节点均被净化剔除，强制挂入 DIRECT 保证内核 100% 能启动
+		if len(kept) == 0 {
+			kept = []string{"DIRECT"}
+		}
+		g.Proxies = kept
+
+		// 如果当前选中的 Now 节点已被剔除，自愈回退到第一个有效节点
+		if g.Now != "" {
+			if _, ok := validSet[g.Now]; !ok {
+				g.Now = kept[0]
+			}
+		}
+
+		cleanedGroups = append(cleanedGroups, g)
+	}
+
+	return cleanedGroups
+}
+
+// SanitizeAndDeduplicateNodes filters out airport pseudo-nodes (remaining traffic, expiration, website URLs),
+// drops invalid servers, and deduplicates node names.
+func SanitizeAndDeduplicateNodes(nodes []schema.ProxyNode) []schema.ProxyNode {
+	cleanProxies := make([]schema.ProxyNode, 0, len(nodes))
 	nameSet := make(map[string]bool)
 
-	for _, p := range ir.Proxies {
+	for _, p := range nodes {
 		p.Name = strings.TrimSpace(p.Name)
 		p.Server = strings.TrimSpace(p.Server)
+
+		// 1. Filter out informational or invalid notices (e.g. 剩余流量, 到期时间, 官网)
+		if schema.IsInformationalOrInvalidNode(p.Name) {
+			log.Printf("[NodeSanitizer] Dropped pseudo/notice node: %q", p.Name)
+			continue
+		}
 
 		// 🛡️ Guard against stringified array in Server (e.g. "[1.2.3.4 5.6.7.8]")
 		if strings.HasPrefix(p.Server, "[") && strings.HasSuffix(p.Server, "]") {
@@ -122,6 +192,12 @@ func SanitizeIR(ir *schema.ConfigIR) {
 			continue
 		}
 
+		// Loopback or dummy servers disguised as proxies
+		if p.Server == "127.0.0.1" || p.Server == "0.0.0.0" || strings.ToLower(p.Server) == "localhost" {
+			log.Printf("[ProxySanitizer] Dropped loopback dummy server: %q (%s)", p.Name, p.Server)
+			continue
+		}
+
 		// Prevent duplicate proxy names which break sing-box outbounds tag uniqueness
 		originalName := p.Name
 		counter := 1
@@ -133,10 +209,7 @@ func SanitizeIR(ir *schema.ConfigIR) {
 
 		cleanProxies = append(cleanProxies, p)
 	}
-	ir.Proxies = cleanProxies
-
-	// 3. Sanitize DNS (Anti-Recursive DNS Deadlock Guard)
-	SanitizeDNS(&ir.DNS)
+	return cleanProxies
 }
 
 // SanitizeNodeRawConfig cleans and normalizes raw map keys from third-party airport subscriptions,

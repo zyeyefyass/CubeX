@@ -105,7 +105,7 @@ import (
 )
 
 var (
-	version = "Test v9.0"
+	version = "Test v9.1"
 
 	startTime = time.Now()
 )
@@ -488,6 +488,7 @@ type Server struct {
 	ewmaSched          *probe.EWMAScheduler
 	coordinator        *RuntimeCoordinator
 	upstreamReg        *upstream.Registry
+	gatewayModeCtrl    *onboarding.GatewayModeController
 	isMaintenance      atomic.Bool
 	draining           atomic.Bool
 
@@ -967,7 +968,12 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v9.0")
+	srv.mcpServer = mcp.NewServer(srv, "Test v9.1")
+	srv.gatewayModeCtrl = onboarding.NewGatewayModeController()
+	srv.gatewayModeCtrl.BindPersistenceFile(filepath.Join(dir, "data", "gateway_mode.json"))
+	if err := srv.gatewayModeCtrl.RestoreOnBoot(context.Background()); err != nil {
+		log.Printf("[GatewayMode] Boot restore notice: %v", err)
+	}
 
 	srv.ewmaSched = probe.NewEWMAScheduler(probe.SchedulerConfig{
 		ClashAPIBase:   config.GlobalRuntimeSpec.ClashAPIAddr,
@@ -1553,6 +1559,7 @@ func main() {
 	mux.Handle("/api/v1/telemetry/stream", telemetry.GetGlobalSSEBroadcaster())
 	mux.HandleFunc("/api/v1/diag/flight-log", srv.handleFlightLog)
 	mux.HandleFunc("/api/v1/onboarding/doctor", srv.handleOnboardingDoctor)
+	mux.HandleFunc("/api/v1/onboarding/gateway-mode", srv.handleGatewayMode)
 	mux.HandleFunc("/api/v1/diag/bundle", telemetry.ServeDiagnosticBundle(
 		telemetry.GetGlobalFlightRecorder(),
 		func() string {

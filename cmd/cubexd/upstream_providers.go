@@ -390,3 +390,29 @@ func (s *Server) handleOnboardingDoctor(w http.ResponseWriter, r *http.Request) 
 	rep := onboarding.RunOnboardingDoctor(r.Context(), hostIP, 2026, "198.18.0.0/15")
 	sendJSON(w, rep)
 }
+
+// handleGatewayMode 提供主旁双模网络拓扑配置与自愈
+func (s *Server) handleGatewayMode(w http.ResponseWriter, r *http.Request) {
+	if s.gatewayModeCtrl == nil {
+		s.gatewayModeCtrl = onboarding.NewGatewayModeController()
+	}
+	switch r.Method {
+	case http.MethodGet:
+		st := s.gatewayModeCtrl.InspectStatus(r.Context())
+		sendJSON(w, st)
+	case http.MethodPost:
+		var spec onboarding.GatewayModeSpec
+		if err := json.NewDecoder(r.Body).Decode(&spec); err != nil {
+			http.Error(w, "invalid request body: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		st, err := s.gatewayModeCtrl.ApplyMode(r.Context(), spec)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		sendJSON(w, st)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}

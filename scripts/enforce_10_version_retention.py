@@ -12,11 +12,32 @@ CubeX 全平台最新 10 版本强制存留门禁守护脚本 (Strict 10-Version
 import os
 import sys
 import json
+import re
 import urllib.request
 import subprocess
 
 MAX_VERSIONS = 10
 REPO = "zyeyefyass/CubeX"
+
+_TAG_RE = re.compile(r"^(?:test[-_.]?)?v?(\d+)\.(\d+)(?:\.(\d+))?(?:[-_.](.+))?$", re.IGNORECASE)
+
+def parse_cubex_tag_key(tag: str):
+    """
+    将 'Test-v9.1', 'Test-v9.0-LTS', 'v9.2.0' 统一映射为语义可比元组:
+    (major, minor, patch, channel_weight, raw_tag)
+    其中正式版 channel_weight = 2，带 Test/RC 的测试版 channel_weight = 1。
+    """
+    s = (tag or "").strip()
+    m = _TAG_RE.match(s)
+    if not m:
+        return (0, 0, 0, 0, s)
+    major = int(m.group(1))
+    minor = int(m.group(2))
+    patch = int(m.group(3) or 0)
+    suffix = (m.group(4) or "").lower()
+    is_test = s.lower().startswith("test") or any(k in suffix for k in ("test", "rc", "beta", "alpha"))
+    channel_weight = 1 if is_test else 2
+    return (major, minor, patch, channel_weight, s)
 def get_github_token():
     tok = os.environ.get("GITHUB_TOKEN", "")
     if tok:
@@ -61,8 +82,8 @@ def prune_github_releases():
         print(f"   ✓ Releases count ({len(releases)}) satisfies the 10-version rule.")
         return [r['tag_name'] for r in releases]
 
-    # Sort descending by published_at or created_at
-    releases.sort(key=lambda x: x.get('published_at') or x.get('created_at'), reverse=True)
+    # 优先按语义版本从新到旧严格排序，发布时间作为辅排序
+    releases.sort(key=lambda x: (parse_cubex_tag_key(x.get('tag_name', '')), x.get('published_at') or x.get('created_at') or ''), reverse=True)
     keep = releases[:MAX_VERSIONS]
     to_prune = releases[MAX_VERSIONS:]
 
