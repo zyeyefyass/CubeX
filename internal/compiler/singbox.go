@@ -2794,6 +2794,13 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			stats.PrunedCount, stats.CompressionPct)
 	}
 
+	// Active Rule-Set Pruning: eliminate unused .srs declarations to accelerate cold startup & reduce memory
+	var dnsCfgMap map[string]any
+	if dMap, ok := cfg["dns"].(map[string]any); ok {
+		dnsCfgMap = dMap
+	}
+	activeRuleSets := pruneUnusedSingboxRuleSets(ruleSets, dnsCfgMap, optimizedRouteRules)
+
 	cfg["route"] = map[string]any{
 
 		"auto_detect_interface": false,
@@ -2802,7 +2809,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 		"default_domain_resolver": "dns-direct",
 
-		"rule_set": ruleSets,
+		"rule_set": activeRuleSets,
 
 		"rules": optimizedRouteRules,
 
@@ -2878,4 +2885,84 @@ func parseBandwidthMbps(val any) int {
 
 	return 0
 
+}
+
+// pruneUnusedSingboxRuleSets prunes rule_set declarations that are not referenced by dns.rules or route.rules.
+func pruneUnusedSingboxRuleSets(allRuleSets []map[string]any, dnsCfg map[string]any, routeRules []map[string]any) []map[string]any {
+	referencedTags := make(map[string]struct{}, 64)
+
+	// Collect from DNS rules
+	if dnsCfg != nil {
+		if dnsRules, ok := dnsCfg["rules"].([]map[string]any); ok {
+			for _, r := range dnsRules {
+				extractRuleSetTags(r, referencedTags)
+			}
+		} else if dnsRulesAny, ok := dnsCfg["rules"].([]any); ok {
+			for _, item := range dnsRulesAny {
+				if r, ok := item.(map[string]any); ok {
+					extractRuleSetTags(r, referencedTags)
+				}
+			}
+		}
+	}
+
+	// Collect from Route rules
+	for _, r := range routeRules {
+		extractRuleSetTags(r, referencedTags)
+	}
+
+	// Always guarantee baseline system GeoData sets
+	referencedTags["geosite-cn"] = struct{}{}
+	referencedTags["geoip-cn"] = struct{}{}
+
+	pruned := make([]map[string]any, 0, len(referencedTags))
+	for _, rs := range allRuleSets {
+		if tag, ok := rs["tag"].(string); ok {
+			if _, used := referencedTags[tag]; used {
+				pruned = append(pruned, rs)
+			}
+		}
+	}
+
+	if len(allRuleSets) > len(pruned) {
+		log.Printf("[RulePruner] Sing-box rule_sets pruned from %d to %d active sets (saved %d unused .srs sets from cold deserialization)",
+			len(allRuleSets), len(pruned), len(allRuleSets)-len(pruned))
+	}
+
+	return pruned
+}
+
+func extractRuleSetTags(rule map[string]any, out map[string]struct{}) {
+	if val, ok := rule["rule_set"]; ok {
+		switch v := val.(type) {
+		case string:
+			if v != "" {
+				out[v] = struct{}{}
+			}
+		case []string:
+			for _, tag := range v {
+				if tag != "" {
+					out[tag] = struct{}{}
+				}
+			}
+		case []any:
+			for _, item := range v {
+				if tag, ok := item.(string); ok && tag != "" {
+					out[tag] = struct{}{}
+				}
+			}
+		}
+	}
+	// Support nested logical rules (e.g. type: logical, rules: [...])
+	if subRules, ok := rule["rules"].([]map[string]any); ok {
+		for _, sub := range subRules {
+			extractRuleSetTags(sub, out)
+		}
+	} else if subAny, ok := rule["rules"].([]any); ok {
+		for _, item := range subAny {
+			if sub, ok := item.(map[string]any); ok {
+				extractRuleSetTags(sub, out)
+			}
+		}
+	}
 }

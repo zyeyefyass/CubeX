@@ -3,6 +3,7 @@ package engine
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/zyeyefyass/CubeX/internal/schema"
 )
@@ -87,5 +88,14 @@ func TestStreamLogPipeClassification(t *testing.T) {
 		if !strings.Contains(got.Message, tc.wantMsgSub) {
 			t.Errorf("input %q: got Message %q, expected to contain %q", tc.input, got.Message, tc.wantMsgSub)
 		}
+	}
+}
+
+func TestWaitForPortsReleaseFast(t *testing.T) {
+	mgr := &Manager{}
+	// Empty or zero ports should return true immediately
+	ports := []int{0, -1}
+	if !mgr.waitForPortsRelease(ports, 50*time.Millisecond) {
+		t.Fatalf("expected true for empty ports")
 	}
 }

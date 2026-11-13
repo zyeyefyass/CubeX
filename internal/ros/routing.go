@@ -1288,15 +1288,15 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 			}
 		}
 	}
-	upScript := fmt.Sprintf(`/ip route enable [find comment~"CubeX-FakeIP-Backtrack"]; /ip dns set servers=%s; /ip dns cache flush; :log info "CubeX is UP: Restored Fake-IP backtrack and DNS"`, targetIP)
-	downScript := `/ip route disable [find comment~"CubeX-FakeIP-Backtrack"]; /ip dns set servers=223.5.5.5,119.29.29.29; /ip dns cache flush; :log warn "CubeX is DOWN: 0-second Failover to RouterOS native DNS!"`
+	upScript := BuildNetwatchUpScript(targetIP, 2026)
+	downScript := BuildNetwatchDownScript(targetIP, 2026, "223.5.5.5,119.29.29.29", 4)
 
 	if !hasValidNetwatch {
 		nwPayload := map[string]any{
 			"host":          targetIP,
 			"port":          "2026",
-			"interval":      "3s",
-			"timeout":       "2s",
+			"interval":      "2s",
+			"timeout":       "1s",
 			"startup-delay": "0s",
 			"type":          "tcp-conn",
 			"comment":       "CubeX-HA-Failover",
@@ -1304,7 +1304,7 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 			"down-script":   downScript,
 		}
 		if _, err := m.PutROS("/tool/netwatch", nwPayload); err == nil {
-			res.Actions = append(res.Actions, fmt.Sprintf("已注入 Netwatch 应用级 TCP 心跳探针 (3秒探测 %s:2026 · 服务异常 0 秒降级直连与原生 DNS)", targetIP))
+			res.Actions = append(res.Actions, fmt.Sprintf("已注入 Netwatch 应用级 TCP 两阶段防抖探针 (2s/1s 探测 %s:2026 · 2.2秒吸收重启微断 · 0秒精准逃生)", targetIP))
 		}
 	} else {
 		for _, nw := range nwList {
@@ -1313,8 +1313,8 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 				id, _ := nw[".id"].(string)
 				if id != "" {
 					_ = m.PatchROS("/tool/netwatch/"+id, map[string]any{
-						"interval":      "3s",
-						"timeout":       "2s",
+						"interval":      "2s",
+						"timeout":       "1s",
 						"startup-delay": "0s",
 						"up-script":     upScript,
 						"down-script":   downScript,
@@ -1322,7 +1322,7 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 				}
 			}
 		}
-		res.Actions = append(res.Actions, fmt.Sprintf("Netwatch 应用级 TCP 心跳逃生探针已就绪 (%s:2026 · 3s/2s)", targetIP))
+		res.Actions = append(res.Actions, fmt.Sprintf("Netwatch 两阶段防抖 TCP 心跳逃生探针已就绪 (%s:2026 · 2s/1s · 2.2s防抖吸收)", targetIP))
 	}
 
 	// 7. Clean up Stale Non-FIB Tables & Inactive NAT rules
@@ -1689,9 +1689,11 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 	sb.WriteString("/ipv6 firewall filter remove [find comment~\"CubeX Anti-Block IPv6\"]\n")
 	sb.WriteString(":local fwdAccept [/ipv6 firewall filter find chain=forward and action=accept and in-interface=bridge]; :if ([:len $fwdAccept] > 0) do={ /ipv6 firewall filter add chain=forward dst-address=2000::/3 action=reject reject-with=icmp-admin-prohibited place-before=($fwdAccept->0) comment=\"CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak\" } else={ /ipv6 firewall filter add chain=forward dst-address=2000::/3 action=reject reject-with=icmp-admin-prohibited comment=\"CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak\" }\n\n")
 
-	sb.WriteString("# 11. 注入 Netwatch 应用级 TCP 2026 心跳看门狗 (服务异常或容器宕机时全自动 0秒直连与原生 DNS)\n")
+	sb.WriteString("# 11. 注入 Netwatch 应用级 TCP 2026 心跳看门狗 (两阶段防抖: 2.2秒吸收容器重启微断，全网零闪断无感容灾)\n")
 	sb.WriteString("/tool/netwatch remove [find comment~\"CubeX\"]\n")
-	sb.WriteString(fmt.Sprintf("/tool/netwatch add host=%s port=2026 type=tcp-conn interval=3s timeout=2s comment=\"CubeX-HA-Failover\" up-script=\"/ip route enable [find comment~\\\"CubeX-FakeIP-Backtrack\\\"]; /ip dns set servers=%s; /ip dns cache flush; :log info \\\"CubeX is UP: Restored Fake-IP backtrack and DNS\\\"\" down-script=\"/ip route disable [find comment~\\\"CubeX-FakeIP-Backtrack\\\"]; /ip dns set servers=223.5.5.5,119.29.29.29; /ip dns cache flush; :log warn \\\"CubeX Service is DOWN: 0-second Failover to RouterOS native DNS!\\\"\"\n\n", targetIP, targetIP))
+	downScriptEsc := escapeROSQuotedString(BuildNetwatchDownScript(targetIP, 2026, "223.5.5.5,119.29.29.29", 4))
+	upScriptEsc := escapeROSQuotedString(BuildNetwatchUpScript(targetIP, 2026))
+	sb.WriteString(fmt.Sprintf("/tool/netwatch add host=%s port=2026 type=tcp-conn interval=2s timeout=1s comment=\"CubeX-HA-Failover\" down-script=\"%s\" up-script=\"%s\"\n\n", targetIP, downScriptEsc, upScriptEsc))
 
 	sb.WriteString(":put \"==========================================================\"\n")
 	sb.WriteString(":put \"✅ CubeX RouterOS 防火墙与策略路由已全自动配置完毕！\"\n")
@@ -2120,4 +2122,51 @@ func (m *Manager) EnsureBridgeDAIProtection(targetIP string) (bool, string) {
 	}
 
 	return restored, "ROS 7.25 DAI 防护就绪 · veth 端口自动信任完毕"
+}
+
+// BuildNetwatchDownScript generates a two-stage anti-flapping Netwatch down-script for RouterOS v7.
+func BuildNetwatchDownScript(targetIP string, controlPort int, fallbackDNS string, graceTicks int) string {
+	if controlPort <= 0 {
+		controlPort = 2026
+	}
+	if fallbackDNS == "" {
+		fallbackDNS = "223.5.5.5,119.29.29.29"
+	}
+	if graceTicks <= 0 {
+		graceTicks = 4
+	}
+	healthURL := fmt.Sprintf("http://%s:%d/healthz", targetIP, controlPort)
+	s := fmt.Sprintf(`:global cubexForceBypass; :local recovered false; :if ($cubexForceBypass != true) do={ :local i 0; :while (($i < %d) && (!$recovered)) do={ :delay 550ms; :set i ($i + 1); :if ([/ping %s count=1 interval=200ms] > 0) do={ :do { /tool fetch url="%s" http-method=get output=none as-value; :set recovered true; } on-error={}; }; }; }; :if ($recovered) do={ :log info "CubeX HA: Transient reload (<2.2s) absorbed smoothly, 0 route/DNS flap."; :return; }; :local activeRoutes [/ip route find where comment~"CubeX-FakeIP-Backtrack" and disabled=no]; :if ([:len $activeRoutes] > 0) do={ /ip route disable $activeRoutes; /ip dns set servers=%s; /ip dns cache flush; :log warning "CubeX HA: L2 Escape activated! Switched to RouterOS native DNS (%s)."; };`,
+		graceTicks, targetIP, healthURL, fallbackDNS, fallbackDNS)
+	return compactROSScript(s)
+}
+
+// BuildNetwatchUpScript generates a state-aware anti-flapping Netwatch up-script for RouterOS v7.
+func BuildNetwatchUpScript(targetIP string, controlPort int) string {
+	if controlPort <= 0 {
+		controlPort = 2026
+	}
+	healthURL := fmt.Sprintf("http://%s:%d/healthz", targetIP, controlPort)
+	s := fmt.Sprintf(`:global cubexForceBypass; :local escapedRoutes [/ip route find where comment~"CubeX-FakeIP-Backtrack" and disabled=yes]; :local curDns [:tostr [/ip dns get servers]]; :if (([:len $escapedRoutes] = 0) && ($curDns = "%s")) do={ :return; }; :delay 1200ms; :local ready false; :if ([/ping %s count=1 interval=200ms] > 0) do={ :do { /tool fetch url="%s" http-method=get output=none as-value; :set ready true; } on-error={}; }; :if (!$ready) do={ :log warning "CubeX HA: Port up but /healthz not ready after dampening window, holding escape state."; :return; }; :set cubexForceBypass false; /ip dns set servers=%s; :if ([:len $escapedRoutes] > 0) do={ /ip route enable $escapedRoutes; }; /ip dns cache flush; :log info "CubeX HA: Service verified stable, restored Fake-IP backtrack and CubeX DNS.";`,
+		targetIP, targetIP, healthURL, targetIP)
+	return compactROSScript(s)
+}
+
+func compactROSScript(s string) string {
+	lines := strings.Split(s, "\n")
+	out := make([]string, 0, len(lines))
+	for _, l := range lines {
+		trimmed := strings.TrimSpace(l)
+		if trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return strings.Join(out, " ")
+}
+
+func escapeROSQuotedString(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `"`, `\"`)
+	s = strings.ReplaceAll(s, `$`, `\$`)
+	return s
 }

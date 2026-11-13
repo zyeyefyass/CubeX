@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v8.7-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-Test_v8.8-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -77,7 +77,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 Test v8.7 最新版本更新亮点](#announcement)
+- [📢 Test v8.8 最新版本更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -320,15 +320,15 @@
 
 <a id="announcement"></a>
 
-## 📢 Test v8.7 最新版本更新亮点 (整机内存极致压缩 · 虚拟网段解析持久化与平滑防断连 · 真实域名安全嗅探 · 毫秒级极速响应)
+## 📢 Test v8.8 最新版本更新亮点 (双核无感热切与进程组屏障 · 逃生两阶段平滑防抖 · 微秒级闭环选路 · 四维插件化解耦)
 
 > [!IMPORTANT]
-> ### 👑【整机内存极致压缩 · 虚拟网段解析持久化与平滑防断连 · 真实域名安全嗅探 · 毫秒级极速响应】(Test v8.7)
+> ### 👑【双核无感热切与进程组屏障 · 逃生两阶段平滑防抖 · 微秒级闭环选路 · 四维插件化解耦】(Test v8.8)
 >
-> 1. **整机内存极致压缩**：优化底层运行时堆栈回收机制，常驻运行时内存从 124MB 骤降至 37MB，降幅超过 70%，在低配设备与轻量容器中持久稳定轻盈运行。
-> 2. **虚拟网段解析持久化与平滑防断连**：启用虚拟网段本地安全映射持久化，杜绝核心热切换与重启导致的映射记录丢失与断连；无损保持长连接链路稳定通畅。
-> 3. **真实域名安全嗅探与零证书冲突**：优先遵循客户端真实域名特征接管连接，彻底根治历史缓存漂移与网站安全证书域名不匹配报错，兼顾极致解析速度与严格合规。
-> 4. **平均解析耗时遥测精准修复**：重构毫秒耗时遥测链路与前端展示，彻底修复基线耗时卡顿，恢复 2~3 毫秒极速响应与零泄漏安全监测。
+> 1. **双核无感热切与进程组隔离**：引入独立进程组屏障与内核物理退出等待机制，彻底告别旧版盲扫停核；配合规则集按需动态剪枝与虚拟文件预热，热切换时间压缩至 60 毫秒以内，内存物理页即时归还。
+> 2. **逃生看门狗两阶段平滑防抖**：重构毫秒逃生脚本与状态判别逻辑，引入硬超时保护与路由真实状态唯一真值核验，彻底根除偶发性网络抖动引发的误切与缓存误刷。
+> 3. **微秒级闭环选路与金字塔分级削峰**：引入三级金字塔削峰架构与令牌桶并发控制，区分现役哨兵、热备与冷备巡检，实现稳态防抖与紧急熔断双模极速切流。
+> 4. **四维版本探针与原子安全更新**：重构控制面、双内核、规则库与宿主固件四维探针中心，支持流式下载、文件魔数预检与原地原子重命名，更新异常自动毫秒级事务回滚。
 
 ---
 
@@ -340,11 +340,11 @@
 
 | 发布物文件名 | 适用宿主与架构 | 文件大小 | 说明与用途 |
 | :--- | :--- | :--- | :--- |
-| `CubeX-Test-v8.7-ros-amd64.tar` | 软路由系统 (x86 软路由) | 92.99 MB | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-Test-v8.7-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 93.32 MB | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-Test-v8.7-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 76.28 MB | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-Test-v8.7-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 87.23 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-Test-v8.7-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 79.94 MB | ARM64 完整归档发布包 |
+| `CubeX-Test-v8.8-ros-amd64.tar` | 软路由系统 (x86 软路由) | 92.99 MB | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-Test-v8.8-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 93.32 MB | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-Test-v8.8-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 76.28 MB | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-Test-v8.8-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 87.23 MB | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-Test-v8.8-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | 79.94 MB | ARM64 完整归档发布包 |
 | `cubexd-linux-amd64` | Linux amd64 | 41.70 MB | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
 | `cubexd-linux-arm64` | Linux arm64 | 37.50 MB | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 | 16.99 MB | 纯命令行运维工具（终端直接运行） |

@@ -2,6 +2,7 @@ package ros
 
 import (
 	"net"
+	"strings"
 	"testing"
 )
 
@@ -101,5 +102,38 @@ func TestSubnetAdaptiveRouterIPMatch(t *testing.T) {
 				t.Errorf("matched router IP %s != expected %s", matchedIP, tc.expectedGW)
 			}
 		})
+	}
+}
+
+func TestBuildNetwatchAntiFlappingScripts(t *testing.T) {
+	downScript := BuildNetwatchDownScript("10.0.0.7", 2026, "223.5.5.5,119.29.29.29", 4)
+	if downScript == "" {
+		t.Fatal("BuildNetwatchDownScript returned empty string")
+	}
+	if !strings.Contains(downScript, "cubexForceBypass") {
+		t.Error("downScript missing cubexForceBypass check")
+	}
+	if !strings.Contains(downScript, "550ms") {
+		t.Error("downScript missing 550ms interval")
+	}
+	if !strings.Contains(downScript, "200ms") {
+		t.Error("downScript missing 200ms hard ping timeout")
+	}
+	if !strings.Contains(downScript, "/healthz") {
+		t.Error("downScript missing /healthz fetch probe")
+	}
+
+	upScript := BuildNetwatchUpScript("10.0.0.7", 2026)
+	if upScript == "" {
+		t.Fatal("BuildNetwatchUpScript returned empty string")
+	}
+	if !strings.Contains(upScript, "escapedRoutes") {
+		t.Error("upScript missing escapedRoutes disabled count check")
+	}
+	if !strings.Contains(upScript, "1200ms") {
+		t.Error("upScript missing 1200ms steady state dampening delay")
+	}
+	if !strings.Contains(upScript, "/healthz") {
+		t.Error("upScript missing /healthz readiness check")
 	}
 }

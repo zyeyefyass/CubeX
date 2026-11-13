@@ -149,13 +149,22 @@ func (s *Server) executeSmartHealthPing(force bool) {
 
 					candRes := s.testNodeRealDelay(*candNode, clashPort, clashSecret)
 					candDelay := candRes.Delay
-					if candDelay > 0 && candDelay < bestDelay {
-						bestDelay = candDelay
-						bestCandidate = candNode
+					if candDelay > 0 {
+						should := true
+						if s.ewmaMgr != nil && bestCandidate != nil {
+							should, _ = s.ewmaMgr.ShouldSwitch(bestCandidate.Name, candNode.Name, 20, 0.15, 0)
+						}
+						if should && candDelay < bestDelay {
+							bestDelay = candDelay
+							bestCandidate = candNode
+						}
 					}
 				}
 
 				if bestCandidate != nil {
+					if s.ewmaMgr != nil {
+						s.ewmaMgr.MarkSwitch(bestCandidate.Name)
+					}
 					// 3. Atomically switch group to healthy candidate
 					grp.Now = bestCandidate.Name
 

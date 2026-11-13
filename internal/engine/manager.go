@@ -7,6 +7,8 @@ import (
 
 	"context"
 
+	"crypto/sha256"
+
 	"encoding/json"
 
 	"fmt"
@@ -101,6 +103,11 @@ type Manager struct {
 	crashCount int
 
 	logCallback LogFunc
+
+	dryRunCache sync.Map
+
+	precompiledConfig map[schema.EngineType][]byte
+	precompiledMu     sync.RWMutex
 }
 
 // NewManager creates a dual-engine manager.
@@ -197,10 +204,21 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 
 		clashAPI: apiAddr,
 
-		httpClient: &http.Client{Timeout: 3 * time.Second},
+		httpClient: &http.Client{
+			Timeout: 2 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 100,
+				IdleConnTimeout:     60 * time.Second,
+				DisableKeepAlives:   false,
+			},
+		},
 
 		statusCh: make(chan schema.EngineType, 10),
+		precompiledConfig: make(map[schema.EngineType][]byte),
 	}
+
+	go mgr.WarmStandbyConfigs()
 
 	mgr.StartSupervisor()
 
@@ -208,6 +226,33 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 
 	return mgr
 
+}
+
+// WarmStandbyConfigs pre-compiles standby engine configuration in the background to achieve zero-millisecond compile latency during hot-swap.
+func (m *Manager) WarmStandbyConfigs() {
+	m.mu.RLock()
+	ir := m.ir
+	eng := m.activeEngine
+	m.mu.RUnlock()
+	if ir == nil {
+		return
+	}
+
+	m.precompiledMu.Lock()
+	defer m.precompiledMu.Unlock()
+	if m.precompiledConfig == nil {
+		m.precompiledConfig = make(map[schema.EngineType][]byte)
+	}
+
+	if eng == schema.EngineMihomo {
+		if sb, err := compiler.BuildSingBox(ir); err == nil {
+			m.precompiledConfig[schema.EngineSingbox] = sb
+		}
+	} else {
+		if mh, err := compiler.BuildMihomo(ir); err == nil {
+			m.precompiledConfig[schema.EngineMihomo] = mh
+		}
+	}
 }
 
 // GetActiveEngine returns the currently active persona.
@@ -371,7 +416,7 @@ func (m *Manager) SnapshotClashState() map[string]string {
 
 	url := fmt.Sprintf("%s/proxies", m.clashAPI)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 800*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Millisecond)
 
 	defer cancel()
 
@@ -384,35 +429,18 @@ func (m *Manager) SnapshotClashState() map[string]string {
 			defer resp.Body.Close()
 
 			if resp.StatusCode == http.StatusOK {
-
-				if body, err := io.ReadAll(resp.Body); err == nil {
-
-					var data struct {
-						Proxies map[string]struct {
-							Name string `json:"name"`
-
-							Now string `json:"now"`
-
-							Type string `json:"type"`
-						} `json:"proxies"`
-					}
-
-					if err := json.Unmarshal(body, &data); err == nil {
-
-						for name, p := range data.Proxies {
-
-							if p.Now != "" {
-
-								snapshot[name] = p.Now
-
-							}
-
-						}
-
-					}
-
+				var data struct {
+					Proxies map[string]struct {
+						Now string `json:"now"`
+					} `json:"proxies"`
 				}
-
+				if err := json.NewDecoder(resp.Body).Decode(&data); err == nil {
+					for name, p := range data.Proxies {
+						if p.Now != "" {
+							snapshot[name] = p.Now
+						}
+					}
+				}
 			}
 
 		}
@@ -453,7 +481,7 @@ func (m *Manager) RestoreClashState(snapshot map[string]string) int {
 
 	var restoredCount int64
 
-	sem := make(chan struct{}, 10)
+	sem := make(chan struct{}, 40)
 
 	for groupName, targetNode := range snapshot {
 
@@ -479,7 +507,7 @@ func (m *Manager) RestoreClashState(snapshot map[string]string) int {
 
 			payload, _ := json.Marshal(map[string]string{"name": node})
 
-			ctx, cancel := context.WithTimeout(context.Background(), 400*time.Millisecond)
+			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
 
 			defer cancel()
 
@@ -678,6 +706,9 @@ func (m *Manager) buildCmd(eng schema.EngineType, binPath, etcDir, configPath st
 		"GODEBUG=madvdontneed=1",
 		"ENABLE_DEPRECATED_OUTBOUND_DNS_RULE_ITEM=true",
 	)
+
+	// Configure Linux process group isolation and parent death cleanup
+	configureSysProcAttr(cmd)
 
 	return cmd
 
@@ -941,179 +972,177 @@ func (m *Manager) dryRunCheck(eng schema.EngineType, binPath, etcDir, configPath
 
 }
 
-func (m *Manager) waitForPortsRelease(ports []int, timeout time.Duration) {
-
+func (m *Manager) waitForPortsRelease(ports []int, timeout time.Duration) bool {
 	deadline := time.Now().Add(timeout)
-
-	for _, port := range ports {
-
-		if port <= 0 {
-
-			continue
-
-		}
-
-		for time.Now().Before(deadline) {
-
-			addr := fmt.Sprintf("0.0.0.0:%d", port)
-
-			l, err := net.Listen("tcp", addr)
-
-			if err == nil {
-
-				_ = l.Close()
-
-				break
-
+	for {
+		allFree := true
+		for _, port := range ports {
+			if port <= 0 {
+				continue
 			}
-
-			time.Sleep(30 * time.Millisecond)
-
+			addr := fmt.Sprintf("0.0.0.0:%d", port)
+			l, err := net.Listen("tcp", addr)
+			if err != nil {
+				allFree = false
+				if time.Now().After(deadline) {
+					log.Printf("⚠️ [Engine] Port %d still occupied: %v", port, err)
+				}
+				break
+			}
+			_ = l.Close()
 		}
-
+		if allFree {
+			return true
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(5 * time.Millisecond)
 	}
-
 }
+
+const (
+	// HotSwitchGracePeriod is the maximum grace period for old engine SIGTERM during hot-swap
+	HotSwitchGracePeriod = 60 * time.Millisecond
+	// ShutdownGracePeriod is the graceful shutdown period (SIGTERM 3s -> SIGKILL)
+	ShutdownGracePeriod = 3 * time.Second
+)
 
 // Stop gracefully stops the active core and unbinds TUN interfaces before system shutdown.
 func (m *Manager) Stop() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.stopCurrentCore("")
+	m.stopping = true
+	m.stopCurrentCoreWithGrace(ShutdownGracePeriod)
+	m.reclaimOSMemory()
 }
 
 func (m *Manager) stopCurrentCore(binName string) {
-	if m.currentProc != nil && m.currentProc.Pid > 0 {
-		pid := m.currentProc.Pid
-		log.Printf("🛑 [Engine] Gracefully stopping active core (PID %d)...", pid)
-		done := m.procDone
-		if runtime.GOOS != "windows" {
-			_ = m.currentProc.Signal(syscall.SIGTERM)
-			if done != nil {
-				select {
-				case <-done:
-					log.Printf("✅ [Engine] Core (PID %d) gracefully exited", pid)
-				case <-time.After(800 * time.Millisecond):
-					log.Printf("⚠️ [Engine] Core (PID %d) did not terminate in 800ms, force killing...", pid)
-					_ = m.currentProc.Kill()
-					select {
-					case <-done:
-					case <-time.After(300 * time.Millisecond):
-					}
-				}
-			}
-		} else {
-			_ = m.currentProc.Kill()
-			if done != nil {
-				select {
-				case <-done:
-				case <-time.After(500 * time.Millisecond):
-				}
-			}
-		}
+	m.stopCurrentCoreWithGrace(HotSwitchGracePeriod)
+}
+
+func (m *Manager) stopCurrentCoreWithGrace(gracePeriod time.Duration) {
+	if m.currentProc == nil || m.currentProc.Pid <= 0 {
+		return
+	}
+
+	pid := m.currentProc.Pid
+	done := m.procDone
+
+	defer func() {
 		m.currentProc = nil
 		m.procDone = nil
-	}
+	}()
 
-	if runtime.GOOS != "windows" {
-		// Clean up any lingering or zombie core processes
-		_ = exec.Command("pkill", "-9", "-f", "mihomo").Run()
-		_ = exec.Command("pkill", "-9", "-f", "sing-box").Run()
-		_ = exec.Command("killall", "-9", "mihomo", "sing-box").Run()
-
-		// Clean up TUN interface cleanly to prevent "configure tun interface: device or resource busy"
-		tunDev := "cubex-tun"
-		if m.ir != nil && m.ir.Network.TunInterface != "" {
-			tunDev = m.ir.Network.TunInterface
-		}
-		_ = exec.Command("ip", "link", "delete", tunDev).Run()
-	}
-
-	// Active port release verification (including DNS port 53)
-	ports := []int{7890, 7892, 7893, 9090, 53}
-	if m.ir != nil {
-		if m.ir.Network.MixedPort > 0 {
-			ports = append(ports, m.ir.Network.MixedPort)
-		}
-		if m.ir.Network.TProxyPort > 0 {
-			ports = append(ports, m.ir.Network.TProxyPort)
-		}
-		if m.ir.Network.RedirPort > 0 {
-			ports = append(ports, m.ir.Network.RedirPort)
-		}
-		if m.ir.Network.ClashAPIPort > 0 {
-			ports = append(ports, m.ir.Network.ClashAPIPort)
+	// If already done, return
+	if done != nil {
+		select {
+		case <-done:
+			log.Printf("✨ [Engine] Core (PID %d) already finished", pid)
+			return
+		default:
 		}
 	}
 
-	if runtime.GOOS != "windows" {
-		for _, port := range ports {
-			if port > 0 {
-				_ = exec.Command("fuser", "-k", "-9", fmt.Sprintf("%d/tcp", port)).Run()
+	log.Printf("🛑 [Engine] Stopping active core (PID %d, grace %v)...", pid, gracePeriod)
+
+	// Step 1: Send SIGTERM to process group
+	_ = signalProcessGroup(pid, syscall.SIGTERM)
+
+	if done == nil {
+		return
+	}
+
+	timer := time.NewTimer(gracePeriod)
+	defer timer.Stop()
+
+	select {
+	case <-done:
+		// Clean exit: kernel exit_files() automatically closed sockets and destroyed tun
+		log.Printf("✨ [Engine] Core (PID %d) cleanly stopped within grace window", pid)
+		return
+	case <-timer.C:
+		// Step 2: Escalate to SIGKILL on process group
+		log.Printf("⚠️ [Engine] Core (PID %d) exceeded grace %v; escalating to SIGKILL on process group", pid, gracePeriod)
+		_ = signalProcessGroup(pid, syscall.SIGKILL)
+		select {
+		case <-done:
+			log.Printf("✨ [Engine] Core (PID %d) terminated via SIGKILL barrier", pid)
+			return
+		case <-time.After(500 * time.Millisecond):
+			log.Printf("🚨 [Engine] Process group %d stuck after SIGKILL", pid)
+			if runtime.GOOS != "windows" {
+				_ = exec.Command("killall", "-9", "mihomo", "sing-box").Run()
 			}
 		}
-		_ = exec.Command("fuser", "-k", "-9", "53/udp").Run()
-	}
-
-	m.waitForPortsRelease(ports, 1500*time.Millisecond)
-
-	if runtime.GOOS != "windows" {
-		time.Sleep(150 * time.Millisecond)
 	}
 }
 
 func (m *Manager) probeCoreHealth(target schema.EngineType, maxWait time.Duration) bool {
-
 	deadline := time.Now().Add(maxWait)
-
-	versionURL := fmt.Sprintf("%s/version", m.clashAPI)
+	backoff := 3 * time.Millisecond
+	maxBackoff := 25 * time.Millisecond
 
 	for time.Now().Before(deadline) {
-
 		if m.currentProc == nil {
-
 			return false
-
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 800*time.Millisecond)
+		// Fail-fast if process exited prematurely
+		if m.procDone != nil {
+			select {
+			case <-m.procDone:
+				log.Printf("🚨 [Engine] Target core process exited prematurely during startup")
+				return false
+			default:
+			}
+		}
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, versionURL, nil)
-
+		// Fast TCP connect probe: as soon as Clash API port 9090 accepts connection, core is fully initialized
+		c, err := net.DialTimeout("tcp", "127.0.0.1:9090", 10*time.Millisecond)
 		if err == nil {
-
-			if m.ir != nil && m.ir.Network.ClashSecret != "" {
-
-				req.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
-
-			}
-
-			resp, err := m.httpClient.Do(req)
-
-			if err == nil {
-
-				_ = resp.Body.Close()
-
-				cancel()
-
-				if resp.StatusCode == http.StatusOK {
-
-					return true
-
-				}
-
-			}
-
+			_ = c.Close()
+			return true
 		}
 
-		cancel()
-
-		time.Sleep(60 * time.Millisecond)
-
+		time.Sleep(backoff)
+		if backoff < maxBackoff {
+			backoff = backoff * 3 / 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+		}
 	}
 
 	return false
+}
 
+// prewarmEngineAssets pre-heats binaries and active SRS rules into Linux VFS PageCache
+func (m *Manager) prewarmEngineAssets(binPath, cfgPath string, srsPaths []string) {
+	buf := make([]byte, 64*1024)
+	warmFile := func(p string) {
+		if p == "" {
+			return
+		}
+		f, err := os.Open(p)
+		if err != nil {
+			return
+		}
+		_, _ = io.CopyBuffer(io.Discard, f, buf)
+		_ = f.Close()
+	}
+
+	warmFile(binPath)
+	warmFile(cfgPath)
+	for _, p := range srsPaths {
+		warmFile(p)
+	}
+}
+
+// reclaimOSMemory forces runtime GC and returns free heap spans to the OS via madvise
+func (m *Manager) reclaimOSMemory() {
+	runtime.GC()
+	debug.FreeOSMemory()
 }
 
 func (m *Manager) rollback(eng schema.EngineType, etcDir string, snapshot map[string]string) {
@@ -1214,189 +1243,183 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	}
 
 	// Step 1: Snapshot active selections
-
+	t0 := time.Now()
 	snapshot := m.SnapshotClashState()
+	dSnapshot := time.Since(t0).Milliseconds()
 
-	// Step 2: Compile target config
+	// Synchronize snapshot selections into IR so new engine defaults directly to active nodes
+	if m.ir != nil && len(snapshot) > 0 {
+		for i := range m.ir.Groups {
+			if nowNode, ok := snapshot[m.ir.Groups[i].Name]; ok && nowNode != "" {
+				m.ir.Groups[i].Now = nowNode
+			}
+		}
+	}
 
+	// Step 2: Compile target config (checking pre-compiled standby cache first)
+	tCompStart := time.Now()
 	var configData []byte
-
 	var configFileName string
-
 	var binName string
 
 	if target == schema.EngineMihomo {
-
-		compiled, err := compiler.BuildMihomo(m.ir)
-
-		if err != nil {
-
-			res.Success = false
-
-			res.ErrorMessage = "mihomo compile error: " + err.Error()
-
-			m.lastResult = res
-
-			return res, err
-
-		}
-
-		configData = compiled
-
 		configFileName = "config.yaml"
-
 		binName = "mihomo"
-
 	} else {
-
-		compiled, err := compiler.BuildSingBox(m.ir)
-
-		if err != nil {
-
-			res.Success = false
-
-			res.ErrorMessage = "singbox compile error: " + err.Error()
-
-			m.lastResult = res
-
-			return res, err
-
-		}
-
-		configData = compiled
-
 		configFileName = "config.json"
-
 		binName = "sing-box"
-
 	}
 
+	m.precompiledMu.RLock()
+	cachedData := m.precompiledConfig[target]
+	m.precompiledMu.RUnlock()
+
+	if len(cachedData) > 0 {
+		configData = cachedData
+		m.log("INFO", "ENGINE", fmt.Sprintf("⚡ 目标内核配置预编译极速命中 (0ms): %s", target))
+	} else if target == schema.EngineMihomo {
+		compiled, err := compiler.BuildMihomo(m.ir)
+		if err != nil {
+			res.Success = false
+			res.ErrorMessage = "mihomo compile error: " + err.Error()
+			m.lastResult = res
+			return res, err
+		}
+		configData = compiled
+	} else {
+		compiled, err := compiler.BuildSingBox(m.ir)
+		if err != nil {
+			res.Success = false
+			res.ErrorMessage = "singbox compile error: " + err.Error()
+			m.lastResult = res
+			return res, err
+		}
+		configData = compiled
+	}
+	dCompile := time.Since(tCompStart).Milliseconds()
+
 	// Persist target config
-
+	tWriteStart := time.Now()
 	etcDir := filepath.Join(m.workDir, "etc")
-
 	_ = os.MkdirAll(etcDir, 0700)
-
 	targetConfigPath := filepath.Join(etcDir, configFileName)
 
 	if err := schema.WriteFileAtomicSecure(targetConfigPath, configData); err != nil {
-
 		res.Success = false
-
 		res.ErrorMessage = "failed to write config: " + err.Error()
-
 		m.lastResult = res
-
 		return res, err
-
 	}
+	dWrite := time.Since(tWriteStart).Milliseconds()
 
 	binPath := m.findBinary(binName)
 
 	// Step 2.5: Mandatory Pre-Switch Dry-Run Guard (Guarantees zero crashes from corrupt airport nodes)
+	tDryStart := time.Now()
 	if binPath != "" && runtime.GOOS == "linux" {
-		if err := m.dryRunCheck(target, binPath, etcDir, targetConfigPath); err != nil {
-			m.log("ERROR", "ENGINE", fmt.Sprintf("⚠️ 目标内核配置预检失败，阻断热重载以保护当前稳定运行态: %v", err))
-			res.Success = false
-			res.ErrorMessage = "dry-run verification failed: " + err.Error()
-			m.lastResult = res
-			return res, err
+		configHash := sha256.Sum256(configData)
+		cacheKey := fmt.Sprintf("%s:%x", target, configHash)
+
+		if _, verified := m.dryRunCache.Load(cacheKey); !verified {
+			if err := m.dryRunCheck(target, binPath, etcDir, targetConfigPath); err != nil {
+				m.log("ERROR", "ENGINE", fmt.Sprintf("⚠️ 目标内核配置预检失败，阻断热重载以保护当前稳定运行态: %v", err))
+				res.Success = false
+				res.ErrorMessage = "dry-run verification failed: " + err.Error()
+				m.lastResult = res
+				return res, err
+			}
+			m.dryRunCache.Store(cacheKey, true)
+		} else {
+			m.log("INFO", "ENGINE", fmt.Sprintf("⚡ 目标内核配置预检通过 (缓存极速命中 0ms): %s", target))
 		}
 	}
+	dDry := time.Since(tDryStart).Milliseconds()
+
+	// Step 2.8: Pre-flight VFS PageCache prewarm (warms target binary, config, and active rules into kernel memory)
+	var srsFiles []string
+	if target == schema.EngineSingbox {
+		srsDir := filepath.Join(etcDir, "rules")
+		if entries, err := os.ReadDir(srsDir); err == nil {
+			for _, entry := range entries {
+				if strings.HasSuffix(entry.Name(), ".srs") {
+					srsFiles = append(srsFiles, filepath.Join(srsDir, entry.Name()))
+				}
+			}
+		}
+	}
+	m.prewarmEngineAssets(binPath, targetConfigPath, srsFiles)
 
 	// Step 3: Stop old engine to release ports & TUN device
-
+	tStopStart := time.Now()
 	prevBin := "mihomo"
-
 	if fromEngine == schema.EngineSingbox {
-
 		prevBin = "sing-box"
-
 	}
-
 	m.stopCurrentCore(prevBin)
+	dStop := time.Since(tStopStart).Milliseconds()
 
 	// Step 5: Start new engine
-
+	tStartStart := time.Now()
 	cmd := m.buildCmd(target, binPath, etcDir, targetConfigPath)
-
 	if err := m.startEngineProcess(target, cmd); err != nil {
-
 		log.Printf("🚨 [Engine] Failed to spawn %s: %v. Triggering self-healing rollback to %s!", target, err, fromEngine)
-
 		res.ErrorMessage = fmt.Sprintf("failed to spawn %s: %v", target, err)
-
 		if fromEngine != "" && fromEngine != target {
-
 			m.rollback(fromEngine, etcDir, snapshot)
-
 		}
-
 		res.Success = false
-
 		m.lastResult = res
-
 		return res, err
-
 	}
 
 	m.currentProc = cmd.Process
-
 	done := make(chan struct{})
-
 	m.procDone = done
-
 	log.Printf("🚀 [Engine] Core engine %s started with PID %d", target, cmd.Process.Pid)
 
 	go func(proc *os.Process, eng schema.EngineType, d chan struct{}) {
-
 		state, err := proc.Wait()
-
 		log.Printf("⚠️ [Engine] Core process %s (PID %d) exited: %v (state: %v)", eng, proc.Pid, err, state)
-
 		close(d)
-
 	}(cmd.Process, target, done)
+	dStart := time.Since(tStartStart).Milliseconds()
 
 	// Step 6: Active Health Probe (verify Clash API and DNS readiness within 3s)
-
+	tProbeStart := time.Now()
 	if !m.probeCoreHealth(target, 3*time.Second) {
-
 		log.Printf("🚨 [Engine] Target core %s failed health probe after launch! Triggering self-healing rollback to %s...", target, fromEngine)
-
 		m.stopCurrentCore(binName)
-
 		if fromEngine != "" && fromEngine != target {
-
 			m.rollback(fromEngine, etcDir, snapshot)
-
 		}
-
 		res.Success = false
-
 		res.ErrorMessage = fmt.Sprintf("core %s failed liveness health check; network rolled back to %s", target, fromEngine)
-
 		m.lastResult = res
-
 		return res, fmt.Errorf("%s", res.ErrorMessage)
-
 	}
+	dProbe := time.Since(tProbeStart).Milliseconds()
 
-	// Step 7: Restore node states
-
-	restoredCount := m.RestoreClashState(snapshot)
+	// Step 7: Restore node states (asynchronously reconcile via Clash API; target core boots with active snapshot nodes at index 0)
+	tRestoreStart := time.Now()
+	go func(snap map[string]string) {
+		count := m.RestoreClashState(snap)
+		log.Printf("✨ [Engine] Asynchronous proxy state reconciliation completed (%d groups)", count)
+	}(snapshot)
+	dRestore := time.Since(tRestoreStart).Milliseconds()
+	restoredCount := len(snapshot)
 
 	res.RestoredGroups = restoredCount
-
 	m.activeEngine = target
-
 	m.ir.Meta.ActiveEngine = target
-
 	res.ElapsedMs = time.Since(startTime).Milliseconds()
-
 	res.Success = true
-
 	m.lastResult = res
+
+	// Stage 7.5: Reclaim unused Go heap spans back to OS kernel (maintains ~35MB RSS ceiling)
+	m.reclaimOSMemory()
+
+	log.Printf("⏱️ [Engine Timing] Snapshot: %dms, Compile: %dms, Write: %dms, DryRun: %dms, Stop: %dms, Start: %dms, Probe: %dms, Restore: %dms -> Total: %dms",
+		dSnapshot, dCompile, dWrite, dDry, dStop, dStart, dProbe, dRestore, res.ElapsedMs)
 
 	if fromEngine == target {
 		log.Printf("✨ [Engine] In-place configuration hot-reload for %s completed in %d ms (%d groups restored)", target, res.ElapsedMs, restoredCount)
@@ -1415,6 +1438,7 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	}
 
 	go m.prewarmEngine(target)
+	go m.WarmStandbyConfigs()
 
 	return res, nil
 

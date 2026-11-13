@@ -95,10 +95,12 @@ else
     done
 fi
 
-# 3.2 探查可用存储池 (优先 local-lvm, local-zfs, local)
-DEFAULT_STORAGE="local-lvm"
-if ! pvesm status -storage local-lvm >/dev/null 2>&1; then
-    if pvesm status -storage local-zfs >/dev/null 2>&1; then
+# 3.2 探查可用存储池 (智能识别支持 rootdir 容器根分区的存储池，优先 local-lvm, local-zfs, local)
+DEFAULT_STORAGE=$(pvesm status -content rootdir 2>/dev/null | awk 'NR>1 {print $1}' | head -n1)
+if [ -z "$DEFAULT_STORAGE" ]; then
+    if pvesm status -storage local-lvm >/dev/null 2>&1; then
+        DEFAULT_STORAGE="local-lvm"
+    elif pvesm status -storage local-zfs >/dev/null 2>&1; then
         DEFAULT_STORAGE="local-zfs"
     else
         DEFAULT_STORAGE="local"
@@ -151,31 +153,31 @@ else
 fi
 
 # 4. 交互式确认或非交互跳过
-# 智能检测：如果 stdin 为管道 (curl ... | bash) 且无法读 tty，或者指定了 -y，强制切换为非交互模式
+# 智能检测：如果 stdin 为管道 (curl ... | bash) 或无控制终端 /dev/tty，或者指定了 -y，强制切换为非交互极速模式
 if [ "$AUTO_CONFIRM" -eq 0 ]; then
-    if [ ! -t 0 ] && [ ! -r /dev/tty ]; then
+    if [ ! -t 0 ] || ! true </dev/tty 2>/dev/null; then
         AUTO_CONFIRM=1
     fi
 fi
 
 if [ "$AUTO_CONFIRM" -eq 0 ]; then
-    echo -e "\n${YELLOW}${BOLD}⚙️ 请配置 CubeX LXC 容器基础参数 (直接回车保持默认):${NC}"
+    echo -e "\n${YELLOW}${BOLD}⚙️ 请配置 CubeX LXC 容器基础参数 (15秒超时自动保持默认，直接回车确认):${NC}"
     if [ -r /dev/tty ]; then
-        read -rp "容器 VMID [默认: $NEXT_ID]: " CT_ID </dev/tty || CT_ID=""
-        read -rp "容器静态 IP (CIDR 格式) [默认: $DEFAULT_CT_IP]: " CT_IP </dev/tty || CT_IP=""
-        read -rp "上级主路由网关 IP [默认: $GW_IP]: " CT_GW </dev/tty || CT_GW=""
-        read -rp "LXC 存储池 [默认: $DEFAULT_STORAGE]: " CT_STORAGE </dev/tty || CT_STORAGE=""
-        read -rp "分配内存 (MB) [推荐 256~512MB, 默认: 256]: " CT_MEM </dev/tty || CT_MEM=""
-        read -rp "分配磁盘大小 (GB) [推荐 2~4GB, 默认: 2]: " CT_DISK </dev/tty || CT_DISK=""
-        read -rp "容器主机名 [默认: cubex-gateway]: " CT_NAME </dev/tty || CT_NAME=""
+        read -t 15 -rp "容器 VMID [默认: $NEXT_ID]: " CT_ID </dev/tty || CT_ID=""
+        read -t 15 -rp "容器静态 IP (CIDR 格式) [默认: $DEFAULT_CT_IP]: " CT_IP </dev/tty || CT_IP=""
+        read -t 15 -rp "上级主路由网关 IP [默认: $GW_IP]: " CT_GW </dev/tty || CT_GW=""
+        read -t 15 -rp "LXC 存储池 [默认: $DEFAULT_STORAGE]: " CT_STORAGE </dev/tty || CT_STORAGE=""
+        read -t 15 -rp "分配内存 (MB) [推荐 256~512MB, 默认: 256]: " CT_MEM </dev/tty || CT_MEM=""
+        read -t 15 -rp "分配磁盘大小 (GB) [推荐 2~4GB, 默认: 2]: " CT_DISK </dev/tty || CT_DISK=""
+        read -t 15 -rp "容器主机名 [默认: cubex-gateway]: " CT_NAME </dev/tty || CT_NAME=""
     else
-        read -rp "容器 VMID [默认: $NEXT_ID]: " CT_ID || CT_ID=""
-        read -rp "容器静态 IP (CIDR 格式) [默认: $DEFAULT_CT_IP]: " CT_IP || CT_IP=""
-        read -rp "上级主路由网关 IP [默认: $GW_IP]: " CT_GW || CT_GW=""
-        read -rp "LXC 存储池 [默认: $DEFAULT_STORAGE]: " CT_STORAGE || CT_STORAGE=""
-        read -rp "分配内存 (MB) [推荐 256~512MB, 默认: 256]: " CT_MEM || CT_MEM=""
-        read -rp "分配磁盘大小 (GB) [推荐 2~4GB, 默认: 2]: " CT_DISK || CT_DISK=""
-        read -rp "容器主机名 [默认: cubex-gateway]: " CT_NAME || CT_NAME=""
+        read -t 15 -rp "容器 VMID [默认: $NEXT_ID]: " CT_ID || CT_ID=""
+        read -t 15 -rp "容器静态 IP (CIDR 格式) [默认: $DEFAULT_CT_IP]: " CT_IP || CT_IP=""
+        read -t 15 -rp "上级主路由网关 IP [默认: $GW_IP]: " CT_GW || CT_GW=""
+        read -t 15 -rp "LXC 存储池 [默认: $DEFAULT_STORAGE]: " CT_STORAGE || CT_STORAGE=""
+        read -t 15 -rp "分配内存 (MB) [推荐 256~512MB, 默认: 256]: " CT_MEM || CT_MEM=""
+        read -t 15 -rp "分配磁盘大小 (GB) [推荐 2~4GB, 默认: 2]: " CT_DISK || CT_DISK=""
+        read -t 15 -rp "容器主机名 [默认: cubex-gateway]: " CT_NAME || CT_NAME=""
     fi
 
     CT_ID=${CT_ID:-$NEXT_ID}
@@ -215,6 +217,26 @@ fi
 case "$CT_NAME" in
     ''|*[!a-zA-Z0-9_-]*) CT_NAME="cubex-gateway" ;;
 esac
+# 验证存储池是否支持 rootdir 容器目录/镜像
+if ! pvesm status -storage "$CT_STORAGE" -content rootdir >/dev/null 2>&1; then
+    echo -e "${YELLOW}⚠️ 存储池 ${CT_STORAGE} 不支持容器 rootdir，自动修正为可用存储池: ${DEFAULT_STORAGE}${NC}"
+    CT_STORAGE="$DEFAULT_STORAGE"
+fi
+
+# DNS 参数格式化 (PVE pct create --nameserver 仅接受单个有效 IP，避免传多个 IP 导致 400 校验阻断)
+DNS_ARG=""
+if [ -n "$CT_GW" ] && [[ "$CT_GW" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    DNS_ARG="--nameserver $CT_GW"
+else
+    DNS_ARG="--nameserver 223.5.5.5"
+fi
+
+# 检查容器 ID 冲突自愈 (如已存在同 ID 容器或旧损坏沙盒，先安全停止并清理)
+if pct status "$CT_ID" >/dev/null 2>&1 || [ -f "/etc/pve/lxc/${CT_ID}.conf" ]; then
+    echo -e "${YELLOW}⚠️ 检测到容器 CT ${CT_ID} 已存在，正在安全重置旧沙盒...${NC}"
+    pct stop "$CT_ID" >/dev/null 2>&1 || true
+    pct destroy "$CT_ID" --purge 1 >/dev/null 2>&1 || true
+fi
 
 CT_CLEAN_IP=$(echo "$CT_IP" | cut -d'/' -f1)
 
@@ -259,7 +281,7 @@ pct create "$CT_ID" "local:vztmpl/$TEMPLATE" \
     --swap 256 \
     --rootfs "${CT_STORAGE}:${CT_DISK}" \
     --net0 name=eth0,bridge=vmbr0,ip="$CT_IP",gw="$CT_GW",type=veth,firewall=0 \
-    --nameserver "$CT_GW 223.5.5.5 119.29.29.29" \
+    $DNS_ARG \
     --features nesting=1,keyctl=1 \
     --unprivileged 0 \
     --onboot 1 \
@@ -397,39 +419,36 @@ fi
 rc-update add cubexd default >/dev/null 2>&1
 EOF
 
-echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX ${CUSTOM_VER:-Test v6.4} 双核完整发布包 (${PVE_ARCH})...${NC}"
+echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX ${CUSTOM_VER:-Test v8.8} 双核完整发布包 (${PVE_ARCH})...${NC}"
 # 10. 推送或下载 CubeX 完整发布包 (按架构自动匹配)
 if [ -n "$CUSTOM_VER" ]; then
     LOCAL_PKG=$(ls dist/release/CubeX-${CUSTOM_VER}*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
     CACHE_PKG=$(ls /tmp/CubeX-${CUSTOM_VER}*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+    ROOT_PKG=$(ls /root/CubeX-${CUSTOM_VER}*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
 else
     LOCAL_PKG=$(ls dist/release/CubeX-Test-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
     CACHE_PKG=$(ls /tmp/CubeX-Test-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+    ROOT_PKG=$(ls /root/CubeX-Test-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
 fi
 
+CHOSEN_ZIP=""
 if [ -n "$LOCAL_PKG" ] && [ -f "$LOCAL_PKG" ]; then
-    echo -e "${BLUE}检测到本地发布包 (${LOCAL_PKG})，直接推送至容器: /opt/CubeX...${NC}"
-    pct push "$CT_ID" "$LOCAL_PKG" /tmp/CubeX.zip
-    pct exec "$CT_ID" -- sh -s << 'EOF'
-unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/
-chmod +x /opt/CubeX/bin/* 2>/dev/null || true
-ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
-rm -f /tmp/CubeX.zip
-EOF
+    CHOSEN_ZIP="$LOCAL_PKG"
 elif [ -n "$CACHE_PKG" ] && [ -s "$CACHE_PKG" ]; then
-    echo -e "${BLUE}检测到宿主机缓存发布包 (${CACHE_PKG})，直接推送至容器: /opt/CubeX...${NC}"
-    pct push "$CT_ID" "$CACHE_PKG" /tmp/CubeX.zip
+    CHOSEN_ZIP="$CACHE_PKG"
+elif [ -n "$ROOT_PKG" ] && [ -s "$ROOT_PKG" ]; then
+    CHOSEN_ZIP="$ROOT_PKG"
+fi
+
+if [ -n "$CHOSEN_ZIP" ]; then
+    echo -e "${BLUE}检测到本地完整发布包 (${CHOSEN_ZIP})，直接推送至容器: /opt/CubeX...${NC}"
+    pct push "$CT_ID" "$CHOSEN_ZIP" /tmp/CubeX.zip
     pct exec "$CT_ID" -- sh -s << 'EOF'
 unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/
 chmod +x /opt/CubeX/bin/* 2>/dev/null || true
 ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
 rm -f /tmp/CubeX.zip
 EOF
-elif [ -f "dist/cubexd-linux-${PVE_ARCH}" ]; then
-    echo -e "${BLUE}检测到本地构建产物，直接推送至容器: /opt/CubeX/bin/cubexd...${NC}"
-    pct push "$CT_ID" "dist/cubexd-linux-${PVE_ARCH}" /opt/CubeX/bin/cubexd -perms 755
-elif [ -f "/opt/cubex/bin/cubexd" ]; then
-    pct push "$CT_ID" /opt/cubex/bin/cubexd /opt/CubeX/bin/cubexd -perms 755
 else
     pct exec "$CT_ID" -- sh -s "$PVE_ARCH" "$CUSTOM_VER" << 'EOF'
     set -e
@@ -446,7 +465,7 @@ else
             fi
         done
     fi
-    [ -z "$REL_TAG" ] && REL_TAG="Test-v8.7"
+    [ -z "$REL_TAG" ] && REL_TAG="Test-v8.8"
 
     ZIP_NAME="CubeX-${REL_TAG}-linux-${ARCH}.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"
@@ -493,18 +512,31 @@ else
             chmod 755 /opt/CubeX/bin/mihomo 2>/dev/null || true
         fi
     fi
-
-    if [ ! -f /opt/CubeX/bin/cubexd ] || [ ! -s /opt/CubeX/bin/cubexd ]; then
-        echo "❌ 致命错误: 未能获取到有效的 cubexd 控制面二进制文件，请检查网络后重试！"
-        exit 1
-    fi
-    if [ ! -f /opt/CubeX/bin/sing-box ] && [ ! -f /opt/CubeX/bin/mihomo ]; then
-        echo "❌ 致命错误: 双引擎核心文件 (sing-box / mihomo) 均缺失！"
-        echo "👉 严重警告: 控制面在没有代理内核的情况下无法转发任何网络流量！请确保网络正常或手动放置发布压缩包至宿主机 /tmp/ 目录后重试！"
-        exit 1
-    fi
 EOF
 fi
+
+# 增量升级校验：如宿主有更新的独立 cubexd 控制面二进制，无缝增量推送覆盖
+if [ -f "dist/cubexd-linux-${PVE_ARCH}" ]; then
+    echo -e "${BLUE}注入本地最新构建的控制面: dist/cubexd-linux-${PVE_ARCH}...${NC}"
+    pct push "$CT_ID" "dist/cubexd-linux-${PVE_ARCH}" /opt/CubeX/bin/cubexd -perms 755
+elif [ -f "/root/cubexd" ]; then
+    echo -e "${BLUE}注入宿主机最新控制面: /root/cubexd...${NC}"
+    pct push "$CT_ID" /root/cubexd /opt/CubeX/bin/cubexd -perms 755
+elif [ -f "/opt/cubex/bin/cubexd" ]; then
+    pct push "$CT_ID" /opt/cubex/bin/cubexd /opt/CubeX/bin/cubexd -perms 755
+fi
+
+pct exec "$CT_ID" -- sh -s << 'EOF'
+if [ ! -f /opt/CubeX/bin/cubexd ] || [ ! -s /opt/CubeX/bin/cubexd ]; then
+    echo "❌ 致命错误: 未能获取到有效的 cubexd 控制面二进制文件，请检查网络后重试！"
+    exit 1
+fi
+if [ ! -f /opt/CubeX/bin/sing-box ] && [ ! -f /opt/CubeX/bin/mihomo ]; then
+    echo "❌ 致命错误: 双引擎核心文件 (sing-box / mihomo) 均缺失！"
+    echo "👉 严重警告: 控制面在没有代理内核的情况下无法转发任何网络流量！请确保网络正常或放置发布包至宿主机 /tmp/ 后重试！"
+    exit 1
+fi
+EOF
 
 # 11. 守护进程就绪与服务启动
 pct exec "$CT_ID" -- sh -c '

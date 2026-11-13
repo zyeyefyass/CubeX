@@ -98,7 +98,7 @@ import (
 )
 
 var (
-	version = "Test v8.7"
+	version = "Test v8.8"
 
 	startTime = time.Now()
 )
@@ -477,6 +477,8 @@ type Server struct {
 	multiWANRacingMgr  *netstack.MultiWANRacingManager
 	snapshotMgr        *backup.StateSnapshotManager
 	authMgr            *ConsoleAuthManager
+	ewmaMgr            *probe.EWMAManager
+	draining           atomic.Bool
 
 	logBuffer *RingLogBuffer
 
@@ -924,6 +926,7 @@ func main() {
 		multiWANRacingMgr:  netstack.NewMultiWANRacingManager(nil),
 		snapshotMgr:        backup.NewStateSnapshotManager(filepath.Join(dir, "data")),
 		authMgr:            NewConsoleAuthManager(dir),
+		ewmaMgr:            probe.NewEWMAManager(),
 
 		logBuffer:    logBuffer,
 		delayCache:   make(map[string]delayCacheEntry),
@@ -944,7 +947,7 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "Test v8.7")
+	srv.mcpServer = mcp.NewServer(srv, "Test v8.8")
 
 	srv.initTrafficState()
 
@@ -1034,7 +1037,17 @@ func main() {
 
 	mux.HandleFunc("/sub/shadowrocket", subCenter.HandleShadowrocket)
 
-	// 2. REST API v1
+	// 2. REST API v1 & High-Availability Healthz
+
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		if srv.draining.Load() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("draining\n"))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok\n"))
+	})
 
 	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -1325,6 +1338,7 @@ func main() {
 	mux.HandleFunc("/api/v1/config/proxies/ip-quality", srv.handleProxyIPQuality)
 	mux.HandleFunc("/api/v1/config/proxies/bandwidth-probe", srv.handleProxyBandwidthProbe)
 	mux.HandleFunc("/api/v1/config/proxies/scores", srv.handleProxyNodeScores)
+	mux.HandleFunc("/api/v1/config/proxies/ewma", srv.handleProxyNodeEWMAScores)
 	mux.HandleFunc("/api/v1/health/full-audit", srv.handleFullHealthAudit)
 
 	mux.HandleFunc("/api/v1/config/proxies/speedtest", srv.handleProxiesSpeedTest)
@@ -5908,6 +5922,11 @@ func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSe
 	}()
 
 	res := s.executeNodeRealDelayProbe(node, clashPort, clashSecret)
+
+	// 写入 EWMA 滑动窗口防抖评分引擎
+	if s.ewmaMgr != nil {
+		s.ewmaMgr.RecordSample(node.Name, res.Delay, res.Delay > 0)
+	}
 
 	// 写入多策略组共享缓存
 	s.delayCacheMu.Lock()
@@ -10987,6 +11006,18 @@ func (s *Server) handleProxyNodeScores(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{
 		"code": 0,
 		"data": results,
+	})
+}
+
+func (s *Server) handleProxyNodeEWMAScores(w http.ResponseWriter, r *http.Request) {
+	if s.ewmaMgr == nil {
+		sendJSON(w, map[string]any{"code": 0, "ok": true, "data": map[string]any{}})
+		return
+	}
+	sendJSON(w, map[string]any{
+		"code":   0,
+		"ok":     true,
+		"data":   s.ewmaMgr.GetAllScores(),
 	})
 }
 
