@@ -46,6 +46,7 @@ import (
 	"time"
 
 	"github.com/zyeyefyass/CubeX/internal/affinity"
+	"github.com/zyeyefyass/CubeX/internal/compiler"
 	"github.com/zyeyefyass/CubeX/internal/perf"
 	"github.com/zyeyefyass/CubeX/internal/happyeyeballs"
 	"github.com/zyeyefyass/CubeX/internal/splice"
@@ -105,7 +106,7 @@ import (
 )
 
 var (
-	version = "v9.3.0"
+	version = "v9.4.0"
 
 	startTime = time.Now()
 )
@@ -491,6 +492,8 @@ type Server struct {
 	gatewayModeCtrl    *onboarding.GatewayModeController
 	autoSyncGuard      *sub.AutoSyncGuard
 	wanHealer          *dataplane.WANHealer
+	userOverrideMgr    *compiler.UserOverrideManager
+	clientInspector    *telemetry.ClientInspector
 	isMaintenance      atomic.Bool
 	draining           atomic.Bool
 
@@ -970,7 +973,7 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "v9.3.0")
+	srv.mcpServer = mcp.NewServer(srv, "v9.4.0")
 	srv.autoSyncGuard = sub.NewAutoSyncGuard()
 	if cfgIR != nil && len(cfgIR.Proxies) > 0 {
 		srv.autoSyncGuard.SetInitialState(cfgIR.Proxies)
@@ -987,6 +990,17 @@ func main() {
 	srv.wanHealer = dataplane.NewWANHealer(clashAPIAddr, clashSecret, func(reason string) {
 		srv.logBuffer.Add("INFO", "WAN_HEALER", fmt.Sprintf("WAN重拨与连接自愈: 已瞬时冲刷陈旧连接池 (原因: %s)", reason))
 	})
+
+	srv.userOverrideMgr = compiler.NewUserOverrideManager(dir)
+	if cfgIR != nil {
+		uSpec := srv.userOverrideMgr.GetSpec()
+		cfgIR.UserOverrides = &schema.UserOverrideRules{
+			ForceDirectDomains: uSpec.ForceDirectDomains,
+			ForceProxyDomains:  uSpec.ForceProxyDomains,
+			ForceRejectDomains: uSpec.ForceRejectDomains,
+		}
+	}
+	srv.clientInspector = telemetry.NewClientInspector(clashAPIAddr, clashSecret)
 
 	srv.gatewayModeCtrl = onboarding.NewGatewayModeController()
 	srv.gatewayModeCtrl.BindPersistenceFile(filepath.Join(dir, "data", "gateway_mode.json"))
@@ -1651,6 +1665,11 @@ func main() {
 	mux.HandleFunc("/api/v1/system/latency", srv.handleSystemLatency)
 
 	mux.HandleFunc("/api/v1/rules/trace", srv.handleRulesTrace)
+
+	// 12.3 v9.4.0 User Overrides & Top-N Client Inspector
+	mux.HandleFunc("/api/v1/rules/overrides", srv.handleRuleOverrides)
+	mux.HandleFunc("/api/v1/telemetry/clients", srv.handleTelemetryClients)
+	mux.HandleFunc("/api/v1/telemetry/clients/kick", srv.handleTelemetryKickClient)
 
 	// 13. Ring Log Terminal & Desensitized Diagnostic Package Export
 
@@ -12177,4 +12196,102 @@ func (s *Server) handleSnapshotStatus(w http.ResponseWriter, r *http.Request) {
 		snapMeta = map[string]any{"has_snapshot": false}
 	}
 	sendJSON(w, map[string]any{"status": "ok", "snapshot": snapMeta})
+}
+
+// ── v9.4.0 User Overrides & Top-N Client Inspector ──
+
+func (s *Server) handleRuleOverrides(w http.ResponseWriter, r *http.Request) {
+	if s.userOverrideMgr == nil {
+		sendJSON(w, map[string]any{"ok": false, "error": "user override manager not initialized"})
+		return
+	}
+	if r.Method == http.MethodGet {
+		spec := s.userOverrideMgr.GetSpec()
+		sendJSON(w, map[string]any{
+			"ok":   true,
+			"data": spec,
+		})
+		return
+	}
+	if r.Method == http.MethodPost {
+		var spec compiler.UserOverrideSpec
+		if err := json.NewDecoder(r.Body).Decode(&spec); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if err := s.userOverrideMgr.UpdateSpec(spec); err != nil {
+			sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+			return
+		}
+		cleanSpec := s.userOverrideMgr.GetSpec()
+		if s.ir != nil {
+			s.ir.UserOverrides = &schema.UserOverrideRules{
+				ForceDirectDomains: cleanSpec.ForceDirectDomains,
+				ForceProxyDomains:  cleanSpec.ForceProxyDomains,
+				ForceRejectDomains: cleanSpec.ForceRejectDomains,
+			}
+		}
+		SafeGo("UserOverridesSyncReload", func() {
+			if s.engMgr != nil {
+				_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+			}
+		})
+		s.logBuffer.Add("INFO", "USER_OVERRIDES", fmt.Sprintf("已原子更新自定义分流覆写规则 (直连:%d, 代理:%d, 屏蔽:%d)",
+			len(cleanSpec.ForceDirectDomains), len(cleanSpec.ForceProxyDomains), len(cleanSpec.ForceRejectDomains)))
+		sendJSON(w, map[string]any{
+			"ok":   true,
+			"data": cleanSpec,
+		})
+		return
+	}
+	http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+}
+
+func (s *Server) handleTelemetryClients(w http.ResponseWriter, r *http.Request) {
+	if s.clientInspector == nil {
+		sendJSON(w, map[string]any{"ok": false, "error": "client inspector not initialized"})
+		return
+	}
+	report, err := s.clientInspector.InspectTopLANActivity(r.Context())
+	if err != nil {
+		sendJSON(w, map[string]any{
+			"ok":    true,
+			"data":  telemetry.LANInspectorReport{},
+			"error": err.Error(),
+		})
+		return
+	}
+	sendJSON(w, map[string]any{
+		"ok":   true,
+		"data": report,
+	})
+}
+
+func (s *Server) handleTelemetryKickClient(w http.ResponseWriter, r *http.Request) {
+	if s.clientInspector == nil {
+		sendJSON(w, map[string]any{"ok": false, "error": "client inspector not initialized"})
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		ClientIP string `json:"client_ip"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	kicked, err := s.clientInspector.KickClientConnections(r.Context(), req.ClientIP)
+	if err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	s.logBuffer.Add("WARN", "CLIENT_INSPECTOR", fmt.Sprintf("单设备主动断流: 已强制切断终端 %s 的全部活动连接 (共冲刷 %d 条)", req.ClientIP, kicked))
+	sendJSON(w, map[string]any{
+		"ok":        true,
+		"client_ip": req.ClientIP,
+		"kicked":    kicked,
+	})
 }

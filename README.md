@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-v9.3.0_正式版-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-v9.4.0_正式版-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -78,7 +78,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 v9.3.0 正式版最新更新亮点](#announcement)
+- [📢 v9.4.0 正式版最新更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -321,20 +321,22 @@
 
 <a id="announcement"></a>
 
-## 📢 v9.3.0 正式版最新更新亮点 (7×24h 无人值守自愈与 WAN 重拨零感恢复)
+## 📢 v9.4.0 正式版最新更新亮点 (局域网终端流量透视、自定义分流覆写层与 DNS 乐观缓存加速)
 
 > [!IMPORTANT]
-> ### 👑【7×24h 无人值守自愈与 WAN 重拨零感恢复】(v9.3.0 正式版)
+> ### 👑【局域网终端流量透视、自定义分流覆写层与 DNS 乐观缓存加速】(v9.4.0 正式版)
 >
-> 1. **订阅无人值守防抖同步与跌落熔断器**：
->    - **零变更静默跳过**：订阅净化后通过 SHA256 结构化指纹比对，节点未变仅刷新流量配额与到期时间，跳过 IR 编译与双擎重启，达成 0 重载、0 切换、0 断流；
->    - **跌落熔断保护**：遭遇上游服务提供商接口故障返回空包或节点暴跌超过 70% 时，全自动熔断拦截并保留原配置，彻底消除凌晨空包覆写致砖断网风险。
-> 2. **WAN 重拨与僵尸连接池瞬时冲刷器**：
->    - 针对国内家庭宽带凌晨 PPPoE 强制重拨换公网 IP 导致长连接假死问题，后台自动感知网关网络翻转或紧急切流，调用连接池一键冲刷卡死在旧 WAN 上的陈旧 Socket，毫秒级满血复活，无需重启进程，0 内存毛刺。
-> 3. **单文件原子快照备份与秒级还原**：
->    - 支持将订阅源、分流规则、宿主共生参数一键打包为带 SHA256 数字校验签名的 `.cubex-backup.json` 单文件，跨软路由、容器一秒克隆恢复；控制台提供直观一键导出与导入操作。
-> 4. **控制台性能与自愈总线强化**：
->    - 系统运维中枢新增 7×24h WAN 自愈按键，订阅管理界面实时响应防抖静默跳过与熔断保护提示。
+> 1. **局域网终端级流量透视与精准单机断流 (Top-10 LAN Inspector)**：
+>    - 后端流式归并局域网前 10 台高占用终端设备与前 15 个目标域名，响应恒定 <4KB，杜绝海量连接撑爆前端内存；
+>    - 支持一键斩断指定内网 IP 的全部代理连接，精准止血不影响家中其它设备正常上网。
+> 2. **永不丢失的用户分流覆写层 (User Overrides & Fake-IP 联动)**：
+>    - 独立持久化用户自定义的强制直连、强制代理与广告屏蔽域名，订阅更新与节点重载永不冲刷；
+>    - 强制直连域名自动同步注入 Fake-IP 免劫持白名单，直接返回真实公网 IP 走物理直连直出，彻底切断 Fake-IP 路由死循环。
+> 3. **DNS 乐观秒回与独立缓存加速**：
+>    - 内核开启 RFC 8767 乐观缓存秒回（serve-stale），国内 CDN 域名过期零延迟秒回；
+>    - 彻底切断 AAAA 黑洞污染，双核 DNS 零泄露与毫秒响应兼备。
+> 4. **全底座 60FPS 控制台交互与自愈强化**：
+>    - 规则中枢新增三栏式自定义分流覆写卡片，系统状态区新增终端流量透视看板，零卡顿流畅交互。
 
 ---
 
@@ -346,11 +348,11 @@
 
 | 发布物文件名 | 适用宿主与架构 | 说明与用途 |
 | :--- | :--- | :--- |
-| `CubeX-v9.3.0-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-v9.3.0-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-v9.3.0-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-v9.3.0-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-v9.3.0-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
+| `CubeX-v9.4.0-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-v9.4.0-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-v9.4.0-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-v9.4.0-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-v9.4.0-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
 | `cubexd-linux-amd64` | Linux amd64 | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
 | `cubexd-linux-arm64` | Linux arm64 | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 | 纯命令行运维工具（终端直接运行） |

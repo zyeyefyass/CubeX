@@ -597,6 +597,14 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 								suffixes = append(suffixes, clean)
 							}
 						}
+						if ir.UserOverrides != nil {
+							for _, d := range ir.UserOverrides.ForceDirectDomains {
+								d = strings.TrimSpace(d)
+								if d != "" {
+									suffixes = append(suffixes, d)
+								}
+							}
+						}
 						return suffixes
 					}(),
 					"server": "dns-direct",
@@ -1929,6 +1937,33 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 		"action": "hijack-dns",
 	})
+
+	// User Custom Overrides (Absolute Top Priority - Never Lost & Precedes All)
+	if ir.UserOverrides != nil {
+		if len(ir.UserOverrides.ForceRejectDomains) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"domain_suffix": ir.UserOverrides.ForceRejectDomains,
+				"action":        "reject",
+				"method":        "drop",
+			})
+		}
+		if len(ir.UserOverrides.ForceDirectDomains) > 0 {
+			routeRules = append(routeRules, map[string]any{
+				"domain_suffix": ir.UserOverrides.ForceDirectDomains,
+				"outbound":      "direct",
+			})
+		}
+		if len(ir.UserOverrides.ForceProxyDomains) > 0 {
+			proxyTarget := "🌐 国外流量"
+			if !validOutbounds[proxyTarget] {
+				proxyTarget = "direct"
+			}
+			routeRules = append(routeRules, map[string]any{
+				"domain_suffix": ir.UserOverrides.ForceProxyDomains,
+				"outbound":      proxyTarget,
+			})
+		}
+	}
 
 	// B. Intelligent QUIC Strategy (Smart Fallback / Full Block / Direct Pass-through)
 	quicPolicy := ir.Network.QUICPolicy

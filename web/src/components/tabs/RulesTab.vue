@@ -1064,12 +1064,223 @@
             </div>
           </div>
 
+          <!-- ════════════════════════════════════════════════════════════════ -->
+          <!-- 8. 永不丢失的用户分流覆写层 (User Overrides)                     -->
+          <!-- ════════════════════════════════════════════════════════════════ -->
+          <div class="p-5 rounded-2xl bg-gradient-to-br from-slate-900/80 to-[#00223e]/70 border border-sky-500/25 shadow-xl backdrop-blur-xl space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">🎯</span>
+                  <h3 class="text-base font-bold text-white tracking-wide">
+                    用户自定义分流覆写层 (User Overrides)
+                  </h3>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-400/30">
+                    订阅更新永不冲刷
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400">
+                  拥有系统绝对最高优先级。强制直连域名自动同步注入 Fake-IP 免劫持白名单，返回真公网 IP 走物理直连。
+                </p>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <span v-if="overrideSuccess" class="text-xs text-emerald-400 font-bold flex items-center gap-1 animate-pulse">
+                  <span>✓</span> 已保存并秒级热重载
+                </span>
+                <button @click="saveUserOverrides" :disabled="savingOverrides"
+                  class="h-9 px-4 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-white font-bold text-xs transition shadow-lg shadow-sky-500/20 active:scale-95 disabled:opacity-50 cursor-pointer flex items-center gap-1.5">
+                  <span v-if="savingOverrides" class="animate-spin text-sm">↻</span>
+                  <span v-else>💾</span>
+                  <span>{{ savingOverrides ? '保存中...' : '保存并生效' }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 三栏式规则编辑区 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <!-- 1. 强制直连 -->
+              <div class="p-3.5 rounded-xl bg-[#001529]/60 border border-emerald-500/20 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                    <span>🟢</span> 强制直连 (DIRECT)
+                  </span>
+                  <span class="text-[10px] text-emerald-400/80 font-mono">{{ userOverrides.force_direct_domains.length }} 项</span>
+                </div>
+                <div class="text-[11px] text-slate-400">
+                  国内特定私网或服务走主路由直出
+                </div>
+                <div class="flex gap-1.5">
+                  <input v-model="directInput" @keyup.enter="addDomain('direct', directInput)"
+                    type="text" placeholder="输入域名如 example.cn"
+                    class="flex-1 bg-black/40 border border-emerald-500/30 rounded-lg px-2.5 py-1 text-xs text-emerald-200 placeholder-slate-500 focus:outline-none focus:border-emerald-400 font-mono" />
+                  <button @click="addDomain('direct', directInput)"
+                    class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold cursor-pointer transition">
+                    +
+                  </button>
+                </div>
+                <div class="min-h-[80px] max-h-[140px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                  <div v-for="d in userOverrides.force_direct_domains" :key="d"
+                    class="px-2 py-1 rounded bg-emerald-950/40 border border-emerald-500/20 text-emerald-200 text-xs font-mono flex items-center justify-between group">
+                    <span class="truncate">{{ d }}</span>
+                    <button @click="removeDomain('direct', d)" class="text-emerald-400 hover:text-red-400 font-bold ml-1 cursor-pointer">✕</button>
+                  </div>
+                  <div v-if="userOverrides.force_direct_domains.length === 0" class="text-[11px] text-slate-500 italic py-2 text-center">
+                    暂无直连覆写域名
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. 强制代理 -->
+              <div class="p-3.5 rounded-xl bg-[#001529]/60 border border-sky-500/20 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-sky-300 flex items-center gap-1.5">
+                    <span>🌐</span> 强制代理 (PROXY)
+                  </span>
+                  <span class="text-[10px] text-sky-400/80 font-mono">{{ userOverrides.force_proxy_domains.length }} 项</span>
+                </div>
+                <div class="text-[11px] text-slate-400">
+                  指定外网或海外业务走代理隧道
+                </div>
+                <div class="flex gap-1.5">
+                  <input v-model="proxyInput" @keyup.enter="addDomain('proxy', proxyInput)"
+                    type="text" placeholder="输入域名如 custom-ai.com"
+                    class="flex-1 bg-black/40 border border-sky-500/30 rounded-lg px-2.5 py-1 text-xs text-sky-200 placeholder-slate-500 focus:outline-none focus:border-sky-400 font-mono" />
+                  <button @click="addDomain('proxy', proxyInput)"
+                    class="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-400/30 text-xs font-bold cursor-pointer transition">
+                    +
+                  </button>
+                </div>
+                <div class="min-h-[80px] max-h-[140px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                  <div v-for="d in userOverrides.force_proxy_domains" :key="d"
+                    class="px-2 py-1 rounded bg-sky-950/40 border border-sky-500/20 text-sky-200 text-xs font-mono flex items-center justify-between group">
+                    <span class="truncate">{{ d }}</span>
+                    <button @click="removeDomain('proxy', d)" class="text-sky-400 hover:text-red-400 font-bold ml-1 cursor-pointer">✕</button>
+                  </div>
+                  <div v-if="userOverrides.force_proxy_domains.length === 0" class="text-[11px] text-slate-500 italic py-2 text-center">
+                    暂无代理覆写域名
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. 强制屏蔽 -->
+              <div class="p-3.5 rounded-xl bg-[#001529]/60 border border-rose-500/20 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+                    <span>🛑</span> 强制拦截 (REJECT)
+                  </span>
+                  <span class="text-[10px] text-rose-400/80 font-mono">{{ userOverrides.force_reject_domains.length }} 项</span>
+                </div>
+                <div class="text-[11px] text-slate-400">
+                  高频追踪、流氓广告或遥测域名
+                </div>
+                <div class="flex gap-1.5">
+                  <input v-model="rejectInput" @keyup.enter="addDomain('reject', rejectInput)"
+                    type="text" placeholder="输入域名如 ad-tracker.com"
+                    class="flex-1 bg-black/40 border border-rose-500/30 rounded-lg px-2.5 py-1 text-xs text-rose-200 placeholder-slate-500 focus:outline-none focus:border-rose-400 font-mono" />
+                  <button @click="addDomain('reject', rejectInput)"
+                    class="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-bold cursor-pointer transition">
+                    +
+                  </button>
+                </div>
+                <div class="min-h-[80px] max-h-[140px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                  <div v-for="d in userOverrides.force_reject_domains" :key="d"
+                    class="px-2 py-1 rounded bg-rose-950/40 border border-rose-500/20 text-rose-200 text-xs font-mono flex items-center justify-between group">
+                    <span class="truncate">{{ d }}</span>
+                    <button @click="removeDomain('reject', d)" class="text-rose-400 hover:text-red-400 font-bold ml-1 cursor-pointer">✕</button>
+                  </div>
+                  <div v-if="userOverrides.force_reject_domains.length === 0" class="text-[11px] text-slate-500 italic py-2 text-center">
+                    暂无拦截覆写域名
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 </template>
 
 <script setup>
-import { inject, ref } from 'vue'
+import { inject, ref, onMounted } from 'vue'
 import ZootopiaIcon from '../ZootopiaIcon.vue'
 const app = inject('cubexApp')
 const showWhitelistSection = ref(false)
+
+// v9.4.0 User Overrides
+const userOverrides = ref({
+  force_direct_domains: [],
+  force_proxy_domains: [],
+  force_reject_domains: []
+})
+const directInput = ref('')
+const proxyInput = ref('')
+const rejectInput = ref('')
+const savingOverrides = ref(false)
+const overrideSuccess = ref(false)
+
+async function fetchUserOverrides() {
+  try {
+    const res = await fetch('/api/v1/rules/overrides')
+    if (res.ok) {
+      const data = await res.json()
+      if (data.ok && data.data) {
+        userOverrides.value = {
+          force_direct_domains: data.data.force_direct_domains || [],
+          force_proxy_domains: data.data.force_proxy_domains || [],
+          force_reject_domains: data.data.force_reject_domains || []
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load user overrides:', err)
+  }
+}
+
+function addDomain(type, val) {
+  const clean = (val || '').trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0].split(':')[0].replace(/^\*?\./, '')
+  if (!clean || !clean.includes('.')) return
+  if (type === 'direct' && !userOverrides.value.force_direct_domains.includes(clean)) {
+    userOverrides.value.force_direct_domains.push(clean)
+    directInput.value = ''
+  } else if (type === 'proxy' && !userOverrides.value.force_proxy_domains.includes(clean)) {
+    userOverrides.value.force_proxy_domains.push(clean)
+    proxyInput.value = ''
+  } else if (type === 'reject' && !userOverrides.value.force_reject_domains.includes(clean)) {
+    userOverrides.value.force_reject_domains.push(clean)
+    rejectInput.value = ''
+  }
+}
+
+function removeDomain(type, domain) {
+  if (type === 'direct') {
+    userOverrides.value.force_direct_domains = userOverrides.value.force_direct_domains.filter(d => d !== domain)
+  } else if (type === 'proxy') {
+    userOverrides.value.force_proxy_domains = userOverrides.value.force_proxy_domains.filter(d => d !== domain)
+  } else if (type === 'reject') {
+    userOverrides.value.force_reject_domains = userOverrides.value.force_reject_domains.filter(d => d !== domain)
+  }
+}
+
+async function saveUserOverrides() {
+  savingOverrides.value = true
+  try {
+    const res = await fetch('/api/v1/rules/overrides', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userOverrides.value)
+    })
+    if (res.ok) {
+      overrideSuccess.value = true
+      setTimeout(() => { overrideSuccess.value = false }, 3000)
+    }
+  } catch (err) {
+    console.error('Failed to save overrides:', err)
+  } finally {
+    savingOverrides.value = false
+  }
+}
+
+onMounted(() => {
+  fetchUserOverrides()
+})
 </script>

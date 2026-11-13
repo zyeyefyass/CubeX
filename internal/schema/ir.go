@@ -40,7 +40,15 @@ type ConfigIR struct {
 	AdBlockEnabled    bool             `json:"adblock_enabled" yaml:"adblock_enabled"`
 	DNSRewriteEnabled bool             `json:"dns_rewrite_enabled" yaml:"dns_rewrite_enabled"`
 	DNSRewrites       []DNSRewriteRule `json:"dns_rewrites,omitempty" yaml:"dns_rewrites,omitempty"`
+	UserOverrides     *UserOverrideRules `json:"user_overrides,omitempty" yaml:"user_overrides,omitempty"`
 	UpdatedAt         time.Time        `json:"updated_at" yaml:"updated_at"`
+}
+
+// UserOverrideRules 定义用户最高优先级的持久化自定义分流规则（与订阅解耦，永不冲刷）
+type UserOverrideRules struct {
+	ForceDirectDomains []string `json:"force_direct_domains,omitempty" yaml:"force_direct_domains,omitempty"`
+	ForceProxyDomains  []string `json:"force_proxy_domains,omitempty" yaml:"force_proxy_domains,omitempty"`
+	ForceRejectDomains []string `json:"force_reject_domains,omitempty" yaml:"force_reject_domains,omitempty"`
 }
 
 type MetaConfig struct {

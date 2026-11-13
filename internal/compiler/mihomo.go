@@ -438,13 +438,27 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	}
 
+	// 动态注入用户强制直连域名（确保返回真实公网 IP，走主路由物理直出，杜绝死循环）
+	if ir.UserOverrides != nil {
+		for _, d := range ir.UserOverrides.ForceDirectDomains {
+			d = strings.TrimSpace(d)
+			if d != "" {
+				cleanFakeIPFilter = append(cleanFakeIPFilter, d, "+."+d)
+			}
+		}
+	}
+
 	dnsMap := map[string]any{
 
 		"enable": true,
 
 		"cache-algorithm": "arc",
 
-		"cache-size": 2048,
+		"cache-size": 4096,
+
+		"serve-stale": true,
+
+		"independent-cache": true,
 
 		"prefer-h3": false,
 
@@ -1657,6 +1671,37 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	// Rules compilation with device policies top-priority prepending
 
 	rulesList := make([]string, 0)
+
+	// 0. User Custom Overrides (Absolute Top Priority - Never Lost & Precedes All)
+	if ir.UserOverrides != nil {
+		// 0a. Force Reject (Block ads & telemetry)
+		for _, d := range ir.UserOverrides.ForceRejectDomains {
+			d = strings.TrimSpace(d)
+			if d != "" {
+				rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,%s,REJECT", d))
+			}
+		}
+		// 0b. Force Direct (Domestic bypass & physical line-speed direct)
+		for _, d := range ir.UserOverrides.ForceDirectDomains {
+			d = strings.TrimSpace(d)
+			if d != "" {
+				rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,%s,DIRECT", d))
+			}
+		}
+		// 0c. Force Proxy (Tunnel proxy)
+		if len(ir.UserOverrides.ForceProxyDomains) > 0 {
+			proxyTarget := foreignGroup
+			if proxyTarget == "" {
+				proxyTarget = "DIRECT"
+			}
+			for _, d := range ir.UserOverrides.ForceProxyDomains {
+				d = strings.TrimSpace(d)
+				if d != "" {
+					rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,%s,%s", d, proxyTarget))
+				}
+			}
+		}
+	}
 
 	// 1. Device Policies (Top Priority)
 
