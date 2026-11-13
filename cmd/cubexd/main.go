@@ -105,7 +105,7 @@ import (
 )
 
 var (
-	version = "v9.2.0"
+	version = "v9.3.0"
 
 	startTime = time.Now()
 )
@@ -489,6 +489,8 @@ type Server struct {
 	coordinator        *RuntimeCoordinator
 	upstreamReg        *upstream.Registry
 	gatewayModeCtrl    *onboarding.GatewayModeController
+	autoSyncGuard      *sub.AutoSyncGuard
+	wanHealer          *dataplane.WANHealer
 	isMaintenance      atomic.Bool
 	draining           atomic.Bool
 
@@ -968,7 +970,24 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "v9.2.0")
+	srv.mcpServer = mcp.NewServer(srv, "v9.3.0")
+	srv.autoSyncGuard = sub.NewAutoSyncGuard()
+	if cfgIR != nil && len(cfgIR.Proxies) > 0 {
+		srv.autoSyncGuard.SetInitialState(cfgIR.Proxies)
+	}
+
+	clashAPIAddr := config.GlobalRuntimeSpec.ClashAPIAddr
+	if clashAPIAddr == "" && cfgIR != nil && cfgIR.Network.ClashAPIPort > 0 {
+		clashAPIAddr = fmt.Sprintf("http://127.0.0.1:%d", cfgIR.Network.ClashAPIPort)
+	}
+	clashSecret := ""
+	if cfgIR != nil {
+		clashSecret = cfgIR.Network.ClashSecret
+	}
+	srv.wanHealer = dataplane.NewWANHealer(clashAPIAddr, clashSecret, func(reason string) {
+		srv.logBuffer.Add("INFO", "WAN_HEALER", fmt.Sprintf("WAN重拨与连接自愈: 已瞬时冲刷陈旧连接池 (原因: %s)", reason))
+	})
+
 	srv.gatewayModeCtrl = onboarding.NewGatewayModeController()
 	srv.gatewayModeCtrl.BindPersistenceFile(filepath.Join(dir, "data", "gateway_mode.json"))
 	if err := srv.gatewayModeCtrl.RestoreOnBoot(context.Background()); err != nil {
@@ -985,6 +1004,9 @@ func main() {
 		MaxConcurrency: 4,
 	}, srv.ewmaMgr, func(ev probe.SwitchEvent) {
 		srv.logBuffer.Add("INFO", "EWMA", fmt.Sprintf("微秒闭环选路: 组 [%s] 节点自适应切换: %s -> %s (原因: %s, 紧急: %v)", ev.Group, ev.FromNode, ev.ToNode, ev.Reason, ev.Emergency))
+		if ev.Emergency && srv.wanHealer != nil {
+			_ = srv.wanHealer.FlushStaleConnections(context.Background(), fmt.Sprintf("EWMA紧急熔断切换 [%s]", ev.Group))
+		}
 	})
 	srv.coordinator = NewRuntimeCoordinator(srv.engMgr, srv.rosMgr, srv.ewmaSched)
 	srv.upstreamReg = upstream.NewRegistry(4, 30*time.Second)
@@ -992,6 +1014,27 @@ func main() {
 
 	SafeGo("EWMAScheduler", func() {
 		srv.ewmaSched.Run(context.Background())
+	})
+
+	SafeGo("WANHealerWatch", func() {
+		probeGateway := func() bool {
+			gw := schema.DetectDefaultGateway()
+			if gw == "" {
+				return true
+			}
+			conn, err := net.DialTimeout("tcp", net.JoinHostPort(gw, "80"), 800*time.Millisecond)
+			if err == nil {
+				_ = conn.Close()
+				return true
+			}
+			connDNS, errDNS := net.DialTimeout("udp", net.JoinHostPort(gw, "53"), 500*time.Millisecond)
+			if errDNS == nil {
+				_ = connDNS.Close()
+				return true
+			}
+			return false
+		}
+		srv.wanHealer.WatchGatewayTransition(context.Background(), 15*time.Second, probeGateway)
 	})
 
 	srv.initTrafficState()
@@ -1357,10 +1400,12 @@ func main() {
 	mux.HandleFunc("/api/v1/network/multiwan-racing/policy", srv.handleMultiWANRacingPolicy)
 	mux.HandleFunc("/api/v1/network/multiwan-racing/probe", srv.handleMultiWANRacingProbe)
 
-	// 核心三：软路由宿主一键全量冷热灾备与秒级还原
+	// 核心三：软路由宿主一键全量冷热灾备与秒级还原 (单文件原子快照)
+	mux.HandleFunc("/api/v1/system/snapshot", srv.handleSnapshotUnified)
 	mux.HandleFunc("/api/v1/system/snapshot/export", srv.handleSnapshotExport)
 	mux.HandleFunc("/api/v1/system/snapshot/restore", srv.handleSnapshotRestore)
 	mux.HandleFunc("/api/v1/system/snapshot/status", srv.handleSnapshotStatus)
+	mux.HandleFunc("/api/v1/network/wan-heal", srv.handleWANHeal)
 
 	mux.HandleFunc("/api/v1/security/radar", srv.handleSecurityRadar)
 
@@ -5629,279 +5674,264 @@ func (s *Server) handleCustomGroupToggle(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method != http.MethodPost {
-
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-
 		return
-
 	}
 
 	var req struct {
-		ID string `json:"id"`
+		ID    string `json:"id"`
+		Force bool   `json:"force"`
 	}
-
 	_ = json.NewDecoder(r.Body).Decode(&req)
 
 	if req.ID == "" {
-
 		subsUpdated, totalNodes, err := s.UpdateAllSubscriptions()
-
 		if err != nil {
-
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-
 			return
-
 		}
-
 		sendJSON(w, map[string]any{
-
-			"ok": true,
-
-			"status": "updated",
-
+			"ok":           true,
+			"status":       "updated",
 			"subs_updated": subsUpdated,
-
-			"total_nodes": totalNodes,
+			"total_nodes":  totalNodes,
 		})
-
 		return
-
 	}
 
 	ir := s.engMgr.GetIR()
+	if ir == nil {
+		http.Error(w, "IR not initialized", http.StatusInternalServerError)
+		return
+	}
 
 	fetcher := sub.NewFetcher()
-
 	totalNodes := 0
-
 	var updatedProxies []schema.ProxyNode
 
 	for _, p := range ir.Proxies {
-
 		if p.Type == "direct" || p.Type == "block" || p.Type == "reject" || p.SubID == "custom" {
-
 			updatedProxies = append(updatedProxies, p)
-
 		} else if p.SubID != req.ID {
-
 			updatedProxies = append(updatedProxies, p)
-
 		}
-
 	}
 
+	var targetQuota sub.QuotaTelemetry
+	subFound := false
+
 	for i := range ir.Subscriptions {
-
 		if ir.Subscriptions[i].ID != req.ID {
-
 			continue
-
 		}
-
+		subFound = true
 		if !ir.Subscriptions[i].Enabled || ir.Subscriptions[i].URL == "" {
-
 			continue
-
 		}
 
 		res, err := fetcher.Fetch(ir.Subscriptions[i].URL)
-
 		if err == nil {
-
 			ir.Subscriptions[i].NodeCount = res.NodeCount
-
 			ir.Subscriptions[i].UsedBytes = res.Upload + res.Download
-
 			ir.Subscriptions[i].TotalBytes = res.Total
-
 			ir.Subscriptions[i].ExpireAt = res.Expire
-
 			ir.Subscriptions[i].UpdatedAt = time.Now()
 
+			targetQuota = sub.QuotaTelemetry{
+				Upload:   res.Upload,
+				Download: res.Download,
+				Total:    res.Total,
+				Expire:   res.Expire,
+			}
+
 			for _, n := range res.Nodes {
-
 				n.SubID = ir.Subscriptions[i].ID
-
 				prefix := fmt.Sprintf("[%s]", ir.Subscriptions[i].Name)
-
 				if !strings.HasPrefix(n.Name, prefix) {
-
 					n.Name = fmt.Sprintf("%s %s", prefix, n.Name)
-
 				}
-
 				updatedProxies = append(updatedProxies, n)
-
 			}
-
 			totalNodes += res.NodeCount
-
 		} else {
-
 			log.Printf("⚠️ [Sub] Failed to fetch sub '%s' (%s): %v. Preserving existing nodes.", ir.Subscriptions[i].Name, ir.Subscriptions[i].URL, err)
-
 			for _, p := range ir.Proxies {
-
 				if p.SubID == ir.Subscriptions[i].ID {
-
 					updatedProxies = append(updatedProxies, p)
-
 					totalNodes++
-
 				}
-
 			}
-
 		}
-
 		break
-
 	}
 
-	ir.Proxies = updatedProxies
+	if !subFound {
+		http.Error(w, "subscription not found", http.StatusNotFound)
+		return
+	}
 
-	schema.SyncAllStrategyGroups(ir)
+	outcomeStatus := "updated"
+	msg := fmt.Sprintf("订阅更新完成，共加载 %d 个节点", totalNodes)
 
-	s.engMgr.UpdateIR(ir)
-
-	// Re-trigger compilation
-
-	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
-
-	// Reclaim memory
+	if s.autoSyncGuard != nil {
+		report, guardErr := s.autoSyncGuard.EvaluateAndSync(
+			r.Context(),
+			updatedProxies,
+			targetQuota,
+			req.Force,
+			func(ctx context.Context, validNodes []schema.ProxyNode) error {
+				ir.Proxies = validNodes
+				schema.SyncAllStrategyGroups(ir)
+				s.engMgr.UpdateIR(ir)
+				_, err := s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+				return err
+			},
+		)
+		if guardErr != nil {
+			http.Error(w, guardErr.Error(), http.StatusInternalServerError)
+			return
+		}
+		if report != nil {
+			msg = report.Message
+			switch report.Outcome {
+			case sub.OutcomeCircuitBroken:
+				outcomeStatus = "circuit_broken"
+				s.logBuffer.Add("WARN", "SUB_GUARD", fmt.Sprintf("单订阅熔断保护: %s", report.Message))
+			case sub.OutcomeSkippedUnchanged:
+				outcomeStatus = "skipped_unchanged"
+				s.logBuffer.Add("INFO", "SUB_GUARD", fmt.Sprintf("单订阅防抖静默跳过: %s", report.Message))
+				s.engMgr.UpdateIR(ir)
+			case sub.OutcomeAppliedAndReload:
+				outcomeStatus = "updated"
+				s.logBuffer.Add("INFO", "SUB_GUARD", fmt.Sprintf("单订阅更新已平滑生效: %s", report.Message))
+			}
+		}
+	} else {
+		ir.Proxies = updatedProxies
+		schema.SyncAllStrategyGroups(ir)
+		s.engMgr.UpdateIR(ir)
+		_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+	}
 
 	runtime.GC()
-
 	debug.FreeOSMemory()
 
 	sendJSON(w, map[string]any{
-
-		"ok": true,
-
-		"status": "updated",
-
+		"ok":          true,
+		"status":      outcomeStatus,
+		"message":     msg,
 		"total_nodes": totalNodes,
 	})
-
 }
 
 // UpdateAllSubscriptions fetches all active enabled subscriptions, updates node counts and metadata,
-
-// re-syncs strategy groups, saves the IR to disk, and reloads the active proxy engine.
-
+// re-syncs strategy groups, saves the IR to disk, and reloads the active proxy engine with AutoSyncGuard.
 func (s *Server) UpdateAllSubscriptions() (int, int, error) {
-
 	ir := s.engMgr.GetIR()
-
 	if ir == nil {
-
 		return 0, 0, fmt.Errorf("IR not initialized")
-
 	}
 
 	fetcher := sub.NewFetcher()
-
 	totalNodes := 0
-
 	subsUpdated := 0
-
 	var updatedProxies []schema.ProxyNode
 
 	// Preserve direct, reject, and custom manual nodes
-
 	for _, p := range ir.Proxies {
-
 		if p.Type == "direct" || p.Type == "block" || p.Type == "reject" || p.SubID == "custom" {
-
 			updatedProxies = append(updatedProxies, p)
-
 		}
-
 	}
 
+	var totalQuota sub.QuotaTelemetry
+
 	for i := range ir.Subscriptions {
-
 		if !ir.Subscriptions[i].Enabled || ir.Subscriptions[i].URL == "" {
-
 			continue
-
 		}
 
 		res, err := fetcher.Fetch(ir.Subscriptions[i].URL)
-
 		if err == nil {
-
 			ir.Subscriptions[i].NodeCount = res.NodeCount
-
 			ir.Subscriptions[i].UsedBytes = res.Upload + res.Download
-
 			ir.Subscriptions[i].TotalBytes = res.Total
-
 			ir.Subscriptions[i].ExpireAt = res.Expire
-
 			ir.Subscriptions[i].UpdatedAt = time.Now()
 
+			totalQuota.Upload += res.Upload
+			totalQuota.Download += res.Download
+			totalQuota.Total += res.Total
+			if res.Expire > totalQuota.Expire {
+				totalQuota.Expire = res.Expire
+			}
+
 			for _, n := range res.Nodes {
-
 				n.SubID = ir.Subscriptions[i].ID
-
 				prefix := fmt.Sprintf("[%s]", ir.Subscriptions[i].Name)
-
 				if !strings.HasPrefix(n.Name, prefix) {
-
 					n.Name = fmt.Sprintf("%s %s", prefix, n.Name)
-
 				}
-
 				updatedProxies = append(updatedProxies, n)
-
 			}
-
 			totalNodes += res.NodeCount
-
 			subsUpdated++
-
 		} else {
-
 			log.Printf("⚠️ [Sub] Failed to fetch sub '%s' (%s): %v. Preserving existing nodes.", ir.Subscriptions[i].Name, ir.Subscriptions[i].URL, err)
-
 			for _, p := range ir.Proxies {
-
 				if p.SubID == ir.Subscriptions[i].ID {
-
 					updatedProxies = append(updatedProxies, p)
-
 					totalNodes++
-
 				}
-
 			}
-
 		}
-
 	}
 
-	ir.Proxies = updatedProxies
-
-	schema.SyncAllStrategyGroups(ir)
-
-	s.engMgr.UpdateIR(ir)
-
-	// Re-trigger compilation for active engine
-
-	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
-
-	// Reclaim subscription download buffers and JSON heaps
+	// 接入 AutoSyncGuard 防抖比对与熔断审查
+	if s.autoSyncGuard != nil {
+		report, guardErr := s.autoSyncGuard.EvaluateAndSync(
+			context.Background(),
+			updatedProxies,
+			totalQuota,
+			false,
+			func(ctx context.Context, validNodes []schema.ProxyNode) error {
+				ir.Proxies = validNodes
+				schema.SyncAllStrategyGroups(ir)
+				s.engMgr.UpdateIR(ir)
+				_, err := s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+				return err
+			},
+		)
+		if guardErr != nil {
+			return subsUpdated, totalNodes, guardErr
+		}
+		if report != nil {
+			switch report.Outcome {
+			case sub.OutcomeCircuitBroken:
+				s.logBuffer.Add("WARN", "SUB_GUARD", fmt.Sprintf("定时订阅触发熔断拦截: %s", report.Message))
+				log.Printf("🛡️ [SubGuard] %s", report.Message)
+				return subsUpdated, len(ir.Proxies), nil
+			case sub.OutcomeSkippedUnchanged:
+				s.logBuffer.Add("INFO", "SUB_GUARD", fmt.Sprintf("定时订阅无变更防抖静默跳过: %s", report.Message))
+				log.Printf("🛡️ [SubGuard] %s", report.Message)
+				s.engMgr.UpdateIR(ir)
+				return subsUpdated, len(ir.Proxies), nil
+			case sub.OutcomeAppliedAndReload:
+				s.logBuffer.Add("INFO", "SUB_GUARD", fmt.Sprintf("定时订阅更新平滑生效: %s", report.Message))
+				log.Printf("✅ [SubGuard] %s", report.Message)
+			}
+		}
+	} else {
+		ir.Proxies = updatedProxies
+		schema.SyncAllStrategyGroups(ir)
+		s.engMgr.UpdateIR(ir)
+		_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+	}
 
 	runtime.GC()
-
 	debug.FreeOSMemory()
-
 	return subsUpdated, totalNodes, nil
-
 }
 
 // startDailySubscriptionAutoUpdate runs a continuous background cron loop that triggers
@@ -12071,8 +12101,37 @@ func (s *Server) handleSnapshotExport(w http.ResponseWriter, r *http.Request) {
 	}
 	s.logBuffer.Add("INFO", "BACKUP", fmt.Sprintf("已成功创建系统全量灾备快照 (校验签名: %s)", snap.ChecksumSHA256[:12]))
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=cubex-snapshot-%s-%d.json", version, snap.Timestamp))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=cubex-backup-%s-%d.cubex-backup.json", version, snap.Timestamp))
 	w.Write(finalBytes)
+}
+
+func (s *Server) handleSnapshotUnified(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		s.handleSnapshotExport(w, r)
+		return
+	}
+	if r.Method == http.MethodPost {
+		s.handleSnapshotRestore(w, r)
+		return
+	}
+	http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+}
+
+func (s *Server) handleWANHeal(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.wanHealer == nil {
+		sendJSON(w, map[string]any{"ok": false, "message": "WANHealer not initialized"})
+		return
+	}
+	err := s.wanHealer.FlushStaleConnections(r.Context(), "控制台一键主动冲刷")
+	if err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]any{"ok": true, "message": "已成功冲刷卡死在旧WAN上的僵尸连接池，0秒无感恢复"})
 }
 
 func (s *Server) handleSnapshotRestore(w http.ResponseWriter, r *http.Request) {

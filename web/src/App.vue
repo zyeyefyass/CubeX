@@ -15162,68 +15162,62 @@ const probeMultiWANRacing = async () => {
   }
 }
 
-// ── Backup Time Machine ──
+// ── Backup Time Machine & WAN Healer ──
 
 async function exportBackup() {
-
   try {
-
-    const res = await fetch('/api/v1/backup/export')
-
-    const data = await res.json()
-
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-
+    const res = await fetch('/api/v1/system/snapshot')
+    if (!res.ok) throw new Error('导出异常')
+    const blob = await res.blob()
     const url = URL.createObjectURL(blob)
-
     const a = document.createElement('a')
-
     a.href = url
-
-    a.download = `cubex-backup-${new Date().toISOString().slice(0, 10)}.json`
-
+    a.download = `cubex-backup-${new Date().toISOString().slice(0, 10)}.cubex-backup.json`
     a.click()
-
-    showToast('系统全量配置快照导出成功！')
-
+    URL.revokeObjectURL(url)
+    showToast('🎉 系统全量灾备快照已导出 (含数字校验签名)！')
   } catch (e) {
-
-    showToast('快照导出成功')
-
+    showToast('快照导出异常: ' + (e.message || '网络错误'), true)
   }
-
 }
 
 async function importBackup(ev) {
-
   const file = ev.target.files?.[0]
-
   if (!file) return
-
-  const text = await file.text()
-
   try {
-
-    const json = JSON.parse(text)
-
-    await fetch('/api/v1/backup/import', {
-
+    const text = await file.text()
+    const res = await fetch('/api/v1/system/snapshot', {
       method: 'POST',
-
       headers: { 'Content-Type': 'application/json' },
-
-      body: JSON.stringify(json)
-
+      body: text
     })
-
-    showToast('🎉 配置快照已成功恢复，双核已自动完成热重载！')
-
+    const data = await res.json()
+    if (data.status === 'ok') {
+      const msg = data.result?.message || '🎉 系统快照秒级原子恢复生效，双核已完成热重载！'
+      showToast(msg)
+      setTimeout(() => location.reload(), 1500)
+    } else {
+      showToast('快照导入失败: ' + (data.message || '格式无效'), true)
+    }
   } catch (e) {
-
-    showToast('快照格式无效', true)
-
+    showToast('快照格式无效或读取失败', true)
+  } finally {
+    if (ev.target) ev.target.value = ''
   }
+}
 
+async function triggerWANHeal() {
+  try {
+    const res = await fetch('/api/v1/network/wan-heal', { method: 'POST' })
+    const data = await res.json()
+    if (data.ok) {
+      showToast('⚡ ' + (data.message || '已成功冲刷卡死在旧WAN上的僵尸连接池！'))
+    } else {
+      showToast('冲刷失败: ' + (data.error || '未知异常'), true)
+    }
+  } catch (e) {
+    showToast('网络请求异常', true)
+  }
 }
 
 const isHotRestarting = ref(false)
@@ -21203,71 +21197,51 @@ async function toggleSubscription(subId, enabled) {
 }
 
 async function updateSubscription(subId) {
-
   showToast('正在重新拉取此订阅源最新节点...')
-
   try {
-
     const res = await fetch('/api/v1/config/subscriptions/update', {
-
       method: 'POST',
-
       headers: { 'Content-Type': 'application/json' },
-
       body: JSON.stringify({ id: subId })
-
     })
-
     const data = await res.json()
-
     if (data.ok) {
-
-      showToast(`🎉 订阅已更新！当前收录 ${data.total_nodes || 0} 个有效节点`)
-
+      if (data.status === 'skipped_unchanged') {
+        showToast('🛡️ 节点配置无变更，已静默刷新流量配额（0 内核重启、0 连接打断）')
+      } else if (data.status === 'circuit_broken') {
+        showToast('⚠️ 触发订阅防跌落熔断保护：' + (data.message || '已保留原配置'), true)
+      } else {
+        showToast(data.message || `🎉 订阅已更新！当前收录 ${data.total_nodes || 0} 个有效节点`)
+      }
       await fetchIR()
-
     }
-
   } catch (e) {
-
     showToast('更新指令已完成')
-
   }
-
 }
 
 async function updateAllSubscriptions() {
-
   showToast('正在并发拉取所有订阅源最新节点...')
-
   try {
-
     const res = await fetch('/api/v1/config/subscriptions/update', {
-
       method: 'POST',
-
       headers: { 'Content-Type': 'application/json' },
-
       body: JSON.stringify({})
-
     })
-
     const data = await res.json()
-
     if (data.ok) {
-
-      showToast(`🎉 所有订阅源已全量同步完成！共 ${data.total_nodes || 0} 个节点`)
-
+      if (data.status === 'skipped_unchanged') {
+        showToast('🛡️ 节点无变更，已静默刷新流量配额（0 内核重启）')
+      } else if (data.status === 'circuit_broken') {
+        showToast('⚠️ 触发订阅防跌落熔断保护，已自动拦截并保留原配置', true)
+      } else {
+        showToast(`🎉 所有订阅源已全量同步完成！共 ${data.total_nodes || 0} 个节点`)
+      }
       await fetchIR()
-
     }
-
   } catch (e) {
-
     showToast('全量更新完成')
-
   }
-
 }
 
 async function deleteNode(nodeName) {
@@ -22720,7 +22694,7 @@ async function runAuthorizedMountLoad() {
 }
 
 provide('cubexApp', reactive({
-  activeEngine, adblockStats, addFakeIpFilter, addWhitelistItem, aiActionResult, aiActions, aiConfig, aiLoading, aiPresetQuestions, aiPrompt, aiProviders, aiReply, authState, batchAddingNodes, batchImportingSubs, batchNodeText, batchSubText, chaosDrillReport, chaosReportModal, checkHostUpgrade, checkingGeoUpgrade, checkingHostUpgrade, chooseFreshStart, cleanActionLabelMap, cleaningRosFirewall, clearSystemLogs, completeInitWizard, confirmAndStartInitWizard, confirmSystemReboot, copyDiagnosticMarkdown, copyText, coreUpgradeFrozen, coreUpgradeLog, creatingGithubIssue, customNodes, deleteDnsRewriteRule, deleteNode, deleteSourceItem, deleteSubscription, diagnosticModal, displayedLogs, dnsBlockedLastY, dnsBlockedPath, dnsFilterStats, dnsLatencyLastY, dnsLatencyPath, dnsQueryLastY, dnsQueryPath, dnsRewriteConfig, editingDnsRewriteRule, editingRuleSource, executeAIAction, executeHostUpgrade, executingAIActionId, executingHostUpgrade, executionModal, exportBackup, fakeIpFilters, fakeIpLoading, fetchDnsFilterStats, fetchRouterHardware, fetchSystemLogs, filterConfig, filteredGeodataFiles, formatExpire, geoAutoUpdateEnabled, geoUpdateLog, geodataFilterCategory, geodataFilterEngine, geodataLastUpdateText, geodataSearchQuery, geodataStatus, getNodeDelayClass, getSubRegions, handleInitBackupUpload, handleInitFileDrop, hasAnyUpdate, healingSteps, hostBadge, hostConfig, hostInfo, hostLastExecution, hostUpgradeDetails, hostUpgradeResult, importBackup, initBackupFileInput, initDetectedPlatform, initExecuting, initHostForm, initImportStats, initImportSuccess, initImporting, initLogs, initWizardImportTab, initWizardStep, inspectAndCleanReapplyRos, ir, isHotRestarting, isIKuai, isOpenWrt, isProbingAll, isRouterOS, isSubDrawerExpanded, isUpdatingSource, launchFireworks, lockConsoleNow, logContainerRef, logFilterLevel, logFilterModule, logSearchQuery, newFakeIpInput, newWhitelistDomain, openAddDnsRewriteModal, openAddSourceModal, openEditDnsRewriteModal, openEditSourceModal, openGitHubIssuePrompt, openProbeModal, openSourcePreview, openUpgradeModal, panelUpgradeLog, parsedBatchNodes, parsedBatchSubs, previewingSource, probeAllFourDimensions, probeChecked, probeLastTime, refreshSourceItem, removeFakeIpFilter, removeWhitelistItem, resetDnsRewriteDefaults, routerHW, routerHWMemoryDisplay, runSecurityAudit, runSubSpeedTest, saveAIConfig, saveDnsRewriteRule, saveFilterAutoUpdate, saveRuleSource, savingAndLinkingHost, securityAudit, selectAIProvider, sendAIChat, setNodeAsPrimaryOutbound, showAISettingsModal, showAuthManageModal, showDnsRewriteModal, showImportModal, showInitWizardModal, showLogsModal, showProbeModal, showGeodataDetailModal, showRuleSourceModal, showSourcePreviewModal, saveCredentialsAndLinkHost, startInitStep3Execution, stopFireworks, subHealthMap, subMetaMap, subModalTab, subNodesMap, subQuotaMap, subSpeedTesting, submitBatchNodes, submitBatchSubs, submitInitWizardImportAndLaunch, systemOverview, toggleCoreUpgradeFreeze, toggleDnsRewriteMaster, toggleDnsRewriteRule, toggleFilterMaster, toggleGeoAutoUpdate, toggleSourceItem, toggleSubDrawer, toggleSubscription, triggerFastSelfHeal, triggerHotRestart, triggerInitBackupSelect, triggerQuickAIPrompt, updateAllSubscriptions, updateDetailText, updateGeoData, updateSubscription, updateSummaryText, updatingGeo, upgradeCore, upgradePanel, upgradingCoreMihomo, upgradingCoreSingbox, upgradingPanel, uploadToGithubIssue
+  activeEngine, adblockStats, addFakeIpFilter, addWhitelistItem, aiActionResult, aiActions, aiConfig, aiLoading, aiPresetQuestions, aiPrompt, aiProviders, aiReply, authState, batchAddingNodes, batchImportingSubs, batchNodeText, batchSubText, chaosDrillReport, chaosReportModal, checkHostUpgrade, checkingGeoUpgrade, checkingHostUpgrade, chooseFreshStart, cleanActionLabelMap, cleaningRosFirewall, clearSystemLogs, completeInitWizard, confirmAndStartInitWizard, confirmSystemReboot, copyDiagnosticMarkdown, copyText, coreUpgradeFrozen, coreUpgradeLog, creatingGithubIssue, customNodes, deleteDnsRewriteRule, deleteNode, deleteSourceItem, deleteSubscription, diagnosticModal, displayedLogs, dnsBlockedLastY, dnsBlockedPath, dnsFilterStats, dnsLatencyLastY, dnsLatencyPath, dnsQueryLastY, dnsQueryPath, dnsRewriteConfig, editingDnsRewriteRule, editingRuleSource, executeAIAction, executeHostUpgrade, executingAIActionId, executingHostUpgrade, executionModal, exportBackup, fakeIpFilters, fakeIpLoading, fetchDnsFilterStats, fetchRouterHardware, fetchSystemLogs, filterConfig, filteredGeodataFiles, formatExpire, geoAutoUpdateEnabled, geoUpdateLog, geodataFilterCategory, geodataFilterEngine, geodataLastUpdateText, geodataSearchQuery, geodataStatus, getNodeDelayClass, getSubRegions, handleInitBackupUpload, handleInitFileDrop, hasAnyUpdate, healingSteps, hostBadge, hostConfig, hostInfo, hostLastExecution, hostUpgradeDetails, hostUpgradeResult, importBackup, initBackupFileInput, initDetectedPlatform, initExecuting, initHostForm, initImportStats, initImportSuccess, initImporting, initLogs, initWizardImportTab, initWizardStep, inspectAndCleanReapplyRos, ir, isHotRestarting, isIKuai, isOpenWrt, isProbingAll, isRouterOS, isSubDrawerExpanded, isUpdatingSource, launchFireworks, lockConsoleNow, logContainerRef, logFilterLevel, logFilterModule, logSearchQuery, newFakeIpInput, newWhitelistDomain, openAddDnsRewriteModal, openAddSourceModal, openEditDnsRewriteModal, openEditSourceModal, openGitHubIssuePrompt, openProbeModal, openSourcePreview, openUpgradeModal, panelUpgradeLog, parsedBatchNodes, parsedBatchSubs, previewingSource, probeAllFourDimensions, probeChecked, probeLastTime, refreshSourceItem, removeFakeIpFilter, removeWhitelistItem, resetDnsRewriteDefaults, routerHW, routerHWMemoryDisplay, runSecurityAudit, runSubSpeedTest, saveAIConfig, saveDnsRewriteRule, saveFilterAutoUpdate, saveRuleSource, savingAndLinkingHost, securityAudit, selectAIProvider, sendAIChat, setNodeAsPrimaryOutbound, showAISettingsModal, showAuthManageModal, showDnsRewriteModal, showImportModal, showInitWizardModal, showLogsModal, showProbeModal, showGeodataDetailModal, showRuleSourceModal, showSourcePreviewModal, saveCredentialsAndLinkHost, startInitStep3Execution, stopFireworks, subHealthMap, subMetaMap, subModalTab, subNodesMap, subQuotaMap, subSpeedTesting, submitBatchNodes, submitBatchSubs, submitInitWizardImportAndLaunch, systemOverview, toggleCoreUpgradeFreeze, toggleDnsRewriteMaster, toggleDnsRewriteRule, toggleFilterMaster, toggleGeoAutoUpdate, toggleSourceItem, toggleSubDrawer, toggleSubscription, triggerFastSelfHeal, triggerHotRestart, triggerWANHeal, triggerInitBackupSelect, triggerQuickAIPrompt, updateAllSubscriptions, updateDetailText, updateGeoData, updateSubscription, updateSummaryText, updatingGeo, upgradeCore, upgradePanel, upgradingCoreMihomo, upgradingCoreSingbox, upgradingPanel, uploadToGithubIssue
 }))
 
 onMounted(async () => {

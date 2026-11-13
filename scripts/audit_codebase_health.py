@@ -311,7 +311,7 @@ files_to_verify = {
     'scripts/package_release.ps1': r'\$Version\s*=\s*"(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
     'scripts/package_release.sh': r'VERSION="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
     'scripts/install.sh': r'REL_TAG="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
-    'install.sh': r'_CUBEX_LOADER_VERSION="([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
+    'install.sh': r'_CUBEX_LOADER_VERSION="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
     'scripts/install_pve_lxc.sh': r'REL_TAG="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
 }
 

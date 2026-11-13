@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-v9.2.0_正式版-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-v9.3.0_正式版-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -78,7 +78,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 v9.2.0 正式版最新更新亮点](#announcement)
+- [📢 v9.3.0 正式版最新更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -321,16 +321,20 @@
 
 <a id="announcement"></a>
 
-## 📢 v9.2.0 正式版最新更新亮点 (首个里程碑正式版 · 极简共生与性能跃迁)
+## 📢 v9.3.0 正式版最新更新亮点 (7×24h 无人值守自愈与 WAN 重拨零感恢复)
 
 > [!IMPORTANT]
-> ### 👑【首个里程碑正式版】(v9.2.0 正式版)
+> ### 👑【7×24h 无人值守自愈与 WAN 重拨零感恢复】(v9.3.0 正式版)
 >
-> 1. **正式摘掉测试前缀，迈入正式版纪元**：彻底摘除 `Test-` 前缀，全面支持标准语义化版本升级通道，跨代版本比对器保障老版本无感平滑跨入正式版。
-> 2. **纯化界面 · 彻底切除控制台访问锁横幅**：根据用户真实反馈，物理移除常驻大横幅，收纳进「宿主共生凭据与鉴权」折叠抽屉中，默认内网免密直连零打扰、零空间占用。
-> 3. **内核网络栈高性能调优**：自动将 UDP Socket 缓冲区上限调优至 8MB，消除千兆高速传输丢包；智能优化 Conntrack 超时水位，防范高并发与 BT 下载撑爆连接跟踪表。
-> 4. **双核 Fake-IP 状态持久化**：开启双引擎 Fake-IP 持久化映射，秒级热重载或切核时局域网存量连接零断流。
-> 5. **软路由三巨头（ROS × OpenWrt × 爱快）深度共生联动**：控制台提供三大主流软路由 3 步绑定精准指引、一键命令/脚本复制与主路由共生回路实时验真。
+> 1. **订阅无人值守防抖同步与跌落熔断器**：
+>    - **零变更静默跳过**：订阅净化后通过 SHA256 结构化指纹比对，节点未变仅刷新流量配额与到期时间，跳过 IR 编译与双擎重启，达成 0 重载、0 切换、0 断流；
+>    - **跌落熔断保护**：遭遇上游服务提供商接口故障返回空包或节点暴跌超过 70% 时，全自动熔断拦截并保留原配置，彻底消除凌晨空包覆写致砖断网风险。
+> 2. **WAN 重拨与僵尸连接池瞬时冲刷器**：
+>    - 针对国内家庭宽带凌晨 PPPoE 强制重拨换公网 IP 导致长连接假死问题，后台自动感知网关网络翻转或紧急切流，调用连接池一键冲刷卡死在旧 WAN 上的陈旧 Socket，毫秒级满血复活，无需重启进程，0 内存毛刺。
+> 3. **单文件原子快照备份与秒级还原**：
+>    - 支持将订阅源、分流规则、宿主共生参数一键打包为带 SHA256 数字校验签名的 `.cubex-backup.json` 单文件，跨软路由、容器一秒克隆恢复；控制台提供直观一键导出与导入操作。
+> 4. **控制台性能与自愈总线强化**：
+>    - 系统运维中枢新增 7×24h WAN 自愈按键，订阅管理界面实时响应防抖静默跳过与熔断保护提示。
 
 ---
 
@@ -342,11 +346,11 @@
 
 | 发布物文件名 | 适用宿主与架构 | 说明与用途 |
 | :--- | :--- | :--- |
-| `CubeX-v9.2.0-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-v9.2.0-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-v9.2.0-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-v9.2.0-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-v9.2.0-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
+| `CubeX-v9.3.0-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-v9.3.0-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-v9.3.0-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-v9.3.0-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-v9.3.0-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
 | `cubexd-linux-amd64` | Linux amd64 | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
 | `cubexd-linux-arm64` | Linux arm64 | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 | 纯命令行运维工具（终端直接运行） |

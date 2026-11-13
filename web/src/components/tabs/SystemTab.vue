@@ -1456,6 +1456,18 @@
 
                 </div>
 
+                <!-- 5. WAN重拨僵尸连接瞬时自愈 -->
+                <div class="mt-3 pt-3 border-t border-white/5 flex items-center justify-between gap-3 flex-wrap">
+                  <div class="text-[11px] text-slate-400">
+                    <span class="text-sky-300 font-semibold">⚡ 7×24h WAN重拨自愈：</span>
+                    家庭宽带换公网 IP 或闪断后瞬时冲刷卡死 Socket，0 内存毛刺、无需重启
+                  </div>
+                  <button @click="app.triggerWANHeal" class="h-8 px-3 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/30 text-sky-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-sm select-none">
+                    <span>⚡</span>
+                    <span>瞬时冲刷僵尸连接</span>
+                  </button>
+                </div>
+
               </div>
 
             </div>
