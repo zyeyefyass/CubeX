@@ -7,6 +7,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/zyeyefyass/CubeX/internal/netutil"
 	"io"
 	"net/http"
 	"net/url"
@@ -129,7 +130,7 @@ func (p *BandwidthProber) Probe(ctx context.Context, proxyURL, testTargetURL str
 	if err != nil {
 		return nil, fmt.Errorf("probe request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer netutil.DrainAndCloseBody(resp)
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusPartialContent {
 		return nil, fmt.Errorf("server returned unexpected status %d", resp.StatusCode)

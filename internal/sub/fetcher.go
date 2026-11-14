@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/zyeyefyass/CubeX/internal/netutil"
 	"io"
 	"net"
 	"net/http"
@@ -124,7 +125,7 @@ func (f *Fetcher) doFetch(urlStr string, client *http.Client) (*FetchResult, err
 	if err != nil {
 		return nil, fmt.Errorf("network request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer netutil.DrainAndCloseBody(resp)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("subscription server returned HTTP status %d", resp.StatusCode)

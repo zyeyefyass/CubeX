@@ -4271,6 +4271,7 @@ import ConsoleAuthModal from './components/modals/ConsoleAuthModal.vue'
 import { frameScheduler, enablePeekModeWithGuard } from './utils/scheduler'
 import { GeekCommandController } from './utils/command-palette'
 import { SymbioticStreamClient, bindGeekCommandPalette } from './utils/telemetry-stream'
+import { freezeTelemetryPayload } from './utils/perf-freeze.js'
 
 // ── Global Console Auth & Unified Confirm Dialog ──
 if (typeof window !== 'undefined' && !window.__cubexNativeFetch) {
@@ -10660,7 +10661,7 @@ async function fetchSystemLogs(manual = false) {
 
       if (Array.isArray(data.logs)) {
 
-        systemLogs.value = data.logs
+        systemLogs.value = freezeTelemetryPayload(data.logs)
 
         if (!logStreamPaused.value && logContainerRef.value) {
 
@@ -21718,6 +21719,8 @@ async function fetchIR() {
         }
 
       }
+
+      data.proxies = freezeTelemetryPayload(data.proxies)
 
       ir.value = { ...ir.value, ...data }
 

@@ -48,6 +48,8 @@ scripts/*.py
 !scripts/verify_network_dual_core.py
 !scripts/deploy_ct107.py
 !scripts/publish_release_*.py
+!scripts/precompress_dist.py
+!scripts/compile_all_garble.py
 !scripts/package_release.sh
 !scripts/package_release.ps1
 !scripts/build.sh

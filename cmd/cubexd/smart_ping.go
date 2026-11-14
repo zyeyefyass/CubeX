@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/zyeyefyass/CubeX/internal/netutil"
 	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
@@ -107,7 +108,10 @@ func (s *Server) executeSmartHealthPing(force bool) {
 		wg.Add(1)
 		sem <- struct{}{}
 
-		go func(grp *schema.StrategyGroup, activeNode *schema.ProxyNode, activeName string) {
+		grp := group
+		activeNode := targetNode
+		activeName := activeNodeName
+		SafeGo("SmartPingGroupProbe", func() {
 			defer func() {
 				<-sem
 				wg.Done()
@@ -169,9 +173,11 @@ func (s *Server) executeSmartHealthPing(force bool) {
 					grp.Now = bestCandidate.Name
 
 					// Notify Clash API
-					go func(gName, nodeName string) {
-						payload, _ := json.Marshal(map[string]string{"name": nodeName})
-						escapedGroup := url.PathEscape(gName)
+					switchGroup := grp.Name
+					switchNode := bestCandidate.Name
+					SafeGo("SmartPingClashNotify", func() {
+						payload, _ := json.Marshal(map[string]string{"name": switchNode})
+						escapedGroup := url.PathEscape(switchGroup)
 						reqURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s", clashPort, escapedGroup)
 						client := http.Client{Timeout: 1 * time.Second}
 						cReq, err := http.NewRequest(http.MethodPut, reqURL, bytes.NewBuffer(payload))
@@ -181,10 +187,10 @@ func (s *Server) executeSmartHealthPing(force bool) {
 								cReq.Header.Set("Authorization", "Bearer "+clashSecret)
 							}
 							if resp, doErr := client.Do(cReq); doErr == nil && resp != nil {
-								_ = resp.Body.Close()
+								netutil.DrainAndCloseBody(resp)
 							}
 						}
-					}(grp.Name, bestCandidate.Name)
+					})
 
 					logMsg := fmt.Sprintf("智能巡检感知当前节点 [%s] 异常中断，已 0 毫秒静默预热无感切至 [%s] (延迟: %dms)", activeName, bestCandidate.Name, bestDelay)
 					s.logBuffer.Add("WARN", "FAILOVER", logMsg)
@@ -207,7 +213,7 @@ func (s *Server) executeSmartHealthPing(force bool) {
 			mu.Lock()
 			groupStates = append(groupStates, state)
 			mu.Unlock()
-		}(group, targetNode, activeNodeName)
+		})
 	}
 
 	wg.Wait()

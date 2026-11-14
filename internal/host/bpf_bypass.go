@@ -116,8 +116,8 @@ func (m *BpfBypassManager) loadOrInit() {
 			{
 				ID:                 "gateway_mgmt_bypass",
 				Description:        "主路由与旁路网关控制面流量绝对直通",
-				SourceSubnet:       "10.0.0.0/24",
-				DestSubnet:         "10.0.0.1, 10.0.0.7",
+				SourceSubnet:       "RFC1918 (Private LAN)",
+				DestSubnet:         "GATEWAY, HOST",
 				Protocol:           "ALL",
 				PortRange:          "80, 443, 2026, 8728",
 				BypassAction:       "NOTRACK_BYPASS",

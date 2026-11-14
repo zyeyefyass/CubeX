@@ -6,7 +6,7 @@
 # ═════════════════════════════════════════════════════════════════════════════
 set -e
 
-VERSION="v9.5.0"
+VERSION="v9.6.0"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 RELEASE_DIR="$DIST_DIR/release"
@@ -29,6 +29,7 @@ mkdir -p "$RELEASE_DIR"
 echo "🔨 [1/5] Building Web Frontend..."
 cd "$ROOT_DIR/web"
 npm run build
+python3 "$ROOT_DIR/scripts/precompress_dist.py"
 
 # 3. Build Multi-Arch Go Binaries
 echo "🔨 [2/5] Cross-compiling Multi-Arch Binaries..."

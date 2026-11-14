@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
+	"github.com/zyeyefyass/CubeX/internal/netutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -350,10 +350,7 @@ func (s *EWMAScheduler) probeNodeDelay(ctx context.Context, nodeName string) (in
 	if err != nil {
 		return 0, false
 	}
-	defer func() {
-		_, _ = io.Copy(io.Discard, resp.Body)
-		_ = resp.Body.Close()
-	}()
+	defer netutil.DrainAndCloseBody(resp)
 
 	if resp.StatusCode != http.StatusOK {
 		return 0, false
@@ -391,10 +388,7 @@ func (s *EWMAScheduler) switchClashGroup(ctx context.Context, groupName, targetN
 	if err != nil {
 		return err
 	}
-	defer func() {
-		_, _ = io.Copy(io.Discard, resp.Body)
-		_ = resp.Body.Close()
-	}()
+	defer netutil.DrainAndCloseBody(resp)
 
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("clash api switch group %s returned status %d", groupName, resp.StatusCode)
@@ -416,10 +410,7 @@ func (s *EWMAScheduler) fetchProxiesSnapshot(ctx context.Context) (map[string]cl
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		_, _ = io.Copy(io.Discard, resp.Body)
-		_ = resp.Body.Close()
-	}()
+	defer netutil.DrainAndCloseBody(resp)
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)

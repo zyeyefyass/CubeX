@@ -9,10 +9,14 @@ import (
 //go:embed all:dist
 var embeddedWeb embed.FS
 
-func getFileSystem() http.FileSystem {
+func getEmbeddedFS() fs.FS {
 	sub, err := fs.Sub(embeddedWeb, "dist")
 	if err != nil {
-		return http.FS(embeddedWeb)
+		return embeddedWeb
 	}
-	return http.FS(sub)
+	return sub
+}
+
+func getFileSystem() http.FileSystem {
+	return http.FS(getEmbeddedFS())
 }

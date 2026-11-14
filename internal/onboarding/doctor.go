@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/netenv"
 )
 
 // CheckItemStatus 定义单项开机环境预检状态
@@ -35,7 +37,12 @@ type QuickstartGuideReport struct {
 // RunOnboardingDoctor 执行全自动新手环境诊断并生成个性化部署指引
 func RunOnboardingDoctor(ctx context.Context, hostIP string, controlPort int, fakeIPSubnet string) *QuickstartGuideReport {
 	if hostIP == "" {
-		hostIP = "10.0.0.7"
+		topo := netenv.DetectHostTopology("", "")
+		if topo.LocalIP != "" {
+			hostIP = topo.LocalIP
+		} else {
+			hostIP = netenv.PlaceholderLocalIP
+		}
 	}
 	if controlPort <= 0 {
 		controlPort = 2026

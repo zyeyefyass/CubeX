@@ -19,6 +19,7 @@ import (
 	"golang.org/x/crypto/ssh"
 
 	"github.com/zyeyefyass/CubeX/internal/ikuai"
+	"github.com/zyeyefyass/CubeX/internal/netenv"
 	"github.com/zyeyefyass/CubeX/internal/openwrt"
 	"github.com/zyeyefyass/CubeX/internal/schema"
 )
@@ -1419,7 +1420,19 @@ type TriadNodeResult struct {
 // ProbeIKuaiMatrix probes the iKuai router and inspects 198.18.0.0/15 route.
 func (m *Manager) ProbeIKuaiMatrix(targetIP string, port int, user, pass, cubexIP string) (*TriadNodeResult, error) {
 	if targetIP == "" {
-		targetIP = "10.0.0.187"
+		targetIP = strings.TrimSpace(os.Getenv("IKUAI_HOST"))
+	}
+	if targetIP == "" {
+		topo := netenv.DetectHostTopology("", "")
+		targetIP = topo.GatewayIP
+	}
+	if targetIP == "" {
+		return &TriadNodeResult{
+			Name:     "爱快 iKuai 4.0/3.x",
+			Platform: "ikuai",
+			Online:   false,
+			Details:  "未指定或未探测到爱快主机 IP",
+		}, fmt.Errorf("未指定或未探测到爱快主机 IP")
 	}
 	if port <= 0 {
 		port = 443
@@ -1488,7 +1501,19 @@ func (m *Manager) ProbeIKuaiMatrix(targetIP string, port int, user, pass, cubexI
 // ProbeOpenWrtMatrix probes the OpenWrt / iStoreOS router and inspects 198.18.0.0/15 route.
 func (m *Manager) ProbeOpenWrtMatrix(targetIP string, port int, user, pass, cubexIP string) (*TriadNodeResult, error) {
 	if targetIP == "" {
-		targetIP = "10.0.0.188"
+		targetIP = strings.TrimSpace(os.Getenv("OPENWRT_HOST"))
+	}
+	if targetIP == "" {
+		topo := netenv.DetectHostTopology("", "")
+		targetIP = topo.GatewayIP
+	}
+	if targetIP == "" {
+		return &TriadNodeResult{
+			Name:     "iStoreOS / OpenWrt",
+			Platform: "openwrt",
+			Online:   false,
+			Details:  "未指定或未探测到 OpenWrt 主机 IP",
+		}, fmt.Errorf("未指定或未探测到 OpenWrt 主机 IP")
 	}
 	if port <= 0 {
 		port = 22

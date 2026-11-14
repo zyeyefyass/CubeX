@@ -3,7 +3,7 @@ package dataplane
 import (
 	"context"
 	"fmt"
-	"io"
+	"github.com/zyeyefyass/CubeX/internal/netutil"
 	"net/http"
 	"strings"
 	"time"
@@ -46,10 +46,7 @@ func (h *WANHealer) FlushStaleConnections(ctx context.Context, reason string) er
 	if err != nil {
 		return fmt.Errorf("flush stale connections failed: %w", err)
 	}
-	defer func() {
-		_, _ = io.Copy(io.Discard, resp.Body)
-		_ = resp.Body.Close()
-	}()
+	defer netutil.DrainAndCloseBody(resp)
 
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("unexpected status code %d on connection flush", resp.StatusCode)

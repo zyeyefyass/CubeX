@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
+	"github.com/zyeyefyass/CubeX/internal/netutil"
 	"net/http"
 	"sort"
 	"strings"
@@ -181,8 +181,7 @@ func (ci *ClientInspector) KickClientConnections(ctx context.Context, targetSour
 				req.Header.Set("Authorization", "Bearer "+ci.clashAPISecret)
 			}
 			if resp, err := ci.httpClient.Do(req); err == nil {
-				_, _ = io.Copy(io.Discard, resp.Body)
-				_ = resp.Body.Close()
+				netutil.DrainAndCloseBody(resp)
 				kicked++
 			}
 		}
@@ -203,10 +202,7 @@ func (ci *ClientInspector) fetchRawConnections(ctx context.Context) (*rawClashCo
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		_, _ = io.Copy(io.Discard, resp.Body)
-		_ = resp.Body.Close()
-	}()
+	defer netutil.DrainAndCloseBody(resp)
 
 	var snap rawClashConnSnapshot
 	if err := json.NewDecoder(resp.Body).Decode(&snap); err != nil {

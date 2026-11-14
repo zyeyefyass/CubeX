@@ -1,5 +1,7 @@
 // web/src/utils/telemetry-stream.js
 // 使用单条 SSE 推送流取代高频 HTTP 轮询，并直接对接 v8.9 的 UIFrameScheduler
+import { freezeTelemetryPayload } from './perf-freeze.js'
+
 export class SymbioticStreamClient {
   constructor(frameScheduler, handlers = {}) {
     this.scheduler = frameScheduler
@@ -16,7 +18,8 @@ export class SymbioticStreamClient {
     this.es.addEventListener('telemetry', (e) => {
       if (this.scheduler && this.scheduler.isSilenced()) return
       try {
-        const data = JSON.parse(e.data)
+        const raw = JSON.parse(e.data)
+        const data = freezeTelemetryPayload(raw)
         if (this.scheduler) {
           this.scheduler.enqueue('sse-telemetry', () => {
             if (this.handlers.onTelemetry) this.handlers.onTelemetry(data)

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/netenv"
 )
 
 // TriRouterBundle 封装软路由三巨头的一键执行脚本与设置参数
@@ -29,11 +31,22 @@ type SymbioticLoopVerifyResult struct {
 
 // BuildTriRouterSymbiosisBundle 生成针对 ROS v7 / OpenWrt / 爱快 的生产级共生接入包
 func BuildTriRouterSymbiosisBundle(cubexIP, gatewayIP, fallbackDNS string, controlPort int) *TriRouterBundle {
-	if cubexIP == "" {
-		cubexIP = "10.0.0.7"
-	}
-	if gatewayIP == "" {
-		gatewayIP = "10.0.0.1"
+	if cubexIP == "" || gatewayIP == "" {
+		topo := netenv.DetectHostTopology("", "")
+		if cubexIP == "" {
+			if topo.LocalIP != "" {
+				cubexIP = topo.LocalIP
+			} else {
+				cubexIP = netenv.PlaceholderLocalIP
+			}
+		}
+		if gatewayIP == "" {
+			if topo.GatewayIP != "" {
+				gatewayIP = topo.GatewayIP
+			} else {
+				gatewayIP = netenv.PlaceholderGatewayIP
+			}
+		}
 	}
 	if fallbackDNS == "" {
 		fallbackDNS = "223.5.5.5"

@@ -4,12 +4,14 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/netenv"
 )
 
 // RuntimeSpec 统一收口全项目所有网络端点、探针目标与资源配额，彻底消灭硬编码
 type RuntimeSpec struct {
-	// 1. 网络与端口绑定（取代散落的 "10.0.0.7", 2026, 7890, 9090, 53, "cubex-tun"）
-	CubeXHostIP       string        `json:"cubex_host_ip"`       // 默认自动探测本机主网卡 IP，兜底 "10.0.0.7"
+	// 1. 网络与端口绑定（取代写死 IP 假兜底, 2026, 7890, 9090, 53, "cubex-tun"）
+	CubeXHostIP       string        `json:"cubex_host_ip"`       // 动态嗅探本机主网卡 IP，零假兜底
 	ControlListenAddr string        `json:"control_listen_addr"` // 默认 ":2026"
 	ClashAPIAddr      string        `json:"clash_api_addr"`      // 默认 "127.0.0.1:9090"
 	MixedProxyAddr    string        `json:"mixed_proxy_addr"`    // 默认 "127.0.0.1:7890"
@@ -40,8 +42,14 @@ func LoadRuntimeSpec() *RuntimeSpec {
 		goGC = "80"
 	}
 
+	hostIP := envOrDefault("CUBEX_HOST_IP", "")
+	if hostIP == "" {
+		topo := netenv.DetectHostTopology("", "")
+		hostIP = topo.LocalIP
+	}
+
 	return &RuntimeSpec{
-		CubeXHostIP:       envOrDefault("CUBEX_HOST_IP", "10.0.0.7"),
+		CubeXHostIP:       hostIP,
 		ControlListenAddr: envOrDefault("CUBEX_CONTROL_ADDR", ":2026"),
 		ClashAPIAddr:      envOrDefault("CUBEX_CLASH_API", "127.0.0.1:9090"),
 		MixedProxyAddr:    envOrDefault("CUBEX_MIXED_ADDR", "127.0.0.1:7890"),

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/zyeyefyass/CubeX/internal/netutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -71,7 +72,7 @@ func (p *IPQualityProber) Inspect(ctx context.Context, proxyURL string) (*IPQual
 	if err != nil {
 		return nil, fmt.Errorf("ip info query failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer netutil.DrainAndCloseBody(resp)
 
 	var geo struct {
 		IP      string `json:"ip"`

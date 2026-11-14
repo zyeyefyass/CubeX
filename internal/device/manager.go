@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/zyeyefyass/CubeX/internal/netutil"
 	"github.com/zyeyefyass/CubeX/internal/ros"
 )
 
@@ -424,7 +425,7 @@ func (m *Manager) GetDevices() []Device {
 					}
 				}
 			}
-			resp.Body.Close()
+			netutil.DrainAndCloseBody(resp)
 		}
 	}
 

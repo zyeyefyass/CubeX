@@ -3,6 +3,8 @@ package onboarding
 import (
 	"fmt"
 	"strings"
+
+	"github.com/zyeyefyass/CubeX/internal/netenv"
 )
 
 // NonDNSCIDREntry 定义不走 DNS、硬编码 IP 直连的核心海外业务网段
@@ -33,7 +35,12 @@ var EssentialNonDNSCIDRs = []NonDNSCIDREntry{
 func BuildRouterOSFullRoutes(cubexIP string) string {
 	cubexIP = strings.TrimSpace(cubexIP)
 	if cubexIP == "" {
-		cubexIP = "10.0.0.7"
+		topo := netenv.DetectHostTopology("", "")
+		if topo.LocalIP != "" {
+			cubexIP = topo.LocalIP
+		} else {
+			cubexIP = netenv.PlaceholderLocalIP
+		}
 	}
 	var b strings.Builder
 	b.WriteString(`/ip route remove [find where comment~"^CubeX-"]` + "\n")
@@ -48,7 +55,12 @@ func BuildRouterOSFullRoutes(cubexIP string) string {
 func BuildOpenWrtFullRoutes(cubexIP string) string {
 	cubexIP = strings.TrimSpace(cubexIP)
 	if cubexIP == "" {
-		cubexIP = "10.0.0.7"
+		topo := netenv.DetectHostTopology("", "")
+		if topo.LocalIP != "" {
+			cubexIP = topo.LocalIP
+		} else {
+			cubexIP = netenv.PlaceholderLocalIP
+		}
 	}
 	var b strings.Builder
 	for i, item := range EssentialNonDNSCIDRs {

@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/zyeyefyass/CubeX/internal/dataplane"
+	"github.com/zyeyefyass/CubeX/internal/netenv"
 	"github.com/zyeyefyass/CubeX/internal/onboarding"
 	"github.com/zyeyefyass/CubeX/internal/telemetry"
 	"github.com/zyeyefyass/CubeX/internal/upstream"
@@ -438,7 +438,12 @@ func (s *Server) handleVerifySymbioticLoop(w http.ResponseWriter, r *http.Reques
 	st := s.gatewayModeCtrl.InspectStatus(r.Context())
 	gwIP := st.CurrentSpec.UpstreamGatewayIP
 	if gwIP == "" {
-		gwIP = "10.0.0.1"
+		topo := netenv.DetectHostTopology("", "")
+		gwIP = topo.GatewayIP
+	}
+	if gwIP == "" {
+		http.Error(w, `{"error": "未探测到主路由网关 IP，无法进行实机回路校验"}`, http.StatusBadRequest)
+		return
 	}
 	dnsPort := 53
 	if s.engMgr != nil {
@@ -474,13 +479,10 @@ func (s *Server) getDetectedLocalIP() string {
 			return ip
 		}
 	}
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	if err == nil {
-		defer conn.Close()
-		if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
-			return localAddr.IP.String()
-		}
+	topo := netenv.DetectHostTopology("", "")
+	if topo.LocalIP != "" {
+		return topo.LocalIP
 	}
-	return "10.0.0.7"
+	return netenv.PlaceholderLocalIP
 }
 

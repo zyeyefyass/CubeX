@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-v9.5.0_正式版-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-v9.6.0_正式版-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -78,7 +78,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 v9.5.0 正式版最新更新亮点](#announcement)
+- [📢 v9.6.0 纯净稳定版最新更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -321,20 +321,21 @@
 
 <a id="announcement"></a>
 
-## 📢 v9.5.0 正式版最新更新亮点 (控制面三级死链自愈、双擎 QUIC 降级、AI 专线合规分流与主屏视野极致瘦身)
+## 📢 v9.6.0 纯净稳定版最新更新亮点 (极致瘦身、零硬编码与 29MB 超低内存基线)
 
 > [!IMPORTANT]
-> ### 👑【控制面三级死链自愈、双擎 QUIC 降级、AI 专线合规分流与主屏视野极致瘦身】(v9.5.0 正式版)
+> ### 👑【极致瘦身、零硬编码与 29MB 超低内存基线】(v9.6.0 纯净稳定版)
 >
-> 1. **控制面三级死链自动冲刷与 300 秒半衰期衰减自愈**：
->    - 深度联动遥测数据流，毫秒级探查被动死链与传输黑洞，自动静默冲刷卡死 Socket，无需用户手动介入；
->    - 被降权节点配备 300 秒冷却衰减保护窗口，冷却过期自动恢复候选资格，彻底杜绝上游主干闪断导致全池节点被逐一永久拉黑。
-> 2. **双擎 UDP 443 QUIC 降级防御**：
->    - 在双引擎（Mihomo × sing-box）路由表首端注入海外 UDP 443 智能拦截拒绝规则，触发主流浏览器 0ms 回退至极速稳定 TCP HTTP/2，根治海外大流量卡死与转圈。
-> 3. **AI 专线合规分流与出站靶向绝对对齐**：
->    - 自动提炼甄选海外合规优质节点，严格隔离境内与敏感出站链路，并自愈对齐规则集与域名出站目标至该策略组，彻底消除策略组悬空或回退默认组的隐患。
-> 4. **控制台去焦虑与主屏视野极致瘦身**：
->    - 彻底剔除常态空状态的局域网流量透视与手动冲刷按钮，把控制台主屏视野 100% 完整让渡给核心推荐 3 步设置与健康中枢，界面极致清爽流畅。
+> 1. **嵌入式静态资产预压缩与零拷贝透传 (`internal/webui/precompressed.go`)**：
+>    - 编译期对前端构建产物执行离线高压缩比 Gzip 预处理，静态资源体积从 **952.3 KB 骤降至 262.0 KB（缩减 72.5%）**；
+>    - 后端直接零拷贝透传预压缩字节流，运行期压缩 CPU 消耗降为 **0%**，彻底规避 UPX 加壳带来的私有物理内存膨胀与动态压缩内存毛刺。
+> 2. **全栈 72 处硬编码清零与内核态路由嗅探 (`internal/netenv/topology.go`)**：
+>    - 全面剥离历史遗留的假默认 IP 兜底，直接解析 Linux 内核 `/proc/net/route` 与网卡接口表（零外部子进程开销），内置网关自环死锁硬拦截与异常拓扑显式告警。
+> 3. **主控架构解耦与全仓句柄/连接池防漏治理 (`internal/netutil/http_guard.go`)**：
+>    - 将单体主控拆解为 `main`、`server`、`lifecycle`、`telemetry` 及 `routes_core/sub/ha` 七大高内聚模块，实现零循环依赖与死代码清零；
+>    - 全仓出站 HTTP 请求接入 `DrainAndCloseBody` 64KB 限界排空守卫与有界连接池，后台定时器 100% 配对回收，实测稳态仅 **36 个协程、29.21 MB RSS 物理内存**。
+> 4. **前端高频遥测非响应式冻结 (`web/src/utils/perf-freeze.js`)**：
+>    - 对 SSE 遥测帧、大规模节点矩阵与日志流实施 `Object.freeze` 深度冻结，剥离 Vue 3 递归 Proxy 劫持开销，保障软路由与低配设备长时间挂机 60/120FPS 满帧丝滑。
 
 ---
 
@@ -346,11 +347,11 @@
 
 | 发布物文件名 | 适用宿主与架构 | 说明与用途 |
 | :--- | :--- | :--- |
-| `CubeX-v9.5.0-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-v9.5.0-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-v9.5.0-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-v9.5.0-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-v9.5.0-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
+| `CubeX-v9.6.0-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-v9.6.0-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-v9.6.0-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-v9.6.0-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-v9.6.0-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
 | `cubexd-linux-amd64` | Linux amd64 | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
 | `cubexd-linux-arm64` | Linux arm64 | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 | 纯命令行运维工具（终端直接运行） |
@@ -410,7 +411,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 如果你的主路由就是 MikroTik（RB5009、CCR2004、x86 ROS）：
 
-1. **下载镜像**：在上方清单下载对应架构的 `CubeX-v9.5.0-ros-amd64.tar`（或 `arm64.tar`）；
+1. **下载镜像**：在上方清单下载对应架构的 `CubeX-v9.6.0-ros-amd64.tar`（或 `arm64.tar`）；
 
 2. **传进路由器**：打开 WinBox，把 `.tar` 文件直接拖进【Files】列表（推荐放在 U 盘或 SSD 磁盘如 `disk1/`）；
 

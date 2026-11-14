@@ -8,7 +8,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$Version = "v9.5.0"
+$Version = "v9.6.0"
 
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 
@@ -63,6 +63,7 @@ Write-Host "🔨 [1/4] Building Web Frontend & Multi-Arch Gateway Binaries..." -
 Set-Location -Path "$RootDir\web"
 
 cmd /c npm run build
+python "$RootDir\scripts\precompress_dist.py"
 
 
 

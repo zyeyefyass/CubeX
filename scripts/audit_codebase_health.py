@@ -81,18 +81,21 @@ else:
 # CHECK 2: Concurrency & Panic Protection Analysis
 # -------------------------------------------------------------
 log_header("CHECK 2: Concurrency, Goroutine & Panic Boundary Analysis")
-main_go = os.path.join(ROOT, "cmd", "cubexd", "main.go")
-with open(main_go, "r", encoding="utf-8", errors="ignore") as f:
-    main_content = f.read()
+cubexd_dir = os.path.join(ROOT, "cmd", "cubexd")
+cubexd_content = ""
+for fname in sorted(os.listdir(cubexd_dir)):
+    if fname.endswith(".go") and not fname.endswith("_test.go"):
+        with open(os.path.join(cubexd_dir, fname), "r", encoding="utf-8", errors="ignore") as f:
+            cubexd_content += f.read() + "\n"
 
 # Count raw 'go func(' outside SafeGo wrapper (only 1 allowed inside SafeGo itself)
-raw_goroutines = len(re.findall(r'\bgo\s+func\(', main_content))
-recover_count = len(re.findall(r'\brecover\(\)', main_content))
-safego_calls = len(re.findall(r'\bSafeGo\(', main_content))
+raw_goroutines = len(re.findall(r'\bgo\s+func\(', cubexd_content))
+recover_count = len(re.findall(r'\brecover\(\)', cubexd_content))
+safego_calls = len(re.findall(r'\bSafeGo\(', cubexd_content))
 
-print(f"  • Raw unguarded go func( in main.go: {raw_goroutines}")
-print(f"  • SafeGo() guarded goroutines in main.go: {safego_calls}")
-print(f"  • Panic Recovery blocks (recover()) in main.go: {recover_count}")
+print(f"  • Raw unguarded go func( in cubexd: {raw_goroutines}")
+print(f"  • SafeGo() guarded goroutines in cubexd: {safego_calls}")
+print(f"  • Panic Recovery blocks (recover()) in cubexd: {recover_count}")
 
 if recover_count == 0 or raw_goroutines > 1:
     print("  ⚠️  WARNING: Found unguarded raw go func() outside SafeGo(). Unhandled panic in any goroutine may crash daemon.")
@@ -112,11 +115,11 @@ else:
 # CHECK 3: Atomic File Persistence Analysis
 # -------------------------------------------------------------
 log_header("CHECK 3: Storage & Atomic Write Protection Analysis")
-raw_writefiles = re.findall(r'os\.WriteFile\([^)]+\)', main_content)
-atomic_renames = re.findall(r'os\.Rename\([^)]+\)', main_content)
+raw_writefiles = re.findall(r'os\.WriteFile\([^)]+\)', cubexd_content)
+atomic_renames = re.findall(r'os\.Rename\([^)]+\)', cubexd_content)
 
-print(f"  • Direct os.WriteFile calls in main.go: {len(raw_writefiles)}")
-print(f"  • Atomic os.Rename calls in main.go: {len(atomic_renames)}")
+print(f"  • Direct os.WriteFile calls in cubexd: {len(raw_writefiles)}")
+print(f"  • Atomic os.Rename calls in cubexd: {len(atomic_renames)}")
 
 if len(atomic_renames) == 0:
     print("  ⚠️  WARNING: Direct os.WriteFile used without os.Rename atomic swapping. Power cut during write risks 0-byte state file.")
@@ -172,6 +175,8 @@ print("  • Verifying production bundle compilation with Vite...")
 code, out = run_cmd("npm.cmd run build", cwd=os.path.join(ROOT, "web"))
 if code == 0:
     print("  ✓ Vite production build succeeded.")
+    # Run precompression immediately to eliminate raw uncompressed assets
+    run_cmd(f'python "{os.path.join(ROOT, "scripts", "precompress_dist.py")}"')
     results["checks"]["frontend_build"] = {"status": "PASS"}
     results["passed"] += 1
 else:

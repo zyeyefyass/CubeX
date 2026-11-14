@@ -13,6 +13,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/zyeyefyass/CubeX/internal/netenv"
 )
 
 // GatewayTopologyMode 定义用户可理解的两大部署模式
@@ -301,51 +303,8 @@ func readSysctl(path string) string {
 	return strings.TrimSpace(string(b))
 }
 
-// autoDetectNetworkTopology 自动从 Linux 路由表探测主网卡、本机 IP 与上级默认网关
+// autoDetectNetworkTopology 自动从内核路由表与网卡动态嗅探主网卡、本机 IP 与上级默认网关（0 外部命令依赖、0 假兜底）
 func autoDetectNetworkTopology() (iface, localIP, gatewayIP string) {
-	if runtime.GOOS == "linux" {
-		out, err := exec.Command("ip", "-4", "route", "show", "default").Output()
-		if err == nil {
-			// 格式示例: default via 192.168.1.1 dev eth0 proto static src 192.168.1.7
-			fields := strings.Fields(string(out))
-			for i := 0; i < len(fields)-1; i++ {
-				switch fields[i] {
-				case "via":
-					gatewayIP = fields[i+1]
-				case "dev":
-					iface = fields[i+1]
-				case "src":
-					localIP = fields[i+1]
-				}
-			}
-		}
-	}
-
-	if localIP == "" {
-		if ifaces, err := net.Interfaces(); err == nil {
-			for _, i := range ifaces {
-				if (i.Flags&net.FlagUp) == 0 || (i.Flags&net.FlagLoopback) != 0 {
-					continue
-				}
-				addrs, err := i.Addrs()
-				if err != nil {
-					continue
-				}
-				for _, a := range addrs {
-					if ipNet, ok := a.(*net.IPNet); ok && ipNet.IP.To4() != nil && !ipNet.IP.IsLoopback() {
-						localIP = ipNet.IP.String()
-						if iface == "" {
-							iface = i.Name
-						}
-						break
-					}
-				}
-				if localIP != "" {
-					break
-				}
-			}
-		}
-	}
-
-	return iface, localIP, gatewayIP
+	topo := netenv.DetectHostTopology("", "")
+	return topo.Interface, topo.LocalIP, topo.GatewayIP
 }

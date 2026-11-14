@@ -70,11 +70,11 @@
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-2xl bg-black/40 border border-cyan-500/20 text-xs font-mono">
               <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
                 <span class="text-[11px] text-slate-400 block">CubeX 本机 IP</span>
-                <span class="text-cyan-300 font-bold text-sm">{{ gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7' }}</span>
+                <span class="text-cyan-300 font-bold text-sm">{{ gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>' }}</span>
               </div>
               <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
                 <span class="text-[11px] text-slate-400 block">上级主路由 IP</span>
-                <span class="text-sky-300 font-bold text-sm">{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '10.0.0.1' }}</span>
+                <span class="text-sky-300 font-bold text-sm">{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '<待配置网关IP>' }}</span>
               </div>
               <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
                 <span class="text-[11px] text-slate-400 block">分流加速网段</span>
@@ -127,11 +127,11 @@
                 <div class="space-y-2">
                   <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
                     <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">1</span>
-                    <span>【网关维持不变】：全屋手机、电脑默认网关依然保持为主路由（{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '10.0.0.1' }}），国内流量 100% 物理直出。</span>
+                    <span>【网关维持不变】：全屋手机、电脑默认网关依然保持为主路由（{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '<待配置网关IP>' }}），国内流量 100% 物理直出。</span>
                   </div>
                   <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
                     <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">2</span>
-                    <span>【添加静态回程路由】：在 WinBox 或 WebFig 添加目标网段 <code>198.18.0.0/15</code>，下一跳网关填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7' }}</code>。</span>
+                    <span>【添加静态回程路由】：在 WinBox 或 WebFig 添加目标网段 <code>198.18.0.0/15</code>，下一跳网关填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>' }}</code>。</span>
                   </div>
                   <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
                     <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">3</span>
@@ -155,7 +155,7 @@
                       </button>
                     </div>
                   </div>
-                  <pre class="p-2.5 rounded-lg bg-slate-950/80 text-[11px] font-mono text-cyan-200/90 overflow-x-auto select-all leading-relaxed whitespace-pre-wrap"><code>{{ triRouterBundle?.routeros_oneliner || `/ip route add dst-address=198.18.0.0/15 gateway=${gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7'} distance=1 comment="CubeX-FakeIP-Backtrack"; /ip dns set servers=${gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7'} allow-remote-requests=yes; /ip dns cache flush;` }}</code></pre>
+                  <pre class="p-2.5 rounded-lg bg-slate-950/80 text-[11px] font-mono text-cyan-200/90 overflow-x-auto select-all leading-relaxed whitespace-pre-wrap"><code>{{ triRouterBundle?.routeros_oneliner || `/ip route add dst-address=198.18.0.0/15 gateway=${gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>'} distance=1 comment="CubeX-FakeIP-Backtrack"; /ip dns set servers=${gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>'} allow-remote-requests=yes; /ip dns cache flush;` }}</code></pre>
                 </div>
               </div>
 
@@ -164,11 +164,11 @@
                 <div class="space-y-2">
                   <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
                     <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">1</span>
-                    <span>【网关维持不变】：OpenWrt LAN 默认网关保持 <code>{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '10.0.0.1' }}</code> 不变，国内流量不经过旁路由。</span>
+                    <span>【网关维持不变】：OpenWrt LAN 默认网关保持 <code>{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '<待配置网关IP>' }}</code> 不变，国内流量不经过旁路由。</span>
                   </div>
                   <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
                     <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">2</span>
-                    <span>【UCI 静态路由配置】：进入『网络 -> 路由』添加 <code>198.18.0.0/15</code>，下一跳网关填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7' }}</code>。</span>
+                    <span>【UCI 静态路由配置】：进入『网络 -> 路由』添加 <code>198.18.0.0/15</code>，下一跳网关填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>' }}</code>。</span>
                   </div>
                   <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
                     <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">3</span>
@@ -201,15 +201,15 @@
                 <div class="space-y-2">
                   <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
                     <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">1</span>
-                    <span>【局域网网关保持不变】：爱快 DHCP 默认网关维持 <code>{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '10.0.0.1' }}</code> 不变，无需改动任何终端。</span>
+                    <span>【局域网网关保持不变】：爱快 DHCP 默认网关维持 <code>{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '<待配置网关IP>' }}</code> 不变，无需改动任何终端。</span>
                   </div>
                   <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
                     <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">2</span>
-                    <span>【爱快添加静态路由】：进入『网络设置 -> 静态路由』，目的地址填 <code>198.18.0.0</code>，子网掩码选 <code>255.254.0.0 (15)</code>，网关填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7' }}</code>。</span>
+                    <span>【爱快添加静态路由】：进入『网络设置 -> 静态路由』，目的地址填 <code>198.18.0.0</code>，子网掩码选 <code>255.254.0.0 (15)</code>，网关填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>' }}</code>。</span>
                   </div>
                   <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
                     <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">3</span>
-                    <span>【主备 DNS 自动断网逃生】：进入『网络设置 -> DNS 设置』，首选填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7' }}</code>，备选填 <code>223.5.5.5</code>。CubeX 停机维护时爱快自动由备选 DNS 解析直连，免脚本全屋天然逃生！</span>
+                    <span>【主备 DNS 自动断网逃生】：进入『网络设置 -> DNS 设置』，首选填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>' }}</code>，备选填 <code>223.5.5.5</code>。CubeX 停机维护时爱快自动由备选 DNS 解析直连，免脚本全屋天然逃生！</span>
                   </div>
                 </div>
 
@@ -1561,7 +1561,7 @@ function fallbackCopyText(text, msg) {
 }
 
 function copyRouterOSScript() {
-  const ip = gatewayStatus.value?.current_spec?.cubex_local_ip || '10.0.0.7'
+  const ip = gatewayStatus.value?.current_spec?.cubex_local_ip || '<待配置本机IP>'
   const cmd = triRouterBundle.value?.routeros_oneliner || `/ip route add dst-address=198.18.0.0/15 gateway=${ip} distance=1 comment="CubeX-FakeIP-Backtrack"; /ip dns set servers=${ip} allow-remote-requests=yes; /ip dns cache flush;`
   copyToClipboard(cmd, 'RouterOS 一键脚本已复制')
 }
@@ -1591,7 +1591,7 @@ function copyOpenWrtScript() {
 }
 
 function copyIKuaiMemo() {
-  const ip = gatewayStatus.value?.current_spec?.cubex_local_ip || '10.0.0.7'
+  const ip = gatewayStatus.value?.current_spec?.cubex_local_ip || '<待配置本机IP>'
   const text = `静态路由: 198.18.0.0/15 -> ${ip}\n首选DNS: ${ip}, 备选DNS: 223.5.5.5`
   copyToClipboard(text, '爱快配置参数已复制')
 }
