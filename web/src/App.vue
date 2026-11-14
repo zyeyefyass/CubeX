@@ -346,14 +346,6 @@
             <span class="hidden lg:inline text-xs font-bold font-sans">隐藏面板</span>
           </button>
 
-          <!-- ⚡ Ctrl/Cmd+K 极客指令舱 -->
-          <button @click="openCommandPalette"
-            title="呼出极客指令舱 (快捷键 Ctrl+K / ⌘K)"
-            class="h-[30px] sm:h-[42px] md:h-[46px] inline-flex items-center gap-1.5 px-2 sm:px-3 rounded-lg sm:rounded-2xl macos-capsule select-none transition-all duration-300 cursor-pointer shrink-0 hover:border-sky-400/50 text-sky-200">
-            <span class="text-xs sm:text-sm">⚡</span>
-            <span class="hidden lg:inline text-xs font-mono font-bold text-slate-300">⌘K</span>
-          </button>
-
           <button @click="activeMasterTab = 'system'"
 
             :title="'当前联动宿主: ' + hostBadge.name + ' (点击进入「宿主共生」控制台)'"
