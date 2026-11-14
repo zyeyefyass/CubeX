@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -448,3 +449,38 @@ func (s *Server) handleVerifySymbioticLoop(w http.ResponseWriter, r *http.Reques
 	res := onboarding.VerifySymbioticLoop(r.Context(), gwIP, dnsPort)
 	sendJSON(w, res)
 }
+
+// handleGetEssentialCIDRs 提供 Telegram 与纯 IP 应用的黄金补盲路由清单与脚本
+func (s *Server) handleGetEssentialCIDRs(w http.ResponseWriter, r *http.Request) {
+	localIP := s.getDetectedLocalIP()
+	payload := map[string]any{
+		"cubex_ip":        localIP,
+		"cidrs":           onboarding.EssentialNonDNSCIDRs,
+		"routeros_script": onboarding.BuildRouterOSFullRoutes(localIP),
+		"openwrt_script":  onboarding.BuildOpenWrtFullRoutes(localIP),
+	}
+	sendJSON(w, payload)
+}
+
+func (s *Server) getDetectedLocalIP() string {
+	if s.gatewayModeCtrl != nil {
+		st := s.gatewayModeCtrl.InspectStatus(context.Background())
+		if st.CurrentSpec.CubeXLocalIP != "" {
+			return st.CurrentSpec.CubeXLocalIP
+		}
+	}
+	if s.rosMgr != nil {
+		if ip := s.rosMgr.GetOutboundIP(); ip != "" {
+			return ip
+		}
+	}
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err == nil {
+		defer conn.Close()
+		if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
+			return localAddr.IP.String()
+		}
+	}
+	return "10.0.0.7"
+}
+

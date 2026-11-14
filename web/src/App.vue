@@ -218,7 +218,7 @@
 
               <span class="font-black tracking-tight text-sky-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] hidden xs:inline">
 
-                {{ systemStatus.version || 'Test v9.1' }}
+                {{ systemStatus.version || 'v9.5.0' }}
 
               </span>
 
@@ -530,7 +530,7 @@
 
                     <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
 
-                    当前内核: {{ activeEngine === 'singbox' ? 'sing-box (' + (systemOverview.singbox_curr_version || 'v1.14.4') + ')' : 'Mihomo (' + (systemOverview.mihomo_curr_version || 'v1.19.34') + ')' }}
+                    当前内核: {{ activeEngine === 'singbox' ? 'sing-box (' + (systemOverview.singbox_curr_version || 'v9.5.0') + ')' : 'Mihomo (' + (systemOverview.mihomo_curr_version || 'v9.5.0') + ')' }}
 
                   </span>
 
@@ -1296,7 +1296,7 @@
 
                         <span class="text-sm sm:text-base font-black text-purple-200 tracking-wide">sing-box</span>
 
-                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.singbox_curr_version || 'v1.14.4' }}</span>
+                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.singbox_curr_version || 'v9.5.0' }}</span>
 
                       </div>
 
@@ -1406,7 +1406,7 @@
 
                         <span class="text-sm sm:text-base font-black text-emerald-200 tracking-wide">Mihomo</span>
 
-                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.mihomo_curr_version || 'v1.19.34' }}</span>
+                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.mihomo_curr_version || 'v9.5.0' }}</span>
 
                       </div>
 
@@ -2954,7 +2954,7 @@
 
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
 
-                        {{ systemOverview.panel_latest_version || 'Test v9.1' }}
+                        {{ systemOverview.panel_latest_version || 'v9.5.0' }}
 
                       </span>
 
@@ -2962,7 +2962,7 @@
 
                     <p class="text-xs text-slate-400 mt-0.5 font-mono">
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'Test v9.1' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'Test v9.1' }}</span>
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'v9.5.0' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'v9.5.0' }}</span>
 
                     </p>
 
@@ -6875,7 +6875,7 @@ const runMemoryReclaim = async () => {
     if (res.ok) {
       const data = await res.json()
       if (data.memory_conntrack) memoryConntrackStatus.value = data.memory_conntrack
-      showToast(`Go 物理内存强制退还完成！已退还 ${data.freed_mb?.toFixed(1) || '1.5'} MB 内存给宿主系统`)
+      showToast(`Go 物理内存强制退还完成！已退还 ${data.freed_mb?.toFixed(1) || 'v9.5.0'} MB 内存给宿主系统`)
     }
   } catch (e) {
     showToast('内存回收执行失败: ' + e.message, true)
@@ -7970,7 +7970,7 @@ const trafficInsights = ref({
 
   month: _nowInit.getMonth() + 1,
 
-  monthTotalGB: (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic') && localStorage.getItem('cubex_month_traffic') !== '99.5' && localStorage.getItem('cubex_month_traffic') !== '13.19') ? Number(localStorage.getItem('cubex_month_traffic')) : 0.0,
+  monthTotalGB: (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic') && localStorage.getItem('cubex_month_traffic') !== 'v9.5.0' && localStorage.getItem('cubex_month_traffic') !== 'v9.5.0') ? Number(localStorage.getItem('cubex_month_traffic')) : 0.0,
 
   monthTotalConns: 78137,
 
@@ -9009,7 +9009,7 @@ function updateLiveMonthlyTraffic(currentOutMB) {
 
       localStorage.setItem(monthKey, '0')
 
-      localStorage.setItem('cubex_month_traffic', '0.00')
+      localStorage.setItem('cubex_month_traffic', 'v9.5.0')
 
       trafficInsights.value.year = currentYear
 
@@ -9045,7 +9045,7 @@ function updateLiveMonthlyTraffic(currentOutMB) {
 
     const rawVal = localStorage.getItem('cubex_month_traffic')
 
-    if (rawVal === '99.5' || rawVal === '13.19') {
+    if (rawVal === 'v9.5.0' || rawVal === 'v9.5.0') {
 
       localStorage.removeItem('cubex_month_traffic')
 
@@ -10227,19 +10227,19 @@ const hostConfig = ref({
 
 const systemOverview = ref({
 
-  cubex_version: 'Test v9.1',
+  cubex_version: 'v9.5.0',
 
-  panel_curr_version: 'Test v9.1',
+  panel_curr_version: 'v9.5.0',
 
-  panel_latest_version: 'Test v9.1',
+  panel_latest_version: 'v9.5.0',
 
-  mihomo_curr_version: 'v1.19.34',
+  mihomo_curr_version: 'v9.5.0',
 
-  mihomo_latest_version: 'v1.19.34',
+  mihomo_latest_version: 'v9.5.0',
 
-  singbox_curr_version: 'v1.14.4',
+  singbox_curr_version: 'v9.5.0',
 
-  singbox_latest_version: 'v1.14.4',
+  singbox_latest_version: 'v9.5.0',
 
   panel_update_avail: false,
 
@@ -10275,7 +10275,7 @@ const ikuaiDockerRunCli = ref(`docker run -d \\
 
   ghcr.io/zyeyefyass/cubex:latest`)
 
-const ikuaiDockerComposeYaml = ref(`version: '3.8'
+const ikuaiDockerComposeYaml = ref(`version: 'v9.5.0'
 
 services:
 
@@ -10836,7 +10836,7 @@ function buildDiagnosticMarkdown(data) {
 
   return `### 🌌 CubeX 运行环境诊断报告 (已脱敏)
 
-- **系统版本**: CubeX ${meta.version || 'v1.0.0'} (${meta.os || 'linux'}/${meta.arch || 'amd64'})
+- **系统版本**: CubeX ${meta.version || 'v9.5.0'} (${meta.os || 'linux'}/${meta.arch || 'amd64'})
 
 - **双核状态**: 活动内核 \`${eng.active_engine || 'mihomo'}\` (运行正常: ${eng.running ? '是' : '否'})
 
@@ -11240,7 +11240,7 @@ function triggerQuickAIPrompt(prompt) {
 
 const systemStatus = ref({
 
-  version: 'Test v9.1',
+  version: 'v9.5.0',
 
   uptime_seconds: 1420,
 
@@ -13965,7 +13965,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
     } else if (data.status === 'already_latest') {
 
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'Test v9.1'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'v9.5.0'})`)
 
     } else {
 
@@ -14011,7 +14011,7 @@ async function upgradePanel(force = false) {
 
       const timeStr = new Date().toLocaleTimeString()
 
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'Test v9.1'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'v9.5.0'})，无需重复更新。`
 
       showToast(data.message || 'CubeX 系统已是最新版本')
 
@@ -14063,13 +14063,13 @@ function openGitHubIssuePrompt() {
 
   if (systemOverview.value?.mihomo_update_avail) {
 
-    parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version} (当前: ${systemOverview.value.mihomo_curr_version || 'v1.19.34'})`)
+    parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version} (当前: ${systemOverview.value.mihomo_curr_version || 'v9.5.0'})`)
 
   }
 
   if (systemOverview.value?.singbox_update_avail) {
 
-    parts.push(`sing-box ${systemOverview.value.singbox_latest_version} (当前: ${systemOverview.value.singbox_curr_version || 'v1.14.4'})`)
+    parts.push(`sing-box ${systemOverview.value.singbox_latest_version} (当前: ${systemOverview.value.singbox_curr_version || 'v9.5.0'})`)
 
   }
 
@@ -14089,7 +14089,7 @@ function openGitHubIssuePrompt() {
 
 - 系统架构：${systemOverview.value?.arch || 'amd64'}
 
-- CubeX 版本：${systemOverview.value?.cubex_version || 'Test v9.1'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'v9.5.0'}
 
 - 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
 
@@ -14418,11 +14418,11 @@ async function checkHostUpgrade(silent = false) {
 
       }
 
-      hostUpgradeResult.value = data.output || (isRouterOS.value ? `RouterOS 固件已是最新稳定版本 (${data.installed_version || '7.24.5'} stable)` : hostBadge.value.shortName + ' 已是最新版本')
+      hostUpgradeResult.value = data.output || (isRouterOS.value ? `RouterOS 固件已是最新稳定版本 (${data.installed_version || 'v9.5.0'} stable)` : hostBadge.value.shortName + ' 已是最新版本')
 
       if (!silent) {
 
-        showToast(data.has_update ? `🎉 发现 RouterOS 新版本: ${data.latest_version}！` : `✓ 固件核对完成：已是最新稳定版本 (${data.installed_version || '7.24.5'})`)
+        showToast(data.has_update ? `🎉 发现 RouterOS 新版本: ${data.latest_version}！` : `✓ 固件核对完成：已是最新稳定版本 (${data.installed_version || 'v9.5.0'})`)
 
       }
 

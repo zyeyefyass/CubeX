@@ -1540,6 +1540,13 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	}
 
+	aiTargetGroup := MatchAIGroupName(func(name string) bool {
+		return validTargets[name]
+	})
+	if aiTargetGroup == "" {
+		aiTargetGroup = foreignGroup
+	}
+
 	bizMRSMappings := []struct {
 		tag string
 
@@ -1550,7 +1557,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		outbound string
 	}{
 
-		{"openai_mrs", "./rules/openai.mrs", "domain", "AI"},
+		{"openai_mrs", "./rules/openai.mrs", "domain", aiTargetGroup},
 
 		{"google_gemini_mrs", "./rules/google-gemini.mrs", "domain", "Gemini & Antigravity"},
 
@@ -1905,49 +1912,27 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	// 2a-2. AI (OpenAI / Claude / Perplexity / Copilot / Grok / LLMs)
-
-	if validTargets["AI"] {
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,openai.com,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,chatgpt.com,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,oaistatic.com,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,oaiusercontent.com,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,sora.com,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,claude.ai,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,claude.com,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,anthropic.com,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,claudecdn.com,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,claudecontent.com,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,perplexity.ai,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,x.ai,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,grok.com,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,copilot.microsoft.com,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,sydney.bing.com,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,mistral.ai,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,poe.com,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,midjourney.com,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,huggingface.co,AI")
-
-		rulesList = append(rulesList, "DOMAIN-SUFFIX,civitai.com,AI")
-
+	if aiTargetGroup != "" && validTargets[aiTargetGroup] {
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,openai.com,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,chatgpt.com,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,oaistatic.com,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,oaiusercontent.com,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,sora.com,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,claude.ai,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,claude.com,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,anthropic.com,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,claudecdn.com,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,claudecontent.com,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,perplexity.ai,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,x.ai,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,grok.com,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,copilot.microsoft.com,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,sydney.bing.com,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,mistral.ai,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,poe.com,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,midjourney.com,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,huggingface.co,%s", aiTargetGroup))
+		rulesList = append(rulesList, fmt.Sprintf("DOMAIN-SUFFIX,civitai.com,%s", aiTargetGroup))
 	}
 
 	// 2a-3. Gemini & Antigravity (Google Gemini / Antigravity / AI Studio / DeepMind)
@@ -2312,6 +2297,10 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	if stats.PrunedCount > 0 {
 		log.Printf("[RuleOptimizer] Mihomo Radix Tree pruned %d redundant rules (%.1f%% reduction, %d -> %d)",
 			stats.PrunedCount, stats.CompressionPct, stats.OriginalCount, stats.OptimizedCount)
+	}
+
+	if ir.Network.QUICPolicy == "block" {
+		optimizedRules, _ = InjectQUICDegradationRule(true, optimizedRules, nil)
 	}
 
 	cfg["rules"] = optimizedRules

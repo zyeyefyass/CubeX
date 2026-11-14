@@ -87,6 +87,15 @@ func SanitizeIR(ir *schema.ConfigIR) {
 	// 2. Sanitize Proxies
 	ir.Proxies = SanitizeAndDeduplicateNodes(ir.Proxies)
 
+	// 2b. Auto-extract AI compliant nodes and inject/update "AI 专线" group
+	var validProxyNames []string
+	for _, p := range ir.Proxies {
+		if p.Name != "" && !schema.IsInformationalOrInvalidNode(p.Name) {
+			validProxyNames = append(validProxyNames, p.Name)
+		}
+	}
+	ir.Groups = UpsertAICompliantGroup(ir.Groups, validProxyNames)
+
 	// 3. Reconcile Policy Groups (Clean dangling references & guard against empty outbounds)
 	ir.Groups = ReconcilePolicyGroups(ir.Groups, ir.Proxies)
 

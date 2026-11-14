@@ -141,12 +141,19 @@
 
                 <!-- RouterOS 一键终端脚本框 -->
                 <div class="p-3 rounded-xl bg-black/60 border border-slate-800 space-y-2">
-                  <div class="flex items-center justify-between text-xs">
+                  <div class="flex items-center justify-between text-xs gap-2 flex-wrap">
                     <span class="text-slate-400 font-mono">💻 WinBox / SSH 终端一键粘贴脚本：</span>
-                    <button @click="copyRouterOSScript"
-                      class="px-3 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[11px] font-bold font-mono transition cursor-pointer">
-                      📋 一键复制命令
-                    </button>
+                    <div class="flex items-center gap-1.5">
+                      <button @click="copyTelegramFullRoutes('routeros')"
+                        class="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 text-[11px] font-bold font-mono transition cursor-pointer"
+                        title="包含 Telegram 全球 DC1~DC5 核心网段的一键直通脚本">
+                        ✈️ 复制 Telegram 补盲全量脚本
+                      </button>
+                      <button @click="copyRouterOSScript"
+                        class="px-3 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[11px] font-bold font-mono transition cursor-pointer">
+                        📋 一键复制命令
+                      </button>
+                    </div>
                   </div>
                   <pre class="p-2.5 rounded-lg bg-slate-950/80 text-[11px] font-mono text-cyan-200/90 overflow-x-auto select-all leading-relaxed whitespace-pre-wrap"><code>{{ triRouterBundle?.routeros_oneliner || `/ip route add dst-address=198.18.0.0/15 gateway=${gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7'} distance=1 comment="CubeX-FakeIP-Backtrack"; /ip dns set servers=${gatewayStatus?.current_spec?.cubex_local_ip || '10.0.0.7'} allow-remote-requests=yes; /ip dns cache flush;` }}</code></pre>
                 </div>
@@ -171,12 +178,19 @@
 
                 <!-- OpenWrt 一键脚本框 -->
                 <div class="p-3 rounded-xl bg-black/60 border border-slate-800 space-y-2">
-                  <div class="flex items-center justify-between text-xs">
+                  <div class="flex items-center justify-between text-xs gap-2 flex-wrap">
                     <span class="text-slate-400 font-mono">💻 OpenWrt SSH 终端一键 UCI + 断网看门狗脚本：</span>
-                    <button @click="copyOpenWrtScript"
-                      class="px-3 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[11px] font-bold font-mono transition cursor-pointer">
-                      📋 一键复制代码
-                    </button>
+                    <div class="flex items-center gap-1.5">
+                      <button @click="copyTelegramFullRoutes('openwrt')"
+                        class="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 text-[11px] font-bold font-mono transition cursor-pointer"
+                        title="包含 Telegram 全球 DC1~DC5 核心网段的 OpenWrt UCI 脚本">
+                        ✈️ 复制 Telegram 补盲全量脚本
+                      </button>
+                      <button @click="copyOpenWrtScript"
+                        class="px-3 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[11px] font-bold font-mono transition cursor-pointer">
+                        📋 一键复制代码
+                      </button>
+                    </div>
                   </div>
                   <pre class="p-2.5 rounded-lg bg-slate-950/80 text-[11px] font-mono text-cyan-200/90 overflow-x-auto select-all leading-relaxed whitespace-pre-wrap max-h-48"><code>{{ triRouterBundle?.openwrt_shell_setup }}</code></pre>
                 </div>
@@ -1456,101 +1470,6 @@
 
                 </div>
 
-                <!-- 5. WAN重拨僵尸连接瞬时自愈 -->
-                <div class="mt-3 pt-3 border-t border-white/5 flex items-center justify-between gap-3 flex-wrap">
-                  <div class="text-[11px] text-slate-400">
-                    <span class="text-sky-300 font-semibold">⚡ 7×24h WAN重拨自愈：</span>
-                    家庭宽带换公网 IP 或闪断后瞬时冲刷卡死 Socket，0 内存毛刺、无需重启
-                  </div>
-                  <button @click="app.triggerWANHeal" class="h-8 px-3 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/30 text-sky-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5 active:scale-95 cursor-pointer shadow-sm select-none">
-                    <span>⚡</span>
-                    <span>瞬时冲刷僵尸连接</span>
-                  </button>
-                </div>
-
-                <!-- 6. 局域网终端 Top-10 流量透视与精准断流 (v9.4.0) -->
-                <div class="mt-4 pt-4 border-t border-white/10 space-y-3">
-                  <div class="flex items-center justify-between flex-wrap gap-2">
-                    <div class="flex items-center gap-2">
-                      <span class="text-base">📡</span>
-                      <span class="text-xs font-bold text-white tracking-wide">
-                        局域网终端流量透视 (Top-10 设备 & Top-15 目标)
-                      </span>
-                      <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950/70 border border-cyan-400/30 text-cyan-300">
-                        活跃: {{ lanReport.total_active_conns || 0 }} 链接
-                      </span>
-                    </div>
-                    <button @click="fetchLANInspector" :disabled="loadingLAN"
-                      class="h-7 px-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] text-slate-300 hover:text-white font-medium transition flex items-center gap-1 cursor-pointer">
-                      <span :class="{'animate-spin': loadingLAN}">↻</span>
-                      <span>{{ loadingLAN ? '分析中...' : '刷新透视' }}</span>
-                    </button>
-                  </div>
-
-                  <div class="grid grid-cols-1 xl:grid-cols-2 gap-3 text-xs">
-                    <!-- Top 10 设备 -->
-                    <div class="p-3 rounded-xl bg-black/30 border border-slate-700/40 space-y-2">
-                      <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 border-b border-white/5 pb-1.5">
-                        <span>📱 局域网终端 (源 IP)</span>
-                        <span>下行流量 / 链接 / 操作</span>
-                      </div>
-                      <div class="space-y-1.5 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
-                        <div v-for="c in lanReport.top_clients" :key="c.source_ip"
-                          class="p-2 rounded-lg bg-slate-900/60 border border-slate-700/30 flex items-center justify-between gap-2 hover:border-sky-500/30 transition">
-                          <div class="min-w-0">
-                            <div class="font-mono text-sky-200 font-bold truncate">{{ c.source_ip }}</div>
-                            <div class="text-[10px] text-slate-500 truncate">
-                              目的: {{ c.top_destination || '-' }} ({{ c.primary_outbound || 'DIRECT' }})
-                            </div>
-                          </div>
-                          <div class="flex items-center gap-2 shrink-0">
-                            <div class="text-right">
-                              <div class="text-[11px] font-mono text-emerald-300 font-bold">{{ formatBytes(c.download_total) }}</div>
-                              <div class="text-[10px] text-slate-500 font-mono">{{ c.active_conns }} 链接</div>
-                            </div>
-                            <button @click="kickClient(c.source_ip)"
-                              class="px-2 py-1 rounded bg-rose-500/15 hover:bg-rose-500/30 border border-rose-400/30 text-rose-300 hover:text-white text-[10px] font-bold cursor-pointer transition"
-                              title="强制切断该设备当前所有活跃代理连接">
-                              断流
-                            </button>
-                          </div>
-                        </div>
-                        <div v-if="!lanReport.top_clients || lanReport.top_clients.length === 0"
-                          class="text-center py-4 text-slate-500 text-[11px] italic">
-                          当前局域网暂无活动代理连接
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Top 15 目标域名 -->
-                    <div class="p-3 rounded-xl bg-black/30 border border-slate-700/40 space-y-2">
-                      <div class="flex items-center justify-between text-[11px] font-bold text-slate-400 border-b border-white/5 pb-1.5">
-                        <span>🌐 热门目标域名 (Host)</span>
-                        <span>命中规则 / 流量</span>
-                      </div>
-                      <div class="space-y-1.5 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
-                        <div v-for="d in lanReport.top_domains" :key="d.host"
-                          class="p-2 rounded-lg bg-slate-900/60 border border-slate-700/30 flex items-center justify-between gap-2 hover:border-cyan-500/30 transition">
-                          <div class="min-w-0">
-                            <div class="font-mono text-cyan-200 font-bold truncate">{{ d.host }}</div>
-                            <div class="text-[10px] text-slate-500 truncate">
-                              规则: {{ d.matched_rule || 'MATCH' }}
-                            </div>
-                          </div>
-                          <div class="text-right shrink-0">
-                            <div class="text-[11px] font-mono text-cyan-300 font-bold">{{ formatBytes(d.download_total) }}</div>
-                            <div class="text-[10px] text-slate-500 font-mono">{{ d.active_conns }} 链接</div>
-                          </div>
-                        </div>
-                        <div v-if="!lanReport.top_domains || lanReport.top_domains.length === 0"
-                          class="text-center py-4 text-slate-500 text-[11px] italic">
-                          暂无目标域名统计
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
               </div>
 
             </div>
@@ -1647,6 +1566,26 @@ function copyRouterOSScript() {
   copyToClipboard(cmd, 'RouterOS 一键脚本已复制')
 }
 
+async function copyTelegramFullRoutes(brand) {
+  try {
+    const res = await fetch('/api/v1/onboarding/essential-cidrs')
+    if (res.ok) {
+      const data = await res.json()
+      if (brand === 'routeros' && data.routeros_script) {
+        copyToClipboard(data.routeros_script, 'Telegram 纯 IP 全量补盲路由脚本已复制 (RouterOS)')
+        return
+      }
+      if (brand === 'openwrt' && data.openwrt_script) {
+        copyToClipboard(data.openwrt_script, 'Telegram 纯 IP 全量补盲路由脚本已复制 (OpenWrt)')
+        return
+      }
+    }
+  } catch (e) {
+    console.error('Failed to copy essential CIDRs script:', e)
+  }
+}
+
+
 function copyOpenWrtScript() {
   copyToClipboard(triRouterBundle.value?.openwrt_shell_setup, 'OpenWrt 一键脚本已复制')
 }
@@ -1719,63 +1658,8 @@ async function refreshHW() {
   }
 }
 
-// ── v9.4.0 局域网终端 Top-10 流量透视与精准断流 ──
-const lanReport = ref({
-  total_active_conns: 0,
-  top_clients: [],
-  top_domains: []
-})
-const loadingLAN = ref(false)
-
-function formatBytes(bytes) {
-  if (!bytes || bytes <= 0) return '0 B'
-  const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(1024))
-  return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`
-}
-
-async function fetchLANInspector() {
-  if (loadingLAN.value) return
-  loadingLAN.value = true
-  try {
-    const res = await fetch('/api/v1/telemetry/clients')
-    if (res.ok) {
-      const data = await res.json()
-      if (data.ok && data.data) {
-        lanReport.value = data.data
-      }
-    }
-  } catch (err) {
-    console.error('Failed to fetch LAN inspector report:', err)
-  } finally {
-    loadingLAN.value = false
-  }
-}
-
-async function kickClient(ip) {
-  if (!ip) return
-  if (!confirm(`确定要切断设备 ${ip} 的全部代理活动连接吗？`)) return
-  try {
-    const res = await fetch('/api/v1/telemetry/clients/kick', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_ip: ip })
-    })
-    if (res.ok) {
-      const data = await res.json()
-      if (app && typeof app.showToast === 'function') {
-        app.showToast(`⚡ 已切断设备 ${ip} 的 ${data.kicked || 0} 条活动连接`)
-      }
-      fetchLANInspector()
-    }
-  } catch (err) {
-    console.error('Failed to kick client:', err)
-  }
-}
-
 onMounted(() => {
   refreshGatewayStatus()
   fetchTriRouterBundle()
-  fetchLANInspector()
 })
 </script>

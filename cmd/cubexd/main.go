@@ -106,7 +106,7 @@ import (
 )
 
 var (
-	version = "v9.4.0"
+	version = "v9.5.0"
 
 	startTime = time.Now()
 )
@@ -494,6 +494,7 @@ type Server struct {
 	wanHealer          *dataplane.WANHealer
 	userOverrideMgr    *compiler.UserOverrideManager
 	clientInspector    *telemetry.ClientInspector
+	stallDetector      *probe.PassiveStallDetector
 	isMaintenance      atomic.Bool
 	draining           atomic.Bool
 
@@ -502,6 +503,8 @@ type Server struct {
 	liveUpSpeed atomic.Int64
 
 	liveDownSpeed atomic.Int64
+
+	liveConnCount atomic.Int32
 
 	httpClient *http.Client
 
@@ -973,7 +976,7 @@ func main() {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "v9.4.0")
+	srv.mcpServer = mcp.NewServer(srv, "v9.5.0")
 	srv.autoSyncGuard = sub.NewAutoSyncGuard()
 	if cfgIR != nil && len(cfgIR.Proxies) > 0 {
 		srv.autoSyncGuard.SetInitialState(cfgIR.Proxies)
@@ -1001,6 +1004,7 @@ func main() {
 		}
 	}
 	srv.clientInspector = telemetry.NewClientInspector(clashAPIAddr, clashSecret)
+	srv.stallDetector = probe.NewPassiveStallDetector()
 
 	srv.gatewayModeCtrl = onboarding.NewGatewayModeController()
 	srv.gatewayModeCtrl.BindPersistenceFile(filepath.Join(dir, "data", "gateway_mode.json"))
@@ -1625,6 +1629,7 @@ func main() {
 	mux.HandleFunc("/api/v1/onboarding/gateway-mode", srv.handleGatewayMode)
 	mux.HandleFunc("/api/v1/onboarding/tri-router", srv.handleTriRouterBundle)
 	mux.HandleFunc("/api/v1/onboarding/verify-loop", srv.handleVerifySymbioticLoop)
+	mux.HandleFunc("/api/v1/onboarding/essential-cidrs", srv.handleGetEssentialCIDRs)
 	mux.HandleFunc("/api/v1/diag/bundle", telemetry.ServeDiagnosticBundle(
 		telemetry.GetGlobalFlightRecorder(),
 		func() string {
@@ -7690,11 +7695,13 @@ func (s *Server) startTrafficCollector() {
 						r, err := s.httpClient.Get(fmt.Sprintf("http://127.0.0.1:%d/connections", cp))
 						if err == nil && r.StatusCode == http.StatusOK {
 							var cr struct {
-								DownloadTotal int64 `json:"downloadTotal"`
-								UploadTotal   int64 `json:"uploadTotal"`
+								DownloadTotal int64             `json:"downloadTotal"`
+								UploadTotal   int64             `json:"uploadTotal"`
+								Connections   []json.RawMessage `json:"connections"`
 							}
 							if json.NewDecoder(r.Body).Decode(&cr) == nil {
 								s.recordTrafficSample(cr.UploadTotal, cr.DownloadTotal)
+								s.liveConnCount.Store(int32(len(cr.Connections)))
 							}
 							r.Body.Close()
 						}
@@ -7722,6 +7729,9 @@ func (s *Server) startTrafficCollector() {
 
 				s.liveDownSpeed.Store(tf.Down)
 
+				// Handle passive stall check (v9.5.0)
+				s.HandlePassiveStallCheck(context.Background(), int(s.liveConnCount.Load()), tf.Up, tf.Down)
+
 			}
 
 			resp.Body.Close()
@@ -7733,6 +7743,30 @@ func (s *Server) startTrafficCollector() {
 	})
 
 }
+
+// HandlePassiveStallCheck 在 main.go 每秒流速遥测循环中调用
+func (s *Server) HandlePassiveStallCheck(ctx context.Context, activeConns int, upBps, downBps int64) {
+	if s.stallDetector == nil || !s.stallDetector.ObserveSecond(activeConns, upBps, downBps) {
+		return
+	}
+
+	// Step 1: 先对假死黑洞节点施加惩罚并切换至 T1 热备节点，防止重连再次落入同节点
+	var prevNode, nextNode string
+	if s.ewmaSched != nil {
+		prevNode, nextNode = s.ewmaSched.PenalizeAndRotateActive("PassiveStallBlackhole")
+	}
+
+	// Step 2: 瞬时冲刷卡在旧黑洞节点上的僵尸 Socket (<3ms)
+	if s.wanHealer != nil {
+		_ = s.wanHealer.FlushStaleConnections(ctx, "PassiveStallBlackhole")
+	}
+
+	// Step 3: 写入 64KB 内存黑匣子备查与系统日志
+	msg := fmt.Sprintf("检测到连续 6s 有发无收死链黑洞，已从 [%s] 切换至 [%s] 并冲刷陈旧连接", prevNode, nextNode)
+	s.logBuffer.Add("WARN", "STALL_HEAL", msg)
+	telemetry.GetGlobalFlightRecorder().Record(telemetry.EventCategory("STALL_HEAL"), "WARN", msg, 0)
+}
+
 
 // startConntrackSweeper periodically purges lingering Fake-IP (198.18.0.0/15) connections
 

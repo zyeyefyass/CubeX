@@ -1769,6 +1769,12 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	// Dynamically register available business strategy SRS rule sets
+	aiTargetGroup := MatchAIGroupName(func(name string) bool {
+		return validOutbounds[name]
+	})
+	if aiTargetGroup == "" {
+		aiTargetGroup = "🌐 国外流量"
+	}
 
 	bizSRSMappings := []struct {
 		tag string
@@ -1778,7 +1784,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		outbound string
 	}{
 
-		{"openai-srs", "rules/openai.srs", "AI"},
+		{"openai-srs", "rules/openai.srs", aiTargetGroup},
 
 		{"google-gemini-srs", "rules/google-gemini.srs", "Gemini & Antigravity"},
 
@@ -2397,15 +2403,15 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 	// H. 11 Major Business Strategy Groups (Comprehensive Domain & SRS Matching)
 
-	if validOutbounds["AI"] {
+	if aiTargetGroup != "" && validOutbounds[aiTargetGroup] {
 
-		if tags, ok := activeSRSByGroup["AI"]; ok && len(tags) > 0 {
+		if tags, ok := activeSRSByGroup[aiTargetGroup]; ok && len(tags) > 0 {
 
 			routeRules = append(routeRules, map[string]any{
 
 				"rule_set": tags,
 
-				"outbound": "AI",
+				"outbound": aiTargetGroup,
 			})
 
 		}
@@ -2457,7 +2463,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 				"civitai.com",
 			},
 
-			"outbound": "AI",
+			"outbound": aiTargetGroup,
 		})
 
 	}
@@ -2824,6 +2830,9 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 	// Compact Radix Tree Optimization for route rules
 	optimizedRouteRules, stats := OptimizeSingboxRules(routeRules)
+	if ir.Network.QUICPolicy == "block" {
+		_, optimizedRouteRules = InjectQUICDegradationRule(true, nil, optimizedRouteRules)
+	}
 	if stats.PrunedCount > 0 {
 		log.Printf("[RuleOptimizer] Singbox Radix Tree pruned %d redundant rule entries (%.1f%% reduction)",
 			stats.PrunedCount, stats.CompressionPct)

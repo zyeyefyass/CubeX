@@ -89,3 +89,36 @@ func TestDualModeFailoverAndHysteresis(t *testing.T) {
 		t.Errorf("expected switch to Node-Cand, got %s", switchedEvents[0].ToNode)
 	}
 }
+
+func TestPenalizeAndRotateActiveDecay(t *testing.T) {
+	ewma := NewEWMAManager()
+	sched := NewEWMAScheduler(SchedulerConfig{}, ewma, nil)
+
+	node := "Test-Node-HK-01"
+	ewma.RecordSample(node, 50, true)
+	ewma.RecordSample(node, 0, false)
+	ewma.RecordSample(node, 0, false)
+
+	snap, _ := ewma.GetNodeSnapshot(node)
+	if snap.ConsecutiveFails != 2 {
+		t.Fatalf("expected consecutive fails = 2, got %d", snap.ConsecutiveFails)
+	}
+
+	// 1. Manually set penalty with 300s expiration
+	sched.SetNodePenalizedForTest(node, time.Now().Add(300*time.Second))
+	if !sched.IsNodePenalized(node) {
+		t.Errorf("expected node to be penalized within 300s window")
+	}
+
+	// 2. Set expired penalty (past timestamp), verify automatic decay and candidacy restoration
+	sched.SetNodePenalizedForTest(node, time.Now().Add(-1*time.Second))
+	if sched.IsNodePenalized(node) {
+		t.Errorf("expected expired penalty to decay automatically")
+	}
+
+	// Verify EWMA candidacy restored: ConsecutiveFails cleared to 0
+	restored, ok := ewma.GetNodeSnapshot(node)
+	if !ok || restored.ConsecutiveFails != 0 {
+		t.Errorf("expected EWMA ConsecutiveFails reset to 0 after decay, got %d", restored.ConsecutiveFails)
+	}
+}

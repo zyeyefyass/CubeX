@@ -49,6 +49,7 @@ type EWMAScheduler struct {
 	mu            sync.Mutex
 	coldCursors   map[string]int       // tracks ring cursor position per policy group
 	groupSwitchAt map[string]time.Time // tracks last switch timestamp per policy group
+	penalizedUntil map[string]time.Time // tracks temporary blackhole penalty expiration per node (default 300s)
 	pausedUntil   atomic.Int64         // kernel switchover silence barrier timestamp (UnixNano)
 	onSwitch      func(ev SwitchEvent)
 }
@@ -90,13 +91,14 @@ func NewEWMAScheduler(cfg SchedulerConfig, ewma *EWMAManager, onSwitch func(Swit
 	}
 
 	return &EWMAScheduler{
-		cfg:           cfg,
-		ewma:          ewma,
-		httpClient:    &http.Client{Transport: tr, Timeout: cfg.ProbeTimeout + 1*time.Second},
-		sem:           make(chan struct{}, cfg.MaxConcurrency),
-		coldCursors:   make(map[string]int),
-		groupSwitchAt: make(map[string]time.Time),
-		onSwitch:      onSwitch,
+		cfg:            cfg,
+		ewma:           ewma,
+		httpClient:     &http.Client{Transport: tr, Timeout: cfg.ProbeTimeout + 1*time.Second},
+		sem:            make(chan struct{}, cfg.MaxConcurrency),
+		coldCursors:    make(map[string]int),
+		groupSwitchAt:  make(map[string]time.Time),
+		penalizedUntil: make(map[string]time.Time),
+		onSwitch:       onSwitch,
 	}
 }
 
@@ -143,6 +145,10 @@ func (s *EWMAScheduler) RunSingleCycle(ctx context.Context) {
 }
 
 func (s *EWMAScheduler) runSingleCycle(ctx context.Context) {
+	s.mu.Lock()
+	s.sweepPenaltiesLocked(time.Now())
+	s.mu.Unlock()
+
 	proxies, err := s.fetchProxiesSnapshot(ctx)
 	if err != nil || len(proxies) == 0 {
 		return
@@ -480,3 +486,129 @@ func isBuiltInNode(name string) bool {
 		return false
 	}
 }
+
+// sweepPenaltiesLocked clears expired node penalties and restores their candidate eligibility in EWMA.
+func (s *EWMAScheduler) sweepPenaltiesLocked(now time.Time) {
+	if s.penalizedUntil == nil {
+		return
+	}
+	for node, until := range s.penalizedUntil {
+		if now.After(until) {
+			delete(s.penalizedUntil, node)
+			if s.ewma != nil {
+				s.ewma.ResetPenalty(node)
+			}
+		}
+	}
+}
+
+// IsNodePenalized checks if a node is currently under temporary blackhole quarantine.
+func (s *EWMAScheduler) IsNodePenalized(nodeName string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.sweepPenaltiesLocked(time.Now())
+	if s.penalizedUntil == nil {
+		return false
+	}
+	_, penalized := s.penalizedUntil[nodeName]
+	return penalized
+}
+
+// SetNodePenalizedForTest configures a custom penalty expiration timestamp for testing.
+func (s *EWMAScheduler) SetNodePenalizedForTest(nodeName string, until time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.penalizedUntil == nil {
+		s.penalizedUntil = make(map[string]time.Time)
+	}
+	s.penalizedUntil[nodeName] = until
+}
+
+// PenalizeAndRotateActive applies an immediate failure penalty to the active node in managed groups
+// and rotates to the best backup node to break out of a silent blackhole.
+// The penalized node is placed under a 300-second cooling window after which candidate eligibility is restored.
+func (s *EWMAScheduler) PenalizeAndRotateActive(reason string) (prevNode, nextNode string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	proxies, err := s.fetchProxiesSnapshot(ctx)
+	if err != nil {
+		return "", ""
+	}
+	groups := s.filterManagedGroups(proxies)
+	if len(groups) == 0 {
+		return "", ""
+	}
+
+	now := time.Now()
+	s.mu.Lock()
+	s.sweepPenaltiesLocked(now)
+	s.mu.Unlock()
+
+	for _, g := range groups {
+		if g.Now == "" || len(g.All) <= 1 {
+			continue
+		}
+		realCandidates := filterRealNodes(g.All, proxies)
+		if len(realCandidates) <= 1 {
+			continue
+		}
+
+		prevNode = g.Now
+		// Penalize current active node heavily (consecutive fails and high penalty delay)
+		if s.ewma != nil {
+			s.ewma.RecordSample(g.Now, 9999, false)
+			s.ewma.RecordSample(g.Now, 9999, false)
+		}
+
+		// Register 300-second automatic decay cooling window to prevent infinite blacklisting
+		s.mu.Lock()
+		if s.penalizedUntil == nil {
+			s.penalizedUntil = make(map[string]time.Time)
+		}
+		s.penalizedUntil[g.Now] = time.Now().Add(300 * time.Second)
+		s.mu.Unlock()
+
+		var ranked []CandidateRank
+		if s.ewma != nil {
+			ranked = s.ewma.RankNodes(realCandidates)
+		}
+
+		s.mu.Lock()
+		for _, cand := range ranked {
+			if cand.NodeName != g.Now {
+				if until, ok := s.penalizedUntil[cand.NodeName]; ok && time.Now().Before(until) {
+					continue // skip candidate in penalty cooling window
+				}
+				nextNode = cand.NodeName
+				if err := s.switchClashGroup(ctx, g.Name, cand.NodeName); err == nil {
+					s.recordSwitch(g.Name, g.Now, cand.NodeName, reason, true)
+				}
+				break
+			}
+		}
+
+		// Fallback to first alternate node if EWMA ranking returned nothing
+		if nextNode == "" {
+			for _, cand := range realCandidates {
+				if cand != g.Now {
+					if until, ok := s.penalizedUntil[cand]; ok && time.Now().Before(until) {
+						continue
+					}
+					nextNode = cand
+					if err := s.switchClashGroup(ctx, g.Name, cand); err == nil {
+						s.recordSwitch(g.Name, g.Now, cand, reason, true)
+					}
+					break
+				}
+			}
+		}
+		s.mu.Unlock()
+
+		if nextNode != "" {
+			break
+		}
+	}
+	return prevNode, nextNode
+}
+

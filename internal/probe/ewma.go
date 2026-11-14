@@ -365,3 +365,32 @@ func (m *EWMAManager) PruneStaleNodes(validNodes map[string]struct{}) {
 		}
 	}
 }
+
+// ResetPenalty decays or clears the passive blackhole penalty for a node after cooldown expires,
+// restoring its candidacy and resetting failure counters.
+func (m *EWMAManager) ResetPenalty(nodeName string) {
+	if nodeName == "" {
+		return
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	item, exists := m.nodes[nodeName]
+	if !exists || item == nil {
+		return
+	}
+
+	if item.ConsecutiveFails > 0 {
+		item.ConsecutiveFails = 0
+		eff := item.SRTT + (1.5 * item.RTTVAR)
+		if eff < 1 {
+			eff = 1
+		}
+		item.EffectiveDelay = int(math.Round(eff))
+		if item.StabilityScore < 60 {
+			item.StabilityScore = 60
+		}
+		item.Grade = "A 常规可用"
+	}
+}
+
