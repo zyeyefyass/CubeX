@@ -2358,10 +2358,9 @@ func (s *Server) executeNodeRealDelayProbe(node schema.ProxyNode, clashPort int,
 	escaped = strings.ReplaceAll(escaped, "[", "%5B")
 	escaped = strings.ReplaceAll(escaped, "]", "%5D")
 
-	probeURLs := []string{
-		"https://cp.cloudflare.com/generate_204",
-		"https://www.gstatic.com/generate_204",
-	}
+	// 极速探针：单次 1800ms 快速探测，首选 cp.cloudflare.com/generate_204
+	// 超时或失败直接判定失联，杜绝死节点二次串行重试导致的 5~10 秒排队阻塞
+	probe := "https://cp.cloudflare.com/generate_204"
 
 	tr := &http.Transport{
 		DisableKeepAlives: true,
@@ -2369,57 +2368,51 @@ func (s *Server) executeNodeRealDelayProbe(node schema.ProxyNode, clashPort int,
 	}
 	client := &http.Client{
 		Transport: tr,
-		Timeout:   2800 * time.Millisecond,
+		Timeout:   2000 * time.Millisecond,
 	}
 
-	lastStatus := "timeout"
-	lastStatusText := "握手超时"
-
-	for _, probe := range probeURLs {
-		testURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?url=%s&timeout=2500",
-			clashPort, escaped, url.QueryEscape(probe))
-		req, err := http.NewRequest(http.MethodGet, testURL, nil)
-		if err != nil {
-			lastStatus, lastStatusText = classifyDelayError(err.Error(), 0)
-			continue
-		}
-		if clashSecret != "" {
-			req.Header.Set("Authorization", "Bearer "+clashSecret)
-		}
-		resp, err := client.Do(req)
-		if err != nil {
-			lastStatus, lastStatusText = classifyDelayError(err.Error(), 0)
-			continue
-		}
-
-		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-		resp.Body.Close()
-
-		var result struct {
-			Delay   int    `json:"delay"`
-			Message string `json:"message"`
-		}
-		_ = json.Unmarshal(bodyBytes, &result)
-
-		if resp.StatusCode == http.StatusOK && result.Delay > 0 {
-			return NodeDelayResult{
-				Delay:      result.Delay,
-				Status:     "ok",
-				StatusText: "正常",
-			}
-		}
-
-		errMsg := result.Message
-		if errMsg == "" {
-			errMsg = string(bodyBytes)
-		}
-		lastStatus, lastStatusText = classifyDelayError(errMsg, resp.StatusCode)
+	testURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?url=%s&timeout=1800",
+		clashPort, escaped, url.QueryEscape(probe))
+	req, err := http.NewRequest(http.MethodGet, testURL, nil)
+	if err != nil {
+		status, text := classifyDelayError(err.Error(), 0)
+		return NodeDelayResult{Delay: 0, Status: status, StatusText: text}
+	}
+	if clashSecret != "" {
+		req.Header.Set("Authorization", "Bearer "+clashSecret)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		status, text := classifyDelayError(err.Error(), 0)
+		return NodeDelayResult{Delay: 0, Status: status, StatusText: text}
 	}
 
+	bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+	resp.Body.Close()
+
+	var result struct {
+		Delay   int    `json:"delay"`
+		Message string `json:"message"`
+	}
+	_ = json.Unmarshal(bodyBytes, &result)
+
+	if resp.StatusCode == http.StatusOK && result.Delay > 0 {
+		return NodeDelayResult{
+			Delay:      result.Delay,
+			Status:     "ok",
+			StatusText: "正常",
+		}
+	}
+
+	errMsg := result.Message
+	if errMsg == "" {
+		errMsg = string(bodyBytes)
+	}
+	status, text := classifyDelayError(errMsg, resp.StatusCode)
 	return NodeDelayResult{
 		Delay:      0,
-		Status:     lastStatus,
-		StatusText: lastStatusText,
+		Status:     status,
+		StatusText: text,
 	}
 }
 
@@ -2791,9 +2784,8 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 
 	var wg sync.WaitGroup
 
-	// Throttle concurrency to 8 to avoid memory explosion and TLS socket exhaustion on routers
-
-	semaphore := make(chan struct{}, 8)
+	// Throttle concurrency to 16 for high-speed batch testing without TLS socket exhaustion
+	semaphore := make(chan struct{}, 16)
 
 	var mu sync.Mutex
 
@@ -2864,8 +2856,8 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 		grp, port := req.Group, ir.Network.ClashAPIPort
 		SafeGo("GroupDelayProbe", func() {
 			escaped := url.PathEscape(grp)
-			u := fmt.Sprintf("http://127.0.0.1:%d/group/%s/delay?url=https://cp.cloudflare.com/generate_204&timeout=2500", port, escaped)
-			client := http.Client{Timeout: 3 * time.Second}
+			u := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?url=https://cp.cloudflare.com/generate_204&timeout=1800", port, escaped)
+			client := http.Client{Timeout: 2500 * time.Millisecond}
 			if resp, err := client.Get(u); err == nil && resp != nil {
 				_ = resp.Body.Close()
 			}

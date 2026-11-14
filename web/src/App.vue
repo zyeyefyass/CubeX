@@ -10563,6 +10563,8 @@ async function fetchSystemOverview() {
 
 }
 
+const fetchSystemStatus = fetchSystemOverview
+
 // ── 日志与诊断包 (Diagnostics & Ring Logs) State ──
 
 const systemLogs = ref([])
@@ -16681,130 +16683,57 @@ async function processSpeedtestQueue() {
 
     const nodeNames = nodes ? nodes.map(n => n.name) : []
 
+    if (nodeNames.length === 0) {
+      task.testedCount = 0
+      task.onlineCount = 0
+      task.winnerDelay = 0
+      task.status = 'completed'
+      regionTestingMap.value[task.regId] = false
+      continue
+    }
+
     try {
-
+      const abortCtrl = new AbortController()
+      const fetchTimer = setTimeout(() => abortCtrl.abort(), 20000)
       const res = await fetch('/api/v1/config/proxies/speedtest', {
-
         method: 'POST',
-
         headers: { 'Content-Type': 'application/json' },
-
+        signal: abortCtrl.signal,
         body: JSON.stringify({
-
           names: nodeNames,
-
           group: reg.auto || reg.name
-
         })
-
       })
+      clearTimeout(fetchTimer)
 
       const data = await res.json()
 
-      if (data.ok && data.results) {
-
-        if (ir.value && ir.value.proxies) {
-
+      if (data.ok) {
+        if (ir.value && ir.value.proxies && data.results) {
           for (const p of ir.value.proxies) {
-
             if (data.results[p.name] !== undefined) {
-
               p.delay = data.results[p.name]
-
             }
-
           }
-
         }
 
         task.testedCount = data.tested_count || nodeNames.length
-
         task.onlineCount = data.online_count || 0
-
         const best = data.min_delay > 0 ? data.min_delay : (data.avg_delay > 0 ? data.avg_delay : 0)
-
-        // ⚡ 超时自动复测机制：若全组超时不可达且重试尚未满2次，后台自动延迟启动再次测速
-
-        if (false && best <= 0 && (!task.retryCount || task.retryCount < 2)) {
-
-          const nextRetry = (task.retryCount || 0) + 1
-
-          regionTestingMap.value[task.regId] = 'retry'
-
-          setTimeout(() => {
-
-            enqueueRegionSpeedtest(reg, nextRetry)
-
-          }, 1800)
-
-          task.status = 'retrying'
-
-          continue
-
-        }
-
         task.winnerDelay = best
-
         reg.winnerLatency = best
-
         regionWinnerLatencyMap.value[task.regId] = best
-
         if (reg.id) regionWinnerLatencyMap.value[reg.id] = best
-
         task.status = 'completed'
-
       } else {
-
-        if (false && (!task.retryCount || task.retryCount < 2)) {
-
-          const nextRetry = (task.retryCount || 0) + 1
-
-          regionTestingMap.value[task.regId] = 'retry'
-
-          setTimeout(() => {
-
-            enqueueRegionSpeedtest(reg, nextRetry)
-
-          }, 1800)
-
-          task.status = 'retrying'
-
-          continue
-
-        }
-
         task.testedCount = nodeNames.length
-
-        task.onlineCount = nodeNames.length
-
+        task.onlineCount = 0
+        task.winnerDelay = 0
         task.status = 'completed'
-
       }
-
     } catch (e) {
-
-      if (false && (!task.retryCount || task.retryCount < 2)) {
-
-        const nextRetry = (task.retryCount || 0) + 1
-
-        regionTestingMap.value[task.regId] = 'retry'
-
-        setTimeout(() => {
-
-          enqueueRegionSpeedtest(reg, nextRetry)
-
-        }, 1800)
-
-        task.status = 'retrying'
-
-        continue
-
-      }
-
       task.status = 'error'
-
-      task.errorMsg = e.message || '测速超时'
-
+      task.errorMsg = e.name === 'AbortError' ? '测速超时' : (e.message || '测速异常')
     } finally {
 
       regionTestingMap.value[task.regId] = false
