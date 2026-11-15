@@ -55,8 +55,10 @@
 
 | 📺 播放平台 | 🎬 官方首发实测大片 | 🎯 核心看点 | 🚀 一键直达支持 |
 | :--- | :--- | :--- | :--- |
-| **Bilibili (B站)** | [《【极客晨曦EP01】别再改全家网关了！故意拔掉电源竟还能全速上网？实测颠覆级双引擎旁路由CubeX》](https://www.bilibili.com/video/BV14fxU67Ewa/) | 千兆线速 35M 极简内存、双核无感热重载、爱快/ROS/iStoreOS 实机联调 | 👉 [点击前往 B 站三连](https://www.bilibili.com/video/BV14fxU67Ewa/) |
-| **YouTube** | [《千兆跑满只吃35兆内存？我把双引擎透明网关做成容器，软路由三巨头直接看傻了 1080p 60fps》](https://www.youtube.com/watch?v=mWsczIS19fM) | 1080P 60FPS 极客大片、Netwatch 50ms 逃生看门狗实机推演 | 👉 [点击前往 YouTube 点赞订阅](https://www.youtube.com/watch?v=mWsczIS19fM) |
+| **Bilibili (B站) - 第二期 🔥** | **[《【极客晨曦EP02】别再装 OpenWrt 旁路由挨骂了！PVE LXC 部署 CubeX：29MB 内存、暴力断电全家 0 断网！》](https://www.bilibili.com/video/BV1iosE6VENg/)** | 100% 真机鼠标实操、PVE CT 容器 10 秒安装、实测 29.21MB 内存、现场关机全家不断网铁证 | 👉 [点击前往 B 站观看](https://www.bilibili.com/video/BV1iosE6VENg/) |
+| **Bilibili (B站) - 第一期** | [《【极客晨曦EP01】别再改全家网关了！故意拔掉电源竟还能全速上网？实测颠覆级双引擎旁路由CubeX》](https://www.bilibili.com/video/BV14fxU67Ewa/) | 千兆线速 35M 极简内存、双核无感热重载、爱快/ROS/iStoreOS 实机联调 | 👉 [点击前往 B 站三连](https://www.bilibili.com/video/BV14fxU67Ewa/) |
+| **YouTube - 第二期 🔥** | **[《Stop Using Bulky OpenWrt VM! Deploy CubeX on PVE LXC: 29MB RAM & Zero Downtime Kill Test 1080p 60fps》](https://www.youtube.com/)** | 1080P 60FPS 极客实操大片、PVE 概要 29.21MB 放大特写、左右分屏停机秒开实证 | 👉 [点击前往 YouTube 观看](https://www.youtube.com/) |
+| **YouTube - 第一期** | [《千兆跑满只吃35兆内存？我把双引擎透明网关做成容器，软路由三巨头直接看傻了 1080p 60fps》](https://www.youtube.com/watch?v=mWsczIS19fM) | 1080P 60FPS 极客大片、Netwatch 50ms 逃生看门狗实机推演 | 👉 [点击前往 YouTube 点赞订阅](https://www.youtube.com/watch?v=mWsczIS19fM) |
 
 ---
 
