@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-v9.6.0_正式版-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-v9.7.0_正式版-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -80,7 +80,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 v9.6.0 纯净稳定版最新更新亮点](#announcement)
+- [📢 v9.7.0 纯净稳定版最新更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -323,21 +323,30 @@
 
 <a id="announcement"></a>
 
-## 📢 v9.6.0 纯净稳定版最新更新亮点 (极致瘦身、零硬编码与 29MB 超低内存基线)
+## 📢 v9.7.0 纯净稳定版最新更新亮点 (业务级智能择优与零流量稳定三角引擎)
 
 > [!IMPORTANT]
-> ### 👑【极致瘦身、零硬编码与 29MB 超低内存基线】(v9.6.0 纯净稳定版)
+> ### 👑【业务级智能择优与零流量稳定三角引擎】(v9.7.0 纯净稳定版)
 >
-> 1. **嵌入式静态资产预压缩与零拷贝透传 (`internal/webui/precompressed.go`)**：
->    - 编译期对前端构建产物执行离线高压缩比 Gzip 预处理，静态资源体积从 **952.3 KB 骤降至 262.0 KB（缩减 72.5%）**；
->    - 后端直接零拷贝透传预压缩字节流，运行期压缩 CPU 消耗降为 **0%**，彻底规避 UPX 加壳带来的私有物理内存膨胀与动态压缩内存毛刺。
-> 2. **全栈 72 处硬编码清零与内核态路由嗅探 (`internal/netenv/topology.go`)**：
->    - 全面剥离历史遗留的假默认 IP 兜底，直接解析 Linux 内核 `/proc/net/route` 与网卡接口表（零外部子进程开销），内置网关自环死锁硬拦截与异常拓扑显式告警。
-> 3. **主控架构解耦与全仓句柄/连接池防漏治理 (`internal/netutil/http_guard.go`)**：
->    - 将单体主控拆解为 `main`、`server`、`lifecycle`、`telemetry` 及 `routes_core/sub/ha` 七大高内聚模块，实现零循环依赖与死代码清零；
->    - 全仓出站 HTTP 请求接入 `DrainAndCloseBody` 64KB 限界排空守卫与有界连接池，后台定时器 100% 配对回收，实测稳态仅 **36 个协程、29.21 MB RSS 物理内存**。
-> 4. **前端高频遥测非响应式冻结 (`web/src/utils/perf-freeze.js`)**：
->    - 对 SSE 遥测帧、大规模节点矩阵与日志流实施 `Object.freeze` 深度冻结，剥离 Vue 3 递归 Proxy 劫持开销，保障软路由与低配设备长时间挂机 60/120FPS 满帧丝滑。
+> 1. **零额外流量「稳定三角」节点评分引擎 (`internal/probe/triangle.go`)**：
+>    - 彻底摒弃传统方案中定时下载 64MB 大文件测速的弊端，保护用户订阅流量；
+>    - 延时中位数 (40%) × 被动吞吐采样 (30%) × HTTP 抖动 (30%) 综合加权，未压测节点赋予 75 分基准分，闪电测速单次严格锁死 $\le 2\text{MB}$；
+>    - 控制台与节点列表直观展示 0~100 综合分，低于 60 分自动标红预警。
+> 2. **业务级智能择优引擎 (`internal/probe/target_routing.go`)**：
+>    - 采用硬上限 512 条的固定容量 LRU 缓存，收敛至二级主域名或特征段，新增内存占用严格 $< 256\text{KB}$；
+>    - 针对特定目标连续 2 次超时或首包耗时 (TTFB) $> 350\text{ms}$ 时，自动优选组内对该目标响应最快节点，支持衰减周期自动恢复。
+> 3. **动态分流组布尔匹配引擎 (`internal/compiler/boolean_group.go`)**：
+>    - 策略组配置支持「全部」、「OR (命中任一)」、「AND (同时命中所有)」三档布尔组合，实时预览匹配节点。
+> 4. **三级树状折叠连接树与一键改分流 (`cmd/cubexd/routes_v97.go`)**：
+>    - 按终端设备 (MAC) 聚合 -> 按分流组展开 -> 具体网络连接，支持自定义局域网设备别名；
+>    - 单条连接旁提供一键改分流按钮，秒级重定向规则，现有长连接与 NAT 会话 0 震荡、0 中断。
+> 5. **Chrome 现代 Web 规范赋能与 20MB 极低内存稳态**：
+>    - 节点四宫格透视卡与改分流弹窗全面采用原生 `<dialog>` 与 Popover 浮层，消除复杂 JS 坐标轮询；
+>    - 列表容器全面实装 CSS Containment 与 `content-visibility: auto`，高频网络刷新 0 抖动，交互响应 INP $< 50\text{ms}$；
+>    - 落地 `GOMEMLIMIT=18MiB`、`GOGC=15` 与 `madvdontneed=1`，改分流与双核热切换全程物理内存严格保持在 20.0 MB。
+> 6. **软路由三巨头单机寄生自闭环**：
+>    - 新增 RouterOS v7 容器脚本 (`install_ros_container.rsc`) 与 OpenWrt Docker 单机脚本 (`install_openwrt_docker.sh`)；
+>    - 全自动创建 `172.17.0.0/30` 点对点隔离微网，自动注入 `198.18.0.0/15` 回指路由与毫秒级 Netwatch 逃生看门狗，宿主 0 侵权。
 
 ---
 
@@ -349,19 +358,22 @@
 
 | 发布物文件名 | 适用宿主与架构 | 说明与用途 |
 | :--- | :--- | :--- |
-| `CubeX-v9.6.0-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-v9.6.0-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-v9.6.0-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-v9.6.0-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-v9.6.0-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
+| `CubeX-v9.7.0-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-v9.7.0-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-v9.7.0-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-v9.7.0-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-v9.7.0-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
 | `cubexd-linux-amd64` | Linux amd64 | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
 | `cubexd-linux-arm64` | Linux arm64 | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 | 纯命令行运维工具（终端直接运行） |
 | `cubex-linux-arm64` | Linux arm64 | ARM64 纯命令行运维工具（终端直接运行） |
+| `install_ros_container.rsc` | RouterOS v7 单机容器脚本 | RouterOS v7 内置容器单机自闭环一键编排脚本 (172.17.0.0/30 + 看门狗) |
+| `install_openwrt_docker.sh` | OpenWrt Docker 单机脚本 | OpenWrt / iStoreOS Docker 单机自闭环一键安装脚本 |
 | `setup-routeros-v7.rsc` | 软路由终端编排脚本 | 软路由管理终端复制即用一键自动编排脚本 |
 | `setup-openwrt.sh` | 开源软路由系统一键安装脚本 | 开源软路由系统原生适配安装脚本 |
 | `install_pve_lxc.sh` | 容器一键脚本 | 极简容器一键安装脚本 |
 | `install.sh` | 通用一键安装脚本 | 通用一键部署主脚本 |
+| `SHA256SUMS` | 全平台校验文件 | 所有发布产物完整性 SHA256 校验清单 |
 
 ---
 
@@ -413,7 +425,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 如果你的主路由就是 MikroTik（RB5009、CCR2004、x86 ROS）：
 
-1. **下载镜像**：在上方清单下载对应架构的 `CubeX-v9.6.0-ros-amd64.tar`（或 `arm64.tar`）；
+1. **下载镜像**：在上方清单下载对应架构的 `CubeX-v9.7.0-ros-amd64.tar`（或 `arm64.tar`）；
 
 2. **传进路由器**：打开 WinBox，把 `.tar` 文件直接拖进【Files】列表（推荐放在 U 盘或 SSD 磁盘如 `disk1/`）；
 

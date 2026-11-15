@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-CubeX v9.6.0 纯净稳定版 GitHub 发布自动化脚本
-- 创建/更新 v9.6.0 Release（全中文精简大白话说明 + 资产清单表）
+CubeX v9.7.0 纯净稳定版 GitHub 发布自动化脚本
+- 创建/更新 v9.7.0 Release（全中文精简大白话说明 + 资产清单表）
 - 统一通过 curl.exe --http1.1 -x PROXY 禁用 Expect: 100-continue 直传资产，支持断点续传与字节校验
 - 上传完毕后自动执行全平台 10 版本存留红线脚本
 """
@@ -22,53 +22,48 @@ sys.path.insert(0, str(SCRIPT_DIR))
 from enforce_10_version_retention import get_github_token  # noqa: E402
 
 REPO = "zyeyefyass/CubeX"
-TAG = "v9.6.0"
+TAG = "v9.7.0"
 PROXY = "http://10.0.0.7:7890"
 
-RELEASE_TITLE = "CubeX v9.6.0 纯净稳定版：极致瘦身 · 零硬编码 · 29MB超低内存基线与全链路句柄防漏"
+RELEASE_TITLE = "CubeX v9.7.0 正式版：业务级智能择优与零流量稳定三角引擎发布"
 
-RELEASE_BODY = """# 💎 CubeX v9.6.0 纯净稳定版 · 极致瘦身、零硬编码与 29MB 超低内存基线
+RELEASE_BODY = """# CubeX v9.7.0 正式版 · 业务级智能择优与零流量稳定三角引擎
 
-> **实测 ~29.2MB RSS 稳态内存 · 静态资产缩减 72.5% · 0 硬编码动态拓扑嗅探 · 全链路零句柄泄漏**
+实测 20.0MB 极简物理内存 · 零额外流量稳定三角评分 · 业务级智能快速择优 · 三级树状连接折叠与一键改分流
 
-`CubeX v9.6.0` 是全面冻结花哨特性、专注底层确定性加固与工程减法的纯净稳定版本（Pure Stability Release），对控制面、数据面与前端渲染流水线完成了深度除虫与脱脂重构。
+本版本专注解决传统测速偷跑订阅流量与特定业务响应卡顿痛点，全面实装轻量化自愈中枢与零抖动交互控制台。
 
-### 🚀 核心重构与优化亮点
+### 改动与新增亮点
 
-1. **嵌入式静态资产预压缩与零拷贝透传 (`internal/webui/precompressed.go`)**
-   - 编译期对前端构建产物执行离线高压缩比 Gzip 预处理，静态资源体积从 **952.3 KB 骤降至 262.0 KB（缩减 72.5%）**。
-   - 后端直接零拷贝透传预压缩字节流，运行期压缩 CPU 消耗降为 **0%**，彻底规避 UPX 加壳带来的私有物理内存膨胀。
-
-2. **全栈 72 处硬编码清零与内核态路由嗅探 (`internal/netenv/topology.go`)**
-   - 全面剥离历史遗留的假默认 IP 兜底，直接解析 Linux 内核 `/proc/net/route` 与网卡接口表（零外部子进程开销），内置网关自环死锁硬拦截与异常拓扑显式告警。
-
-3. **主控架构解耦与全仓句柄/连接池防漏治理 (`internal/netutil/http_guard.go`)**
-   - 将单体主控拆解为 `main`、`server`、`lifecycle`、`telemetry` 及 `routes_core/sub/ha` 七大高内聚模块，实现零循环依赖与死代码清零。
-   - 全仓出站 HTTP 请求接入 `DrainAndCloseBody` 64KB 限界排空守卫与有界连接池，后台定时器 100% 配对回收，实测 LXC 容器稳态仅 **36 个协程、29.21 MB RSS 内存**。
-
-4. **前端高频遥测非响应式冻结 (`web/src/utils/perf-freeze.js`)**
-   - 对 SSE 遥测帧、大规模节点矩阵与日志流实施 `Object.freeze` 深度冻结，剥离 Vue 3 递归 Proxy 劫持开销，保障软路由与低配设备长时间挂机 60/120FPS 满帧丝滑。
+1. **零额外流量「稳定三角」评分引擎**：彻底取缔后台大文件下载测速，改用延时中位数 (40%)、被动流量峰值采样 (30%) 与抖动 (30%) 综合打分，闪电测速单次严格限制在 2MB 以内。
+2. **业务级智能择优引擎**：内置极轻缓存记录目标响应状态，当特定业务连续超时或首包延迟偏高时，自动优选组内对该目标响应最快节点，内存占用小于 256KB。
+3. **动态分流组布尔匹配**：策略组支持全部、或（命中任一）、与（同时命中）三档关键词组合筛选，实时动态预览。
+4. **三级树状折叠连接树与一键改分流**：按终端设备、策略组三级层级归类连接，支持设备别名命名；单条连接旁支持一键改分流，秒级下发且绝不打断现有连接。
+5. **现代交互优化与 20MB 极低内存稳态**：弹窗全面采用现代原生机制，数据高频刷新零抖动；落地运行时物理内存深度削峰，热切换全程稳态锁定在 20.0MB。
+6. **软路由单机寄生自闭环脚本**：新增专用内置容器编排脚本与单机脚本，全自动构建内部隔离微网、静态回指路由与毫秒级故障逃生看门狗。
 
 ---
 
-### 📦 资产下载与校验清单 (Release Assets)
+### 资产下载与校验清单 (Release Assets)
 
 | 发布物文件名 | 适用宿主与架构 | 说明与用途 |
 | :--- | :--- | :--- |
-| `CubeX-v9.6.0-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-v9.6.0-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-v9.6.0-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-v9.6.0-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-v9.6.0-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
+| `CubeX-v9.7.0-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-v9.7.0-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-v9.7.0-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-v9.7.0-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-v9.7.0-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
 | `cubexd-linux-amd64` | Linux amd64 | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
 | `cubexd-linux-arm64` | Linux arm64 | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 | 纯命令行运维工具（终端直接运行） |
 | `cubex-linux-arm64` | Linux arm64 | ARM64 纯命令行运维工具（终端直接运行） |
+| `install_ros_container.rsc` | RouterOS v7 单机容器脚本 | RouterOS v7 内置容器单机自闭环一键编排脚本 (172.17.0.0/30 + 看门狗) |
+| `install_openwrt_docker.sh` | OpenWrt Docker 单机脚本 | OpenWrt / iStoreOS Docker 单机自闭环一键安装脚本 |
 | `setup-routeros-v7.rsc` | 软路由终端编排脚本 | 软路由管理终端复制即用一键自动编排脚本 |
 | `setup-openwrt.sh` | 开源软路由系统一键安装脚本 | 开源软路由系统原生适配安装脚本 |
 | `install_pve_lxc.sh` | 容器一键脚本 | 极简容器一键安装脚本 |
 | `install.sh` | 通用一键安装脚本 | 通用一键部署主脚本 |
-| `sha256sums.txt` | 全平台哈希校验签名 | 包含全部 13 项发布资产的 SHA256 校验清单 |
+| `SHA256SUMS` | 全平台校验文件 | 所有发布产物完整性 SHA256 校验清单 |
 """
 
 
@@ -130,7 +125,7 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
         content_type = "application/gzip"
     elif name.endswith(".zip"):
         content_type = "application/zip"
-    elif name.endswith(".sh") or name.endswith(".rsc") or name.endswith(".txt"):
+    elif name.endswith(".sh") or name.endswith(".rsc") or name.endswith(".txt") or name == "SHA256SUMS":
         content_type = "text/plain"
 
     print(f"🚀 [正在上传] {name} ({round(size / 1024 / 1024, 2)} MB)...", flush=True)
@@ -223,11 +218,13 @@ def main():
         "cubexd-linux-arm64",
         "cubex-linux-amd64",
         "cubex-linux-arm64",
+        "install_ros_container.rsc",
+        "install_openwrt_docker.sh",
         "setup-routeros-v7.rsc",
         "setup-openwrt.sh",
         "install_pve_lxc.sh",
         "install.sh",
-        "sha256sums.txt",
+        "SHA256SUMS",
     ]
 
     print(f"\n📂 检查本地发布物目录: {RELEASE_DIR}")

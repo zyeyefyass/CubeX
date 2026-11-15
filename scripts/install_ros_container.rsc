@@ -1,0 +1,118 @@
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌌 CubeX 官方 MikroTik RouterOS v7 内置容器单机寄生自闭环一键脚本
+# 文件名: install_ros_container.rsc
+# 适用平台: RouterOS v7.12+ (x86_64 / CHR / RB5009 / CCR2004 / CCR2116 / ARM)
+# 核心特性:
+#   1. 零手动建网卡: 全自动创建 172.17.0.0/30 内部微子网 (宿主 172.17.0.1, 容器 172.17.0.2)
+#   2. 宿主零侵权: 隔离点对点点对点拓扑，不占用局域网物理 IP
+#   3. 静态路由自动注入: 198.18.0.0/15 回指指向 172.17.0.2
+#   4. 毫秒级 Netwatch 看门狗: 容器异常 100ms 内自动无损逃生直连，网络永不瘫痪
+# ═════════════════════════════════════════════════════════════════════════════
+
+{
+:local printMsg do={
+    :put $1;
+    :log info $1;
+};
+:local printWarn do={
+    :put ("⚠️ " . $1);
+    :log warning $1;
+};
+:local printErr do={
+    :put ("❌ " . $1);
+    :log error $1;
+};
+
+$printMsg "=========================================================================";
+$printMsg "🌌 开始执行 CubeX RouterOS v7 单机自闭环容器安装编排...";
+$printMsg "=========================================================================";
+
+# 1. 架构与硬件探查
+:local arch [/system resource get architecture-name];
+:local tarArch "amd64";
+:if ($arch = "x86_64" or $arch = "x86") do={
+    :set tarArch "amd64";
+} else={
+    :if ($arch = "arm64") do={
+        :set tarArch "arm64";
+    } else={
+        :if ($arch = "arm") do={
+            :set tarArch "arm";
+        } else={
+            $printErr ("当前硬件架构 (" . $arch . ") 暂不支持容器部署，仅支持 x86_64 / arm64 / arm！");
+            :error "Unsupported architecture";
+        }
+    }
+}
+$printMsg ("✅ [1/5 硬件架构识别] 检测到硬件: " . $arch . " -> 采用镜像架构: " . $tarArch);
+
+# 2. 容器功能组件检查
+:local hasContainer [:len [/system package find where name="container"]];
+:if ($hasContainer = 0) do={
+    $printErr "未检测到 RouterOS container 扩展包，请先在官网对应版本 extra-packages 中安装 container 包！";
+    :error "Container package missing";
+}
+
+# 3. 编排 172.17.0.0/30 点对点内部微子网 (宿主 172.17.0.1, 容器 172.17.0.2)
+$printMsg "🔧 [2/5 微子网编排] 正在创建 172.17.0.0/30 点对点寄生拓扑...";
+:if ([:len [/interface veth find name="veth-cubex"]] = 0) do={
+    /interface veth add name="veth-cubex" address=172.17.0.2/30 gateway=172.17.0.1 comment="CubeX Container Interface";
+} else={
+    /interface veth set [find name="veth-cubex"] address=172.17.0.2/30 gateway=172.17.0.1;
+}
+
+:if ([:len [/interface bridge find name="br-cubex-internal"]] = 0) do={
+    /interface bridge add name="br-cubex-internal" comment="CubeX Standalone Micro-Bridge";
+}
+
+:if ([:len [/interface bridge port find interface="veth-cubex"]] = 0) do={
+    /interface bridge port add bridge="br-cubex-internal" interface="veth-cubex";
+}
+
+:if ([:len [/ip address find comment="CubeX Standalone Gateway IP"]] = 0) do={
+    /ip address add address=172.17.0.1/30 interface="br-cubex-internal" network=172.17.0.0 comment="CubeX Standalone Gateway IP";
+} else={
+    /ip address set [find comment="CubeX Standalone Gateway IP"] address=172.17.0.1/30 interface="br-cubex-internal";
+}
+
+# 4. 注入 198.18.0.0/15 静态回指路由与毫秒级 Netwatch 逃生看门狗
+$printMsg "🛡️ [3/5 路由与容灾编排] 注入 198.18.0.0/15 静态路由及毫秒看门狗...";
+:if ([:len [/ip route find comment="CubeX 198.18.0.0/15 Backtrack"]] = 0) do={
+    /ip route add dst-address=198.18.0.0/15 gateway=172.17.0.2 comment="CubeX 198.18.0.0/15 Backtrack";
+} else={
+    /ip route set [find comment="CubeX 198.18.0.0/15 Backtrack"] gateway=172.17.0.2;
+}
+
+:if ([:len [/tool netwatch find comment="CubeX 100ms Health Watchdog"]] = 0) do={
+    /tool netwatch add host=172.17.0.2 interval=1s timeout=100ms type=icmp comment="CubeX 100ms Health Watchdog" \
+        up-script="/ip route enable [find comment=\"CubeX 198.18.0.0/15 Backtrack\"]; :log info \"CubeX Online - Strategy Enabled\"" \
+        down-script="/ip route disable [find comment=\"CubeX 198.18.0.0/15 Backtrack\"]; :log warn \"CubeX Down - 100ms Fallback to Direct\"";
+}
+
+# 5. 存储介质探查与容器准备
+$printMsg "📦 [4/5 存储与环境就绪] 正在定位可用磁盘分区...";
+:local diskRoot "disk1";
+:if ([:len [/disk find where free > 100000000]] > 0) do={
+    :set diskRoot [/disk get [find where free > 100000000] slot];
+} else={
+    :if ([:len [/file find where name="disk1"]] > 0) do={
+        :set diskRoot "disk1";
+    } else={
+        :set diskRoot "";
+    }
+}
+
+:local installDir "cubex";
+:if ($diskRoot != "") do={
+    :set installDir ($diskRoot . "/cubex");
+}
+
+:local tarName ("cubex-ros-" . $tarArch . ".tar");
+$printMsg ("✨ [5/5 部署完毕] 微子网已就绪: 宿主 172.17.0.1 ⇄ 容器 172.17.0.2");
+$printMsg ("👉 请将 " . $tarName . " 上传至 RouterOS 根目录，执行启动指令:");
+$printMsg ("/container add file=" . $tarName . " interface=veth-cubex root-dir=" . $installDir . " start-on-boot=yes logging=yes");
+$printMsg ("/container start [find file=" . $tarName . "]");
+$printMsg "=========================================================================";
+$printMsg "🎉 CubeX RouterOS v7 容器单机自闭环脚本执行完毕！";
+$printMsg "=========================================================================";
+}

@@ -8,7 +8,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$Version = "v9.6.0"
+$Version = "v9.7.0"
 
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 
@@ -332,15 +332,20 @@ python "$RootDir\scripts\protect_script.py" | Out-Host
 
 
 # Clean up staging
-
 Remove-Item -Path "$DistDir\staging" -Recurse -Force
 
-
+# Generate SHA256SUMS for all release assets
+Write-Host "🔒 Generating SHA256SUMS for release assets..." -ForegroundColor Cyan
+$shaLines = @()
+Get-ChildItem -Path $ReleaseDir -File | Where-Object { $_.Name -ne "SHA256SUMS" } | ForEach-Object {
+    $hash = (Get-FileHash -Path $_.FullName -Algorithm SHA256).Hash.ToLower()
+    $shaLines += "$hash  $($_.Name)"
+}
+$shaLines | Out-File -FilePath "$ReleaseDir\SHA256SUMS" -Encoding ascii -Force
+Write-Host "✓ SHA256SUMS generated successfully" -ForegroundColor Green
 
 Write-Host "`n🎉 All Release Packages Successfully Generated in:" -ForegroundColor Magenta
-
 Write-Host "   $ReleaseDir" -ForegroundColor White
-
 Get-ChildItem -Path $ReleaseDir | Select-Object Name, Length
 
 

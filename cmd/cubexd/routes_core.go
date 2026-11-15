@@ -582,6 +582,9 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/v1/health/radar", s.handleHealthRadar)
 	mux.HandleFunc("/api/v1/system/failover/drill", s.handleFailoverDrill)
 
+	// 14. CubeX v9.7.0 Core Upgrade: Triangle Engine, Target Routing, Boolean Grouping, Connections Tree & IP Perspective
+	s.registerV97Routes(mux)
+
 	// 3. Static Web UI (Precompressed Gzip Direct Streaming & Zero-CPU / Zero-Copy)
 	precompressedServer := webui.NewPrecompressedFileServer(getEmbeddedFS())
 

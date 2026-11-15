@@ -2358,20 +2358,22 @@ func (s *Server) executeNodeRealDelayProbe(node schema.ProxyNode, clashPort int,
 	escaped = strings.ReplaceAll(escaped, "[", "%5B")
 	escaped = strings.ReplaceAll(escaped, "]", "%5D")
 
-	// 极速探针：单次 1800ms 快速探测，首选 cp.cloudflare.com/generate_204
+	// 极速探针：单次 1500ms 快速探测，首选 cp.cloudflare.com/generate_204
 	// 超时或失败直接判定失联，杜绝死节点二次串行重试导致的 5~10 秒排队阻塞
 	probe := "https://cp.cloudflare.com/generate_204"
 
 	tr := &http.Transport{
-		DisableKeepAlives: true,
-		MaxIdleConns:      0,
+		DisableKeepAlives:   false,
+		MaxIdleConns:        64,
+		MaxIdleConnsPerHost: 32,
+		IdleConnTimeout:     15 * time.Second,
 	}
 	client := &http.Client{
 		Transport: tr,
-		Timeout:   2000 * time.Millisecond,
+		Timeout:   2800 * time.Millisecond,
 	}
 
-	testURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?url=%s&timeout=1800",
+	testURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?url=%s&timeout=1500",
 		clashPort, escaped, url.QueryEscape(probe))
 	req, err := http.NewRequest(http.MethodGet, testURL, nil)
 	if err != nil {
@@ -2784,8 +2786,8 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 
 	var wg sync.WaitGroup
 
-	// Throttle concurrency to 16 for high-speed batch testing without TLS socket exhaustion
-	semaphore := make(chan struct{}, 16)
+	// Throttle concurrency to 20 for high-speed batch testing without TLS socket exhaustion
+	semaphore := make(chan struct{}, 20)
 
 	var mu sync.Mutex
 

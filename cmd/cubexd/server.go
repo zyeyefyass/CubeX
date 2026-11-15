@@ -234,6 +234,8 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 		snapshotMgr:        backup.NewStateSnapshotManager(filepath.Join(dir, "data")),
 		authMgr:            NewConsoleAuthManager(dir),
 		ewmaMgr:            probe.NewEWMAManager(),
+		triangleEngine: probe.NewTriangleEngine(0.40, 0.30, 0.30),
+		targetRouter: probe.NewTargetAwareRoutingEngine(512),
 
 		logBuffer:    logBuffer,
 		delayCache:   make(map[string]delayCacheEntry),
@@ -254,7 +256,7 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "v9.6.0")
+	srv.mcpServer = mcp.NewServer(srv, "v9.7.0")
 	srv.autoSyncGuard = sub.NewAutoSyncGuard()
 	if cfgIR != nil && len(cfgIR.Proxies) > 0 {
 		srv.autoSyncGuard.SetInitialState(cfgIR.Proxies)
@@ -884,6 +886,8 @@ type Server struct {
 	userOverrideMgr    *compiler.UserOverrideManager
 	clientInspector    *telemetry.ClientInspector
 	stallDetector      *probe.PassiveStallDetector
+	triangleEngine     *probe.TriangleEngine
+	targetRouter       *probe.TargetAwareRoutingEngine
 	isMaintenance      atomic.Bool
 	draining           atomic.Bool
 

@@ -251,6 +251,7 @@ func (m *Manager) WarmStandbyConfigs() {
 			m.precompiledConfig[schema.EngineMihomo] = mh
 		}
 	}
+	m.reclaimOSMemory()
 }
 
 // GetActiveEngine returns the currently active persona.

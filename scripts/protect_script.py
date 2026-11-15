@@ -166,6 +166,19 @@ def main():
     ros_dst = os.path.join(release_dir, "setup-routeros-v7.rsc")
     protect_ros_script(ros_src, ros_dst)
 
+    # 5. RouterOS Standalone Container .rsc
+    ros_ct_src = os.path.join(root, "scripts", "install_ros_container.rsc")
+    ros_ct_dst = os.path.join(release_dir, "install_ros_container.rsc")
+    if os.path.exists(ros_ct_src):
+        protect_ros_script(ros_ct_src, ros_ct_dst)
+
+    # 6. OpenWrt Standalone Docker .sh
+    owrt_ct_src = os.path.join(root, "scripts", "install_openwrt_docker.sh")
+    owrt_ct_dst = os.path.join(release_dir, "install_openwrt_docker.sh")
+    if os.path.exists(owrt_ct_src):
+        shutil.copy2(owrt_ct_src, owrt_ct_dst)
+        print(f"  ✓ Native Direct Script {owrt_ct_src} -> {owrt_ct_dst} ({os.path.getsize(owrt_ct_dst)} bytes)")
+
     print("🛡️ Script protection complete!")
 
 if __name__ == '__main__':

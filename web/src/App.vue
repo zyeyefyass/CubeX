@@ -218,7 +218,7 @@
 
               <span class="font-black tracking-tight text-sky-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] hidden xs:inline">
 
-                {{ systemStatus.version || 'v9.5.0' }}
+                {{ systemStatus.version || 'v9.7.0' }}
 
               </span>
 
@@ -364,6 +364,22 @@
 
           </button>
 
+          <!-- 🌲 活跃连接树与三级折叠控制台 (Modern Web Zero-CLS) -->
+          <button @click="showLogsModal = true"
+            title="调出三级树状活跃连接与一键改分流"
+            class="h-[30px] sm:h-[42px] md:h-[46px] inline-flex items-center gap-1.5 px-2 sm:px-3 rounded-lg sm:rounded-2xl macos-capsule hover:border-cyan-400/50 text-cyan-200 select-none transition-all duration-300 cursor-pointer shrink-0">
+            <span class="text-xs">🌲</span>
+            <span class="hidden xl:inline text-xs font-bold font-sans">连接树</span>
+          </button>
+
+          <!-- 🔍 四宫格 IP 纯净度与稳定三角透视 -->
+          <button @click="openIPPerspective('HongKong-01')"
+            title="查看节点稳定三角与 IP 质量透视"
+            class="h-[30px] sm:h-[42px] md:h-[46px] inline-flex items-center gap-1.5 px-2 sm:px-3 rounded-lg sm:rounded-2xl macos-capsule hover:border-sky-400/50 text-sky-200 select-none transition-all duration-300 cursor-pointer shrink-0">
+            <span class="text-xs">🔍</span>
+            <span class="hidden xl:inline text-xs font-bold font-sans">IP透视</span>
+          </button>
+
         </div>
 
       </header>
@@ -454,9 +470,9 @@
 
             </span>
 
-            <span v-if="task.winnerDelay > 0" class="text-[11px] font-mono text-emerald-400 font-bold">
+            <span v-if="task.winnerDelay > 0" class="text-[11px] font-mono text-emerald-400 font-bold font-tabular">
 
-              {{ task.winnerDelay }}ms
+              {{ task.winnerDelay }}ms{{ task.isCached ? ' (缓存)' : '' }}
 
             </span>
 
@@ -464,7 +480,7 @@
 
           <template v-else>
 
-            <span class="text-rose-400 font-bold">测速异常</span>
+            <span class="text-rose-400 font-bold text-[11px] truncate max-w-[170px]" :title="task.errorMsg || '探测超时'">{{ task.errorMsg || '探测超时' }}</span>
 
           </template>
 
@@ -522,7 +538,7 @@
 
                     <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
 
-                    当前内核: {{ activeEngine === 'singbox' ? 'sing-box (' + (systemOverview.singbox_curr_version || 'v9.5.0') + ')' : 'Mihomo (' + (systemOverview.mihomo_curr_version || 'v9.5.0') + ')' }}
+                    当前内核: {{ activeEngine === 'singbox' ? 'sing-box (' + (systemOverview.singbox_curr_version || 'v9.7.0') + ')' : 'Mihomo (' + (systemOverview.mihomo_curr_version || 'v9.7.0') + ')' }}
 
                   </span>
 
@@ -1288,7 +1304,7 @@
 
                         <span class="text-sm sm:text-base font-black text-purple-200 tracking-wide">sing-box</span>
 
-                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.singbox_curr_version || 'v9.5.0' }}</span>
+                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.singbox_curr_version || 'v9.7.0' }}</span>
 
                       </div>
 
@@ -1398,7 +1414,7 @@
 
                         <span class="text-sm sm:text-base font-black text-emerald-200 tracking-wide">Mihomo</span>
 
-                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.mihomo_curr_version || 'v9.5.0' }}</span>
+                        <span class="text-xs font-mono font-bold text-emerald-400">{{ systemOverview.mihomo_curr_version || 'v9.7.0' }}</span>
 
                       </div>
 
@@ -2503,6 +2519,8 @@
                         <button v-for="node in (provider.displayNodes || provider.nodes)" :key="node.name"
 
                           @click="selectRegionalNodeItem(reg, node.name)"
+                          @mouseenter="handleNodeMouseEnter(node.name)"
+                          @mouseleave="handleNodeMouseLeave"
 
                           :class="[
 
@@ -2520,11 +2538,29 @@
 
                             <span class="truncate">{{ node.name }}</span>
 
-                            <span v-if="nodeScores[node.name]" class="text-[11px] px-1 py-0.2 rounded font-mono font-bold shrink-0" :class="nodeScores[node.name].grade.startsWith('S') ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40' : (nodeScores[node.name].grade.startsWith('A') ? 'bg-cyan-400/20 text-cyan-300 border border-cyan-400/40' : 'bg-slate-700/50 text-slate-400')">
-
-                              {{ nodeScores[node.name].grade.split(' ')[0] }}
-
-                            </span>
+                            <div class="flex items-center gap-1 shrink-0">
+                              <span v-if="triangleScores[node.name]"
+                                @click.stop="openIPPerspective(node.name)"
+                                class="text-[9px] px-1 py-0.2 rounded font-mono font-black border cursor-pointer hover:scale-105 active:scale-95 transition font-tabular"
+                                :class="triangleScores[node.name].total_score < 60
+                                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+                                  : (triangleScores[node.name].total_score >= 90
+                                    ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
+                                    : (triangleScores[node.name].total_score >= 80
+                                      ? 'bg-cyan-400/20 text-cyan-300 border-cyan-400/40'
+                                      : 'bg-emerald-400/20 text-emerald-300 border-emerald-400/30'))"
+                                :title="'稳定三角综合评分: ' + Math.round(triangleScores[node.name].total_score) + '分 | 点击透视四宫格'">
+                                {{ Math.round(triangleScores[node.name].total_score) }}分
+                              </span>
+                              <span v-else-if="nodeScores[node.name]" class="text-[10px] px-1 py-0.2 rounded font-mono font-bold shrink-0" :class="nodeScores[node.name].grade.startsWith('S') ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40' : (nodeScores[node.name].grade.startsWith('A') ? 'bg-cyan-400/20 text-cyan-300 border border-cyan-400/40' : 'bg-slate-700/50 text-slate-400')">
+                                {{ nodeScores[node.name].grade.split(' ')[0] }}
+                              </span>
+                              <button @click.stop="triggerBurstSpeedtest(node.name)"
+                                class="text-[9px] px-1 rounded bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 font-bold transition active:scale-95 cursor-pointer"
+                                title="触发单节点 ≤2MB 闪电测速">
+                                ⚡
+                              </button>
+                            </div>
 
                           </div>
 
@@ -2875,12 +2911,35 @@
                   <button v-for="node in (subNodesMap[sub.id] || [])" :key="node.name"
 
                     @click="testSingleNode(node)"
+                    @mouseenter="handleNodeMouseEnter(node.name)"
+                    @mouseleave="handleNodeMouseLeave"
 
                     class="p-2 rounded-xl text-left transition-all duration-200 flex flex-col justify-between gap-1.5 border border-slate-800/90 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:border-cyan-500/40 shadow-sm active:scale-95 group">
 
-                    <div class="text-xs truncate font-semibold text-slate-300 group-hover:text-sky-300">
+                    <div class="text-xs truncate font-semibold text-slate-300 group-hover:text-sky-300 flex items-center justify-between gap-1">
 
-                      {{ node.name }}
+                      <span class="truncate">{{ node.name }}</span>
+
+                      <div class="flex items-center gap-1 shrink-0">
+                        <span v-if="triangleScores[node.name]"
+                          @click.stop="openIPPerspective(node.name)"
+                          class="text-[9px] px-1 py-0.2 rounded font-mono font-black border cursor-pointer hover:scale-105 active:scale-95 transition font-tabular"
+                          :class="triangleScores[node.name].total_score < 60
+                            ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+                            : (triangleScores[node.name].total_score >= 90
+                              ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
+                              : (triangleScores[node.name].total_score >= 80
+                                ? 'bg-cyan-400/20 text-cyan-300 border-cyan-400/40'
+                                : 'bg-emerald-400/20 text-emerald-300 border-emerald-400/30'))"
+                          :title="'稳定三角综合评分: ' + Math.round(triangleScores[node.name].total_score) + '分 | 点击透视四宫格'">
+                          {{ Math.round(triangleScores[node.name].total_score) }}分
+                        </span>
+                        <button @click.stop="triggerBurstSpeedtest(node.name)"
+                          class="text-[9px] px-1 rounded bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 font-bold transition active:scale-95 cursor-pointer"
+                          title="触发单节点 ≤2MB 闪电测速">
+                          ⚡
+                        </button>
+                      </div>
 
                     </div>
 
@@ -2946,7 +3005,7 @@
 
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
 
-                        {{ systemOverview.panel_latest_version || 'v9.5.0' }}
+                        {{ systemOverview.panel_latest_version || 'v9.7.0' }}
 
                       </span>
 
@@ -2954,7 +3013,7 @@
 
                     <p class="text-xs text-slate-400 mt-0.5 font-mono">
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'v9.5.0' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'v9.5.0' }}</span>
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'v9.7.0' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'v9.7.0' }}</span>
 
                     </p>
 
@@ -3736,23 +3795,37 @@
 
                     <div class="flex items-center rounded-xl bg-slate-950 p-0.5 border border-slate-800">
 
+                      <button type="button" @click="customNodeGroupForm.filter_logic = 'ALL'"
+
+                        :class="['px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer',
+
+                          customNodeGroupForm.filter_logic === 'ALL'
+
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40 shadow-sm'
+
+                            : 'text-slate-400 hover:text-white']">
+
+                        🌐 全部 (ALL)
+
+                      </button>
+
                       <button type="button" @click="customNodeGroupForm.filter_logic = 'OR'"
 
-                        :class="['px-3 py-1 rounded-lg text-xs font-bold transition',
+                        :class="['px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer',
 
-                          customNodeGroupForm.filter_logic !== 'AND'
+                          customNodeGroupForm.filter_logic === 'OR' || (!customNodeGroupForm.filter_logic || customNodeGroupForm.filter_logic === '')
 
                             ? 'bg-cyan-500/20 text-emerald-300 border border-cyan-400/40 shadow-sm'
 
                             : 'text-slate-400 hover:text-white']">
 
-                        ⚡ 任一命中 (OR)
+                        ⚡ 任一 (OR)
 
                       </button>
 
                       <button type="button" @click="customNodeGroupForm.filter_logic = 'AND'"
 
-                        :class="['px-3 py-1 rounded-lg text-xs font-bold transition',
+                        :class="['px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer',
 
                           customNodeGroupForm.filter_logic === 'AND'
 
@@ -3760,7 +3833,7 @@
 
                             : 'text-slate-400 hover:text-white']">
 
-                        🎯 全部命中 (AND)
+                        🎯 全中 (AND)
 
                       </button>
 
@@ -4120,6 +4193,7 @@
     <AISettingsModal v-if="showAISettingsModal" />
     <ImportModal v-if="showImportModal" />
     <InitWizardModal v-if="showInitWizardModal" />
+    <IPPerspectiveModal ref="ipPerspectiveModalRef" v-model:visible="showIPPerspectiveModal" :node-name="currentPerspectiveNode" @burst-done="fetchTriangleScores" />
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
 
@@ -4267,6 +4341,7 @@ const InitWizardModal = defineAsyncComponent(() => import('./components/modals/I
 const ProbeModal = defineAsyncComponent(() => import('./components/modals/ProbeModal.vue'))
 const GeodataDetailModal = defineAsyncComponent(() => import('./components/modals/GeodataDetailModal.vue'))
 const DiagnosticOpsModals = defineAsyncComponent(() => import('./components/modals/DiagnosticOpsModals.vue'))
+const IPPerspectiveModal = defineAsyncComponent(() => import('./components/modals/IPPerspectiveModal.vue'))
 import ConsoleAuthModal from './components/modals/ConsoleAuthModal.vue'
 import { frameScheduler, enablePeekModeWithGuard } from './utils/scheduler'
 import { GeekCommandController } from './utils/command-palette'
@@ -4757,6 +4832,68 @@ const fullHealthReport = ref(null)
 const showFullHealthModal = ref(false)
 
 const nodeScores = ref({})
+const triangleScores = ref({})
+const triangleWeights = ref({ latency: 40, jitter: 30, bandwidth: 30 })
+const showIPPerspectiveModal = ref(false)
+const currentPerspectiveNode = ref('')
+const ipPerspectiveModalRef = ref(null)
+
+let nodeHoverTimer = null
+function handleNodeMouseEnter(nodeName) {
+  if (nodeHoverTimer) clearTimeout(nodeHoverTimer)
+  nodeHoverTimer = setTimeout(() => {
+    openIPPerspective(nodeName)
+  }, 250) // 250ms debounce (Gemini 4.0 requirement)
+}
+function handleNodeMouseLeave() {
+  if (nodeHoverTimer) {
+    clearTimeout(nodeHoverTimer)
+    nodeHoverTimer = null
+  }
+}
+
+async function openIPPerspective(nodeName) {
+  if (!nodeName) return
+  currentPerspectiveNode.value = nodeName
+  showIPPerspectiveModal.value = true
+  if (ipPerspectiveModalRef.value) {
+    ipPerspectiveModalRef.value.fetchPerspective(nodeName)
+  }
+}
+
+async function triggerBurstSpeedtest(nodeName) {
+  if (!nodeName) return
+  showToast(`正在对 [${nodeName}] 发起 ≤2MB 闪电测速...`, 'info')
+  try {
+    const res = await fetch('/api/v1/config/proxies/burst-speedtest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ node: nodeName })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast(`[${nodeName}] 闪电测速完成: 速率 ${data.speed_mbps.toFixed(1)} Mbps，耗时 ${data.duration_ms}ms`, 'success')
+      await fetchTriangleScores()
+    } else {
+      showToast(`闪电测速失败: ${data.error || '未知错误'}`, 'error')
+    }
+  } catch (e) {
+    showToast('闪电测速异常: ' + e.message, 'error')
+  }
+}
+
+async function fetchTriangleScores() {
+  try {
+    const res = await fetch('/api/v1/config/proxies/triangle-scores')
+    if (res.ok) {
+      const data = await res.json()
+      if (data.ok && data.scores) {
+        triangleScores.value = data.scores
+        if (data.weights) triangleWeights.value = data.weights
+      }
+    }
+  } catch (e) {}
+}
 
 const hideSlowNodes = ref(true)
 
@@ -4827,6 +4964,7 @@ async function triggerFullHealthAudit() {
 async function fetchNodeScores() {
 
   try {
+    fetchTriangleScores()
 
     const res = await fetch('/api/v1/config/proxies/scores')
 
@@ -6868,7 +7006,7 @@ const runMemoryReclaim = async () => {
     if (res.ok) {
       const data = await res.json()
       if (data.memory_conntrack) memoryConntrackStatus.value = data.memory_conntrack
-      showToast(`Go 物理内存强制退还完成！已退还 ${data.freed_mb?.toFixed(1) || 'v9.5.0'} MB 内存给宿主系统`)
+      showToast(`Go 物理内存强制退还完成！已退还 ${data.freed_mb?.toFixed(1) || 'v9.7.0'} MB 内存给宿主系统`)
     }
   } catch (e) {
     showToast('内存回收执行失败: ' + e.message, true)
@@ -7963,7 +8101,7 @@ const trafficInsights = ref({
 
   month: _nowInit.getMonth() + 1,
 
-  monthTotalGB: (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic') && localStorage.getItem('cubex_month_traffic') !== 'v9.5.0' && localStorage.getItem('cubex_month_traffic') !== 'v9.5.0') ? Number(localStorage.getItem('cubex_month_traffic')) : 0.0,
+  monthTotalGB: (typeof localStorage !== 'undefined' && localStorage.getItem('cubex_month_traffic') && localStorage.getItem('cubex_month_traffic') !== 'v9.7.0' && localStorage.getItem('cubex_month_traffic') !== 'v9.7.0') ? Number(localStorage.getItem('cubex_month_traffic')) : 0.0,
 
   monthTotalConns: 78137,
 
@@ -9002,7 +9140,7 @@ function updateLiveMonthlyTraffic(currentOutMB) {
 
       localStorage.setItem(monthKey, '0')
 
-      localStorage.setItem('cubex_month_traffic', 'v9.5.0')
+      localStorage.setItem('cubex_month_traffic', 'v9.7.0')
 
       trafficInsights.value.year = currentYear
 
@@ -9038,7 +9176,7 @@ function updateLiveMonthlyTraffic(currentOutMB) {
 
     const rawVal = localStorage.getItem('cubex_month_traffic')
 
-    if (rawVal === 'v9.5.0' || rawVal === 'v9.5.0') {
+    if (rawVal === 'v9.7.0' || rawVal === 'v9.7.0') {
 
       localStorage.removeItem('cubex_month_traffic')
 
@@ -10220,19 +10358,19 @@ const hostConfig = ref({
 
 const systemOverview = ref({
 
-  cubex_version: 'v9.5.0',
+  cubex_version: 'v9.7.0',
 
-  panel_curr_version: 'v9.5.0',
+  panel_curr_version: 'v9.7.0',
 
-  panel_latest_version: 'v9.5.0',
+  panel_latest_version: 'v9.7.0',
 
-  mihomo_curr_version: 'v9.5.0',
+  mihomo_curr_version: 'v9.7.0',
 
-  mihomo_latest_version: 'v9.5.0',
+  mihomo_latest_version: 'v9.7.0',
 
-  singbox_curr_version: 'v9.5.0',
+  singbox_curr_version: 'v9.7.0',
 
-  singbox_latest_version: 'v9.5.0',
+  singbox_latest_version: 'v9.7.0',
 
   panel_update_avail: false,
 
@@ -10268,7 +10406,7 @@ const ikuaiDockerRunCli = ref(`docker run -d \\
 
   ghcr.io/zyeyefyass/cubex:latest`)
 
-const ikuaiDockerComposeYaml = ref(`version: 'v9.5.0'
+const ikuaiDockerComposeYaml = ref(`version: 'v9.7.0'
 
 services:
 
@@ -10831,7 +10969,7 @@ function buildDiagnosticMarkdown(data) {
 
   return `### 🌌 CubeX 运行环境诊断报告 (已脱敏)
 
-- **系统版本**: CubeX ${meta.version || 'v9.5.0'} (${meta.os || 'linux'}/${meta.arch || 'amd64'})
+- **系统版本**: CubeX ${meta.version || 'v9.7.0'} (${meta.os || 'linux'}/${meta.arch || 'amd64'})
 
 - **双核状态**: 活动内核 \`${eng.active_engine || 'mihomo'}\` (运行正常: ${eng.running ? '是' : '否'})
 
@@ -11235,7 +11373,7 @@ function triggerQuickAIPrompt(prompt) {
 
 const systemStatus = ref({
 
-  version: 'v9.5.0',
+  version: 'v9.7.0',
 
   uptime_seconds: 1420,
 
@@ -13960,7 +14098,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
     } else if (data.status === 'already_latest') {
 
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'v9.5.0'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'v9.7.0'})`)
 
     } else {
 
@@ -14006,7 +14144,7 @@ async function upgradePanel(force = false) {
 
       const timeStr = new Date().toLocaleTimeString()
 
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'v9.5.0'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'v9.7.0'})，无需重复更新。`
 
       showToast(data.message || 'CubeX 系统已是最新版本')
 
@@ -14058,13 +14196,13 @@ function openGitHubIssuePrompt() {
 
   if (systemOverview.value?.mihomo_update_avail) {
 
-    parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version} (当前: ${systemOverview.value.mihomo_curr_version || 'v9.5.0'})`)
+    parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version} (当前: ${systemOverview.value.mihomo_curr_version || 'v9.7.0'})`)
 
   }
 
   if (systemOverview.value?.singbox_update_avail) {
 
-    parts.push(`sing-box ${systemOverview.value.singbox_latest_version} (当前: ${systemOverview.value.singbox_curr_version || 'v9.5.0'})`)
+    parts.push(`sing-box ${systemOverview.value.singbox_latest_version} (当前: ${systemOverview.value.singbox_curr_version || 'v9.7.0'})`)
 
   }
 
@@ -14084,7 +14222,7 @@ function openGitHubIssuePrompt() {
 
 - 系统架构：${systemOverview.value?.arch || 'amd64'}
 
-- CubeX 版本：${systemOverview.value?.cubex_version || 'v9.5.0'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'v9.7.0'}
 
 - 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
 
@@ -14413,11 +14551,11 @@ async function checkHostUpgrade(silent = false) {
 
       }
 
-      hostUpgradeResult.value = data.output || (isRouterOS.value ? `RouterOS 固件已是最新稳定版本 (${data.installed_version || 'v9.5.0'} stable)` : hostBadge.value.shortName + ' 已是最新版本')
+      hostUpgradeResult.value = data.output || (isRouterOS.value ? `RouterOS 固件已是最新稳定版本 (${data.installed_version || 'v9.7.0'} stable)` : hostBadge.value.shortName + ' 已是最新版本')
 
       if (!silent) {
 
-        showToast(data.has_update ? `🎉 发现 RouterOS 新版本: ${data.latest_version}！` : `✓ 固件核对完成：已是最新稳定版本 (${data.installed_version || 'v9.5.0'})`)
+        showToast(data.has_update ? `🎉 发现 RouterOS 新版本: ${data.latest_version}！` : `✓ 固件核对完成：已是最新稳定版本 (${data.installed_version || 'v9.7.0'})`)
 
       }
 
@@ -15683,9 +15821,13 @@ const matchedKeywordNodes = computed(() => {
 
   if (kws.length === 0) return []
 
-  const logic = customNodeGroupForm.value.filter_logic || 'OR'
+  const logic = (customNodeGroupForm.value.filter_logic || 'OR').toUpperCase()
 
   const proxies = ir.value.proxies || []
+
+  if (logic === 'ALL') {
+    return proxies.filter(p => p.name && p.type !== 'direct' && p.type !== 'block' && p.type !== 'reject').map(p => p.name)
+  }
 
   return proxies.filter(p => {
 
@@ -16694,7 +16836,8 @@ async function processSpeedtestQueue() {
 
     try {
       const abortCtrl = new AbortController()
-      const fetchTimer = setTimeout(() => abortCtrl.abort(), 20000)
+      const timeoutMs = Math.min(60000, Math.max(30000, nodeNames.length * 1000))
+      const fetchTimer = setTimeout(() => abortCtrl.abort(), timeoutMs)
       const res = await fetch('/api/v1/config/proxies/speedtest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -16732,8 +16875,16 @@ async function processSpeedtestQueue() {
         task.status = 'completed'
       }
     } catch (e) {
-      task.status = 'error'
-      task.errorMsg = e.name === 'AbortError' ? '测速超时' : (e.message || '测速异常')
+      const lastDelay = regionWinnerLatencyMap.value[task.regId] || reg.winnerLatency || 0
+      if (lastDelay > 0) {
+        task.status = 'completed'
+        task.winnerDelay = lastDelay
+        task.onlineCount = 1
+        task.isCached = true
+      } else {
+        task.status = 'error'
+        task.errorMsg = e.name === 'AbortError' ? '节点响应超时' : (e.message || '网络瞬断')
+      }
     } finally {
 
       regionTestingMap.value[task.regId] = false
@@ -22569,6 +22720,8 @@ async function runAuthorizedMountLoad() {
   // Initial Health Radar Probe & periodic sync
 
   refreshHealthRadar()
+  fetchTriangleScores()
+  setInterval(() => { if (isPageVisible()) fetchTriangleScores() }, 15000)
 
   setInterval(() => { if (isPageVisible()) refreshHealthRadar() }, 60000)
 
