@@ -354,21 +354,7 @@
 
           </button>
 
-          <!-- 🌲 网络诊断与明细 (Modern Web Zero-CLS) -->
-          <button @click="showLogsModal = true"
-            title="调出详细网络连接明细与诊断树"
-            class="h-[30px] sm:h-[42px] md:h-[46px] inline-flex items-center gap-1.5 px-2 sm:px-3 rounded-lg sm:rounded-2xl macos-capsule hover:border-cyan-400/50 text-cyan-200 select-none transition-all duration-300 cursor-pointer shrink-0">
-            <span class="text-xs">🌲</span>
-            <span class="hidden xl:inline text-xs font-bold font-sans">网络诊断与明细</span>
-          </button>
 
-          <!-- 🔍 四宫格 IP 纯净度与稳定三角透视 -->
-          <button @click="openIPPerspective('HongKong-01')"
-            title="查看节点稳定三角与 IP 质量透视"
-            class="h-[30px] sm:h-[42px] md:h-[46px] inline-flex items-center gap-1.5 px-2 sm:px-3 rounded-lg sm:rounded-2xl macos-capsule hover:border-sky-400/50 text-sky-200 select-none transition-all duration-300 cursor-pointer shrink-0">
-            <span class="text-xs">🔍</span>
-            <span class="hidden xl:inline text-xs font-bold font-sans">IP透视</span>
-          </button>
 
         </div>
 

@@ -12,8 +12,8 @@ ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 ssh.connect(PVE_HOST, port=PVE_PORT, username=PVE_USER, password=PVE_PASS, timeout=10)
 
 sftp = ssh.open_sftp()
-local_cubexd = 'bin/cubexd-linux-amd64' if os.path.exists('bin/cubexd-linux-amd64') else ('dist/cubexd-container-amd64' if os.path.exists('dist/cubexd-container-amd64') else 'dist/cubexd-linux-amd64')
-local_cubex = 'bin/cubex-linux-amd64' if os.path.exists('bin/cubex-linux-amd64') else 'dist/cubex-linux-amd64'
+local_cubexd = 'dist/cubexd-linux-amd64' if os.path.exists('dist/cubexd-linux-amd64') else ('dist/cubexd-container-amd64' if os.path.exists('dist/cubexd-container-amd64') else 'bin/cubexd-linux-amd64')
+local_cubex = 'dist/cubex-linux-amd64' if os.path.exists('dist/cubex-linux-amd64') else 'bin/cubex-linux-amd64'
 
 print(f"Uploading {local_cubexd} ({round(os.path.getsize(local_cubexd)/(1024*1024), 2)} MB) to PVE /tmp/cubexd...")
 sftp.put(local_cubexd, '/tmp/cubexd')
