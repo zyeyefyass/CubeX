@@ -218,7 +218,7 @@
 
               <span class="font-black tracking-tight text-sky-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] hidden xs:inline">
 
-                {{ systemStatus.version || 'v9.8.0' }}
+                {{ systemStatus.version || 'v9.9.0' }}
 
               </span>
 
@@ -703,7 +703,7 @@
                   </span>
                 </div>
                 <p class="text-xs text-slate-300 font-medium font-sans">
-                  点击设备名称可就地改名持久化 · 单键秒级切换【⚡ 走 CubeX 旁路加速】或【🏠 主路由原生物理直连】
+                  点击设备名称可就地改名持久化 · 自由微调【⚡ 旁路加速】/【🎬 影音NAS专属】/【🏠 原生物理直连】
                 </p>
               </div>
 
@@ -712,6 +712,10 @@
                 <div class="inline-flex items-center p-1 rounded-xl bg-black/40 border border-white/10 text-xs font-mono">
                   <span class="px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold">
                     ⚡ 旁路: {{ proxiedClientsCount }}
+                  </span>
+                  <span class="px-1 text-slate-500">·</span>
+                  <span class="px-2.5 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 font-bold">
+                    🎬 影音: {{ mediaClientsCount }}
                   </span>
                   <span class="px-1 text-slate-500">·</span>
                   <span class="px-2.5 py-0.5 text-slate-300">
@@ -806,7 +810,7 @@
 
             <!-- 搜索与分类过滤器 -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-              <div class="flex items-center gap-1.5 bg-black/40 border border-white/10 rounded-xl p-1 text-xs">
+              <div class="flex items-center gap-1.5 bg-black/40 border border-white/10 rounded-xl p-1 text-xs flex-wrap sm:flex-nowrap">
                 <button @click="clientFilterMode = 'all'"
                   :class="['px-3 py-1 rounded-lg transition font-medium cursor-pointer', clientFilterMode === 'all' ? 'bg-sky-500 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
                   全部 ({{ lanClients.length }})
@@ -814,6 +818,10 @@
                 <button @click="clientFilterMode = 'proxy'"
                   :class="['px-3 py-1 rounded-lg transition font-medium cursor-pointer', clientFilterMode === 'proxy' ? 'bg-emerald-500 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
                   ⚡ 旁路中 ({{ proxiedClientsCount }})
+                </button>
+                <button @click="clientFilterMode = 'media'"
+                  :class="['px-3 py-1 rounded-lg transition font-medium cursor-pointer', clientFilterMode === 'media' ? 'bg-purple-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
+                  🎬 影音/NAS ({{ mediaClientsCount }})
                 </button>
                 <button @click="clientFilterMode = 'direct'"
                   :class="['px-3 py-1 rounded-lg transition font-medium cursor-pointer', clientFilterMode === 'direct' ? 'bg-sky-700 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
@@ -837,7 +845,7 @@
             <div v-if="filteredLanClients.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div v-for="dev in filteredLanClients" :key="dev.mac || dev.ip"
                 class="p-4 rounded-2xl border transition-all duration-300 relative group flex flex-col justify-between"
-                :class="dev.is_proxied ? 'bg-gradient-to-br from-emerald-950/40 to-teal-950/30 border-emerald-500/40 shadow-lg shadow-emerald-950/20' : 'bg-white/5 border-white/10 hover:border-white/20'">
+                :class="(dev.mode === 'media' || dev.is_media) ? 'bg-gradient-to-br from-purple-950/40 via-indigo-950/30 to-purple-950/20 border-purple-500/40 shadow-lg shadow-purple-950/20' : (dev.is_proxied && dev.mode !== 'direct') ? 'bg-gradient-to-br from-emerald-950/40 to-teal-950/30 border-emerald-500/40 shadow-lg shadow-emerald-950/20' : 'bg-white/5 border-white/10 hover:border-white/20'">
 
                 <!-- 设备头部：图标、名称、就地改名、在线状态 -->
                 <div class="flex items-start gap-3">
@@ -873,24 +881,47 @@
                   </div>
                 </div>
 
-                <!-- 分隔线与分流控制 Toggle 开关 -->
-                <div class="pt-3.5 mt-3.5 border-t border-white/10 flex items-center justify-between">
-                  <div>
-                    <div class="text-xs font-bold flex items-center gap-1.5" :class="dev.is_proxied ? 'text-emerald-300' : 'text-slate-300'">
-                      <span>{{ dev.is_proxied ? '⚡ 旁路加速生效中' : '🛡️ 主路由原生直连' }}</span>
+                <!-- 分隔线与分流控制 3 档极速模式开关组 -->
+                <div class="pt-3.5 mt-3.5 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                  <div class="min-w-0">
+                    <div class="text-xs font-bold flex items-center gap-1.5"
+                      :class="(dev.mode === 'media' || dev.is_media) ? 'text-purple-300' : (dev.is_proxied && dev.mode !== 'direct') ? 'text-emerald-300' : 'text-slate-300'">
+                      <span>{{ (dev.mode === 'media' || dev.is_media) ? '🎬 影音/NAS专属加速' : (dev.is_proxied && dev.mode !== 'direct') ? '⚡ 旁路全功能加速' : '🛡️ 主路由原生直连' }}</span>
                     </div>
-                    <div class="text-[10px] text-slate-400 font-mono mt-0.5 font-sans">
-                      {{ dev.is_proxied ? '走 CubeX 智能分流与防泄露' : '走主路由默认物理网关直出' }}
+                    <div class="text-[10px] text-slate-400 font-mono mt-0.5 font-sans truncate">
+                      {{ (dev.mode === 'media' || dev.is_media) ? '海报刮削加速 · PT下载物理直通' : (dev.is_proxied && dev.mode !== 'direct') ? '走 CubeX 智能分流与防泄露' : '走主路由默认物理网关直出' }}
                     </div>
                   </div>
 
-                  <!-- 交互开关按钮 -->
-                  <button @click="toggleClientProxy(dev)" :disabled="togglingClientIP === dev.ip"
-                    class="px-3.5 py-1.5 rounded-xl font-black text-xs transition-all duration-300 flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95 disabled:opacity-50"
-                    :class="dev.is_proxied ? 'bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 shadow-emerald-500/25' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/15'">
-                    <span v-if="togglingClientIP === dev.ip" class="inline-block animate-spin text-xs">↻</span>
-                    <span v-else>{{ dev.is_proxied ? '✓ 旁路加速' : '○ 直连模式' }}</span>
-                  </button>
+                  <!-- 3 档极速模式微调开关 -->
+                  <div class="inline-flex items-center p-0.5 rounded-xl bg-black/60 border border-white/10 shrink-0 self-end sm:self-auto">
+                    <!-- ⚡ 旁路 -->
+                    <button @click="setClientMode(dev, 'proxy')" :disabled="togglingClientIP === dev.ip"
+                      class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-0.5"
+                      :class="(dev.is_proxied && dev.mode !== 'media' && dev.mode !== 'direct') ? 'bg-emerald-500 text-slate-950 shadow-sm font-black' : 'text-slate-400 hover:text-slate-200'"
+                      title="开启 CubeX 旁路全功能规则分流加速">
+                      <span v-if="togglingClientIP === dev.ip && targetTogglingMode === 'proxy'" class="inline-block animate-spin text-[10px]">↻</span>
+                      <span>⚡ 旁路</span>
+                    </button>
+
+                    <!-- 🎬 影音 -->
+                    <button @click="setClientMode(dev, 'media')" :disabled="togglingClientIP === dev.ip"
+                      class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-0.5"
+                      :class="(dev.mode === 'media' || dev.is_media) ? 'bg-purple-600 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-200'"
+                      title="影视海报刮削与Docker加速 · PT/下载物理芯片直通">
+                      <span v-if="togglingClientIP === dev.ip && targetTogglingMode === 'media'" class="inline-block animate-spin text-[10px]">↻</span>
+                      <span>🎬 影音</span>
+                    </button>
+
+                    <!-- 🏠 直连 -->
+                    <button @click="setClientMode(dev, 'direct')" :disabled="togglingClientIP === dev.ip"
+                      class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-0.5"
+                      :class="(!dev.is_proxied || dev.mode === 'direct') ? 'bg-white/20 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-200'"
+                      title="回归主路由原生物理芯片直通">
+                      <span v-if="togglingClientIP === dev.ip && targetTogglingMode === 'direct'" class="inline-block animate-spin text-[10px]">↻</span>
+                      <span>🏠 直连</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2390,7 +2421,7 @@
 
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
 
-                        {{ systemOverview.panel_latest_version || 'v9.8.0' }}
+                        {{ systemOverview.panel_latest_version || 'v9.9.0' }}
 
                       </span>
 
@@ -2398,7 +2429,7 @@
 
                     <p class="text-xs text-slate-400 mt-0.5 font-mono">
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'v9.8.0' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'v9.8.0' }}</span>
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'v9.9.0' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'v9.9.0' }}</span>
 
                     </p>
 
@@ -6450,7 +6481,7 @@ const runMemoryReclaim = async () => {
     if (res.ok) {
       const data = await res.json()
       if (data.memory_conntrack) memoryConntrackStatus.value = data.memory_conntrack
-      showToast(`Go 物理内存强制退还完成！已退还 ${data.freed_mb?.toFixed(1) || 'v9.8.0'} MB 内存给宿主系统`)
+      showToast(`Go 物理内存强制退还完成！已退还 ${data.freed_mb?.toFixed(1) || 'v9.9.0'} MB 内存给宿主系统`)
     }
   } catch (e) {
     showToast('内存回收执行失败: ' + e.message, true)
@@ -8584,7 +8615,7 @@ function updateLiveMonthlyTraffic(currentOutMB) {
 
       localStorage.setItem(monthKey, '0')
 
-      localStorage.setItem('cubex_month_traffic', 'v9.8.0')
+      localStorage.setItem('cubex_month_traffic', '0.0')
 
       trafficInsights.value.year = currentYear
 
@@ -8620,7 +8651,7 @@ function updateLiveMonthlyTraffic(currentOutMB) {
 
     const rawVal = localStorage.getItem('cubex_month_traffic')
 
-    if (rawVal === 'v9.8.0' || rawVal === 'v9.8.0') {
+    if (rawVal === '0.0' || rawVal === '0') {
 
       localStorage.removeItem('cubex_month_traffic')
 
@@ -9802,19 +9833,19 @@ const hostConfig = ref({
 
 const systemOverview = ref({
 
-  cubex_version: 'v9.8.0',
+  cubex_version: 'v9.9.0',
 
-  panel_curr_version: 'v9.8.0',
+  panel_curr_version: 'v9.9.0',
 
-  panel_latest_version: 'v9.8.0',
+  panel_latest_version: 'v9.9.0',
 
-  mihomo_curr_version: 'v9.8.0',
+  mihomo_curr_version: 'v9.9.0',
 
-  mihomo_latest_version: 'v9.8.0',
+  mihomo_latest_version: 'v9.9.0',
 
-  singbox_curr_version: 'v9.8.0',
+  singbox_curr_version: 'v9.9.0',
 
-  singbox_latest_version: 'v9.8.0',
+  singbox_latest_version: 'v9.9.0',
 
   panel_update_avail: false,
 
@@ -9850,7 +9881,7 @@ const ikuaiDockerRunCli = ref(`docker run -d \\
 
   ghcr.io/zyeyefyass/cubex:latest`)
 
-const ikuaiDockerComposeYaml = ref(`version: 'v9.8.0'
+const ikuaiDockerComposeYaml = ref(`version: '3.8'
 
 services:
 
@@ -10413,7 +10444,7 @@ function buildDiagnosticMarkdown(data) {
 
   return `### 🌌 CubeX 运行环境诊断报告 (已脱敏)
 
-- **系统版本**: CubeX ${meta.version || 'v9.8.0'} (${meta.os || 'linux'}/${meta.arch || 'amd64'})
+- **系统版本**: CubeX ${meta.version || 'v9.9.0'} (${meta.os || 'linux'}/${meta.arch || 'amd64'})
 
 - **双核状态**: 活动内核 \`${eng.active_engine || 'mihomo'}\` (运行正常: ${eng.running ? '是' : '否'})
 
@@ -10639,9 +10670,10 @@ const fetchingClients = ref(false)
 
 const clientSearchQuery = ref('')
 
-const clientFilterMode = ref('all') // 'all' | 'proxy' | 'direct' | 'online'
+const clientFilterMode = ref('all') // 'all' | 'proxy' | 'media' | 'direct' | 'online'
 
 const togglingClientIP = ref('')
+const targetTogglingMode = ref('')
 
 const batchProcessingClients = ref(false)
 
@@ -12962,62 +12994,50 @@ async function fetchLanClients(silent = false) {
 
 }
 
-async function toggleClientProxy(client) {
-
+async function setClientMode(client, targetMode) {
   if (!client || !client.ip || client.ip === '-' || togglingClientIP.value) return
-
   togglingClientIP.value = client.ip
-
-  const targetEnable = !client.is_proxied
+  targetTogglingMode.value = targetMode
 
   try {
-
     const res = await fetch('/api/v1/host/router/clients/toggle', {
-
       method: 'POST',
-
       headers: { 'Content-Type': 'application/json' },
-
       body: JSON.stringify({
-
         ip: client.ip,
-
         mac: client.mac,
-
-        enable: targetEnable
-
+        mode: targetMode
       })
-
     })
-
     const data = await res.json()
-
     if (data.status === 'ok') {
-
-      client.is_proxied = targetEnable
-
-      client.mode = targetEnable ? 'proxy' : 'direct'
-
-      showToast(targetEnable ? `⚡ [${client.name || client.ip}] 已切换为【CubeX 旁路极速加速】` : `🛡️ [${client.name || client.ip}] 已切换为【主路由原生直连】`)
-
+      client.mode = targetMode
+      client.is_proxied = (targetMode !== 'direct')
+      client.is_media = (targetMode === 'media')
+      const name = client.name || client.hostname || client.ip
+      if (targetMode === 'media') {
+        showToast(`🎬 [${name}] 已开启【影音/NAS专属加速】(海报刮削加速 · PT/下载物理直通)`)
+      } else if (targetMode === 'proxy') {
+        showToast(`⚡ [${name}] 已切换为【CubeX 旁路极速加速】`)
+      } else {
+        showToast(`🏠 [${name}] 已切换为【主路由原生直连】`)
+      }
       fetchRouterHardware(true)
-
     } else {
-
-      showToast('⚠️ 切换失败: ' + (data.error || '未知错误'), true)
-
+      showToast('⚠️ 模式切换失败: ' + (data.error || '未知错误'), true)
     }
-
   } catch (e) {
-
     showToast('⚠️ 请求异常: ' + e.message, true)
-
   } finally {
-
     togglingClientIP.value = ''
-
+    targetTogglingMode.value = ''
   }
+}
 
+async function toggleClientProxy(client) {
+  if (!client) return
+  const isCurrentlyProxied = (client.is_proxied && client.mode !== 'direct')
+  await setClientMode(client, isCurrentlyProxied ? 'direct' : 'proxy')
 }
 
 async function batchSetClients(action) {
@@ -13135,33 +13155,28 @@ const filteredLanClients = computed(() => {
   }
 
   if (clientFilterMode.value === 'proxy') {
-
-    list = list.filter(c => c.is_proxied)
-
+    list = list.filter(c => c.is_proxied && c.mode !== 'media' && c.mode !== 'direct')
+  } else if (clientFilterMode.value === 'media') {
+    list = list.filter(c => c.mode === 'media' || c.is_media)
   } else if (clientFilterMode.value === 'direct') {
-
-    list = list.filter(c => !c.is_proxied)
-
+    list = list.filter(c => !c.is_proxied || c.mode === 'direct')
   } else if (clientFilterMode.value === 'online') {
-
     list = list.filter(c => c.online)
-
   }
 
   return list
-
 })
 
 const proxiedClientsCount = computed(() => {
+  return (lanClients.value || []).filter(c => c.is_proxied && c.mode !== 'media' && c.mode !== 'direct').length
+})
 
-  return (lanClients.value || []).filter(c => c.is_proxied).length
-
+const mediaClientsCount = computed(() => {
+  return (lanClients.value || []).filter(c => c.mode === 'media' || c.is_media).length
 })
 
 const directClientsCount = computed(() => {
-
-  return (lanClients.value || []).filter(c => !c.is_proxied).length
-
+  return (lanClients.value || []).filter(c => !c.is_proxied || c.mode === 'direct').length
 })
 
 function getDeviceIcon(client) {
@@ -13534,7 +13549,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
     } else if (data.status === 'already_latest') {
 
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'v9.8.0'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'v9.9.0'})`)
 
     } else {
 
@@ -13580,7 +13595,7 @@ async function upgradePanel(force = false) {
 
       const timeStr = new Date().toLocaleTimeString()
 
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'v9.8.0'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'v9.9.0'})，无需重复更新。`
 
       showToast(data.message || 'CubeX 系统已是最新版本')
 
@@ -13632,13 +13647,13 @@ function openGitHubIssuePrompt() {
 
   if (systemOverview.value?.mihomo_update_avail) {
 
-    parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version} (当前: ${systemOverview.value.mihomo_curr_version || 'v9.8.0'})`)
+    parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version} (当前: ${systemOverview.value.mihomo_curr_version || 'v9.9.0'})`)
 
   }
 
   if (systemOverview.value?.singbox_update_avail) {
 
-    parts.push(`sing-box ${systemOverview.value.singbox_latest_version} (当前: ${systemOverview.value.singbox_curr_version || 'v9.8.0'})`)
+    parts.push(`sing-box ${systemOverview.value.singbox_latest_version} (当前: ${systemOverview.value.singbox_curr_version || 'v9.9.0'})`)
 
   }
 
@@ -13658,7 +13673,7 @@ function openGitHubIssuePrompt() {
 
 - 系统架构：${systemOverview.value?.arch || 'amd64'}
 
-- CubeX 版本：${systemOverview.value?.cubex_version || 'v9.8.0'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'v9.9.0'}
 
 - 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
 
@@ -13987,11 +14002,11 @@ async function checkHostUpgrade(silent = false) {
 
       }
 
-      hostUpgradeResult.value = data.output || (isRouterOS.value ? `RouterOS 固件已是最新稳定版本 (${data.installed_version || 'v9.8.0'} stable)` : hostBadge.value.shortName + ' 已是最新版本')
+      hostUpgradeResult.value = data.output || (isRouterOS.value ? `RouterOS 固件已是最新稳定版本 (${data.installed_version || 'v9.9.0'} stable)` : hostBadge.value.shortName + ' 已是最新版本')
 
       if (!silent) {
 
-        showToast(data.has_update ? `🎉 发现 RouterOS 新版本: ${data.latest_version}！` : `✓ 固件核对完成：已是最新稳定版本 (${data.installed_version || 'v9.8.0'})`)
+        showToast(data.has_update ? `🎉 发现 RouterOS 新版本: ${data.latest_version}！` : `✓ 固件核对完成：已是最新稳定版本 (${data.installed_version || 'v9.9.0'})`)
 
       }
 
@@ -22207,6 +22222,7 @@ async function runAuthorizedMountLoad() {
 }
 
 provide('cubexApp', reactive({
+  showToast,
   activeEngine, adblockStats, addFakeIpFilter, addWhitelistItem, aiActionResult, aiActions, aiConfig, aiLoading, aiPresetQuestions, aiPrompt, aiProviders, aiReply, authState, batchAddingNodes, batchImportingSubs, batchNodeText, batchSubText, chaosDrillReport, chaosReportModal, checkHostUpgrade, checkingGeoUpgrade, checkingHostUpgrade, chooseFreshStart, cleanActionLabelMap, cleaningRosFirewall, clearSystemLogs, completeInitWizard, confirmAndStartInitWizard, confirmSystemReboot, copyDiagnosticMarkdown, copyText, coreUpgradeFrozen, coreUpgradeLog, creatingGithubIssue, customNodes, deleteDnsRewriteRule, deleteNode, deleteSourceItem, deleteSubscription, diagnosticModal, displayedLogs, dnsBlockedLastY, dnsBlockedPath, dnsFilterStats, dnsLatencyLastY, dnsLatencyPath, dnsQueryLastY, dnsQueryPath, dnsRewriteConfig, editingDnsRewriteRule, editingRuleSource, executeAIAction, executeHostUpgrade, executingAIActionId, executingHostUpgrade, executionModal, exportBackup, fakeIpFilters, fakeIpLoading, fetchDnsFilterStats, fetchRouterHardware, fetchSystemLogs, filterConfig, filteredGeodataFiles, formatExpire, geoAutoUpdateEnabled, geoUpdateLog, geodataFilterCategory, geodataFilterEngine, geodataLastUpdateText, geodataSearchQuery, geodataStatus, getNodeDelayClass, getSubRegions, handleInitBackupUpload, handleInitFileDrop, hasAnyUpdate, healingSteps, hostBadge, hostConfig, hostInfo, hostLastExecution, hostUpgradeDetails, hostUpgradeResult, importBackup, initBackupFileInput, initDetectedPlatform, initExecuting, initHostForm, initImportStats, initImportSuccess, initImporting, initLogs, initWizardImportTab, initWizardStep, inspectAndCleanReapplyRos, ir, isHotRestarting, isIKuai, isOpenWrt, isProbingAll, isRouterOS, isSubDrawerExpanded, isUpdatingSource, launchFireworks, lockConsoleNow, logContainerRef, logFilterLevel, logFilterModule, logSearchQuery, newFakeIpInput, newWhitelistDomain, openAddDnsRewriteModal, openAddSourceModal, openEditDnsRewriteModal, openEditSourceModal, openGitHubIssuePrompt, openProbeModal, openSourcePreview, openUpgradeModal, panelUpgradeLog, parsedBatchNodes, parsedBatchSubs, previewingSource, probeAllFourDimensions, probeChecked, probeLastTime, refreshSourceItem, removeFakeIpFilter, removeWhitelistItem, resetDnsRewriteDefaults, routerHW, routerHWMemoryDisplay, runSecurityAudit, runSubSpeedTest, saveAIConfig, saveDnsRewriteRule, saveFilterAutoUpdate, saveRuleSource, savingAndLinkingHost, securityAudit, selectAIProvider, sendAIChat, setNodeAsPrimaryOutbound, showAISettingsModal, showAuthManageModal, showDnsRewriteModal, showImportModal, showInitWizardModal, showLogsModal, showProbeModal, showGeodataDetailModal, showRuleSourceModal, showSourcePreviewModal, saveCredentialsAndLinkHost, startInitStep3Execution, stopFireworks, subHealthMap, subMetaMap, subModalTab, subNodesMap, subQuotaMap, subSpeedTesting, submitBatchNodes, submitBatchSubs, submitInitWizardImportAndLaunch, systemOverview, toggleCoreUpgradeFreeze, toggleDnsRewriteMaster, toggleDnsRewriteRule, toggleFilterMaster, toggleGeoAutoUpdate, toggleSourceItem, toggleSubDrawer, toggleSubscription, triggerFastSelfHeal, triggerHotRestart, triggerWANHeal, triggerInitBackupSelect, triggerQuickAIPrompt, updateAllSubscriptions, updateDetailText, updateGeoData, updateSubscription, updateSummaryText, updatingGeo, upgradeCore, upgradePanel, upgradingCoreMihomo, upgradingCoreSingbox, upgradingPanel, uploadToGithubIssue
 }))
 

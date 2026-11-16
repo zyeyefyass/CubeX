@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/zyeyefyass/CubeX/internal/device"
@@ -2234,6 +2235,44 @@ func (s *Server) handleRouterClients(w http.ResponseWriter, r *http.Request) {
 
 
 
+func (s *Server) syncDevicePoliciesToIR(ir *schema.ConfigIR) {
+	if s.devMgr == nil || ir == nil {
+		return
+	}
+	devices := s.devMgr.GetDevices()
+	macToIP := make(map[string]string)
+	for _, d := range devices {
+		if d.MAC != "" && d.IP != "" && d.IP != "-" {
+			macToIP[strings.ToUpper(d.MAC)] = d.IP
+		}
+	}
+
+	policies := s.devMgr.GetPolicies()
+	seenIPs := make(map[string]bool)
+	devPolicies := make([]schema.DevicePolicy, 0, len(policies))
+	for key, pol := range policies {
+		dp := schema.DevicePolicy{
+			Mode:      pol.Mode,
+			BoundNode: pol.BoundNode,
+		}
+		if strings.Contains(key, ".") {
+			dp.IP = key
+		} else {
+			dp.MAC = key
+			if liveIP, ok := macToIP[strings.ToUpper(key)]; ok {
+				dp.IP = liveIP
+			}
+		}
+		if dp.IP != "" && dp.IP != "-" {
+			if !seenIPs[dp.IP] {
+				seenIPs[dp.IP] = true
+				devPolicies = append(devPolicies, dp)
+			}
+		}
+	}
+	ir.DevicePolicies = devPolicies
+}
+
 func (s *Server) handleDeviceToggle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -2243,6 +2282,7 @@ func (s *Server) handleDeviceToggle(w http.ResponseWriter, r *http.Request) {
 		IP     string `json:"ip"`
 		MAC    string `json:"mac"`
 		Enable bool   `json:"enable"`
+		Mode   string `json:"mode,omitempty"` // "proxy" | "media" | "direct"
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -2252,18 +2292,54 @@ func (s *Server) handleDeviceToggle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "device manager not initialized", http.StatusInternalServerError)
 		return
 	}
-	if err := s.devMgr.ToggleDeviceProxy(req.IP, req.MAC, req.Enable); err != nil {
+
+	targetMode := req.Mode
+	if targetMode == "" {
+		if req.Enable {
+			targetMode = "proxy"
+		} else {
+			targetMode = "direct"
+		}
+	}
+
+	if err := s.devMgr.SetDeviceMode(req.IP, req.MAC, targetMode); err != nil {
 		sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
 		return
 	}
+
 	msg := fmt.Sprintf("设备 %s 已切换为【CubeX 旁路极速加速】！", req.IP)
-	if !req.Enable {
+	if targetMode == "media" {
+		msg = fmt.Sprintf("设备 %s 已切换为【🎬 影音/NAS 专属模式 (海报刮削加速 · PT下载物理直通)】！", req.IP)
+	} else if targetMode == "direct" || targetMode == "bypass" {
 		msg = fmt.Sprintf("设备 %s 已切换为【主路由原生直连】！", req.IP)
 	}
+
+	// 联动同步终端分流策略至 Universal IR 并极速预热目标内核
+	if s.engMgr != nil {
+		ir := s.engMgr.GetIR()
+		if ir != nil {
+			s.syncDevicePoliciesToIR(ir)
+			s.engMgr.UpdateIR(ir)
+			SafeGo("DevicePolicyHotReload", func() {
+				_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+			})
+		}
+	}
+
+	// 0.1秒秒切清道夫：精准斩断该设备旧代理长连接，无需重连 Wi-Fi 立即生效
+	if s.staleFlowKiller != nil && req.IP != "" && req.IP != "-" {
+		SafeGo("KillClientConns", func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 800*time.Millisecond)
+			defer cancel()
+			_, _ = s.staleFlowKiller.KillClientConnections(ctx, req.IP)
+		})
+	}
+
 	sendJSON(w, map[string]any{
 		"status":  "ok",
 		"ip":      req.IP,
-		"enable":  req.Enable,
+		"mode":    targetMode,
+		"enable":  targetMode != "direct" && targetMode != "bypass",
 		"message": msg,
 	})
 }

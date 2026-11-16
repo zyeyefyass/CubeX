@@ -210,6 +210,78 @@ func (sfk *StaleFlowKiller) KillStalledConnections(ctx context.Context) (int, er
 	return killed, nil
 }
 
+// KillClientConnections 立即斩断指定源 IP 设备的所有活跃代理连接 (0.1秒秒切生效)
+func (sfk *StaleFlowKiller) KillClientConnections(ctx context.Context, clientIP string) (int, error) {
+	if sfk.clashAPIBase == "" || clientIP == "" || clientIP == "-" {
+		return 0, nil
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, sfk.clashAPIBase+"/connections", nil)
+	if err != nil {
+		return 0, err
+	}
+	if sfk.clashAPISecret != "" {
+		req.Header.Set("Authorization", "Bearer "+sfk.clashAPISecret)
+	}
+
+	resp, err := sfk.httpClient.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("fetch connections failed: %w", err)
+	}
+	defer netutil.DrainAndCloseBody(resp)
+
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("unexpected status %d fetching connections", resp.StatusCode)
+	}
+
+	var data clashConnectionsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return 0, fmt.Errorf("decode connections failed: %w", err)
+	}
+
+	batchCtx, cancel := context.WithTimeout(ctx, 800*time.Millisecond)
+	defer cancel()
+
+	matchedIDs := make([]string, 0, 16)
+	for _, c := range data.Connections {
+		if c.Metadata.SourceIP == clientIP {
+			matchedIDs = append(matchedIDs, c.ID)
+		}
+	}
+
+	if len(matchedIDs) == 0 {
+		return 0, nil
+	}
+
+	sem := make(chan struct{}, 8)
+	var wg sync.WaitGroup
+	var killMu sync.Mutex
+	killed := 0
+
+	for _, id := range matchedIDs {
+		select {
+		case <-batchCtx.Done():
+			break
+		default:
+			wg.Add(1)
+			sem <- struct{}{}
+			go func(connID string) {
+				defer func() {
+					<-sem
+					wg.Done()
+				}()
+				if err := sfk.deleteConnection(batchCtx, connID); err == nil {
+					killMu.Lock()
+					killed++
+					killMu.Unlock()
+				}
+			}(id)
+		}
+	}
+	wg.Wait()
+	return killed, nil
+}
+
 func (sfk *StaleFlowKiller) deleteConnection(ctx context.Context, connID string) error {
 	delURL := fmt.Sprintf("%s/connections/%s", sfk.clashAPIBase, connID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, delURL, nil)

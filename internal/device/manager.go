@@ -16,7 +16,7 @@ import (
 
 // DevicePolicy defines the routing strategy for a device.
 type DevicePolicy struct {
-	Mode      string `json:"mode"`       // "rule" | "bypass" | "node"
+	Mode      string `json:"mode"`       // "rule" | "bypass" | "node" | "media"
 	BoundNode string `json:"bound_node"` // specific node or proxy group
 }
 
@@ -31,8 +31,9 @@ type Device struct {
 	Source    string `json:"source"`
 	Online    bool   `json:"online"`
 	LastSeen  int64  `json:"last_seen"`
-	Mode      string `json:"mode"`       // "proxy" (走旁路加速) | "direct" (主路由直连) | "rule" | "bypass" | "node"
+	Mode      string `json:"mode"`       // "proxy" (走旁路加速) | "media" (🎬 影音NAS专属) | "direct" (主路由直连) | "rule" | "bypass" | "node"
 	IsProxied bool   `json:"is_proxied"`  // true: in cubex-clients or proxy active; false: direct
+	IsMedia   bool   `json:"is_media"`    // true: 🎬 影音/NAS专属模式 (海报刮削加速 + PT物理直通)
 	BoundNode string `json:"bound_node"` // specific node or proxy group when mode == "node"
 }
 
@@ -202,7 +203,7 @@ func (m *Manager) SetPolicy(ip, mac, mode, boundNode string) error {
 
 	// Sync to RouterOS cubex-clients if connected
 	if m.rosMgr != nil && ip != "" && ip != "-" {
-		enable := (mode == "proxy" || mode == "rule" || mode == "node")
+		enable := (mode == "proxy" || mode == "rule" || mode == "node" || mode == "media")
 		aliasName := ""
 		if mac != "" {
 			aliasName = m.store.Aliases[mac]
@@ -214,6 +215,18 @@ func (m *Manager) SetPolicy(ip, mac, mode, boundNode string) error {
 	}
 
 	return nil
+}
+
+// SetDeviceMode sets a specific routing mode for a device: "proxy", "media", or "direct".
+func (m *Manager) SetDeviceMode(ip, mac, mode string) error {
+	mode = strings.TrimSpace(strings.ToLower(mode))
+	if mode != "media" && mode != "direct" && mode != "bypass" {
+		mode = "proxy"
+	}
+	if mode == "direct" {
+		mode = "bypass"
+	}
+	return m.SetPolicy(ip, mac, mode, "")
 }
 
 // ToggleDeviceProxy switches a single device between CubeX proxy acceleration and router direct.
@@ -473,16 +486,17 @@ func (m *Manager) GetDevices() []Device {
 		if rosProxiedClients != nil {
 			if rosProxiedClients[d.IP] {
 				d.IsProxied = true
-				d.Mode = "proxy"
+				if d.Mode != "media" && d.Mode != "node" {
+					d.Mode = "proxy"
+				}
 			} else {
 				d.IsProxied = false
-				if d.Mode == "rule" || d.Mode == "proxy" {
-					d.Mode = "direct"
-				}
+				d.Mode = "direct"
 			}
 		} else {
-			d.IsProxied = (d.Mode == "proxy" || d.Mode == "rule" || d.Mode == "node")
+			d.IsProxied = (d.Mode == "proxy" || d.Mode == "rule" || d.Mode == "node" || d.Mode == "media")
 		}
+		d.IsMedia = (d.Mode == "media")
 
 		result = append(result, *d)
 	}
@@ -515,7 +529,8 @@ func (m *Manager) GetDevices() []Device {
 						dev.Mode = pol.Mode
 						dev.BoundNode = pol.BoundNode
 					}
-					dev.IsProxied = (dev.Mode == "proxy" || dev.Mode == "rule" || dev.Mode == "node")
+					dev.IsProxied = (dev.Mode == "proxy" || dev.Mode == "rule" || dev.Mode == "node" || dev.Mode == "media")
+					dev.IsMedia = (dev.Mode == "media")
 					result = append(result, dev)
 				}
 			}
@@ -545,7 +560,8 @@ func (m *Manager) GetDevices() []Device {
 						dev.Mode = pol.Mode
 						dev.BoundNode = pol.BoundNode
 					}
-					dev.IsProxied = (dev.Mode == "proxy" || dev.Mode == "rule" || dev.Mode == "node")
+					dev.IsProxied = (dev.Mode == "proxy" || dev.Mode == "rule" || dev.Mode == "node" || dev.Mode == "media")
+					dev.IsMedia = (dev.Mode == "media")
 					result = append(result, dev)
 				}
 			}

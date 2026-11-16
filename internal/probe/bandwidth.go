@@ -102,8 +102,10 @@ func (p *BandwidthProber) Probe(ctx context.Context, proxyURL, testTargetURL str
 
 	// Configure HTTP client with proxy
 	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
+		DisableKeepAlives: true,
 	}
+	defer transport.CloseIdleConnections()
 	if proxyURL != "" {
 		parsedProxy, err := url.Parse(proxyURL)
 		if err != nil {

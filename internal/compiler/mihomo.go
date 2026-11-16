@@ -696,7 +696,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 			}
 
-			pMap["skip-cert-verify"] = true // 🛡️ 强制跳过验证，免疫机场多域名证书不匹配断网
+			pMap["skip-cert-verify"] = true // 🛡️ 强制跳过验证，免疫节点多域名证书不匹配断网
 
 			if len(p.ALPN) > 0 && pMap["alpn"] == nil {
 
@@ -1711,25 +1711,38 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	// 1. Device Policies (Top Priority)
-
 	for _, dev := range ir.DevicePolicies {
-
-		cidr := dev.IP
-
+		ip := strings.TrimSpace(dev.IP)
+		if ip == "" || ip == "-" {
+			continue
+		}
+		cidr := ip
 		if !strings.Contains(cidr, "/") {
-
 			cidr = cidr + "/32"
-
 		}
 
 		if dev.Mode == "bypass" {
-
 			rulesList = append(rulesList, fmt.Sprintf("SRC-IP-CIDR,%s,DIRECT", cidr))
-
 		} else if dev.Mode == "node" && dev.BoundNode != "" {
-
 			rulesList = append(rulesList, fmt.Sprintf("SRC-IP-CIDR,%s,%s", cidr, dev.BoundNode))
-
+		} else if dev.Mode == "media" {
+			target := foreignGroup
+			if dev.BoundNode != "" {
+				target = dev.BoundNode
+			} else if target == "" {
+				target = "DIRECT"
+			}
+			// 🎬 影音/NAS 专属模式：海报刮削/字幕/Docker/GitHub 精准走加速通道
+			mediaKeywords := []string{"tmdb", "themoviedb", "opensubtitles", "subscene", "fanart", "trakt"}
+			for _, kw := range mediaKeywords {
+				rulesList = append(rulesList, fmt.Sprintf("AND,((SRC-IP-CIDR,%s),(DOMAIN-KEYWORD,%s)),%s", cidr, kw, target))
+			}
+			mediaSuffixes := []string{"themoviedb.org", "tmdb.org", "thetvdb.com", "opensubtitles.org", "opensubtitles.com", "fanart.tv", "trakt.tv", "docker.io", "docker.com", "ghcr.io", "github.com", "githubusercontent.com"}
+			for _, suf := range mediaSuffixes {
+				rulesList = append(rulesList, fmt.Sprintf("AND,((SRC-IP-CIDR,%s),(DOMAIN-SUFFIX,%s)),%s", cidr, suf, target))
+			}
+			// 紧随其后：该设备所有其他流量（包括全部 PT/BT 下载、P2P 传输、大流量媒体）100% 物理直连！
+			rulesList = append(rulesList, fmt.Sprintf("SRC-IP-CIDR,%s,DIRECT", cidr))
 		}
 
 	}

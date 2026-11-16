@@ -60,6 +60,103 @@
           </div>
 
           <!-- ════════════════════════════════════════════════════════════════ -->
+          <!-- 1.5 ➕ 一句话网站分流 (Quick Custom Domain Override)               -->
+          <!-- ════════════════════════════════════════════════════════════════ -->
+          <div class="p-5 sm:p-6 rounded-3xl macos-glass-card hover:border-cyan-400/40 shadow-xl relative overflow-hidden space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-sky-500/20 border border-cyan-400/30 flex items-center justify-center text-xl shrink-0 shadow-md">
+                  ➕
+                </div>
+                <div>
+                  <h3 class="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
+                    <span>一句话网站分流</span>
+                    <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-bold">即按即生效 · 零感热重载</span>
+                  </h3>
+                  <p class="text-xs text-slate-300 mt-0.5 font-medium">
+                    输入任意网址或域名，一键决定加速、直连或屏蔽，双核自动同步生效
+                  </p>
+                </div>
+              </div>
+              <div class="text-xs font-mono text-slate-400 self-start sm:self-center">
+                已自定义: <strong class="text-cyan-300 font-bold">{{ totalCustomDomainCount }}</strong> 个网址
+              </div>
+            </div>
+
+            <!-- 极简输入框与 3 个大操作按钮 -->
+            <div class="flex flex-col md:flex-row items-stretch gap-2.5 pt-1">
+              <div class="relative flex-1">
+                <input v-model="quickDomainInput" @keyup.enter="handleQuickAdd('PROXIES')"
+                  type="text"
+                  placeholder="输入网址或域名，例如 javdb.com、pt.m-team.cc、github.com..."
+                  class="w-full h-11 px-4 pr-10 rounded-xl bg-black/40 border border-cyan-500/30 text-white placeholder-slate-400 text-sm font-mono focus:outline-none focus:border-cyan-400 transition" />
+                <button v-if="quickDomainInput" @click="quickDomainInput = ''"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full bg-white/10 cursor-pointer">
+                  ✕
+                </button>
+              </div>
+
+              <div class="flex items-center gap-2 shrink-0">
+                <!-- ⚡ 走加速 -->
+                <button @click="handleQuickAdd('PROXIES')" :disabled="quickAdding || !quickDomainInput.trim()"
+                  class="flex-1 sm:flex-none h-11 px-4 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white text-xs sm:text-[13px] font-extrabold flex items-center justify-center gap-1.5 shadow-md shadow-sky-500/20 active:scale-95 transition disabled:opacity-40 cursor-pointer">
+                  <span>⚡</span>
+                  <span>强制走加速</span>
+                </button>
+
+                <!-- 🏠 走直连 -->
+                <button @click="handleQuickAdd('DIRECT')" :disabled="quickAdding || !quickDomainInput.trim()"
+                  class="flex-1 sm:flex-none h-11 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs sm:text-[13px] font-extrabold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 transition disabled:opacity-40 cursor-pointer">
+                  <span>🏠</span>
+                  <span>强制走直连</span>
+                </button>
+
+                <!-- 🛑 拦截 -->
+                <button @click="handleQuickAdd('REJECT')" :disabled="quickAdding || !quickDomainInput.trim()"
+                  class="flex-1 sm:flex-none h-11 px-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white text-xs sm:text-[13px] font-extrabold flex items-center justify-center gap-1.5 shadow-md shadow-rose-500/20 active:scale-95 transition disabled:opacity-40 cursor-pointer">
+                  <span>🛑</span>
+                  <span>屏蔽该网站</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 当前已生效的自定义规则胶囊瀑布流展示 (按分类彩色徽章 + ✕ 单击即删) -->
+            <div v-if="totalCustomDomainCount > 0" class="pt-2 border-t border-white/10 space-y-2">
+              <div class="text-[11px] font-bold text-slate-300 flex items-center justify-between">
+                <span>当前自定分流规则清单（点击 ✕ 立即取消并还原默认）：</span>
+              </div>
+              <div class="flex flex-wrap gap-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                <!-- ⚡ 走加速项 -->
+                <span v-for="d in userOverrides.force_proxy_domains" :key="'p-' + d"
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-sky-950/60 border border-sky-400/40 text-sky-200 text-xs font-mono shadow-sm group">
+                  <span class="text-[10px] text-sky-300 font-bold">⚡ 加速</span>
+                  <span class="font-semibold">{{ d }}</span>
+                  <button @click="handleQuickClear(d)" title="删除此加速规则"
+                    class="ml-1 text-sky-400 hover:text-white hover:bg-sky-500/30 rounded px-1 transition cursor-pointer font-bold">✕</button>
+                </span>
+
+                <!-- 🏠 走直连项 -->
+                <span v-for="d in userOverrides.force_direct_domains" :key="'d-' + d"
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-950/60 border border-emerald-400/40 text-emerald-200 text-xs font-mono shadow-sm group">
+                  <span class="text-[10px] text-emerald-300 font-bold">🏠 直连</span>
+                  <span class="font-semibold">{{ d }}</span>
+                  <button @click="handleQuickClear(d)" title="删除此直连规则"
+                    class="ml-1 text-emerald-400 hover:text-white hover:bg-emerald-500/30 rounded px-1 transition cursor-pointer font-bold">✕</button>
+                </span>
+
+                <!-- 🛑 拦截项 -->
+                <span v-for="d in userOverrides.force_reject_domains" :key="'r-' + d"
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-rose-950/60 border border-rose-400/40 text-rose-200 text-xs font-mono shadow-sm group">
+                  <span class="text-[10px] text-rose-300 font-bold">🛑 屏蔽</span>
+                  <span class="font-semibold">{{ d }}</span>
+                  <button @click="handleQuickClear(d)" title="删除此拦截规则"
+                    class="ml-1 text-rose-400 hover:text-white hover:bg-rose-500/30 rounded px-1 transition cursor-pointer font-bold">✕</button>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ════════════════════════════════════════════════════════════════ -->
 
           <!-- 2. 安全总评与能量光环看板 (Security Radar Scorecard)               -->
 
@@ -1201,10 +1298,14 @@
 </template>
 
 <script setup>
-import { inject, ref, onMounted } from 'vue'
+import { inject, ref, computed, onMounted } from 'vue'
 import ZootopiaIcon from '../ZootopiaIcon.vue'
 const app = inject('cubexApp')
 const showWhitelistSection = ref(false)
+
+// ➕ v9.9.0 一句话网站分流 (Quick Custom Domain Override)
+const quickDomainInput = ref('')
+const quickAdding = ref(false)
 
 // v9.4.0 User Overrides
 const userOverrides = ref({
@@ -1212,6 +1313,64 @@ const userOverrides = ref({
   force_proxy_domains: [],
   force_reject_domains: []
 })
+
+const totalCustomDomainCount = computed(() => {
+  return (userOverrides.value.force_proxy_domains?.length || 0) +
+         (userOverrides.value.force_direct_domains?.length || 0) +
+         (userOverrides.value.force_reject_domains?.length || 0)
+})
+
+function cleanDomain(val) {
+  return (val || '').trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0].split(':')[0].replace(/^\*?\./, '')
+}
+
+async function handleQuickAdd(outbound) {
+  const domain = cleanDomain(quickDomainInput.value)
+  if (!domain || !domain.includes('.')) {
+    if (app && app.showToast) app.showToast('⚠️ 请输入有效的网址或域名 (如 javdb.com)', true)
+    return
+  }
+  quickAdding.value = true
+  try {
+    const res = await fetch('/api/v1/rules/user-overrides/target', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target: domain, outbound })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      quickDomainInput.value = ''
+      await fetchUserOverrides()
+      const label = outbound === 'PROXIES' ? '⚡ 走加速' : outbound === 'DIRECT' ? '🏠 走直连' : '🛑 拦截屏蔽'
+      if (app && app.showToast) app.showToast(`✅ [${domain}] 已设置为【${label}】并即刻生效`)
+    } else {
+      if (app && app.showToast) app.showToast('⚠️ 设置失败: ' + (data.error || '未知错误'), true)
+    }
+  } catch (err) {
+    if (app && app.showToast) app.showToast('⚠️ 请求失败: ' + err.message, true)
+  } finally {
+    quickAdding.value = false
+  }
+}
+
+async function handleQuickClear(domain) {
+  try {
+    const res = await fetch('/api/v1/rules/user-overrides/target', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target: domain, outbound: 'CLEAR' })
+    })
+    const data = await res.json()
+    if (data.ok) {
+      await fetchUserOverrides()
+      if (app && app.showToast) app.showToast(`🗑️ [${domain}] 已清除自定义分流，恢复默认规则`)
+    } else {
+      if (app && app.showToast) app.showToast('⚠️ 清除失败: ' + (data.error || '未知错误'), true)
+    }
+  } catch (err) {
+    if (app && app.showToast) app.showToast('⚠️ 清除失败: ' + err.message, true)
+  }
+}
 const directInput = ref('')
 const proxyInput = ref('')
 const rejectInput = ref('')

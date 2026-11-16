@@ -27,7 +27,7 @@
           <div class="flex items-center gap-2">
             <button @click="triggerBurst" :disabled="testingBurst"
               class="px-3 py-1 rounded-xl text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 flex items-center gap-1.5 transition active:scale-95 cursor-pointer font-tabular"
-              title="单次 ≤2MB 闪电突发测速，不偷跑流量">
+              title="单次 ≤2MB 闪电突发测速，零额外流量损耗">
               <span v-if="testingBurst" class="inline-block animate-spin">↻</span>
               <span v-else>⚡</span>
               <span>{{ testingBurst ? '测速中...' : '闪电测速' }}</span>

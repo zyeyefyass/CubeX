@@ -49,6 +49,7 @@ func (s *Server) registerV97Routes(mux *http.ServeMux) {
 	// 4. Three-Level Connections Tree & Non-Destructive Override
 	mux.HandleFunc("/api/v1/telemetry/connections", s.handleTelemetryConnectionsTree)
 	mux.HandleFunc("/api/v1/rules/override-target", s.handleRuleOverrideTarget)
+	mux.HandleFunc("/api/v1/rules/user-overrides/target", s.handleRuleOverrideTarget)
 
 	// 5. Four-Quadrant IP Quality & Residential Risk Perspective
 	mux.HandleFunc("/api/v1/config/proxies/ip-perspective", s.handleProxyIPPerspective)

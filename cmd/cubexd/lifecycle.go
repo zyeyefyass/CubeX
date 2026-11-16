@@ -186,6 +186,7 @@ func (s *Server) handleReloadConfig(w http.ResponseWriter, r *http.Request) {
 	ir := s.engMgr.GetIR()
 
 	schema.SyncAllStrategyGroups(ir)
+	s.syncDevicePoliciesToIR(ir)
 
 	s.engMgr.UpdateIR(ir)
 

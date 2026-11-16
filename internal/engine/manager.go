@@ -654,21 +654,18 @@ func detectTotalRAMMb() int64 {
 
 func getAdaptiveEngineMemoryLimits() (gomemlimit string, gogc string) {
 	totalMb := detectTotalRAMMb()
-	limitMb := 38
-	gc := 25
+	limitMb := 22
+	gc := 15
 
 	if totalMb <= 256 {
-		limitMb = 28 // 256M container / CHR: 28MiB strict ceiling
-		gc = 20
+		limitMb = 18 // 256M container / CHR: 18MiB strict ceiling
+		gc = 15
 	} else if totalMb <= 512 {
-		limitMb = 35 // 512M CHR / router: 35MiB strict ceiling
-		gc = 20
-	} else if totalMb <= 1024 {
-		limitMb = 38 // 1GB host: 38MiB ceiling
-		gc = 25
+		limitMb = 20 // 512M CHR / router: 20MiB strict ceiling
+		gc = 15
 	} else {
-		limitMb = 45 // 2GB+ host: 45MiB keeps core RAM under 35-40MB
-		gc = 25
+		limitMb = 22 // 1GB+ host: 22MiB strict ceiling keeps core RAM <= 20-22MB
+		gc = 15
 	}
 
 	return fmt.Sprintf("GOMEMLIMIT=%dMiB", limitMb), fmt.Sprintf("GOGC=%d", gc)

@@ -2342,35 +2342,52 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	// D. Device Policies (Top Priority)
-
 	for _, dev := range ir.DevicePolicies {
-
-		cidr := dev.IP
-
+		ip := strings.TrimSpace(dev.IP)
+		if ip == "" || ip == "-" {
+			continue
+		}
+		cidr := ip
 		if !strings.Contains(cidr, "/") {
-
 			cidr = cidr + "/32"
-
 		}
 
 		if dev.Mode == "bypass" {
-
 			routeRules = append(routeRules, map[string]any{
-
 				"source_ip_cidr": []string{cidr},
-
-				"outbound": "direct",
+				"outbound":       "direct",
 			})
-
 		} else if dev.Mode == "node" && dev.BoundNode != "" {
-
 			routeRules = append(routeRules, map[string]any{
-
 				"source_ip_cidr": []string{cidr},
-
-				"outbound": dev.BoundNode,
+				"outbound":       dev.BoundNode,
 			})
-
+		} else if dev.Mode == "media" {
+			target := foreignDetour
+			if dev.BoundNode != "" {
+				target = dev.BoundNode
+			} else if target == "" {
+				target = "direct"
+			}
+			// 🎬 影音/NAS 专属模式：海报刮削/字幕/Docker/GitHub 精准走加速
+			routeRules = append(routeRules,
+				map[string]any{
+					"source_ip_cidr": []string{cidr},
+					"domain_keyword": []string{"tmdb", "themoviedb", "opensubtitles", "subscene", "fanart", "trakt"},
+					"domain_suffix": []string{
+						"themoviedb.org", "tmdb.org", "thetvdb.com",
+						"opensubtitles.org", "opensubtitles.com",
+						"fanart.tv", "trakt.tv",
+						"docker.io", "docker.com", "ghcr.io",
+						"github.com", "githubusercontent.com",
+					},
+					"outbound": target,
+				},
+				map[string]any{
+					"source_ip_cidr": []string{cidr},
+					"outbound":       "direct",
+				},
+			)
 		}
 
 	}

@@ -58,7 +58,8 @@ replace_in_file("web/package.json", r'"version":\s*"[0-9]+\.[0-9]+(?:\.[0-9]+)?"
 # 7. web/src/App.vue fallbacks
 with open("web/src/App.vue", "r", encoding="utf-8") as f:
     vue_text = f.read()
-vue_text = re.sub(r"'(?:Test\s+)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?'", f"'{TARGET_VER}'", vue_text)
+vue_text = re.sub(r"\|\|\s*'(?:Test\s+)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?'", f"|| '{TARGET_VER}'", vue_text)
+vue_text = re.sub(r"(cubex_version|panel_curr_version|panel_latest_version|mihomo_curr_version|singbox_curr_version|mihomo_latest_version|singbox_latest_version):\s*'(?:Test\s+)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?'", f"\\1: '{TARGET_VER}'", vue_text)
 with open("web/src/App.vue", "w", encoding="utf-8", newline='') as f:
     f.write(vue_text)
 print("✓ Updated web/src/App.vue fallback versions")

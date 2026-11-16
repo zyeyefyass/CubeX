@@ -752,15 +752,15 @@ const code = computed(() => {
   c = parseCountryCode(props.id)
   if (c) return c
 
-  // Custom airport subscription groups or custom node groups
+  // Custom subscription groups or custom node groups
   if (props.id && props.id.toUpperCase().startsWith('CUSTOM')) {
-    if (props.type === 'sub' || (props.name && (props.name.includes('专属') || props.name.includes('机场') || props.name.includes('Sub') || props.name.includes('HHost') || props.name.includes('Mtice')))) {
+    if (props.type === 'sub' || (props.name && (props.name.includes('专属') || props.name.includes('订阅') || props.name.includes('Sub') || props.name.includes('HHost') || props.name.includes('Mtice')))) {
       return 'SUB'
     }
     return 'CUSTOM'
   }
   if (props.id && props.id.toUpperCase().startsWith('OTHER')) return 'OTHERS'
-  if (props.name && (props.name.includes('专属') || props.name.includes('机场') || props.name.includes('HHost') || props.name.includes('Mtice'))) {
+  if (props.name && (props.name.includes('专属') || props.name.includes('订阅') || props.name.includes('HHost') || props.name.includes('Mtice'))) {
     return 'SUB'
   }
   return (props.countryCode || props.id || props.code || '').toUpperCase().trim()

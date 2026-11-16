@@ -2363,11 +2363,12 @@ func (s *Server) executeNodeRealDelayProbe(node schema.ProxyNode, clashPort int,
 	probe := "https://cp.cloudflare.com/generate_204"
 
 	tr := &http.Transport{
-		DisableKeepAlives:   false,
-		MaxIdleConns:        64,
-		MaxIdleConnsPerHost: 32,
-		IdleConnTimeout:     15 * time.Second,
+		DisableKeepAlives:   true,
+		MaxIdleConns:        1,
+		MaxIdleConnsPerHost: 1,
+		IdleConnTimeout:     5 * time.Second,
 	}
+	defer tr.CloseIdleConnections()
 	client := &http.Client{
 		Transport: tr,
 		Timeout:   2800 * time.Millisecond,

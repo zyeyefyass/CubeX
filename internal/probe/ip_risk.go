@@ -46,8 +46,10 @@ func NewIPQualityProber() *IPQualityProber {
 // Inspect queries outbound IP intelligence through the specified proxy.
 func (p *IPQualityProber) Inspect(ctx context.Context, proxyURL string) (*IPQualityResult, error) {
 	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
+		DisableKeepAlives: true,
 	}
+	defer transport.CloseIdleConnections()
 	if proxyURL != "" {
 		parsedProxy, err := url.Parse(proxyURL)
 		if err != nil {

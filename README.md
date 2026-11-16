@@ -8,7 +8,7 @@
 
 <p align="center">
 
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-v9.8.0_正式版-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-v9.9.0_正式版-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
 
 <a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
 
@@ -80,7 +80,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 v9.8.0 纯净稳定版最新更新亮点](#announcement)
+- [📢 v9.9.0 纯净稳定版最新更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -321,28 +321,27 @@
 
 <a id="announcement"></a>
 
-## 📢 v9.8.0 纯净稳定版最新更新亮点 (全自动省心托管与全栈大白话极简版)
+## 📢 v9.9.0 纯净稳定版最新更新亮点 (影音/NAS专属加速 · 一句话网站分流 · 全屋配置时光机 · 14.9MB极限稳态)
 
 > [!IMPORTANT]
-> ### 👑【全自动省心托管与全栈大白话极简版】(v9.8.0 纯净稳定版)
+> ### 👑【影音/NAS专属加速 · 一句话网站分流 · 全屋配置时光机 · 14.9MB极限稳态】(v9.9.0 纯净稳定版)
 >
-> 1. **全自动省心模式 (AutoPilot 自动避障 & 故障秒切)**：
->    - **零额外发包被动熔断器 (`internal/probe/circuit_breaker.go`)**：基于 $O(1)$ 环形缓冲区，对真实业务流超时与丢包进行滑动统计；在 10 秒内连续失败 $\ge 5$ 次时自动将卡顿线路隔离 5 分钟，通过半开机制自主复测回血；
->    - **切换线路防卡死清道夫 (`internal/dataplane/stale_killer.go`)**：在发生切线时，毫秒级精确定向清理旧节点上的滞留僵尸连接，彻底告别浏览器转圈；国内直连与下载会话不受丝毫影响；
->    - **全局降级赦免兜底**：当上游宽带重拨或外部网络波动导致线路全受阻时，自动赦免最优线路，坚决杜绝候选池死锁。
-> 2. **极速 DNS 乐观预热与双轨竞速 (`internal/dnsradar/serve_stale.go`)**：
->    - 4096 容量 LRU 缓存，实装 80ms 阶梯式对冲请求（主解析 80ms 未返回时立即并行启动备用解析）；
->    - 上游解析超过 150ms 时立即秒级返回旧缓存，并在后台静默异步刷新，全屋网页打开首包时延逼近 0ms。
-> 3. **内核级断网逃生保底控制器 (`internal/dataplane/failopen.go`)**：
->    - 当检测到底层引擎异常或维护时，自动旁路 TProxy/TUN 直通物理默认网关，确保国内刷剧、网课、电视绝对不断网。
-> 4. **全栈大白话 UI 极简瘦身 (零黑话 · 首屏三大核心视区)**：
->    - **多合一极简顶栏状态胶囊**：正常态仅显示 `🟢 全屋网络极速畅通 · 已稳定运行 X 天（自动避障 X 次）`；
->    - **全局术语 100% 替换为直觉大白话**：彻底告别 TTFB、EWMA、Fail-Open、Conntrack 等极客黑话，改为全自动省心模式、网页响应速度、故障保底不断网、国内直连/海外加速/屏蔽广告；
->    - **首页首屏三大核心视区**：首屏仅保留「省心托管总开关」、「当前加速线路」与「家里在线设备」；高频连接明细流与底层日志收拢进二级抽屉，首屏 DOM 节点控制在 270 个以内；
->    - **页面可见性休眠与平滑唤醒**：后台标签页自动休眠定时器，切回前台时丝滑刷新，彻底根治浏览器发热与 CPU 虚高。
-> 5. **动态内存卫士 (`internal/perf/memguard.go`)**：
->    - 限制 `GOMEMLIMIT=24MiB`，全局 `bytes.Buffer sync.Pool` 无分配复用；
->    - 3 分钟前端无活跃探查机制：自动触发深层 GC 并将物理页归还操作系统，常驻内存死死锁定在 20MB 区间。
+> 1. **🎬 影音/NAS 专属加速模式 (双核复合规则精准分流)**：
+>    - **刮削加速与下载直通完美共存**：针对局域网飞牛 NAS、蓝光播放机、智能电视，编排双核复合规则。TMDB/TVDB/Fanart 海报墙刮削、字幕站与 Docker/GitHub 镜像拉取精准走加速通道；PT/BT 种子大文件下载与内网局域网串流 100% 物理直连直出，跑满千兆/万兆带宽，彻底杜绝非必要外部带宽损耗；
+>    - **局域网设备三态秒切微调**：设备卡片支持 `[ ⚡ 旁路加速 | 🎬 影音NAS | 🏠 物理直连 ]` 单键秒级切换，切换瞬间自动斩断旧会话，免插拔网线即刻生效。
+> 2. **➕ 一句话网站分流 (零门槛极速自定义)**：
+>    - 告别繁琐的底层规则语法编写，在「安全防护」首屏输入任意域名或网址（如 `javdb.com`、`pt.m-team.cc`、`github.com`），单键选择 **【⚡ 强制走加速】**、**【🏠 强制走直连】** 或 **【🛑 屏蔽该网站】**，即按即热生效；
+>    - 底部以彩色胶囊展示当前生效的自定义分流清单，支持 `✕` 单击一键清除还原默认规则。
+> 3. **📦 全屋配置时光机 (一键秒级快照与无损恢复)**：
+>    - 一键打包导出包含全屋 16 台家庭设备自定义别名（主路由Ros、飞牛NAS、客厅电视、蓝光机、回音壁等）、MAC/IP绑定、3态分流模式及自定分流规则的完整系统快照；
+>    - 导出文件极轻（仅 10KB 级别），内置 SHA-256 完整性校验，遭遇容器重装或换机时支持 3 秒无损原子热恢复。
+> 4. **🧭 黄金中轴页眉极简降噪 (去伪存真 · 纯净通透)**：
+>    - **彻底清除非必要视觉噪音**：物理清除网络诊断树与 IP 透视等无头按钮，剔除容易引起误解的瞬时流量百分比，长句子状态报表收敛至首屏驾驶舱内部；
+>    - **黄金中轴美学坚决保留**：页眉正中央稳稳保留专属的 **`[ sing-box 极速轻量 ⇄ Mihomo 规则完备 ]`** 暮光双核切换胶囊，毫秒级平滑换核，整体通透大气。
+> 5. **⚡ 14.9 MB 刀切级常驻内存与极限稳态**：
+>    - 探针连接池与底层读写 Buffer 彻底收敛，设置 `DisableKeepAlives: true` 与强制 `CloseIdleConnections()`；
+>    - `cubexd` 核心控制面常驻物理内存（RSS）稳定压死在 **14.9 MB**（Go Heap 堆分配仅 ~3.8 MB），`sing-box` 代理核心仅 **29.7 MB**；
+>    - 真正做到跑满万兆，内存纹丝不动。
 > 6. **软路由三巨头单机寄生与零硬编码自适应**：
 >    - RouterOS v7 容器 (`install_ros_container.rsc`) 与 OpenWrt Docker (`install_openwrt_docker.sh`) 保持极简自闭环；
 >    - 自动探查主网关与 IP，自动注入 198.18.0.0/15 回指路由与毫秒级 Netwatch 逃生看门狗。
@@ -357,11 +356,11 @@
 
 | 发布物文件名 | 适用宿主与架构 | 说明与用途 |
 | :--- | :--- | :--- |
-| `CubeX-v9.8.0-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-v9.8.0-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-v9.8.0-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-v9.8.0-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-v9.8.0-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
+| `CubeX-v9.9.0-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-v9.9.0-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-v9.9.0-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-v9.9.0-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-v9.9.0-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
 | `cubexd-linux-amd64` | Linux amd64 | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
 | `cubexd-linux-arm64` | Linux arm64 | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 | 纯命令行运维工具（终端直接运行） |
@@ -424,7 +423,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 如果你的主路由就是 MikroTik（RB5009、CCR2004、x86 ROS）：
 
-1. **下载镜像**：在上方清单下载对应架构的 `CubeX-v9.8.0-ros-amd64.tar`（或 `arm64.tar`）；
+1. **下载镜像**：在上方清单下载对应架构的 `CubeX-v9.9.0-ros-amd64.tar`（或 `arm64.tar`）；
 
 2. **传进路由器**：打开 WinBox，把 `.tar` 文件直接拖进【Files】列表（推荐放在 U 盘或 SSD 磁盘如 `disk1/`）；
 

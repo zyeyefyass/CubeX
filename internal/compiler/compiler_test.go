@@ -25,6 +25,11 @@ func TestBuildMihomo(t *testing.T) {
 		Mode:      "node",
 		BoundNode: "JP-Gaming-01",
 	})
+	ir.DevicePolicies = append(ir.DevicePolicies, schema.DevicePolicy{
+		Name: "Test-NAS-Media",
+		IP:   "10.0.0.3",
+		Mode: "media",
+	})
 
 	data, err := compiler.BuildMihomo(ir)
 	if err != nil {
@@ -54,6 +59,18 @@ func TestBuildMihomo(t *testing.T) {
 	if !strings.Contains(content, "SRC-IP-CIDR,192.168.1.99/32,JP-Gaming-01") {
 		t.Errorf("Expected bound node rule for PS5 in YAML")
 	}
+	if !strings.Contains(content, "AND,((SRC-IP-CIDR,10.0.0.3/32),(DOMAIN-KEYWORD,tmdb))") {
+		t.Errorf("Expected media scraping acceleration rule for NAS in YAML")
+	}
+	if !strings.Contains(content, "SRC-IP-CIDR,10.0.0.3/32,DIRECT") {
+		t.Errorf("Expected fallback direct rule for NAS in YAML")
+	}
+	if !strings.Contains(content, "AND,((SRC-IP-CIDR,10.0.0.3/32),(DOMAIN-KEYWORD,tmdb))") {
+		t.Errorf("Expected NAS media rule for TMDB in Mihomo rules")
+	}
+	if !strings.Contains(content, "SRC-IP-CIDR,10.0.0.3/32,DIRECT") {
+		t.Errorf("Expected NAS media fallback DIRECT in Mihomo rules")
+	}
 }
 
 func TestBuildSingBox(t *testing.T) {
@@ -68,6 +85,11 @@ func TestBuildSingBox(t *testing.T) {
 		IP:        "192.168.1.99",
 		Mode:      "node",
 		BoundNode: "JP-Gaming-01",
+	})
+	ir.DevicePolicies = append(ir.DevicePolicies, schema.DevicePolicy{
+		Name: "Test-NAS-Media",
+		IP:   "10.0.0.3",
+		Mode: "media",
 	})
 
 	data, err := compiler.BuildSingBox(ir)
@@ -97,6 +119,12 @@ func TestBuildSingBox(t *testing.T) {
 	}
 	if !strings.Contains(content, "JP-Gaming-01") {
 		t.Errorf("Expected PS5 bound node in route rules")
+	}
+	if !strings.Contains(content, "10.0.0.3/32") {
+		t.Errorf("Expected NAS media source_ip_cidr in sing-box route rules")
+	}
+	if !strings.Contains(content, "themoviedb.org") {
+		t.Errorf("Expected NAS media domain_suffix in sing-box route rules")
 	}
 }
 

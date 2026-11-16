@@ -8,7 +8,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$Version = "v9.8.0"
+$Version = "v9.9.0"
 
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 
@@ -21,15 +21,15 @@ $ReleaseDir = "$DistDir\release"
 Write-Host "📦 Starting CubeX $Version Complete Release Packaging (Dual-Core Embedded)..." -ForegroundColor Cyan
 
 if (-not $IncludeWindows) {
-
-    Write-Host "ℹ️  Windows 平台包发布已按策略暂?(可通过 -IncludeWindows 显式启用)" -ForegroundColor DarkCyan
-
+    Write-Host "ℹ️  Windows 平台包发布已按策略暂缓 (可通过 -IncludeWindows 显式启用)" -ForegroundColor DarkCyan
 }
 
-
+# Pre-clean stale release artifacts before audit to avoid checking outdated builds
+if (Test-Path $ReleaseDir) {
+    Remove-Item -Path "$ReleaseDir\*" -Recurse -Force -ErrorAction SilentlyContinue
+}
 
 # 0. Mandatory Pre-Release Full-Stack Health Audit
-
 Write-Host "🩺 [0/4] Executing Mandatory Full-Stack Health Audit Doctor..." -ForegroundColor Yellow
 
 python "$PSScriptRoot\audit_codebase_health.py"

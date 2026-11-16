@@ -50,7 +50,7 @@ type IoTGuardStatus struct {
 	Summary                         string            `json:"summary"`
 }
 
-// IoTBehaviorGuard 全屋智能设备行为沙盒与上传防偷跑削峰管理器
+// IoTBehaviorGuard 全屋智能设备行为沙盒与上传防异常占用削峰管理器
 type IoTBehaviorGuard struct {
 	mu                      sync.RWMutex
 	storePath               string
@@ -118,7 +118,7 @@ func (g *IoTBehaviorGuard) getStatusLocked() IoTGuardStatus {
 		BandwidthSavedMB:              float64(g.bandwidthSavedMB.Load()),
 		SandboxedDevices:              devs,
 		UpdatedAt:                     g.lastUpdated.Format("15:04:05"),
-		Summary:                       "全屋智能沙盒巡航中 · 拦截非授权广播 · 杜绝后台偷跑带宽",
+		Summary:                       "全屋智能沙盒巡航中 · 拦截非授权广播 · 杜绝后台异常占用带宽",
 	}
 }
 
@@ -174,7 +174,7 @@ func (g *IoTBehaviorGuard) SyncDevice(ip, mac, hostname string, upSpeedBps uint6
 			Hostname:    hostname,
 			Vendor:      vendor,
 			Category:    cat,
-			Sandboxed:   true, // 默认对识别到的 IoT 设备开启防偷跑沙盒
+			Sandboxed:   true, // 默认对识别到的 IoT 设备开启防异常占用沙盒
 			UpLimitKbps: 384,
 		}
 		g.devices[mac] = rec

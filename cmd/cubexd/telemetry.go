@@ -728,17 +728,15 @@ func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// 2. Proxy latency test (via local proxy port 7890)
-
 	proxyURL, _ := url.Parse("http://127.0.0.1:7890")
-
+	pTr := &http.Transport{
+		Proxy:             http.ProxyURL(proxyURL),
+		DisableKeepAlives: true,
+	}
+	defer pTr.CloseIdleConnections()
 	proxyClient := &http.Client{
-
-		Timeout: 4 * time.Second,
-
-		Transport: &http.Transport{
-
-			Proxy: http.ProxyURL(proxyURL),
-		},
+		Timeout:   4 * time.Second,
+		Transport: pTr,
 	}
 
 	t1 := time.Now()
@@ -1035,11 +1033,14 @@ func (s *Server) handleHealthRadar(w http.ResponseWriter, r *http.Request) {
 		proxyPort = s.engMgr.GetIR().Network.MixedPort
 	}
 	pURL, _ := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", proxyPort))
+	pTr := &http.Transport{
+		Proxy:             http.ProxyURL(pURL),
+		DisableKeepAlives: true,
+	}
+	defer pTr.CloseIdleConnections()
 	pClient := &http.Client{
-		Timeout: 3500 * time.Millisecond,
-		Transport: &http.Transport{
-			Proxy: http.ProxyURL(pURL),
-		},
+		Timeout:   3500 * time.Millisecond,
+		Transport: pTr,
 	}
 	t1 := time.Now()
 	pResp, pErr := pClient.Get("http://cp.cloudflare.com/generate_204")
