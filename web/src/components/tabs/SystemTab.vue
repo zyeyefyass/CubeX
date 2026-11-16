@@ -146,8 +146,8 @@
                     <div class="flex items-center gap-1.5">
                       <button @click="copyTelegramFullRoutes('routeros')"
                         class="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 text-[11px] font-bold font-mono transition cursor-pointer"
-                        title="包含 Telegram 全球 DC1~DC5 核心网段的一键直通脚本">
-                        ✈️ 复制 Telegram 补盲全量脚本
+                        title="包含全球国际通讯直连数据中心核心网段的一键直通脚本">
+                        🌐 复制国际通讯专线补盲脚本
                       </button>
                       <button @click="copyRouterOSScript"
                         class="px-3 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[11px] font-bold font-mono transition cursor-pointer">
@@ -183,8 +183,8 @@
                     <div class="flex items-center gap-1.5">
                       <button @click="copyTelegramFullRoutes('openwrt')"
                         class="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 text-[11px] font-bold font-mono transition cursor-pointer"
-                        title="包含 Telegram 全球 DC1~DC5 核心网段的 OpenWrt UCI 脚本">
-                        ✈️ 复制 Telegram 补盲全量脚本
+                        title="包含全球国际通讯直连数据中心核心网段的 OpenWrt UCI 脚本">
+                        🌐 复制国际通讯专线补盲脚本
                       </button>
                       <button @click="copyOpenWrtScript"
                         class="px-3 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 text-[11px] font-bold font-mono transition cursor-pointer">
@@ -1572,11 +1572,11 @@ async function copyTelegramFullRoutes(brand) {
     if (res.ok) {
       const data = await res.json()
       if (brand === 'routeros' && data.routeros_script) {
-        copyToClipboard(data.routeros_script, 'Telegram 纯 IP 全量补盲路由脚本已复制 (RouterOS)')
+        copyToClipboard(data.routeros_script, '国际通讯专线全量补盲路由脚本已复制 (RouterOS)')
         return
       }
       if (brand === 'openwrt' && data.openwrt_script) {
-        copyToClipboard(data.openwrt_script, 'Telegram 纯 IP 全量补盲路由脚本已复制 (OpenWrt)')
+        copyToClipboard(data.openwrt_script, '国际通讯专线全量补盲路由脚本已复制 (OpenWrt)')
         return
       }
     }

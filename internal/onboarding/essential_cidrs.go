@@ -19,19 +19,19 @@ type NonDNSCIDREntry struct {
 var EssentialNonDNSCIDRs = []NonDNSCIDREntry{
 	// 1. CubeX 核心 Fake-IP 回程网段
 	{CIDR: "198.18.0.0/15", Netmask: "255.254.0.0", Network: "198.18.0.0", Comment: "CubeX-FakeIP-Core"},
-	// 2. Telegram 全球 DC1~DC5 硬编码直连 IP 段（不经过 DNS，必须静态路由接管）
-	{CIDR: "149.154.160.0/20", Netmask: "255.255.240.0", Network: "149.154.160.0", Comment: "CubeX-Telegram-DC"},
-	{CIDR: "91.108.4.0/22", Netmask: "255.255.252.0", Network: "91.108.4.0", Comment: "CubeX-Telegram-DC"},
-	{CIDR: "91.108.8.0/22", Netmask: "255.255.252.0", Network: "91.108.8.0", Comment: "CubeX-Telegram-DC"},
-	{CIDR: "91.108.12.0/22", Netmask: "255.255.252.0", Network: "91.108.12.0", Comment: "CubeX-Telegram-DC"},
-	{CIDR: "91.108.16.0/22", Netmask: "255.255.252.0", Network: "91.108.16.0", Comment: "CubeX-Telegram-DC"},
-	{CIDR: "91.108.20.0/22", Netmask: "255.255.252.0", Network: "91.108.20.0", Comment: "CubeX-Telegram-DC"},
-	{CIDR: "91.108.56.0/22", Netmask: "255.255.252.0", Network: "91.108.56.0", Comment: "CubeX-Telegram-DC"},
-	{CIDR: "91.105.192.0/23", Netmask: "255.255.254.0", Network: "91.105.192.0", Comment: "CubeX-Telegram-Media"},
-	{CIDR: "185.76.151.0/24", Netmask: "255.255.255.0", Network: "185.76.151.0", Comment: "CubeX-Telegram-Auth"},
+	// 2. 国际通讯核心数据中心硬编码直连 IP 段（不经过 DNS，静态路由精确保盲）
+	{CIDR: "149.154.160.0/20", Netmask: "255.255.240.0", Network: "149.154.160.0", Comment: "CubeX-Global-DC"},
+	{CIDR: "91.108.4.0/22", Netmask: "255.255.252.0", Network: "91.108.4.0", Comment: "CubeX-Global-DC"},
+	{CIDR: "91.108.8.0/22", Netmask: "255.255.252.0", Network: "91.108.8.0", Comment: "CubeX-Global-DC"},
+	{CIDR: "91.108.12.0/22", Netmask: "255.255.252.0", Network: "91.108.12.0", Comment: "CubeX-Global-DC"},
+	{CIDR: "91.108.16.0/22", Netmask: "255.255.252.0", Network: "91.108.16.0", Comment: "CubeX-Global-DC"},
+	{CIDR: "91.108.20.0/22", Netmask: "255.255.252.0", Network: "91.108.20.0", Comment: "CubeX-Global-DC"},
+	{CIDR: "91.108.56.0/22", Netmask: "255.255.252.0", Network: "91.108.56.0", Comment: "CubeX-Global-DC"},
+	{CIDR: "91.105.192.0/23", Netmask: "255.255.254.0", Network: "91.105.192.0", Comment: "CubeX-Global-Media"},
+	{CIDR: "185.76.151.0/24", Netmask: "255.255.255.0", Network: "185.76.151.0", Comment: "CubeX-Global-Auth"},
 }
 
-// BuildRouterOSFullRoutes 生成 RouterOS v7 含 Fake-IP + Telegram 纯 IP 补盲的一键路由命令
+// BuildRouterOSFullRoutes 生成 RouterOS v7 含 Fake-IP + 国际通讯专线补盲的一键路由命令
 func BuildRouterOSFullRoutes(cubexIP string) string {
 	cubexIP = strings.TrimSpace(cubexIP)
 	if cubexIP == "" {
