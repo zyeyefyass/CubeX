@@ -296,19 +296,51 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 	log.Printf("[KernelTuner] UDP Buffer: %v, Conntrack: %v, BBR: %v",
 		tuneReport.UDPBuffersOptimized, tuneReport.ConntrackOptimized, tuneReport.BBRDetected)
 
+	srv.staleFlowKiller = dataplane.NewStaleFlowKiller(clashAPIAddr, clashSecret)
+	srv.circuitBreaker = probe.NewPassiveCircuitBreaker(5, 5*time.Minute, func(nodeName, reason string) {
+		srv.logBuffer.Add("WARN", "AutoPilot", fmt.Sprintf("被动流量遥测熔断: 节点 [%s] 异常黑洞/连续握手超时 (原因: %s)，已自动隔离 5 分钟", nodeName, reason))
+		if srv.staleFlowKiller != nil {
+			killed, _ := srv.staleFlowKiller.KillNodeConnections(context.Background(), nodeName)
+			if killed > 0 {
+				srv.logBuffer.Add("INFO", "StaleKiller", fmt.Sprintf("被动熔断精准清道夫: 已立即斩断旧节点 [%s] 僵尸会话 %d 条 (0误伤其它节点与直连)", nodeName, killed))
+			}
+		}
+	}, func(nodeName string) {
+		srv.logBuffer.Add("INFO", "AutoPilot", fmt.Sprintf("被动流量遥测: 节点 [%s] 试探恢复正常，已解除隔离", nodeName))
+	})
+
 	srv.ewmaSched = probe.NewEWMAScheduler(probe.SchedulerConfig{
 		ClashAPIBase:   config.GlobalRuntimeSpec.ClashAPIAddr,
 		TickInterval:   15 * time.Second,
 		MaxConcurrency: 4,
 	}, srv.ewmaMgr, func(ev probe.SwitchEvent) {
 		srv.logBuffer.Add("INFO", "EWMA", fmt.Sprintf("微秒闭环选路: 组 [%s] 节点自适应切换: %s -> %s (原因: %s, 紧急: %v)", ev.Group, ev.FromNode, ev.ToNode, ev.Reason, ev.Emergency))
-		if ev.Emergency && srv.wanHealer != nil {
+		if srv.staleFlowKiller != nil && ev.FromNode != "" {
+			killed, _ := srv.staleFlowKiller.KillNodeConnections(context.Background(), ev.FromNode)
+			if killed > 0 {
+				srv.logBuffer.Add("INFO", "StaleKiller", fmt.Sprintf("节点漂移精准清道夫: 清理旧节点 [%s] 僵尸会话 %d 条 (0误伤其它节点与直连)", ev.FromNode, killed))
+			}
+		} else if ev.Emergency && srv.wanHealer != nil {
 			_ = srv.wanHealer.FlushStaleConnections(context.Background(), fmt.Sprintf("EWMA紧急熔断切换 [%s]", ev.Group))
 		}
 	})
+	srv.ewmaSched.SetCircuitBreaker(srv.circuitBreaker)
 	srv.coordinator = NewRuntimeCoordinator(srv.engMgr, srv.rosMgr, srv.ewmaSched)
 	srv.upstreamReg = upstream.NewRegistry(4, 30*time.Second)
 	srv.registerDefaultUpstreamProviders()
+
+	srv.staleDNSResolver = dnsradar.NewServeStaleResolver("223.5.5.5:53", "119.29.29.29:53", 4096)
+	srv.failOpenCtrl = dataplane.NewFailOpenController(func(state dataplane.FailOpenState, reason string) {
+		if state == dataplane.FailOpenActive {
+			srv.logBuffer.Add("WARN", "FAIL_OPEN", fmt.Sprintf("⚠️ 触发故障保底直通逃生: %s (国内网络0秒断网不受影响)", reason))
+		} else {
+			srv.logBuffer.Add("INFO", "FAIL_OPEN", fmt.Sprintf("✅ 代理引擎恢复健康，已切回正常加速: %s", reason))
+		}
+	})
+	srv.memGuard = perf.NewMemoryGuard(24, nil)
+	SafeGo("IdleMemoryScavenger", func() {
+		srv.memGuard.StartIdleScavenger(context.Background(), 3*time.Minute)
+	})
 
 	SafeGo("EWMAScheduler", func() {
 		srv.ewmaSched.Run(context.Background())
@@ -888,6 +920,11 @@ type Server struct {
 	stallDetector      *probe.PassiveStallDetector
 	triangleEngine     *probe.TriangleEngine
 	targetRouter       *probe.TargetAwareRoutingEngine
+	staleFlowKiller    *dataplane.StaleFlowKiller
+	circuitBreaker     *probe.PassiveCircuitBreaker
+	staleDNSResolver   *dnsradar.ServeStaleResolver
+	failOpenCtrl       *dataplane.FailOpenController
+	memGuard           *perf.MemoryGuard
 	isMaintenance      atomic.Bool
 	draining           atomic.Bool
 

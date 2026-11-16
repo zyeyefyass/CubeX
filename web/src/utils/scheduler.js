@@ -12,14 +12,46 @@ export class UIFrameScheduler {
     this.silencedUntil = 0
     this.inFlightControllers = new Set()
 
+    this.onWakeupCallbacks = new Set()
+    this.isHibernated = false
+
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
         this.isPageVisible = !document.hidden
-        if (this.isPageVisible && this.pendingTasks.size > 0) {
-          this.scheduleFlush()
+        if (!this.isPageVisible) {
+          // 页面切入后台：彻底冻结生命周期，清除积压帧任务，防止后台积压与切回雪崩
+          this.isHibernated = true
+          this.pendingTasks.clear()
+          if (this.rafId !== null) {
+            cancelAnimationFrame(this.rafId)
+            this.rafId = null
+          }
+        } else {
+          // 页面切回前台：解除冻结，在单帧内执行合并唤醒快照刷新
+          this.isHibernated = false
+          if (this.pendingTasks.size > 0) {
+            this.scheduleFlush()
+          }
+          // 执行所有注册的唤醒快照对齐回调 (Single Coalesced Snapshot Refresh)
+          for (const cb of this.onWakeupCallbacks) {
+            try {
+              cb()
+            } catch (err) {
+              console.warn('[UIFrameScheduler] onWakeup error:', err)
+            }
+          }
         }
       })
     }
+  }
+
+  // 注册前台唤醒快照对齐回调，返回注销函数
+  onWakeup(cb) {
+    if (typeof cb === 'function') {
+      this.onWakeupCallbacks.add(cb)
+      return () => this.onWakeupCallbacks.delete(cb)
+    }
+    return () => {}
   }
 
   // 注册受管遥测请求的 AbortController，便于切核瞬间一键静默截断在途请求

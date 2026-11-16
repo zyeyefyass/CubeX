@@ -51,7 +51,15 @@ type EWMAScheduler struct {
 	groupSwitchAt map[string]time.Time // tracks last switch timestamp per policy group
 	penalizedUntil map[string]time.Time // tracks temporary blackhole penalty expiration per node (default 300s)
 	pausedUntil   atomic.Int64         // kernel switchover silence barrier timestamp (UnixNano)
+	circuitBreaker *PassiveCircuitBreaker
 	onSwitch      func(ev SwitchEvent)
+}
+
+// SetCircuitBreaker 注入被动流量遥测熔断器
+func (s *EWMAScheduler) SetCircuitBreaker(cb *PassiveCircuitBreaker) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.circuitBreaker = cb
 }
 
 // NewEWMAScheduler constructs an initialized EWMAScheduler.
@@ -266,7 +274,32 @@ func (s *EWMAScheduler) SelectTieredBatch(groupName, activeNode string, candidat
 
 // EvaluateAndSwitchGroup executes dual-mode switching logic (public for testing).
 func (s *EWMAScheduler) EvaluateAndSwitchGroup(ctx context.Context, groupName, currentActive string, candidates []string) {
-	ranked := s.ewma.RankNodes(candidates)
+	effectiveCandidates := candidates
+	s.mu.Lock()
+	cb := s.circuitBreaker
+	s.mu.Unlock()
+
+	if cb != nil {
+		filtered := make([]string, 0, len(candidates))
+		for _, c := range candidates {
+			if !cb.IsNodeQuarantined(c) {
+				filtered = append(filtered, c)
+			}
+		}
+		if len(filtered) > 0 {
+			effectiveCandidates = filtered
+		} else if len(candidates) > 0 {
+			// [All-Tripped Fallback 全军覆没赦免兜底]
+			// 遭遇上游闪断全员熔断时，绝不允许候选池为空死锁，强行选取历史 EWMA 评分最佳 Top 1 赦免放行
+			effectiveCandidates = candidates
+			rankedAll := s.ewma.RankNodes(candidates)
+			if len(rankedAll) > 0 {
+				cb.ResetNode(rankedAll[0].NodeName)
+			}
+		}
+	}
+
+	ranked := s.ewma.RankNodes(effectiveCandidates)
 	if len(ranked) == 0 || !ranked[0].HasSample || ranked[0].ConsecutiveFails > 0 {
 		return
 	}

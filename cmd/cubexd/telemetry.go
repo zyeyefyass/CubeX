@@ -558,13 +558,21 @@ func (s *Server) HandlePassiveStallCheck(ctx context.Context, activeConns int, u
 		prevNode, nextNode = s.ewmaSched.PenalizeAndRotateActive("PassiveStallBlackhole")
 	}
 
-	// Step 2: 瞬时冲刷卡在旧黑洞节点上的僵尸 Socket (<3ms)
-	if s.wanHealer != nil {
+	// 记录被动熔断器，自动移入隔离区
+	if s.circuitBreaker != nil && prevNode != "" {
+		s.circuitBreaker.RecordFailure(prevNode, "PassiveStallBlackhole(连续死链黑洞)")
+	}
+
+	// Step 2: 使用精准清道夫斩断旧黑洞节点会话，避免无差别冲刷误伤直连
+	killed := 0
+	if s.staleFlowKiller != nil && prevNode != "" {
+		killed, _ = s.staleFlowKiller.KillNodeConnections(ctx, prevNode)
+	} else if s.wanHealer != nil {
 		_ = s.wanHealer.FlushStaleConnections(ctx, "PassiveStallBlackhole")
 	}
 
 	// Step 3: 写入 64KB 内存黑匣子备查与系统日志
-	msg := fmt.Sprintf("检测到连续 6s 有发无收死链黑洞，已从 [%s] 切换至 [%s] 并冲刷陈旧连接", prevNode, nextNode)
+	msg := fmt.Sprintf("检测到连续 6s 有发无收死链黑洞，已从 [%s] 切换至 [%s]，精准斩断旧连接 %d 条 (0误伤其它会话)", prevNode, nextNode, killed)
 	s.logBuffer.Add("WARN", "STALL_HEAL", msg)
 	telemetry.GetGlobalFlightRecorder().Record(telemetry.EventCategory("STALL_HEAL"), "WARN", msg, 0)
 }
