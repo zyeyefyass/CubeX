@@ -1,0 +1,45 @@
+<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sbTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF77E9"/>
+      <stop offset="100%" stop-color="#E879F9"/>
+    </linearGradient>
+    <linearGradient id="sbLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C026D3"/>
+      <stop offset="100%" stop-color="#7E22CE"/>
+    </linearGradient>
+    <linearGradient id="sbRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9333EA"/>
+      <stop offset="100%" stop-color="#4C1D95"/>
+    </linearGradient>
+    <filter id="sbGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 3D Isometric Crystal Sandbox -->
+  <g filter="url(#sbGlow)">
+    <!-- Top Face -->
+    <polygon points="16,3 28,9.5 16,16 4,9.5" fill="url(#sbTop)" stroke="#FFFFFF" stroke-width="1.2" stroke-linejoin="round"/>
+    
+    <!-- Left Face -->
+    <polygon points="4,9.5 16,16 16,29 4,22.5" fill="url(#sbLeft)" stroke="#FFFFFF" stroke-width="1.2" stroke-linejoin="round"/>
+    
+    <!-- Right Face -->
+    <polygon points="16,16 28,9.5 28,22.5 16,29" fill="url(#sbRight)" stroke="#FFFFFF" stroke-width="1.2" stroke-linejoin="round"/>
+
+    <!-- Inner Floating Energy Core (Crystal Singularity) -->
+    <polygon points="16,10 20.5,13 16,16 11.5,13" fill="#FFFFFF" opacity="0.95"/>
+    <circle cx="16" cy="13" r="2" fill="#FFFFFF" filter="url(#sbGlow)"/>
+
+    <!-- Neon Vertex Nodes -->
+    <circle cx="16" cy="3" r="1.2" fill="#FFFFFF"/>
+    <circle cx="28" cy="9.5" r="1.2" fill="#FFFFFF"/>
+    <circle cx="4" cy="9.5" r="1.2" fill="#FFFFFF"/>
+    <circle cx="16" cy="29" r="1.2" fill="#FFFFFF"/>
+  </g>
+</svg>

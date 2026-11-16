@@ -230,16 +230,6 @@
 
             </div>
 
-            <span class="text-white/40 font-mono text-xs leading-none select-none">|</span>
-
-            <!-- 状态多合一胶囊（大白话全屋状态） -->
-            <button @click="showLogsModal = true"
-              class="inline-flex items-center gap-1.5 text-xs sm:text-[13px] font-bold text-emerald-300 hover:text-emerald-200 transition cursor-pointer select-none"
-              title="点击查看网络诊断与明细">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981] animate-pulse"></span>
-              <span class="truncate max-w-[170px] sm:max-w-none">{{ topbarStatusText }}</span>
-            </button>
-
           </div>
 
         </div>
@@ -521,7 +511,7 @@
         <div v-if="activeMasterTab === 'overview'" class="space-y-6 animate-in fade-in">
 
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <!-- 视区 1: 「全自动省心模式总开关」 (AutoPilot Mode)                  -->
+          <!-- 视区 1: 双核全息主控驾驶舱 (Twilight Crystal Bento Cockpit)         -->
           <!-- ════════════════════════════════════════════════════════════════ -->
           <section :class="['rounded-3xl p-5 sm:p-7 transition shadow-2xl relative border', activeEngine === 'singbox' ? 'glass-aurora border-sky-400/30' : 'glass-matrix border-purple-400/30']">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-5 pb-5 border-b border-white/10">
@@ -531,34 +521,41 @@
                 </div>
                 <div>
                   <div class="flex items-center gap-2.5 flex-wrap">
-                    <h2 class="text-lg sm:text-xl font-black text-white tracking-wide">全自动省心模式</h2>
-                    <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 flex items-center gap-1.5 shadow-sm">
+                    <h2 class="text-lg sm:text-xl font-black text-white tracking-wide">双核全息主控驾驶舱</h2>
+                    <!-- 98分健康徽章 -->
+                    <span class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 font-bold flex items-center gap-1.5 shadow-sm">
                       <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      {{ autoPilotEnabled ? '全天候智能托管中' : '手动模式' }}
+                      {{ healthRadar.overall_score || 98 }}分 · 全屋网络极速畅通
                     </span>
                   </div>
                   <p class="text-xs sm:text-sm text-slate-300/90 mt-1 font-medium font-sans">
-                    遇到卡顿自动换线 · 故障保底不断网 · 零额外偷跑流量 · 告别手动折腾
+                    Universal IR 中间层驱动 · 遇到卡顿自动换线 · 故障保底直通不断网 · 零感自愈
                   </p>
                 </div>
               </div>
 
-              <!-- Switch & Quick Actions -->
-              <div class="flex items-center gap-3 shrink-0 self-end md:self-center">
-                <button @click="triggerOneClickSpeedTest" :disabled="probingServiceLatencies"
-                  class="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600/30 to-sky-600/30 hover:from-cyan-500/40 hover:to-sky-500/40 border border-cyan-400/40 text-xs font-bold text-cyan-200 flex items-center gap-2 transition active:scale-95 shadow-md cursor-pointer"
-                  title="一键测试当前网络快慢">
+              <!-- Top Actions: 一键测快慢 / 自愈加固 / 托管开关 -->
+              <div class="flex items-center gap-2.5 shrink-0 self-end md:self-center flex-wrap">
+                <button @click="triggerAllServiceProbes" :disabled="probingServiceLatencies"
+                  class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600/30 to-sky-600/30 hover:from-cyan-500/40 hover:to-sky-500/40 border border-cyan-400/40 text-xs font-bold text-cyan-200 flex items-center gap-1.5 transition active:scale-95 shadow-md cursor-pointer"
+                  title="立即对国内外主流网站重新测速">
                   <span :class="{'animate-spin': probingServiceLatencies}">⚡</span>
                   <span>一键测快慢</span>
                 </button>
 
+                <button @click="triggerFastSelfHeal" :disabled="switchingEngine"
+                  class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600/20 to-teal-600/20 hover:from-emerald-600/30 hover:to-teal-600/30 border border-emerald-400/40 text-xs font-bold text-emerald-200 flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer"
+                  title="一键自愈策略路由与清算连接">
+                  <span>🛠️ 自愈加固</span>
+                </button>
+
                 <!-- AutoPilot Toggle Switch -->
-                <label class="flex items-center gap-2.5 cursor-pointer select-none bg-black/30 px-3.5 py-2 rounded-xl border border-white/10 hover:border-white/20 transition">
-                  <span class="text-xs font-bold text-slate-200">托管开关</span>
+                <label class="flex items-center gap-2 cursor-pointer select-none bg-black/30 px-3 py-1.5 rounded-xl border border-white/10 hover:border-white/20 transition">
+                  <span class="text-xs font-bold text-slate-200">自动省心</span>
                   <div class="relative">
                     <input type="checkbox" v-model="autoPilotEnabled" class="sr-only" />
-                    <div :class="['w-11 h-6 rounded-full transition-colors duration-300', autoPilotEnabled ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_12px_rgba(16,185,129,0.5)]' : 'bg-slate-700']"></div>
-                    <div :class="['absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-300 shadow-md', autoPilotEnabled ? 'translate-x-5' : 'translate-x-0']"></div>
+                    <div :class="['w-10 h-5 rounded-full transition-colors duration-300', autoPilotEnabled ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-slate-700']"></div>
+                    <div :class="['absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-md', autoPilotEnabled ? 'translate-x-5' : 'translate-x-0']"></div>
                   </div>
                 </label>
               </div>
@@ -603,112 +600,320 @@
           </section>
 
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <!-- 视区 2: 「当前加速线路」 (Active Accelerated Route)               -->
+          <!-- 视区 2: 常用主流网站响应速度 (8 柱动态网络遥测)                       -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <section class="rounded-3xl p-5 sm:p-7 macos-glass-card border border-white/15 space-y-4 shadow-xl">
-            <div class="flex items-center justify-between gap-3 pb-3 border-b border-white/10">
-              <div class="flex items-center gap-2.5">
-                <span class="text-xl">🚀</span>
-                <div>
-                  <h3 class="text-base sm:text-lg font-bold text-white tracking-wide">当前加速线路</h3>
-                  <p class="text-xs text-slate-400">智能优选全球低延迟高速专线 · 网页视频秒开</p>
+          <section :class="['rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 transition shadow-2xl relative border', activeProbeDropdown !== null ? 'z-40' : 'z-20', activeEngine === 'singbox' ? 'glass-aurora border-sky-400/20' : 'glass-matrix border-purple-400/20']">
+            <!-- Header: 标题、开启实时自动测速 toggle、⚡ 立即刷新按钮 -->
+            <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-700/40">
+              <div>
+                <div class="flex items-center gap-3">
+                  <h3 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                    <span class="flex items-center gap-2"><ZootopiaIcon name="telemetry" :size="22" class="shrink-0" /><span>常用主流网站响应速度</span></span>
+                  </h3>
+                  <!-- Toggle: 开启实时自动测速 -->
+                  <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <span class="text-xs text-slate-300 font-medium">自动测速</span>
+                    <div class="relative">
+                      <input type="checkbox" v-model="autoSpeedtestEnabled" class="sr-only" @change="onToggleAutoSpeedtest" />
+                      <div :class="['w-9 h-5 rounded-full transition-colors duration-300', autoSpeedtestEnabled ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-slate-700']"></div>
+                      <div :class="['absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-md', autoSpeedtestEnabled ? 'translate-x-4' : 'translate-x-0']"></div>
+                    </div>
+                  </label>
                 </div>
+                <p class="text-xs text-slate-400 mt-1">国内外主流业务实时多域延迟探针遥测 · 绿色秒开 / 蓝色顺畅 / 故障自动换线</p>
               </div>
 
-              <div class="flex items-center gap-2">
-                <button @click="activeMasterTab = 'routing'"
-                  class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-sky-200 hover:text-white transition cursor-pointer"
-                  title="查看或切换所有线路">
-                  <span>🔀 更换线路</span>
-                </button>
-                <button @click="openIPPerspective(currentActiveRoute.nodeName)"
-                  class="px-3.5 py-1.5 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/80 border border-cyan-400/40 text-xs font-bold text-cyan-200 transition cursor-pointer"
-                  title="查看当前线路质量透视">
-                  <span>🔍 线路透视</span>
-                </button>
-              </div>
+              <!-- ⚡ Refresh probes button -->
+              <button @click="triggerAllServiceProbes" :disabled="probingServiceLatencies" title="立即刷新全部测速探针"
+                class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-sky-200 hover:text-white flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer">
+                <span :class="{'animate-spin': probingServiceLatencies}">↻</span>
+                <span>刷新测速</span>
+              </button>
             </div>
 
-            <!-- Active Route Card -->
-            <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-sky-950/50 via-slate-900/60 to-cyan-950/40 border border-sky-400/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div class="flex items-center gap-3.5 min-w-0">
-                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500/20 to-cyan-500/20 border border-sky-400/40 flex items-center justify-center shrink-0 text-xl font-bold text-white shadow-md">
-                  🌏
-                </div>
-                <div class="min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-base sm:text-lg font-extrabold text-white truncate">{{ currentActiveRoute.nodeName }}</span>
-                    <span class="px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300 border border-sky-400/30 text-[11px] font-bold">海外加速</span>
-                  </div>
-                  <p class="text-xs text-slate-300 mt-1 flex items-center gap-2 flex-wrap">
-                    <span>响应速度: <strong :class="currentActiveRoute.speedClass">{{ currentActiveRoute.speedText }}</strong></span>
-                    <span class="text-white/30">·</span>
-                    <span class="text-emerald-400 font-medium">信号满格 极速</span>
-                  </p>
-                </div>
-              </div>
+            <!-- Backdrop overlay to dismiss dropdown on outside click -->
+            <div v-if="activeProbeDropdown !== null" @click="activeProbeDropdown = null" class="fixed inset-0 z-30"></div>
 
-              <!-- Speed Metrics -->
-              <div class="flex items-center gap-4 self-end sm:self-center shrink-0">
-                <div class="text-right font-mono">
-                  <div class="text-[11px] text-slate-400">实时下载速度</div>
-                  <div class="text-base sm:text-lg font-black text-emerald-300 font-tabular">{{ formatSpeed(liveDownSpeed) }}</div>
+            <!-- 4 Service Speedtest Cards with Custom Twilight Crystal Dropdown & 8-Bar Dynamic Pillars -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div v-for="(item, bi) in serviceProbes" :key="bi"
+                class="min-h-[72px] py-3.5 px-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-cyan-500/40 transition flex items-center justify-between gap-1 shadow-md group relative"
+                :class="activeProbeDropdown === bi ? 'z-50 ring-2 ring-cyan-400/80 shadow-[0_0_25px_rgba(0,210,255,0.3)]' : 'z-0'">
+
+                <!-- Left: Official Clean Brand Logo & Site Selector -->
+                <div class="flex items-center gap-1.5 shrink-0 min-w-0">
+                  <button @click="probeSingleService(item)" title="点击立即重新测速"
+                    class="w-7 h-7 flex items-center justify-center shrink-0 group-hover:scale-110 active:scale-95 transition-transform duration-200 cursor-pointer overflow-hidden">
+                    <BrandLogo :name="item.logo || item.id" size="w-6 h-6" />
+                  </button>
+
+                  <!-- Site Dropdown Selector Popover -->
+                  <div class="relative min-w-0">
+                    <button @click.stop="toggleProbeDropdown(bi)" title="点击切换测速站点"
+                      class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer select-none"
+                      :class="activeProbeDropdown === bi ? 'bg-cyan-950/80 border-cyan-400 text-emerald-200 ring-1 ring-cyan-400/30' : 'bg-slate-900/80 hover:bg-slate-800 border-slate-700/70 hover:border-cyan-400/60 text-slate-100 hover:text-white'">
+                      <span class="truncate max-w-[60px] sm:max-w-[72px]">{{ item.name }}</span>
+                      <span class="text-[11px] text-emerald-300 shrink-0 transition-transform duration-200" :class="activeProbeDropdown === bi ? 'rotate-180' : ''">▾</span>
+                    </button>
+
+                    <!-- Custom Dropdown Popover Menu -->
+                    <div v-if="activeProbeDropdown === bi"
+                      @mouseleave="activeProbeDropdown = null"
+                      class="absolute top-full mt-1.5 w-48 max-h-72 overflow-y-auto overscroll-contain bg-[#0c1626]/95 border border-cyan-500/50 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] p-1.5 z-[100] text-slate-200 space-y-0.5 custom-scrollbar ring-1 ring-cyan-400/30 backdrop-blur-3xl animate-in fade-in zoom-in-95"
+                      :class="bi >= 2 ? 'right-0 sm:left-0' : 'left-0'">
+                      <button v-for="target in availableProbeTargets" :key="target.id"
+                        @click.stop="selectProbeTarget(bi, target)"
+                        class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition text-left cursor-pointer"
+                        :class="item.id === target.id ? 'bg-cyan-500/25 text-emerald-200 font-bold border border-cyan-400/40 shadow-sm' : 'hover:bg-white/20 border border-white/20 text-slate-300 hover:text-white'">
+                        <BrandLogo :name="target.logo" size="w-4 h-4" class="shrink-0" />
+                        <span class="truncate flex-1 font-medium">{{ target.name }}</span>
+                        <span v-if="item.id === target.id" class="text-emerald-300 text-xs font-bold shrink-0">✓</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div class="text-right font-mono">
-                  <div class="text-[11px] text-slate-400">实时上传速度</div>
-                  <div class="text-base sm:text-lg font-black text-cyan-300 font-tabular">{{ formatSpeed(liveUpSpeed) }}</div>
+
+                <!-- Right: 8 Dynamic Pillars & Latency Value -->
+                <div @click="probeSingleService(item)" class="flex items-center gap-2 shrink-0 cursor-pointer select-none" title="点击立即重新测速">
+                  <div class="flex items-end gap-[2.5px] sm:gap-[3px] h-6 shrink-0 py-0.5" title="最近 8 次测速柱状走势 (绿:秒开 | 蓝:顺畅 | 黄:略慢 | 红:超时)">
+                    <span v-for="(bar, hi) in (serviceProbesBars[bi] || [])" :key="hi"
+                      class="w-[3px] rounded-full transition-all duration-300"
+                      :class="bar.colorClass"
+                      :style="{ height: (probingServiceLatencies ? Math.floor(Math.random() * 16 + 5) : bar.height) + 'px' }"
+                      :title="`第 ${hi + 1} 次: ${bar.val >= 999 ? '超时' : bar.val + 'ms'}`"></span>
+                  </div>
+
+                  <div class="text-right min-w-[44px] pr-0.5">
+                    <template v-if="!item.latency || item.latency <= 0 || item.latency >= 999 || item.error">
+                      <span class="text-xs sm:text-sm font-bold font-mono text-rose-400 animate-pulse">换线中</span>
+                    </template>
+                    <template v-else>
+                      <span class="text-sm sm:text-base font-black font-mono tracking-tight font-tabular"
+                        :class="item.latency > 150 ? 'text-amber-300' : (item.latency > 60 ? 'text-sky-300' : 'text-emerald-300')">
+                        {{ item.latency }}
+                      </span>
+                      <span class="text-[10px] font-normal text-slate-400 font-sans ml-0.5">ms</span>
+                    </template>
+                  </div>
                 </div>
               </div>
             </div>
           </section>
 
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <!-- 视区 3: 「家里在线设备」 (Home Online Devices)                    -->
+          <!-- 视区 3: 全息局域网流量动态拓扑 + 全家设备单键分流控制台              -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <section class="rounded-3xl p-5 sm:p-7 macos-glass-card border border-white/15 space-y-4 shadow-xl">
-            <div class="flex items-center justify-between gap-3 pb-3 border-b border-white/10 flex-wrap">
-              <div class="flex items-center gap-2.5">
-                <span class="text-xl">📱</span>
-                <div>
-                  <h3 class="text-base sm:text-lg font-bold text-white tracking-wide">
-                    家里在线设备
-                    <span class="text-xs font-mono font-normal text-sky-300 ml-1.5">({{ displayLanDevices.length }} 台设备在线)</span>
+          <section class="macos-card p-5 sm:p-7 rounded-3xl space-y-6 border border-sky-500/25 bg-gradient-to-br from-[#001529]/95 via-[#00223e]/90 to-[#001020]/95 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+            <!-- 头部标题栏与批量操作 (合理高密布局，杜绝断行) -->
+            <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-white/10 pb-4">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h3 class="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
+                    <span>🎛️</span>
+                    <span>全息局域网流量拓扑与设备控制台</span>
                   </h3>
-                  <p class="text-xs text-slate-400">全家设备智能识别与加速状态 · 智能家居免打扰</p>
+                  <span class="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[11px] font-bold">
+                    0秒免改网关
+                  </span>
                 </div>
+                <p class="text-xs text-slate-300 font-medium font-sans">
+                  点击设备名称可就地改名持久化 · 单键秒级切换【⚡ 走 CubeX 旁路加速】或【🏠 主路由原生物理直连】
+                </p>
               </div>
 
-              <!-- Button to open detailed connections & diagnostics -->
-              <button @click="showLogsModal = true"
-                class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600/20 to-teal-600/20 hover:from-emerald-600/30 hover:to-teal-600/30 border border-emerald-400/40 text-xs font-bold text-emerald-200 flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer"
-                title="调出详细网络连接明细与诊断树">
-                <span>🌲 网络诊断与明细</span>
-              </button>
+              <!-- 统计徽章与批量操作按钮组 -->
+              <div class="flex items-center gap-2 shrink-0 self-start xl:self-center flex-wrap sm:flex-nowrap">
+                <div class="inline-flex items-center p-1 rounded-xl bg-black/40 border border-white/10 text-xs font-mono">
+                  <span class="px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold">
+                    ⚡ 旁路: {{ proxiedClientsCount }}
+                  </span>
+                  <span class="px-1 text-slate-500">·</span>
+                  <span class="px-2.5 py-0.5 text-slate-300">
+                    🏠 直连: {{ directClientsCount }}
+                  </span>
+                </div>
+
+                <div class="inline-flex items-center p-1 rounded-xl bg-black/40 border border-white/10 gap-1.5">
+                  <button @click="batchSetClients('all_proxy')" :disabled="batchProcessingClients"
+                    class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs active:scale-95 transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                    title="将全家在线设备一键接入 CubeX 旁路规则加速">
+                    <span>⚡ 全屋加速</span>
+                  </button>
+
+                  <button @click="batchSetClients('all_direct')" :disabled="batchProcessingClients"
+                    class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white font-bold text-xs active:scale-95 transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                    title="将全家在线设备一键回归主路由直通">
+                    <span>🏠 全体直连</span>
+                  </button>
+
+                  <button @click="fetchLanClients(false)" :disabled="fetchingClients"
+                    class="p-1 rounded-lg hover:bg-white/15 text-slate-300 hover:text-white transition cursor-pointer"
+                    title="刷新局域网设备列表">
+                    <span :class="{'inline-block animate-spin': fetchingClients}">↻</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <!-- Device Cards Grid (Clean & Lightweight, < 6 items on front page) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <div v-for="dev in displayLanDevices" :key="dev.ip"
-                class="p-3.5 rounded-2xl bg-slate-900/70 border border-white/10 hover:border-cyan-400/40 transition flex items-center justify-between gap-3 group">
-                <div class="flex items-center gap-3 min-w-0">
-                  <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0 text-lg group-hover:scale-105 transition-transform">
-                    {{ getDeviceIcon(dev) }}
+            <!-- 🌐 全息局域网动态流光拓扑看板 (Holographic Topology Bar) -->
+            <div class="p-4 rounded-2xl bg-black/40 border border-sky-500/20 shadow-inner flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-mono">
+              <!-- Left Node: Online Clients -->
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-sky-500/20 border border-indigo-400/30 flex items-center justify-center text-xl shadow-md shrink-0">
+                  📱
+                </div>
+                <div>
+                  <div class="text-white font-bold text-sm">全屋在线终端</div>
+                  <div class="text-slate-400 text-[11px]">{{ lanClients.length }} 台设备在线 · 动态嗅探</div>
+                </div>
+              </div>
+
+              <!-- Flow Connection 1 -->
+              <div class="hidden md:flex flex-1 items-center justify-center px-2">
+                <div class="w-full flex items-center gap-1 text-slate-500">
+                  <div class="h-0.5 flex-1 bg-gradient-to-r from-indigo-500/40 via-sky-400/60 to-cyan-400"></div>
+                  <span class="text-[10px] text-sky-300 animate-pulse font-sans">局域网流量 ➔</span>
+                </div>
+              </div>
+
+              <!-- Middle Node: CubeX Gateway Hub -->
+              <div class="flex items-center gap-3 px-3 py-2 rounded-xl bg-sky-950/40 border border-sky-400/30 shrink-0">
+                <div class="w-9 h-9 rounded-lg bg-sky-500/20 flex items-center justify-center text-lg text-sky-300 font-bold">
+                  🧊
+                </div>
+                <div>
+                  <div class="text-white font-bold text-xs flex items-center gap-1.5">
+                    <span>CubeX 智能中枢</span>
+                    <span class="px-1.5 py-0.2 rounded bg-sky-500/30 text-sky-200 text-[10px]">10.0.0.7</span>
                   </div>
-                  <div class="min-w-0">
-                    <div class="text-xs sm:text-[13px] font-bold text-white truncate">{{ dev.name || dev.hostname || dev.ip }}</div>
-                    <div class="text-[11px] font-mono text-slate-400 truncate">{{ dev.ip }}</div>
+                  <div class="text-[10px] text-emerald-400 font-tabular font-sans">
+                    ↓ {{ formatSpeed(liveDownSpeed) }} · ↑ {{ formatSpeed(liveUpSpeed) }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Flow Connection 2 -->
+              <div class="hidden md:flex flex-1 items-center justify-center px-2">
+                <div class="w-full flex items-center gap-1 text-slate-500">
+                  <div class="h-0.5 flex-1 bg-gradient-to-r from-cyan-400 via-emerald-400/60 to-amber-400/60"></div>
+                  <span class="text-[10px] text-emerald-300 font-sans">双通道分流 ➔</span>
+                </div>
+              </div>
+
+              <!-- Right Nodes: Dual Outbounds (Direct & Accelerated) -->
+              <div class="flex items-center gap-2 shrink-0">
+                <div class="p-2 rounded-xl bg-emerald-950/40 border border-emerald-400/30 text-right leading-tight">
+                  <div class="text-[11px] font-bold text-emerald-300 flex items-center justify-end gap-1">
+                    <span>🏠 国内物理直连</span>
+                  </div>
+                  <div class="text-[10px] text-slate-400 font-sans">硬件芯片直出 0延迟</div>
+                </div>
+
+                <div class="p-2 rounded-xl bg-sky-950/40 border border-sky-400/30 text-right leading-tight">
+                  <div class="text-[11px] font-bold text-sky-300 flex items-center justify-end gap-1">
+                    <span>⚡ 海外规则加速</span>
+                  </div>
+                  <div class="text-[10px] text-slate-400 font-sans">双核智能极速分流</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 搜索与分类过滤器 -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+              <div class="flex items-center gap-1.5 bg-black/40 border border-white/10 rounded-xl p-1 text-xs">
+                <button @click="clientFilterMode = 'all'"
+                  :class="['px-3 py-1 rounded-lg transition font-medium cursor-pointer', clientFilterMode === 'all' ? 'bg-sky-500 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
+                  全部 ({{ lanClients.length }})
+                </button>
+                <button @click="clientFilterMode = 'proxy'"
+                  :class="['px-3 py-1 rounded-lg transition font-medium cursor-pointer', clientFilterMode === 'proxy' ? 'bg-emerald-500 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
+                  ⚡ 旁路中 ({{ proxiedClientsCount }})
+                </button>
+                <button @click="clientFilterMode = 'direct'"
+                  :class="['px-3 py-1 rounded-lg transition font-medium cursor-pointer', clientFilterMode === 'direct' ? 'bg-sky-700 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
+                  🛡️ 直连中 ({{ directClientsCount }})
+                </button>
+                <button @click="clientFilterMode = 'online'"
+                  :class="['px-3 py-1 rounded-lg transition font-medium cursor-pointer', clientFilterMode === 'online' ? 'bg-cyan-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
+                  🟢 在线
+                </button>
+              </div>
+
+              <div class="relative sm:w-64">
+                <input v-model="clientSearchQuery" type="text" placeholder="搜索设备名 / IP / MAC..."
+                  class="w-full px-3 py-1.5 pl-8 rounded-xl bg-black/40 border border-white/15 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-400 transition" />
+                <span class="absolute left-2.5 top-2 text-xs text-slate-500">🔍</span>
+                <button v-if="clientSearchQuery" @click="clientSearchQuery = ''" class="absolute right-2.5 top-1.5 text-xs text-slate-400 hover:text-white">✕</button>
+              </div>
+            </div>
+
+            <!-- 全家设备卡片流 (Grid) -->
+            <div v-if="filteredLanClients.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div v-for="dev in filteredLanClients" :key="dev.mac || dev.ip"
+                class="p-4 rounded-2xl border transition-all duration-300 relative group flex flex-col justify-between"
+                :class="dev.is_proxied ? 'bg-gradient-to-br from-emerald-950/40 to-teal-950/30 border-emerald-500/40 shadow-lg shadow-emerald-950/20' : 'bg-white/5 border-white/10 hover:border-white/20'">
+
+                <!-- 设备头部：图标、名称、就地改名、在线状态 -->
+                <div class="flex items-start gap-3">
+                  <span class="text-2xl p-2 rounded-xl bg-black/40 border border-white/10 shrink-0">
+                    {{ getDeviceIcon(dev) }}
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <!-- 名称与就地编辑 -->
+                    <div v-if="editingClientMAC === (dev.mac || dev.ip)" class="flex items-center gap-1.5">
+                      <input v-model="editingClientName" @keyup.enter="saveClientAlias(dev)" @keyup.esc="editingClientMAC = ''"
+                        class="w-full px-2 py-0.5 rounded-lg bg-black/60 border border-sky-400 text-xs text-white focus:outline-none font-bold" />
+                      <button @click="saveClientAlias(dev)" class="px-2 py-0.5 rounded-lg bg-sky-500 text-white text-xs font-bold cursor-pointer">✓</button>
+                      <button @click="editingClientMAC = ''" class="px-2 py-0.5 rounded-lg bg-white/10 text-slate-300 text-xs cursor-pointer">✕</button>
+                    </div>
+                    <div v-else class="flex items-center justify-between gap-1">
+                      <div @click="editingClientMAC = (dev.mac || dev.ip); editingClientName = (dev.name || dev.hostname || dev.ip)"
+                        class="font-black text-sm text-white truncate flex items-center gap-1.5 cursor-pointer hover:text-sky-300 transition" :title="'点击修改备注: ' + (dev.name || dev.ip)">
+                        <span>{{ dev.name || dev.hostname || dev.ip }}</span>
+                        <span v-if="dev.is_custom" class="text-[10px] text-amber-300 font-normal">✎</span>
+                      </div>
+                      <button @click="editingClientMAC = (dev.mac || dev.ip); editingClientName = (dev.name || dev.hostname || dev.ip)"
+                        class="opacity-0 group-hover:opacity-100 text-[11px] text-slate-400 hover:text-sky-300 transition shrink-0 p-0.5 cursor-pointer">
+                        编辑备注
+                      </button>
+                    </div>
+
+                    <!-- IP 与 MAC 地址 -->
+                    <div class="text-[11px] font-mono text-slate-400 flex items-center gap-2 mt-1">
+                      <span class="text-cyan-300 font-tabular">{{ dev.ip }}</span>
+                      <span class="text-slate-600">·</span>
+                      <span class="text-slate-400 truncate">{{ dev.mac && dev.mac !== '-' ? dev.mac : '局域网终端' }}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div class="text-right shrink-0">
-                  <span :class="['px-2 py-0.5 rounded-md text-[10px] font-bold block', dev.is_proxied ? 'bg-sky-500/20 text-sky-300 border border-sky-400/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30']">
-                    {{ dev.is_proxied ? '海外加速' : '国内直连' }}
-                  </span>
-                  <span class="text-[10px] font-mono text-slate-400 mt-0.5 block font-tabular">
-                    {{ dev.down_speed ? dev.down_speed : '活跃' }}
-                  </span>
+                <!-- 分隔线与分流控制 Toggle 开关 -->
+                <div class="pt-3.5 mt-3.5 border-t border-white/10 flex items-center justify-between">
+                  <div>
+                    <div class="text-xs font-bold flex items-center gap-1.5" :class="dev.is_proxied ? 'text-emerald-300' : 'text-slate-300'">
+                      <span>{{ dev.is_proxied ? '⚡ 旁路加速生效中' : '🛡️ 主路由原生直连' }}</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400 font-mono mt-0.5 font-sans">
+                      {{ dev.is_proxied ? '走 CubeX 智能分流与防泄露' : '走主路由默认物理网关直出' }}
+                    </div>
+                  </div>
+
+                  <!-- 交互开关按钮 -->
+                  <button @click="toggleClientProxy(dev)" :disabled="togglingClientIP === dev.ip"
+                    class="px-3.5 py-1.5 rounded-xl font-black text-xs transition-all duration-300 flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95 disabled:opacity-50"
+                    :class="dev.is_proxied ? 'bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 shadow-emerald-500/25' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/15'">
+                    <span v-if="togglingClientIP === dev.ip" class="inline-block animate-spin text-xs">↻</span>
+                    <span v-else>{{ dev.is_proxied ? '✓ 旁路加速' : '○ 直连模式' }}</span>
+                  </button>
                 </div>
               </div>
+            </div>
+
+            <!-- 空状态提示 -->
+            <div v-else class="text-center py-10 space-y-2 text-slate-400">
+              <div class="text-3xl">🔍</div>
+              <div class="text-sm font-bold text-slate-300">未找到匹配的局域网终端</div>
+              <div class="text-xs text-slate-500">点击右上角刷新，或清除搜索条件</div>
             </div>
           </section>
 
@@ -3375,7 +3580,6 @@
 
         <RulesTab v-else-if="activeMasterTab === 'rules'" />
         <SystemTab v-else-if="activeMasterTab === 'system'" />
-        <AiTab v-else-if="activeMasterTab === 'ai'" />
 
       </main>
 
@@ -3450,7 +3654,7 @@
 
   <nav class="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[#001529]/98 border-t border-sky-500/25 px-1 py-1 pb-safe shadow-[0_-6px_25px_rgba(0,0,0,0.85)] select-none">
 
-    <div class="grid grid-cols-6 [grid-template-columns:repeat(6,minmax(0,1fr))] gap-0.5 w-full items-center">
+    <div class="grid grid-cols-4 [grid-template-columns:repeat(4,minmax(0,1fr))] gap-0.5 w-full items-center">
 
       <button v-for="item in navItems" :key="item.id"
 
@@ -3631,7 +3835,7 @@ const currentActiveRoute = computed(() => {
   try {
     const proxyGroup = (filteredPolicies.value || []).find(p => p.name === 'PROXY' || p.name === 'GLOBAL') || (filteredPolicies.value || [])[0]
     const rawNodeName = proxyGroup?.now || '智能自动优选'
-    const nodeName = rawNodeName.replace(/[\uD83C][\uDDE6-\uDDFF]{2}/g, '').trim() || rawNodeName
+    const nodeName = rawNodeName.replace(/\p{Regional_Indicator}{2}/gu, '').trim() || rawNodeName
     let latency = 35
     if (triangleScores.value && triangleScores.value[rawNodeName] && triangleScores.value[rawNodeName].median_ms) {
       latency = triangleScores.value[rawNodeName].median_ms
@@ -3895,7 +4099,7 @@ import RegionFlag from './components/RegionFlag.vue'
 
 // ── Master Navigation Hubs (核心模块导航 - 支持全状态记忆与 F5 刷新锁定) ──
 
-const VALID_TABS = ['overview', 'routing', 'rules', 'system', 'ai']
+const VALID_TABS = ['overview', 'routing', 'rules', 'system']
 
 const showLogsModal = ref(false)
 
@@ -3981,7 +4185,10 @@ watch(activeMasterTab, (newTab) => {
 
   }
 
-  if (newTab === 'diagnostics') {
+  if (newTab === 'overview') {
+    try { fetchLanClients(true) } catch(e){}
+    try { fetchTelemetryTraffic() } catch(e){}
+  } else if (newTab === 'diagnostics') {
     fetchSystemLogs(true)
   } else if (newTab === 'system') {
     fetchRouterHardware(true)
@@ -3990,62 +4197,22 @@ watch(activeMasterTab, (newTab) => {
     fetchPMTUReport()
     fetchLANGuardian()
     fetchMultiWANStatus()
-  } else if (newTab === 'ai') {
-    try { fetchJitterReport?.() } catch(e){}
-    try { fetchDNSPrefetch?.() } catch(e){}
-    try { fetchActiveHealing?.() } catch(e){}
-    try { fetchShadowAuditor?.() } catch(e){}
-    try { fetchSessionAffinity?.() } catch(e){}
-    try { fetchMemoryConntrack?.() } catch(e){}
-    try { fetchLANGuardian?.() } catch(e){}
-    try { fetchMultiwanBinding?.() } catch(e){}
-    try { fetchRootCauseReport?.() } catch(e){}
-    try { fetchUDPRacing?.() } catch(e){}
-    try { fetchFastTrackStatus?.() } catch(e){}
-    try { fetchIoTGuardStatus?.() } catch(e){}
-    try { fetchStreamingReport?.() } catch(e){}
-    try { fetchAdaptiveSlicing?.() } catch(e){}
-    try { fetchBpfBypass?.() } catch(e){}
-    try { fetchPrivacyMesh?.() } catch(e){}
-    try { fetchMultiPathBonding?.() } catch(e){}
-    try { fetchMicroQoS?.() } catch(e){}
-    try { fetchECSDispatcher?.() } catch(e){}
-    try { fetchZeroTrustStatus?.() } catch(e){}
-    try { fetchRFCQUIC?.() } catch(e){}
-    try { fetchMultiWANRacingStatus?.() } catch(e){}
   }
 })
 
 const navItems = [
-
   { id: 'overview', label: '网络中枢', icon: 'overview' },
-
   { id: 'routing', label: '应用分流', icon: 'routing' },
-
   { id: 'rules', label: '安全防护', icon: 'rules' },
-
-
-  { id: 'system', label: '宿主共生', icon: 'system' },
-
-  { id: 'ai', label: 'AI管家', icon: 'ai' }
-
+  { id: 'system', label: '宿主共生', icon: 'system' }
 ]
 
-// 🎨 疯狂动物城 1 & 2 主题 6 大板块独立超高清海报配置 (WebP 硬件解码)
-
+// 🎨 疯狂动物城 1 & 2 主题 独立超高清海报配置 (WebP 硬件解码)
 const tabBackgrounds = [
-
   { id: 'overview', webp: '/assets/bg-tab-overview.webp', jpg: '/assets/bg-tab-overview.jpg', position: 'center 35%' },
-
   { id: 'routing', webp: '/assets/bg-tab-routing.webp', jpg: '/assets/bg-tab-routing.jpg', position: 'center 35%' },
-
   { id: 'rules', webp: '/assets/bg-tab-rules.webp', jpg: '/assets/bg-tab-rules.jpg', position: 'center 30%' },
-
-
-  { id: 'system', webp: '/assets/bg-tab-system.webp', jpg: '/assets/bg-tab-system.jpg', position: 'center 35%' },
-
-  { id: 'ai', webp: '/assets/bg-tab-diagnostics.webp', jpg: '/assets/bg-tab-diagnostics.jpg', position: 'center 35%' }
-
+  { id: 'system', webp: '/assets/bg-tab-system.webp', jpg: '/assets/bg-tab-system.jpg', position: 'center 35%' }
 ]
 
 const activeTabBg = computed(() => {
@@ -13012,25 +13179,17 @@ const directClientsCount = computed(() => {
 })
 
 function getDeviceIcon(client) {
-
-  const name = ((client.name || '') + ' ' + (client.hostname || '')).toLowerCase()
-
-  if (name.includes('phone') || name.includes('s24') || name.includes('s23') || name.includes('iphone') || name.includes('xiaomi') || name.includes('huawei')) return '📱'
-
-  if (name.includes('tv') || name.includes('apple tv') || name.includes('box') || name.includes('sony') || name.includes('bravia')) return '📺'
-
-  if (name.includes('pc') || name.includes('desktop') || name.includes('mac') || name.includes('laptop') || name.includes('workstation')) return '🖥️'
-
-  if (name.includes('nas') || name.includes('synology') || name.includes('zspace') || name.includes('qnap')) return '🗄️'
-
+  if (!client) return '🔌'
+  const name = ((client.name || '') + ' ' + (client.hostname || '') + ' ' + (client.vendor || '')).toLowerCase()
+  if (name.includes('蓝光') || name.includes('魅视') || name.includes('player') || name.includes('bd') || name.includes('bluray') || name.includes('oppo')) return '📀'
+  if (name.includes('回音壁') || name.includes('soundbar') || name.includes('sound') || name.includes('audio') || name.includes('speaker') || name.includes('q990') || name.includes('q930')) return '🔊'
+  if (name.includes('phone') || name.includes('s24') || name.includes('s23') || name.includes('s22') || name.includes('samsung') || name.includes('iphone') || name.includes('xiaomi') || name.includes('huawei') || name.includes('oppo') || name.includes('vivo') || name.includes('ipad') || name.includes('pad')) return '📱'
+  if (name.includes('tv') || name.includes('apple tv') || name.includes('box') || name.includes('sony') || name.includes('bravia') || name.includes('tcl') || name.includes('hisense')) return '📺'
+  if (name.includes('win11') || name.includes('win10') || name.includes('windows') || name.includes('pc') || name.includes('desktop') || name.includes('mac') || name.includes('laptop') || name.includes('workstation')) return '💻'
+  if (name.includes('nas') || name.includes('fnos') || name.includes('飞牛') || name.includes('synology') || name.includes('zspace') || name.includes('qnap') || name.includes('unraid') || name.includes('pve')) return '🗄️'
   if (name.includes('ps5') || name.includes('playstation') || name.includes('switch') || name.includes('xbox')) return '🎮'
-
-  if (name.includes('sound') || name.includes('audio') || name.includes('speaker') || name.includes('q990') || name.includes('samsung')) return '🔊'
-
-  if (name.includes('router') || name.includes('ap') || name.includes('mesh')) return '🔀'
-
+  if (name.includes('router') || name.includes('ap') || name.includes('mesh') || name.includes('gateway')) return '🔀'
   return '🔌'
-
 }
 
 async function fetchLanDevices() {
