@@ -144,7 +144,7 @@
                   <div class="flex items-center justify-between text-xs gap-2 flex-wrap">
                     <span class="text-slate-400 font-mono">💻 WinBox / SSH 终端一键粘贴脚本：</span>
                     <div class="flex items-center gap-1.5">
-                      <button @click="copyTelegramFullRoutes('routeros')"
+                      <button @click="copyDirectCIDRRoutes('routeros')"
                         class="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 text-[11px] font-bold font-mono transition cursor-pointer"
                         title="包含全球国际通讯直连数据中心核心网段的一键直通脚本">
                         🌐 复制国际通讯专线补盲脚本
@@ -181,7 +181,7 @@
                   <div class="flex items-center justify-between text-xs gap-2 flex-wrap">
                     <span class="text-slate-400 font-mono">💻 OpenWrt SSH 终端一键 UCI + 断网看门狗脚本：</span>
                     <div class="flex items-center gap-1.5">
-                      <button @click="copyTelegramFullRoutes('openwrt')"
+                      <button @click="copyDirectCIDRRoutes('openwrt')"
                         class="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 text-[11px] font-bold font-mono transition cursor-pointer"
                         title="包含全球国际通讯直连数据中心核心网段的 OpenWrt UCI 脚本">
                         🌐 复制国际通讯专线补盲脚本
@@ -1566,7 +1566,7 @@ function copyRouterOSScript() {
   copyToClipboard(cmd, 'RouterOS 一键脚本已复制')
 }
 
-async function copyTelegramFullRoutes(brand) {
+async function copyDirectCIDRRoutes(brand) {
   try {
     const res = await fetch('/api/v1/onboarding/essential-cidrs')
     if (res.ok) {

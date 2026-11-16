@@ -455,7 +455,7 @@ func (s *Server) handleVerifySymbioticLoop(w http.ResponseWriter, r *http.Reques
 	sendJSON(w, res)
 }
 
-// handleGetEssentialCIDRs 提供 Telegram 与纯 IP 应用的黄金补盲路由清单与脚本
+// handleGetEssentialCIDRs 提供国际通信与纯 IP 应用的黄金补盲路由清单与脚本
 func (s *Server) handleGetEssentialCIDRs(w http.ResponseWriter, r *http.Request) {
 	localIP := s.getDetectedLocalIP()
 	payload := map[string]any{
