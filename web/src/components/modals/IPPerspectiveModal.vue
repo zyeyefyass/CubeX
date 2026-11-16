@@ -209,10 +209,10 @@ function handleBackdropClick(e) {
   }
 }
 
-async function fetchPerspective(node) {
+async function fetchPerspective(node, force = false) {
   if (!node) return
   try {
-    const res = await fetch(`/api/v1/config/proxies/ip-perspective?node=${encodeURIComponent(node)}`)
+    const res = await fetch(`/api/v1/config/proxies/ip-perspective?node=${encodeURIComponent(node)}${force ? '&refresh=1' : ''}&_t=${Date.now()}`)
     if (res.ok) {
       const data = await res.json()
       if (data.ok) {
@@ -233,7 +233,7 @@ async function triggerBurst() {
     })
     const data = await res.json()
     if (data.ok) {
-      await fetchPerspective(props.nodeName)
+      await fetchPerspective(props.nodeName, true)
       emit('burst-done', data)
     }
   } catch (e) {

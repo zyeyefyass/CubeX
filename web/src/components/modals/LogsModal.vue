@@ -179,7 +179,8 @@
                   <span class="text-xs text-cyan-400 font-bold transition-transform"
                     :class="{'rotate-90': isExpanded(devGroup.key)}">▶</span>
                   <span class="text-sm font-black text-white flex items-center gap-2">
-                    📱 {{ devGroup.device_name }}
+                    <span>{{ devGroup.icon || '📱' }}</span>
+                    <span>{{ devGroup.device_name }}</span>
                   </span>
                   <span class="text-[10px] font-mono px-2 py-0.2 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-tabular">
                     {{ devGroup.ip }}
@@ -475,11 +476,24 @@ const deviceTree = computed(() => {
   filteredConnections.value.forEach(c => {
     const key = c.client_mac || c.source_ip || 'unknown'
     if (!map[key]) {
+      let devName = c.client_device || c.source_ip
+      let icon = '📱'
+      const isInternal = c.source_ip === '172.19.0.1' || (c.source_ip && c.source_ip.startsWith('172.19.'))
+      const isLoopback = c.source_ip === '127.0.0.1' || c.source_ip === '::1'
+      if (isInternal) {
+        devName = 'CubeX 旁路由系统内部 (TUN网卡回环)'
+        icon = '🖥️'
+      } else if (isLoopback) {
+        devName = 'CubeX 控制面服务 (Localhost)'
+        icon = '🖥️'
+      }
       map[key] = {
         key: key,
         ip: c.source_ip,
         mac: c.client_mac,
-        device_name: c.client_device || c.source_ip,
+        device_name: devName,
+        icon: icon,
+        is_internal: isInternal || isLoopback,
         conns: [],
         down: 0,
         up: 0,
