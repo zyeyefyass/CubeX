@@ -51,6 +51,7 @@ scripts/*.py
 !scripts/publish_release_*.py
 !scripts/precompress_dist.py
 !scripts/compile_all_garble.py
+!scripts/build_fnos_fpk.py
 !scripts/package_release.sh
 !scripts/package_release.ps1
 !scripts/build.sh
@@ -64,6 +65,7 @@ Thumbs.db
 .vscode/
 dist/release/
 dist/docker/
+dist-fpk/
 *.tar
 *.tar.gz
 *.zip

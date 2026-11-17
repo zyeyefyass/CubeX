@@ -24,6 +24,7 @@
               <input
                 v-model="loginPassword"
                 :type="showPass ? 'text' : 'password'"
+                autocomplete="current-password"
                 autofocus
                 placeholder="请输入控制台访问密码"
                 class="w-full px-3.5 py-2.5 pr-12 rounded-xl bg-black/40 border border-white/20 text-white placeholder-slate-400 text-sm font-mono focus:outline-none focus:border-cyan-400 transition"
@@ -83,6 +84,7 @@
             <input
               v-model="currentPassword"
               type="password"
+              autocomplete="current-password"
               placeholder="输入当前访问密码"
               class="w-full px-3.5 py-2 rounded-xl bg-black/35 border border-white/20 text-white placeholder-slate-400 text-xs font-mono focus:outline-none focus:border-cyan-400"
             />
@@ -95,6 +97,7 @@
             <input
               v-model="newPassword"
               type="password"
+              autocomplete="new-password"
               :placeholder="authEnabled ? '输入新密码，或留空关闭密码保护' : '请输入至少 4 位访问密码'"
               class="w-full px-3.5 py-2 rounded-xl bg-black/35 border border-white/20 text-white placeholder-slate-400 text-xs font-mono focus:outline-none focus:border-cyan-400"
             />

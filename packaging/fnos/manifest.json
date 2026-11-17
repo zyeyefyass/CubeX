@@ -1,0 +1,25 @@
+{
+  "manifest_version": 1,
+  "appname": "cubex",
+  "name": "cubex",
+  "display_name": "CubeX 网络与影音中枢",
+  "version": "9.9.1",
+  "platform": [
+    "x86_64",
+    "aarch64"
+  ],
+  "desc": "15MB 极轻量全屋网络拓扑管理、NAS 影视刮削加速与 DNS 防抖自愈网关",
+  "description": "15MB 极轻量全屋网络拓扑管理、NAS 影视刮削加速与 DNS 防抖自愈网关",
+  "author": "CubeX Lab",
+  "maintainer": "CubeX Lab",
+  "website": "https://github.com/zyeyefyass/CubeX",
+  "icon": "ICON.PNG",
+  "icon_large": "ICON_256.PNG",
+  "desktop": {
+    "display_name": "CubeX",
+    "icon": "ICON.PNG",
+    "url": "http://{HOST}:{PORT}/",
+    "port": 2026,
+    "protocol": "http"
+  }
+}

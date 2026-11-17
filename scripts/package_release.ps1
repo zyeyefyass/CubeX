@@ -8,7 +8,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$Version = "v9.9.0"
+$Version = "v9.9.1"
 
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 
@@ -298,6 +298,12 @@ python "$RootDir\scripts\build_ros_containers.py" | Out-Host
 # Build fnOS / Linux Docker offline image
 
 python "$RootDir\scripts\build_docker_tar.py" | Out-Host
+
+# Build fnOS Native .fpk Packages
+python "$RootDir\scripts\build_fnos_fpk.py" | Out-Host
+if (Test-Path "$RootDir\dist-fpk") {
+    Copy-Item -Path "$RootDir\dist-fpk\*.fpk" -Destination $ReleaseDir -Force
+}
 
 
 

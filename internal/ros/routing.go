@@ -1192,6 +1192,84 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 	}
 	res.Actions = append(res.Actions, "已固化主路由原生安全防线：杜绝强制 DNS 劫持，主路由自身解析永不断网")
 
+	// 5d. Ensure Non-Intrusive DNS Redirect for Accelerated Clients Only (cubex-clients)
+	// 针对电视等终端固件暗中注入备份 DNS (如 TCL 自动注入 223.5.5.5) 的情况，仅对加速清单内终端发往外部的 DNS 进行 redirect 本地重定向
+	hasClientDNSRedirectUDP := false
+	hasClientDNSRedirectTCP := false
+	for _, n := range existingNats {
+		comm, _ := n["comment"].(string)
+		proto, _ := n["protocol"].(string)
+		if comm == "CubeX-Client-DNS-Redirect" {
+			if proto == "udp" {
+				hasClientDNSRedirectUDP = true
+			} else if proto == "tcp" {
+				hasClientDNSRedirectTCP = true
+			}
+		}
+	}
+	if !hasClientDNSRedirectUDP {
+		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
+			"chain":            "dstnat",
+			"action":           "redirect",
+			"protocol":         "udp",
+			"dst-port":         "53",
+			"src-address-list": "cubex-clients",
+			"dst-address-type": "!local",
+			"comment":          "CubeX-Client-DNS-Redirect",
+		})
+	}
+	if !hasClientDNSRedirectTCP {
+		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
+			"chain":            "dstnat",
+			"action":           "redirect",
+			"protocol":         "tcp",
+			"dst-port":         "53",
+			"src-address-list": "cubex-clients",
+			"dst-address-type": "!local",
+			"comment":          "CubeX-Client-DNS-Redirect",
+		})
+	}
+
+	// 5e. Ensure DoT (853) Blocking for Accelerated Clients (cubex-clients)
+	// 封堵智能电视/手机通过 DoT (223.5.5.5:853 / 8.8.8.8:853) 绕过 DNS 拦截再次获取污染假 IPv6
+	hasBlockDoTTCP := false
+	hasBlockDoTUDP := false
+	for _, f := range existingFilters {
+		comm, _ := f["comment"].(string)
+		proto, _ := f["protocol"].(string)
+		dport, _ := f["dst-port"].(string)
+		if strings.Contains(comm, "CubeX-Block-DoT") || (dport == "853" && strings.Contains(comm, "CubeX")) {
+			if proto == "tcp" {
+				hasBlockDoTTCP = true
+			} else if proto == "udp" {
+				hasBlockDoTUDP = true
+			}
+		}
+	}
+	if !hasBlockDoTTCP {
+		_, _ = m.PutROS("/ip/firewall/filter", map[string]any{
+			"chain":            "forward",
+			"action":           "reject",
+			"reject-with":      "tcp-reset",
+			"protocol":         "tcp",
+			"dst-port":         "853",
+			"src-address-list": "cubex-clients",
+			"comment":          "CubeX-Block-DoT-TCP",
+		})
+	}
+	if !hasBlockDoTUDP {
+		_, _ = m.PutROS("/ip/firewall/filter", map[string]any{
+			"chain":            "forward",
+			"action":           "reject",
+			"reject-with":      "icmp-network-unreachable",
+			"protocol":         "udp",
+			"dst-port":         "853",
+			"src-address-list": "cubex-clients",
+			"comment":          "CubeX-Block-DoT-UDP",
+		})
+	}
+	res.Actions = append(res.Actions, "已注入 DoT 853 端口秒级拦截规则 (杜绝智能电视通过加密 DNS 绕过)")
+
 	// 6. Anti-Block & Ultra-Low Latency Suite:
 	// 6a. Inject TCP MSS Clamping to prevent fragmentation blackholes (消除 IP 分片黑洞，降低 20% 握手延迟，杜绝 GFW 分片特征重组审计)
 	hasMSSClamping := false
@@ -2137,7 +2215,7 @@ func BuildNetwatchDownScript(targetIP string, controlPort int, fallbackDNS strin
 		graceTicks = 4
 	}
 	healthURL := fmt.Sprintf("http://%s:%d/healthz", targetIP, controlPort)
-	s := fmt.Sprintf(`:global cubexForceBypass; :local recovered false; :if ($cubexForceBypass != true) do={ :local i 0; :while (($i < %d) && (!$recovered)) do={ :delay 550ms; :set i ($i + 1); :if ([/ping %s count=1 interval=200ms] > 0) do={ :do { /tool fetch url="%s" http-method=get output=none as-value; :set recovered true; } on-error={}; }; }; }; :if ($recovered) do={ :log info "CubeX HA: Transient reload (<2.2s) absorbed smoothly, 0 route/DNS flap."; :return; }; :local activeRoutes [/ip route find where comment~"CubeX-FakeIP-Backtrack" and disabled=no]; :if ([:len $activeRoutes] > 0) do={ /ip route disable $activeRoutes; /ip dns set servers=%s; /ip dns cache flush; :log warning "CubeX HA: L2 Escape activated! Switched to RouterOS native DNS (%s)."; };`,
+	s := fmt.Sprintf(`:global cubexForceBypass; :local recovered false; :if ($cubexForceBypass != true) do={ :local i 0; :while (($i < %d) && (!$recovered)) do={ :delay 550ms; :set i ($i + 1); :if ([/ping %s count=1 interval=200ms] > 0) do={ :do { /tool fetch url="%s" http-method=get output=none as-value; :set recovered true; } on-error={}; }; }; }; :if ($recovered) do={ :log info "CubeX HA: Transient reload (<2.2s) absorbed smoothly, 0 route/DNS flap."; :return; }; :local activeRoutes [/ip route find where comment~"CubeX-FakeIP-Backtrack" and disabled=no]; :if ([:len $activeRoutes] > 0) do={ /ip route disable $activeRoutes; /ip dns set servers=%s; /ip dns cache flush; :log warning "CubeX HA: L2 Escape activated! Switched to RouterOS native DNS (%s)."; }; :local activeDnsNats [/ip firewall nat find where comment~"CubeX-Client-DNS-Redirect" and disabled=no]; :if ([:len $activeDnsNats] > 0) do={ /ip firewall nat disable $activeDnsNats; :log warning "CubeX HA: Suspended client DNS redirect on escape to prevent TV blackouts."; };`,
 		graceTicks, targetIP, healthURL, fallbackDNS, fallbackDNS)
 	return compactROSScript(s)
 }
@@ -2148,7 +2226,7 @@ func BuildNetwatchUpScript(targetIP string, controlPort int) string {
 		controlPort = 2026
 	}
 	healthURL := fmt.Sprintf("http://%s:%d/healthz", targetIP, controlPort)
-	s := fmt.Sprintf(`:global cubexForceBypass; :local escapedRoutes [/ip route find where comment~"CubeX-FakeIP-Backtrack" and disabled=yes]; :local curDns [:tostr [/ip dns get servers]]; :if (([:len $escapedRoutes] = 0) && ($curDns = "%s")) do={ :return; }; :delay 1200ms; :local ready false; :if ([/ping %s count=1 interval=200ms] > 0) do={ :do { /tool fetch url="%s" http-method=get output=none as-value; :set ready true; } on-error={}; }; :if (!$ready) do={ :log warning "CubeX HA: Port up but /healthz not ready after dampening window, holding escape state."; :return; }; :set cubexForceBypass false; /ip dns set servers=%s; :if ([:len $escapedRoutes] > 0) do={ /ip route enable $escapedRoutes; }; /ip dns cache flush; :log info "CubeX HA: Service verified stable, restored Fake-IP backtrack and CubeX DNS.";`,
+	s := fmt.Sprintf(`:global cubexForceBypass; :local escapedRoutes [/ip route find where comment~"CubeX-FakeIP-Backtrack" and disabled=yes]; :local curDns [:tostr [/ip dns get servers]]; :if (([:len $escapedRoutes] = 0) && ($curDns = "%s")) do={ :return; }; :delay 1200ms; :local ready false; :if ([/ping %s count=1 interval=200ms] > 0) do={ :do { /tool fetch url="%s" http-method=get output=none as-value; :set ready true; } on-error={}; }; :if (!$ready) do={ :log warning "CubeX HA: Port up but /healthz not ready after dampening window, holding escape state."; :return; }; :set cubexForceBypass false; /ip dns set servers=%s; :if ([:len $escapedRoutes] > 0) do={ /ip route enable $escapedRoutes; }; :local disabledDnsNats [/ip firewall nat find where comment~"CubeX-Client-DNS-Redirect" and disabled=yes]; :if ([:len $disabledDnsNats] > 0) do={ /ip firewall nat enable $disabledDnsNats; :log info "CubeX HA: Re-enabled client DNS redirect."; }; /ip dns cache flush; :log info "CubeX HA: Service verified stable, restored Fake-IP backtrack and CubeX DNS.";`,
 		targetIP, targetIP, healthURL, targetIP)
 	return compactROSScript(s)
 }
@@ -2197,7 +2275,20 @@ func (m *Manager) GracefulDrain(ctx context.Context, maintenance bool) error {
 				}
 			}
 		}
-		// 2. Set RouterOS DNS to fallback DNS and flush cache
+		// 2. Disable Client DNS Redirect NAT rules
+		if nData, err := m.QueryROS("/ip/firewall/nat"); err == nil {
+			var nats []map[string]any
+			if json.Unmarshal(nData, &nats) == nil {
+				for _, n := range nats {
+					id, _ := n[".id"].(string)
+					comment, _ := n["comment"].(string)
+					if strings.Contains(comment, "CubeX-Client-DNS-Redirect") && id != "" {
+						_ = m.PatchROS("/ip/firewall/nat/"+id, map[string]any{"disabled": "yes"})
+					}
+				}
+			}
+		}
+		// 3. Set RouterOS DNS to fallback DNS and flush cache
 		_ = m.PatchROS("/ip/dns", map[string]any{"servers": "223.5.5.5,119.29.29.29"})
 		_, _ = m.PostROS("/ip/dns/cache/flush", nil)
 		return nil
@@ -2227,7 +2318,20 @@ func (m *Manager) NotifyEngineReady(ctx context.Context) error {
 			}
 		}
 	}
-	// 2. Set RouterOS DNS to targetIP and flush cache
+	// 2. Re-enable Client DNS Redirect NAT rules
+	if nData, err := m.QueryROS("/ip/firewall/nat"); err == nil {
+		var nats []map[string]any
+		if json.Unmarshal(nData, &nats) == nil {
+			for _, n := range nats {
+				id, _ := n[".id"].(string)
+				comment, _ := n["comment"].(string)
+				if strings.Contains(comment, "CubeX-Client-DNS-Redirect") && id != "" {
+					_ = m.PatchROS("/ip/firewall/nat/"+id, map[string]any{"disabled": "no"})
+				}
+			}
+		}
+	}
+	// 3. Set RouterOS DNS to targetIP and flush cache
 	if targetIP != "" {
 		_ = m.PatchROS("/ip/dns", map[string]any{"servers": targetIP})
 		_, _ = m.PostROS("/ip/dns/cache/flush", nil)

@@ -1,0 +1,13 @@
+appname = cubex
+display_name = CubeX 网络与影音中枢
+version = 9.9.1
+desc = 15MB 极轻量全屋网络拓扑管理、NAS 影视刮削加速与 DNS 防抖自愈网关
+maintainer = CubeX Lab
+author = CubeX Lab
+website = https://github.com/zyeyefyass/CubeX
+platform = all
+desktop_uidir = ui
+icon = ICON.PNG
+icon_large = ICON_256.PNG
+port = 2026
+protocol = http

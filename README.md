@@ -14,7 +14,7 @@
 <a href="#"><img src="https://img.shields.io/badge/Fail--Open-3s_内核逃生-7B2CBF?style=for-the-badge&logo=shield" alt="Fail-Open" /></a>
 <a href="#"><img src="https://img.shields.io/badge/Dual--Core-234ms_热切-0077B6?style=for-the-badge&logo=go" alt="Dual-Core" /></a>
 <a href="#"><img src="https://img.shields.io/badge/Doctor-14%2F14_满分通过-38BDF8?style=for-the-badge&logo=checkmarx" alt="Doctor" /></a>
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-v9.9.0_正式版-FF007F?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-v9.9.1_正式版-FF007F?style=for-the-badge&logo=github" alt="Version" /></a>
 
 </p>
 
@@ -103,7 +103,7 @@
 
 - [📸 控制台真实界面一览 (60FPS 顺滑体验)](#screenshots)
 
-- [📢 v9.9.0 纯净稳定版最新更新亮点](#announcement)
+- [📢 v9.9.1 纯净增强版最新更新亮点](#announcement)
 
 - [📦 资产下载：我该下哪一个？(小白对号入座清单)](#release-assets)
 
@@ -344,30 +344,22 @@
 
 <a id="announcement"></a>
 
-## 📢 v9.9.0 纯净稳定版最新更新亮点 (影音/NAS专属加速 · 一句话网站分流 · 全屋配置时光机 · 14.9MB极限稳态)
+## 📢 v9.9.1 纯净增强与飞牛生态伴生版最新更新亮点 (飞牛原生套件 · 全屋电视DNS防污染 · 商店合规态 · 60FPS顺滑)
 
 > [!IMPORTANT]
-> ### 👑【影音/NAS专属加速 · 一句话网站分流 · 全屋配置时光机 · 14.9MB极限稳态】(v9.9.0 纯净稳定版)
+> ### 👑【飞牛原生套件 · 全屋电视DNS防污染 · 商店合规态 · 60FPS顺滑】(v9.9.1 纯净增强版)
 >
-> 1. **🎬 影音/NAS 专属加速模式 (双核复合规则精准分流)**：
->    - **刮削加速与下载直通完美共存**：针对局域网飞牛 NAS、蓝光播放机、智能电视，编排双核复合规则。TMDB/TVDB/Fanart 海报墙刮削、字幕站与 Docker/GitHub 镜像拉取精准走加速通道；PT/BT 种子大文件下载与内网局域网串流 100% 物理直连直出，跑满千兆/万兆带宽，彻底杜绝非必要外部带宽损耗；
->    - **局域网设备三态秒切微调**：设备卡片支持 `[ ⚡ 旁路加速 | 🎬 影音NAS | 🏠 物理直连 ]` 单键秒级切换，切换瞬间自动斩断旧会话，免插拔网线即刻生效。
-> 2. **➕ 一句话网站分流 (零门槛极速自定义)**：
->    - 告别繁琐的底层规则语法编写，在「安全防护」首屏输入任意域名或网址（如 `javdb.com`、`pt.m-team.cc`、`github.com`），单键选择 **【⚡ 强制走加速】**、**【🏠 强制走直连】** 或 **【🛑 屏蔽该网站】**，即按即热生效；
->    - 底部以彩色胶囊展示当前生效的自定义分流清单，支持 `✕` 单击一键清除还原默认规则。
-> 3. **📦 全屋配置时光机 (一键秒级快照与无损恢复)**：
->    - 一键打包导出包含全屋 16 台家庭设备自定义别名（主路由Ros、飞牛NAS、客厅电视、蓝光机、回音壁等）、MAC/IP绑定、3态分流模式及自定分流规则的完整系统快照；
->    - 导出文件极轻（仅 10KB 级别），内置 SHA-256 完整性校验，遭遇容器重装或换机时支持 3 秒无损原子热恢复。
-> 4. **🧭 黄金中轴页眉极简降噪 (去伪存真 · 纯净通透)**：
->    - **彻底清除非必要视觉噪音**：物理清除网络诊断树与 IP 透视等无头按钮，剔除容易引起误解的瞬时流量百分比，长句子状态报表收敛至首屏驾驶舱内部；
->    - **黄金中轴美学坚决保留**：页眉正中央稳稳保留专属的 **`[ sing-box 极速轻量 ⇄ Mihomo 规则完备 ]`** 暮光双核切换胶囊，毫秒级平滑换核，整体通透大气。
-> 5. **⚡ 14.9 MB 刀切级常驻内存与极限稳态**：
->    - 探针连接池与底层读写 Buffer 彻底收敛，设置 `DisableKeepAlives: true` 与强制 `CloseIdleConnections()`；
->    - `cubexd` 核心控制面常驻物理内存（RSS）稳定压死在 **14.9 MB**（Go Heap 堆分配仅 ~3.8 MB），`sing-box` 代理核心仅 **29.7 MB**；
->    - 真正做到跑满万兆，内存纹丝不动。
-> 6. **软路由三巨头单机寄生与零硬编码自适应**：
->    - RouterOS v7 容器 (`install_ros_container.rsc`) 与 OpenWrt Docker (`install_openwrt_docker.sh`) 保持极简自闭环；
->    - 自动探查主网关与 IP，自动注入 198.18.0.0/15 回指路由与毫秒级 Netwatch 逃生看门狗。
+> 1. **🐮 飞牛 fnOS 原生应用套件伴生 (官方标准 FPK 双架构)**：
+>    - 原生打通飞牛私有云 NAS 官方应用中心规范，提供 `.fpk` 一键开箱安装套件（`amd64` / `arm64`）；
+>    - 零宿主网络侵入，开机自启、平滑升级与彻底卸载 0 残留，极速加速影视刮削与 Docker 镜像拉取。
+> 2. **📺 全屋智能电视 DNS 智能防污染拦截 (攻克假双栈卡死)**：
+>    - 针对部分智能电视/电视盒子固件暗中注入公共 DNS（`223.5.5.5`）导致域名解析返回假 IPv6（`2001::1`）造成 20 秒播放超时的顽疾；
+>    - 在主路由自动下发非侵入式 DNS 端口 53 本地重定向与 DoT (853) 端口秒级拦截规则，并深度联动 Netwatch 毫秒逃生机制，真机 4K HDR 视频秒开秒播，容器维护逃生全网 0 秒不断网。
+> 3. **🛡️ 应用商店纯净合规模式 (Store Safe Mode)**：
+>    - 原生支持应用商店纯净合规形态与满血双核混动驾驶舱智能切换，兼顾官方市场上架规范与极客进阶需求；
+>    - 零订阅状态下展现纯净中立的网络加速与影视中枢界面，导入外部订阅后自动平滑解锁双核全部潜能。
+> 4. **⚡ 全栈交互极致提速 (60FPS 零抖动与现代 Web 规范)**：
+>    - 全面落地现代 Web Baseline 超时控制与原生对话隔离，等宽数字排版杜绝任何布局偏移（CLS=0），操作丝滑如丝绸。
 
 ---
 
@@ -379,11 +371,13 @@
 
 | 发布物文件名 | 适用宿主与架构 | 说明与用途 |
 | :--- | :--- | :--- |
-| `CubeX-v9.9.0-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-v9.9.0-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-v9.9.0-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-v9.9.0-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-v9.9.0-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
+| `cubex_fnos_v9.9.1_amd64.fpk` | 飞牛 fnOS (x86_64) | 飞牛私有云官方应用中心原生套件安装包 |
+| `cubex_fnos_v9.9.1_arm64.fpk` | 飞牛 fnOS (aarch64) | 飞牛私有云 ARM64 官方应用中心套件包 |
+| `CubeX-v9.9.1-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-v9.9.1-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-v9.9.1-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-v9.9.1-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-v9.9.1-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
 | `cubexd-linux-amd64` | Linux amd64 | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
 | `cubexd-linux-arm64` | Linux arm64 | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 | 纯命令行运维工具（终端直接运行） |
@@ -446,7 +440,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 如果你的主路由就是 MikroTik（RB5009、CCR2004、x86 ROS）：
 
-1. **下载镜像**：在上方清单下载对应架构的 `CubeX-v9.9.0-ros-amd64.tar`（或 `arm64.tar`）；
+1. **下载镜像**：在上方清单下载对应架构的 `CubeX-v9.9.1-ros-amd64.tar`（或 `arm64.tar`）；
 
 2. **传进路由器**：打开 WinBox，把 `.tar` 文件直接拖进【Files】列表（推荐放在 U 盘或 SSD 磁盘如 `disk1/`）；
 
@@ -464,7 +458,7 @@ curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/l
 
 #### 步骤 1：导入离线镜像
 
-1. 在上方清单下载 `CubeX-Test-v8.7-docker-amd64.tar.gz`；
+1. 在上方清单下载 `CubeX-v9.9.1-docker-amd64.tar.gz`；
 
 2. 登录爱快后台，进入【高级应用】➔【插件营销】➔【Docker】；
 

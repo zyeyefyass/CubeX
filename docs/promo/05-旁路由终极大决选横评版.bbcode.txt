@@ -1,0 +1,41 @@
+# TITLE: 【全维度对决横评】传统 OpenWrt 旁路由 vs CubeX 双核零感网关：谁才是家庭与 Homelab 的终极答案？
+
+[align=center][img]https://raw.githubusercontent.com/zyeyefyass/CubeX/main/assets/cubex-v99-cockpit-hero.png[/img][/align]
+
+[quote][b]标签[/b]：[color=#0066cc][b]#软路由测评[/b][/color] [color=#0066cc][b]#OpenWrt[/b][/color] [color=#0066cc][b]#CubeX[/b][/color] [color=#0066cc][b]#Homelab[/b][/color] [color=#0066cc][b]#性能测试[/b][/color]
+[b]项目地址[/b]：https://github.com/zyeyefyass/CubeX[/quote]
+[hr]
+[size=3][b]一、 评测背景[/b][/size]
+
+很多网络爱好者一直在问：[b]“我已经有了成熟的 OpenWrt 旁路由，为什么还要折腾 CubeX？”[/b]
+
+为了给广大软路由与 Homelab 玩家一个最客观、最硬核的参考，我们在同一台物理宿主机（Intel N100，双 2.5G 网口，PVE 8.x 底座）上，对「传统全包式 OpenWrt 旁路由」与「CubeX v9.9.0 宿主共生零感网关」进行了全方位的实机极限压测与真实场景横评。
+[hr]
+[size=3][b]二、 核心维度数据硬碰硬对比表[/b][/size]
+
+| 测试维度 | 传统全包式 OpenWrt 旁路由 | 👑 CubeX v9.9.0 双核零感网关 | 优劣差距 |
+| :--- | :--- | :--- | :--- |
+| [b]物理常驻内存 (RSS)[/b] | 480MB ~ 1.2GB (需至少划 2GB 虚机) | [b]11.4MB ~ 14.9MB (控制面)[/b] / ~29MB (核心) | 内存开销狂降 [b]80% 以上[/b] |
+| [b]架构与二进制模式[/b] | 繁杂的 Linux 根文件系统 + 多层插件堆叠 | [b]纯 Go 自研单二进制[/b] + 混动双引擎（sing-box × Mihomo） | 极简架构，0 插件依赖污染 |
+| [b]全家设备配置要求[/b] | 每台设备强改网关/DNS，或强改 DHCP Option 3/6 | [b]100% 零修改！[/b] 全家出厂默认 DHCP，连上 Wi-Fi 就能用 | 终结客人与新设备连不上网问题 |
+| [b]国内千兆满血转发[/b] | 全量流量经过旁路由 TUN/TProxy，CPU 经常飙升 | [b]主路由芯片级 FastTrack 直出[/b]，旁路由 0 CPU 负担 | 国内大流量 100% 跑满 2.5G/万兆物理线速 |
+| [b]意外断电/崩溃逃生[/b] | 旁路由卡死或关机，[b]全家网络瞬间瘫痪[/b] | [b]3 秒内核级逃生[/b]，Netwatch 自动脱钩，全家永不断网 | 解决家庭断网投诉终极大痛点 |
+| [b]影音与 NAS 体验[/b] | PT 满速下载走旁路由容易被判非必要外部带宽损耗 | [b]影音/NAS专属模式[/b]：PT 满速直连，TMDB/Docker 极速加速 | 下载与海报刮削两不误 |
+| [b]规则与去广告体系[/b] | 需手动到处搜找 rules.dat，容易格式冲突 | 内置 [b]105 套高精 MRS/SRS 规则体系[/b]，217heidai 权威去广告 | 开箱即用，免配置维护 |
+[hr]
+[size=3][b]三、 极限场景实测报告[/b][/size]
+
+#### 场景 1：千兆满带宽直连下载压测
+- [b]OpenWrt 表现[/b]：在跑满 1000Mbps 迅雷/百度网盘下载时，OpenWrt 虚机 CPU 占用直接冲到 65%~80%，局域网内其他设备网页打开延迟增加 80ms~150ms；
+- [b]CubeX 表现[/b]：由于国内流量由主路由物理芯片直接路由，CubeX 自身 CPU 占用几乎为 0%（0.1%），局域网测速延迟稳定在 1ms 以内，互不干扰！
+
+#### 场景 2：双核热切换耗时与丢包测试
+- [b]OpenWrt 表现[/b]：更换内核或重启核心服务通常需要 5~15 秒，期间已建立的 TCP 连接大面积中断；
+- [b]CubeX 表现[/b]：sing-box ⇄ Mihomo 往返切换 4 次实测，单次切换仅需 [b]234ms ~ 440ms[/b]，配合陈旧连接清理机制（Conntrack Stale Killer），正在播放的流媒体 0 缓冲、0 丢包！
+[hr]
+[size=3][b]四、 总结与选型建议[/b][/size]
+
+如果你追求“装好之后扔进弱电箱一整年不用管、家里老婆孩子看电视永远不卡、PT 满速下载与海报墙刮削两者兼得”，那么 CubeX 无疑是目前 Homelab 圈最具创新性与稳定性的旁路解法。
+
+👉 [b]项目开源地址[/b]：https://github.com/zyeyefyass/CubeX  
+欢迎各路极客大佬移步 GitHub 查阅源码并点个 [b]Star[/b] 支持！

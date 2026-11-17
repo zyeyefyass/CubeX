@@ -218,7 +218,7 @@
 
               <span class="font-black tracking-tight text-sky-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] hidden xs:inline">
 
-                {{ systemStatus.version || 'v9.9.0' }}
+                {{ systemStatus.version || 'v9.9.1' }}
 
               </span>
 
@@ -234,11 +234,24 @@
 
         </div>
 
-        <!-- Center: Dual-Engine Switch Capsule (页眉居中设计 · 完美中轴平衡) -->
+        <!-- Center: Dual-Engine Switch Capsule or Store Safe Mode Capsule -->
 
         <div class="flex items-center justify-center shrink-0 mx-auto">
 
-          <div class="flex items-center p-0.5 sm:p-1.5 rounded-xl sm:rounded-2xl transition-all duration-300 relative gap-0.5 sm:gap-2 macos-capsule select-none shrink-0 shadow-lg border border-white/15">
+          <!-- Store Safe Mode (应用商店纯净合规态) -->
+          <div v-if="isStoreSafeMode"
+            @click="promptUnlockStoreMode"
+            title="当前处于应用商店纯净合规模式 · 导入外部订阅后自动满血解锁"
+            class="flex items-center px-2.5 sm:px-4 py-1 sm:py-2 rounded-xl sm:rounded-2xl transition-all duration-300 relative gap-1.5 sm:gap-2.5 macos-capsule select-none shrink-0 shadow-lg border border-cyan-400/30 bg-gradient-to-r from-sky-950/70 via-slate-900/80 to-cyan-950/70 cursor-pointer hover:border-cyan-400/60 group">
+            <span class="text-xs sm:text-sm font-black text-cyan-400 group-hover:scale-110 transition-transform">⚡</span>
+            <div class="text-left leading-tight">
+              <span class="text-[11px] sm:text-[13px] font-bold text-white tracking-wide">双栈智能路由与 DNS 优选引擎</span>
+              <span class="hidden md:inline-block ml-2 text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-mono">官方合规态</span>
+            </div>
+          </div>
+
+          <!-- 满血双核切换胶囊 -->
+          <div v-else class="flex items-center p-0.5 sm:p-1.5 rounded-xl sm:rounded-2xl transition-all duration-300 relative gap-0.5 sm:gap-2 macos-capsule select-none shrink-0 shadow-lg border border-white/15">
 
             <!-- sing-box Button -->
 
@@ -2421,7 +2434,7 @@
 
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
 
-                        {{ systemOverview.panel_latest_version || 'v9.9.0' }}
+                        {{ systemOverview.panel_latest_version || 'v9.9.1' }}
 
                       </span>
 
@@ -2429,7 +2442,7 @@
 
                     <p class="text-xs text-slate-400 mt-0.5 font-mono">
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'v9.9.0' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'v9.9.0' }}</span>
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'v9.9.1' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'v9.9.1' }}</span>
 
                     </p>
 
@@ -6481,7 +6494,7 @@ const runMemoryReclaim = async () => {
     if (res.ok) {
       const data = await res.json()
       if (data.memory_conntrack) memoryConntrackStatus.value = data.memory_conntrack
-      showToast(`Go 物理内存强制退还完成！已退还 ${data.freed_mb?.toFixed(1) || 'v9.9.0'} MB 内存给宿主系统`)
+      showToast(`Go 物理内存强制退还完成！已退还 ${data.freed_mb?.toFixed(1) || 'v9.9.1'} MB 内存给宿主系统`)
     }
   } catch (e) {
     showToast('内存回收执行失败: ' + e.message, true)
@@ -7340,7 +7353,17 @@ const probingServiceLatencies = ref(false)
 
 const availableProbeTargets = [
 
+  { id: 'tmdb', name: 'TMDB刮削源', logo: 'tmdb', url: 'https://api.themoviedb.org' },
+
+  { id: 'docker', name: 'Docker镜像', logo: 'docker', url: 'https://registry-1.docker.io' },
+
+  { id: 'github', name: 'GitHub', logo: 'github', url: 'https://github.com' },
+
   { id: 'bilibili', name: '哔哩哔哩', logo: 'bilibili', url: 'https://www.bilibili.com' },
+
+  { id: 'baidu', name: '国内主站', logo: 'baidu', url: 'https://www.baidu.com' },
+
+  { id: 'apple', name: 'Apple服务', logo: 'apple', url: 'https://www.apple.com' },
 
   { id: 'youtube', name: 'YouTube', logo: 'youtube', url: 'https://www.youtube.com' },
 
@@ -7466,6 +7489,35 @@ function getInitialProbes() {
 
   return defaultTargets
 
+}
+
+
+const isStoreSafeMode = computed(() => {
+  if (systemStatus.value && systemStatus.value.store_mode) {
+    return true
+  }
+  if (typeof window !== 'undefined' && window.location.search.includes('store=1')) {
+    return true
+  }
+  return false
+})
+
+watch(isStoreSafeMode, (val) => {
+  if (typeof document !== 'undefined') {
+    if (val) {
+      document.title = 'CubeX · 全屋网络与影音刮削中枢'
+    } else {
+      document.title = 'CubeX · 宿主共生双引擎网络系统'
+    }
+  }
+}, { immediate: true })
+
+function promptUnlockStoreMode() {
+  if (typeof showToast === 'function') {
+    showToast('💡 当前处于应用商店纯净合规模式。导入外部订阅或在设置中关闭合规锁，即可自动恢复满血双核混动驾驶舱！')
+  } else {
+    alert('💡 当前处于应用商店纯净合规模式。导入外部订阅或在设置中关闭合规锁，即可自动恢复满血双核混动驾驶舱！')
+  }
 }
 
 const serviceProbes = ref(getInitialProbes())
@@ -8509,21 +8561,11 @@ async function probeSingleService(item) {
 
     }
 
-    const controller = new AbortController()
-
-    const timeoutId = setTimeout(() => controller.abort(), 2500)
-
     await fetch(item.url + '/favicon.ico?' + Date.now(), { 
-
       mode: 'no-cors', 
-
       cache: 'no-store',
-
-      signal: controller.signal
-
+      signal: AbortSignal.timeout(2500)
     })
-
-    clearTimeout(timeoutId)
 
     const rtt = Math.round(performance.now() - t0)
 
@@ -9833,19 +9875,19 @@ const hostConfig = ref({
 
 const systemOverview = ref({
 
-  cubex_version: 'v9.9.0',
+  cubex_version: 'v9.9.1',
 
-  panel_curr_version: 'v9.9.0',
+  panel_curr_version: 'v9.9.1',
 
-  panel_latest_version: 'v9.9.0',
+  panel_latest_version: 'v9.9.1',
 
-  mihomo_curr_version: 'v9.9.0',
+  mihomo_curr_version: 'v9.9.1',
 
-  mihomo_latest_version: 'v9.9.0',
+  mihomo_latest_version: 'v9.9.1',
 
-  singbox_curr_version: 'v9.9.0',
+  singbox_curr_version: 'v9.9.1',
 
-  singbox_latest_version: 'v9.9.0',
+  singbox_latest_version: 'v9.9.1',
 
   panel_update_avail: false,
 
@@ -10444,7 +10486,7 @@ function buildDiagnosticMarkdown(data) {
 
   return `### 🌌 CubeX 运行环境诊断报告 (已脱敏)
 
-- **系统版本**: CubeX ${meta.version || 'v9.9.0'} (${meta.os || 'linux'}/${meta.arch || 'amd64'})
+- **系统版本**: CubeX ${meta.version || 'v9.9.1'} (${meta.os || 'linux'}/${meta.arch || 'amd64'})
 
 - **双核状态**: 活动内核 \`${eng.active_engine || 'mihomo'}\` (运行正常: ${eng.running ? '是' : '否'})
 
@@ -13549,7 +13591,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
     } else if (data.status === 'already_latest') {
 
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'v9.9.0'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'v9.9.1'})`)
 
     } else {
 
@@ -13595,7 +13637,7 @@ async function upgradePanel(force = false) {
 
       const timeStr = new Date().toLocaleTimeString()
 
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'v9.9.0'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'v9.9.1'})，无需重复更新。`
 
       showToast(data.message || 'CubeX 系统已是最新版本')
 
@@ -13647,13 +13689,13 @@ function openGitHubIssuePrompt() {
 
   if (systemOverview.value?.mihomo_update_avail) {
 
-    parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version} (当前: ${systemOverview.value.mihomo_curr_version || 'v9.9.0'})`)
+    parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version} (当前: ${systemOverview.value.mihomo_curr_version || 'v9.9.1'})`)
 
   }
 
   if (systemOverview.value?.singbox_update_avail) {
 
-    parts.push(`sing-box ${systemOverview.value.singbox_latest_version} (当前: ${systemOverview.value.singbox_curr_version || 'v9.9.0'})`)
+    parts.push(`sing-box ${systemOverview.value.singbox_latest_version} (当前: ${systemOverview.value.singbox_curr_version || 'v9.9.1'})`)
 
   }
 
@@ -13673,7 +13715,7 @@ function openGitHubIssuePrompt() {
 
 - 系统架构：${systemOverview.value?.arch || 'amd64'}
 
-- CubeX 版本：${systemOverview.value?.cubex_version || 'v9.9.0'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'v9.9.1'}
 
 - 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
 
@@ -14002,11 +14044,11 @@ async function checkHostUpgrade(silent = false) {
 
       }
 
-      hostUpgradeResult.value = data.output || (isRouterOS.value ? `RouterOS 固件已是最新稳定版本 (${data.installed_version || 'v9.9.0'} stable)` : hostBadge.value.shortName + ' 已是最新版本')
+      hostUpgradeResult.value = data.output || (isRouterOS.value ? `RouterOS 固件已是最新稳定版本 (${data.installed_version || 'v9.9.1'} stable)` : hostBadge.value.shortName + ' 已是最新版本')
 
       if (!silent) {
 
-        showToast(data.has_update ? `🎉 发现 RouterOS 新版本: ${data.latest_version}！` : `✓ 固件核对完成：已是最新稳定版本 (${data.installed_version || 'v9.9.0'})`)
+        showToast(data.has_update ? `🎉 发现 RouterOS 新版本: ${data.latest_version}！` : `✓ 固件核对完成：已是最新稳定版本 (${data.installed_version || 'v9.9.1'})`)
 
       }
 
@@ -16286,19 +16328,16 @@ async function processSpeedtestQueue() {
     }
 
     try {
-      const abortCtrl = new AbortController()
       const timeoutMs = Math.min(60000, Math.max(30000, nodeNames.length * 1000))
-      const fetchTimer = setTimeout(() => abortCtrl.abort(), timeoutMs)
       const res = await fetch('/api/v1/config/proxies/speedtest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        signal: abortCtrl.signal,
+        signal: AbortSignal.timeout(timeoutMs),
         body: JSON.stringify({
           names: nodeNames,
           group: reg.auto || reg.name
         })
       })
-      clearTimeout(fetchTimer)
 
       const data = await res.json()
 

@@ -1,0 +1,48 @@
+# TITLE: 【硬核极客自研】跑满千兆仅占 14.9MB 内存！纯 Go 单二进制双核网关架构深度剖析
+
+[align=center][img]https://raw.githubusercontent.com/zyeyefyass/CubeX/main/assets/cubex-v99-cockpit-hero.png[/img][/align]
+
+[quote][b]标签[/b]：[color=#0066cc][b]#软路由[/b][/color] [color=#0066cc][b]#Go语言[/b][/color] [color=#0066cc][b]#sing-box[/b][/color] [color=#0066cc][b]#Mihomo[/b][/color] [color=#0066cc][b]#性能调优[/b][/color] [color=#0066cc][b]#开源项目[/b][/color]
+[b]项目地址[/b]：https://github.com/zyeyefyass/CubeX
+[b]实测底座[/b]：PVE LXC CT 107 (Alpine 3.21 极简容器)[/quote]
+[hr]
+[size=3][b]一、 为什么我们要亲手重写一个旁路由系统？[/b][/size]
+
+玩过软路由和旁路由的兄弟们都深有体会：市面上传统的旁路由方案要么是基于 OpenWrt 堆叠几十个插件，虚机动辄划 1GB~2GB 内存；要么是配置晦涩繁琐，各种 YAML / JSON 语法一错就直接死锁断网。
+
+在千兆/万兆局域网跑满时，很多旁路由因为 GC 压力大、goroutine 泄漏，导致延迟忽高忽低。
+
+于是我们决定彻底抛弃历史旧包袱，从零构建了 [b]CubeX[/b] —— 一个纯 Go 单二进制、双核心动态编排、主打宿主共生的高性能局域网网关。
+[hr]
+[size=3][b]二、 实测 14.9MB 极限物理常驻内存（RSS）是怎么炼成的？[/b][/size]
+
+在我们的生产级测试环境（PVE CT 107）上，承载 190+ 全量规则节点与 5 大订阅池，[color=#0066cc][b]cubexd[/b][/color] 控制面常驻物理内存稳定在 [b]11.4MB ~ 14.9MB[/b]，核心引擎常驻内存仅 [b]28MB ~ 29MB[/b]。
+
+我们用了四项关键调优技术：
+1. [b]环形缓冲区零分配（Zero-Alloc RingBuffer）[/b]：遥测采样与流量统计使用固定长度的 RingBuffer，杜绝切片动态扩容带来的内存抖动；
+2. [b]GOMEMLIMIT 软上限与 GOGC 自适应[/b]：精确限制 Go 运行时内存边界，将空闲堆内存秒级还给 Linux 宿主内核；
+3. [b]前端静态资源 Precompression (Gzip Level 9)[/b]：嵌入式 Web UI 资源在编译期预先完成极致压缩，运行时 0 CPU 解压开销，直接以字节流形式零拷贝推送给浏览器；
+4. [b]前端响应式哈希缓存化[/b]：重构 Vue 3 前端渲染管线，消除模板方法在 [color=#0066cc][b]v-for[/b][/color] 中的高频重复求值，彻底根治长列表滚动掉帧。
+[hr]
+[size=3][b]三、 0.5s 被动熔断 + 陈旧连接秒级清道夫[/b][/size]
+
+双引擎热切换最怕什么？最怕旧线路虽然断了，但浏览器还死抓着旧的 TCP 连接重试，导致用户界面转圈 30 秒！
+
+CubeX 实装了自研的[b]陈旧连接清理机制（Conntrack Stale Killer）[/b]：
+- 在双核热切换（sing-box ⇄ Mihomo 单次耗时仅 [b]234ms[/b]）或节点主动避障瞬间，后台毫秒级定向清算旧通道上的挂起会话；
+- 国内直连流量与下载会话不受丝毫影响，全屋终端无感秒切，网页打开首包时延逼近 0ms。
+[hr]
+[size=3][b]四、 暮光冰晶 Twilight Crystal 黄金三区控制台[/b][/size]
+
+告别黑乎乎的简陋终端或花哨臃肿的重型框架：
+- [b]全息主控驾驶舱[/b]：居中保留 [color=#0066cc][b][ sing-box 极速轻量 | Mihomo 规则完备 ][/b][/color] 双引擎一键热切胶囊；
+- [b]8 柱微光动态遥测[/b]：上行、下行、CPU、内存、连接数等高频指标 tabular-nums 等宽排版，0 布局抖动；
+- [b]局域网设备全息拓扑[/b]：全屋设备一览无余，支持「影音专属模式 / 规则分流 / 物理直连」三态一键指派。
+[hr]
+[size=3][b]💻 30 秒极速体验[/b][/size]
+
+在 PVE 终端或通用 Linux 执行一行命令即可全自动安装开箱：
+[code]bash -c "$(curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install_pve_lxc.sh)"[/code]
+
+完整开源文档与多底座支持，欢迎各位极客老哥移步 GitHub 指导与交流：  
+👉 [b]GitHub[/b]：https://github.com/zyeyefyass/CubeX （求点个 Star 支持持续迭代！）

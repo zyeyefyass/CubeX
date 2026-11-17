@@ -1,6 +1,10 @@
 import { createApp } from 'vue'
 import './style.css'
 import App from './App.vue'
+import { initDemoMock } from './mock.js'
+
+// 在 GitHub Pages 或 Demo 模式下激活只读仿真拦截器
+initDemoMock()
 
 // 全局异常捕获与白屏防护
 window.addEventListener('error', (event) => {

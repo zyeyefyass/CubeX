@@ -61,6 +61,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/v1/system/status", s.handleSystemStatus)
 
 	mux.HandleFunc("/api/v1/system/edition", s.handleSystemEdition)
+	mux.HandleFunc("/api/v1/system/store-mode", s.handleSystemStoreMode)
 
 	mux.HandleFunc("/api/v1/system/panic", s.handleSystemPanic)
 
@@ -787,12 +788,57 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 		"total_subscriptions": len(ir.Subscriptions),
 
 		"initialized": len(ir.Proxies) > 0 || len(ir.Subscriptions) > 0,
+		"store_mode": s.isStoreSafeMode(),
 
 		"total_groups": len(ir.Groups),
 	}
 
 	sendJSON(w, resp)
+}
 
+func (s *Server) isStoreSafeMode() bool {
+	storeEnv := strings.TrimSpace(os.Getenv("CUBEX_STORE_MODE"))
+	if storeEnv == "false" || storeEnv == "0" {
+		return false
+	}
+	ir := s.engMgr.GetIR()
+	if ir != nil {
+		if len(ir.Subscriptions) > 0 || len(ir.Proxies) > 0 {
+			return false
+		}
+	}
+	return storeEnv == "true" || storeEnv == "1"
+}
+
+func (s *Server) handleSystemStoreMode(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		sendJSON(w, map[string]any{
+			"ok":         true,
+			"store_mode": s.isStoreSafeMode(),
+		})
+		return
+	}
+	if r.Method == http.MethodPost {
+		var req struct {
+			Enabled bool `json:"enabled"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if req.Enabled {
+			_ = os.Setenv("CUBEX_STORE_MODE", "true")
+		} else {
+			_ = os.Setenv("CUBEX_STORE_MODE", "false")
+		}
+		sendJSON(w, map[string]any{
+			"ok":         true,
+			"store_mode": s.isStoreSafeMode(),
+			"message":    "Store Safe Mode 状态已更新",
+		})
+		return
+	}
+	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 }
 
 

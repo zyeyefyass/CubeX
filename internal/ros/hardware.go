@@ -279,7 +279,116 @@ func (m *Manager) EnsureDevicePolicyMangleRule() error {
 	}
 
 	_, err = m.PutROS("/ip/firewall/mangle", payload)
-	return err
+	if err != nil {
+		return err
+	}
+	_ = m.EnsureClientDNSRedirectRule()
+	return m.EnsureBlockDoTRule()
+}
+
+// EnsureBlockDoTRule rejects port 853 (DNS-over-TLS) for cubex-clients,
+// forcing Smart TVs / Android firmware to instantly fall back to standard port 53.
+func (m *Manager) EnsureBlockDoTRule() error {
+	data, err := m.QueryROS("/ip/firewall/filter")
+	if err != nil {
+		return err
+	}
+
+	var filters []map[string]any
+	_ = json.Unmarshal(data, &filters)
+
+	hasTCP := false
+	hasUDP := false
+	for _, f := range filters {
+		comm, _ := f["comment"].(string)
+		proto, _ := f["protocol"].(string)
+		dport, _ := f["dst-port"].(string)
+		if strings.Contains(comm, "CubeX-Block-DoT") || (dport == "853" && strings.Contains(comm, "CubeX")) {
+			if proto == "tcp" {
+				hasTCP = true
+			} else if proto == "udp" {
+				hasUDP = true
+			}
+		}
+	}
+
+	if !hasTCP {
+		_, _ = m.PutROS("/ip/firewall/filter", map[string]any{
+			"chain":            "forward",
+			"action":           "reject",
+			"reject-with":      "tcp-reset",
+			"protocol":         "tcp",
+			"dst-port":         "853",
+			"src-address-list": "cubex-clients",
+			"comment":          "CubeX-Block-DoT-TCP",
+		})
+	}
+
+	if !hasUDP {
+		_, _ = m.PutROS("/ip/firewall/filter", map[string]any{
+			"chain":            "forward",
+			"action":           "reject",
+			"reject-with":      "icmp-network-unreachable",
+			"protocol":         "udp",
+			"dst-port":         "853",
+			"src-address-list": "cubex-clients",
+			"comment":          "CubeX-Block-DoT-UDP",
+		})
+	}
+
+	return nil
+}
+
+// EnsureClientDNSRedirectRule ensures that DNS requests sent to external DNS by cubex-clients are redirected to local RouterOS DNS,
+// preventing IoT/TV firmware (e.g. TCL auto-injecting 223.5.5.5) from suffering DNS pollution.
+func (m *Manager) EnsureClientDNSRedirectRule() error {
+	data, err := m.QueryROS("/ip/firewall/nat")
+	if err != nil {
+		return err
+	}
+
+	var nats []map[string]any
+	_ = json.Unmarshal(data, &nats)
+
+	hasUDP := false
+	hasTCP := false
+	for _, n := range nats {
+		comm, _ := n["comment"].(string)
+		proto, _ := n["protocol"].(string)
+		if comm == "CubeX-Client-DNS-Redirect" {
+			if proto == "udp" {
+				hasUDP = true
+			} else if proto == "tcp" {
+				hasTCP = true
+			}
+		}
+	}
+
+	if !hasUDP {
+		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
+			"chain":            "dstnat",
+			"action":           "redirect",
+			"protocol":         "udp",
+			"dst-port":         "53",
+			"src-address-list": "cubex-clients",
+			"dst-address-type": "!local",
+			"comment":          "CubeX-Client-DNS-Redirect",
+		})
+	}
+
+	if !hasTCP {
+		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
+			"chain":            "dstnat",
+			"action":           "redirect",
+			"protocol":         "tcp",
+			"dst-port":         "53",
+			"src-address-list": "cubex-clients",
+			"dst-address-type": "!local",
+			"comment":          "CubeX-Client-DNS-Redirect",
+		})
+	}
+
+	return nil
 }
 
 // GetProxiedClients returns all IP addresses currently present in cubex-clients address list.

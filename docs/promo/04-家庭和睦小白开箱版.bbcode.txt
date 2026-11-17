@@ -1,0 +1,41 @@
+# TITLE: 【小白福音】折腾旁路由终于不挨骂了！老婆看电视不卡，全家 Wi-Fi 零配置上手指南
+
+[align=center][img]https://raw.githubusercontent.com/zyeyefyass/CubeX/main/assets/cubex-v99-cockpit-hero.png[/img][/align]
+
+[quote][b]标签[/b]：[color=#0066cc][b]#旁路由[/b][/color] [color=#0066cc][b]#家庭和睦[/b][/color] [color=#0066cc][b]#零配置[/b][/color] [color=#0066cc][b]#小白教程[/b][/color] [color=#0066cc][b]#网络加速[/b][/color]
+[b]项目地址[/b]：https://github.com/zyeyefyass/CubeX[/quote]
+[hr]
+[size=3][b]一、 每一个想给家里装旁路由的男生，都在经历这些痛：[/b][/size]
+
+- 兴冲冲配好了旁路由，结果只要一出差不在家，家里电视突然卡住，微信发不出消息，老婆打电话质问；
+- 家里来个亲戚朋友，连上 Wi-Fi 发现根本打不开网页，因为他们的手机没去手动填“旁路由静态网关”；
+- 界面上一堆复杂专业术语：DNS 劫持、Fake-IP、TProxy、MRS 规则流、SNI 嗅探……想微调一个网站的分流，查了一整晚教程还是搞不懂。
+
+[b]有没有一种可能：你折腾你的软路由，家里人完全感觉不到任何变化？新设备进门照样像用普通路由器一样连 Wi-Fi 就全自动加速？[/b]
+
+这就是 [b]CubeX[/b] 诞生的初衷——打造一款“守护家庭和睦的家电级零感网关”。
+[hr]
+[size=3][b]二、 三个“让全家彻底省心”的神奇体验[/b][/size]
+
+#### 1. 全家设备“零修改”
+所有手机、电视、平板，[b]保留出厂系统的自动获取 IP（DHCP）[/b]。你不需要在手机里填任何静态网关，也不用担心来客人的设备水土不服。连上 Wi-Fi 就能享受全球加速与全域去广告！
+
+#### 2. “老婆再也不拔插头”的断网保底
+CubeX 拥有底层的断网逃生看门狗。就算你在后台升级系统、甚至把旁路由电源拔了，主路由器会在 3 秒内自动切换回普通宽带直连模式！客厅播电视依然流畅，微信视频绝不掉线，家庭地位稳如泰山！
+
+#### 3. 顶栏「一句话自定义网站分流」
+不再需要去写晦涩难懂的规则代码。控制台顶栏直接输入网址（如 [color=#0066cc][b]tmdb.org[/b][/color]），提供三大醒目按键：
+- [color=#0066cc][b]【⚡ 强制走加速】[/b][/color]
+- [color=#0066cc][b]【🏠 强制走直连】[/b][/color]
+- [color=#0066cc][b]【🛑 屏蔽该网站】[/b][/color]  
+一键指派，秒级生效，小白也能一眼看懂、一键搞定！
+[hr]
+[size=3][b]三、 30 秒一行命令开箱[/b][/size]
+
+如果你家里有 PVE 小主机、飞牛 NAS 或轻量 Linux 服务器，打开终端粘贴回车即可：
+[code]bash -c "$(curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install_pve_lxc.sh)"[/code]
+
+进入浏览器打开 [color=#0066cc][b]http://你的IP:2026[/b][/color]，即可体验现代全息毛玻璃控制台。
+[hr]
+👉 [b]项目开源地址[/b]：https://github.com/zyeyefyass/CubeX  
+如果它帮你摆脱了“被家人抱怨网络卡”的烦恼，记得在 GitHub 点个右上角的 Star 鼓励一下作者！
