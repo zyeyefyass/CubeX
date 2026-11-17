@@ -7491,35 +7491,6 @@ function getInitialProbes() {
 
 }
 
-
-const isStoreSafeMode = computed(() => {
-  if (systemStatus.value && systemStatus.value.store_mode) {
-    return true
-  }
-  if (typeof window !== 'undefined' && window.location.search.includes('store=1')) {
-    return true
-  }
-  return false
-})
-
-watch(isStoreSafeMode, (val) => {
-  if (typeof document !== 'undefined') {
-    if (val) {
-      document.title = 'CubeX · 全屋网络与影音刮削中枢'
-    } else {
-      document.title = 'CubeX · 宿主共生双引擎网络系统'
-    }
-  }
-}, { immediate: true })
-
-function promptUnlockStoreMode() {
-  if (typeof showToast === 'function') {
-    showToast('💡 当前处于应用商店纯净合规模式。导入外部订阅或在设置中关闭合规锁，即可自动恢复满血双核混动驾驶舱！')
-  } else {
-    alert('💡 当前处于应用商店纯净合规模式。导入外部订阅或在设置中关闭合规锁，即可自动恢复满血双核混动驾驶舱！')
-  }
-}
-
 const serviceProbes = ref(getInitialProbes())
 
 function onSelectProbeTarget(index, newTargetId) {
@@ -10912,6 +10883,34 @@ const systemStatus = ref({
   total_overhead_mb: 24.8
 
 })
+
+const isStoreSafeMode = computed(() => {
+  if (systemStatus.value && systemStatus.value.store_mode) {
+    return true
+  }
+  if (typeof window !== 'undefined' && window.location.search.includes('store=1')) {
+    return true
+  }
+  return false
+})
+
+watch(isStoreSafeMode, (val) => {
+  if (typeof document !== 'undefined') {
+    if (val) {
+      document.title = 'CubeX · 全屋网络与影音刮削中枢'
+    } else {
+      document.title = 'CubeX · 宿主共生双引擎网络系统'
+    }
+  }
+}, { immediate: true })
+
+function promptUnlockStoreMode() {
+  if (typeof showToast === 'function') {
+    showToast('💡 当前处于应用商店纯净合规模式。导入外部订阅或在设置中关闭合规锁，即可自动恢复满血双核混动驾驶舱！')
+  } else {
+    alert('💡 当前处于应用商店纯净合规模式。导入外部订阅或在设置中关闭合规锁，即可自动恢复满血双核混动驾驶舱！')
+  }
+}
 
 const customNodes = computed(() => {
 
