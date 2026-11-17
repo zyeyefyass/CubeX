@@ -1,35 +1,58 @@
 <div align="center">
 
-<img src="assets/logo.png" width="140" height="140" alt="CubeX 3D Twilight Crystal Logo" />
+<img src="assets/logo.png" width="130" height="130" alt="CubeX 3D Twilight Crystal Logo" />
 
-# 🌌 CubeX · 家庭和睦软路由神器
+# 🌌 CubeX · 全自动省心双核网关
 
-### *网关不用改 · DNS不用改 · 老婆再也不拔插头！极客随便折腾、全家永不断网的宿主共生透明代理系统*
+### *网关不用改 · DNS不用改 · 3秒断网保底直通！极客随便折腾、全家永不断网的宿主共生零感网络系统*
 
-<p align="center">
-
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-v9.9.0_正式版-00F5D4?style=for-the-badge&logo=github" alt="Version" /></a>
-
-<a href="COPYRIGHT.md"><img src="https://img.shields.io/badge/License-Proprietary_EULA-7B2CBF?style=for-the-badge&logo=shield" alt="License" /></a>
-
-<a href="https://github.com/zyeyefyass/CubeX"><img src="https://img.shields.io/badge/Dual--Engine-Mihomo_%C3%97_sing--box_v1.14+-0077B6?style=for-the-badge&logo=go" alt="Dual-Engine" /></a>
-
-<a href="#"><img src="https://img.shields.io/badge/Host-PVE_%7C_RouterOS_%7C_爱快_%7C_OpenWrt_%7C_飞牛_%7C_Linux-3A86FF?style=for-the-badge" alt="Host Base" /></a>
-
-<a href="#"><img src="https://img.shields.io/badge/Arch-amd64_%7C_arm64-FF007F?style=for-the-badge" alt="Arch" /></a>
-
-</p>
+> 🌟 **如果 CubeX 帮你的家庭网络实现了“装好不用管”，请点亮右上角的 Star 支持我们持续进化！** 🌟
 
 <p align="center">
 
-📖 <b>新手 5 分钟极速上手？请直接阅读 👉 <a href="docs/QUICKSTART.md">《CubeX 全底座保姆级部署与共生指引 (Quickstart Guide)》</a></b><br>
-<b>纯 Go 单二进制自研架构 · 宿主机物理内存仅占 ~35MB~100MB · 国内千兆万兆芯片直出 · 零运营商 DNS 泄露 · 217heidai 权威去广告</b><br>
-
-<i>小白轻松照着做，老鸟多提宝贵调优建议。化解家庭网络痛点，守护极客家庭和睦！</i>
+<a href="#"><img src="https://img.shields.io/badge/Memory-14.9MB_极简稳态-00F5D4?style=for-the-badge&logo=ram" alt="Memory" /></a>
+<a href="#"><img src="https://img.shields.io/badge/Fail--Open-3s_内核逃生-7B2CBF?style=for-the-badge&logo=shield" alt="Fail-Open" /></a>
+<a href="#"><img src="https://img.shields.io/badge/Dual--Core-234ms_热切-0077B6?style=for-the-badge&logo=go" alt="Dual-Core" /></a>
+<a href="#"><img src="https://img.shields.io/badge/Doctor-14%2F14_满分通过-38BDF8?style=for-the-badge&logo=checkmarx" alt="Doctor" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-v9.9.0_正式版-FF007F?style=for-the-badge&logo=github" alt="Version" /></a>
 
 </p>
 
 </div>
+
+---
+
+<div align="center">
+
+### ⚡ 30 秒极速体验 · 一行命令开箱即用
+
+| 宿主底座平台 | 一键秒级安装命令 (复制终端回车运行) |
+| :--- | :--- |
+| **🥇 Proxmox VE (PVE CT)** | `bash -c "$(curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install_pve_lxc.sh)"` |
+| **🐳 Docker / 飞牛 fnOS** | `docker run -d --name cubex --restart unless-stopped --network host --privileged --cap-add=NET_ADMIN --device /dev/net/tun:/dev/net/tun -v /etc/cubex/data:/app/data -v /etc/cubex/etc:/app/etc fyasshole/cubex:latest` |
+| **📶 RouterOS v7 (单机容器)** | `/tool fetch url="https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install_ros_container.rsc" mode=https dst-path=install.rsc; /import install.rsc` |
+
+</div>
+
+---
+
+### 📸 v9.9 黄金三区控制台实机界面 (实测 14.9MB RSS · 60FPS 顺滑)
+
+<div align="center">
+  <img src="assets/cubex-v99-cockpit-hero.png" width="100%" alt="CubeX v9.9 黄金三区：全息主控驾驶舱 + 8柱遥测 + 局域网全息拓扑与三态分流" />
+</div>
+
+---
+
+### 🥊 为什么 CubeX 是家庭和睦与 Homelab 的终极解法？
+
+| 对比维度 | 传统全包旁路由 (OpenWrt / 传统虚机) | 👑 CubeX v9.9 宿主共生零感网关 |
+| :--- | :--- | :--- |
+| **物理内存常驻** | 动辄 512MB ~ 2GB，小内存主机频繁 OOM | **实测 14.9MB 极限稳态**，小主机、轻量 NAS 零感知运行 |
+| **断网与单点故障** | 旁路由卡死/重启/升级，**全家立刻断网报障** | **网关+DNS全指主路由，3 秒内核级逃生，家里永不断网** |
+| **影音与 NAS 体验** | BT/PT 下载与外网争抢加速带，非必要带宽损耗 | **影音/NAS专属模式**：PT 满速直连直出，TMDB/Docker 极速加速 |
+| **全家设备配置** | 每台设备强改网关/DNS，来客人 Wi-Fi 连不上 | **100% 零修改！** 全家出厂默认 DHCP，连上 Wi-Fi 就能用 |
+| **配置与交互门槛** | 手写复杂分流规则、术语黑话多、排查困难 | **全栈大白话交互**、顶栏一句话自定义分流、全屋配置时光机 |
 
 ---
 
