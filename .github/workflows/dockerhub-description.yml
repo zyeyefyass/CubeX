@@ -1,0 +1,32 @@
+name: Sync Docker Hub Description & Overview
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'README.md'
+      - '.github/workflows/dockerhub-description.yml'
+      - 'scripts/sync_dockerhub.py'
+      - 'assets/logo.png'
+  workflow_dispatch:
+
+jobs:
+  dockerhub-description:
+    name: Sync Docker Hub Metadata
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Sync Docker Hub Description & Overview
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          python scripts/sync_dockerhub.py

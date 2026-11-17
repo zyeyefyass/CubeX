@@ -43,6 +43,15 @@ RUN apk add --no-cache \
     libc6-compat \
     && rm -rf /var/cache/apk/*
 
+# OCI Image Brand Annotations & Standard Metadata
+LABEL org.opencontainers.image.title="CubeX" \
+      org.opencontainers.image.description="CubeX v9.9 · 15MB 极轻量全屋网络中枢 · 影音/NAS专属分流 · 零感自愈双核网关" \
+      org.opencontainers.image.vendor="CubeX Lab" \
+      org.opencontainers.image.version="9.9.0" \
+      org.opencontainers.image.url="https://hub.docker.com/r/fyasshole/cubex" \
+      org.opencontainers.image.source="https://github.com/zyeyefyass/CubeX" \
+      org.opencontainers.image.icon="https://raw.githubusercontent.com/zyeyefyass/CubeX/main/assets/logo.png"
+
 WORKDIR /app
 
 # Create necessary directories

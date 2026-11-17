@@ -47,6 +47,7 @@ scripts/*.py
 !scripts/verify_big_three_routers.py
 !scripts/verify_network_dual_core.py
 !scripts/deploy_ct107.py
+!scripts/sync_dockerhub.py
 !scripts/publish_release_*.py
 !scripts/precompress_dist.py
 !scripts/compile_all_garble.py

@@ -53,6 +53,14 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=CubeX
+            org.opencontainers.image.description=CubeX v9.9 · 15MB 极轻量全屋网络中枢 · 影音/NAS专属分流 · 零感自愈双核网关
+            org.opencontainers.image.vendor=CubeX Lab
+            org.opencontainers.image.version=9.9.0
+            org.opencontainers.image.url=https://hub.docker.com/r/fyasshole/cubex
+            org.opencontainers.image.source=https://github.com/zyeyefyass/CubeX
+            org.opencontainers.image.icon=https://raw.githubusercontent.com/zyeyefyass/CubeX/main/assets/logo.png
 
       - name: Prepare Multi-Arch Embedded Cores & Rulesets
         run: |

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="logo-cubex.svg" width="140" height="140" alt="CubeX 3D Twilight Crystal Logo" />
+<img src="assets/logo.png" width="140" height="140" alt="CubeX 3D Twilight Crystal Logo" />
 
 # 🌌 CubeX · 家庭和睦软路由神器
 
