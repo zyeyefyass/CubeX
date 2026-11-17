@@ -175,6 +175,75 @@ def prune_local_dist(keep_tags):
                 
     print("   ✓ Local dist directory retention audit completed.")
 
+def get_dockerhub_token():
+    tok = os.environ.get("DOCKERHUB_TOKEN", "").strip()
+    if tok:
+        return tok
+    scratch_tok = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scratch", ".dockerhub_token")
+    if os.path.exists(scratch_tok):
+        try:
+            with open(scratch_tok, "r", encoding="utf-8") as f:
+                return f.read().strip()
+        except Exception:
+            pass
+    return ""
+
+def prune_dockerhub_tags(keep_tags):
+    print("\n🐳 [4/4] Auditing Docker Hub Tags (fyasshole/cubex)...")
+    d_user = os.environ.get("DOCKERHUB_USERNAME") or "fyasshole"
+    d_tok = get_dockerhub_token()
+    if not d_tok:
+        print("   ⚠️ No DOCKERHUB_TOKEN found, skipping Docker Hub tags pruning.")
+        return
+
+    login_url = "https://hub.docker.com/v2/users/login/"
+    login_data = json.dumps({"username": d_user, "password": d_tok}).encode("utf-8")
+    login_req = urllib.request.Request(login_url, data=login_data, headers={"Content-Type": "application/json"})
+
+    try:
+        with urllib.request.urlopen(login_req, timeout=15) as resp:
+            jwt = json.loads(resp.read().decode("utf-8"))["token"]
+    except Exception as e:
+        print(f"   ⚠️ Docker Hub login failed: {e}")
+        return
+
+    all_tags = []
+    url = f"https://hub.docker.com/v2/repositories/{d_user}/cubex/tags?page_size=100"
+    while url:
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {jwt}"})
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                results = data.get("results", [])
+                for r in results:
+                    all_tags.append(r.get("name"))
+                if len(results) < 100:
+                    break
+                url = data.get("next")
+        except Exception:
+            break
+
+    allowed_tags = set(keep_tags) | {"latest"}
+    to_delete = [t for t in all_tags if t not in allowed_tags]
+
+    if not to_delete:
+        print(f"   ✓ Docker Hub tags ({len(all_tags)}) are strictly aligned with latest {MAX_VERSIONS} versions.")
+        return
+
+    print(f"   🚨 Pruning {len(to_delete)} legacy / redundant Docker Hub tags...")
+    pruned = 0
+    for t in to_delete:
+        del_url = f"https://hub.docker.com/v2/repositories/{d_user}/cubex/tags/{t}/"
+        del_req = urllib.request.Request(del_url, headers={"Authorization": f"Bearer {jwt}"}, method="DELETE")
+        try:
+            with urllib.request.urlopen(del_req, timeout=10) as resp:
+                if resp.status == 204:
+                    pruned += 1
+        except Exception:
+            pass
+
+    print(f"   ✓ Docker Hub tags successfully pruned! Remaining tags: {len(all_tags) - pruned}")
+
 def main():
     print("="*70)
     print("🛡️ CubeX 全平台最新 10 版本强制存留门禁守护 (Strict 10-Version Policy)")
@@ -182,6 +251,7 @@ def main():
     kept_tags = prune_github_releases()
     prune_git_tags(kept_tags)
     prune_local_dist(kept_tags)
+    prune_dockerhub_tags(kept_tags)
     print("="*70)
     print("🎉 全平台最新 10 版本存留门禁核验 100% 达标！")
     print("="*70)
