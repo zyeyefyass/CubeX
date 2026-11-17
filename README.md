@@ -119,7 +119,7 @@
 
   - [方式 D：OpenWrt 智能软路由 Docker 部署 (带 0 秒逃生看门狗)](#deploy-openwrt)
 
-  - [方式 E：飞牛 fnOS 与通用 Linux Docker 部署 (Compose 与单行命令)](#deploy-fnos-linux)
+  - [方式 E：飞牛 fnOS 原生应用套件 (.fpk) 与 Docker 极速部署](#deploy-fnos-linux)
 
   - [方式 F：通用 Linux 终端一键全自动安装](#deploy-linux-cli)
 
@@ -526,11 +526,41 @@ OpenWrt 自带 Docker 环境，使用 CubeX 独创的 Macvlan-Shim 方案，再�
 
 <a id="deploy-fnos-linux"></a>
 
-### 方式 E：飞牛 fnOS 与通用 Linux Docker 部署
+### 方式 E：飞牛 fnOS 原生应用套件 (.fpk) 极速部署 (🏆 官方应用中心标准 · 0门槛首选)
 
-飞牛 fnOS 秉承极简科技美学，CubeX 官方提供针对飞牛 fnOS 原生量身定制的 Compose 模版，支持全自动持久化存储、TUN 网卡透传、Linux 内核转发与进程保活。
+飞牛 fnOS 秉承极简科技美学，CubeX 官方全面遵循飞牛私有云官方应用规范，提供专属原生 `.fpk` 套件，享受与官方应用同等的开箱即用、桌面专属水晶图标与应用中心全生命周期托管体验！
 
-#### 途径 ①：使用官方开箱即用 Docker Compose 极速编排（强烈推荐）
+#### 途径 ①：飞牛应用中心【手动安装】官方 .fpk 套件 (强烈推荐 · 5秒极速)
+
+##### 1. 下载对应架构的应用套件：
+在上方 [📦 资产下载清单](#release-assets) 或 GitHub Releases 页面下载对应架构的 `.fpk` 文件：
+- **x86_64 处理器**（Intel / AMD 小主机、NAS 实体机）：下载 `cubex_fnos_v9.9.1_amd64.fpk`
+- **aarch64 处理器**（ARM 架构设备）：下载 `cubex_fnos_v9.9.1_arm64.fpk`
+
+##### 2. 飞牛控制台一键安装：
+1. 登录飞牛 fnOS 网页桌面，打开【应用中心】；
+2. 点击右上角【手动安装】，将下载好的 `cubex_fnos_v9.9.1_xxx.fpk` 文件上传并确认安装；
+3. 系统将在 5 秒内全自动完成 Docker 容器拉取、权限分配与桌面快捷方式注册！
+
+> [!TIP]
+> **终端极速安装命令行**（进阶玩家可选）：
+> 登录飞牛 SSH 终端，直接执行：
+> ```bash
+> sudo appcenter-cli install-fpk cubex_fnos_v9.9.1_amd64.fpk
+> ```
+
+##### 3. 开箱使用与影音刮削加速：
+- **桌面快捷直达**：安装成功后，飞牛桌面立即呈现 CubeX 水晶立方体图标，点击即可秒开暮光冰晶控制台（或浏览器访问 `http://<飞牛NAS-IP>:2026/`）；
+- **影音专属加速**：进入 CubeX 控制台【局域网设备】列表，将飞牛 NAS 单键切换为 **【🎬 影音NAS】** 模式：
+  - **海报墙极速刮削**：TMDB、TVDB、Fanart 封面与 Docker 镜像秒级拉取；
+  - **大文件满血直连**：PT/BT 下载与局域网播放串流 100% 走本地直连直出，跑满万兆物理线速，绝不占用外部代理带宽！
+- **平滑升级与纯净卸载**：
+  - **在线升级**：新版本发布后，直接在应用中心再次手动安装新版 `.fpk`，原有规则与配置 100% 原生继承；
+  - **彻底卸载**：应用中心点击【卸载】，全自动停止并清空容器沙盒，0 孤儿进程，0 宿主系统残留。
+
+---
+
+#### 途径 ②：使用 Docker Compose 手动编排 (通用 Linux / 进阶用户)
 
 官方开箱即用模版文件：[scripts/docker/docker-compose-fnos.yml](https://github.com/zyeyefyass/CubeX/blob/main/scripts/docker/docker-compose-fnos.yml)
 
