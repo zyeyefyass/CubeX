@@ -45,6 +45,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -975,6 +976,36 @@ type Server struct {
 	smartPingLastLog string
 
 	smartPingGroupHealth []SmartPingGroupState
+
+	reloadTimerMu sync.Mutex
+	reloadTimer   *time.Timer
+}
+
+// UpdateIRAndReload updates Universal IR in memory and disk, clearing precompiled caches,
+// and schedules a debounced engine hot-reload (default 150ms).
+func (s *Server) UpdateIRAndReload(ir *schema.ConfigIR, debounce time.Duration) {
+	if ir == nil {
+		return
+	}
+	s.engMgr.UpdateIR(ir)
+	s.ir = ir
+
+	if debounce <= 0 {
+		debounce = 150 * time.Millisecond
+	}
+
+	s.reloadTimerMu.Lock()
+	defer s.reloadTimerMu.Unlock()
+	if s.reloadTimer != nil {
+		s.reloadTimer.Stop()
+	}
+	s.reloadTimer = time.AfterFunc(debounce, func() {
+		if s.engMgr != nil {
+			_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+			runtime.GC()
+			debug.FreeOSMemory()
+		}
+	})
 }
 
 

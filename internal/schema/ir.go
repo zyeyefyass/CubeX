@@ -197,7 +197,7 @@ func NewDefaultIR() *ConfigIR {
 			ClashAPIPort: 9090,
 			ClashSecret:  "",
 			AllowLAN:     true,
-			IPv6:         false,
+			IPv6:         true,
 			QUICPolicy:   "direct",
 		},
 		DNS: DNSConfig{
@@ -208,6 +208,7 @@ func NewDefaultIR() *ConfigIR {
 				"+.cn",
 				"*.lan", "*.local", "localhost",
 				"+.msftconnecttest.com", "+.msftncsi.com",
+				"+.test-ipv6.com", "test-ipv6.com",
 				"+.routeros.com", "+.mikrotik.com",
 				"+.bilibili.com", "+.baidu.com", "+.qq.com",
 				"+.taobao.com", "+.jd.com", "+.alipay.com", "+.163.com",

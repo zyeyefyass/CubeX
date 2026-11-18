@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-CubeX v9.9.1 纯净增强与飞牛生态伴生版 GitHub 发布自动化脚本
-- 创建/更新 v9.9.1 Release（全中文精简大白话说明 + 资产清单表）
+CubeX 原生双栈与极速热切版 GitHub 发布自动化脚本
+- 创建/更新 Release（全中文精简大白话说明 + 资产清单表）
 - 统一通过 curl.exe --http1.1 -x PROXY 禁用 Expect: 100-continue 直传资产，支持断点续传与字节校验
 - 上传完毕后自动执行全平台 10 版本存留红线脚本
 """
@@ -22,35 +22,42 @@ sys.path.insert(0, str(SCRIPT_DIR))
 from enforce_10_version_retention import get_github_token  # noqa: E402
 
 REPO = "zyeyefyass/CubeX"
-TAG = "v9.9.1"
-PROXY = "http://10.0.0.7:7890"
+PROXY = os.environ.get("CUBEX_RELEASE_PROXY", "http://10.0.0.7:7890")
 
-RELEASE_TITLE = "CubeX v9.9.1 纯净增强与飞牛生态伴生版：飞牛原生套件 · 全屋智能电视DNS防污染 · 商店合规态 · 60FPS顺滑"
+def get_tag():
+    try:
+        with open(ROOT_DIR / "meta.json", "r", encoding="utf-8") as f:
+            v = json.load(f).get("version", "v9.9.2")
+            if not v.startswith("v"):
+                v = f"v{v}"
+            return v
+    except Exception:
+        return "v9.9.2"
 
-RELEASE_BODY = """# CubeX v9.9.1 纯净增强与飞牛生态伴生版 · 飞牛原生套件 · 全屋电视DNS防污染 · 商店合规态
+TAG = get_tag()
 
-飞牛 fnOS 官方应用中心原生 FPK 伴生 · 彻底攻克智能电视/盒子固件 DNS 污染假双栈卡死 · 应用商店纯净合规态 · 60FPS 零抖动交互体验
+RELEASE_TITLE = f"CubeX {TAG} 原生双栈与极速热切版：China-IPv6-Only 精细分流 · 世代锁防并发覆写 · 全屋公网IPv6恢复 · 60FPS顺滑"
 
-CubeX 迎来 v9.9.1 纯净增强版本！本版本重点打通飞牛 fnOS 官方应用中心原生伴生生态，彻底消灭智能电视固件私自注入公共 DNS 导致的假 IPv6 污染超时顽疾，并新增应用商店纯净合规形态，全方位提升开箱易用性与网络健壮性。
+RELEASE_BODY = f"""# CubeX {TAG} 原生双栈与极速热切版 · China-IPv6-Only 精细分流 · 世代锁防并发覆写 · 全屋公网IPv6恢复
+
+全屋原生公网 IPv6 极速直连恢复 · 代理配置世代锁彻底杜绝旧缓存复活 · 双核 4 次往返热重载无损自愈 · 60FPS 零抖动交互体验
+
+CubeX 迎来 {TAG} 原生双栈与极速热切版！本版本攻克了主路由历史遗留全量丢弃导致的局域网 IPv6 瘫痪难题，重构推出 China-IPv6-Only 精细分流架构，并引入配置世代锁原子机制，彻底根治并发热切时的缓存竞态覆写隐患。
 
 ---
 
 ### 🌟 核心更新亮点
 
-1. **飞牛 fnOS 原生应用套件伴生 (官方标准 FPK 双架构)**：
-   - 官方遵循飞牛私有云 NAS 应用中心规范，提供 `.fpk` 一键开箱安装套件（`amd64` 与 `arm64` 双架构）；
-   - 零宿主网络侵入，开箱即用，支持桌面专属水晶图标与应用中心全生命周期托管（开机自启、平滑升级、彻底卸载 0 残留）；
-   - 影视玩家专属特权：局域网单键开启【影音NAS】模式，海报墙刮削（TMDB/TVDB/Fanart）秒级出图，PT/BT 下载直连直通跑满千兆/万兆带宽！
-2. **全屋智能设备 DNS 智能防污染拦截 (攻克假双栈卡死)**：
-   - 针对部分智能电视（如 TCL/小米等）固件私自暗中注入公共 DNS（223.5.5.5）返回假 IPv6（2001::1）造成播放卡死 20 秒超时的顽疾；
-   - 在主路由自动下发非侵入式 DNS 端口 53 定向本地重定向拦截与 DoT (853) 加密端口秒级拒绝规则，逼迫网络栈瞬时回退至纯净解析；
-   - 深度联动 Netwatch 毫秒逃生机制：容器正常时滴水不漏净化解析，容器维护或重启时自动松绑回退，全网 0 秒不断网！
-3. **应用商店纯净合规模式 (Store Safe Mode)**：
-   - 原生支持应用商店纯净合规形态与满血双核混动驾驶舱智能平滑切换，兼顾官方市场上架规范与极客全功能需求；
-   - 零订阅状态下呈现中立合规的全屋网络与影视刮削中枢；一旦导入外部配置即刻平滑解锁双核全部潜能。
-4. **全栈交互极致提速 (60FPS 零抖动与现代 Web 规范)**：
-   - 全面落地现代 Web Baseline 超时控制与原生对话隔离；
-   - 等宽数字排版彻底杜绝任何布局偏移（CLS=0），页面操作丝滑如丝绸。
+1. **全屋原生公网 IPv6 极速直连恢复 (China-IPv6-Only 精细分流)**：
+   - 彻底清除历史 RouterOS 全局 IPv6 阻断规则，精准收敛为 53/853 端口防 DNS 侧漏拦截；
+   - 深度落地双核 China-IPv6-Only 架构：国内主流网站（Bilibili、腾讯视频、NCSI 探针等）解析返回真实公网 AAAA 走主路由高速直连，境外域名仅返回 IPv4 虚假 IP（NODATA 阻断境外 AAAA），彻底攻克境外节点不支持 IPv6 导致连接卡死或黑洞的问题。
+2. **核心热备配置世代锁与并发覆写治理 (ABA 竞态防御)**：
+   - 引入原子 IR 编译世代计数器（irVersion），配置更新立即物理失效历史热备预编译缓存；
+   - 节点删除、分组调整或批量修改时，杜绝因异步预热重叠导致已被删除的节点被旧预热缓存反向复活的问题。
+3. **双核 4 次往返热重载无损自愈**：
+   - Mihomo 与 sing-box 双向双循环无感平滑切换，RouterOS 198.18.0.0/15 回指路由绝不丢失，全网零卡顿、零丢包。
+4. **飞牛私有云原生套件同步升级 ({TAG})**：
+   - cubex_fnos_{TAG}_amd64.fpk 与 arm64.fpk 全面跟进双核新特性，开箱即用。
 
 ---
 
@@ -61,13 +68,13 @@ CubeX 迎来 v9.9.1 纯净增强版本！本版本重点打通飞牛 fnOS 官方
 
 | 发布物文件名 | 适用宿主与架构 | 说明与用途 |
 | :--- | :--- | :--- |
-| `cubex_fnos_v9.9.1_amd64.fpk` | 飞牛 fnOS (x86_64) | 飞牛私有云官方应用中心原生套件安装包 |
-| `cubex_fnos_v9.9.1_arm64.fpk` | 飞牛 fnOS (aarch64) | 飞牛私有云 ARM64 官方应用中心套件包 |
-| `CubeX-v9.9.1-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
-| `CubeX-v9.9.1-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
-| `CubeX-v9.9.1-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
-| `CubeX-v9.9.1-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-v9.9.1-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
+| `cubex_fnos_{TAG}_amd64.fpk` | 飞牛 fnOS (x86_64) | 飞牛私有云官方应用中心原生套件安装包 |
+| `cubex_fnos_{TAG}_arm64.fpk` | 飞牛 fnOS (aarch64) | 飞牛私有云 ARM64 官方应用中心套件包 |
+| `CubeX-{TAG}-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
+| `CubeX-{TAG}-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
+| `CubeX-{TAG}-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
+| `CubeX-{TAG}-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
+| `CubeX-{TAG}-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
 | `cubexd-linux-amd64` | Linux amd64 | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
 | `cubexd-linux-arm64` | Linux arm64 | ARM64 单二进制核心控制面（代码加固版） |
 | `cubex-linux-amd64` | Linux amd64 | 纯命令行运维工具（终端直接运行） |

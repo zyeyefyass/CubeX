@@ -358,6 +358,18 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		"+.msftncsi.com",
 
+		"+.test-ipv6.com",
+
+		"test-ipv6.com",
+
+		"+.v6.test-ipv6.com",
+
+		"v6.test-ipv6.com",
+
+		"+.ds.test-ipv6.com",
+
+		"ds.test-ipv6.com",
+
 		"+.connectivitycheck.gstatic.com",
 
 		"+.cp.cloudflare.com",

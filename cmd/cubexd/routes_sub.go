@@ -1079,7 +1079,7 @@ func (s *Server) handleNodeDelete(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	s.engMgr.UpdateIR(ir)
+	s.UpdateIRAndReload(ir, 50*time.Millisecond)
 
 	sendJSON(w, map[string]any{"ok": true, "deleted_name": req.Name})
 
@@ -1811,11 +1811,7 @@ func (s *Server) handleCustomGroupDelete(w http.ResponseWriter, r *http.Request)
 
 	ir.Rules = newRules
 
-	s.engMgr.UpdateIR(ir)
-
-	s.ir = ir
-
-	_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+	s.UpdateIRAndReload(ir, 50*time.Millisecond)
 
 	sendJSON(w, map[string]any{"ok": true, "deleted_group": req.Name})
 

@@ -106,6 +106,7 @@ type Manager struct {
 
 	precompiledConfig map[schema.EngineType][]byte
 	precompiledMu     sync.RWMutex
+	irVersion         uint64
 }
 
 // NewManager creates a dual-engine manager.
@@ -228,6 +229,12 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 
 // WarmStandbyConfigs pre-compiles standby engine configuration in the background to achieve zero-millisecond compile latency during hot-swap.
 func (m *Manager) WarmStandbyConfigs() {
+	ver := atomic.LoadUint64(&m.irVersion)
+	m.prewarmStandbyVersion(ver)
+}
+
+// prewarmStandbyVersion performs async precompilation guarded by targetVer generation counter to eliminate ABA race conditions.
+func (m *Manager) prewarmStandbyVersion(targetVer uint64) {
 	m.mu.RLock()
 	ir := m.ir
 	eng := m.activeEngine
@@ -236,20 +243,32 @@ func (m *Manager) WarmStandbyConfigs() {
 		return
 	}
 
+	// Initial version guard before expensive compilation
+	if atomic.LoadUint64(&m.irVersion) != targetVer {
+		return
+	}
+
+	var sb, mh []byte
+	var err error
+	if eng == schema.EngineMihomo {
+		sb, err = compiler.BuildSingBox(ir)
+	} else {
+		mh, err = compiler.BuildMihomo(ir)
+	}
+
 	m.precompiledMu.Lock()
 	defer m.precompiledMu.Unlock()
+	// Guard against ABA write-back race condition: if irVersion mutated, discard stale compilation
+	if atomic.LoadUint64(&m.irVersion) != targetVer {
+		return
+	}
 	if m.precompiledConfig == nil {
 		m.precompiledConfig = make(map[schema.EngineType][]byte)
 	}
-
-	if eng == schema.EngineMihomo {
-		if sb, err := compiler.BuildSingBox(ir); err == nil {
-			m.precompiledConfig[schema.EngineSingbox] = sb
-		}
-	} else {
-		if mh, err := compiler.BuildMihomo(ir); err == nil {
-			m.precompiledConfig[schema.EngineMihomo] = mh
-		}
+	if eng == schema.EngineMihomo && err == nil {
+		m.precompiledConfig[schema.EngineSingbox] = sb
+	} else if err == nil {
+		m.precompiledConfig[schema.EngineMihomo] = mh
 	}
 	m.reclaimOSMemory()
 }
@@ -387,24 +406,27 @@ func (m *Manager) GetIR() *schema.ConfigIR {
 
 }
 
-// UpdateIR safely updates the configuration IR in memory and persists to disk.
-
+// UpdateIR safely updates the configuration IR in memory, increments irVersion,
+// immediately invalidates stale precompiled configs under lock, persists to disk,
+// and asynchronously prewarms the standby engine for the new irVersion.
 func (m *Manager) UpdateIR(newIR *schema.ConfigIR) {
-
 	m.mu.Lock()
-
 	defer m.mu.Unlock()
+
+	curVer := atomic.AddUint64(&m.irVersion, 1)
+
+	m.precompiledMu.Lock()
+	m.precompiledConfig = make(map[schema.EngineType][]byte)
+	m.precompiledMu.Unlock()
 
 	m.ir = newIR
 
 	_ = os.MkdirAll(filepath.Join(m.workDir, "data"), 0700)
-
 	if data, err := json.MarshalIndent(newIR, "", "  "); err == nil {
-
 		_ = schema.WriteFileAtomicSecure(filepath.Join(m.workDir, "data", "config.ir.json"), data)
-
 	}
 
+	go m.prewarmStandbyVersion(curVer)
 }
 
 // SnapshotClashState snapshots active selector node choices from 127.0.0.1:9090/proxies.
@@ -1266,9 +1288,10 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 		binName = "sing-box"
 	}
 
-	m.precompiledMu.RLock()
+	m.precompiledMu.Lock()
 	cachedData := m.precompiledConfig[target]
-	m.precompiledMu.RUnlock()
+	delete(m.precompiledConfig, target)
+	m.precompiledMu.Unlock()
 
 	if len(cachedData) > 0 {
 		configData = cachedData

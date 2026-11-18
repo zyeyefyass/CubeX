@@ -3,7 +3,7 @@
   "appname": "cubex",
   "name": "cubex",
   "display_name": "CubeX 网络与影音中枢",
-  "version": "9.9.1",
+  "version": "9.9.2",
   "platform": [
     "x86_64",
     "aarch64"

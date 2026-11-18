@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	version = "v9.9.1"
+	version = "v9.9.2"
 
 	startTime = time.Now()
 )

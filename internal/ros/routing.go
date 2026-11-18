@@ -563,42 +563,55 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		})
 	}
 
-	// 13. Check /ipv6/firewall/filter (2000::/3 reject 海外防断流与 0ms 回退)
-	ipv6FallbackOK := false
+	// 13. Check /ipv6/firewall/filter (放行合法 IPv6 互联网流量 + 精准阻断外部 IPv6 53/853 DNS 侧漏)
+	has2000Reject := false
+	hasDNSLeakBlock := false
 	if v6FilterData, err := m.QueryROS("/ipv6/firewall/filter"); err == nil {
 		var v6Filters []map[string]any
 		if json.Unmarshal(v6FilterData, &v6Filters) == nil {
 			for _, f := range v6Filters {
 				dstAddr := fmt.Sprintf("%v", f["dst-address"])
 				action := fmt.Sprintf("%v", f["action"])
+				dstPort := fmt.Sprintf("%v", f["dst-port"])
 				disabled := fmt.Sprintf("%v", f["disabled"])
 				if disabled == "true" || disabled == "yes" {
 					continue
 				}
 				if (dstAddr == "2000::/3" || strings.HasPrefix(dstAddr, "2000::")) && (action == "reject" || action == "drop") {
-					ipv6FallbackOK = true
-					break
+					has2000Reject = true
+				}
+				if (dstPort == "53" || dstPort == "853" || strings.Contains(dstPort, "53") || strings.Contains(dstPort, "853")) && (action == "reject" || action == "drop") {
+					hasDNSLeakBlock = true
 				}
 			}
 		}
 	}
-	if ipv6FallbackOK {
+	if has2000Reject {
 		report.Items = append(report.Items, CheckItem{
-			Key:     "ipv6_fallback",
-			Name:    "IPv6 海外防断流与快速回退 (/ipv6/firewall/filter)",
+			Key:     "ipv6_dual_stack",
+			Name:    "IPv6 双栈分流与防 DNS 侧漏 (/ipv6/firewall/filter)",
+			Status:  "warning",
+			Value:   "检测到 2000::/3 全局阻断规则",
+			Details: "检测到历史遗留的 2000::/3 全局 IPv6 阻断规则，导致局域网终端无法使用真实 IPv6 访问国内双栈网站。建议执行一键自愈进行清除。",
+			Advice:  "点击下方「一键自动配置」即可自动移除 2000::/3 阻断并注入精细化 IPv6 防泄露规则",
+		})
+	} else if hasDNSLeakBlock {
+		report.Items = append(report.Items, CheckItem{
+			Key:     "ipv6_dual_stack",
+			Name:    "IPv6 双栈分流与防 DNS 侧漏 (/ipv6/firewall/filter)",
 			Status:  "ok",
-			Value:   "2000::/3 极速拒答就绪 (0ms 回退)",
-			Details: "已就绪海外 IPv6 极速拒答与 0ms 回退机制，彻底根除 Happy Eyeballs 3秒握手卡死并杜绝海外节点泄漏公网 IP。",
-			Advice:  "高可用保障中",
+			Value:   "IPv6 双栈与 53/853 防侧漏就绪",
+			Details: "已放行公网合法 IPv6 转发，并精准阻断客户端私自向公网 IPv6 请求 53/853 DNS，保障国内 IPv6 极速直连同时坚决杜绝境外 DNS 泄露。",
+			Advice:  "双栈精细化运行中",
 		})
 	} else {
 		report.Items = append(report.Items, CheckItem{
-			Key:     "ipv6_fallback",
-			Name:    "IPv6 海外防断流与快速回退 (/ipv6/firewall/filter)",
-			Status:  "warning",
-			Value:   "未配置 2000::/3 极速拒答",
-			Details: "未在 RouterOS IPv6 防火墙中检测到 2000::/3 极速回退规则。当访问纯 IPv4 代理节点时，终端可能经历数秒卡顿等待。",
-			Advice:  "点击下方「一键自动配置」即可自动注入 2000::/3 毫秒级防断流回退规则",
+			Key:     "ipv6_dual_stack",
+			Name:    "IPv6 双栈分流与防 DNS 侧漏 (/ipv6/firewall/filter)",
+			Status:  "ok",
+			Value:   "公网 IPv6 转发正常",
+			Details: "已放行合法 IPv6 互联网访问，未检测到 2000::/3 阻断拦截。",
+			Advice:  "可点击下方「一键自动配置」补充 IPv6 53/853 防侧漏规则",
 		})
 	}
 
@@ -1298,29 +1311,77 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		res.Actions = append(res.Actions, "TCP MSS Clamping 规则已生效 (保持最佳 MTU/MSS 传输性能与抗封锁能力)")
 	}
 
-	// 6b. Inject IPv6 Foreign Leak & Blackhole Mitigation (海外 IPv6 秒级拒答，促发客户端 0ms 回退至 IPv4 极速代理，杜绝 3 秒卡顿与公网 IP 泄漏)
+	// 6b. Purge 2000::/3 Reject & Inject IPv6 DNS Leak Mitigation (放行合法 IPv6 互联网访问，精准拦截外部 IPv6 53/853 DNS 侧漏)
 	if ipv6Filters, err := m.QueryROS("/ipv6/firewall/filter"); err == nil {
 		var v6Rules []map[string]any
 		_ = json.Unmarshal(ipv6Filters, &v6Rules)
-		hasV6Mitigation := false
+		// 1. Purge legacy 2000::/3 reject rules
 		for _, r := range v6Rules {
+			id, _ := r[".id"].(string)
+			dst, _ := r["dst-address"].(string)
 			comment, _ := r["comment"].(string)
-			if strings.Contains(comment, "CubeX") && strings.Contains(comment, "IPv6") {
-				hasV6Mitigation = true
-				break
+			action, _ := r["action"].(string)
+			if (dst == "2000::/3" || strings.HasPrefix(dst, "2000::") || strings.Contains(comment, "2000::/3") || strings.Contains(comment, "CubeX Anti-Block IPv6")) && (action == "reject" || action == "drop") {
+				if id != "" {
+					_ = m.DeleteROS("/ipv6/firewall/filter/" + id)
+					res.Actions = append(res.Actions, "已自动清理历史 2000::/3 全局 IPv6 阻断规则，全面恢复局域网原生 IPv6 互联网访问")
+				}
 			}
 		}
-		if !hasV6Mitigation {
-			_, err := m.PutROS("/ipv6/firewall/filter", map[string]any{
+
+		// 2. Inject precise IPv6 DNS leak protection (Block UDP 53, TCP 53, TCP 853 forward to public IPv6)
+		hasUDP53Block := false
+		hasTCP53Block := false
+		hasDoTBlock := false
+		for _, r := range v6Rules {
+			chain, _ := r["chain"].(string)
+			proto, _ := r["protocol"].(string)
+			port := fmt.Sprintf("%v", r["dst-port"])
+			comment, _ := r["comment"].(string)
+			if chain == "forward" && (strings.Contains(comment, "CubeX") || strings.Contains(comment, "DNS")) {
+				if proto == "udp" && port == "53" {
+					hasUDP53Block = true
+				}
+				if proto == "tcp" && port == "53" {
+					hasTCP53Block = true
+				}
+				if proto == "tcp" && (port == "853" || strings.Contains(port, "853")) {
+					hasDoTBlock = true
+				}
+			}
+		}
+		if !hasUDP53Block {
+			_, _ = m.PutROS("/ipv6/firewall/filter", map[string]any{
 				"chain":       "forward",
-				"dst-address": "2000::/3",
+				"protocol":    "udp",
+				"dst-port":    "53",
 				"action":      "reject",
 				"reject-with": "icmp-admin-prohibited",
-				"comment":     "CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak",
+				"comment":     "CubeX Block Rogue IPv6 DNS UDP",
 			})
-			if err == nil {
-				res.Actions = append(res.Actions, "已自动注入 IPv6 海外防泄露与快速回退规则 (杜绝 3 秒握手等待与真实 IPv6 暴露)")
-			}
+			res.Actions = append(res.Actions, "已注入 IPv6 防泄露规则 (拦截客户端绕过旁路向公网 IPv6 请求 UDP 53 DNS)")
+		}
+		if !hasTCP53Block {
+			_, _ = m.PutROS("/ipv6/firewall/filter", map[string]any{
+				"chain":       "forward",
+				"protocol":    "tcp",
+				"dst-port":    "53",
+				"action":      "reject",
+				"reject-with": "tcp-reset",
+				"comment":     "CubeX Block Rogue IPv6 DNS TCP",
+			})
+			res.Actions = append(res.Actions, "已注入 IPv6 防泄露规则 (拦截客户端绕过旁路向公网 IPv6 请求 TCP 53 DNS)")
+		}
+		if !hasDoTBlock {
+			_, _ = m.PutROS("/ipv6/firewall/filter", map[string]any{
+				"chain":       "forward",
+				"protocol":    "tcp",
+				"dst-port":    "853",
+				"action":      "reject",
+				"reject-with": "tcp-reset",
+				"comment":     "CubeX Block Rogue IPv6 DoT 853",
+			})
+			res.Actions = append(res.Actions, "已注入 IPv6 防泄露规则 (拦截客户端通过 IPv6 DoT 853 绕过分流)")
 		}
 	}
 
@@ -1762,11 +1823,15 @@ func (m *Manager) GenerateWinBoxScript(targetIP string) string {
 	sb.WriteString("# 9. 注入抗封锁与极限延迟优化: TCP MSS Clamping (消除 IP 分片黑洞，握手延迟降低 20%，杜绝 GFW 分片重组探测)\n")
 	sb.WriteString("/ip/firewall/mangle add chain=forward protocol=tcp tcp-flags=syn tcp-mss=1401-65535 action=change-mss new-mss=clamp-to-pmtu comment=\"CubeX Anti-Block TCP MSS Clamping\"\n\n")
 
-	sb.WriteString("# 10. 注入抗封锁与防断流: IPv6 海外泄露阻断与 0ms 瞬间回退至 IPv4 极速代理 (杜绝 Happy Eyeballs 3秒卡死与公网 IP 泄漏)\n")
+	sb.WriteString("# 10. IPv6 双栈精细分流与防 DNS 侧漏 (清理 2000::/3 阻断，放行公网合法 IPv6，阻断客户端外发 53/853 DNS)\n")
 	sb.WriteString("/ipv6 settings set disable-ipv6=no forward=yes\n")
 	sb.WriteString("/ipv6 nd set [find default=yes] advertise-dns=no\n")
+	sb.WriteString("/ipv6 firewall filter remove [find dst-address=\"2000::/3\"]\n")
 	sb.WriteString("/ipv6 firewall filter remove [find comment~\"CubeX Anti-Block IPv6\"]\n")
-	sb.WriteString(":local fwdAccept [/ipv6 firewall filter find chain=forward and action=accept and in-interface=bridge]; :if ([:len $fwdAccept] > 0) do={ /ipv6 firewall filter add chain=forward dst-address=2000::/3 action=reject reject-with=icmp-admin-prohibited place-before=($fwdAccept->0) comment=\"CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak\" } else={ /ipv6 firewall filter add chain=forward dst-address=2000::/3 action=reject reject-with=icmp-admin-prohibited comment=\"CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak\" }\n\n")
+	sb.WriteString("/ipv6 firewall filter remove [find comment~\"CubeX Block Rogue IPv6\"]\n")
+	sb.WriteString("/ipv6 firewall filter add chain=forward protocol=udp dst-port=53 action=reject reject-with=icmp-admin-prohibited comment=\"CubeX Block Rogue IPv6 DNS UDP\"\n")
+	sb.WriteString("/ipv6 firewall filter add chain=forward protocol=tcp dst-port=53 action=reject reject-with=tcp-reset comment=\"CubeX Block Rogue IPv6 DNS TCP\"\n")
+	sb.WriteString("/ipv6 firewall filter add chain=forward protocol=tcp dst-port=853 action=reject reject-with=tcp-reset comment=\"CubeX Block Rogue IPv6 DoT 853\"\n\n")
 
 	sb.WriteString("# 11. 注入 Netwatch 应用级 TCP 2026 心跳看门狗 (两阶段防抖: 2.2秒吸收容器重启微断，全网零闪断无感容灾)\n")
 	sb.WriteString("/tool/netwatch remove [find comment~\"CubeX\"]\n")
@@ -1934,43 +1999,77 @@ func (m *Manager) SetupIPv6DualStack(wanInterface string) (*ApplyResult, error) 
 		}
 	}
 
-	// 6. Ensure /ipv6/firewall/filter: 2000::/3 reject
-	hasRejectRule := false
-	var fList []map[string]any
+	// 6. IPv6 双栈精细分流: 清理 2000::/3 全局阻断并注入 DNS 53/853 侧漏拦截
 	if fData, err := m.QueryROS("/ipv6/firewall/filter"); err == nil {
+		var fList []map[string]any
 		if json.Unmarshal(fData, &fList) == nil {
 			for _, f := range fList {
+				id, _ := f[".id"].(string)
 				dst := fmt.Sprintf("%v", f["dst-address"])
 				action := fmt.Sprintf("%v", f["action"])
-				if (dst == "2000::/3" || strings.HasPrefix(dst, "2000::")) && (action == "reject" || action == "drop") {
-					hasRejectRule = true
-					break
+				comment, _ := f["comment"].(string)
+				if (dst == "2000::/3" || strings.HasPrefix(dst, "2000::") || strings.Contains(comment, "2000::/3") || strings.Contains(comment, "CubeX Anti-Block IPv6")) && (action == "reject" || action == "drop") {
+					if id != "" {
+						_ = m.DeleteROS("/ipv6/firewall/filter/" + id)
+						res.Actions = append(res.Actions, "已自动清理历史 2000::/3 全局 IPv6 阻断规则，全面恢复局域网原生 IPv6 互联网访问")
+					}
 				}
 			}
-		}
-	}
-	if !hasRejectRule {
-		payload := map[string]any{
-			"chain":       "forward",
-			"dst-address": "2000::/3",
-			"action":      "reject",
-			"reject-with": "icmp-admin-prohibited",
-			"comment":     "CubeX Anti-Block IPv6 Fast-Fallback & Anti-Leak",
-		}
-		for _, f := range fList {
-			if f["chain"] == "forward" && f["action"] == "accept" {
-				if id, ok := f[".id"].(string); ok && id != "" {
-					payload["place-before"] = id
-					break
+
+			hasUDP53Block := false
+			hasTCP53Block := false
+			hasDoTBlock := false
+			for _, r := range fList {
+				chain, _ := r["chain"].(string)
+				proto, _ := r["protocol"].(string)
+				port := fmt.Sprintf("%v", r["dst-port"])
+				comment, _ := r["comment"].(string)
+				if chain == "forward" && (strings.Contains(comment, "CubeX") || strings.Contains(comment, "DNS")) {
+					if proto == "udp" && port == "53" {
+						hasUDP53Block = true
+					}
+					if proto == "tcp" && port == "53" {
+						hasTCP53Block = true
+					}
+					if proto == "tcp" && (port == "853" || strings.Contains(port, "853")) {
+						hasDoTBlock = true
+					}
 				}
 			}
+			if !hasUDP53Block {
+				_, _ = m.PutROS("/ipv6/firewall/filter", map[string]any{
+					"chain":       "forward",
+					"protocol":    "udp",
+					"dst-port":    "53",
+					"action":      "reject",
+					"reject-with": "icmp-admin-prohibited",
+					"comment":     "CubeX Block Rogue IPv6 DNS UDP",
+				})
+				res.Actions = append(res.Actions, "已注入 IPv6 防泄露规则 (拦截客户端绕过旁路向公网 IPv6 请求 UDP 53 DNS)")
+			}
+			if !hasTCP53Block {
+				_, _ = m.PutROS("/ipv6/firewall/filter", map[string]any{
+					"chain":       "forward",
+					"protocol":    "tcp",
+					"dst-port":    "53",
+					"action":      "reject",
+					"reject-with": "tcp-reset",
+					"comment":     "CubeX Block Rogue IPv6 DNS TCP",
+				})
+				res.Actions = append(res.Actions, "已注入 IPv6 防泄露规则 (拦截客户端绕过旁路向公网 IPv6 请求 TCP 53 DNS)")
+			}
+			if !hasDoTBlock {
+				_, _ = m.PutROS("/ipv6/firewall/filter", map[string]any{
+					"chain":       "forward",
+					"protocol":    "tcp",
+					"dst-port":    "853",
+					"action":      "reject",
+					"reject-with": "tcp-reset",
+					"comment":     "CubeX Block Rogue IPv6 DoT 853",
+				})
+				res.Actions = append(res.Actions, "已注入 IPv6 防泄露规则 (拦截客户端通过 IPv6 DoT 853 绕过分流)")
+			}
 		}
-		_, err := m.PutROS("/ipv6/firewall/filter", payload)
-		if err == nil {
-			res.Actions = append(res.Actions, "已在前置放行规则前精准注入 2000::/3 极速拒答防断流规则 (海外流量 0ms 回退 IPv4 极速代理)")
-		}
-	} else {
-		res.Actions = append(res.Actions, "2000::/3 海外防断流与快速回退规则已生效")
 	}
 
 	if len(res.Errors) > 0 {
