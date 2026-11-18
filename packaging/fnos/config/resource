@@ -1,0 +1,30 @@
+{
+    "docker-project": {
+        "projects": [
+            {
+                "name": "cubex",
+                "path": "docker"
+            }
+        ]
+    },
+    "data-share": {
+        "shares": [
+            {
+                "name": "cubex",
+                "permission": {
+                    "rw": [
+                        "docker-cubex"
+                    ]
+                }
+            },
+            {
+                "name": "cubex/data",
+                "permission": {
+                    "rw": [
+                        "docker-cubex"
+                    ]
+                }
+            }
+        ]
+    }
+}

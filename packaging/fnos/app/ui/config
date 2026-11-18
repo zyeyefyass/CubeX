@@ -1,0 +1,13 @@
+{
+    ".url": {
+        "cubex.Application": {
+            "title": "CubeX",
+            "icon": "images/icon_{0}.png",
+            "type": "url",
+            "protocol": "http",
+            "port": "2026",
+            "url": "/",
+            "allUsers": false
+        }
+    }
+}

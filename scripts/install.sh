@@ -447,11 +447,11 @@ EOF
 else
         echo -e "${PURPLE}⚡ [3/4] 正在配置原生单二进制 Systemd 守护进程...${NC}"
     
-    # 优先查找本地完整发行归档，或自动从 GitHub Releases 下载全量包 (包含双引擎与101套规则)
+    # 优先查找本地完整发行归档，或自动从 GitHub Releases 下载全量包 (包含双引擎与105套规则)
     NEED_DOWNLOAD=1
-    LOCAL_ZIP=$(ls "$CURRENT_SCRIPT_DIR/../dist/release/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "$CURRENT_SCRIPT_DIR/../dist/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "./dist/release/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "./dist/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "/tmp/CubeX-Test-"*"-linux-$TARGET_ARCH.zip" "/tmp/CubeX-"*"-linux-$TARGET_ARCH.zip" 2>/dev/null | sort -V | tail -n1 || true)
+    LOCAL_ZIP=$(ls "$CURRENT_SCRIPT_DIR/../dist/release/CubeX-"*"-linux-$TARGET_ARCH.zip" "$CURRENT_SCRIPT_DIR/../dist/CubeX-"*"-linux-$TARGET_ARCH.zip" "./dist/release/CubeX-"*"-linux-$TARGET_ARCH.zip" "./dist/CubeX-"*"-linux-$TARGET_ARCH.zip" "/root/CubeX-"*"-linux-$TARGET_ARCH.zip" "/tmp/CubeX-"*"-linux-$TARGET_ARCH.zip" 2>/dev/null | sort -V | tail -n1 || true)
     if [ -n "$LOCAL_ZIP" ] && [ -f "$LOCAL_ZIP" ]; then
-        echo -e "${GREEN}📦 发现本地发行归档包 (${LOCAL_ZIP})，直接解压部署...${NC}"
+        echo -e "${GREEN}📦 发现本地发行归档包 (${LOCAL_ZIP})，直接 0 秒解压部署...${NC}"
         unzip -q -o "$LOCAL_ZIP" -d "$INSTALL_DIR" 2>/dev/null || true
         NEED_DOWNLOAD=0
     elif [ -f "$CURRENT_SCRIPT_DIR/../dist/cubexd-linux-$TARGET_ARCH" ]; then

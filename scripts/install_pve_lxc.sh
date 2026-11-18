@@ -419,16 +419,16 @@ fi
 rc-update add cubexd default >/dev/null 2>&1
 EOF
 
-echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX ${CUSTOM_VER:-Test v8.8} 双核完整发布包 (${PVE_ARCH})...${NC}"
-# 10. 推送或下载 CubeX 完整发布包 (按架构自动匹配)
+echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX ${CUSTOM_VER:-v9.9.2} 双核完整发布包 (${PVE_ARCH})...${NC}"
+# 10. 推送或下载 CubeX 完整发布包 (优先检测宿主本地安装包，0 秒直推免下载)
 if [ -n "$CUSTOM_VER" ]; then
     LOCAL_PKG=$(ls dist/release/CubeX-${CUSTOM_VER}*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
     CACHE_PKG=$(ls /tmp/CubeX-${CUSTOM_VER}*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
     ROOT_PKG=$(ls /root/CubeX-${CUSTOM_VER}*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
 else
-    LOCAL_PKG=$(ls dist/release/CubeX-Test-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
-    CACHE_PKG=$(ls /tmp/CubeX-Test-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
-    ROOT_PKG=$(ls /root/CubeX-Test-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+    LOCAL_PKG=$(ls dist/release/CubeX-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+    CACHE_PKG=$(ls /tmp/CubeX-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+    ROOT_PKG=$(ls /root/CubeX-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
 fi
 
 CHOSEN_ZIP=""
@@ -441,7 +441,7 @@ elif [ -n "$ROOT_PKG" ] && [ -s "$ROOT_PKG" ]; then
 fi
 
 if [ -n "$CHOSEN_ZIP" ]; then
-    echo -e "${BLUE}检测到本地完整发布包 (${CHOSEN_ZIP})，直接推送至容器: /opt/CubeX...${NC}"
+    echo -e "${GREEN}✓ 检测到宿主机本地完整发布包 (${CHOSEN_ZIP})，直接 0 秒直推至容器，跳过网络下载！${NC}"
     pct push "$CT_ID" "$CHOSEN_ZIP" /tmp/CubeX.zip
     pct exec "$CT_ID" -- sh -s << 'EOF'
 unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/
@@ -451,14 +451,14 @@ rm -f /tmp/CubeX.zip
 EOF
 else
     pct exec "$CT_ID" -- sh -s "$PVE_ARCH" "$CUSTOM_VER" << 'EOF'
-    set -e
+    set +e
     ARCH="$1"
     TARGET_VER="$2"
     echo "🌐 正在从 GitHub Releases 拉取完整发布包 (${ARCH} 双内核 + 105套规则集 + 控制面)..."
     REL_TAG="$TARGET_VER"
     if [ -z "$REL_TAG" ]; then
-        for MIRROR in "https://ghproxy.net" "https://gh-proxy.com" "https://mirror.ghproxy.com" "https://github.moeyy.xyz" "https://ghps.cc"; do
-            LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 3 -m 5 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
+        for MIRROR in "https://ghps.cc" "https://mirror.ghproxy.com" "https://gh-proxy.com" "https://ghproxy.net" "https://github.moeyy.xyz"; do
+            LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 4 -m 8 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
             if [ -n "$LATEST_JSON" ]; then
                 REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
                 [ -n "$REL_TAG" ] && break
@@ -472,11 +472,11 @@ else
     rm -f "$TMP_ZIP"
 
     DOWNLOAD_SUCCESS=0
-    DOWNLOAD_URLS="https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://mirror.ghproxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.moeyy.xyz/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
+    DOWNLOAD_URLS="https://ghps.cc/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://mirror.ghproxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.moeyy.xyz/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
 
     for DL_URL in $DOWNLOAD_URLS; do
-        echo "   -> 正在尝试拉取: ${DL_URL}..."
-        if curl -4 --http1.1 -sSL --connect-timeout 8 -m 180 -o "$TMP_ZIP" "$DL_URL" 2>/dev/null && [ -s "$TMP_ZIP" ]; then
+        echo "   -> 尝试节点: ${DL_URL} ..."
+        if curl -4 --http1.1 -fL --progress-bar --connect-timeout 8 -m 120 -o "$TMP_ZIP" "$DL_URL" && [ -s "$TMP_ZIP" ]; then
             if unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
                 DOWNLOAD_SUCCESS=1
                 break
@@ -484,6 +484,7 @@ else
                 rm -f "$TMP_ZIP"
             fi
         fi
+        rm -f "$TMP_ZIP"
     done
 
     if [ "$DOWNLOAD_SUCCESS" = "1" ] && [ -s "$TMP_ZIP" ]; then
@@ -491,25 +492,39 @@ else
         chmod +x /opt/CubeX/bin/* 2>/dev/null || true
         ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
         rm -f "$TMP_ZIP"
-        echo "✅ 完整发布包解压完成！"
+        echo "✅ 完整发布包释放完成！"
     else
-        echo "⚠️ 归档下载超时，降级独立拉取控制面与双引擎核心..."
+        echo "⚠️ 完整归档网络拉取受阻，启用智能降级策略：独立极速拉取控制面与引擎核心..."
         BIN_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${ARCH}"
-        BIN_MIRROR="https://gh-proxy.com/$BIN_URL"
-        curl -4 --http1.1 -sSL --connect-timeout 8 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_URL" 2>/dev/null || curl -4 --http1.1 -sSL --connect-timeout 10 -m 120 -o /opt/CubeX/bin/cubexd "$BIN_MIRROR" 2>/dev/null || true
-        chmod 755 /opt/CubeX/bin/cubexd 2>/dev/null || true
+        for MIRROR in "https://ghps.cc" "https://mirror.ghproxy.com" "https://gh-proxy.com" ""; do
+            FULL_BIN_URL="${MIRROR:+$MIRROR/}$BIN_URL"
+            if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o /opt/CubeX/bin/cubexd "$FULL_BIN_URL" 2>/dev/null && [ -s /opt/CubeX/bin/cubexd ]; then
+                chmod 755 /opt/CubeX/bin/cubexd
+                break
+            fi
+        done
 
         # 尝试拉取 sing-box 核心
         if [ ! -f /opt/CubeX/bin/sing-box ]; then
             SB_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/sing-box-linux-${ARCH}"
-            curl -4 --http1.1 -sSL --connect-timeout 8 -m 120 -o /opt/CubeX/bin/sing-box "$SB_URL" 2>/dev/null || curl -4 --http1.1 -sSL --connect-timeout 10 -m 120 -o /opt/CubeX/bin/sing-box "https://gh-proxy.com/$SB_URL" 2>/dev/null || true
-            chmod 755 /opt/CubeX/bin/sing-box 2>/dev/null || true
+            for MIRROR in "https://ghps.cc" "https://mirror.ghproxy.com" "https://gh-proxy.com" ""; do
+                FULL_SB_URL="${MIRROR:+$MIRROR/}$SB_URL"
+                if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o /opt/CubeX/bin/sing-box "$FULL_SB_URL" 2>/dev/null && [ -s /opt/CubeX/bin/sing-box ]; then
+                    chmod 755 /opt/CubeX/bin/sing-box
+                    break
+                fi
+            done
         fi
         # 尝试拉取 mihomo 核心
         if [ ! -f /opt/CubeX/bin/mihomo ]; then
             MH_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/mihomo-linux-${ARCH}"
-            curl -4 --http1.1 -sSL --connect-timeout 8 -m 120 -o /opt/CubeX/bin/mihomo "$MH_URL" 2>/dev/null || curl -4 --http1.1 -sSL --connect-timeout 10 -m 120 -o /opt/CubeX/bin/mihomo "https://gh-proxy.com/$MH_URL" 2>/dev/null || true
-            chmod 755 /opt/CubeX/bin/mihomo 2>/dev/null || true
+            for MIRROR in "https://ghps.cc" "https://mirror.ghproxy.com" "https://gh-proxy.com" ""; do
+                FULL_MH_URL="${MIRROR:+$MIRROR/}$MH_URL"
+                if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o /opt/CubeX/bin/mihomo "$FULL_MH_URL" 2>/dev/null && [ -s /opt/CubeX/bin/mihomo ]; then
+                    chmod 755 /opt/CubeX/bin/mihomo
+                    break
+                fi
+            done
         fi
     fi
 EOF

@@ -22,7 +22,7 @@ sys.path.insert(0, str(SCRIPT_DIR))
 from enforce_10_version_retention import get_github_token  # noqa: E402
 
 REPO = "zyeyefyass/CubeX"
-PROXY = os.environ.get("CUBEX_RELEASE_PROXY", "http://10.0.0.7:7890")
+PROXY = os.environ.get("CUBEX_RELEASE_PROXY", "")
 
 def get_tag():
     try:
@@ -96,7 +96,9 @@ def gh_api(token, method, path, data=None):
         "-H", "Accept: application/vnd.github.v3+json",
         "-H", "User-Agent: CubeX-Release-Agent",
     ]
-    cmd = ["curl.exe", "-s", "-w", "\n%{http_code}", "-x", PROXY, "-X", method] + headers
+    cmd = ["curl.exe", "-s", "-w", "\n%{http_code}", "-X", method] + headers
+    if PROXY:
+        cmd.extend(["-x", PROXY])
 
     temp_file = None
     if data:
@@ -168,17 +170,22 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
     cmd = [
         "curl.exe",
         "-s", "-S",
+        "-L",
         "--http1.1",
-        "-x", PROXY,
+        "--connect-timeout", "30",
+        "--max-time", "600",
         "-X", "POST",
         "-H", f"Authorization: token {token}",
         "-H", f"Content-Type: {content_type}",
+        "-H", f"Content-Length: {size}",
         "-H", "Expect:",
-        "--speed-time", "180",
-        "--speed-limit", "512",
+        "--speed-time", "60",
+        "--speed-limit", "1024",
         "--data-binary", f"@{file_path}",
-        upload_url,
     ]
+    if PROXY:
+        cmd.extend(["-x", PROXY])
+    cmd.append(upload_url)
 
     for attempt in range(1, 4):
         # Ensure no dirty starter exists before attempting upload
@@ -193,12 +200,12 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
             time.sleep(3)
 
         print(f"   - 第 {attempt}/3 次传输...", flush=True)
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=660)
 
-        # Wait up to 30 seconds for GitHub background storage finalization
+        # Wait up to 120 seconds for GitHub background storage finalization
         print("   - 等待 GitHub 云端入库终审校验...", flush=True)
         success = False
-        for wait_idx in range(6):
+        for wait_idx in range(24):
             time.sleep(5)
             assets = get_assets_map(token, release_id)
             if name in assets:
