@@ -79,6 +79,8 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 
 	mux.HandleFunc("/api/v1/system/edition", s.handleSystemEdition)
 	mux.HandleFunc("/api/v1/system/store-mode", s.handleSystemStoreMode)
+	mux.HandleFunc("/api/v1/system/wallpaper", s.handleWallpaper)
+	mux.HandleFunc("/api/v1/system/wallpapers/status", s.handleWallpaperStatus)
 
 	mux.HandleFunc("/api/v1/system/panic", s.handleSystemPanic)
 
@@ -856,6 +858,96 @@ func (s *Server) handleSystemStoreMode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+}
+
+func (s *Server) handleWallpaper(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	tab := r.URL.Query().Get("tab")
+	tab = filepath.Base(strings.TrimSpace(tab))
+	allowedTabs := map[string]bool{
+		"overview": true,
+		"routing":  true,
+		"rules":    true,
+		"system":   true,
+	}
+	if !allowedTabs[tab] {
+		http.Error(w, "Invalid wallpaper slot", http.StatusBadRequest)
+		return
+	}
+
+	dirs := []string{
+		"/etc/cubex/data/wallpapers",
+		"/data/wallpapers",
+		"./data/wallpapers",
+	}
+	extensions := []string{".webp", ".png", ".jpg", ".jpeg"}
+
+	for _, dir := range dirs {
+		for _, ext := range extensions {
+			candidate := filepath.Join(dir, "bg-tab-"+tab+ext)
+			cleanPath := filepath.Clean(candidate)
+			if !strings.HasPrefix(cleanPath, filepath.Clean(dir)) {
+				continue
+			}
+			if fi, err := os.Stat(cleanPath); err == nil && !fi.IsDir() {
+				w.Header().Set("Cache-Control", "public, max-age=3600")
+				switch ext {
+				case ".webp":
+					w.Header().Set("Content-Type", "image/webp")
+				case ".png":
+					w.Header().Set("Content-Type", "image/png")
+				case ".jpg", ".jpeg":
+					w.Header().Set("Content-Type", "image/jpeg")
+				}
+				http.ServeFile(w, r, cleanPath)
+				return
+			}
+		}
+	}
+
+	http.NotFound(w, r)
+}
+
+func (s *Server) handleWallpaperStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	slots := map[string]bool{
+		"overview": false,
+		"routing":  false,
+		"rules":    false,
+		"system":   false,
+	}
+	dirs := []string{
+		"/etc/cubex/data/wallpapers",
+		"/data/wallpapers",
+		"./data/wallpapers",
+	}
+	extensions := []string{".webp", ".png", ".jpg", ".jpeg"}
+
+	for tab := range slots {
+		for _, dir := range dirs {
+			for _, ext := range extensions {
+				cleanPath := filepath.Clean(filepath.Join(dir, "bg-tab-"+tab+ext))
+				if !strings.HasPrefix(cleanPath, filepath.Clean(dir)) {
+					continue
+				}
+				if fi, err := os.Stat(cleanPath); err == nil && !fi.IsDir() {
+					slots[tab] = true
+					break
+				}
+			}
+			if slots[tab] {
+				break
+			}
+		}
+	}
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"custom_enabled": slots["overview"] || slots["routing"] || slots["rules"] || slots["system"],
+		"slots":          slots,
+	})
 }
 
 

@@ -41,6 +41,10 @@ func OptimizeKernelForHighThroughput(workDir string) *KernelTuneReport {
 	cc := readSysctlSafe("/proc/sys/net/ipv4/tcp_congestion_control")
 	report.BBRDetected = strings.Contains(strings.ToLower(cc), "bbr")
 
+	// 4. 确保非对称路由松弛过滤 (rp_filter = 2)，杜绝多网卡/宿主 NAS 下 Lucky STUN 与回程包被内核静默丢弃
+	_ = writeSysctlSafe("/proc/sys/net/ipv4/conf/all/rp_filter", "2")
+	_ = writeSysctlSafe("/proc/sys/net/ipv4/conf/default/rp_filter", "2")
+
 	return report
 }
 

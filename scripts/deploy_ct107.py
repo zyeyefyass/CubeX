@@ -20,6 +20,20 @@ sftp.put(local_cubexd, '/tmp/cubexd')
 
 print(f"Uploading {local_cubex} to PVE /tmp/cubex...")
 sftp.put(local_cubex, '/tmp/cubex')
+
+wallpapers = [
+    'bg-tab-overview.webp',
+    'bg-tab-routing.webp',
+    'bg-tab-rules.webp',
+    'bg-tab-system.webp',
+    'bg-tab-diagnostics.webp'
+]
+for wp in wallpapers:
+    wp_path = os.path.join('scratch', 'wallpapers', wp)
+    if os.path.exists(wp_path):
+        print(f"Uploading wallpaper {wp} to PVE /tmp/{wp}...")
+        sftp.put(wp_path, f'/tmp/{wp}')
+
 sftp.close()
 
 def run_ssh(cmd):
@@ -61,6 +75,11 @@ print("Pushing binaries into CT 107...")
 run_ssh("pct push 107 /tmp/cubexd /opt/CubeX/bin/cubexd")
 run_ssh("pct push 107 /tmp/cubex /opt/CubeX/bin/cubex")
 run_ssh("pct exec 107 -- chmod +x /opt/CubeX/bin/cubexd /opt/CubeX/bin/cubex")
+
+print("Setting up wallpapers in CT 107 (/etc/cubex/data/wallpapers)...")
+run_ssh("pct exec 107 -- mkdir -p /etc/cubex/data/wallpapers")
+for wp in wallpapers:
+    run_ssh(f"pct push 107 /tmp/{wp} /etc/cubex/data/wallpapers/{wp}")
 
 print("Starting cubexd in CT 107...")
 out, err = run_ssh("pct exec 107 -- rc-service cubexd start")

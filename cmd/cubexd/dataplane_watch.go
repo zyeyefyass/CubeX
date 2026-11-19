@@ -73,7 +73,7 @@ func (s *Server) startDataplaneHealthLoop(ctx context.Context) {
 			tStart := time.Now()
 			activeEngine := s.engMgr.GetActiveEngine()
 			clashPort := 9090
-			dnsPort := 1053
+			dnsPort := 53
 			if ir := s.engMgr.GetIR(); ir != nil {
 				if ir.Network.ClashAPIPort > 0 {
 					clashPort = ir.Network.ClashAPIPort
@@ -94,14 +94,14 @@ func (s *Server) startDataplaneHealthLoop(ctx context.Context) {
 
 			// 2. Probe DNS UDP Port via Active Query (ensures core event loop is truly processing packets)
 			lanIP := getLocalLANIP()
-			dnsOK := probeDNSLiveness("127.0.0.1", dnsPort, 200*time.Millisecond)
+			dnsOK := probeDNSLiveness("127.0.0.1", dnsPort, 50*time.Millisecond)
 			if !dnsOK && dnsPort != 53 {
-				dnsOK = probeDNSLiveness("127.0.0.1", 53, 200*time.Millisecond)
+				dnsOK = probeDNSLiveness("127.0.0.1", 53, 50*time.Millisecond)
 			}
 			if !dnsOK && lanIP != "127.0.0.1" {
-				dnsOK = probeDNSLiveness(lanIP, 53, 200*time.Millisecond)
+				dnsOK = probeDNSLiveness(lanIP, dnsPort, 50*time.Millisecond)
 				if !dnsOK && dnsPort != 53 {
-					dnsOK = probeDNSLiveness(lanIP, dnsPort, 200*time.Millisecond)
+					dnsOK = probeDNSLiveness(lanIP, 53, 50*time.Millisecond)
 				}
 			}
 

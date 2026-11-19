@@ -870,3 +870,98 @@ func TestSingboxDNSFakeIPFilterSplitORRules(t *testing.T) {
 		t.Errorf("SingBox dns.rules missing separate geosite-cn -> dns-direct OR rule")
 	}
 }
+
+func TestFnOSLuckySTUNAndTUNConvergence(t *testing.T) {
+	// 1. Default Mode: Fake-IP convergence routing (RouteAllTraffic = false)
+	ir := schema.NewDefaultIR()
+	ir.Network.RouteAllTraffic = false
+
+	mihomoData, err := compiler.BuildMihomo(ir)
+	if err != nil {
+		t.Fatalf("BuildMihomo failed: %v", err)
+	}
+	var mihomoMap map[string]any
+	if err := yaml.Unmarshal(mihomoData, &mihomoMap); err != nil {
+		t.Fatalf("Mihomo YAML invalid: %v", err)
+	}
+
+	tunMap, ok := mihomoMap["tun"].(map[string]any)
+	if !ok {
+		t.Fatalf("Mihomo tun config missing")
+	}
+	routeAddrs, ok := tunMap["route-address"].([]any)
+	if !ok || len(routeAddrs) == 0 {
+		t.Errorf("Expected route-address in default convergence mode, got: %+v", tunMap["route-address"])
+	} else if routeAddrs[0] != "198.18.0.0/15" {
+		t.Errorf("Expected route-address to be 198.18.0.0/15, got: %v", routeAddrs[0])
+	}
+	if _, hasExclude := tunMap["route-exclude-address"]; hasExclude {
+		t.Errorf("Default convergence mode must NOT set route-exclude-address (0.0.0.0/0 must not be captured)")
+	}
+
+	// Verify STUN bypass in Mihomo fake-ip-filter
+	dnsMap := mihomoMap["dns"].(map[string]any)
+	fakeipFilters := dnsMap["fake-ip-filter"].([]any)
+	foundSTUNFilter := false
+	for _, f := range fakeipFilters {
+		if f == "+.stun.*" || f == "stun.*" {
+			foundSTUNFilter = true
+			break
+		}
+	}
+	if !foundSTUNFilter {
+		t.Errorf("Mihomo fake-ip-filter missing STUN bypass rule (+.stun.*)")
+	}
+
+	// 2. Sing-box convergence verification
+	sbData, err := compiler.BuildSingBox(ir)
+	if err != nil {
+		t.Fatalf("BuildSingBox failed: %v", err)
+	}
+	var sbMap map[string]any
+	if err := json.Unmarshal(sbData, &sbMap); err != nil {
+		t.Fatalf("SingBox JSON invalid: %v", err)
+	}
+
+	if runtime.GOOS != "windows" {
+		inbounds := sbMap["inbounds"].([]any)
+		var tunInbound map[string]any
+		for _, in := range inbounds {
+			m := in.(map[string]any)
+			if m["type"] == "tun" {
+				tunInbound = m
+				break
+			}
+		}
+		if tunInbound == nil {
+			t.Fatalf("Singbox tun inbound missing")
+		}
+		sbRouteAddrs, ok := tunInbound["route_address"].([]any)
+		if !ok || len(sbRouteAddrs) == 0 {
+			t.Errorf("Expected route_address in SingBox tun inbound, got: %+v", tunInbound["route_address"])
+		} else if sbRouteAddrs[0] != "198.18.0.0/15" {
+			t.Errorf("Expected Singbox route_address to be 198.18.0.0/15, got: %v", sbRouteAddrs[0])
+		}
+	}
+
+	// Verify Singbox DNS direct rule for STUN/TURN with precise regex
+	sbDNS := sbMap["dns"].(map[string]any)
+	sbRules := sbDNS["rules"].([]any)
+	foundSTUNDNS := false
+	for _, r := range sbRules {
+		m := r.(map[string]any)
+		if m["server"] == "dns-direct" {
+			if reg, hasReg := m["domain_regex"].([]any); hasReg {
+				for _, k := range reg {
+					if str, ok := k.(string); ok && strings.Contains(str, "stun") {
+						foundSTUNDNS = true
+						break
+					}
+				}
+			}
+		}
+	}
+	if !foundSTUNDNS {
+		t.Errorf("Singbox DNS rules missing domain_regex for STUN/TURN -> dns-direct rule")
+	}
+}

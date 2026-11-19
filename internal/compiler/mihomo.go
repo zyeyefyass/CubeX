@@ -133,59 +133,48 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	// TUN Configuration (Zero-copy gvisor/mixed stack with local subnet bypass)
-
-	cfg["tun"] = map[string]any{
-
-		"enable": true,
-
-		"stack": tunStack,
-
-		"device": net.TunInterface,
-
-		"auto-route": true,
-
-		"auto-redirect": false,
-
-		"auto-detect-interface": true,
-
-		"strict-route": false,
-
-		"dns-mode": "hijack",
-
-		"mtu": tunMTU,
-
-		"gso": true,
-
-		"gso-max-size": 65536,
-
-		"udp-timeout": 60,
-
+	tunCfg := map[string]any{
+		"enable":                   true,
+		"stack":                    tunStack,
+		"device":                   net.TunInterface,
+		"auto-route":               true,
+		"auto-redirect":            false,
+		"auto-detect-interface":    true,
+		"strict-route":             false,
+		"dns-mode":                 "hijack",
+		"mtu":                      tunMTU,
+		"gso":                      true,
+		"gso-max-size":             65536,
+		"udp-timeout":              60,
 		"endpoint-independent-nat": true,
-
-		"route-exclude-address": []string{
-
-			"10.0.0.0/8",
-
-			"100.64.0.0/10",
-
-			"127.0.0.0/8",
-
-			"169.254.0.0/16",
-
-			"172.16.0.0/12",
-
-			"192.168.0.0/16",
-
-			"224.0.0.0/4",
-		},
-
-		"dns-hijack": []string{
-
-			"tcp://any:53",
-
-			"udp://any:53",
-		},
 	}
+
+	// 飞牛 / NAS 宿主机共生零冲突架构：
+	// 默认收敛 TUN 路由至 Fake-IP 网段 (198.18.0.0/15 与 fc00::/18)，不再强占宿主机 0.0.0.0/0。
+	// 彻底解决 All-in-One 宿主下 Lucky STUN / PT / 宿主本地出站服务被吸入 TUN 导致非对称路由丢包与对称型 NAT 降级！
+	if !net.RouteAllTraffic {
+		routeAddrs := []string{"198.18.0.0/15"}
+		if net.IPv6 {
+			routeAddrs = append(routeAddrs, "fc00::/18")
+		}
+		tunCfg["route-address"] = routeAddrs
+	} else {
+		tunCfg["route-exclude-address"] = []string{
+			"10.0.0.0/8",
+			"100.64.0.0/10",
+			"127.0.0.0/8",
+			"169.254.0.0/16",
+			"172.16.0.0/12",
+			"192.168.0.0/16",
+			"224.0.0.0/4",
+		}
+	}
+
+	tunCfg["dns-hijack"] = []string{
+		"tcp://any:53",
+		"udp://any:53",
+	}
+	cfg["tun"] = tunCfg
 
 	// Sniffer (Optimized for zero Fake-IP corruption & preserving true TLS SNI)
 	cfg["sniffer"] = map[string]any{
@@ -437,6 +426,16 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		}
 		cleanFakeIPFilter = append(cleanFakeIPFilter, trimmed)
 	}
+
+	// STUN/TURN 协议与常用穿透服务器全量免 Fake-IP（确保 Lucky / WebRTC / 游戏 NAT 穿透直接解析真实公网 IP）
+	cleanFakeIPFilter = append(cleanFakeIPFilter,
+		"+.stun.*",
+		"stun.*",
+		"*.stun.*",
+		"+.turn.*",
+		"turn.*",
+		"*.turn.*",
+	)
 
 	// Dynamically exclude all proxy server domains from fake-ip to eliminate Fake-IP loops
 

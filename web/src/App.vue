@@ -10,9 +10,11 @@
 
   ]">
 
-    <!-- 🚀 疯狂动物城超高清全息海报 (单图层 GPU 原生极速合成 · 60% 沉浸通透显色度 · 零显存浪费与零层级混合卡顿) -->
+    <!-- 🚀 疯狂动物城超高清海报 × 暮光冰晶极光图层 (纯 CSS 径向渐变，零离屏模糊纹理开销) -->
 
     <div class="fixed inset-0 -z-10 pointer-events-none overflow-hidden select-none bg-[#0a0815]" style="contain: strict; will-change: transform; transform: translate3d(0, 0, 0);">
+
+      <!-- A. 疯狂动物城超高清海报底座 (随 Tab 智能切换 WebP 硬件解码海报，100% 常驻显色) -->
 
       <div
 
@@ -28,9 +30,27 @@
 
       </div>
 
-      <!-- 柔和护眼微暮光层，提升文字对比度 -->
+      <!-- B. 纯 CSS 静态极光微光叠层 (零离屏模糊，利用纯 radial-gradient 零显存开销平替高斯模糊) -->
 
-      <div class="absolute inset-0 bg-black/10 pointer-events-none"></div>
+      <div
+
+        class="absolute inset-0 pointer-events-none transition-opacity duration-300"
+
+        :class="isPeekMode ? 'opacity-0' : 'opacity-100'"
+
+        style="background: radial-gradient(ellipse 650px 450px at 5% 10%, rgba(0, 245, 212, 0.12) 0%, rgba(0, 210, 255, 0.05) 45%, transparent 75%), radial-gradient(ellipse 700px 500px at 95% 90%, rgba(123, 44, 191, 0.14) 0%, rgba(0, 78, 130, 0.10) 50%, transparent 80%), radial-gradient(ellipse 600px 250px at 50% 0%, rgba(56, 189, 248, 0.08) 0%, transparent 70%);"
+
+      ></div>
+
+      <!-- C. 柔和护眼可读性压暗暗角蒙层 (常态压暗 45% 确保文字与指标锐利；赏景模式瞬间淡出至 opacity-0 还原本色全景) -->
+
+      <div
+
+        class="absolute inset-0 bg-[#020b18]/45 pointer-events-none transition-opacity duration-500 ease-out"
+
+        :class="isPeekMode ? 'opacity-0' : 'opacity-100'"
+
+      ></div>
 
     </div>
 
@@ -180,11 +200,32 @@
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
 
-    <div :class="['flex-1 min-h-0 flex flex-col h-full relative overflow-x-hidden w-full max-w-full transition-opacity duration-300', isPeekMode ? 'zootopia-peek-active' : '', 'overflow-y-auto pb-32 md:pb-24']" style="-webkit-overflow-scrolling: touch; transform: translateZ(0);" @scroll="onMainContentScroll">
+    <div :class="['flex-1 min-h-0 flex flex-col h-full relative overflow-hidden w-full max-w-full transition-opacity duration-300', isPeekMode ? 'zootopia-peek-active' : '']">
+      <!-- 🚀 暮光冰晶固定顶栏 (Twilight Cockpit Topbar) -->
+      <TwilightTopBar
+        :app-version="computedAppVersion"
+        :active-host-badge="activeHostBadge"
+        :pulse-state="dataplanePulseState"
+        :probe-duration-ms="dataplaneSnapshot.probe_duration_ms || 1"
+        :active-engine="activeEngine"
+        :is-switching-engine="switchingEngine"
+        :is-peek-mode="isPeekMode"
+        @open-search="showCommandPalette = true"
+        @open-diag="isDataplaneDrawerOpen = true"
+        @switch-engine="switchEngine"
+        @toggle-peek="togglePeekMode"
+      />
+
+      <!-- 🚀 下方独立滚动视口 (硬性高度约束 + contain: content，隔绝合成器重绘，稳跑 60FPS) -->
+      <div
+        class="flex-1 min-h-0 overflow-y-auto pb-32 md:pb-24"
+        style="-webkit-overflow-scrolling: touch; contain: content;"
+        @scroll="onMainContentScroll"
+      >
 
       <!-- Top Holographic Bar (自适应手机/桌面双屏美学：手机端严丝合缝绝不溢出、桌面端全息大气) -->
 
-      <header class="w-full px-2.5 sm:px-6 lg:px-8 py-2 sm:py-3.5 min-h-[52px] sm:min-h-[70px] flex items-center justify-between gap-1.5 sm:gap-4 sticky top-0 z-20 transition-[transform,opacity] duration-200 ease-out"
+      <header v-if="false" class="w-full px-2.5 sm:px-6 lg:px-8 py-2 sm:py-3.5 min-h-[52px] sm:min-h-[70px] flex items-center justify-between gap-1.5 sm:gap-4 sticky top-0 z-20 transition-[transform,opacity] duration-200 ease-out"
 
         :class="[
 
@@ -218,7 +259,7 @@
 
               <span class="font-black tracking-tight text-sky-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] hidden xs:inline">
 
-                {{ systemStatus.version || 'v9.9.3' }}
+                {{ systemStatus.version || 'vcheck' }}
 
               </span>
 
@@ -946,6 +987,8 @@
               <div class="text-xs text-slate-500">点击右上角刷新，或清除搜索条件</div>
             </div>
           </section>
+
+
 
         </div>
 
@@ -2434,7 +2477,7 @@
 
                       <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
 
-                        {{ systemOverview.panel_latest_version || 'v9.9.3' }}
+                        {{ systemOverview.panel_latest_version || 'vcheck' }}
 
                       </span>
 
@@ -2442,7 +2485,7 @@
 
                     <p class="text-xs text-slate-400 mt-0.5 font-mono">
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'v9.9.3' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'v9.9.3' }}</span>
+                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'vcheck' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'vcheck' }}</span>
 
                     </p>
 
@@ -3613,6 +3656,7 @@
 
       </main>
 
+      </div>
     </div>
 
     <!-- 📜 实时系统日志终端模态弹窗 (Live Diagnostics & Ring Buffer Modal) -->
@@ -3752,11 +3796,22 @@
     </div>
   </div>
 
+  <!-- 🚀 可视化诊断抽屉 (原生顶层 Teleport 挂载) -->
+  <DiagnosticDrawer
+    :is-open="isDataplaneDrawerOpen"
+    :live-snapshot="dataplaneSnapshot"
+    @close="isDataplaneDrawerOpen = false"
+  />
+
 </template>
 
 <script setup>
 
 import { ref, reactive, computed, watch, onMounted, nextTick, provide, defineAsyncComponent } from 'vue'
+import TwilightTopBar from './components/TwilightTopBar.vue'
+import DiagnosticDrawer from './components/DiagnosticDrawer.vue'
+import { useDataplane } from './composables/useDataplane.js'
+import { useStreamBuffer } from './composables/useStreamBuffer.js'
 const SubscriptionMatrix = defineAsyncComponent(() => import('./components/subscriptions/SubscriptionMatrix.vue'))
 const FullHealthModal = defineAsyncComponent(() => import('./components/modals/FullHealthModal.vue'))
 const RulesTab = defineAsyncComponent(() => import('./components/tabs/RulesTab.vue'))
@@ -3833,6 +3888,64 @@ function pauseTelemetryPolling(durationMs = 3000) {
 }
 
 const isPageVisible = () => !isPollingSuspended.value && !frameScheduler.isSilenced() && !frameScheduler.isHibernated && !needsAuthUnlock.value && typeof document !== 'undefined' && !document.hidden
+
+// ── v9.9.4 数据面健康契约与大白话排障抽屉中枢 ──
+const {
+  snapshot: dataplaneSnapshot,
+  pulseState: dataplanePulseState,
+  isDiagDrawerOpen: isDataplaneDrawerOpen,
+  fetchDataplaneHealth
+} = useDataplane()
+
+const {
+  nodeBuffer,
+  flattenedConnectionList,
+  trafficBuffer,
+  expandedDevices,
+  connectionSearchQuery,
+  isPaused: isStreamPaused,
+  isHovered,
+  isStressActive,
+  nodeCols,
+  nodeRows,
+  updateNodeCols,
+  toggleDeviceExpand,
+  onMouseEnterTree,
+  onMouseLeaveTree,
+  togglePause: toggleStreamPause,
+  startStressTest,
+  stopStressTest
+} = useStreamBuffer()
+
+const onVirtualNodeSelect = (node) => {
+  showToast(`已选中节点: ${node.name}`)
+}
+
+watch(() => ir.value?.proxies, (newProxies) => {
+  if (!isStressActive.value && newProxies && newProxies.length > 0) {
+    nodeBuffer.value = freezeTelemetryPayload(newProxies)
+  }
+}, { immediate: true })
+
+const computedAppVersion = computed(() => {
+  if (systemStatus.value?.version && systemStatus.value.version !== 'v9.8.0') {
+    return systemStatus.value.version
+  }
+  return 'v9.9.4'
+})
+
+const activeHostBadge = computed(() => {
+  const p = hostConfig.value?.platform || systemStatus.value?.platform
+  if (p) {
+    if (p.includes('ros') || p.includes('routeros')) return 'RouterOS v7'
+    if (p.includes('fnos')) return '飞牛 fnOS'
+    if (p.includes('pve')) return 'PVE LXC'
+    if (p.includes('ikuai')) return '爱快 iKuai'
+    if (p.includes('openwrt')) return 'OpenWrt'
+    return p
+  }
+  return '原生共生底座'
+})
 
 // ── v9.8.0 全自动省心模式 (AutoPilot) 与大白话状态中枢 ──
 const autoPilotEnabled = ref(true)
@@ -6494,7 +6607,7 @@ const runMemoryReclaim = async () => {
     if (res.ok) {
       const data = await res.json()
       if (data.memory_conntrack) memoryConntrackStatus.value = data.memory_conntrack
-      showToast(`Go 物理内存强制退还完成！已退还 ${data.freed_mb?.toFixed(1) || 'v9.9.3'} MB 内存给宿主系统`)
+      showToast(`Go 物理内存强制退还完成！已退还 ${data.freed_mb?.toFixed(1) || 'vcheck'} MB 内存给宿主系统`)
     }
   } catch (e) {
     showToast('内存回收执行失败: ' + e.message, true)
@@ -9846,19 +9959,19 @@ const hostConfig = ref({
 
 const systemOverview = ref({
 
-  cubex_version: 'v9.9.3',
+  cubex_version: 'vcheck',
 
-  panel_curr_version: 'v9.9.3',
+  panel_curr_version: 'vcheck',
 
-  panel_latest_version: 'v9.9.3',
+  panel_latest_version: 'vcheck',
 
-  mihomo_curr_version: 'v9.9.3',
+  mihomo_curr_version: 'vcheck',
 
-  mihomo_latest_version: 'v9.9.3',
+  mihomo_latest_version: 'vcheck',
 
-  singbox_curr_version: 'v9.9.3',
+  singbox_curr_version: 'vcheck',
 
-  singbox_latest_version: 'v9.9.3',
+  singbox_latest_version: 'vcheck',
 
   panel_update_avail: false,
 
@@ -10457,7 +10570,7 @@ function buildDiagnosticMarkdown(data) {
 
   return `### 🌌 CubeX 运行环境诊断报告 (已脱敏)
 
-- **系统版本**: CubeX ${meta.version || 'v9.9.3'} (${meta.os || 'linux'}/${meta.arch || 'amd64'})
+- **系统版本**: CubeX ${meta.version || 'vcheck'} (${meta.os || 'linux'}/${meta.arch || 'amd64'})
 
 - **双核状态**: 活动内核 \`${eng.active_engine || 'mihomo'}\` (运行正常: ${eng.running ? '是' : '否'})
 
@@ -13590,7 +13703,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
     } else if (data.status === 'already_latest') {
 
-      showToast(`✅ 当前系统已是最新版本 (${data.version || 'v9.9.3'})`)
+      showToast(`✅ 当前系统已是最新版本 (${data.version || 'vcheck'})`)
 
     } else {
 
@@ -13636,7 +13749,7 @@ async function upgradePanel(force = false) {
 
       const timeStr = new Date().toLocaleTimeString()
 
-      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'v9.9.3'})，无需重复更新。`
+      panelUpgradeLog.value = `✅ [${timeStr}] 校验完成：CubeX 主控守护进程已是最新版本 (${data.version || 'vcheck'})，无需重复更新。`
 
       showToast(data.message || 'CubeX 系统已是最新版本')
 
@@ -13688,13 +13801,13 @@ function openGitHubIssuePrompt() {
 
   if (systemOverview.value?.mihomo_update_avail) {
 
-    parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version} (当前: ${systemOverview.value.mihomo_curr_version || 'v9.9.3'})`)
+    parts.push(`Mihomo ${systemOverview.value.mihomo_latest_version} (当前: ${systemOverview.value.mihomo_curr_version || 'vcheck'})`)
 
   }
 
   if (systemOverview.value?.singbox_update_avail) {
 
-    parts.push(`sing-box ${systemOverview.value.singbox_latest_version} (当前: ${systemOverview.value.singbox_curr_version || 'v9.9.3'})`)
+    parts.push(`sing-box ${systemOverview.value.singbox_latest_version} (当前: ${systemOverview.value.singbox_curr_version || 'vcheck'})`)
 
   }
 
@@ -13714,7 +13827,7 @@ function openGitHubIssuePrompt() {
 
 - 系统架构：${systemOverview.value?.arch || 'amd64'}
 
-- CubeX 版本：${systemOverview.value?.cubex_version || 'v9.9.3'}
+- CubeX 版本：${systemOverview.value?.cubex_version || 'vcheck'}
 
 - 底座平台：${hostInfo.value?.os_name || 'MikroTik RouterOS'}
 
@@ -14043,11 +14156,11 @@ async function checkHostUpgrade(silent = false) {
 
       }
 
-      hostUpgradeResult.value = data.output || (isRouterOS.value ? `RouterOS 固件已是最新稳定版本 (${data.installed_version || 'v9.9.3'} stable)` : hostBadge.value.shortName + ' 已是最新版本')
+      hostUpgradeResult.value = data.output || (isRouterOS.value ? `RouterOS 固件已是最新稳定版本 (${data.installed_version || 'vcheck'} stable)` : hostBadge.value.shortName + ' 已是最新版本')
 
       if (!silent) {
 
-        showToast(data.has_update ? `🎉 发现 RouterOS 新版本: ${data.latest_version}！` : `✓ 固件核对完成：已是最新稳定版本 (${data.installed_version || 'v9.9.3'})`)
+        showToast(data.has_update ? `🎉 发现 RouterOS 新版本: ${data.latest_version}！` : `✓ 固件核对完成：已是最新稳定版本 (${data.installed_version || 'vcheck'})`)
 
       }
 
@@ -22265,8 +22378,44 @@ provide('cubexApp', reactive({
 }))
 
 onMounted(async () => {
-  // Global shortcut: press "/" to focus routing search input
+  // Global shortcut router with strict ESC priority stack
   window.addEventListener('keydown', (e) => {
+    // 1. ESC 严格优先级栈 (严禁使用单键 ESC 进入赏景模式，仅关闭顶层或退出赏景)
+    if (e.key === 'Escape') {
+      if (showCommandPalette.value) {
+        showCommandPalette.value = false
+        e.preventDefault()
+        return
+      }
+      if (isDataplaneDrawerOpen.value) {
+        isDataplaneDrawerOpen.value = false
+        e.preventDefault()
+        return
+      }
+      if (isPeekMode.value) {
+        togglePeekMode()
+        e.preventDefault()
+        return
+      }
+      // 没有浮层打开时，单键 ESC 绝不执行隐藏，杜绝误触惊吓
+      return
+    }
+
+    // 2. Alt+Z 组合键显式切换赏景模式
+    if (e.altKey && (e.key === 'z' || e.key === 'Z')) {
+      e.preventDefault()
+      togglePeekMode()
+      return
+    }
+
+    // 3. ⌘K / Ctrl+K 指令舱快速唤起/收起
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault()
+      showCommandPalette.value = !showCommandPalette.value
+      return
+    }
+
+    // 4. Global shortcut: press "/" to focus routing search input
     if (e.key === '/' && activeMasterTab.value === 'routing') {
       const tag = document.activeElement?.tagName?.toLowerCase()
       if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') {

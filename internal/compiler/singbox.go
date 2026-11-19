@@ -591,6 +591,13 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 							"zspace.cn",
 							"zspace.com.cn",
 							"zspace.cc",
+							"stun.miwifi.com",
+							"stun.qq.com",
+							"stun.synology.com",
+							"stun.bilibili.com",
+							"stun.163.com",
+							"stun.cloudflare.com",
+							"stun.l.google.com",
 						}
 						for _, f := range ir.DNS.FakeIPFilter {
 							clean := strings.TrimSpace(f)
@@ -612,6 +619,11 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 						return suffixes
 					}(),
 					"server": "dns-direct",
+				},
+
+				{
+					"domain_regex": []string{`^(stun|turn)[0-9]*\.`, `\.(stun|turn)[0-9]*\.`},
+					"server":       "dns-direct",
 				},
 
 				{
@@ -688,74 +700,57 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	inbounds := make([]map[string]any, 0)
 
 	if runtime.GOOS != "windows" {
+		tunInbound := map[string]any{
+			"type":                     "tun",
+			"tag":                      "tun-in",
+			"interface_name":           net.TunInterface,
+			"address":                  []string{net.TunIPv4},
+			"mtu":                      tunMTU,
+			"auto_route":               true,
+			"auto_redirect":            false,
+			"strict_route":             false,
+			"stack":                    tunStack,
+			"udp_timeout":              "30s",
+			"endpoint_independent_nat": true,
+		}
+
+		// 飞牛 / NAS 宿主机共生零冲突架构：
+		// 默认收敛 TUN 路由至 Fake-IP 网段 (198.18.0.0/15 与 fc00::/18)，不再强占宿主机 0.0.0.0/0。
+		// 彻底解决 All-in-One 宿主下 Lucky STUN / PT / 宿主本地出站服务被吸入 TUN 导致非对称路由丢包与对称型 NAT 降级！
+		if !net.RouteAllTraffic {
+			routeAddrs := []string{"198.18.0.0/15"}
+			if net.IPv6 {
+				routeAddrs = append(routeAddrs, "fc00::/18")
+			}
+			tunInbound["route_address"] = routeAddrs
+		} else {
+			tunInbound["route_exclude_address"] = []string{
+				"10.0.0.0/8",
+				"100.64.0.0/10",
+				"127.0.0.0/8",
+				"169.254.0.0/16",
+				"172.16.0.0/12",
+				"192.168.0.0/16",
+				"224.0.0.0/4",
+			}
+		}
 
 		inbounds = append(inbounds,
-
+			tunInbound,
 			map[string]any{
-
-				"type": "tun",
-
-				"tag": "tun-in",
-
-				"interface_name": net.TunInterface,
-
-				"address": []string{net.TunIPv4},
-
-				"mtu": tunMTU,
-
-				"auto_route": true,
-
-				"auto_redirect": false,
-
-				"strict_route": false,
-
-				"stack": tunStack,
-				"udp_timeout": "30s",
-				"endpoint_independent_nat": true,
-
-				"route_exclude_address": []string{
-
-					"10.0.0.0/8",
-
-					"100.64.0.0/10",
-
-					"127.0.0.0/8",
-
-					"169.254.0.0/16",
-
-					"172.16.0.0/12",
-
-					"192.168.0.0/16",
-
-					"224.0.0.0/4",
-				},
-			},
-
-			map[string]any{
-
 				"type": "tproxy",
-
 				"tag": "tproxy-in",
-
 				"listen": "0.0.0.0",
-
 				"listen_port": tproxyPort,
-
 				"network": []string{"tcp", "udp"},
 			},
-
 			map[string]any{
-
 				"type": "redirect",
-
 				"tag": "redir-in",
-
 				"listen": "0.0.0.0",
-
 				"listen_port": redirPort,
 			},
 		)
-
 	}
 
 	inbounds = append(inbounds,

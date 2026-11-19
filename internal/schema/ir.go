@@ -71,9 +71,10 @@ type NetworkConfig struct {
 	DNSPort      int    `json:"dns_port" yaml:"dns_port"`             // 53
 	ClashAPIPort int    `json:"clash_api_port" yaml:"clash_api_port"` // 9090
 	ClashSecret  string `json:"clash_secret" yaml:"clash_secret"`
-	AllowLAN     bool   `json:"allow_lan" yaml:"allow_lan"`
-	IPv6         bool   `json:"ipv6" yaml:"ipv6"`
-	QUICPolicy   string `json:"quic_policy" yaml:"quic_policy"` // smart (default) / block / direct
+	AllowLAN        bool   `json:"allow_lan" yaml:"allow_lan"`
+	IPv6            bool   `json:"ipv6" yaml:"ipv6"`
+	QUICPolicy      string `json:"quic_policy" yaml:"quic_policy"` // smart (default) / block / direct
+	RouteAllTraffic bool   `json:"route_all_traffic,omitempty" yaml:"route_all_traffic,omitempty"` // false (default): Fake-IP convergence (198.18.0.0/15) - zeroes NAS STUN/PT conflicts; true: traditional 0.0.0.0/0
 }
 
 type DNSConfig struct {
