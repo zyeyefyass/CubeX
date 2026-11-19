@@ -407,7 +407,7 @@
 
 ```bash
 
-curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/latest/download/install_pve_lxc.sh | bash
+curl -4 -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install_pve_lxc.sh | bash
 
 ```
 
@@ -693,7 +693,7 @@ docker run -d \
 
 ```bash
 
-curl -4 -fsSL https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/latest/download/install.sh | bash
+curl -4 -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | bash
 
 ```
 

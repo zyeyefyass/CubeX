@@ -99,3 +99,22 @@ func TestWaitForPortsReleaseFast(t *testing.T) {
 		t.Fatalf("expected true for empty ports")
 	}
 }
+
+func TestSwitchingGracePeriod(t *testing.T) {
+	mgr := &Manager{}
+	if mgr.IsSwitchingInGracePeriod() {
+		t.Error("expected false initially")
+	}
+
+	// Set deadline 200ms in the future
+	mgr.switchingGraceDeadline.Store(time.Now().Add(200 * time.Millisecond).UnixNano())
+	if !mgr.IsSwitchingInGracePeriod() {
+		t.Error("expected true within grace period")
+	}
+
+	// Wait for grace period to expire
+	time.Sleep(250 * time.Millisecond)
+	if mgr.IsSwitchingInGracePeriod() {
+		t.Error("expected false after grace period expiration")
+	}
+}

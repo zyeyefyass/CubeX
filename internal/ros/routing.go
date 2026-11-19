@@ -1199,13 +1199,25 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		chain, _ := mg["chain"].(string)
 		action, _ := mg["action"].(string)
 		dstAddr, _ := mg["dst-address"].(string)
+		comment, _ := mg["comment"].(string)
+		id, _ := mg[".id"].(string)
 		disabled, _ := mg["disabled"].(bool)
-		if chain == "prerouting" && action == "accept" && !disabled {
-			if dstAddr == "198.18.0.0/15" {
-				hasMangleFakeIPAccept = true
+
+		isFakeIPMatch := (chain == "prerouting" && action == "accept" && dstAddr == "198.18.0.0/15") || strings.Contains(comment, "CubeX-PCC-Exempt-FakeIP")
+		isHostMatch := (chain == "prerouting" && action == "accept" && (dstAddr == targetIP || dstAddr == targetIP+"/32")) || strings.Contains(comment, "CubeX-PCC-Exempt-Host")
+
+		if isFakeIPMatch {
+			hasMangleFakeIPAccept = true
+			if disabled && id != "" {
+				_, _ = m.PostROS("/ip/firewall/mangle/set", map[string]any{".id": id, "disabled": "no"})
+				res.Actions = append(res.Actions, "已重新启用处于禁用状态的 Fake-IP PCC 放行规则")
 			}
-			if dstAddr == targetIP || dstAddr == targetIP+"/32" {
-				hasMangleHostAccept = true
+		}
+		if isHostMatch {
+			hasMangleHostAccept = true
+			if disabled && id != "" {
+				_, _ = m.PostROS("/ip/firewall/mangle/set", map[string]any{".id": id, "disabled": "no"})
+				res.Actions = append(res.Actions, fmt.Sprintf("已重新启用处于禁用状态的网关 %s PCC 放行规则", targetIP))
 			}
 		}
 	}

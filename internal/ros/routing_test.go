@@ -150,3 +150,61 @@ func TestMultiWANRoutingRulePayload(t *testing.T) {
 		t.Errorf("expected lookup-only-in-table main, got action=%v table=%v", fakeIPRule["action"], fakeIPRule["table"])
 	}
 }
+
+func TestManglePCCExemptionIdempotency(t *testing.T) {
+	// Verify idempotent matching for existing mangle rules
+	existingMangles := []map[string]any{
+		{
+			".id":         "*1A",
+			"chain":       "prerouting",
+			"action":      "accept",
+			"dst-address": "198.18.0.0/15",
+			"disabled":    false,
+			"comment":     "CubeX-PCC-Exempt-FakeIP",
+		},
+		{
+			".id":         "*1B",
+			"chain":       "prerouting",
+			"action":      "accept",
+			"dst-address": "10.0.0.7",
+			"disabled":    true, // should be re-enabled without inserting duplicate
+			"comment":     "CubeX-PCC-Exempt-Host",
+		},
+	}
+
+	targetIP := "10.0.0.7"
+	hasFakeIP := false
+	hasHost := false
+	needReEnableHost := false
+
+	for _, mg := range existingMangles {
+		chain, _ := mg["chain"].(string)
+		action, _ := mg["action"].(string)
+		dstAddr, _ := mg["dst-address"].(string)
+		comment, _ := mg["comment"].(string)
+		disabled, _ := mg["disabled"].(bool)
+
+		isFakeIPMatch := (chain == "prerouting" && action == "accept" && dstAddr == "198.18.0.0/15") || strings.Contains(comment, "CubeX-PCC-Exempt-FakeIP")
+		isHostMatch := (chain == "prerouting" && action == "accept" && (dstAddr == targetIP || dstAddr == targetIP+"/32")) || strings.Contains(comment, "CubeX-PCC-Exempt-Host")
+
+		if isFakeIPMatch {
+			hasFakeIP = true
+		}
+		if isHostMatch {
+			hasHost = true
+			if disabled {
+				needReEnableHost = true
+			}
+		}
+	}
+
+	if !hasFakeIP {
+		t.Error("expected hasFakeIP to be true, got false")
+	}
+	if !hasHost {
+		t.Error("expected hasHost to be true, got false")
+	}
+	if !needReEnableHost {
+		t.Error("expected needReEnableHost to be true for disabled rule")
+	}
+}

@@ -415,3 +415,68 @@ func TestIKuaiMultiWANExemption(t *testing.T) {
 		t.Errorf("expected exemption logs, got none")
 	}
 }
+
+func TestDetectLANInterface(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/Action/login" {
+			http.SetCookie(w, &http.Cookie{Name: "sess_key", Value: "mock_session_lan"})
+			_ = json.NewEncoder(w).Encode(RPCResponse{Result: 30000, ErrMsg: "Success"})
+			return
+		}
+
+		var req RPCRequest
+		_ = json.NewDecoder(r.Body).Decode(&req)
+
+		if req.FuncName == "login" {
+			http.SetCookie(w, &http.Cookie{Name: "sess_key", Value: "mock_session_lan"})
+			_ = json.NewEncoder(w).Encode(RPCResponse{Result: 30000, ErrMsg: "Success"})
+			return
+		}
+
+		if req.FuncName == "lan" && req.Action == "show" {
+			data := map[string]any{
+				"data": []map[string]any{
+					{
+						"interface": "lan1",
+						"ip_addr":   "192.168.1.1",
+						"netmask":   "255.255.255.0",
+					},
+					{
+						"interface": "lan2",
+						"ip_addr":   "10.0.0.1",
+						"netmask":   "255.255.255.0",
+					},
+				},
+				"total": 2,
+			}
+			dataBytes, _ := json.Marshal(data)
+			_ = json.NewEncoder(w).Encode(RPCResponse{Result: 30000, ErrMsg: "Success", Data: dataBytes})
+			return
+		}
+		_ = json.NewEncoder(w).Encode(RPCResponse{Result: 30000, ErrMsg: "Success"})
+	}))
+	defer ts.Close()
+
+	u, _ := url.Parse(ts.URL)
+	port, _ := strconv.Atoi(u.Port())
+	client := NewClient(Config{
+		Host: u.Hostname(),
+		Port: port,
+	})
+
+	// Case 1: 10.0.0.7 in lan2 subnet
+	if iface := client.DetectLANInterface("10.0.0.7"); iface != "lan2" {
+		t.Errorf("expected lan2 for 10.0.0.7, got %s", iface)
+	}
+
+	// Case 2: 192.168.1.100 in lan1 subnet
+	if iface := client.DetectLANInterface("192.168.1.100"); iface != "lan1" {
+		t.Errorf("expected lan1 for 192.168.1.100, got %s", iface)
+	}
+
+	// Case 3: Out-of-range IP defaults to lan1
+	if iface := client.DetectLANInterface("172.16.50.2"); iface != "lan1" {
+		t.Errorf("expected fallback lan1 for 172.16.50.2, got %s", iface)
+	}
+}

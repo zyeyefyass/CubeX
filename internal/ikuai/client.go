@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -682,6 +683,87 @@ func (c *Client) InspectRouting(cubexIP string) (hasRoute bool, hasDNS bool, det
 	return hasRoute, hasDNS, details, nil
 }
 
+// parseIPv4Mask parses a dotted-decimal mask ("255.255.255.0") or CIDR length ("24").
+func parseIPv4Mask(maskStr string) net.IPMask {
+	maskIP := net.ParseIP(maskStr)
+	if maskIP != nil {
+		if ip4 := maskIP.To4(); ip4 != nil {
+			return net.IPv4Mask(ip4[0], ip4[1], ip4[2], ip4[3])
+		}
+	}
+	var bits int
+	if _, err := fmt.Sscanf(maskStr, "%d", &bits); err == nil && bits >= 0 && bits <= 32 {
+		return net.CIDRMask(bits, 32)
+	}
+	return net.CIDRMask(24, 32)
+}
+
+// DetectLANInterface dynamically finds which iKuai LAN interface contains targetIP.
+// If multiple LANs exist (e.g., lan1, lan2, vlan1), it performs CIDR subnet containment check.
+// Falls back to "lan1" if dynamic detection cannot find a matching subnet.
+func (c *Client) DetectLANInterface(targetIP string) string {
+	if targetIP == "" {
+		return "lan1"
+	}
+	parsedTarget := net.ParseIP(targetIP)
+	if parsedTarget == nil {
+		return "lan1"
+	}
+
+	// 1. Try querying "lan" show (standard iKuai 3.x/4.x LAN interface list)
+	resp, err := c.Call("lan", "show", map[string]string{
+		"TYPE":  "data,total",
+		"limit": "0,50",
+	})
+	if err == nil && resp.IsSuccess() && len(resp.Payload()) > 0 {
+		var lanData struct {
+			Data []map[string]any `json:"data"`
+		}
+		if jsonErr := json.Unmarshal(resp.Payload(), &lanData); jsonErr == nil && len(lanData.Data) > 0 {
+			for _, item := range lanData.Data {
+				iface := fmt.Sprintf("%v", item["interface"])
+				ipStr := fmt.Sprintf("%v", item["ip_addr"])
+				maskStr := fmt.Sprintf("%v", item["netmask"])
+				if iface != "" && iface != "<nil>" && ipStr != "" && maskStr != "" {
+					ip := net.ParseIP(ipStr)
+					mask := parseIPv4Mask(maskStr)
+					if ip != nil && mask != nil {
+						ipNet := &net.IPNet{IP: ip.Mask(mask), Mask: mask}
+						if ipNet.Contains(parsedTarget) {
+							return iface
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// 2. Fallback to DHCP server configs
+	_, dhcpList, errDHCP := c.getDHCPConfig()
+	if errDHCP == nil && len(dhcpList) > 0 {
+		for _, d := range dhcpList {
+			iface, _ := d["interface"].(string)
+			gw, _ := d["gateway"].(string)
+			maskStr, _ := d["netmask"].(string)
+			if maskStr == "" {
+				maskStr = "255.255.255.0"
+			}
+			if iface != "" && gw != "" {
+				gwIP := net.ParseIP(gw)
+				mask := parseIPv4Mask(maskStr)
+				if gwIP != nil && mask != nil {
+					ipNet := &net.IPNet{IP: gwIP.Mask(mask), Mask: mask}
+					if ipNet.Contains(parsedTarget) {
+						return iface
+					}
+				}
+			}
+		}
+	}
+
+	return "lan1"
+}
+
 // ApplyBypass automatically injects 198.18.0.0/15 static route and updates DHCP DNS in iKuai.
 // Fully compatible with both iKuai 4.0+ (static_rt) and 3.x (route_static).
 func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
@@ -690,7 +772,9 @@ func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
 	}
 
 	logs := []string{}
-	lanIf := "lan1"
+	// Dynamically discover which LAN interface contains CubeX IP (prevents multi-LAN / VLAN packet loss)
+	lanIf := c.DetectLANInterface(cubexIP)
+	logs = append(logs, fmt.Sprintf("动态匹配 CubeX (%s) 所属爱快 LAN 接口: %s", cubexIP, lanIf))
 
 	// 1. Inspect DHCP server: query existing settings and safely preserve them
 	fnDHCP, dhcpList, errDHCP := c.getDHCPConfig()
@@ -957,7 +1041,7 @@ func (c *Client) ApplyMultiWANExemption(cubexIP, lanIf string) ([]string, error)
 	}
 
 	if lanIf == "" {
-		lanIf = "lan1"
+		lanIf = c.DetectLANInterface(cubexIP)
 	}
 
 	// In iKuai stream_ip: set dst_ip=198.18.0.0/15 and interface=lanIf

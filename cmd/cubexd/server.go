@@ -376,6 +376,9 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 
 	srv.startDailySubscriptionAutoUpdate()
 	srv.startSmartHealthPing()
+	SafeGo("DataplaneHealthLoop", func() {
+		srv.startDataplaneHealthLoop(context.Background())
+	})
 
 	// 7x24h 智能哨兵巡检与异常自愈黑匣子
 	srv.sentinel.RegisterHealers(
@@ -928,6 +931,7 @@ type Server struct {
 	memGuard           *perf.MemoryGuard
 	isMaintenance      atomic.Bool
 	draining           atomic.Bool
+	dataplaneSnapshot  atomic.Pointer[DataplaneHealthSnapshot]
 
 	logBuffer *RingLogBuffer
 

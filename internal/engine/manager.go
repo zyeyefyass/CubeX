@@ -107,6 +107,7 @@ type Manager struct {
 	precompiledConfig map[schema.EngineType][]byte
 	precompiledMu     sync.RWMutex
 	irVersion         uint64
+	switchingGraceDeadline atomic.Int64
 }
 
 // NewManager creates a dual-engine manager.
@@ -1232,10 +1233,13 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	m.mu.Lock()
 
 	m.stopping = true
+	// Set 1500ms grace window for /healthz/dataplane to prevent Netwatch false alarms during active switch
+	m.switchingGraceDeadline.Store(time.Now().Add(1500 * time.Millisecond).UnixNano())
 
 	defer func() {
 
 		m.stopping = false
+		m.switchingGraceDeadline.Store(0)
 
 		m.mu.Unlock()
 
@@ -1442,6 +1446,9 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	// Stage 7.5: Reclaim unused Go heap spans back to OS kernel (maintains ~35MB RSS ceiling)
 	m.reclaimOSMemory()
+
+	// Stage 7.6: Flush stale half-open connections via Clash API (prevents client connection stalls across Fake-IP pools)
+	go m.flushStaleConnectionsAfterSwitch()
 
 	log.Printf("⏱️ [Engine Timing] Snapshot: %dms, Compile: %dms, Write: %dms, DryRun: %dms, Stop: %dms, Start: %dms, Probe: %dms, Restore: %dms -> Total: %dms",
 		dSnapshot, dCompile, dWrite, dDry, dStop, dStart, dProbe, dRestore, res.ElapsedMs)
@@ -2142,4 +2149,41 @@ func (m *Manager) StartEndToEndWatchdog() {
 
 	}()
 
+}
+
+// IsSwitchingInGracePeriod checks if an intentional core switch is currently in progress within the 1500ms grace window.
+func (m *Manager) IsSwitchingInGracePeriod() bool {
+	deadline := m.switchingGraceDeadline.Load()
+	return deadline > 0 && time.Now().UnixNano() < deadline
+}
+
+// SetSwitchingGraceDeadline explicitly sets a switching grace deadline (useful for testing and deterministic timeout control).
+func (m *Manager) SetSwitchingGraceDeadline(deadline time.Time) {
+	m.switchingGraceDeadline.Store(deadline.UnixNano())
+}
+
+// flushStaleConnectionsAfterSwitch cleans up stale half-open connections in the kernel after an engine switch,
+// so client browsers immediately re-resolve and connect with the new core's Fake-IP pool.
+func (m *Manager) flushStaleConnectionsAfterSwitch() {
+	if m.ir == nil {
+		return
+	}
+	port := m.ir.Network.ClashAPIPort
+	if port <= 0 {
+		port = 9090
+	}
+	url := fmt.Sprintf("http://127.0.0.1:%d/connections", port)
+	req, err := http.NewRequest(http.MethodDelete, url, nil)
+	if err != nil {
+		return
+	}
+	if m.ir.Network.ClashSecret != "" {
+		req.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
+	}
+	client := &http.Client{Timeout: 1 * time.Second}
+	resp, err := client.Do(req)
+	if err == nil {
+		_ = resp.Body.Close()
+		log.Printf("🧹 [Engine] Flushed stale connections via Clash API (%s)", url)
+	}
 }
