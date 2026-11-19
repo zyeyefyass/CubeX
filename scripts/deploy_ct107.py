@@ -45,8 +45,8 @@ respawn_max=0
 output_log="/var/log/cubexd.log"
 error_log="/var/log/cubexd.err"
 
-export GOMEMLIMIT="18MiB"
-export GOGC="15"
+export GOMEMLIMIT="64MiB"
+export GOGC="100"
 export GODEBUG="madvdontneed=1"
 export TZ="Asia/Shanghai"
 

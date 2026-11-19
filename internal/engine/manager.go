@@ -676,19 +676,24 @@ func detectTotalRAMMb() int64 {
 }
 
 func getAdaptiveEngineMemoryLimits() (gomemlimit string, gogc string) {
+	if customLimit := os.Getenv("CUBEX_CORE_GOMEMLIMIT"); customLimit != "" {
+		gc := os.Getenv("CUBEX_CORE_GOGC")
+		if gc == "" {
+			gc = "100"
+		}
+		return "GOMEMLIMIT=" + customLimit, "GOGC=" + gc
+	}
+
 	totalMb := detectTotalRAMMb()
-	limitMb := 22
-	gc := 15
+	limitMb := 64
+	gc := 100
 
 	if totalMb <= 256 {
-		limitMb = 18 // 256M container / CHR: 18MiB strict ceiling
-		gc = 15
-	} else if totalMb <= 512 {
-		limitMb = 20 // 512M CHR / router: 20MiB strict ceiling
-		gc = 15
+		limitMb = 48 // 256M low-mem container/router: 48MiB profile
+		gc = 50
 	} else {
-		limitMb = 22 // 1GB+ host: 22MiB strict ceiling keeps core RAM <= 20-22MB
-		gc = 15
+		limitMb = 64 // Standard PVE/NAS/RouterOS: 64MiB golden balance sweetspot
+		gc = 100
 	}
 
 	return fmt.Sprintf("GOMEMLIMIT=%dMiB", limitMb), fmt.Sprintf("GOGC=%d", gc)

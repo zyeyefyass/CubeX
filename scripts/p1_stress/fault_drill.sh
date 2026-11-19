@@ -12,6 +12,7 @@ DNS_RULE_ACTIVE=0
 
 cleanup() {
   if [ "$DNS_RULE_ACTIVE" -eq 1 ]; then
+    iptables -D OUTPUT -p udp --dport 1053 -j DROP 2>/dev/null || true
     iptables -D OUTPUT -p udp --dport 53 -j DROP 2>/dev/null || true
     iptables -D OUTPUT -p tcp --dport 53 -j DROP 2>/dev/null || true
     DNS_RULE_ACTIVE=0
@@ -25,16 +26,15 @@ wait_for_code() {
   local expect="$1"
   local max_wait="${2:-30}"
   local count=0
-  local t0=$(date +%s)
+  local t0=$(awk '{printf "%.0f", $1*1000}' /proc/uptime 2>/dev/null || date +%s000)
   
   while [ "$count" -lt "$((max_wait * 10))" ]; do
     code=$(curl -sS --max-time 0.8 -o /dev/null -w "%{http_code}" "$HEALTH_URL" 2>/dev/null || echo "000")
     if [ "$code" = "$expect" ]; then
-      t1=$(date +%s)
-      # return elapsed seconds or at least 1
-      diff=$((t1 - t0))
-      [ "$diff" -le 0 ] && diff=1
-      echo "$((diff * 1000))"
+      local t1=$(awk '{printf "%.0f", $1*1000}' /proc/uptime 2>/dev/null || date +%s000)
+      local diff=$((t1 - t0))
+      [ "$diff" -le 0 ] && diff=100
+      echo "$diff"
       return 0
     fi
     count=$((count + 1))
@@ -70,14 +70,16 @@ echo "✓ 诊断卡样本已留档: $(wc -c < /tmp/diag_kill9.json 2>/dev/null |
 echo "⏱️ 等待守护进程 Supervisor 自动容灾重启核心并回切 200..."
 recover_ms=$(wait_for_code "200" 30 || echo "3000")
 echo "✅ 核心自愈恢复耗时: ~${recover_ms}ms"
-sleep 5
+echo "⏳ 等待数据面完全进入稳定 200 OK 稳态 (10秒)..."
+sleep 10
 
 echo "=================================================================="
 echo "⚡ [演练 B] 进程存活但上游 DNS 丢包假死演练"
 echo "=================================================================="
 echo "step4_drill_dns_hang" > "$PHASE_FILE"
 
-echo "🧱 注入 iptables 规则阻断 53 端口 (模拟上游 DNS 彻底雪崩)..."
+echo "🧱 注入 iptables 规则阻断 1053 与 53 端口 (模拟上游 DNS 彻底雪崩与假死)..."
+iptables -I OUTPUT 1 -p udp --dport 1053 -j DROP
 iptables -I OUTPUT 1 -p udp --dport 53 -j DROP
 iptables -I OUTPUT 1 -p tcp --dport 53 -j DROP
 DNS_RULE_ACTIVE=1

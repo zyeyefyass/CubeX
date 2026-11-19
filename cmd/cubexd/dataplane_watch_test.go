@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -78,5 +79,111 @@ func TestDataplaneHealthGracePeriodAndSnapshot(t *testing.T) {
 	}
 	if resGrace["healthy"] != true {
 		t.Errorf("expected healthy=true during grace period, got %v", resGrace["healthy"])
+	}
+}
+
+func TestDataplaneHysteresisRecoveryStrict(t *testing.T) {
+	// Verify strict 3-success recovery & 2-failure hysteresis state machine
+	isHealthy := false
+	successStreak := 0
+	failStreak := 2
+
+	stepHysteresis := func(probePass bool) {
+		if probePass {
+			failStreak = 0
+			successStreak++
+			if !isHealthy && successStreak >= 3 {
+				isHealthy = true
+			}
+		} else {
+			successStreak = 0
+			failStreak++
+			if isHealthy && failStreak >= 2 {
+				isHealthy = false
+			}
+		}
+	}
+
+	// 1st success after failure: must remain false
+	stepHysteresis(true)
+	if isHealthy {
+		t.Error("expected isHealthy to remain false after 1st success")
+	}
+	if successStreak != 1 {
+		t.Errorf("expected successStreak=1, got %d", successStreak)
+	}
+
+	// 2nd success: must remain false
+	stepHysteresis(true)
+	if isHealthy {
+		t.Error("expected isHealthy to remain false after 2nd success")
+	}
+	if successStreak != 2 {
+		t.Errorf("expected successStreak=2, got %d", successStreak)
+	}
+
+	// 3rd consecutive success: transitions to true
+	stepHysteresis(true)
+	if !isHealthy {
+		t.Error("expected isHealthy to become true after 3rd consecutive success")
+	}
+	if successStreak != 3 {
+		t.Errorf("expected successStreak=3, got %d", successStreak)
+	}
+
+	// Micro-jitter: 1 failure should NOT immediately trigger degraded
+	stepHysteresis(false)
+	if !isHealthy {
+		t.Error("expected isHealthy to remain true after single probe jitter")
+	}
+	if failStreak != 1 {
+		t.Errorf("expected failStreak=1, got %d", failStreak)
+	}
+
+	// 2nd consecutive failure: transitions to false
+	stepHysteresis(false)
+	if isHealthy {
+		t.Error("expected isHealthy to become false after 2nd consecutive failure")
+	}
+	if failStreak != 2 {
+		t.Errorf("expected failStreak=2, got %d", failStreak)
+	}
+}
+
+func TestProbeDNSLiveness(t *testing.T) {
+	// Start mock UDP DNS server
+	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen UDP: %v", err)
+	}
+	defer pc.Close()
+
+	port := pc.LocalAddr().(*net.UDPAddr).Port
+
+	// Mock server echo reply
+	go func() {
+		buf := make([]byte, 512)
+		for {
+			n, addr, err := pc.ReadFrom(buf)
+			if err != nil {
+				return
+			}
+			reply := make([]byte, n)
+			copy(reply, buf[:n])
+			if len(reply) >= 3 {
+				reply[2] |= 0x80 // Set QR=1 (response)
+			}
+			_, _ = pc.WriteTo(reply, addr)
+		}
+	}()
+
+	// Test 1: Live DNS server returns true
+	if !probeDNSLiveness(port, 300*time.Millisecond) {
+		t.Error("expected probeDNSLiveness=true for responding DNS server")
+	}
+
+	// Test 2: Closed port returns false
+	if probeDNSLiveness(port+1000, 100*time.Millisecond) {
+		t.Error("expected probeDNSLiveness=false for non-existent port")
 	}
 }

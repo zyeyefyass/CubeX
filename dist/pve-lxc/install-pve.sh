@@ -400,8 +400,8 @@ respawn_max=0
 output_log="/var/log/cubexd.log"
 error_log="/var/log/cubexd.err"
 
-export GOMEMLIMIT="35MiB"
-export GOGC="30"
+export GOMEMLIMIT="64MiB"
+export GOGC="100"
 export GODEBUG="madvdontneed=1"
 export TZ="Asia/Shanghai"
 
@@ -457,7 +457,7 @@ else
     echo "🌐 正在从 GitHub Releases 拉取完整发布包 (${ARCH} 双内核 + 105套规则集 + 控制面)..."
     REL_TAG="$TARGET_VER"
     if [ -z "$REL_TAG" ]; then
-        for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" "https://github.moeyy.xyz" ""; do
+        for MIRROR in "https://gh-proxy.com" "https://mirror.ghproxy.com" "https://github.boki.moe" "https://ghproxy.net" ""; do
             PREFIX="${MIRROR:+$MIRROR/}"
             LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 4 -m 8 "${PREFIX}https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
             if [ -n "$LATEST_JSON" ]; then
@@ -468,14 +468,14 @@ else
             [ -n "$REL_TAG" ] && break
         done
     fi
-    [ -z "$REL_TAG" ] && REL_TAG="v9.9.2"
+    [ -z "$REL_TAG" ] && REL_TAG="v9.9.3"
 
     ZIP_NAME="CubeX-${REL_TAG}-linux-${ARCH}.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"
     rm -f "$TMP_ZIP"
 
     DOWNLOAD_SUCCESS=0
-    DOWNLOAD_URLS="https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
+    DOWNLOAD_URLS="https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://mirror.ghproxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.boki.moe/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
 
     for DL_URL in $DOWNLOAD_URLS; do
         echo "   -> 尝试节点: ${DL_URL} ..."
