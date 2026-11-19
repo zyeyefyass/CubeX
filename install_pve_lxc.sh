@@ -1,0 +1,597 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# 🌌 CubeX - PVE LXC (CT) 容器极致轻量一键全自动极速安装程序 (实测强化版)
+# 适用环境: Proxmox VE 7.x / 8.x / 9.x (x86_64)
+# 特性: 
+#   1. 纯原生 Alpine Linux 极致精简底座 (仅占 30~70MB 内存，启动耗时 < 1秒)
+#   2. 自动检测局域网活跃 IP 并进行冲突规避 (Zero-Hardcode & Ping Check)
+#   3. 优先复用 PVE 本地已有 Alpine 模板，免重复下载，秒级秒开
+#   4. 宿主机自动加载 tun / xt_TPROXY 模块，自动注入 /dev/net/tun 直通
+#   5. 支持全自动非交互模式 (-y / --silent / --ip=...)
+#   6. 注册 OpenRC 守护进程并注入 GOMEMLIMIT 软上限，彻底防御 OOM
+# ==============================================================================
+
+set -e
+
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+PURPLE='\033[0;35m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+echo -e "${CYAN}${BOLD}"
+cat << 'EOF'
+   ______      __        _  __
+  / ____/_  __/ /_  ___ | |/ /
+ / /   / / / / __ \/ _ \|   / 
+/ /___/ /_/ / /_/ /  __/   |  
+\____/\__,_/_.___/\___/_/|_|  
+   PVE LXC 极速原生容器一键部署总线 (实测加固版)
+EOF
+echo -e "${NC}"
+
+# 1. 宿主环境自检
+if ! command -v pveversion >/dev/null 2>&1; then
+    echo -e "${RED}[ERROR] 检测到当前系统非 Proxmox VE 宿主机！${NC}"
+    echo -e "本脚本专为 PVE 物理宿主机设计，用于秒级编排高性能 Alpine LXC 旁路由沙盒。"
+    exit 1
+fi
+
+PVE_VER=$(pveversion)
+echo -e "${GREEN}✓ Proxmox VE 环境自检通过: ${PVE_VER}${NC}"
+
+# 2. 命令行参数解析 (支持非交互全自动模式)
+AUTO_CONFIRM=0
+CUSTOM_IP=""
+CUSTOM_VMID=""
+CUSTOM_GW=""
+CUSTOM_VER="${CUBEX_VERSION:-}"
+
+for arg in "$@"; do
+    case "$arg" in
+        -y|--yes|--silent)
+            AUTO_CONFIRM=1
+            ;;
+        --ip=*)
+            CUSTOM_IP="${arg#*=}"
+            ;;
+        --vmid=*)
+            CUSTOM_VMID="${arg#*=}"
+            ;;
+        --gw=*)
+            CUSTOM_GW="${arg#*=}"
+            ;;
+        --version=*|-v=*)
+            CUSTOM_VER="${arg#*=}"
+            ;;
+    esac
+done
+
+# 2.2 自动探查宿主机 CPU 架构 (严格按硬件架构匹配模板与二进制，杜绝 amd64/arm64 错位)
+SYS_ARCH=$(uname -m 2>/dev/null || echo "x86_64")
+case "$SYS_ARCH" in
+    x86_64|amd64)
+        PVE_ARCH="amd64"
+        ;;
+    aarch64|arm64)
+        PVE_ARCH="arm64"
+        ;;
+    *)
+        PVE_ARCH="amd64"
+        ;;
+esac
+
+# 3. 宿主网络与存储池自动智能探查
+# 3.1 自动寻找下一个未占用的 VMID
+NEXT_ID=107
+if [ -n "$CUSTOM_VMID" ]; then
+    NEXT_ID="$CUSTOM_VMID"
+else
+    while pct status "$NEXT_ID" >/dev/null 2>&1 || [ -f "/etc/pve/lxc/${NEXT_ID}.conf" ] || [ -f "/etc/pve/qemu-server/${NEXT_ID}.conf" ]; do
+        NEXT_ID=$((NEXT_ID + 1))
+    done
+fi
+
+# 3.2 探查可用存储池 (智能识别支持 rootdir 容器根分区的存储池，优先 local-lvm, local-zfs, local)
+DEFAULT_STORAGE=$(pvesm status -content rootdir 2>/dev/null | awk 'NR>1 {print $1}' | head -n1)
+if [ -z "$DEFAULT_STORAGE" ]; then
+    if pvesm status -storage local-lvm >/dev/null 2>&1; then
+        DEFAULT_STORAGE="local-lvm"
+    elif pvesm status -storage local-zfs >/dev/null 2>&1; then
+        DEFAULT_STORAGE="local-zfs"
+    else
+        DEFAULT_STORAGE="local"
+    fi
+fi
+
+# 3.3 探查宿主网关与局域网段 (严禁写死，全自动动态探查)
+GW_IP=$(ip route | grep default | awk '{print $3}' | head -n1)
+if [ -z "$GW_IP" ]; then
+    GW_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{print $3}' | head -n1)
+fi
+if [ -n "$CUSTOM_GW" ]; then
+    GW_IP="$CUSTOM_GW"
+fi
+
+HOST_IP=$(ip -4 addr show vmbr0 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n1)
+if [ -z "$HOST_IP" ]; then
+    HOST_IP=$(hostname -I | awk '{print $1}')
+fi
+
+SUBNET_PREFIX=$(echo "$GW_IP" | cut -d'.' -f1-3)
+if [ -z "$SUBNET_PREFIX" ] && [ -n "$HOST_IP" ]; then
+    SUBNET_PREFIX=$(echo "$HOST_IP" | cut -d'.' -f1-3)
+    GW_IP="${SUBNET_PREFIX}.1"
+fi
+if [ -z "$SUBNET_PREFIX" ]; then
+    echo -e "${RED}❌ 无法自动探查 PVE 局域网段与物理网关！请通过参数手动指定: -g [网关IP] -i [容器IP/24]${NC}"
+    exit 1
+fi
+
+# 3.4 动态智能选择未被占用的 IP (自动执行 ping 冲突检测)
+DEFAULT_CT_IP=""
+if [ -n "$CUSTOM_IP" ]; then
+    DEFAULT_CT_IP="$CUSTOM_IP"
+else
+    # 候选 IP 列表: 7, 77, 88, 107, 207, 227
+    for candidate in 7 77 88 107 207 227 17 27 37 47; do
+        CHECK_IP="${SUBNET_PREFIX}.${candidate}"
+        if [ "$CHECK_IP" != "$GW_IP" ] && [ "$CHECK_IP" != "$HOST_IP" ]; then
+            # ping 探测是否已有设备占用
+            if ! ping -c 1 -W 1 "$CHECK_IP" >/dev/null 2>&1; then
+                DEFAULT_CT_IP="${CHECK_IP}/24"
+                break
+            fi
+        fi
+    done
+    if [ -z "$DEFAULT_CT_IP" ]; then
+        DEFAULT_CT_IP="${SUBNET_PREFIX}.77/24"
+    fi
+fi
+
+# 4. 交互式确认或非交互跳过
+# 智能检测：如果 stdin 为管道 (curl ... | bash) 或无控制终端 /dev/tty，或者指定了 -y，强制切换为非交互极速模式
+if [ "$AUTO_CONFIRM" -eq 0 ]; then
+    if [ ! -t 0 ] || ! true </dev/tty 2>/dev/null; then
+        AUTO_CONFIRM=1
+    fi
+fi
+
+if [ "$AUTO_CONFIRM" -eq 0 ]; then
+    echo -e "\n${YELLOW}${BOLD}⚙️ 请配置 CubeX LXC 容器基础参数 (15秒超时自动保持默认，直接回车确认):${NC}"
+    if [ -r /dev/tty ]; then
+        read -t 15 -rp "容器 VMID [默认: $NEXT_ID]: " CT_ID </dev/tty || CT_ID=""
+        read -t 15 -rp "容器静态 IP (CIDR 格式) [默认: $DEFAULT_CT_IP]: " CT_IP </dev/tty || CT_IP=""
+        read -t 15 -rp "上级主路由网关 IP [默认: $GW_IP]: " CT_GW </dev/tty || CT_GW=""
+        read -t 15 -rp "LXC 存储池 [默认: $DEFAULT_STORAGE]: " CT_STORAGE </dev/tty || CT_STORAGE=""
+        read -t 15 -rp "分配内存 (MB) [推荐 256~512MB, 默认: 256]: " CT_MEM </dev/tty || CT_MEM=""
+        read -t 15 -rp "分配磁盘大小 (GB) [推荐 2~4GB, 默认: 2]: " CT_DISK </dev/tty || CT_DISK=""
+        read -t 15 -rp "容器主机名 [默认: cubex-gateway]: " CT_NAME </dev/tty || CT_NAME=""
+    else
+        read -t 15 -rp "容器 VMID [默认: $NEXT_ID]: " CT_ID || CT_ID=""
+        read -t 15 -rp "容器静态 IP (CIDR 格式) [默认: $DEFAULT_CT_IP]: " CT_IP || CT_IP=""
+        read -t 15 -rp "上级主路由网关 IP [默认: $GW_IP]: " CT_GW || CT_GW=""
+        read -t 15 -rp "LXC 存储池 [默认: $DEFAULT_STORAGE]: " CT_STORAGE || CT_STORAGE=""
+        read -t 15 -rp "分配内存 (MB) [推荐 256~512MB, 默认: 256]: " CT_MEM || CT_MEM=""
+        read -t 15 -rp "分配磁盘大小 (GB) [推荐 2~4GB, 默认: 2]: " CT_DISK || CT_DISK=""
+        read -t 15 -rp "容器主机名 [默认: cubex-gateway]: " CT_NAME || CT_NAME=""
+    fi
+
+    CT_ID=${CT_ID:-$NEXT_ID}
+    CT_IP=${CT_IP:-$DEFAULT_CT_IP}
+    CT_GW=${CT_GW:-$GW_IP}
+    CT_STORAGE=${CT_STORAGE:-$DEFAULT_STORAGE}
+    CT_MEM=${CT_MEM:-256}
+    CT_DISK=${CT_DISK:-2}
+    CT_NAME=${CT_NAME:-cubex-gateway}
+else
+    CT_ID="$NEXT_ID"
+    CT_IP="$DEFAULT_CT_IP"
+    CT_GW="$GW_IP"
+    CT_STORAGE="$DEFAULT_STORAGE"
+    CT_MEM=256
+    CT_DISK=2
+    CT_NAME="cubex-gateway"
+    echo -e "${GREEN}✓ 已启用非交互极速模式，自动匹配参数: VMID=$CT_ID, IP=$CT_IP, GW=$CT_GW, Storage=$CT_STORAGE${NC}"
+fi
+
+# 参数防御性校验与自愈净化 (防止误贴多行代码导致 pct create 参数类型错误)
+case "$CT_ID" in
+    ''|*[!0-9]*) CT_ID="$NEXT_ID" ;;
+esac
+case "$CT_MEM" in
+    ''|*[!0-9]*) CT_MEM=256 ;;
+esac
+case "$CT_DISK" in
+    ''|*[!0-9]*) CT_DISK=2 ;;
+esac
+if [[ ! "$CT_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$ ]]; then
+    CT_IP="$DEFAULT_CT_IP"
+fi
+if [[ ! "$CT_GW" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    CT_GW="$GW_IP"
+fi
+case "$CT_NAME" in
+    ''|*[!a-zA-Z0-9_-]*) CT_NAME="cubex-gateway" ;;
+esac
+# 验证存储池是否支持 rootdir 容器目录/镜像
+if ! pvesm status -storage "$CT_STORAGE" -content rootdir >/dev/null 2>&1; then
+    echo -e "${YELLOW}⚠️ 存储池 ${CT_STORAGE} 不支持容器 rootdir，自动修正为可用存储池: ${DEFAULT_STORAGE}${NC}"
+    CT_STORAGE="$DEFAULT_STORAGE"
+fi
+
+# DNS 参数格式化 (PVE pct create --nameserver 仅接受单个有效 IP，避免传多个 IP 导致 400 校验阻断)
+DNS_ARG=""
+if [ -n "$CT_GW" ] && [[ "$CT_GW" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    DNS_ARG="--nameserver $CT_GW"
+else
+    DNS_ARG="--nameserver 223.5.5.5"
+fi
+
+# 检查容器 ID 冲突自愈 (如已存在同 ID 容器或旧损坏沙盒，先安全停止并清理)
+if pct status "$CT_ID" >/dev/null 2>&1 || [ -f "/etc/pve/lxc/${CT_ID}.conf" ]; then
+    echo -e "${YELLOW}⚠️ 检测到容器 CT ${CT_ID} 已存在，正在安全重置旧沙盒...${NC}"
+    pct stop "$CT_ID" >/dev/null 2>&1 || true
+    pct destroy "$CT_ID" --purge 1 >/dev/null 2>&1 || true
+fi
+
+CT_CLEAN_IP=$(echo "$CT_IP" | cut -d'/' -f1)
+
+# 5. 宿主机内核网络与穿透模块加固
+echo -e "\n${CYAN}🔧 [1/5] 加固 PVE 宿主机网络与内核模块 (加载 tun / xt_TPROXY)...${NC}"
+modprobe tun 2>/dev/null || true
+modprobe xt_TPROXY 2>/dev/null || true
+modprobe xt_socket 2>/dev/null || true
+modprobe xt_mark 2>/dev/null || true
+sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
+
+# 6. 模板探查 (优先复用本地已有模板，防止外网断流报错)
+echo -e "\n${CYAN}📦 [2/5] 探查并匹配 Alpine Linux LXC 模板 (${PVE_ARCH})...${NC}"
+TEMPLATE=""
+# 优先检查本地已经存在的对应架构 Alpine 模板 (严格过滤架构后缀，避免错用 arm64/amd64)
+LOCAL_TEMPLATES=$(pveam list local 2>/dev/null | grep -i 'alpine' | grep "${PVE_ARCH}" | awk '{print $1}' | tail -n1 || true)
+if [ -n "$LOCAL_TEMPLATES" ]; then
+    TEMPLATE=$(basename "$LOCAL_TEMPLATES")
+    echo -e "${GREEN}✓ 发现本地已缓存的 Alpine 模板: ${TEMPLATE} (免重复下载，秒级开机)${NC}"
+fi
+
+if [ -z "$TEMPLATE" ]; then
+    echo -e "${BLUE}正在更新并检索官方 Alpine 模板清单 (${PVE_ARCH})...${NC}"
+    pveam update >/dev/null 2>&1 || true
+    TEMPLATE=$(pveam available -section system 2>/dev/null | grep -i 'alpine' | grep "${PVE_ARCH}" | tail -n1 | awk '{print $2}' || true)
+    if [ -z "$TEMPLATE" ]; then
+        TEMPLATE="alpine-3.20-default_20240606_${PVE_ARCH}.tar.xz"
+    fi
+    if ! pveam list local 2>/dev/null | grep -q "$TEMPLATE"; then
+        echo -e "${BLUE}正在下载 Alpine 模板: ${TEMPLATE}...${NC}"
+        pveam download local "$TEMPLATE"
+    fi
+fi
+
+# 7. 创建极速优化 LXC 容器
+echo -e "\n${CYAN}🚀 [3/5] 正在创建 CubeX LXC 原生容器 (CT $CT_ID)...${NC}"
+pct create "$CT_ID" "local:vztmpl/$TEMPLATE" \
+    --ostype alpine \
+    --hostname "$CT_NAME" \
+    --cores 2 \
+    --memory "$CT_MEM" \
+    --swap 256 \
+    --rootfs "${CT_STORAGE}:${CT_DISK}" \
+    --net0 name=eth0,bridge=vmbr0,ip="$CT_IP",gw="$CT_GW",type=veth,firewall=0 \
+    $DNS_ARG \
+    --features nesting=1,keyctl=1 \
+    --unprivileged 0 \
+    --onboot 1 \
+    --start 0
+
+# 8. 注入 TUN 设备穿透 (确保容器原生支持 /dev/net/tun 与高并发网络)
+echo -e "${CYAN}🔧 [4/5] 注入宿主内核 TUN 设备直通与 cgroup 白名单...${NC}"
+CONF_FILE="/etc/pve/lxc/${CT_ID}.conf"
+# 防御性解除 PVE 网卡防火墙拦截 (确保 2026 控制台端口秒开无阻断)
+sed -i 's/firewall=1/firewall=0/g' "$CONF_FILE" 2>/dev/null || true
+pve-firewall restart 2>/dev/null || true
+
+cat << 'EOF' >> "$CONF_FILE"
+
+# === CubeX Native TUN & Acceleration Direct Pass ===
+lxc.cgroup2.devices.allow: c 10:200 rwm
+lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
+EOF
+
+# 启动容器
+pct start "$CT_ID"
+
+# 优雅等待网络链路就绪 (最多等待 5 秒)
+echo -e "   -> ${BLUE}等待容器网卡与链路协商就绪...${NC}"
+for i in 1 2 3 4 5; do
+    if pct exec "$CT_ID" -- ping -c 1 -W 1 "$CT_GW" >/dev/null 2>&1; then
+        break
+    fi
+    sleep 1
+done
+
+# 9. 容器内部初始化与依赖部署
+echo -e "\n${CYAN}🔄 [5/5] 容器内部全自动初始化（首次部署约需 30~60 秒，请耐心等待）...${NC}"
+
+echo -e "   -> ${BOLD}[5.1/5.4] 正在配置容器 DNS 与国内极速镜像源 (带自动故障转移与多源轮换)...${NC}"
+pct exec "$CT_ID" -- sh -s << 'EOF'
+set -e
+# 注入公网主备 DNS，彻底防范主路由尚未配对导致的临时解析失败
+cat << "RESOLV" > /etc/resolv.conf
+nameserver 223.5.5.5
+nameserver 119.29.29.29
+nameserver 114.114.114.114
+nameserver 8.8.8.8
+RESOLV
+
+# 探查真实 Alpine 发行版分支
+ALPINE_VER=$(cat /etc/alpine-release 2>/dev/null | cut -d. -f1,2)
+if [ -n "$ALPINE_VER" ]; then
+    BRANCH="v${ALPINE_VER}"
+else
+    BRANCH="latest-stable"
+fi
+
+# 首选用 HTTP 协议拉取索引与 ca-certificates，彻底规避新容器无根证书时导致的 HTTPS 握手失败
+cat << REPO > /etc/apk/repositories
+http://mirrors.aliyun.com/alpine/${BRANCH}/main
+http://mirrors.aliyun.com/alpine/${BRANCH}/community
+REPO
+EOF
+
+echo -e "   -> ${BOLD}[5.2/5.4] 正在安装底层网络与系统依赖 (iptables / iproute2 / curl / ca-certificates)...${NC}"
+pct exec "$CT_ID" -- sh -s << 'EOF'
+set -e
+ALPINE_VER=$(cat /etc/alpine-release 2>/dev/null | cut -d. -f1,2)
+BRANCH="v${ALPINE_VER:-latest-stable}"
+
+# 五大镜像源容灾轮换池 (Aliyun -> USTC -> TUNA -> Tencent -> Official)
+MIRRORS="mirrors.aliyun.com mirrors.ustc.edu.cn mirrors.tuna.tsinghua.edu.cn mirrors.cloud.tencent.com dl-cdn.alpinelinux.org"
+
+UPDATED=0
+for M in $MIRRORS; do
+    cat << REPO > /etc/apk/repositories
+http://${M}/alpine/${BRANCH}/main
+http://${M}/alpine/${BRANCH}/community
+REPO
+    if apk update --quiet; then
+        UPDATED=1
+        break
+    fi
+    sleep 1
+done
+
+if [ "$UPDATED" -eq 0 ]; then
+    apk update || true
+fi
+
+# 依赖安装自愈重试 (最多 3 次)
+INSTALLED=0
+for attempt in 1 2 3; do
+    if apk add --no-cache curl ca-certificates iptables ip6tables iproute2 tzdata unzip; then
+        INSTALLED=1
+        break
+    fi
+    echo "正在重试依赖安装 ($attempt/3)..."
+    sleep 2
+done
+
+# 安装完成 ca-certificates 后无缝升级回安全 HTTPS 镜像源
+sed -i 's|http://|https://|g' /etc/apk/repositories 2>/dev/null || true
+
+mkdir -p /opt/CubeX/bin /opt/CubeX/data /opt/CubeX/etc /opt/CubeX/rules
+EOF
+
+echo -e "   -> ${BOLD}[5.3/5.4] 正在配置 OpenRC 系统级守护进程 (含自适应 GOMEMLIMIT 防爆保护)...${NC}"
+pct exec "$CT_ID" -- sh -s << 'EOF'
+set -e
+cat << "INIT" > /etc/init.d/cubexd
+#!/sbin/openrc-run
+name="cubexd"
+description="CubeX System Control Plane Daemon"
+command="/opt/CubeX/bin/cubexd"
+command_args=""
+directory="/opt/CubeX"
+supervisor="supervise-daemon"
+respawn_max=0
+output_log="/var/log/cubexd.log"
+error_log="/var/log/cubexd.err"
+
+export GOMEMLIMIT="35MiB"
+export GOGC="30"
+export GODEBUG="madvdontneed=1"
+export TZ="Asia/Shanghai"
+
+depend() {
+    need net
+    after firewall
+}
+INIT
+
+chmod 755 /etc/init.d/cubexd
+# Shebang hard verification & auto-heal
+if ! head -n 1 /etc/init.d/cubexd | grep -q "openrc-run"; then
+    sed -i '1s|^|#!/sbin/openrc-run\n|' /etc/init.d/cubexd || true
+fi
+rc-update add cubexd default >/dev/null 2>&1
+EOF
+
+echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX ${CUSTOM_VER:-v9.9.2} 双核完整发布包 (${PVE_ARCH})...${NC}"
+# 10. 推送或下载 CubeX 完整发布包 (优先检测宿主本地安装包，0 秒直推免下载)
+if [ -n "$CUSTOM_VER" ]; then
+    LOCAL_PKG=$(ls dist/release/CubeX-${CUSTOM_VER}*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+    CACHE_PKG=$(ls /tmp/CubeX-${CUSTOM_VER}*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+    ROOT_PKG=$(ls /root/CubeX-${CUSTOM_VER}*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+else
+    LOCAL_PKG=$(ls dist/release/CubeX-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+    CACHE_PKG=$(ls /tmp/CubeX-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+    ROOT_PKG=$(ls /root/CubeX-*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
+fi
+
+CHOSEN_ZIP=""
+if [ -n "$LOCAL_PKG" ] && [ -f "$LOCAL_PKG" ]; then
+    CHOSEN_ZIP="$LOCAL_PKG"
+elif [ -n "$CACHE_PKG" ] && [ -s "$CACHE_PKG" ]; then
+    CHOSEN_ZIP="$CACHE_PKG"
+elif [ -n "$ROOT_PKG" ] && [ -s "$ROOT_PKG" ]; then
+    CHOSEN_ZIP="$ROOT_PKG"
+fi
+
+if [ -n "$CHOSEN_ZIP" ]; then
+    echo -e "${GREEN}✓ 检测到宿主机本地完整发布包 (${CHOSEN_ZIP})，直接 0 秒直推至容器，跳过网络下载！${NC}"
+    pct push "$CT_ID" "$CHOSEN_ZIP" /tmp/CubeX.zip
+    pct exec "$CT_ID" -- sh -s << 'EOF'
+unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/
+chmod +x /opt/CubeX/bin/* 2>/dev/null || true
+ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
+rm -f /tmp/CubeX.zip
+EOF
+else
+    pct exec "$CT_ID" -- sh -s "$PVE_ARCH" "$CUSTOM_VER" << 'EOF'
+    set +e
+    ARCH="$1"
+    TARGET_VER="$2"
+    echo "🌐 正在从 GitHub Releases 拉取完整发布包 (${ARCH} 双内核 + 105套规则集 + 控制面)..."
+    REL_TAG="$TARGET_VER"
+    if [ -z "$REL_TAG" ]; then
+        for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" "https://github.moeyy.xyz" ""; do
+            PREFIX="${MIRROR:+$MIRROR/}"
+            LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 4 -m 8 "${PREFIX}https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
+            if [ -n "$LATEST_JSON" ]; then
+                REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
+                [ -n "$REL_TAG" ] && break
+            fi
+            REL_TAG=$(curl -4 --http1.1 -sSL --connect-timeout 4 -m 6 -I "${PREFIX}https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
+            [ -n "$REL_TAG" ] && break
+        done
+    fi
+    [ -z "$REL_TAG" ] && REL_TAG="v9.9.2"
+
+    ZIP_NAME="CubeX-${REL_TAG}-linux-${ARCH}.zip"
+    TMP_ZIP="/tmp/${ZIP_NAME}"
+    rm -f "$TMP_ZIP"
+
+    DOWNLOAD_SUCCESS=0
+    DOWNLOAD_URLS="https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
+
+    for DL_URL in $DOWNLOAD_URLS; do
+        echo "   -> 尝试节点: ${DL_URL} ..."
+        if curl -4 --http1.1 -fL --progress-bar --connect-timeout 8 -m 120 -o "$TMP_ZIP" "$DL_URL" && [ -s "$TMP_ZIP" ]; then
+            if unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
+                DOWNLOAD_SUCCESS=1
+                break
+            else
+                rm -f "$TMP_ZIP"
+            fi
+        fi
+        rm -f "$TMP_ZIP"
+    done
+
+    if [ "$DOWNLOAD_SUCCESS" = "1" ] && [ -s "$TMP_ZIP" ]; then
+        unzip -q -o "$TMP_ZIP" -d /opt/CubeX/ >/dev/null 2>&1
+        chmod +x /opt/CubeX/bin/* 2>/dev/null || true
+        ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
+        rm -f "$TMP_ZIP"
+        echo "✅ 完整发布包释放完成！"
+    else
+        echo "⚠️ 完整归档网络拉取受阻，启用智能降级策略：独立极速拉取控制面与引擎核心..."
+        BIN_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${ARCH}"
+        for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
+            FULL_BIN_URL="${MIRROR:+$MIRROR/}$BIN_URL"
+            if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o /opt/CubeX/bin/cubexd "$FULL_BIN_URL" 2>/dev/null && [ -s /opt/CubeX/bin/cubexd ]; then
+                chmod 755 /opt/CubeX/bin/cubexd
+                break
+            fi
+        done
+
+        # 尝试拉取 sing-box 核心
+        if [ ! -f /opt/CubeX/bin/sing-box ]; then
+            SB_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/sing-box-linux-${ARCH}"
+            for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
+                FULL_SB_URL="${MIRROR:+$MIRROR/}$SB_URL"
+                if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o /opt/CubeX/bin/sing-box "$FULL_SB_URL" 2>/dev/null && [ -s /opt/CubeX/bin/sing-box ]; then
+                    chmod 755 /opt/CubeX/bin/sing-box
+                    break
+                fi
+            done
+        fi
+        # 尝试拉取 mihomo 核心
+        if [ ! -f /opt/CubeX/bin/mihomo ]; then
+            MH_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/mihomo-linux-${ARCH}"
+            for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
+                FULL_MH_URL="${MIRROR:+$MIRROR/}$MH_URL"
+                if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o /opt/CubeX/bin/mihomo "$FULL_MH_URL" 2>/dev/null && [ -s /opt/CubeX/bin/mihomo ]; then
+                    chmod 755 /opt/CubeX/bin/mihomo
+                    break
+                fi
+            done
+        fi
+    fi
+EOF
+fi
+
+# 增量升级校验：如宿主有更新的独立 cubexd 控制面二进制，无缝增量推送覆盖
+if [ -f "dist/cubexd-linux-${PVE_ARCH}" ]; then
+    echo -e "${BLUE}注入本地最新构建的控制面: dist/cubexd-linux-${PVE_ARCH}...${NC}"
+    pct push "$CT_ID" "dist/cubexd-linux-${PVE_ARCH}" /opt/CubeX/bin/cubexd -perms 755
+elif [ -f "/root/cubexd" ]; then
+    echo -e "${BLUE}注入宿主机最新控制面: /root/cubexd...${NC}"
+    pct push "$CT_ID" /root/cubexd /opt/CubeX/bin/cubexd -perms 755
+elif [ -f "/opt/cubex/bin/cubexd" ]; then
+    pct push "$CT_ID" /opt/cubex/bin/cubexd /opt/CubeX/bin/cubexd -perms 755
+fi
+
+pct exec "$CT_ID" -- sh -s << 'EOF'
+if [ ! -f /opt/CubeX/bin/cubexd ] || [ ! -s /opt/CubeX/bin/cubexd ]; then
+    echo "❌ 致命错误: 未能获取到有效的 cubexd 控制面二进制文件，请检查网络后重试！"
+    exit 1
+fi
+if [ ! -f /opt/CubeX/bin/sing-box ] && [ ! -f /opt/CubeX/bin/mihomo ]; then
+    echo "❌ 致命错误: 双引擎核心文件 (sing-box / mihomo) 均缺失！"
+    echo "👉 严重警告: 控制面在没有代理内核的情况下无法转发任何网络流量！请确保网络正常或放置发布包至宿主机 /tmp/ 后重试！"
+    exit 1
+fi
+EOF
+
+# 11. 守护进程就绪与服务启动
+pct exec "$CT_ID" -- sh -c '
+chmod 755 /opt/CubeX/bin/* 2>/dev/null || true
+if [ ! -f /etc/init.d/cubexd ] || ! head -n 1 /etc/init.d/cubexd | grep -q "openrc-run"; then
+    sed -i "1s|^|#!/sbin/openrc-run\n|" /etc/init.d/cubexd 2>/dev/null || true
+    chmod 755 /etc/init.d/cubexd 2>/dev/null || true
+fi
+rc-update add cubexd default >/dev/null 2>&1 || true
+'
+echo -e "${CYAN}🚀 正在启动 CubeX 守护进程...${NC}"
+pct exec "$CT_ID" -- rc-service cubexd restart >/dev/null 2>&1 || true
+sleep 2
+
+# 12. 运行状态校验
+if pct exec "$CT_ID" -- pgrep -f cubexd >/dev/null 2>&1; then
+    # 注册 PVE 宿主快捷指令 (一键穿透直达容器)
+    cat << PVECLI > /usr/local/bin/cubex 2>/dev/null || true
+#!/bin/sh
+pct exec "$CT_ID" -- /opt/CubeX/bin/cubex "\$@"
+PVECLI
+    chmod +x /usr/local/bin/cubex 2>/dev/null || true
+    echo -e "\n${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}${BOLD}🎉 恭喜！CubeX 宿主共生透明代理网关已在 PVE LXC 容器成功部署运行！${NC}"
+    echo -e "${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}"
+    echo -e "  📌 容器 ID     : ${BOLD}${CT_ID} (${CT_NAME})${NC}"
+    echo -e "  🌐 旁路由 IP   : ${BOLD}${CT_CLEAN_IP}${NC}"
+    echo -e "  🖥️ Web 控制台  : ${CYAN}${BOLD}http://${CT_CLEAN_IP}:2026${NC}"
+    echo -e "  ⚡ 底座优势    : 原生共享宿主物理内核，内存仅需 70MB，启动 < 1 秒"
+    echo -e "  🛡️ 访问安全    : 开箱即用 · 局域网直连免密 (亦可在控制台设置访问密钥)"
+    echo -e "\n${YELLOW}💡 下一步联动指引:${NC}"
+    echo -e "  1. 打开浏览器直接访问 Web 控制台: ${CYAN}http://${CT_CLEAN_IP}:2026${NC}"
+    echo -e "  2. 进入【⚙️ 宿主共生与系统运维】，输入主路由（如 RouterOS / 爱快）的 IP 与凭据"
+    echo -e "  3. 点击【⚡ 一键全栈自愈】，CubeX 将自动完成策略路由表创建、Fake-IP 回指与 0 秒逃生编排！"
+    echo -e "${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}\n"
+else
+    echo -e "${YELLOW}⚠️ 容器已就绪，但尚未下载到 CubeX 二进制文件。可通过命令手动推送:${NC}"
+    echo -e "  pct push ${CT_ID} dist/cubexd-linux-amd64 /opt/CubeX/bin/cubexd -perms 755"
+    echo -e "  pct exec ${CT_ID} -- rc-service cubexd start"
+fi

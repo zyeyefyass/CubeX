@@ -10,11 +10,11 @@
 
 <p align="center">
 
-<a href="#"><img src="https://img.shields.io/badge/Memory-14.9MB_极简稳态-00F5D4?style=for-the-badge&logo=ram" alt="Memory" /></a>
+<a href="#"><img src="https://img.shields.io/badge/Memory-15MB~40MB_透明口径-00F5D4?style=for-the-badge&logo=ram" alt="Memory" /></a>
 <a href="#"><img src="https://img.shields.io/badge/Fail--Open-3s_内核逃生-7B2CBF?style=for-the-badge&logo=shield" alt="Fail-Open" /></a>
 <a href="#"><img src="https://img.shields.io/badge/Dual--Core-234ms_热切-0077B6?style=for-the-badge&logo=go" alt="Dual-Core" /></a>
 <a href="#"><img src="https://img.shields.io/badge/Doctor-14%2F14_满分通过-38BDF8?style=for-the-badge&logo=checkmarx" alt="Doctor" /></a>
-<a href="https://github.com/zyeyefyass/CubeX/releases"><img src="https://img.shields.io/badge/Release-v9.9.2_正式版-FF007F?style=for-the-badge&logo=github" alt="Version" /></a>
+<a href="https://github.com/zyeyefyass/CubeX/releases/latest"><img src="https://img.shields.io/badge/Release-v9.9.2_最新稳定版-FF007F?style=for-the-badge&logo=github" alt="Version" /></a>
 
 </p>
 
@@ -26,11 +26,13 @@
 
 ### ⚡ 30 秒极速体验 · 一行命令开箱即用
 
-| 宿主底座平台 | 一键秒级安装命令 (复制终端回车运行) |
+| 宿主底座平台 | 一键秒级安装命令 (复制终端回车运行 · 免代理加速) |
 | :--- | :--- |
-| **🥇 Proxmox VE (PVE CT)** | `bash -c "$(curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install_pve_lxc.sh)"` |
+| **🥇 Proxmox VE (PVE CT)** | `bash -c "$(curl -fsSL -k https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install_pve_lxc.sh)"` |
 | **🐳 Docker / 飞牛 fnOS** | `docker run -d --name cubex --restart unless-stopped --network host --privileged --cap-add=NET_ADMIN --device /dev/net/tun:/dev/net/tun -v /etc/cubex/data:/app/data -v /etc/cubex/etc:/app/etc fyasshole/cubex:latest` |
-| **📶 RouterOS v7 (单机容器)** | `/tool fetch url="https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install_ros_container.rsc" mode=https dst-path=install.rsc; /import install.rsc` |
+| **📶 RouterOS v7 (单机容器)** | `/tool fetch url="https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install_ros_container.rsc" mode=https dst-path=install.rsc; /import install.rsc` |
+
+> 💡 **国内极速通道**：以上命令已内嵌 `gh-proxy.com` 镜像节点，海外/已具备透明网关环境可直接去掉前缀直连 GitHub。
 
 </div>
 
@@ -48,7 +50,7 @@
 
 | 对比维度 | 传统全包旁路由 (OpenWrt / 传统虚机) | 👑 CubeX v9.9 宿主共生零感网关 |
 | :--- | :--- | :--- |
-| **物理内存常驻** | 动辄 512MB ~ 2GB，小内存主机频繁 OOM | **实测 14.9MB 极限稳态**，小主机、轻量 NAS 零感知运行 |
+| **物理内存常驻** | 动辄 512MB ~ 2GB，小内存主机频繁 OOM | **透明多态内存占用**：静默底座 **~15MB** / 单核稳态 **~30MB** / 双核热备全量 105 套规则 **~40MB**（千兆满载压测死锁在 **~35MB**） |
 | **断网与单点故障** | 旁路由卡死/重启/升级，**全家立刻断网报障** | **网关+DNS全指主路由，3 秒内核级逃生，家里永不断网** |
 | **影音与 NAS 体验** | BT/PT 下载与外网争抢加速带，非必要带宽损耗 | **影音/NAS专属模式**：PT 满速直连直出，TMDB/Docker 极速加速 |
 | **全家设备配置** | 每台设备强改网关/DNS，来客人 Wi-Fi 连不上 | **100% 零修改！** 全家出厂默认 DHCP，连上 Wi-Fi 就能用 |

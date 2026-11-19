@@ -457,12 +457,15 @@ else
     echo "🌐 正在从 GitHub Releases 拉取完整发布包 (${ARCH} 双内核 + 105套规则集 + 控制面)..."
     REL_TAG="$TARGET_VER"
     if [ -z "$REL_TAG" ]; then
-        for MIRROR in "https://ghps.cc" "https://mirror.ghproxy.com" "https://gh-proxy.com" "https://ghproxy.net" "https://github.moeyy.xyz"; do
-            LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 4 -m 8 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
+        for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" "https://github.moeyy.xyz" ""; do
+            PREFIX="${MIRROR:+$MIRROR/}"
+            LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 4 -m 8 "${PREFIX}https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
             if [ -n "$LATEST_JSON" ]; then
                 REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
                 [ -n "$REL_TAG" ] && break
             fi
+            REL_TAG=$(curl -4 --http1.1 -sSL --connect-timeout 4 -m 6 -I "${PREFIX}https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
+            [ -n "$REL_TAG" ] && break
         done
     fi
     [ -z "$REL_TAG" ] && REL_TAG="v9.9.2"
@@ -472,7 +475,7 @@ else
     rm -f "$TMP_ZIP"
 
     DOWNLOAD_SUCCESS=0
-    DOWNLOAD_URLS="https://ghps.cc/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://mirror.ghproxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.moeyy.xyz/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
+    DOWNLOAD_URLS="https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
 
     for DL_URL in $DOWNLOAD_URLS; do
         echo "   -> 尝试节点: ${DL_URL} ..."
@@ -496,7 +499,7 @@ else
     else
         echo "⚠️ 完整归档网络拉取受阻，启用智能降级策略：独立极速拉取控制面与引擎核心..."
         BIN_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${ARCH}"
-        for MIRROR in "https://ghps.cc" "https://mirror.ghproxy.com" "https://gh-proxy.com" ""; do
+        for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
             FULL_BIN_URL="${MIRROR:+$MIRROR/}$BIN_URL"
             if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o /opt/CubeX/bin/cubexd "$FULL_BIN_URL" 2>/dev/null && [ -s /opt/CubeX/bin/cubexd ]; then
                 chmod 755 /opt/CubeX/bin/cubexd
@@ -507,7 +510,7 @@ else
         # 尝试拉取 sing-box 核心
         if [ ! -f /opt/CubeX/bin/sing-box ]; then
             SB_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/sing-box-linux-${ARCH}"
-            for MIRROR in "https://ghps.cc" "https://mirror.ghproxy.com" "https://gh-proxy.com" ""; do
+            for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
                 FULL_SB_URL="${MIRROR:+$MIRROR/}$SB_URL"
                 if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o /opt/CubeX/bin/sing-box "$FULL_SB_URL" 2>/dev/null && [ -s /opt/CubeX/bin/sing-box ]; then
                     chmod 755 /opt/CubeX/bin/sing-box
@@ -518,7 +521,7 @@ else
         # 尝试拉取 mihomo 核心
         if [ ! -f /opt/CubeX/bin/mihomo ]; then
             MH_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/mihomo-linux-${ARCH}"
-            for MIRROR in "https://ghps.cc" "https://mirror.ghproxy.com" "https://gh-proxy.com" ""; do
+            for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
                 FULL_MH_URL="${MIRROR:+$MIRROR/}$MH_URL"
                 if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o /opt/CubeX/bin/mihomo "$FULL_MH_URL" 2>/dev/null && [ -s /opt/CubeX/bin/mihomo ]; then
                     chmod 755 /opt/CubeX/bin/mihomo

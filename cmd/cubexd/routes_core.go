@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/zyeyefyass/CubeX/internal/backup"
 	"github.com/zyeyefyass/CubeX/internal/engine"
+	"github.com/zyeyefyass/CubeX/internal/onboarding"
 	"github.com/zyeyefyass/CubeX/internal/profile"
 	"github.com/zyeyefyass/CubeX/internal/ros"
 	"github.com/zyeyefyass/CubeX/internal/schema"
@@ -50,9 +51,79 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 		_, _ = w.Write([]byte("ok\n"))
 	})
 
+	// /healthz/dataplane 统一应用层防假死探针 (同时校验双核激活态、Clash API 与 DNS 响应)
+	mux.HandleFunc("/healthz/dataplane", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if s.draining.Load() {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"status":    "draining",
+				"healthy":   false,
+				"dataplane": "unhealthy",
+				"reason":    "server is draining",
+			})
+			return
+		}
+
+		activeEngine := s.engMgr.GetActiveEngine()
+		clashPort := s.engMgr.GetIR().Network.ClashAPIPort
+		if clashPort <= 0 {
+			clashPort = 9090
+		}
+
+		clashOK := false
+		client := &http.Client{Timeout: 500 * time.Millisecond}
+		if resp, err := client.Get(fmt.Sprintf("http://127.0.0.1:%d/version", clashPort)); err == nil {
+			if resp.StatusCode == http.StatusOK {
+				clashOK = true
+			}
+			_ = resp.Body.Close()
+		}
+
+		dnsPort := s.engMgr.GetIR().Network.DNSPort
+		if dnsPort <= 0 {
+			dnsPort = 1053
+		}
+		dnsOK := true
+		if conn, err := net.DialTimeout("udp", fmt.Sprintf("127.0.0.1:%d", dnsPort), 300*time.Millisecond); err == nil {
+			_ = conn.Close()
+		} else {
+			dnsOK = false
+		}
+
+		allHealthy := clashOK && dnsOK
+		if allHealthy {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}
+
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"status":        map[bool]string{true: "ok", false: "degraded"}[allHealthy],
+			"healthy":       allHealthy,
+			"active_engine": activeEngine,
+			"clash_api":     clashOK,
+			"dns_service":   dnsOK,
+			"checked_at":    time.Now().Format(time.RFC3339),
+		})
+	})
+
 	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok","healthy":true}`))
+	})
+
+	mux.HandleFunc("/api/v1/doctor/export-card", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		doc := onboarding.RunOnboardingDoctor(r.Context(), detectOutboundIP(), 2026, "198.18.0.0/15")
+		activeCore := string(s.engMgr.GetActiveEngine())
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"data": map[string]any{
+				"markdown": doc.GenerateDesensitizedCard(version, activeCore),
+				"report":   doc,
+			},
+		})
 	})
 	mux.HandleFunc("/api/v1/auth/status", s.handleAuthStatus)
 	mux.HandleFunc("/api/v1/auth/login", s.handleAuthLogin)

@@ -461,13 +461,13 @@ else
 
     if [ "$NEED_DOWNLOAD" -eq 1 ] && [ ! -f "$INSTALL_DIR/bin/cubexd" ]; then
         echo -e "${CYAN}🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 105套规则集 + 控制面)...${NC}"
-        GH_MIRRORS=("https://ghproxy.net" "https://gh-proxy.com" "https://mirror.ghproxy.com" "https://github.moeyy.xyz" "https://ghps.cc" "")
+        GH_MIRRORS=("https://gh-proxy.com" "https://ghproxy.net" "https://github.moeyy.xyz" "")
         REL_TAG="$CUSTOM_VER"
         if [ -z "$REL_TAG" ]; then
             for M in "${GH_MIRRORS[@]}"; do
                 PREFIX=""
                 [ -n "$M" ] && PREFIX="${M}/"
-                LATEST_JSON=$(curl -4 -sSL --connect-timeout 4 -m 8 "${PREFIX}https://api.github.com/repos/zyeyefyass/CubeX/releases" 2>/dev/null || true)
+                LATEST_JSON=$(curl -4 -sSL --connect-timeout 4 -m 8 "${PREFIX}https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
                 TAG_CANDIDATE=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
                 if [ -n "$TAG_CANDIDATE" ]; then
                     REL_TAG="$TAG_CANDIDATE"
