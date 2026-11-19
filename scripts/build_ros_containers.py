@@ -260,7 +260,9 @@ print(f"✅ [AMD64] Done! Generated {out_tar_amd64} ({size_mb:.2f} MB)")
 # ==============================================================================
 # 2. Package ARM64 RouterOS OCI Container
 # ==============================================================================
-base_tar_arm64 = r'd:\Micube\dist\MiCube-arm64.tar'
+base_tar_arm64 = os.path.join(dist_dir, "docker", "CubeX-ros-arm64-oci-base.tar")
+if not os.path.exists(base_tar_arm64):
+    base_tar_arm64 = r'd:\Micube\dist\MiCube-arm64.tar'
 cubexd_arm64 = os.path.join(dist_dir, "cubexd-container-arm64")
 if not os.path.exists(cubexd_arm64):
     print("⚠️  cubexd-container-arm64 not found, falling back to cubexd-linux-arm64")

@@ -115,7 +115,7 @@ def gh_api(token, method, path, data=None):
 
     cmd.append(url)
     try:
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
         output = res.stdout
     finally:
         if temp_file and os.path.exists(temp_file.name):
