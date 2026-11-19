@@ -178,12 +178,12 @@ func TestProbeDNSLiveness(t *testing.T) {
 	}()
 
 	// Test 1: Live DNS server returns true
-	if !probeDNSLiveness(port, 300*time.Millisecond) {
+	if !probeDNSLiveness("127.0.0.1", port, 300*time.Millisecond) {
 		t.Error("expected probeDNSLiveness=true for responding DNS server")
 	}
 
 	// Test 2: Closed port returns false
-	if probeDNSLiveness(port+1000, 100*time.Millisecond) {
+	if probeDNSLiveness("127.0.0.1", port+1000, 100*time.Millisecond) {
 		t.Error("expected probeDNSLiveness=false for non-existent port")
 	}
 }

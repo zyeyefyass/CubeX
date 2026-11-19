@@ -93,7 +93,17 @@ func (s *Server) startDataplaneHealthLoop(ctx context.Context) {
 			}
 
 			// 2. Probe DNS UDP Port via Active Query (ensures core event loop is truly processing packets)
-			dnsOK := probeDNSLiveness(dnsPort, 400*time.Millisecond)
+			lanIP := getLocalLANIP()
+			dnsOK := probeDNSLiveness("127.0.0.1", dnsPort, 200*time.Millisecond)
+			if !dnsOK && dnsPort != 53 {
+				dnsOK = probeDNSLiveness("127.0.0.1", 53, 200*time.Millisecond)
+			}
+			if !dnsOK && lanIP != "127.0.0.1" {
+				dnsOK = probeDNSLiveness(lanIP, 53, 200*time.Millisecond)
+				if !dnsOK && dnsPort != 53 {
+					dnsOK = probeDNSLiveness(lanIP, dnsPort, 200*time.Millisecond)
+				}
+			}
 
 			probePass := clashOK && dnsOK
 
@@ -201,19 +211,51 @@ func (s *Server) healthzDataplaneHandler() http.HandlerFunc {
 }
 
 // probeDNSLiveness actively sends a DNS A query packet to 127.0.0.1:dnsPort and waits for a valid DNS reply.
-// This guarantees true application-level liveness (preventing silent deadlocks or hung event loops).
-func probeDNSLiveness(dnsPort int, timeout time.Duration) bool {
-	conn, err := net.DialTimeout("udp", fmt.Sprintf("127.0.0.1:%d", dnsPort), timeout)
+// We query "probe.test", which is resolved in-memory by Fake-IP/core DNS tables without hitting external network,
+// guaranteeing true application-level event-loop liveness with 0ms overhead.
+// getLocalLANIP finds the first non-loopback, non-tun IPv4 address of the host.
+func getLocalLANIP() string {
+	ifaces, err := net.Interfaces()
+	if err == nil {
+		for _, iface := range ifaces {
+			if iface.Flags&net.FlagLoopback != 0 || iface.Flags&net.FlagUp == 0 {
+				continue
+			}
+			addrs, err := iface.Addrs()
+			if err != nil {
+				continue
+			}
+			for _, addr := range addrs {
+				if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+					if ip4 := ipnet.IP.To4(); ip4 != nil {
+						// Skip internal cubex-tun micro-subnet (172.19.x.x)
+						if ip4[0] == 172 && ip4[1] == 19 {
+							continue
+						}
+						return ip4.String()
+					}
+				}
+			}
+		}
+	}
+	return "127.0.0.1"
+}
+
+// probeDNSLiveness actively sends a DNS A query packet to the target IP:port and waits for a valid DNS reply.
+// We query "probe.test", which is resolved in-memory by Fake-IP/core DNS tables without hitting external network,
+// guaranteeing true application-level event-loop liveness with 0ms overhead.
+func probeDNSLiveness(ip string, dnsPort int, timeout time.Duration) bool {
+	conn, err := net.DialTimeout("udp", fmt.Sprintf("%s:%d", ip, dnsPort), timeout)
 	if err != nil {
 		return false
 	}
 	defer conn.Close()
 	_ = conn.SetDeadline(time.Now().Add(timeout))
 
-	// Minimal DNS A query for "localhost" (ID 0x1234, RD=1)
+	// Minimal DNS A query for "probe.test" (ID 0x1234, RD=1)
 	query := []byte{
 		0x12, 0x34, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x09, 'l', 'o', 'c', 'a', 'l', 'h', 'o', 's', 't', 0x00,
+		0x05, 'p', 'r', 'o', 'b', 'e', 0x04, 't', 'e', 's', 't', 0x00,
 		0x00, 0x01, 0x00, 0x01,
 	}
 	if _, err := conn.Write(query); err != nil {
