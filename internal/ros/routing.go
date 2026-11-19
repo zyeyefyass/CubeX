@@ -717,6 +717,65 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		})
 	}
 
+	// 15. Check RouterOS v7 Multi-WAN Routing Rules (/routing/rule) & PCC Mangle Exempt
+	hasRoutingRuleFakeIP := false
+	hasRoutingRuleHost := false
+	if rRuleData, err := m.QueryROS("/routing/rule"); err == nil {
+		var rRules []map[string]any
+		if json.Unmarshal(rRuleData, &rRules) == nil {
+			for _, rr := range rRules {
+				dstAddr := fmt.Sprintf("%v", rr["dst-address"])
+				action := fmt.Sprintf("%v", rr["action"])
+				tbl := fmt.Sprintf("%v", rr["table"])
+				disabled := fmt.Sprintf("%v", rr["disabled"])
+				if disabled == "true" || disabled == "yes" {
+					continue
+				}
+				if dstAddr == "198.18.0.0/15" && (action == "lookup-only-in-table" || action == "lookup") && tbl == "main" {
+					hasRoutingRuleFakeIP = true
+				}
+				if (dstAddr == cubexIP || dstAddr == cubexIP+"/32") && (action == "lookup-only-in-table" || action == "lookup") && tbl == "main" {
+					hasRoutingRuleHost = true
+				}
+			}
+		}
+	}
+
+	hasManglePCCExempt := false
+	for _, mg := range mangles {
+		chain, _ := mg["chain"].(string)
+		action, _ := mg["action"].(string)
+		dstAddr, _ := mg["dst-address"].(string)
+		comment, _ := mg["comment"].(string)
+		disabled, _ := mg["disabled"].(bool)
+		if chain == "prerouting" && action == "accept" && !disabled {
+			if dstAddr == "198.18.0.0/15" || strings.Contains(comment, "PCC-Exempt") || strings.Contains(comment, "CubeX-MultiWAN") {
+				hasManglePCCExempt = true
+				break
+			}
+		}
+	}
+
+	if (hasRoutingRuleFakeIP && hasRoutingRuleHost) || hasManglePCCExempt {
+		report.Items = append(report.Items, CheckItem{
+			Key:     "multi_wan_pcc",
+			Name:    "多 WAN 策略路由与 PCC 防劫持 (/routing/rule & Mangle)",
+			Status:  "ok",
+			Value:   "策略路由防劫持护城河就绪",
+			Details: "检测到 RouterOS v7 策略路由规则 (/routing/rule) 或 Mangle 前置放行已就绪。所有发往 Fake-IP (198.18.0.0/15) 与旁路由的数据包强制查 main 表，免疫多线 PCC/NTH 负载均衡与公网外泄黑洞。",
+			Advice:  "多线防劫持处于最佳状态",
+		})
+	} else {
+		report.Items = append(report.Items, CheckItem{
+			Key:     "multi_wan_pcc",
+			Name:    "多 WAN 策略路由与 PCC 防劫持 (/routing/rule & Mangle)",
+			Status:  "warning",
+			Value:   "未开启多 WAN 策略路由防护",
+			Details: "当前未配置 /routing/rule 或 Mangle PCC 豁免规则。若主路由配置了多宽带负载均衡（PCC/NTH），发往 Fake-IP 的连接可能被错误分流至物理 WAN 口，导致外网黑洞无法上网！",
+			Advice:  "点击下方「一键自动配置」即可自动注入 RouterOS v7 多 WAN 策略路由防劫持规则",
+		})
+	}
+
 	report.Items = append(report.Items, CheckItem{
 		Key:     "legacy_residues",
 		Name:    "历史旧版残留扫描",
@@ -897,6 +956,47 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		}
 	} else {
 		res.Actions = append(res.Actions, "Fake-IP 黑洞防外泄兜底路由 (198.18.0.0/15 blackhole distance=200) 正常就绪")
+	}
+
+	// 2b-3. Ensure RouterOS v7 Multi-WAN Routing Rules (/routing/rule) to prevent PCC/NTH multi-WAN hijack
+	if rRuleData, err := m.QueryROS("/routing/rule"); err == nil {
+		var rRules []map[string]any
+		_ = json.Unmarshal(rRuleData, &rRules)
+		hasRuleFakeIP := false
+		hasRuleHost := false
+		for _, rr := range rRules {
+			dstAddr := fmt.Sprintf("%v", rr["dst-address"])
+			tbl := fmt.Sprintf("%v", rr["table"])
+			act := fmt.Sprintf("%v", rr["action"])
+			if dstAddr == "198.18.0.0/15" && tbl == "main" && (act == "lookup-only-in-table" || act == "lookup") {
+				hasRuleFakeIP = true
+			}
+			if (dstAddr == targetIP || dstAddr == targetIP+"/32") && tbl == "main" && (act == "lookup-only-in-table" || act == "lookup") {
+				hasRuleHost = true
+			}
+		}
+		if !hasRuleFakeIP {
+			_, err := m.PutROS("/routing/rule", map[string]any{
+				"dst-address": "198.18.0.0/15",
+				"action":      "lookup-only-in-table",
+				"table":       "main",
+				"comment":     "CubeX-MultiWAN-FakeIP-Protect",
+			})
+			if err == nil {
+				res.Actions = append(res.Actions, "已注入 RouterOS v7 策略路由规则 (/routing/rule · 强制 Fake-IP 查找 main 表，免疫多线 PCC 劫持)")
+			}
+		}
+		if !hasRuleHost {
+			_, err := m.PutROS("/routing/rule", map[string]any{
+				"dst-address": fmt.Sprintf("%s/32", targetIP),
+				"action":      "lookup-only-in-table",
+				"table":       "main",
+				"comment":     "CubeX-MultiWAN-Host-Protect",
+			})
+			if err == nil {
+				res.Actions = append(res.Actions, fmt.Sprintf("已注入 RouterOS v7 策略路由规则 (/routing/rule · 强制网关 %s 查找 main 表)", targetIP))
+			}
+		}
 	}
 
 	// 2c. Ensure /ip/settings: send-redirects=no (消除同网段旁路二层三角路由 TCP 停顿与卡顿重传)
@@ -1089,6 +1189,48 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 				_ = m.DeleteROS("/ip/firewall/mangle/" + id)
 				res.Actions = append(res.Actions, "已移除全局强制 Mangle 分流打标规则（杜绝单点断网，保障同网段任意 IP 自由作为网关）")
 			}
+		}
+	}
+
+	// 5-pcc. Ensure Multi-WAN PCC Exemption in Mangle (/ip/firewall/mangle)
+	hasMangleFakeIPAccept := false
+	hasMangleHostAccept := false
+	for _, mg := range existingMangles {
+		chain, _ := mg["chain"].(string)
+		action, _ := mg["action"].(string)
+		dstAddr, _ := mg["dst-address"].(string)
+		disabled, _ := mg["disabled"].(bool)
+		if chain == "prerouting" && action == "accept" && !disabled {
+			if dstAddr == "198.18.0.0/15" {
+				hasMangleFakeIPAccept = true
+			}
+			if dstAddr == targetIP || dstAddr == targetIP+"/32" {
+				hasMangleHostAccept = true
+			}
+		}
+	}
+	if !hasMangleFakeIPAccept {
+		_, err := m.PutROS("/ip/firewall/mangle", map[string]any{
+			"chain":        "prerouting",
+			"action":       "accept",
+			"dst-address":  "198.18.0.0/15",
+			"place-before": "0",
+			"comment":      "CubeX-PCC-Exempt-FakeIP",
+		})
+		if err == nil {
+			res.Actions = append(res.Actions, "已在 Mangle 链首部注入 Fake-IP PCC 放行规则 (杜绝多线负载均衡乱打标)")
+		}
+	}
+	if !hasMangleHostAccept {
+		_, err := m.PutROS("/ip/firewall/mangle", map[string]any{
+			"chain":        "prerouting",
+			"action":       "accept",
+			"dst-address":  targetIP,
+			"place-before": "0",
+			"comment":      "CubeX-PCC-Exempt-Host",
+		})
+		if err == nil {
+			res.Actions = append(res.Actions, fmt.Sprintf("已在 Mangle 链首部注入网关 %s PCC 放行规则", targetIP))
 		}
 	}
 
@@ -1589,6 +1731,21 @@ func (m *Manager) CleanRoutingRules() (*ApplyResult, error) {
 			if (strings.Contains(comment, "CubeX DNS") || strings.Contains(comment, "MiCube DNS")) && id != "" {
 				if delErr := m.DeleteROS("/ip/firewall/nat/" + id); delErr == nil {
 					res.Actions = append(res.Actions, "已移除 RouterOS DNS 端口 53 强制劫持规则")
+				}
+			}
+		}
+	}
+
+	// 3. Remove /routing/rule entries with comment containing "CubeX"
+	if data, err := m.QueryROS("/routing/rule"); err == nil {
+		var rules []map[string]any
+		_ = json.Unmarshal(data, &rules)
+		for _, rr := range rules {
+			comment, _ := rr["comment"].(string)
+			id, _ := rr[".id"].(string)
+			if strings.Contains(comment, "CubeX") && id != "" {
+				if delErr := m.DeleteROS("/routing/rule/" + id); delErr == nil {
+					res.Actions = append(res.Actions, "已移除 RouterOS 策略路由规则 (/routing/rule)")
 				}
 			}
 		}
@@ -2313,7 +2470,7 @@ func BuildNetwatchDownScript(targetIP string, controlPort int, fallbackDNS strin
 	if graceTicks <= 0 {
 		graceTicks = 4
 	}
-	healthURL := fmt.Sprintf("http://%s:%d/healthz", targetIP, controlPort)
+	healthURL := fmt.Sprintf("http://%s:%d/healthz/dataplane", targetIP, controlPort)
 	s := fmt.Sprintf(`:global cubexForceBypass; :local recovered false; :if ($cubexForceBypass != true) do={ :local i 0; :while (($i < %d) && (!$recovered)) do={ :delay 550ms; :set i ($i + 1); :if ([/ping %s count=1 interval=200ms] > 0) do={ :do { /tool fetch url="%s" http-method=get output=none as-value; :set recovered true; } on-error={}; }; }; }; :if ($recovered) do={ :log info "CubeX HA: Transient reload (<2.2s) absorbed smoothly, 0 route/DNS flap."; :return; }; :local activeRoutes [/ip route find where comment~"CubeX-FakeIP-Backtrack" and disabled=no]; :if ([:len $activeRoutes] > 0) do={ /ip route disable $activeRoutes; /ip dns set servers=%s; /ip dns cache flush; :log warning "CubeX HA: L2 Escape activated! Switched to RouterOS native DNS (%s)."; }; :local activeDnsNats [/ip firewall nat find where comment~"CubeX-Client-DNS-Redirect" and disabled=no]; :if ([:len $activeDnsNats] > 0) do={ /ip firewall nat disable $activeDnsNats; :log warning "CubeX HA: Suspended client DNS redirect on escape to prevent TV blackouts."; };`,
 		graceTicks, targetIP, healthURL, fallbackDNS, fallbackDNS)
 	return compactROSScript(s)
@@ -2324,7 +2481,7 @@ func BuildNetwatchUpScript(targetIP string, controlPort int) string {
 	if controlPort <= 0 {
 		controlPort = 2026
 	}
-	healthURL := fmt.Sprintf("http://%s:%d/healthz", targetIP, controlPort)
+	healthURL := fmt.Sprintf("http://%s:%d/healthz/dataplane", targetIP, controlPort)
 	s := fmt.Sprintf(`:global cubexForceBypass; :local escapedRoutes [/ip route find where comment~"CubeX-FakeIP-Backtrack" and disabled=yes]; :local curDns [:tostr [/ip dns get servers]]; :if (([:len $escapedRoutes] = 0) && ($curDns = "%s")) do={ :return; }; :delay 1200ms; :local ready false; :if ([/ping %s count=1 interval=200ms] > 0) do={ :do { /tool fetch url="%s" http-method=get output=none as-value; :set ready true; } on-error={}; }; :if (!$ready) do={ :log warning "CubeX HA: Port up but /healthz not ready after dampening window, holding escape state."; :return; }; :set cubexForceBypass false; /ip dns set servers=%s; :if ([:len $escapedRoutes] > 0) do={ /ip route enable $escapedRoutes; }; :local disabledDnsNats [/ip firewall nat find where comment~"CubeX-Client-DNS-Redirect" and disabled=yes]; :if ([:len $disabledDnsNats] > 0) do={ /ip firewall nat enable $disabledDnsNats; :log info "CubeX HA: Re-enabled client DNS redirect."; }; /ip dns cache flush; :log info "CubeX HA: Service verified stable, restored Fake-IP backtrack and CubeX DNS.";`,
 		targetIP, targetIP, healthURL, targetIP)
 	return compactROSScript(s)

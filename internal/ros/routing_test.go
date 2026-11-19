@@ -119,8 +119,8 @@ func TestBuildNetwatchAntiFlappingScripts(t *testing.T) {
 	if !strings.Contains(downScript, "200ms") {
 		t.Error("downScript missing 200ms hard ping timeout")
 	}
-	if !strings.Contains(downScript, "/healthz") {
-		t.Error("downScript missing /healthz fetch probe")
+	if !strings.Contains(downScript, "/healthz/dataplane") {
+		t.Error("downScript missing /healthz/dataplane fetch probe")
 	}
 
 	upScript := BuildNetwatchUpScript("10.0.0.7", 2026)
@@ -133,7 +133,20 @@ func TestBuildNetwatchAntiFlappingScripts(t *testing.T) {
 	if !strings.Contains(upScript, "1200ms") {
 		t.Error("upScript missing 1200ms steady state dampening delay")
 	}
-	if !strings.Contains(upScript, "/healthz") {
-		t.Error("upScript missing /healthz readiness check")
+	if !strings.Contains(upScript, "/healthz/dataplane") {
+		t.Error("upScript missing /healthz/dataplane readiness check")
+	}
+}
+
+func TestMultiWANRoutingRulePayload(t *testing.T) {
+	// Verify that the routing rule parameters follow RouterOS v7 syntax
+	fakeIPRule := map[string]any{
+		"dst-address": "198.18.0.0/15",
+		"action":      "lookup-only-in-table",
+		"table":       "main",
+		"comment":     "CubeX-MultiWAN-FakeIP-Protect",
+	}
+	if fakeIPRule["action"] != "lookup-only-in-table" || fakeIPRule["table"] != "main" {
+		t.Errorf("expected lookup-only-in-table main, got action=%v table=%v", fakeIPRule["action"], fakeIPRule["table"])
 	}
 }

@@ -34,6 +34,8 @@ cubex_screen.png
 benchmark_results.json
 *.txt
 *.mp4
+AutoScript/
+oppo-dv-mkv*/
 !scripts/audit_release_artifacts.py
 !scripts/audit_codebase_health.py
 !scripts/desensitize.py

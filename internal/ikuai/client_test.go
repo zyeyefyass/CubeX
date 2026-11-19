@@ -341,3 +341,77 @@ func TestIKuaiV4ClientMock(t *testing.T) {
 		t.Errorf("expected V4 syncLogs, got none")
 	}
 }
+
+func TestIKuaiMultiWANExemption(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/Action/login" {
+			http.SetCookie(w, &http.Cookie{Name: "sess_key", Value: "mock_session_key_12345"})
+			resp := RPCResponse{Result: 10000, ErrMsg: "Success"}
+			_ = json.NewEncoder(w).Encode(resp)
+			return
+		}
+
+		if r.URL.Path == "/Action/call" {
+			var req RPCRequest
+			_ = json.NewDecoder(r.Body).Decode(&req)
+
+			if req.FuncName == "login" {
+				http.SetCookie(w, &http.Cookie{Name: "sess_key", Value: "mock_session_key_12345"})
+				resp := RPCResponse{Result: 30000, ErrMsg: "Success"}
+				_ = json.NewEncoder(w).Encode(resp)
+				return
+			}
+
+			if req.FuncName == "stream_ip" && req.Action == "show" {
+				data := map[string]any{
+					"data": []map[string]any{
+						{
+							"id":        1,
+							"interface": "wan1",
+							"dst_ip":    "0.0.0.0-255.255.255.255",
+							"comment":   "All WAN1 Load Balance",
+						},
+					},
+					"total": 1,
+				}
+				dataBytes, _ := json.Marshal(data)
+				_ = json.NewEncoder(w).Encode(RPCResponse{Result: 30000, ErrMsg: "Success", Data: dataBytes})
+				return
+			}
+
+			if req.FuncName == "stream_ip" && req.Action == "add" {
+				_ = json.NewEncoder(w).Encode(RPCResponse{Result: 30000, ErrMsg: "Success"})
+				return
+			}
+		}
+
+		_ = json.NewEncoder(w).Encode(RPCResponse{Result: 30000, ErrMsg: "Success"})
+	}))
+	defer ts.Close()
+
+	u, _ := url.Parse(ts.URL)
+	port, _ := strconv.Atoi(u.Port())
+	client := NewClient(Config{
+		Host: u.Hostname(),
+		Port: port,
+	})
+
+	mwInfo, err := client.InspectMultiWANPolicy("10.0.0.7")
+	if err != nil {
+		t.Fatalf("InspectMultiWANPolicy failed: %v", err)
+	}
+	if !mwInfo.HasMultiWAN {
+		t.Errorf("expected HasMultiWAN=true, got false")
+	}
+	if mwInfo.FakeIPProtected {
+		t.Errorf("expected FakeIPProtected=false before exemption, got true")
+	}
+
+	logs, err := client.ApplyMultiWANExemption("10.0.0.7", "lan1")
+	if err != nil {
+		t.Fatalf("ApplyMultiWANExemption failed: %v", err)
+	}
+	if len(logs) == 0 {
+		t.Errorf("expected exemption logs, got none")
+	}
+}

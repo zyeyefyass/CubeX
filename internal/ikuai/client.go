@@ -674,6 +674,9 @@ func (c *Client) InspectRouting(cubexIP string) (hasRoute bool, hasDNS bool, det
 	if hasOpt6, opt6Val, _ := c.InspectDHCPOption6(cubexIP); hasOpt6 {
 		msgParts = append(msgParts, fmt.Sprintf("DHCP Option 6 联动就绪 (%s)", opt6Val))
 	}
+	if mwInfo, errMW := c.InspectMultiWANPolicy(cubexIP); errMW == nil && mwInfo.HasMultiWAN {
+		msgParts = append(msgParts, mwInfo.Details)
+	}
 	details = strings.Join(msgParts, " · ")
 
 	return hasRoute, hasDNS, details, nil
@@ -861,7 +864,124 @@ func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
 		}
 	}
 
+	// 3. Multi-WAN policy anti-hijack exemption
+	mwLogs, _ := c.ApplyMultiWANExemption(cubexIP, lanIf)
+	if len(mwLogs) > 0 {
+		logs = append(logs, mwLogs...)
+	}
+
 	return logs, nil
+}
+
+// MultiWANPolicyInfo represents iKuai Multi-WAN stream and load balancing status.
+type MultiWANPolicyInfo struct {
+	HasMultiWAN     bool     `json:"has_multi_wan"`
+	RuleCount       int      `json:"rule_count"`
+	FakeIPProtected bool     `json:"fake_ip_protected"`
+	WANInterfaces   []string `json:"wan_interfaces"`
+	Details         string   `json:"details"`
+}
+
+// InspectMultiWANPolicy queries iKuai multi-WAN stream rules (stream_ip, stream_port, stream_protocol).
+func (c *Client) InspectMultiWANPolicy(cubexIP string) (*MultiWANPolicyInfo, error) {
+	info := &MultiWANPolicyInfo{
+		WANInterfaces: make([]string, 0),
+	}
+
+	// 1. Query stream_ip (多线负载与IP分流)
+	resp, err := c.Call("stream_ip", "show", map[string]string{
+		"TYPE":  "data,total",
+		"limit": "0,100",
+	})
+	if err == nil && resp.IsSuccess() && len(resp.Payload()) > 0 {
+		var sData struct {
+			Data []map[string]any `json:"data"`
+		}
+		if jsonErr := json.Unmarshal(resp.Payload(), &sData); jsonErr == nil && len(sData.Data) > 0 {
+			info.HasMultiWAN = true
+			info.RuleCount += len(sData.Data)
+			for _, r := range sData.Data {
+				dstIP := fmt.Sprintf("%v", r["dst_ip"])
+				comment := fmt.Sprintf("%v", r["comment"])
+				iface := fmt.Sprintf("%v", r["interface"])
+				if iface != "" && iface != "<nil>" && !strSliceContains(info.WANInterfaces, iface) {
+					info.WANInterfaces = append(info.WANInterfaces, iface)
+				}
+				if strings.Contains(dstIP, "198.18.0.0") || strings.Contains(comment, "CubeX-MultiWAN") {
+					info.FakeIPProtected = true
+				}
+			}
+		}
+	}
+
+	// 2. Query stream_port if stream_ip is empty
+	if !info.HasMultiWAN {
+		respPort, errPort := c.Call("stream_port", "show", map[string]string{
+			"TYPE":  "data,total",
+			"limit": "0,50",
+		})
+		if errPort == nil && respPort.IsSuccess() && len(respPort.Payload()) > 0 {
+			var pData struct {
+				Data []map[string]any `json:"data"`
+			}
+			if jsonErr := json.Unmarshal(respPort.Payload(), &pData); jsonErr == nil && len(pData.Data) > 0 {
+				info.HasMultiWAN = true
+				info.RuleCount += len(pData.Data)
+			}
+		}
+	}
+
+	if info.HasMultiWAN {
+		if info.FakeIPProtected {
+			info.Details = fmt.Sprintf("已检测到多线负载 (%d条分流规则)，Fake-IP 豁免保护已就绪", info.RuleCount)
+		} else {
+			info.Details = fmt.Sprintf("检测到多线负载 (%d条分流规则)，尚未配置 Fake-IP 豁免规则", info.RuleCount)
+		}
+	} else {
+		info.Details = "单线或未配置多线分流规则"
+	}
+
+	return info, nil
+}
+
+// ApplyMultiWANExemption ensures iKuai's multi-WAN policy routing does not hijack Fake-IP packets to public WAN.
+func (c *Client) ApplyMultiWANExemption(cubexIP, lanIf string) ([]string, error) {
+	logs := []string{}
+	mwInfo, err := c.InspectMultiWANPolicy(cubexIP)
+	if err != nil || !mwInfo.HasMultiWAN {
+		return logs, nil
+	}
+	if mwInfo.FakeIPProtected {
+		logs = append(logs, "爱快多线分流 Fake-IP 豁免策略已生效，无需重复配置")
+		return logs, nil
+	}
+
+	if lanIf == "" {
+		lanIf = "lan1"
+	}
+
+	// In iKuai stream_ip: set dst_ip=198.18.0.0/15 and interface=lanIf
+	payload := map[string]any{
+		"enabled":   "yes",
+		"comment":   "CubeX-MultiWAN-Exempt",
+		"dst_ip":    "198.18.0.0/15",
+		"interface": lanIf,
+	}
+	addResp, addErr := c.Call("stream_ip", "add", payload)
+	if addErr == nil && addResp.IsSuccess() {
+		logs = append(logs, fmt.Sprintf("成功在爱快多线流控中注入 Fake-IP 豁免规则: 198.18.0.0/15 锁定回指 %s (避免多 WAN 丢包)", lanIf))
+	}
+
+	return logs, nil
+}
+
+func strSliceContains(slice []string, val string) bool {
+	for _, s := range slice {
+		if s == val {
+			return true
+		}
+	}
+	return false
 }
 
 // SyncSelfHealing verifies and auto-repairs iKuai's static route 198.18.0.0/15, DHCP DNS, and Option 6.
