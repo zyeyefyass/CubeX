@@ -10,49 +10,8 @@
 
   ]">
 
-    <!-- 🚀 疯狂动物城超高清海报 × 暮光冰晶极光图层 (纯 CSS 径向渐变，零离屏模糊纹理开销) -->
-
-    <div class="fixed inset-0 -z-10 pointer-events-none overflow-hidden select-none bg-[#0a0815]" style="contain: strict; will-change: transform; transform: translate3d(0, 0, 0);">
-
-      <!-- A. 疯狂动物城超高清海报底座 (随 Tab 智能切换 WebP 硬件解码海报，100% 常驻显色) -->
-
-      <div
-
-        class="absolute inset-0 bg-cover bg-no-repeat transition-[background-image] duration-500 ease-out opacity-100"
-
-        :style="{
-
-          backgroundImage: `url('${activeTabBg.webp}')`,
-
-          backgroundPosition: activeTabBg.position || 'center 35%'
-
-        }">
-
-      </div>
-
-      <!-- B. 纯 CSS 静态极光微光叠层 (零离屏模糊，利用纯 radial-gradient 零显存开销平替高斯模糊) -->
-
-      <div
-
-        class="absolute inset-0 pointer-events-none transition-opacity duration-300"
-
-        :class="isPeekMode ? 'opacity-0' : 'opacity-100'"
-
-        style="background: radial-gradient(ellipse 650px 450px at 5% 10%, rgba(0, 245, 212, 0.12) 0%, rgba(0, 210, 255, 0.05) 45%, transparent 75%), radial-gradient(ellipse 700px 500px at 95% 90%, rgba(123, 44, 191, 0.14) 0%, rgba(0, 78, 130, 0.10) 50%, transparent 80%), radial-gradient(ellipse 600px 250px at 50% 0%, rgba(56, 189, 248, 0.08) 0%, transparent 70%);"
-
-      ></div>
-
-      <!-- C. 柔和护眼可读性压暗暗角蒙层 (常态压暗 45% 确保文字与指标锐利；赏景模式瞬间淡出至 opacity-0 还原本色全景) -->
-
-      <div
-
-        class="absolute inset-0 bg-[#020b18]/45 pointer-events-none transition-opacity duration-500 ease-out"
-
-        :class="isPeekMode ? 'opacity-0' : 'opacity-100'"
-
-      ></div>
-
-    </div>
+    <!-- 🚀 v9.9.5 统一视效背景层 (支持动态视频 / 多标签海报 / 原创暮光冰晶矢量画布) -->
+    <ThemeBackground :active-master-tab="activeMasterTab" :is-peek-mode="isPeekMode" />
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
 
@@ -212,6 +171,7 @@
         :is-peek-mode="isPeekMode"
         @open-search="showCommandPalette = true"
         @open-diag="isDataplaneDrawerOpen = true"
+        @open-theme="isThemeDrawerOpen = true"
         @switch-engine="switchEngine"
         @toggle-peek="togglePeekMode"
       />
@@ -3803,6 +3763,12 @@
     @close="isDataplaneDrawerOpen = false"
   />
 
+  <!-- 🚀 主题视效中心抽屉 -->
+  <ThemeCenterDrawer
+    :is-open="isThemeDrawerOpen"
+    @close="isThemeDrawerOpen = false"
+  />
+
 </template>
 
 <script setup>
@@ -3810,8 +3776,11 @@
 import { ref, reactive, computed, watch, onMounted, nextTick, provide, defineAsyncComponent } from 'vue'
 import TwilightTopBar from './components/TwilightTopBar.vue'
 import DiagnosticDrawer from './components/DiagnosticDrawer.vue'
+import ThemeBackground from './components/ThemeBackground.vue'
+import ThemeCenterDrawer from './components/ThemeCenterDrawer.vue'
 import { useDataplane } from './composables/useDataplane.js'
 import { useStreamBuffer } from './composables/useStreamBuffer.js'
+import { useThemeEngine } from './composables/useThemeEngine.js'
 const SubscriptionMatrix = defineAsyncComponent(() => import('./components/subscriptions/SubscriptionMatrix.vue'))
 const FullHealthModal = defineAsyncComponent(() => import('./components/modals/FullHealthModal.vue'))
 const RulesTab = defineAsyncComponent(() => import('./components/tabs/RulesTab.vue'))
@@ -3896,6 +3865,9 @@ const {
   isDiagDrawerOpen: isDataplaneDrawerOpen,
   fetchDataplaneHealth
 } = useDataplane()
+
+const isThemeDrawerOpen = ref(false)
+const { fetchThemes } = useThemeEngine()
 
 const {
   nodeBuffer,
@@ -22387,6 +22359,11 @@ onMounted(async () => {
         e.preventDefault()
         return
       }
+      if (isThemeDrawerOpen.value) {
+        isThemeDrawerOpen.value = false
+        e.preventDefault()
+        return
+      }
       if (isDataplaneDrawerOpen.value) {
         isDataplaneDrawerOpen.value = false
         e.preventDefault()
@@ -22426,6 +22403,7 @@ onMounted(async () => {
   })
 
   const _authInit = await refreshConsoleAuthStatus()
+  fetchThemes()
   if (!_authInit.enabled || _authInit.authenticated) {
     await runAuthorizedMountLoad()
   }

@@ -21,6 +21,11 @@ sftp.put(local_cubexd, '/tmp/cubexd')
 print(f"Uploading {local_cubex} to PVE /tmp/cubex...")
 sftp.put(local_cubex, '/tmp/cubex')
 
+theme_pkg = os.path.join('scratch', 'dark-skull-luxury-1080p.cbxtheme')
+if os.path.exists(theme_pkg):
+    print(f"Uploading theme package {theme_pkg} to PVE /tmp/dark-skull-luxury-1080p.cbxtheme...")
+    sftp.put(theme_pkg, '/tmp/dark-skull-luxury-1080p.cbxtheme')
+
 wallpapers = [
     'bg-tab-overview.webp',
     'bg-tab-routing.webp',
@@ -80,6 +85,20 @@ print("Setting up wallpapers in CT 107 (/etc/cubex/data/wallpapers)...")
 run_ssh("pct exec 107 -- mkdir -p /etc/cubex/data/wallpapers")
 for wp in wallpapers:
     run_ssh(f"pct push 107 /tmp/{wp} /etc/cubex/data/wallpapers/{wp}")
+
+print("Setting up dark-skull-luxury theme in CT 107 (/etc/cubex/data/themes)...")
+run_ssh("pct exec 107 -- mkdir -p /etc/cubex/data/themes/dark-skull-luxury")
+run_ssh("pct push 107 /tmp/dark-skull-luxury-1080p.cbxtheme /tmp/dark-skull-luxury-1080p.cbxtheme")
+run_ssh("pct exec 107 -- unzip -o /tmp/dark-skull-luxury-1080p.cbxtheme -d /etc/cubex/data/themes/dark-skull-luxury")
+run_ssh("""pct exec 107 -- sh -c 'cat << "THEMECFG" > /etc/cubex/data/themes/config.json
+{
+  "active_theme_id": "dark-skull-luxury",
+  "playback_mode": "auto"
+}
+THEMECFG'""")
+
+print("Syncing themes and wallpapers to /opt/CubeX/data...")
+run_ssh("pct exec 107 -- cp -rf /etc/cubex/data/themes /opt/CubeX/data/ && pct exec 107 -- cp -rf /etc/cubex/data/wallpapers /opt/CubeX/data/")
 
 print("Starting cubexd in CT 107...")
 out, err = run_ssh("pct exec 107 -- rc-service cubexd start")

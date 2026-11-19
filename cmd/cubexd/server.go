@@ -35,6 +35,7 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/splice"
 	"github.com/zyeyefyass/CubeX/internal/sub"
 	"github.com/zyeyefyass/CubeX/internal/telemetry"
+	"github.com/zyeyefyass/CubeX/internal/themes"
 	"github.com/zyeyefyass/CubeX/internal/upstream"
 	"io"
 	"log"
@@ -151,6 +152,11 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 
 	log.SetOutput(io.MultiWriter(os.Stderr, logWriter))
 
+	themeMgr, err := themes.NewManager(filepath.Join(dir, "data", "themes"), filepath.Join(dir, "data", "wallpapers"))
+	if err != nil {
+		log.Printf("[Themes] Failed to initialize theme manager: %v", err)
+	}
+
 	engMgr.SetLogCallback(func(level, module, msg string) {
 
 		if level == "DEBUG" {
@@ -188,6 +194,7 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 		rosMgr: rosMgr,
 
 		devMgr: devMgr,
+		themeMgr: themeMgr,
 
 		qosScheduler:  qos.NewScheduler(filepath.Join(dir, "data", "qos-config.json")),
 		deltaRulesMgr: rules.NewDeltaManager(filepath.Join(dir, "data", "rules_manifest.json"), filepath.Join(dir, "data", "ir_cache.bin")),
@@ -843,6 +850,7 @@ type Server struct {
 	rosMgr *ros.Manager
 
 	devMgr *device.Manager
+	themeMgr *themes.Manager
 
 	qosScheduler *qos.Scheduler
 

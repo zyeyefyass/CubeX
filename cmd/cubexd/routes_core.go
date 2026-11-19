@@ -11,6 +11,7 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/ros"
 	"github.com/zyeyefyass/CubeX/internal/schema"
 	"github.com/zyeyefyass/CubeX/internal/telemetry"
+	"github.com/zyeyefyass/CubeX/internal/themes"
 	"github.com/zyeyefyass/CubeX/internal/webui"
 	"io"
 	"log"
@@ -81,6 +82,16 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/v1/system/store-mode", s.handleSystemStoreMode)
 	mux.HandleFunc("/api/v1/system/wallpaper", s.handleWallpaper)
 	mux.HandleFunc("/api/v1/system/wallpapers/status", s.handleWallpaperStatus)
+
+	// v9.9.5 Theme Engine API routes
+	mux.HandleFunc("/api/themes", s.handleThemesList)
+	mux.HandleFunc("/api/themes/activate", s.handleThemeActivate)
+	mux.HandleFunc("/api/themes/import", s.handleThemeImport)
+	mux.HandleFunc("/api/themes/", s.handleThemesSub)
+	mux.HandleFunc("/api/v1/themes", s.handleThemesList)
+	mux.HandleFunc("/api/v1/themes/activate", s.handleThemeActivate)
+	mux.HandleFunc("/api/v1/themes/import", s.handleThemeImport)
+	mux.HandleFunc("/api/v1/themes/", s.handleThemesSub)
 
 	mux.HandleFunc("/api/v1/system/panic", s.handleSystemPanic)
 
@@ -685,6 +696,13 @@ func gzipMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		// CRITICAL GUARD: Exempt theme assets (video & image streams) from gzip compression
+		// This preserves HTTP 206 Partial Content (Range header) and Content-Length required by iOS/Safari
+		if strings.Contains(r.URL.Path, "/themes/") && strings.Contains(r.URL.Path, "/assets/") {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") ||
 			r.Header.Get("Upgrade") != "" ||
 			strings.Contains(r.Header.Get("Accept"), "text/event-stream") {
@@ -948,6 +966,151 @@ func (s *Server) handleWallpaperStatus(w http.ResponseWriter, r *http.Request) {
 		"custom_enabled": slots["overview"] || slots["routing"] || slots["rules"] || slots["system"],
 		"slots":          slots,
 	})
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// v9.9.5 Theme Engine API Handlers
+// ═══════════════════════════════════════════════════════════════════
+
+func (s *Server) handleThemesList(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.themeMgr == nil {
+		sendJSON(w, map[string]any{"ok": false, "error": "theme manager not initialized"})
+		return
+	}
+	resp := s.themeMgr.ListThemes()
+	sendJSON(w, resp)
+}
+
+func (s *Server) handleThemeActivate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.themeMgr == nil {
+		http.Error(w, "theme manager not initialized", http.StatusInternalServerError)
+		return
+	}
+	var req struct {
+		ID           string `json:"id"`
+		PlaybackMode string `json:"playback_mode"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := s.themeMgr.ActivateTheme(req.ID, req.PlaybackMode); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	sendJSON(w, map[string]any{
+		"ok":            true,
+		"active_theme":  req.ID,
+		"playback_mode": req.PlaybackMode,
+	})
+}
+
+func (s *Server) handleThemeImport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.themeMgr == nil {
+		http.Error(w, "theme manager not initialized", http.StatusInternalServerError)
+		return
+	}
+
+	// Hard limit request body to 35 MB
+	r.Body = http.MaxBytesReader(w, r.Body, themes.MaxPackageSizeBytes)
+
+	var stream io.Reader
+	var size int64 = r.ContentLength
+
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+		if err := r.ParseMultipartForm(35 * 1024 * 1024); err != nil {
+			http.Error(w, "failed to parse multipart form: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		file, header, err := r.FormFile("theme")
+		if err != nil {
+			file, header, err = r.FormFile("file")
+		}
+		if err != nil {
+			http.Error(w, "missing theme file in form", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+		stream = file
+		size = header.Size
+	} else {
+		stream = r.Body
+	}
+
+	meta, err := s.themeMgr.ImportTheme(stream, size)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	sendJSON(w, map[string]any{
+		"ok":    true,
+		"theme": meta,
+	})
+}
+
+func (s *Server) handleThemesSub(w http.ResponseWriter, r *http.Request) {
+	if s.themeMgr == nil {
+		http.Error(w, "theme manager not initialized", http.StatusInternalServerError)
+		return
+	}
+
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1/themes/")
+	path = strings.TrimPrefix(path, "/api/themes/")
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+
+	if r.Method == http.MethodDelete && len(parts) == 1 {
+		id := parts[0]
+		if err := s.themeMgr.DeleteTheme(id); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		sendJSON(w, map[string]any{"ok": true, "deleted": id})
+		return
+	}
+
+	if r.Method == http.MethodGet && len(parts) >= 3 && parts[1] == "assets" {
+		themeID := parts[0]
+		fileName := parts[2]
+
+		filePath, err := s.themeMgr.GetThemeAsset(themeID, fileName)
+		if err != nil {
+			http.Error(w, "asset not found: "+err.Error(), http.StatusNotFound)
+			return
+		}
+
+		f, err := os.Open(filePath)
+		if err != nil {
+			http.Error(w, "failed to open asset", http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
+
+		info, err := f.Stat()
+		if err != nil {
+			http.Error(w, "failed to stat asset", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		w.Header().Set("Accept-Ranges", "bytes")
+		http.ServeContent(w, r, fileName, info.ModTime(), f)
+		return
+	}
+
+	http.Error(w, "Not found", http.StatusNotFound)
 }
 
 

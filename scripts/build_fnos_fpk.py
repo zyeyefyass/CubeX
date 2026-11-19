@@ -15,14 +15,14 @@ import hashlib
 import subprocess
 from PIL import Image
 
-VERSION = "9.9.4"
+VERSION = "9.9.5"
 APP_NAME = "cubex"
 DISPLAY_NAME = "CubeX 网络与影音中枢"
 DESC = "15MB 极轻量全屋网络拓扑管理、NAS 影视刮削加速与 DNS 防抖自愈网关"
 MAINTAINER = "CubeX Lab"
 DISTRIBUTOR = "CubeX Lab"
 WEBSITE = "https://github.com/zyeyefyass/CubeX"
-GHCR_IMAGE = f"ghcr.io/zyeyefyass/cubex:{VERSION}"
+GHCR_IMAGE = "cubex:latest"
 
 def ensure_fnpack_cli():
     """检测或自动下载官方 fnpack 命令行打包工具"""

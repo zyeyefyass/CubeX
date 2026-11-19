@@ -81,13 +81,22 @@
         </span>
       </button>
 
-      <!-- 🐰🦊 赏景模式切换按钮 (Alt+Z 亦可触发) -->
+      <!-- 🎨 主题中心切换按钮 (呼出主题视效抽屉) -->
+      <button
+        @click="$emit('open-theme')"
+        class="flex p-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-slate-300 hover:text-cyan-300 transition-colors cursor-pointer select-none"
+        title="打开主题视效中心"
+      >
+        <span class="text-xs">🎨</span>
+      </button>
+
+      <!-- 👁️ 赏景模式切换按钮 (Alt+Z 亦可触发) -->
       <button
         @click="$emit('toggle-peek')"
         class="flex p-1.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-slate-300 hover:text-amber-300 transition-colors cursor-pointer select-none"
         :title="isPeekMode ? '退出背景展示 (或按 ESC)' : '隐藏面板（查看背景）· 快捷键 Alt+Z'"
       >
-        <span class="text-xs">🐰🦊</span>
+        <span class="text-xs">👁️</span>
       </button>
     </div>
   </header>
@@ -135,5 +144,5 @@ defineProps({
   }
 })
 
-defineEmits(['open-diag', 'switch-engine', 'toggle-peek'])
+defineEmits(['open-diag', 'switch-engine', 'toggle-peek', 'open-theme'])
 </script>

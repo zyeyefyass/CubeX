@@ -48,6 +48,7 @@ oppo-dv-mkv*/
 !scripts/deploy_ct107.py
 !scripts/sync_dockerhub.py
 !scripts/publish_release*.py
+!scripts/pack_theme.py
 !scripts/precompress_dist.py
 !scripts/compile_all_garble.py
 !scripts/build_fnos_fpk.py
@@ -68,6 +69,7 @@ dist-fpk/
 *.tar
 *.tar.gz
 *.zip
+*.cbxtheme
 tools/
 cleanyourtv/
 aerial-tv/
