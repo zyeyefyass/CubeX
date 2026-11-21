@@ -545,6 +545,7 @@ else
                 done
             fi
         fi
+    fi
     chmod +x "$INSTALL_DIR/bin/"* 2>/dev/null || true
 
     if [ ! -f "$INSTALL_DIR/bin/cubexd" ] || [ ! -s "$INSTALL_DIR/bin/cubexd" ]; then

@@ -217,19 +217,21 @@ if which uci >/dev/null 2>&1; then
 
     uci commit firewall 2>/dev/null || true
 
-# Flow Offloading (流量加速) 避坑加固: 豁免 198.18.0.0/15, 杜绝旁路规则被快路径跳过
-if [ "$(uci -q get firewall.@defaults[0].flow_offloading)" = "1" ] || [ "$(uci -q get firewall.@defaults[0].flow_offloading_hw)" = "1" ]; then
-    echo -e "${YELLOW}   -> 检测到 OpenWrt 开启了 Flow Offloading (加速流表)，注入豁免规则以确保 100% 规则分流...${NC}"
-    mkdir -p /etc/nftables.d 2>/dev/null || true
-    cat << 'NFT_EOF' > /etc/nftables.d/10-cubex-offload-exempt.nft
+    # Flow Offloading (流量加速) 避坑加固: 豁免 198.18.0.0/15, 杜绝旁路规则被快路径跳过
+    if [ "$(uci -q get firewall.@defaults[0].flow_offloading)" = "1" ] || [ "$(uci -q get firewall.@defaults[0].flow_offloading_hw)" = "1" ]; then
+        echo -e "${YELLOW}   -> 检测到 OpenWrt 开启了 Flow Offloading (加速流表)，注入豁免规则以确保 100% 规则分流...${NC}"
+        mkdir -p /etc/nftables.d 2>/dev/null || true
+        cat << 'NFT_EOF' > /etc/nftables.d/10-cubex-offload-exempt.nft
 chain cubex_flow_exempt {
     type filter hook forward priority -5; policy accept;
     ip daddr 198.18.0.0/15 counter return
     ip saddr 198.18.0.0/15 counter return
 }
 NFT_EOF
-    nft insert rule inet fw4 forward ip daddr 198.18.0.0/15 counter return 2>/dev/null || true
-    nft insert rule inet fw4 forward ip saddr 198.18.0.0/15 counter return 2>/dev/null || true
+        nft insert rule inet fw4 forward ip daddr 198.18.0.0/15 counter return 2>/dev/null || true
+        nft insert rule inet fw4 forward ip saddr 198.18.0.0/15 counter return 2>/dev/null || true
+        /etc/init.d/firewall reload >/dev/null 2>&1 || true
+    fi
     /etc/init.d/firewall reload >/dev/null 2>&1 || true
 fi
 
