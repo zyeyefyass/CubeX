@@ -402,6 +402,7 @@ if os.path.exists(base_tar_arm64):
 
     manifest_arm[0]['Config'] = new_cfg_blob_arm
     manifest_arm[0]['Layers'] = layers_arm
+    manifest_arm[0]['RepoTags'] = [f'cubex:{version_tag}', 'cubex:latest', 'fyasshole/cubex:latest']
     manifest_bytes_arm = json.dumps(manifest_arm, indent=2).encode('utf-8')
 
     oci_manifest_layers_arm = []
