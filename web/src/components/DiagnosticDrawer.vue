@@ -140,16 +140,7 @@
                 </div>
               </div>
 
-              <!-- 4. 宿主共生逃生建议 -->
-              <div class="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.06] space-y-2">
-                <span class="text-xs font-bold text-slate-300 block">RouterOS / 宿主毫秒逃生机制 (Netwatch 0秒避障)</span>
-                <p class="text-slate-400 text-[11px] leading-relaxed">
-                  当 `/healthz/dataplane` 返回 503 或未响应时，Netwatch 将在 50ms 内将策略路由回退到物理直出，全家网络毫秒级无损逃生。
-                </p>
-                <div class="p-2.5 rounded-lg bg-black/60 font-mono text-[10px] text-teal-300 select-all overflow-x-auto">
-                  /tool netwatch add host=10.0.0.7 port=2026 http-path="/healthz/dataplane" type=http-get interval=2s timeout=1s
-                </div>
-              </div>
+
             </div>
 
             <!-- 底栏：一键脱敏复制与刷新 -->

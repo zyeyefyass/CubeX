@@ -31,8 +31,8 @@ body {
   overflow-x: hidden;
   position: relative;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
 }
 
 /* 底层暗调画布：衬托上方奶白晶体悬浮景深 */
@@ -109,6 +109,8 @@ body::before {
   border: 1px solid rgba(255, 255, 255, 0.75) !important;
   box-shadow: 0 16px 40px -6px rgba(0, 0, 0, 0.16), 0 4px 16px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
   color: #1e293b !important;
+  -webkit-font-smoothing: auto !important;
+  -moz-osx-font-smoothing: auto !important;
   transform: translateZ(0);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
@@ -194,11 +196,11 @@ body::before {
 .bg-black\/40,
 .bg-black\/50,
 .bg-black\/60 {
-  background: rgba(255, 255, 255, 0.55) !important;
-  border: 1px solid rgba(255, 255, 255, 0.70) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.90) !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.80) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
   border-radius: 18px !important;
   color: #1e293b !important;
   text-shadow: none !important;
@@ -590,6 +592,26 @@ h1, h2, h3, h4, .macos-title {
   color: #ffffff !important;
 }
 
+/* 顶部双核热切居中药丸 (高对比度防覆写) */
+#cubex-topbar-engine-switch button.active-engine {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.28) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+#cubex-topbar-engine-switch button.active-engine * {
+  color: #ffffff !important;
+}
+#cubex-topbar-engine-switch button:not(.active-engine) {
+  background: transparent !important;
+  color: #334155 !important;
+  border-color: transparent !important;
+}
+#cubex-topbar-engine-switch button:not(.active-engine):hover {
+  background: rgba(255, 255, 255, 0.75) !important;
+  color: #0f172a !important;
+}
+
 /* 顶部双核热切激活与非激活按钮 */
 .macos-topbar button[class*="from-sky-600"] {
   background: #0f172a !important;
@@ -600,12 +622,12 @@ h1, h2, h3, h4, .macos-title {
 .macos-topbar button[class*="from-sky-600"] * {
   color: #ffffff !important;
 }
-.macos-topbar button:not([class*="from-sky-600"]) {
+.macos-topbar button:not([class*="from-sky-600"]):not(#cubex-topbar-engine-switch *) {
   color: #64748b !important;
   background: rgba(255, 255, 255, 0.45) !important;
   border-color: rgba(255, 255, 255, 0.60) !important;
 }
-.macos-topbar button:not([class*="from-sky-600"]):hover {
+.macos-topbar button:not([class*="from-sky-600"]):not(#cubex-topbar-engine-switch *):hover {
   color: #0f172a !important;
   background: rgba(255, 255, 255, 0.75) !important;
 }

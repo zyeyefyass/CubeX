@@ -2,11 +2,11 @@
   <teleport to="body">
     <div
       v-if="modelValue"
-      class="fixed inset-0 z-[10500] flex items-center justify-center p-4 bg-black/75 backdrop-blur-xl animate-in fade-in"
+      class="fixed inset-0 z-[10500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in"
       @click.self="handleCancel"
     >
       <div
-        class="w-full max-w-md rounded-3xl macos-glass-card shadow-2xl p-6 space-y-5 text-slate-200 border relative overflow-hidden"
+        class="w-full max-w-md rounded-3xl bg-[#F6F7FA] border border-white/80 shadow-2xl p-6 space-y-5 text-slate-800 relative overflow-hidden"
         :class="variantBorderClass"
       >
         <div
@@ -23,18 +23,18 @@
             {{ variantIcon }}
           </div>
           <div class="min-w-0 flex-1">
-            <h3 class="text-base font-bold text-white tracking-wide">{{ title || '操作确认' }}</h3>
-            <p class="text-xs text-slate-300 mt-1.5 leading-relaxed whitespace-pre-line break-words">{{ message }}</p>
+            <h3 class="text-base font-black text-[#0F172A] tracking-wide">{{ title || '操作确认' }}</h3>
+            <p class="text-xs text-slate-700 mt-1.5 leading-relaxed whitespace-pre-line break-words font-medium">{{ message }}</p>
           </div>
         </div>
 
         <!-- Actions -->
-        <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-white/10 relative z-10">
+        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200/80 relative z-10">
           <button
             v-if="showCancel"
             type="button"
             @click="handleCancel"
-            class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-200 hover:text-white text-xs font-bold transition active:scale-95 cursor-pointer"
+            class="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-700 text-xs font-bold transition active:scale-95 cursor-pointer shadow-sm"
           >
             {{ cancelText || '取消' }}
           </button>

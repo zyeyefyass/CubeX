@@ -1,7 +1,7 @@
 <template>
   <dialog ref="dialogRef" class="modern-dialog select-none" @click="handleBackdropClick" @cancel="closeModal">
     <div class="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in" @click.self="closeModal">
-      <div class="bg-[#0b0816]/95 border border-white/20 rounded-3xl max-w-6xl w-full shadow-2xl flex flex-col text-slate-200 overflow-hidden relative">
+      <div class="border border-white/20 rounded-3xl max-w-6xl w-full shadow-2xl flex flex-col text-slate-100 overflow-hidden relative" style="background-color: #080c16 !important;">
 
         <!-- Header -->
         <div class="px-4 sm:px-6 py-3 bg-white/[0.04] border-b border-white/10 flex items-center justify-between gap-3 select-none flex-wrap sm:flex-nowrap">
@@ -106,33 +106,33 @@
         </div>
 
         <!-- Tab Content 1: System Logs -->
-        <div v-if="activeModalTab === 'logs'" :ref="(el) => { app.logContainerRef = el }" class="h-[520px] max-h-[70vh] overflow-y-auto no-scrollbar p-3.5 sm:p-4 font-mono text-xs bg-black/40 select-text transition-all">
+        <div v-if="activeModalTab === 'logs'" :ref="(el) => { app.logContainerRef = el }" class="h-[520px] max-h-[70vh] overflow-y-auto no-scrollbar p-3.5 sm:p-4 font-mono text-xs select-text transition-all" style="background-color: #05070e !important; color: #f8fafc !important;">
           <div class="space-y-1">
-            <div v-if="app.displayedLogs.length === 0" class="h-full flex flex-col items-center justify-center text-slate-300 space-y-2 py-12">
+            <div v-if="app.displayedLogs.length === 0" class="h-full flex flex-col items-center justify-center text-slate-400 space-y-2 py-12">
               <span class="text-3xl">📜</span>
               <span class="text-xs">当前过滤器下暂无日志记录</span>
               <button v-if="app.logFilterLevel !== 'ALL' || app.logFilterModule !== 'ALL' || app.logSearchQuery"
                 @click="app.logFilterLevel = 'ALL'; app.logFilterModule = 'ALL'; app.logSearchQuery = ''"
-                class="text-[11px] text-emerald-300 underline hover:text-emerald-300 cursor-pointer">
+                class="text-[11px] text-cyan-400 underline hover:text-cyan-300 cursor-pointer">
                 重置所有过滤器
               </button>
             </div>
 
-            <div v-for="entry in app.displayedLogs" :key="entry.id" class="flex items-start gap-2.5 leading-normal hover:bg-white/[0.06] px-2 py-0.5 rounded transition font-mono group modern-cv-auto">
-              <span class="text-slate-400 text-[11px] shrink-0 select-none font-tabular">{{ entry.time }}</span>
+            <div v-for="entry in app.displayedLogs" :key="entry.id" class="flex items-start gap-2.5 leading-normal hover:bg-white/[0.08] px-2 py-1 rounded transition font-mono group modern-cv-auto">
+              <span class="text-amber-400/90 text-[11px] shrink-0 select-none font-tabular font-semibold">{{ entry.time }}</span>
               <span :class="['px-1.5 py-0.2 rounded text-[10px] font-bold shrink-0 select-none uppercase tracking-wider',
-                entry.level === 'ERROR' ? 'bg-rose-950 text-rose-300 border border-rose-500/50 animate-pulse' :
-                entry.level === 'WARN' ? 'bg-amber-950 text-amber-300 border border-amber-500/50' :
-                entry.level === 'DEBUG' ? 'bg-purple-950 text-purple-300 border border-purple-500/40' :
-                'bg-[rgba(255,158,94,0.18)] text-sky-300 border border-[rgba(255,158,94,0.35)]']">
+                entry.level === 'ERROR' ? 'bg-rose-950 text-rose-300 border border-rose-500/60 animate-pulse' :
+                entry.level === 'WARN' ? 'bg-amber-950 text-amber-300 border border-amber-500/60' :
+                entry.level === 'DEBUG' ? 'bg-purple-950 text-purple-300 border border-purple-500/50' :
+                'bg-cyan-950 text-cyan-300 border border-cyan-500/50']">
                 {{ entry.level }}
               </span>
-              <span class="px-1.5 py-0.2 rounded bg-white/[0.06] text-slate-300 border border-white/10 text-[10px] font-bold shrink-0 select-none">
+              <span class="px-1.5 py-0.2 rounded bg-slate-800 text-sky-200 border border-slate-700 text-[10px] font-bold shrink-0 select-none">
                 {{ entry.module }}
               </span>
-              <span :class="['flex-1 break-all text-xs font-mono',
-                entry.level === 'ERROR' ? 'text-rose-200 font-bold' :
-                entry.level === 'WARN' ? 'text-amber-200' : 'text-slate-200']">
+              <span :class="['flex-1 break-all text-xs font-mono font-medium',
+                entry.level === 'ERROR' ? 'text-rose-300 font-bold' :
+                entry.level === 'WARN' ? 'text-amber-300' : 'text-slate-100']">
                 {{ entry.msg }}
               </span>
             </div>
@@ -145,7 +145,7 @@
         </div>
 
         <!-- Tab Content 2: Three-Level Connections Tree & One-Click Override (Zero-CLS & Baseline CSS Containment) -->
-        <div v-else class="h-[520px] max-h-[70vh] overflow-y-auto no-scrollbar p-3.5 sm:p-4 font-mono text-xs bg-black/40 select-text transition-all space-y-3">
+        <div v-else class="h-[520px] max-h-[70vh] overflow-y-auto no-scrollbar p-3.5 sm:p-4 font-mono text-xs select-text transition-all space-y-3" style="background-color: #05070e !important; color: #f8fafc !important;">
           <!-- Stats Summary Bar (Zero CLS with font-tabular) -->
           <div class="p-3 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-between text-xs flex-wrap gap-2">
             <div class="flex items-center gap-3">

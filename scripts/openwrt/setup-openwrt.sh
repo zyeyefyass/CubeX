@@ -266,64 +266,96 @@ if [ -n "$LOCAL_TAR" ]; then
 fi
 
 IMAGE="cubex:latest"
+
+# 1. 优先检查本地是否已有镜像（支持 cubex:latest, fyasshole/cubex:latest, 等）
 if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
-    if docker inspect "ghcr.io/zyeyefyass/cubex:latest" >/dev/null 2>&1; then
-        IMAGE="ghcr.io/zyeyefyass/cubex:latest"
-    elif docker inspect "zyeyefyass/cubex:latest" >/dev/null 2>&1; then
-        IMAGE="zyeyefyass/cubex:latest"
+    if docker inspect "fyasshole/cubex:latest" >/dev/null 2>&1; then
+        docker tag "fyasshole/cubex:latest" "cubex:latest" 2>/dev/null || true
+        IMAGE="cubex:latest"
+    elif docker inspect "ghcr.io/zyeyefyass/cubex:latest" >/dev/null 2>&1; then
+        docker tag "ghcr.io/zyeyefyass/cubex:latest" "cubex:latest" 2>/dev/null || true
+        IMAGE="cubex:latest"
     else
-        EXISTING_TAG=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^(cubex|zyeyefyass/cubex|ghcr.io/zyeyefyass/cubex):' | head -n 1)
+        EXISTING_TAG=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^(cubex|fyasshole/cubex|ghcr.io/zyeyefyass/cubex):' | head -n 1)
         if [ -n "$EXISTING_TAG" ]; then
-            IMAGE="$EXISTING_TAG"
             docker tag "$EXISTING_TAG" "cubex:latest" 2>/dev/null || true
             IMAGE="cubex:latest"
-        else
-            echo -e "${YELLOW}   -> 未检测到本地离线镜像，正在从国内加速镜像拉取 CubeX 离线 Docker 镜像包 (约 89MB)...${NC}"
-            PULL_SUCCESS=0
-            TMP_TAR="/tmp/cubex-docker-${ARCH}.tar.gz"
-            REL_TAG=""
-            for MIRROR in "https://gh-proxy.com" "https://gh.ddlc.top" "https://mirror.ghproxy.com"; do
-                LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 3 -m 5 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
-                if [ -n "$LATEST_JSON" ]; then
-                    REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
-                    [ -n "$REL_TAG" ] && break
-                fi
-            done
-            [ -z "$REL_TAG" ] && REL_TAG="Test-v4.9"
+        fi
+    fi
+fi
 
-            # 优先从国内加速镜像拉取完整的 Docker 归档包 (支持断点续传与多源竞速)
-            for MIRROR in "https://gh-proxy.com" "https://gh.ddlc.top" ""; do
-                if [ -n "$MIRROR" ]; then
-                    TAR_DL="${MIRROR}/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/CubeX-${REL_TAG}-docker-${ARCH}.tar.gz"
-                else
-                    TAR_DL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/CubeX-${REL_TAG}-docker-${ARCH}.tar.gz"
-                fi
-                echo -e "${CYAN}   -> 正在连接下载源: ${TAR_DL} ...${NC}"
-                if command -v curl >/dev/null 2>&1; then
-                    curl -4 --http1.1 -# -L -C - --connect-timeout 8 -m 300 -o "$TMP_TAR" "$TAR_DL" 2>&1 || true
-                elif command -v wget >/dev/null 2>&1; then
-                    wget -4 -c -T 15 -O "$TMP_TAR" "$TAR_DL" 2>&1 || true
-                fi
-                if [ -s "$TMP_TAR" ] && gzip -t "$TMP_TAR" 2>/dev/null; then
-                    echo -e "${GREEN}   ✓ 镜像包下载完成并通过完整性校验，正在导入 Docker...${NC}"
-                    if docker load -i "$TMP_TAR"; then
-                        rm -f "$TMP_TAR"
-                        PULL_SUCCESS=1
-                        IMAGE="cubex:latest"
-                        break
-                    fi
-                fi
-            done
-            if [ "$PULL_SUCCESS" = "0" ]; then
-                echo -e "${YELLOW}   -> 尝试在线拉取公共镜像 (GHCR / Docker Hub)...${NC}"
-                docker pull "ghcr.io/zyeyefyass/cubex:latest" 2>/dev/null || docker pull "zyeyefyass/cubex:latest" || docker pull "$IMAGE" || true
-                if docker inspect "ghcr.io/zyeyefyass/cubex:latest" >/dev/null 2>&1; then
-                    IMAGE="ghcr.io/zyeyefyass/cubex:latest"
-                elif docker inspect "zyeyefyass/cubex:latest" >/dev/null 2>&1; then
-                    IMAGE="zyeyefyass/cubex:latest"
+# 2. 如果本地仍无可用镜像，执行多通道极速拉取策略
+if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
+    echo -e "${YELLOW}   -> 本地暂无可用镜像，正在进行多通道镜像获取 (在线加速 / 离线安装包)...${NC}"
+    PULL_SUCCESS=0
+
+    # 2.1 方案 A: 优先尝试从官方 Docker Hub 镜像源直接在线拉取 (支持国内镜像加速)
+    echo -e "${CYAN}   -> [通道 1/2] 正在尝试直接拉取官方 Docker 镜像: fyasshole/cubex:latest ...${NC}"
+    if docker pull "fyasshole/cubex:latest" 2>&1; then
+        docker tag "fyasshole/cubex:latest" "cubex:latest" 2>/dev/null || true
+        if docker inspect "cubex:latest" >/dev/null 2>&1; then
+            echo -e "${GREEN}   ✓ 官方 Docker 镜像拉取成功！${NC}"
+            PULL_SUCCESS=1
+            IMAGE="cubex:latest"
+        fi
+    fi
+
+    # 2.2 方案 B: 若在线 docker pull 超时/不可达，从高速 GitHub Releases 加速源拉取完整 Docker 归档包
+    if [ "$PULL_SUCCESS" = "0" ]; then
+        echo -e "${YELLOW}   -> [通道 2/2] 在线 docker pull 受阻，切换为高速离线安装包下载 (CubeX-docker-${ARCH}.tar.gz)...${NC}"
+        TMP_TAR="/tmp/cubex-docker-${ARCH}.tar.gz"
+        REL_TAG=""
+
+        # 智能探查最新稳定版本号 (多源竞速，兼顾重定向与 API)
+        for MIRROR in "https://ghfast.top" "https://ghproxy.net" "https://gh-proxy.com" "https://gh.ddlc.top"; do
+            REDIRECT_TAG=$(curl -4 --http1.1 -sSL --connect-timeout 4 -m 6 -I "${MIRROR}/https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i '^location:' | sed -E 's/.*tag\///' | tr -d '\r\n')
+            if [ -n "$REDIRECT_TAG" ]; then
+                REL_TAG="$REDIRECT_TAG"
+                break
+            fi
+            LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 4 -m 6 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
+            if [ -n "$LATEST_JSON" ]; then
+                REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
+                [ -n "$REL_TAG" ] && break
+            fi
+        done
+        [ -z "$REL_TAG" ] && REL_TAG="v9.9.5"
+
+        echo -e "${CYAN}   -> 匹配最新发布版本: ${REL_TAG}${NC}"
+
+        for MIRROR in "https://ghfast.top" "https://ghproxy.net" "https://gh-proxy.com" "https://gh.ddlc.top" ""; do
+            if [ -n "$MIRROR" ]; then
+                TAR_DL="${MIRROR}/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/CubeX-${REL_TAG}-docker-${ARCH}.tar.gz"
+            else
+                TAR_DL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/CubeX-${REL_TAG}-docker-${ARCH}.tar.gz"
+            fi
+            echo -e "${CYAN}   -> 正在连接高速下载源: ${TAR_DL} ...${NC}"
+            rm -f "$TMP_TAR" 2>/dev/null || true
+            if command -v curl >/dev/null 2>&1; then
+                curl -4 --http1.1 -# -L --connect-timeout 10 -m 360 -o "$TMP_TAR" "$TAR_DL" 2>&1 || true
+            elif command -v wget >/dev/null 2>&1; then
+                wget -4 -c -T 20 -O "$TMP_TAR" "$TAR_DL" 2>&1 || true
+            fi
+            if [ -s "$TMP_TAR" ] && gzip -t "$TMP_TAR" 2>/dev/null; then
+                echo -e "${GREEN}   ✓ 镜像包下载完成并通过完整性校验，正在载入 Docker...${NC}"
+                if docker load -i "$TMP_TAR"; then
+                    rm -f "$TMP_TAR"
+                    PULL_SUCCESS=1
+                    IMAGE="cubex:latest"
+                    break
                 fi
             fi
-        fi
+        done
+    fi
+
+    # 2.3 最终守门员校验
+    if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
+        echo -e "${RED}❌ 无法获取 CubeX 运行镜像！${NC}"
+        echo -e "${YELLOW}💡 建议解决方式：${NC}"
+        echo -e "   1. 检查路由器是否能正常连接外网；"
+        echo -e "   2. 手动执行命令拉取镜像：docker pull fyasshole/cubex:latest"
+        echo -e "   3. 或手动下载发布包中的 CubeX-*-docker-${ARCH}.tar.gz 传至软路由后执行: docker load -i CubeX-*-docker-${ARCH}.tar.gz"
+        exit 1
     fi
 fi
 
@@ -372,7 +404,18 @@ uci set network.cubex_fakeip.netmask='255.254.0.0'
 uci set network.cubex_fakeip.gateway="$CUBEX_IP"
 uci commit network
 
-# 6.2 DHCP Option 6 指向 CubeX (SIGHUP 平滑重载，0 断网)
+# 6.2 DNS 全链路自愈闭环: 根除 DNS Rebinding 拦截并打通双轨解析 (0 重启即刻生效)
+# 6.2.1 豁免 198.18.0.0/15 Fake-IP 防误杀 (杜绝 OpenWrt 默认 rebind_protection 将 Fake-IP 当攻击丢弃)
+uci -q delete dhcp.@dnsmasq[0].rebind_domain 2>/dev/null || true
+uci add_list dhcp.@dnsmasq[0].rebind_domain='198.18.0.0/15'
+uci set dhcp.@dnsmasq[0].rebind_protection='0'
+
+# 6.2.2 将 dnsmasq 上游直接指向 CubeX (彻底解决电脑/手机因 DHCP 租期未到继续请求主路由 53 导致解析不到 Fake-IP 的顽疾)
+uci -q delete dhcp.@dnsmasq[0].server 2>/dev/null || true
+uci add_list dhcp.@dnsmasq[0].server="${CUBEX_IP}"
+uci set dhcp.@dnsmasq[0].noresolv='1'
+
+# 6.2.3 DHCP Option 6 指向 CubeX (SIGHUP 平滑重载，0 断网)
 for opt in $(uci -q get dhcp.lan.dhcp_option 2>/dev/null); do
     case "$opt" in
         6,*) uci -q del_list dhcp.lan.dhcp_option="$opt" ;;
@@ -401,6 +444,30 @@ uci set firewall.cubex_bypass.src='*'
 uci set firewall.cubex_bypass.dest='*'
 uci set firewall.cubex_bypass.proto='all'
 uci set firewall.cubex_bypass.target='ACCEPT'
+
+# 6.4.1 内网 53 端口全局劫持重定向 (无论设备是否手动指定了 114/223/8.8.8.8，一律透明捕获至 CubeX)
+uci -q delete firewall.cubex_dns_redir_udp || true
+uci set firewall.cubex_dns_redir_udp=redirect
+uci set firewall.cubex_dns_redir_udp.name='CubeX-DNS-Redirect-UDP'
+uci set firewall.cubex_dns_redir_udp.src='lan'
+uci set firewall.cubex_dns_redir_udp.src_dport='53'
+uci set firewall.cubex_dns_redir_udp.dest='lan'
+uci set firewall.cubex_dns_redir_udp.dest_ip="$CUBEX_IP"
+uci set firewall.cubex_dns_redir_udp.dest_port='53'
+uci set firewall.cubex_dns_redir_udp.proto='udp'
+uci set firewall.cubex_dns_redir_udp.target='DNAT'
+
+uci -q delete firewall.cubex_dns_redir_tcp || true
+uci set firewall.cubex_dns_redir_tcp=redirect
+uci set firewall.cubex_dns_redir_tcp.name='CubeX-DNS-Redirect-TCP'
+uci set firewall.cubex_dns_redir_tcp.src='lan'
+uci set firewall.cubex_dns_redir_tcp.src_dport='53'
+uci set firewall.cubex_dns_redir_tcp.dest='lan'
+uci set firewall.cubex_dns_redir_tcp.dest_ip="$CUBEX_IP"
+uci set firewall.cubex_dns_redir_tcp.dest_port='53'
+uci set firewall.cubex_dns_redir_tcp.proto='tcp'
+uci set firewall.cubex_dns_redir_tcp.target='DNAT'
+
 uci commit firewall 2>/dev/null || true
 
 # Flow Offloading (流量加速) 避坑加固: 豁免 198.18.0.0/15, 杜绝旁路规则被快路径跳过
@@ -432,12 +499,19 @@ is_down=0
 while true; do
     if docker exec "${CONTAINER_NAME}" curl -fsSL -m 1 http://127.0.0.1:2026/api/health 2>/dev/null | grep -q "status" || nc -z -w 1 "\${CUBEX_IP}" 2026 >/dev/null 2>&1 || wget -q -T 1 -O - "http://\${CUBEX_IP}:2026/api/health" 2>/dev/null | grep -q "status"; then
         if [ "\$is_down" -eq 1 ]; then
-            logger -t cubex-watchdog "🛡️ CubeX Gateway revived! Restoring Fake-IP route and DHCP Option 6 to \${CUBEX_IP}"
+            logger -t cubex-watchdog "🛡️ CubeX Gateway revived! Restoring Fake-IP route and DNS to \${CUBEX_IP}"
             ip route replace 198.18.0.0/15 via "\${CUBEX_IP}" 2>/dev/null || true
             uci -q del_list dhcp.lan.dhcp_option="6,\${BACKUP_DNS}" || true
             uci add_list dhcp.lan.dhcp_option="6,\${CUBEX_IP}"
+            uci -q delete dhcp.@dnsmasq[0].server 2>/dev/null || true
+            uci add_list dhcp.@dnsmasq[0].server="\${CUBEX_IP}"
+            uci set dhcp.@dnsmasq[0].noresolv='1'
+            uci set firewall.cubex_dns_redir_udp.enabled='1' 2>/dev/null || true
+            uci set firewall.cubex_dns_redir_tcp.enabled='1' 2>/dev/null || true
             uci commit dhcp
+            uci commit firewall
             /etc/init.d/dnsmasq reload >/dev/null 2>&1
+            /etc/init.d/firewall reload >/dev/null 2>&1
             is_down=0
         fi
     else
@@ -446,8 +520,15 @@ while true; do
             ip route replace blackhole 198.18.0.0/15 2>/dev/null || true
             uci -q del_list dhcp.lan.dhcp_option="6,\${CUBEX_IP}" || true
             uci add_list dhcp.lan.dhcp_option="6,\${BACKUP_DNS}"
+            uci -q delete dhcp.@dnsmasq[0].server 2>/dev/null || true
+            uci add_list dhcp.@dnsmasq[0].server="\${BACKUP_DNS}"
+            uci set dhcp.@dnsmasq[0].noresolv='0'
+            uci set firewall.cubex_dns_redir_udp.enabled='0' 2>/dev/null || true
+            uci set firewall.cubex_dns_redir_tcp.enabled='0' 2>/dev/null || true
             uci commit dhcp
+            uci commit firewall
             /etc/init.d/dnsmasq reload >/dev/null 2>&1
+            /etc/init.d/firewall reload >/dev/null 2>&1
             is_down=1
         fi
     fi

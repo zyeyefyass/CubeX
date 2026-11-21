@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -509,16 +510,34 @@ func (m *Manager) GetStats(enabled bool, customRuleCount int) Stats {
 			domainCounts[r.Domain]++
 		}
 	}
-	top := make([]TopBlockedItem, 0, len(m.topBlocked))
 	for _, item := range m.topBlocked {
-		cnt := item.Count + domainCounts[item.Domain]
+		domainCounts[item.Domain] += item.Count
+	}
+
+	type kv struct {
+		domain string
+		count  int
+	}
+	var sortedList []kv
+	for d, c := range domainCounts {
+		sortedList = append(sortedList, kv{d, c})
+	}
+	sort.Slice(sortedList, func(i, j int) bool {
+		return sortedList[i].count > sortedList[j].count
+	})
+
+	top := make([]TopBlockedItem, 0, len(sortedList))
+	for i, item := range sortedList {
+		if i >= 10 {
+			break
+		}
 		pct := 0.0
 		if liveBlocked > 0 {
-			pct = math.Round((float64(cnt)/float64(liveBlocked))*1000) / 10
+			pct = math.Round((float64(item.count)/float64(liveBlocked))*1000) / 10
 		}
 		top = append(top, TopBlockedItem{
-			Domain:  item.Domain,
-			Count:   cnt,
+			Domain:  item.domain,
+			Count:   item.count,
 			Percent: pct,
 		})
 	}

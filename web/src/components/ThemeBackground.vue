@@ -13,19 +13,23 @@
         style="contain: content;"
       />
 
-      <!-- 硬件加速 60FPS 视频渲染层 (零黑屏兜底 · 智能切后台暂停释放显存) -->
+      <!-- 硬件加速 60FPS 视频渲染层 (防 IDM 悬浮条遮挡 · 零黑屏兜底 · 智能切后台暂停释放显存) -->
       <video
         v-else
         ref="videoEl"
-        class="w-full h-full object-cover object-center transition-opacity duration-700 opacity-90 scale-105"
+        class="w-full h-full object-cover object-center transition-opacity duration-700 opacity-90 scale-105 pointer-events-none select-none"
         autoplay
         loop
         muted
         playsinline
         preload="metadata"
+        disablePictureInPicture
+        disableRemotePlayback
+        controlsList="nodownload nofullscreen noremoteplayback"
+        data-idm-ignore="true"
         :poster="posterUrl"
         @error="onVideoError"
-        style="contain: content;"
+        style="contain: content; pointer-events: none;"
       >
         <source :src="videoUrl" type="video/mp4" />
       </video>

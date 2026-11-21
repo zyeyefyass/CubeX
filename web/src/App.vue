@@ -171,7 +171,6 @@
         :is-peek-mode="isPeekMode"
         @open-search="showCommandPalette = true"
         @open-diag="isDataplaneDrawerOpen = true"
-        @open-theme="isThemeDrawerOpen = true"
         @switch-engine="switchEngine"
         @toggle-peek="togglePeekMode"
       />
@@ -3757,11 +3756,7 @@
     @close="isDataplaneDrawerOpen = false"
   />
 
-  <!-- 🎨 主题视效中心抽屉 (按需打开，默认完全关闭) -->
-  <ThemeCenterDrawer
-    :is-open="isThemeDrawerOpen"
-    @close="isThemeDrawerOpen = false"
-  />
+  <!-- 动态壁纸背景由 ThemeBackground 独立承载，主题视效中心抽屉已下线 -->
 
 </template>
 
@@ -3774,9 +3769,9 @@ import ThemeBackground from './components/ThemeBackground.vue'
 import { useDataplane } from './composables/useDataplane.js'
 import { useStreamBuffer } from './composables/useStreamBuffer.js'
 import { useThemeEngine } from './composables/useThemeEngine.js'
-const ThemeCenterDrawer = defineAsyncComponent(() => import('./components/ThemeCenterDrawer.vue'))
 const SubscriptionMatrix = defineAsyncComponent(() => import('./components/subscriptions/SubscriptionMatrix.vue'))
 const FullHealthModal = defineAsyncComponent(() => import('./components/modals/FullHealthModal.vue'))
+import ConfirmDialog from './components/modals/ConfirmDialog.vue'
 const RulesTab = defineAsyncComponent(() => import('./components/tabs/RulesTab.vue'))
 const SystemTab = defineAsyncComponent(() => import('./components/tabs/SystemTab.vue'))
 const AiTab = defineAsyncComponent(() => import('./components/tabs/AiTab.vue'))
@@ -3860,7 +3855,6 @@ const {
   fetchDataplaneHealth
 } = useDataplane()
 
-const isThemeDrawerOpen = ref(false)
 const { fetchThemes } = useThemeEngine()
 
 const {
@@ -3886,6 +3880,22 @@ const {
 const onVirtualNodeSelect = (node) => {
   showToast(`已选中节点: ${node.name}`)
 }
+
+// ── Universal IR Model ──
+const ir = ref({
+  meta: {
+    active_engine: 'singbox',
+    proxy_mode: 'rule'
+  },
+  network: {
+    tun_interface: 'cubex-tun',
+    tproxy_port: 7893,
+    dns_port: 53,
+    clash_api_port: 9090
+  },
+  proxies: [],
+  groups: []
+})
 
 watch(() => ir.value?.proxies, (newProxies) => {
   if (!isStressActive.value && newProxies && newProxies.length > 0) {
@@ -8211,30 +8221,14 @@ function updateHourlyDistribution(inMB, outMB, conns) {
 // ── Domain / DNS Filtering (域名过滤) State ──
 
 const dnsFilterStats = ref({
-  avgLatencyMs: 3,
-  queryCount: 35019,
-  blockedCount: 21680,
-  blockedPercentage: 61.9,
-  hourlyLatencyTrend: [3, 3, 3, 2, 2, 3, 3, 4, 3, 2, 3, 3, 2, 3, 3, 4, 3, 3, 2, 3, 3, 4, 3, 3],
-
-  hourlyQueryTrend: [1200, 1800, 1400, 1100, 950, 1650, 1200, 1100, 1300, 1600, 1400, 1800, 2400, 2300, 2500, 2900, 2600, 2700, 2400, 2600, 2500, 2300, 2100, 1900],
-
-  hourlyBlockedTrend: [720, 1100, 850, 680, 580, 990, 740, 680, 800, 990, 860, 1110, 1480, 1420, 1550, 1790, 1610, 1670, 1480, 1610, 1550, 1420, 1300, 1170],
-
-  topBlocked: [
-
-    { domain: 'apd-pcdnwxstat.teg.tencent-cloud.net', count: 7675, percent: 35.4 },
-
-    { domain: 'apd-pcdnwxlogin.teg.tencent-cloud.net', count: 7373, percent: 34.0 },
-
-    { domain: 'mobile.events.data.microsoft.com', count: 1107, percent: 5.1 },
-
-    { domain: 'adservice.google.com', count: 892, percent: 4.1 },
-
-    { domain: 'e.qq.com', count: 654, percent: 3.0 }
-
-  ]
-
+  avgLatencyMs: 0,
+  queryCount: 0,
+  blockedCount: 0,
+  blockedPercentage: 0,
+  hourlyLatencyTrend: [],
+  hourlyQueryTrend: [],
+  hourlyBlockedTrend: [],
+  topBlocked: []
 })
 
 function generateSmoothAreaPath(points, width = 320, height = 80, minVal = 0, maxVal = null) {
@@ -10997,35 +10991,7 @@ const customNodes = computed(() => {
 
 })
 
-// ── Universal IR Model ──
 
-const ir = ref({
-
-  meta: {
-
-    active_engine: 'singbox',
-
-    proxy_mode: 'rule'
-
-  },
-
-  network: {
-
-    tun_interface: 'cubex-tun',
-
-    tproxy_port: 7893,
-
-    dns_port: 53,
-
-    clash_api_port: 9090
-
-  },
-
-  proxies: [],
-
-  groups: []
-
-})
 
 // ── Benchmark State ──
 
@@ -12259,6 +12225,160 @@ const securityAudit = ref({
   }
 
 })
+
+// ── Region Clusters & Strategies (Default 8 Regions: 香港, 台湾, 日本, 韩国, 新加坡, 美国, 自建, 其它) ──
+// 严格遵循排序：地区自动，地区故转，地区容灾 (各地区组支持拖拽排序与自定义订阅源分组)
+const defaultRegionDefs = [
+  { id: 'HK', country_code: 'HK', name: '香港', flag: 'CODE', auto: '香港自动', fall: '香港故转', disaster: '香港容灾', regex: /(港|hk|hong kong)/i, type: 'region' },
+  { id: 'TW', country_code: 'TW', name: '台湾', flag: 'CODE', auto: '台湾自动', fall: '台湾故转', disaster: '台湾容灾', regex: /(台|tw|taiwan)/i, type: 'region' },
+  { id: 'JP', country_code: 'JP', name: '日本', flag: 'CODE', auto: '日本自动', fall: '日本故转', disaster: '日本容灾', regex: /(日|jp|japan|东京|大阪)/i, type: 'region' },
+  { id: 'KR', country_code: 'KR', name: '韩国', flag: 'CODE', auto: '韩国自动', fall: '韩国故转', disaster: '韩国容灾', regex: /(韩|kr|korea|首尔)/i, type: 'region' },
+  { id: 'SG', country_code: 'SG', name: '新加坡', flag: 'CODE', auto: '新加坡自动', fall: '新加坡故转', disaster: '新加坡容灾', regex: /(新|sg|singapore|狮城)/i, type: 'region' },
+  { id: 'US', country_code: 'US', name: '美国', flag: 'CODE', auto: '美国自动', fall: '美国故转', disaster: '美国容灾', regex: /(美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯)/i, type: 'region' },
+  { id: 'CUSTOM', country_code: 'CUSTOM', name: '自建', flag: '🏠', auto: '🏠 自建自动', fall: '🏠 自建故转', disaster: '🏠 自建容灾', regex: null, type: 'custom' },
+  { id: 'OTHERS', country_code: 'OTHERS', name: '其它', flag: '🌐', auto: '🌐 其它自动', fall: '🌐 其它故转', disaster: '🌐 其它容灾', regex: null, type: 'others' }
+]
+
+// ── 31+ 国家/地区快捷预设库 (点击即配，完全免输正则表达式，自动关联官方法定标准国旗/区旗) ──
+const availableCountryPresets = [
+  { code: 'GB', name: '英国', flag: 'CODE', keywords: '英|uk|gb|britain|london|伦敦' },
+  { code: 'DE', name: '德国', flag: 'CODE', keywords: '德|de|germany|deutschland|法兰克福|柏林' },
+  { code: 'FR', name: '法国', flag: 'CODE', keywords: '法|fr|france|paris|巴黎' },
+  { code: 'CA', name: '加拿大', flag: 'CODE', keywords: '加|ca|canada|温哥华|多伦多|蒙特利尔' },
+  { code: 'AU', name: '澳大利亚', flag: 'CODE', keywords: '澳|au|australia|悉尼|墨尔本' },
+  { code: 'NL', name: '荷兰', flag: 'CODE', keywords: '荷|nl|netherlands|阿姆斯特丹' },
+  { code: 'RU', name: '俄罗斯', flag: 'CODE', keywords: '俄|ru|russia|莫斯科|圣彼得堡' },
+  { code: 'IN', name: '印度', flag: 'CODE', keywords: '印|in|india|孟买|德里' },
+  { code: 'MY', name: '马来西亚', flag: 'CODE', keywords: '马|my|malaysia|吉隆坡' },
+  { code: 'TH', name: '泰国', flag: 'CODE', keywords: '泰|th|thailand|曼谷' },
+  { code: 'VN', name: '越南', flag: 'CODE', keywords: '越|vn|vietnam|胡志明|河内' },
+  { code: 'PH', name: '菲律宾', flag: 'CODE', keywords: '菲|ph|philippines|马尼拉' },
+  { code: 'ID', name: '印尼', flag: 'CODE', keywords: '印尼|id|indonesia|雅加达' },
+  { code: 'TR', name: '土耳其', flag: 'CODE', keywords: '土|tr|turkey|伊斯坦布尔' },
+  { code: 'AR', name: '阿根廷', flag: 'CODE', keywords: '阿根廷|ar|argentina|布宜诺斯' },
+  { code: 'BR', name: '巴西', flag: 'CODE', keywords: '巴|br|brazil|圣保罗' },
+  { code: 'CH', name: '瑞士', flag: 'CODE', keywords: '瑞士|ch|switzerland|苏黎世' },
+  { code: 'SE', name: '瑞典', flag: 'CODE', keywords: '瑞典|se|sweden|斯德哥尔摩' },
+  { code: 'IT', name: '意大利', flag: 'CODE', keywords: '意|it|italy|米兰|罗马' },
+  { code: 'ES', name: '西班牙', flag: 'CODE', keywords: '西|es|spain|马德里' },
+  { code: 'MO', name: '澳门', flag: 'CODE', keywords: '澳|mo|macau|macao|澳门' },
+  { code: 'CN', name: '中国', flag: 'CODE', keywords: '中|cn|china|北京|上海|深圳|广州' },
+  { code: 'AE', name: '阿联酋', flag: 'CODE', keywords: '迪拜|ae|uae|dubai|阿布扎比' },
+  { code: 'IE', name: '爱尔兰', flag: 'CODE', keywords: '爱尔兰|ie|ireland|都柏林' },
+  { code: 'UA', name: '乌克兰', flag: 'CODE', keywords: '乌克兰|ua|ukraine|基辅' },
+  { code: 'HK', name: '香港', flag: 'CODE', keywords: '港|hk|hong kong' },
+  { code: 'TW', name: '台湾', flag: 'CODE', keywords: '台|tw|taiwan' },
+  { code: 'JP', name: '日本', flag: 'CODE', keywords: '日|jp|japan|东京|大阪' },
+  { code: 'KR', name: '韩国', flag: 'CODE', keywords: '韩|kr|korea|首尔' },
+  { code: 'SG', name: '新加坡', flag: 'CODE', keywords: '新|sg|singapore|狮城' },
+  { code: 'US', name: '美国', flag: 'CODE', keywords: '美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯' }
+]
+const countryNameMap = computed(() => Object.fromEntries(availableCountryPresets.map(item => [item.code, item.name])))
+
+function sanitizeRegionGroup(item) {
+  if (!item || typeof item !== 'object') return item
+  if (!item.country_code && item.code) item.country_code = item.code
+  if (!item.code && item.country_code) item.code = item.country_code
+  if (!item.regex_str) {
+    if (item.country_code) {
+      const codes = String(item.country_code).split(',').map(c => c.trim().toUpperCase()).filter(Boolean)
+      const matched = codes.map(c => availableCountryPresets.find(pre => pre.code === c)).filter(Boolean)
+      if (matched.length > 0) {
+        item.regex_str = `(${matched.map(p => `(${p.keywords})`).join('|')})`
+        if (!item.flag) item.flag = matched[0].flag
+      }
+    }
+    if (!item.regex_str && item.name) {
+      const matched = availableCountryPresets.filter(p => item.name.includes(p.name))
+      if (matched.length > 0) {
+        item.regex_str = `(${matched.map(p => `(${p.keywords})`).join('|')})`
+      }
+    }
+  }
+  if (item.regex_str && typeof item.regex_str === 'string') {
+    try {
+      item.regex = new RegExp(item.regex_str, 'i')
+    } catch (e) {
+      item.regex = null
+    }
+  } else if (!(item.regex instanceof RegExp)) {
+    item.regex = null
+  }
+  return item
+}
+
+const customRegionGroups = ref([])
+try {
+  const savedCustom = localStorage.getItem('cubex_custom_region_groups')
+  if (savedCustom) {
+    const parsed = JSON.parse(savedCustom)
+    if (Array.isArray(parsed)) {
+      customRegionGroups.value = parsed.map(sanitizeRegionGroup)
+    }
+  }
+} catch (e) {}
+
+const regionGroupOrder = ref([])
+try {
+  const savedOrder = localStorage.getItem('cubex_region_group_order')
+  if (savedOrder) regionGroupOrder.value = JSON.parse(savedOrder)
+} catch (e) {}
+
+const deletedRegionIds = ref([])
+try {
+  const savedDelReg = localStorage.getItem('cubex_deleted_region_ids')
+  if (savedDelReg) deletedRegionIds.value = JSON.parse(savedDelReg)
+} catch (e) {}
+
+const allRegionDefs = computed(() => {
+  let list = [...defaultRegionDefs, ...customRegionGroups.value]
+  if (deletedRegionIds.value.length > 0) {
+    list = list.filter(r => !deletedRegionIds.value.includes(r.id))
+  }
+  if (regionGroupOrder.value.length > 0) {
+    list.sort((a, b) => {
+      const idxA = regionGroupOrder.value.indexOf(a.id)
+      const idxB = regionGroupOrder.value.indexOf(b.id)
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB
+      if (idxA !== -1) return -1
+      if (idxB !== -1) return 1
+      return 0
+    })
+  }
+  return list
+})
+
+async function deleteRegionDef(id) {
+  const target = defaultRegionDefs.find(r => r.id === id) || customRegionGroups.value.find(r => r.id === id)
+  const name = target ? target.name : id
+
+  if (!(await askConfirm({
+    title: '移除地区节点组',
+    message: `确定要移除「${name}」地区节点组吗？\n移除后该地区将从全域策略分流与地区列表中隐去。`,
+    confirmText: '确认移除',
+    variant: 'danger'
+  }))) return
+
+  if (target && target.is_custom) {
+    deleteCustomRegionGroup(id)
+  } else {
+    if (!deletedRegionIds.value.includes(id)) {
+      deletedRegionIds.value = [...deletedRegionIds.value, id]
+      try {
+        localStorage.setItem('cubex_deleted_region_ids', JSON.stringify(deletedRegionIds.value))
+      } catch (e) {}
+    }
+  }
+  showToast(`已成功移除「${name}」地区分组`)
+}
+
+function restoreDefaultRegions() {
+  deletedRegionIds.value = []
+  try {
+    localStorage.removeItem('cubex_deleted_region_ids')
+  } catch (e) {}
+  showToast('已恢复所有默认地区节点组')
+}
 
 // ── High-Fidelity Packet Tracer Route Inference ──
 
@@ -14961,286 +15081,6 @@ async function triggerHotRestart() {
     isHotRestarting.value = false
 
   }
-
-}
-
-// ── Region Clusters & Strategies (Default 8 Regions: 香港, 台湾,日本, 韩国, 新加坡, 美国, 自建, 其它) ──
-
-// 严格遵循排序：地区自动，地区故转，地区容灾 (各地区组支持拖拽排序与自定义订阅源分组)
-
-const defaultRegionDefs = [
-
-  { id: 'HK', country_code: 'HK', name: '香港', flag: 'CODE', auto: '香港自动', fall: '香港故转', disaster: '香港容灾', regex: /(港|hk|hong kong)/i, type: 'region' },
-
-  { id: 'TW', country_code: 'TW', name: '台湾', flag: 'CODE', auto: '台湾自动', fall: '台湾故转', disaster: '台湾容灾', regex: /(台|tw|taiwan)/i, type: 'region' },
-
-  { id: 'JP', country_code: 'JP', name: '日本', flag: 'CODE', auto: '日本自动', fall: '日本故转', disaster: '日本容灾', regex: /(日|jp|japan|东京|大阪)/i, type: 'region' },
-
-  { id: 'KR', country_code: 'KR', name: '韩国', flag: 'CODE', auto: '韩国自动', fall: '韩国故转', disaster: '韩国容灾', regex: /(韩|kr|korea|首尔)/i, type: 'region' },
-
-  { id: 'SG', country_code: 'SG', name: '新加坡', flag: 'CODE', auto: '新加坡自动', fall: '新加坡故转', disaster: '新加坡容灾', regex: /(新|sg|singapore|狮城)/i, type: 'region' },
-
-  { id: 'US', country_code: 'US', name: '美国', flag: 'CODE', auto: '美国自动', fall: '美国故转', disaster: '美国容灾', regex: /(美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯)/i, type: 'region' },
-
-  { id: 'CUSTOM', country_code: 'CUSTOM', name: '自建', flag: '🏠', auto: '🏠 自建自动', fall: '🏠 自建故转', disaster: '🏠 自建容灾', regex: null, type: 'custom' },
-
-  { id: 'OTHERS', country_code: 'OTHERS', name: '其它', flag: '🌐', auto: '🌐 其它自动', fall: '🌐 其它故转', disaster: '🌐 其它容灾', regex: null, type: 'others' }
-
-]
-
-// ── 31+ 国家/地区快捷预设库 (点击即配，完全免输正则表达式，自动关联官方法定标准国旗/区旗) ──
-
-const availableCountryPresets = [
-
-  { code: 'GB', name: '英国', flag: 'CODE', keywords: '英|uk|gb|britain|london|伦敦' },
-
-  { code: 'DE', name: '德国', flag: 'CODE', keywords: '德|de|germany|deutschland|法兰克福|柏林' },
-
-  { code: 'FR', name: '法国', flag: 'CODE', keywords: '法|fr|france|paris|巴黎' },
-
-  { code: 'CA', name: '加拿大', flag: 'CODE', keywords: '加|ca|canada|温哥华|多伦多|蒙特利尔' },
-
-  { code: 'AU', name: '澳大利亚', flag: 'CODE', keywords: '澳|au|australia|悉尼|墨尔本' },
-
-  { code: 'NL', name: '荷兰', flag: 'CODE', keywords: '荷|nl|netherlands|阿姆斯特丹' },
-
-  { code: 'RU', name: '俄罗斯', flag: 'CODE', keywords: '俄|ru|russia|莫斯科|圣彼得堡' },
-
-  { code: 'IN', name: '印度', flag: 'CODE', keywords: '印|in|india|孟买|德里' },
-
-  { code: 'MY', name: '马来西亚', flag: 'CODE', keywords: '马|my|malaysia|吉隆坡' },
-
-  { code: 'TH', name: '泰国', flag: 'CODE', keywords: '泰|th|thailand|曼谷' },
-
-  { code: 'VN', name: '越南', flag: 'CODE', keywords: '越|vn|vietnam|胡志明|河内' },
-
-  { code: 'PH', name: '菲律宾', flag: 'CODE', keywords: '菲|ph|philippines|马尼拉' },
-
-  { code: 'ID', name: '印尼', flag: 'CODE', keywords: '印尼|id|indonesia|雅加达' },
-
-  { code: 'TR', name: '土耳其', flag: 'CODE', keywords: '土|tr|turkey|伊斯坦布尔' },
-
-  { code: 'AR', name: '阿根廷', flag: 'CODE', keywords: '阿根廷|ar|argentina|布宜诺斯' },
-
-  { code: 'BR', name: '巴西', flag: 'CODE', keywords: '巴|br|brazil|圣保罗' },
-
-  { code: 'CH', name: '瑞士', flag: 'CODE', keywords: '瑞士|ch|switzerland|苏黎世' },
-
-  { code: 'SE', name: '瑞典', flag: 'CODE', keywords: '瑞典|se|sweden|斯德哥尔摩' },
-
-  { code: 'IT', name: '意大利', flag: 'CODE', keywords: '意|it|italy|米兰|罗马' },
-
-  { code: 'ES', name: '西班牙', flag: 'CODE', keywords: '西|es|spain|马德里' },
-
-  { code: 'MO', name: '澳门', flag: 'CODE', keywords: '澳|mo|macau|macao|澳门' },
-
-  { code: 'CN', name: '中国', flag: 'CODE', keywords: '中|cn|china|北京|上海|深圳|广州' },
-
-  { code: 'AE', name: '阿联酋', flag: 'CODE', keywords: '迪拜|ae|uae|dubai|阿布扎比' },
-
-  { code: 'IE', name: '爱尔兰', flag: 'CODE', keywords: '爱尔兰|ie|ireland|都柏林' },
-
-  { code: 'UA', name: '乌克兰', flag: 'CODE', keywords: '乌克兰|ua|ukraine|基辅' },
-
-  { code: 'HK', name: '香港', flag: 'CODE', keywords: '港|hk|hong kong' },
-
-  { code: 'TW', name: '台湾', flag: 'CODE', keywords: '台|tw|taiwan' },
-
-  { code: 'JP', name: '日本', flag: 'CODE', keywords: '日|jp|japan|东京|大阪' },
-
-  { code: 'KR', name: '韩国', flag: 'CODE', keywords: '韩|kr|korea|首尔' },
-
-  { code: 'SG', name: '新加坡', flag: 'CODE', keywords: '新|sg|singapore|狮城' },
-
-  { code: 'US', name: '美国', flag: 'CODE', keywords: '美|us|united states|america|洛杉矶|硅谷|西雅图|达拉斯' }
-
-]
-const countryNameMap = computed(() => Object.fromEntries(availableCountryPresets.map(item => [item.code, item.name])))
-
-function sanitizeRegionGroup(item) {
-
-  if (!item || typeof item !== 'object') return item
-
-  if (!item.country_code && item.code) item.country_code = item.code
-
-  if (!item.code && item.country_code) item.code = item.country_code
-
-  if (!item.regex_str) {
-
-    if (item.country_code) {
-
-      const codes = String(item.country_code).split(',').map(c => c.trim().toUpperCase()).filter(Boolean)
-
-      const matched = codes.map(c => availableCountryPresets.find(pre => pre.code === c)).filter(Boolean)
-
-      if (matched.length > 0) {
-
-        item.regex_str = `(${matched.map(p => `(${p.keywords})`).join('|')})`
-
-        if (!item.flag) item.flag = matched[0].flag
-
-      }
-
-    }
-
-    if (!item.regex_str && item.name) {
-
-      const matched = availableCountryPresets.filter(p => item.name.includes(p.name))
-
-      if (matched.length > 0) {
-
-        item.regex_str = `(${matched.map(p => `(${p.keywords})`).join('|')})`
-
-      }
-
-    }
-
-  }
-
-  if (item.regex_str && typeof item.regex_str === 'string') {
-
-    try {
-
-      item.regex = new RegExp(item.regex_str, 'i')
-
-    } catch (e) {
-
-      item.regex = null
-
-    }
-
-  } else if (!(item.regex instanceof RegExp)) {
-
-    item.regex = null
-
-  }
-
-  return item
-
-}
-
-const customRegionGroups = ref([])
-
-try {
-
-  const savedCustom = localStorage.getItem('cubex_custom_region_groups')
-
-  if (savedCustom) {
-
-    const parsed = JSON.parse(savedCustom)
-
-    if (Array.isArray(parsed)) {
-
-      customRegionGroups.value = parsed.map(sanitizeRegionGroup)
-
-    }
-
-  }
-
-} catch (e) {}
-
-const regionGroupOrder = ref([])
-
-try {
-
-  const savedOrder = localStorage.getItem('cubex_region_group_order')
-
-  if (savedOrder) regionGroupOrder.value = JSON.parse(savedOrder)
-
-} catch (e) {}
-
-const deletedRegionIds = ref([])
-
-try {
-
-  const savedDelReg = localStorage.getItem('cubex_deleted_region_ids')
-
-  if (savedDelReg) deletedRegionIds.value = JSON.parse(savedDelReg)
-
-} catch (e) {}
-
-const allRegionDefs = computed(() => {
-
-  let list = [...defaultRegionDefs, ...customRegionGroups.value]
-
-  if (deletedRegionIds.value.length > 0) {
-
-    list = list.filter(r => !deletedRegionIds.value.includes(r.id))
-
-  }
-
-  if (regionGroupOrder.value.length > 0) {
-
-    list.sort((a, b) => {
-
-      const idxA = regionGroupOrder.value.indexOf(a.id)
-
-      const idxB = regionGroupOrder.value.indexOf(b.id)
-
-      if (idxA !== -1 && idxB !== -1) return idxA - idxB
-
-      if (idxA !== -1) return -1
-
-      if (idxB !== -1) return 1
-
-      return 0
-
-    })
-
-  }
-
-  return list
-
-})
-
-async function deleteRegionDef(id) {
-
-  const target = defaultRegionDefs.find(r => r.id === id) || customRegionGroups.value.find(r => r.id === id)
-
-  const name = target ? target.name : id
-
-  if (!(await askConfirm({
-    title: '移除地区节点组',
-    message: `确定要移除「${name}」地区节点组吗？\n移除后该地区将从全域策略分流与地区列表中隐去。`,
-    confirmText: '确认移除',
-    variant: 'danger'
-  }))) return
-
-  if (target && target.is_custom) {
-
-    deleteCustomRegionGroup(id)
-
-  } else {
-
-    if (!deletedRegionIds.value.includes(id)) {
-
-      deletedRegionIds.value.push(id)
-
-      try {
-
-        localStorage.setItem('cubex_deleted_region_ids', JSON.stringify(deletedRegionIds.value))
-
-      } catch (e) {}
-
-    }
-
-  }
-
-  showToast(`已成功移除「${name}」地区分组`)
-
-}
-
-function restoreDefaultRegions() {
-
-  deletedRegionIds.value = []
-
-  try {
-
-    localStorage.removeItem('cubex_deleted_region_ids')
-
-  } catch (e) {}
-
-  showToast('已成功恢复所有预设地区分组！')
 
 }
 
@@ -22350,11 +22190,6 @@ onMounted(async () => {
     if (e.key === 'Escape') {
       if (showCommandPalette.value) {
         showCommandPalette.value = false
-        e.preventDefault()
-        return
-      }
-      if (isThemeDrawerOpen.value) {
-        isThemeDrawerOpen.value = false
         e.preventDefault()
         return
       }

@@ -165,6 +165,10 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 
 		logBuffer.Add(level, module, msg)
 
+		if domain, clientIP, rule, ok := parseAdblockIntercept(msg); ok && adblockMgr != nil {
+			adblockMgr.RecordBlocked(domain, clientIP, rule)
+		}
+
 	})
 
 	srv := &Server{
@@ -1330,6 +1334,55 @@ func (s *Server) detectHostIP() string {
 		conn.Close()
 	}
 	return ""
+}
+
+// parseAdblockIntercept extracts intercepted ad/tracking domain from engine log stream.
+func parseAdblockIntercept(msg string) (domain, clientIP, rule string, ok bool) {
+	if !strings.Contains(msg, "REJECT") && !strings.Contains(msg, "block") && !strings.Contains(msg, "217heidai") {
+		return "", "", "", false
+	}
+	arrowIdx := strings.Index(msg, " --> ")
+	if arrowIdx == -1 {
+		return "", "", "", false
+	}
+
+	leftPart := strings.TrimSpace(msg[:arrowIdx])
+	if spaceIdx := strings.LastIndex(leftPart, " "); spaceIdx != -1 {
+		leftPart = leftPart[spaceIdx+1:]
+	}
+	if colonIdx := strings.LastIndex(leftPart, ":"); colonIdx != -1 {
+		clientIP = leftPart[:colonIdx]
+	} else {
+		clientIP = leftPart
+	}
+
+	rightPart := strings.TrimSpace(msg[arrowIdx+5:])
+	targetPart := rightPart
+	rulePart := "217heidai (去广告&隐私追踪)"
+	if matchIdx := strings.Index(rightPart, " match "); matchIdx != -1 {
+		targetPart = strings.TrimSpace(rightPart[:matchIdx])
+		ruleCandidate := rightPart[matchIdx+7:]
+		if usingIdx := strings.Index(ruleCandidate, " using"); usingIdx != -1 {
+			rulePart = strings.TrimSpace(ruleCandidate[:usingIdx])
+		} else if arrowR := strings.Index(ruleCandidate, " ->"); arrowR != -1 {
+			rulePart = strings.TrimSpace(ruleCandidate[:arrowR])
+		}
+	} else if spaceIdx := strings.Index(rightPart, " "); spaceIdx != -1 {
+		targetPart = strings.TrimSpace(rightPart[:spaceIdx])
+	}
+
+	if colonIdx := strings.LastIndex(targetPart, ":"); colonIdx != -1 {
+		domain = targetPart[:colonIdx]
+	} else {
+		domain = targetPart
+	}
+
+	domain = strings.Trim(domain, "[]")
+	if domain == "" || !strings.Contains(domain, ".") {
+		return "", "", "", false
+	}
+
+	return domain, clientIP, rulePart, true
 }
 
 // ──────────────────────────────────────────────

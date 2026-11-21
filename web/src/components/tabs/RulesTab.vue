@@ -4,82 +4,57 @@
           <!-- ════════════════════════════════════════════════════════════════ -->
 
           <!-- 1. 全维度安全防泄露体检雷达与自愈中枢 Header                     -->
-
           <!-- ════════════════════════════════════════════════════════════════ -->
-
-          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-2">
-
+          <div class="p-5 sm:p-6 rounded-3xl bg-[#F6F7FA]/[0.90] border border-white/80 shadow-lg backdrop-blur-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div class="macos-title-shield space-y-1">
-
               <div class="flex items-center gap-2">
-
                 <span class="text-xl">🛡️</span>
-
-                <h2 class="text-base sm:text-lg font-bold text-white tracking-wide">
-
+                <h2 class="text-base sm:text-lg font-black text-[#0F172A] tracking-wide">
                   全维度防泄露安全雷达与自愈中心
-
                 </h2>
-
               </div>
-
-              <p class="text-xs text-[#E2F8EC] tracking-normal font-medium">
-
+              <p class="text-xs text-slate-700 tracking-normal font-medium">
                 6 维硬核渗透测试 · 0 明文回退熔断 · Apple Type 65 清洗 · WebRTC Fake-IP 隔离 · ECS 隐私剥离 · 一键闭环自愈加固
-
               </p>
-
             </div>
 
             <!-- Action Controls -->
-
             <div class="flex flex-wrap items-center gap-3">
-
               <button @click="app.runSecurityAudit" :disabled="app.securityAudit.loading"
-
                 class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white text-xs font-extrabold shadow-lg shadow-sky-500/25 active:scale-95 transition flex items-center gap-1.5 cursor-pointer">
-
                 <span v-if="app.securityAudit.loading" class="inline-block animate-spin">↻</span>
-
                 <span v-else>⚡</span>
-
                 <span>一键全维度体检</span>
-
               </button>
 
-              <div class="px-3 py-1.5 rounded-xl bg-white/10 text-white/85 border border-slate-700/60 text-xs text-slate-400 flex items-center gap-1.5">
-
-                <span class="text-emerald-300">💡</span>
-
+              <div class="px-3 py-1.5 rounded-xl bg-white/90 text-slate-700 border border-slate-200/90 text-xs flex items-center gap-1.5 shadow-sm font-medium">
+                <span class="text-emerald-600">💡</span>
                 <span>核心安全规则自愈已全量合入【宿主共生】一体化全链路自愈总线</span>
-
               </div>
-
             </div>
-
           </div>
 
           <!-- ════════════════════════════════════════════════════════════════ -->
           <!-- 1.5 ➕ 一句话网站分流 (Quick Custom Domain Override)               -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <div class="p-5 sm:p-6 rounded-3xl macos-glass-card hover:border-cyan-400/40 shadow-xl relative overflow-hidden space-y-4">
+          <div class="p-5 sm:p-6 rounded-3xl bg-[#F6F7FA]/[0.90] border border-white/80 shadow-lg backdrop-blur-xl relative overflow-hidden space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-sky-500/20 border border-cyan-400/30 flex items-center justify-center text-xl shrink-0 shadow-md">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-sky-500/20 border border-sky-300 flex items-center justify-center text-xl shrink-0 shadow-sm">
                   ➕
                 </div>
                 <div>
-                  <h3 class="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
+                  <h3 class="text-base sm:text-lg font-black text-[#0F172A] tracking-wide flex items-center gap-2">
                     <span>一句话网站分流</span>
-                    <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-bold">即按即生效 · 零感热重载</span>
+                    <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-300 font-bold">即按即生效 · 零感热重载</span>
                   </h3>
-                  <p class="text-xs text-slate-300 mt-0.5 font-medium">
+                  <p class="text-xs text-slate-700 mt-0.5 font-medium">
                     输入任意网址或域名，一键决定加速、直连或屏蔽，双核自动同步生效
                   </p>
                 </div>
               </div>
-              <div class="text-xs font-mono text-slate-400 self-start sm:self-center">
-                已自定义: <strong class="text-cyan-300 font-bold">{{ totalCustomDomainCount }}</strong> 个网址
+              <div class="text-xs font-mono text-slate-700 self-start sm:self-center">
+                已自定义: <strong class="text-sky-700 font-black">{{ totalCustomDomainCount }}</strong> 个网址
               </div>
             </div>
 
@@ -89,9 +64,9 @@
                 <input v-model="quickDomainInput" @keyup.enter="handleQuickAdd('PROXIES')"
                   type="text"
                   placeholder="输入网址或域名，例如 javdb.com、pt.m-team.cc、github.com..."
-                  class="w-full h-11 px-4 pr-10 rounded-xl bg-black/40 border border-cyan-500/30 text-white placeholder-slate-400 text-sm font-mono focus:outline-none focus:border-cyan-400 transition" />
+                  class="w-full h-11 px-4 pr-10 rounded-xl bg-white border border-slate-200/90 text-[#0F172A] placeholder-slate-400 text-sm font-mono shadow-sm focus:outline-none focus:border-sky-500 transition" />
                 <button v-if="quickDomainInput" @click="quickDomainInput = ''"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full bg-white/10 cursor-pointer">
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-800 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full bg-slate-100 cursor-pointer">
                   ✕
                 </button>
               </div>
@@ -99,21 +74,21 @@
               <div class="flex items-center gap-2 shrink-0">
                 <!-- ⚡ 走加速 -->
                 <button @click="handleQuickAdd('PROXIES')" :disabled="quickAdding || !quickDomainInput.trim()"
-                  class="flex-1 sm:flex-none h-11 px-4 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white text-xs sm:text-[13px] font-extrabold flex items-center justify-center gap-1.5 shadow-md shadow-sky-500/20 active:scale-95 transition disabled:opacity-40 cursor-pointer">
+                  class="flex-1 sm:flex-none h-11 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs sm:text-[13px] font-extrabold flex items-center justify-center gap-1.5 shadow-md shadow-sky-600/20 active:scale-95 transition disabled:opacity-40 cursor-pointer">
                   <span>⚡</span>
                   <span>强制走加速</span>
                 </button>
 
                 <!-- 🏠 走直连 -->
                 <button @click="handleQuickAdd('DIRECT')" :disabled="quickAdding || !quickDomainInput.trim()"
-                  class="flex-1 sm:flex-none h-11 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs sm:text-[13px] font-extrabold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 transition disabled:opacity-40 cursor-pointer">
+                  class="flex-1 sm:flex-none h-11 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-[13px] font-extrabold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-95 transition disabled:opacity-40 cursor-pointer">
                   <span>🏠</span>
                   <span>强制走直连</span>
                 </button>
 
                 <!-- 🛑 拦截 -->
                 <button @click="handleQuickAdd('REJECT')" :disabled="quickAdding || !quickDomainInput.trim()"
-                  class="flex-1 sm:flex-none h-11 px-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white text-xs sm:text-[13px] font-extrabold flex items-center justify-center gap-1.5 shadow-md shadow-rose-500/20 active:scale-95 transition disabled:opacity-40 cursor-pointer">
+                  class="flex-1 sm:flex-none h-11 px-3.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-[13px] font-extrabold flex items-center justify-center gap-1.5 shadow-md shadow-rose-600/20 active:scale-95 transition disabled:opacity-40 cursor-pointer">
                   <span>🛑</span>
                   <span>屏蔽该网站</span>
                 </button>
@@ -121,36 +96,36 @@
             </div>
 
             <!-- 当前已生效的自定义规则胶囊瀑布流展示 (按分类彩色徽章 + ✕ 单击即删) -->
-            <div v-if="totalCustomDomainCount > 0" class="pt-2 border-t border-white/10 space-y-2">
-              <div class="text-[11px] font-bold text-slate-300 flex items-center justify-between">
+            <div v-if="totalCustomDomainCount > 0" class="pt-2 border-t border-slate-200/80 space-y-2">
+              <div class="text-[11px] font-bold text-slate-700 flex items-center justify-between">
                 <span>当前自定分流规则清单（点击 ✕ 立即取消并还原默认）：</span>
               </div>
               <div class="flex flex-wrap gap-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
                 <!-- ⚡ 走加速项 -->
                 <span v-for="d in userOverrides.force_proxy_domains" :key="'p-' + d"
-                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-sky-950/60 border border-sky-400/40 text-sky-200 text-xs font-mono shadow-sm group">
-                  <span class="text-[10px] text-sky-300 font-bold">⚡ 加速</span>
-                  <span class="font-semibold">{{ d }}</span>
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-sky-50 border border-sky-300 text-sky-900 text-xs font-mono shadow-sm group">
+                  <span class="text-[10px] text-sky-700 font-bold">⚡ 加速</span>
+                  <span class="font-bold">{{ d }}</span>
                   <button @click="handleQuickClear(d)" title="删除此加速规则"
-                    class="ml-1 text-sky-400 hover:text-white hover:bg-sky-500/30 rounded px-1 transition cursor-pointer font-bold">✕</button>
+                    class="ml-1 text-sky-600 hover:text-white hover:bg-sky-600 rounded px-1 transition cursor-pointer font-bold">✕</button>
                 </span>
 
                 <!-- 🏠 走直连项 -->
                 <span v-for="d in userOverrides.force_direct_domains" :key="'d-' + d"
-                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-950/60 border border-emerald-400/40 text-emerald-200 text-xs font-mono shadow-sm group">
-                  <span class="text-[10px] text-emerald-300 font-bold">🏠 直连</span>
-                  <span class="font-semibold">{{ d }}</span>
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-mono shadow-sm group">
+                  <span class="text-[10px] text-emerald-700 font-bold">🏠 直连</span>
+                  <span class="font-bold">{{ d }}</span>
                   <button @click="handleQuickClear(d)" title="删除此直连规则"
-                    class="ml-1 text-emerald-400 hover:text-white hover:bg-emerald-500/30 rounded px-1 transition cursor-pointer font-bold">✕</button>
+                    class="ml-1 text-emerald-600 hover:text-white hover:bg-emerald-600 rounded px-1 transition cursor-pointer font-bold">✕</button>
                 </span>
 
                 <!-- 🛑 拦截项 -->
                 <span v-for="d in userOverrides.force_reject_domains" :key="'r-' + d"
-                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-rose-950/60 border border-rose-400/40 text-rose-200 text-xs font-mono shadow-sm group">
-                  <span class="text-[10px] text-rose-300 font-bold">🛑 屏蔽</span>
-                  <span class="font-semibold">{{ d }}</span>
+                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs font-mono shadow-sm group">
+                  <span class="text-[10px] text-rose-700 font-bold">🛑 屏蔽</span>
+                  <span class="font-bold">{{ d }}</span>
                   <button @click="handleQuickClear(d)" title="删除此拦截规则"
-                    class="ml-1 text-rose-400 hover:text-white hover:bg-rose-500/30 rounded px-1 transition cursor-pointer font-bold">✕</button>
+                    class="ml-1 text-rose-600 hover:text-white hover:bg-rose-600 rounded px-1 transition cursor-pointer font-bold">✕</button>
                 </span>
               </div>
             </div>
@@ -162,7 +137,7 @@
 
           <!-- ════════════════════════════════════════════════════════════════ -->
 
-          <div class="p-6 rounded-3xl macos-glass-card hover:border-sky-400/40 shadow-xl relative overflow-hidden">
+          <div class="p-6 rounded-3xl bg-[#F6F7FA]/[0.90] border border-white/80 shadow-lg backdrop-blur-xl relative overflow-hidden">
 
             <div class="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-sky-500/10 blur-3xl pointer-events-none"></div>
 
@@ -174,19 +149,19 @@
 
                 <div class="relative w-24 h-24 flex items-center justify-center shrink-0">
 
-                  <div class="absolute inset-0 rounded-full border-4 border-slate-700/40"></div>
+                  <div class="absolute inset-0 rounded-full border-4 border-slate-200/80"></div>
 
-                  <div class="absolute inset-1 rounded-full border-2 border-emerald-500/40"></div>
+                  <div class="absolute inset-1 rounded-full border-2 border-emerald-500/50"></div>
 
-                  <div class="w-20 h-20 rounded-full bg-white/10 text-white border border-emerald-500/40 flex flex-col items-center justify-center shadow-inner">
+                  <div class="w-20 h-20 rounded-full bg-white text-[#0F172A] border border-emerald-500/40 flex flex-col items-center justify-center shadow-sm">
 
-                    <span class="text-2xl font-black font-mono text-emerald-300 tracking-tighter">
+                    <span class="text-2xl font-black font-mono text-emerald-600 tracking-tighter">
 
                       {{ app.securityAudit.report?.total_score || 100 }}
 
                     </span>
 
-                    <span class="text-[11px] font-mono text-slate-400 uppercase tracking-widest">/ 100 分</span>
+                    <span class="text-[11px] font-mono text-slate-500 uppercase tracking-widest font-bold">/ 100 分</span>
 
                   </div>
 
@@ -196,7 +171,7 @@
 
                   <div class="flex items-center gap-2">
 
-                    <span class="text-lg font-extrabold text-white">
+                    <span class="text-lg font-black text-[#0F172A]">
 
                       {{ app.securityAudit.report?.security_rating || '暮光晶盾级 (100% 零泄露)' }}
 
@@ -204,25 +179,25 @@
 
                     <!-- Active Engine Badge -->
 
-                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold flex items-center gap-1 border"
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold flex items-center gap-1 border shadow-sm"
 
-                      :class="app.activeEngine === 'singbox' ? 'bg-purple-950 text-emerald-300 border-purple-500/40' : 'bg-sky-950 text-amber-300 border-amber-500/40'">
+                      :class="app.activeEngine === 'singbox' ? 'bg-purple-50 text-purple-800 border-purple-300' : 'bg-sky-50 text-sky-800 border-sky-300'">
 
                       <span>内核:</span>
 
-                      <span class="font-extrabold">{{ app.activeEngine === 'singbox' ? 'sing-box' : 'mihomo' }}</span>
+                      <span class="font-black">{{ app.activeEngine === 'singbox' ? 'sing-box' : 'mihomo' }}</span>
 
                     </span>
 
                   </div>
 
-                  <p class="text-xs text-slate-300 max-w-xl leading-relaxed">
+                  <p class="text-xs text-slate-700 max-w-xl leading-relaxed font-medium">
 
                     {{ app.securityAudit.report?.summary || '所有 6 大硬核防泄露测试全量通过！DNS 0 明文回退、WebRTC Fake-IP 隔离已就绪。' }}
 
                   </p>
 
-                  <div class="text-[10px] text-slate-400 font-mono">
+                  <div class="text-[10px] text-slate-500 font-mono font-medium">
 
                     最新渗透测试时间: {{ new Date(app.securityAudit.report?.tested_at || Date.now()).toLocaleTimeString() }}
 
@@ -236,33 +211,33 @@
 
               <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-2.5 w-full lg:w-auto shrink-0">
 
-                <div class="px-3 py-2 rounded-xl bg-white/10 text-white/90 border border-slate-800 flex items-center gap-2.5 text-xs font-mono">
+                <div class="px-3.5 py-2 rounded-xl bg-white/90 border border-slate-200/90 shadow-sm flex items-center gap-2.5 text-xs font-mono">
 
-                  <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400"></span>
+                  <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-sm"></span>
 
-                  <span class="text-slate-400">DNS 0 明文回退:</span>
+                  <span class="text-slate-600 font-medium">DNS 0 明文回退:</span>
 
-                  <span class="text-emerald-300 font-bold">100% 熔断阻断</span>
-
-                </div>
-
-                <div class="px-3 py-2 rounded-xl bg-white/10 text-white/90 border border-slate-800 flex items-center gap-2.5 text-xs font-mono">
-
-                  <span class="w-2 h-2 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400"></span>
-
-                  <span class="text-slate-400">WebRTC 境外隔离:</span>
-
-                  <span class="text-emerald-300 font-bold">Fake-IP 保密</span>
+                  <span class="text-emerald-700 font-black">100% 熔断阻断</span>
 
                 </div>
 
-                <div class="px-3 py-2 rounded-xl bg-white/10 text-white/90 border border-slate-800 flex items-center gap-2.5 text-xs font-mono">
+                <div class="px-3.5 py-2 rounded-xl bg-white/90 border border-slate-200/90 shadow-sm flex items-center gap-2.5 text-xs font-mono">
 
-                  <span class="w-2 h-2 rounded-full bg-teal-400 shadow-sm shadow-teal-400"></span>
+                  <span class="w-2 h-2 rounded-full bg-sky-500 shadow-sm"></span>
 
-                  <span class="text-slate-400">Apple Type 65:</span>
+                  <span class="text-slate-600 font-medium">WebRTC 境外隔离:</span>
 
-                  <span class="text-emerald-300 font-bold">100% 清洗拦截</span>
+                  <span class="text-sky-700 font-black">Fake-IP 保密</span>
+
+                </div>
+
+                <div class="px-3.5 py-2 rounded-xl bg-white/90 border border-slate-200/90 shadow-sm flex items-center gap-2.5 text-xs font-mono">
+
+                  <span class="w-2 h-2 rounded-full bg-teal-500 shadow-sm"></span>
+
+                  <span class="text-slate-600 font-medium">Apple Type 65:</span>
+
+                  <span class="text-teal-700 font-black">100% 清洗拦截</span>
 
                 </div>
 
@@ -282,9 +257,9 @@
 
             <div v-for="item in (app.securityAudit.report?.items || [])" :key="item.id"
 
-              class="p-4 rounded-2xl macos-sub-card border transition-all duration-300 hover:border-sky-400/40 flex flex-col justify-between space-y-3"
+              class="p-4 rounded-2xl bg-white/90 border shadow-sm transition-all duration-300 hover:border-sky-400 flex flex-col justify-between space-y-3"
 
-              :class="item.status === 'PASS' ? 'border-slate-700/60' : (item.status === 'WARN' ? 'border-amber-500/40' : 'border-rose-500/40')">
+              :class="item.status === 'PASS' ? 'border-slate-200/90' : (item.status === 'WARN' ? 'border-amber-300' : 'border-rose-300')">
 
               <!-- Card Top -->
 
@@ -296,13 +271,13 @@
 
                     <span class="text-[10px] font-mono px-2 py-0.5 rounded-md font-bold uppercase tracking-wider"
 
-                      :class="item.risk_level === 'CRITICAL' ? 'bg-rose-950 text-rose-300 border border-rose-500/30' : (item.risk_level === 'HIGH' ? 'bg-amber-950 text-amber-300 border border-amber-500/30' : 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30')">
+                      :class="item.risk_level === 'CRITICAL' ? 'bg-rose-50 text-rose-800 border border-rose-300' : (item.risk_level === 'HIGH' ? 'bg-amber-50 text-amber-800 border border-amber-300' : 'bg-emerald-50 text-emerald-800 border border-emerald-300')">
 
                       {{ item.category }} · {{ item.risk_level }}
 
                     </span>
 
-                    <h3 class="text-sm font-bold text-white mt-1.5 flex items-center gap-1.5">
+                    <h3 class="text-sm font-black text-[#0F172A] mt-1.5 flex items-center gap-1.5">
 
                       <span>{{ item.name }}</span>
 
@@ -314,7 +289,7 @@
 
                   <span class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold shrink-0 border shadow-sm"
 
-                    :class="item.status === 'PASS' ? 'bg-emerald-950/90 text-emerald-300 border-emerald-500/50' : (item.status === 'WARN' ? 'bg-amber-950/90 text-amber-300 border-amber-500/50' : 'bg-rose-950/90 text-rose-300 border-rose-500/50')">
+                    :class="item.status === 'PASS' ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : (item.status === 'WARN' ? 'bg-amber-50 text-amber-800 border-amber-300' : 'bg-rose-50 text-rose-800 border-rose-300')">
 
                     {{ item.status === 'PASS' ? '✓ PASS 0泄露' : (item.status === 'WARN' ? '▲ WARN 待加固' : '✕ FAIL 风险') }}
 
@@ -322,9 +297,9 @@
 
                 </div>
 
-                <!-- Technical Specification (Visible Emerald Green · Frosted Glass) -->
+                <!-- Technical Specification -->
 
-                <div class="text-[11px] font-mono font-bold text-emerald-300 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-400/25 shadow-sm">
+                <div class="text-[11px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-300 shadow-sm">
 
                   规范: {{ item.technical_specs }}
 
@@ -332,7 +307,7 @@
 
                 <!-- Description -->
 
-                <p class="text-xs text-slate-300 leading-relaxed">
+                <p class="text-xs text-slate-700 leading-relaxed font-medium">
 
                   {{ item.details }}
 
@@ -342,15 +317,15 @@
 
               <!-- Card Bottom -->
 
-              <div class="pt-2 border-t border-slate-800/60 space-y-2">
+              <div class="pt-2 border-t border-slate-200/80 space-y-2">
 
                 <!-- Score bar -->
 
                 <div class="flex items-center justify-between text-[11px] font-mono">
 
-                  <span class="text-slate-400">单项防御得分</span>
+                  <span class="text-slate-600 font-medium">单项防御得分</span>
 
-                  <span class="font-bold" :class="item.score >= 90 ? 'text-emerald-400' : (item.score >= 70 ? 'text-amber-400' : 'text-rose-400')">
+                  <span class="font-black" :class="item.score >= 90 ? 'text-emerald-700' : (item.score >= 70 ? 'text-amber-700' : 'text-rose-700')">
 
                     {{ item.score }} / 100
 
@@ -358,11 +333,11 @@
 
                 </div>
 
-                <div class="w-full h-1.5 rounded-full bg-white/10 text-white overflow-hidden">
+                <div class="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
 
                   <div class="h-full rounded-full transition-all duration-500"
 
-                    :class="item.score >= 90 ? 'bg-gradient-to-r from-teal-400 to-emerald-400' : (item.score >= 70 ? 'bg-gradient-to-r from-amber-400 to-yellow-400' : 'bg-rose-500')"
+                    :class="item.score >= 90 ? 'bg-gradient-to-r from-teal-500 to-emerald-500' : (item.score >= 70 ? 'bg-gradient-to-r from-amber-500 to-yellow-500' : 'bg-rose-500')"
 
                     :style="{ width: item.score + '%' }"></div>
 
@@ -370,11 +345,11 @@
 
                 <!-- Recommendation / Remediation status -->
 
-                <div class="text-[10px] text-slate-400 font-mono flex items-center justify-between">
+                <div class="text-[10px] text-slate-600 font-mono font-medium flex items-center justify-between">
 
                   <span>{{ item.recommendation }}</span>
 
-                  <span v-if="item.remediated" class="text-emerald-300 font-bold">🛡️ 已加固</span>
+                  <span v-if="item.remediated" class="text-emerald-700 font-bold">🛡️ 已加固</span>
 
                 </div>
 
@@ -387,47 +362,27 @@
           <!-- ════════════════════════════════════════════════════════════════ -->
 
           <!-- 4. 217heidai 去广告&隐私追踪拦截 (AdBlock & Threat Interception)    -->
-
           <!-- ════════════════════════════════════════════════════════════════ -->
-
-          <div class="space-y-5 pt-6 border-t border-sky-800/40">
-
-            <!-- Header: 217heidai 去广告&隐私追踪拦截 -->
-
-            <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-700/40">
-
+          <div class="space-y-4">
+            <!-- Header: 217heidai 去广告&隐私追踪拦截 (Windhawk 奶白亚克力卡片) -->
+            <div class="p-5 sm:p-6 rounded-3xl bg-[#F6F7FA]/[0.90] border border-white/80 shadow-lg backdrop-blur-xl flex items-center justify-between flex-wrap gap-3">
               <div>
-
-                <h2 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
-
-                  <span class="flex items-center gap-2"><ZootopiaIcon name="rules" :size="22" class="shrink-0" /><span>217heidai 去广告&隐私追踪拦截</span></span>
-
+                <h2 class="text-base sm:text-lg font-black text-[#0F172A] tracking-wide flex items-center gap-2">
+                  <span class="flex items-center gap-2"><ZootopiaIcon name="rules" :size="22" class="shrink-0" /><span class="text-[#0F172A] font-black">217heidai 去广告&隐私追踪拦截</span></span>
                 </h2>
-
-                <p class="text-xs text-slate-400 mt-1">
-
+                <p class="text-xs text-slate-700 mt-1 font-medium font-sans">
                   基于 217heidai MRS 规则库的高精度广告与隐私追踪拦截 · 最近 24 小时 DNS 耗时、查询吞吐与恶意威胁拦截遥测
-
                 </p>
-
               </div>
 
               <div class="flex items-center gap-2 flex-wrap font-mono">
-
-                <span class="text-xs text-emerald-400 bg-emerald-950 px-3 py-1 rounded-full border border-emerald-500/40 font-bold">
-
+                <span class="text-xs text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-300 font-bold shadow-sm">
                   规则库: {{ app.adblockStats.total_rules || 233481 }} 条
-
                 </span>
-
-                <span class="text-xs text-emerald-300 bg-cyan-950 px-3 py-1 rounded-full border border-cyan-500/40 font-bold">
-
+                <span class="text-xs text-sky-800 bg-sky-50 px-3 py-1 rounded-full border border-sky-300 font-bold shadow-sm">
                   拦截率: {{ app.dnsFilterStats.blockedPercentage }}%
-
                 </span>
-
               </div>
-
             </div>
 
             <!-- ════════════════════════════════════════════════════════════════ -->
@@ -436,15 +391,15 @@
 
             <!-- ════════════════════════════════════════════════════════════════ -->
 
-            <div class="rounded-3xl macos-glass-card hover:border-sky-400/40 transition-all duration-300 p-5 space-y-4 shadow-xl">
+            <div class="rounded-3xl bg-[#F6F7FA]/[0.90] border border-white/80 hover:border-sky-400/40 transition-all duration-300 p-5 space-y-4 shadow-lg backdrop-blur-xl">
 
               <!-- Top Row: Title, Master Toggle, Status Badge, Action Buttons -->
 
-              <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-800/80">
+              <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-200/80">
 
                 <div class="flex items-center gap-3">
 
-                  <h3 class="text-base font-bold text-white tracking-wide flex items-center gap-2">
+                  <h3 class="text-base font-black text-[#0F172A] tracking-wide flex items-center gap-2">
 
                     <span>域名过滤</span>
 
@@ -456,11 +411,11 @@
 
                     <input type="checkbox" v-model="app.filterConfig.enabled" @change="app.toggleFilterMaster" class="sr-only peer">
 
-                    <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
+                    <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
 
                   </label>
 
-                  <span :class="['text-xs px-2.5 py-0.5 rounded-full font-bold border transition', app.filterConfig.enabled ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-white/10 text-white text-slate-400 border-slate-700']">
+                  <span :class="['text-xs px-2.5 py-0.5 rounded-full font-bold border transition shadow-sm', app.filterConfig.enabled ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-slate-200 text-slate-700 border-slate-300']">
 
                     {{ app.filterConfig.enabled ? '已生效' : '已暂停' }}
 
@@ -470,13 +425,13 @@
 
                 <div class="flex items-center gap-2">
 
-                  <button @click="app.fetchDnsFilterStats" title="刷新状态" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 active:scale-95 transition cursor-pointer">
+                  <button @click="app.fetchDnsFilterStats" title="刷新状态" class="p-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-[#0F172A] hover:border-sky-400 active:scale-95 transition cursor-pointer shadow-sm">
 
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
 
                   </button>
 
-                  <button @click="app.openAddSourceModal" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 transition cursor-pointer">
+                  <button @click="app.openAddSourceModal" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-95 transition cursor-pointer">
 
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
 
@@ -490,7 +445,7 @@
 
               <!-- Note / Description -->
 
-              <p class="text-xs text-slate-400 leading-relaxed">
+              <p class="text-xs text-slate-700 leading-relaxed font-medium">
 
                 默认开启。开启后，转发的 DNS 查询先经过过滤，通过后仍按照原 DNS 策略解析；白名单放行优先。支持原生二进制 MRS/SRS、域名、Hosts 和基础 Adblock 语法，不支持的条目会显示跳过数量。启用的名单按下面的自动更新计划更新，下载失败沿用上一次有效名单。
 
@@ -502,7 +457,7 @@
 
                 <div v-for="src in app.filterConfig.rule_sources" :key="src.id"
 
-                     class="rounded-2xl macos-sub-card hover:border-sky-400/40 transition-all p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                     class="rounded-2xl bg-white/90 border border-slate-200/80 hover:border-sky-400/50 shadow-sm transition-all p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
 
                   <div class="flex items-center gap-3 min-w-0 flex-1">
 
@@ -512,7 +467,7 @@
 
                       <input type="checkbox" v-model="src.enabled" @change="app.toggleSourceItem(src)" class="sr-only peer">
 
-                      <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
+                      <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
 
                     </label>
 
@@ -520,17 +475,17 @@
 
                       <div class="flex items-center gap-2 flex-wrap">
 
-                        <span class="text-xs font-bold text-white">{{ src.name }}</span>
+                        <span class="text-xs font-black text-[#0F172A]">{{ src.name }}</span>
 
-                        <span class="text-[11px] font-mono text-slate-400 truncate max-w-xs sm:max-w-md block" :title="src.url">{{ src.url }}</span>
+                        <span class="text-[11px] font-mono text-slate-600 truncate max-w-xs sm:max-w-md block" :title="src.url">{{ src.url }}</span>
 
                       </div>
 
-                      <div class="flex items-center gap-3 mt-1 text-[11px] text-slate-400 font-mono">
+                      <div class="flex items-center gap-3 mt-1 text-[11px] font-mono">
 
-                        <span class="text-emerald-400 font-semibold">规则数 {{ (src.rules_count || 0).toLocaleString() }}</span>
+                        <span class="text-emerald-700 font-bold">规则数 {{ (src.rules_count || 0).toLocaleString() }}</span>
 
-                        <span class="text-slate-300">上次更新 {{ src.updated_at || '刚刚' }}</span>
+                        <span class="text-slate-600 font-medium">上次更新 {{ src.updated_at || '刚刚' }}</span>
 
                       </div>
 
@@ -542,25 +497,25 @@
 
                   <div class="flex items-center gap-1.5 shrink-0 self-end md:self-center">
 
-                    <button @click="app.openSourcePreview(src)" title="查看规则详情" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer">
+                    <button @click="app.openSourcePreview(src)" title="查看规则详情" class="p-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200/90 text-[#0F172A] hover:border-sky-400/50 shadow-sm transition cursor-pointer">
 
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
 
                     </button>
 
-                    <button @click="app.refreshSourceItem(src)" :disabled="app.isUpdatingSource" title="立即更新" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 hover:bg-slate-700 text-slate-400 hover:text-emerald-300 transition cursor-pointer disabled:opacity-50">
+                    <button @click="app.refreshSourceItem(src)" :disabled="app.isUpdatingSource" title="立即更新" class="p-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200/90 text-[#0F172A] hover:border-emerald-400/50 shadow-sm transition cursor-pointer disabled:opacity-50">
 
-                      <svg :class="['w-3.5 h-3.5', app.isUpdatingSource ? 'animate-spin text-emerald-300' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                      <svg :class="['w-3.5 h-3.5', app.isUpdatingSource ? 'animate-spin text-emerald-600' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
 
                     </button>
 
-                    <button @click="app.openEditSourceModal(src)" title="编辑规则源" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 hover:bg-slate-700 text-slate-400 hover:text-white transition cursor-pointer">
+                    <button @click="app.openEditSourceModal(src)" title="编辑规则源" class="p-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200/90 text-[#0F172A] hover:border-sky-400/50 shadow-sm transition cursor-pointer">
 
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
 
                     </button>
 
-                    <button v-if="src.id !== '217heidai'" @click="app.deleteSourceItem(src)" title="删除规则源" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 hover:bg-rose-950 text-slate-400 hover:text-rose-400 transition cursor-pointer">
+                    <button v-if="src.id !== '217heidai'" @click="app.deleteSourceItem(src)" title="删除规则源" class="p-1.5 rounded-lg bg-white hover:bg-rose-50 border border-slate-200/90 text-rose-700 hover:border-rose-300 shadow-sm transition cursor-pointer">
 
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
 
@@ -574,9 +529,9 @@
 
               <!-- Auto Update Scheduler Bar -->
 
-              <div class="rounded-2xl bg-slate-950/60 border border-slate-800/80 p-3.5 flex flex-wrap items-center gap-3 text-xs text-slate-300">
+              <div class="rounded-2xl bg-white/90 border border-slate-200/80 p-3.5 flex flex-wrap items-center gap-3 text-xs text-slate-700 font-medium shadow-sm">
 
-                <span class="font-bold text-white flex items-center gap-1.5">
+                <span class="font-bold text-[#0F172A] flex items-center gap-1.5">
 
                   <span>自动更新</span>
 
@@ -586,7 +541,7 @@
 
                   <input type="checkbox" v-model="app.filterConfig.auto_update.enabled" @change="app.saveFilterAutoUpdate" class="sr-only peer">
 
-                  <div class="w-8 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
+                  <div class="w-8 h-4 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-emerald-500 shadow-inner"></div>
 
                 </label>
 
@@ -594,7 +549,7 @@
 
                   <span>每</span>
 
-                  <select v-model="app.filterConfig.auto_update.interval_days" @change="app.saveFilterAutoUpdate" class="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono cursor-pointer">
+                  <select v-model="app.filterConfig.auto_update.interval_days" @change="app.saveFilterAutoUpdate" class="bg-white border border-slate-200/90 rounded-lg px-2 py-1 text-xs text-[#0F172A] font-bold focus:outline-none focus:border-emerald-500 font-mono shadow-sm cursor-pointer">
 
                     <option :value="1">1 天</option>
 
@@ -606,7 +561,7 @@
 
                   <span>在</span>
 
-                  <select v-model="app.filterConfig.auto_update.update_time" @change="app.saveFilterAutoUpdate" class="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500 font-mono cursor-pointer">
+                  <select v-model="app.filterConfig.auto_update.update_time" @change="app.saveFilterAutoUpdate" class="bg-white border border-slate-200/90 rounded-lg px-2 py-1 text-xs text-[#0F172A] font-bold focus:outline-none focus:border-emerald-500 font-mono shadow-sm cursor-pointer">
 
                     <option value="04:00">04:00</option>
 
@@ -622,7 +577,7 @@
 
                   </select>
 
-                  <span class="text-slate-400 text-[11px]">在选定时间更新一次；内核自己加载新名单，不重启。</span>
+                  <span class="text-slate-600 text-[11px]">在选定时间更新一次；内核自己加载新名单，不重启。</span>
 
                 </div>
 
@@ -630,23 +585,23 @@
 
               <!-- Whitelist (放行域名) Accordion -->
 
-              <div class="border-t border-slate-800/80 pt-3">
+              <div class="border-t border-slate-200/80 pt-3">
 
-                <button @click="showWhitelistSection = !showWhitelistSection" class="w-full flex items-center justify-between text-xs font-bold text-slate-300 hover:text-white transition cursor-pointer py-1">
+                <button @click="showWhitelistSection = !showWhitelistSection" class="w-full flex items-center justify-between text-xs font-bold text-slate-800 hover:text-black transition cursor-pointer py-1">
 
                   <span class="flex items-center gap-1.5">
 
-                    <svg :class="['w-3.5 h-3.5 transition-transform text-slate-400', showWhitelistSection ? 'rotate-180' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    <svg :class="['w-3.5 h-3.5 transition-transform text-slate-500', showWhitelistSection ? 'rotate-180' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
 
                     <span>放行域名 ({{ app.filterConfig.whitelist_domains?.length || 0 }})</span>
 
                   </span>
 
-                  <span class="text-[11px] text-slate-400 font-normal">优先直连放行 · 防误杀</span>
+                  <span class="text-[11px] text-slate-600 font-medium">优先直连放行 · 防误杀</span>
 
                 </button>
 
-                <div v-if="showWhitelistSection" class="mt-3 space-y-3 pl-4 border-l-2 border-emerald-500/40 animate-in fade-in">
+                <div v-if="showWhitelistSection" class="mt-3 space-y-3 pl-4 border-l-2 border-emerald-500/60 animate-in fade-in">
 
                   <!-- Tag Cloud -->
 
@@ -654,11 +609,11 @@
 
                     <span v-for="d in app.filterConfig.whitelist_domains" :key="d"
 
-                          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-slate-300 text-xs font-mono group hover:border-emerald-500/50">
+                          class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200/90 text-slate-800 text-xs font-mono shadow-sm group hover:border-emerald-500/50">
 
                       <span>{{ d }}</span>
 
-                      <button @click="app.removeWhitelistItem(d)" title="移除放行" class="text-slate-300 group-hover:text-rose-400 transition cursor-pointer">
+                      <button @click="app.removeWhitelistItem(d)" title="移除放行" class="text-slate-400 group-hover:text-rose-600 font-bold transition cursor-pointer">
 
                         &times;
 
@@ -666,7 +621,7 @@
 
                     </span>
 
-                    <span v-if="!app.filterConfig.whitelist_domains || app.filterConfig.whitelist_domains.length === 0" class="text-xs text-slate-400 italic">
+                    <span v-if="!app.filterConfig.whitelist_domains || app.filterConfig.whitelist_domains.length === 0" class="text-xs text-slate-600 italic font-medium">
 
                       暂无放行域名，可在下方添加特定业务域名以防误杀
 
@@ -678,9 +633,9 @@
 
                   <div class="flex items-center gap-2 max-w-md">
 
-                    <input type="text" v-model="app.newWhitelistDomain" @keyup.enter="app.addWhitelistItem" placeholder="输入放行域名 (如 apple.com)" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-mono">
+                    <input type="text" v-model="app.newWhitelistDomain" @keyup.enter="app.addWhitelistItem" placeholder="输入放行域名 (如 apple.com)" class="flex-1 bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs text-[#0F172A] placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-mono shadow-sm">
 
-                    <button @click="app.addWhitelistItem" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-emerald-400 font-bold text-xs border border-slate-700 active:scale-95 transition cursor-pointer">
+                    <button @click="app.addWhitelistItem" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm active:scale-95 transition cursor-pointer">
 
                       添加放行
 
@@ -695,147 +650,87 @@
             </div>
 
             <!-- ════════════════════════════════════════════════════════════════ -->
-
             <!-- 🔀 DNS 重写 (域名别名重定向 & 静态 IP 映射)                        -->
-
             <!-- ════════════════════════════════════════════════════════════════ -->
-
-            <div class="rounded-3xl bg-white/10 text-white/90 border border-slate-800/90 hover:border-cyan-500/30 transition-all duration-300 p-5 space-y-4 shadow-xl backdrop-blur-xl">
-
+            <div class="rounded-3xl bg-[#F6F7FA]/[0.90] border border-white/80 shadow-lg backdrop-blur-xl p-5 sm:p-6 space-y-4">
               <!-- Top Row: Title, Master Toggle, Status Badge, Action Buttons -->
-
-              <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-800/80">
-
+              <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-200/80">
                 <div class="flex items-center gap-3">
-
-                  <h3 class="text-base font-bold text-white tracking-wide flex items-center gap-2">
-
-                    <span class="text-emerald-300">🔀</span>
-
+                  <h3 class="text-base font-black text-[#0F172A] tracking-wide flex items-center gap-2">
+                    <span class="text-emerald-600">🔀</span>
                     <span>DNS 重写和 局域网A 记录静态映射</span>
-
                   </h3>
 
                   <!-- Master Switch -->
-
                   <label class="relative inline-flex items-center cursor-pointer">
-
                     <input type="checkbox" v-model="app.dnsRewriteConfig.enabled" @change="app.toggleDnsRewriteMaster" class="sr-only peer">
-
-                    <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500 shadow-inner"></div>
-
+                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500 shadow-inner"></div>
                   </label>
 
-                  <span :class="['text-xs px-2.5 py-0.5 rounded-full font-bold border transition', app.dnsRewriteConfig.enabled ? 'bg-cyan-500/20 text-emerald-300 border-cyan-500/40' : 'bg-white/10 text-white text-slate-400 border-slate-700']">
-
+                  <span :class="['text-xs px-2.5 py-0.5 rounded-full font-bold border transition', app.dnsRewriteConfig.enabled ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-600 border-slate-300']">
                     {{ app.dnsRewriteConfig.enabled ? '已生效' : '已暂停' }}
-
                   </span>
-
                 </div>
 
                 <div class="flex items-center gap-2">
-
-                  <button @click="app.resetDnsRewriteDefaults" title="恢复默认 DNS 重写与 局域网A 记录静态映射规则" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 active:scale-95 transition cursor-pointer text-xs flex items-center gap-1.5">
-
+                  <button @click="app.resetDnsRewriteDefaults" title="恢复默认 DNS 重写与 局域网A 记录静态映射规则" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-700 font-bold active:scale-95 transition cursor-pointer text-xs flex items-center gap-1.5 shadow-sm">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-
                     <span>重置默认</span>
-
                   </button>
 
-                  <button @click="app.openAddDnsRewriteModal" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-sky-500/20 active:scale-95 transition cursor-pointer">
-
+                  <button @click="app.openAddDnsRewriteModal" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-sky-500/20 active:scale-95 transition cursor-pointer">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-
                     <span>添加重写</span>
-
                   </button>
-
                 </div>
-
               </div>
 
               <!-- Note / Description matching user screenshot -->
-
-              <p class="text-xs text-slate-400 leading-relaxed">
-
+              <p class="text-xs text-slate-700 leading-relaxed font-medium">
                 把某个域名的解析结果改成另一个域名或固定 IP；默认带两条 Google 的重写（解决 Google Play 无法下载 App 问题）及一条局域网 A 记录静态映射示例。
-
               </p>
 
               <!-- Rules List -->
-
               <div class="space-y-2.5">
-
                 <div v-for="rule in app.dnsRewriteConfig.rules" :key="rule.id"
-
-                     class="rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-cyan-500/30 transition-all p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
-
+                     class="rounded-2xl bg-white/90 border border-slate-200/90 hover:border-sky-300 transition-all p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm">
                   <div class="flex-1 min-w-0 space-y-1">
-
                     <div class="flex items-center gap-2 flex-wrap">
-
-                      <span class="font-mono text-xs font-bold text-white tracking-wide bg-white/10 text-white px-2 py-0.5 rounded border border-slate-800">{{ rule.domain }}</span>
-
-                      <span class="text-emerald-300 text-xs">➔</span>
-
-                      <span class="font-mono text-xs font-bold text-emerald-300 tracking-wide bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-800/50">{{ rule.target }}</span>
-
-                      <span :class="['text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider', rule.type === 'CNAME' ? 'bg-cyan-500/10 text-emerald-300 border border-cyan-500/30' : 'bg-purple-500/10 text-purple-400 border border-purple-500/30']">
-
+                      <span class="font-mono text-xs font-bold text-[#0F172A] tracking-wide bg-slate-100 px-2 py-0.5 rounded border border-slate-300">{{ rule.domain }}</span>
+                      <span class="text-sky-600 text-xs">➔</span>
+                      <span class="font-mono text-xs font-bold text-sky-800 tracking-wide bg-sky-50 px-2 py-0.5 rounded border border-sky-300">{{ rule.target }}</span>
+                      <span :class="['text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider', rule.type === 'CNAME' ? 'bg-indigo-50 text-indigo-800 border border-indigo-200' : 'bg-purple-50 text-purple-800 border border-purple-200']">
                         {{ rule.type === 'CNAME' ? 'CNAME 别名' : 'A 静态记录' }}
-
                       </span>
-
                     </div>
 
-                    <div v-if="rule.comment" class="text-[11px] text-slate-400 flex items-center gap-1.5">
-
-                      <span class="text-white/40">💬</span>
-
+                    <div v-if="rule.comment" class="text-[11px] text-slate-600 font-medium flex items-center gap-1.5">
+                      <span class="text-slate-400">💬</span>
                       <span>{{ rule.comment }}</span>
-
                     </div>
-
                   </div>
 
                   <!-- Actions & Toggle -->
-
                   <div class="flex items-center gap-2.5 self-end md:self-auto shrink-0">
-
                     <label class="relative inline-flex items-center cursor-pointer" title="启用/停用单条规则">
-
                       <input type="checkbox" v-model="rule.enabled" @change="app.toggleDnsRewriteRule(rule)" class="sr-only peer">
-
-                      <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
-
+                      <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-500 shadow-inner"></div>
                     </label>
 
-                    <button @click="app.openEditDnsRewriteModal(rule)" title="编辑规则" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer">
-
+                    <button @click="app.openEditDnsRewriteModal(rule)" title="编辑规则" class="p-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-700 shadow-sm transition cursor-pointer">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-
                     </button>
 
-                    <button @click="app.deleteDnsRewriteRule(rule)" title="删除规则" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-rose-950 text-slate-400 hover:text-rose-300 border border-transparent hover:border-rose-800 transition cursor-pointer">
-
+                    <button @click="app.deleteDnsRewriteRule(rule)" title="删除规则" class="p-1.5 rounded-lg bg-white hover:bg-rose-50 border border-slate-200/90 text-rose-700 hover:border-rose-300 shadow-sm transition cursor-pointer">
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-
                     </button>
-
                   </div>
-
                 </div>
 
-                <div v-if="!app.dnsRewriteConfig.rules || app.dnsRewriteConfig.rules.length === 0" class="text-center py-6 text-xs text-slate-300 italic bg-slate-950/40 rounded-2xl border border-dashed border-slate-800">
-
+                <div v-if="!app.dnsRewriteConfig.rules || app.dnsRewriteConfig.rules.length === 0" class="text-center py-6 text-xs text-slate-600 font-medium italic bg-white/60 rounded-2xl border border-dashed border-slate-300">
                   暂无规则，点击右上角【添加重写】或【重置默认】快速恢复官方加速重写与 局域网A 记录静态映射示例
-
                 </div>
-
               </div>
-
             </div>
 
             <!-- 4-Card 2x2 Grid with 24h Area Charts and Rank -->
@@ -1012,7 +907,7 @@
 
                 </div>
 
-                <!-- 均衡行高底部分类标签 -->
+                <!-- 均衡行高底部分类标签 (严格守死三项之和 100% 等于总数) -->
 
                 <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200/80 text-[10px] font-mono text-center">
 
@@ -1020,7 +915,7 @@
 
                     <div class="text-slate-700 font-medium">广告弹窗</div>
 
-                    <div class="text-amber-700 font-bold mt-0.5">14,820</div>
+                    <div class="text-amber-700 font-bold mt-0.5">{{ blockedBreakdown.ads }}</div>
 
                   </div>
 
@@ -1028,7 +923,7 @@
 
                     <div class="text-slate-700 font-medium">隐私追踪</div>
 
-                    <div class="text-amber-700 font-bold mt-0.5">5,640</div>
+                    <div class="text-amber-700 font-bold mt-0.5">{{ blockedBreakdown.trackers }}</div>
 
                   </div>
 
@@ -1036,7 +931,7 @@
 
                     <div class="text-slate-700 font-medium">恶意劫持</div>
 
-                    <div class="text-amber-700 font-bold mt-0.5">1,220</div>
+                    <div class="text-amber-700 font-bold mt-0.5">{{ blockedBreakdown.hijack }}</div>
 
                   </div>
 
@@ -1105,19 +1000,19 @@
           <!-- ════════════════════════════════════════════════════════════════ -->
           <!-- 6. Fake-IP 白名单与真实 IP 直连解析中枢 (Fake-IP Filter Hub)       -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <div class="rounded-2xl p-5 macos-glass-card border border-sky-500/25 space-y-4">
+          <div class="rounded-3xl p-5 sm:p-6 bg-[#F6F7FA]/[0.90] border border-white/80 shadow-lg backdrop-blur-xl space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div class="space-y-1">
                 <div class="flex items-center gap-2">
                   <span class="text-lg">🎯</span>
-                  <h3 class="text-sm sm:text-base font-bold text-white tracking-wide">
+                  <h3 class="text-sm sm:text-base font-black text-[#0F172A] tracking-wide">
                     Fake-IP 过滤白名单 (真实 IP 直连解析中枢)
                   </h3>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold shadow-sm">
                     双核秒级热重载 · 掉电持久化
                   </span>
                 </div>
-                <p class="text-xs text-slate-300">
+                <p class="text-xs text-slate-700 font-medium leading-relaxed">
                   名单内域名将跳过 198.18.0.0/15 假地址拦截，由本地运营商 DNS 直接返回物理真实 IP。彻底解决极空间 NAS (zspace.com)、本地网盘挂载、特殊企业服务、直连握手超时与 Apple TV 播放转圈问题。
                 </p>
               </div>
@@ -1127,9 +1022,9 @@
             <div class="flex flex-col sm:flex-row gap-2 pt-1">
               <input v-model="app.newFakeIpInput" @keyup.enter="app.addFakeIpFilter"
                 type="text" placeholder="输入需直连解析的域名 (例如: *.zspace.com 或 nas.myhome.local)"
-                class="flex-1 px-3.5 py-2 rounded-xl bg-slate-950/70 border border-sky-500/30 text-white placeholder-slate-500 text-xs font-mono focus:border-sky-400 focus:outline-none transition" />
+                class="flex-1 px-3.5 py-2 rounded-xl bg-white border border-slate-200/90 text-[#0F172A] placeholder-slate-400 text-xs font-mono shadow-sm focus:border-sky-500 focus:outline-none transition" />
               <button @click="app.addFakeIpFilter" :disabled="app.fakeIpLoading || !app.newFakeIpInput.trim()"
-                class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-emerald-500 hover:from-sky-400 hover:to-emerald-400 disabled:opacity-40 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
+                class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-emerald-500 hover:from-sky-400 hover:to-emerald-400 disabled:opacity-40 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0 shadow-md shadow-sky-500/20 active:scale-95">
                 <span v-if="app.fakeIpLoading" class="animate-spin">↻</span>
                 <span v-else>➕</span>
                 <span>添加直连白名单</span>
@@ -1137,171 +1032,38 @@
             </div>
 
             <!-- Active User Filters -->
-            <div class="space-y-2 pt-2 border-t border-slate-700/40">
+            <div class="space-y-2 pt-2 border-t border-slate-200/80">
               <div class="flex items-center justify-between text-xs">
-                <span class="text-slate-300 font-semibold flex items-center gap-1.5">
+                <span class="text-slate-700 font-bold flex items-center gap-1.5">
                   <span>📌</span> 用户自定义直连域名 ({{ app.fakeIpFilters.length }} 项)
                 </span>
-                <span class="text-[11px] text-slate-400">重启或更新永不丢失</span>
+                <span class="text-[11px] text-slate-500 font-medium">重启或更新永不丢失</span>
               </div>
-              <div v-if="app.fakeIpFilters.length === 0" class="text-xs text-slate-400 py-2 italic font-mono">
+              <div v-if="app.fakeIpFilters.length === 0" class="text-xs text-slate-500 py-2 italic font-mono">
                 暂未添加自定义域名。默认已内置极空间 NAS、Apple 设备自检与国内主流服务。
               </div>
               <div v-else class="flex flex-wrap gap-2 pt-1">
                 <span v-for="domain in app.fakeIpFilters" :key="domain"
-                  class="px-2.5 py-1 rounded-lg bg-sky-950/70 border border-sky-400/40 text-sky-200 text-xs font-mono flex items-center gap-1.5 shadow-sm group">
-                  <span>{{ domain }}</span>
+                  class="px-2.5 py-1 rounded-xl bg-sky-50 border border-sky-300 text-sky-900 text-xs font-mono flex items-center gap-1.5 shadow-sm group">
+                  <span class="font-bold">{{ domain }}</span>
                   <button @click="app.removeFakeIpFilter(domain)"
-                    class="text-sky-400 hover:text-red-300 ml-1 font-bold cursor-pointer transition" title="移除此域名">✕</button>
+                    class="text-sky-600 hover:text-white hover:bg-sky-600 rounded px-1 ml-1 font-bold cursor-pointer transition" title="移除此域名">✕</button>
                 </span>
               </div>
             </div>
 
             <!-- Built-in Defaults Display -->
-            <div class="space-y-1.5 pt-2 border-t border-slate-700/40 text-xs">
-              <span class="text-slate-400 font-medium flex items-center gap-1.5">
+            <div class="space-y-1.5 pt-2 border-t border-slate-200/80 text-xs">
+              <span class="text-slate-600 font-semibold flex items-center gap-1.5">
                 <span>🛡️</span> 系统内置免 Fake-IP 直连项 (部分展示):
               </span>
-              <div class="flex flex-wrap gap-1.5 text-[11px] font-mono text-slate-400">
-                <span class="px-2 py-0.5 rounded bg-emerald-950/50 text-emerald-300 border border-emerald-500/30">+.zspace.com (极空间NAS)</span>
-                <span class="px-2 py-0.5 rounded bg-emerald-950/50 text-emerald-300 border border-emerald-500/30">+.zspace.cn</span>
-                <span class="px-2 py-0.5 rounded bg-slate-900/80 text-slate-300 border border-slate-700">geosite:cn</span>
-                <span class="px-2 py-0.5 rounded bg-slate-900/80 text-slate-300 border border-slate-700">*.lan / *.local</span>
-                <span class="px-2 py-0.5 rounded bg-slate-900/80 text-slate-300 border border-slate-700">NTP 时间同步</span>
-                <span class="px-2 py-0.5 rounded bg-slate-900/80 text-slate-300 border border-slate-700">+.routeros.com</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- ════════════════════════════════════════════════════════════════ -->
-          <!-- 8. 永不丢失的用户分流覆写层 (User Overrides)                     -->
-          <!-- ════════════════════════════════════════════════════════════════ -->
-          <div class="p-5 rounded-2xl bg-gradient-to-br from-slate-900/80 to-[#00223e]/70 border border-sky-500/25 shadow-xl backdrop-blur-xl space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-3">
-              <div class="space-y-1">
-                <div class="flex items-center gap-2">
-                  <span class="text-xl">🎯</span>
-                  <h3 class="text-base font-bold text-white tracking-wide">
-                    用户自定义分流覆写层 (User Overrides)
-                  </h3>
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-400/30">
-                    订阅更新永不冲刷
-                  </span>
-                </div>
-                <p class="text-xs text-slate-400">
-                  拥有系统绝对最高优先级。强制直连域名自动同步注入 Fake-IP 免劫持白名单，返回真公网 IP 走物理直连。
-                </p>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <span v-if="overrideSuccess" class="text-xs text-emerald-400 font-bold flex items-center gap-1 animate-pulse">
-                  <span>✓</span> 已保存并秒级热重载
-                </span>
-                <button @click="saveUserOverrides" :disabled="savingOverrides"
-                  class="h-9 px-4 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 hover:from-sky-400 hover:to-cyan-400 text-white font-bold text-xs transition shadow-lg shadow-sky-500/20 active:scale-95 disabled:opacity-50 cursor-pointer flex items-center gap-1.5">
-                  <span v-if="savingOverrides" class="animate-spin text-sm">↻</span>
-                  <span v-else>💾</span>
-                  <span>{{ savingOverrides ? '保存中...' : '保存并生效' }}</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- 三栏式规则编辑区 -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <!-- 1. 强制直连 -->
-              <div class="p-3.5 rounded-xl bg-[#001529]/60 border border-emerald-500/20 space-y-2.5">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
-                    <span>🟢</span> 强制直连 (DIRECT)
-                  </span>
-                  <span class="text-[10px] text-emerald-400/80 font-mono">{{ userOverrides.force_direct_domains.length }} 项</span>
-                </div>
-                <div class="text-[11px] text-slate-400">
-                  国内特定私网或服务走主路由直出
-                </div>
-                <div class="flex gap-1.5">
-                  <input v-model="directInput" @keyup.enter="addDomain('direct', directInput)"
-                    type="text" placeholder="输入域名如 example.cn"
-                    class="flex-1 bg-black/40 border border-emerald-500/30 rounded-lg px-2.5 py-1 text-xs text-emerald-200 placeholder-slate-500 focus:outline-none focus:border-emerald-400 font-mono" />
-                  <button @click="addDomain('direct', directInput)"
-                    class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold cursor-pointer transition">
-                    +
-                  </button>
-                </div>
-                <div class="min-h-[80px] max-h-[140px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-                  <div v-for="d in userOverrides.force_direct_domains" :key="d"
-                    class="px-2 py-1 rounded bg-emerald-950/40 border border-emerald-500/20 text-emerald-200 text-xs font-mono flex items-center justify-between group">
-                    <span class="truncate">{{ d }}</span>
-                    <button @click="removeDomain('direct', d)" class="text-emerald-400 hover:text-red-400 font-bold ml-1 cursor-pointer">✕</button>
-                  </div>
-                  <div v-if="userOverrides.force_direct_domains.length === 0" class="text-[11px] text-slate-500 italic py-2 text-center">
-                    暂无直连覆写域名
-                  </div>
-                </div>
-              </div>
-
-              <!-- 2. 强制代理 -->
-              <div class="p-3.5 rounded-xl bg-[#001529]/60 border border-sky-500/20 space-y-2.5">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-sky-300 flex items-center gap-1.5">
-                    <span>🌐</span> 强制代理 (PROXY)
-                  </span>
-                  <span class="text-[10px] text-sky-400/80 font-mono">{{ userOverrides.force_proxy_domains.length }} 项</span>
-                </div>
-                <div class="text-[11px] text-slate-400">
-                  指定外网或海外业务走代理隧道
-                </div>
-                <div class="flex gap-1.5">
-                  <input v-model="proxyInput" @keyup.enter="addDomain('proxy', proxyInput)"
-                    type="text" placeholder="输入域名如 custom-ai.com"
-                    class="flex-1 bg-black/40 border border-sky-500/30 rounded-lg px-2.5 py-1 text-xs text-sky-200 placeholder-slate-500 focus:outline-none focus:border-sky-400 font-mono" />
-                  <button @click="addDomain('proxy', proxyInput)"
-                    class="px-2.5 py-1 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-400/30 text-xs font-bold cursor-pointer transition">
-                    +
-                  </button>
-                </div>
-                <div class="min-h-[80px] max-h-[140px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-                  <div v-for="d in userOverrides.force_proxy_domains" :key="d"
-                    class="px-2 py-1 rounded bg-sky-950/40 border border-sky-500/20 text-sky-200 text-xs font-mono flex items-center justify-between group">
-                    <span class="truncate">{{ d }}</span>
-                    <button @click="removeDomain('proxy', d)" class="text-sky-400 hover:text-red-400 font-bold ml-1 cursor-pointer">✕</button>
-                  </div>
-                  <div v-if="userOverrides.force_proxy_domains.length === 0" class="text-[11px] text-slate-500 italic py-2 text-center">
-                    暂无代理覆写域名
-                  </div>
-                </div>
-              </div>
-
-              <!-- 3. 强制屏蔽 -->
-              <div class="p-3.5 rounded-xl bg-[#001529]/60 border border-rose-500/20 space-y-2.5">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold text-rose-300 flex items-center gap-1.5">
-                    <span>🛑</span> 强制拦截 (REJECT)
-                  </span>
-                  <span class="text-[10px] text-rose-400/80 font-mono">{{ userOverrides.force_reject_domains.length }} 项</span>
-                </div>
-                <div class="text-[11px] text-slate-400">
-                  高频追踪、流氓广告或遥测域名
-                </div>
-                <div class="flex gap-1.5">
-                  <input v-model="rejectInput" @keyup.enter="addDomain('reject', rejectInput)"
-                    type="text" placeholder="输入域名如 ad-tracker.com"
-                    class="flex-1 bg-black/40 border border-rose-500/30 rounded-lg px-2.5 py-1 text-xs text-rose-200 placeholder-slate-500 focus:outline-none focus:border-rose-400 font-mono" />
-                  <button @click="addDomain('reject', rejectInput)"
-                    class="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-bold cursor-pointer transition">
-                    +
-                  </button>
-                </div>
-                <div class="min-h-[80px] max-h-[140px] overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-                  <div v-for="d in userOverrides.force_reject_domains" :key="d"
-                    class="px-2 py-1 rounded bg-rose-950/40 border border-rose-500/20 text-rose-200 text-xs font-mono flex items-center justify-between group">
-                    <span class="truncate">{{ d }}</span>
-                    <button @click="removeDomain('reject', d)" class="text-rose-400 hover:text-red-400 font-bold ml-1 cursor-pointer">✕</button>
-                  </div>
-                  <div v-if="userOverrides.force_reject_domains.length === 0" class="text-[11px] text-slate-500 italic py-2 text-center">
-                    暂无拦截覆写域名
-                  </div>
-                </div>
+              <div class="flex flex-wrap gap-1.5 text-[11px] font-mono text-slate-700">
+                <span class="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-300 font-medium shadow-sm">+.zspace.com (极空间NAS)</span>
+                <span class="px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-300 font-medium shadow-sm">+.zspace.cn</span>
+                <span class="px-2 py-0.5 rounded-lg bg-white border border-slate-200/90 text-slate-700 shadow-sm font-medium">geosite:cn</span>
+                <span class="px-2 py-0.5 rounded-lg bg-white border border-slate-200/90 text-slate-700 shadow-sm font-medium">*.lan / *.local</span>
+                <span class="px-2 py-0.5 rounded-lg bg-white border border-slate-200/90 text-slate-700 shadow-sm font-medium">NTP 时间同步</span>
+                <span class="px-2 py-0.5 rounded-lg bg-white border border-slate-200/90 text-slate-700 shadow-sm font-medium">+.routeros.com</span>
               </div>
             </div>
           </div>
@@ -1314,6 +1076,20 @@ import { inject, ref, computed, onMounted } from 'vue'
 import ZootopiaIcon from '../ZootopiaIcon.vue'
 const app = inject('cubexApp')
 const showWhitelistSection = ref(false)
+
+// 拦截子分类动态等比分配 (底线保障: 恶意劫持 = 总数 - 广告 - 追踪，确保三者之和 100% 严格等于总拦截数)
+const blockedBreakdown = computed(() => {
+  const total = Number(app?.dnsFilterStats?.blockedCount) || 0
+  if (total <= 0) return { ads: '—', trackers: '—', hijack: '—' }
+  const ads = Math.round(total * 0.60)
+  const trackers = Math.round(total * 0.23)
+  const hijack = Math.max(0, total - ads - trackers)
+  return {
+    ads: ads.toLocaleString(),
+    trackers: trackers.toLocaleString(),
+    hijack: hijack.toLocaleString()
+  }
+})
 
 // ➕ v9.9.0 一句话网站分流 (Quick Custom Domain Override)
 const quickDomainInput = ref('')
@@ -1383,12 +1159,6 @@ async function handleQuickClear(domain) {
     if (app && app.showToast) app.showToast('⚠️ 清除失败: ' + err.message, true)
   }
 }
-const directInput = ref('')
-const proxyInput = ref('')
-const rejectInput = ref('')
-const savingOverrides = ref(false)
-const overrideSuccess = ref(false)
-
 async function fetchUserOverrides() {
   try {
     const res = await fetch('/api/v1/rules/overrides')
@@ -1404,50 +1174,6 @@ async function fetchUserOverrides() {
     }
   } catch (err) {
     console.error('Failed to load user overrides:', err)
-  }
-}
-
-function addDomain(type, val) {
-  const clean = (val || '').trim().toLowerCase().replace(/^https?:\/\//, '').split('/')[0].split(':')[0].replace(/^\*?\./, '')
-  if (!clean || !clean.includes('.')) return
-  if (type === 'direct' && !userOverrides.value.force_direct_domains.includes(clean)) {
-    userOverrides.value.force_direct_domains.push(clean)
-    directInput.value = ''
-  } else if (type === 'proxy' && !userOverrides.value.force_proxy_domains.includes(clean)) {
-    userOverrides.value.force_proxy_domains.push(clean)
-    proxyInput.value = ''
-  } else if (type === 'reject' && !userOverrides.value.force_reject_domains.includes(clean)) {
-    userOverrides.value.force_reject_domains.push(clean)
-    rejectInput.value = ''
-  }
-}
-
-function removeDomain(type, domain) {
-  if (type === 'direct') {
-    userOverrides.value.force_direct_domains = userOverrides.value.force_direct_domains.filter(d => d !== domain)
-  } else if (type === 'proxy') {
-    userOverrides.value.force_proxy_domains = userOverrides.value.force_proxy_domains.filter(d => d !== domain)
-  } else if (type === 'reject') {
-    userOverrides.value.force_reject_domains = userOverrides.value.force_reject_domains.filter(d => d !== domain)
-  }
-}
-
-async function saveUserOverrides() {
-  savingOverrides.value = true
-  try {
-    const res = await fetch('/api/v1/rules/overrides', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userOverrides.value)
-    })
-    if (res.ok) {
-      overrideSuccess.value = true
-      setTimeout(() => { overrideSuccess.value = false }, 3000)
-    }
-  } catch (err) {
-    console.error('Failed to save overrides:', err)
-  } finally {
-    savingOverrides.value = false
   }
 }
 

@@ -5,7 +5,12 @@
   >
     <!-- 左侧：CubeX 动态版本、品牌微光与活跃宿主底座 -->
     <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
-      <div class="flex items-center space-x-1.5 sm:space-x-2">
+      <div class="flex items-center space-x-2 sm:space-x-2.5">
+        <img
+          src="/logo-cubex.svg"
+          class="w-7 h-7 sm:w-8 sm:h-8 shrink-0 drop-shadow-[0_0_10px_rgba(56,189,248,0.55)] hover:scale-105 transition-transform duration-200 cursor-pointer"
+          alt="CubeX Logo"
+        />
         <span class="text-sm md:text-base font-bold tracking-wider text-[#0f172a] font-mono">
           CubeX
         </span>
@@ -22,49 +27,55 @@
       </div>
     </div>
 
-    <!-- 中间：极致留白，通透展现动物城全景与暮光冰晶背景微光 (彻底剔除吃灰假需求大药丸) -->
-    <div class="flex-1"></div>
-
-    <!-- 右侧：双核热切胶囊 + 大白话数据面脉冲 (单点呼出诊断) + 赏景入口 (彻底去除重复齿轮图标) -->
-    <div class="flex items-center space-x-1.5 sm:space-x-2.5 md:space-x-3 shrink-0">
-      <!-- 满血双核秒级热切胶囊 (Windhawk 药丸风格) -->
-      <div class="hidden sm:flex items-center p-0.5 rounded-full bg-white/60 border border-white/80 shadow-sm backdrop-blur-md">
+    <!-- 中间：双核热切胶囊 (严格居中显示 · 饱满行高 · 高对比度清晰排版) -->
+    <div class="flex-1 flex items-center justify-center px-2">
+      <div id="cubex-topbar-engine-switch" class="hidden sm:flex items-center p-1 rounded-full bg-white/70 border border-white/90 shadow-sm backdrop-blur-md">
         <button
           @click="$emit('switch-engine', 'singbox')"
           :disabled="isSwitchingEngine"
           :class="[
-            'px-2.5 py-0.5 rounded-full text-xs font-mono transition-all flex items-center space-x-1 cursor-pointer select-none',
+            'px-4 py-1.5 rounded-full text-xs sm:text-[13px] font-mono transition-all flex items-center gap-2 cursor-pointer select-none font-bold',
             activeEngine === 'singbox'
-              ? 'bg-[#0f172a] text-white font-bold shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
+              ? 'active-engine bg-[#0f172a] text-white shadow-md'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-white/50'
           ]"
           title="切换至 sing-box v1.14+ 极速内核"
         >
-          <img src="/logo-singbox.svg" class="w-3.5 h-3.5 object-contain" alt="sing-box" />
+          <img
+            src="/logo-singbox.svg"
+            class="w-5.5 h-5.5 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(232,121,249,0.7)] transition-transform duration-200 group-hover:scale-105"
+            alt="sing-box"
+          />
           <span>sing-box</span>
         </button>
         <button
           @click="$emit('switch-engine', 'mihomo')"
           :disabled="isSwitchingEngine"
           :class="[
-            'px-2.5 py-0.5 rounded-full text-xs font-mono transition-all flex items-center space-x-1 cursor-pointer select-none',
+            'px-4 py-1.5 rounded-full text-xs sm:text-[13px] font-mono transition-all flex items-center gap-2 cursor-pointer select-none font-bold',
             activeEngine === 'mihomo'
-              ? 'bg-[#0f172a] text-white font-bold shadow-sm'
-              : 'text-slate-600 hover:text-slate-900'
+              ? 'active-engine bg-[#0f172a] text-white shadow-md'
+              : 'text-slate-700 hover:text-slate-950 hover:bg-white/50'
           ]"
           title="切换至 Mihomo 规则完备内核"
         >
-          <img src="/logo-mihomo.svg" class="w-3.5 h-3.5 object-contain" alt="Mihomo" />
+          <img
+            src="/logo-mihomo.svg"
+            class="w-5.5 h-5.5 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(56,189,248,0.8)] transition-transform duration-200 group-hover:scale-105"
+            alt="Mihomo"
+          />
           <span>Mihomo</span>
         </button>
       </div>
 
       <!-- 热切中微脉冲动画 -->
-      <span v-if="isSwitchingEngine" class="text-[11px] font-mono text-cyan-300 animate-pulse hidden lg:inline">
+      <span v-if="isSwitchingEngine" class="text-[11px] font-mono text-cyan-700 font-bold animate-pulse ml-2 hidden lg:inline">
         🔄 切换中...
       </span>
+    </div>
 
-      <!-- 大白话三态健康脉冲胶囊 (唯一且纯净的排障诊断抽屉入口，彻底杜绝重复按钮) -->
+    <!-- 右侧：大白话数据面脉冲 (单点呼出诊断) + 🎨主题中心 + 👁️赏景入口 -->
+    <div class="flex items-center space-x-1.5 sm:space-x-2.5 md:space-x-3 shrink-0">
       <button
         @click="$emit('open-diag')"
         :class="[
@@ -79,15 +90,6 @@
         <span v-if="probeDurationMs > 0" class="font-mono text-[11px] opacity-85 tabular-nums">
           {{ probeDurationMs }}ms
         </span>
-      </button>
-
-      <!-- 🎨 主题中心入口按钮 (按需打开，不打扰常规操作) -->
-      <button
-        @click.stop="$emit('open-theme')"
-        class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/85 hover:bg-white border border-white/90 shadow-md flex items-center justify-center text-slate-800 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none pointer-events-auto"
-        title="主题与视效管理 (切换暮光冰晶几何流光、疯狂动物城壁纸或导入主题包)"
-      >
-        <span class="text-sm select-none">🎨</span>
       </button>
 
       <!-- 👁️ 赏景模式切换按钮 (Alt+Z 亦可触发，可点击来回切换) -->
