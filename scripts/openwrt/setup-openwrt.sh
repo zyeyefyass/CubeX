@@ -152,12 +152,16 @@ SHIM_IP="${IP_PREFIX}.228"
 echo -e "${GREEN}✅ [3/6 自动配赋] 分配 CubeX 独立物理 IP: ${CUBEX_IP} (Macvlan 网关: ${MACVLAN_GW})${NC}"
 
 # 4. 创建 Docker Macvlan 独立网络与 Shim 互通接口
-echo -e "${CYAN}🔧 [4/6 网络编排] 创建 Macvlan 隔离网络 (${NET_NAME} 绑定 ${LAN_IF})...${NC}"
-docker network create -d macvlan \
-    --subnet="$SUBNET" \
-    --gateway="$MACVLAN_GW" \
-    -o parent="$LAN_IF" \
-    "$NET_NAME"
+echo -e "${CYAN}🔧 [4/6 网络编排] 准备 Macvlan 隔离网络 (${NET_NAME} 绑定 ${LAN_IF})...${NC}"
+if docker network inspect "$NET_NAME" >/dev/null 2>&1; then
+    echo -e "${GREEN}   -> 检测到已存在 Macvlan 网络 (${NET_NAME})，自动复用现有网络配置${NC}"
+else
+    docker network create -d macvlan \
+        --subnet="$SUBNET" \
+        --gateway="$MACVLAN_GW" \
+        -o parent="$LAN_IF" \
+        "$NET_NAME"
+fi
 
 # 解决 Linux Macvlan 宿主与容器二层隔离难题 (创建 macvlan-shim)
 if ! ip link show macvlan-shim >/dev/null 2>&1; then
