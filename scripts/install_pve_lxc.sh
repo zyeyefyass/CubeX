@@ -304,9 +304,9 @@ EOF
 # 启动容器
 pct start "$CT_ID"
 
-# 优雅等待网络链路就绪 (最多等待 5 秒)
+# 优雅等待网络链路就绪 (最多等待 8 秒)
 echo -e "   -> ${BLUE}等待容器网卡与链路协商就绪...${NC}"
-for i in 1 2 3 4 5; do
+for i in 1 2 3 4 5 6 7 8; do
     if pct exec "$CT_ID" -- ping -c 1 -W 1 "$CT_GW" >/dev/null 2>&1; then
         break
     fi
@@ -317,15 +317,19 @@ done
 echo -e "\n${CYAN}🔄 [5/5] 容器内部全自动初始化（首次部署约需 30~60 秒，请耐心等待）...${NC}"
 
 echo -e "   -> ${BOLD}[5.1/5.4] 正在配置容器 DNS 与国内极速镜像源 (带自动故障转移与多源轮换)...${NC}"
-pct exec "$CT_ID" -- sh -s << 'EOF'
+pct exec "$CT_ID" -- sh -s "$CT_GW" << 'EOF'
 set -e
-# 注入公网主备 DNS，彻底防范主路由尚未配对导致的临时解析失败
+CT_GW="$1"
+# 注入公网主备与网关 DNS，彻底防范主路由尚未配对或网关重定向导致的临时解析失败
 cat << "RESOLV" > /etc/resolv.conf
 nameserver 223.5.5.5
 nameserver 119.29.29.29
 nameserver 114.114.114.114
 nameserver 8.8.8.8
 RESOLV
+if [ -n "$CT_GW" ] && [ "$CT_GW" != "223.5.5.5" ]; then
+    echo "nameserver $CT_GW" >> /etc/resolv.conf
+fi
 
 # 探查真实 Alpine 发行版分支
 ALPINE_VER=$(cat /etc/alpine-release 2>/dev/null | cut -d. -f1,2)
@@ -419,7 +423,7 @@ fi
 rc-update add cubexd default >/dev/null 2>&1
 EOF
 
-echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX ${CUSTOM_VER:-v9.9.2} 双核完整发布包 (${PVE_ARCH})...${NC}"
+echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX ${CUSTOM_VER:-v9.9.6} 双核完整发布包 (${PVE_ARCH})...${NC}"
 # 10. 推送或下载 CubeX 完整发布包 (优先检测宿主本地安装包，0 秒直推免下载)
 if [ -n "$CUSTOM_VER" ]; then
     LOCAL_PKG=$(ls dist/release/CubeX-${CUSTOM_VER}*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
@@ -441,14 +445,41 @@ elif [ -n "$ROOT_PKG" ] && [ -s "$ROOT_PKG" ]; then
 fi
 
 if [ -n "$CHOSEN_ZIP" ]; then
-    echo -e "${GREEN}✓ 检测到宿主机本地完整发布包 (${CHOSEN_ZIP})，直接 0 秒直推至容器，跳过网络下载！${NC}"
-    pct push "$CT_ID" "$CHOSEN_ZIP" /tmp/CubeX.zip
-    pct exec "$CT_ID" -- sh -s << 'EOF'
-unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/
-chmod +x /opt/CubeX/bin/* 2>/dev/null || true
-ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
-rm -f /tmp/CubeX.zip
-EOF
+    echo -e "${GREEN}✓ 检测到宿主机本地完整发布包 (${CHOSEN_ZIP})，直接 0 秒宿主极速释放至容器！${NC}"
+    # 在 PVE 宿主机本地解压 (优先使用宿主 unzip，降级使用宿主内置 python3 zipfile，完全无需容器联网与容器内部 unzip)
+    UNPACK_TMP="/tmp/cubex_unpack_$$"
+    rm -rf "$UNPACK_TMP" && mkdir -p "$UNPACK_TMP"
+    UNPACKED=0
+    if command -v unzip >/dev/null 2>&1; then
+        if unzip -q -o "$CHOSEN_ZIP" -d "$UNPACK_TMP/"; then
+            UNPACKED=1
+        fi
+    fi
+    if [ "$UNPACKED" -eq 0 ] && command -v python3 >/dev/null 2>&1; then
+        if python3 -m zipfile -e "$CHOSEN_ZIP" "$UNPACK_TMP/"; then
+            UNPACKED=1
+        fi
+    fi
+
+    if [ "$UNPACKED" -eq 1 ] && [ -d "$UNPACK_TMP/bin" ]; then
+        echo -e "   -> ${BLUE}正在推送双核引擎、控制面与规则集至容器内部...${NC}"
+        pct exec "$CT_ID" -- mkdir -p /opt/CubeX/bin /opt/CubeX/rules /opt/CubeX/etc /opt/CubeX/data /usr/local/bin
+        [ -f "$UNPACK_TMP/bin/cubexd" ] && pct push "$CT_ID" "$UNPACK_TMP/bin/cubexd" /opt/CubeX/bin/cubexd -perms 755
+        [ -f "$UNPACK_TMP/bin/cubex" ] && pct push "$CT_ID" "$UNPACK_TMP/bin/cubex" /opt/CubeX/bin/cubex -perms 755
+        [ -f "$UNPACK_TMP/bin/sing-box" ] && pct push "$CT_ID" "$UNPACK_TMP/bin/sing-box" /opt/CubeX/bin/sing-box -perms 755
+        [ -f "$UNPACK_TMP/bin/mihomo" ] && pct push "$CT_ID" "$UNPACK_TMP/bin/mihomo" /opt/CubeX/bin/mihomo -perms 755
+        if [ -d "$UNPACK_TMP/rules" ]; then
+            tar -C "$UNPACK_TMP/rules" -cf - . | pct exec "$CT_ID" -- tar -xf - -C /opt/CubeX/rules/ 2>/dev/null || true
+        fi
+        pct exec "$CT_ID" -- ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
+        rm -rf "$UNPACK_TMP"
+        echo -e "${GREEN}✓ 本地发布包直推完成 (免容器网络，零依赖解压)！${NC}"
+    else
+        # 降级兜底：若宿主无可用解压工具，尝试推入容器解压
+        pct push "$CT_ID" "$CHOSEN_ZIP" /tmp/CubeX.zip
+        pct exec "$CT_ID" -- sh -c 'unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/ 2>/dev/null || true; chmod +x /opt/CubeX/bin/* 2>/dev/null || true; ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true; rm -f /tmp/CubeX.zip'
+        rm -rf "$UNPACK_TMP"
+    fi
 else
     pct exec "$CT_ID" -- sh -s "$PVE_ARCH" "$CUSTOM_VER" << 'EOF'
     set +e
