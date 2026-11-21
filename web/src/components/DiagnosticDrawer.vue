@@ -23,7 +23,7 @@
         >
           <div
             v-if="isOpen"
-            class="w-full max-w-lg md:max-w-xl h-full bg-[#001529]/95 text-slate-200 shadow-2xl border-l border-white/10 flex flex-col backdrop-blur-xl"
+            class="diagnostic-drawer w-full max-w-lg md:max-w-xl h-full bg-[#001529]/95 text-slate-200 shadow-2xl border-l border-white/10 flex flex-col backdrop-blur-xl"
             style="contain: strict;"
           >
             <!-- 顶栏：标题与关闭 -->

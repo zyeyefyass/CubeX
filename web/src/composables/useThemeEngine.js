@@ -1,7 +1,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 
 const themes = ref([])
-const activeThemeID = ref('twilight-default')
+const activeThemeID = ref('dark-skull-luxury')
 const playbackMode = ref('auto')
 const isImporting = ref(false)
 const importError = ref('')
@@ -41,11 +41,12 @@ function applyTokens(tokens) {
 
 export function useThemeEngine() {
   const activeTheme = computed(() => {
-    return themes.value.find(t => t.id === activeThemeID.value) || {
-      id: 'twilight-default',
-      name: '暮光冰晶 (默认)',
-      type: 'vector',
-      tier: 'builtin',
+    return themes.value.find(t => t.id === 'dark-skull-luxury') || themes.value.find(t => t.id === activeThemeID.value) || {
+      id: 'dark-skull-luxury',
+      name: '暗夜曜金 · 奢华骷髅',
+      type: 'video',
+      tier: 'exclusive',
+      assets: { video: 'bg.mp4', poster: 'poster.webp' },
       tokens: {}
     }
   })

@@ -8,7 +8,7 @@
 
     <!-- 右侧滑出抽屉面板 (微晶玻璃质感 · contain: content 隔绝重绘) -->
     <aside
-      class="relative w-full max-w-md sm:max-w-lg h-full bg-[#001529]/95 backdrop-blur-2xl border-l border-white/10 shadow-[-10px_0_40px_rgba(0,0,0,0.6)] flex flex-col z-10 animate-in slide-in-from-right duration-300"
+      class="theme-drawer relative w-full max-w-md sm:max-w-lg h-full bg-[#001529]/95 backdrop-blur-2xl border-l border-white/10 shadow-[-10px_0_40px_rgba(0,0,0,0.6)] flex flex-col z-10 animate-in slide-in-from-right duration-300"
       style="contain: content;"
     >
       <!-- 抽屉头部 (标题与关闭按钮) -->

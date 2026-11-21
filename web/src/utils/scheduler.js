@@ -120,24 +120,23 @@ export class UIFrameScheduler {
 
 export const frameScheduler = new UIFrameScheduler()
 
-// 一键赏景模式 (Peek Mode) 防抖控制器：注入 400ms 激活保护窗 + 45px 欧氏位移阈值
+// 一键赏景模式 (Peek Mode) 控制器：支持快捷键 (Alt+Z / ESC) 与点击图标双向来回切换
 export function enablePeekModeWithGuard(onExitCallback) {
   if (typeof document === 'undefined') return () => {}
   document.body.classList.add('wallpaper-peek-mode')
   const enteredAt = performance.now()
-  let anchorX = null
-  let anchorY = null
 
   const cleanupAndExit = () => {
     document.body.classList.remove('wallpaper-peek-mode')
     window.removeEventListener('keydown', onKeyDown, true)
     window.removeEventListener('mousedown', onPointerDown, true)
-    window.removeEventListener('mousemove', onMouseMove, { passive: true })
     if (typeof onExitCallback === 'function') onExitCallback()
   }
 
   const onKeyDown = (e) => {
-    if (e.key === 'Escape') cleanupAndExit()
+    if (e.key === 'Escape' || (e.altKey && (e.key === 'z' || e.key === 'Z'))) {
+      cleanupAndExit()
+    }
   }
 
   const onPointerDown = () => {
@@ -145,23 +144,7 @@ export function enablePeekModeWithGuard(onExitCallback) {
     cleanupAndExit()
   }
 
-  const onMouseMove = (e) => {
-    // 1. 刚点击进入赏景模式的 400ms 内，完全忽略手部离开鼠标时的微抖
-    if (performance.now() - enteredAt < 400) return
-    if (anchorX === null || anchorY === null) {
-      anchorX = e.clientX
-      anchorY = e.clientY
-      return
-    }
-    // 2. 只有当鼠标意图明确、移动距离超过 45px 时才唤醒 UI
-    const dist = Math.hypot(e.clientX - anchorX, e.clientY - anchorY)
-    if (dist > 45) {
-      cleanupAndExit()
-    }
-  }
-
   window.addEventListener('keydown', onKeyDown, true)
   window.addEventListener('mousedown', onPointerDown, true)
-  window.addEventListener('mousemove', onMouseMove, { passive: true })
   return cleanupAndExit
 }

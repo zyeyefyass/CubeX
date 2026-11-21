@@ -171,7 +171,6 @@
         :is-peek-mode="isPeekMode"
         @open-search="showCommandPalette = true"
         @open-diag="isDataplaneDrawerOpen = true"
-        @open-theme="isThemeDrawerOpen = true"
         @switch-engine="switchEngine"
         @toggle-peek="togglePeekMode"
       />
@@ -374,10 +373,10 @@
 
       </header>
 
-      <!-- 🐰🦊 赏景模式悬浮退出胶囊 -->
-      <div v-if="isPeekMode" @click="togglePeekMode" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full bg-[#001529]/90 border border-amber-400/60 text-amber-200 text-xs sm:text-sm font-black shadow-2xl flex items-center gap-2.5 cursor-pointer select-none zootopia-peek-banner animate-bounce">
-        <span class="text-base">🐰🦊</span>
-        <span>已隐藏面板 · 点击任意处、移动鼠标或按 ESC 恢复</span>
+      <!-- 👁️ 赏景模式悬浮退出胶囊 (纯净奶白晶曜药丸) -->
+      <div v-if="isPeekMode" @click="togglePeekMode" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full bg-white/95 border border-white text-slate-800 text-xs sm:text-sm font-black shadow-2xl flex items-center gap-2.5 cursor-pointer select-none zootopia-peek-banner animate-bounce">
+        <span class="text-base">👁️</span>
+        <span>已开启赏景模式 · 点击图标/任意处，或按快捷键 Alt+Z / ESC 来回切换</span>
       </div>
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
@@ -1404,15 +1403,13 @@
 
                     <div class="relative z-10 flex items-center justify-between gap-1 pt-1">
 
-                      <div class="flex items-center gap-1.5 min-w-0">
+                      <div class="flex items-center gap-1.5 min-w-0 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 shadow-md region-badge">
 
                         <span v-if="isDirectActive(grp)" class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)] animate-pulse shrink-0"></span>
 
                         <RegionFlag v-else country-code="CN" name="中国" size-class="w-4 h-2.5" />
 
-                        <span class="text-xs sm:text-[13px] font-black truncate text-white drop-shadow-[0_2px_4px_rgba(0,0,0,1)] drop-shadow-[0_0_2px_rgba(0,0,0,1)] tracking-wide"
-
-                          :class="groupDirectMap[grp.name] ? 'text-emerald-200' : 'group-hover:text-emerald-300'">
+                        <span class="text-xs sm:text-[13px] font-black truncate text-white tracking-wide">
 
                           {{ chinaGroupMap[grp.name] ? '直连 (独占)' : '直连' }}
 
@@ -1514,13 +1511,11 @@
 
                         <div class="relative z-10 flex items-center justify-between gap-1 pt-1">
 
-                          <div class="flex items-center gap-1.5 min-w-0">
+                          <div class="flex items-center gap-1.5 min-w-0 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 shadow-md region-badge">
 
                             <span v-if="isRegionActiveInGroup(grp, reg)" class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)] animate-pulse shrink-0"></span>
 
-                            <span class="text-xs sm:text-[13px] font-black truncate text-white drop-shadow-[0_2px_4px_rgba(0,0,0,1)] drop-shadow-[0_0_2px_rgba(0,0,0,1)] tracking-wide"
-
-                              :class="groupActiveRegionIdMap[grp.name] === reg.id ? 'text-white' : 'group-hover:text-emerald-300'">
+                            <span class="text-xs sm:text-[13px] font-black truncate text-white tracking-wide">
 
                               {{ reg.name }}
 
@@ -1628,15 +1623,13 @@
 
                       <div class="relative z-10 flex items-center justify-between gap-1 pt-1">
 
-                        <div class="flex items-center gap-1.5 min-w-0">
+                        <div class="flex items-center gap-1.5 min-w-0 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 shadow-md region-badge">
 
                           <span v-if="isRejectActive(grp)" class="w-1.5 h-1.5 rounded-full bg-rose-400 shadow-[0_0_6px_rgba(244,63,94,0.9)] animate-pulse shrink-0"></span>
 
-                          <span v-else class="text-xs shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">🛑</span>
+                          <span v-else class="text-xs shrink-0">🛑</span>
 
-                          <span class="text-xs sm:text-[13px] font-black truncate text-rose-200 drop-shadow-[0_2px_4px_rgba(0,0,0,1)] drop-shadow-[0_0_2px_rgba(0,0,0,1)] tracking-wide"
-
-                            :class="groupRejectMap[grp.name] ? 'text-rose-200' : 'group-hover:text-rose-300'">
+                          <span class="text-xs sm:text-[13px] font-black truncate text-rose-200 tracking-wide">
 
                             拒绝
 
@@ -3763,12 +3756,6 @@
     @close="isDataplaneDrawerOpen = false"
   />
 
-  <!-- 🚀 主题视效中心抽屉 -->
-  <ThemeCenterDrawer
-    :is-open="isThemeDrawerOpen"
-    @close="isThemeDrawerOpen = false"
-  />
-
 </template>
 
 <script setup>
@@ -3777,7 +3764,6 @@ import { ref, reactive, computed, watch, onMounted, nextTick, provide, defineAsy
 import TwilightTopBar from './components/TwilightTopBar.vue'
 import DiagnosticDrawer from './components/DiagnosticDrawer.vue'
 import ThemeBackground from './components/ThemeBackground.vue'
-import ThemeCenterDrawer from './components/ThemeCenterDrawer.vue'
 import { useDataplane } from './composables/useDataplane.js'
 import { useStreamBuffer } from './composables/useStreamBuffer.js'
 import { useThemeEngine } from './composables/useThemeEngine.js'

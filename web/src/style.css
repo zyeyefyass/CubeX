@@ -3,24 +3,31 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
   --cubex-primary: #0284c7;
-  --cubex-primary-glow: #38bdf8;
+  --cubex-primary-glow: rgba(2, 132, 199, 0.4);
   --cubex-secondary: #7b2cbf;
-  --cubex-accent-cyan: #00f5d4;
-  --cubex-accent-amber: #f59e0b;
-  --cubex-glass-bg: rgba(0, 24, 48, 0.82);
-  --cubex-glass-border: rgba(56, 189, 248, 0.16);
-  --cubex-text-main: #f8fafc;
-  --cubex-text-muted: #94a3b8;
+  --cubex-accent-cyan: #0284c7;
+  --cubex-accent-amber: #d97706;
+  --cubex-glass-bg: rgba(244, 245, 248, 0.82);
+  --cubex-glass-border: rgba(255, 255, 255, 0.75);
+  --cubex-text-main: #1e293b;
+  --cubex-text-muted: #475569;
   --cubex-text-sub: #64748b;
+
+  /* 🥛 Windhawk 奶白冰晶核心材质体系 (Milky White Acrylic / Frosted Cream Mica) */
+  --cbx-milky-bg: rgba(243, 244, 247, 0.82);
+  --cbx-milky-bg-sub: rgba(255, 255, 255, 0.55);
+  --cbx-milky-bg-hover: rgba(255, 255, 255, 0.82);
+  --cbx-milky-border: rgba(255, 255, 255, 0.75);
+  --cbx-milky-border-sub: rgba(255, 255, 255, 0.65);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #001326;
-  color: var(--cubex-text-main);
+  background-color: #0b101b;
+  color: #1e293b;
   overflow-x: hidden;
   position: relative;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
@@ -28,13 +35,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 🚀 Deep Twilight Base Canvas: MikroTik 科技深蓝防眩光护眼底座 */
+/* 底层暗调画布：衬托上方奶白晶体悬浮景深 */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -20;
-  background: radial-gradient(circle at 50% 0%, #001f3f 0%, #001326 65%, #000c1a 100%);
+  background: radial-gradient(circle at 50% 0%, #151c2c 0%, #0b101b 65%, #050810 100%);
   pointer-events: none;
 }
 
@@ -45,11 +52,13 @@ body::before {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════ */
-/* 🌅 Twilight Crystal 暮光冰晶 · 人体工程学护眼面板与 120 FPS 满帧硬件加速体系   */
+/* 🥛 Windhawk 奶白冰晶全息流光体系 (Milky White Acrylic / Frosted Cream Mica)   */
+/* 灵感源自 Windows 11 Fluent Mica 与 Windhawk 极简奶白亚克力毛玻璃            */
 /* ══════════════════════════════════════════════════════════════════════════ */
 
-/* 一级大容器（护眼温润水晶 · 88% 不透光率 · 彻底消除背景杂讯与文字穿透混叠 · 零模糊 120 FPS 极速渲染） */
+/* 一级大卡片容器（Windhawk 奶白亚克力 · 82% 透光率 · 28px 大圆角 · 顶级纯净悬浮） */
 .macos-glass-card,
+.macos-card,
 .liquid-glass,
 .glass-aurora,
 .glass-matrix,
@@ -60,63 +69,102 @@ body::before {
 .bg-\[\#161e27\],
 .bg-\[\#161e27\]\/90,
 .bg-\[\#161e27\]\/85,
-.bg-\[\#161e27\]\/80 {
-  background: rgba(0, 20, 40, 0.88) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border-radius: 20px;
-  border: 1px solid rgba(56, 189, 248, 0.16) !important;
-  box-shadow: 0 10px 30px -5px rgba(0, 8, 20, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+.bg-\[\#161e27\]\/80,
+.bg-\[\#001529\],
+.bg-\[\#001529\]\/98,
+.bg-\[\#001529\]\/95,
+.bg-\[\#001529\]\/90,
+.bg-\[\#001529\]\/80,
+.bg-\[\#00223e\],
+.bg-\[\#00223e\]\/90,
+.bg-\[\#00223e\]\/60,
+.bg-\[\#002d50\],
+.bg-\[\#004e82\],
+.bg-\[\#0a1626\],
+.bg-\[\#00172e\],
+.bg-\[\#001c37\],
+.bg-\[\#001c37\]\/60,
+.bg-\[\#001c37\]\/80,
+.bg-\[\#001e36\],
+.bg-\[\#001e36\]\/95,
+.bg-\[\#002244\],
+.bg-\[\#002244\]\/40,
+.bg-\[\#001b33\],
+.bg-\[\#001b33\]\/80,
+.bg-\[\#0c1626\],
+.bg-\[\#0c1626\]\/95,
+.bg-\[\#0e091c\],
+.bg-\[\#0e091c\]\/95,
+.bg-\[\#0b0816\],
+.bg-\[\#0b0816\]\/95,
+.bg-\[\#17202b\],
+.bg-\[\#17202b\]\/95,
+.bg-\[\#201630\],
+.bg-\[\#0a0d18\],
+.bg-\[\#0a0d18\]\/90 {
+  background: rgba(243, 244, 247, 0.82) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border-radius: 28px !important;
+  border: 1px solid rgba(255, 255, 255, 0.75) !important;
+  box-shadow: 0 16px 40px -6px rgba(0, 0, 0, 0.16), 0 4px 16px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+  color: #1e293b !important;
   transform: translateZ(0);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .macos-glass-card:hover,
+.macos-card:hover,
 .liquid-glass:hover,
 .glass-aurora:hover,
 .glass-matrix:hover,
 .glass-novice:hover,
 .glass-obsidian:hover,
 .host-card:hover {
-  background: rgba(0, 26, 52, 0.94) !important;
-  border-color: rgba(56, 189, 248, 0.32) !important;
-  box-shadow: 0 14px 40px -4px rgba(0, 8, 20, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
+  background: rgba(248, 249, 251, 0.90) !important;
+  border-color: rgba(255, 255, 255, 0.95) !important;
+  box-shadow: 0 20px 48px -4px rgba(0, 0, 0, 0.20), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
 }
 
-/* 左侧导航栏 (Sidebar: 暮光深海真毛玻璃 · 顶层壳轻量透光) */
+/* 左侧导航栏 (Sidebar: Windhawk 奶白真毛玻璃 · 顶层壳通透呼吸) */
 .macos-sidebar {
-  background: rgba(0, 18, 36, 0.78) !important;
-  backdrop-filter: blur(10px) saturate(135%) !important;
-  -webkit-backdrop-filter: blur(10px) saturate(135%) !important;
-  border-right: 1px solid rgba(56, 189, 248, 0.18) !important;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35) !important;
+  background: rgba(242, 243, 246, 0.82) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.70) !important;
+  box-shadow: 4px 0 28px rgba(0, 0, 0, 0.08), inset -1px 0 0 rgba(255, 255, 255, 0.6) !important;
+  color: #1e293b !important;
   contain: layout style;
   transform: translateZ(0);
 }
 
-/* 顶部状态栏 (Top Bar: 顶层壳真毛玻璃) */
+/* 顶部状态栏 (Top Bar: Windhawk 奶白真毛玻璃) */
 .macos-topbar {
-  background: rgba(0, 20, 40, 0.68) !important;
-  backdrop-filter: blur(10px) saturate(135%) !important;
-  -webkit-backdrop-filter: blur(10px) saturate(135%) !important;
-  border-bottom: 1px solid rgba(56, 189, 248, 0.14) !important;
+  background: rgba(242, 243, 246, 0.78) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.70) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), inset 0 -1px 0 rgba(255, 255, 255, 0.5) !important;
+  color: #1e293b !important;
 }
 
-/* 顶部与全局胶囊组件 (65% 纯净微晶) */
+/* 顶部与全局胶囊组件 (Windhawk 搜索栏微晶药丸) */
 .macos-capsule,
 .windhawk-pill {
-  background: rgba(0, 24, 48, 0.65) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border: 1px solid rgba(56, 189, 248, 0.18) !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.10) !important;
+  background: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+  color: #0f172a !important;
   transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
 }
 
 .macos-capsule:hover,
 .windhawk-pill:hover {
-  background: rgba(0, 36, 72, 0.80) !important;
-  border-color: rgba(56, 189, 248, 0.35) !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-color: rgba(255, 255, 255, 1) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════ */
@@ -146,26 +194,27 @@ body::before {
 .bg-black\/40,
 .bg-black\/50,
 .bg-black\/60 {
-  background: linear-gradient(135deg, rgba(13, 18, 30, 0.46) 0%, rgba(20, 27, 45, 0.46) 100%) !important;
-  border: 1px solid rgba(56, 189, 248, 0.20) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: inset 0 1px 0 rgba(251, 146, 60, 0.18), inset 0 0 10px rgba(56, 189, 248, 0.05), 0 4px 16px rgba(0, 0, 0, 0.28) !important;
-  border-radius: 14px !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  background: rgba(255, 255, 255, 0.55) !important;
+  border: 1px solid rgba(255, 255, 255, 0.70) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.90) !important;
+  border-radius: 18px !important;
+  color: #1e293b !important;
+  text-shadow: none !important;
   transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-/* 悬停与聚焦：150ms 平滑过渡至高对比阅读态 (0.68) */
+/* 悬停与聚焦：Windhawk 纯净高亮态 */
 .macos-sub-card:hover,
 .sub-card-glass:hover,
 .virtualized-node-card:hover,
 .virtualized-rule-row:hover,
 .bg-slate-900:hover,
 .bg-slate-950:hover {
-  background: linear-gradient(135deg, rgba(13, 18, 30, 0.68) 0%, rgba(20, 27, 45, 0.68) 100%) !important;
-  border-color: rgba(56, 189, 248, 0.42) !important;
-  box-shadow: inset 0 1px 0 rgba(251, 146, 60, 0.35), inset 0 0 14px rgba(56, 189, 248, 0.12), 0 8px 24px rgba(0, 8, 20, 0.45) !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  border-color: rgba(255, 255, 255, 0.98) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
 }
 
 /* ⚡ 浏览器原生虚拟化与极速重绘隔离 (视口外 0 重绘开销) */
@@ -177,7 +226,7 @@ body::before {
   contain: layout style paint;
 }
 
-/* 🐰🦊 一键赏景模式 (Peek Mode) - UI 主体隐退至 15% 透明度，充分透出疯狂动物城原画 */
+/* 🐰🦊 一键赏景模式 (Peek Mode) - UI 主体隐退至 15% 透明度，充分透出原画/动态背景 */
 .zootopia-peek-active,
 body.wallpaper-peek-mode .zootopia-peek-active {
   opacity: 0.15 !important;
@@ -187,41 +236,44 @@ body.wallpaper-peek-mode .zootopia-peek-active {
 
 .zootopia-peek-banner {
   pointer-events: auto !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
 }
 
 .hover\:bg-slate-800:hover,
 .hover\:bg-slate-700:hover {
-  background: rgba(0, 36, 72, 0.65) !important;
+  background: rgba(255, 255, 255, 0.75) !important;
 }
 
 /* 日志流终端视窗 (Terminal Screen Output · 纯净深黑夜晶) */
 .bg-\[\#000d1a\],
 .terminal-screen-window,
 .bg-\[rgba\(14\,12\,24\,0\.38\)\] {
-  background: rgba(0, 10, 20, 0.85) !important;
+  background: rgba(15, 23, 42, 0.92) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border: 1px solid rgba(56, 189, 248, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
   border-radius: 14px !important;
+  color: #f8fafc !important;
   text-shadow: none !important;
 }
 
-/* 输入控件规范 (Input / Select / Textarea · 温润深蓝 · 极速响应) */
+/* 输入控件规范 (Input / Select / Textarea · Windhawk 奶白微晶 · 极速响应) */
 input, select, textarea {
-  background: rgba(0, 14, 28, 0.75) !important;
-  border: 1px solid rgba(56, 189, 248, 0.16) !important;
-  color: #f8fafc !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border-radius: 12px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: rgba(255, 255, 255, 0.75) !important;
+  border: 1px solid rgba(0, 0, 0, 0.10) !important;
+  color: #0f172a !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-radius: 14px !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(255, 255, 255, 0.8) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 input:focus, select:focus, textarea:focus {
-  border-color: #38bdf8 !important;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.30), inset 0 0 4px rgba(56, 189, 248, 0.20) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.18), inset 0 1px 2px rgba(0, 0, 0, 0.04) !important;
   outline: none !important;
 }
 
@@ -230,36 +282,433 @@ input:focus, select:focus, textarea:focus {
   display: inline-block;
   padding: 10px 20px;
   border-radius: 18px;
-  background: rgba(0, 24, 48, 0.75) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border: 1px solid rgba(56, 189, 248, 0.18) !important;
-  box-shadow: 0 8px 24px rgba(0, 8, 20, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.10) !important;
+  background: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+  color: #0f172a !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════ */
-/* 🛡️ 护眼光学文字对比度系统 (温润纸白 · 消除高频过曝光晕 · 长时间注视最舒适)   */
+/* 🥛 护眼光学文字对比度系统 (高对比深色石墨板岩 · 长时间注视最舒适)            */
 /* ══════════════════════════════════════════════════════════════════════════ */
-h1, h2, h3, .macos-title {
-  color: #f1f5f9 !important;
+h1, h2, h3, h4, .macos-title {
+  color: #0f172a !important;
   text-shadow: none !important;
 }
 
 .macos-subtitle {
-  color: #38bdf8 !important;
+  color: #475569 !important;
   text-shadow: none !important;
 }
 
-/* 温润护眼副文本，彻底消除高频亮光刺眼 */
-.text-slate-400,
-.text-slate-500 {
-  color: #94a3b8 !important;
-  text-shadow: none !important;
+.macos-glass-card h1, .macos-glass-card h2, .macos-glass-card h3, .macos-glass-card h4,
+.macos-card h1, .macos-card h2, .macos-card h3, .macos-card h4,
+.host-card h1, .host-card h2, .host-card h3, .host-card h4,
+.macos-sidebar h1, .macos-sidebar h2, .macos-sidebar h3,
+.macos-topbar h1, .macos-topbar h2, .macos-topbar h3,
+.diagnostic-drawer h1, .diagnostic-drawer h2, .diagnostic-drawer h3 {
+  color: #0f172a !important;
 }
 
-.text-slate-300 {
-  color: #cbd5e1 !important;
-  text-shadow: none !important;
+/* 一级主要文字：深黑板岩 #0f172a (覆盖容器内所有白字变种，实体彩色背景与国旗胶囊除外) */
+.macos-glass-card [class*="text-white"]:not(button[class*="bg-"]):not([class*="bg-emerald-"]):not([class*="bg-rose-"]):not([class*="bg-amber-"]):not([class*="bg-sky-"]):not([class*="bg-purple-"]):not([class*="bg-indigo-"]):not([class*="aspect-"] *):not(.region-badge *),
+.macos-card [class*="text-white"]:not(button[class*="bg-"]):not([class*="bg-emerald-"]):not([class*="bg-rose-"]):not([class*="bg-amber-"]):not([class*="bg-sky-"]):not([class*="bg-purple-"]):not([class*="bg-indigo-"]):not([class*="aspect-"] *):not(.region-badge *),
+.host-card [class*="text-white"]:not(button[class*="bg-"]):not([class*="bg-emerald-"]):not([class*="bg-rose-"]):not([class*="bg-amber-"]):not([class*="bg-sky-"]):not([class*="bg-purple-"]):not([class*="bg-indigo-"]):not([class*="aspect-"] *):not(.region-badge *),
+.diagnostic-drawer [class*="text-white"]:not(button[class*="bg-"]):not([class*="bg-emerald-"]):not([class*="bg-rose-"]):not([class*="bg-amber-"]):not([class*="bg-sky-"]):not([class*="bg-purple-"]):not([class*="bg-indigo-"]):not([class*="aspect-"] *):not(.region-badge *) {
+  color: #0f172a !important;
+}
+
+/* 地区/国旗卡片内部的文字绝对保持纯白与阴影高亮，确保在任何国旗图案上均极致清晰 */
+[class*="aspect-"] [class*="text-white"],
+[class*="aspect-"] span.truncate,
+[class*="aspect-"] span.font-black,
+.region-badge,
+.region-badge * {
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 1) !important;
+}
+
+.region-badge {
+  background: rgba(0, 0, 0, 0.65) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 二级主要文字与正文：高对比板岩黑 #1e293b (覆盖 slate-100/200/300 及其所有透明度变种如 /90, /80) */
+.macos-glass-card [class*="text-slate-100"],
+.macos-glass-card [class*="text-slate-200"],
+.macos-glass-card [class*="text-slate-300"],
+.macos-card [class*="text-slate-100"],
+.macos-card [class*="text-slate-200"],
+.macos-card [class*="text-slate-300"],
+.host-card [class*="text-slate-100"],
+.host-card [class*="text-slate-200"],
+.host-card [class*="text-slate-300"],
+.diagnostic-drawer [class*="text-slate-100"],
+.diagnostic-drawer [class*="text-slate-200"],
+.diagnostic-drawer [class*="text-slate-300"],
+.macos-sidebar [class*="text-slate-100"],
+.macos-sidebar [class*="text-slate-200"],
+.macos-sidebar [class*="text-slate-300"],
+.macos-topbar [class*="text-slate-100"],
+.macos-topbar [class*="text-slate-200"],
+.macos-topbar [class*="text-slate-300"] {
+  color: #1e293b !important;
+}
+
+/* 次要说明与辅助文本：高对比深灰板岩 #475569 (覆盖 slate-400/500 及其所有透明度变种) */
+.macos-glass-card [class*="text-slate-400"],
+.macos-glass-card [class*="text-slate-500"],
+.macos-card [class*="text-slate-400"],
+.macos-card [class*="text-slate-500"],
+.host-card [class*="text-slate-400"],
+.host-card [class*="text-slate-500"],
+.diagnostic-drawer [class*="text-slate-400"],
+.diagnostic-drawer [class*="text-slate-500"],
+.macos-sidebar [class*="text-slate-400"],
+.macos-sidebar [class*="text-slate-500"],
+.macos-topbar [class*="text-slate-400"],
+.macos-topbar [class*="text-slate-500"] {
+  color: #475569 !important;
+}
+
+/* 状态色深度对比强化：绝不在浅底上用泛白浅荧光色，全面升维为高饱和大字体 */
+.macos-glass-card [class*="text-emerald-"],
+.macos-card [class*="text-emerald-"],
+.host-card [class*="text-emerald-"],
+.diagnostic-drawer [class*="text-emerald-"] {
+  color: #047857 !important; /* emerald-700 / 纯正高对比祖母绿 */
+}
+
+.macos-glass-card [class*="text-cyan-"],
+.macos-glass-card [class*="text-sky-"],
+.macos-card [class*="text-cyan-"],
+.macos-card [class*="text-sky-"],
+.host-card [class*="text-cyan-"],
+.host-card [class*="text-sky-"],
+.diagnostic-drawer [class*="text-cyan-"],
+.diagnostic-drawer [class*="text-sky-"],
+.macos-sidebar [class*="text-cyan-"],
+.macos-sidebar [class*="text-sky-"],
+.macos-topbar [class*="text-cyan-"],
+.macos-topbar [class*="text-sky-"] {
+  color: #0369a1 !important; /* sky-700 / 深邃海洋蓝 */
+}
+
+.macos-glass-card [class*="text-amber-"],
+.macos-card [class*="text-amber-"],
+.host-card [class*="text-amber-"],
+.diagnostic-drawer [class*="text-amber-"] {
+  color: #b45309 !important; /* amber-700 / 沉稳金珀 */
+}
+
+.macos-glass-card [class*="text-rose-"],
+.macos-card [class*="text-rose-"],
+.host-card [class*="text-rose-"],
+.diagnostic-drawer [class*="text-rose-"] {
+  color: #be123c !important; /* rose-700 / 警戒绯红 */
+}
+
+.macos-glass-card [class*="text-purple-"],
+.macos-card [class*="text-purple-"],
+.host-card [class*="text-purple-"],
+.diagnostic-drawer [class*="text-purple-"] {
+  color: #6d28d9 !important; /* purple-700 / 尊贵曜紫 */
+}
+
+/* 奶白卡片内的半透明子面板与徽章衬底：彻底消除发黑发灰泥浆块，呈现温润透光微晶白 */
+.macos-glass-card [class*="bg-black/"],
+.macos-glass-card [class*="bg-slate-900"],
+.macos-glass-card [class*="bg-slate-950"],
+.macos-glass-card [class*="bg-white/"],
+.macos-card [class*="bg-black/"],
+.macos-card [class*="bg-slate-900"],
+.macos-card [class*="bg-slate-950"],
+.macos-card [class*="bg-white/"],
+.host-card [class*="bg-black/"],
+.host-card [class*="bg-slate-900"],
+.host-card [class*="bg-slate-950"],
+.host-card [class*="bg-white/"],
+.diagnostic-drawer [class*="bg-black/"],
+.diagnostic-drawer [class*="bg-slate-900"],
+.diagnostic-drawer [class*="bg-slate-950"],
+.diagnostic-drawer [class*="bg-white/"] {
+  background: rgba(255, 255, 255, 0.70) !important;
+  border: 1px solid rgba(255, 255, 255, 0.90) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+}
+
+.macos-glass-card [class*="bg-black/"]:hover,
+.macos-glass-card [class*="bg-slate-900"]:hover,
+.macos-glass-card [class*="bg-slate-950"]:hover,
+.macos-glass-card [class*="bg-white/"]:hover,
+.macos-card [class*="bg-black/"]:hover,
+.macos-card [class*="bg-slate-900"]:hover,
+.macos-card [class*="bg-slate-950"]:hover,
+.macos-card [class*="bg-white/"]:hover {
+  background: rgba(255, 255, 255, 0.90) !important;
+  border-color: rgba(255, 255, 255, 1) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* 彩色药丸徽章背景 (半透明淡彩微晶，衬托深色高对比文字) */
+.macos-glass-card [class*="bg-emerald-500/"],
+.macos-glass-card [class*="bg-emerald-950/"],
+.macos-card [class*="bg-emerald-500/"],
+.macos-card [class*="bg-emerald-950/"] {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border: 1px solid rgba(16, 185, 129, 0.40) !important;
+  color: #047857 !important;
+}
+
+.macos-glass-card [class*="bg-sky-500/"],
+.macos-glass-card [class*="bg-sky-950/"],
+.macos-glass-card [class*="bg-cyan-500/"],
+.macos-glass-card [class*="bg-cyan-950/"],
+.macos-card [class*="bg-sky-500/"],
+.macos-card [class*="bg-sky-950/"] {
+  background: rgba(2, 132, 199, 0.15) !important;
+  border: 1px solid rgba(2, 132, 199, 0.40) !important;
+  color: #0369a1 !important;
+}
+
+.macos-glass-card [class*="bg-amber-500/"],
+.macos-glass-card [class*="bg-amber-950/"],
+.macos-card [class*="bg-amber-500/"],
+.macos-card [class*="bg-amber-950/"] {
+  background: rgba(245, 158, 11, 0.15) !important;
+  border: 1px solid rgba(245, 158, 11, 0.40) !important;
+  color: #b45309 !important;
+}
+
+.macos-glass-card [class*="bg-purple-500/"],
+.macos-glass-card [class*="bg-purple-950/"],
+.macos-card [class*="bg-purple-500/"],
+.macos-card [class*="bg-purple-950/"] {
+  background: rgba(147, 51, 234, 0.15) !important;
+  border: 1px solid rgba(147, 51, 234, 0.40) !important;
+  color: #6d28d9 !important;
+}
+
+.macos-glass-card [class*="bg-rose-500/"],
+.macos-glass-card [class*="bg-rose-950/"],
+.macos-card [class*="bg-rose-500/"],
+.macos-card [class*="bg-rose-950/"] {
+  background: rgba(244, 63, 94, 0.15) !important;
+  border: 1px solid rgba(244, 63, 94, 0.40) !important;
+  color: #be123c !important;
+}
+
+/* 驾驶舱专用操作按钮 (一键测快慢 / 自愈加固) */
+.macos-glass-card button[class*="from-cyan-600"],
+.macos-glass-card button[class*="from-sky-600"] {
+  background: rgba(2, 132, 199, 0.14) !important;
+  border: 1px solid rgba(2, 132, 199, 0.40) !important;
+  color: #0369a1 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.08) !important;
+}
+.macos-glass-card button[class*="from-cyan-600"]:hover,
+.macos-glass-card button[class*="from-sky-600"]:hover {
+  background: rgba(2, 132, 199, 0.22) !important;
+  border-color: rgba(2, 132, 199, 0.60) !important;
+  color: #0284c7 !important;
+}
+
+.macos-glass-card button[class*="from-emerald-600"],
+.macos-glass-card button[class*="from-teal-600"] {
+  background: rgba(16, 185, 129, 0.14) !important;
+  border: 1px solid rgba(16, 185, 129, 0.40) !important;
+  color: #047857 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08) !important;
+}
+.macos-glass-card button[class*="from-emerald-600"]:hover,
+.macos-glass-card button[class*="from-teal-600"]:hover {
+  background: rgba(16, 185, 129, 0.22) !important;
+  border-color: rgba(16, 185, 129, 0.60) !important;
+  color: #059669 !important;
+}
+
+/* 侧边栏 Brand Typography 专属优化 */
+.macos-sidebar h1 {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0284c7 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08)) !important;
+}
+
+.macos-sidebar .rounded-full.bg-white\/10 {
+  background: rgba(255, 255, 255, 0.65) !important;
+  border-color: rgba(255, 255, 255, 0.90) !important;
+  color: #0f172a !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* 侧边栏底部 GitHub 开源仓库卡片 */
+.macos-sidebar a[href*="github.com"] {
+  background: rgba(255, 255, 255, 0.65) !important;
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  color: #0f172a !important;
+}
+.macos-sidebar a[href*="github.com"]:hover {
+  background: rgba(255, 255, 255, 0.90) !important;
+  border-color: rgba(255, 255, 255, 1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+.macos-sidebar a[href*="github.com"] svg,
+.macos-sidebar a[href*="github.com"] span {
+  color: #0f172a !important;
+}
+.macos-sidebar a[href*="github.com"] span.font-mono {
+  color: #64748b !important;
+}
+
+/* 导航栏未激活与激活项 */
+.macos-sidebar nav button:not([class*="from-sky-600"]):not(.active-nav) {
+  color: #475569 !important;
+}
+.macos-sidebar nav button:not([class*="from-sky-600"]):not(.active-nav):hover {
+  background: rgba(255, 255, 255, 0.65) !important;
+  color: #0f172a !important;
+}
+
+.macos-sidebar nav button[class*="from-sky-600"],
+.macos-sidebar nav button.active-nav {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.22) !important;
+  border: 1px solid rgba(255, 255, 255, 0.20) !important;
+}
+.macos-sidebar nav button[class*="from-sky-600"] *,
+.macos-sidebar nav button.active-nav * {
+  color: #ffffff !important;
+}
+
+/* 顶部双核热切激活与非激活按钮 */
+.macos-topbar button[class*="from-sky-600"] {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18) !important;
+}
+.macos-topbar button[class*="from-sky-600"] * {
+  color: #ffffff !important;
+}
+.macos-topbar button:not([class*="from-sky-600"]) {
+  color: #64748b !important;
+  background: rgba(255, 255, 255, 0.45) !important;
+  border-color: rgba(255, 255, 255, 0.60) !important;
+}
+.macos-topbar button:not([class*="from-sky-600"]):hover {
+  color: #0f172a !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+}
+
+/* 全局与二级胶囊组件内部按钮状态 */
+.macos-capsule button:not([class*="from-sky-600"]) {
+  color: #475569 !important;
+}
+.macos-capsule button:not([class*="from-sky-600"]):hover {
+  color: #0f172a !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+}
+.macos-capsule button[class*="from-sky-600"] {
+  background: #0f172a !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.20) !important;
+  border-radius: 12px !important;
+}
+.macos-capsule button[class*="from-sky-600"] * {
+  color: #ffffff !important;
+}
+
+/* 深色警示徽章转换为温润晶体色 */
+.bg-emerald-950,
+.bg-emerald-950\/40,
+.bg-emerald-950\/60 {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  color: #059669 !important;
+}
+.bg-amber-950,
+.bg-amber-950\/40,
+.bg-amber-950\/60 {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+  color: #d97706 !important;
+}
+.bg-cyan-950,
+.bg-cyan-950\/40,
+.bg-cyan-950\/60 {
+  background: rgba(2, 132, 199, 0.12) !important;
+  border-color: rgba(2, 132, 199, 0.35) !important;
+  color: #0284c7 !important;
+}
+
+/* 状态徽章与实体彩色标签保持亮白文字 */
+.bg-emerald-500, .bg-emerald-500 *,
+.bg-emerald-600, .bg-emerald-600 *,
+.bg-rose-500, .bg-rose-500 *,
+.bg-rose-600, .bg-rose-600 *,
+.bg-amber-500, .bg-amber-500 *,
+.bg-amber-600, .bg-amber-600 *,
+.bg-slate-900, .bg-slate-900 *,
+.bg-\[\#0f172a\], .bg-\[\#0f172a\] *,
+.bg-black, .bg-black * {
+  color: #ffffff !important;
+}
+
+/* 边框统一度 (白色与奶白微晶描边) */
+.border-slate-800,
+.border-slate-800\/90,
+.border-slate-800\/80,
+.border-slate-700,
+.border-slate-700\/80,
+.border-slate-700\/70,
+.border-slate-700\/60,
+.border-cyan-500\/40,
+.border-cyan-500\/30,
+.border-cyan-500\/25,
+.border-cyan-500\/20,
+.border-sky-800\/40,
+.border-sky-900\/40,
+.border-sky-900\/30,
+.border-sky-500\/25,
+.border-sky-500\/40,
+.border-sky-400\/30,
+.border-sky-400\/40,
+.border-cyan-400\/30,
+.border-cyan-400\/40,
+.border-cyan-400\/60,
+.border-white\/10,
+.border-white\/15,
+.border-white\/20 {
+  border-color: rgba(255, 255, 255, 0.70) !important;
+}
+
+/* 抽屉与浮动面板 (侧边排障诊断抽屉 / 主题视效中心抽屉) */
+aside.bg-\[\#001529\]\/95,
+div.bg-\[\#001529\]\/95,
+.diagnostic-drawer,
+.theme-drawer {
+  background: rgba(245, 246, 248, 0.96) !important;
+  backdrop-filter: blur(28px) saturate(180%) !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.12) !important;
+  color: #1e293b !important;
+}
+
+aside.bg-\[\#001529\]\/95 h2,
+aside.bg-\[\#001529\]\/95 h3,
+div.bg-\[\#001529\]\/95 h2,
+div.bg-\[\#001529\]\/95 h3 {
+  color: #0f172a !important;
 }
 
 /* 科技深蓝高光激活胶囊 (Primary Active) */
@@ -268,8 +717,8 @@ h1, h2, h3, .macos-title {
   background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%) !important;
   color: #ffffff !important;
   font-weight: 700 !important;
-  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.35) !important;
-  border-color: rgba(56, 189, 248, 0.40) !important;
+  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.60) !important;
 }
 
 /* 呼吸脉冲 (采用 GPU 合成器原生 opacity 脉冲，0 CPU 与 0 阴影重排开销) */
@@ -300,10 +749,10 @@ h1, h2, h3, .macos-title {
   transform: scale(0.96) translateY(12px);
 }
 
-/* 暮光晶曜微光滑块 (Gentle Contrast · Minimal macOS Glass) */
+/* 暮光晶曜微光滑块 (Gentle Contrast · Frosted Acrylic Glass) */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(56, 189, 248, 0.35) rgba(0, 16, 32, 0.45);
+  scrollbar-color: rgba(148, 163, 184, 0.45) rgba(0, 0, 0, 0.04);
 }
 
 .no-scrollbar {
@@ -317,40 +766,22 @@ h1, h2, h3, .macos-title {
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(0, 16, 32, 0.45);
+  background: rgba(0, 0, 0, 0.03);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(2, 132, 199, 0.45) 0%, rgba(56, 189, 248, 0.45) 100%);
+  background: rgba(148, 163, 184, 0.45);
   background-clip: padding-box;
   border-radius: 9999px;
   border: 2px solid transparent;
   transition: background-color 0.2s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(2, 132, 199, 0.75) 0%, rgba(56, 189, 248, 0.75) 100%);
-}
-
-/* 全局边框统一为 1px 极光微晶描边 */
-.border-slate-800,
-.border-slate-800\/90,
-.border-slate-800\/80,
-.border-slate-700,
-.border-slate-700\/80,
-.border-slate-700\/70,
-.border-slate-700\/60,
-.border-cyan-500\/40,
-.border-cyan-500\/30,
-.border-cyan-500\/25,
-.border-cyan-500\/20,
-.border-sky-800\/40,
-.border-sky-900\/40,
-.border-sky-900\/30 {
-  border-color: rgba(56, 189, 248, 0.14) !important;
+  background: rgba(100, 116, 139, 0.75);
 }
 
 .border-l-4 {
@@ -369,14 +800,14 @@ h1, h2, h3, .macos-title {
   height: 100dvh;
 }
 
-/* 统一深色模式 Select 下拉菜单样式 */
+/* 统一 Select 下拉菜单样式 */
 select {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 select option {
-  background-color: #001830 !important;
-  color: #f8fafc !important;
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
   padding: 6px 10px;
 }
 
