@@ -171,6 +171,7 @@
         :is-peek-mode="isPeekMode"
         @open-search="showCommandPalette = true"
         @open-diag="isDataplaneDrawerOpen = true"
+        @open-theme="isThemeDrawerOpen = true"
         @switch-engine="switchEngine"
         @toggle-peek="togglePeekMode"
       />
@@ -512,22 +513,22 @@
           <!-- ════════════════════════════════════════════════════════════════ -->
           <!-- 视区 1: 双核全息主控驾驶舱 (Twilight Crystal Bento Cockpit)         -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <section :class="['rounded-3xl p-5 sm:p-7 transition shadow-2xl relative border', activeEngine === 'singbox' ? 'glass-aurora border-sky-400/30' : 'glass-matrix border-purple-400/30']">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-5 pb-5 border-b border-white/10">
+          <section :class="['rounded-3xl p-5 sm:p-7 transition shadow-lg relative border bg-[#F6F7FA]/[0.90] border-white/80 backdrop-blur-xl', activeEngine === 'singbox' ? 'ring-1 ring-sky-400/20' : 'ring-1 ring-purple-400/20']">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-5 pb-5 border-b border-slate-200/80">
               <div class="flex items-start gap-4">
-                <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/10 border border-emerald-400/40 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20 text-2xl sm:text-3xl">
+                <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0 shadow-sm text-2xl sm:text-3xl">
                   🛡️
                 </div>
                 <div>
                   <div class="flex items-center gap-2.5 flex-wrap">
-                    <h2 class="text-lg sm:text-xl font-black text-white tracking-wide">双核全息主控驾驶舱</h2>
+                    <h2 class="text-lg sm:text-xl font-black text-[#0F172A] tracking-wide">双核全息主控驾驶舱</h2>
                     <!-- 98分健康徽章 -->
-                    <span class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 font-bold flex items-center gap-1.5 shadow-sm">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold flex items-center gap-1.5 shadow-sm">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
                       {{ healthRadar.overall_score || 98 }}分 · 全屋网络极速畅通
                     </span>
                   </div>
-                  <p class="text-xs sm:text-sm text-slate-300/90 mt-1 font-medium font-sans">
+                  <p class="text-xs sm:text-sm text-slate-700 mt-1 font-medium font-sans">
                     Universal IR 中间层驱动 · 遇到卡顿自动换线 · 故障保底直通不断网 · 零感自愈
                   </p>
                 </div>
@@ -536,61 +537,61 @@
               <!-- Top Actions: 一键测快慢 / 自愈加固 / 托管开关 -->
               <div class="flex items-center gap-2.5 shrink-0 self-end md:self-center flex-wrap">
                 <button @click="triggerAllServiceProbes" :disabled="probingServiceLatencies"
-                  class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-600/30 to-sky-600/30 hover:from-cyan-500/40 hover:to-sky-500/40 border border-cyan-400/40 text-xs font-bold text-cyan-200 flex items-center gap-1.5 transition active:scale-95 shadow-md cursor-pointer"
+                  class="px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 border border-sky-500 text-xs font-bold text-white flex items-center gap-1.5 transition active:scale-95 shadow-md cursor-pointer disabled:opacity-50"
                   title="立即对国内外主流网站重新测速">
                   <span :class="{'animate-spin': probingServiceLatencies}">⚡</span>
                   <span>一键测快慢</span>
                 </button>
 
                 <button @click="triggerFastSelfHeal" :disabled="switchingEngine"
-                  class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600/20 to-teal-600/20 hover:from-emerald-600/30 hover:to-teal-600/30 border border-emerald-400/40 text-xs font-bold text-emerald-200 flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer"
+                  class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-xs font-bold text-white flex items-center gap-1.5 transition active:scale-95 shadow-md cursor-pointer disabled:opacity-50"
                   title="一键自愈策略路由与清算连接">
                   <span>🛠️ 自愈加固</span>
                 </button>
 
-                <!-- AutoPilot Toggle Switch -->
-                <label class="flex items-center gap-2 cursor-pointer select-none bg-black/30 px-3 py-1.5 rounded-xl border border-white/10 hover:border-white/20 transition">
-                  <span class="text-xs font-bold text-slate-200">自动省心</span>
+                <!-- AutoPilot Toggle Switch (纯白亚克力底槽 + 高对比深石墨黑字) -->
+                <label class="flex items-center gap-2 cursor-pointer select-none bg-white hover:bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/90 shadow-sm transition">
+                  <span class="text-xs font-bold text-[#0F172A]">自动省心</span>
                   <div class="relative">
                     <input type="checkbox" v-model="autoPilotEnabled" class="sr-only" />
-                    <div :class="['w-10 h-5 rounded-full transition-colors duration-300', autoPilotEnabled ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-slate-700']"></div>
+                    <div :class="['w-10 h-5 rounded-full transition-colors duration-300', autoPilotEnabled ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-slate-300']"></div>
                     <div :class="['absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-md', autoPilotEnabled ? 'translate-x-5' : 'translate-x-0']"></div>
                   </div>
                 </label>
               </div>
             </div>
 
-            <!-- 4 Plain-Talk Status Badges (大白话生活化指征) -->
+            <!-- 4 Plain-Talk Status Badges (二级嵌套纯白微凸子卡片，彻底消灭泥灰底) -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-4">
-              <div class="p-3 rounded-2xl bg-black/25 border border-white/10 flex items-center gap-3">
+              <div class="p-3 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm flex items-center gap-3">
                 <span class="text-xl">⚡</span>
                 <div class="min-w-0 leading-tight">
-                  <div class="text-[11px] text-slate-400">网页响应速度</div>
-                  <div class="text-xs sm:text-[13px] font-bold text-emerald-300 truncate">{{ currentActiveRoute.speedText }}</div>
+                  <div class="text-[11px] text-slate-700 font-medium">网页响应速度</div>
+                  <div class="text-xs sm:text-[13px] font-bold text-emerald-700 truncate">{{ currentActiveRoute.speedText }}</div>
                 </div>
               </div>
 
-              <div class="p-3 rounded-2xl bg-black/25 border border-white/10 flex items-center gap-3">
+              <div class="p-3 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm flex items-center gap-3">
                 <span class="text-xl">🛡️</span>
                 <div class="min-w-0 leading-tight">
-                  <div class="text-[11px] text-slate-400">遇到卡顿自动换线</div>
-                  <div class="text-xs sm:text-[13px] font-bold text-emerald-300 truncate">已自动避开卡顿线路</div>
+                  <div class="text-[11px] text-slate-700 font-medium">遇到卡顿自动换线</div>
+                  <div class="text-xs sm:text-[13px] font-bold text-emerald-700 truncate">已自动避开卡顿线路</div>
                 </div>
               </div>
 
-              <div class="p-3 rounded-2xl bg-black/25 border border-white/10 flex items-center gap-3">
+              <div class="p-3 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm flex items-center gap-3">
                 <span class="text-xl">🔄</span>
                 <div class="min-w-0 leading-tight">
-                  <div class="text-[11px] text-slate-400">切换线路防卡死</div>
-                  <div class="text-xs sm:text-[13px] font-bold text-cyan-300 truncate">极速重连已就绪</div>
+                  <div class="text-[11px] text-slate-700 font-medium">切换线路防卡死</div>
+                  <div class="text-xs sm:text-[13px] font-bold text-sky-700 truncate">极速重连已就绪</div>
                 </div>
               </div>
 
-              <div class="p-3 rounded-2xl bg-black/25 border border-white/10 flex items-center gap-3">
+              <div class="p-3 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm flex items-center gap-3">
                 <span class="text-xl">🏠</span>
                 <div class="min-w-0 leading-tight">
-                  <div class="text-[11px] text-slate-400">故障保底不断网</div>
-                  <div class="text-xs sm:text-[13px] font-bold" :class="isFailOpenActive ? 'text-amber-300' : 'text-emerald-300'">
+                  <div class="text-[11px] text-slate-700 font-medium">故障保底不断网</div>
+                  <div class="text-xs sm:text-[13px] font-bold truncate" :class="isFailOpenActive ? 'text-amber-700' : 'text-emerald-700'">
                     {{ isFailOpenActive ? '已开启直连逃生' : '国内网络正常用' }}
                   </div>
                 </div>
@@ -601,30 +602,30 @@
           <!-- ════════════════════════════════════════════════════════════════ -->
           <!-- 视区 2: 常用主流网站响应速度 (8 柱动态网络遥测)                       -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <section :class="['rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 transition shadow-2xl relative border', activeProbeDropdown !== null ? 'z-40' : 'z-20', activeEngine === 'singbox' ? 'glass-aurora border-sky-400/20' : 'glass-matrix border-purple-400/20']">
+          <section :class="['rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 transition shadow-lg relative border bg-[#F6F7FA]/[0.90] border-white/80 backdrop-blur-xl', activeProbeDropdown !== null ? 'z-40' : 'z-20', activeEngine === 'singbox' ? 'ring-1 ring-sky-400/20' : 'ring-1 ring-purple-400/20']">
             <!-- Header: 标题、开启实时自动测速 toggle、⚡ 立即刷新按钮 -->
-            <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-700/40">
+            <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-200/80">
               <div>
                 <div class="flex items-center gap-3">
-                  <h3 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                  <h3 class="text-base sm:text-lg font-bold text-[#0F172A] tracking-wide flex items-center gap-2">
                     <span class="flex items-center gap-2"><ZootopiaIcon name="telemetry" :size="22" class="shrink-0" /><span>常用主流网站响应速度</span></span>
                   </h3>
-                  <!-- Toggle: 开启实时自动测速 -->
+                  <!-- Toggle: 开启实时自动测速 (纯白底槽 + 高对比深石墨黑字) -->
                   <label class="flex items-center gap-2 cursor-pointer select-none">
-                    <span class="text-xs text-slate-300 font-medium">自动测速</span>
+                    <span class="text-xs text-slate-700 font-medium">自动测速</span>
                     <div class="relative">
                       <input type="checkbox" v-model="autoSpeedtestEnabled" class="sr-only" @change="onToggleAutoSpeedtest" />
-                      <div :class="['w-9 h-5 rounded-full transition-colors duration-300', autoSpeedtestEnabled ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-slate-700']"></div>
+                      <div :class="['w-9 h-5 rounded-full transition-colors duration-300', autoSpeedtestEnabled ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-slate-300']"></div>
                       <div :class="['absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-md', autoSpeedtestEnabled ? 'translate-x-4' : 'translate-x-0']"></div>
                     </div>
                   </label>
                 </div>
-                <p class="text-xs text-slate-400 mt-1">国内外主流业务实时多域延迟探针遥测 · 绿色秒开 / 蓝色顺畅 / 故障自动换线</p>
+                <p class="text-xs text-slate-600 mt-1 font-medium font-sans">国内外主流业务实时多域延迟探针遥测 · 绿色秒开 / 蓝色顺畅 / 故障自动换线</p>
               </div>
 
-              <!-- ⚡ Refresh probes button -->
+              <!-- ⚡ Refresh probes button (纯白亚克力微凸按钮) -->
               <button @click="triggerAllServiceProbes" :disabled="probingServiceLatencies" title="立即刷新全部测速探针"
-                class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-sky-200 hover:text-white flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer">
+                class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-xs font-bold text-[#0F172A] flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer disabled:opacity-50">
                 <span :class="{'animate-spin': probingServiceLatencies}">↻</span>
                 <span>刷新测速</span>
               </button>
@@ -636,8 +637,8 @@
             <!-- 4 Service Speedtest Cards with Custom Twilight Crystal Dropdown & 8-Bar Dynamic Pillars -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div v-for="(item, bi) in serviceProbes" :key="bi"
-                class="min-h-[72px] py-3.5 px-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 hover:border-cyan-500/40 transition flex items-center justify-between gap-1 shadow-md group relative"
-                :class="activeProbeDropdown === bi ? 'z-50 ring-2 ring-cyan-400/80 shadow-[0_0_25px_rgba(0,210,255,0.3)]' : 'z-0'">
+                class="min-h-[72px] py-3.5 px-3 rounded-2xl bg-white/90 border border-slate-200/80 hover:border-sky-400/60 transition flex items-center justify-between gap-1 shadow-sm group relative"
+                :class="activeProbeDropdown === bi ? 'z-50 ring-2 ring-sky-400/80 shadow-[0_0_20px_rgba(2,132,199,0.2)]' : 'z-0'">
 
                 <!-- Left: Official Clean Brand Logo & Site Selector -->
                 <div class="flex items-center gap-1.5 shrink-0 min-w-0">
@@ -650,9 +651,9 @@
                   <div class="relative min-w-0">
                     <button @click.stop="toggleProbeDropdown(bi)" title="点击切换测速站点"
                       class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer select-none"
-                      :class="activeProbeDropdown === bi ? 'bg-cyan-950/80 border-cyan-400 text-emerald-200 ring-1 ring-cyan-400/30' : 'bg-slate-900/80 hover:bg-slate-800 border-slate-700/70 hover:border-cyan-400/60 text-slate-100 hover:text-white'">
+                      :class="activeProbeDropdown === bi ? 'bg-sky-50 border-sky-300 text-sky-800 ring-1 ring-sky-400/30' : 'bg-white hover:bg-slate-50 border-slate-200/90 text-[#0F172A]'">
                       <span class="truncate max-w-[60px] sm:max-w-[72px]">{{ item.name }}</span>
-                      <span class="text-[11px] text-emerald-300 shrink-0 transition-transform duration-200" :class="activeProbeDropdown === bi ? 'rotate-180' : ''">▾</span>
+                      <span class="text-[11px] text-sky-700 shrink-0 transition-transform duration-200" :class="activeProbeDropdown === bi ? 'rotate-180' : ''">▾</span>
                     </button>
 
                     <!-- Custom Dropdown Popover Menu -->
@@ -684,14 +685,14 @@
 
                   <div class="text-right min-w-[44px] pr-0.5">
                     <template v-if="!item.latency || item.latency <= 0 || item.latency >= 999 || item.error">
-                      <span class="text-xs sm:text-sm font-bold font-mono text-rose-400 animate-pulse">换线中</span>
+                      <span class="text-xs sm:text-sm font-bold font-mono text-rose-600 animate-pulse">换线中</span>
                     </template>
                     <template v-else>
                       <span class="text-sm sm:text-base font-black font-mono tracking-tight font-tabular"
-                        :class="item.latency > 150 ? 'text-amber-300' : (item.latency > 60 ? 'text-sky-300' : 'text-emerald-300')">
+                        :class="item.latency > 150 ? 'text-amber-700' : (item.latency > 60 ? 'text-sky-700' : 'text-emerald-700')">
                         {{ item.latency }}
                       </span>
-                      <span class="text-[10px] font-normal text-slate-400 font-sans ml-0.5">ms</span>
+                      <span class="text-[10px] font-medium text-slate-500 font-sans ml-0.5">ms</span>
                     </template>
                   </div>
                 </div>
@@ -702,55 +703,55 @@
           <!-- ════════════════════════════════════════════════════════════════ -->
           <!-- 视区 3: 全息局域网流量动态拓扑 + 全家设备单键分流控制台              -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <section class="macos-card p-5 sm:p-7 rounded-3xl space-y-6 border border-sky-500/25 bg-gradient-to-br from-[#001529]/95 via-[#00223e]/90 to-[#001020]/95 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+          <section class="macos-card p-5 sm:p-7 rounded-3xl space-y-6 border border-white/80 bg-[#F6F7FA]/[0.90] backdrop-blur-xl shadow-lg relative overflow-hidden">
             <!-- 头部标题栏与批量操作 (合理高密布局，杜绝断行) -->
-            <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-white/10 pb-4">
+            <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
               <div class="space-y-1">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <h3 class="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
+                  <h3 class="text-base sm:text-lg font-black text-[#0F172A] tracking-wide flex items-center gap-2">
                     <span>🎛️</span>
                     <span>全息局域网流量拓扑与设备控制台</span>
                   </h3>
-                  <span class="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[11px] font-bold">
+                  <span class="px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200 text-[11px] font-bold">
                     0秒免改网关
                   </span>
                 </div>
-                <p class="text-xs text-slate-300 font-medium font-sans">
+                <p class="text-xs text-slate-600 font-medium font-sans">
                   点击设备名称可就地改名持久化 · 自由微调【⚡ 旁路加速】/【🎬 影音NAS专属】/【🏠 原生物理直连】
                 </p>
               </div>
 
-              <!-- 统计徽章与批量操作按钮组 -->
+              <!-- 统计徽章与批量操作按钮组 (纯白微凸容器，高对比文字) -->
               <div class="flex items-center gap-2 shrink-0 self-start xl:self-center flex-wrap sm:flex-nowrap">
-                <div class="inline-flex items-center p-1 rounded-xl bg-black/40 border border-white/10 text-xs font-mono">
-                  <span class="px-2.5 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold">
+                <div class="inline-flex items-center p-1 rounded-xl bg-white/90 border border-slate-200/80 text-xs font-mono shadow-sm">
+                  <span class="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
                     ⚡ 旁路: {{ proxiedClientsCount }}
                   </span>
-                  <span class="px-1 text-slate-500">·</span>
-                  <span class="px-2.5 py-0.5 rounded-lg bg-purple-500/20 text-purple-300 font-bold">
+                  <span class="px-1 text-slate-400">·</span>
+                  <span class="px-2.5 py-0.5 rounded-lg bg-purple-50 text-purple-800 font-bold border border-purple-200">
                     🎬 影音: {{ mediaClientsCount }}
                   </span>
-                  <span class="px-1 text-slate-500">·</span>
-                  <span class="px-2.5 py-0.5 text-slate-300">
+                  <span class="px-1 text-slate-400">·</span>
+                  <span class="px-2.5 py-0.5 text-slate-700 font-bold">
                     🏠 直连: {{ directClientsCount }}
                   </span>
                 </div>
 
-                <div class="inline-flex items-center p-1 rounded-xl bg-black/40 border border-white/10 gap-1.5">
+                <div class="inline-flex items-center p-1 rounded-xl bg-white/90 border border-slate-200/80 gap-1.5 shadow-sm">
                   <button @click="batchSetClients('all_proxy')" :disabled="batchProcessingClients"
-                    class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs active:scale-95 transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                    class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs active:scale-95 transition flex items-center gap-1 cursor-pointer disabled:opacity-50 shadow-sm"
                     title="将全家在线设备一键接入 CubeX 旁路规则加速">
                     <span>⚡ 全屋加速</span>
                   </button>
 
                   <button @click="batchSetClients('all_direct')" :disabled="batchProcessingClients"
-                    class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-slate-200 hover:text-white font-bold text-xs active:scale-95 transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                    class="px-3 py-1 rounded-lg bg-white hover:bg-slate-50 border border-slate-200/90 text-[#0F172A] font-bold text-xs active:scale-95 transition flex items-center gap-1 cursor-pointer disabled:opacity-50 shadow-sm"
                     title="将全家在线设备一键回归主路由直通">
                     <span>🏠 全体直连</span>
                   </button>
 
                   <button @click="fetchLanClients(false)" :disabled="fetchingClients"
-                    class="p-1 rounded-lg hover:bg-white/15 text-slate-300 hover:text-white transition cursor-pointer"
+                    class="p-1 rounded-lg hover:bg-slate-100 text-slate-700 transition cursor-pointer"
                     title="刷新局域网设备列表">
                     <span :class="{'inline-block animate-spin': fetchingClients}">↻</span>
                   </button>
@@ -1403,7 +1404,7 @@
 
                     <div class="relative z-10 flex items-center justify-between gap-1 pt-1">
 
-                      <div class="flex items-center gap-1.5 min-w-0 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 shadow-md region-badge">
+                      <div class="flex items-center gap-1.5 min-w-0 px-2 py-0.5 rounded-lg bg-slate-900/85 border border-white/20 shadow-md region-badge">
 
                         <span v-if="isDirectActive(grp)" class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)] animate-pulse shrink-0"></span>
 
@@ -1511,7 +1512,7 @@
 
                         <div class="relative z-10 flex items-center justify-between gap-1 pt-1">
 
-                          <div class="flex items-center gap-1.5 min-w-0 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 shadow-md region-badge">
+                          <div class="flex items-center gap-1.5 min-w-0 px-2 py-0.5 rounded-lg bg-slate-900/85 border border-white/20 shadow-md region-badge">
 
                             <span v-if="isRegionActiveInGroup(grp, reg)" class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)] animate-pulse shrink-0"></span>
 
@@ -1623,7 +1624,7 @@
 
                       <div class="relative z-10 flex items-center justify-between gap-1 pt-1">
 
-                        <div class="flex items-center gap-1.5 min-w-0 px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 shadow-md region-badge">
+                        <div class="flex items-center gap-1.5 min-w-0 px-2 py-0.5 rounded-lg bg-slate-900/85 border border-white/20 shadow-md region-badge">
 
                           <span v-if="isRejectActive(grp)" class="w-1.5 h-1.5 rounded-full bg-rose-400 shadow-[0_0_6px_rgba(244,63,94,0.9)] animate-pulse shrink-0"></span>
 
@@ -3756,6 +3757,12 @@
     @close="isDataplaneDrawerOpen = false"
   />
 
+  <!-- 🎨 主题视效中心抽屉 (按需打开，默认完全关闭) -->
+  <ThemeCenterDrawer
+    :is-open="isThemeDrawerOpen"
+    @close="isThemeDrawerOpen = false"
+  />
+
 </template>
 
 <script setup>
@@ -3767,6 +3774,7 @@ import ThemeBackground from './components/ThemeBackground.vue'
 import { useDataplane } from './composables/useDataplane.js'
 import { useStreamBuffer } from './composables/useStreamBuffer.js'
 import { useThemeEngine } from './composables/useThemeEngine.js'
+const ThemeCenterDrawer = defineAsyncComponent(() => import('./components/ThemeCenterDrawer.vue'))
 const SubscriptionMatrix = defineAsyncComponent(() => import('./components/subscriptions/SubscriptionMatrix.vue'))
 const FullHealthModal = defineAsyncComponent(() => import('./components/modals/FullHealthModal.vue'))
 const RulesTab = defineAsyncComponent(() => import('./components/tabs/RulesTab.vue'))

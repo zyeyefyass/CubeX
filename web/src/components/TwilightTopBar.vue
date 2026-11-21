@@ -81,6 +81,15 @@
         </span>
       </button>
 
+      <!-- 🎨 主题中心入口按钮 (按需打开，不打扰常规操作) -->
+      <button
+        @click.stop="$emit('open-theme')"
+        class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/85 hover:bg-white border border-white/90 shadow-md flex items-center justify-center text-slate-800 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none pointer-events-auto"
+        title="主题与视效管理 (切换暮光冰晶几何流光、疯狂动物城壁纸或导入主题包)"
+      >
+        <span class="text-sm select-none">🎨</span>
+      </button>
+
       <!-- 👁️ 赏景模式切换按钮 (Alt+Z 亦可触发，可点击来回切换) -->
       <button
         @click.stop="$emit('toggle-peek')"
@@ -135,5 +144,5 @@ defineProps({
   }
 })
 
-defineEmits(['open-diag', 'switch-engine', 'toggle-peek'])
+defineEmits(['open-diag', 'switch-engine', 'toggle-peek', 'open-theme'])
 </script>

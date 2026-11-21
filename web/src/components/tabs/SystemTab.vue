@@ -1394,15 +1394,15 @@
 
                     <div>
 
-                      <h4 class="text-sm sm:text-base font-extrabold text-white tracking-wide">防手残时光机全量备份</h4>
+                      <h4 class="text-sm sm:text-base font-extrabold text-[#0F172A] tracking-wide">防手残时光机全量备份</h4>
 
-                      <span class="text-[11px] font-mono text-indigo-300 font-semibold">无损快照 · 秒级灾备恢复</span>
+                      <span class="text-[11px] font-mono text-indigo-700 font-bold">无损快照 · 秒级灾备恢复</span>
 
                     </div>
 
                   </div>
 
-                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-indigo-950/90 text-indigo-300 border border-indigo-500/40 font-bold shrink-0">
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold shrink-0">
 
                     秒级快照
 
@@ -1410,7 +1410,7 @@
 
                 </div>
 
-                <p class="text-xs text-slate-400 mt-3.5 leading-relaxed">
+                <p class="text-xs text-slate-600 mt-3.5 leading-relaxed">
 
                   一键打包导出包含双核配置、分流策略规则、宿主共生凭据在内的全量系统快照，遭遇任何误操作或故障均可一键导入秒级自愈。
 
@@ -1420,13 +1420,13 @@
 
               <div class="space-y-3 pt-2">
 
-                <!-- 统一规格 2x2 运维控制中枢矩阵 (四个按钮严格统一字体与尺寸) -->
+                <!-- 统一规格 2x2 运维控制中枢矩阵 (高对比两级配色：彩色主操作纯白字，日常操作纯白底黑字) -->
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-                  <!-- 1. 导出系统快照 -->
+                  <!-- 1. 导出系统快照 (高饱和深靛紫 + 纯白高亮字) -->
 
-                  <button @click="app.exportBackup" class="h-10 sm:h-11 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md select-none">
+                  <button @click="app.exportBackup" class="h-10 sm:h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md select-none">
 
                     <span class="text-sm">📥</span>
 
@@ -1434,9 +1434,9 @@
 
                   </button>
 
-                  <!-- 2. 导入快照恢复 -->
+                  <!-- 2. 导入快照恢复 (纯白亚克力底 + 高对比深石墨黑字) -->
 
-                  <label class="h-10 sm:h-11 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer text-center shadow-md backdrop-blur-md select-none">
+                  <label class="h-10 sm:h-11 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-[#0F172A] text-xs sm:text-[13px] font-semibold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer text-center shadow-sm select-none">
 
                     <span class="text-sm">📤</span>
 
@@ -1446,9 +1446,9 @@
 
                   </label>
 
-                  <!-- 3. 平滑热重载 -->
+                  <!-- 3. 平滑热重载 (纯白亚克力底 + 高对比深石墨黑字) -->
 
-                  <button @click="app.triggerHotRestart" :disabled="app.isHotRestarting" class="h-10 sm:h-11 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md disabled:opacity-50 select-none" title="平滑热重载双核代理引擎">
+                  <button @click="app.triggerHotRestart" :disabled="app.isHotRestarting" class="h-10 sm:h-11 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-[#0F172A] text-xs sm:text-[13px] font-semibold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-sm disabled:opacity-50 select-none" title="平滑热重载双核代理引擎">
 
                     <span v-if="app.isHotRestarting" class="inline-block animate-spin text-sm">↻</span>
 
@@ -1458,9 +1458,9 @@
 
                   </button>
 
-                  <!-- 4. 整机重启 -->
+                  <!-- 4. 整机重启 (警戒深红 + 纯白高亮字) -->
 
-                  <button @click="app.confirmSystemReboot" class="h-10 sm:h-11 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 border border-blue-400/30 text-blue-300 hover:text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md select-none" title="整机系统重启，重启前主动通知主路由逃生">
+                  <button @click="app.confirmSystemReboot" class="h-10 sm:h-11 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md select-none" title="整机系统重启，重启前主动通知主路由逃生">
 
                     <span class="text-sm">🔄</span>
 

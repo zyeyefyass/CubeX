@@ -844,15 +844,15 @@
 
               <!-- Card 1: 平均解析耗时 -->
 
-              <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-2 relative overflow-hidden">
+              <div class="p-4 rounded-2xl bg-[#F6F7FA]/[0.90] border border-white/80 shadow-lg space-y-2 relative overflow-hidden backdrop-blur-xl">
 
-                <div class="flex items-center justify-between text-xs text-slate-400 font-medium">
+                <div class="flex items-center justify-between text-xs text-slate-700 font-medium">
 
                   <span>平均解析耗时 (24h 遥测)</span>
 
-                  <span class="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+                  <span class="text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-300 font-mono font-bold flex items-center gap-1 shadow-sm">
 
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
 
                     0 泄露极速响应
 
@@ -860,11 +860,11 @@
 
                 </div>
 
-                <div class="text-2xl font-bold font-mono text-white flex items-baseline gap-1">
+                <div class="text-2xl font-bold font-mono text-[#0F172A] flex items-baseline gap-1">
 
                   <span>{{ app.dnsFilterStats.avgLatencyMs }}</span>
 
-                  <span class="text-xs text-slate-400 font-sans font-normal">ms</span>
+                  <span class="text-xs text-slate-600 font-sans font-medium">ms</span>
 
                 </div>
 
@@ -886,13 +886,13 @@
 
                     <path :d="app.dnsLatencyPath.area" fill="url(#dnsLatencyGrad)" />
 
-                    <path :d="app.dnsLatencyPath.line" fill="none" stroke="#C084FC" stroke-width="2" stroke-linecap="round" />
+                    <path :d="app.dnsLatencyPath.line" fill="none" stroke="#9333ea" stroke-width="2" stroke-linecap="round" />
 
                     <!-- Live Pulse End Point -->
 
-                    <circle cx="316" :cy="app.dnsLatencyLastY" r="3" fill="#C084FC" />
+                    <circle cx="316" :cy="app.dnsLatencyLastY" r="3" fill="#9333ea" />
 
-                    <circle cx="316" :cy="app.dnsLatencyLastY" r="6" fill="#C084FC" opacity="0.4" class="animate-ping" />
+                    <circle cx="316" :cy="app.dnsLatencyLastY" r="6" fill="#9333ea" opacity="0.4" class="animate-ping" />
 
                   </svg>
 
@@ -902,15 +902,15 @@
 
               <!-- Card 2: DNS 查询量 -->
 
-              <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-2 relative overflow-hidden">
+              <div class="p-4 rounded-2xl bg-[#F6F7FA]/[0.90] border border-white/80 shadow-lg space-y-2 relative overflow-hidden backdrop-blur-xl">
 
-                <div class="flex items-center justify-between text-xs text-slate-400 font-medium">
+                <div class="flex items-center justify-between text-xs text-slate-700 font-medium">
 
                   <span>DNS 查询量 (24h 吞吐)</span>
 
-                  <span class="text-[10px] text-emerald-300 font-mono flex items-center gap-1">
+                  <span class="text-[10px] text-sky-800 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-300 font-mono font-bold flex items-center gap-1 shadow-sm">
 
-                    <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse"></span>
 
                     国内直连 + Fake-IP
 
@@ -918,7 +918,7 @@
 
                 </div>
 
-                <div class="text-2xl font-bold font-mono text-white">
+                <div class="text-2xl font-bold font-mono text-[#0F172A]">
 
                   {{ app.dnsFilterStats.queryCount.toLocaleString() }}
 
@@ -958,15 +958,15 @@
 
               <!-- Card 3: 今日阻断与拦截 (带分类统计以平衡行高) -->
 
-              <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-2 relative overflow-hidden flex flex-col justify-between">
+              <div class="p-4 rounded-2xl bg-[#F6F7FA]/[0.90] border border-white/80 shadow-lg space-y-2 relative overflow-hidden flex flex-col justify-between backdrop-blur-xl">
 
                 <div>
 
                   <div class="flex items-center justify-between text-xs">
 
-                    <span class="text-slate-400 font-medium">今日阻断与拦截</span>
+                    <span class="text-slate-700 font-medium">今日阻断与拦截</span>
 
-                    <span class="text-xs font-bold font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/30">
+                    <span class="text-xs font-bold font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-300 shadow-sm">
 
                       拦截率 {{ app.dnsFilterStats.blockedPercentage }}%
 
@@ -974,7 +974,7 @@
 
                   </div>
 
-                  <div class="text-2xl font-bold font-mono text-amber-400">
+                  <div class="text-2xl font-bold font-mono text-[#B45309]">
 
                     {{ app.dnsFilterStats.blockedCount.toLocaleString() }}
 
@@ -988,9 +988,9 @@
 
                         <linearGradient id="dnsBlockedGrad" x1="0" y1="0" x2="0" y2="1">
 
-                          <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.4"/>
+                          <stop offset="0%" stop-color="#d97706" stop-opacity="0.4"/>
 
-                          <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.0"/>
+                          <stop offset="100%" stop-color="#d97706" stop-opacity="0.0"/>
 
                         </linearGradient>
 
@@ -998,13 +998,13 @@
 
                       <path :d="app.dnsBlockedPath.area" fill="url(#dnsBlockedGrad)" />
 
-                      <path :d="app.dnsBlockedPath.line" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" />
+                      <path :d="app.dnsBlockedPath.line" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" />
 
                       <!-- Live Pulse End Point -->
 
-                      <circle cx="316" :cy="app.dnsBlockedLastY" r="3" fill="#f59e0b" />
+                      <circle cx="316" :cy="app.dnsBlockedLastY" r="3" fill="#d97706" />
 
-                      <circle cx="316" :cy="app.dnsBlockedLastY" r="6" fill="#f59e0b" opacity="0.4" class="animate-ping" />
+                      <circle cx="316" :cy="app.dnsBlockedLastY" r="6" fill="#d97706" opacity="0.4" class="animate-ping" />
 
                     </svg>
 
@@ -1014,29 +1014,29 @@
 
                 <!-- 均衡行高底部分类标签 -->
 
-                <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800/60 text-[10px] font-mono text-center">
+                <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200/80 text-[10px] font-mono text-center">
 
-                  <div class="p-1.5 rounded-lg bg-slate-900/70 text-white/75 border border-slate-800/60">
+                  <div class="p-1.5 rounded-lg bg-white/90 text-slate-800 border border-slate-200/80 shadow-sm">
 
-                    <div class="text-slate-400">广告弹窗</div>
+                    <div class="text-slate-700 font-medium">广告弹窗</div>
 
-                    <div class="text-amber-400 font-bold mt-0.5">14,820</div>
-
-                  </div>
-
-                  <div class="p-1.5 rounded-lg bg-slate-900/70 text-white/75 border border-slate-800/60">
-
-                    <div class="text-slate-400">隐私追踪</div>
-
-                    <div class="text-amber-400 font-bold mt-0.5">5,640</div>
+                    <div class="text-amber-700 font-bold mt-0.5">14,820</div>
 
                   </div>
 
-                  <div class="p-1.5 rounded-lg bg-slate-900/70 text-white/75 border border-slate-800/60">
+                  <div class="p-1.5 rounded-lg bg-white/90 text-slate-800 border border-slate-200/80 shadow-sm">
 
-                    <div class="text-slate-400">恶意劫持</div>
+                    <div class="text-slate-700 font-medium">隐私追踪</div>
 
-                    <div class="text-amber-400 font-bold mt-0.5">1,220</div>
+                    <div class="text-amber-700 font-bold mt-0.5">5,640</div>
+
+                  </div>
+
+                  <div class="p-1.5 rounded-lg bg-white/90 text-slate-800 border border-slate-200/80 shadow-sm">
+
+                    <div class="text-slate-700 font-medium">恶意劫持</div>
+
+                    <div class="text-amber-700 font-bold mt-0.5">1,220</div>
 
                   </div>
 
@@ -1046,31 +1046,33 @@
 
               <!-- Card 4: 被拦截域名排行 -->
 
-              <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-3 relative overflow-hidden flex flex-col justify-between">
+              <div class="p-4 rounded-2xl bg-[#F6F7FA]/[0.90] border border-white/80 shadow-lg space-y-3 relative overflow-hidden flex flex-col justify-between backdrop-blur-xl">
 
                 <div>
 
-                  <div class="flex items-center justify-between text-xs text-slate-400 font-medium">
+                  <div class="flex items-center justify-between text-xs text-slate-700 font-medium">
 
                     <span>被拦截广告与恶意域名排行</span>
 
-                    <span class="text-[10px] text-amber-400 font-mono">217heidai 高危特征</span>
+                    <span class="text-[10px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-300 font-mono font-bold">217heidai 高危特征</span>
 
                   </div>
 
-                  <div class="space-y-2 pt-2">
+                  <!-- 列表内容：有数据渲染进度条，无数据优雅兜底提示 -->
+
+                  <div v-if="app.dnsFilterStats.topBlocked && app.dnsFilterStats.topBlocked.length > 0" class="space-y-2 pt-2">
 
                     <div v-for="item in app.dnsFilterStats.topBlocked" :key="item.domain" class="space-y-1">
 
                       <div class="flex items-center justify-between text-[11px] font-mono">
 
-                        <span class="text-slate-300 truncate max-w-[240px]" :title="item.domain">{{ item.domain }}</span>
+                        <span class="text-slate-800 font-medium truncate max-w-[240px]" :title="item.domain">{{ item.domain }}</span>
 
-                        <span class="text-slate-400 font-semibold">{{ item.count.toLocaleString() }}</span>
+                        <span class="text-slate-600 font-semibold">{{ item.count.toLocaleString() }}</span>
 
                       </div>
 
-                      <div class="w-full bg-white/10 text-white/85 h-1.5 rounded-full overflow-hidden">
+                      <div class="w-full bg-slate-200/80 h-1.5 rounded-full overflow-hidden">
 
                         <div class="bg-gradient-to-r from-amber-500 to-orange-500 h-full rounded-full transition-all duration-500"
 
@@ -1079,6 +1081,16 @@
                       </div>
 
                     </div>
+
+                  </div>
+
+                  <div v-else class="h-28 flex flex-col items-center justify-center text-center text-slate-500 space-y-1">
+
+                    <span class="text-lg">🛡️</span>
+
+                    <span class="text-xs font-semibold text-slate-700">暂无高危拦截记录</span>
+
+                    <span class="text-[10px] text-slate-500">217heidai DNS 规则防线实时守卫中</span>
 
                   </div>
 

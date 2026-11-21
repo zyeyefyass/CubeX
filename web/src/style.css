@@ -320,7 +320,7 @@ h1, h2, h3, h4, .macos-title {
   color: #0f172a !important;
 }
 
-/* 地区/国旗卡片内部的文字绝对保持纯白与阴影高亮，确保在任何国旗图案上均极致清晰 */
+/* 地区/国旗卡片内部的文字绝对保持纯白与阴影高亮，确保在任何国旗图案上均极致清晰，零 backdrop-filter 开销 */
 [class*="aspect-"] [class*="text-white"],
 [class*="aspect-"] span.truncate,
 [class*="aspect-"] span.font-black,
@@ -331,26 +331,26 @@ h1, h2, h3, h4, .macos-title {
 }
 
 .region-badge {
-  background: rgba(0, 0, 0, 0.65) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  background: rgba(15, 23, 42, 0.85) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.20) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
 }
 
 /* 二级主要文字与正文：高对比板岩黑 #1e293b (覆盖 slate-100/200/300 及其所有透明度变种如 /90, /80) */
-.macos-glass-card [class*="text-slate-100"],
-.macos-glass-card [class*="text-slate-200"],
-.macos-glass-card [class*="text-slate-300"],
-.macos-card [class*="text-slate-100"],
-.macos-card [class*="text-slate-200"],
-.macos-card [class*="text-slate-300"],
-.host-card [class*="text-slate-100"],
-.host-card [class*="text-slate-200"],
-.host-card [class*="text-slate-300"],
-.diagnostic-drawer [class*="text-slate-100"],
-.diagnostic-drawer [class*="text-slate-200"],
-.diagnostic-drawer [class*="text-slate-300"],
+.macos-glass-card [class*="text-slate-100"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.macos-glass-card [class*="text-slate-200"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.macos-glass-card [class*="text-slate-300"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.macos-card [class*="text-slate-100"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.macos-card [class*="text-slate-200"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.macos-card [class*="text-slate-300"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.host-card [class*="text-slate-100"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.host-card [class*="text-slate-200"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.host-card [class*="text-slate-300"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.diagnostic-drawer [class*="text-slate-100"]:not(.terminal-screen-window *),
+.diagnostic-drawer [class*="text-slate-200"]:not(.terminal-screen-window *),
+.diagnostic-drawer [class*="text-slate-300"]:not(.terminal-screen-window *),
 .macos-sidebar [class*="text-slate-100"],
 .macos-sidebar [class*="text-slate-200"],
 .macos-sidebar [class*="text-slate-300"],
@@ -361,14 +361,14 @@ h1, h2, h3, h4, .macos-title {
 }
 
 /* 次要说明与辅助文本：高对比深灰板岩 #475569 (覆盖 slate-400/500 及其所有透明度变种) */
-.macos-glass-card [class*="text-slate-400"],
-.macos-glass-card [class*="text-slate-500"],
-.macos-card [class*="text-slate-400"],
-.macos-card [class*="text-slate-500"],
-.host-card [class*="text-slate-400"],
-.host-card [class*="text-slate-500"],
-.diagnostic-drawer [class*="text-slate-400"],
-.diagnostic-drawer [class*="text-slate-500"],
+.macos-glass-card [class*="text-slate-400"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.macos-glass-card [class*="text-slate-500"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.macos-card [class*="text-slate-400"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.macos-card [class*="text-slate-500"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.host-card [class*="text-slate-400"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.host-card [class*="text-slate-500"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.diagnostic-drawer [class*="text-slate-400"]:not(.terminal-screen-window *),
+.diagnostic-drawer [class*="text-slate-500"]:not(.terminal-screen-window *),
 .macos-sidebar [class*="text-slate-400"],
 .macos-sidebar [class*="text-slate-500"],
 .macos-topbar [class*="text-slate-400"],
@@ -377,21 +377,21 @@ h1, h2, h3, h4, .macos-title {
 }
 
 /* 状态色深度对比强化：绝不在浅底上用泛白浅荧光色，全面升维为高饱和大字体 */
-.macos-glass-card [class*="text-emerald-"],
-.macos-card [class*="text-emerald-"],
-.host-card [class*="text-emerald-"],
-.diagnostic-drawer [class*="text-emerald-"] {
+.macos-glass-card [class*="text-emerald-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.macos-card [class*="text-emerald-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.host-card [class*="text-emerald-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.diagnostic-drawer [class*="text-emerald-"]:not(.terminal-screen-window *) {
   color: #047857 !important; /* emerald-700 / 纯正高对比祖母绿 */
 }
 
-.macos-glass-card [class*="text-cyan-"],
-.macos-glass-card [class*="text-sky-"],
-.macos-card [class*="text-cyan-"],
-.macos-card [class*="text-sky-"],
-.host-card [class*="text-cyan-"],
-.host-card [class*="text-sky-"],
-.diagnostic-drawer [class*="text-cyan-"],
-.diagnostic-drawer [class*="text-sky-"],
+.macos-glass-card [class*="text-cyan-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.macos-glass-card [class*="text-sky-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.macos-card [class*="text-cyan-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.macos-card [class*="text-sky-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.host-card [class*="text-cyan-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.host-card [class*="text-sky-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.diagnostic-drawer [class*="text-cyan-"]:not(.terminal-screen-window *),
+.diagnostic-drawer [class*="text-sky-"]:not(.terminal-screen-window *),
 .macos-sidebar [class*="text-cyan-"],
 .macos-sidebar [class*="text-sky-"],
 .macos-topbar [class*="text-cyan-"],
@@ -399,44 +399,44 @@ h1, h2, h3, h4, .macos-title {
   color: #0369a1 !important; /* sky-700 / 深邃海洋蓝 */
 }
 
-.macos-glass-card [class*="text-amber-"],
-.macos-card [class*="text-amber-"],
-.host-card [class*="text-amber-"],
-.diagnostic-drawer [class*="text-amber-"] {
+.macos-glass-card [class*="text-amber-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.macos-card [class*="text-amber-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.host-card [class*="text-amber-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.diagnostic-drawer [class*="text-amber-"]:not(.terminal-screen-window *) {
   color: #b45309 !important; /* amber-700 / 沉稳金珀 */
 }
 
-.macos-glass-card [class*="text-rose-"],
-.macos-card [class*="text-rose-"],
-.host-card [class*="text-rose-"],
-.diagnostic-drawer [class*="text-rose-"] {
+.macos-glass-card [class*="text-rose-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.macos-card [class*="text-rose-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.host-card [class*="text-rose-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.diagnostic-drawer [class*="text-rose-"]:not(.terminal-screen-window *) {
   color: #be123c !important; /* rose-700 / 警戒绯红 */
 }
 
-.macos-glass-card [class*="text-purple-"],
-.macos-card [class*="text-purple-"],
-.host-card [class*="text-purple-"],
-.diagnostic-drawer [class*="text-purple-"] {
+.macos-glass-card [class*="text-purple-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.macos-card [class*="text-purple-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.host-card [class*="text-purple-"]:not([class*="aspect-"] *):not(.region-badge *):not(.terminal-screen-window *),
+.diagnostic-drawer [class*="text-purple-"]:not(.terminal-screen-window *) {
   color: #6d28d9 !important; /* purple-700 / 尊贵曜紫 */
 }
 
-/* 奶白卡片内的半透明子面板与徽章衬底：彻底消除发黑发灰泥浆块，呈现温润透光微晶白 */
-.macos-glass-card [class*="bg-black/"],
-.macos-glass-card [class*="bg-slate-900"],
-.macos-glass-card [class*="bg-slate-950"],
-.macos-glass-card [class*="bg-white/"],
-.macos-card [class*="bg-black/"],
-.macos-card [class*="bg-slate-900"],
-.macos-card [class*="bg-slate-950"],
-.macos-card [class*="bg-white/"],
-.host-card [class*="bg-black/"],
-.host-card [class*="bg-slate-900"],
-.host-card [class*="bg-slate-950"],
-.host-card [class*="bg-white/"],
-.diagnostic-drawer [class*="bg-black/"],
-.diagnostic-drawer [class*="bg-slate-900"],
-.diagnostic-drawer [class*="bg-slate-950"],
-.diagnostic-drawer [class*="bg-white/"] {
+/* 奶白卡片内的半透明子面板与徽章衬底：彻底消除发黑发灰泥浆块，呈现温润透光微晶白 (排除国旗卡片与终端代码视窗) */
+.macos-glass-card [class*="bg-black/"]:not([class*="aspect-"]):not([class*="aspect-"] *):not(.region-badge):not(.terminal-screen-window *),
+.macos-glass-card [class*="bg-slate-900"]:not([class*="aspect-"]):not([class*="aspect-"] *):not(.region-badge):not(.terminal-screen-window *),
+.macos-glass-card [class*="bg-slate-950"]:not([class*="aspect-"]):not([class*="aspect-"] *):not(.region-badge):not(.terminal-screen-window *),
+.macos-glass-card [class*="bg-white/"]:not(button):not(label):not([class*="aspect-"] *):not(.region-badge *),
+.macos-card [class*="bg-black/"]:not([class*="aspect-"]):not([class*="aspect-"] *):not(.region-badge):not(.terminal-screen-window *),
+.macos-card [class*="bg-slate-900"]:not([class*="aspect-"]):not([class*="aspect-"] *):not(.region-badge):not(.terminal-screen-window *),
+.macos-card [class*="bg-slate-950"]:not([class*="aspect-"]):not([class*="aspect-"] *):not(.region-badge):not(.terminal-screen-window *),
+.macos-card [class*="bg-white/"]:not(button):not(label):not([class*="aspect-"] *):not(.region-badge *),
+.host-card [class*="bg-black/"]:not([class*="aspect-"]):not([class*="aspect-"] *):not(.region-badge):not(.terminal-screen-window *),
+.host-card [class*="bg-slate-900"]:not([class*="aspect-"]):not([class*="aspect-"] *):not(.region-badge):not(.terminal-screen-window *),
+.host-card [class*="bg-slate-950"]:not([class*="aspect-"]):not([class*="aspect-"] *):not(.region-badge):not(.terminal-screen-window *),
+.host-card [class*="bg-white/"]:not(button):not(label):not([class*="aspect-"] *):not(.region-badge *),
+.diagnostic-drawer [class*="bg-black/"]:not(.terminal-screen-window *),
+.diagnostic-drawer [class*="bg-slate-900"]:not(.terminal-screen-window *),
+.diagnostic-drawer [class*="bg-slate-950"]:not(.terminal-screen-window *),
+.diagnostic-drawer [class*="bg-white/"]:not(button):not(label):not(.terminal-screen-window *) {
   background: rgba(255, 255, 255, 0.70) !important;
   border: 1px solid rgba(255, 255, 255, 0.90) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
