@@ -208,10 +208,10 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
         print(f"   - 第 {attempt}/3 次传输...", flush=True)
         res = subprocess.run(cmd, capture_output=True, text=True, timeout=660)
 
-        # Wait up to 120 seconds for GitHub background storage finalization
+        # Wait up to 300 seconds for GitHub background storage finalization
         print("   - 等待 GitHub 云端入库终审校验...", flush=True)
         success = False
-        for wait_idx in range(24):
+        for wait_idx in range(60):
             time.sleep(5)
             assets = get_assets_map(token, release_id)
             if name in assets:

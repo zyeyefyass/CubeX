@@ -629,7 +629,7 @@
 
               <textarea v-model="app.batchNodeText" rows="3"
 
-                placeholder="直接粘贴节点链接，每行一条。例如：&#10;东京落地 01, ss://YWVzLTI1Ni1nY206cGFzc0AxLjIuMy40OjgzODg=#东京&#10;vless://uuid@us.example.com:443?security=reality&sni=yahoo.com#美西"
+                placeholder="直接粘贴节点链接，每行一条。例如：&#10;节点A, 协议://凭据@域名:端口#别名&#10;协议://凭据@域名:端口#节点B"
 
                 class="w-full bg-white/10 text-white border border-slate-700/80 rounded-xl p-2.5 text-xs text-slate-100 font-mono outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 shadow-inner resize-y leading-relaxed" />
 

@@ -125,7 +125,7 @@
 
             <textarea v-model="app.batchSubText" rows="6"
 
-              placeholder="每行一条订阅源，支持直接指定自定义名称。例如：&#10;香港主力专线, https://sub.network1.com/api/v1/client/subscribe?token=abc&#10;备用海外节点 | https://sub.network2.com/clash/token123&#10;https://sub.myfast.net/singbox#游戏低延迟加速"
+              placeholder="每行一条配置订阅链接。支持直接在行内指定自定义标签，例如：&#10;业务分流-A, https://example.com/sub/profile1&#10;业务分流-B | https://example.com/sub/profile2&#10;https://example.com/sub/profile3#专属通道"
 
               class="w-full bg-slate-950 border border-slate-700/80 rounded-2xl p-3 text-xs text-slate-100 font-mono outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 shadow-inner resize-y leading-relaxed" />
 
@@ -213,13 +213,13 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px] font-mono text-purple-200/90 pl-1">
 
-              <div>• <span class="text-white font-bold">名称, 节点链接</span> (如: <code>东京自建, ss://...</code> 或 <code>美西家宽, vless://...</code>)</div>
+              <div>• <span class="text-white font-bold">自定义标签, 节点链接</span> (如: <code>节点A, 协议://...</code> 或 <code>节点B, 协议://...</code>)</div>
 
-              <div>• <span class="text-white font-bold">名称 | 节点链接</span> (如: <code>新加坡专线 | hysteria2://...</code>)</div>
+              <div>• <span class="text-white font-bold">自定义标签 | 节点链接</span> (如: <code>节点C | 协议://...</code>)</div>
 
-              <div>• <span class="text-white font-bold">节点链接#名称</span> (如: <code>vless://...#香港01专线</code>)</div>
+              <div>• <span class="text-white font-bold">节点链接#自定义标签</span> (如: <code>协议://...#节点D</code>)</div>
 
-              <div>• <span class="text-white font-bold">直接粘贴单节点链接</span> (支持 ss, vmess, vless, trojan, hy2, tuic)</div>
+              <div>• <span class="text-white font-bold">直接粘贴单节点链接</span> (支持常见通用代理协议链接)</div>
 
             </div>
 
@@ -251,7 +251,7 @@
 
             <textarea v-model="app.batchNodeText" rows="6"
 
-              placeholder="每行一条自建节点，支持直接指定自定义名称。例如：&#10;东京落地 01, ss://YWVzLTI1Ni1nY206cGFzc0AxLjIuMy40OjgzODg=#东京&#10;美西家宽直连 | vless://uuid@us.example.com:443?security=reality&sni=yahoo.com#美西&#10;hy2://password@sg.speed.org:8443#新加坡高速"
+              placeholder="每行一条自建节点链接，支持指定自定义名称。例如：&#10;节点A, 协议://凭据@域名:端口#别名&#10;节点B | 协议://凭据@域名:端口&#10;协议://凭据@域名:端口#节点C"
 
               class="w-full bg-slate-950 border border-slate-700/80 rounded-2xl p-3 text-xs text-slate-100 font-mono outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 shadow-inner resize-y leading-relaxed" />
 

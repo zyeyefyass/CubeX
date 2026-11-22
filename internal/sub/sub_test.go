@@ -74,8 +74,8 @@ func TestParseSingBoxJSON(t *testing.T) {
 }
 
 func TestParseBase64Links(t *testing.T) {
-	rawLinks := "trojan://password123@us.example.com:443?sni=us.example.com#US-Trojan-01\n" +
-		"vless://11111111-2222-3333-4444-555555555555@hk.example.com:443?security=tls&sni=hk.example.com#HK-Vless-02"
+	rawLinks := "trojan://password123@node1.internal.test:443?sni=node1.internal.test#Test-Node-01\n" +
+		"vless://11111111-2222-3333-4444-555555555555@node2.internal.test:443?security=tls&sni=node2.internal.test#Test-Node-02"
 	encoded := base64.StdEncoding.EncodeToString([]byte(rawLinks))
 
 	nodes, err := sub.ParseSubscription([]byte(encoded))
@@ -85,16 +85,16 @@ func TestParseBase64Links(t *testing.T) {
 	if len(nodes) != 2 {
 		t.Fatalf("Expected 2 nodes, got %d", len(nodes))
 	}
-	if nodes[0].Name != "US-Trojan-01" {
+	if nodes[0].Name != "Test-Node-01" {
 		t.Errorf("Node 0 name mismatch: %s", nodes[0].Name)
 	}
-	if nodes[1].Name != "HK-Vless-02" {
+	if nodes[1].Name != "Test-Node-02" {
 		t.Errorf("Node 1 name mismatch: %s", nodes[1].Name)
 	}
 }
 
 func TestParseHysteria2PortHopping(t *testing.T) {
-	link := "hysteria2://mysecretpass@103.204.174.208:8443?mport=20000-40000&sni=www.yahoo.co.jp&insecure=1#JP-Hy2-Hopping"
+	link := "hysteria2://mocktoken@192.0.2.1:8443?mport=20000-40000&sni=test.local&insecure=1#Test-Hy2-Hopping"
 	node, err := sub.ParseURILink(link)
 	if err != nil {
 		t.Fatalf("ParseURILink failed: %v", err)
