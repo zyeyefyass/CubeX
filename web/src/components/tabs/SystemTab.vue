@@ -61,7 +61,7 @@
                 </div>
               </div>
 
-              <!-- 右侧快捷操作：刷新硬件遥测、主路由Web直达、配置凭据折叠切换 -->
+              <!-- 右侧快捷操作：刷新硬件遥测、主路由Web直达 -->
               <div class="flex flex-wrap items-center gap-2">
                 <button @click="refreshHW"
                   class="px-3 py-1.5 rounded-xl bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/80 text-slate-700 hover:text-slate-900 text-xs font-bold font-mono transition-all flex items-center gap-1.5 cursor-pointer shadow-sm">
@@ -71,10 +71,6 @@
                   class="px-3 py-1.5 rounded-xl bg-sky-100 hover:bg-sky-200 border border-sky-300 text-sky-900 text-xs font-bold font-mono transition-all flex items-center gap-1 shadow-sm">
                   <span>↗</span> 主路由 Web
                 </a>
-                <button @click="showHostCredentialsDeck = !showHostCredentialsDeck"
-                  class="px-3 py-1.5 rounded-xl bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/80 text-slate-700 hover:text-slate-900 text-xs font-bold font-mono transition-all flex items-center gap-1.5 shadow-sm">
-                  <span>🔑</span> {{ showHostCredentialsDeck ? '收起凭据' : '配置凭据' }}
-                </button>
               </div>
             </div>
 
@@ -82,156 +78,105 @@
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 relative z-10 text-xs font-mono">
               <!-- 1. 外网 WAN 出口 -->
               <div class="macos-sub-card p-3.5 rounded-2xl border border-slate-300/60 space-y-1.5">
-                <div class="flex items-center justify-between text-slate-500 text-[11px] font-medium">
+                <div class="flex items-center justify-between text-slate-700 text-[11px] font-bold">
                   <span class="flex items-center gap-1">🌐 外网 WAN 拨号</span>
-                  <span class="text-emerald-300 font-bold">● 在线</span>
+                  <span class="text-emerald-700 font-bold">● 在线</span>
                 </div>
                 <div class="text-sm sm:text-base font-black text-slate-900 truncate">
                   {{ app.routerHW.wan_ip || app.hostInfo.wan_ip || '待探测' }}
                 </div>
-                <div class="text-[10px] text-slate-500 flex items-center justify-between font-medium">
+                <div class="text-[10px] text-slate-600 flex items-center justify-between font-medium">
                   <span>{{ app.routerHW.wan_interface || 'WAN 上行接口' }}</span>
-                  <span class="text-cyan-300">动态物理出口</span>
+                  <span class="text-sky-800 font-bold">动态物理出口</span>
                 </div>
               </div>
 
               <!-- 2. 内网 LAN 网关与转发 -->
               <div class="macos-sub-card p-3.5 rounded-2xl border border-slate-300/60 space-y-1.5">
-                <div class="flex items-center justify-between text-slate-500 text-[11px] font-medium">
+                <div class="flex items-center justify-between text-slate-700 text-[11px] font-bold">
                   <span class="flex items-center gap-1">🏠 内网 LAN 网关</span>
-                  <span class="text-sky-300 font-bold">内核转发就绪</span>
+                  <span class="text-sky-700 font-bold">内核转发就绪</span>
                 </div>
                 <div class="text-sm sm:text-base font-black text-slate-900 truncate">
                   {{ app.routerHW.lan_ip || app.hostConfig.host || '自动探测中' }}
                 </div>
-                <div class="text-[10px] text-slate-500 flex items-center justify-between font-medium">
+                <div class="text-[10px] text-slate-600 flex items-center justify-between font-medium">
                   <span>{{ app.routerHW.lan_interface || 'bridge1' }}</span>
-                  <span class="text-emerald-300">旁路规则已接管</span>
+                  <span class="text-emerald-700 font-bold">旁路规则已接管</span>
                 </div>
               </div>
 
               <!-- 3. 固件底座与连续运行时间 -->
               <div class="macos-sub-card p-3.5 rounded-2xl border border-slate-300/60 space-y-1.5">
-                <div class="flex items-center justify-between text-slate-500 text-[11px] font-medium">
+                <div class="flex items-center justify-between text-slate-700 text-[11px] font-bold">
                   <span class="flex items-center gap-1">⏱️ 固件与运行时间</span>
-                  <span class="text-emerald-300 font-bold">● 稳定</span>
+                  <span class="text-emerald-700 font-bold">● 稳定</span>
                 </div>
                 <div class="text-sm sm:text-base font-black text-slate-900 truncate">
                   {{ app.routerHWMemoryDisplay.uptime }}
                 </div>
-                <div class="text-[10px] text-slate-500 flex items-center justify-between font-medium">
+                <div class="text-[10px] text-slate-600 flex items-center justify-between font-medium">
                   <span>固件 {{ app.routerHWMemoryDisplay.version }}</span>
-                  <span class="text-cyan-300">{{ app.routerHWMemoryDisplay.arch }}</span>
+                  <span class="text-sky-800 font-bold">{{ app.routerHWMemoryDisplay.arch }}</span>
                 </div>
               </div>
 
               <!-- 4. 宿主硬件 CPU 与内存负载 -->
               <div class="macos-sub-card p-3.5 rounded-2xl border border-slate-300/60 space-y-1.5">
-                <div class="flex items-center justify-between text-slate-500 text-[11px] font-medium">
+                <div class="flex items-center justify-between text-slate-700 text-[11px] font-bold">
                   <span class="flex items-center gap-1">⚡ 宿主物理负载</span>
-                  <span :class="app.routerHWMemoryDisplay.cpu > 80 ? 'text-amber-300' : 'text-emerald-300'" class="font-bold">
+                  <span :class="app.routerHWMemoryDisplay.cpu > 80 ? 'text-amber-700' : 'text-emerald-700'" class="font-bold">
                     CPU {{ app.routerHWMemoryDisplay.cpu }}%
                   </span>
                 </div>
                 <div class="text-sm sm:text-base font-black text-slate-900 truncate">
                   {{ app.routerHWMemoryDisplay.freeStr }}
                 </div>
-                <div class="text-[10px] text-slate-500 flex items-center justify-between font-medium">
+                <div class="text-[10px] text-slate-600 flex items-center justify-between font-medium">
                   <span>总内存 {{ app.routerHWMemoryDisplay.totalStr }}</span>
-                  <span class="text-teal-300 font-bold">物理线速直出</span>
+                  <span class="text-teal-800 font-bold">物理线速直出</span>
                 </div>
               </div>
             </div>
 
-            <!-- 全息微光动态通道管道 (Twilight Crystal Data Pipeline) -->
-            <div class="p-4 sm:p-5 rounded-2xl bg-black/40 border border-cyan-500/25 relative z-10 space-y-3 shadow-inner">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="text-xs">⚡</span>
-                  <span class="text-xs sm:text-sm font-bold text-white tracking-wide">全链路物理芯片直出 vs 双核网关全息管道</span>
-                </div>
-                <div class="flex items-center gap-3 text-xs font-mono">
-                  <span class="text-emerald-400 flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> 物理芯片直出 91.5%
-                  </span>
-                  <span class="text-cyan-400 flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span> 旁路加速穿透 8.5%
-                  </span>
-                </div>
-              </div>
-
-              <!-- 全息双通道流光动效管道 -->
-              <div class="space-y-2">
-                <!-- 通道 1: 主路由物理芯片直连通道 -->
-                <div class="space-y-1">
-                  <div class="flex items-center justify-between text-[11px] font-mono text-slate-300">
-                    <span class="flex items-center gap-1.5">
-                      <span class="text-emerald-400 font-bold">⚡</span>
-                      <span>主路由物理芯片直连通道</span>
-                      <span class="text-[10px] text-slate-400">(FastTrack / 芯片流表 · 0 CPU 0 延迟直出)</span>
-                    </span>
-                    <span class="text-emerald-300 font-bold">91.5% · ~980 Mbps 线速</span>
-                  </div>
-                  <div class="w-full h-3 rounded-full bg-slate-900/80 border border-emerald-500/30 p-0.5 overflow-hidden relative">
-                    <div class="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 transition-all duration-700 shadow-[0_0_12px_rgba(16,185,129,0.5)]" style="width: 91.5%"></div>
-                  </div>
-                </div>
-
-                <!-- 通道 2: CubeX 双核网关加速穿透通道 -->
-                <div class="space-y-1">
-                  <div class="flex items-center justify-between text-[11px] font-mono text-slate-300">
-                    <span class="flex items-center gap-1.5">
-                      <span class="text-cyan-400 font-bold">🌌</span>
-                      <span>CubeX 双核网关加速通道</span>
-                      <span class="text-[10px] text-slate-400">(Mihomo × sing-box v1.14+ · Fake-IP 规则穿透)</span>
-                    </span>
-                    <span class="text-cyan-300 font-bold">8.5% · 198.18.0.0/15 智能分流</span>
-                  </div>
-                  <div class="w-full h-3 rounded-full bg-slate-900/80 border border-cyan-500/30 p-0.5 overflow-hidden relative">
-                    <div class="h-full rounded-full bg-gradient-to-r from-purple-500 via-indigo-400 to-sky-400 transition-all duration-700 shadow-[0_0_12px_rgba(56,189,248,0.5)]" style="width: 8.5%"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Tier 3: 宿主共生凭据与鉴权面板 (支持点击展开/折叠，默认清爽折叠) -->
-            <div v-show="showHostCredentialsDeck" class="macos-sub-card p-4 sm:p-5 rounded-2xl space-y-3.5 shadow-sm relative z-10 transition-all border border-cyan-500/20">
+            <!-- Tier 3: 宿主共生凭据与鉴权面板 -->
+            <div class="macos-sub-card p-4 sm:p-5 rounded-2xl space-y-3.5 shadow-sm relative z-10 transition-all border border-cyan-500/20">
               <div class="flex items-center justify-between border-b border-slate-300/60 pb-2.5">
                 <div class="flex items-center gap-2">
                   <span class="text-base">🔑</span>
                   <span class="font-bold text-slate-900 tracking-wide">宿主共生凭据与鉴权</span>
-                  <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 border border-emerald-400/30 font-semibold shadow-sm">
+                  <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold shadow-sm">
                     {{ app.isRouterOS ? 'RouterOS REST API' : (app.isOpenWrt ? 'OpenWrt UCI / SSH' : (app.isIKuai ? '爱快 Web-RPC' : 'Docker / Linux 内核')) }}
                   </span>
                 </div>
-                <span class="text-[11px] text-slate-400 font-mono">凭据仅保存在当前容器，绝不上传云端</span>
+                <span class="text-[11px] text-slate-600 font-mono font-medium">凭据仅保存在当前容器，绝不上传云端</span>
               </div>
 
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div>
-                  <label class="block text-[11px] text-slate-700 font-bold mb-1">主路由 IP / 域名</label>
+                  <label class="block text-[11px] text-slate-800 font-bold mb-1">主路由 IP / 域名</label>
                   <input v-model="app.hostConfig.host" type="text" placeholder="自动探测或输入主路由 IP"
                     class="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder-slate-400 text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all font-medium" />
                 </div>
                 <div>
-                  <label class="block text-[11px] text-slate-700 font-bold mb-1">API 管理员账号</label>
+                  <label class="block text-[11px] text-slate-800 font-bold mb-1">API 管理员账号</label>
                   <input v-model="app.hostConfig.user" type="text" placeholder="admin"
                     class="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder-slate-400 text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all font-medium" />
                 </div>
                 <div>
-                  <label class="block text-[11px] text-slate-700 font-bold mb-1">API 管理密码</label>
+                  <label class="block text-[11px] text-slate-800 font-bold mb-1">API 管理密码</label>
                   <input v-model="app.hostConfig.password" type="password" placeholder="••••••••"
                     class="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder-slate-400 text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all font-medium" />
                 </div>
               </div>
 
               <div class="flex items-center justify-between gap-3 pt-1">
-                <p v-if="app.hostConfig.password === '******'" class="text-[11px] text-emerald-300/90 font-mono">
+                <p v-if="app.hostConfig.password === '******'" class="text-[11px] text-emerald-700 font-bold font-mono">
                   ✓ 密码已加密脱敏保存（不修改将沿用已存凭据）
                 </p>
                 <span v-else></span>
                 <button @click="app.saveCredentialsAndLinkHost" :disabled="app.savingAndLinkingHost"
-                  class="px-4 py-2 rounded-xl bg-cyan-500/25 hover:bg-cyan-500/35 border border-cyan-400/40 text-cyan-200 hover:text-white text-xs font-bold font-mono transition-all flex items-center gap-1.5 shadow-sm">
+                  class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-600 hover:from-sky-500 hover:to-cyan-500 text-white font-extrabold text-xs font-mono transition-all flex items-center gap-1.5 shadow-md cursor-pointer active:scale-95 disabled:opacity-50">
                   <span v-if="app.savingAndLinkingHost" class="inline-block animate-spin">↻</span>
                   <span>{{ app.savingAndLinkingHost ? '正在验证连接...' : '保存凭据并立即联动' }}</span>
                 </button>
@@ -242,19 +187,19 @@
                 <div class="flex items-center gap-2.5">
                   <span class="text-sm">{{ app.authState.enabled ? '🔐' : '🔓' }}</span>
                   <div>
-                    <span class="text-slate-800 font-medium">Web 控制台访问口令：</span>
-                    <span :class="app.authState.enabled ? 'text-emerald-300 font-mono' : 'text-slate-400 font-mono'">
+                    <span class="text-slate-800 font-bold">Web 控制台访问口令：</span>
+                    <span :class="app.authState.enabled ? 'text-emerald-700 font-mono font-bold' : 'text-slate-600 font-mono font-medium'">
                       {{ app.authState.enabled ? '已启用口令保护' : '默认内网免密直连' }}
                     </span>
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
                   <button v-if="app.authState.enabled" @click="app.lockConsoleNow"
-                    class="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/30 text-amber-200 text-[11px] font-bold transition cursor-pointer">
+                    class="px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-800 text-[11px] font-bold transition cursor-pointer shadow-sm">
                     🔒 立即锁定
                   </button>
                   <button @click="app.showAuthManageModal = true"
-                    class="px-3 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 text-cyan-200 hover:text-white text-[11px] font-bold transition cursor-pointer">
+                    class="px-3 py-1.5 rounded-lg bg-sky-100 hover:bg-sky-200 border border-sky-300 text-sky-800 text-[11px] font-bold transition cursor-pointer shadow-sm">
                     {{ app.authState.enabled ? '修改 / 关闭口令' : '设置访问口令' }}
                   </button>
                 </div>
@@ -267,26 +212,26 @@
                 <div class="flex items-center gap-2">
                   <span class="text-sm">🛡️</span>
                   <span class="text-xs sm:text-sm font-bold text-slate-900 tracking-wide">宿主全链路自愈中枢</span>
-                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold">
                     Netwatch 断网保护就绪（毫秒级恢复宽带直连）
                   </span>
                 </div>
-                <span class="text-[11px] text-slate-400 font-mono hidden sm:inline-block">底座状态微秒级感知 · 故障全自动无损切换</span>
+                <span class="text-[11px] text-slate-600 font-mono font-medium hidden sm:inline-block">底座状态微秒级感知 · 故障全自动无损切换</span>
               </div>
 
               <!-- 统一自适应全链路自愈主操作卡片 (全宽通栏) -->
               <div class="w-full">
                 <button @click="app.inspectAndCleanReapplyRos" :disabled="app.cleaningRosFirewall"
-                  class="w-full p-4 rounded-2xl bg-gradient-to-r bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/80 hover:border-cyan-400 text-slate-900 transition-all flex items-center justify-between group shadow-md cursor-pointer">
+                  class="w-full p-4 rounded-2xl bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/80 hover:border-cyan-400 text-slate-900 transition-all flex items-center justify-between group shadow-md cursor-pointer">
                   <div class="flex items-center gap-3.5">
                     <div class="w-11 h-11 rounded-2xl bg-cyan-100 border border-cyan-300 flex items-center justify-center text-xl shrink-0 shadow-inner">
-                      <span v-if="app.cleaningRosFirewall" class="animate-spin text-cyan-300">↻</span>
+                      <span v-if="app.cleaningRosFirewall" class="animate-spin text-cyan-700">↻</span>
                       <span v-else>⚡</span>
                     </div>
                     <div class="text-left">
                       <div class="font-black text-sm sm:text-base text-slate-900 flex items-center gap-2 flex-wrap">
                         <span>宿主全链路深度自愈与规则加固</span>
-                        <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold">
+                        <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold">
                           自适应当前底座: {{ app.hostBadge.name || 'RouterOS' }}
                         </span>
                       </div>
@@ -329,13 +274,13 @@
 
                   <span>🚀 系统与规则在线检查与升级</span>
 
-                  <span v-if="app.hasAnyUpdate" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold animate-pulse">
+                  <span v-if="app.hasAnyUpdate" class="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 font-bold animate-pulse">
 
                     ● 发现新版本可用
 
                   </span>
 
-                  <span v-else-if="app.probeChecked" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-medium">
+                  <span v-else-if="app.probeChecked" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold">
 
                     ✓ 全维度最新稳定版
 
@@ -459,9 +404,9 @@
 
                   </div>
 
-                  <span v-if="app.systemOverview.panel_update_avail" class="text-xs font-mono px-3 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/40 animate-pulse whitespace-nowrap shrink-0 font-semibold shadow-sm">发现新版 {{ app.systemOverview.panel_latest_version }}</span>
+                  <span v-if="app.systemOverview.panel_update_avail" class="text-xs font-mono px-3 py-1 rounded-lg bg-amber-100 text-amber-800 border border-amber-300 animate-pulse whitespace-nowrap shrink-0 font-bold shadow-sm">发现新版 {{ app.systemOverview.panel_latest_version }}</span>
 
-                  <span v-else class="text-xs font-mono px-3 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 whitespace-nowrap shrink-0 flex items-center gap-1.5 font-semibold shadow-sm"><span class="w-2 h-2 rounded-full bg-emerald-400"></span>✓ 已是最新稳定版</span>
+                  <span v-else class="text-xs font-mono px-3 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300 whitespace-nowrap shrink-0 flex items-center gap-1.5 font-bold shadow-sm"><span class="w-2 h-2 rounded-full bg-emerald-600"></span>✓ 已是最新稳定版</span>
 
                 </div>
 
@@ -579,15 +524,15 @@
 
                       </span>
 
-                      <span v-else-if="app.systemOverview.mihomo_update_avail || app.systemOverview.singbox_update_avail" class="text-xs font-mono px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/40 animate-pulse flex items-center gap-1 shadow-sm font-semibold">
+                      <span v-else-if="app.systemOverview.mihomo_update_avail || app.systemOverview.singbox_update_avail" class="text-xs font-mono px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 border border-amber-300 animate-pulse flex items-center gap-1 shadow-sm font-bold">
 
                         <span>⚠️ 待催更</span>
 
                       </span>
 
-                      <span v-else class="text-xs font-mono px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 flex items-center gap-1.5 shadow-sm font-semibold">
+                      <span v-else class="text-xs font-mono px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5 shadow-sm font-bold">
 
-                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
 
                         <span>✓ 已最新</span>
 
@@ -809,7 +754,7 @@
 
                   <span v-else-if="app.geodataStatus.has_update" :title="`检测到新规则包已发布 (最新版本: ${app.geodataStatus.latest_version || '最新'})，点击下方【一键全量更新】即可同步`"
 
-                    class="text-xs font-mono px-3 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/40 animate-pulse flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer font-semibold"
+                    class="text-xs font-mono px-3 py-1 rounded-lg bg-amber-100 text-amber-800 border border-amber-300 animate-pulse flex items-center gap-1.5 shadow-sm shrink-0 cursor-pointer font-bold"
 
                     @click="app.updateGeoData">
 
@@ -819,9 +764,9 @@
 
                   <span v-else :title="`基础离线库 (geoip/geosite) + ${app.geodataStatus.rules_count || 105} 套策略规则集已全量装载生效（覆盖国内外全域路由分流加速）`"
 
-                    class="text-xs font-mono px-3 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 flex items-center gap-1.5 shadow-sm shrink-0 truncate font-semibold">
+                    class="text-xs font-mono px-3 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5 shadow-sm shrink-0 truncate font-bold">
 
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+                    <span class="w-2 h-2 rounded-full bg-emerald-600 shrink-0"></span>
 
                     <span class="truncate">基础离线库 · 105 套规则集生效</span>
 
@@ -999,15 +944,15 @@
 
                   </span>
 
-                  <span v-else-if="app.hostUpgradeDetails.hasUpdate" class="text-xs font-mono px-3 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/40 animate-pulse flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap font-semibold">
+                  <span v-else-if="app.hostUpgradeDetails.hasUpdate" class="text-xs font-mono px-3 py-1 rounded-lg bg-amber-100 text-amber-800 border border-amber-300 animate-pulse flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap font-bold">
 
                     <span>🚀 发现新固件 {{ app.hostUpgradeDetails.latestVersion }}</span>
 
                   </span>
 
-                  <span v-else class="text-xs font-mono px-3 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap font-semibold">
+                  <span v-else class="text-xs font-mono px-3 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap font-bold">
 
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+                    <span class="w-2 h-2 rounded-full bg-emerald-600 shrink-0"></span>
 
                     <span>✓ 已是最新稳定版</span>
 

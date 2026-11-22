@@ -3,27 +3,17 @@
     class="macos-topbar shrink-0 h-14 md:h-16 px-3 sm:px-5 md:px-6 flex items-center justify-between border-b border-white/[0.08] select-none z-30 transition-all duration-200"
     style="contain: layout style paint;"
   >
-    <!-- 左侧：CubeX 动态版本、品牌微光与活跃宿主底座 -->
+    <!-- 左侧：CubeX 品牌微光 -->
     <div class="flex items-center space-x-2 sm:space-x-3 shrink-0">
       <div class="flex items-center space-x-2 sm:space-x-2.5">
         <img
           src="/logo-cubex.svg"
-          class="w-7 h-7 sm:w-8 sm:h-8 shrink-0  hover:scale-105 transition-transform duration-200 cursor-pointer"
+          class="w-7 h-7 sm:w-8 sm:h-8 shrink-0 hover:scale-105 transition-transform duration-200 cursor-pointer"
           alt="CubeX Logo"
         />
         <span class="text-sm md:text-base font-bold tracking-wider text-[#0f172a] font-mono">
           CubeX
         </span>
-        <!-- 动态版本号，无缝绑定后端 meta.version -->
-        <span class="px-2 py-0.5 text-[11px] font-mono font-bold rounded-full bg-white/70 text-sky-700 border border-white/80 shadow-sm">
-          {{ appVersion || 'v9.9.5' }}
-        </span>
-      </div>
-
-      <!-- 当前接入宿主原生底座徽章 (仅展示真实活跃底座，不摆未激活灰标) -->
-      <div v-if="activeHostBadge" class="hidden md:flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-white/60 border border-white/80 text-[11px] text-slate-700 shadow-sm">
-        <span class="w-1.5 h-1.5 rounded-full bg-sky-500 shadow-[0_0_6px_rgba(2,132,199,0.8)]"></span>
-        <span class="font-bold">{{ activeHostBadge }}</span>
       </div>
     </div>
 
@@ -74,28 +64,24 @@
       </span>
     </div>
 
-    <!-- 右侧：大白话数据面脉冲状态胶囊 (纯净毫秒级探针) + 👁️赏景入口 -->
+    <!-- 右侧：主路由 Logo 与主路由固件版本号 + 👁️观景入口 -->
     <div class="flex items-center space-x-1.5 sm:space-x-2.5 md:space-x-3 shrink-0">
+      <!-- 主路由 Logo 与固件版本 -->
       <div
-        :class="[
-          'flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-1 rounded-full border text-xs font-medium shadow-sm cursor-default select-none transition-all duration-200',
-          pulseState.badgeClass
-        ]"
-        title="数据面毫秒级探针正常运行中"
+        class="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-white/70 hover:bg-white/90 border border-slate-300/60 shadow-sm text-xs select-none backdrop-blur-md transition-all cursor-default"
+        :title="`主路由: ${routerName} ${routerVersion}`"
       >
-        <span :class="['w-2 h-2 rounded-full transition-transform', pulseState.dotClass]"></span>
-        <span class="font-sans tracking-tight hidden xs:inline">{{ pulseState.label }}</span>
-        <!-- 毫秒探针延迟 (等宽数字排版，杜绝抖动) -->
-        <span v-if="probeDurationMs > 0" class="font-mono text-[11px] opacity-85 tabular-nums">
-          {{ probeDurationMs }}ms
-        </span>
+        <img :src="routerLogo" class="w-4 h-4 object-contain shrink-0" :alt="routerName" />
+        <span class="font-bold text-[#0f2744]">{{ routerName }}</span>
+        <span class="text-slate-400 font-mono text-[10px]">·</span>
+        <span class="font-mono text-[11px] font-extrabold text-cyan-800">{{ routerVersion }}</span>
       </div>
 
-      <!-- 👁️ 赏景模式切换按钮 (Alt+Z 亦可触发，可点击来回切换) -->
+      <!-- 👁️ 观景模式切换按钮 (Alt+Z 亦可触发，可点击来回切换) -->
       <button
         @click.stop="$emit('toggle-peek')"
         class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#f1f4f9]/90 hover:bg-[#e2e8f0] border border-slate-300/60 shadow-sm flex items-center justify-center text-slate-800 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none pointer-events-auto z-50"
-        :title="isPeekMode ? '退出背景展示 (或按 ESC / Alt+Z)' : '隐藏面板（查看背景）· 快捷键 Alt+Z'"
+        :title="isPeekMode ? '退出背景展示 (或按 ESC / Alt+Z)' : '隐藏面板（观景模式）· 快捷键 Alt+Z'"
       >
         <span class="text-sm select-none">👁️</span>
       </button>
@@ -105,31 +91,21 @@
 
 <script setup>
 defineProps({
+  routerName: {
+    type: String,
+    default: 'RouterOS'
+  },
+  routerVersion: {
+    type: String,
+    default: 'v7.x'
+  },
+  routerLogo: {
+    type: String,
+    default: '/host-routeros-icon.svg'
+  },
   appVersion: {
     type: String,
-    default: 'v9.9.5'
-  },
-  activeHostBadge: {
-    type: String,
-    default: 'RouterOS v7'
-  },
-  searchQuery: {
-    type: String,
-    default: ''
-  },
-  pulseState: {
-    type: Object,
-    default: () => ({
-      type: 'healthy',
-      label: '数据面健康',
-      dotClass: 'bg-[#0f766e]',
-      badgeClass: 'bg-[#f1f4f9]/90 text-[#0f766e] border-teal-300/60',
-      textClass: 'text-[#0f766e]'
-    })
-  },
-  probeDurationMs: {
-    type: Number,
-    default: 1
+    default: 'v9.9.7'
   },
   activeEngine: {
     type: String,

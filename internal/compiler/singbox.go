@@ -323,6 +323,10 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 				"predefined": map[string]any{
 
+					"probe.test": []string{"127.0.0.1"},
+
+					"probe.internal": []string{"127.0.0.1"},
+
 					"dns.alidns.com": []string{"223.5.5.5", "223.6.6.6"},
 
 					"doh.pub": []string{"1.12.12.12", "120.53.53.53"},
@@ -426,7 +430,18 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 				{
 
-					"domain_suffix": []string{".lan", ".local", ".home", ".internal", ".home.arpa"},
+					"domain": []string{"probe.test", "probe.internal"},
+
+					"action": "predefined",
+
+					"rcode": "NOERROR",
+
+					"answer": []string{"probe.test. 60 IN A 127.0.0.1", "probe.internal. 60 IN A 127.0.0.1"},
+				},
+
+				{
+
+					"domain_suffix": []string{".lan", ".local", ".home", ".internal", ".home.arpa", ".test"},
 
 					"server": "dns-local",
 				},
@@ -447,7 +462,13 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 				{
 
-					"query_type": []string{"HTTPS", "SVCB"},
+					"query_type": func() []string {
+						qt := []string{"HTTPS", "SVCB"}
+						if !net.IPv6 {
+							qt = append(qt, "AAAA")
+						}
+						return qt
+					}(),
 
 					"action": "predefined",
 
@@ -556,6 +577,12 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 							".cn",
 							"bilibili.com",
 							"hdslb.com",
+							"bilivideo.com",
+							"bilivideo.cn",
+							"biliapi.net",
+							"biliapi.com",
+							"bilicdn1.com",
+							"szbdyd.com",
 							"baidu.com",
 							"bdstatic.com",
 							"qq.com",
@@ -647,7 +674,12 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 		"reverse_mapping": true,
 
-		"strategy": "prefer_ipv4",
+		"strategy": func() string {
+			if !net.IPv6 {
+				return "ipv4_only"
+			}
+			return "prefer_ipv4"
+		}(),
 
 		"cache_capacity": 2048,
 

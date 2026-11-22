@@ -377,6 +377,24 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		"+.hdslb.com",
 
+		"+.bilivideo.com",
+
+		"+.bilivideo.cn",
+
+		"+.biliapi.net",
+
+		"+.biliapi.com",
+
+		"+.bilicdn1.com",
+
+		"+.szbdyd.com",
+
+		"probe.test",
+
+		"probe.internal",
+
+		"*.test",
+
 		"+.taobao.com",
 
 		"+.alicdn.com",
@@ -589,6 +607,10 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	// Static DNS bootstrap hosts mapping & DNS Rewrite rules
 
 	hostsMap := map[string]any{
+
+		"probe.test": "127.0.0.1",
+
+		"probe.internal": "127.0.0.1",
 
 		"dns.google": []string{"8.8.8.8", "8.8.4.4"},
 

@@ -71,7 +71,7 @@
 
             <div class="flex items-center justify-center pt-0.5">
 
-              <span class="inline-flex items-center text-xs sm:text-[13px] px-3 py-1 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold tracking-wide shadow-sm drop-shadow-sm">
+              <span class="inline-flex items-center text-xs sm:text-[13px] px-3 py-1 rounded-full bg-sky-950/10 text-[#003865] border border-sky-600/40 font-extrabold tracking-wide shadow-sm">
 
                 宿主共生零感网络系统
 
@@ -162,10 +162,10 @@
     <div :class="['flex-1 min-h-0 flex flex-col h-full relative overflow-hidden w-full max-w-full transition-opacity duration-300', isPeekMode ? 'zootopia-peek-active' : '']">
       <!-- 🚀 暮光冰晶固定顶栏 (Twilight Cockpit Topbar) -->
       <TwilightTopBar
+        :router-name="mainRouterPlatform.name"
+        :router-version="mainRouterPlatform.version"
+        :router-logo="mainRouterPlatform.logo"
         :app-version="computedAppVersion"
-        :active-host-badge="activeHostBadge"
-        :pulse-state="dataplanePulseState"
-        :probe-duration-ms="dataplaneSnapshot.probe_duration_ms || 1"
         :active-engine="activeEngine"
         :is-switching-engine="switchingEngine"
         :is-peek-mode="isPeekMode"
@@ -3910,6 +3910,74 @@ const activeHostBadge = computed(() => {
     return p
   }
   return '原生共生底座'
+})
+
+const mainRouterPlatform = computed(() => {
+  const hw = routerHW.value || {}
+  const cfg = hostConfig.value || {}
+  const info = hostInfo.value || {}
+  const p = (cfg.platform || info.platform_id || '').toLowerCase()
+  const name = (info.os_name || hw.model || '').toLowerCase()
+
+  if (p.includes('ros') || p.includes('routeros') || hw.ros_version || name.includes('routeros') || name.includes('mikrotik')) {
+    let ver = hw.ros_version || hw.version || 'v7.x'
+    if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
+    return {
+      name: 'RouterOS',
+      version: ver,
+      logo: '/host-routeros-icon.svg'
+    }
+  }
+  if (p.includes('ikuai') || name.includes('ikuai') || name.includes('爱快')) {
+    let ver = hw.version || 'v4.0'
+    if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
+    return {
+      name: '爱快 iKuai',
+      version: ver,
+      logo: '/host-ikuai.svg'
+    }
+  }
+  if (p.includes('openwrt') || name.includes('openwrt') || name.includes('lede')) {
+    let ver = hw.version || 'v23.05'
+    if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
+    return {
+      name: 'OpenWrt',
+      version: ver,
+      logo: '/host-openwrt.svg'
+    }
+  }
+  if (p.includes('pve') || name.includes('pve') || name.includes('proxmox')) {
+    let ver = hw.version || 'v8.x'
+    if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
+    return {
+      name: 'Proxmox VE',
+      version: ver,
+      logo: '/host-pve.svg'
+    }
+  }
+  if (p.includes('fnos') || name.includes('fnos') || name.includes('飞牛')) {
+    let ver = hw.version || 'v0.8'
+    if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
+    return {
+      name: '飞牛 fnOS',
+      version: ver,
+      logo: '/host-fnos.svg'
+    }
+  }
+  if (hw.connected || hw.ros_version) {
+    let ver = hw.ros_version || hw.version || 'v7.x'
+    if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
+    return {
+      name: 'RouterOS',
+      version: ver,
+      logo: '/host-routeros-icon.svg'
+    }
+  }
+  return {
+    name: 'RouterOS',
+    version: 'v7.x',
+    logo: '/host-routeros-icon.svg'
+  }
 })
 
 // ── v9.8.0 全自动省心模式 (AutoPilot) 与大白话状态中枢 ──
