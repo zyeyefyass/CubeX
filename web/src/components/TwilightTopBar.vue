@@ -8,7 +8,7 @@
       <div class="flex items-center space-x-2 sm:space-x-2.5">
         <img
           src="/logo-cubex.svg"
-          class="w-7 h-7 sm:w-8 sm:h-8 shrink-0 drop-shadow-[0_0_10px_rgba(56,189,248,0.55)] hover:scale-105 transition-transform duration-200 cursor-pointer"
+          class="w-7 h-7 sm:w-8 sm:h-8 shrink-0  hover:scale-105 transition-transform duration-200 cursor-pointer"
           alt="CubeX Logo"
         />
         <span class="text-sm md:text-base font-bold tracking-wider text-[#0f172a] font-mono">
@@ -43,7 +43,7 @@
         >
           <img
             src="/logo-singbox.svg"
-            class="w-5.5 h-5.5 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(232,121,249,0.7)] transition-transform duration-200 group-hover:scale-105"
+            class="w-5.5 h-5.5 sm:w-6 sm:h-6 object-contain shrink-0  transition-transform duration-200 group-hover:scale-105"
             alt="sing-box"
           />
           <span>sing-box</span>
@@ -61,7 +61,7 @@
         >
           <img
             src="/logo-mihomo.svg"
-            class="w-5.5 h-5.5 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(56,189,248,0.8)] transition-transform duration-200 group-hover:scale-105"
+            class="w-5.5 h-5.5 sm:w-6 sm:h-6 object-contain shrink-0  transition-transform duration-200 group-hover:scale-105"
             alt="Mihomo"
           />
           <span>Mihomo</span>
@@ -74,15 +74,14 @@
       </span>
     </div>
 
-    <!-- 右侧：大白话数据面脉冲 (单点呼出诊断) + 🎨主题中心 + 👁️赏景入口 -->
+    <!-- 右侧：大白话数据面脉冲状态胶囊 (纯净毫秒级探针) + 👁️赏景入口 -->
     <div class="flex items-center space-x-1.5 sm:space-x-2.5 md:space-x-3 shrink-0">
-      <button
-        @click="$emit('open-diag')"
+      <div
         :class="[
-          'group flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-1 rounded-full border text-xs font-medium transition-all duration-200 cursor-pointer shadow-sm hover:scale-[1.02] active:scale-[0.98]',
+          'flex items-center space-x-1.5 sm:space-x-2 px-2.5 sm:px-3 py-1 rounded-full border text-xs font-medium shadow-sm cursor-default select-none transition-all duration-200',
           pulseState.badgeClass
         ]"
-        title="点击查看数据面实时指标与诊断卡"
+        title="数据面毫秒级探针正常运行中"
       >
         <span :class="['w-2 h-2 rounded-full transition-transform', pulseState.dotClass]"></span>
         <span class="font-sans tracking-tight hidden xs:inline">{{ pulseState.label }}</span>
@@ -90,12 +89,12 @@
         <span v-if="probeDurationMs > 0" class="font-mono text-[11px] opacity-85 tabular-nums">
           {{ probeDurationMs }}ms
         </span>
-      </button>
+      </div>
 
       <!-- 👁️ 赏景模式切换按钮 (Alt+Z 亦可触发，可点击来回切换) -->
       <button
         @click.stop="$emit('toggle-peek')"
-        class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/85 hover:bg-white border border-white/90 shadow-md flex items-center justify-center text-slate-800 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none pointer-events-auto z-50"
+        class="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#f1f4f9]/90 hover:bg-[#e2e8f0] border border-slate-300/60 shadow-sm flex items-center justify-center text-slate-800 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none pointer-events-auto z-50"
         :title="isPeekMode ? '退出背景展示 (或按 ESC / Alt+Z)' : '隐藏面板（查看背景）· 快捷键 Alt+Z'"
       >
         <span class="text-sm select-none">👁️</span>
@@ -123,9 +122,9 @@ defineProps({
     default: () => ({
       type: 'healthy',
       label: '数据面健康',
-      dotClass: 'bg-emerald-400 shadow-[0_0_8px_#10b981]',
-      badgeClass: 'bg-emerald-950/40 text-emerald-300 border-emerald-500/30',
-      textClass: 'text-emerald-300'
+      dotClass: 'bg-[#0f766e]',
+      badgeClass: 'bg-[#f1f4f9]/90 text-[#0f766e] border-teal-300/60',
+      textClass: 'text-[#0f766e]'
     })
   },
   probeDurationMs: {
@@ -146,5 +145,5 @@ defineProps({
   }
 })
 
-defineEmits(['open-diag', 'switch-engine', 'toggle-peek', 'open-theme'])
+defineEmits(['switch-engine', 'toggle-peek'])
 </script>

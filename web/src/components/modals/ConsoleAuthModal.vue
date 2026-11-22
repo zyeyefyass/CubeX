@@ -3,17 +3,17 @@
     <!-- Mode 1: Full-screen Auth Gate (when console lock is armed and session is unauthenticated) -->
     <div
       v-if="mode === 'login' && visible"
-      class="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-[#001529]/95 backdrop-blur-2xl animate-in fade-in"
+      class="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-[#0b101b]/95 animate-in fade-in"
     >
-      <div class="w-full max-w-md rounded-3xl macos-glass-card shadow-2xl p-7 space-y-6 text-slate-200 border border-cyan-500/35 relative overflow-hidden">
-        <div class="absolute -right-24 -top-24 w-64 h-64 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="absolute -left-24 -bottom-24 w-64 h-64 bg-purple-500/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="w-full max-w-md rounded-3xl macos-glass-card shadow-2xl p-7 space-y-6 text-slate-800 border border-slate-300/60 relative overflow-hidden">
+        <div class="absolute -right-24 -top-24 w-64 h-64 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="absolute -left-24 -bottom-24 w-64 h-64 bg-purple-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
         <div class="flex flex-col items-center text-center space-y-3 relative z-10">
-          <img src="/logo-cubex.svg" class="w-14 h-14 object-contain drop-shadow-[0_0_18px_rgba(56,189,248,0.55)]" alt="CubeX" />
+          <img src="/logo-cubex.svg" class="w-14 h-14 object-contain" alt="CubeX" />
           <div>
-            <h2 class="text-lg font-black text-white tracking-wide">CubeX 控制台访问锁</h2>
-            <p class="text-xs text-slate-300 mt-1">当前控制台已启用口令保护，请输入访问密码解锁</p>
+            <h2 class="text-lg font-black text-slate-900 tracking-wide">CubeX 控制台访问锁</h2>
+            <p class="text-xs text-slate-600 mt-1">当前控制台已启用口令保护，请输入访问密码解锁</p>
           </div>
         </div>
 

@@ -148,18 +148,21 @@ def main():
     shutil.copy2(openwrt_src, openwrt_dst)
     print(f"  ✓ Native Direct Script {openwrt_src} -> {openwrt_dst} ({os.path.getsize(openwrt_dst)} bytes)")
 
-    # 2. Linux install.sh
+    # 2. Linux install.sh (Native direct script for 100% Single-Source-of-Truth SHA256 consistency)
     install_src = os.path.join(root, "scripts", "install.sh")
     install_dst = os.path.join(release_dir, "install.sh")
-    protect_shell_script(install_src, install_dst)
-    # Also write to root install.sh for curl -fsSL https://.../install.sh
     root_install = os.path.join(root, "install.sh")
-    protect_shell_script(install_src, root_install)
+    shutil.copy2(install_src, install_dst)
+    shutil.copy2(install_src, root_install)
+    print(f"  ✓ Native Direct Script {install_src} -> {root_install} & {install_dst}")
 
-    # 3. PVE LXC
+    # 3. PVE LXC (Native direct script for 100% Single-Source-of-Truth SHA256 consistency)
     pve_src = os.path.join(root, "scripts", "install_pve_lxc.sh")
     pve_dst = os.path.join(release_dir, "install_pve_lxc.sh")
-    protect_shell_script(pve_src, pve_dst)
+    root_pve = os.path.join(root, "install_pve_lxc.sh")
+    shutil.copy2(pve_src, pve_dst)
+    shutil.copy2(pve_src, root_pve)
+    print(f"  ✓ Native Direct Script {pve_src} -> {root_pve} & {pve_dst}")
 
     # 4. RouterOS .rsc
     ros_src = os.path.join(root, "scripts", "ros", "setup-routeros-v7.rsc")

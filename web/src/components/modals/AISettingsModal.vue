@@ -1,11 +1,11 @@
 <template>
-    <div v-if="app.showAISettingsModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in" @click.self="app.showAISettingsModal = false">
+    <div v-if="app.showAISettingsModal" class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in" @click.self="app.showAISettingsModal = false">
 
-      <div class="bg-[#0e091c]/95 border border-white/20 rounded-3xl p-5 sm:p-7 max-w-2xl w-full space-y-5 shadow-2xl text-slate-200 my-auto">
+      <div class="bg-[#E5EAF1] border border-slate-300/60 rounded-3xl p-5 sm:p-7 max-w-2xl w-full space-y-5 shadow-2xl text-slate-800 my-auto">
 
         <!-- 模态框标题 -->
 
-        <div class="flex items-center justify-between border-b border-white/10 pb-3.5">
+        <div class="flex items-center justify-between border-b border-slate-300/60 pb-3.5">
 
           <div class="flex items-center gap-2.5">
 

@@ -316,8 +316,9 @@ files_to_verify = {
     'scripts/package_release.ps1': r'\$Version\s*=\s*"(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
     'scripts/package_release.sh': r'VERSION="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
     'scripts/install.sh': r'REL_TAG="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
-    'install.sh': r'_CUBEX_LOADER_VERSION="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
+    'install.sh': r'REL_TAG="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
     'scripts/install_pve_lxc.sh': r'REL_TAG="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
+    'install_pve_lxc.sh': r'REL_TAG="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
 }
 
 detected_versions = {}
@@ -327,16 +328,34 @@ for p, pat in files_to_verify.items():
     m = re.search(pat, content)
     detected_versions[p] = m.group(1) if m else 'NOT_FOUND'
 
+# 焊死 SHA256 脚本单一真理源门禁 (scripts/ -> 根目录物理副本一致性校验，绝无 Git symlink)
+import hashlib
+script_sync_errors = []
+for sname in ['install.sh', 'install_pve_lxc.sh']:
+    src_f = os.path.join(ROOT, 'scripts', sname)
+    dst_f = os.path.join(ROOT, sname)
+    if not os.path.exists(dst_f):
+        script_sync_errors.append(f"Root {sname} missing")
+        continue
+    h_src = hashlib.sha256(open(src_f, 'rb').read()).hexdigest()
+    h_dst = hashlib.sha256(open(dst_f, 'rb').read()).hexdigest()
+    if h_src != h_dst:
+        script_sync_errors.append(f"{sname} SHA256 mismatch (scripts/{sname} vs root {sname})")
+
 unique_versions = set(detected_versions.values())
-if len(unique_versions) == 1 and 'NOT_FOUND' not in unique_versions:
+if len(unique_versions) == 1 and 'NOT_FOUND' not in unique_versions and not script_sync_errors:
     v_num = list(unique_versions)[0]
     display_tag = f"v{v_num}" if not v_num.startswith("v") else v_num
-    print(f"  ✓ 100% Atomic Consistency PASS: All 9 core files strictly aligned at {display_tag} (Tag: {display_tag})")
+    print(f"  ✓ 100% Atomic Consistency PASS: All 10 core files strictly aligned at {display_tag} (Tag: {display_tag})")
+    print(f"  ✓ Single-Source-of-Truth SHA256 PASSED (install.sh & install_pve_lxc.sh)")
     results["checks"]["version_consistency"] = {"status": "PASS", "version": display_tag}
     results["passed"] += 1
 else:
-    print(f"  ✗ Version divergence detected across files: {detected_versions}")
-    results["checks"]["version_consistency"] = {"status": "FAIL", "detected": detected_versions}
+    err_msg = f"Version divergence: {detected_versions}"
+    if script_sync_errors:
+        err_msg += f" | Script SHA256 Sync Errors: {script_sync_errors}"
+    print(f"  ✗ {err_msg}")
+    results["checks"]["version_consistency"] = {"status": "FAIL", "output": err_msg}
     results["failures"] += 1
 
 # -------------------------------------------------------------

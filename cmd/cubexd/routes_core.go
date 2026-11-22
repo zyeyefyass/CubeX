@@ -1631,7 +1631,7 @@ func (s *Server) handleSystemOverview(w http.ResponseWriter, r *http.Request) {
 
 	latestVer, _ := overview["panel_latest_version"].(string)
 
-	if latestVer == "" || latestVer == "Test-v1.3" || !ros.IsVersionNewer(latestVer, version) {
+	if latestVer == "" || !ros.IsVersionNewer(latestVer, version) {
 
 		overview["panel_latest_version"] = version
 

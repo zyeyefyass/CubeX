@@ -44,6 +44,8 @@ import (
 
 	"time"
 
+	"github.com/zyeyefyass/CubeX/internal/netutil"
+
 	"strconv"
 
 	"github.com/zyeyefyass/CubeX/internal/compiler"
@@ -108,6 +110,8 @@ type Manager struct {
 	precompiledMu     sync.RWMutex
 	irVersion         uint64
 	switchingGraceDeadline atomic.Int64
+	stopCh chan struct{}
+	stopOnce sync.Once
 }
 
 // NewManager creates a dual-engine manager.
@@ -216,6 +220,7 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 
 		statusCh: make(chan schema.EngineType, 10),
 		precompiledConfig: make(map[schema.EngineType][]byte),
+		stopCh: make(chan struct{}),
 	}
 
 	go mgr.WarmStandbyConfigs()
@@ -448,7 +453,7 @@ func (m *Manager) SnapshotClashState() map[string]string {
 
 		if resp, err := m.httpClient.Do(req); err == nil {
 
-			defer resp.Body.Close()
+			defer netutil.DrainAndCloseBody(resp)
 
 			if resp.StatusCode == http.StatusOK {
 				var data struct {
@@ -553,7 +558,7 @@ func (m *Manager) RestoreClashState(snapshot map[string]string) int {
 
 			if err == nil {
 
-				_ = resp.Body.Close()
+				netutil.DrainAndCloseBody(resp)
 
 				if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
 
@@ -766,16 +771,6 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 
 		}
 
-		if pipeType == "stderr" {
-
-			fmt.Fprintln(os.Stderr, line)
-
-		} else {
-
-			fmt.Fprintln(os.Stdout, line)
-
-		}
-
 		cleanLine := ansiStripRegex.ReplaceAllString(line, "")
 
 		level := "INFO"
@@ -853,6 +848,16 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 		} else if strings.Contains(lower, "debug") {
 
 			level = "DEBUG"
+
+		}
+
+		if pipeType == "stderr" {
+
+			fmt.Fprintln(os.Stderr, line)
+
+		} else {
+
+			fmt.Fprintln(os.Stdout, line)
 
 		}
 
@@ -1035,10 +1040,14 @@ const (
 // Stop gracefully stops the active core and unbinds TUN interfaces before system shutdown.
 func (m *Manager) Stop() {
 	m.mu.Lock()
-	defer m.mu.Unlock()
 	m.stopping = true
 	m.stopCurrentCoreWithGrace(ShutdownGracePeriod)
 	m.reclaimOSMemory()
+	m.mu.Unlock()
+
+	m.stopOnce.Do(func() {
+		close(m.stopCh)
+	})
 }
 
 func (m *Manager) stopCurrentCore(binName string) {
@@ -1534,7 +1543,7 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 
 			if err == nil {
 
-				_ = resp.Body.Close()
+				netutil.DrainAndCloseBody(resp)
 
 			}
 
@@ -1562,7 +1571,7 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 
 			if err2 == nil {
 
-				_ = resp2.Body.Close()
+				netutil.DrainAndCloseBody(resp2)
 
 			}
 
@@ -1578,34 +1587,29 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 }
 
 // StartSupervisor runs the 2.5s periodic health heartbeat & auto-healing state machine
-
 func (m *Manager) StartSupervisor() {
-
 	go func() {
-
 		ticker := time.NewTicker(2500 * time.Millisecond)
-
 		defer ticker.Stop()
-
 		var healthyConsecutive int
 
-		for range ticker.C {
+		for {
+			select {
+			case <-m.stopCh:
+				return
+			case <-ticker.C:
+				m.mu.Lock()
+				stopping := m.stopping
+				active := m.activeEngine
+				proc := m.currentProc
+				m.mu.Unlock()
 
-			m.mu.Lock()
-
-			stopping := m.stopping
-
-			active := m.activeEngine
-
-			proc := m.currentProc
-
-			m.mu.Unlock()
-
-			if stopping || active == "" || proc == nil {
-
-				continue
-
-			}
+				if stopping {
+					return
+				}
+				if active == "" || proc == nil {
+					continue
+				}
 
 			// 1. Process Liveness Check
 
@@ -1738,6 +1742,8 @@ func (m *Manager) StartSupervisor() {
 					}
 
 				}
+
+			}
 
 			}
 
@@ -2018,34 +2024,34 @@ func (m *Manager) PatrolCircuitBreaker() int {
 // If outbound traffic hangs/freezes repeatedly while process is alive, it auto-switches to the standby engine.
 
 func (m *Manager) StartEndToEndWatchdog() {
-
 	go func() {
-
-		time.Sleep(45 * time.Second)
+		select {
+		case <-m.stopCh:
+			return
+		case <-time.After(45 * time.Second):
+		}
 
 		ticker := time.NewTicker(60 * time.Second)
-
 		defer ticker.Stop()
-
 		var failCount int
 
-		for range ticker.C {
+		for {
+			select {
+			case <-m.stopCh:
+				return
+			case <-ticker.C:
+				m.mu.RLock()
+				stopping := m.stopping
+				active := m.activeEngine
+				ir := m.ir
+				m.mu.RUnlock()
 
-			m.mu.RLock()
-
-			stopping := m.stopping
-
-			active := m.activeEngine
-
-			ir := m.ir
-
-			m.mu.RUnlock()
-
-			if stopping || active == "" || ir == nil || len(ir.Proxies) == 0 {
-
-				continue
-
-			}
+				if stopping {
+					return
+				}
+				if active == "" || ir == nil || len(ir.Proxies) == 0 {
+					continue
+				}
 
 			proxyPort := 7890
 
@@ -2096,7 +2102,7 @@ func (m *Manager) StartEndToEndWatchdog() {
 
 				if dErr == nil {
 
-					_ = resp.Body.Close()
+					netutil.DrainAndCloseBody(resp)
 
 					if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusOK {
 
@@ -2150,6 +2156,8 @@ func (m *Manager) StartEndToEndWatchdog() {
 
 			}
 
+			}
+
 		}
 
 	}()
@@ -2188,7 +2196,7 @@ func (m *Manager) flushStaleConnectionsAfterSwitch() {
 	client := &http.Client{Timeout: 1 * time.Second}
 	resp, err := client.Do(req)
 	if err == nil {
-		_ = resp.Body.Close()
+		netutil.DrainAndCloseBody(resp)
 		log.Printf("🧹 [Engine] Flushed stale connections via Clash API (%s)", url)
 	}
 }

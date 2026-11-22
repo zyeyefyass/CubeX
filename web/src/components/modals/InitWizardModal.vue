@@ -1,7 +1,7 @@
 <template>
-    <div v-if="app.showInitWizardModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-2xl animate-in fade-in overflow-y-auto">
+    <div v-if="app.showInitWizardModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 animate-in fade-in overflow-y-auto">
 
-      <div class="relative w-full max-w-3xl rounded-3xl macos-glass-card shadow-2xl p-6 sm:p-8 space-y-6 text-slate-200 overflow-hidden">
+      <div class="relative w-full max-w-3xl rounded-3xl macos-glass-card shadow-2xl p-6 sm:p-8 space-y-6 text-slate-800 overflow-hidden border border-slate-300/60">
 
         <!-- Canvas for Celebratory Aurora Fireworks -->
 
@@ -13,7 +13,7 @@
 
         <!-- Modal Header -->
 
-        <div class="flex items-center justify-between border-b border-slate-700/60 pb-4 relative z-10">
+        <div class="flex items-center justify-between border-b border-slate-300/60 pb-4 relative z-10">
 
           <div class="flex items-center gap-3">
 
@@ -21,7 +21,7 @@
 
             <div>
 
-              <h3 class="text-lg font-black text-white flex items-center gap-2">
+              <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
 
                 <span>CubeX 宿主共生系统初始化向导</span>
 
@@ -33,13 +33,13 @@
 
               </h3>
 
-              <p class="text-xs text-slate-400 mt-0.5">宿主基座直连 · 环境自动探测 · 策略路由双向编排</p>
+              <p class="text-xs text-slate-500 mt-0.5">宿主基座直连 · 环境自动探测 · 策略路由双向编排</p>
 
             </div>
 
           </div>
 
-          <button @click="app.showInitWizardModal = false; app.stopFireworks()" class="text-slate-400 hover:text-white text-lg font-bold p-1 rounded-lg hover:bg-white/20 border border-transparent hover:border-sky-400/50 text-white/80 transition">✕</button>
+          <button @click="app.showInitWizardModal = false; app.stopFireworks()" class="text-slate-500 hover:text-white text-lg font-bold p-1 rounded-lg hover:bg-white/20 border border-transparent hover:border-sky-400/50 text-white/80 transition">✕</button>
 
         </div>
 
@@ -47,25 +47,25 @@
 
         <div class="grid grid-cols-4 gap-2 text-xs font-mono relative z-10">
 
-          <div :class="['p-2 rounded-xl border text-center transition', app.initWizardStep === 1 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (app.initWizardStep > 1 ? 'bg-white/10 text-white border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300')]">
+          <div :class="['p-2 rounded-xl border text-center transition', app.initWizardStep === 1 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (app.initWizardStep > 1 ? 'bg-white/10 text-white border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-700')]">
 
             <span>① 模式选择</span>
 
           </div>
 
-          <div :class="['p-2 rounded-xl border text-center transition', app.initWizardStep === 2 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (app.initWizardStep > 2 ? 'bg-white/10 text-white border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300')]">
+          <div :class="['p-2 rounded-xl border text-center transition', app.initWizardStep === 2 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (app.initWizardStep > 2 ? 'bg-white/10 text-white border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-700')]">
 
             <span>② 连通宿主</span>
 
           </div>
 
-          <div :class="['p-2 rounded-xl border text-center transition', app.initWizardStep === 3 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (app.initWizardStep > 3 ? 'bg-white/10 text-white border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-300')]">
+          <div :class="['p-2 rounded-xl border text-center transition', app.initWizardStep === 3 ? 'bg-cyan-500/20 border-cyan-400 text-emerald-200 font-bold shadow-sm' : (app.initWizardStep > 3 ? 'bg-white/10 text-white border-emerald-500/40 text-emerald-300' : 'bg-slate-950/60 border-slate-800 text-slate-700')]">
 
             <span>③ 探测编排</span>
 
           </div>
 
-          <div :class="['p-2 rounded-xl border text-center transition', app.initWizardStep === 4 ? 'bg-gradient-to-r from-teal-500/30 to-cyan-500/30 border-cyan-400 text-emerald-200 font-bold shadow-sm' : 'bg-slate-950/60 border-slate-800 text-slate-300']">
+          <div :class="['p-2 rounded-xl border text-center transition', app.initWizardStep === 4 ? 'bg-gradient-to-r from-teal-500/30 to-cyan-500/30 border-cyan-400 text-emerald-200 font-bold shadow-sm' : 'bg-slate-950/60 border-slate-800 text-slate-700']">
 
             <span>④ 导入与启航</span>
 
@@ -85,7 +85,7 @@
 
             <span class="text-base shrink-0">💡</span>
 
-            <p class="text-slate-300 leading-relaxed">
+            <p class="text-slate-700 leading-relaxed">
 
               欢迎使用 CubeX！请选择初始化方式：若已有备份快照可一键快速还原；若为初次安装部署或需彻底重置请选择全新开始。
 
@@ -121,7 +121,7 @@
 
                   <h4 class="text-sm font-bold text-white group-hover:text-emerald-300 transition">全新开始 (Clean Setup)</h4>
 
-                  <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                  <p class="text-xs text-slate-500 mt-1 leading-relaxed">
 
                     清除旧有代理与网络配置，恢复洁净纯净状态。向导将引导填入宿主凭据，自动探测底座并下发策略路由。
 
@@ -129,7 +129,7 @@
 
                 </div>
 
-                <div class="space-y-1.5 pt-1 text-[11px] text-slate-300 font-mono">
+                <div class="space-y-1.5 pt-1 text-[11px] text-slate-700 font-mono">
 
                   <div class="flex items-center gap-1.5 text-emerald-300">
 
@@ -187,7 +187,7 @@
 
                   <h4 class="text-sm font-bold text-white group-hover:text-purple-200 transition">导入已有备份 (Restore Snapshot)</h4>
 
-                  <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                  <p class="text-xs text-slate-500 mt-1 leading-relaxed">
 
                     从本地已导出的 CubeX 备份文件（.json 快照）一键还原全量订阅源、代理节点、分流规则与宿主凭据。
 
@@ -227,7 +227,7 @@
 
                     <div class="text-xs font-bold text-purple-200">点击选择或拖拽 .json 快照文件</div>
 
-                    <div class="text-[10px] text-slate-300 font-mono">支持 CubeX 导出的全量备份文件 (*.json)</div>
+                    <div class="text-[10px] text-slate-700 font-mono">支持 CubeX 导出的全量备份文件 (*.json)</div>
 
                   </div>
 
@@ -245,13 +245,13 @@
 
                   </div>
 
-                  <div class="text-[11px] font-mono text-slate-300 space-y-0.5">
+                  <div class="text-[11px] font-mono text-slate-700 space-y-0.5">
 
                     <div>已装载网络订阅: <b class="text-emerald-300">{{ app.initImportStats.sub_count }}</b> 条</div>
 
                     <div>已装载出站节点: <b class="text-emerald-300">{{ app.initImportStats.proxy_count }}</b> 个</div>
 
-                    <div class="text-[10px] text-slate-400 truncate">文件: {{ app.initImportStats.filename }}</div>
+                    <div class="text-[10px] text-slate-500 truncate">文件: {{ app.initImportStats.filename }}</div>
 
                   </div>
 
@@ -311,7 +311,7 @@
 
             </div>
 
-            <p class="text-slate-300 leading-relaxed">
+            <p class="text-slate-700 leading-relaxed">
 
               填入宿主管理地址与管理员凭据。对于 <b>MikroTik RouterOS</b>，账号密码完全指你平时登录 WinBox 客户端所用的账号（默认 admin）与登录密码（无密码直接留空）。
 
@@ -323,7 +323,7 @@
 
             <div>
 
-              <label class="block text-slate-400 mb-1">宿主管理地址 (Host IP)</label>
+              <label class="block text-slate-500 mb-1">宿主管理地址 (Host IP)</label>
 
               <input v-model="app.initHostForm.host_ip" placeholder="请输入或自动探测主路由 IP"
 
@@ -333,7 +333,7 @@
 
             <div>
 
-              <label class="block text-slate-400 mb-1">Web / REST 端口 (Port)</label>
+              <label class="block text-slate-500 mb-1">Web / REST 端口 (Port)</label>
 
               <input v-model="app.initHostForm.port" placeholder="ROS: 80/443, Linux: 22"
 
@@ -343,7 +343,7 @@
 
             <div>
 
-              <label class="block text-slate-400 mb-1">管理员账号 (Username)</label>
+              <label class="block text-slate-500 mb-1">管理员账号 (Username)</label>
 
               <input v-model="app.initHostForm.username" placeholder="例: admin"
 
@@ -355,7 +355,7 @@
 
               <div class="flex items-center justify-between mb-1">
 
-                <label class="block text-slate-400">管理员密码 (Password)</label>
+                <label class="block text-slate-500">管理员密码 (Password)</label>
 
                 <button type="button" @click="app.initHostForm.showPassword = !app.initHostForm.showPassword" class="text-[10px] text-emerald-300 hover:underline">
 
@@ -375,7 +375,7 @@
 
           <div class="flex items-center justify-between pt-4 border-t border-sky-900/40">
 
-            <button @click="app.initWizardStep = 1" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 text-slate-300 text-xs font-semibold active:scale-95 transition">
+            <button @click="app.initWizardStep = 1" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 text-slate-700 text-xs font-semibold active:scale-95 transition">
 
               ⬅ 返回模式选择
 
@@ -407,7 +407,7 @@
 
               <div>
 
-                <div class="text-xs text-slate-400">识别到的宿主环境平台</div>
+                <div class="text-xs text-slate-500">识别到的宿主环境平台</div>
 
                 <div class="text-sm font-bold text-emerald-300">
 
@@ -431,7 +431,7 @@
 
           <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5 font-mono text-xs max-h-56 overflow-y-auto shadow-inner">
 
-            <div class="text-[10px] text-slate-300 uppercase tracking-widest border-b border-slate-900 pb-1 flex justify-between">
+            <div class="text-[10px] text-slate-700 uppercase tracking-widest border-b border-slate-900 pb-1 flex justify-between">
 
               <span>EXECUTION DISPATCHER</span>
 
@@ -445,13 +445,13 @@
 
               <span v-else class="text-emerald-400 shrink-0">✓</span>
 
-              <span class="text-slate-200">{{ log.text }}</span>
+              <span class="text-slate-800">{{ log.text }}</span>
 
             </div>
 
           </div>
 
-          <div class="p-3 rounded-xl bg-slate-900/70 text-white/75 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+          <div class="p-3 rounded-xl bg-slate-900/70 text-white/75 border border-slate-800 text-[11px] text-slate-500 flex items-center justify-between">
 
             <span>正在执行：巡检隔离策略路由表 (table cubex)、下发 Mangle 防火墙规则与配置防 DNS 泄露...</span>
 
@@ -491,7 +491,7 @@
 
               </h3>
 
-              <p class="text-xs text-slate-300 mt-0.5 truncate">
+              <p class="text-xs text-slate-700 mt-0.5 truncate">
 
                 最后一步：可直接粘贴订阅源或节点链接一键启航，也可跳过进入主控台后续再导。
 
@@ -547,7 +547,7 @@
 
             <div class="flex p-1 bg-white/10 text-white rounded-xl border border-slate-800 text-xs font-mono">
 
-              <button type="button" @click="app.initWizardImportTab = 'sub'" :class="['flex-1 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5', app.initWizardImportTab === 'sub' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-sky-500/20' : 'text-slate-400 hover:text-slate-200']">
+              <button type="button" @click="app.initWizardImportTab = 'sub'" :class="['flex-1 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5', app.initWizardImportTab === 'sub' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-sky-500/20' : 'text-slate-500 hover:text-slate-800']">
 
                 <span>🌐 批量导入订阅</span>
 
@@ -559,7 +559,7 @@
 
               </button>
 
-              <button type="button" @click="app.initWizardImportTab = 'node'" :class="['flex-1 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5', app.initWizardImportTab === 'node' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-sky-500/20' : 'text-slate-400 hover:text-slate-200']">
+              <button type="button" @click="app.initWizardImportTab = 'node'" :class="['flex-1 py-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1.5', app.initWizardImportTab === 'node' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-sky-500/20' : 'text-slate-500 hover:text-slate-800']">
 
                 <span>🔗 批量导入自建节点</span>
 
@@ -577,9 +577,9 @@
 
             <div v-if="app.initWizardImportTab === 'sub'" class="space-y-2">
 
-              <div class="flex items-center justify-between text-xs font-semibold text-slate-300">
+              <div class="flex items-center justify-between text-xs font-semibold text-slate-700">
 
-                <span class="text-[11px] text-slate-400">支持 Clash / sing-box / V2Ray 订阅链接，每行一条（支持直接指定名称）：</span>
+                <span class="text-[11px] text-slate-500">支持 Clash / sing-box / V2Ray 订阅链接，每行一条（支持直接指定名称）：</span>
 
                 <span v-if="app.parsedBatchSubs.length > 0" class="text-emerald-300 font-mono text-[11px] font-bold">
 
@@ -599,11 +599,11 @@
 
               <div v-if="app.parsedBatchSubs.length > 0" class="max-h-24 overflow-y-auto space-y-1 font-mono text-[11px] bg-slate-900/70 text-white/75 p-2 rounded-xl border border-cyan-500/20">
 
-                <div v-for="(item, idx) in app.parsedBatchSubs" :key="idx" class="flex items-center gap-2 truncate text-slate-300">
+                <div v-for="(item, idx) in app.parsedBatchSubs" :key="idx" class="flex items-center gap-2 truncate text-slate-700">
 
                   <span class="text-emerald-300 font-bold">✈️ {{ item.name }}</span>
 
-                  <span class="text-slate-300 truncate text-[10px]">{{ item.url }}</span>
+                  <span class="text-slate-700 truncate text-[10px]">{{ item.url }}</span>
 
                 </div>
 
@@ -615,9 +615,9 @@
 
             <div v-else class="space-y-2">
 
-              <div class="flex items-center justify-between text-xs font-semibold text-slate-300">
+              <div class="flex items-center justify-between text-xs font-semibold text-slate-700">
 
-                <span class="text-[11px] text-slate-400">支持 ss, vmess, vless, trojan, hysteria2, tuic 节点链接，每行一条：</span>
+                <span class="text-[11px] text-slate-500">支持 ss, vmess, vless, trojan, hysteria2, tuic 节点链接，每行一条：</span>
 
                 <span v-if="app.parsedBatchNodes.length > 0" class="text-purple-400 font-mono text-[11px] font-bold">
 
@@ -637,13 +637,13 @@
 
               <div v-if="app.parsedBatchNodes.length > 0" class="max-h-24 overflow-y-auto space-y-1 font-mono text-[11px] bg-slate-900/70 text-white/75 p-2 rounded-xl border border-purple-500/20">
 
-                <div v-for="(item, idx) in app.parsedBatchNodes" :key="idx" class="flex items-center gap-2 truncate text-slate-300">
+                <div v-for="(item, idx) in app.parsedBatchNodes" :key="idx" class="flex items-center gap-2 truncate text-slate-700">
 
                   <span class="text-purple-400 font-bold uppercase text-[10px]">[{{ item.protocol }}]</span>
 
                   <span class="text-white font-bold">🔗 {{ item.name }}</span>
 
-                  <span class="text-slate-300 truncate text-[10px]">{{ item.link }}</span>
+                  <span class="text-slate-700 truncate text-[10px]">{{ item.link }}</span>
 
                 </div>
 
@@ -657,7 +657,7 @@
 
           <div class="pt-3 border-t border-sky-800/40 flex flex-col sm:flex-row items-center justify-between gap-3">
 
-            <button @click="app.completeInitWizard" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-700 text-slate-300 text-xs font-semibold active:scale-95 transition">
+            <button @click="app.completeInitWizard" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-700 text-slate-700 text-xs font-semibold active:scale-95 transition">
 
               跳过直接进入主控台 ➔
 

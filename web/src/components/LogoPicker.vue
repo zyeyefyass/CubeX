@@ -4,14 +4,14 @@
     <button
       type="button"
       @click="isOpen = !isOpen"
-      class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-cyan-500/50 focus:border-cyan-400 outline-none text-white font-mono flex items-center justify-between gap-2 transition select-none"
+      class="w-full px-3 py-2.5 rounded-xl bg-[#F1F4F9] border border-slate-300/80 hover:border-sky-400 focus:border-sky-500 outline-none text-slate-800 font-mono flex items-center justify-between gap-2 transition select-none"
     >
       <div class="flex items-center gap-2.5 truncate">
         <BrandLogo :icon="modelValue" size="w-5 h-5" />
-        <span class="text-xs font-semibold text-slate-200 truncate">{{ currentItem.name }}</span>
+        <span class="text-xs font-semibold text-slate-800 truncate">{{ currentItem.name }}</span>
       </div>
-      <div class="flex items-center gap-1.5 text-slate-400 shrink-0">
-        <span class="text-[10px] text-cyan-400 uppercase font-mono">官方LOGO</span>
+      <div class="flex items-center gap-1.5 text-slate-500 shrink-0">
+        <span class="text-[10px] text-sky-700 uppercase font-mono font-bold">官方LOGO</span>
         <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="{ 'rotate-180': isOpen }" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
         </svg>
@@ -21,7 +21,7 @@
     <!-- Dropdown / Popover -->
     <div
       v-if="isOpen"
-      class="absolute left-0 right-0 mt-1.5 z-50 p-2.5 rounded-2xl bg-[#00172e] border border-cyan-500/50 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 space-y-2"
+      class="absolute left-0 right-0 mt-1.5 z-50 p-2.5 rounded-2xl bg-[#F1F4F9] border border-slate-300/80 shadow-2xl animate-in fade-in zoom-in-95 space-y-2 text-slate-800"
     >
       <!-- Search Box -->
       <div class="relative">
@@ -29,7 +29,7 @@
           v-model="searchQuery"
           type="text"
           placeholder="搜索官方应用标识 (例: Disney, Netflix, OpenAI)..."
-          class="w-full px-3 py-1.5 pl-8 rounded-lg bg-slate-900 border border-slate-800 focus:border-cyan-400 outline-none text-xs text-white placeholder-slate-500 font-mono"
+          class="w-full px-3 py-1.5 pl-8 rounded-lg bg-white border border-slate-300/80 focus:border-sky-500 outline-none text-xs text-slate-800 placeholder-slate-400 font-mono"
           @click.stop
         />
         <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" viewBox="0 0 20 20" fill="currentColor">

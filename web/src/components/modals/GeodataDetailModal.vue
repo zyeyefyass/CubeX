@@ -1,11 +1,11 @@
 <template>
-          <div v-if="app.showGeodataDetailModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div v-if="app.showGeodataDetailModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 animate-in fade-in">
 
-            <div class="glass-matrix border border-emerald-500/40 rounded-3xl p-6 max-w-4xl w-full max-h-[85vh] flex flex-col shadow-2xl relative space-y-4">
+            <div class="bg-[#E5EAF1] border border-slate-300/60 rounded-3xl p-6 max-w-4xl w-full max-h-[85vh] flex flex-col shadow-2xl relative space-y-4 text-slate-800">
 
               <!-- Modal Header -->
 
-              <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+              <div class="flex items-center justify-between border-b border-slate-300/60 pb-3">
 
                 <div class="flex items-center gap-3">
 
@@ -13,7 +13,7 @@
 
                   <div>
 
-                    <h3 class="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                    <h3 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
 
                       <span>Geo 数据库 & 217heidai 规则包全景清单</span>
 
@@ -25,7 +25,7 @@
 
                     </h3>
 
-                    <p class="text-xs text-slate-400 mt-0.5">
+                    <p class="text-xs text-slate-500 mt-0.5">
 
                       全套二进制 MRS/SRS 离线分流体系与 217heidai 去广告权威拦截规则详细清单
 
@@ -35,7 +35,7 @@
 
                 </div>
 
-                <button @click="app.showGeodataDetailModal = false" class="text-slate-400 hover:text-white px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-sm font-bold transition cursor-pointer">✕</button>
+                <button @click="app.showGeodataDetailModal = false" class="text-slate-500 hover:text-white px-2.5 py-1.5 rounded-xl bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-white hover:bg-slate-700 text-sm font-bold transition cursor-pointer">✕</button>
 
               </div>
 
@@ -43,35 +43,35 @@
 
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs font-mono">
 
-                <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                <div class="p-2.5 rounded-xl bg-[#F1F4F9] border border-slate-300/60">
 
-                  <div class="text-[10px] text-slate-400">拦截规则总规模</div>
+                  <div class="text-[10px] text-slate-500">拦截规则总规模</div>
 
-                  <div class="text-emerald-400 font-bold text-sm mt-0.5">{{ (app.geodataStatus.total_rules || 240005).toLocaleString() }} 条</div>
-
-                </div>
-
-                <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
-
-                  <div class="text-[10px] text-slate-400">规则库版本</div>
-
-                  <div class="text-emerald-300 font-bold text-sm mt-0.5">{{ app.geodataStatus.version || '最新稳定版' }}</div>
+                  <div class="text-emerald-700 font-bold text-sm mt-0.5">{{ (app.geodataStatus.total_rules || 240005).toLocaleString() }} 条</div>
 
                 </div>
 
-                <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                <div class="p-2.5 rounded-xl bg-[#F1F4F9] border border-slate-300/60">
 
-                  <div class="text-[10px] text-slate-400">装载规则文件</div>
+                  <div class="text-[10px] text-slate-500">规则库版本</div>
 
-                  <div class="text-purple-300 font-bold text-sm mt-0.5">{{ app.geodataStatus.files_count || app.geodataStatus.rules_count || 105 }} 个</div>
+                  <div class="text-emerald-700 font-bold text-sm mt-0.5">{{ app.geodataStatus.version || '最新稳定版' }}</div>
 
                 </div>
 
-                <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                <div class="p-2.5 rounded-xl bg-[#F1F4F9] border border-slate-300/60">
 
-                  <div class="text-[10px] text-slate-400">最近校验/同步</div>
+                  <div class="text-[10px] text-slate-500">装载规则文件</div>
 
-                  <div class="text-slate-300 font-bold text-xs mt-1 truncate">{{ app.geodataStatus.last_updated || '已装载' }}</div>
+                  <div class="text-purple-700 font-bold text-sm mt-0.5">{{ app.geodataStatus.files_count || app.geodataStatus.rules_count || 105 }} 个</div>
+
+                </div>
+
+                <div class="p-2.5 rounded-xl bg-[#F1F4F9] border border-slate-300/60">
+
+                  <div class="text-[10px] text-slate-500">最近校验/同步</div>
+
+                  <div class="text-slate-700 font-bold text-xs mt-1 truncate">{{ app.geodataStatus.last_updated || '已装载' }}</div>
 
                 </div>
 
@@ -87,37 +87,37 @@
 
                   <div class="flex items-center gap-1.5 overflow-x-auto py-0.5">
 
-                    <button @click="app.geodataFilterCategory = 'all'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', app.geodataFilterCategory === 'all' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-300 hover:bg-slate-700']">
+                    <button @click="app.geodataFilterCategory = 'all'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', app.geodataFilterCategory === 'all' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-slate-700 hover:bg-slate-200']">
 
                       全部分类 ({{ app.geodataStatus.files?.length || 0 }})
 
                     </button>
 
-                    <button @click="app.geodataFilterCategory = '基础数据库'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', app.geodataFilterCategory === '基础数据库' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-300 hover:bg-slate-700']">
+                    <button @click="app.geodataFilterCategory = '基础数据库'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', app.geodataFilterCategory === '基础数据库' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-slate-700 hover:bg-slate-200']">
 
                       基础库 ({{ app.geodataStatus.files?.filter(f => f.category === '基础数据库').length || 0 }})
 
                     </button>
 
-                    <button @click="app.geodataFilterCategory = '广告与恶意追踪拦截'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', app.geodataFilterCategory === '广告与恶意追踪拦截' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-300 hover:bg-slate-700']">
+                    <button @click="app.geodataFilterCategory = '广告与恶意追踪拦截'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', app.geodataFilterCategory === '广告与恶意追踪拦截' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-slate-700 hover:bg-slate-200']">
 
                       去广告 ({{ app.geodataStatus.files?.filter(f => f.category === '广告与恶意追踪拦截').length || 0 }})
 
                     </button>
 
-                    <button @click="app.geodataFilterCategory = '基础路由分流'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', app.geodataFilterCategory === '基础路由分流' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-300 hover:bg-slate-700']">
+                    <button @click="app.geodataFilterCategory = '基础路由分流'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', app.geodataFilterCategory === '基础路由分流' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-slate-700 hover:bg-slate-200']">
 
                       基础路由 ({{ app.geodataStatus.files?.filter(f => f.category === '基础路由分流').length || 0 }})
 
                     </button>
 
-                    <button @click="app.geodataFilterCategory = '应用专线分流'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', app.geodataFilterCategory === '应用专线分流' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-300 hover:bg-slate-700']">
+                    <button @click="app.geodataFilterCategory = '应用专线分流'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', app.geodataFilterCategory === '应用专线分流' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-slate-700 hover:bg-slate-200']">
 
                       核心专线 ({{ app.geodataStatus.files?.filter(f => f.category === '应用专线分流').length || 0 }})
 
                     </button>
 
-                    <button @click="app.geodataFilterCategory = '常用生态与自定义扩展'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', app.geodataFilterCategory === '常用生态与自定义扩展' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-300 hover:bg-slate-700']">
+                    <button @click="app.geodataFilterCategory = '常用生态与自定义扩展'" :class="['px-2.5 py-1 rounded-lg font-medium transition cursor-pointer', app.geodataFilterCategory === '常用生态与自定义扩展' ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-slate-700 hover:bg-slate-200']">
 
                       常用生态扩展 ({{ app.geodataStatus.files?.filter(f => f.category === '常用生态与自定义扩展').length || 0 }})
 
@@ -129,19 +129,19 @@
 
                   <div class="flex items-center gap-1 bg-slate-950/80 p-0.5 rounded-xl border border-slate-800 text-[11px]">
 
-                    <button @click="app.geodataFilterEngine = 'all'" :class="['px-2.5 py-0.5 rounded-lg transition cursor-pointer', app.geodataFilterEngine === 'all' ? 'bg-slate-700 text-white font-bold' : 'text-slate-400 hover:text-slate-200']">
+                    <button @click="app.geodataFilterEngine = 'all'" :class="['px-2.5 py-0.5 rounded-lg transition cursor-pointer', app.geodataFilterEngine === 'all' ? 'bg-slate-700 text-white font-bold' : 'text-slate-500 hover:text-slate-800']">
 
                       全部引擎
 
                     </button>
 
-                    <button @click="app.geodataFilterEngine = 'Mihomo'" :class="['px-2.5 py-0.5 rounded-lg transition cursor-pointer flex items-center gap-1', app.geodataFilterEngine === 'Mihomo' ? 'bg-cyan-900/60 text-emerald-300 border border-cyan-500/40 font-bold' : 'text-slate-400 hover:text-emerald-300']">
+                    <button @click="app.geodataFilterEngine = 'Mihomo'" :class="['px-2.5 py-0.5 rounded-lg transition cursor-pointer flex items-center gap-1', app.geodataFilterEngine === 'Mihomo' ? 'bg-cyan-900/60 text-emerald-300 border border-cyan-500/40 font-bold' : 'text-slate-500 hover:text-emerald-300']">
 
                       <span>Mihomo (MRS)</span>
 
                     </button>
 
-                    <button @click="app.geodataFilterEngine = 'sing-box'" :class="['px-2.5 py-0.5 rounded-lg transition cursor-pointer flex items-center gap-1', app.geodataFilterEngine === 'sing-box' ? 'bg-purple-900/60 text-purple-300 border border-purple-500/40 font-bold' : 'text-slate-400 hover:text-purple-300']">
+                    <button @click="app.geodataFilterEngine = 'sing-box'" :class="['px-2.5 py-0.5 rounded-lg transition cursor-pointer flex items-center gap-1', app.geodataFilterEngine === 'sing-box' ? 'bg-purple-900/60 text-purple-300 border border-purple-500/40 font-bold' : 'text-slate-500 hover:text-purple-300']">
 
                       <span>sing-box (SRS)</span>
 
@@ -157,7 +157,7 @@
 
                   <input v-model="app.geodataSearchQuery" placeholder="搜索规则名称、策略组、文件名（如 openai, apple, telegram, srs, mrs）..." class="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl px-3.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner" />
 
-                  <span v-if="app.geodataSearchQuery" @click="app.geodataSearchQuery = ''" class="absolute right-3 top-1.5 text-slate-400 hover:text-white cursor-pointer text-xs">✕</span>
+                  <span v-if="app.geodataSearchQuery" @click="app.geodataSearchQuery = ''" class="absolute right-3 top-1.5 text-slate-500 hover:text-white cursor-pointer text-xs">✕</span>
 
                 </div>
 
@@ -169,7 +169,7 @@
 
                 <table class="w-full text-left text-xs">
 
-                  <thead class="bg-slate-900/90 text-white text-slate-400 font-mono border-b border-slate-800 sticky top-0 backdrop-blur z-10">
+                  <thead class="bg-slate-900/90 text-white text-slate-500 font-mono border-b border-slate-800 sticky top-0 backdrop-blur z-10">
 
                     <tr>
 
@@ -195,9 +195,9 @@
 
                       <td class="py-2.5 px-3 max-w-[280px]">
 
-                        <div class="font-bold text-slate-200">{{ f.name }}</div>
+                        <div class="font-bold text-slate-800">{{ f.name }}</div>
 
-                        <div class="text-[11px] text-slate-400 truncate">{{ f.description }}</div>
+                        <div class="text-[11px] text-slate-500 truncate">{{ f.description }}</div>
 
                       </td>
 
@@ -221,7 +221,7 @@
 
                       <td class="py-2.5 px-2.5">
 
-                        <span class="text-[10px] px-2 py-0.5 rounded bg-white/10 text-white text-slate-200 border border-slate-700/80 font-mono">
+                        <span class="text-[10px] px-2 py-0.5 rounded bg-white/10 text-white text-slate-800 border border-slate-700/80 font-mono">
 
                           {{ f.group || '通用分流' }}
 
@@ -235,7 +235,7 @@
 
                       </td>
 
-                      <td class="py-2.5 px-2.5 font-mono text-right text-slate-300 font-semibold">{{ f.size_str || '-' }}</td>
+                      <td class="py-2.5 px-2.5 font-mono text-right text-slate-700 font-semibold">{{ f.size_str || '-' }}</td>
 
                       <td class="py-2.5 px-3 text-center">
 
@@ -251,7 +251,7 @@
 
                     <tr v-if="app.filteredGeodataFiles.length === 0">
 
-                      <td colspan="6" class="py-8 text-center text-slate-400">未找到匹配的规则文件</td>
+                      <td colspan="6" class="py-8 text-center text-slate-500">未找到匹配的规则文件</td>
 
                     </tr>
 
@@ -265,7 +265,7 @@
 
               <div class="flex items-center justify-between pt-2 border-t border-slate-800/60">
 
-                <div class="text-[11px] text-slate-400">
+                <div class="text-[11px] text-slate-500">
 
                   规则存储于 <code>/app/etc/rules</code> · 格式支持 Mihomo MRS 与 sing-box SRS
 
@@ -281,7 +281,7 @@
 
                   </button>
 
-                  <button @click="app.showGeodataDetailModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer">
+                  <button @click="app.showGeodataDetailModal = false" class="px-4 py-2 rounded-xl bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-white hover:bg-slate-700 text-slate-700 text-xs font-semibold cursor-pointer">
 
                     关闭
 

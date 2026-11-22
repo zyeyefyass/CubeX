@@ -5,19 +5,19 @@
 
             <div class="macos-title-shield space-y-1">
 
-              <h2 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
+              <h2 class="text-base sm:text-lg font-bold text-slate-900 tracking-wide flex items-center gap-2">
 
                 <span class="flex items-center gap-2"><ZootopiaIcon name="system" :size="22" class="shrink-0" /><span>宿主共生与系统运维</span></span>
 
               </h2>
 
-              <p class="text-xs text-[#E2F8EC] tracking-normal font-medium">自动识别 RouterOS / 爱快 iKuai / OpenWrt / 飞牛 / PVE / Linux 底座 · 策略路由与防火墙自愈 · 四维在线无缝热更</p>
+              <p class="text-xs text-slate-600 tracking-normal font-medium">自动识别 RouterOS / 爱快 iKuai / OpenWrt / 飞牛 / PVE / Linux 底座 · 策略路由与防火墙自愈 · 四维在线无缝热更</p>
 
             </div>
 
             <button @click="app.showLogsModal = true"
 
-              class="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/60 text-white font-bold text-xs flex items-center gap-2 transition active:scale-95 shadow-md cursor-pointer shrink-0"
+              class="px-4 py-2 rounded-2xl bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-slate-700 hover:text-slate-900 font-bold text-xs flex items-center gap-2 transition active:scale-95 shadow-md cursor-pointer shrink-0"
 
               title="调出实时系统日志环形缓冲区终端">
 
@@ -43,23 +43,23 @@
                   🛰️
                 </div>
                 <div>
-                  <h3 class="text-base sm:text-lg font-black text-white tracking-wide flex items-center gap-2">
+                  <h3 class="text-base sm:text-lg font-black text-slate-900 tracking-wide flex items-center gap-2">
                     <span>主路由共生分流与零门槛指引</span>
-                    <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 font-bold">
+                    <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-100 text-cyan-900 border border-cyan-300 font-bold">
                       纯正共生 · 零 NAT 损耗
                     </span>
                   </h3>
-                  <p class="text-xs text-slate-300 mt-0.5">
+                  <p class="text-xs text-slate-600 mt-0.5 font-medium">
                     全屋网关保持为主路由，国内流量 100% 满速直出 · 仅 198.18.0.0/15 回指 CubeX · 拔电全家绝不断网
                   </p>
                 </div>
               </div>
               <div class="flex items-center gap-2">
-                <button @click="verifySymbioticLoop" :disabled="verifyingLoop" class="px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-xs font-mono text-cyan-300 border border-cyan-400/30 flex items-center gap-1.5 transition cursor-pointer">
+                <button @click="verifySymbioticLoop" :disabled="verifyingLoop" class="px-3 py-1.5 rounded-xl bg-[#F1F4F9] hover:bg-slate-200 text-xs font-mono text-cyan-800 border border-cyan-300/80 flex items-center gap-1.5 transition cursor-pointer font-bold shadow-sm">
                   <span :class="{'animate-spin': verifyingLoop}">↻</span>
                   <span>{{ verifyingLoop ? '检测中...' : '一键验证主路由回路' }}</span>
                 </button>
-                <button @click="refreshGatewayStatus" :disabled="loadingGateway" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-mono text-slate-300 border border-white/20 flex items-center gap-1.5 transition cursor-pointer">
+                <button @click="refreshGatewayStatus" :disabled="loadingGateway" class="px-3 py-1.5 rounded-xl bg-[#F1F4F9] hover:bg-slate-200 text-xs font-mono text-slate-700 border border-slate-300/80 flex items-center gap-1.5 transition cursor-pointer font-bold shadow-sm">
                   <span :class="{'animate-spin': loadingGateway}">↻</span>
                   <span>拓扑刷新</span>
                 </button>
@@ -68,20 +68,20 @@
 
             <!-- 拓扑实时探测参数条 -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-2xl bg-black/40 border border-cyan-500/20 text-xs font-mono">
-              <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
-                <span class="text-[11px] text-slate-400 block">CubeX 本机 IP</span>
+              <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-300/60">
+                <span class="text-[11px] text-slate-300 block">CubeX 本机 IP</span>
                 <span class="text-cyan-300 font-bold text-sm">{{ gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>' }}</span>
               </div>
-              <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
-                <span class="text-[11px] text-slate-400 block">上级主路由 IP</span>
+              <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-300/60">
+                <span class="text-[11px] text-slate-300 block">上级主路由 IP</span>
                 <span class="text-sky-300 font-bold text-sm">{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '<待配置网关IP>' }}</span>
               </div>
-              <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
-                <span class="text-[11px] text-slate-400 block">分流加速网段</span>
+              <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-300/60">
+                <span class="text-[11px] text-slate-300 block">分流加速网段</span>
                 <span class="text-emerald-300 font-bold text-sm">198.18.0.0/15</span>
               </div>
-              <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
-                <span class="text-[11px] text-slate-400 block">内核转发状态</span>
+              <div class="p-2 rounded-xl bg-slate-900/60 border border-slate-300/60">
+                <span class="text-[11px] text-slate-300 block">内核转发状态</span>
                 <span class="text-emerald-300 font-bold text-sm">已自动就绪 ✓</span>
               </div>
             </div>
@@ -99,14 +99,14 @@
 
             <!-- 软路由三巨头品牌 3 步绑定指引面板 -->
             <div class="p-4 sm:p-5 rounded-2xl bg-slate-900/80 border border-cyan-500/30 space-y-4">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-300/60 pb-3">
                 <div class="flex items-center gap-2">
                   <span class="text-base">📖</span>
                   <span class="text-sm font-bold text-white">软路由三巨头 3 步共生指引：</span>
-                  <span class="text-xs text-slate-400">选择您家庭主路由的系统品牌</span>
+                  <span class="text-xs text-slate-300">选择您家庭主路由的系统品牌</span>
                 </div>
                 <!-- 品牌切换胶囊 -->
-                <div class="flex items-center gap-1.5 p-1 rounded-xl bg-black/50 border border-white/15 text-xs font-mono">
+                <div class="flex items-center gap-1.5 p-1 rounded-xl bg-black/50 border border-slate-300/60 text-xs font-mono">
                   <button @click="activeRouterBrand = 'routeros'"
                     :class="['px-3 py-1 rounded-lg transition-all cursor-pointer font-bold', activeRouterBrand === 'routeros' ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400/50 shadow-sm' : 'text-slate-400 hover:text-white']">
                     RouterOS v7
@@ -125,22 +125,22 @@
               <!-- RouterOS v7 指引内容 -->
               <div v-if="activeRouterBrand === 'routeros'" class="space-y-3">
                 <div class="space-y-2">
-                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
-                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">1</span>
+                  <div class="p-2.5 rounded-xl bg-[#F1F4F9] border border-slate-300/80 text-xs text-slate-800 flex items-start gap-2.5 leading-relaxed font-medium">
+                    <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-sm">1</span>
                     <span>【网关维持不变】：全屋手机、电脑默认网关依然保持为主路由（{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '<待配置网关IP>' }}），国内流量 100% 物理直出。</span>
                   </div>
-                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
-                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">2</span>
-                    <span>【添加静态回程路由】：在 WinBox 或 WebFig 添加目标网段 <code>198.18.0.0/15</code>，下一跳网关填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>' }}</code>。</span>
+                  <div class="p-2.5 rounded-xl bg-[#F1F4F9] border border-slate-300/80 text-xs text-slate-800 flex items-start gap-2.5 leading-relaxed font-medium">
+                    <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-sm">2</span>
+                    <span>【添加静态回程路由】：在 WinBox 或 WebFig 添加目标网段 <code class="px-1.5 py-0.5 rounded bg-slate-200/90 text-cyan-900 font-mono font-bold">198.18.0.0/15</code>，下一跳网关填 <code class="px-1.5 py-0.5 rounded bg-slate-200/90 text-cyan-900 font-mono font-bold">{{ gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>' }}</code>。</span>
                   </div>
-                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
-                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">3</span>
+                  <div class="p-2.5 rounded-xl bg-[#F1F4F9] border border-slate-300/80 text-xs text-slate-800 flex items-start gap-2.5 leading-relaxed font-medium">
+                    <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-sm">3</span>
                     <span>【上游 DNS 与 Netwatch 逃生】：设置 DNS 服务器指向 CubeX 并开启 Netwatch 看门狗，即使旁路断电全家秒级恢复直连。</span>
                   </div>
                 </div>
 
                 <!-- RouterOS 一键终端脚本框 -->
-                <div class="p-3 rounded-xl bg-black/60 border border-slate-800 space-y-2">
+                <div class="p-3 rounded-xl bg-black/60 border border-slate-300/60 space-y-2">
                   <div class="flex items-center justify-between text-xs gap-2 flex-wrap">
                     <span class="text-slate-400 font-mono">💻 WinBox / SSH 终端一键粘贴脚本：</span>
                     <div class="flex items-center gap-1.5">
@@ -155,29 +155,29 @@
                       </button>
                     </div>
                   </div>
-                  <pre class="p-2.5 rounded-lg bg-slate-950/80 text-[11px] font-mono text-cyan-200/90 overflow-x-auto select-all leading-relaxed whitespace-pre-wrap"><code>{{ triRouterBundle?.routeros_oneliner || `/ip route add dst-address=198.18.0.0/15 gateway=${gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>'} distance=1 comment="CubeX-FakeIP-Backtrack"; /ip dns set servers=${gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>'} allow-remote-requests=yes; /ip dns cache flush;` }}</code></pre>
+                  <pre class="p-2.5 rounded-lg bg-slate-950/90 border border-slate-800 text-[11px] font-mono text-cyan-300 overflow-x-auto select-all leading-relaxed whitespace-pre-wrap shadow-inner"><code>{{ triRouterBundle?.routeros_oneliner || `/ip route add dst-address=198.18.0.0/15 gateway=${gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>'} distance=1 comment="CubeX-FakeIP-Backtrack"; /ip dns set servers=${gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>'} allow-remote-requests=yes; /ip dns cache flush;` }}</code></pre>
                 </div>
               </div>
 
               <!-- OpenWrt 指引内容 -->
               <div v-else-if="activeRouterBrand === 'openwrt'" class="space-y-3">
                 <div class="space-y-2">
-                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
-                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">1</span>
+                  <div class="p-2.5 rounded-xl bg-[#F1F4F9] border border-slate-300/80 text-xs text-slate-800 flex items-start gap-2.5 leading-relaxed font-medium">
+                    <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-sm">1</span>
                     <span>【网关维持不变】：OpenWrt LAN 默认网关保持 <code>{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '<待配置网关IP>' }}</code> 不变，国内流量不经过旁路由。</span>
                   </div>
-                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
-                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">2</span>
+                  <div class="p-2.5 rounded-xl bg-[#F1F4F9] border border-slate-300/80 text-xs text-slate-800 flex items-start gap-2.5 leading-relaxed font-medium">
+                    <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-sm">2</span>
                     <span>【UCI 静态路由配置】：进入『网络 -> 路由』添加 <code>198.18.0.0/15</code>，下一跳网关填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>' }}</code>。</span>
                   </div>
-                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
-                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">3</span>
+                  <div class="p-2.5 rounded-xl bg-[#F1F4F9] border border-slate-300/80 text-xs text-slate-800 flex items-start gap-2.5 leading-relaxed font-medium">
+                    <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-sm">3</span>
                     <span>【Dnsmasq 转发与看门狗】：DNS 转发指向 CubeX 并注入看门狗，CubeX 停机时自动切回 223.5.5.5 逃生。</span>
                   </div>
                 </div>
 
                 <!-- OpenWrt 一键脚本框 -->
-                <div class="p-3 rounded-xl bg-black/60 border border-slate-800 space-y-2">
+                <div class="p-3 rounded-xl bg-black/60 border border-slate-300/60 space-y-2">
                   <div class="flex items-center justify-between text-xs gap-2 flex-wrap">
                     <span class="text-slate-400 font-mono">💻 OpenWrt SSH 终端一键 UCI + 断网看门狗脚本：</span>
                     <div class="flex items-center gap-1.5">
@@ -192,23 +192,23 @@
                       </button>
                     </div>
                   </div>
-                  <pre class="p-2.5 rounded-lg bg-slate-950/80 text-[11px] font-mono text-cyan-200/90 overflow-x-auto select-all leading-relaxed whitespace-pre-wrap max-h-48"><code>{{ triRouterBundle?.openwrt_shell_setup }}</code></pre>
+                  <pre class="p-2.5 rounded-lg bg-slate-950/90 border border-slate-800 text-[11px] font-mono text-cyan-300 overflow-x-auto select-all leading-relaxed whitespace-pre-wrap max-h-48 shadow-inner"><code>{{ triRouterBundle?.openwrt_shell_setup }}</code></pre>
                 </div>
               </div>
 
               <!-- 爱快 iKuai 指引内容 -->
               <div v-else-if="activeRouterBrand === 'ikuai'" class="space-y-3">
                 <div class="space-y-2">
-                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
-                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">1</span>
+                  <div class="p-2.5 rounded-xl bg-[#F1F4F9] border border-slate-300/80 text-xs text-slate-800 flex items-start gap-2.5 leading-relaxed font-medium">
+                    <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-sm">1</span>
                     <span>【局域网网关保持不变】：爱快 DHCP 默认网关维持 <code>{{ gatewayStatus?.current_spec?.upstream_gateway_ip || '<待配置网关IP>' }}</code> 不变，无需改动任何终端。</span>
                   </div>
-                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
-                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">2</span>
+                  <div class="p-2.5 rounded-xl bg-[#F1F4F9] border border-slate-300/80 text-xs text-slate-800 flex items-start gap-2.5 leading-relaxed font-medium">
+                    <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-sm">2</span>
                     <span>【爱快添加静态路由】：进入『网络设置 -> 静态路由』，目的地址填 <code>198.18.0.0</code>，子网掩码选 <code>255.254.0.0 (15)</code>，网关填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>' }}</code>。</span>
                   </div>
-                  <div class="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-slate-200 flex items-start gap-2.5 leading-relaxed">
-                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5">3</span>
+                  <div class="p-2.5 rounded-xl bg-[#F1F4F9] border border-slate-300/80 text-xs text-slate-800 flex items-start gap-2.5 leading-relaxed font-medium">
+                    <span class="w-5 h-5 rounded-full bg-cyan-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0 mt-0.5 shadow-sm">3</span>
                     <span>【主备 DNS 自动断网逃生】：进入『网络设置 -> DNS 设置』，首选填 <code>{{ gatewayStatus?.current_spec?.cubex_local_ip || '<待配置本机IP>' }}</code>，备选填 <code>223.5.5.5</code>。CubeX 停机维护时爱快自动由备选 DNS 解析直连，免脚本全屋天然逃生！</span>
                   </div>
                 </div>
@@ -238,15 +238,15 @@
                 </div>
                 <div>
                   <div class="flex items-center gap-2.5">
-                    <h3 class="text-base sm:text-lg font-black text-white tracking-wide">宿主共生底座 · 物理全景驾驶舱</h3>
+                    <h3 class="text-base sm:text-lg font-black text-slate-900 tracking-wide">宿主共生底座 · 物理全景驾驶舱</h3>
                     <!-- 宿主底座徽章 -->
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono border shadow-sm transition-all bg-sky-500/15 text-sky-200 border-sky-400/40">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold font-mono border shadow-sm transition-all bg-sky-100 text-sky-900 border-sky-300 font-bold">
                       <span v-if="app.routerHW.connected" class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                       <span v-else class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
                       {{ app.hostBadge.name || 'MikroTik RouterOS v7' }}
                     </span>
                   </div>
-                  <p class="text-xs text-slate-300 mt-0.5">
+                  <p class="text-xs text-slate-600 mt-0.5 font-medium">
                     {{ app.routerHW.model ? `${app.routerHW.model} · 固件 ${app.routerHW.version || 'v7.x'}` : 'RouterOS / 爱快 iKuai / OpenWrt / 飞牛 fnOS 原生共生' }} · 硬件底层毫秒透视 · 0秒逃生不伤主网
                   </p>
                 </div>
@@ -255,15 +255,15 @@
               <!-- 右侧快捷操作：刷新硬件遥测、主路由Web直达、配置凭据折叠切换 -->
               <div class="flex flex-wrap items-center gap-2">
                 <button @click="refreshHW"
-                  class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white text-xs font-bold font-mono transition-all flex items-center gap-1.5 cursor-pointer">
+                  class="px-3 py-1.5 rounded-xl bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/80 text-slate-700 hover:text-slate-900 text-xs font-bold font-mono transition-all flex items-center gap-1.5 cursor-pointer shadow-sm">
                   <span :class="{'animate-spin': refreshingHW}">↻</span> 刷新硬件遥测
                 </button>
                 <a v-if="app.routerHW.lan_ip || app.hostConfig.host" :href="`http://${app.routerHW.lan_ip || app.hostConfig.host}/`" target="_blank"
-                  class="px-3 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-200 hover:text-white text-xs font-bold font-mono transition-all flex items-center gap-1 shadow-sm">
+                  class="px-3 py-1.5 rounded-xl bg-sky-100 hover:bg-sky-200 border border-sky-300 text-sky-900 text-xs font-bold font-mono transition-all flex items-center gap-1 shadow-sm">
                   <span>↗</span> 主路由 Web
                 </a>
                 <button @click="showHostCredentialsDeck = !showHostCredentialsDeck"
-                  class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-slate-200 hover:text-white text-xs font-bold font-mono transition-all flex items-center gap-1.5">
+                  class="px-3 py-1.5 rounded-xl bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/80 text-slate-700 hover:text-slate-900 text-xs font-bold font-mono transition-all flex items-center gap-1.5 shadow-sm">
                   <span>🔑</span> {{ showHostCredentialsDeck ? '收起凭据' : '配置凭据' }}
                 </button>
               </div>
@@ -272,62 +272,62 @@
             <!-- Tier 2: 核心网络与存储遥测大屏 (Live Router Telemetry 4-Column Grid) -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 relative z-10 text-xs font-mono">
               <!-- 1. 外网 WAN 出口 -->
-              <div class="macos-sub-card p-3.5 rounded-2xl border border-white/10 space-y-1.5">
-                <div class="flex items-center justify-between text-slate-400 text-[11px]">
+              <div class="macos-sub-card p-3.5 rounded-2xl border border-slate-300/60 space-y-1.5">
+                <div class="flex items-center justify-between text-slate-500 text-[11px] font-medium">
                   <span class="flex items-center gap-1">🌐 外网 WAN 拨号</span>
                   <span class="text-emerald-300 font-bold">● 在线</span>
                 </div>
-                <div class="text-sm sm:text-base font-black text-white truncate">
+                <div class="text-sm sm:text-base font-black text-slate-900 truncate">
                   {{ app.routerHW.wan_ip || app.hostInfo.wan_ip || '待探测' }}
                 </div>
-                <div class="text-[10px] text-slate-400 flex items-center justify-between">
+                <div class="text-[10px] text-slate-500 flex items-center justify-between font-medium">
                   <span>{{ app.routerHW.wan_interface || 'WAN 上行接口' }}</span>
                   <span class="text-cyan-300">动态物理出口</span>
                 </div>
               </div>
 
               <!-- 2. 内网 LAN 网关与转发 -->
-              <div class="macos-sub-card p-3.5 rounded-2xl border border-white/10 space-y-1.5">
-                <div class="flex items-center justify-between text-slate-400 text-[11px]">
+              <div class="macos-sub-card p-3.5 rounded-2xl border border-slate-300/60 space-y-1.5">
+                <div class="flex items-center justify-between text-slate-500 text-[11px] font-medium">
                   <span class="flex items-center gap-1">🏠 内网 LAN 网关</span>
                   <span class="text-sky-300 font-bold">内核转发就绪</span>
                 </div>
-                <div class="text-sm sm:text-base font-black text-sky-200 truncate">
+                <div class="text-sm sm:text-base font-black text-slate-900 truncate">
                   {{ app.routerHW.lan_ip || app.hostConfig.host || '自动探测中' }}
                 </div>
-                <div class="text-[10px] text-slate-400 flex items-center justify-between">
+                <div class="text-[10px] text-slate-500 flex items-center justify-between font-medium">
                   <span>{{ app.routerHW.lan_interface || 'bridge1' }}</span>
                   <span class="text-emerald-300">旁路规则已接管</span>
                 </div>
               </div>
 
               <!-- 3. 固件底座与连续运行时间 -->
-              <div class="macos-sub-card p-3.5 rounded-2xl border border-white/10 space-y-1.5">
-                <div class="flex items-center justify-between text-slate-400 text-[11px]">
+              <div class="macos-sub-card p-3.5 rounded-2xl border border-slate-300/60 space-y-1.5">
+                <div class="flex items-center justify-between text-slate-500 text-[11px] font-medium">
                   <span class="flex items-center gap-1">⏱️ 固件与运行时间</span>
                   <span class="text-emerald-300 font-bold">● 稳定</span>
                 </div>
-                <div class="text-sm sm:text-base font-black text-emerald-200 truncate">
+                <div class="text-sm sm:text-base font-black text-slate-900 truncate">
                   {{ app.routerHWMemoryDisplay.uptime }}
                 </div>
-                <div class="text-[10px] text-slate-400 flex items-center justify-between">
+                <div class="text-[10px] text-slate-500 flex items-center justify-between font-medium">
                   <span>固件 {{ app.routerHWMemoryDisplay.version }}</span>
                   <span class="text-cyan-300">{{ app.routerHWMemoryDisplay.arch }}</span>
                 </div>
               </div>
 
               <!-- 4. 宿主硬件 CPU 与内存负载 -->
-              <div class="macos-sub-card p-3.5 rounded-2xl border border-white/10 space-y-1.5">
-                <div class="flex items-center justify-between text-slate-400 text-[11px]">
+              <div class="macos-sub-card p-3.5 rounded-2xl border border-slate-300/60 space-y-1.5">
+                <div class="flex items-center justify-between text-slate-500 text-[11px] font-medium">
                   <span class="flex items-center gap-1">⚡ 宿主物理负载</span>
                   <span :class="app.routerHWMemoryDisplay.cpu > 80 ? 'text-amber-300' : 'text-emerald-300'" class="font-bold">
                     CPU {{ app.routerHWMemoryDisplay.cpu }}%
                   </span>
                 </div>
-                <div class="text-sm sm:text-base font-black text-cyan-200 truncate">
+                <div class="text-sm sm:text-base font-black text-slate-900 truncate">
                   {{ app.routerHWMemoryDisplay.freeStr }}
                 </div>
-                <div class="text-[10px] text-slate-400 flex items-center justify-between">
+                <div class="text-[10px] text-slate-500 flex items-center justify-between font-medium">
                   <span>总内存 {{ app.routerHWMemoryDisplay.totalStr }}</span>
                   <span class="text-teal-300 font-bold">物理线速直出</span>
                 </div>
@@ -387,10 +387,10 @@
 
             <!-- Tier 3: 宿主共生凭据与鉴权面板 (支持点击展开/折叠，默认清爽折叠) -->
             <div v-show="showHostCredentialsDeck" class="macos-sub-card p-4 sm:p-5 rounded-2xl space-y-3.5 shadow-sm relative z-10 transition-all border border-cyan-500/20">
-              <div class="flex items-center justify-between border-b border-white/10 pb-2.5">
+              <div class="flex items-center justify-between border-b border-slate-300/60 pb-2.5">
                 <div class="flex items-center gap-2">
                   <span class="text-base">🔑</span>
-                  <span class="font-bold text-white tracking-wide">宿主共生凭据与鉴权</span>
+                  <span class="font-bold text-slate-900 tracking-wide">宿主共生凭据与鉴权</span>
                   <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 border border-emerald-400/30 font-semibold shadow-sm">
                     {{ app.isRouterOS ? 'RouterOS REST API' : (app.isOpenWrt ? 'OpenWrt UCI / SSH' : (app.isIKuai ? '爱快 Web-RPC' : 'Docker / Linux 内核')) }}
                   </span>
@@ -400,19 +400,19 @@
 
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div>
-                  <label class="block text-[11px] text-slate-300 font-medium mb-1">主路由 IP / 域名</label>
+                  <label class="block text-[11px] text-slate-700 font-bold mb-1">主路由 IP / 域名</label>
                   <input v-model="app.hostConfig.host" type="text" placeholder="自动探测或输入主路由 IP"
-                    class="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/15 text-white placeholder-slate-500 text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all" />
+                    class="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder-slate-400 text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all font-medium" />
                 </div>
                 <div>
-                  <label class="block text-[11px] text-slate-300 font-medium mb-1">API 管理员账号</label>
+                  <label class="block text-[11px] text-slate-700 font-bold mb-1">API 管理员账号</label>
                   <input v-model="app.hostConfig.user" type="text" placeholder="admin"
-                    class="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/15 text-white placeholder-slate-500 text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all" />
+                    class="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder-slate-400 text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all font-medium" />
                 </div>
                 <div>
-                  <label class="block text-[11px] text-slate-300 font-medium mb-1">API 管理密码</label>
+                  <label class="block text-[11px] text-slate-700 font-bold mb-1">API 管理密码</label>
                   <input v-model="app.hostConfig.password" type="password" placeholder="••••••••"
-                    class="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/15 text-white placeholder-slate-500 text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all" />
+                    class="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder-slate-400 text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all font-medium" />
                 </div>
               </div>
 
@@ -429,11 +429,11 @@
               </div>
 
               <!-- 控制台访问口令设置 (收纳于凭据抽屉，不侵占主界面视野) -->
-              <div class="pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div class="pt-3 border-t border-slate-300/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                 <div class="flex items-center gap-2.5">
                   <span class="text-sm">{{ app.authState.enabled ? '🔐' : '🔓' }}</span>
                   <div>
-                    <span class="text-white font-medium">Web 控制台访问口令：</span>
+                    <span class="text-slate-800 font-medium">Web 控制台访问口令：</span>
                     <span :class="app.authState.enabled ? 'text-emerald-300 font-mono' : 'text-slate-400 font-mono'">
                       {{ app.authState.enabled ? '已启用口令保护' : '默认内网免密直连' }}
                     </span>
@@ -457,7 +457,7 @@
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <span class="text-sm">🛡️</span>
-                  <span class="text-xs sm:text-sm font-bold text-white tracking-wide">宿主全链路自愈中枢</span>
+                  <span class="text-xs sm:text-sm font-bold text-slate-900 tracking-wide">宿主全链路自愈中枢</span>
                   <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
                     Netwatch 断网保护就绪（毫秒级恢复宽带直连）
                   </span>
@@ -468,25 +468,25 @@
               <!-- 统一自适应全链路自愈主操作卡片 (全宽通栏) -->
               <div class="w-full">
                 <button @click="app.inspectAndCleanReapplyRos" :disabled="app.cleaningRosFirewall"
-                  class="w-full p-4 rounded-2xl bg-gradient-to-r from-cyan-500/20 via-sky-500/15 to-blue-500/15 hover:from-cyan-500/30 hover:via-sky-500/25 hover:to-blue-500/25 border border-cyan-400/40 hover:border-cyan-400 text-white transition-all flex items-center justify-between group shadow-lg cursor-pointer">
+                  class="w-full p-4 rounded-2xl bg-gradient-to-r bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/80 hover:border-cyan-400 text-slate-900 transition-all flex items-center justify-between group shadow-md cursor-pointer">
                   <div class="flex items-center gap-3.5">
-                    <div class="w-11 h-11 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-xl shrink-0 shadow-inner">
+                    <div class="w-11 h-11 rounded-2xl bg-cyan-100 border border-cyan-300 flex items-center justify-center text-xl shrink-0 shadow-inner">
                       <span v-if="app.cleaningRosFirewall" class="animate-spin text-cyan-300">↻</span>
                       <span v-else>⚡</span>
                     </div>
                     <div class="text-left">
-                      <div class="font-black text-sm sm:text-base text-white flex items-center gap-2 flex-wrap">
+                      <div class="font-black text-sm sm:text-base text-slate-900 flex items-center gap-2 flex-wrap">
                         <span>宿主全链路深度自愈与规则加固</span>
                         <span class="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold">
                           自适应当前底座: {{ app.hostBadge.name || 'RouterOS' }}
                         </span>
                       </div>
-                      <div class="text-xs text-slate-300 mt-1 font-mono">
+                      <div class="text-xs text-slate-600 mt-1 font-mono font-medium">
                         一键原子化联动：策略路由重配 · 伴生防火墙放行 · IPv6 双栈防 DNS 泄露 · 断网保护看门狗校准
                       </div>
                     </div>
                   </div>
-                  <div class="flex items-center gap-2 text-cyan-300 font-bold font-mono text-xs sm:text-sm shrink-0 pl-3">
+                  <div class="flex items-center gap-2 text-cyan-800 font-bold font-mono text-xs sm:text-sm shrink-0 pl-3">
                     <span>{{ app.cleaningRosFirewall ? '全栈自愈执行中...' : '立即自愈' }}</span>
                     <span class="group-hover:translate-x-1.5 transition-transform text-sm sm:text-base">➔</span>
                   </div>
@@ -516,7 +516,7 @@
 
               <div>
 
-                <h3 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                <h3 class="text-base sm:text-lg font-bold text-slate-900 tracking-wide flex items-center gap-2">
 
                   <span>🚀 系统与规则在线检查与升级</span>
 
@@ -534,7 +534,7 @@
 
                 </h3>
 
-                <p class="text-xs text-slate-400 mt-1">
+                <p class="text-xs text-slate-600 mt-1 font-medium">
 
                   支持 CubeX 主控守护进程、Mihomo / sing-box 双内核、217heidai 规则库及宿主共生固件的一键云端版本核对与在线无缝平滑热更
 
@@ -564,7 +564,7 @@
 
                   <div>
 
-                    <div class="text-xs font-bold text-white flex items-center gap-2">
+                    <div class="text-xs font-bold text-slate-800 flex items-center gap-2">
 
                       <span class="text-amber-300">【系统更新提醒】检测到可用系统升级项目！</span>
 
@@ -644,9 +644,9 @@
 
                   <div class="flex items-center gap-3 min-w-0">
 
-                    <img src="/logo-cubex.svg" class="w-8 h-8 sm:w-9 sm:h-9 min-w-[32px] sm:min-w-[36px] max-w-[36px] h-[32px] sm:h-[36px] max-h-[36px] object-contain shrink-0 drop-shadow-[0_0_12px_rgba(56,189,248,0.6)] transition-transform duration-300 group-hover:scale-110" alt="CubeX" />
+                    <img src="/logo-cubex.svg" class="w-8 h-8 sm:w-9 sm:h-9 min-w-[32px] sm:min-w-[36px] max-w-[36px] h-[32px] sm:h-[36px] max-h-[36px] object-contain shrink-0  transition-transform duration-300 group-hover:scale-110" alt="CubeX" />
 
-                    <span class="text-sm sm:text-base font-extrabold text-white whitespace-nowrap truncate tracking-wide">CubeX 系统守护进程</span>
+                    <span class="text-sm sm:text-base font-extrabold text-slate-900 whitespace-nowrap truncate tracking-wide">CubeX 系统守护进程</span>
 
                   </div>
 
@@ -662,15 +662,15 @@
 
                   <div class="flex items-center justify-between">
 
-                    <span>当前运行: <strong class="text-sky-200 font-black text-sm">{{ app.systemOverview.cubex_version || 'Test v8.4' }}</strong></span>
+                    <span>当前运行: <strong class="text-sky-900 font-black text-sm">{{ app.systemOverview.cubex_version || 'Test v8.4' }}</strong></span>
 
-                    <span class="text-slate-400">云端最新: <span class="text-slate-200 font-semibold">{{ app.systemOverview.panel_latest_version || app.systemOverview.cubex_version || 'Test v8.4' }}</span></span>
+                    <span class="text-slate-500">云端最新: <span class="text-slate-800 font-bold">{{ app.systemOverview.panel_latest_version || app.systemOverview.cubex_version || 'Test v8.4' }}</span></span>
 
                   </div>
 
                   <div class="flex items-center justify-between text-xs">
 
-                    <span class="text-slate-400">运行底座: <span class="text-slate-200 font-semibold">{{ app.hostBadge.name || 'MikroTik RouterOS' }} ({{ app.hostInfo.architecture || 'amd64' }})</span></span>
+                    <span class="text-slate-500">运行底座: <span class="text-slate-800 font-bold">{{ app.hostBadge.name || 'MikroTik RouterOS' }} ({{ app.hostInfo.architecture || 'amd64' }})</span></span>
 
                     <span class="text-emerald-400 font-bold flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>主控活跃守护</span>
 
@@ -694,7 +694,7 @@
 
                 <!-- Tier 4: Terminal Viewport (h-[70px] sm:h-[76px]) -->
 
-                <div class="h-[70px] sm:h-[76px] p-3 rounded-xl macos-sub-card border border-cyan-500/25 text-xs font-mono text-emerald-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center shadow-inner">
+                <div class="h-[70px] sm:h-[76px] p-3 rounded-xl bg-slate-950/90 border border-slate-800 text-xs font-mono text-emerald-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center shadow-inner">
 
                   <div v-if="app.panelUpgradeLog" class="w-full break-words">
 
@@ -726,13 +726,13 @@
 
                     <div class="flex items-center gap-2.5 shrink-0">
 
-                      <img src="/logo-singbox.svg" class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] object-contain shrink-0 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)] transition-transform duration-300 group-hover:scale-105" alt="sing-box" />
+                      <img src="/logo-singbox.svg" class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] object-contain shrink-0  transition-transform duration-300 group-hover:scale-105" alt="sing-box" />
 
-                      <img src="/logo-mihomo.svg" class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] object-contain shrink-0 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)] transition-transform duration-300 group-hover:scale-105" alt="Mihomo" />
+                      <img src="/logo-mihomo.svg" class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] object-contain shrink-0  transition-transform duration-300 group-hover:scale-105" alt="Mihomo" />
 
                     </div>
 
-                    <span class="text-sm sm:text-base font-extrabold text-white whitespace-nowrap truncate tracking-wide">双代理内核</span>
+                    <span class="text-sm sm:text-base font-extrabold text-slate-900 whitespace-nowrap truncate tracking-wide">双代理内核</span>
 
                   </div>
 
@@ -750,7 +750,7 @@
 
                           ? 'bg-amber-500/20 text-sky-200 border-amber-400/50 hover:bg-amber-500/30'
 
-                          : 'bg-white/10 hover:bg-white/20 border-white/20 text-white hover:text-sky-200 hover:border-sky-400/50'
+                          : 'bg-white/10 hover:bg-white/20 border-slate-300/60 text-white hover:text-sky-200 hover:border-sky-400/50'
 
                       ]">
 
@@ -796,17 +796,17 @@
 
                   <div class="flex items-center justify-between">
 
-                    <span>sing-box 内核: <strong class="text-white font-bold text-sm">{{ app.systemOverview.singbox_curr_version || 'v1.14.4' }}</strong></span>
+                    <span>sing-box 内核: <strong class="text-slate-900 font-black text-sm">{{ app.systemOverview.singbox_curr_version || 'v1.14.4' }}</strong></span>
 
-                    <span class="text-slate-400">官方最新: <span :class="app.systemOverview.singbox_update_avail ? 'text-amber-400 font-bold' : 'text-slate-200 font-semibold'">{{ app.systemOverview.singbox_latest_version || 'v1.14.4' }}</span></span>
+                    <span class="text-slate-500">官方最新: <span :class="app.systemOverview.singbox_update_avail ? 'text-amber-600 font-bold' : 'text-slate-800 font-bold'">{{ app.systemOverview.singbox_latest_version || 'v1.14.4' }}</span></span>
 
                   </div>
 
                   <div class="flex items-center justify-between">
 
-                    <span>Mihomo 内核: <strong class="text-white font-bold text-sm">{{ app.systemOverview.mihomo_curr_version || 'v1.19.34' }}</strong></span>
+                    <span>Mihomo 内核: <strong class="text-slate-900 font-black text-sm">{{ app.systemOverview.mihomo_curr_version || 'v1.19.34' }}</strong></span>
 
-                    <span class="text-slate-400">官方最新: <span :class="app.systemOverview.mihomo_update_avail ? 'text-amber-400 font-bold' : 'text-slate-200 font-semibold'">{{ app.systemOverview.mihomo_latest_version || 'v1.19.34' }}</span></span>
+                    <span class="text-slate-500">官方最新: <span :class="app.systemOverview.mihomo_update_avail ? 'text-amber-600 font-bold' : 'text-slate-800 font-bold'">{{ app.systemOverview.mihomo_latest_version || 'v1.19.34' }}</span></span>
 
                   </div>
 
@@ -818,7 +818,7 @@
 
                   <!-- 1. sing-box 升级按钮 (左侧) -->
 
-                  <button v-if="app.coreUpgradeFrozen" disabled class="h-full rounded-xl border border-white/10 bg-white/5 text-slate-400 font-bold text-xs sm:text-sm flex items-center justify-center gap-1 cursor-not-allowed opacity-60" title="内核升级已冻结锁定，请先解除冻结">
+                  <button v-if="app.coreUpgradeFrozen" disabled class="h-full rounded-xl border border-slate-300/60 bg-white/5 text-slate-400 font-bold text-xs sm:text-sm flex items-center justify-center gap-1 cursor-not-allowed opacity-60" title="内核升级已冻结锁定，请先解除冻结">
 
                     <span>🔒 sing-box (已冻结)</span>
 
@@ -826,7 +826,7 @@
 
                   <button v-else @click="app.upgradeCore('singbox')" :disabled="app.upgradingCoreSingbox" class="h-full rounded-xl border font-bold text-xs sm:text-sm transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-md"
 
-                    :class="app.systemOverview.singbox_update_avail ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-extrabold shadow-lg shadow-sky-500/25' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/60 text-white font-bold shadow-md'">
+                    :class="app.systemOverview.singbox_update_avail ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-extrabold shadow-lg shadow-sky-500/25' : 'bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-slate-700 hover:text-slate-900 font-bold shadow-md'">
 
                     <span v-if="app.upgradingCoreSingbox" class="inline-block animate-spin mr-1">↻</span>
 
@@ -836,7 +836,7 @@
 
                   <!-- 2. Mihomo 升级按钮 (右侧) -->
 
-                  <button v-if="app.coreUpgradeFrozen" disabled class="h-full rounded-xl border border-white/10 bg-white/5 text-slate-400 font-bold text-xs sm:text-sm flex items-center justify-center gap-1 cursor-not-allowed opacity-60" title="内核升级已冻结锁定，请先解除冻结">
+                  <button v-if="app.coreUpgradeFrozen" disabled class="h-full rounded-xl border border-slate-300/60 bg-white/5 text-slate-400 font-bold text-xs sm:text-sm flex items-center justify-center gap-1 cursor-not-allowed opacity-60" title="内核升级已冻结锁定，请先解除冻结">
 
                     <span>🔒 Mihomo (已冻结)</span>
 
@@ -844,7 +844,7 @@
 
                   <button v-else @click="app.upgradeCore('mihomo')" :disabled="app.upgradingCoreMihomo" class="h-full rounded-xl border font-bold text-xs sm:text-sm transition cursor-pointer active:scale-98 flex items-center justify-center gap-1.5 shadow-md"
 
-                    :class="app.systemOverview.mihomo_update_avail ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-extrabold shadow-lg shadow-sky-500/25' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/60 text-white font-bold shadow-md'">
+                    :class="app.systemOverview.mihomo_update_avail ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-extrabold shadow-lg shadow-sky-500/25' : 'bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-slate-700 hover:text-slate-900 font-bold shadow-md'">
 
                     <span v-if="app.upgradingCoreMihomo" class="inline-block animate-spin mr-1">↻</span>
 
@@ -856,9 +856,9 @@
 
                 <!-- Tier 4: Terminal Viewport (h-[70px] sm:h-[76px]) -->
 
-                <div class="h-[70px] sm:h-[76px] p-3 rounded-xl macos-sub-card border text-xs font-mono leading-relaxed overflow-y-auto custom-scrollbar flex items-center shadow-inner"
+                <div class="h-[70px] sm:h-[76px] p-3 rounded-xl bg-slate-950/90 border border-slate-800 text-xs font-mono leading-relaxed overflow-y-auto custom-scrollbar flex items-center shadow-inner"
 
-                  :class="app.coreUpgradeFrozen ? 'border-blue-500/30 text-blue-300' : (app.systemOverview.mihomo_update_avail || app.systemOverview.singbox_update_avail ? 'border-amber-500/30 text-amber-300' : 'border-slate-700/60 text-slate-300')">
+                  :class="app.coreUpgradeFrozen ? 'border-blue-500/30 text-blue-300' : (app.systemOverview.mihomo_update_avail || app.systemOverview.singbox_update_avail ? 'border-amber-500/30 text-amber-300' : 'border-slate-300/60 text-slate-300')">
 
                   <div v-if="app.coreUpgradeLog" class="w-full break-words">
 
@@ -954,7 +954,7 @@
 
                   <div class="flex items-center gap-3 min-w-0">
 
-                    <svg class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] shrink-0 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-transform duration-300 group-hover:scale-105" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] shrink-0  transition-transform duration-300 group-hover:scale-105" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 
                       <path d="M12 2L3 7V12C3 17.5 6.8 22.3 12 23.5C17.2 22.3 21 17.5 21 12V7L12 2Z" fill="url(#geoShieldGrad)" stroke="#34D399" stroke-width="1.6" stroke-linejoin="round"/>
 
@@ -976,7 +976,7 @@
 
                     </svg>
 
-                    <span class="text-sm sm:text-base font-extrabold text-white whitespace-nowrap truncate tracking-wide">Geo 规则体系 (MRS / SRS)</span>
+                    <span class="text-sm sm:text-base font-extrabold text-slate-900 whitespace-nowrap truncate tracking-wide">Geo 规则体系 (MRS / SRS)</span>
 
                   </div>
 
@@ -990,7 +990,7 @@
 
                   </span>
 
-                  <span v-else-if="app.checkingGeoUpgrade" class="text-xs font-mono px-3 py-1 rounded-lg bg-white/10 text-white text-slate-400 border border-slate-700/50 flex items-center gap-1.5 shadow-sm shrink-0 font-semibold">
+                  <span v-else-if="app.checkingGeoUpgrade" class="text-xs font-mono px-3 py-1 rounded-lg bg-white/10 text-slate-600 border border-slate-300/60 flex items-center gap-1.5 shadow-sm shrink-0 font-semibold">
 
                     <span class="inline-block animate-spin text-[10px]">↻</span>
 
@@ -1026,7 +1026,7 @@
 
                   <div class="flex justify-between items-center">
 
-                    <span>离线基础库: <span class="text-slate-200 font-semibold">geoip.metadb + geosite.dat</span></span>
+                    <span>离线基础库: <span class="text-slate-800 font-bold">geoip.metadb + geosite.dat</span></span>
 
                     <span class="text-emerald-400 font-bold">✓ 离线就绪 ({{ app.geodataStatus.geoip_size_str && app.geodataStatus.geosite_size_str ? (app.geodataStatus.geoip_size_str + ' + ' + app.geodataStatus.geosite_size_str) : '38.4 MB' }})</span>
 
@@ -1034,9 +1034,9 @@
 
                   <div class="flex justify-between items-center">
 
-                    <span>权威分流包: <span class="text-slate-200"><strong class="text-emerald-300 font-bold text-sm">{{ app.geodataStatus.rules_count || 105 }} 套</strong> MRS / SRS 规则集</span></span>
+                    <span>权威分流包: <span class="text-slate-800"><strong class="text-emerald-700 font-black text-sm">{{ app.geodataStatus.rules_count || 105 }} 套</strong> MRS / SRS 规则集</span></span>
 
-                    <span class="text-slate-400 font-mono font-medium">{{ app.geodataStatus.last_updated ? ('更新于 ' + (app.geodataStatus.last_updated.length > 10 ? app.geodataStatus.last_updated.substring(5, 16) : app.geodataStatus.last_updated)) : (app.geodataLastUpdateText || '已全量装载') }}</span>
+                    <span class="text-slate-500 font-mono font-medium">{{ app.geodataStatus.last_updated ? ('更新于 ' + (app.geodataStatus.last_updated.length > 10 ? app.geodataStatus.last_updated.substring(5, 16) : app.geodataStatus.last_updated)) : (app.geodataLastUpdateText || '已全量装载') }}</span>
 
                   </div>
 
@@ -1060,7 +1060,7 @@
 
                   </button>
 
-                  <button @click="app.showGeodataDetailModal = true" :title="`查看全量 ${app.geodataStatus.rules_count || 105} 套分流策略规则清单与生效明细`" class="h-full px-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/60 text-white hover:text-sky-200 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-98 group">
+                  <button @click="app.showGeodataDetailModal = true" :title="`查看全量 ${app.geodataStatus.rules_count || 105} 套分流策略规则清单与生效明细`" class="h-full px-2.5 rounded-xl bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-slate-700 hover:text-slate-900 hover:text-sky-200 text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-98 group">
 
                     <svg class="w-4 h-4 text-emerald-300 group-hover:text-sky-200 shrink-0 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
 
@@ -1076,7 +1076,7 @@
 
                 <!-- Tier 4: Terminal Viewport (h-[70px] sm:h-[76px]) -->
 
-                <div class="h-[70px] sm:h-[76px] p-3 rounded-xl macos-sub-card border text-xs font-mono leading-relaxed overflow-y-auto custom-scrollbar flex items-center shadow-inner"
+                <div class="h-[70px] sm:h-[76px] p-3 rounded-xl bg-slate-950/90 border border-slate-800 text-xs font-mono leading-relaxed overflow-y-auto custom-scrollbar flex items-center shadow-inner"
 
                   :class="app.geodataStatus.has_update ? 'border-amber-500/30 text-amber-300' : 'border-emerald-500/25 text-emerald-300'">
 
@@ -1146,7 +1146,7 @@
 
                           class="shrink-0 text-xs px-2 py-0.5 rounded-md border transition cursor-pointer flex items-center gap-1 active:scale-95 font-semibold"
 
-                          :class="app.geoAutoUpdateEnabled ? 'bg-emerald-950 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-400 border-slate-700 hover:text-white'">
+                          :class="app.geoAutoUpdateEnabled ? 'bg-emerald-950 text-emerald-300 border-emerald-500/50 hover:bg-emerald-900' : 'bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-slate-700 hover:text-slate-900'">
 
                           <span>{{ app.geoAutoUpdateEnabled ? '已开启' : '已暂停' }}</span>
 
@@ -1172,9 +1172,9 @@
 
                   <div class="flex items-center gap-3 min-w-0">
 
-                    <img :src="app.hostBadge.svg" class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] object-contain shrink-0 drop-shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-transform duration-300 group-hover:scale-105" :alt="app.hostBadge.shortName" />
+                    <img :src="app.hostBadge.svg" class="w-7 h-7 min-w-[28px] max-w-[28px] h-[28px] max-h-[28px] object-contain shrink-0  transition-transform duration-300 group-hover:scale-105" :alt="app.hostBadge.shortName" />
 
-                    <span class="text-sm sm:text-base font-extrabold text-white whitespace-nowrap truncate tracking-wide">
+                    <span class="text-sm sm:text-base font-extrabold text-slate-900 whitespace-nowrap truncate tracking-wide">
 
                       {{ app.isRouterOS ? 'RouterOS 固件系统版本' : (app.hostBadge.name + ' 宿主系统版本') }}
 
@@ -1214,9 +1214,9 @@
 
                     <div class="flex justify-between items-center">
 
-                      <span>当前固件: <strong class="text-purple-300 font-bold text-sm">{{ (app.hostUpgradeDetails.installedVersion && !app.hostUpgradeDetails.installedVersion.includes('beta')) ? app.hostUpgradeDetails.installedVersion : ((app.hostInfo.os_name && (app.hostInfo.os_name.toLowerCase().includes('routeros') || app.hostInfo.os_name.toLowerCase().includes('mikrotik'))) ? app.hostInfo.os_name : 'MikroTik RouterOS') }}</strong></span>
+                      <span>当前固件: <strong class="text-purple-900 font-black text-sm">{{ (app.hostUpgradeDetails.installedVersion && !app.hostUpgradeDetails.installedVersion.includes('beta')) ? app.hostUpgradeDetails.installedVersion : ((app.hostInfo.os_name && (app.hostInfo.os_name.toLowerCase().includes('routeros') || app.hostInfo.os_name.toLowerCase().includes('mikrotik'))) ? app.hostInfo.os_name : 'MikroTik RouterOS') }}</strong></span>
 
-                      <span class="text-slate-400">升级通道: <span class="text-slate-200 font-semibold">{{ app.hostUpgradeDetails.channel || 'stable' }}</span></span>
+                      <span class="text-slate-500">升级通道: <span class="text-slate-800 font-bold">{{ app.hostUpgradeDetails.channel || 'stable' }}</span></span>
 
                     </div>
 
@@ -1234,9 +1234,9 @@
 
                     <div class="flex justify-between items-center">
 
-                      <span>当前宿主: <strong class="text-emerald-300 font-bold text-sm">{{ app.hostInfo.os_name || app.hostBadge.name }}</strong></span>
+                      <span>当前宿主: <strong class="text-emerald-900 font-black text-sm">{{ app.hostInfo.os_name || app.hostBadge.name }}</strong></span>
 
-                      <span class="text-slate-400">内核: <span class="text-slate-200 font-semibold">{{ app.hostInfo.kernel_version || 'Linux 6.x' }}</span></span>
+                      <span class="text-slate-500">内核: <span class="text-slate-800 font-bold">{{ app.hostInfo.kernel_version || 'Linux 6.x' }}</span></span>
 
                     </div>
 
@@ -1256,7 +1256,7 @@
 
                 <div class="h-11 sm:h-12 grid grid-cols-2 gap-2.5">
 
-                  <button @click="app.checkHostUpgrade" :disabled="app.checkingHostUpgrade" class="h-full rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/60 text-white hover:text-sky-200 font-bold text-xs sm:text-sm transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
+                  <button @click="app.checkHostUpgrade" :disabled="app.checkingHostUpgrade" class="h-full rounded-xl bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-slate-700 hover:text-slate-900 hover:text-sky-200 font-bold text-xs sm:text-sm transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
 
                     <span v-if="app.checkingHostUpgrade" class="inline-block animate-spin mr-1">↻</span>
 
@@ -1288,7 +1288,7 @@
 
                 <!-- Tier 4: Terminal Viewport (h-[70px] sm:h-[76px]) -->
 
-                <div class="h-[70px] sm:h-[76px] p-3 rounded-xl macos-sub-card border border-purple-500/25 text-xs font-mono text-purple-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center shadow-inner">
+                <div class="h-[70px] sm:h-[76px] p-3 rounded-xl bg-slate-950/90 border border-slate-800 text-xs font-mono text-purple-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center shadow-inner">
 
                   <div v-if="app.hostUpgradeResult" class="w-full break-words whitespace-pre-wrap">
 
@@ -1340,15 +1340,15 @@
 
                     <div>
 
-                      <h4 class="text-sm sm:text-base font-extrabold text-white tracking-wide">系统出厂初始化向导</h4>
+                      <h4 class="text-sm sm:text-base font-extrabold text-slate-900 tracking-wide">系统出厂初始化向导</h4>
 
-                      <span class="text-[11px] font-mono text-emerald-300 font-semibold">出厂重置 · 自动适配宿主底座</span>
+                      <span class="text-[11px] font-mono text-emerald-800 font-bold">出厂重置 · 自动适配宿主底座</span>
 
                     </div>
 
                   </div>
 
-                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-cyan-950/90 text-emerald-300 border border-cyan-500/40 font-bold shrink-0">
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-cyan-100 text-cyan-900 border border-cyan-300 font-bold shrink-0">
 
                     一键引导
 
@@ -1356,7 +1356,7 @@
 
                 </div>
 
-                <p class="text-xs text-slate-400 mt-3.5 leading-relaxed">
+                <p class="text-xs text-slate-600 mt-3.5 leading-relaxed font-medium">
 
                   一键安全清空现有全部配置并重置出厂状态，交互式引导重新填入宿主凭据，自动嗅探 RouterOS / 爱快 iKuai / OpenWrt / 飞牛 / PVE / Linux 全宿主底座并编排底层策略路由。
 
@@ -1402,7 +1402,7 @@
 
                   </div>
 
-                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold shrink-0">
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-900 border border-indigo-300 font-bold shrink-0">
 
                     秒级快照
 

@@ -75,6 +75,7 @@ func (s *Server) Run(listenAddr string) error {
 	SafeGo("SignalSupervisor", func() {
 		sig := <-sigCh
 		log.Printf("🛑 接收到系统终止信号 [%v]，启动 LTS 确定性无阻塞退出序列...\n", sig)
+		s.Close()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 

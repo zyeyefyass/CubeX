@@ -678,7 +678,7 @@
     </div>
 
     <!-- 35. 其它通用国旗/区旗后备 (带大号 Emoji 全息居中展示) -->
-    <div v-else-if="asBackground" class="w-full h-full bg-[#0a1626] flex items-center justify-center relative overflow-hidden">
+    <div v-else-if="asBackground" class="w-full h-full bg-slate-900 flex items-center justify-center relative overflow-hidden">
       <div class="absolute inset-0 bg-gradient-to-br from-cyan-950/40 via-slate-900/60 to-slate-950/90"></div>
       <span class="text-4xl opacity-35 filter drop-shadow-[0_0_12px_rgba(0,210,255,0.4)] select-none relative z-10">{{ flag || '🌍' }}</span>
     </div>

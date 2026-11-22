@@ -1,9 +1,9 @@
 <template>
-          <div v-if="app.executionModal.visible" class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div v-if="app.executionModal.visible" class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 animate-in fade-in">
 
-            <div class="w-full max-w-2xl rounded-3xl macos-glass-card shadow-2xl p-6 sm:p-7 space-y-5 text-slate-200 max-h-[85vh] flex flex-col">
+            <div class="w-full max-w-2xl rounded-3xl macos-glass-card shadow-2xl p-6 sm:p-7 space-y-5 text-slate-800 max-h-[85vh] flex flex-col">
 
-              <div class="flex items-center justify-between border-b border-slate-700/60 pb-4 shrink-0">
+              <div class="flex items-center justify-between border-b border-slate-300/60 pb-4 shrink-0">
 
                 <div class="flex items-center gap-3">
 
@@ -39,7 +39,7 @@
 
               </div>
 
-              <div class="text-xs text-slate-300 bg-sky-950/40 border border-sky-900/50 rounded-xl p-3 leading-relaxed shrink-0">
+              <div class="text-xs text-slate-700 bg-sky-50 border border-sky-200 text-sky-900 rounded-xl p-3 leading-relaxed shrink-0">
 
                 {{ app.executionModal.message }}
 
@@ -47,15 +47,15 @@
 
               <!-- Step Tracker Pipeline (六维全栈自愈执行时序链) -->
 
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 py-2 shrink-0 border-b border-slate-800/80">
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 py-2 shrink-0 border-b border-slate-300/60">
 
                 <div v-for="(step, sidx) in app.healingSteps" :key="sidx"
 
-                  class="flex items-center gap-2 p-2 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] font-mono">
+                  class="flex items-center gap-2 p-2 rounded-xl bg-[#F1F4F9] border border-slate-300/60 text-[11px] font-mono">
 
                   <span class="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 flex items-center justify-center text-[10px] shrink-0 font-bold">✓</span>
 
-                  <span class="truncate text-slate-300" :title="step">{{ step }}</span>
+                  <span class="truncate text-slate-700" :title="step">{{ step }}</span>
 
                 </div>
 
@@ -73,11 +73,11 @@
 
                 <div v-for="(act, idx) in app.executionModal.actions" :key="idx"
 
-                  class="flex items-start gap-2.5 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs">
+                  class="flex items-start gap-2.5 p-2.5 rounded-xl bg-[#F1F4F9]/60 border border-slate-300/60 text-xs">
 
                   <span class="text-emerald-400 shrink-0 mt-0.5 font-bold">✓</span>
 
-                  <span class="text-slate-200 leading-normal font-mono">{{ act }}</span>
+                  <span class="text-slate-800 leading-normal font-mono">{{ act }}</span>
 
                 </div>
 
@@ -107,7 +107,7 @@
 
               </div>
 
-              <div class="pt-3 border-t border-slate-800 flex justify-end shrink-0">
+              <div class="pt-3 border-t border-slate-300/60 flex justify-end shrink-0">
 
                 <button @click="app.executionModal.visible = false"
 
@@ -125,11 +125,11 @@
 
           <!-- Modal: 混沌容灾演练深度报告 (Chaos Drill Report Modal) -->
 
-          <div v-if="app.chaosReportModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div v-if="app.chaosReportModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 animate-in fade-in">
 
-            <div class="w-full max-w-2xl rounded-3xl macos-glass-card shadow-2xl p-6 sm:p-7 space-y-5 text-slate-200 max-h-[85vh] flex flex-col">
+            <div class="w-full max-w-2xl rounded-3xl macos-glass-card shadow-2xl p-6 sm:p-7 space-y-5 text-slate-800 max-h-[85vh] flex flex-col">
 
-              <div class="flex items-center justify-between border-b border-slate-700/60 pb-4 shrink-0">
+              <div class="flex items-center justify-between border-b border-slate-300/60 pb-4 shrink-0">
 
                 <div class="flex items-center gap-3">
 
@@ -155,7 +155,7 @@
 
                 </div>
 
-                <button @click="app.chaosReportModal = false" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition cursor-pointer">
+                <button @click="app.chaosReportModal = false" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-700 hover:text-white transition cursor-pointer">
 
                   ✕
 
@@ -189,13 +189,13 @@
 
                   </div>
 
-                  <p class="text-xs text-slate-300 leading-relaxed pl-7">{{ sc.detail }}</p>
+                  <p class="text-xs text-slate-700 leading-relaxed pl-7">{{ sc.detail }}</p>
 
                 </div>
 
               </div>
 
-              <div class="flex justify-end pt-2 border-t border-slate-700/60 shrink-0">
+              <div class="flex justify-end pt-2 border-t border-slate-300/60 shrink-0">
 
                 <button @click="app.chaosReportModal = false"
 
@@ -215,9 +215,9 @@
 
           <div v-if="app.diagnosticModal.visible" class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
 
-            <div class="w-full max-w-2xl rounded-3xl macos-glass-card shadow-2xl p-6 sm:p-7 space-y-5 text-slate-200 max-h-[85vh] flex flex-col">
+            <div class="w-full max-w-2xl rounded-3xl macos-glass-card shadow-2xl p-6 sm:p-7 space-y-5 text-slate-800 max-h-[85vh] flex flex-col">
 
-              <div class="flex items-center justify-between border-b border-slate-700/60 pb-4 shrink-0">
+              <div class="flex items-center justify-between border-b border-slate-300/60 pb-4 shrink-0">
 
                 <div class="flex items-center gap-3">
 
@@ -255,7 +255,7 @@
 
                 </div>
 
-                <button @click="app.diagnosticModal.visible = false" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-300 hover:text-white transition cursor-pointer">✕</button>
+                <button @click="app.diagnosticModal.visible = false" class="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-700 hover:text-white transition cursor-pointer">✕</button>
 
               </div>
 
@@ -277,7 +277,7 @@
 
                 </div>
 
-                <p class="text-slate-300 leading-relaxed">{{ app.diagnosticModal.report.summary }}</p>
+                <p class="text-slate-700 leading-relaxed">{{ app.diagnosticModal.report.summary }}</p>
 
               </div>
 
@@ -327,7 +327,7 @@
 
               <!-- Action Bar -->
 
-              <div class="pt-3 border-t border-slate-800 flex items-center justify-between shrink-0">
+              <div class="pt-3 border-t border-slate-300/60 flex items-center justify-between shrink-0">
 
                 <button v-if="app.diagnosticModal.report && app.diagnosticModal.report.can_auto_heal" @click="app.triggerFastSelfHeal"
 
@@ -359,11 +359,11 @@
 
           </div>
 
-    <div v-if="app.showDnsRewriteModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+    <div v-if="app.showDnsRewriteModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 animate-in fade-in overflow-y-auto">
 
-      <div class="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-[#001e36]/95 backdrop-blur-2xl text-white border border-cyan-500/30 p-4 sm:p-6 space-y-4 shadow-2xl relative custom-scrollbar">
+      <div class="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-[#E5EAF1] text-slate-800 border border-slate-300/60 p-4 sm:p-6 space-y-4 shadow-2xl relative custom-scrollbar">
 
-        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center justify-between border-b border-slate-300/60 pb-3">
 
           <h3 class="text-base font-bold text-white flex items-center gap-2">
 
@@ -381,17 +381,17 @@
 
           <div>
 
-            <label class="block text-slate-300 font-bold mb-1">原始域名 (Domain)</label>
+            <label class="block text-slate-700 font-bold mb-1">原始域名 (Domain)</label>
 
-            <input type="text" v-model="app.editingDnsRewriteRule.domain" placeholder="例: services.googleapis.cn 或 nas.lan" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 font-mono">
+            <input type="text" v-model="app.editingDnsRewriteRule.domain" placeholder="例: services.googleapis.cn 或 nas.lan" class="w-full bg-[#F1F4F9] border border-slate-300/60 rounded-xl px-3 py-2 text-slate-800 placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 font-mono">
 
           </div>
 
           <div>
 
-            <label class="block text-slate-300 font-bold mb-1">重写类型 (Rewrite Type)</label>
+            <label class="block text-slate-700 font-bold mb-1">重写类型 (Rewrite Type)</label>
 
-            <select v-model="app.editingDnsRewriteRule.type" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-emerald-500/60">
+            <select v-model="app.editingDnsRewriteRule.type" class="w-full bg-[#F1F4F9] border border-slate-300/60 rounded-xl px-3 py-2 text-slate-800 focus:outline-none focus:border-emerald-500/60">
 
               <option value="CNAME">CNAME 域名别名重定向 (如 services.googleapis.com)</option>
 
@@ -403,25 +403,25 @@
 
           <div>
 
-            <label class="block text-slate-300 font-bold mb-1">重写目标 (Target Domain / IP)</label>
+            <label class="block text-slate-700 font-bold mb-1">重写目标 (Target Domain / IP)</label>
 
-            <input type="text" v-model="app.editingDnsRewriteRule.target" placeholder="例: services.googleapis.com 或局域网静态 IP" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 font-mono">
+            <input type="text" v-model="app.editingDnsRewriteRule.target" placeholder="例: services.googleapis.com 或局域网静态 IP" class="w-full bg-[#F1F4F9] border border-slate-300/60 rounded-xl px-3 py-2 text-slate-800 placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 font-mono">
 
           </div>
 
           <div>
 
-            <label class="block text-slate-300 font-bold mb-1">说明备注 (Comment)</label>
+            <label class="block text-slate-700 font-bold mb-1">说明备注 (Comment)</label>
 
-            <input type="text" v-model="app.editingDnsRewriteRule.comment" placeholder="例: 解决 Google Play 无法下载 App 问题" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/60">
+            <input type="text" v-model="app.editingDnsRewriteRule.comment" placeholder="例: 解决 Google Play 无法下载 App 问题" class="w-full bg-[#F1F4F9] border border-slate-300/60 rounded-xl px-3 py-2 text-slate-800 placeholder-slate-500 focus:outline-none focus:border-emerald-500/60">
 
           </div>
 
         </div>
 
-        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-300/60">
 
-          <button @click="app.showDnsRewriteModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer">取消</button>
+          <button @click="app.showDnsRewriteModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-700 text-xs font-medium cursor-pointer">取消</button>
 
           <button @click="app.saveDnsRewriteRule" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-950/40 cursor-pointer transition">保存并立即生效</button>
 
@@ -433,11 +433,11 @@
 
     <!-- Modal: Add / Edit Domain Filter Rule Source -->
 
-    <div v-if="app.showRuleSourceModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+    <div v-if="app.showRuleSourceModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 animate-in fade-in overflow-y-auto">
 
-      <div class="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-[#001e36]/95 backdrop-blur-2xl text-white border border-cyan-500/30 p-4 sm:p-6 space-y-4 shadow-2xl relative custom-scrollbar">
+      <div class="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-[#E5EAF1] text-slate-800 border border-slate-300/60 p-4 sm:p-6 space-y-4 shadow-2xl relative custom-scrollbar">
 
-        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center justify-between border-b border-slate-300/60 pb-3">
 
           <h3 class="text-base font-bold text-white flex items-center gap-2">
 
@@ -453,25 +453,25 @@
 
           <div>
 
-            <label class="block text-slate-300 font-bold mb-1">规则源名称</label>
+            <label class="block text-slate-700 font-bold mb-1">规则源名称</label>
 
-            <input type="text" v-model="app.editingRuleSource.name" placeholder="例如: 217heidai / Anti-AD" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
-
-          </div>
-
-          <div>
-
-            <label class="block text-slate-300 font-bold mb-1">规则订阅 URL</label>
-
-            <input type="text" v-model="app.editingRuleSource.url" placeholder="https://.../adblockdns.txt 或 .mrs / .srs" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono text-xs">
+            <input type="text" v-model="app.editingRuleSource.name" placeholder="例如: 217heidai / Anti-AD" class="w-full bg-[#F1F4F9] border border-slate-300/60 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
 
           </div>
 
           <div>
 
-            <label class="block text-slate-300 font-bold mb-1">规则语法格式</label>
+            <label class="block text-slate-700 font-bold mb-1">规则订阅 URL</label>
 
-            <select v-model="app.editingRuleSource.type" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
+            <input type="text" v-model="app.editingRuleSource.url" placeholder="https://.../adblockdns.txt 或 .mrs / .srs" class="w-full bg-[#F1F4F9] border border-slate-300/60 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono text-xs">
+
+          </div>
+
+          <div>
+
+            <label class="block text-slate-700 font-bold mb-1">规则语法格式</label>
+
+            <select v-model="app.editingRuleSource.type" class="w-full bg-[#F1F4F9] border border-slate-300/60 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
 
               <option value="adblock">Adblock 语法 / 文本规则 (adblockdns.txt)</option>
 
@@ -487,9 +487,9 @@
 
         </div>
 
-        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-300/60">
 
-          <button @click="app.showRuleSourceModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer">取消</button>
+          <button @click="app.showRuleSourceModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-700 text-xs font-medium cursor-pointer">取消</button>
 
           <button @click="app.saveRuleSource" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/20 cursor-pointer">保存规则源</button>
 
@@ -503,9 +503,9 @@
 
     <div v-if="app.showSourcePreviewModal && app.previewingSource" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
 
-      <div class="w-full max-w-lg rounded-3xl bg-[#001e36]/95 backdrop-blur-2xl text-white border border-cyan-500/30 p-6 space-y-4 shadow-2xl relative">
+      <div class="w-full max-w-lg rounded-3xl bg-[#E5EAF1] text-slate-800 border border-slate-300/60 p-6 space-y-4 shadow-2xl relative">
 
-        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center justify-between border-b border-slate-300/60 pb-3">
 
           <h3 class="text-base font-bold text-white flex items-center gap-2">
 
@@ -519,17 +519,17 @@
 
         <div class="space-y-3 text-xs">
 
-          <div class="p-3 rounded-2xl bg-slate-950 border border-slate-800 font-mono space-y-1.5">
+          <div class="p-3 rounded-2xl bg-[#F1F4F9] border border-slate-300/60 font-mono space-y-1.5">
 
-            <div class="text-slate-400">ID: <span class="text-slate-200">{{ app.previewingSource.id }}</span></div>
+            <div class="text-slate-400">ID: <span class="text-slate-800">{{ app.previewingSource.id }}</span></div>
 
             <div class="text-slate-400">规则数: <span class="text-emerald-400 font-bold">{{ (app.previewingSource.rules_count || 0).toLocaleString() }} 条</span></div>
 
-            <div class="text-slate-400">更新时间: <span class="text-slate-200">{{ app.previewingSource.updated_at || '刚刚' }}</span></div>
+            <div class="text-slate-400">更新时间: <span class="text-slate-800">{{ app.previewingSource.updated_at || '刚刚' }}</span></div>
 
             <div class="text-slate-400 truncate">订阅链接: <span class="text-emerald-300">{{ app.previewingSource.url }}</span></div>
 
-            <div class="text-slate-400">状态: <span :class="app.previewingSource.enabled ? 'text-emerald-400 font-bold' : 'text-slate-300'">{{ app.previewingSource.enabled ? '已启用 (生效中)' : '已停用' }}</span></div>
+            <div class="text-slate-400">状态: <span :class="app.previewingSource.enabled ? 'text-emerald-400 font-bold' : 'text-slate-700'">{{ app.previewingSource.enabled ? '已启用 (生效中)' : '已停用' }}</span></div>
 
           </div>
 
@@ -543,7 +543,7 @@
 
         <div class="flex justify-end pt-2">
 
-          <button @click="app.showSourcePreviewModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer">关闭</button>
+          <button @click="app.showSourcePreviewModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-700 text-xs font-medium cursor-pointer">关闭</button>
 
         </div>
 

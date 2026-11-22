@@ -2,7 +2,7 @@
   <span
     class="zootopia-icon-container inline-flex items-center justify-center select-none shrink-0 transition-transform duration-300"
     :class="[
-      active ? 'scale-105 filter drop-shadow-[0_2px_8px_rgba(255,158,94,0.45)]' : 'opacity-90 hover:opacity-100 hover:scale-110',
+      active ? 'scale-105 opacity-100' : 'opacity-90 hover:opacity-100 hover:scale-110',
       customClass
     ]"
     :style="{ width: computedSize, height: computedSize }"
@@ -308,7 +308,7 @@
       <circle cx="24" cy="12" r="1.2" fill="#38BDF8" />
 
       <!-- Central 4-Point AI Sparkle Star (AI 核心星芒) -->
-      <path d="M16 6 C16 12 12 16 6 16 C12 16 16 20 16 26 C16 20 20 16 26 16 C20 16 16 12 16 6 Z" fill="url(#zt-ai-star)" filter="drop-shadow(0 0 4px rgba(253, 230, 138, 0.8))" />
+      <path d="M16 6 C16 12 12 16 6 16 C12 16 16 20 16 26 C16 20 20 16 26 16 C20 16 16 12 16 6 Z" fill="url(#zt-ai-star)" />
 
       <!-- Inner Micro Core -->
       <circle cx="16" cy="16" r="2.2" fill="#FFFFFF" />

@@ -252,6 +252,7 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 		logBuffer:    logBuffer,
 		delayCache:   make(map[string]delayCacheEntry),
 		delaySFGroup: make(map[string]*delayFlightCall),
+		stopCh:       make(chan struct{}),
 
 		httpClient: &http.Client{
 
@@ -505,12 +506,20 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 				// 🛡️ 24H Host Companion Watchdog (Checks iKuai/OpenWrt routes & DHCP every 60s)
 				hTicker := time.NewTicker(60 * time.Second)
 				defer hTicker.Stop()
-				for range hTicker.C {
-					if hostMgr.IsIKuaiOrOpenWrtConfigured() {
-						if logs, err := hostMgr.SyncHostBypass(); err == nil && len(logs) > 0 {
-							for _, l := range logs {
-								if strings.Contains(l, "自愈") || strings.Contains(l, "修正") || strings.Contains(l, "成功") {
-									log.Printf("🛡️ [Host Watchdog] %s", l)
+				for {
+					select {
+					case <-srv.stopCh:
+						return
+					case <-hTicker.C:
+						if srv.draining.Load() {
+							return
+						}
+						if hostMgr.IsIKuaiOrOpenWrtConfigured() {
+							if logs, err := hostMgr.SyncHostBypass(); err == nil && len(logs) > 0 {
+								for _, l := range logs {
+									if strings.Contains(l, "自愈") || strings.Contains(l, "修正") || strings.Contains(l, "成功") {
+										log.Printf("🛡️ [Host Watchdog] %s", l)
+									}
 								}
 							}
 						}
@@ -995,6 +1004,19 @@ type Server struct {
 
 	reloadTimerMu sync.Mutex
 	reloadTimer   *time.Timer
+
+	stopCh   chan struct{}
+	stopOnce sync.Once
+}
+
+// Close gracefully stops the server background workers and sets draining
+func (s *Server) Close() {
+	s.draining.Store(true)
+	s.stopOnce.Do(func() {
+		if s.stopCh != nil {
+			close(s.stopCh)
+		}
+	})
 }
 
 // UpdateIRAndReload updates Universal IR in memory and disk, clearing precompiled caches,

@@ -461,10 +461,9 @@ else
 
     if [ "$NEED_DOWNLOAD" -eq 1 ] && [ ! -f "$INSTALL_DIR/bin/cubexd" ]; then
         echo -e "${CYAN}🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 105套规则集 + 控制面)...${NC}"
-        GH_MIRRORS=("https://gh-proxy.com" "https://ghproxy.net" "https://github.moeyy.xyz" "")
         REL_TAG="$CUSTOM_VER"
         if [ -z "$REL_TAG" ]; then
-            for M in "${GH_MIRRORS[@]}"; do
+            for M in "https://gh-proxy.com" "https://ghproxy.net" "https://github.moeyy.xyz" ""; do
                 PREFIX=""
                 [ -n "$M" ] && PREFIX="${M}/"
                 LATEST_JSON=$(curl -4 -sSL --connect-timeout 4 -m 8 "${PREFIX}https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
@@ -477,7 +476,7 @@ else
                 [ -n "$REL_TAG" ] && break
             done
         fi
-        [ -z "$REL_TAG" ] && REL_TAG="v9.9.6"
+        [ -z "$REL_TAG" ] && REL_TAG="v9.9.7"
         ZIP_NAME="CubeX-${REL_TAG}-linux-${TARGET_ARCH}.zip"
         ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
 
@@ -487,9 +486,10 @@ else
         else
             rm -f "$TMP_ZIP"
             echo -e "${CYAN}   -> 正在通过国内多级高速镜像源智能轮询下载 ${ZIP_NAME} (约 80MB，免代理极速拉取)...${NC}"
+            GH_MIRRORS="https://gh-proxy.com https://mirror.ghproxy.com https://github.boki.moe https://ghproxy.net https://github.moeyy.xyz DIRECT"
             DOWNLOAD_OK=0
-            for MIRROR in "${GH_MIRRORS[@]}"; do
-                if [ -n "$MIRROR" ]; then
+            for MIRROR in $GH_MIRRORS; do
+                if [ "$MIRROR" != "DIRECT" ]; then
                     DL_LINK="${MIRROR}/${ZIP_URL}"
                     echo -e "${CYAN}      [镜像尝试] 正在连接: ${MIRROR}...${NC}"
                 else
@@ -511,9 +511,9 @@ else
         else
             echo -e "${YELLOW}⚠️ 完整归档拉取失败，尝试独立拉取控制面与双引擎独立内核...${NC}"
             DL_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${TARGET_ARCH}"
-            for MIRROR in "${GH_MIRRORS[@]}"; do
+            for MIRROR in $GH_MIRRORS; do
                 BIN_LINK="${DL_URL}"
-                [ -n "$MIRROR" ] && BIN_LINK="${MIRROR}/${DL_URL}"
+                [ "$MIRROR" != "DIRECT" ] && BIN_LINK="${MIRROR}/${DL_URL}"
                 if curl -4 -sSL --connect-timeout 6 -m 120 -o "$INSTALL_DIR/bin/cubexd" "$BIN_LINK" 2>/dev/null && [ -s "$INSTALL_DIR/bin/cubexd" ]; then
                     break
                 fi
@@ -523,9 +523,9 @@ else
             if [ ! -f "$INSTALL_DIR/bin/sing-box" ]; then
                 echo -e "${CYAN}   -> 正在独立拉取 sing-box 核心...${NC}"
                 SB_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/sing-box-linux-${TARGET_ARCH}"
-                for MIRROR in "${GH_MIRRORS[@]}"; do
+                for MIRROR in $GH_MIRRORS; do
                     BIN_LINK="${SB_URL}"
-                    [ -n "$MIRROR" ] && BIN_LINK="${MIRROR}/${SB_URL}"
+                    [ "$MIRROR" != "DIRECT" ] && BIN_LINK="${MIRROR}/${SB_URL}"
                     if curl -4 -sSL --connect-timeout 6 -m 120 -o "$INSTALL_DIR/bin/sing-box" "$BIN_LINK" 2>/dev/null && [ -s "$INSTALL_DIR/bin/sing-box" ]; then
                         break
                     fi
@@ -536,9 +536,9 @@ else
             if [ ! -f "$INSTALL_DIR/bin/mihomo" ]; then
                 echo -e "${CYAN}   -> 正在独立拉取 mihomo 核心...${NC}"
                 MH_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/mihomo-linux-${TARGET_ARCH}"
-                for MIRROR in "${GH_MIRRORS[@]}"; do
+                for MIRROR in $GH_MIRRORS; do
                     BIN_LINK="${MH_URL}"
-                    [ -n "$MIRROR" ] && BIN_LINK="${MIRROR}/${MH_URL}"
+                    [ "$MIRROR" != "DIRECT" ] && BIN_LINK="${MIRROR}/${MH_URL}"
                     if curl -4 -sSL --connect-timeout 6 -m 120 -o "$INSTALL_DIR/bin/mihomo" "$BIN_LINK" 2>/dev/null && [ -s "$INSTALL_DIR/bin/mihomo" ]; then
                         break
                     fi

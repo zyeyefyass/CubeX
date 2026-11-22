@@ -907,36 +907,14 @@
 
                 </div>
 
-                <!-- 均衡行高底部分类标签 (严格守死三项之和 100% 等于总数) -->
-
-                <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200/80 text-[10px] font-mono text-center">
-
-                  <div class="p-1.5 rounded-lg bg-white/90 text-slate-800 border border-slate-200/80 shadow-sm">
-
-                    <div class="text-slate-700 font-medium">广告弹窗</div>
-
-                    <div class="text-amber-700 font-bold mt-0.5">{{ blockedBreakdown.ads }}</div>
-
-                  </div>
-
-                  <div class="p-1.5 rounded-lg bg-white/90 text-slate-800 border border-slate-200/80 shadow-sm">
-
-                    <div class="text-slate-700 font-medium">隐私追踪</div>
-
-                    <div class="text-amber-700 font-bold mt-0.5">{{ blockedBreakdown.trackers }}</div>
-
-                  </div>
-
-                  <div class="p-1.5 rounded-lg bg-white/90 text-slate-800 border border-slate-200/80 shadow-sm">
-
-                    <div class="text-slate-700 font-medium">恶意劫持</div>
-
-                    <div class="text-amber-700 font-bold mt-0.5">{{ blockedBreakdown.hijack }}</div>
-
-                  </div>
-
+                <!-- 真实规则库拦截说明标签 -->
+                <div class="pt-2 border-t border-slate-200/80 text-[11px] text-slate-600 flex items-center justify-between">
+                  <span class="flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    <span>217heidai 权威规则拦截</span>
+                  </span>
+                  <span class="font-mono text-slate-500">实时过滤</span>
                 </div>
-
               </div>
 
               <!-- Card 4: 被拦截域名排行 -->
@@ -1076,20 +1054,6 @@ import { inject, ref, computed, onMounted } from 'vue'
 import ZootopiaIcon from '../ZootopiaIcon.vue'
 const app = inject('cubexApp')
 const showWhitelistSection = ref(false)
-
-// 拦截子分类动态等比分配 (底线保障: 恶意劫持 = 总数 - 广告 - 追踪，确保三者之和 100% 严格等于总拦截数)
-const blockedBreakdown = computed(() => {
-  const total = Number(app?.dnsFilterStats?.blockedCount) || 0
-  if (total <= 0) return { ads: '—', trackers: '—', hijack: '—' }
-  const ads = Math.round(total * 0.60)
-  const trackers = Math.round(total * 0.23)
-  const hijack = Math.max(0, total - ads - trackers)
-  return {
-    ads: ads.toLocaleString(),
-    trackers: trackers.toLocaleString(),
-    hijack: hijack.toLocaleString()
-  }
-})
 
 // ➕ v9.9.0 一句话网站分流 (Quick Custom Domain Override)
 const quickDomainInput = ref('')

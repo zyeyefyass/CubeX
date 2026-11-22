@@ -16,38 +16,37 @@ export function useDataplane() {
     checked_at: new Date().toISOString()
   })
 
-  const isDiagDrawerOpen = ref(false)
   const isFetching = ref(false)
   const lastError = ref(null)
   let pollTimer = null
 
-  // 大白话三态胶囊计算
+  // 大白话三态胶囊计算 (低饱和莫兰迪色，去霓虹光晕，适配雾面奶白底盘)
   const pulseState = computed(() => {
     const s = snapshot.value
     if (s.state === 'switching') {
       return {
         type: 'switching',
         label: '无感切核中',
-        dotClass: 'bg-cyan-400 animate-pulse shadow-[0_0_8px_#00d2ff]',
-        badgeClass: 'bg-cyan-950/40 text-cyan-300 border-cyan-500/30 hover:border-cyan-400/50',
-        textClass: 'text-cyan-300'
+        dotClass: 'bg-[#0284c7] animate-pulse',
+        badgeClass: 'bg-[#f1f4f9]/90 text-[#0369a1] border-sky-300/60',
+        textClass: 'text-[#0369a1]'
       }
     }
     if (!s.healthy || s.state === 'degraded' || s.status === 'degraded') {
       return {
         type: 'degraded',
         label: '已保底逃生',
-        dotClass: 'bg-amber-400 animate-ping shadow-[0_0_8px_#f59e0b]',
-        badgeClass: 'bg-amber-950/40 text-amber-300 border-amber-500/30 hover:border-amber-400/50',
-        textClass: 'text-amber-300'
+        dotClass: 'bg-[#d97706] animate-ping',
+        badgeClass: 'bg-[#f1f4f9]/90 text-[#b45309] border-amber-300/60',
+        textClass: 'text-[#b45309]'
       }
     }
     return {
       type: 'healthy',
       label: '数据面健康',
-      dotClass: 'bg-emerald-400 shadow-[0_0_8px_#10b981]',
-      badgeClass: 'bg-emerald-950/40 text-emerald-300 border-emerald-500/30 hover:border-emerald-400/50',
-      textClass: 'text-emerald-300'
+      dotClass: 'bg-[#0f766e]',
+      badgeClass: 'bg-[#f1f4f9]/90 text-[#0f766e] border-teal-300/60',
+      textClass: 'text-[#0f766e]'
     }
   })
 
@@ -123,7 +122,6 @@ export function useDataplane() {
   return {
     snapshot,
     pulseState,
-    isDiagDrawerOpen,
     isFetching,
     fetchDataplaneHealth,
     copyDesensitizedReport

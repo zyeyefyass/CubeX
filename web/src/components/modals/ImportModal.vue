@@ -1,11 +1,11 @@
 <template>
-    <div v-if="app.showImportModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-xl flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
+    <div v-if="app.showImportModal" class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in">
 
-      <div class="bg-white/[0.03] border border-slate-700/70 rounded-3xl p-6 sm:p-7 max-w-3xl w-full space-y-5 shadow-2xl max-h-[92vh] flex flex-col text-slate-200">
+      <div class="bg-[#E5EAF1] border border-slate-300/60 rounded-3xl p-6 sm:p-7 max-w-3xl w-full space-y-5 shadow-2xl max-h-[92vh] flex flex-col text-slate-800">
 
         <!-- Modal Header -->
 
-        <div class="flex items-center justify-between border-b border-slate-700/60 pb-3.5">
+        <div class="flex items-center justify-between border-b border-slate-300/60 pb-3.5">
 
           <div class="flex items-center gap-3">
 
@@ -13,7 +13,7 @@
 
             <div>
 
-              <h3 class="text-base font-black text-white flex items-center gap-2">
+              <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
 
                 <span>订阅源与自建节点批量导入中枢</span>
 
@@ -25,21 +25,21 @@
 
               </h3>
 
-              <p class="text-[11px] text-slate-400 mt-0.5">支持每行一条、直接指定名称，实时智能解析并一键合并挂载到核心代理集群</p>
+              <p class="text-[11px] text-slate-500 mt-0.5">支持每行一条、直接指定名称，实时智能解析并一键合并挂载到核心代理集群</p>
 
             </div>
 
           </div>
 
-          <button @click="app.showImportModal = false" class="text-slate-400 hover:text-white px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 hover:bg-slate-700 text-sm font-bold transition">✕</button>
+          <button @click="app.showImportModal = false" class="text-slate-500 hover:text-white px-2.5 py-1.5 rounded-xl bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-slate-700 text-sm font-bold transition">✕</button>
 
         </div>
 
         <!-- 3-Segment Navigation Capsule -->
 
-        <div class="flex p-1 bg-slate-950/90 rounded-2xl border border-slate-800 text-xs font-mono shrink-0">
+        <div class="flex p-1 bg-[#F1F4F9] rounded-2xl border border-slate-300/60 text-slate-800 text-xs font-mono shrink-0">
 
-          <button @click="app.subModalTab = 'sub'" :class="['flex-1 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5', app.subModalTab === 'sub' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-sky-500/20' : 'text-slate-400 hover:text-slate-200']">
+          <button @click="app.subModalTab = 'sub'" :class="['flex-1 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5', app.subModalTab === 'sub' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-sky-500/20' : 'text-slate-500 hover:text-slate-800']">
 
             <span>🌐 批量导入订阅</span>
 
@@ -51,7 +51,7 @@
 
           </button>
 
-          <button @click="app.subModalTab = 'node'" :class="['flex-1 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5', app.subModalTab === 'node' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-sky-500/20' : 'text-slate-400 hover:text-slate-200']">
+          <button @click="app.subModalTab = 'node'" :class="['flex-1 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5', app.subModalTab === 'node' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-sky-500/20' : 'text-slate-500 hover:text-slate-800']">
 
             <span>🔗 批量导入自建节点</span>
 
@@ -63,7 +63,7 @@
 
           </button>
 
-          <button @click="app.subModalTab = 'list'" :class="['flex-1 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5', app.subModalTab === 'list' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-sky-500/20' : 'text-slate-400 hover:text-slate-200']">
+          <button @click="app.subModalTab = 'list'" :class="['flex-1 py-2 rounded-xl font-bold transition flex items-center justify-center gap-1.5', app.subModalTab === 'list' ? 'bg-cyan-500 text-slate-950 shadow-md shadow-sky-500/20' : 'text-slate-500 hover:text-slate-800']">
 
             <span>📋 订阅与节点清单 ({{ app.ir.subscriptions?.length || 0 }} 订阅源 · {{ app.customNodes.length }} 节点)</span>
 
@@ -103,13 +103,13 @@
 
           <div>
 
-            <div class="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1.5">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-700 mb-1.5">
 
               <span class="flex items-center gap-1.5">
 
                 <span>粘贴订阅源列表 (每行一条)</span>
 
-                <span class="text-[11px] text-slate-400 font-normal">支持 Clash / sing-box / V2Ray 协议</span>
+                <span class="text-[11px] text-slate-500 font-normal">支持 Clash / sing-box / V2Ray 协议</span>
 
               </span>
 
@@ -139,7 +139,7 @@
 
               <span>⚡ 实时解析预览 (共 {{ app.parsedBatchSubs.length }} 条订阅将一次性合并导入)：</span>
 
-              <span class="text-slate-400 text-[10px]">单次原子热重载 · 零频闪</span>
+              <span class="text-slate-500 text-[10px]">单次原子热重载 · 零频闪</span>
 
             </div>
 
@@ -149,7 +149,7 @@
 
                 <div class="flex items-center gap-2 truncate">
 
-                  <span class="text-slate-300 text-[10px] w-5 text-right shrink-0">{{ idx + 1 }}.</span>
+                  <span class="text-slate-700 text-[10px] w-5 text-right shrink-0">{{ idx + 1 }}.</span>
 
                   <span class="px-2 py-0.5 rounded bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm text-xs font-bold shrink-0">
 
@@ -157,7 +157,7 @@
 
                   </span>
 
-                  <span class="text-slate-400 truncate text-[11px]">{{ item.url }}</span>
+                  <span class="text-slate-500 truncate text-[11px]">{{ item.url }}</span>
 
                 </div>
 
@@ -181,13 +181,13 @@
 
             </button>
 
-            <button v-if="app.batchSubText" @click="app.batchSubText = ''" class="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+            <button v-if="app.batchSubText" @click="app.batchSubText = ''" class="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-700 text-xs font-semibold transition">
 
               清空
 
             </button>
 
-            <button @click="app.showImportModal = false" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+            <button @click="app.showImportModal = false" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-700 text-xs font-semibold transition">
 
               取消
 
@@ -229,13 +229,13 @@
 
           <div>
 
-            <div class="flex items-center justify-between text-xs font-semibold text-slate-300 mb-1.5">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-700 mb-1.5">
 
               <span class="flex items-center gap-1.5">
 
                 <span>粘贴自建节点列表 (每行一条)</span>
 
-                <span class="text-[11px] text-slate-400 font-normal">支持 Shadowsocks, VMess, VLESS, Trojan, Hysteria2, TUIC</span>
+                <span class="text-[11px] text-slate-500 font-normal">支持 Shadowsocks, VMess, VLESS, Trojan, Hysteria2, TUIC</span>
 
               </span>
 
@@ -265,7 +265,7 @@
 
               <span>⚡ 实时解析预览 (共 {{ app.parsedBatchNodes.length }} 个节点将合并导入并归入「🏠 自建」集群)：</span>
 
-              <span class="text-slate-400 text-[10px]">单次原子热重载 · 自动去重</span>
+              <span class="text-slate-500 text-[10px]">单次原子热重载 · 自动去重</span>
 
             </div>
 
@@ -275,7 +275,7 @@
 
                 <div class="flex items-center gap-2 truncate">
 
-                  <span class="text-slate-300 text-[10px] w-5 text-right shrink-0">{{ idx + 1 }}.</span>
+                  <span class="text-slate-700 text-[10px] w-5 text-right shrink-0">{{ idx + 1 }}.</span>
 
                   <span class="px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40 text-[10px] font-bold shrink-0 uppercase">
 
@@ -289,7 +289,7 @@
 
                   </span>
 
-                  <span class="text-slate-400 truncate text-[11px]">{{ item.link }}</span>
+                  <span class="text-slate-500 truncate text-[11px]">{{ item.link }}</span>
 
                 </div>
 
@@ -313,13 +313,13 @@
 
             </button>
 
-            <button v-if="app.batchNodeText" @click="app.batchNodeText = ''" class="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+            <button v-if="app.batchNodeText" @click="app.batchNodeText = ''" class="px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-700 text-xs font-semibold transition">
 
               清空
 
             </button>
 
-            <button @click="app.showImportModal = false" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">
+            <button @click="app.showImportModal = false" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-700 text-xs font-semibold transition">
 
               取消
 
@@ -337,7 +337,7 @@
 
           <div class="space-y-2">
 
-            <div class="text-xs font-bold text-slate-300 flex items-center justify-between">
+            <div class="text-xs font-bold text-slate-700 flex items-center justify-between">
 
               <span class="flex items-center gap-1.5">
 
@@ -381,7 +381,7 @@
 
                     </span>
 
-                    <span :class="['text-[10px] px-1.5 py-0.2 rounded-full font-mono shrink-0', sub.enabled ? 'text-emerald-400' : 'text-slate-300']">
+                    <span :class="['text-[10px] px-1.5 py-0.2 rounded-full font-mono shrink-0', sub.enabled ? 'text-emerald-400' : 'text-slate-700']">
 
                       {{ sub.enabled ? '● 启用' : '○ 停用' }}
 
@@ -405,7 +405,7 @@
 
                     </button>
 
-                    <button @click="app.updateSubscription(sub.id)" title="更新此订阅" class="p-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-200 text-xs">🔄</button>
+                    <button @click="app.updateSubscription(sub.id)" title="更新此订阅" class="p-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-800 text-xs">🔄</button>
 
                     <button @click="app.toggleSubscription(sub.id, !sub.enabled)" :title="sub.enabled ? '停用此订阅' : '启用此订阅'" class="p-1 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-xs">
 
@@ -425,11 +425,11 @@
 
                   <div class="flex items-center justify-between text-[10px] font-mono">
 
-                    <span class="text-slate-300">
+                    <span class="text-slate-700">
 
                       剩余流量: <strong class="text-white">{{ app.subQuotaMap[sub.id || sub.name]?.remStr }}</strong>
 
-                      <span class="text-slate-300" v-if="app.subQuotaMap[sub.id || sub.name]?.hasQuota"> / {{ app.subQuotaMap[sub.id || sub.name]?.totalStr }}</span>
+                      <span class="text-slate-700" v-if="app.subQuotaMap[sub.id || sub.name]?.hasQuota"> / {{ app.subQuotaMap[sub.id || sub.name]?.totalStr }}</span>
 
                     </span>
 
@@ -449,7 +449,7 @@
 
                   </div>
 
-                  <div class="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                  <div class="flex items-center justify-between text-[10px] text-slate-500 font-mono">
 
                     <span>📅 重置: {{ app.subMetaMap[sub.id]?.resetInfo }}</span>
 
@@ -465,9 +465,9 @@
 
                   <div class="flex items-center gap-1 flex-wrap">
 
-                    <span class="text-slate-300">地区:</span>
+                    <span class="text-slate-700">地区:</span>
 
-                    <span v-for="reg in app.getSubRegions(sub).slice(0, 4)" :key="reg.name" class="px-1.5 py-0.2 rounded bg-white/10 text-white text-slate-300 border border-slate-800">
+                    <span v-for="reg in app.getSubRegions(sub).slice(0, 4)" :key="reg.name" class="px-1.5 py-0.2 rounded bg-white/10 text-white text-slate-700 border border-slate-800">
 
                       {{ reg.flag }} {{ reg.count }}
 
@@ -493,7 +493,7 @@
 
                     <div class="flex items-center gap-1.5 truncate">
 
-                      <span class="text-slate-300 text-[10px]">{{ nIdx + 1 }}.</span>
+                      <span class="text-slate-700 text-[10px]">{{ nIdx + 1 }}.</span>
 
                       <span class="text-[11px] px-1 rounded uppercase bg-white/10 text-white text-emerald-300 font-bold">{{ node.type }}</span>
 
@@ -527,7 +527,7 @@
 
             </div>
 
-            <div v-else class="text-xs text-slate-300 p-4 text-center border border-dashed border-slate-800 rounded-xl">
+            <div v-else class="text-xs text-slate-700 p-4 text-center border border-dashed border-slate-800 rounded-xl">
 
               暂无保存的订阅源，点击「批量导入订阅」即可添加。
 
@@ -539,7 +539,7 @@
 
           <div class="space-y-2 pt-2 border-t border-slate-800">
 
-            <div class="text-xs font-bold text-slate-300 flex items-center justify-between">
+            <div class="text-xs font-bold text-slate-700 flex items-center justify-between">
 
               <span class="flex items-center gap-1.5">
 
@@ -575,7 +575,7 @@
 
                   </div>
 
-                  <div class="text-[10px] text-slate-300 font-mono truncate mt-0.5">{{ node.server }}:{{ node.port }}</div>
+                  <div class="text-[10px] text-slate-700 font-mono truncate mt-0.5">{{ node.server }}:{{ node.port }}</div>
 
                 </div>
 
@@ -585,7 +585,7 @@
 
             </div>
 
-            <div v-else class="text-xs text-slate-300 p-3 text-center border border-dashed border-slate-800 rounded-xl">
+            <div v-else class="text-xs text-slate-700 p-3 text-center border border-dashed border-slate-800 rounded-xl">
 
               暂无自建单节点，点击「批量导入自建节点」即可导入落地专线。
 

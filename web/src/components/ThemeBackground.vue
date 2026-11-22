@@ -13,7 +13,7 @@
         style="contain: content;"
       />
 
-      <!-- 硬件加速 60FPS 视频渲染层 (防 IDM 悬浮条遮挡 · 零黑屏兜底 · 智能切后台暂停释放显存) -->
+      <!-- 硬件加速 60FPS 视频渲染层 (锁定独立合成层 · 防 IDM 浮条嗅探 · 零黑屏兜底) -->
       <video
         v-else
         ref="videoEl"
@@ -27,11 +27,12 @@
         disableRemotePlayback
         controlsList="nodownload nofullscreen noremoteplayback"
         data-idm-ignore="true"
+        data-download-ignore="true"
         :poster="posterUrl"
         @error="onVideoError"
-        style="contain: content; pointer-events: none;"
+        style="contain: content; pointer-events: none; transform: translateZ(0);"
       >
-        <source :src="videoUrl" type="video/mp4" />
+        <source :src="blobVideoUrl || videoUrl" type="video/mp4" />
       </video>
     </template>
 
@@ -51,7 +52,7 @@
     <!-- ════════════════════════════════════════════════════════════════ -->
     <!-- Mode 3: 原创暮光冰晶几何矢量流光画布 (纯 CSS · 0 显存开销)           -->
     <!-- ════════════════════════════════════════════════════════════════ -->
-    <div v-else class="w-full h-full relative bg-[#001529]">
+    <div v-else class="w-full h-full relative bg-[#0b101b]">
       <!-- 极客网格晶格线 -->
       <div
         class="absolute inset-0 opacity-[0.035]"
@@ -71,11 +72,10 @@
       }"
     ></div>
 
-    <!-- ════════════════════════════════════════════════════════════════ -->
-    <!-- 可读性暗场蒙层 (赏景模式下淡出为 0，让路全景沉浸视效)                   -->
-    <!-- ════════════════════════════════════════════════════════════════ -->
+    <!-- 柔和压暗垫层 (柔化动态高光峰值，压平背景闪烁，赏景模式淡出至 0) -->
     <div
-      class="absolute inset-0 bg-[#020b18]/45 transition-opacity duration-500 pointer-events-none"
+      class="absolute inset-0 transition-opacity duration-500 pointer-events-none"
+      style="background-color: rgba(10, 14, 22, 0.42);"
       :class="isPeekMode ? 'opacity-0' : 'opacity-100'"
     ></div>
   </div>
@@ -100,6 +100,7 @@ const { activeTheme, playbackMode } = useThemeEngine()
 const videoEl = ref(null)
 const isPosterFallback = ref(false)
 const hasMultiImageError = ref(false)
+const blobVideoUrl = ref('')
 
 // Video & Poster URLs
 const videoUrl = computed(() => {
@@ -107,6 +108,28 @@ const videoUrl = computed(() => {
   const assetName = activeTheme.value.assets?.video || 'bg.mp4'
   return `/api/themes/${activeTheme.value.id}/assets/${assetName}`
 })
+
+// Anti-IDM Blob URL generator: Fetch video into in-memory Blob URL to prevent IDM floating download bar
+async function resolveAntiIDMVideoBlob(url) {
+  if (!url || typeof window === 'undefined' || !window.fetch) return
+  try {
+    const res = await fetch(url)
+    if (res.ok) {
+      const blob = await res.blob()
+      if (blobVideoUrl.value && blobVideoUrl.value.startsWith('blob:')) {
+        URL.revokeObjectURL(blobVideoUrl.value)
+      }
+      blobVideoUrl.value = URL.createObjectURL(blob)
+    }
+  } catch (err) {
+    // Graceful fallback to direct URL
+    blobVideoUrl.value = ''
+  }
+}
+
+watch(videoUrl, (newUrl) => {
+  if (newUrl) resolveAntiIDMVideoBlob(newUrl)
+}, { immediate: true })
 
 const posterUrl = computed(() => {
   if (activeTheme.value.type !== 'video') return ''
@@ -196,6 +219,10 @@ onUnmounted(() => {
   if (typeof document !== 'undefined') {
     document.removeEventListener('visibilitychange', onVisibilityChange)
     document.body.classList.remove('cbx-video-mode')
+  }
+  if (blobVideoUrl.value && blobVideoUrl.value.startsWith('blob:')) {
+    URL.revokeObjectURL(blobVideoUrl.value)
+    blobVideoUrl.value = ''
   }
 })
 </script>

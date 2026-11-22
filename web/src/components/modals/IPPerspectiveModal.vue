@@ -1,16 +1,16 @@
 <template>
   <dialog ref="dialogRef" class="modern-dialog select-none" @click="handleBackdropClick" @cancel="close">
-    <div class="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in" @click.self="close">
-      <div class="bg-[#0b0816]/95 border border-white/20 rounded-3xl max-w-2xl w-full shadow-2xl flex flex-col text-slate-200 overflow-hidden relative">
+    <div class="fixed inset-0 bg-black/60 flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in" @click.self="close">
+      <div class="bg-[#E5EAF1] border border-slate-300/60 rounded-3xl max-w-2xl w-full shadow-2xl flex flex-col text-slate-800 overflow-hidden relative">
         <!-- Modal Header -->
-        <div class="px-5 py-4 bg-white/[0.04] border-b border-white/10 flex items-center justify-between gap-3 select-none">
+        <div class="px-5 py-4 bg-[#F1F4F9] border-b border-slate-300/60 flex items-center justify-between gap-3 select-none">
           <div class="flex items-center gap-2.5">
             <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500/20 to-sky-500/20 border border-cyan-400/30 flex items-center justify-center text-cyan-300 font-bold">
               🔍
             </div>
             <div>
               <div class="flex items-center gap-2">
-                <h3 class="text-sm sm:text-base font-extrabold text-white tracking-wide truncate max-w-[280px] sm:max-w-[360px]">
+                <h3 class="text-sm sm:text-base font-extrabold text-slate-900 tracking-wide truncate max-w-[280px] sm:max-w-[360px]">
                   {{ nodeName }}
                 </h3>
                 <span class="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border font-tabular"
@@ -18,7 +18,7 @@
                   {{ overallScore >= 90 ? 'S 极致稳定' : (overallScore >= 80 ? 'A+ 极高品质' : (overallScore >= 60 ? 'A 优质可用' : 'C 波动预警')) }}
                 </span>
               </div>
-              <p class="text-[11px] text-slate-400 font-mono mt-0.5">
+              <p class="text-[11px] text-slate-500 font-mono mt-0.5">
                 稳定三角评分 (40% 延时中位数 × 30% 抖动平均 × 30% 被动吞吐)
               </p>
             </div>
@@ -32,7 +32,7 @@
               <span v-else>⚡</span>
               <span>{{ testingBurst ? '测速中...' : '闪电测速' }}</span>
             </button>
-            <button @click="close" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-300 hover:text-white text-xs font-bold transition cursor-pointer">
+            <button @click="close" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-700 hover:text-white text-xs font-bold transition cursor-pointer">
               ✕
             </button>
           </div>
@@ -43,13 +43,13 @@
           <!-- Top Score Banner -->
           <div class="p-4 rounded-2xl bg-gradient-to-r from-sky-950/40 via-cyan-950/30 to-purple-950/40 border border-white/10 flex items-center justify-between">
             <div>
-              <div class="text-[11px] font-mono text-slate-400">稳定三角综合得分</div>
+              <div class="text-[11px] font-mono text-slate-500">稳定三角综合得分</div>
               <div class="text-3xl font-black font-mono tracking-tight font-tabular"
                 :class="overallScore >= 80 ? 'text-cyan-300' : (overallScore < 60 ? 'text-rose-400' : 'text-amber-300')">
-                {{ Math.round(overallScore) }} <span class="text-sm font-normal text-slate-400">/ 100</span>
+                {{ Math.round(overallScore) }} <span class="text-sm font-normal text-slate-500">/ 100</span>
               </div>
             </div>
-            <div class="text-right text-[11px] font-mono space-y-1 text-slate-300 font-tabular">
+            <div class="text-right text-[11px] font-mono space-y-1 text-slate-700 font-tabular">
               <div>延时中位数: <span class="font-bold text-white">{{ q1.latency_median_ms || '--' }} ms</span></div>
               <div>相邻抖动差: <span class="font-bold text-white">{{ q1.jitter_avg_ms || '--' }} ms</span></div>
               <div>峰值吞吐量: <span class="font-bold text-white">{{ q2.bandwidth_mbps ? q2.bandwidth_mbps.toFixed(1) + ' Mbps' : '75分中性基准' }}</span></div>
@@ -67,15 +67,15 @@
                 </span>
               </div>
               <div class="mt-3 space-y-2 text-xs font-mono font-tabular">
-                <div class="flex justify-between items-center text-slate-300">
+                <div class="flex justify-between items-center text-slate-700">
                   <span>10次探测中位数:</span>
                   <span class="font-bold text-white">{{ q1.latency_median_ms || 0 }} ms</span>
                 </div>
-                <div class="flex justify-between items-center text-slate-300">
+                <div class="flex justify-between items-center text-slate-700">
                   <span>相邻抖动均值:</span>
                   <span class="font-bold text-emerald-300">{{ q1.jitter_avg_ms || 0 }} ms</span>
                 </div>
-                <div class="flex justify-between items-center text-slate-300">
+                <div class="flex justify-between items-center text-slate-700">
                   <span>线路稳定性:</span>
                   <span class="font-bold text-cyan-200">{{ q1.stability_grade || '普通' }}</span>
                 </div>
@@ -87,20 +87,20 @@
               <div class="flex items-center justify-between text-xs font-bold text-sky-300">
                 <span class="flex items-center gap-1.5">⚡ 被动吞吐 & 闪电测速</span>
                 <span class="text-[10px] font-mono px-1.5 py-0.5 rounded font-tabular"
-                  :class="q2.unmeasured ? 'bg-slate-800 text-slate-400' : 'bg-sky-950/80 text-sky-300 border border-sky-500/30'">
+                  :class="q2.unmeasured ? 'bg-slate-800 text-slate-500' : 'bg-sky-950/80 text-sky-300 border border-sky-500/30'">
                   {{ q2.unmeasured ? '未跑大流量' : '业务流已采样' }}
                 </span>
               </div>
               <div class="mt-3 space-y-2 text-xs font-mono font-tabular">
-                <div class="flex justify-between items-center text-slate-300">
+                <div class="flex justify-between items-center text-slate-700">
                   <span>峰值带宽估算:</span>
                   <span class="font-bold text-white">{{ q2.bandwidth_mbps ? q2.bandwidth_mbps.toFixed(1) + ' Mbps' : '未跑大流(赋75分)' }}</span>
                 </div>
-                <div class="flex justify-between items-center text-slate-300">
+                <div class="flex justify-between items-center text-slate-700">
                   <span>采样触发门槛:</span>
-                  <span class="text-slate-400">单次传输 ≥ 256KB</span>
+                  <span class="text-slate-500">单次传输 ≥ 256KB</span>
                 </div>
-                <div class="flex justify-between items-center text-slate-300">
+                <div class="flex justify-between items-center text-slate-700">
                   <span>微量突发限流:</span>
                   <span class="text-amber-300 font-bold">≤ 2MB 强制熔断</span>
                 </div>
@@ -116,17 +116,17 @@
                 </span>
               </div>
               <div class="mt-3 space-y-2 text-xs font-mono">
-                <div class="flex justify-between items-center text-slate-300">
+                <div class="flex justify-between items-center text-slate-700">
                   <span>地理位置:</span>
                   <span class="font-bold text-white">{{ q3.region || '国际' }}</span>
                 </div>
-                <div class="flex justify-between items-center text-slate-300">
+                <div class="flex justify-between items-center text-slate-700">
                   <span>自治系统:</span>
                   <span class="font-bold text-purple-200 font-tabular">{{ q3.asn || 'AS13335' }}</span>
                 </div>
-                <div class="flex justify-between items-center text-slate-300">
+                <div class="flex justify-between items-center text-slate-700">
                   <span>运营商 ISP:</span>
-                  <span class="font-bold text-slate-200 truncate max-w-[150px]">{{ q3.isp || 'Tier-1 Transit' }}</span>
+                  <span class="font-bold text-slate-800 truncate max-w-[150px]">{{ q3.isp || 'Tier-1 Transit' }}</span>
                 </div>
               </div>
             </div>
@@ -136,18 +136,18 @@
               <div class="flex items-center justify-between text-xs font-bold text-emerald-300">
                 <span class="flex items-center gap-1.5">🛡️ 纯净度与欺诈风险评估</span>
                 <span class="text-[10px] font-mono px-1.5 py-0.5 rounded"
-                  :class="q4.ip_type === 'Residential' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30' : (q4.ip_type === 'Commercial' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30' : 'bg-slate-800 text-slate-300')">
+                  :class="q4.ip_type === 'Residential' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30' : (q4.ip_type === 'Commercial' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30' : 'bg-slate-800 text-slate-700')">
                   {{ q4.ip_type === 'Residential' ? '原生住宅宽带' : (q4.ip_type === 'Commercial' ? '企业BGP专线' : '机房数据中心') }}
                 </span>
               </div>
               <div class="mt-3 space-y-2 text-xs font-mono font-tabular">
-                <div class="flex justify-between items-center text-slate-300">
+                <div class="flex justify-between items-center text-slate-700">
                   <span>欺诈风险指数:</span>
                   <span class="font-bold" :class="q4.fraud_score < 15 ? 'text-emerald-400' : 'text-amber-400'">
                     {{ q4.fraud_score || 0 }} / 100 (低风险)
                   </span>
                 </div>
-                <div class="flex justify-between items-center text-slate-300">
+                <div class="flex justify-between items-center text-slate-700">
                   <span>信誉级别:</span>
                   <span class="font-bold text-emerald-300">{{ q4.trust_level === 'Native' ? '98% 原生极高信誉' : '85% 优质可靠' }}</span>
                 </div>

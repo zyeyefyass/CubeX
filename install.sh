@@ -1,38 +1,707 @@
-#!/bin/sh
-# ==============================================================================
-# 🌌 CubeX Host-Symbiotic Zero-Perception Gateway
-# Automated Deployment & Execution Engine (v9.9.6)
-#
-# Copyright (c) 2024-2026 CubeX Project. All Rights Reserved.
-# Proprietary & Confidential Software. Unauthorized copying, reverse engineering,
-# decompilation, or redistribution is strictly prohibited.
-# ==============================================================================
+#!/usr/bin/env bash
+# ═════════════════════════════════════════════════════════════════════════════
+# 🌌 CubeX Universal Deployer · 次世代双擎高可用旁路网关一键极速安装程序
+# Target Version: latest
+# Supported Hosts: 爱快 iKuai (KVM/Docker/主路由联动), 飞牛 fnOS, RouterOS, PVE, OpenWrt, Linux
+# ═════════════════════════════════════════════════════════════════════════════
 set -e
-_CUBEX_LOADER_VERSION="v9.9.6"
-_CUBEX_PAYLOAD="H4sIAAAAAAAC/+U9a1dTWbLf8yt2n2ENYE8SAkjb6cmsQUgjV14roHYP2lkxOUDGvDoPFJW1oBVBBcQW8ImK79YWfHQrgjRr3ftPejgnyaeen3BrP877kaRh7rprhrY1nLN37dq1a1fVrqpd+cMn7lwm7T4eTbj5xDA6HsoMOTJ8Fjl5R8vXzV2+6qN1DQ39dV80NMWrHW0Bv1/1qB4efe3v6Og+wp55vmhogGc9hwI9HX6l3V54tr/jkOpJIzwJ+FuVBx540NUi/Y7bd3dIr/G7cIwPpdHZsyibzvGOcCiL/vxnxPm7v+QcCP26OKX/s3Bd/oDkBvJDbUuz/noQ8keH/HH+14U51Z8l6flV1YBX9Y31oA1AFm6ZtVlShsXgEbIbTDOJeQUz9ZShlzyS1AxVMkjpGS2pes0rIzu0I6vJbf7cbAY2zw2kU68dGVtDcYLoTp9KK8emLX90oH/em55G4o/L22uL2xsPhSvT4rXZ4osbwpXV/Pwz8fp44f1qfvOqMPE2/3Yjv3EP/fd7VNhcxU/nX+dvnRce/VC49Fpc2nKg/sN8OhNNJrwoFsrymSw6i/yJwWiC96LO6FAynkT/cx1loolB5/HkKTTscXkaPz3mgB3i4MNDScRxjugA6kdcVU00gpy5Wg45EzyqQ8e+QNkhPuHAC05aOnlodAZ25+ivS9OoOH+zsLrqReLLR8LKxcLDicL5W+KdH4t3xgpPxlE6mcyiwruJ/PpTPJ+p9+LSueLNOfHi08Ly9D/Gvqs609UyyulhU5kx+s97Vy+iwur77c0t6OxFmVwkSQQQqqpTdzwVzSKPYyDqaA60HPBV1eQSoTiPnPFakAMZDBA/51CUzuHUvqZgU+PZUDzS1FhLnuCfvuZAm78vSCBw5B0nv/viC/IxFEqHh3DPdNy6J35n6LlHaW1Cwe21GXF+VZweh/VELT2HkHj3nXj3vBcRvFHN9sYEfc9QR25EUVDRQEUH1dh8JhR2qEYk4hnIOj+DxIdj4s+XhalXwqPz+bkLws1n8qhnsGgdrTqjmtgoGwo45BMUTsbjoQTwyDAK59Ix9Bd3hB92J3KxGKr/yx89WAhrGuUSp6Opkq2iqWzoeIzP6Buac5/MIdeeKFPJf1wXXl0V7q3nl8eE94+FifeohmDoZji45VFqf/s4Lb58KNx5Vph8Llx6Rll3+5elws+LLpdLRVmYsgrLUCrrHATtZ40k4RTWKpeKwFZEzhGz2RNFpe8RTWSyIWgEXQjm4ZAzzKez0YFoGG9qNg+ZVtFUOpnL8vUI/g2nMrbD8DH9VE6UnMYJaQql8T+BQhGA60wkneFQeIj/l+MfSQyUwB+3+H0EZfg4E4MVoTSSi5dACbf4l6IEUhD+tPr7/C19/tbgge7ePh8XiyZypzjt02BXc6ffx3XgV6g4dgskrLCytb22kZ9dFR6cw62/bD7U0Rds7+rta+7oCLa2B3ycO5nKusO54/wppi6cA4hz89mweyCRzDjTPJhhGZ5DxzBS8DYCb4eTMQ97MpjmU8j5bRRxuDmHSE+lH0xHmZoCANuf2XQ0zml0kW6OBKDxBZtm8eHd/MXbaCDR3Qvy9prw+i7qau5F0lxpN7P5YuTdnrq6OmnWZM0BsQSIoUD3oT5/oLtXO99EcjhkmC9Zw3SJOVvPTu5uOcPO6Il0si96AgVIU5jn8GeuU0hY+YBl+5ub+dvf280zlEopc4uwNU0NS0upYnJ4OEwtDRte16GPAVli3pNOnoqDSXLYj2p6DvtrEeVDd8dXLWUskIohJfQllkym+MTJdDaocKU1hqytNZbd0OBIOquyvipBjexJ2qbtCJgosMHprs4MJU+iCD8QysWyWvZHoZMnULWbvXOjM6l0NJFFVQ2j1fByiA9FMBN6ah3tvcH2g4ea24NtzX3+I81f++qUR2RydQ6FZRUstORoOxLsCXTv9wNuRCg5M2BAoXrkbEfcUDab8rrdqr5uTr9VsQCqlSDt7279Wg+oQiiAMTVLqyTMUBWDzCH1xoqeyIWinE7MGkjiUQlHZubq24C9y3+LPBqqKPzkiiTDJ/g0HIGVzY6fp3MJtyucTGRDYGmz11bIkMVQDDQdB5KJBOkwnHkjxor5qdfC1gsUPQgdUCvpgMQr329vvKP7nO55TlFR/WThVYA45ENMKxjQPdwe6Av2fd0DAyloaPVcZiST5eMRZ4TP8uGscziaLmURaQFX1ZhBsOQFtnQqXPCEZHBkMieG4/LC6N99y8dzBoFMH7oBEXc4Fspk3JF41B2N4AfBYT4RSaYtJHOpZbVcWsDQupHZ0goXJvKbK+jg4U5UuHlLvHxPvLPO6SlCeVplGmOvDBjGi49/W7uCVHY+EarCh7fClVcqI9+IhGTrq0Bi3wy2tccRs5anPxQnZsTZZ4WZueK5Z/nNNyAShV/Oa+AaJKLqEFHu/lPhQH1GgMWtMSRcnxBnH8CkttcuwckS5kVF8vbauoyChpLbH8e3125BU9oO1SgIth0ZrTU/hTJCfr+M/jE2R8ExIk68zs/fEzbWCysr/xi76kWUBsLKtDg1J8zNwtkCDhaoBUT/V6j4wy/FH94Vpl4DEE33yZfiDO6+vfZSWH4hTDxmGLf36NEDi2U2v7KMj2mrF/L3xwE+9QYIry4IE+wEs712WbhyFXk+3+fy7HPVuercnr2ouHRTHBsXbt8VpycBCGo90NKDCuPzeA0v3Rdur//2cZxNHh+fD/V1B1u6u75sD3SC0mj193R0fx3s7G4loqDlUG9fd2fwsD+AfxuA/RFKD4IxC6T6K8jfSJLQj5244ZV84MY/zpGzTucIn4G/M9EYn8jWaraCZmTtVmJHaALESaVjrW4bqdDUi08DhEQoGx3mbSDQBjYQItG0b48egIn6rzoDRPjDHt+oDSxmSPn2nHUO64Gq6W0PixzzI8kE7wCldBqor3TFYu+Pf9TBajm03/8V/qW3vbvL6wSgOsTNNq+8b9VrRfdsnVFnfoKcWfwcD05+SyMiS7PZEYPCMVl8jaIuNaDkvtJtXyIFwHtUHLsoXv5BnFrML68UVpiTKn97Rdhc8BLeRzX52z+Js49hmxQ2n2xvLYGrpbhxA9rWUqDtXT2H+ihtOJVZYDOlNLHO0siZQhzzihEBifrNiXvMizhlGPRnGTCoLMPokpmb1dFhFwY2G47pGcWElFsYbYeWDn9zF+lcVcPMN1VrrNPx4aL6aPpoolq24vyo+ht3f8h5utn5tzrn58GjrqNu57FPq6qNVoCChDySEQm6ZGqGVhorzrJYhrfpYUIrM82rMkeM9hU94rItgAmhgMKvDUdLw0QMnrtfQasI798I6/NwWqdHWmHlhrj4gapi4NvtDxPC9CLjbqQfQqXnNKt6muAvC0ELTFTmoOU2K2zNgWOX6kPx2bLw8YpX76WUuiLEVKynVjJiqeEKEwAtCb7v7bWx7c1rFBiqoXPEDvDirfn8kw1x7KnweJP8TijhhrOjWzr8uqkyLT5ZBLxq7VBgdkU9HDtn72G9PLOwvT5d2LotTL1DvdRMBcSmxEuPJEzy66v5Nx8KD9cK76/i8cW744XJnwqbG8XJK9ubs8LHseL8GHshrDwwRwITOthyoLu9RW9o24sW/S4H0hd+uQbmA4xRXP6A+j3u+j8hKr+Qh+xv1VBa0WKBg52A2eHw1oOqDHxmQ6gaamwJ/FOv1ZVlaXGd9tU55ss2J3RgiPJlE5CFSpnbSufQpJug9EHKFkWDYLOli/kh4mhC9rD/eusmOUfAujYeQzRuw8zY9QXh9XcQnMpv3BFmroAtLN6folYlqoE9IMytwgFGvL9W2PwRLFNsw5K2+Y/XhAtvhOn17Y83YKvXKu52OHqFs+AxOIkSfNYVTQ03wl9BsDRPhtIRn8fS72no14RP5AMucLK6WG8Ie5UNIJxM865MMh46BVASPk9Tw77GSrrCB2gbhP7B46HwiVhy0NdQ/1nTvvLxJ/OOJcOhWDCVxA6sUGKQ93GeuvrGOtS0d2/DXq4SYNlwKpiO83GAQObiqWvct/ezJtTQsHdvY2NDfcXATu4qsCgctk8GMzDbSlZJ7p+NxiHaGYqnMpX3hb17ovJeA6FMFvsLfQ0VjxfDM82GYE1DA6CogtFIjPfVVQoGs1ZmJCGzVyUsqgGSPRk8ngP5kQXaNTaCnVAxKgPRBFkB0Ls+T8W9Yfw0n8vwNmsAMjKejEDw4ziPcJfjx+1EpMl2ZA7U4LeRaCbsG/jWNnxigScIgkFgMjiq4Y/ZdDLmM8FDhlSGk1HyVGm8SBW4QPqpgUNjGVSSHlNFQslL6qGWI53i22eyl4FmFgi3b4POpoKcSm5t7NOEGrJgTeO1jwEP27CvHQy2LGXDwQ4HeIsdDm4cCiOeOwDpxiDdGKR7j+yFwD80jlEFfZgRTigJg9CHbnlgUy80AUPO1KUIEQJA0cEEsJoNF5cDJJRIJHOJMO+r3xFBd4yPGtAOccJTy4AzFXY5uE3A05vZIbfsCjBC8HCYT2V3Da8KwWkNvzJSH0gnqRkY5tB1MAaZBS2oB+QGjkO2d7VhgxykFfiV4G/nQCw0mEG9X3f9KdDbh/9Fzr+jvpaezt5eaAE+73jKGc9knNmkMxXP5vSb4KjtuM3/snHVkWzTQzCkT925htj5bumusPoh//QVC8nd/gki2ahGJVNq8YEZjnXiwpS5l9cIFDUHepB46Wrx4ax46yewW4s33ogfv8s/3UA16s3l1m4QMpLw6nV+43nZI/X09CT9zKmOMIGK37+FcycGdOl+YXMT1RSePhQuvAXLubj8M6AC4r04dk+cei4uvhRmlovLW7VlD9be0tmDA6pAK5gdG0aNr6S2wF0XpgdQLF+zuYRGIcVPAI/jJZdasKeJZETbKQy2IaoHk8JqhcNDoNlRU1OTtp9Zc0BNsQIs2vR1g38l2OnvDB7cD/4n4lzq5ON9Sci2YDoD7NZoYiBpFmiVwqv1o8TvRD0ezLjlaiV9rh4DtDVshaY6YjapKURCKW3d0KqjvbMd4j+e+rrO6H5O/bKtxcftrZNj1maQPXvLAF2/t8kM9D570A11ZYDe66k3Aw3uJE456RrnCocUy27aSJWSxDWO+uvx+VKYWhKeXpY9WJjhF15BmESYnihOXhLnf8GhEbX/UnV6lPlS42rDicuc7hHODUjnQKLpX0CqUwgHOgIBf1dfsLcl0N7DXKEQzMbGRA0MQZILseOrufdAsLf7UKDF3193bJSDhEkwMlInI7VSakyEuOL1wNwuF8ZA6w3A0jNt19zN7TGZhSZlw6xzJQOVN4o18rZ4KiaxpaNUDRGyIhLIGUDYd+nFf+kdqBZCQh5D5XWBEZiTxMqwlhlx7i3qbyCODmIxQ5ATB2DtvJM0OdeQMvhJxY4dfWLorfu6+O3mNeHiDI37iXeeU+c+Q02XzFi8OUOioutGj6bakalF2tZVRP1DzT09wZ7uQB8OEeF/vU4plkR/q6+rbxqlgSJ1soCdXQNNM9iwyMUSSlYH4sBpLA02ijij14xRFDIGtZJcBsA86sAZNYa8BWzI6Y0z2LnKy2jGGQrjyYO98m0uCmmZBFxEPVitiV/ONHasLOD7N+KdiywqTP3k2+uz+RerwpWHSDVfHD1+dYF52j68FTeuire3xJkHwswkrKpx0QwOPyNjM2Zi+X2GEbHhUngAIeh32xuLNLggzNyHvzEq4MW79Ey8uV44t5n/Yb14/Q3tD/F38d5jIzb45+QQhHjLWlfVcU2OBkpMVlVTI31Gn0Kek9ZVKx/NbIIlE1K6wtQk0K8w+ZZOgObW02l41XTQTUXjG61AsNDLJ5BYT46aGv1CWjuBI1PJDO8aicfA6cmnh6NhPuOFvoTNvHRjxEODkLlPe7iiSffACCSpDCVjPA3leGmSPx1QSj8KYt3kpWAc1FNPnE1eyCkFdZdxYr9Vio+Qd2BunUymTwTBroI+Q0kJWAiM2kjEy8jgRF04B7y1s71L82R/e1drsNcfOAzeeflF79e9mDSHOugj2CvSzOh7tZnnVf9CWkCwKhdXN3cRhezFuYnkk+oFKBX6HD4o4LGqwc6o08AcXu1v6aS2GfGu4rde3a+sIWRyRdPJRBxSFRSE+v7ma85EQ+7eITgGDYWi8gtFCvpU/KR73dHe2we3o7zWLYi51NPR3PdlN4TCdck5SmOVuVV1RmeAqVuB2SW/b2uhb8BdCHdCBqU5RdIg5tIQpfl7JplwwqFJjg1A8iK4u+TVAAs/dApyN04Dr4Atp0plws9xR3jewJH7JJbbkR3FpuaQcScgqmzFxUnIY4MAwoUJ4eUNeFZ8sIQ3qX6a6mMPMc0MkVqz4Io0YKnEcW3jCDZGrA4xJu1zIOwiSqieKSvpbenkWQUkqhAFZIaCSj2YayjqHbx8UbiyKN4ZExdf5S9OSUZPceGOcO4KqikliGpNrInuloP+QLC9s02KUll31wRAP5H1O54pCF0ZEFciJ89S9bUdaAmwuYjrc3SucC1JvP4O6zhJP0iTPpA7Xlr0mus+DeYlZ227pFpbB24NpMCzVA7Q0hHE3788ulCt6qMNb4FTprA1Kd6fFCYvSPOBxFkkXN3c3ngEq1H4+T21ro1EZc2x5qKKrZxtkI5X0BYQgYPNUdUUcZpYnGcgtC+YRtUpVH1vqlqJUtW9AvXqxBdlZK1q816tY3XNqGq1Vqja5sMm51xFrXL2jdWqVteUN2hE/XtzxWjeykQ/mje0V5P6Prba0thYpzQ1DbSiSOestBK0LGrz661lk7NlyZwTeJh/dlm7Lbr8MNfW7iNdHd3NrSxjrqO7BXw8f2vvAbs5lrH0JEAMLOtm9yHc5Cji5PZwTpIK7qxS3fhzwR0kzh5MGd0rH7B82G58t7Sshtl4qox22pNkBuLuyHkY56yFouD4T3gM9xNYJppMeTnXC18M0DwulddFrjFCjkR+9hVcnRXuvILP+PS3+b24/BB8X9jrJcMbxXcXacYiRLPyT7/HLuLZy1ZnenqbDA5fzqQWK2ekHJ+KBEbLc3WaRMQBez6hh2cTuhspE079blAGrx9rzNlOQZvDp2mhhGqlHNYB60Hs1phpw+k5tvO3N2ZRWzQLRgYK0I2RQWrrC+eRL/wELCCsnSOLD7fCaSYNPgfX7RUeXy88PS9M3SzevgBPxNmnIDaKSw9MTLC2A8HO9kCgO9DrqyEXcDJwA2dwyAnO8FMjEMGCOxOqx/QpaBD102h2KHfcFU/yIyOuUyOn4RWnnMQD/o5gX3ObT5NyrMtlw1lQrJ15riaO7HbSRPIzCsL9fwWfqqmHoCfg/7L9K3XumCrki6F0sp0oNaw60znqNrYGBeIHMf9fvd1d8mWlRriv1NuB9TCk/uCbKSy3ATXiW0z7iDwnUEclAoVSURcjEtATRB3Y3+7TI/wIT0wpKngkCZhx2xh+xlw0IFmwpbmrtb0VUFVSalWIK3ehkqiay4YGiQuA86I9XP833LE9nOquGEgwMGlAqkWq4bFzoNE4oCLVNEObr5uRCbSdTBsfh+TBE4Y3KjNSD7XkyjTgldlLLqoZFke1MBUuCaMqXBTCrgF8FPaqaA0py0Brd/83boRzmY99Wi3T1g2UrdelOtdacaqyLzC/Gmmj8XKpiGTYVri7vA7Dn7s+dzUp9Adxz64XUS2IPcyk6agkSTV3/Yk61HQ+FOjwcRXRFJ9XY8lQxK2MBR8lRFQSqq+zh1gtVEubNqFMiW0a1pjNl2m2rPpF6aNPGcoXvBSQo/jyBq6vQWUxUcTYDcEGwk5a0Lz4QpGt8jX4ZuFgQtSIhLCt/xibpH/RHKGE25vYMfIIX2WCKiEQClbOtMRFW9hcKaw+gLtAOHisoiZOWn6C9tV17sfn3YkZqDUC14kgPxlHk4nuqTU/z0raMNh9kKlMjdgmsroC2a0IGNrUXrK0dsChoOsgkeCkucREwJCj5vLFhIZ4v1AyCa+WCqsLkgVe2LoLNhReVQbcnAKm62iC4e/Ci6bvgzUHyOjxojaCNVImQhP7vCRp6cQbFqq8AMOZC84mLDghEkwtQ3kLwSGHTkorEallu1u70Iy9PKUIJ+U0kNJDkNfAdsDYreL4NUo0fP/u0j3hwzt2F4/sXrgoIN5fLj6fVi677Ugz2e5hK4m9u0JMa9TLHSsz6a3dtCqhh6NWhKg0/o6dZNoIPJin0xPC3AupyNCnSo0hXM3o/ppw5RJcUoSrEdRord1B+EpBi8os4dHrwk+PScAMb+z85R/zLy4zU1qyiiGHANvPHxegsBJtQG1pC3HXsUvKTntS0ehXbudiFDxDstyhKI9aW8OSoMXspu6oiFRLEGp5YiNEIL+FcqLV6Yirkga2Eirlnqsq3rGGQKGU4mR2mpNY13pcOx2t5j9lF+AtsHXOWoz37t8llpNGLIPpfjfj6ZmPIm8hUctnQFswO2VCZVErZ8PSDGHPjBYqxMCUujZ2PBoncnYXOJQCKsmfnQd2iT/peP+X3ElR3zF32oLZKXdKy1k5b5ZihF3nTO29V5q9+ekpE8wgB8zK8LDjbFnm08sRn1SmGUwq68GtTAgxyRUK7zzHJ6TZ99hymILD3kVICsY191h2j2IySL54GowG+wJuOeI8nnuP6RU2ydhcpNUMoeRDcXIGDBBtQUNdTT61q7G0+rF1OlqtfEkSyJYQ3fRSsF3WVW4mFCCXeWkSl9N79NpoNFsUatxee4yp8PKJcPWSVyEmDi2/WQZi02sm9OBJTTCgvXhuQrgAic2Xxev3xbcL7Krgxsb25gIltfjzOJiOZSNB06VpaQ4vkpeNZT4RiG75yEyXESfPTS3iUhrEvsQMoT44g9ELcRrI1ELEQ4FoZipdcnDW0kQucBzQspflcICSQI0Lm5HME7yq9lvGesMY2QByrpwZm/bacd2mkdJwamf9NScNWVRU1FOSM6p0KpKrw2oHsX8pEBdLo3L0H0pEs8ccrXwmnI6SFBYfzbhrzYViTloQFbWMHIfAbxv4/U6GRlBriI8nE45mfCHPx0K3Lgjy4nqM7FdnMgFqi2dPHUdCCbjiYf7O0d9LUTnm6BtJ8b5MNJ6K8Y5DgKAPR6wcR6AP7LdWclEkmR7xqcns8J/iw704wuyzEHwIFyBB6peQ0Q2xET6BNJlFARqo9oViMMeM9GsvH/bVZxwd0Xg029X9ZTtUYSb3SR1+Jd/JZ59fpG2pzzFy9LfT8obHCJX4yP4RXxxuyESdcM0vLRFJyhJSci4jZBFwUTywGnTv+AS+f8LC8SVu6bAuUpie9tHUbDQ78TKWAhUxI1xaxmdeuCt3YRo7Ekj+I6opyXl/wpXhoB4R6AO7fCWLDPj566i/kQSH6cATz4TXY6zmD9zWm3mPC/hsPML1TGFMs6z3MoRJS0e7VNDCjwNg2MYKx6LBVCg7RK0siw1fOiZnEZIz6VaqTymosuGniEVpDjaSUGlStvCrrMsuyDtaQEW9RIpHTLHhgIGIjcZClpoOltVxzAOR1GuiS/yiGQmg1vIbP2F0GMuZmu06nzHGpfKjAg2/KCcGy5WXx6CWuc80oOmuYlgoSYD21vle6gXFxrnpanEyQFOz3LSPIay9q/xAq86WceYoOSvp7PP/ZGKaTGtbxmb1/atBj1Rjs8BkdMcfTL64oLmlD0pewenOw8m1wckjucAIqI1sLlNbUYkOTDPlRoLTCXI1DghWnznj6oJobGZ0tFqVBF/9Da3FU21ybNNAITcYEYcDuj5WRlRToaWciw0mYyht6VyZjiSVm1OQdJ42LcnCSnmyIp6e+s9wiTmXR21y4FC4e9gjaUcGXR2fZqmvnLf/mz8d21NtYApWVoUpb13RdA605HkpGjY5A4qZ3aXQJUpxO1m70G4sn8b42OU1M4etT8PksFFDiUQNBzBpaIFAQ216SAg/C//vjOV3hWwYC6zQ4RoxTrmCW18lKPj3ZA5u48XKI6GqsTMn8fwAKaFbV2dGSJkZsVYy5cX8uZf4xLu5KUxdgHNq/uVifuExxBtooEPDinIp3K/IxelK9hFFAEv4geigZUUuhi2pNGpEFlS+trIoOQ/TQpBQf1K8+2BnqOJEV3coB1e64athcqlSWO4xwXBa2s0kJxifqYkHAVfH3DqnO/dz+Lsk3i6wmy7oDBU1Z9newOx8llLtLKHHKGf4UgR8AKlceQF30AQ6kmYp13DGB0UItOL/TJNIkj2oOpMOo6MHj/Z+SqQephf9kop2u7vIHs1dZGkBIP9KoqvxMGPyzSP/Jn9MytLSUrNSGsfsRSSOvxQW74C3iPISLsFWxlersHJ1JMypeJr+k2mLEJEZjMRH+OOSP08qZssqZ8o1/KTi3mek/THqNV6s04Bn9YnZEPgG4uoFYeqFUlts/alqEJZEXVa9YgwdbpQzyHJRRPhGkO3NO5rCn2R4XNtYG9I2AsTJ2xKmNKi9dU5KoSHfmqLAo7zCguGdfDaEfp08r//eHahmuPqCJhAVb4Ob+SV2TZ57CRdRas1mc3tZTStwOgvPxqmSYdfj16/pF6Te89kQH42ArO8M9CLhwxZ4ZcXLT6ByBEToi7fm8k/HhSszha3Nwhp+UofEG7PgDkatXVCE4sYGoGSGyPe/yGSgGmTyeXHsO7gySq9rqZBgng375Pua/MUfqDcYOoMSxeSAWhuXHmmowBk3vbC2BnuYHlKpgeM1WbSxBwi77O9cpk7a/KV3UAzZq0aPinqqPswBUAoJK3fhqpB4/bGwdd0EACgc897UBKNShvqWTHoztWUOQWdj0FsDXiMIrO1+Z31tY+lc6crCv73AM6tlqq2zJZf+trScaAkVKORdg+upaCuTS0W6WH1yvG6l647/Z1KfiJdlpC5PBhQTL18TL16lAve3j7fgW8VwFJtR9SUEbSR5pKl7TsWQuvg5gzY9KcxdZYZmjUpZ1ZogM/9UlnVKjXWo7LrCLqq+fFx8/shrPhX48biQ+DPkPE3hr1+5eA0KYnorUpZGiPUuhMOSE4+F90+2f3kqrH4sTD23qioPUS1akVfHwPDKDHaDC6mL0OMs2KUxszr0CBsD6mL0ZtAaXSj/3QdhcgMGpzQD+onnp+SzES02R9GkJS3YTf0LNwGHcorY06K6WF2BxWbGShto+8M9sPWwn5OWztiYgjv/tK6CvBRUfJJTAmWawtMn+PINxWYOymo81vvs/0OMwf8FL10mfvhzAAA="
 
-if command -v bash >/dev/null 2>&1; then
-    _RUNNER="bash"
-else
-    _RUNNER="sh"
-fi
+# Terminal Colors
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+PURPLE='\033[0;35m'
+BLUE='\033[0;34m'
+RED='\033[0;31m'
+NC='\033[0m'
+BOLD='\033[1m'
 
-_TMP_SCRIPT="/tmp/._cubex_run_$$.sh"
-trap 'rm -f "$_TMP_SCRIPT" 2>/dev/null' EXIT INT TERM
+clear || true
+cat << "EOF"
+  ██████╗██╗   ██╗██████╗ ███████╗██╗  ██╗
+ ██╔════╝██║   ██║██╔══██╗██╔════╝╚██╗██╔╝
+ ██║     ██║   ██║██████╔╝█████╗   ╚███╔╝ 
+ ██║     ██║   ██║██╔══██╗██╔══╝   ██╔██╗ 
+ ╚██████╗╚██████╔╝██████╔╝███████╗██╔╝ ██╗
+  ╚═════╝ ╚═════╝ ╚═════╝ ╚══════╝╚═╝  ╚═╝
+ 🌌 次世代双擎高可用旁路网关系统 · 软路由的天花板
+ [Version: latest | Engine: Mihomo × sing-box v1.14+]
+EOF
+echo ""
 
-if command -v base64 >/dev/null 2>&1 && command -v gunzip >/dev/null 2>&1; then
-    echo "$_CUBEX_PAYLOAD" | base64 -d | gunzip > "$_TMP_SCRIPT"
-elif command -v base64 >/dev/null 2>&1 && command -v gzip >/dev/null 2>&1; then
-    echo "$_CUBEX_PAYLOAD" | base64 -d | gzip -d > "$_TMP_SCRIPT"
-elif command -v openssl >/dev/null 2>&1 && command -v gzip >/dev/null 2>&1; then
-    echo "$_CUBEX_PAYLOAD" | openssl base64 -d | gzip -d > "$_TMP_SCRIPT"
-else
-    echo "❌ [CubeX Protected Loader] Error: Missing base64 or gzip decoder on host." >&2
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. 权限与运行环境检查
+# ─────────────────────────────────────────────────────────────────────────────
+if [ "$(id -u)" -ne 0 ]; then
+    echo -e "${RED}❌ 错误: 此安装脚本需要 root 超级用户权限执行。${NC}"
+    echo -e "${YELLOW}👉 请使用: sudo bash $0${NC}"
     exit 1
 fi
 
-chmod +x "$_TMP_SCRIPT"
-"$_RUNNER" "$_TMP_SCRIPT" "$@"
-_RET=$?
-rm -f "$_TMP_SCRIPT" 2>/dev/null
-exit $_RET
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. CPU 架构自适应探测
+# ─────────────────────────────────────────────────────────────────────────────
+ARCH=$(uname -m)
+case "$ARCH" in
+    x86_64|amd64)
+        TARGET_ARCH="amd64"
+        ;;
+    aarch64|arm64)
+        TARGET_ARCH="arm64"
+        ;;
+    *)
+        echo -e "${RED}❌ 不支持的 CPU 架构: $ARCH (仅支持 x86_64 / arm64)${NC}"
+        exit 1
+        ;;
+esac
+echo -e "${GREEN}🔍 检测到处理器架构: ${BOLD}${TARGET_ARCH}${NC}"
+# 自动检测并安装必要依赖 (curl / unzip / ca-certificates / iptables)
+if ! command -v curl >/dev/null 2>&1 || ! command -v unzip >/dev/null 2>&1 || ! command -v iptables >/dev/null 2>&1; then
+    echo -e "${YELLOW}📦 检测到缺少基础工具 (curl / unzip / iptables)，正在自动安装依赖...${NC}"
+    if command -v apt-get >/dev/null 2>&1; then
+        apt-get update -y >/dev/null 2>&1 || true
+        apt-get install -y curl ca-certificates unzip iptables iproute2 procps >/dev/null 2>&1 || true
+    elif command -v apk >/dev/null 2>&1; then
+        apk update >/dev/null 2>&1 || true
+        apk add --no-cache curl ca-certificates unzip iptables iproute2 procps >/dev/null 2>&1 || true
+    elif command -v dnf >/dev/null 2>&1; then
+        dnf install -y curl ca-certificates unzip iptables iproute procps-ng >/dev/null 2>&1 || true
+    elif command -v yum >/dev/null 2>&1; then
+        yum install -y curl ca-certificates unzip iptables iproute procps-ng >/dev/null 2>&1 || true
+    fi
+fi
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. 宿主系统全自动智能嗅探与默认安装路径匹配
+# ─────────────────────────────────────────────────────────────────────────────
+DETECTED_HOST="linux"
+DETECTED_HOST_NAME="Linux 通用宿主环境"
+DEFAULT_INSTALL_DIR="/opt/cubex"
+
+# 3.1 飞牛 fnOS 专属环境嗅探 (严格适配 /vol1/1000/cubex 规范)
+if [ -f "/etc/fnos-release" ] || [ -d "/vol1" ] || grep -qi "fnos" /etc/os-release 2>/dev/null || [ -d "/usr/trim" ]; then
+    DETECTED_HOST="fnos"
+    DETECTED_HOST_NAME="飞牛 fnOS 专属 NAS 环境"
+    DEFAULT_INSTALL_DIR="/vol1/1000/cubex"
+# 3.2 MikroTik RouterOS Container 沙盒环境嗅探
+elif [ -n "$ROUTEROS" ] || [ -d "/nova" ] || grep -qi "routeros" /etc/os-release 2>/dev/null; then
+    DETECTED_HOST="routeros"
+    DETECTED_HOST_NAME="MikroTik RouterOS v7.x 容器沙盒"
+    DEFAULT_INSTALL_DIR="/app"
+# 3.3 Proxmox VE (PVE) 虚拟化环境嗅探
+elif [ -d "/etc/pve" ] || command -v pveversion >/dev/null 2>&1; then
+    DETECTED_HOST="pve"
+    DETECTED_HOST_NAME="Proxmox VE (PVE) 宿主/LXC 环境"
+    DEFAULT_INSTALL_DIR="/opt/cubex"
+# 3.4 OpenWrt 软路由环境嗅探
+elif [ -f "/etc/openwrt_release" ]; then
+    DETECTED_HOST="openwrt"
+    DETECTED_HOST_NAME="OpenWrt 软路由环境"
+    DEFAULT_INSTALL_DIR="/opt/cubex"
+fi
+
+# 3.5 局域网上级主路由与宿主底座深度嗅探 (爱快 iKuai / MikroTik RouterOS)
+DEFAULT_GW=$(ip route show default 2>/dev/null | awk '/default/ {print $3}' | head -n 1)
+IS_IKUAI_GATEWAY=0
+IS_IKUAI_HOST=0
+
+if [ -n "$DEFAULT_GW" ]; then
+    GW_PROBE=$(curl -s -m 2 -I "http://$DEFAULT_GW/" 2>/dev/null || true)
+    GW_BODY=$(curl -s -m 2 "http://$DEFAULT_GW/" 2>/dev/null || true)
+    if echo "$GW_PROBE $GW_BODY" | grep -qi "ikuai"; then
+        IS_IKUAI_GATEWAY=1
+    fi
+fi
+
+# 检查当前机器是否本身运行在爱快 KVM 虚拟机或爱快 Docker 插件容器中
+if [ "$IS_IKUAI_GATEWAY" -eq 1 ]; then
+    if [ -f "/.dockerenv" ] || [ -f "/run/.containerenv" ]; then
+        IS_IKUAI_HOST=1
+        DETECTED_HOST="ikuai_docker"
+        DETECTED_HOST_NAME="爱快 iKuai Docker 插件沙盒容器"
+    elif [ "$DETECTED_HOST" = "linux" ]; then
+        VIRT_TYPE=""
+        if command -v systemd-detect-virt >/dev/null 2>&1; then
+            VIRT_TYPE=$(systemd-detect-virt 2>/dev/null || true)
+        fi
+        if [ "$VIRT_TYPE" = "kvm" ] || [ "$VIRT_TYPE" = "qemu" ] || grep -qi "qemu" /sys/class/dmi/id/sys_vendor 2>/dev/null; then
+            IS_IKUAI_HOST=1
+            DETECTED_HOST="ikuai_vm"
+            DETECTED_HOST_NAME="爱快 iKuai 内置 KVM 虚拟机"
+        fi
+    fi
+fi
+
+echo -e "${CYAN}🖥️  检测到宿主平台: ${BOLD}${DETECTED_HOST_NAME}${NC}"
+echo -e "${BLUE}📁 自动匹配推荐部署路径: ${BOLD}${DEFAULT_INSTALL_DIR}${NC}"
+if [ "$IS_IKUAI_GATEWAY" -eq 1 ]; then
+    echo -e "${PURPLE}🚀 嗅探到上级主路由为: ${BOLD}爱快 iKuai 企业级路由 (${DEFAULT_GW})${NC}"
+    echo -e "${CYAN}💡 【爱快宿主共生建议】: 部署完成后，在 CubeX 驾驶舱【宿主共生凭据】中填入爱快 IP (${DEFAULT_GW}) 与管理密码，系统将全自动下发 198.18.0.0/15 静态回指与 DHCP 联动加固！${NC}"
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. 用户交互与非交互模式判断
+# ─────────────────────────────────────────────────────────────────────────────
+AUTO_CONFIRM=0
+DEPLOY_MODE=""
+CUSTOM_VER=""
+
+for arg in "$@"; do
+    case "$arg" in
+        -y|--yes|--silent)
+            AUTO_CONFIRM=1
+            ;;
+        --docker)
+            DEPLOY_MODE="docker"
+            ;;
+        --native)
+            DEPLOY_MODE="native"
+            ;;
+        --dir=*)
+            DEFAULT_INSTALL_DIR="${arg#*=}"
+            ;;
+        --version=*|-v=*)
+            CUSTOM_VER="${arg#*=}"
+            ;;
+    esac
+done
+
+# 环境变量补充支持
+[ -z "$CUSTOM_VER" ] && CUSTOM_VER="${CUBEX_VERSION:-}"
+
+INSTALL_DIR="${DEFAULT_INSTALL_DIR}"
+
+if [ "$AUTO_CONFIRM" -eq 0 ]; then
+    if [ ! -t 0 ] && [ ! -r /dev/tty ]; then
+        AUTO_CONFIRM=1
+    fi
+fi
+
+if [ "$AUTO_CONFIRM" -eq 0 ]; then
+    echo ""
+    echo -e "${BOLD}请选择或确认安装目录:${NC} (直接回车保持默认)"
+    INPUT_DIR=""
+    if [ -r /dev/tty ]; then
+        read -r -p "安装路径 [${DEFAULT_INSTALL_DIR}]: " INPUT_DIR </dev/tty || INPUT_DIR=""
+    elif [ -t 0 ]; then
+        read -r -p "安装路径 [${DEFAULT_INSTALL_DIR}]: " INPUT_DIR || INPUT_DIR=""
+    fi
+    if [ -n "$INPUT_DIR" ]; then
+        CLEAN_DIR=$(echo "$INPUT_DIR" | tr -d '\r\n' | grep -E '^/[a-zA-Z0-9_\.\/-]+$' || true)
+        if [ -n "$CLEAN_DIR" ]; then
+            INSTALL_DIR="$CLEAN_DIR"
+        else
+            INSTALL_DIR="$DEFAULT_INSTALL_DIR"
+        fi
+    fi
+
+    # 飞牛 fnOS 友好提示
+    if [ "$DETECTED_HOST" = "fnos" ] && [ "$INSTALL_DIR" = "/vol1/1000/cubex" ]; then
+        echo -e "${GREEN}✨ 已应用飞牛官方推荐持久化目录: /vol1/1000/cubex${NC}"
+    fi
+
+    if [ -z "$DEPLOY_MODE" ]; then
+        echo ""
+        echo -e "${BOLD}请选择运行部署模式:${NC}"
+        echo -e "  ${CYAN}1) Docker 容器化主旁一体部署 (推荐 · 隔离性好 · 飞牛/PVE/RouterOS/爱快首选)${NC}"
+        echo -e "  ${PURPLE}2) 原生单二进制 Systemd 守护部署 (纯粹裸跑 · 极致轻量低开销 · 极客首选)${NC}"
+        MODE_CHOICE=""
+        if [ -r /dev/tty ]; then
+            read -r -p "请输入选项 [1/2, 默认 1]: " MODE_CHOICE </dev/tty || MODE_CHOICE=""
+        elif [ -t 0 ]; then
+            read -r -p "请输入选项 [1/2, 默认 1]: " MODE_CHOICE || MODE_CHOICE=""
+        fi
+        case "$MODE_CHOICE" in
+            2)
+                DEPLOY_MODE="native"
+                ;;
+            *)
+                DEPLOY_MODE="docker"
+                ;;
+        esac
+    fi
+else
+    # 默认自动非交互执行
+    if [ -z "$DEPLOY_MODE" ]; then
+        if command -v docker >/dev/null 2>&1; then
+            DEPLOY_MODE="docker"
+        else
+            DEPLOY_MODE="native"
+        fi
+    fi
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5. Linux 内核网络协议栈加固与爱快 / ROS / Linux 专属调优
+# ─────────────────────────────────────────────────────────────────────────────
+echo -e "\n${YELLOW}⚙️  [1/4] 执行宿主底层网络协议栈加固 (开启内核转发与网络缓冲区优化)...${NC}"
+
+# 开启 IP 转发
+sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
+sysctl -w net.ipv6.conf.all.forwarding=1 >/dev/null 2>&1 || true
+
+# 高性能 TCP Socket 缓冲区与并发队列自适应调优 (Mihomo × sing-box 双引擎线速底座)
+sysctl -w net.core.somaxconn=16384 >/dev/null 2>&1 || true
+sysctl -w net.core.netdev_max_backlog=32768 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.ip_local_port_range="10240 65535" >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_rmem="16384 1048576 33554432" >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_wmem="16384 1048576 33554432" >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_window_scaling=1 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_timestamps=1 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_sack=1 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_fastopen=3 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_slow_start_after_idle=0 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_max_syn_backlog=16384 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_max_tw_buckets=1440000 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_fin_timeout=10 >/dev/null 2>&1 || true
+sysctl -w net.ipv4.tcp_tw_reuse=1 >/dev/null 2>&1 || true
+
+# 智能探查并尝试启用 BBR 拥塞控制
+if modprobe tcp_bbr >/dev/null 2>&1; then
+    sysctl -w net.core.default_qdisc=fq >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.tcp_congestion_control=bbr >/dev/null 2>&1 || true
+fi
+
+# 🌟 爱快 iKuai 宿主机 / 主路由联动专属网络协议栈优化
+if [ "$IS_IKUAI_GATEWAY" -eq 1 ] || [ "$IS_IKUAI_HOST" -eq 1 ]; then
+    echo -e "${PURPLE}🚀 [爱快专属优化] 检测到爱快环境，正在注入爱快旁路四项底层加固...${NC}"
+    
+    # 1. 禁用反向路径过滤 (非对称旁路由放行，彻底消除爱快重定向丢包)
+    sysctl -w net.ipv4.conf.all.rp_filter=0 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.default.rp_filter=0 >/dev/null 2>&1 || true
+    for dev in /proc/sys/net/ipv4/conf/*; do
+        [ -d "$dev" ] && echo 0 > "$dev/rp_filter" 2>/dev/null || true
+    done
+
+    # 2. 抑制 ARP 广播与防止 IP 漂移 (解决爱快 ARP 绑定紊乱与抢答风暴)
+    sysctl -w net.ipv4.conf.all.arp_ignore=1 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.all.arp_announce=2 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.default.arp_ignore=1 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.default.arp_announce=2 >/dev/null 2>&1 || true
+
+    # 3. 禁用 ICMP 重定向 (避免爱快与旁路之间产生次优路由死循环)
+    sysctl -w net.ipv4.conf.all.send_redirects=0 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.default.send_redirects=0 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.all.accept_redirects=0 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.default.accept_redirects=0 >/dev/null 2>&1 || true
+
+    # 4. PPPoE 广域网 TCP MSS 自动钳制 (适配爱快 1492 MTU，消除大包分片卡顿)
+    if command -v iptables >/dev/null 2>&1; then
+        iptables -t mangle -C POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || \
+        iptables -t mangle -A POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
+    fi
+
+    echo -e "${GREEN}  ✓ 爱快非对称路由直通 (rp_filter=0) 已生效${NC}"
+    echo -e "${GREEN}  ✓ 爱快 ARP 抑风暴与防漂移 (arp_ignore=1/arp_announce=2) 已就绪${NC}"
+    echo -e "${GREEN}  ✓ 爱快 PPPoE 自动 MSS 钳制已加载 (解决网页与测速截断卡顿)${NC}"
+    echo -e "${GREEN}  ✓ 爱快 ICMP 环路抑制已就绪${NC}"
+fi
+
+# 检查并自动创建 /dev/net/tun
+if [ ! -c /dev/net/tun ]; then
+    mkdir -p /dev/net
+    mknod /dev/net/tun c 10 200 2>/dev/null || true
+    chmod 666 /dev/net/tun 2>/dev/null || true
+fi
+modprobe tun 2>/dev/null || true
+
+# 宿主内存自适应分级计算 (支持 512MB / 1GB / 2GB / 4GB+ 动态适配)
+TOTAL_MEM_KB=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}' || echo "1048576")
+if [ "$TOTAL_MEM_KB" -le 600000 ]; then
+    HOST_GOMEMLIMIT="120MiB"
+    HOST_GOGC="50"
+elif [ "$TOTAL_MEM_KB" -le 1500000 ]; then
+    HOST_GOMEMLIMIT="256MiB"
+    HOST_GOGC="80"
+elif [ "$TOTAL_MEM_KB" -le 3000000 ]; then
+    HOST_GOMEMLIMIT="512MiB"
+    HOST_GOGC="100"
+else
+    HOST_GOMEMLIMIT="1024MiB"
+    HOST_GOGC="100"
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. 目录结构初始化与数据包释放
+# ─────────────────────────────────────────────────────────────────────────────
+echo -e "${YELLOW}📁 [2/4] 初始化目录与数据包释放 (${INSTALL_DIR})...${NC}"
+mkdir -p "$INSTALL_DIR/bin" "$INSTALL_DIR/etc/rules" "$INSTALL_DIR/data"
+
+# 若当前目录已有 etc 数据包，则直接同步复制
+CURRENT_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -d "$CURRENT_SCRIPT_DIR/../etc" ]; then
+    cp -r "$CURRENT_SCRIPT_DIR/../etc/"* "$INSTALL_DIR/etc/"
+elif [ -d "$CURRENT_SCRIPT_DIR/etc" ]; then
+    cp -r "$CURRENT_SCRIPT_DIR/etc/"* "$INSTALL_DIR/etc/"
+elif [ -d "./etc" ]; then
+    cp -r "./etc/"* "$INSTALL_DIR/etc/"
+fi
+
+# 若飞牛 fnOS，赋予 1000:1000 读写权限防止容器访问受阻
+if [ "$DETECTED_HOST" = "fnos" ]; then
+    chown -R 1000:1000 "$INSTALL_DIR" 2>/dev/null || true
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 7. 根据选择的部署模式下发配置与拉起
+# ─────────────────────────────────────────────────────────────────────────────
+if [ "$DEPLOY_MODE" = "docker" ]; then
+    echo -e "${YELLOW}🐳 [3/4] 正在配置 Docker 容器化主旁一体网关...${NC}"
+    
+    # 确保 docker 已安装
+    if ! command -v docker >/dev/null 2>&1; then
+        echo -e "${RED}⚠️  检测到当前系统未安装 Docker，正在自动降级为原生单二进制守护部署...${NC}"
+        DEPLOY_MODE="native"
+    fi
+fi
+
+APP_PORT="${PORT:-${CUBEX_PORT:-2026}}"
+if command -v ss >/dev/null 2>&1; then
+    if ss -tuln | grep -q ":${APP_PORT} "; then
+        if docker ps 2>/dev/null | grep -q "cubex" || (command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet cubexd 2>/dev/null); then
+            echo -e "${CYAN}💡 检测到已有 CubeX 运行于端口 ${APP_PORT}，将执行平滑替换升级...${NC}"
+        else
+            echo -e "${YELLOW}⚠️ 宿主端口 ${APP_PORT} 已被其他应用占用，启动智能空闲端口探查...${NC}"
+            while ss -tuln | grep -q ":${APP_PORT} "; do
+                APP_PORT=$((APP_PORT + 1))
+            done
+            echo -e "${GREEN}✅ 自动切换至空闲可用端口: ${APP_PORT}${NC}"
+        fi
+    fi
+fi
+
+if [ "$DEPLOY_MODE" = "docker" ]; then
+    cat <<EOF > "$INSTALL_DIR/docker-compose.yml"
+services:
+  cubex:
+    image: docker.io/fyasshole/cubex:latest
+    container_name: cubex
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_BIND_SERVICE
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - ./data:/app/data
+      - ./etc:/app/etc
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - CUBEX_PORT=${APP_PORT}
+      - CUBEX_LISTEN=:${APP_PORT}
+      - CUBEX_HOST_PLATFORM=${DETECTED_HOST}
+      - GOMEMLIMIT=${HOST_GOMEMLIMIT}
+      - GOGC=${HOST_GOGC}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+EOF
+
+    echo -e "${GREEN}✅ 已生成 docker-compose.yml 配置文件 (内存配额: ${HOST_GOMEMLIMIT})${NC}"
+    cd "$INSTALL_DIR"
+    
+    if command -v docker-compose >/dev/null 2>&1; then
+        docker-compose down 2>/dev/null || true
+        docker-compose up -d
+    elif docker compose version >/dev/null 2>&1; then
+        docker compose down 2>/dev/null || true
+        docker compose up -d
+    else
+        echo -e "${CYAN}💡 正在拉取最新版 Docker 镜像 (docker.io/fyasshole/cubex:latest)...${NC}"
+        DOCKER_IMG="docker.io/fyasshole/cubex:latest"
+        if ! docker pull "$DOCKER_IMG" 2>/dev/null; then
+            echo -e "${YELLOW}⚠️ GHCR 镜像源拉取超时，切换至 Docker Hub: docker.io/fyasshole/cubex:latest...${NC}"
+            docker pull "docker.io/fyasshole/cubex:latest" 2>/dev/null || true
+            if docker inspect "docker.io/fyasshole/cubex:latest" >/dev/null 2>&1; then
+                DOCKER_IMG="docker.io/fyasshole/cubex:latest"
+            fi
+        fi
+        echo -e "${CYAN}💡 正在通过标准 docker run 命令拉起容器...${NC}"
+        docker stop cubex 2>/dev/null || true
+        docker rm cubex 2>/dev/null || true
+        docker run -d \
+          --name cubex \
+          --restart unless-stopped \
+          --network host \
+          --cap-add NET_ADMIN \
+          --cap-add NET_BIND_SERVICE \
+          --device /dev/net/tun:/dev/net/tun \
+          -v "$INSTALL_DIR/data:/app/data" \
+          -v "$INSTALL_DIR/etc:/app/etc" \
+          -e TZ=Asia/Shanghai \
+          -e CUBEX_PORT=${APP_PORT} \
+          -e CUBEX_LISTEN=:${APP_PORT} \
+          -e CUBEX_HOST_PLATFORM=${DETECTED_HOST} \
+          -e GOMEMLIMIT=${HOST_GOMEMLIMIT} \
+          -e GOGC=${HOST_GOGC} \
+          "$DOCKER_IMG" || true
+    fi
+
+else
+        echo -e "${PURPLE}⚡ [3/4] 正在配置原生单二进制 Systemd 守护进程...${NC}"
+    
+    # 优先查找本地完整发行归档，或自动从 GitHub Releases 下载全量包 (包含双引擎与105套规则)
+    NEED_DOWNLOAD=1
+    LOCAL_ZIP=$(ls "$CURRENT_SCRIPT_DIR/../dist/release/CubeX-"*"-linux-$TARGET_ARCH.zip" "$CURRENT_SCRIPT_DIR/../dist/CubeX-"*"-linux-$TARGET_ARCH.zip" "./dist/release/CubeX-"*"-linux-$TARGET_ARCH.zip" "./dist/CubeX-"*"-linux-$TARGET_ARCH.zip" "/root/CubeX-"*"-linux-$TARGET_ARCH.zip" "/tmp/CubeX-"*"-linux-$TARGET_ARCH.zip" 2>/dev/null | sort -V | tail -n1 || true)
+    if [ -n "$LOCAL_ZIP" ] && [ -f "$LOCAL_ZIP" ]; then
+        echo -e "${GREEN}📦 发现本地发行归档包 (${LOCAL_ZIP})，直接 0 秒解压部署...${NC}"
+        unzip -q -o "$LOCAL_ZIP" -d "$INSTALL_DIR" 2>/dev/null || true
+        NEED_DOWNLOAD=0
+    elif [ -f "$CURRENT_SCRIPT_DIR/../dist/cubexd-linux-$TARGET_ARCH" ]; then
+        cp "$CURRENT_SCRIPT_DIR/../dist/cubexd-linux-$TARGET_ARCH" "$INSTALL_DIR/bin/cubexd"
+        NEED_DOWNLOAD=0
+    fi
+
+    if [ "$NEED_DOWNLOAD" -eq 1 ] && [ ! -f "$INSTALL_DIR/bin/cubexd" ]; then
+        echo -e "${CYAN}🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 105套规则集 + 控制面)...${NC}"
+        REL_TAG="$CUSTOM_VER"
+        if [ -z "$REL_TAG" ]; then
+            for M in "https://gh-proxy.com" "https://ghproxy.net" "https://github.moeyy.xyz" ""; do
+                PREFIX=""
+                [ -n "$M" ] && PREFIX="${M}/"
+                LATEST_JSON=$(curl -4 -sSL --connect-timeout 4 -m 8 "${PREFIX}https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
+                TAG_CANDIDATE=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
+                if [ -n "$TAG_CANDIDATE" ]; then
+                    REL_TAG="$TAG_CANDIDATE"
+                    break
+                fi
+                REL_TAG=$(curl -4 -sSL --connect-timeout 3 -m 5 -I "${PREFIX}https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
+                [ -n "$REL_TAG" ] && break
+            done
+        fi
+        [ -z "$REL_TAG" ] && REL_TAG="v9.9.7"
+        ZIP_NAME="CubeX-${REL_TAG}-linux-${TARGET_ARCH}.zip"
+        ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
+
+        TMP_ZIP="/tmp/${ZIP_NAME}"
+        if [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
+            echo -e "${GREEN}📦 发现本地已缓存的完整归档: ${TMP_ZIP}，秒级解压部署...${NC}"
+        else
+            rm -f "$TMP_ZIP"
+            echo -e "${CYAN}   -> 正在通过国内多级高速镜像源智能轮询下载 ${ZIP_NAME} (约 80MB，免代理极速拉取)...${NC}"
+            GH_MIRRORS="https://gh-proxy.com https://mirror.ghproxy.com https://github.boki.moe https://ghproxy.net https://github.moeyy.xyz DIRECT"
+            DOWNLOAD_OK=0
+            for MIRROR in $GH_MIRRORS; do
+                if [ "$MIRROR" != "DIRECT" ]; then
+                    DL_LINK="${MIRROR}/${ZIP_URL}"
+                    echo -e "${CYAN}      [镜像尝试] 正在连接: ${MIRROR}...${NC}"
+                else
+                    DL_LINK="${ZIP_URL}"
+                    echo -e "${CYAN}      [官方直连] 正在连接: GitHub...${NC}"
+                fi
+                if curl -4 --http1.1 -fsSL --connect-timeout 6 -m 300 -o "$TMP_ZIP" "$DL_LINK" 2>/dev/null && [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
+                    DOWNLOAD_OK=1
+                    echo -e "${GREEN}      ✓ 高速通道连接成功并完成完整性校验！${NC}"
+                    break
+                fi
+                rm -f "$TMP_ZIP"
+            done
+        fi
+
+        if [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
+            unzip -q -o "$TMP_ZIP" -d "$INSTALL_DIR" 2>/dev/null || true
+            echo -e "${GREEN}✅ 完整归档已成功释放至 ${INSTALL_DIR} (包含 Mihomo + sing-box 双核及全量规则)${NC}"
+        else
+            echo -e "${YELLOW}⚠️ 完整归档拉取失败，尝试独立拉取控制面与双引擎独立内核...${NC}"
+            DL_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${TARGET_ARCH}"
+            for MIRROR in $GH_MIRRORS; do
+                BIN_LINK="${DL_URL}"
+                [ "$MIRROR" != "DIRECT" ] && BIN_LINK="${MIRROR}/${DL_URL}"
+                if curl -4 -sSL --connect-timeout 6 -m 120 -o "$INSTALL_DIR/bin/cubexd" "$BIN_LINK" 2>/dev/null && [ -s "$INSTALL_DIR/bin/cubexd" ]; then
+                    break
+                fi
+            done
+
+            # 2. 检查并拉取 sing-box 核心
+            if [ ! -f "$INSTALL_DIR/bin/sing-box" ]; then
+                echo -e "${CYAN}   -> 正在独立拉取 sing-box 核心...${NC}"
+                SB_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/sing-box-linux-${TARGET_ARCH}"
+                for MIRROR in $GH_MIRRORS; do
+                    BIN_LINK="${SB_URL}"
+                    [ "$MIRROR" != "DIRECT" ] && BIN_LINK="${MIRROR}/${SB_URL}"
+                    if curl -4 -sSL --connect-timeout 6 -m 120 -o "$INSTALL_DIR/bin/sing-box" "$BIN_LINK" 2>/dev/null && [ -s "$INSTALL_DIR/bin/sing-box" ]; then
+                        break
+                    fi
+                done
+            fi
+
+            # 3. 检查并拉取 mihomo 核心
+            if [ ! -f "$INSTALL_DIR/bin/mihomo" ]; then
+                echo -e "${CYAN}   -> 正在独立拉取 mihomo 核心...${NC}"
+                MH_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/mihomo-linux-${TARGET_ARCH}"
+                for MIRROR in $GH_MIRRORS; do
+                    BIN_LINK="${MH_URL}"
+                    [ "$MIRROR" != "DIRECT" ] && BIN_LINK="${MIRROR}/${MH_URL}"
+                    if curl -4 -sSL --connect-timeout 6 -m 120 -o "$INSTALL_DIR/bin/mihomo" "$BIN_LINK" 2>/dev/null && [ -s "$INSTALL_DIR/bin/mihomo" ]; then
+                        break
+                    fi
+                done
+            fi
+        fi
+    fi
+    chmod +x "$INSTALL_DIR/bin/"* 2>/dev/null || true
+
+    if [ ! -f "$INSTALL_DIR/bin/cubexd" ] || [ ! -s "$INSTALL_DIR/bin/cubexd" ]; then
+        echo -e "${RED}❌ 致命错误: 未能获取到有效的 cubexd 控制面二进制文件，请检查网络连接或权限后重试。${NC}"
+        exit 1
+    fi
+
+    if [ ! -f "$INSTALL_DIR/bin/sing-box" ] && [ ! -f "$INSTALL_DIR/bin/mihomo" ]; then
+        echo -e "${RED}❌ 致命错误: 双引擎核心文件 (sing-box / mihomo) 均缺失！${NC}"
+        echo -e "${YELLOW}👉 严重警告: 控制面在没有底层代理内核的情况下无法转发任何网络流量！${NC}"
+        echo -e "${YELLOW}👉 解决建议: 请检查宿主网络/镜像源连接，或将完整的 ${ZIP_NAME} 放置于 /tmp/ 目录后重新运行本脚本。${NC}"
+        exit 1
+    fi
+
+    mkdir -p /usr/local/bin 2>/dev/null || true
+    if [ -f "$INSTALL_DIR/bin/cubex" ]; then
+        ln -sf "$INSTALL_DIR/bin/cubex" /usr/local/bin/cubex 2>/dev/null || cp "$INSTALL_DIR/bin/cubex" /usr/local/bin/cubex 2>/dev/null || true
+        chmod +x /usr/local/bin/cubex 2>/dev/null || true
+    fi
+
+    # 生成 systemd 服务文件
+    cat <<EOF > /etc/systemd/system/cubex.service
+[Unit]
+Description=CubeX Dual-Engine Cyber Gateway Daemon
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=$INSTALL_DIR
+ExecStart=$INSTALL_DIR/bin/cubexd -dir $INSTALL_DIR -listen :${APP_PORT}
+Restart=always
+RestartSec=2s
+LimitNOFILE=65535
+Environment=GOMEMLIMIT=${HOST_GOMEMLIMIT}
+Environment=GOGC=${HOST_GOGC}
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable cubex >/dev/null 2>&1 || true
+    systemctl restart cubex || true
+    echo -e "${GREEN}✅ systemd 服务已注册并启动 (/etc/systemd/system/cubex.service, 软上限: ${HOST_GOMEMLIMIT})${NC}"
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 8. 快捷命令软链接与部署完成驾驶舱
+# ─────────────────────────────────────────────────────────────────────────────
+echo -e "${YELLOW}🔗 [4/4] 注册全局管理快捷指令 (cubex)...${NC}"
+mkdir -p /usr/local/bin 2>/dev/null || true
+
+# 如果本地存在编译好的 cubex 运维 CLI，则优先链接或复制
+CLI_INSTALLED=0
+for cli_path in "$INSTALL_DIR/bin/cubex" "$CURRENT_SCRIPT_DIR/../dist/cubex-linux-$TARGET_ARCH" "$CURRENT_SCRIPT_DIR/dist/cubex-linux-$TARGET_ARCH" "./dist/cubex-linux-$TARGET_ARCH"; do
+    if [ -f "$cli_path" ]; then
+        ln -sf "$cli_path" /usr/local/bin/cubex 2>/dev/null || cp "$cli_path" /usr/local/bin/cubex 2>/dev/null || true
+        chmod +x /usr/local/bin/cubex 2>/dev/null || true
+        CLI_INSTALLED=1
+        break
+    fi
+done
+
+if [ "$CLI_INSTALLED" -eq 0 ]; then
+    echo -e "${CYAN}🌐 正在尝试拉取最新版原生运维 CLI (cubex-linux-${TARGET_ARCH})...${NC}"
+    CLI_URL="https://github.com/zyeyefyass/CubeX/releases/latest/download/cubex-linux-$TARGET_ARCH"
+    CLI_MIRROR="https://gh-proxy.com/$CLI_URL"
+    if curl -4 -sSL --connect-timeout 5 -m 30 -o /usr/local/bin/cubex "$CLI_URL" 2>/dev/null && [ -s /usr/local/bin/cubex ]; then
+        chmod +x /usr/local/bin/cubex 2>/dev/null || true
+        CLI_INSTALLED=1
+    elif curl -4 -sSL --connect-timeout 6 -m 30 -o /usr/local/bin/cubex "$CLI_MIRROR" 2>/dev/null && [ -s /usr/local/bin/cubex ]; then
+        chmod +x /usr/local/bin/cubex 2>/dev/null || true
+        CLI_INSTALLED=1
+    fi
+fi
+
+if [ "$CLI_INSTALLED" -eq 0 ]; then
+cat << 'EOF' > /usr/local/bin/cubex
+#!/usr/bin/env bash
+ACTION="$1"
+case "$ACTION" in
+    status)
+        if command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' | grep -q '^cubex$'; then
+            docker ps --filter "name=cubex"
+        elif command -v systemctl >/dev/null 2>&1; then
+            systemctl status cubex --no-pager
+        fi
+        curl -s http://127.0.0.1:${APP_PORT}/api/v1/system/status | grep -o '"version":[^,]*' || true
+        ;;
+    restart)
+        echo "🔄 正在重启 CubeX 守护进程..."
+        if command -v docker >/dev/null 2>&1 && docker ps -a --format '{{.Names}}' | grep -q '^cubex$'; then
+            docker restart cubex
+        elif command -v systemctl >/dev/null 2>&1; then
+            systemctl restart cubex
+        fi
+        echo "✅ 重启指令已下发"
+        ;;
+    log|logs)
+        if command -v docker >/dev/null 2>&1 && docker ps -a --format '{{.Names}}' | grep -q '^cubex$'; then
+            docker logs -f --tail 100 cubex
+        elif command -v journalctl >/dev/null 2>&1; then
+            journalctl -u cubex -f -n 100
+        fi
+        ;;
+    reload)
+        echo "🔄 热重载分流策略与规则..."
+        curl -s -X POST http://127.0.0.1:${APP_PORT}/api/v1/system/reload-config
+        echo ""
+        ;;
+    ikuai)
+        echo "🌐 爱快 iKuai 宿主联动中枢"
+        curl -s -X POST http://127.0.0.1:${APP_PORT}/api/v1/host/auto-setup
+        echo ""
+        ;;
+    *)
+        echo "🌌 CubeX 命令行控制中心"
+        echo "用法: cubex {status|restart|log|reload|ikuai}"
+        ;;
+esac
+EOF
+chmod +x /usr/local/bin/cubex 2>/dev/null || true
+fi
+
+# 获取本机局域网 IP
+LOCAL_IP=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' || hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
+
+echo ""
+echo -e "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"
+echo -e "${BOLD}${GREEN}🎉 恭喜！CubeX · 次世代双擎高可用旁路网关部署成功！${NC}"
+echo -e "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"
+echo -e "  🌐 ${BOLD}Web 控制驾驶舱:${NC}   ${CYAN}http://${LOCAL_IP}:${APP_PORT}${NC}"
+echo -e "  🖥️  ${BOLD}已识别宿主底座:${NC}   ${PURPLE}${DETECTED_HOST_NAME}${NC}"
+echo -e "  📁 ${BOLD}持久化工作目录:${NC}   ${BLUE}${INSTALL_DIR}${NC}"
+echo -e "  ⚡ ${BOLD}双核心代理架构:${NC}   ${GREEN}Mihomo Meta ⇄ sing-box v1.14+ (毫秒级零断网热切)${NC}"
+echo -e "  🛡️  ${BOLD}权威规则数据库:${NC}   ${CYAN}217heidai MRS 广告拦截 + 隐私反追踪 + 0 明文 DNS 阻断${NC}"
+echo -e "  💾 ${BOLD}宿主自适应内存:${NC}   ${YELLOW}GOMEMLIMIT=${HOST_GOMEMLIMIT} (物理内存分级防护)${NC}"
+echo ""
+echo -e "${BOLD}常用运维指令:${NC}"
+echo -e "  • 查看运行状态:   ${YELLOW}cubex status${NC}"
+echo -e "  • 追踪实时日志:   ${YELLOW}cubex log${NC}"
+echo -e "  • 重启网关服务:   ${YELLOW}cubex restart${NC}"
+echo -e "  • 热重载分流配置: ${YELLOW}cubex reload${NC}"
+if [ "$IS_IKUAI_GATEWAY" -eq 1 ]; then
+    echo ""
+    echo -e "${PURPLE}═════════════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BOLD}${PURPLE}🚀 【爱快 iKuai 宿主联动中枢就绪】(已嗅探到上级爱快主路由: ${DEFAULT_GW})${NC}"
+    echo -e "${PURPLE}═════════════════════════════════════════════════════════════════════════${NC}"
+    echo -e "  💡 爱快旁路由拓扑核心：需在爱快中将 ${BOLD}198.18.0.0/15${NC} 静态回指路由指向 CubeX (${LOCAL_IP})"
+    echo -e "  🔧 ${BOLD}全自动一键配置步骤:${NC}"
+    echo -e "     1. 浏览器打开: ${CYAN}http://${LOCAL_IP}:${APP_PORT}${NC}"
+    echo -e "     2. 进入左侧导航【宿主共生凭据】，选择【爱快 iKuai】"
+    echo -e "     3. 填入爱快地址 (${DEFAULT_GW}) 与 Web 管理密码"
+    echo -e "     4. 点击【一键自愈与规则加固】，系统自动写入 198.18.0.0/15 静态回指与 DHCP 首选 DNS！"
+    echo -e "  💻 也可在当前终端执行: ${CYAN}cubex ikuai${NC} 触发自动同步"
+fi
+echo -e "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"

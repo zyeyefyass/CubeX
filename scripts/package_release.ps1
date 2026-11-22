@@ -8,7 +8,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$Version = "v9.9.6"
+$Version = "v9.9.7"
 
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 
@@ -179,13 +179,45 @@ function Assemble-ReleasePackage($TargetName, $GatewayBinary, $ArchType) {
 
 
 
+function Create-PosixZip {
+    param(
+        [string]$SourceDir,
+        [string]$DestinationZip
+    )
+    $pyScript = @"
+import os, sys, zipfile
+src = sys.argv[1]
+dst = sys.argv[2]
+if os.path.exists(dst):
+    try:
+        os.remove(dst)
+    except Exception:
+        pass
+with zipfile.ZipFile(dst, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+    for root, dirs, files in os.walk(src):
+        for f in files:
+            full = os.path.join(root, f)
+            rel = os.path.relpath(full, src).replace('\\', '/')
+            is_bin = rel.startswith('bin/') or rel.endswith('.sh')
+            attr = (0o755 << 16) if is_bin else (0o644 << 16)
+            zinfo = zipfile.ZipInfo(rel)
+            zinfo.external_attr = attr
+            with open(full, 'rb') as fp:
+                z.writestr(zinfo, fp.read(), compress_type=zipfile.ZIP_DEFLATED)
+"@
+    python -c $pyScript "$SourceDir" "$DestinationZip"
+    if (-not (Test-Path "$DestinationZip")) {
+        Compress-Archive -Path "$SourceDir\*" -DestinationPath "$DestinationZip" -Force
+    }
+}
+
 # 4. Packaging Linux amd64 & arm64 (.zip format, NO .tar.gz)
 
 Write-Host "📦 [2/4] Packaging Linux amd64 Release (Dual-Core + Geodata + Rules -> .zip)..." -ForegroundColor Yellow
 
 $stageAmd64 = Assemble-ReleasePackage "CubeX-$Version-linux-amd64" "$DistDir\cubexd-linux-amd64" "amd64"
 
-Compress-Archive -Path "$stageAmd64\*" -DestinationPath "$ReleaseDir\CubeX-$Version-linux-amd64.zip" -Force
+Create-PosixZip "$stageAmd64" "$ReleaseDir\CubeX-$Version-linux-amd64.zip"
 
 
 
@@ -193,7 +225,7 @@ Write-Host "📦 [3/4] Packaging Linux arm64 Release (Dual-Core + Geodata + Rule
 
 $stageArm64 = Assemble-ReleasePackage "CubeX-$Version-linux-arm64" "$DistDir\cubexd-linux-arm64" "arm64"
 
-Compress-Archive -Path "$stageArm64\*" -DestinationPath "$ReleaseDir\CubeX-$Version-linux-arm64.zip" -Force
+Create-PosixZip "$stageArm64" "$ReleaseDir\CubeX-$Version-linux-arm64.zip"
 
 
 

@@ -170,7 +170,6 @@
         :is-switching-engine="switchingEngine"
         :is-peek-mode="isPeekMode"
         @open-search="showCommandPalette = true"
-        @open-diag="isDataplaneDrawerOpen = true"
         @switch-engine="switchEngine"
         @toggle-peek="togglePeekMode"
       />
@@ -192,7 +191,7 @@
 
           isHeaderHidden ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100',
 
-          isScrolledDown ? 'bg-[#0a0d18]/90 border-b border-white/10 shadow-xl' : ''
+          isScrolledDown ? 'bg-[#E5EAF1]/95 border-b border-slate-300/60 shadow-md' : ''
 
         ]">
 
@@ -245,7 +244,7 @@
             class="flex items-center px-2.5 sm:px-4 py-1 sm:py-2 rounded-xl sm:rounded-2xl transition-all duration-300 relative gap-1.5 sm:gap-2.5 macos-capsule select-none shrink-0 shadow-lg border border-cyan-400/30 bg-gradient-to-r from-sky-950/70 via-slate-900/80 to-cyan-950/70 cursor-pointer hover:border-cyan-400/60 group">
             <span class="text-xs sm:text-sm font-black text-cyan-400 group-hover:scale-110 transition-transform">⚡</span>
             <div class="text-left leading-tight">
-              <span class="text-[11px] sm:text-[13px] font-bold text-white tracking-wide">双栈智能路由与 DNS 优选引擎</span>
+              <span class="text-[11px] sm:text-[13px] font-bold text-slate-900 tracking-wide">双栈智能路由与 DNS 优选引擎</span>
               <span class="hidden md:inline-block ml-2 text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 font-mono">官方合规态</span>
             </div>
           </div>
@@ -271,7 +270,7 @@
 
               ]">
 
-              <img src="/logo-singbox.svg" class="w-4 h-4 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(255,158,94,0.5)]" alt="sing-box" />
+              <img src="/logo-singbox.svg" class="w-4 h-4 sm:w-6 sm:h-6 object-contain shrink-0 " alt="sing-box" />
 
               <div class="text-left leading-none">
 
@@ -305,7 +304,7 @@
 
               ]">
 
-              <img src="/logo-mihomo.svg" class="w-4 h-4 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_6px_rgba(255,158,94,0.5)]" alt="Mihomo" />
+              <img src="/logo-mihomo.svg" class="w-4 h-4 sm:w-6 sm:h-6 object-contain shrink-0 " alt="Mihomo" />
 
               <div class="text-left leading-none">
 
@@ -355,7 +354,7 @@
 
             class="h-[30px] sm:h-[42px] md:h-[46px] inline-flex items-center gap-1 sm:gap-2.5 px-1.5 sm:px-3.5 rounded-lg sm:rounded-2xl macos-capsule hover:border-sky-400/50 group select-none transition-all duration-300 cursor-pointer shrink-0">
 
-            <img :src="hostBadge.svg" class="w-4 h-4 sm:w-6 sm:h-6 object-contain shrink-0 drop-shadow-[0_0_8px_rgba(56,189,248,0.35)] group-hover:scale-110 transition-transform" :alt="hostBadge.shortName" />
+            <img :src="hostBadge.svg" class="w-4 h-4 sm:w-6 sm:h-6 object-contain shrink-0  group-hover:scale-110 transition-transform" :alt="hostBadge.shortName" />
 
             <span class="hidden md:inline text-xs sm:text-[13px] font-bold font-mono text-emerald-200 group-hover:text-sky-300 whitespace-nowrap truncate max-w-[140px] leading-none transition-colors">
 
@@ -483,7 +482,7 @@
 
     <div v-if="toastMsg" class="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] max-w-xl w-[92%] sm:w-auto px-5 py-3.5 rounded-2xl border text-xs sm:text-sm font-mono flex items-center justify-between gap-4 shadow-2xl backdrop-blur-2xl transition-all duration-300 animate-in fade-in slide-in-from-top-4"
 
-      :class="toastError ? 'bg-rose-950/95 border-rose-500/70 text-rose-200 shadow-rose-950/50' : 'bg-[#17202b]/95 border-emerald-500/50 text-slate-100 ring-1 ring-emerald-500/20 shadow-xl'">
+      :class="toastError ? 'bg-rose-100 border-rose-400 text-rose-900 shadow-md' : 'bg-[#F1F4F9] border-emerald-600/50 text-slate-800 ring-1 ring-emerald-500/20 shadow-lg'">
 
       <div class="flex items-center gap-2.5">
 
@@ -658,7 +657,7 @@
                     <!-- Custom Dropdown Popover Menu -->
                     <div v-if="activeProbeDropdown === bi"
                       @mouseleave="activeProbeDropdown = null"
-                      class="absolute top-full mt-1.5 w-48 max-h-72 overflow-y-auto overscroll-contain bg-[#0c1626]/95 border border-cyan-500/50 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] p-1.5 z-[100] text-slate-200 space-y-0.5 custom-scrollbar ring-1 ring-cyan-400/30 backdrop-blur-3xl animate-in fade-in zoom-in-95"
+                      class="absolute top-full mt-1.5 w-48 max-h-72 overflow-y-auto overscroll-contain bg-[#F1F4F9] border border-slate-300/80 rounded-2xl shadow-xl p-1.5 z-[100] text-slate-800 space-y-0.5 custom-scrollbar ring-1 ring-slate-300/40 animate-in fade-in zoom-in-95"
                       :class="bi >= 2 ? 'right-0 sm:left-0' : 'left-0'">
                       <button v-for="target in availableProbeTargets" :key="target.id"
                         @click.stop="selectProbeTarget(bi, target)"
@@ -766,7 +765,7 @@
                   📱
                 </div>
                 <div>
-                  <div class="text-white font-bold text-sm">全屋在线终端</div>
+                  <div class="text-slate-900 font-bold text-sm">全屋在线终端</div>
                   <div class="text-slate-400 text-[11px]">{{ lanClients.length }} 台设备在线 · 动态嗅探</div>
                 </div>
               </div>
@@ -785,9 +784,9 @@
                   🧊
                 </div>
                 <div>
-                  <div class="text-white font-bold text-xs flex items-center gap-1.5">
+                  <div class="text-slate-900 font-bold text-xs flex items-center gap-1.5">
                     <span>CubeX 智能中枢</span>
-                    <span class="px-1.5 py-0.2 rounded bg-sky-500/30 text-sky-200 text-[10px]">10.0.0.7</span>
+                    <span class="px-1.5 py-0.2 rounded bg-sky-500/30 text-sky-200 text-[10px]">{{ systemStatus?.host_ip || 'CubeX' }}</span>
                   </div>
                   <div class="text-[10px] text-emerald-400 font-tabular font-sans">
                     ↓ {{ formatSpeed(liveDownSpeed) }} · ↑ {{ formatSpeed(liveUpSpeed) }}
@@ -993,7 +992,7 @@
 
                   <span :class="['text-[11px] px-2 py-0.5 rounded-full font-mono font-bold',
 
-                    routingSubTab === 'policy' ? 'bg-[#201630] text-sky-200' : 'bg-white/10 border border-white/20 text-sky-200']">
+                    routingSubTab === 'policy' ? 'bg-slate-900 text-white font-bold' : 'bg-[#F1F4F9] border border-slate-300/60 text-slate-700']">
 
                     {{ filteredPolicies.length }}
 
@@ -1019,7 +1018,7 @@
 
                   <span :class="['text-[11px] px-2 py-0.5 rounded-full font-mono font-bold',
 
-                    routingSubTab === 'node' ? 'bg-[#201630] text-sky-200' : 'bg-white/10 border border-white/20 text-sky-200']">
+                    routingSubTab === 'node' ? 'bg-slate-900 text-white font-bold' : 'bg-[#F1F4F9] border border-slate-300/60 text-slate-700']">
 
                     {{ regionalAutoGroups.length }}
 
@@ -1045,7 +1044,7 @@
 
                   <span :class="['text-[11px] px-2 py-0.5 rounded-full font-mono font-bold',
 
-                    routingSubTab === 'sub' ? 'bg-[#201630] text-sky-200' : 'bg-white/10 border border-white/20 text-sky-200']">
+                    routingSubTab === 'sub' ? 'bg-slate-900 text-white font-bold' : 'bg-[#F1F4F9] border border-slate-300/60 text-slate-700']">
 
                     {{ (ir.subscriptions || []).length }}
 
@@ -1063,7 +1062,7 @@
 
                 <button @click="runAllLatencyTest" :disabled="testingLatency"
 
-                  class="h-[42px] px-4 rounded-2xl text-xs font-bold macos-capsule hover:border-sky-400/50 text-white transition flex items-center gap-1.5 shadow-sm active:scale-95 whitespace-nowrap cursor-pointer">
+                  class="h-[42px] px-4 rounded-2xl text-xs font-bold macos-capsule hover:border-sky-400/50 text-slate-700 hover:text-slate-900 transition flex items-center gap-1.5 shadow-sm active:scale-95 whitespace-nowrap cursor-pointer">
 
                   <span v-if="testingLatency" class="inline-block animate-spin">⏳</span>
 
@@ -1075,7 +1074,7 @@
 
                 <button v-if="routingSubTab === 'policy'" @click="restoreDefaultPolicies" title="一键恢复官方默认 14 个业务分流策略与 8 大地区"
 
-                  class="h-[42px] px-3.5 rounded-2xl text-xs font-bold macos-capsule hover:border-sky-400/50 text-white transition flex items-center gap-1.5 active:scale-95 whitespace-nowrap shadow-sm cursor-pointer"
+                  class="h-[42px] px-3.5 rounded-2xl text-xs font-bold macos-capsule hover:border-sky-400/50 text-slate-700 hover:text-slate-900 transition flex items-center gap-1.5 active:scale-95 whitespace-nowrap shadow-sm cursor-pointer"
 
                   :class="deletedPolicyGroupNames.length > 0 ? 'border-amber-500/40 text-amber-200' : ''">
 
@@ -1103,7 +1102,7 @@
 
                   <button @click="restoreDefaultRegions" title="一键恢复官方预设 8 大核心地区聚类"
 
-                    class="h-[42px] px-3.5 rounded-2xl text-xs font-bold macos-capsule hover:border-sky-400/50 text-white transition flex items-center gap-1.5 active:scale-95 whitespace-nowrap shadow-sm cursor-pointer"
+                    class="h-[42px] px-3.5 rounded-2xl text-xs font-bold macos-capsule hover:border-sky-400/50 text-slate-700 hover:text-slate-900 transition flex items-center gap-1.5 active:scale-95 whitespace-nowrap shadow-sm cursor-pointer"
 
                     :class="deletedRegionIds.length > 0 ? 'border-amber-500/40 text-amber-200' : ''">
 
@@ -1129,7 +1128,7 @@
 
                   <button @click="openImportModal('node')"
 
-                    class="h-[42px] px-3.5 rounded-2xl text-xs font-bold macos-capsule hover:border-sky-400/50 text-white transition flex items-center gap-1 whitespace-nowrap cursor-pointer">
+                    class="h-[42px] px-3.5 rounded-2xl text-xs font-bold macos-capsule hover:border-sky-400/50 text-slate-700 hover:text-slate-900 transition flex items-center gap-1 whitespace-nowrap cursor-pointer">
 
                     <span>📥 导入节点</span>
 
@@ -1233,9 +1232,9 @@
 
                       <div class="flex items-center gap-2 flex-wrap">
 
-                        <span class="text-base font-bold text-white tracking-wide truncate">{{ cleanGroupNameMap[grp.name] || grp.name }}</span>
+                        <span class="text-base font-bold text-slate-900 tracking-wide truncate">{{ cleanGroupNameMap[grp.name] || grp.name }}</span>
 
-                        <span class="text-xs px-2 py-0.5 rounded-md font-mono bg-white/10 text-white text-slate-300 border border-slate-700/60">
+                        <span class="text-xs px-2 py-0.5 rounded-md font-mono bg-white/10 text-slate-600 border border-slate-700/60">
 
                           {{ chinaGroupMap[grp.name] ? '国内穿透' : (grp.name.includes('Speed') ? '测速穿透' : '域名穿透') }}
 
@@ -1409,7 +1408,7 @@
 
                         <RegionFlag v-else country-code="CN" name="中国" size-class="w-4 h-2.5" />
 
-                        <span class="text-xs sm:text-[13px] font-black truncate text-white tracking-wide">
+                        <span class="text-xs sm:text-[13px] font-black truncate text-slate-900 tracking-wide">
 
                           {{ chinaGroupMap[grp.name] ? '直连 (独占)' : '直连' }}
 
@@ -1515,7 +1514,7 @@
 
                             <span v-if="isRegionActiveInGroup(grp, reg)" class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)] animate-pulse shrink-0"></span>
 
-                            <span class="text-xs sm:text-[13px] font-black truncate text-white tracking-wide">
+                            <span class="text-xs sm:text-[13px] font-black truncate text-slate-900 tracking-wide">
 
                               {{ reg.name }}
 
@@ -1777,7 +1776,7 @@
 
                       <div class="flex items-center gap-2 flex-wrap min-w-0">
 
-                        <span class="text-sm sm:text-base font-bold text-white tracking-wide truncate max-w-[130px] sm:max-w-[180px]">{{ reg.name }}</span>
+                        <span class="text-sm sm:text-base font-bold text-slate-900 tracking-wide truncate max-w-[130px] sm:max-w-[180px]">{{ reg.name }}</span>
 
                         <span v-if="reg.type === 'sub'" class="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium bg-purple-950/90 text-purple-300 border border-purple-500/30 whitespace-nowrap shrink-0">
 
@@ -1955,7 +1954,7 @@
 
                               ? 'bg-emerald-500 text-white font-bold border-emerald-400 shadow-sm ring-1 ring-emerald-300/40'
 
-                              : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-300 border-slate-800/90 hover:border-cyan-500/40'
+                              : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-slate-600 border-slate-800/90 hover:border-cyan-500/40'
 
                           ]">
 
@@ -2039,7 +2038,7 @@
 
                 <span class="text-3xl block">✈️</span>
 
-                <div class="text-sm font-bold text-white">尚未接入订阅源或无匹配项</div>
+                <div class="text-sm font-bold text-slate-800">尚未接入订阅源或无匹配项</div>
 
                 <p class="text-xs text-slate-400 max-w-md mx-auto">
 
@@ -2075,7 +2074,7 @@
 
                         <div class="flex items-center gap-1.5 group cursor-pointer" @click="startSubEdit(sub)" title="点击修改此订阅名称与链接">
 
-                          <span class="text-base font-bold text-white tracking-wide group-hover:text-sky-300 transition-colors">{{ sub.name }}</span>
+                          <span class="text-base font-bold text-slate-900 tracking-wide group-hover:text-sky-600 transition-colors">{{ sub.name }}</span>
 
                           <span class="text-xs text-slate-300 group-hover:text-emerald-300 opacity-60 group-hover:opacity-100 transition-opacity">✏️</span>
 
@@ -2089,7 +2088,7 @@
 
                         <span :class="['text-[10px] px-2 py-0.5 rounded-full font-mono font-bold',
 
-                          sub.enabled ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-400']">
+                          sub.enabled ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-slate-600']">
 
                           {{ sub.enabled ? '● 启用中' : '○ 已停用' }}
 
@@ -2424,7 +2423,7 @@
 
                   <div>
 
-                    <h3 class="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
+                    <h3 class="text-base sm:text-lg font-bold text-slate-900 tracking-wide flex items-center gap-2">
 
                       <span>CubeX 新版核心升级中枢</span>
 
@@ -2446,7 +2445,7 @@
 
                 </div>
 
-                <button v-if="!upgradingPanel" @click="showUpgradeModal = false" class="p-1.5 rounded-xl hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white text-slate-400 hover:text-white transition cursor-pointer">✕</button>
+                <button v-if="!upgradingPanel" @click="showUpgradeModal = false" class="p-1.5 rounded-xl hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-slate-600 hover:text-white transition cursor-pointer">✕</button>
 
               </div>
 
@@ -2594,7 +2593,7 @@
 
                         <span v-else-if="upgradeStep === idx" class="w-4 h-4 rounded-full bg-cyan-500/20 text-emerald-300 border border-cyan-500/50 flex items-center justify-center text-[10px] animate-spin font-bold">↻</span>
 
-                        <span v-else class="w-4 h-4 rounded-full bg-white/10 text-white text-slate-300 flex items-center justify-center text-[10px] font-bold">{{ idx + 1 }}</span>
+                        <span v-else class="w-4 h-4 rounded-full bg-white/10 text-slate-600 flex items-center justify-center text-[10px] font-bold">{{ idx + 1 }}</span>
 
                         <span :class="upgradeStep >= idx ? 'text-slate-200' : 'text-slate-300'">{{ st.title }}</span>
 
@@ -2682,7 +2681,7 @@
 
                   <span class="text-xl">➕</span>
 
-                  <h3 class="text-base font-bold text-white">手动添加应用分流策略组</h3>
+                  <h3 class="text-base font-bold text-slate-900">手动添加应用分流策略组</h3>
 
                 </div>
 
@@ -2708,7 +2707,7 @@
 
                     <span>🔥 快捷常用应用</span>
 
-                    <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-white text-slate-300 font-mono">{{ availablePresetServices.length }}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-slate-600 font-mono">{{ availablePresetServices.length }}</span>
 
                   </button>
 
@@ -3106,7 +3105,7 @@
 
                   <span class="text-xl">➕</span>
 
-                  <h3 class="text-base font-bold text-white">添加自定义节点分组</h3>
+                  <h3 class="text-base font-bold text-slate-900">添加自定义节点分组</h3>
 
                 </div>
 
@@ -3679,7 +3678,7 @@
 
     <!-- 📱 移动端 6 大主模块常驻底部导航栏 (Permanent Mobile Safe-Area Bottom Dock · 6 等分绝对铺满 · 暮光落日金高亮) -->
 
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[#001529]/98 border-t border-sky-500/25 px-1 py-1 pb-safe shadow-[0_-6px_25px_rgba(0,0,0,0.85)] select-none">
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[#E5EAF1]/98 border-t border-slate-300/60 px-1 py-1 pb-safe shadow-lg select-none text-slate-800">
 
     <div class="grid grid-cols-4 [grid-template-columns:repeat(4,minmax(0,1fr))] gap-0.5 w-full items-center">
 
@@ -3749,13 +3748,6 @@
     </div>
   </div>
 
-  <!-- 🚀 可视化诊断抽屉 (原生顶层 Teleport 挂载) -->
-  <DiagnosticDrawer
-    :is-open="isDataplaneDrawerOpen"
-    :live-snapshot="dataplaneSnapshot"
-    @close="isDataplaneDrawerOpen = false"
-  />
-
   <!-- 动态壁纸背景由 ThemeBackground 独立承载，主题视效中心抽屉已下线 -->
 
 </template>
@@ -3764,7 +3756,6 @@
 
 import { ref, reactive, computed, watch, onMounted, nextTick, provide, defineAsyncComponent } from 'vue'
 import TwilightTopBar from './components/TwilightTopBar.vue'
-import DiagnosticDrawer from './components/DiagnosticDrawer.vue'
 import ThemeBackground from './components/ThemeBackground.vue'
 import { useDataplane } from './composables/useDataplane.js'
 import { useStreamBuffer } from './composables/useStreamBuffer.js'
@@ -3774,7 +3765,6 @@ const FullHealthModal = defineAsyncComponent(() => import('./components/modals/F
 import ConfirmDialog from './components/modals/ConfirmDialog.vue'
 const RulesTab = defineAsyncComponent(() => import('./components/tabs/RulesTab.vue'))
 const SystemTab = defineAsyncComponent(() => import('./components/tabs/SystemTab.vue'))
-const AiTab = defineAsyncComponent(() => import('./components/tabs/AiTab.vue'))
 const LogsModal = defineAsyncComponent(() => import('./components/modals/LogsModal.vue'))
 const AISettingsModal = defineAsyncComponent(() => import('./components/modals/AISettingsModal.vue'))
 const ImportModal = defineAsyncComponent(() => import('./components/modals/ImportModal.vue'))
@@ -3851,7 +3841,6 @@ const isPageVisible = () => !isPollingSuspended.value && !frameScheduler.isSilen
 const {
   snapshot: dataplaneSnapshot,
   pulseState: dataplanePulseState,
-  isDiagDrawerOpen: isDataplaneDrawerOpen,
   fetchDataplaneHealth
 } = useDataplane()
 
@@ -6610,7 +6599,7 @@ const runConntrackFlush = async () => {
 
 const rootBgClass = computed(() => {
 
-  return 'bg-transparent text-[#FFFFFF] selection:bg-sky-500/30 selection:text-white'
+  return 'bg-transparent text-[#1e293b] selection:bg-sky-500/30 selection:text-sky-900'
 
 })
 
@@ -22190,11 +22179,6 @@ onMounted(async () => {
     if (e.key === 'Escape') {
       if (showCommandPalette.value) {
         showCommandPalette.value = false
-        e.preventDefault()
-        return
-      }
-      if (isDataplaneDrawerOpen.value) {
-        isDataplaneDrawerOpen.value = false
         e.preventDefault()
         return
       }

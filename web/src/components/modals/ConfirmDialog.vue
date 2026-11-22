@@ -2,11 +2,11 @@
   <teleport to="body">
     <div
       v-if="modelValue"
-      class="fixed inset-0 z-[10500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in"
+      class="fixed inset-0 z-[10500] flex items-center justify-center p-4 bg-black/60 animate-in fade-in"
       @click.self="handleCancel"
     >
       <div
-        class="w-full max-w-md rounded-3xl bg-[#F6F7FA] border border-white/80 shadow-2xl p-6 space-y-5 text-slate-800 relative overflow-hidden"
+        class="w-full max-w-md rounded-3xl bg-[#E5EAF1] border border-slate-300/60 shadow-2xl p-6 space-y-5 text-slate-800 relative overflow-hidden"
         :class="variantBorderClass"
       >
         <div
@@ -34,7 +34,7 @@
             v-if="showCancel"
             type="button"
             @click="handleCancel"
-            class="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-700 text-xs font-bold transition active:scale-95 cursor-pointer shadow-sm"
+            class="px-4 py-2 rounded-xl bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/60 text-slate-700 text-xs font-bold transition active:scale-95 cursor-pointer shadow-sm"
           >
             {{ cancelText || '取消' }}
           </button>

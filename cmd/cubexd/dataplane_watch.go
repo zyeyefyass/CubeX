@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/netutil"
 )
 
 // DataplaneHealthSnapshot holds the atomic cached health status of the proxy data plane.
@@ -53,7 +55,7 @@ func (s *Server) startDataplaneHealthLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			// If server is draining, mark degraded immediately
+			// If server is draining, mark degraded immediately and terminate watcher
 			if s.draining.Load() {
 				s.dataplaneSnapshot.Store(&DataplaneHealthSnapshot{
 					Status:       "degraded",
@@ -62,7 +64,7 @@ func (s *Server) startDataplaneHealthLoop(ctx context.Context) {
 					ActiveEngine: string(s.engMgr.GetActiveEngine()),
 					CheckedAt:    time.Now().Format(time.RFC3339),
 				})
-				continue
+				return
 			}
 
 			// In intentional switching grace period, maintain healthy status and skip physical probe
@@ -89,7 +91,7 @@ func (s *Server) startDataplaneHealthLoop(ctx context.Context) {
 				if resp.StatusCode == http.StatusOK {
 					clashOK = true
 				}
-				_ = resp.Body.Close()
+				netutil.DrainAndCloseBody(resp)
 			}
 
 			// 2. Probe DNS UDP Port via Active Query (ensures core event loop is truly processing packets)

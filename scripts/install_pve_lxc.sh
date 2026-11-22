@@ -116,7 +116,12 @@ if [ -n "$CUSTOM_GW" ]; then
     GW_IP="$CUSTOM_GW"
 fi
 
-HOST_IP=$(ip -4 addr show vmbr0 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n1)
+PVE_BRIDGE=$(ip route show default 2>/dev/null | awk '{print $5}' | head -n1)
+if [ -z "$PVE_BRIDGE" ] || ! ip link show "$PVE_BRIDGE" >/dev/null 2>&1; then
+    PVE_BRIDGE="vmbr0"
+fi
+
+HOST_IP=$(ip -4 addr show "$PVE_BRIDGE" 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n1)
 if [ -z "$HOST_IP" ]; then
     HOST_IP=$(hostname -I | awk '{print $1}')
 fi
@@ -280,7 +285,7 @@ pct create "$CT_ID" "local:vztmpl/$TEMPLATE" \
     --memory "$CT_MEM" \
     --swap 256 \
     --rootfs "${CT_STORAGE}:${CT_DISK}" \
-    --net0 name=eth0,bridge=vmbr0,ip="$CT_IP",gw="$CT_GW",type=veth,firewall=0 \
+    --net0 name=eth0,bridge=${PVE_BRIDGE},ip="$CT_IP",gw="$CT_GW",type=veth,firewall=0 \
     $DNS_ARG \
     --features nesting=1,keyctl=1 \
     --unprivileged 0 \
@@ -320,16 +325,14 @@ echo -e "   -> ${BOLD}[5.1/5.4] 正在配置容器 DNS 与国内极速镜像源 
 pct exec "$CT_ID" -- sh -s "$CT_GW" << 'EOF'
 set -e
 CT_GW="$1"
-# 注入公网主备与网关 DNS，彻底防范主路由尚未配对或网关重定向导致的临时解析失败
-cat << "RESOLV" > /etc/resolv.conf
-nameserver 223.5.5.5
-nameserver 119.29.29.29
-nameserver 114.114.114.114
-nameserver 8.8.8.8
-RESOLV
-if [ -n "$CT_GW" ] && [ "$CT_GW" != "223.5.5.5" ]; then
-    echo "nameserver $CT_GW" >> /etc/resolv.conf
+# 优先注入网关 DNS (内网秒解)，并挂载公共 DNS 容灾兜底
+if [ -n "$CT_GW" ]; then
+    echo "nameserver $CT_GW" > /etc/resolv.conf
 fi
+echo "nameserver 223.5.5.5" >> /etc/resolv.conf
+echo "nameserver 119.29.29.29" >> /etc/resolv.conf
+echo "nameserver 114.114.114.114" >> /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
 
 # 探查真实 Alpine 发行版分支
 ALPINE_VER=$(cat /etc/alpine-release 2>/dev/null | cut -d. -f1,2)
@@ -444,19 +447,70 @@ elif [ -n "$ROOT_PKG" ] && [ -s "$ROOT_PKG" ]; then
     CHOSEN_ZIP="$ROOT_PKG"
 fi
 
-if [ -n "$CHOSEN_ZIP" ]; then
-    echo -e "${GREEN}✓ 检测到宿主机本地完整发布包 (${CHOSEN_ZIP})，直接 0 秒宿主极速释放至容器！${NC}"
-    # 在 PVE 宿主机本地解压 (优先使用宿主 unzip，降级使用宿主内置 python3 zipfile，完全无需容器联网与容器内部 unzip)
+# 若宿主机本地无缓存包，直接由 PVE 宿主机拉取发布包 (宿主网络环境更完备，彻底解决容器内无 unzip / DNS 解析超时问题)
+if [ -z "$CHOSEN_ZIP" ]; then
+    echo -e "${BLUE}🌐 正在由 PVE 宿主机拉取完整发布包 (${PVE_ARCH} 双内核 + 105套规则集 + 控制面)...${NC}"
+    REL_TAG="$CUSTOM_VER"
+    if [ -z "$REL_TAG" ]; then
+        for MIRROR in "https://gh-proxy.com" "https://mirror.ghproxy.com" "https://ghproxy.net" ""; do
+            PREFIX="${MIRROR:+$MIRROR/}"
+            LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 4 -m 8 "${PREFIX}https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
+            if [ -n "$LATEST_JSON" ]; then
+                REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
+                [ -n "$REL_TAG" ] && break
+            fi
+            REL_TAG=$(curl -4 --http1.1 -sSL --connect-timeout 4 -m 6 -I "${PREFIX}https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
+            [ -n "$REL_TAG" ] && break
+        done
+    fi
+    [ -z "$REL_TAG" ] && REL_TAG="v9.9.7"
+
+    ZIP_NAME="CubeX-${REL_TAG}-linux-${PVE_ARCH}.zip"
+    TMP_ZIP="/tmp/${ZIP_NAME}"
+    rm -f "$TMP_ZIP"
+
+    DOWNLOAD_URLS="https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://mirror.ghproxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
+
+    for DL_URL in $DOWNLOAD_URLS; do
+        echo -e "   -> 尝试节点: ${DL_URL} ..."
+        if curl -4 --http1.1 -fL --progress-bar --connect-timeout 8 -m 120 -o "$TMP_ZIP" "$DL_URL" && [ -s "$TMP_ZIP" ]; then
+            CHOSEN_ZIP="$TMP_ZIP"
+            break
+        fi
+        rm -f "$TMP_ZIP"
+    done
+fi
+
+UNPACKED_OK=0
+if [ -n "$CHOSEN_ZIP" ] && [ -s "$CHOSEN_ZIP" ]; then
+    echo -e "${GREEN}✓ 宿主机完整发布包就绪 (${CHOSEN_ZIP})，执行宿主规范化解压与推入...${NC}"
     UNPACK_TMP="/tmp/cubex_unpack_$$"
     rm -rf "$UNPACK_TMP" && mkdir -p "$UNPACK_TMP"
     UNPACKED=0
-    if command -v unzip >/dev/null 2>&1; then
-        if unzip -q -o "$CHOSEN_ZIP" -d "$UNPACK_TMP/"; then
+    # 优先使用 Python3 进行跨平台反斜杠归一化解压 (完美解决 Windows 打包反斜杠与权限问题)
+    if command -v python3 >/dev/null 2>&1; then
+        if python3 -c '
+import sys, zipfile, os
+zpath, outdir = sys.argv[1], sys.argv[2]
+with zipfile.ZipFile(zpath, "r") as z:
+    for m in z.infolist():
+        clean_name = m.filename.replace(chr(92), "/").strip("/")
+        if not clean_name: continue
+        target = os.path.join(outdir, clean_name)
+        if m.is_dir() or clean_name.endswith("/"):
+            os.makedirs(target, exist_ok=True)
+        else:
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            with z.open(m) as src, open(target, "wb") as dst:
+                dst.write(src.read())
+            if m.external_attr > 0:
+                os.chmod(target, (m.external_attr >> 16) & 0o777)
+' "$CHOSEN_ZIP" "$UNPACK_TMP" 2>/dev/null; then
             UNPACKED=1
         fi
     fi
-    if [ "$UNPACKED" -eq 0 ] && command -v python3 >/dev/null 2>&1; then
-        if python3 -m zipfile -e "$CHOSEN_ZIP" "$UNPACK_TMP/"; then
+    if [ "$UNPACKED" -eq 0 ] && command -v unzip >/dev/null 2>&1; then
+        if unzip -q -o "$CHOSEN_ZIP" -d "$UNPACK_TMP/"; then
             UNPACKED=1
         fi
     fi
@@ -473,95 +527,42 @@ if [ -n "$CHOSEN_ZIP" ]; then
         fi
         pct exec "$CT_ID" -- ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
         rm -rf "$UNPACK_TMP"
-        echo -e "${GREEN}✓ 本地发布包直推完成 (免容器网络，零依赖解压)！${NC}"
-    else
-        # 降级兜底：若宿主无可用解压工具，尝试推入容器解压
-        pct push "$CT_ID" "$CHOSEN_ZIP" /tmp/CubeX.zip
-        pct exec "$CT_ID" -- sh -c 'unzip -q -o /tmp/CubeX.zip -d /opt/CubeX/ 2>/dev/null || true; chmod +x /opt/CubeX/bin/* 2>/dev/null || true; ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true; rm -f /tmp/CubeX.zip'
-        rm -rf "$UNPACK_TMP"
+        UNPACKED_OK=1
+        echo -e "${GREEN}✓ 发布包直推完成 (免容器内部网络，零依赖解压)！${NC}"
     fi
-else
-    pct exec "$CT_ID" -- sh -s "$PVE_ARCH" "$CUSTOM_VER" << 'EOF'
-    set +e
-    ARCH="$1"
-    TARGET_VER="$2"
-    echo "🌐 正在从 GitHub Releases 拉取完整发布包 (${ARCH} 双内核 + 105套规则集 + 控制面)..."
-    REL_TAG="$TARGET_VER"
-    if [ -z "$REL_TAG" ]; then
-        for MIRROR in "https://gh-proxy.com" "https://mirror.ghproxy.com" "https://github.boki.moe" "https://ghproxy.net" ""; do
-            PREFIX="${MIRROR:+$MIRROR/}"
-            LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 4 -m 8 "${PREFIX}https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
-            if [ -n "$LATEST_JSON" ]; then
-                REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
-                [ -n "$REL_TAG" ] && break
-            fi
-            REL_TAG=$(curl -4 --http1.1 -sSL --connect-timeout 4 -m 6 -I "${PREFIX}https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
-            [ -n "$REL_TAG" ] && break
-        done
-    fi
-    [ -z "$REL_TAG" ] && REL_TAG="v9.9.6"
+fi
 
-    ZIP_NAME="CubeX-${REL_TAG}-linux-${ARCH}.zip"
-    TMP_ZIP="/tmp/${ZIP_NAME}"
-    rm -f "$TMP_ZIP"
-
-    DOWNLOAD_SUCCESS=0
-    DOWNLOAD_URLS="https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://mirror.ghproxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.boki.moe/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
-
-    for DL_URL in $DOWNLOAD_URLS; do
-        echo "   -> 尝试节点: ${DL_URL} ..."
-        if curl -4 --http1.1 -fL --progress-bar --connect-timeout 8 -m 120 -o "$TMP_ZIP" "$DL_URL" && [ -s "$TMP_ZIP" ]; then
-            if unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
-                DOWNLOAD_SUCCESS=1
-                break
-            else
-                rm -f "$TMP_ZIP"
-            fi
+# 极端降级兜底：若宿主拉取完整包仍未成功，由宿主机独立拉取控制面与引擎核心直接推送
+if [ "$UNPACKED_OK" -eq 0 ]; then
+    echo -e "${YELLOW}⚠️ 完整包拉取受阻，启用宿主机独立拉取控制面与内核降级策略...${NC}"
+    pct exec "$CT_ID" -- mkdir -p /opt/CubeX/bin /opt/CubeX/rules /opt/CubeX/etc /opt/CubeX/data /usr/local/bin
+    REL_TAG="${CUSTOM_VER:-v9.9.6}"
+    
+    # 1. cubexd 控制面
+    TMP_BIN="/tmp/cubexd_${PVE_ARCH}_$$"
+    for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
+        PREFIX="${MIRROR:+$MIRROR/}"
+        BIN_URL="${PREFIX}https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${PVE_ARCH}"
+        if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o "$TMP_BIN" "$BIN_URL" 2>/dev/null && [ -s "$TMP_BIN" ]; then
+            pct push "$CT_ID" "$TMP_BIN" /opt/CubeX/bin/cubexd -perms 755
+            rm -f "$TMP_BIN"
+            break
         fi
-        rm -f "$TMP_ZIP"
     done
+    rm -f "$TMP_BIN"
 
-    if [ "$DOWNLOAD_SUCCESS" = "1" ] && [ -s "$TMP_ZIP" ]; then
-        unzip -q -o "$TMP_ZIP" -d /opt/CubeX/ >/dev/null 2>&1
-        chmod +x /opt/CubeX/bin/* 2>/dev/null || true
-        ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
-        rm -f "$TMP_ZIP"
-        echo "✅ 完整发布包释放完成！"
-    else
-        echo "⚠️ 完整归档网络拉取受阻，启用智能降级策略：独立极速拉取控制面与引擎核心..."
-        BIN_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${ARCH}"
-        for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
-            FULL_BIN_URL="${MIRROR:+$MIRROR/}$BIN_URL"
-            if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o /opt/CubeX/bin/cubexd "$FULL_BIN_URL" 2>/dev/null && [ -s /opt/CubeX/bin/cubexd ]; then
-                chmod 755 /opt/CubeX/bin/cubexd
-                break
-            fi
-        done
-
-        # 尝试拉取 sing-box 核心
-        if [ ! -f /opt/CubeX/bin/sing-box ]; then
-            SB_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/sing-box-linux-${ARCH}"
-            for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
-                FULL_SB_URL="${MIRROR:+$MIRROR/}$SB_URL"
-                if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o /opt/CubeX/bin/sing-box "$FULL_SB_URL" 2>/dev/null && [ -s /opt/CubeX/bin/sing-box ]; then
-                    chmod 755 /opt/CubeX/bin/sing-box
-                    break
-                fi
-            done
+    # 2. sing-box 核心
+    TMP_SB="/tmp/sb_${PVE_ARCH}_$$"
+    for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
+        PREFIX="${MIRROR:+$MIRROR/}"
+        SB_URL="${PREFIX}https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/sing-box-linux-${PVE_ARCH}"
+        if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o "$TMP_SB" "$SB_URL" 2>/dev/null && [ -s "$TMP_SB" ]; then
+            pct push "$CT_ID" "$TMP_SB" /opt/CubeX/bin/sing-box -perms 755
+            rm -f "$TMP_SB"
+            break
         fi
-        # 尝试拉取 mihomo 核心
-        if [ ! -f /opt/CubeX/bin/mihomo ]; then
-            MH_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/mihomo-linux-${ARCH}"
-            for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
-                FULL_MH_URL="${MIRROR:+$MIRROR/}$MH_URL"
-                if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o /opt/CubeX/bin/mihomo "$FULL_MH_URL" 2>/dev/null && [ -s /opt/CubeX/bin/mihomo ]; then
-                    chmod 755 /opt/CubeX/bin/mihomo
-                    break
-                fi
-            done
-        fi
-    fi
-EOF
+    done
+    rm -f "$TMP_SB"
 fi
 
 # 增量升级校验：如宿主有更新的独立 cubexd 控制面二进制，无缝增量推送覆盖

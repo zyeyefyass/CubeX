@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/zyeyefyass/CubeX/internal/netutil"
 	"github.com/zyeyefyass/CubeX/internal/probe"
 	"github.com/zyeyefyass/CubeX/internal/schema"
 	"github.com/zyeyefyass/CubeX/internal/security"
@@ -388,7 +389,7 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 			downloadTotal = connResp.DownloadTotal
 			uploadTotal = connResp.UploadTotal
 		}
-		resp.Body.Close()
+		netutil.DrainAndCloseBody(resp)
 	}
 
 	monthOutBytes, monthInBytes := s.recordTrafficSample(uploadTotal, downloadTotal)
@@ -474,20 +475,23 @@ func (s *Server) startTrafficCollector() {
 			}
 
 			if resp.StatusCode != http.StatusOK {
-
-				resp.Body.Close()
-
+				netutil.DrainAndCloseBody(resp)
 				time.Sleep(2 * time.Second)
-
 				continue
-
 			}
 
 			// Background periodic physical connections sampler (guaranteed single instance via sync.Once)
 			samplerOnce.Do(func() {
 				SafeGo("PhysicalConnectionsSampler", func() {
 					for {
-						time.Sleep(3 * time.Second)
+						select {
+						case <-s.stopCh:
+							return
+						case <-time.After(3 * time.Second):
+						}
+						if s.draining.Load() {
+							return
+						}
 						cp := 9090
 						if ir := s.engMgr.GetIR(); ir != nil && ir.Network.ClashAPIPort > 0 {
 							cp = ir.Network.ClashAPIPort
@@ -503,7 +507,7 @@ func (s *Server) startTrafficCollector() {
 								s.recordTrafficSample(cr.UploadTotal, cr.DownloadTotal)
 								s.liveConnCount.Store(int32(len(cr.Connections)))
 							}
-							r.Body.Close()
+							netutil.DrainAndCloseBody(r)
 						}
 					}
 				})
@@ -534,7 +538,7 @@ func (s *Server) startTrafficCollector() {
 
 			}
 
-			resp.Body.Close()
+			netutil.DrainAndCloseBody(resp)
 
 			time.Sleep(1 * time.Second)
 
@@ -632,7 +636,15 @@ func (s *Server) startConntrackSweeper() {
 
 		loopCount := 0
 
-		for range ticker.C {
+		for {
+			select {
+			case <-s.stopCh:
+				return
+			case <-ticker.C:
+				if s.draining.Load() {
+					return
+				}
+			}
 
 			loopCount++
 
@@ -722,9 +734,7 @@ func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) 
 	directOK := directErr == nil && directResp != nil && (directResp.StatusCode == 200 || directResp.StatusCode == 302)
 
 	if directResp != nil {
-
-		directResp.Body.Close()
-
+		netutil.DrainAndCloseBody(directResp)
 	}
 
 	// 2. Proxy latency test (via local proxy port 7890)
@@ -748,9 +758,7 @@ func (s *Server) handleDualCoreDiagnose(w http.ResponseWriter, r *http.Request) 
 	proxyOK := proxyErr == nil && proxyResp != nil && (proxyResp.StatusCode == 204 || proxyResp.StatusCode == 200)
 
 	if proxyResp != nil {
-
-		proxyResp.Body.Close()
-
+		netutil.DrainAndCloseBody(proxyResp)
 	}
 
 	// 3. Fake-IP DNS Check
@@ -948,7 +956,7 @@ func (s *Server) handleSystemLatency(w http.ResponseWriter, r *http.Request) {
 
 			directMs = int(time.Since(startDirect).Milliseconds())
 
-			_ = respD.Body.Close()
+			netutil.DrainAndCloseBody(respD)
 
 		}
 
@@ -970,7 +978,7 @@ func (s *Server) handleSystemLatency(w http.ResponseWriter, r *http.Request) {
 
 			proxyMs = int(time.Since(startProxy).Milliseconds())
 
-			_ = respP.Body.Close()
+			netutil.DrainAndCloseBody(respP)
 
 		}
 
@@ -1011,7 +1019,7 @@ func (s *Server) handleHealthRadar(w http.ResponseWriter, r *http.Request) {
 	directLatency := int(time.Since(t0).Milliseconds())
 	directOK := directErr == nil && directResp != nil && (directResp.StatusCode == 200 || directResp.StatusCode == 302)
 	if directResp != nil {
-		directResp.Body.Close()
+		netutil.DrainAndCloseBody(directResp)
 	}
 	directScore := 100
 	directStatus := "极速直连"
@@ -1047,7 +1055,7 @@ func (s *Server) handleHealthRadar(w http.ResponseWriter, r *http.Request) {
 	proxyLatency := int(time.Since(t1).Milliseconds())
 	proxyOK := pErr == nil && pResp != nil && (pResp.StatusCode == 204 || pResp.StatusCode == 200)
 	if pResp != nil {
-		pResp.Body.Close()
+		netutil.DrainAndCloseBody(pResp)
 	}
 	proxyScore := 100
 	proxyStatus := "顺畅秒通"
@@ -1162,7 +1170,7 @@ func (s *Server) GetTelemetry() (map[string]any, error) {
 			downloadTotal = connResp.DownloadTotal
 			uploadTotal = connResp.UploadTotal
 		}
-		resp.Body.Close()
+		netutil.DrainAndCloseBody(resp)
 	}
 
 	monthOut, _ := s.recordTrafficSample(uploadTotal, downloadTotal)

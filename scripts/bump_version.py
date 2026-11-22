@@ -70,14 +70,15 @@ replace_in_file("scripts/install_pve_lxc.sh", r'REL_TAG="(?:Test-)?v?[0-9]+\.[0-
 if os.path.exists("scripts/build_fnos_fpk.py"):
     replace_in_file("scripts/build_fnos_fpk.py", r'VERSION\s*=\s*"(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?"', f'VERSION = "{CLEAN_NUM}"')
 
-# 9. Regenerate install.sh using protect_script.py
-protect_script = os.path.join(ROOT, "scripts", "protect_script.py")
-if os.path.exists(protect_script):
-    subprocess.run([sys.executable, protect_script], check=True)
-    print("✓ Regenerated protected install.sh loader")
+# 9. Sync scripts to root ensuring single source of truth & SHA256 consistency
+import shutil
+shutil.copyfile("scripts/install.sh", "install.sh")
+shutil.copyfile("scripts/install_pve_lxc.sh", "install_pve_lxc.sh")
+print("✓ Synchronized scripts/install.sh -> install.sh")
+print("✓ Synchronized scripts/install_pve_lxc.sh -> install_pve_lxc.sh")
 
-# 10. Verify consistency across all 9 core files
-print("\n🔍 Verifying atomic version consistency across all 9 core files...")
+# 10. Verify consistency across all 10 core files
+print("\n🔍 Verifying atomic version consistency across all 10 core files...")
 files_to_verify = {
     'cmd/cubexd/main.go': r'version\s*=\s*"(?:Test\s+)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
     'internal/ros/updater.go': r'return\s*"(?:Test\s+)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
@@ -86,8 +87,9 @@ files_to_verify = {
     'scripts/package_release.ps1': r'\$Version\s*=\s*"(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
     'scripts/package_release.sh': r'VERSION="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
     'scripts/install.sh': r'REL_TAG="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
-    'install.sh': r'_CUBEX_LOADER_VERSION="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
+    'install.sh': r'REL_TAG="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
     'scripts/install_pve_lxc.sh': r'REL_TAG="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
+    'install_pve_lxc.sh': r'REL_TAG="(?:Test-)?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)"',
 }
 
 detected = {}

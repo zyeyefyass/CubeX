@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-[#00223e]/60 backdrop-blur-xl border border-cyan-500/20 rounded-2xl p-4 sm:p-5 mb-5 shadow-2xl relative overflow-hidden transition-all duration-300">
+  <div class="macos-glass-card border border-slate-300/60 rounded-2xl p-4 sm:p-5 mb-5 shadow-lg relative overflow-hidden transition-all duration-300 text-slate-800">
     <!-- Ambient Glow Background -->
     <div class="absolute -right-20 -top-20 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
     <div class="absolute -left-20 -bottom-20 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -22,7 +22,7 @@
               {{ summaryText }}
             </span>
           </div>
-          <p v-if="isExpanded" class="text-xs text-slate-400 mt-0.5">多源可用率比对 · 中位数延迟透视 · 故障节点自动筛查</p>
+          <p v-if="isExpanded" class="text-xs text-slate-500 mt-0.5">多源可用率比对 · 中位数延迟透视 · 故障节点自动筛查</p>
         </div>
       </div>
 
@@ -42,7 +42,7 @@
 
         <button
           @click="isExpanded = !isExpanded"
-          class="px-2.5 py-1 text-xs rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition flex items-center gap-1 cursor-pointer font-mono"
+          class="px-2.5 py-1 text-xs rounded-lg bg-white/5 hover:bg-white/10 text-slate-700 hover:text-white border border-white/10 transition flex items-center gap-1 cursor-pointer font-mono"
         >
           <span>{{ isExpanded ? '收起矩阵' : '展开详情' }}</span>
           <span class="text-[10px] transform transition-transform" :class="{ 'rotate-180': isExpanded }">▼</span>
@@ -53,7 +53,7 @@
     <!-- Expanded Body Content -->
     <div v-show="isExpanded" class="mt-4 transition-all duration-300">
       <!-- Empty State -->
-      <div v-if="!loading && reports.length === 0" class="text-center py-6 text-slate-400 text-xs">
+      <div v-if="!loading && reports.length === 0" class="text-center py-6 text-slate-500 text-xs">
         暂未检测到有效订阅源数据，请先添加并更新订阅
       </div>
 
@@ -62,7 +62,7 @@
         <div
           v-for="sub in enhancedReports"
           :key="sub.subscription_id"
-          class="bg-[#001529]/70 border border-slate-700/50 hover:border-cyan-500/40 rounded-xl p-4 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10 group flex flex-col justify-between"
+          class="bg-[#F1F4F9] border border-slate-300/60 hover:border-sky-400/60 text-slate-800 rounded-xl p-4 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10 group flex flex-col justify-between"
         >
           <div>
             <!-- Sub Title & Grade -->
@@ -81,7 +81,7 @@
             <!-- Availability Progress Bar -->
             <div class="mb-3">
               <div class="flex justify-between text-xs mb-1">
-                <span class="text-slate-400">可用率 (SLA)</span>
+                <span class="text-slate-500">可用率 (SLA)</span>
                 <span class="font-mono text-cyan-300 font-bold">{{ sub.displayState.rateText }}</span>
               </div>
               <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -94,21 +94,21 @@
             </div>
 
             <!-- Stats Grid -->
-            <div class="grid grid-cols-3 gap-2 text-center bg-[#002d50]/40 rounded-lg p-2 border border-slate-700/30">
+            <div class="grid grid-cols-3 gap-2 text-center bg-[#F1F4F9] rounded-lg p-2 border border-slate-300/60 text-slate-800">
               <div>
-                <div class="text-[10px] text-slate-400">健康节点</div>
+                <div class="text-[10px] text-slate-500">健康节点</div>
                 <div class="text-xs font-mono font-bold text-emerald-400 mt-0.5">
                   {{ sub.online_nodes }} / {{ sub.total_nodes }}
                 </div>
               </div>
               <div>
-                <div class="text-[10px] text-slate-400">中位延迟</div>
+                <div class="text-[10px] text-slate-500">中位延迟</div>
                 <div class="text-xs font-mono font-bold text-cyan-300 mt-0.5">
                   {{ sub.median_latency_ms > 0 ? `${sub.median_latency_ms}ms` : '--' }}
                 </div>
               </div>
               <div>
-                <div class="text-[10px] text-slate-400">失联节点</div>
+                <div class="text-[10px] text-slate-500">失联节点</div>
                 <div class="text-xs font-mono font-bold mt-0.5" :class="sub.offline_nodes > 0 && sub.displayState.state !== 'STANDBY' ? 'text-amber-400' : 'text-slate-500'">
                   {{ sub.displayState.state === 'STANDBY' ? 0 : sub.offline_nodes }}
                 </div>
@@ -211,7 +211,7 @@ const summaryText = computed(() => {
 })
 
 const summaryBadgeClass = computed(() => {
-  if (reports.value.length === 0) return 'bg-slate-800 text-slate-400 border-slate-700'
+  if (reports.value.length === 0) return 'bg-slate-800 text-slate-500 border-slate-700'
   const isAllStandby = enhancedReports.value.every(r => r.displayState.state === 'STANDBY')
   if (isAllStandby) {
     return 'bg-sky-950/60 text-sky-300 border-sky-500/40'
