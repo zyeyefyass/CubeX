@@ -40,10 +40,10 @@ RELEASE_TITLE = f"CubeX {TAG} · 家宽 IPv6 自动自愈、多平台协同与�
 
 RELEASE_BODY = f"""# CubeX {TAG} · 家宽 IPv6 自动自愈、多平台协同与真实安全遥测
 
-1. 家宽重拨 IPv6 自动自愈：实时监听系统 IPv6 地址变更，宽带 PPPoE 重拨更换前缀后自动平滑刷新路由与规则，告别重拨断流。
-2. 多平台软路由底座拉平：完善 iStoreOS / OpenWrt 多宽带负载均衡（mwan3）策略放行与防劫持；升级爱快 4.0 多 LAN 网段自动扫描、流控豁免去重与断线自动重连。
-3. 真实安全拦截分类统计：后端按广告弹窗、隐私追踪、恶意劫持三类直接做实时计数，告别前端估算，看板数据 100% 真实自洽。
-4. 极限压测与轻量化加固：通过 20 轮双核连续热切、50 次 IPv6 前缀切换与内核异常强杀 3 秒内自动拉起测试，整机常驻开销稳定在 ~60 MB（较传统旁路由节省 70%+），全站前端预压缩体积进一步精简至 258.6 KB。
+1. **家宽重拨 IPv6 自动自愈**：实时监听系统 IPv6 地址变更，宽带 PPPoE 重拨更换前缀后自动平滑刷新路由与规则，告别重拨断流。
+2. **多平台软路由底座拉平**：完善 iStoreOS / OpenWrt 多宽带负载均衡（mwan3）策略放行与防劫持；升级爱快 4.0 多 LAN 网段自动扫描、流控豁免去重与断线自动重连。
+3. **真实安全拦截分类统计**：后端按广告弹窗、隐私追踪、恶意劫持三类直接做实时计数，告别前端估算，看板数据 100% 真实自洽。
+4. **极限压测与轻量化加固**：通过 20 轮双核连续热切、50 次 IPv6 前缀切换与内核异常强杀 3 秒内自动拉起测试，全站前端预压缩体积进一步精简至 258.6 KB。
 
 ---
 
@@ -67,19 +67,6 @@ RELEASE_BODY = f"""# CubeX {TAG} · 家宽 IPv6 自动自愈、多平台协同�
 | `cubex-linux-amd64` | Linux x86_64 (CLI) | 命令行终端运维管理工具单二进制 |
 | `cubex-linux-arm64` | Linux ARM64 (CLI) | ARM64 命令行终端运维管理工具单二进制 |
 | `install_ros_container.rsc` | RouterOS 终端 | RouterOS 原生一键部署与逃生看门狗自动化配置脚本 |
-"""
-| `CubeX-{TAG}-docker-arm64.tar.gz` | Docker / 飞牛 ARM / OECT / 树莓派 | ARM64 容器离线镜像直装导入压缩包 |
-| `CubeX-{TAG}-linux-amd64.zip` | Linux amd64 (PVE/LXC/Ubuntu/Debian) | 完整独立开箱包（内含主程序、运维工具、双核引擎及 105 套规则） |
-| `CubeX-{TAG}-linux-arm64.zip` | Linux arm64 (树莓派/香橙派/ARM软路由) | ARM64 完整归档发布包 |
-| `cubexd-linux-amd64` | Linux amd64 | 纯单二进制控制面（代码加固版，用于在线平滑热更新） |
-| `cubexd-linux-arm64` | Linux arm64 | ARM64 单二进制核心控制面（代码加固版） |
-| `cubex-linux-amd64` | Linux amd64 | 纯命令行运维工具（终端直接运行） |
-| `cubex-linux-arm64` | Linux arm64 | ARM64 纯命令行运维工具（终端直接运行） |
-| `install_ros_container.rsc` | RouterOS v7 单机容器脚本 | RouterOS v7 内置容器单机自闭环一键编排脚本 (172.17.0.0/30 + 看门狗) |
-| `install_openwrt_docker.sh` | OpenWrt Docker 单机脚本 | OpenWrt / iStoreOS Docker 单机自闭环一键安装脚本 |
-| `setup-routeros-v7.rsc` | 软路由终端编排脚本 | 软路由管理终端复制即用一键自动编排脚本 |
-| `setup-openwrt.sh` | 开源软路由系统一键安装脚本 | 开源软路由系统原生适配安装脚本 |
-| `install_pve_lxc.sh` | 容器一键脚本 | 极简容器一键安装脚本 |
 | `install.sh` | 通用一键安装脚本 | 通用一键部署主脚本 |
 | `SHA256SUMS` | 全平台校验文件 | 所有发布产物完整性 SHA256 校验清单 |
 """
