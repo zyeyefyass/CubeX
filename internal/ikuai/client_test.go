@@ -2,11 +2,15 @@ package ikuai
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strconv"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 )
 
 func TestIKuaiClientMock(t *testing.T) {
@@ -478,5 +482,102 @@ func TestDetectLANInterface(t *testing.T) {
 	// Case 3: Out-of-range IP defaults to lan1
 	if iface := client.DetectLANInterface("172.16.50.2"); iface != "lan1" {
 		t.Errorf("expected fallback lan1 for 172.16.50.2, got %s", iface)
+	}
+}
+
+// 🛡️ 师父防雷补丁 4: 测试并发下的会话重登与双检锁机制
+func TestIKuaiConcurrentSessionRelogin(t *testing.T) {
+	loginCount := 0
+	var mu sync.Mutex
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/Action/login" {
+			mu.Lock()
+			loginCount++
+			mu.Unlock()
+			http.SetCookie(w, &http.Cookie{Name: "sess_key", Value: "valid_session"})
+			_ = json.NewEncoder(w).Encode(RPCResponse{Result: 10000, Code: 0, Message: "Success"})
+			return
+		}
+
+		if r.URL.Path == "/Action/call" {
+			cookie, err := r.Cookie("sess_key")
+			if err != nil || cookie.Value != "valid_session" {
+				_ = json.NewEncoder(w).Encode(RPCResponse{Result: 10001, ErrMsg: "Session expired, please login"})
+				return
+			}
+			dataBytes, _ := json.Marshal(map[string]any{"data": []any{}})
+			_ = json.NewEncoder(w).Encode(RPCResponse{Result: 30000, ErrMsg: "Success", Data: dataBytes})
+			return
+		}
+	}))
+	defer ts.Close()
+
+	u, _ := url.Parse(ts.URL)
+	port, _ := strconv.Atoi(u.Port())
+	client := NewClient(Config{
+		Host: u.Hostname(),
+		Port: port,
+	})
+
+	// Inject expired session initially
+	client.sessKey = "expired_cookie"
+	client.lastLogin = time.Now().Add(-20 * time.Minute)
+
+	var wg sync.WaitGroup
+	workers := 10
+	errChan := make(chan error, workers)
+
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			resp, err := client.Call("sysstat", "show", map[string]string{})
+			if err != nil {
+				errChan <- err
+				return
+			}
+			if !resp.IsSuccess() {
+				errChan <- fmt.Errorf("response not successful: %s", resp.ErrorMessage())
+			}
+		}()
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	for err := range errChan {
+		t.Fatalf("unexpected error during concurrent call: %v", err)
+	}
+
+	mu.Lock()
+	count := loginCount
+	mu.Unlock()
+
+	// Double-Checked Locking should ensure minimal logins (at most 2 in extreme race, far below workers count)
+	if count > 2 {
+		t.Errorf("expected at most 2 logins with double-checked locking, got %d", count)
+	}
+}
+
+func TestIKuaiCircuitBreaker(t *testing.T) {
+	// Point to non-routable port to trigger immediate connection failure
+	client := NewClient(Config{
+		Host: "127.0.0.1",
+		Port: 65432,
+	})
+
+	// Trigger 3 failures
+	for i := 0; i < 3; i++ {
+		_, _ = client.Call("sysstat", "show", map[string]string{})
+	}
+
+	// 4th call should immediately trigger circuit breaker without network dial
+	_, err := client.Call("sysstat", "show", map[string]string{})
+	if err == nil {
+		t.Fatalf("expected circuit breaker error, got nil")
+	}
+	if !strings.Contains(err.Error(), "熔断保护") {
+		t.Errorf("expected circuit breaker error containing '熔断保护', got: %v", err)
 	}
 }

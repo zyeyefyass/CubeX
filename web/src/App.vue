@@ -3929,7 +3929,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('ikuai') || name.includes('ikuai') || name.includes('爱快')) {
-    let ver = hw.version || 'v4.0'
+    let ver = hw.version || 'v9.9.8'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: '爱快 iKuai',
@@ -3938,7 +3938,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('openwrt') || name.includes('openwrt') || name.includes('lede')) {
-    let ver = hw.version || 'v23.05'
+    let ver = hw.version || 'v9.9.8'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: 'OpenWrt',
@@ -3956,7 +3956,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('fnos') || name.includes('fnos') || name.includes('飞牛')) {
-    let ver = hw.version || 'v0.8'
+    let ver = hw.version || 'v9.9.8'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: '飞牛 fnOS',
@@ -8285,7 +8285,8 @@ const dnsFilterStats = ref({
   hourlyLatencyTrend: [],
   hourlyQueryTrend: [],
   hourlyBlockedTrend: [],
-  topBlocked: []
+  topBlocked: [],
+  categoryStats: null
 })
 
 function generateSmoothAreaPath(points, width = 320, height = 80, minVal = 0, maxVal = null) {
@@ -9091,6 +9092,8 @@ async function fetchDnsFilterStats() {
       if (data.hourly_blocked_trend) dnsFilterStats.value.hourlyBlockedTrend = data.hourly_blocked_trend
 
       if (data.top_blocked) dnsFilterStats.value.topBlocked = data.top_blocked
+
+      if (data.category_stats) dnsFilterStats.value.categoryStats = data.category_stats
 
       if (data.filter_config && data.filter_config.rule_sources) filterConfig.value = data.filter_config
 

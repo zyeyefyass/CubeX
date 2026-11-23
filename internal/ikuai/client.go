@@ -2,6 +2,7 @@ package ikuai
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"crypto/tls"
 	"encoding/base64"
@@ -32,6 +33,10 @@ type Client struct {
 	sessKey    string
 	lastLogin  time.Time
 	isV4       bool
+
+	// 🛡️ 师父防雷补丁 4: 熔断器与失败计数 (防止高并发雪崩与挂起)
+	failCount        int
+	circuitOpenUntil time.Time
 }
 
 // RPCRequest matches iKuai's JSON-RPC standard request body.
@@ -194,12 +199,30 @@ func (c *Client) executeLoginAttempt(targetURL string, payload any) (*RPCRespons
 	return nil, "", "", fmt.Errorf("爱快鉴权重定向过多")
 }
 
+func (c *Client) recordSuccess() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.failCount = 0
+}
+
+func (c *Client) recordFailure() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.failCount++
+	if c.failCount >= 3 {
+		c.circuitOpenUntil = time.Now().Add(30 * time.Second)
+	}
+}
+
 // Login authenticates with iKuai Web interface and obtains sess_key.
 // Seamlessly adapts to iKuai 4.0+ (flat JSON with salt_11), 3.x (RPC envelope), and HTTP->HTTPS redirects.
 func (c *Client) Login() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	return c.loginLocked()
+}
 
+func (c *Client) loginLocked() error {
 	// Candidate URLs (auto-resolving port 80 HTTP to 443 HTTPS redirect)
 	candidateURLs := []string{c.getBaseURL() + "/Action/login"}
 	if c.cfg.Port == 80 {
@@ -233,6 +256,7 @@ func (c *Client) Login() error {
 			c.sessKey = sessKey4
 			c.isV4 = true
 			c.lastLogin = time.Now()
+			c.failCount = 0
 			if strings.HasPrefix(finalURL4, "https://") {
 				c.cfg.Port = 443
 			}
@@ -250,6 +274,7 @@ func (c *Client) Login() error {
 			c.sessKey = sessKey3
 			c.isV4 = false
 			c.lastLogin = time.Now()
+			c.failCount = 0
 			if strings.HasPrefix(finalURL3, "https://") {
 				c.cfg.Port = 443
 			}
@@ -265,20 +290,53 @@ func (c *Client) Login() error {
 	return fmt.Errorf("爱快鉴权失败: %v (请检查管理员账号与密码)", lastErr)
 }
 
+// 🛡️ 师父防雷补丁 4: 双检锁 (Double-Checked Locking) 保证并发下只有 1 个协程刷新 Token，杜绝并发重登雪崩
+func (c *Client) ensureValidSession() (string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.sessKey != "" && time.Since(c.lastLogin) < 15*time.Minute {
+		return c.sessKey, nil
+	}
+
+	if err := c.loginLocked(); err != nil {
+		return "", err
+	}
+	return c.sessKey, nil
+}
+
+// 🛡️ 师父防雷补丁 4: 会话失效时的重登双检，如果已被同行协程刷新则复用新 Session
+func (c *Client) forceRelogin(failedSess string) (string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	//同行协程若已换取了更新的 Token，直接复用
+	if c.sessKey != "" && c.sessKey != failedSess && time.Since(c.lastLogin) < 15*time.Minute {
+		return c.sessKey, nil
+	}
+
+	if err := c.loginLocked(); err != nil {
+		return "", err
+	}
+	return c.sessKey, nil
+}
+
 // Call sends a JSON-RPC request to iKuai with session cookie.
 func (c *Client) Call(funcName, action string, param any) (*RPCResponse, error) {
+	// 1. 熔断保护检查 (Circuit Breaker)
 	c.mu.Lock()
-	sess := c.sessKey
-	expired := time.Since(c.lastLogin) > 15*time.Minute
+	if time.Now().Before(c.circuitOpenUntil) {
+		rem := time.Until(c.circuitOpenUntil).Round(time.Second)
+		c.mu.Unlock()
+		return nil, fmt.Errorf("爱快管理中枢服务熔断保护中 (将在 %v 后重试)", rem)
+	}
 	c.mu.Unlock()
 
-	if sess == "" || expired {
-		if err := c.Login(); err != nil {
-			return nil, err
-		}
-		c.mu.Lock()
-		sess = c.sessKey
-		c.mu.Unlock()
+	// 2. 双检锁获取有效 Session
+	sess, err := c.ensureValidSession()
+	if err != nil {
+		c.recordFailure()
+		return nil, err
 	}
 
 	reqBody := RPCRequest{
@@ -293,7 +351,10 @@ func (c *Client) Call(funcName, action string, param any) (*RPCResponse, error) 
 	}
 
 	url := c.getBaseURL() + "/Action/call"
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(bodyBytes))
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, err
 	}
@@ -306,41 +367,50 @@ func (c *Client) Call(funcName, action string, param any) (*RPCResponse, error) 
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		c.recordFailure()
 		return nil, fmt.Errorf("爱快接口请求失败: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
+		c.recordFailure()
 		return nil, err
 	}
 
 	var rpcResp RPCResponse
 	if err := json.Unmarshal(respBytes, &rpcResp); err != nil {
+		c.recordFailure()
 		return nil, fmt.Errorf("解析响应失败: %w", err)
 	}
 
-	// If session expired (Result 10001/10003 or Code 10001/10003), attempt 1 re-login
-	if rpcResp.Result == 10001 || rpcResp.Result == 10003 || rpcResp.Code == 10001 || rpcResp.Code == 10003 || strings.Contains(rpcResp.ErrorMessage(), "登录") || strings.Contains(rpcResp.ErrorMessage(), "authentication") {
-		if err := c.Login(); err == nil {
-			c.mu.Lock()
-			newSess := c.sessKey
-			c.mu.Unlock()
-
-			req2, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(bodyBytes))
+	// 3. 🛡️ 师父防雷补丁 4: 会话失效自动单飞重登重试 (HTTP 401/403 或 10001/10003)
+	if rpcResp.Result == 10001 || rpcResp.Result == 10003 || rpcResp.Code == 10001 || rpcResp.Code == 10003 ||
+		strings.Contains(rpcResp.ErrorMessage(), "登录") || strings.Contains(rpcResp.ErrorMessage(), "authentication") {
+		newSess, errRelogin := c.forceRelogin(sess)
+		if errRelogin == nil && newSess != "" {
+			ctx2, cancel2 := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel2()
+			req2, _ := http.NewRequestWithContext(ctx2, http.MethodPost, url, bytes.NewReader(bodyBytes))
 			req2.Header.Set("Content-Type", "application/json;charset=utf-8")
+			req2.Header.Set("Accept", "application/json, text/javascript, */*; q=0.01")
+			req2.Header.Set("User-Agent", "CubeX-Host-Symbiosis/1.0")
 			req2.AddCookie(&http.Cookie{Name: "sess_key", Value: newSess})
 			resp2, err2 := c.httpClient.Do(req2)
 			if err2 == nil {
 				defer resp2.Body.Close()
 				var rpcResp2 RPCResponse
-				if err := json.NewDecoder(resp2.Body).Decode(&rpcResp2); err == nil {
+				if errDecode := json.NewDecoder(resp2.Body).Decode(&rpcResp2); errDecode == nil && rpcResp2.IsSuccess() {
+					c.recordSuccess()
 					return &rpcResp2, nil
 				}
 			}
 		}
 	}
 
+	if rpcResp.IsSuccess() {
+		c.recordSuccess()
+	}
 	return &rpcResp, nil
 }
 
@@ -761,6 +831,37 @@ func (c *Client) DetectLANInterface(targetIP string) string {
 		}
 	}
 
+	// 3. Fallback to VLAN interface configs (vlan show)
+	respVlan, errVlan := c.Call("vlan", "show", map[string]string{
+		"TYPE":  "data,total",
+		"limit": "0,50",
+	})
+	if errVlan == nil && respVlan.IsSuccess() && len(respVlan.Payload()) > 0 {
+		var vlanData struct {
+			Data []map[string]any `json:"data"`
+		}
+		if jsonErr := json.Unmarshal(respVlan.Payload(), &vlanData); jsonErr == nil && len(vlanData.Data) > 0 {
+			for _, item := range vlanData.Data {
+				iface := fmt.Sprintf("%v", item["interface"])
+				if iface == "" || iface == "<nil>" {
+					iface = fmt.Sprintf("%v", item["vlan_name"])
+				}
+				ipStr := fmt.Sprintf("%v", item["ip_addr"])
+				maskStr := fmt.Sprintf("%v", item["netmask"])
+				if iface != "" && iface != "<nil>" && ipStr != "" && maskStr != "" {
+					ip := net.ParseIP(ipStr)
+					mask := parseIPv4Mask(maskStr)
+					if ip != nil && mask != nil {
+						ipNet := &net.IPNet{IP: ip.Mask(mask), Mask: mask}
+						if ipNet.Contains(parsedTarget) {
+							return iface
+						}
+					}
+				}
+			}
+		}
+	}
+
 	return "lan1"
 }
 
@@ -1029,19 +1130,52 @@ func (c *Client) InspectMultiWANPolicy(cubexIP string) (*MultiWANPolicyInfo, err
 }
 
 // ApplyMultiWANExemption ensures iKuai's multi-WAN policy routing does not hijack Fake-IP packets to public WAN.
+// 🛡️ 师父防雷补丁 3: 严格去重与幂等处理，防止重复条目堆积
 func (c *Client) ApplyMultiWANExemption(cubexIP, lanIf string) ([]string, error) {
 	logs := []string{}
 	mwInfo, err := c.InspectMultiWANPolicy(cubexIP)
 	if err != nil || !mwInfo.HasMultiWAN {
 		return logs, nil
 	}
-	if mwInfo.FakeIPProtected {
-		logs = append(logs, "爱快多线分流 Fake-IP 豁免策略已生效，无需重复配置")
-		return logs, nil
-	}
 
 	if lanIf == "" {
 		lanIf = c.DetectLANInterface(cubexIP)
+	}
+
+	// 1. 深度扫描 stream_ip 去重与冲突清理
+	respShow, errShow := c.Call("stream_ip", "show", map[string]string{
+		"TYPE":  "data,total",
+		"limit": "0,100",
+	})
+
+	alreadyConfigured := false
+	if errShow == nil && respShow.IsSuccess() && len(respShow.Payload()) > 0 {
+		var sData struct {
+			Data []map[string]any `json:"data"`
+		}
+		if json.Unmarshal(respShow.Payload(), &sData) == nil && len(sData.Data) > 0 {
+			for _, r := range sData.Data {
+				dstIP := fmt.Sprintf("%v", r["dst_ip"])
+				comment := fmt.Sprintf("%v", r["comment"])
+				currIf := fmt.Sprintf("%v", r["interface"])
+				idVal := r["id"]
+
+				if strings.Contains(dstIP, "198.18.0.0") || strings.Contains(comment, "CubeX-MultiWAN") {
+					if currIf == lanIf && !alreadyConfigured {
+						alreadyConfigured = true
+						logs = append(logs, fmt.Sprintf("爱快多线分流 Fake-IP 豁免策略已就绪 (接口: %s)，无需重复配置", lanIf))
+					} else if idVal != nil {
+						// 清理重复条目或接口漂移旧条目
+						_, _ = c.Call("stream_ip", "del", map[string]any{"id": idVal})
+						logs = append(logs, fmt.Sprintf("已自动清理爱快多线流控中的冗余/冲突规则 (ID: %v, 原接口: %s)", idVal, currIf))
+					}
+				}
+			}
+		}
+	}
+
+	if alreadyConfigured {
+		return logs, nil
 	}
 
 	// In iKuai stream_ip: set dst_ip=198.18.0.0/15 and interface=lanIf

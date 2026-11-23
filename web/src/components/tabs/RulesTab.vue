@@ -915,6 +915,28 @@
                   </span>
                   <span class="font-mono text-slate-500">实时过滤</span>
                 </div>
+
+                <!-- 🛡️ 战场三：真实安全拦截子分类遥测 (无锁原子真数据，缺失优雅占位 —) -->
+                <div class="grid grid-cols-3 gap-1.5 pt-1 text-[11px] font-mono select-none">
+                  <div class="flex flex-col items-center justify-center p-1.5 rounded-xl bg-amber-500/10 border border-amber-300/60 text-slate-800" title="广告弹窗规则拦截">
+                    <span class="text-[10px] text-slate-500 font-sans font-medium">广告弹窗</span>
+                    <span class="font-bold text-amber-800 tabular-nums">
+                      {{ app.dnsFilterStats.categoryStats ? app.dnsFilterStats.categoryStats.ads.toLocaleString() : '—' }}
+                    </span>
+                  </div>
+                  <div class="flex flex-col items-center justify-center p-1.5 rounded-xl bg-purple-500/10 border border-purple-300/60 text-slate-800" title="隐私与遥测追踪拦截">
+                    <span class="text-[10px] text-slate-500 font-sans font-medium">隐私追踪</span>
+                    <span class="font-bold text-purple-800 tabular-nums">
+                      {{ app.dnsFilterStats.categoryStats ? app.dnsFilterStats.categoryStats.privacy.toLocaleString() : '—' }}
+                    </span>
+                  </div>
+                  <div class="flex flex-col items-center justify-center p-1.5 rounded-xl bg-rose-500/10 border border-rose-300/60 text-slate-800" title="恶意域名与劫持阻断">
+                    <span class="text-[10px] text-slate-500 font-sans font-medium">恶意劫持</span>
+                    <span class="font-bold text-rose-800 tabular-nums">
+                      {{ app.dnsFilterStats.categoryStats ? app.dnsFilterStats.categoryStats.malicious.toLocaleString() : '—' }}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <!-- Card 4: 被拦截域名排行 -->

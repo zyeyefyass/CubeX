@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -51,6 +52,26 @@ type AutoUpdateConfig struct {
 	UpdateTime   string `json:"update_time"`   // e.g. "06:00"
 }
 
+// InterceptCategory represents the classification of blocked domains.
+type InterceptCategory string
+
+const (
+	CategoryAds       InterceptCategory = "ads"
+	CategoryPrivacy   InterceptCategory = "privacy"
+	CategoryMalicious InterceptCategory = "malicious"
+	CategoryOther     InterceptCategory = "other"
+)
+
+// InterceptStats holds the atomic counters for each threat category.
+// 🛡️ 师父防雷补丁 5: Total 严格由子项之和派生，保证数学上 100% 绝对收敛与自洽
+type InterceptStats struct {
+	Ads       uint64 `json:"ads"`
+	Privacy   uint64 `json:"privacy"`
+	Malicious uint64 `json:"malicious"`
+	Other     uint64 `json:"other"`
+	Total     uint64 `json:"total"`
+}
+
 // FilterConfig encapsulates domain filtering, rule sources, auto-update schedule, and whitelist.
 type FilterConfig struct {
 	Enabled          bool             `json:"enabled"`
@@ -75,6 +96,7 @@ type Stats struct {
 	HourlyQueryTrend   []int            `json:"hourly_query_trend"`
 	HourlyBlockedTrend []int            `json:"hourly_blocked_trend"`
 	TopBlocked         []TopBlockedItem `json:"top_blocked"`
+	CategoryStats      InterceptStats   `json:"category_stats"`
 	FilterConfig       FilterConfig     `json:"filter_config"`
 }
 
@@ -94,6 +116,12 @@ type Manager struct {
 	topBlocked   []TopBlockedItem
 	dataDir      string
 	filterConfig FilterConfig
+
+	// 🛡️ 战场三：极轻量无锁原子计数器 (0 内存开销、0 锁竞争)
+	catAds       uint64
+	catPrivacy   uint64
+	catMalicious uint64
+	catOther     uint64
 }
 
 // NewManager creates an adblock manager instance.
@@ -370,8 +398,40 @@ func (m *Manager) StartScheduler(onUpdate func(msg string)) {
 	}()
 }
 
-// RecordBlocked adds a blocked domain record to the live stream.
+// ClassifyRule categorizes a blocked rule into Ads, Privacy, Malicious or Other.
+func ClassifyRule(rule string) InterceptCategory {
+	lower := strings.ToLower(rule)
+	if strings.Contains(lower, "privacy") || strings.Contains(lower, "tracking") || strings.Contains(lower, "telemetry") || strings.Contains(lower, "analytics") || strings.Contains(lower, "隐私") || strings.Contains(lower, "追踪") {
+		return CategoryPrivacy
+	}
+	if strings.Contains(lower, "malicious") || strings.Contains(lower, "hijack") || strings.Contains(lower, "threat") || strings.Contains(lower, "phishing") || strings.Contains(lower, "malware") || strings.Contains(lower, "劫持") || strings.Contains(lower, "恶意") || strings.Contains(lower, "欺诈") {
+		return CategoryMalicious
+	}
+	if strings.Contains(lower, "ads") || strings.Contains(lower, "adblock") || strings.Contains(lower, "advertising") || strings.Contains(lower, "anti-ad") || strings.Contains(lower, "弹窗") || strings.Contains(lower, "去广告") {
+		return CategoryAds
+	}
+	return CategoryAds // Default 217heidai rule is primary adblock
+}
+
+// RecordBlocked adds a blocked domain record to the live stream and increments atomic category counters.
 func (m *Manager) RecordBlocked(domain, clientIP, rule string) {
+	if rule == "" {
+		rule = "ads_domain (217heidai)"
+	}
+
+	// 🛡️ 战场三：无锁原子分类计数 (0 锁竞争、近 0 内存开销)
+	cat := ClassifyRule(rule)
+	switch cat {
+	case CategoryPrivacy:
+		atomic.AddUint64(&m.catPrivacy, 1)
+	case CategoryMalicious:
+		atomic.AddUint64(&m.catMalicious, 1)
+	case CategoryOther:
+		atomic.AddUint64(&m.catOther, 1)
+	default:
+		atomic.AddUint64(&m.catAds, 1)
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -379,10 +439,6 @@ func (m *Manager) RecordBlocked(domain, clientIP, rule string) {
 	m.blockedTotal++
 	m.blockedCount++
 	m.queryCount++
-
-	if rule == "" {
-		rule = "ads_domain (217heidai)"
-	}
 
 	rec := BlockedRecord{
 		ID:       fmt.Sprintf("blk-%d", time.Now().UnixNano()),
@@ -552,6 +608,25 @@ func (m *Manager) GetStats(enabled bool, customRuleCount int) Stats {
 		}
 	}
 
+	// 🛡️ 师父防雷补丁 5: 遥测原子快照读取，Total 由子项直接派生求和，100% 绝对收敛自洽
+	ads := atomic.LoadUint64(&m.catAds)
+	priv := atomic.LoadUint64(&m.catPrivacy)
+	mal := atomic.LoadUint64(&m.catMalicious)
+	other := atomic.LoadUint64(&m.catOther)
+	catTotal := ads + priv + mal + other
+
+	catStats := InterceptStats{
+		Ads:       ads,
+		Privacy:   priv,
+		Malicious: mal,
+		Other:     other,
+		Total:     catTotal,
+	}
+
+	if catTotal > uint64(liveBlocked) {
+		liveBlocked = int(catTotal)
+	}
+
 	return Stats{
 		TotalRules:         totalRules,
 		BlockedToday:       m.blockedToday,
@@ -567,6 +642,7 @@ func (m *Manager) GetStats(enabled bool, customRuleCount int) Stats {
 		HourlyQueryTrend:   hourlyQueries,
 		HourlyBlockedTrend: hourlyBlocked,
 		TopBlocked:         top,
+		CategoryStats:      catStats,
 		FilterConfig:       m.filterConfig,
 	}
 }

@@ -495,6 +495,31 @@ iptables -t nat -I POSTROUTING 1 -p tcp -d %[1]s --dport 2026 -j MASQUERADE 2>/d
 iptables -C FORWARD -p tcp -d %[1]s --dport 2026 -j ACCEPT 2>/dev/null || \
 iptables -I FORWARD 1 -p tcp -d %[1]s --dport 2026 -j ACCEPT 2>/dev/null || true
 
+# 1.2 mwan3 Multi-WAN Anti-Hijack Exemption & Main Table Precedence (🛡️ 师父防雷补丁 3)
+ip rule del to 198.18.0.0/15 lookup main pref 100 2>/dev/null || true
+ip rule add to 198.18.0.0/15 lookup main pref 100 2>/dev/null || true
+ip rule del to %[1]s lookup main pref 100 2>/dev/null || true
+ip rule add to %[1]s lookup main pref 100 2>/dev/null || true
+ip rule del from %[1]s lookup main pref 100 2>/dev/null || true
+ip rule add from %[1]s lookup main pref 100 2>/dev/null || true
+
+if [ -f /etc/config/mwan3 ]; then
+    uci -q delete mwan3.cubex_fakeip || true
+    uci set mwan3.cubex_fakeip=rule
+    uci set mwan3.cubex_fakeip.dest_ip='198.18.0.0/15'
+    uci set mwan3.cubex_fakeip.proto='all'
+    uci set mwan3.cubex_fakeip.use_policy='default'
+
+    uci -q delete mwan3.cubex_gw || true
+    uci set mwan3.cubex_gw=rule
+    uci set mwan3.cubex_gw.dest_ip='%[1]s'
+    uci set mwan3.cubex_gw.proto='all'
+    uci set mwan3.cubex_gw.use_policy='default'
+
+    uci commit mwan3 2>/dev/null || true
+    /usr/sbin/mwan3 restart >/dev/null 2>&1 || true
+fi
+
 # 2. DHCP Option 6 (DNS) Injection to point directly to CubeX (Safe non-blocking clean)
 for opt in $(uci -q get dhcp.lan.dhcp_option 2>/dev/null); do
     case "$opt" in
@@ -625,6 +650,12 @@ uci commit firewall
 # Immediate runtime kernel iptables rules (works across all Linux/OpenWrt kernels via iptables/xtables-nft)
 iptables -C FORWARD -d 198.18.0.0/15 -j ACCEPT 2>/dev/null || iptables -I FORWARD 1 -d 198.18.0.0/15 -j ACCEPT 2>/dev/null || true
 iptables -C FORWARD -s 198.18.0.0/15 -j ACCEPT 2>/dev/null || iptables -I FORWARD 1 -s 198.18.0.0/15 -j ACCEPT 2>/dev/null || true
+
+# 🛡️ 师父防雷补丁 3: mwan3 流量打标豁免 (nftables mwan3_hook & iptables mangle PREROUTING)
+nft insert rule inet fw4 mwan3_hook ip daddr 198.18.0.0/15 counter accept 2>/dev/null || true
+nft insert rule inet fw4 mwan3_hook ip saddr 198.18.0.0/15 counter accept 2>/dev/null || true
+iptables -t mangle -C PREROUTING -d 198.18.0.0/15 -j ACCEPT 2>/dev/null || iptables -t mangle -I PREROUTING 1 -d 198.18.0.0/15 -j ACCEPT 2>/dev/null || true
+iptables -t mangle -C PREROUTING -s 198.18.0.0/15 -j ACCEPT 2>/dev/null || iptables -t mangle -I PREROUTING 1 -s 198.18.0.0/15 -j ACCEPT 2>/dev/null || true
 
 # Legacy fw3 /etc/firewall.user persistence
 if [ -f /etc/firewall.user ] && ! grep -q "198.18.0.0/15" /etc/firewall.user 2>/dev/null; then

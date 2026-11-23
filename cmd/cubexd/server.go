@@ -530,6 +530,27 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 
 	})
 
+	// 🌐 战场一：家宽 PPPoE 重拨 IPv6 PD 前缀漂移自愈监听 (Linux Netlink 事件驱动)
+	if runtime.GOOS == "linux" {
+		SafeGo("IPv6NetlinkWatcher", func() {
+			watcher, err := netstack.NewIPv6PrefixWatcher(srv.stopCh, func(evt netstack.IPv6AddressEvent) {
+				log.Printf("🌐 [IPv6自愈总线] 捕获公网单播前缀变更: %s/%d (网卡: %s, 删除: %v)，触发策略路由平滑刷新",
+					evt.IP, evt.PrefixLen, evt.Interface, evt.IsDeleted)
+				if srv.activeHealerMgr != nil {
+					srv.activeHealerMgr.TriggerRemediation(healing.Tier3HostRouteHeal, "IPv6-PD-Shift: "+evt.IP.String(), 0, 0)
+				}
+				if srv.rosMgr != nil {
+					_ = srv.rosMgr.RestoreRulesAfterBoot()
+				}
+			})
+			if err != nil {
+				log.Printf("[IPv6-Netlink] 初始化监听失败: %v", err)
+				return
+			}
+			defer watcher.Close()
+			<-srv.stopCh
+		})
+	}
 
 	srv.loadPersistentDelayCache()
 	return srv, nil

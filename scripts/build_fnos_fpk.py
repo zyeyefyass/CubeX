@@ -15,7 +15,7 @@ import hashlib
 import subprocess
 from PIL import Image
 
-VERSION = "9.9.7"
+VERSION = "9.9.8"
 APP_NAME = "cubex"
 DISPLAY_NAME = "CubeX 网络与影音中枢"
 DESC = "15MB 极轻量全屋网络拓扑管理、NAS 影视刮削加速与 DNS 防抖自愈网关"
