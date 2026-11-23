@@ -554,7 +554,7 @@ if [ "$UNPACKED_OK" -eq 0 ]; then
     for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
         PREFIX="${MIRROR:+$MIRROR/}"
         BIN_URL="${PREFIX}https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${PVE_ARCH}"
-        if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o "$TMP_BIN" "$BIN_URL" 2>/dev/null && [ -s "$TMP_BIN" ]; then
+        if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o "$TMP_BIN" "$BIN_URL" 2>/dev/null && [ -s "$TMP_BIN" ] && head -c 4 "$TMP_BIN" 2>/dev/null | grep -q "ELF"; then
             pct push "$CT_ID" "$TMP_BIN" /opt/CubeX/bin/cubexd -perms 755
             rm -f "$TMP_BIN"
             break
@@ -567,7 +567,7 @@ if [ "$UNPACKED_OK" -eq 0 ]; then
     for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
         PREFIX="${MIRROR:+$MIRROR/}"
         SB_URL="${PREFIX}https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/sing-box-linux-${PVE_ARCH}"
-        if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o "$TMP_SB" "$SB_URL" 2>/dev/null && [ -s "$TMP_SB" ]; then
+        if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o "$TMP_SB" "$SB_URL" 2>/dev/null && [ -s "$TMP_SB" ] && head -c 4 "$TMP_SB" 2>/dev/null | grep -q "ELF"; then
             pct push "$CT_ID" "$TMP_SB" /opt/CubeX/bin/sing-box -perms 755
             rm -f "$TMP_SB"
             break

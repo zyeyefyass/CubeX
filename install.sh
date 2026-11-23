@@ -650,10 +650,10 @@ if [ "$CLI_INSTALLED" -eq 0 ]; then
     echo -e "${CYAN}🌐 正在尝试拉取最新版原生运维 CLI (cubex-linux-${TARGET_ARCH})...${NC}"
     CLI_URL="https://github.com/zyeyefyass/CubeX/releases/latest/download/cubex-linux-$TARGET_ARCH"
     CLI_MIRROR="https://gh-proxy.com/$CLI_URL"
-    if curl -4 -sSL --connect-timeout 5 -m 30 -o /usr/local/bin/cubex "$CLI_URL" 2>/dev/null && [ -s /usr/local/bin/cubex ]; then
+    if curl -4 -sSL --connect-timeout 5 -m 30 -o /usr/local/bin/cubex "$CLI_URL" 2>/dev/null && [ -s /usr/local/bin/cubex ] && head -c 4 /usr/local/bin/cubex 2>/dev/null | grep -q "ELF"; then
         chmod +x /usr/local/bin/cubex 2>/dev/null || true
         CLI_INSTALLED=1
-    elif curl -4 -sSL --connect-timeout 6 -m 30 -o /usr/local/bin/cubex "$CLI_MIRROR" 2>/dev/null && [ -s /usr/local/bin/cubex ]; then
+    elif curl -4 -sSL --connect-timeout 6 -m 30 -o /usr/local/bin/cubex "$CLI_MIRROR" 2>/dev/null && [ -s /usr/local/bin/cubex ] && head -c 4 /usr/local/bin/cubex 2>/dev/null | grep -q "ELF"; then
         chmod +x /usr/local/bin/cubex 2>/dev/null || true
         CLI_INSTALLED=1
     fi
