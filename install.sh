@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # ═════════════════════════════════════════════════════════════════════════════
 # 🌌 CubeX Universal Deployer · 次世代双擎高可用旁路网关一键极速安装程序
 # Target Version: latest
@@ -173,7 +173,7 @@ done
 INSTALL_DIR="${DEFAULT_INSTALL_DIR}"
 
 if [ "$AUTO_CONFIRM" -eq 0 ]; then
-    if [ ! -t 0 ] && [ ! -r /dev/tty ]; then
+    if [ ! -t 0 ] || [ ! -e /dev/tty ]; then
         AUTO_CONFIRM=1
     fi
 fi
@@ -329,7 +329,7 @@ echo -e "${YELLOW}📁 [2/4] 初始化目录与数据包释放 (${INSTALL_DIR}).
 mkdir -p "$INSTALL_DIR/bin" "$INSTALL_DIR/etc/rules" "$INSTALL_DIR/data"
 
 # 若当前目录已有 etc 数据包，则直接同步复制
-CURRENT_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CURRENT_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 if [ -d "$CURRENT_SCRIPT_DIR/../etc" ]; then
     cp -r "$CURRENT_SCRIPT_DIR/../etc/"* "$INSTALL_DIR/etc/"
 elif [ -d "$CURRENT_SCRIPT_DIR/etc" ]; then
@@ -463,7 +463,7 @@ else
         echo -e "${CYAN}🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 105套规则集 + 控制面)...${NC}"
         REL_TAG="$CUSTOM_VER"
         if [ -z "$REL_TAG" ]; then
-            for M in "https://gh-proxy.com" "https://ghproxy.net" "https://github.moeyy.xyz" ""; do
+            for M in "https://gh-proxy.com" "https://ghproxy.net" ""; do
                 PREFIX=""
                 [ -n "$M" ] && PREFIX="${M}/"
                 LATEST_JSON=$(curl -4 -sSL --connect-timeout 4 -m 8 "${PREFIX}https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
@@ -486,7 +486,7 @@ else
         else
             rm -f "$TMP_ZIP"
             echo -e "${CYAN}   -> 正在通过国内多级高速镜像源智能轮询下载 ${ZIP_NAME} (约 80MB，免代理极速拉取)...${NC}"
-            GH_MIRRORS="https://gh-proxy.com https://mirror.ghproxy.com https://github.boki.moe https://ghproxy.net https://github.moeyy.xyz DIRECT"
+            GH_MIRRORS="https://gh-proxy.com https://ghproxy.net DIRECT"
             DOWNLOAD_OK=0
             for MIRROR in $GH_MIRRORS; do
                 if [ "$MIRROR" != "DIRECT" ]; then
@@ -566,8 +566,9 @@ else
         chmod +x /usr/local/bin/cubex 2>/dev/null || true
     fi
 
-    # 生成 systemd 服务文件
-    cat <<EOF > /etc/systemd/system/cubex.service
+    # 注册系统守护进程 (自动识别 Systemd 与 OpenRC 环境)
+    if command -v systemctl >/dev/null 2>&1 && [ -d /etc/systemd/system ]; then
+        cat <<EOF > /etc/systemd/system/cubex.service
 [Unit]
 Description=CubeX Dual-Engine Cyber Gateway Daemon
 After=network.target network-online.target
@@ -587,11 +588,45 @@ Environment=GOGC=${HOST_GOGC}
 [Install]
 WantedBy=multi-user.target
 EOF
+        systemctl daemon-reload
+        systemctl enable cubex >/dev/null 2>&1 || true
+        systemctl restart cubex || true
+        echo -e "${GREEN}✅ systemd 服务已注册并启动 (/etc/systemd/system/cubex.service, 软上限: ${HOST_GOMEMLIMIT})${NC}"
+    elif command -v rc-service >/dev/null 2>&1 || [ -d /etc/init.d ]; then
+        cat <<EOF > /etc/init.d/cubex
+#!/sbin/openrc-run
+name="cubex"
+description="CubeX System Control Plane Daemon"
+command="$INSTALL_DIR/bin/cubexd"
+command_args="-dir $INSTALL_DIR -listen :${APP_PORT}"
+directory="$INSTALL_DIR"
+supervisor="supervise-daemon"
+respawn_max=0
+output_log="/var/log/cubex.log"
+error_log="/var/log/cubex.err"
 
-    systemctl daemon-reload
-    systemctl enable cubex >/dev/null 2>&1 || true
-    systemctl restart cubex || true
-    echo -e "${GREEN}✅ systemd 服务已注册并启动 (/etc/systemd/system/cubex.service, 软上限: ${HOST_GOMEMLIMIT})${NC}"
+export GOMEMLIMIT="${HOST_GOMEMLIMIT}"
+export GOGC="${HOST_GOGC}"
+export GODEBUG="madvdontneed=1"
+export TZ="Asia/Shanghai"
+
+depend() {
+    need net
+    after firewall
+}
+EOF
+        chmod 755 /etc/init.d/cubex
+        if command -v rc-update >/dev/null 2>&1; then
+            rc-update add cubex default >/dev/null 2>&1 || true
+        fi
+        if command -v rc-service >/dev/null 2>&1; then
+            rc-service cubex restart >/dev/null 2>&1 || rc-service cubex start >/dev/null 2>&1 || true
+        fi
+        echo -e "${GREEN}✅ OpenRC 服务已注册并启动 (/etc/init.d/cubex, 软上限: ${HOST_GOMEMLIMIT})${NC}"
+    else
+        nohup "$INSTALL_DIR/bin/cubexd" -dir "$INSTALL_DIR" -listen ":${APP_PORT}" >/var/log/cubexd.log 2>&1 &
+        echo -e "${GREEN}✅ 后台守护进程已拉起 (PID: $!)${NC}"
+    fi
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -626,7 +661,7 @@ fi
 
 if [ "$CLI_INSTALLED" -eq 0 ]; then
 cat << 'EOF' > /usr/local/bin/cubex
-#!/usr/bin/env bash
+#!/bin/sh
 ACTION="$1"
 case "$ACTION" in
     status)
@@ -673,7 +708,7 @@ chmod +x /usr/local/bin/cubex 2>/dev/null || true
 fi
 
 # 获取本机局域网 IP
-LOCAL_IP=$(ip route get 1.1.1.1 2>/dev/null | grep -oP 'src \K\S+' || hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
+LOCAL_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++)if($i=="src")print $(i+1)}' || hostname -i 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
 
 echo ""
 echo -e "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"

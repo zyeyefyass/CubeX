@@ -236,11 +236,18 @@ else
     DNS_ARG="--nameserver 223.5.5.5"
 fi
 
-# 检查容器 ID 冲突自愈 (如已存在同 ID 容器或旧损坏沙盒，先安全停止并清理)
+# 检查容器 ID 冲突自愈与原地升级判定 (若已运行 CubeX 则进入保留数据平滑升级模式)
+IS_UPGRADE=0
 if pct status "$CT_ID" >/dev/null 2>&1 || [ -f "/etc/pve/lxc/${CT_ID}.conf" ]; then
-    echo -e "${YELLOW}⚠️ 检测到容器 CT ${CT_ID} 已存在，正在安全重置旧沙盒...${NC}"
-    pct stop "$CT_ID" >/dev/null 2>&1 || true
-    pct destroy "$CT_ID" --purge 1 >/dev/null 2>&1 || true
+    if pct exec "$CT_ID" -- test -f /opt/CubeX/bin/cubexd >/dev/null 2>&1; then
+        echo -e "${GREEN}💡 检测到容器 CT ${CT_ID} 已运行 CubeX，进入保留用户订阅与规则的平滑升级模式...${NC}"
+        IS_UPGRADE=1
+        pct start "$CT_ID" >/dev/null 2>&1 || true
+    else
+        echo -e "${YELLOW}⚠️ 检测到容器 CT ${CT_ID} 为非 CubeX 旧沙盒，正在安全清理以备全新部署...${NC}"
+        pct stop "$CT_ID" >/dev/null 2>&1 || true
+        pct destroy "$CT_ID" --purge 1 >/dev/null 2>&1 || true
+    fi
 fi
 
 CT_CLEAN_IP=$(echo "$CT_IP" | cut -d'/' -f1)
@@ -253,8 +260,9 @@ modprobe xt_socket 2>/dev/null || true
 modprobe xt_mark 2>/dev/null || true
 sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
 
-# 6. 模板探查 (优先复用本地已有模板，防止外网断流报错)
-echo -e "\n${CYAN}📦 [2/5] 探查并匹配 Alpine Linux LXC 模板 (${PVE_ARCH})...${NC}"
+if [ "$IS_UPGRADE" -eq 0 ]; then
+    # 6. 模板探查 (优先复用本地已有模板，防止外网断流报错)
+    echo -e "\n${CYAN}📦 [2/5] 探查并匹配 Alpine Linux LXC 模板 (${PVE_ARCH})...${NC}"
 TEMPLATE=""
 # 优先检查本地已经存在的对应架构 Alpine 模板 (严格过滤架构后缀，避免错用 arm64/amd64)
 LOCAL_TEMPLATES=$(pveam list local 2>/dev/null | grep -i 'alpine' | grep "${PVE_ARCH}" | awk '{print $1}' | tail -n1 || true)
@@ -425,6 +433,9 @@ if ! head -n 1 /etc/init.d/cubexd | grep -q "openrc-run"; then
 fi
 rc-update add cubexd default >/dev/null 2>&1
 EOF
+else
+    echo -e "\n${CYAN}🔄 [3/5] 原地升级容器内二进制与规则集 (保留 /opt/CubeX/data 与 /opt/CubeX/etc 用户数据)...${NC}"
+fi
 
 echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX ${CUSTOM_VER:-v9.9.6} 双核完整发布包 (${PVE_ARCH})...${NC}"
 # 10. 推送或下载 CubeX 完整发布包 (优先检测宿主本地安装包，0 秒直推免下载)
@@ -452,7 +463,7 @@ if [ -z "$CHOSEN_ZIP" ]; then
     echo -e "${BLUE}🌐 正在由 PVE 宿主机拉取完整发布包 (${PVE_ARCH} 双内核 + 105套规则集 + 控制面)...${NC}"
     REL_TAG="$CUSTOM_VER"
     if [ -z "$REL_TAG" ]; then
-        for MIRROR in "https://gh-proxy.com" "https://mirror.ghproxy.com" "https://ghproxy.net" ""; do
+        for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
             PREFIX="${MIRROR:+$MIRROR/}"
             LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 4 -m 8 "${PREFIX}https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
             if [ -n "$LATEST_JSON" ]; then
@@ -469,7 +480,7 @@ if [ -z "$CHOSEN_ZIP" ]; then
     TMP_ZIP="/tmp/${ZIP_NAME}"
     rm -f "$TMP_ZIP"
 
-    DOWNLOAD_URLS="https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://mirror.ghproxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
+    DOWNLOAD_URLS="https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
 
     for DL_URL in $DOWNLOAD_URLS; do
         echo -e "   -> 尝试节点: ${DL_URL} ..."
@@ -565,15 +576,14 @@ if [ "$UNPACKED_OK" -eq 0 ]; then
     rm -f "$TMP_SB"
 fi
 
-# 增量升级校验：如宿主有更新的独立 cubexd 控制面二进制，无缝增量推送覆盖
-if [ -f "dist/cubexd-linux-${PVE_ARCH}" ]; then
-    echo -e "${BLUE}注入本地最新构建的控制面: dist/cubexd-linux-${PVE_ARCH}...${NC}"
-    pct push "$CT_ID" "dist/cubexd-linux-${PVE_ARCH}" /opt/CubeX/bin/cubexd -perms 755
-elif [ -f "/root/cubexd" ]; then
-    echo -e "${BLUE}注入宿主机最新控制面: /root/cubexd...${NC}"
-    pct push "$CT_ID" /root/cubexd /opt/CubeX/bin/cubexd -perms 755
-elif [ -f "/opt/cubex/bin/cubexd" ]; then
-    pct push "$CT_ID" /opt/cubex/bin/cubexd /opt/CubeX/bin/cubexd -perms 755
+# 增量升级校验：仅当未解压完整发布包时，允许从本地构建目录注入独立控制面
+if [ "$UNPACKED_OK" -eq 0 ]; then
+    if [ -f "dist/cubexd-linux-${PVE_ARCH}" ]; then
+        echo -e "${BLUE}注入本地最新构建的控制面: dist/cubexd-linux-${PVE_ARCH}...${NC}"
+        pct push "$CT_ID" "dist/cubexd-linux-${PVE_ARCH}" /opt/CubeX/bin/cubexd -perms 755
+    elif [ -f "/opt/cubex/bin/cubexd" ]; then
+        pct push "$CT_ID" /opt/cubex/bin/cubexd /opt/CubeX/bin/cubexd -perms 755
+    fi
 fi
 
 pct exec "$CT_ID" -- sh -s << 'EOF'
@@ -609,19 +619,29 @@ if pct exec "$CT_ID" -- pgrep -f cubexd >/dev/null 2>&1; then
 pct exec "$CT_ID" -- /opt/CubeX/bin/cubex "\$@"
 PVECLI
     chmod +x /usr/local/bin/cubex 2>/dev/null || true
-    echo -e "\n${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}"
-    echo -e "${GREEN}${BOLD}🎉 恭喜！CubeX 宿主共生透明代理网关已在 PVE LXC 容器成功部署运行！${NC}"
-    echo -e "${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}"
-    echo -e "  📌 容器 ID     : ${BOLD}${CT_ID} (${CT_NAME})${NC}"
-    echo -e "  🌐 旁路由 IP   : ${BOLD}${CT_CLEAN_IP}${NC}"
-    echo -e "  🖥️ Web 控制台  : ${CYAN}${BOLD}http://${CT_CLEAN_IP}:2026${NC}"
-    echo -e "  ⚡ 底座优势    : 原生共享宿主物理内核，内存仅需 70MB，启动 < 1 秒"
-    echo -e "  🛡️ 访问安全    : 开箱即用 · 局域网直连免密 (亦可在控制台设置访问密钥)"
-    echo -e "\n${YELLOW}💡 下一步联动指引:${NC}"
-    echo -e "  1. 打开浏览器直接访问 Web 控制台: ${CYAN}http://${CT_CLEAN_IP}:2026${NC}"
-    echo -e "  2. 进入【⚙️ 宿主共生与系统运维】，输入主路由（如 RouterOS / 爱快）的 IP 与凭据"
-    echo -e "  3. 点击【⚡ 一键全栈自愈】，CubeX 将自动完成策略路由表创建、Fake-IP 回指与 0 秒逃生编排！"
-    echo -e "${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}\n"
+    if [ "$IS_UPGRADE" -eq 1 ]; then
+        echo -e "\n${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}"
+        echo -e "${GREEN}${BOLD}🎉 恭喜！CT ${CT_ID} 原地升级完成！现有订阅、节点与规则配置 100% 完整保留！${NC}"
+        echo -e "${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}"
+        echo -e "  📌 容器 ID     : ${BOLD}${CT_ID} (${CT_NAME})${NC}"
+        echo -e "  🌐 旁路由 IP   : ${BOLD}${CT_CLEAN_IP}${NC}"
+        echo -e "  🖥️ Web 控制台  : ${CYAN}${BOLD}http://${CT_CLEAN_IP}:2026${NC}"
+        echo -e "${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}\n"
+    else
+        echo -e "\n${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}"
+        echo -e "${GREEN}${BOLD}🎉 恭喜！CubeX 宿主共生透明代理网关已在 PVE LXC 容器成功部署运行！${NC}"
+        echo -e "${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}"
+        echo -e "  📌 容器 ID     : ${BOLD}${CT_ID} (${CT_NAME})${NC}"
+        echo -e "  🌐 旁路由 IP   : ${BOLD}${CT_CLEAN_IP}${NC}"
+        echo -e "  🖥️ Web 控制台  : ${CYAN}${BOLD}http://${CT_CLEAN_IP}:2026${NC}"
+        echo -e "  ⚡ 底座优势    : 原生共享宿主物理内核，内存仅需 70MB，启动 < 1 秒"
+        echo -e "  🛡️ 访问安全    : 开箱即用 · 局域网直连免密 (亦可在控制台设置访问密钥)"
+        echo -e "\n${YELLOW}💡 下一步联动指引:${NC}"
+        echo -e "  1. 打开浏览器直接访问 Web 控制台: ${CYAN}http://${CT_CLEAN_IP}:2026${NC}"
+        echo -e "  2. 进入【⚙️ 宿主共生与系统运维】，输入主路由（如 RouterOS / 爱快）的 IP 与凭据"
+        echo -e "  3. 点击【⚡ 一键全栈自愈】，CubeX 将自动完成策略路由表创建、Fake-IP 回指与 0 秒逃生编排！"
+        echo -e "${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}\n"
+    fi
 else
     echo -e "${YELLOW}⚠️ 容器已就绪，但尚未下载到 CubeX 二进制文件。可通过命令手动推送:${NC}"
     echo -e "  pct push ${CT_ID} dist/cubexd-linux-amd64 /opt/CubeX/bin/cubexd -perms 755"
