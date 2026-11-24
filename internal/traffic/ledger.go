@@ -63,25 +63,33 @@ type MonthlyLedger struct {
 	connMu    sync.Mutex
 	connBytes map[string]connDelta
 
-	stopCh chan struct{}
+	timeNow func() time.Time
+	stopCh  chan struct{}
+}
+
+func (l *MonthlyLedger) now() time.Time {
+	if l.timeNow != nil {
+		return l.timeNow()
+	}
+	return time.Now()
 }
 
 // NewMonthlyLedger 创建并初始化当月流量账本
 func NewMonthlyLedger(workDir string) *MonthlyLedger {
-	now := time.Now()
-	currM := now.Format("2006-01")
-
 	l := &MonthlyLedger{
 		workDir:   workDir,
-		currMonth: currM,
-		lastReset: now.Unix(),
+		timeNow:   time.Now,
 		connBytes: make(map[string]connDelta, 256),
 		stopCh:    make(chan struct{}),
 	}
 
+	n := l.now()
+	l.currMonth = fmt.Sprintf("%04d-%02d", n.Year(), int(n.Month()))
+	l.lastReset = n.Unix()
+
 	l.loadFromDisk()
 
-	// 启动后台 5 分钟低频落盘与跨月检查协程
+	// 启动后台 1 分钟低频跨月巡检与 5 分钟定时刷盘协程
 	go l.backgroundWorker()
 
 	return l
@@ -103,25 +111,63 @@ func (l *MonthlyLedger) loadFromDisk() {
 		return
 	}
 
-	nowMonth := time.Now().Format("2006-01")
+	now := l.now()
 	l.monthMu.Lock()
 	defer l.monthMu.Unlock()
 
-	if rec.YearMonth == nowMonth {
-		// 同一个月，无缝继承历史累计
-		l.currMonth = rec.YearMonth
-		l.lastReset = rec.LastReset
-		l.uplink.Store(rec.Uplink)
-		l.downlink.Store(rec.Downlink)
-	} else {
-		// 跨月，自动归档旧月并以当前月份重置
-		l.currMonth = nowMonth
-		l.lastReset = time.Now().Unix()
-		l.uplink.Store(0)
-		l.downlink.Store(0)
-		// 立即将新月份初始状态写盘
-		_ = l.saveToDiskLocked()
+	l.currMonth = rec.YearMonth
+	l.lastReset = rec.LastReset
+	l.uplink.Store(rec.Uplink)
+	l.downlink.Store(rec.Downlink)
+
+	// 动态检测是否停机跨月（跨入每月 1 日 00:00:00），若跨月自动清零并归档
+	l.checkMonthRolloverLocked(now)
+}
+
+// checkMonthRolloverLocked 核心自然月轮转检查 (调用方须持有 monthMu 锁)
+// 依据当前系统时区与自然公历 (每月 1 日 00:00:00 起)，动态感知月份变更并无损自愈重置，零硬编码
+func (l *MonthlyLedger) checkMonthRolloverLocked(now time.Time) bool {
+	// 动态提取当前自然年月 (如 2026-11 -> 2026-12 -> 2027-01)，每月 1 日 00:00:00 准时变更
+	currentMonthStr := fmt.Sprintf("%04d-%02d", now.Year(), int(now.Month()))
+	if l.currMonth == currentMonthStr {
+		return false
 	}
+
+	// 发生自然月轮转 (每月 1 日 00:00:00 起新账期)
+	oldMonth := l.currMonth
+	oldUp := l.uplink.Load()
+	oldDown := l.downlink.Load()
+
+	// 1. 自动归档旧月历史记录至 data/traffic_history_YYYY-MM.json，保障账目可追溯
+	if l.workDir != "" && oldMonth != "" && (oldUp > 0 || oldDown > 0) {
+		historyRec := MonthlyRecord{
+			YearMonth: oldMonth,
+			Uplink:    oldUp,
+			Downlink:  oldDown,
+			Total:     oldUp + oldDown,
+			LastReset: l.lastReset,
+			UpdatedAt: now.Unix(),
+		}
+		if histData, err := json.MarshalIndent(historyRec, "", "  "); err == nil {
+			histFile := filepath.Join(l.workDir, "data", fmt.Sprintf("traffic_history_%s.json", oldMonth))
+			_ = schema.WriteFileAtomicSecure(histFile, histData)
+		}
+	}
+
+	// 2. 原生重置当月账本计数器为 0
+	l.currMonth = currentMonthStr
+	l.lastReset = now.Unix()
+	l.uplink.Store(0)
+	l.downlink.Store(0)
+
+	// 3. 重置连接差值映射，防止老月份连接的差值跨月误加
+	l.connMu.Lock()
+	l.connBytes = make(map[string]connDelta, 256)
+	l.connMu.Unlock()
+
+	// 4. 立即将新月份初态 (0 流量) 原子持久化到 traffic_monthly.json
+	_ = l.saveToDiskLocked()
+	return true
 }
 
 // isProxyChain 严格检查连接出站链，剥离 DIRECT / REJECT 纯直连或拦截
@@ -147,22 +193,11 @@ func (l *MonthlyLedger) ProcessConnections(conns []ConnectionMeta) {
 		return
 	}
 
-	// 跨月平滑重置检查
-	nowMonth := time.Now().Format("2006-01")
-	l.monthMu.RLock()
-	curM := l.currMonth
-	l.monthMu.RUnlock()
-
-	if curM != nowMonth {
-		l.monthMu.Lock()
-		if l.currMonth != nowMonth {
-			l.currMonth = nowMonth
-			l.lastReset = time.Now().Unix()
-			l.uplink.Store(0)
-			l.downlink.Store(0)
-		}
-		l.monthMu.Unlock()
-	}
+	// 跨月平滑重置检查 (每月 1 日 00:00:00 自动清零)
+	now := l.now()
+	l.monthMu.Lock()
+	l.checkMonthRolloverLocked(now)
+	l.monthMu.Unlock()
 
 	var batchUp uint64
 	var batchDown uint64
@@ -222,12 +257,14 @@ func (l *MonthlyLedger) ProcessConnections(conns []ConnectionMeta) {
 
 // GetMonthlySummary 获取格式化后的当月代理出站流量概览
 func (l *MonthlyLedger) GetMonthlySummary() MonthlySummary {
-	l.monthMu.RLock()
+	now := l.now()
+	l.monthMu.Lock()
+	l.checkMonthRolloverLocked(now)
 	m := l.currMonth
-	l.monthMu.RUnlock()
-
 	up := l.uplink.Load()
 	down := l.downlink.Load()
+	l.monthMu.Unlock()
+
 	total := up + down
 
 	return MonthlySummary{
@@ -238,7 +275,7 @@ func (l *MonthlyLedger) GetMonthlySummary() MonthlySummary {
 		UplinkHuman:   formatBytesHuman(up),
 		DownlinkHuman: formatBytesHuman(down),
 		TotalHuman:    formatBytesHuman(total),
-		UpdatedAt:     time.Now().Unix(),
+		UpdatedAt:     l.now().Unix(),
 	}
 }
 
@@ -263,7 +300,7 @@ func (l *MonthlyLedger) saveToDiskLocked() error {
 		Downlink:  down,
 		Total:     up + down,
 		LastReset: l.lastReset,
-		UpdatedAt: time.Now().Unix(),
+		UpdatedAt: l.now().Unix(),
 	}
 
 	data, err := json.MarshalIndent(rec, "", "  ")
@@ -276,15 +313,25 @@ func (l *MonthlyLedger) saveToDiskLocked() error {
 	return schema.WriteFileAtomicSecure(filepath.Join(dir, "traffic_monthly.json"), data)
 }
 
-// backgroundWorker 后台 5 分钟定时落盘及跨月巡检
+// backgroundWorker 后台 1 分钟跨月巡检及 5 分钟定时刷盘
 func (l *MonthlyLedger) backgroundWorker() {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
+	flushTicks := 0
 
 	for {
 		select {
 		case <-ticker.C:
-			_ = l.Flush()
+			now := l.now()
+			l.monthMu.Lock()
+			rolled := l.checkMonthRolloverLocked(now)
+			flushTicks++
+			// 若发生每月 1 日跨月重置，或每 5 分钟 (5 个 tick) 周期到达，执行刷盘
+			if rolled || flushTicks >= 5 {
+				_ = l.saveToDiskLocked()
+				flushTicks = 0
+			}
+			l.monthMu.Unlock()
 		case <-l.stopCh:
 			_ = l.Flush()
 			return

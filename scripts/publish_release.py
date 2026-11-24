@@ -43,7 +43,7 @@ RELEASE_BODY = f"""# CubeX {TAG} · 自建节点一键分流与单节点管理 �
 1. **铲除虚假节点与补齐单节点删除**：彻底拔除无节点时的临时示例数据，无节点时干净展示真实空状态；展开节点列表后右上角补充独立删除按钮，支持自由删除任意单个节点。
 2. **自建节点自动归组与一键设为主力**：优化节点归类逻辑，自建节点 100% 自动归入自建分组并支持地区协同测速；新增主力快捷按钮，点击一键将该节点设为主力分流线路。
 3. **离线失联感知与只读保护遮罩**：加固静态文件缓存控制，加入后台连续探活机制；后端停止或网络中断时立即弹出醒目离线提示并锁定只读保护，服务恢复后自动重连唤醒。
-4. **极简代理出站月度账本与实时终端**：新增轻量级当月代理出站流量账本，彻底剥离直连与拦截流量；顶栏新增实时终端入口（快捷键 L 呼出），一键查看当月代理转发累计数据。
+4. **极简代理出站月度账本与实时终端**：新增轻量级当月代理出站流量账本，彻底剥离直连与拦截流量；严格基于公历自然月于每月 1 日 00:00:00 准时重置清零，零硬编码天数与年份，上月消费自动原子归档至 `data/traffic_history_YYYY-MM.json`；顶栏新增实时终端入口（快捷键 L 呼出），一键查看当月代理转发累计数据。
 5. **容器部署升级零清空保护与固件兼容**：优化容器磁盘挂载探查，重新执行安装脚本绝不误清空老用户历史订阅与规则配置；全面兼容 RouterOS 7.25.2 最新固件版本规范。
 
 ---
@@ -228,19 +228,19 @@ def main():
         }
         gh_api(token, "PATCH", f"/releases/{release['id']}", update_payload)
     else:
-        print(f"   - 创建新 Release: {TAG} ...")
+        print(f"   - 创建新 Release (Draft 状态): {TAG} ...")
         create_payload = {
             "tag_name": TAG,
             "target_commitish": "main",
             "name": RELEASE_TITLE,
             "body": RELEASE_BODY,
-            "draft": False,
+            "draft": True,
             "prerelease": False,
         }
         code, body = gh_api(token, "POST", "/releases", create_payload)
         if code in (200, 201):
             release = json.loads(body)
-            print(f"   ✅ 成功创建 Release (ID: {release['id']})")
+            print(f"   ✅ 成功创建 Draft Release (ID: {release['id']})")
         else:
             print(f"❌ 创建 Release 失败 (HTTP {code}): {body}")
             sys.exit(1)
@@ -282,7 +282,7 @@ def main():
             print(f"   - {m}")
         sys.exit(1)
 
-    print(f"✅ {len(expected_assets)} 项发布资产全部就绪，开始上传至 GitHub Releases (ID: {release_id})...\n")
+    print(f"✅ {len(expected_assets)} 项发布资产全部就绪，开始上传至 GitHub Draft Release (ID: {release_id})...\n")
 
     failed = []
     for item in expected_assets:
@@ -295,7 +295,38 @@ def main():
         print(f"\n❌ 上传失败列表 ({len(failed)} 项): {failed}")
         sys.exit(1)
 
-    print(f"\n🎉 全部 {len(expected_assets)} 项资产上传并校验 100% 成功！")
+    print(f"\n🔍 [终审核验] 逐一核验 GitHub 云端资产状态 (state: uploaded & 字节数一致)...")
+    final_assets = get_assets_map(token, release_id)
+    verify_failed = False
+    for item in expected_assets:
+        p = RELEASE_DIR / item
+        exp_sz = p.stat().st_size
+        if item not in final_assets:
+            print(f"   ❌ 缺失云端资产: {item}")
+            verify_failed = True
+            continue
+        cur = final_assets[item]
+        state = cur.get("state")
+        actual_sz = cur.get("size")
+        if state != "uploaded" or actual_sz != exp_sz:
+            print(f"   ❌ 资产异常: {item} (state={state}, size={actual_sz}/{exp_sz})")
+            verify_failed = True
+        else:
+            print(f"   ✓ {item}: state=uploaded, size={actual_sz:,} 字节 (PASS)")
+
+    if verify_failed:
+        print("\n🚨 资产终审核验未通过，Release 保持 Draft 状态，中止正式发布！")
+        sys.exit(1)
+
+    print(f"\n🎉 全部 {len(expected_assets)} 项资产在 Draft 状态下核验 100% 满分通过！")
+    print("🚀 正在将 Release 由 Draft 切换为正式发布 (draft: false)...")
+    patch_code, patch_res = gh_api(token, "PATCH", f"/releases/{release_id}", {"draft": False})
+    if patch_code == 200:
+        pub_rel = json.loads(patch_res)
+        print(f"✅ 正式发布成功！Release URL: {pub_rel.get('html_url')}")
+    else:
+        print(f"❌ 切换正式发布失败 (HTTP {patch_code}): {patch_res}")
+        sys.exit(1)
 
     print("\n🧹 执行全平台 10 周期存留红线清算...")
     enforce_script = SCRIPT_DIR / "enforce_10_version_retention.py"

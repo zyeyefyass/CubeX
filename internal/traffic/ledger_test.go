@@ -109,3 +109,69 @@ func TestMonthlyLedgerBasic(t *testing.T) {
 		t.Fatalf("expected year_month %s, got %s", time.Now().Format("2006-01"), summary2.YearMonth)
 	}
 }
+
+func TestMonthlyLedgerMonthRollover(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "cubex-rollover-test-*")
+	if err != nil {
+		t.Fatalf("create temp dir failed: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	fakeTime := time.Date(2026, time.November, 24, 11, 0, 0, 0, time.Local)
+	l := NewMonthlyLedger(tempDir)
+	defer l.Close()
+
+	// 注入可控时间函数
+	l.timeNow = func() time.Time {
+		return fakeTime
+	}
+	// 对齐初始状态
+	l.monthMu.Lock()
+	l.currMonth = fakeTime.Format("2006-01")
+	l.monthMu.Unlock()
+
+	// 记录一批流量
+	conns := []ConnectionMeta{
+		{
+			ID:       "c1",
+			Upload:   1000,
+			Download: 2000,
+			Chains:   []string{"HK-Node"},
+		},
+	}
+	l.ProcessConnections(conns)
+
+	s1 := l.GetMonthlySummary()
+	if s1.Total != 3000 {
+		t.Fatalf("expected 3000, got %d", s1.Total)
+	}
+
+	// 模拟自然时间跨月 (跨入每月 1 日 00:00:01，例如从 2026-11 跨入 2026-12)
+	fakeTime = time.Date(2026, time.December, 1, 0, 0, 1, 0, time.Local)
+
+	// 此时任何查询或连接处理，均会自动感知新月份并清零
+	s2 := l.GetMonthlySummary()
+	if s2.YearMonth != "2026-12" {
+		t.Fatalf("expected year_month 2026-12, got %s", s2.YearMonth)
+	}
+	if s2.Uplink != 0 || s2.Downlink != 0 || s2.Total != 0 {
+		t.Fatalf("expected 0 traffic after rollover, got %+v", s2)
+	}
+
+	// 检查旧月份 (2026-11) 的历史归档文件是否存在并准确
+	historyFile := filepath.Join(tempDir, "data", "traffic_history_2026-11.json")
+	if _, err := os.Stat(historyFile); os.IsNotExist(err) {
+		t.Fatalf("expected history archive to be created at %s", historyFile)
+	}
+
+	// 模拟再次跨年 (跨入 2027 年 1 月 1 日 00:00:01)
+	fakeTime = time.Date(2027, time.January, 1, 0, 0, 1, 0, time.Local)
+	s3 := l.GetMonthlySummary()
+	if s3.YearMonth != "2027-01" {
+		t.Fatalf("expected year_month 2027-01, got %s", s3.YearMonth)
+	}
+	if s3.Total != 0 {
+		t.Fatalf("expected 0 traffic for new year, got %d", s3.Total)
+	}
+}
+
