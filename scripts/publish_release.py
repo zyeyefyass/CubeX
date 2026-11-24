@@ -8,6 +8,7 @@ CubeX 原生双栈与极速热切版 GitHub 发布自动化脚本
 """
 import json
 import os
+import socket
 import subprocess
 import sys
 import tempfile
@@ -22,7 +23,23 @@ sys.path.insert(0, str(SCRIPT_DIR))
 from enforce_10_version_retention import get_github_token  # noqa: E402
 
 REPO = "zyeyefyass/CubeX"
-PROXY = os.environ.get("CUBEX_RELEASE_PROXY", "")
+
+def detect_proxy():
+    env = os.environ.get("CUBEX_RELEASE_PROXY") or os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY")
+    if env:
+        return env
+    for host in ["10.0.0.7", "127.0.0.1"]:
+        try:
+            s = socket.socket()
+            s.settimeout(0.3)
+            s.connect((host, 7890))
+            s.close()
+            return f"http://{host}:7890"
+        except Exception:
+            pass
+    return ""
+
+PROXY = detect_proxy()
 
 def get_tag():
     try:
@@ -156,16 +173,12 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
         "-s", "-S",
         "-w", "\n%{http_code}",
         "-L",
-        "--http1.1",
         "--connect-timeout", "30",
-        "--max-time", "3600",
+        "--max-time", "1800",
         "-X", "POST",
         "-H", f"Authorization: token {token}",
         "-H", f"Content-Type: {content_type}",
-        "-H", f"Content-Length: {size}",
         "-H", "Expect:",
-        "--speed-time", "60",
-        "--speed-limit", "1024",
         "--data-binary", f"@{file_path}",
     ]
     if PROXY:
@@ -185,12 +198,16 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
             time.sleep(3)
 
         print(f"   - 第 {attempt}/3 次传输...", flush=True)
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=660)
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
 
-        # Wait up to 300 seconds for GitHub background storage finalization
+        lines = res.stdout.strip().splitlines()
+        http_code = lines[-1].strip() if lines else ""
+
+        # Wait for GitHub background storage finalization
         print("   - 等待 GitHub 云端入库终审校验...", flush=True)
         success = False
-        for wait_idx in range(60):
+        max_waits = 12 if (res.returncode == 0 and http_code in ("200", "201")) else 3
+        for wait_idx in range(max_waits):
             time.sleep(5)
             assets = get_assets_map(token, release_id)
             if name in assets:
@@ -204,7 +221,7 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
         if success:
             return True
 
-        print(f"   ⚠️ 第 {attempt} 次校验未通过: stdout={res.stdout[:150]}, stderr={res.stderr[:150]}", flush=True)
+        print(f"   ⚠️ 第 {attempt} 次校验未通过: code={res.returncode}, http={http_code}, stderr={res.stderr[:150]}", flush=True)
         time.sleep(5)
 
     return False
