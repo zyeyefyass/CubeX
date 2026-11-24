@@ -42,6 +42,15 @@ type ConnectionMeta struct {
 	Download int64    `json:"download"`
 	Chains   []string `json:"chains"`
 	Rule     string   `json:"rule"`
+	Metadata struct {
+		Network         string `json:"network"`
+		Type            string `json:"type"`
+		SourceIP        string `json:"sourceIP"`
+		DestinationIP   string `json:"destinationIP"`
+		SourcePort      string `json:"sourcePort"`
+		DestinationPort string `json:"destinationPort"`
+		Host            string `json:"host"`
+	} `json:"metadata"`
 }
 
 type connDelta struct {

@@ -203,19 +203,12 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	dns := ir.DNS
 
 	// Root config map with optimized log throttling
-
-	// Default to "warn" to eliminate per-packet and per-DNS stdout flood that exhausts RouterOS container log ring buffer
-
-	singboxLogLevel := "warn"
-
+	// Set to "info" to enable DNS and router rule match & reject telemetry callbacks
+	singboxLogLevel := "info"
 	if ir.Meta.LogLevel == "debug" || ir.Meta.LogLevel == "trace" {
-
 		singboxLogLevel = ir.Meta.LogLevel
-
-	} else if ir.Meta.LogLevel == "error" || ir.Meta.LogLevel == "fatal" || ir.Meta.LogLevel == "panic" {
-
+	} else if ir.Meta.LogLevel == "error" || ir.Meta.LogLevel == "fatal" || ir.Meta.LogLevel == "panic" || ir.Meta.LogLevel == "warn" {
 		singboxLogLevel = ir.Meta.LogLevel
-
 	}
 
 	cfg := map[string]any{

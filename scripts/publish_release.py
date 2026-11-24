@@ -158,7 +158,7 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
         "-L",
         "--http1.1",
         "--connect-timeout", "30",
-        "--max-time", "600",
+        "--max-time", "3600",
         "-X", "POST",
         "-H", f"Authorization: token {token}",
         "-H", f"Content-Type: {content_type}",

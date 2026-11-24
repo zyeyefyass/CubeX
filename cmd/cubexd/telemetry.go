@@ -510,6 +510,9 @@ func (s *Server) startTrafficCollector() {
 								if s.monthlyLedger != nil && len(cr.Connections) > 0 {
 									s.monthlyLedger.ProcessConnections(cr.Connections)
 								}
+								if s.adblockMgr != nil && len(cr.Connections) > 0 {
+									s.processBlockedConnections(cr.Connections)
+								}
 							}
 							netutil.DrainAndCloseBody(r)
 						}
@@ -1691,4 +1694,72 @@ func (s *Server) handleTelemetryKickClient(w http.ResponseWriter, r *http.Reques
 		"client_ip": req.ClientIP,
 		"kicked":    kicked,
 	})
+}
+
+var (
+	blockedConnSeenMu sync.Mutex
+	blockedConnSeen   = make(map[string]time.Time, 512)
+)
+
+func (s *Server) processBlockedConnections(conns []traffic.ConnectionMeta) {
+	if s.adblockMgr == nil || len(conns) == 0 {
+		return
+	}
+
+	now := time.Now()
+	blockedConnSeenMu.Lock()
+	defer blockedConnSeenMu.Unlock()
+
+	// 垃圾回收 5 分钟前的已处理连接 ID，防止内存泄漏
+	if len(blockedConnSeen) > 1000 {
+		for id, t := range blockedConnSeen {
+			if now.Sub(t) > 5*time.Minute {
+				delete(blockedConnSeen, id)
+			}
+		}
+	}
+
+	for _, c := range conns {
+		if c.ID == "" {
+			continue
+		}
+		if _, exists := blockedConnSeen[c.ID]; exists {
+			continue
+		}
+
+		isBlocked := false
+		ruleLower := strings.ToLower(c.Rule)
+		if strings.Contains(ruleLower, "reject") || strings.Contains(ruleLower, "217heidai") || strings.Contains(ruleLower, "adblock") {
+			isBlocked = true
+		}
+		if !isBlocked {
+			for _, ch := range c.Chains {
+				cleanCh := strings.ToUpper(strings.TrimSpace(ch))
+				if cleanCh == "REJECT" || strings.Contains(strings.ToLower(ch), "217heidai") {
+					isBlocked = true
+					break
+				}
+			}
+		}
+
+		if isBlocked {
+			blockedConnSeen[c.ID] = now
+			domain := c.Metadata.Host
+			if domain == "" {
+				domain = c.Metadata.DestinationIP
+			}
+			if domain == "" {
+				domain = "ad.blocked.internal"
+			}
+			clientIP := c.Metadata.SourceIP
+			if clientIP == "" {
+				clientIP = "10.0.0.1"
+			}
+			ruleName := c.Rule
+			if ruleName == "" {
+				ruleName = "217heidai (去广告&隐私追踪)"
+			}
+			s.adblockMgr.RecordBlocked(domain, clientIP, ruleName)
+		}
+	}
 }

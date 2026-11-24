@@ -77,17 +77,6 @@
         <span class="font-mono text-[11px] font-extrabold text-cyan-800">{{ routerVersion }}</span>
       </div>
 
-      <!-- 📜 实时终端入口 (素雅胶囊 · 快捷键 L / Alt+L) -->
-      <button
-        @click.stop="$emit('open-logs')"
-        class="h-8 sm:h-9 px-2.5 sm:px-3 rounded-full bg-white/70 hover:bg-white/95 border border-slate-300/60 shadow-sm flex items-center gap-1.5 text-xs text-slate-800 transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer select-none"
-        title="打开实时日志与终端 (快捷键 L 或 Alt+L)"
-      >
-        <span class="text-sm">📜</span>
-        <span class="font-mono font-bold hidden sm:inline text-[#0f2744]">实时终端</span>
-        <kbd class="hidden md:inline-block px-1 py-0.2 rounded bg-slate-200/80 text-[10px] text-slate-600 font-mono">L</kbd>
-      </button>
-
       <!-- 👁️ 观景模式切换按钮 (Alt+Z 亦可触发，可点击来回切换) -->
       <button
         @click.stop="$emit('toggle-peek')"

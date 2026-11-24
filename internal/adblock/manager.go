@@ -13,6 +13,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // BlockedRecord represents a single blocked DNS/domain request.
@@ -166,20 +168,92 @@ func NewManager(mihomoAPI string) *Manager {
 	return m
 }
 
-// InitStorage loads persisted domain filter configuration from disk.
+// PersistentStats stores daily adblock metrics for seamless restart recovery.
+type PersistentStats struct {
+	Date         string          `json:"date"`
+	BlockedToday int             `json:"blocked_today"`
+	BlockedTotal int             `json:"blocked_total"`
+	QueryCount   int             `json:"query_count"`
+	BlockedCount int             `json:"blocked_count"`
+	CatAds       uint64          `json:"cat_ads"`
+	CatPrivacy   uint64          `json:"cat_privacy"`
+	CatMalicious uint64          `json:"cat_malicious"`
+	CatOther     uint64          `json:"cat_other"`
+	RecentList   []BlockedRecord `json:"recent_list"`
+	UpdatedAt    int64           `json:"updated_at"`
+}
+
+// InitStorage loads persisted domain filter configuration & stats from disk.
 func (m *Manager) InitStorage(dir string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.dataDir = dir
+
+	// 1. 加载过滤规则配置
 	cfgPath := filepath.Join(dir, "data", "domain_filter.json")
 	if data, err := os.ReadFile(cfgPath); err == nil {
 		var cfg FilterConfig
 		if jsonErr := json.Unmarshal(data, &cfg); jsonErr == nil {
 			m.filterConfig = cfg
-			return
+		}
+	} else {
+		_ = m.saveFilterConfigLocked()
+	}
+
+	// 2. 加载拦截统计数据 (自愈恢复，防御重启归零)
+	statsPath := filepath.Join(dir, "data", "adblock_stats.json")
+	if data, err := os.ReadFile(statsPath); err == nil {
+		var ps PersistentStats
+		if err := json.Unmarshal(data, &ps); err == nil {
+			todayStr := time.Now().Format("2006-01-02")
+			m.blockedTotal = ps.BlockedTotal
+			if ps.Date == todayStr {
+				// 同一天，平滑恢复今日拦截数与分类计数
+				m.blockedToday = ps.BlockedToday
+				m.queryCount = ps.QueryCount
+				m.blockedCount = ps.BlockedCount
+				atomic.StoreUint64(&m.catAds, ps.CatAds)
+				atomic.StoreUint64(&m.catPrivacy, ps.CatPrivacy)
+				atomic.StoreUint64(&m.catMalicious, ps.CatMalicious)
+				atomic.StoreUint64(&m.catOther, ps.CatOther)
+				if len(ps.RecentList) > 0 {
+					m.records = ps.RecentList
+				}
+			} else {
+				// 跨天，保留历史总数，今日计数器归 0
+				m.blockedToday = 0
+				m.blockedCount = 0
+			}
 		}
 	}
-	_ = m.saveFilterConfigLocked()
+}
+
+// saveStatsLocked persists runtime adblock counters into data/adblock_stats.json
+func (m *Manager) saveStatsLocked() error {
+	if m.dataDir == "" {
+		return nil
+	}
+	ps := PersistentStats{
+		Date:         time.Now().Format("2006-01-02"),
+		BlockedToday: m.blockedToday,
+		BlockedTotal: m.blockedTotal,
+		QueryCount:   m.queryCount,
+		BlockedCount: m.blockedCount,
+		CatAds:       atomic.LoadUint64(&m.catAds),
+		CatPrivacy:   atomic.LoadUint64(&m.catPrivacy),
+		CatMalicious: atomic.LoadUint64(&m.catMalicious),
+		CatOther:     atomic.LoadUint64(&m.catOther),
+		RecentList:   m.records,
+		UpdatedAt:    time.Now().Unix(),
+	}
+
+	b, err := json.MarshalIndent(ps, "", "  ")
+	if err != nil {
+		return err
+	}
+	statsPath := filepath.Join(m.dataDir, "data", "adblock_stats.json")
+	_ = os.MkdirAll(filepath.Dir(statsPath), 0755)
+	return schema.WriteFileAtomicSecure(statsPath, b)
 }
 
 func (m *Manager) saveFilterConfigLocked() error {
@@ -455,6 +529,9 @@ func (m *Manager) RecordBlocked(domain, clientIP, rule string) {
 	if len(m.records) > m.maxRecords {
 		m.records = m.records[:m.maxRecords]
 	}
+
+	// 触发原子落盘，保障跨进程重启与发版升级拦截数据不丢失
+	_ = m.saveStatsLocked()
 }
 
 // ClearRecords clears recent records.
