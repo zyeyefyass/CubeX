@@ -4,24 +4,22 @@ import os
 env_base = os.environ.copy()
 env_base['CGO_ENABLED'] = '0'
 
-garble = r'C:\Users\zyy\go\bin\garble.exe'
-
 # ═══════════════════════════════════════════════════════════════════
-# Phase 1: Garble 混淆编译 (用于 GitHub 单独发布的独立二进制，防逆向)
+# Phase 1: 纯净标准编译 (独立二进制：-trimpath -ldflags="-s -w -buildid="，杜绝 AST 膨胀与运行时反噬)
 # ═══════════════════════════════════════════════════════════════════
-garble_targets = [
+clean_targets = [
     ('amd64', './cmd/cubexd', 'dist/cubexd-linux-amd64'),
     ('amd64', './cmd/cubex',  'dist/cubex-linux-amd64'),
     ('arm64', './cmd/cubexd', 'dist/cubexd-linux-arm64'),
     ('arm64', './cmd/cubex',  'dist/cubex-linux-arm64'),
 ]
 
-for arch, pkg, out in garble_targets:
+for arch, pkg, out in clean_targets:
     env = env_base.copy()
     env['GOOS'] = 'linux'
     env['GOARCH'] = arch
-    cmd = [garble, '-literals', '-tiny', 'build', '-trimpath', '-ldflags=-s -w -buildid=', '-o', out, pkg]
-    print(f"Compiling {out} ({arch}) with Garble...")
+    cmd = ['go', 'build', '-trimpath', '-ldflags=-s -w -buildid=', '-o', out, pkg]
+    print(f"Compiling {out} ({arch}) with pure flags...")
     res = subprocess.run(cmd, env=env, capture_output=True, text=True)
     if res.returncode == 0:
         size = os.path.getsize(out)
@@ -30,11 +28,10 @@ for arch, pkg, out in garble_targets:
         print(f"  ❌ Failed: {res.stderr}")
         exit(1)
 
-print("\n🎉 Phase 1: All 4 Garble binaries compiled!")
+print("\n🎉 Phase 1: All 4 clean binaries compiled!")
 
 # ═══════════════════════════════════════════════════════════════════
-# Phase 2: 标准编译 (用于容器/镜像内嵌，体积极简，无需混淆)
-#   容器内只需 cubexd 守护进程，不需要 cubex CLI
+# Phase 2: 容器内置守护进程纯净编译 (用于容器/镜像内嵌，体积极简)
 # ═══════════════════════════════════════════════════════════════════
 container_targets = [
     ('amd64', './cmd/cubexd', 'dist/cubexd-container-amd64'),
@@ -45,7 +42,7 @@ for arch, pkg, out in container_targets:
     env = env_base.copy()
     env['GOOS'] = 'linux'
     env['GOARCH'] = arch
-    cmd = ['go', 'build', '-trimpath', '-ldflags=-s -w', '-o', out, pkg]
+    cmd = ['go', 'build', '-trimpath', '-ldflags=-s -w -buildid=', '-o', out, pkg]
     print(f"Compiling {out} ({arch}) standard (container-slim)...")
     res = subprocess.run(cmd, env=env, capture_output=True, text=True)
     if res.returncode == 0:
@@ -57,3 +54,4 @@ for arch, pkg, out in container_targets:
 
 print("\n🎉 Phase 2: Container-slim cubexd binaries compiled!")
 print("🎉 All compilation complete!")
+

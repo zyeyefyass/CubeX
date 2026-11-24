@@ -236,17 +236,52 @@ else
     DNS_ARG="--nameserver 223.5.5.5"
 fi
 
-# 检查容器 ID 冲突自愈与原地升级判定 (若已运行 CubeX 则进入保留数据平滑升级模式)
+# 检查容器 ID 冲突自愈与原地升级判定 (静态磁盘探测，严禁自动 destroy 清空老配置)
 IS_UPGRADE=0
 if pct status "$CT_ID" >/dev/null 2>&1 || [ -f "/etc/pve/lxc/${CT_ID}.conf" ]; then
-    if pct exec "$CT_ID" -- test -f /opt/CubeX/bin/cubexd >/dev/null 2>&1; then
+    echo -e "${BLUE}🔍 发现已存在容器 CT ${CT_ID}，正在执行静态磁盘挂载安全探测...${NC}"
+    MOUNT_DIR=$(pct mount "$CT_ID" 2>/dev/null || true)
+    
+    # 架构铁律：通过 trap 确保任何异常退出均执行 pct unmount，防止挂载残留锁死容器
+    CLEANUP_LXC_MOUNT() {
+        if [ -n "$MOUNT_DIR" ]; then
+            pct unmount "$CT_ID" >/dev/null 2>&1 || true
+            MOUNT_DIR=""
+        fi
+    }
+    trap CLEANUP_LXC_MOUNT EXIT INT TERM
+    
+    CUBEX_EXISTS=0
+    if [ -n "$MOUNT_DIR" ]; then
+        # 兼容 /opt/cubex 与旧版 /opt/CubeX 路径，同时探测核心二进制或用户数据目录
+        if [ -f "$MOUNT_DIR/opt/cubex/bin/cubexd" ] || [ -f "$MOUNT_DIR/opt/CubeX/bin/cubexd" ] || \
+           [ -d "$MOUNT_DIR/opt/cubex/data" ] || [ -d "$MOUNT_DIR/opt/CubeX/data" ]; then
+            CUBEX_EXISTS=1
+        fi
+        pct unmount "$CT_ID" >/dev/null 2>&1 || true
+        MOUNT_DIR=""
+    else
+        # 容器运行中时备用动态探测
+        if pct exec "$CT_ID" -- test -f /opt/cubex/bin/cubexd >/dev/null 2>&1 || \
+           pct exec "$CT_ID" -- test -f /opt/CubeX/bin/cubexd >/dev/null 2>&1 || \
+           pct exec "$CT_ID" -- test -d /opt/cubex/data >/dev/null 2>&1 || \
+           pct exec "$CT_ID" -- test -d /opt/CubeX/data >/dev/null 2>&1; then
+            CUBEX_EXISTS=1
+        fi
+    fi
+    
+    if [ "$CUBEX_EXISTS" -eq 1 ]; then
         echo -e "${GREEN}💡 检测到容器 CT ${CT_ID} 已运行 CubeX，进入保留用户订阅与规则的平滑升级模式...${NC}"
         IS_UPGRADE=1
         pct start "$CT_ID" >/dev/null 2>&1 || true
     else
-        echo -e "${YELLOW}⚠️ 检测到容器 CT ${CT_ID} 为非 CubeX 旧沙盒，正在安全清理以备全新部署...${NC}"
-        pct stop "$CT_ID" >/dev/null 2>&1 || true
-        pct destroy "$CT_ID" --purge 1 >/dev/null 2>&1 || true
+        # 架构铁律：彻底禁止无交互自动执行 pct destroy --purge 1，防范误杀老用户容器与业务数据！
+        echo -e "${RED}❌ 检测到容器 CT ${CT_ID} 已存在，但未检测到 CubeX 核心文件或配置目录！${NC}"
+        echo -e "${YELLOW}🛡️ [安全保护] 为防止误删除您的关键业务数据，已阻断自动销毁。${NC}"
+        echo -e "${YELLOW}如确认该容器无用且需完全清空重装，请在 PVE 宿主终端手动执行:${NC}"
+        echo -e "${CYAN}   pct stop ${CT_ID} && pct destroy ${CT_ID} --purge 1${NC}"
+        echo -e "${YELLOW}然后再重新运行本脚本进行全新部署。${NC}"
+        exit 1
     fi
 fi
 
@@ -474,7 +509,7 @@ if [ -z "$CHOSEN_ZIP" ]; then
             [ -n "$REL_TAG" ] && break
         done
     fi
-    [ -z "$REL_TAG" ] && REL_TAG="v9.9.8"
+    [ -z "$REL_TAG" ] && REL_TAG="v9.9.9"
 
     ZIP_NAME="CubeX-${REL_TAG}-linux-${PVE_ARCH}.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"

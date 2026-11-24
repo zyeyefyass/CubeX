@@ -36,6 +36,7 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/sub"
 	"github.com/zyeyefyass/CubeX/internal/telemetry"
 	"github.com/zyeyefyass/CubeX/internal/themes"
+	"github.com/zyeyefyass/CubeX/internal/traffic"
 	"github.com/zyeyefyass/CubeX/internal/upstream"
 	"io"
 	"log"
@@ -270,6 +271,7 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 	}
 
 	srv.mcpServer = mcp.NewServer(srv, "v9.7.0")
+	srv.monthlyLedger = traffic.NewMonthlyLedger(dir)
 	srv.autoSyncGuard = sub.NewAutoSyncGuard()
 	if cfgIR != nil && len(cfgIR.Proxies) > 0 {
 		srv.autoSyncGuard.SetInitialState(cfgIR.Proxies)
@@ -1009,6 +1011,8 @@ type Server struct {
 
 	mcpServer *mcp.Server
 
+	monthlyLedger *traffic.MonthlyLedger
+
 	smartPingMutex sync.RWMutex
 
 	smartPingEnabled bool
@@ -1033,6 +1037,9 @@ type Server struct {
 // Close gracefully stops the server background workers and sets draining
 func (s *Server) Close() {
 	s.draining.Store(true)
+	if s.monthlyLedger != nil {
+		s.monthlyLedger.Close()
+	}
 	s.stopOnce.Do(func() {
 		if s.stopCh != nil {
 			close(s.stopCh)
@@ -1059,6 +1066,9 @@ func (s *Server) UpdateIRAndReload(ir *schema.ConfigIR, debounce time.Duration) 
 		s.reloadTimer.Stop()
 	}
 	s.reloadTimer = time.AfterFunc(debounce, func() {
+		if s.monthlyLedger != nil {
+			_ = s.monthlyLedger.Flush()
+		}
 		if s.engMgr != nil {
 			_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
 			runtime.GC()

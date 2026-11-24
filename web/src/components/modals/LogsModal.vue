@@ -30,6 +30,13 @@
                 <span v-if="connections.length > 0" class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
               </button>
             </div>
+
+            <!-- Issue #9 当月代理出站流量素雅概览 (已剥离 DIRECT / REJECT) -->
+            <div class="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800/80 border border-slate-700/80 text-[11px] font-mono text-slate-300 select-none">
+              <span class="text-sky-400 font-bold">📊 当月代理出站:</span>
+              <span class="text-white font-bold">{{ monthlyTraffic.total_human || '0 B' }}</span>
+              <span class="text-slate-400 text-[10px]">(↑ {{ monthlyTraffic.uplink_human || '0 B' }} / ↓ {{ monthlyTraffic.downlink_human || '0 B' }})</span>
+            </div>
           </div>
 
           <!-- Right Controls for Logs Tab -->
@@ -376,10 +383,28 @@ const loadingConns = ref(false)
 const toastMessage = ref('')
 let toastTimer = null
 
+const monthlyTraffic = ref({
+  year_month: '',
+  uplink_human: '0 B',
+  downlink_human: '0 B',
+  total_human: '0 B'
+})
+
+async function fetchMonthlyTraffic() {
+  try {
+    const res = await fetch('/api/v1/traffic/monthly')
+    const data = await res.json()
+    if (data && data.ok) {
+      monthlyTraffic.value = data
+    }
+  } catch (e) {}
+}
+
 // Native Dialog Open/Close watcher
 watch(() => app?.showLogsModal, async (val) => {
   await nextTick()
   if (val) {
+    fetchMonthlyTraffic()
     if (dialogRef.value && !dialogRef.value.open) {
       try {
         dialogRef.value.showModal()

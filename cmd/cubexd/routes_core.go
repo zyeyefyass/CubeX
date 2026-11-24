@@ -391,6 +391,8 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 
 	mux.HandleFunc("/api/v1/engine/group/select", s.handleGroupSelect)
 
+	mux.HandleFunc("/api/v1/traffic/monthly", s.handleTrafficMonthly)
+
 	mux.HandleFunc("/api/v1/engine/proxy/delay", s.handleProxyDelay)
 	mux.HandleFunc("/api/v1/smartping/status", s.handleSmartPingStatus)
 	mux.HandleFunc("/api/v1/smartping/config", s.handleSmartPingConfig)
@@ -624,6 +626,12 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 		if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/sub/") {
 			http.NotFound(w, r)
 			return
+		}
+		// 严防离线假在线：对根页面与 html 禁用强缓存
+		if r.URL.Path == "/" || strings.HasSuffix(r.URL.Path, ".html") {
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("Expires", "0")
 		}
 		precompressedServer.ServeHTTP(w, r)
 	})
@@ -2268,7 +2276,25 @@ func (s *Server) handleSnapshotStatus(w http.ResponseWriter, r *http.Request) {
 	sendJSON(w, map[string]any{"status": "ok", "snapshot": snapMeta})
 }
 
-// ── v9.4.0 User Overrides & Top-N Client Inspector ──
+func (s *Server) handleTrafficMonthly(w http.ResponseWriter, r *http.Request) {
+	if s.monthlyLedger == nil {
+		sendJSON(w, map[string]any{"ok": false, "error": "ledger not initialized"})
+		return
+	}
+	summary := s.monthlyLedger.GetMonthlySummary()
+	sendJSON(w, map[string]any{
+		"ok":             true,
+		"year_month":     summary.YearMonth,
+		"uplink":         summary.Uplink,
+		"downlink":       summary.Downlink,
+		"total":          summary.Total,
+		"uplink_human":   summary.UplinkHuman,
+		"downlink_human": summary.DownlinkHuman,
+		"total_human":    summary.TotalHuman,
+		"updated_at":     summary.UpdatedAt,
+	})
+}
+
 
 
 

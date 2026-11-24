@@ -11,6 +11,7 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/security"
 	"github.com/zyeyefyass/CubeX/internal/sub"
 	"github.com/zyeyefyass/CubeX/internal/telemetry"
+	"github.com/zyeyefyass/CubeX/internal/traffic"
 	"math"
 	"net"
 	"net/http"
@@ -499,13 +500,16 @@ func (s *Server) startTrafficCollector() {
 						r, err := s.httpClient.Get(fmt.Sprintf("http://127.0.0.1:%d/connections", cp))
 						if err == nil && r.StatusCode == http.StatusOK {
 							var cr struct {
-								DownloadTotal int64             `json:"downloadTotal"`
-								UploadTotal   int64             `json:"uploadTotal"`
-								Connections   []json.RawMessage `json:"connections"`
+								DownloadTotal int64                    `json:"downloadTotal"`
+								UploadTotal   int64                    `json:"uploadTotal"`
+								Connections   []traffic.ConnectionMeta `json:"connections"`
 							}
 							if json.NewDecoder(r.Body).Decode(&cr) == nil {
 								s.recordTrafficSample(cr.UploadTotal, cr.DownloadTotal)
 								s.liveConnCount.Store(int32(len(cr.Connections)))
+								if s.monthlyLedger != nil && len(cr.Connections) > 0 {
+									s.monthlyLedger.ProcessConnections(cr.Connections)
+								}
 							}
 							netutil.DrainAndCloseBody(r)
 						}

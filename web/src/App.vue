@@ -159,6 +159,18 @@
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
 
+    <!-- ⚠️ 离线失联感知遮罩与提示条 (连续 2 次探测失败触发 · 严防离线假在线) -->
+    <div v-if="!isBackendOnline" class="fixed inset-x-0 top-0 z-[9999] bg-rose-950/95 border-b border-rose-500/50 text-rose-200 px-4 py-2.5 shadow-2xl flex items-center justify-between gap-3 text-xs animate-in slide-in-from-top duration-300">
+      <div class="flex items-center gap-2 font-mono">
+        <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+        <span class="font-bold text-white text-sm">⚠️ 后端服务失联 (容器已停止或网络中断)</span>
+        <span class="text-rose-300 hidden sm:inline">| 当前界面为离线静态快照，控制已锁定。正在自动重连... (已重试 {{ offlineFailureCount }} 次)</span>
+      </div>
+      <button @click="checkBackendHeartbeat" class="px-3 py-1 rounded-lg bg-rose-800/80 hover:bg-rose-700 text-white font-semibold transition active:scale-95 text-xs shrink-0 cursor-pointer">
+        立即重试
+      </button>
+    </div>
+
     <div :class="['flex-1 min-h-0 flex flex-col h-full relative overflow-hidden w-full max-w-full transition-opacity duration-300', isPeekMode ? 'zootopia-peek-active' : '']">
       <!-- 🚀 暮光冰晶固定顶栏 (Twilight Cockpit Topbar) -->
       <TwilightTopBar
@@ -172,6 +184,7 @@
         @open-search="showCommandPalette = true"
         @switch-engine="switchEngine"
         @toggle-peek="togglePeekMode"
+        @open-logs="showLogsModal = !showLogsModal"
       />
 
       <!-- 🚀 下方独立滚动视口 (硬性高度约束 + contain: content，隔绝合成器重绘，稳跑 60FPS) -->
@@ -1914,6 +1927,13 @@
 
                   <div v-if="expandedRegion[reg.id]" class="pt-2.5 border-t border-slate-800/60 space-y-2 animate-in fade-in duration-200">
 
+                    <!-- 真实空状态展示（彻底告别 3 个虚假 Mock 节点） -->
+                    <div v-if="!reg.providers || reg.providers.length === 0 || reg.totalCount === 0" class="py-6 text-center text-xs text-slate-400 space-y-2 select-none">
+                      <div class="text-2xl">📭</div>
+                      <div class="font-bold text-slate-300">当前分组暂无可用节点</div>
+                      <div class="text-[11px] text-slate-400">请在下方「订阅与节点管理」导入订阅或批量添加自建节点</div>
+                    </div>
+
                     <div v-for="provider in reg.providers" :key="provider.name" class="space-y-1">
 
                       <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
@@ -1983,6 +2003,16 @@
                                 class="text-[9px] px-1 rounded bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 font-bold transition active:scale-95 cursor-pointer"
                                 title="触发单节点 ≤2MB 闪电测速">
                                 ⚡
+                              </button>
+                              <button @click.stop="setNodeAsPrimaryOutbound(node.name)"
+                                class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/20 hover:bg-sky-500/40 text-sky-300 border border-sky-400/30 font-semibold transition active:scale-95 cursor-pointer whitespace-nowrap"
+                                title="⚡ 立即设为当前分流主力节点">
+                                ⚡主力
+                              </button>
+                              <button @click.stop="deleteNode(node.name)"
+                                class="text-[9px] px-1 py-0.5 rounded bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 font-semibold transition active:scale-95 cursor-pointer"
+                                title="移除此节点">
+                                ✕
                               </button>
                             </div>
 
@@ -3929,7 +3959,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('ikuai') || name.includes('ikuai') || name.includes('爱快')) {
-    let ver = hw.version || 'v9.9.8'
+    let ver = hw.version || 'v9.9.9'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: '爱快 iKuai',
@@ -3938,7 +3968,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('openwrt') || name.includes('openwrt') || name.includes('lede')) {
-    let ver = hw.version || 'v9.9.8'
+    let ver = hw.version || 'v9.9.9'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: 'OpenWrt',
@@ -3956,7 +3986,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('fnos') || name.includes('fnos') || name.includes('飞牛')) {
-    let ver = hw.version || 'v9.9.8'
+    let ver = hw.version || 'v9.9.9'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: '飞牛 fnOS',
@@ -5782,6 +5812,39 @@ function togglePeekMode() {
       peekModeGuardCleanup = null
     })
     showToast('🐰🦊 已开启赏景模式 · 移动鼠标(>45px)、点击或按 ESC 恢复')
+  }
+}
+
+// ⚠️ 离线失联感知与自愈恢复心跳 (连续 2 次探测失败触发离线提示遮罩，严防静默假在线)
+const isBackendOnline = ref(true)
+const offlineFailureCount = ref(0)
+let backendHeartbeatTimer = null
+
+async function checkBackendHeartbeat() {
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 2000)
+    const res = await fetch('/api/health', { signal: controller.signal, cache: 'no-store' })
+    clearTimeout(timer)
+    if (res.ok) {
+      if (!isBackendOnline.value) {
+        showToast('🟢 已成功恢复与 CubeX 后端服务的连接！')
+        await fetchSystemOverview()
+        await fetchIR()
+      }
+      isBackendOnline.value = true
+      offlineFailureCount.value = 0
+    } else {
+      offlineFailureCount.value++
+      if (offlineFailureCount.value >= 2) {
+        isBackendOnline.value = false
+      }
+    }
+  } catch (e) {
+    offlineFailureCount.value++
+    if (offlineFailureCount.value >= 2) {
+      isBackendOnline.value = false
+    }
   }
 }
 
@@ -15832,11 +15895,11 @@ function getRegionNodes(reg) {
 
   }
 
-  // 5. Default CUSTOM: 自建节点 (用户手动添加或标注自建的节点)
+  // 5. Default CUSTOM: 自建节点 (用户手动添加或标注自建的节点 100% 纳入展示)
 
-  if (merged.id === 'CUSTOM') {
+  if (merged.id === 'CUSTOM' || merged.id === 'custom' || merged.type === 'custom' || merged.name === '自建' || merged.country_code === 'CUSTOM') {
 
-    return proxies.filter(p => p.sub_id === 'custom' || p.name.startsWith('[自建]') || (!p.sub_id && !p.name.includes('Hhost') && !p.name.includes('Mtice') && !p.name.includes('Jscloud') && !p.name.includes('Niubi') && !p.name.includes('Forest') && !p.name.includes('Kuailei') && !/(港|hk|台|tw|新|sg|日|jp|韩|kr|美|us)/i.test(p.name)))
+    return proxies.filter(p => p.sub_id === 'custom' || p.is_custom || p.name.startsWith('[自建]') || (!p.sub_id && !p.name.includes('Hhost') && !p.name.includes('Mtice') && !p.name.includes('Jscloud') && !p.name.includes('Niubi') && !p.name.includes('Forest') && !p.name.includes('Kuailei') && !/(港|hk|台|tw|新|sg|日|jp|韩|kr|美|us)/i.test(p.name)))
 
   }
 
@@ -15894,13 +15957,11 @@ function getRegionNodes(reg) {
 
   }
 
-  // 7. 标准国家/地区正则匹配 (排除自建, 必须保证 regObj.test 是函数)
+  // 7. 标准国家/地区正则匹配 (必须保证 regObj.test 是函数)
 
   if (regObj && typeof regObj.test === 'function') {
 
     return proxies.filter(p => {
-
-      if (p.sub_id === 'custom' || p.name.startsWith('[自建]')) return false
 
       if (isTaiwanGroup && /(hhost[-_ ]?jp)/i.test(p.name)) return false
 
@@ -18515,7 +18576,7 @@ const regionalAutoGroups = computed(() => {
 
     }
 
-    const winnerName = winnerNode ? winnerNode.name : (nodes.length > 0 ? nodes[0].name : '等待测速优选')
+    const winnerName = winnerNode ? winnerNode.name : (nodes.length > 0 ? nodes[0].name : '暂无可用节点')
 
     const winnerLat = winnerNode ? winnerNode.delay : 0
 
@@ -18587,31 +18648,9 @@ const regionalAutoGroups = computed(() => {
 
     })
 
-    if (providers.length === 0 && proxies.length === 0) {
+    const testedCount = nodes.filter(n => n.delay > 0).length
 
-      const mockName = reg.id === 'CUSTOM' ? '自建' : '订阅节点'
-
-      providers.push({
-
-        name: mockName,
-
-        nodes: [
-
-          { name: `${mockName} | ${reg.name}-01`, type: 'vless', delay: winnerLat },
-
-          { name: `${mockName} | ${reg.name}-02`, type: 'ss', delay: winnerLat + 15 },
-
-          { name: `${mockName} | ${reg.name}-03`, type: 'trojan', delay: winnerLat + 28 }
-
-        ]
-
-      })
-
-    }
-
-    const testedCount = nodes.filter(n => n.delay > 0).length || (proxies.length === 0 ? 3 : 0)
-
-    const totalCount = nodes.length || (proxies.length === 0 ? (providers[0]?.nodes.length || 3) : 0)
+    const totalCount = nodes.length
 
     groups.push({
 
@@ -20242,7 +20281,7 @@ async function submitBatchNodes() {
 
     if (data.ok) {
 
-      showToast(`🎉 批量添加完成！成功导入 ${data.added_nodes} 个自建节点`)
+      showToast(`🎉 成功导入 ${data.added_nodes} 个自建节点！已自动归入「自建」节点组`)
 
       batchNodeText.value = ''
 
@@ -20251,6 +20290,19 @@ async function submitBatchNodes() {
       await fetchIR()
 
       subInlineTab.value = 'list'
+
+      // 自动确保自建分组在列表中可见
+      if (deletedRegionIds.value.includes('CUSTOM')) {
+        deletedRegionIds.value = deletedRegionIds.value.filter(id => id !== 'CUSTOM')
+      }
+
+      // 如果仅添加了单个自建节点，自动提示并联动设为主力分流节点
+      if (items.length === 1) {
+        const target = (ir.value.proxies || []).find(p => p.sub_id === 'custom' || p.name.startsWith('[自建]'))
+        if (target) {
+          await setNodeAsPrimaryOutbound(target.name)
+        }
+      }
 
     } else {
 
@@ -21062,15 +21114,33 @@ async function runSubSpeedTest(subId) {
 
 async function setNodeAsPrimaryOutbound(nodeName) {
 
-  const grp = ir.value.groups?.find(g => g.name === '🚀 节点选择') || ir.value.groups?.[0]
+  if (!nodeName) return
 
-  if (grp) {
+  const allGroups = ir.value.groups || []
+  let switchedCount = 0
 
-    await selectGroupProxy(grp.name, nodeName)
+  for (const grp of allGroups) {
+    // 排除自动测速与故障转移等非手动选择组
+    const isAutoGroup = /(自动|故转|容灾|fallback|url-test|urltest|load-balance)/i.test(grp.type || '') ||
+                        /(自动|故转|容灾)/.test(grp.name)
+    if (isAutoGroup) continue
 
-    showToast(`已将主出口节点切为: ${nodeName}`)
-
+    // 如果该组包含该节点，或者是主力业务出站组（如节点选择、PROXY、GLOBAL、国外流量、漏网之鱼）
+    const isPrimarySelector = /(节点选择|proxy|global|国外|海外|漏网)/i.test(grp.name) ||
+                              (grp.proxies && grp.proxies.includes(nodeName))
+    if (isPrimarySelector) {
+      await selectGroupNode(grp.name, nodeName)
+      switchedCount++
+    }
   }
+
+  if (switchedCount === 0 && allGroups.length > 0) {
+    await selectGroupNode(allGroups[0].name, nodeName)
+    switchedCount++
+  }
+
+  activeSelectedNode.value = nodeName
+  showToast(`⚡ 已成功将「${nodeName}」设为当前分流主力节点 (联动 ${switchedCount} 个业务组)`)
 
 }
 
@@ -22068,6 +22138,7 @@ async function runAuthorizedMountLoad() {
 
 provide('cubexApp', reactive({
   showToast,
+  isBackendOnline, checkBackendHeartbeat,
   activeEngine, adblockStats, addFakeIpFilter, addWhitelistItem, aiActionResult, aiActions, aiConfig, aiLoading, aiPresetQuestions, aiPrompt, aiProviders, aiReply, authState, batchAddingNodes, batchImportingSubs, batchNodeText, batchSubText, chaosDrillReport, chaosReportModal, checkHostUpgrade, checkingGeoUpgrade, checkingHostUpgrade, chooseFreshStart, cleanActionLabelMap, cleaningRosFirewall, clearSystemLogs, completeInitWizard, confirmAndStartInitWizard, confirmSystemReboot, copyDiagnosticMarkdown, copyText, coreUpgradeFrozen, coreUpgradeLog, creatingGithubIssue, customNodes, deleteDnsRewriteRule, deleteNode, deleteSourceItem, deleteSubscription, diagnosticModal, displayedLogs, dnsBlockedLastY, dnsBlockedPath, dnsFilterStats, dnsLatencyLastY, dnsLatencyPath, dnsQueryLastY, dnsQueryPath, dnsRewriteConfig, editingDnsRewriteRule, editingRuleSource, executeAIAction, executeHostUpgrade, executingAIActionId, executingHostUpgrade, executionModal, exportBackup, fakeIpFilters, fakeIpLoading, fetchDnsFilterStats, fetchRouterHardware, fetchSystemLogs, filterConfig, filteredGeodataFiles, formatExpire, geoAutoUpdateEnabled, geoUpdateLog, geodataFilterCategory, geodataFilterEngine, geodataLastUpdateText, geodataSearchQuery, geodataStatus, getNodeDelayClass, getSubRegions, handleInitBackupUpload, handleInitFileDrop, hasAnyUpdate, healingSteps, hostBadge, hostConfig, hostInfo, hostLastExecution, hostUpgradeDetails, hostUpgradeResult, importBackup, initBackupFileInput, initDetectedPlatform, initExecuting, initHostForm, initImportStats, initImportSuccess, initImporting, initLogs, initWizardImportTab, initWizardStep, inspectAndCleanReapplyRos, ir, isHotRestarting, isIKuai, isOpenWrt, isProbingAll, isRouterOS, isSubDrawerExpanded, isUpdatingSource, launchFireworks, lockConsoleNow, logContainerRef, logFilterLevel, logFilterModule, logSearchQuery, newFakeIpInput, newWhitelistDomain, openAddDnsRewriteModal, openAddSourceModal, openEditDnsRewriteModal, openEditSourceModal, openGitHubIssuePrompt, openProbeModal, openSourcePreview, openUpgradeModal, panelUpgradeLog, parsedBatchNodes, parsedBatchSubs, previewingSource, probeAllFourDimensions, probeChecked, probeLastTime, refreshSourceItem, removeFakeIpFilter, removeWhitelistItem, resetDnsRewriteDefaults, routerHW, routerHWMemoryDisplay, runSecurityAudit, runSubSpeedTest, saveAIConfig, saveDnsRewriteRule, saveFilterAutoUpdate, saveRuleSource, savingAndLinkingHost, securityAudit, selectAIProvider, sendAIChat, setNodeAsPrimaryOutbound, showAISettingsModal, showAuthManageModal, showDnsRewriteModal, showImportModal, showInitWizardModal, showLogsModal, showProbeModal, showGeodataDetailModal, showRuleSourceModal, showSourcePreviewModal, saveCredentialsAndLinkHost, startInitStep3Execution, stopFireworks, subHealthMap, subMetaMap, subModalTab, subNodesMap, subQuotaMap, subSpeedTesting, submitBatchNodes, submitBatchSubs, submitInitWizardImportAndLaunch, systemOverview, toggleCoreUpgradeFreeze, toggleDnsRewriteMaster, toggleDnsRewriteRule, toggleFilterMaster, toggleGeoAutoUpdate, toggleSourceItem, toggleSubDrawer, toggleSubscription, triggerFastSelfHeal, triggerHotRestart, triggerWANHeal, triggerInitBackupSelect, triggerQuickAIPrompt, updateAllSubscriptions, updateDetailText, updateGeoData, updateSubscription, updateSummaryText, updatingGeo, upgradeCore, upgradePanel, upgradingCoreMihomo, upgradingCoreSingbox, upgradingPanel, uploadToGithubIssue
 }))
 
@@ -22110,9 +22181,23 @@ onMounted(async () => {
       if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') {
         e.preventDefault()
         routingSearchInput.value?.focus()
+        return
+      }
+    }
+
+    // 5. 快捷键 L / Alt+L 唤起或收起实时系统日志与终端
+    if ((e.key === 'l' || e.key === 'L') && !e.ctrlKey && !e.metaKey) {
+      const tag = document.activeElement?.tagName?.toLowerCase()
+      if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') {
+        e.preventDefault()
+        showLogsModal.value = !showLogsModal.value
+        return
       }
     }
   })
+
+  // 启动后台离线失联感知心跳
+  backendHeartbeatTimer = setInterval(checkBackendHeartbeat, 4000)
 
   const _authInit = await refreshConsoleAuthStatus()
   fetchThemes()
