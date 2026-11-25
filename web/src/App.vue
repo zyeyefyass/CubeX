@@ -13637,6 +13637,16 @@ async function saveCredentialsAndLinkHost() {
 
   showToast('🔍 正在测试宿主连接并验证凭据...')
 
+  const fetchWithTimeout = async (url, options = {}, timeoutMs = 15000) => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+    try {
+      return await fetch(url, { ...options, signal: controller.signal })
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
   try {
 
     const payload = {
@@ -13651,7 +13661,7 @@ async function saveCredentialsAndLinkHost() {
 
     // 1. Test host connection (RouterOS REST / iKuai Web-RPC / OpenWrt SSH)
 
-    const testRes = await fetch('/api/v1/host/test', {
+    const testRes = await fetchWithTimeout('/api/v1/host/test', {
 
       method: 'POST',
 
@@ -13659,7 +13669,7 @@ async function saveCredentialsAndLinkHost() {
 
       body: JSON.stringify(payload)
 
-    })
+    }, 15000)
 
     const testData = await testRes.json()
 
@@ -13683,7 +13693,7 @@ async function saveCredentialsAndLinkHost() {
 
     const tasks = [
 
-      fetch('/api/v1/host/config', {
+      fetchWithTimeout('/api/v1/host/config', {
 
         method: 'POST',
 
@@ -13691,7 +13701,7 @@ async function saveCredentialsAndLinkHost() {
 
         body: JSON.stringify({ ...hostConfig.value, platform_type: detectedPlat || hostConfig.value.platform_type, enabled: true })
 
-      })
+      }, 10000)
 
     ]
 
@@ -13711,7 +13721,7 @@ async function saveCredentialsAndLinkHost() {
 
       }
 
-      tasks.push(fetch('/api/v1/ros/config', {
+      tasks.push(fetchWithTimeout('/api/v1/ros/config', {
 
         method: 'POST',
 
@@ -13719,7 +13729,7 @@ async function saveCredentialsAndLinkHost() {
 
         body: JSON.stringify(creds)
 
-      }))
+      }, 10000))
 
     }
 
@@ -13759,13 +13769,16 @@ async function saveCredentialsAndLinkHost() {
 
     showToast('⚡ 凭据测试通过，正在全自动编排宿主策略路由与网络转发...')
 
-    const autoRes = await fetch('/api/v1/host/auto-setup', { method: 'POST' })
+    const autoRes = await fetchWithTimeout('/api/v1/host/auto-setup', { method: 'POST' }, 25000)
 
     const autoData = await autoRes.json()
 
     // 4. Refresh telemetry
 
-    await refreshHostTelemetry()
+    await Promise.race([
+      refreshHostTelemetry(),
+      new Promise(resolve => setTimeout(resolve, 6000))
+    ])
 
     refreshHealthRadar()
 
@@ -13781,7 +13794,8 @@ async function saveCredentialsAndLinkHost() {
 
   } catch (e) {
 
-    showToast('🎉 宿主凭据已保存并下发联动')
+    const msg = e?.name === 'AbortError' ? '宿主连接或联动请求超时，请检查主路由 API 端口与网络可达性后重试' : (e?.message || '网络异常')
+    showToast('❌ 宿主联动失败: ' + msg, true)
 
   } finally {
 

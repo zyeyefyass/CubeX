@@ -74,6 +74,7 @@ type Manager struct {
 	// URLOptimizer optionally rewrites download URLs through custom mirror
 
 	URLOptimizer func(rawURL string) string
+	urlOptMu     sync.RWMutex
 
 	lastConnected bool
 
@@ -259,17 +260,17 @@ func NewManager(rootDir string) *Manager {
 
 }
 
-// SetURLOptimizer sets the URL rewrite hook safely under mutex.
+// SetURLOptimizer sets the URL rewrite hook safely under dedicated mutex.
 func (m *Manager) SetURLOptimizer(fn func(rawURL string) string) {
-	m.mu.Lock()
+	m.urlOptMu.Lock()
 	m.URLOptimizer = fn
-	m.mu.Unlock()
+	m.urlOptMu.Unlock()
 }
 
 func (m *Manager) optimizeURL(rawURL string) string {
-	m.mu.RLock()
+	m.urlOptMu.RLock()
 	fn := m.URLOptimizer
-	m.mu.RUnlock()
+	m.urlOptMu.RUnlock()
 	if fn != nil {
 		return fn(rawURL)
 	}
@@ -403,10 +404,6 @@ func (m *Manager) refreshVersionsAsync() {
 
 func (m *Manager) GetOverview() map[string]any {
 
-	m.mu.Lock()
-
-	defer m.mu.Unlock()
-
 	mihomoVer := m.getLocalMihomoVersion()
 
 	panelVer := m.getLocalPanelVersion()
@@ -415,7 +412,14 @@ func (m *Manager) GetOverview() map[string]any {
 
 	rosConnected, rosVersion := m.checkROSConnection()
 
+	m.mu.RLock()
 	latestMihomo := m.cachedLatestMihomo
+	latestPanel := m.cachedLatestPanel
+	latestSingbox := m.cachedLatestSingbox
+	latestGeo := m.cachedLatestGeoVer
+	freeHdd := m.lastFreeHddSpace
+	totalHdd := m.lastTotalHddSpace
+	m.mu.RUnlock()
 
 	if latestMihomo == "" {
 
@@ -423,15 +427,11 @@ func (m *Manager) GetOverview() map[string]any {
 
 	}
 
-	latestPanel := m.cachedLatestPanel
-
 	if latestPanel == "" {
 
 		latestPanel = "v9.94"
 
 	}
-
-	latestSingbox := m.cachedLatestSingbox
 
 	if latestSingbox == "" {
 
@@ -446,8 +446,6 @@ func (m *Manager) GetOverview() map[string]any {
 	singboxUpdateAvail := IsVersionNewer(latestSingbox, singboxVer)
 
 	// Geo rules update detection
-
-	latestGeo := m.cachedLatestGeoVer
 
 	geoVer := "20261021"
 
@@ -473,11 +471,11 @@ func (m *Manager) GetOverview() map[string]any {
 
 		"ros_version": rosVersion,
 
-		"ros_free_hdd_mb": m.lastFreeHddSpace / (1024 * 1024),
+		"ros_free_hdd_mb": freeHdd / (1024 * 1024),
 
-		"ros_total_hdd_mb": m.lastTotalHddSpace / (1024 * 1024),
+		"ros_total_hdd_mb": totalHdd / (1024 * 1024),
 
-		"ros_hdd_warning": m.lastFreeHddSpace > 0 && (m.lastFreeHddSpace < 200*1024*1024),
+		"ros_hdd_warning": freeHdd > 0 && (freeHdd < 200*1024*1024),
 
 		"mihomo_curr_version": mihomoVer,
 
@@ -1320,11 +1318,11 @@ func (m *Manager) getEffectiveLocalPanelVersion() string {
 
 func (m *Manager) IsConnected() bool {
 
-	m.mu.Lock()
+	m.mu.RLock()
+	cached := m.lastConnected && time.Since(m.lastConnectedAt) < 10*time.Second
+	m.mu.RUnlock()
 
-	defer m.mu.Unlock()
-
-	if m.lastConnected && time.Since(m.lastConnectedAt) < 10*time.Second {
+	if cached {
 
 		return true
 
@@ -2012,12 +2010,6 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 
 			}
 
-			m.lastConnected = true
-
-			m.lastConnectedAt = time.Now()
-
-			m.lastVersion = ver
-
 			parseSpace := func(val any) int64 {
 
 				if val == nil {
@@ -2044,25 +2036,24 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 
 			}
 
-			if free := parseSpace(resource.FreeHddSpace); free > 0 {
+			free := parseSpace(resource.FreeHddSpace)
+			total := parseSpace(resource.TotalHddSpace)
 
+			m.mu.Lock()
+			m.lastConnected = true
+			m.lastConnectedAt = time.Now()
+			m.lastVersion = ver
+			if free > 0 {
 				m.lastFreeHddSpace = free
-
 			}
-
-			if total := parseSpace(resource.TotalHddSpace); total > 0 {
-
+			if total > 0 {
 				m.lastTotalHddSpace = total
-
 			}
-
-			if m.config.Port != p {
-
+			if m.config.Host == host && m.config.User == user && m.config.Port != p {
 				m.config.Port = p
-
 				_ = m.saveConfigLocked()
-
 			}
+			m.mu.Unlock()
 
 			return true, ver
 
@@ -2070,9 +2061,10 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 
 	}
 
+	m.mu.Lock()
 	m.lastConnected = false
-
 	m.lastVersion = ""
+	m.mu.Unlock()
 
 	return false, ""
 
@@ -2082,10 +2074,6 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 
 func (m *Manager) GetFullPlatformInfo() (connected bool, platformName string) {
 
-	m.mu.Lock()
-
-	defer m.mu.Unlock()
-
 	conn, ver := m.checkROSConnection()
 
 	if conn && ver != "" {
@@ -2094,9 +2082,14 @@ func (m *Manager) GetFullPlatformInfo() (connected bool, platformName string) {
 
 	}
 
-	if m.lastVersion != "" {
+	m.mu.RLock()
+	lastConn := m.lastConnected
+	lastVer := m.lastVersion
+	m.mu.RUnlock()
 
-		return m.lastConnected, "RouterOS " + m.lastVersion
+	if lastVer != "" {
+
+		return lastConn, "RouterOS " + lastVer
 
 	}
 
