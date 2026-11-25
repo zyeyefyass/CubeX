@@ -19,9 +19,8 @@ services:
       - /dev/net/tun:/dev/net/tun
     volumes:
       # 持久化存储目录 (确保宿主重启数据与配置零丢失)
-      - /vol1/1000/docker/cubex/etc:/opt/CubeX/etc
-      - /vol1/1000/docker/cubex/data:/opt/CubeX/data
-      - /vol1/1000/docker/cubex/rules:/opt/CubeX/rules
+      - /vol1/1000/docker/cubex/etc:/app/etc
+      - /vol1/1000/docker/cubex/data:/app/data
       - /etc/localtime:/etc/localtime:ro
     environment:
       - TZ=Asia/Shanghai

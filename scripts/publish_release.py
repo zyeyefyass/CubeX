@@ -6,13 +6,17 @@ CubeX 原生双栈与极速热切版 GitHub 发布自动化脚本
 - 统一通过 curl.exe --http1.1 -x PROXY 禁用 Expect: 100-continue 直传资产，支持断点续传与字节校验
 - 上传完毕后自动执行全平台 10 版本存留红线脚本
 """
+import argparse
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -20,7 +24,7 @@ ROOT_DIR = SCRIPT_DIR.parent
 RELEASE_DIR = ROOT_DIR / "dist" / "release"
 sys.path.insert(0, str(SCRIPT_DIR))
 
-from enforce_10_version_retention import get_github_token  # noqa: E402
+from enforce_10_version_retention import get_github_token, get_dockerhub_token  # noqa: E402
 
 REPO = "zyeyefyass/CubeX"
 
@@ -110,13 +114,13 @@ def gh_api(token, method, path, data=None):
     temp_file = None
     if data:
         temp_file = tempfile.NamedTemporaryFile("w", delete=False, encoding="utf-8")
-        json.dump(data, temp_file, ensure_ascii=False)
+        json.dump(data, temp_file, ensure_ascii=True)
         temp_file.close()
         cmd.extend(["-H", "Content-Type: application/json; charset=utf-8", "-d", f"@{temp_file.name}"])
 
     cmd.append(url)
     try:
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
+        res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90)
         output = res.stdout
     finally:
         if temp_file and os.path.exists(temp_file.name):
@@ -187,7 +191,7 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
         "--connect-timeout", "25",
         "--speed-limit", "20480",
         "--speed-time", "30",
-        "--max-time", "1200",
+        "--max-time", "240",
         "-X", "POST",
         "-H", f"Authorization: token {token}",
         "-H", f"Content-Type: {content_type}",
@@ -219,7 +223,7 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
         # Wait for GitHub background storage finalization
         print("   - 等待 GitHub 云端入库终审校验...", flush=True)
         success = False
-        max_waits = 12 if (res.returncode == 0 and http_code in ("200", "201")) else 3
+        max_waits = 12 if (res.returncode == 0 and http_code in ("200", "201")) else 8
         for wait_idx in range(max_waits):
             time.sleep(5)
             assets = get_assets_map(token, release_id)
@@ -252,7 +256,21 @@ def main():
     if code == 200:
         release = json.loads(body)
         print(f"   ✓ 找到已存在的 Release (ID: {release['id']})")
+    else:
+        lc, lb = gh_api(token, "GET", "/releases?per_page=20")
+        if lc == 200:
+            for item in json.loads(lb):
+                if item.get("draft") and (
+                    item.get("tag_name") == TAG
+                    or item.get("name", "").startswith(f"CubeX {TAG}")
+                ):
+                    release = item
+                    print(f"   ✓ 找到已存在的 Draft Release (ID: {release['id']})")
+                    break
+    if release:
         update_payload = {
+            "tag_name": TAG,
+            "target_commitish": "main",
             "name": RELEASE_TITLE,
             "body": RELEASE_BODY,
         }
@@ -358,11 +376,328 @@ def main():
         print(f"❌ 切换正式发布失败 (HTTP {patch_code}): {patch_res}")
         sys.exit(1)
 
+    print("\n🐳 执行 Docker Hub 仓库说明页自动同步...")
+    sync_dockerhub_description(TAG)
+
     print("\n🧹 执行全平台 10 周期存留红线清算...")
     enforce_script = SCRIPT_DIR / "enforce_10_version_retention.py"
     subprocess.run([sys.executable, str(enforce_script)], check=True)
     print("✅ 10 周期存留红线清算完成！发布流程圆满收官！")
 
 
+DOCKERHUB_MAX_BYTES = 25000
+_FORBIDDEN_WORDS = (
+    "科学上网", "出海", "翻墙", "梯子", "机场", "偷跑", "后门",
+    "绝对安全", "加密通道", "WireGuard", "wireguard",
+    "自我迭代", "自我演化", "自主进化",
+)
+
+
+def _extract_changelog_highlights(tag: str) -> str:
+    """从 CHANGELOG.md 提取指定版本的核心条目（自动回退至当前 RELEASE_BODY）。"""
+    cl_path = ROOT_DIR / "CHANGELOG.md"
+    if cl_path.exists():
+        try:
+            text = cl_path.read_text(encoding="utf-8")
+            ver_clean = tag.lstrip("v")
+            pat = re.compile(
+                rf"^##\s+\[(?:v?{re.escape(ver_clean)})\]\s*[^\n]*\n(.*?)(?=\n---|\n##\s+\[|\Z)",
+                re.MULTILINE | re.DOTALL,
+            )
+            m = pat.search(text)
+            if m:
+                lines = []
+                for ln in m.group(1).splitlines():
+                    s = ln.strip()
+                    if not s or s.startswith("### "):
+                        continue
+                    lines.append(ln)
+                if lines:
+                    return "\n".join(lines).strip()
+        except Exception:
+            pass
+    return RELEASE_BODY.split("\n---\n", 1)[0].strip()
+
+
+def sanitize_and_cap_dockerhub_text(text: str, max_bytes: int = DOCKERHUB_MAX_BYTES) -> str:
+    """强制脱敏扫描（零敏感词/零国旗图）并按 UTF-8 字节上限安全截断。"""
+    for w in _FORBIDDEN_WORDS:
+        if w in text:
+            raise ValueError(f"Docker Hub 说明命中禁词红线: {w}")
+    # 过滤国旗区域指示符 Emoji (U+1F1E6..U+1F1FF)
+    cleaned = re.sub(r"[\U0001F1E6-\U0001F1FF]{2}", "", text)
+    raw = cleaned.encode("utf-8")
+    if len(raw) <= max_bytes:
+        return cleaned
+    ellipsis = "\n\n> 内容已按平台字节上限自动截断，完整说明请查阅 GitHub Releases。"
+    limit = max_bytes - len(ellipsis.encode("utf-8"))
+    cut = raw[:limit].decode("utf-8", errors="ignore")
+    if "\n" in cut:
+        cut = cut.rsplit("\n", 1)[0]
+    return cut.rstrip() + ellipsis
+
+
+def build_dockerhub_description(tag: str, highlights: str = "") -> tuple[str, str]:
+    """构建对齐 README.md、无重复主标题、全合规常青版 Docker Hub 短描述与完整 Overview。"""
+    ver = tag if tag.startswith("v") else f"v{tag}"
+    hl = (highlights or _extract_changelog_highlights(ver)).strip()
+    short_raw = f"CubeX {ver} · 双核共生网关 · 网关DNS永指主路由 · 断流逃生 · 多架构兼容"
+    # Docker Hub repository short description 严格限制 <= 100 UTF-8 字节
+    short_bytes = short_raw.encode("utf-8")
+    short_desc = short_bytes[:96].decode("utf-8", errors="ignore").rstrip() if len(short_bytes) > 96 else short_raw
+
+    full_desc = f"""# CubeX · 全自动宿主共生双核网关（{ver}）
+
+> **核心架构卖点：终端网关和 DNS 永远指向主路由，全屋永不断线。**
+> 无需改动手机、电脑或电视的任何默认网关设置；结合 Fake-IP（`198.18.0.0/15`）精准分流、双核心（`sing-box v1.14+` ⇄ `mihomo`）毫秒热切熔断，以及主路由看门狗（RouterOS / 爱快 iKuai / OpenWrt）断流逃生与自愈回切机制，彻底告别传统旁路由升级、重启或宕机导致的全屋断网隐患。
+
+- **GitHub 官方仓库与发布页**：[https://github.com/zyeyefyass/CubeX](https://github.com/zyeyefyass/CubeX) ｜ [Releases 完整安装包与校验下载](https://github.com/zyeyefyass/CubeX/releases/latest)
+- **Web 控制台默认端口**：`http://<宿主机IP>:2026`
+
+---
+
+## 本版核心更新（{ver}）
+
+{hl}
+
+---
+
+## 为什么选择 CubeX？（架构对比与性能基线）
+
+| 对比维度 | 传统全包旁路由（改网关/全流量接管） | CubeX 宿主共生零感网关 |
+| :--- | :--- | :--- |
+| **终端接入设置** | 需逐台改动手机、电脑默认网关或 DHCP | **100% 零修改**：所有设备网关与 DNS 永远指向主路由 |
+| **故障与重启影响** | 旁路关机、升级或核心异常即全家断网 | **看门狗秒级逃生**：异常自动切回主路由直连，恢复自动回切 |
+| **国内流量路径** | 全部绕行旁路由内核，白白损耗转发带宽 | **国内直出主路由芯片**，仅 `198.18.0.0/15` 虚拟映射走分流通道 |
+| **物理内存开销** | 常驻 512MB ~ 2GB，小内存主机易 OOM | 纯 Go 单二进制控制面，静置 ~15MB、双核稳态 ~30MB~40MB |
+| **核心防泄露调度** | 单核故障无热备，常见 DNS 回环或泄露 | `sing-box` ⇄ `mihomo` 毫秒级热切，严格拦截明文解析泄露 |
+
+---
+
+## 硬件指令集、老内核与挂载规范
+
+1. **多架构通用兼容（`linux/amd64` & `linux/arm64`）**：
+   - `amd64` 容器镜像内置官方 **`-compatible-` 通用指令集**核心，稳定运行于 Intel Celeron **J4125** / N100 等无 AVX2 指令集的老旧 x86_64 CPU；
+   - `arm64` 镜像原生适配树莓派、ARM64 软路由与各类 ARM NAS 设备。
+2. **老旧内核自动适配**：
+   - 针对群晖 DSM 7.x（Linux `4.4` 内核）等老内核环境自动切换兼容协议栈；启动前自动预检 `/dev/net/tun` 与宿主 DNS 自环状态。
+3. **容器核心路径规范（必读）**：
+   - 配置文件与规则集目录：容器内 **`/app/etc`**
+   - 持久化状态与历史账本目录：容器内 **`/app/data`**
+   - 必须使用 `--network host`、`--cap-add=NET_ADMIN` 并映射 `--device /dev/net/tun:/dev/net/tun`。
+
+---
+
+## 各宿主平台部署指南（直接复制即可运行）
+
+### 一、 飞牛 fnOS 部署（原生 `.fpk` 套件 / 单行 Compose）
+
+#### 方式 1：应用中心手动安装 `.fpk`（推荐）
+1. 前往 [GitHub Releases](https://github.com/zyeyefyass/CubeX/releases/latest) 下载对应架构包：`cubex_fnos_{ver}_amd64.fpk`（x86_64）或 `cubex_fnos_{ver}_arm64.fpk`（ARM64）。
+2. 登录飞牛桌面 → **应用中心 → 手动安装** 上传 `.fpk`，或通过 SSH 执行终端命令行安装：
+
+```bash
+sudo appcenter-cli install-fpk cubex_fnos_{ver}_amd64.fpk
+```
+
+#### 方式 2：飞牛单行一键 Compose 部署
+直接拉取官方对齐最新路径（`/app/etc`、`/app/data`）的编排模版并启动：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/zyeyefyass/CubeX/main/scripts/docker/docker-compose-fnos.yml -o docker-compose.yml && docker compose up -d
+```
+
+安装完成后打开飞牛桌面图标或访问 `http://<飞牛NAS-IP>:2026` 即可进入控制台；支持在【局域网设备】中将 NAS 设为影音直连模式，实现大文件满速直出与刮削加速协同。
+
+---
+
+### 二、 群晖 NAS（DSM 7）与通用 Docker / Compose 部署
+
+#### 第 1 步（群晖 DSM 必看）：激活 `/dev/net/tun` 虚拟网卡驱动
+群晖默认未自动创建 TUN 设备，建议在「控制面板 → 任务计划」中添加开机触发 root 脚本（或 SSH 首次执行）：
+
+```bash
+ls -l /dev/net/tun || {{
+  insmod /lib/modules/tun.ko
+  mkdir -p /dev/net
+  mknod /dev/net/tun c 10 200
+  chmod 600 /dev/net/tun
+}}
+```
+
+#### 第 2 步：`docker run` 命令行一键启动（群晖 / 通用 Linux）
+
+```bash
+docker run -d \\
+  --name cubex \\
+  --restart unless-stopped \\
+  --network host \\
+  --privileged \\
+  --cap-add=NET_ADMIN \\
+  --cap-add=NET_RAW \\
+  --device /dev/net/tun:/dev/net/tun \\
+  -v /volume1/docker/cubex/etc:/app/etc \\
+  -v /volume1/docker/cubex/data:/app/data \\
+  -v /etc/localtime:/etc/localtime:ro \\
+  -e TZ=Asia/Shanghai \\
+  -e GOMEMLIMIT=128MiB \\
+  fyasshole/cubex:latest
+```
+
+#### 第 3 步：`docker-compose.yml` 完整编排模版
+
+```yaml
+services:
+  cubex:
+    image: fyasshole/cubex:latest
+    container_name: cubex
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - ./etc:/app/etc
+      - ./data:/app/data
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - CUBEX_ENV=production
+      - GOMEMLIMIT=128MiB
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+```
+
+#### 无外网直连环境：Docker 离线镜像导入
+前往 [GitHub Releases](https://github.com/zyeyefyass/CubeX/releases/latest) 下载 `CubeX-{ver}-docker-amd64.tar.gz`（或 `arm64.tar.gz`），上传至宿主机后执行：
+
+```bash
+docker load -i CubeX-{ver}-docker-amd64.tar.gz
+```
+
+导入后镜像标签为 `fyasshole/cubex:latest` 与 `cubex:latest`（兼容不同离线包命名），按上方 `docker run` 或 Compose 命令启动即可。
+
+---
+
+### 三、 OpenWrt / iStoreOS 容器与联动部署
+
+#### 方式 1：在线一键全自动脚本（Macvlan-Shim + 看门狗）
+
+```bash
+sh -c "$(curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/CubeX/main/scripts/install_openwrt_docker.sh)"
+```
+
+#### 方式 2：纯本地离线导入（无外网推荐）
+从 Releases 下载 `CubeX-{ver}-docker-amd64.tar.gz`（或 `arm64.tar.gz`）与 `setup-openwrt.sh` 上传至 OpenWrt 的 `/tmp` 目录后执行：
+
+```bash
+cd /tmp && sh setup-openwrt.sh
+```
+
+脚本将自动导入离线镜像、建立 Macvlan 独立旁路容器、打通宿主通信桥接、下发 `198.18.0.0/15` 回指路由并注入 `cubex-watchdog` 自动逃生与恢复看门狗。部署完毕访问控制台默认端口 `http://<CubeX容器IP>:2026`。
+
+---
+
+### 四、 MikroTik RouterOS v7 / 爱快 iKuai / Proxmox VE（LXC）
+
+- **MikroTik RouterOS v7 容器**：下载 `CubeX-{ver}-ros-amd64.tar`（或 `arm64.tar`）拖入 WinBox `Files` 目录，在 Terminal 导入一键脚本（详见 [Releases](https://github.com/zyeyefyass/CubeX/releases/latest) 中的 `install_ros_container.rsc` 与 `setup-routeros-v7.rsc`）：
+  ```routeros
+  /tool fetch url="https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install_ros_container.rsc" mode=https dst-path=install.rsc; /import install.rsc
+  ```
+- **爱快 iKuai Docker**：在爱快后台【镜像管理】导入 `CubeX-{ver}-docker-amd64.tar.gz`，新建 Macvlan 容器（勾选开机自启与特权模式，分别挂载到 `/app/etc` 与 `/app/data`），随后进入控制台填爱快管理凭据一键自愈即可。
+- **Proxmox VE（PVE）隔离 CT 容器（强烈推荐）**：在 PVE 节点 Shell 执行：
+  ```bash
+  bash -c "$(curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install_pve_lxc.sh)"
+  ```
+
+---
+
+## 启动后 3 步开箱流程
+
+1. **访问控制台**：浏览器打开 `http://<CubeX所在IP>:2026`。
+2. **宿主共生与立即自愈**：在【宿主共生】填写主路由（RouterOS / 爱快 / OpenWrt）凭据并点击 **【立即自愈】**；如使用小米、华硕、TP-Link 等家用路由器，只需在主路由后台新增一条静态路由 `198.18.0.0/15 → <CubeX IP>`，并将局域网 DHCP 首选 DNS 指向 CubeX IP（备用 DNS 建议留空防抢答）。
+3. **导入配置并核验运行**：导入订阅或自建节点并选择策略组出站节点；如宿主机启用了 DHCP 续租，请确认其自身 `/etc/resolv.conf` 指向主路由或公共 DNS。
+
+---
+
+- **完整发布资产、SHA256 校验与版本历史**：[GitHub Releases 官方发布页](https://github.com/zyeyefyass/CubeX/releases)
+"""
+    return short_desc, sanitize_and_cap_dockerhub_text(full_desc, DOCKERHUB_MAX_BYTES)
+
+
+def sync_dockerhub_description(tag: str, highlights: str = "") -> bool:
+    """调用 Docker Hub API 更新仓库 short description 与 full_description 并回查确认。"""
+    d_user = os.environ.get("DOCKERHUB_USERNAME") or "fyasshole"
+    d_tok = get_dockerhub_token()
+    if not d_tok:
+        print("   ⚠️ 未找到 DOCKERHUB_TOKEN，跳过 Docker Hub 说明页同步。")
+        return False
+
+    short_desc, full_desc = build_dockerhub_description(tag, highlights)
+    byte_len = len(full_desc.encode("utf-8"))
+    print(f"   -> 说明文本脱敏校验通过，UTF-8 字节数: {byte_len} / {DOCKERHUB_MAX_BYTES}")
+
+    opener = urllib.request.build_opener(
+        urllib.request.ProxyHandler({"http": PROXY, "https": PROXY})
+    ) if PROXY else urllib.request.build_opener()
+
+    login_req = urllib.request.Request(
+        "https://hub.docker.com/v2/users/login/",
+        data=json.dumps({"username": d_user, "password": d_tok}).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with opener.open(login_req, timeout=20) as r:
+        jwt = json.loads(r.read().decode("utf-8"))["token"]
+
+    repo_url = f"https://hub.docker.com/v2/repositories/{d_user}/cubex/"
+    patch_payload = json.dumps(
+        {"description": short_desc, "full_description": full_desc},
+        ensure_ascii=True,
+    ).encode("utf-8")
+    patch_req = urllib.request.Request(
+        repo_url,
+        data=patch_payload,
+        headers={
+            "Authorization": f"Bearer {jwt}",
+            "Content-Type": "application/json",
+        },
+        method="PATCH",
+    )
+    with opener.open(patch_req, timeout=25) as r:
+        patch_status = r.status
+        patch_resp = json.loads(r.read().decode("utf-8"))
+
+    # 回查 GET 确认已生效
+    with opener.open(urllib.request.Request(repo_url, method="GET"), timeout=20) as r:
+        get_status = r.status
+        verify_data = json.loads(r.read().decode("utf-8"))
+
+    verified_desc = verify_data.get("full_description") or ""
+    verified_bytes = len(verified_desc.encode("utf-8"))
+    ver_tag = tag if tag.startswith("v") else f"v{tag}"
+    if patch_status != 200 or get_status != 200 or ver_tag not in verified_desc:
+        raise RuntimeError(f"Docker Hub 回查校验异常: patch={patch_status}, get={get_status}, resp={patch_resp}")
+
+    print(f"   ✅ Docker Hub Overview 更新并回查确认成功！PATCH HTTP {patch_status}, GET HTTP {get_status}, 最终字节数: {verified_bytes}")
+    return True
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="CubeX GitHub Release & Docker Hub Sync Tool")
+    parser.add_argument("--sync-dockerhub-only", action="store_true", help="仅同步更新 Docker Hub 仓库说明页")
+    parser.add_argument("--tag", default="", help="指定同步版本号（默认读取 meta.json）")
+    args = parser.parse_args()
+    if args.sync_dockerhub_only:
+        target_tag = args.tag.strip() or TAG
+        if not target_tag.startswith("v"):
+            target_tag = f"v{target_tag}"
+        ok = sync_dockerhub_description(target_tag)
+        sys.exit(0 if ok else 1)
     main()

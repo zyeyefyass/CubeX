@@ -53,9 +53,9 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
           labels: |
             org.opencontainers.image.title=CubeX
-            org.opencontainers.image.description=CubeX v9.9 · 15MB 极轻量全屋网络中枢 · 影音/NAS专属分流 · 零感自愈双核网关
+            org.opencontainers.image.description=CubeX ${{ github.ref_name }} · 双引擎宿主共生零感网关 · 多架构通用兼容
             org.opencontainers.image.vendor=CubeX Lab
-            org.opencontainers.image.version=9.9.0
+            org.opencontainers.image.version=${{ github.ref_name }}
             org.opencontainers.image.url=https://hub.docker.com/r/fyasshole/cubex
             org.opencontainers.image.source=https://github.com/zyeyefyass/CubeX
             org.opencontainers.image.icon=https://raw.githubusercontent.com/zyeyefyass/CubeX/main/assets/logo.png
@@ -99,6 +99,14 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Sync Docker Hub Repository Overview
+        if: env.DOCKERHUB_USERNAME != '' && env.DOCKERHUB_TOKEN != '' && startsWith(github.ref, 'refs/tags/')
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          python3 scripts/publish_release.py --sync-dockerhub-only --tag "${GITHUB_REF#refs/tags/}"
 
       - name: Build & Save Offline Docker Image (for fnOS / Offline Users)
         if: startsWith(github.ref, 'refs/tags/')

@@ -620,11 +620,9 @@ services:
 
       # 持久化存储目录 (确保宿主重启数据与配置零丢失，飞牛用户可根据实际存储卷路径调整 /vol1/1000/...)
 
-      - /vol1/1000/docker/cubex/etc:/opt/CubeX/etc
+      - /vol1/1000/docker/cubex/etc:/app/etc
 
-      - /vol1/1000/docker/cubex/data:/opt/CubeX/data
-
-      - /vol1/1000/docker/cubex/rules:/opt/CubeX/rules
+      - /vol1/1000/docker/cubex/data:/app/data
 
       - /etc/localtime:/etc/localtime:ro
 
@@ -650,7 +648,7 @@ services:
 
 保存后执行 `docker compose up -d` 即可！
 
-#### 途径 ②：单行 Docker 命令直接运行 (Host 模式)
+#### 途径 ③：单行 Docker 命令直接运行 (Host 模式)
 
 ```bash
 
@@ -670,13 +668,11 @@ docker run -d \
 
   --cap-add=NET_RAW \
 
-  --device /dev/net/tun \
+  --device /dev/net/tun:/dev/net/tun \
 
-  -v /vol1/1000/docker/cubex/etc:/opt/CubeX/etc \
+  -v /vol1/1000/docker/cubex/etc:/app/etc \
 
-  -v /vol1/1000/docker/cubex/data:/opt/CubeX/data \
-
-  -v /vol1/1000/docker/cubex/rules:/opt/CubeX/rules \
+  -v /vol1/1000/docker/cubex/data:/app/data \
 
   -v /etc/localtime:/etc/localtime:ro \
 
