@@ -101,10 +101,16 @@ type Manager struct {
 
 	lastContainerMemAt time.Time
 
-	httpClient *http.Client
+	httpClient   *http.Client
+	httpClientMu sync.Mutex
+	stopCh       chan struct{}
+	stopOnce     sync.Once
 }
 
 func (m *Manager) getHTTPClient() *http.Client {
+
+	m.httpClientMu.Lock()
+	defer m.httpClientMu.Unlock()
 
 	if m.httpClient == nil {
 
@@ -237,6 +243,7 @@ func NewManager(rootDir string) *Manager {
 		metaFile:   filepath.Join(rootDir, "meta.json"),
 		configFile: filepath.Join(rootDir, "data", "ros-config.json"),
 		config:     ROSConfig{Host: defaultHost, Port: "80", User: "", Password: ""},
+		stopCh:     make(chan struct{}),
 	}
 
 	m.loadConfig()
@@ -252,18 +259,52 @@ func NewManager(rootDir string) *Manager {
 
 }
 
+// SetURLOptimizer sets the URL rewrite hook safely under mutex.
+func (m *Manager) SetURLOptimizer(fn func(rawURL string) string) {
+	m.mu.Lock()
+	m.URLOptimizer = fn
+	m.mu.Unlock()
+}
+
+func (m *Manager) optimizeURL(rawURL string) string {
+	m.mu.RLock()
+	fn := m.URLOptimizer
+	m.mu.RUnlock()
+	if fn != nil {
+		return fn(rawURL)
+	}
+	return rawURL
+}
+
+// Close stops background RouterOS manager workers cleanly.
+func (m *Manager) Close() {
+	m.stopOnce.Do(func() {
+		if m.stopCh != nil {
+			close(m.stopCh)
+		}
+	})
+}
+
 func (m *Manager) startAsyncVersionWorker() {
 
-	time.Sleep(1 * time.Second)
+	select {
+	case <-time.After(1 * time.Second):
+	case <-m.stopCh:
+		return
+	}
 
 	m.refreshVersionsAsync()
 
 	ticker := time.NewTicker(2 * time.Hour)
+	defer ticker.Stop()
 
-	for range ticker.C {
-
-		m.refreshVersionsAsync()
-
+	for {
+		select {
+		case <-m.stopCh:
+			return
+		case <-ticker.C:
+			m.refreshVersionsAsync()
+		}
 	}
 
 }
@@ -386,7 +427,7 @@ func (m *Manager) GetOverview() map[string]any {
 
 	if latestPanel == "" {
 
-		latestPanel = "v9.93"
+		latestPanel = "v9.94"
 
 	}
 
@@ -551,11 +592,7 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 		effectiveTag, assetName,
 	)
 
-	if m.URLOptimizer != nil {
-
-		binURL = m.URLOptimizer(binURL)
-
-	}
+	binURL = m.optimizeURL(binURL)
 
 	downloadErr := m.downloadFile(binURL, tmpPath)
 
@@ -571,13 +608,7 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 
 		}
 
-		zipURL := fmt.Sprintf("https://github.com/zyeyefyass/CubeX/releases/download/%s/%s", effectiveTag, zipPkgName)
-
-		if m.URLOptimizer != nil {
-
-			zipURL = m.URLOptimizer(zipURL)
-
-		}
+		zipURL := m.optimizeURL(fmt.Sprintf("https://github.com/zyeyefyass/CubeX/releases/download/%s/%s", effectiveTag, zipPkgName))
 
 		targetBinName := "cubexd"
 
@@ -707,18 +738,12 @@ func (m *Manager) UpgradeMihomoCore(restartFn func() error) (string, error) {
 
 	}
 
-	downloadURL := fmt.Sprintf(
+	downloadURL := m.optimizeURL(fmt.Sprintf(
 
 		"https://github.com/MetaCubeX/mihomo/releases/download/%s/%s",
 
 		latestTag, assetName,
-	)
-
-	if m.URLOptimizer != nil {
-
-		downloadURL = m.URLOptimizer(downloadURL)
-
-	}
+	))
 
 	tmpPath := filepath.Join(m.binDir, "mihomo.new")
 
@@ -826,13 +851,7 @@ func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
 
 	assetMusl := fmt.Sprintf("sing-box-%s-linux-%s-musl.tar.gz", verNum, targetArch)
 
-	downloadURL := fmt.Sprintf("https://github.com/SagerNet/sing-box/releases/download/%s/%s", latestTag, assetMusl)
-
-	if m.URLOptimizer != nil {
-
-		downloadURL = m.URLOptimizer(downloadURL)
-
-	}
+	downloadURL := m.optimizeURL(fmt.Sprintf("https://github.com/SagerNet/sing-box/releases/download/%s/%s", latestTag, assetMusl))
 
 	tmpPath := filepath.Join(m.binDir, "sing-box.new")
 
@@ -842,13 +861,7 @@ func (m *Manager) UpgradeSingboxCore(restartFn func() error) (string, error) {
 
 		assetStd := fmt.Sprintf("sing-box-%s-linux-%s.tar.gz", verNum, targetArch)
 
-		downloadURL2 := fmt.Sprintf("https://github.com/SagerNet/sing-box/releases/download/%s/%s", latestTag, assetStd)
-
-		if m.URLOptimizer != nil {
-
-			downloadURL2 = m.URLOptimizer(downloadURL2)
-
-		}
+		downloadURL2 := m.optimizeURL(fmt.Sprintf("https://github.com/SagerNet/sing-box/releases/download/%s/%s", latestTag, assetStd))
 
 		if err2 := m.downloadAndExtractTarGz(downloadURL2, "sing-box", tmpPath); err2 != nil {
 
@@ -1023,7 +1036,10 @@ func (m *Manager) CheckROSFirmwareUpgradeDetails() (*ROSFirmwareCheckResult, err
 	}
 	client := &http.Client{Transport: tr, Timeout: 15 * time.Second}
 
-	checkReq, _ := http.NewRequest(http.MethodPost, checkURL, bytes.NewBuffer([]byte("{}")))
+	checkReq, reqErr := http.NewRequest(http.MethodPost, checkURL, bytes.NewBuffer([]byte("{}")))
+	if reqErr != nil {
+		return nil, reqErr
+	}
 
 	checkReq.SetBasicAuth(cfg.User, cfg.Password)
 
@@ -1214,30 +1230,34 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 	}
 
 	// 1. Check if firmware is already downloaded
-	stReq, _ := http.NewRequest(http.MethodGet, statusUrl, nil)
-	stReq.SetBasicAuth(cfg.User, cfg.Password)
-	
+	stReq, stReqErr := http.NewRequest(http.MethodGet, statusUrl, nil)
 	alreadyDownloaded := false
-	if stResp, stErr := client.Do(stReq); stErr == nil {
-		var stObj struct {
-			Status string `json:"status"`
-		}
-		if json.NewDecoder(stResp.Body).Decode(&stObj) == nil {
-			if strings.Contains(strings.ToLower(stObj.Status), "downloaded") || strings.Contains(strings.ToLower(stObj.Status), "reboot") {
-				alreadyDownloaded = true
+	if stReqErr == nil {
+		stReq.SetBasicAuth(cfg.User, cfg.Password)
+		if stResp, stErr := client.Do(stReq); stErr == nil {
+			var stObj struct {
+				Status string `json:"status"`
 			}
+			if json.NewDecoder(stResp.Body).Decode(&stObj) == nil {
+				if strings.Contains(strings.ToLower(stObj.Status), "downloaded") || strings.Contains(strings.ToLower(stObj.Status), "reboot") {
+					alreadyDownloaded = true
+				}
+			}
+			stResp.Body.Close()
 		}
-		stResp.Body.Close()
 	}
 
 	// 2. If not downloaded yet, trigger download first
 	if !alreadyDownloaded {
-		dlUrl, _ := buildROSURLFrom(cfg.Host, cfg.Port, "system/package/update/download")
-		dlReq, _ := http.NewRequest(http.MethodPost, dlUrl, bytes.NewBuffer([]byte("{}")))
-		dlReq.SetBasicAuth(cfg.User, cfg.Password)
-		dlReq.Header.Set("Content-Type", "application/json")
-		if dlResp, dlErr := client.Do(dlReq); dlErr == nil {
-			dlResp.Body.Close()
+		dlUrl, dlUrlErr := buildROSURLFrom(cfg.Host, cfg.Port, "system/package/update/download")
+		if dlUrlErr == nil {
+			if dlReq, dlReqErr := http.NewRequest(http.MethodPost, dlUrl, bytes.NewBuffer([]byte("{}"))); dlReqErr == nil {
+				dlReq.SetBasicAuth(cfg.User, cfg.Password)
+				dlReq.Header.Set("Content-Type", "application/json")
+				if dlResp, dlErr := client.Do(dlReq); dlErr == nil {
+					dlResp.Body.Close()
+				}
+			}
 		}
 	}
 
@@ -1276,7 +1296,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 // ──────────────────────────────────────────────
 
 func (m *Manager) getLocalPanelVersion() string {
-	return "v9.93"
+	return "v9.94"
 
 }
 
@@ -1546,22 +1566,17 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 
 			pResp, err := pClient.Do(pReq)
 
-			if err == nil && pResp.StatusCode == http.StatusOK {
-
-				var rel struct {
-					TagName string `json:"tag_name"`
+			if err == nil {
+				if pResp.StatusCode == http.StatusOK {
+					var rel struct {
+						TagName string `json:"tag_name"`
+					}
+					if json.NewDecoder(pResp.Body).Decode(&rel) == nil && rel.TagName != "" {
+						_ = pResp.Body.Close()
+						return rel.TagName, nil
+					}
 				}
-
-				if json.NewDecoder(pResp.Body).Decode(&rel) == nil && rel.TagName != "" {
-
-					pResp.Body.Close()
-
-					return rel.TagName, nil
-
-				}
-
-				pResp.Body.Close()
-
+				_ = pResp.Body.Close()
 			}
 
 		}
@@ -1740,22 +1755,17 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 
 			resp, err := client.Do(req)
 
-			if err == nil && resp.StatusCode == http.StatusOK {
-
-				var meta struct {
-					Version string `json:"version"`
+			if err == nil {
+				if resp.StatusCode == http.StatusOK {
+					var meta struct {
+						Version string `json:"version"`
+					}
+					if json.NewDecoder(resp.Body).Decode(&meta) == nil && meta.Version != "" {
+						_ = resp.Body.Close()
+						return meta.Version, nil
+					}
 				}
-
-				if json.NewDecoder(resp.Body).Decode(&meta) == nil && meta.Version != "" {
-
-					resp.Body.Close()
-
-					return meta.Version, nil
-
-				}
-
-				resp.Body.Close()
-
+				_ = resp.Body.Close()
 			}
 
 		}
@@ -1898,23 +1908,40 @@ func (m *Manager) fetchLatestSingboxVersion() (string, error) {
 
 func (m *Manager) checkROSConnection() (connected bool, version string) {
 
-	if m.config.Host == "" || m.config.User == "" {
+	m.mu.RLock()
+	host := m.config.Host
+	port := m.config.Port
+	user := m.config.User
+	pass := m.config.Password
+	m.mu.RUnlock()
+
+	if host == "" || user == "" {
 
 		return false, ""
 
 	}
 
-	ports := []string{m.config.Port}
+	ports := []string{port}
 
-	if m.config.Port == "443" || m.config.Port == "80" || m.config.Port == "" || m.config.Port == "22" || m.config.Port == "0" {
+	if port == "443" || port == "80" || port == "" || port == "22" || port == "0" {
 
 		ports = []string{"80", "443"}
 
 	}
 
+	tr := &http.Transport{
+		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
+		DisableKeepAlives: true,
+	}
+	defer tr.CloseIdleConnections()
+	client := &http.Client{
+		Timeout:   3 * time.Second,
+		Transport: tr,
+	}
+
 	for _, p := range ports {
 
-		url, urlErr := buildROSURLFrom(m.config.Host, p, "system/resource")
+		url, urlErr := buildROSURLFrom(host, p, "system/resource")
 		if urlErr != nil {
 			continue
 		}
@@ -1927,17 +1954,7 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 
 		}
 
-		req.SetBasicAuth(m.config.User, m.config.Password)
-
-		client := &http.Client{
-
-			Timeout: 3 * time.Second,
-
-			Transport: &http.Transport{
-
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-		}
+		req.SetBasicAuth(user, pass)
 
 		resp, err := client.Do(req)
 
@@ -1967,8 +1984,6 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 
 		}
 
-		defer resp.Body.Close()
-
 		var resource struct {
 			Version string `json:"version"`
 
@@ -1979,7 +1994,9 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 			TotalHddSpace any `json:"total-hdd-space"`
 		}
 
-		if err := json.NewDecoder(resp.Body).Decode(&resource); err == nil && resource.Version != "" {
+		decErr := json.NewDecoder(resp.Body).Decode(&resource)
+		_ = resp.Body.Close()
+		if decErr == nil && resource.Version != "" {
 
 			ver := strings.TrimSpace(resource.Version)
 
@@ -2355,9 +2372,10 @@ func (m *Manager) downloadAndDecompress(rawURL, destPath string) error {
 
 			pReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
 
-			if pResp, err := pClient.Do(pReq); err == nil && pResp.StatusCode == http.StatusOK {
-
-				if gzReader, err := gzip.NewReader(pResp.Body); err == nil {
+			if pResp, err := pClient.Do(pReq); err == nil {
+				if pResp.StatusCode != http.StatusOK {
+					_ = pResp.Body.Close()
+				} else if gzReader, err := gzip.NewReader(pResp.Body); err == nil {
 
 					outFile, err := os.OpenFile(destPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
 
@@ -2566,9 +2584,10 @@ func (m *Manager) downloadAndExtractTarGz(rawURL, targetBinaryName, destPath str
 
 			pReq.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
 
-			if pResp, err := pClient.Do(pReq); err == nil && pResp.StatusCode == http.StatusOK {
-
-				if gzReader, err := gzip.NewReader(pResp.Body); err == nil {
+			if pResp, err := pClient.Do(pReq); err == nil {
+				if pResp.StatusCode != http.StatusOK {
+					_ = pResp.Body.Close()
+				} else if gzReader, err := gzip.NewReader(pResp.Body); err == nil {
 
 					tarReader := tar.NewReader(gzReader)
 
@@ -2890,6 +2909,9 @@ func (m *Manager) SaveConfig(v any) error {
 
 	}
 
+	var rawMap map[string]any
+	_ = json.Unmarshal(data, &rawMap)
+
 	var cfg ROSConfig
 
 	if err := json.Unmarshal(data, &cfg); err != nil {
@@ -2898,20 +2920,24 @@ func (m *Manager) SaveConfig(v any) error {
 
 	}
 
-	if cfg.Host != "" {
-
-		m.config.Host = cfg.Host
-
+	if p := strings.TrimSpace(cfg.Port); p != "" {
+		pNum, pErr := strconv.Atoi(p)
+		if pErr != nil || pNum < 0 || pNum > 65535 {
+			return fmt.Errorf("无效 RouterOS 端口号: %s", p)
+		}
+		if p == "22" || pNum == 0 {
+			m.config.Port = "80"
+		} else {
+			m.config.Port = p
+		}
+	} else if m.config.Port == "" || m.config.Port == "22" || m.config.Port == "0" {
+		m.config.Port = "80"
 	}
 
-	if p := strings.TrimSpace(cfg.Port); p != "" && p != "22" && p != "0" {
-
-		m.config.Port = p
-
-	} else if m.config.Port == "" || m.config.Port == "22" || m.config.Port == "0" {
-
-		m.config.Port = "80"
-
+	if _, hasHost := rawMap["host"]; hasHost {
+		m.config.Host = strings.TrimSpace(cfg.Host)
+	} else if cfg.Host != "" {
+		m.config.Host = strings.TrimSpace(cfg.Host)
 	}
 
 	if cfg.User != "" {
@@ -2920,7 +2946,7 @@ func (m *Manager) SaveConfig(v any) error {
 
 	}
 
-	if cfg.Password != "" {
+	if cfg.Password != "" && cfg.Password != "******" {
 
 		m.config.Password = cfg.Password
 
@@ -2947,11 +2973,44 @@ func (m *Manager) loadConfig() {
 
 func (m *Manager) saveConfigLocked() error {
 
-	_ = os.MkdirAll(filepath.Dir(m.configFile), 0755)
+	dir := filepath.Dir(m.configFile)
 
-	data, _ := json.MarshalIndent(m.config, "", "  ")
+	_ = os.MkdirAll(dir, 0700)
 
-	return os.WriteFile(m.configFile, data, 0644)
+	data, err := json.MarshalIndent(m.config, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	tmp, err := os.CreateTemp(dir, ".ros-config-*.tmp")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+		return err
+	}
+	if err := tmp.Chmod(0600); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		_ = tmp.Close()
+		_ = os.Remove(tmpName)
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpName)
+		return err
+	}
+	if err := os.Rename(tmpName, m.configFile); err != nil {
+		_ = os.Remove(tmpName)
+		return err
+	}
+	return nil
 
 }
 
@@ -2975,11 +3034,14 @@ func buildROSURLFrom(host, port, apiPath string) (string, error) {
 	if p == "" || p == "0" {
 		p = "80"
 	}
+	if pNum, err := strconv.Atoi(p); err != nil || pNum < 1 || pNum > 65535 {
+		return "", fmt.Errorf("无效 RouterOS 端口: %s", p)
+	}
 	scheme := "https"
 	if p == "80" {
 		scheme = "http"
 	}
-	return fmt.Sprintf("%s://%s:%s/rest/%s", scheme, h, p, strings.TrimPrefix(apiPath, "/")), nil
+	return fmt.Sprintf("%s://%s/rest/%s", scheme, net.JoinHostPort(h, p), strings.TrimPrefix(apiPath, "/")), nil
 }
 
 func (m *Manager) buildROSURL(apiPath string) (user, pass, reqURL string, err error) {
@@ -3446,15 +3508,17 @@ func (m *Manager) GetOutboundIP() string {
 
 		}
 
-		return "127.0.0.1"
+		return ""
 
 	}
 
 	defer conn.Close()
 
-	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok && localAddr.IP != nil {
+		return localAddr.IP.String()
+	}
 
-	return localAddr.IP.String()
+	return ""
 
 }
 
@@ -5628,13 +5692,7 @@ func (m *Manager) fetch217HeidaiMeta() (int, string) {
 
 	for _, u := range urls {
 
-		targetURL := u
-
-		if m.URLOptimizer != nil {
-
-			targetURL = m.URLOptimizer(targetURL)
-
-		}
+		targetURL := m.optimizeURL(u)
 
 		req, err := http.NewRequest(http.MethodGet, targetURL, nil)
 
@@ -5796,13 +5854,7 @@ func (m *Manager) UpdateGeoData(reloadCoreFn func() error) (*GeoUpdateResult, er
 
 				tmpPath := job.dest + ".tmp"
 
-				targetURL := job.def.URL
-
-				if m.URLOptimizer != nil {
-
-					targetURL = m.URLOptimizer(targetURL)
-
-				}
+				targetURL := m.optimizeURL(job.def.URL)
 
 				if err := m.downloadFile(targetURL, tmpPath); err != nil {
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -78,10 +79,14 @@ func NewClient(cfg Config) *Client {
 
 func (c *Client) getBaseURL() string {
 	scheme := "http"
-	if c.cfg.Port == 443 {
+	if c.cfg.Port == 443 || c.cfg.Port == 8443 {
 		scheme = "https"
 	}
-	return fmt.Sprintf("%s://%s:%d/ubus", scheme, c.cfg.Host, c.cfg.Port)
+	port := c.cfg.Port
+	if port <= 0 {
+		port = 80
+	}
+	return fmt.Sprintf("%s://%s/ubus", scheme, net.JoinHostPort(c.cfg.Host, strconv.Itoa(port)))
 }
 
 // Probe checks connectivity and returns OpenWrt system telemetry.
@@ -436,8 +441,10 @@ fi
 
 // ApplyBypass orchestrates Fake-IP 198.18.0.0/15 static return route, DHCP Option 6 injection, and 0-second failover.
 func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
-	if cubexIP == "" {
-		return nil, fmt.Errorf("cubexIP cannot be empty")
+	cubexIP = strings.TrimSpace(cubexIP)
+	parsedIP := net.ParseIP(cubexIP)
+	if cubexIP == "" || parsedIP == nil || parsedIP.To4() == nil || parsedIP.IsLoopback() {
+		return nil, fmt.Errorf("invalid cubexIP: %q", cubexIP)
 	}
 
 	script := fmt.Sprintf(`
@@ -611,6 +618,9 @@ set -e
 sysctl -w net.ipv4.ip_forward=1
 sysctl -w net.ipv4.conf.all.rp_filter=0
 sysctl -w net.ipv4.conf.default.rp_filter=0
+LAN_DEV=$(uci -q get network.lan.device 2>/dev/null || uci -q get network.lan.ifname 2>/dev/null || echo "br-lan")
+LAN_DEV=${LAN_DEV%%%% *}
+[ -n "$LAN_DEV" ] && [ -d "/proc/sys/net/ipv4/conf/${LAN_DEV}" ] && sysctl -w "net.ipv4.conf.${LAN_DEV}.rp_filter=0" 2>/dev/null || true
 if [ -d /proc/sys/net/ipv4/conf/br-lan ]; then
     sysctl -w net.ipv4.conf.br-lan.rp_filter=0
 fi
@@ -711,14 +721,17 @@ uci commit dhcp
 
 # 3. Intercept external DNS leaks on port 53 (redirect external port 53 to local/cubex)
 if command -v fw4 >/dev/null 2>&1 || [ -f /etc/init.d/firewall ] && grep -q "fw4" /etc/init.d/firewall; then
+    LAN_DEV=$(uci -q get network.lan.device 2>/dev/null || uci -q get network.lan.ifname 2>/dev/null || echo "br-lan")
+    LAN_DEV=${LAN_DEV%%%% *}
+    [ -z "$LAN_DEV" ] && LAN_DEV="br-lan"
     mkdir -p /etc/nftables.d
-    cat << 'EOF' > /etc/nftables.d/20-cubex-dns-intercept.nft
+    cat << EOF > /etc/nftables.d/20-cubex-dns-intercept.nft
 # Intercept IoT hardcoded DNS leaks
 table inet fw4 {
     chain cubex_dns_fix {
         type nat hook prerouting priority -100; policy accept;
-        iifname "br-lan" udp dport 53 redirect
-        iifname "br-lan" tcp dport 53 redirect
+        iifname "${LAN_DEV}" udp dport 53 redirect
+        iifname "${LAN_DEV}" tcp dport 53 redirect
     }
 }
 EOF
@@ -743,6 +756,10 @@ fi
 func (c *Client) RemoveBypass(backupDNS string) ([]string, error) {
 	restoreDNS := ""
 	if trimmed := strings.TrimSpace(backupDNS); trimmed != "" {
+		ip := net.ParseIP(trimmed)
+		if ip == nil || ip.To4() == nil || ip.IsLoopback() {
+			return nil, fmt.Errorf("invalid backupDNS: %q", backupDNS)
+		}
 		restoreDNS = fmt.Sprintf("uci add_list dhcp.lan.dhcp_option='6,%s'", trimmed)
 	}
 

@@ -346,3 +346,95 @@ type DNSRewriteRule struct {
 	Enabled   bool           `json:"enabled" yaml:"enabled"`
 	CreatedAt string         `json:"created_at" yaml:"created_at"`
 }
+
+func cloneAnyValue(v any) any {
+	switch tv := v.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(tv))
+		for k, val := range tv {
+			out[k] = cloneAnyValue(val)
+		}
+		return out
+	case []any:
+		out := make([]any, len(tv))
+		for i, val := range tv {
+			out[i] = cloneAnyValue(val)
+		}
+		return out
+	case []string:
+		return append([]string(nil), tv...)
+	default:
+		return v
+	}
+}
+
+func cloneAnyMap(m map[string]any) map[string]any {
+	if m == nil {
+		return nil
+	}
+	out := make(map[string]any, len(m))
+	for k, v := range m {
+		out[k] = cloneAnyValue(v)
+	}
+	return out
+}
+
+// Clone returns a deep copy of ConfigIR so concurrent compilers and handlers never share mutable slices or maps.
+func (ir *ConfigIR) Clone() *ConfigIR {
+	if ir == nil {
+		return nil
+	}
+	cp := *ir
+
+	cp.DNS.FakeIPFilter = append([]string(nil), ir.DNS.FakeIPFilter...)
+	cp.DNS.DirectDNS = append([]string(nil), ir.DNS.DirectDNS...)
+	cp.DNS.RemoteDNS = append([]string(nil), ir.DNS.RemoteDNS...)
+	cp.DNS.FallbackDNS = append([]string(nil), ir.DNS.FallbackDNS...)
+	if ir.DNS.DNSRules != nil {
+		cp.DNS.DNSRules = make([]DNSRule, len(ir.DNS.DNSRules))
+		for i, r := range ir.DNS.DNSRules {
+			cp.DNS.DNSRules[i] = DNSRule{
+				DomainMatches: append([]string(nil), r.DomainMatches...),
+				ServerTag:     r.ServerTag,
+			}
+		}
+	}
+
+	cp.Subscriptions = append([]Subscription(nil), ir.Subscriptions...)
+
+	if ir.Proxies != nil {
+		cp.Proxies = make([]ProxyNode, len(ir.Proxies))
+		for i, p := range ir.Proxies {
+			pCopy := p
+			pCopy.ALPN = append([]string(nil), p.ALPN...)
+			pCopy.RawConfig = cloneAnyMap(p.RawConfig)
+			cp.Proxies[i] = pCopy
+		}
+	}
+
+	if ir.Groups != nil {
+		cp.Groups = make([]StrategyGroup, len(ir.Groups))
+		for i, g := range ir.Groups {
+			gCopy := g
+			gCopy.Proxies = append([]string(nil), g.Proxies...)
+			gCopy.FilterKeywords = append([]string(nil), g.FilterKeywords...)
+			cp.Groups[i] = gCopy
+		}
+	}
+
+	cp.Rules = append([]Rule(nil), ir.Rules...)
+	cp.DevicePolicies = append([]DevicePolicy(nil), ir.DevicePolicies...)
+	cp.Profiles = append([]Profile(nil), ir.Profiles...)
+	cp.AdBlockWhitelist = append([]string(nil), ir.AdBlockWhitelist...)
+	cp.DNSRewrites = append([]DNSRewriteRule(nil), ir.DNSRewrites...)
+
+	if ir.UserOverrides != nil {
+		cp.UserOverrides = &UserOverrideRules{
+			ForceDirectDomains: append([]string(nil), ir.UserOverrides.ForceDirectDomains...),
+			ForceProxyDomains:  append([]string(nil), ir.UserOverrides.ForceProxyDomains...),
+			ForceRejectDomains: append([]string(nil), ir.UserOverrides.ForceRejectDomains...),
+		}
+	}
+
+	return &cp
+}

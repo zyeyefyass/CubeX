@@ -581,3 +581,75 @@ func TestIKuaiCircuitBreaker(t *testing.T) {
 		t.Errorf("expected circuit breaker error containing '熔断保护', got: %v", err)
 	}
 }
+
+func TestIKuaiV4_ApplyBypassIncludesStreamIPAndRemoveBypass(t *testing.T) {
+	var streamShowCalled, streamAddCalled, streamDelCalled, rtDelCalled bool
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/Action/login" {
+			http.SetCookie(w, &http.Cookie{Name: "sess_key", Value: "v4_test_sess"})
+			_ = json.NewEncoder(w).Encode(RPCResponse{Result: 10000, Code: 0})
+			return
+		}
+		var req RPCRequest
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		switch req.FuncName {
+		case "lan":
+			b, _ := json.Marshal(map[string]any{"data": []map[string]any{{"id": 1, "ip_addr": "192.168.99.8", "netmask": "255.255.255.0", "interface": "lan1"}}})
+			_ = json.NewEncoder(w).Encode(RPCResponse{Code: 0, Results: b})
+		case "dhcp_server":
+			b, _ := json.Marshal(map[string]any{"data": []map[string]any{{"id": 1, "interface": "lan1", "dns1": "223.5.5.5", "gateway": "192.168.99.8"}}})
+			_ = json.NewEncoder(w).Encode(RPCResponse{Code: 0, Results: b})
+		case "dhcp_option":
+			if req.Action == "show" {
+				b, _ := json.Marshal(map[string]any{"data": []map[string]any{{"id": 7, "opt": "6", "ip": "192.168.99.10", "comment": "CubeX-DNS-Option6"}}})
+				_ = json.NewEncoder(w).Encode(RPCResponse{Code: 0, Results: b})
+				return
+			}
+			_ = json.NewEncoder(w).Encode(RPCResponse{Code: 0})
+		case "static_rt":
+			if req.Action == "show" {
+				b, _ := json.Marshal(map[string]any{"data": []map[string]any{{"id": 9, "dst_addr": "198.18.0.0", "gateway": "192.168.99.10", "tagname": "CubeX-Bypass"}}})
+				_ = json.NewEncoder(w).Encode(RPCResponse{Code: 0, Results: b})
+				return
+			}
+			if req.Action == "del" {
+				rtDelCalled = true
+			}
+			_ = json.NewEncoder(w).Encode(RPCResponse{Code: 0})
+		case "stream_ip":
+			if req.Action == "show" {
+				streamShowCalled = true
+				b, _ := json.Marshal(map[string]any{"data": []map[string]any{{"id": 11, "dst_ip": "198.18.0.0/15", "comment": "CubeX-FakeIP"}}})
+				_ = json.NewEncoder(w).Encode(RPCResponse{Code: 0, Results: b})
+				return
+			}
+			if req.Action == "add" {
+				streamAddCalled = true
+			}
+			if req.Action == "del" {
+				streamDelCalled = true
+			}
+			_ = json.NewEncoder(w).Encode(RPCResponse{Code: 0})
+		default:
+			_ = json.NewEncoder(w).Encode(RPCResponse{Code: 0})
+		}
+	}))
+	defer ts.Close()
+
+	u, _ := url.Parse(ts.URL)
+	port, _ := strconv.Atoi(u.Port())
+	client := NewClient(Config{Host: u.Hostname(), Port: port, User: "admin", Password: "pwd"})
+	if _, err := client.ApplyBypass("192.168.99.10"); err != nil {
+		t.Fatalf("ApplyBypass 4.0 failed: %v", err)
+	}
+	if !streamShowCalled {
+		t.Fatalf("expected iKuai 4.0 ApplyBypass to run Multi-WAN stream_ip exemption check instead of returning early")
+	}
+	_ = streamAddCalled
+	if _, err := client.RemoveBypass("192.168.99.10", "223.5.5.5"); err != nil {
+		t.Fatalf("RemoveBypass 4.0 failed: %v", err)
+	}
+	if !rtDelCalled || !streamDelCalled {
+		t.Fatalf("expected RemoveBypass to delete both static_rt (%v) and stream_ip (%v)", rtDelCalled, streamDelCalled)
+	}
+}

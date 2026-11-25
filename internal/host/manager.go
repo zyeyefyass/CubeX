@@ -117,6 +117,9 @@ func (m *Manager) loadConfig() {
 
 // ValidateHostPortForPlatform validates and normalizes the management port per host platform.
 func ValidateHostPortForPlatform(platformType string, port int) (int, error) {
+	if port > 65535 {
+		return 0, fmt.Errorf("端口号 %d 超出有效范围 (1-65535)", port)
+	}
 	plat := strings.ToLower(strings.TrimSpace(platformType))
 	switch plat {
 	case "ikuai":
@@ -141,6 +144,9 @@ func ValidateHostPortForPlatform(platformType string, port int) (int, error) {
 		}
 		return port, nil
 	default:
+		if port == 22 && plat == "auto" {
+			return 0, fmt.Errorf("自动识别模式暂不支持仅填写 SSH 端口 22，请明确选择宿主平台或使用 Web API 端口")
+		}
 		if port <= 0 {
 			return 22, nil
 		}
@@ -160,8 +166,17 @@ func (m *Manager) SaveConfig(cfg HostConfig) error {
 	if cfg.User == "" {
 		cfg.User = "root"
 	}
+	if cfg.Password == "******" || (cfg.Password == "" && cfg.Host == m.config.Host) {
+		cfg.Password = m.config.Password
+	}
+	if cfg.PrivateKey == "******" || (cfg.PrivateKey == "" && cfg.Host == m.config.Host) {
+		cfg.PrivateKey = m.config.PrivateKey
+	}
 	if cfg.Host != "" {
 		cfg.Enabled = true
+	}
+	if !strings.EqualFold(cfg.Host, m.config.Host) || cfg.Port != m.config.Port || !strings.EqualFold(cfg.PlatformType, m.config.PlatformType) || !cfg.Enabled {
+		m.cachedInfo = nil
 	}
 	m.config = cfg
 	data, err := json.MarshalIndent(cfg, "", "  ")
@@ -326,13 +341,23 @@ func (m *Manager) testRouterOSRest(cfg HostConfig) (map[string]any, error) {
 		}
 	}
 
+	transport := &http.Transport{
+		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
+		DisableKeepAlives: true,
+	}
+	defer transport.CloseIdleConnections()
+	client := &http.Client{
+		Timeout:   4 * time.Second,
+		Transport: transport,
+	}
+
 	var lastErr error
 	for _, p := range ports {
 		scheme := "http"
 		if p == "443" {
 			scheme = "https"
 		}
-		baseURL := fmt.Sprintf("%s://%s:%s", scheme, cfg.Host, p)
+		baseURL := fmt.Sprintf("%s://%s", scheme, net.JoinHostPort(cfg.Host, p))
 		url := fmt.Sprintf("%s/rest/system/resource", baseURL)
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
@@ -340,12 +365,6 @@ func (m *Manager) testRouterOSRest(cfg HostConfig) (map[string]any, error) {
 			continue
 		}
 		req.SetBasicAuth(cfg.User, cfg.Password)
-		client := &http.Client{
-			Timeout: 4 * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-		}
 		resp, err := client.Do(req)
 		if err != nil {
 			lastErr = fmt.Errorf("无法连接至 RouterOS REST API (端口 %s): %w", p, err)
@@ -728,6 +747,9 @@ func (m *Manager) TestSSH(cfg HostConfig) (map[string]any, error) {
 			_ = m.syncToROSConfig(cfg)
 			return restRes, nil
 		}
+		if cfg.PlatformType == "routeros" {
+			return nil, fmt.Errorf("RouterOS REST API 连接失败 (端口 %d): %w", cfg.Port, restErr)
+		}
 
 		// Priority 2: iKuai Web-RPC (on port 80/443, supporting 3.x and 4.0+)
 		ikRes, ikErr := m.testIKuaiRPC(cfg)
@@ -747,10 +769,6 @@ func (m *Manager) TestSSH(cfg HostConfig) (map[string]any, error) {
 		if client, err := m.getSSHClient(sshCfg); err == nil {
 			defer client.Close()
 			return m.testSSHClientSession(client, sshCfg)
-		}
-
-		if cfg.PlatformType == "routeros" {
-			return nil, fmt.Errorf("RouterOS REST API 连接失败 (端口 %d): %w", cfg.Port, restErr)
 		}
 
 		// Comprehensive auto-detection error message
@@ -817,12 +835,28 @@ func (m *Manager) RunCommand(cfg HostConfig, cmdStr string) (string, error) {
 	var b bytes.Buffer
 	session.Stdout = &b
 	session.Stderr = &b
-	err = session.Run(cmdStr)
+	err = runSSHSessionWithTimeout(session, cmdStr, 30*time.Second)
 	out := strings.TrimSpace(b.String())
 	if err != nil {
 		return out, fmt.Errorf("%w: %s", err, out)
 	}
 	return out, nil
+}
+
+func runSSHSessionWithTimeout(session interface{ Run(string) error; Close() error }, cmdStr string, timeout time.Duration) error {
+	done := make(chan error, 1)
+	go func() {
+		done <- session.Run(cmdStr)
+	}()
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+	select {
+	case err := <-done:
+		return err
+	case <-timer.C:
+		_ = session.Close()
+		return fmt.Errorf("SSH command timed out after %v", timeout)
+	}
 }
 
 // ProbeHost telemetry inspects the host OS, kernel, network, and firewall status.
@@ -894,11 +928,13 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 
 		// Priority 1: RouterOS REST API
 		if restRes, err := m.testRouterOSRest(hostCfg); err == nil && restRes != nil {
+			osPretty, _ := restRes["os_pretty"].(string)
+			kernelVer, _ := restRes["kernel"].(string)
 			info.Connected = true
 			info.PlatformID = "routeros"
-			info.OSName = restRes["os_pretty"].(string)
+			info.OSName = osPretty
 			if !isCt || locKernel == "" {
-				info.KernelVersion = fmt.Sprintf("RouterOS v%s", restRes["kernel"].(string))
+				info.KernelVersion = fmt.Sprintf("RouterOS v%s", kernelVer)
 			} else {
 				info.KernelVersion = locKernel
 			}
@@ -907,7 +943,7 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 			}
 			info.IPForward = true
 			info.FirewallConfigured = true
-			info.LinkedGateway = restRes["os_pretty"].(string)
+			info.LinkedGateway = osPretty
 			if u, ok := restRes["memory_used"].(string); ok {
 				info.GatewayMemoryUsed = u
 			}
@@ -1172,6 +1208,8 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 		fwLogs, fwErr := client.ApplyFirewall()
 		if fwErr == nil {
 			logs = append(logs, fwLogs...)
+		} else {
+			logs = append(logs, fmt.Sprintf("[OPENWRT] ⚠️ 防火墙规则附加警告: %v", fwErr))
 		}
 		return &FirewallResult{
 			Success: true,
@@ -1344,7 +1382,7 @@ func (m *Manager) ApplyFirewall(mode string, enablePenetration bool) (*FirewallR
 		session.Stdout = &out
 		session.Stderr = &out
 		cmdToRun := wrapSudo(item.cmd, cfg.User, cfg.Password)
-		runErr := session.Run(cmdToRun)
+		runErr := runSSHSessionWithTimeout(session, cmdToRun, 25*time.Second)
 		session.Close()
 
 		if runErr != nil {
@@ -1521,7 +1559,23 @@ func (m *Manager) ProbeIKuaiMatrix(targetIP string, port int, user, pass, cubexI
 		user = "admin"
 	}
 	if pass == "" {
-		pass = "admin"
+		m.mu.RLock()
+		if m.config.Host == targetIP && m.config.Password != "" {
+			pass = m.config.Password
+		}
+		m.mu.RUnlock()
+	}
+	if pass == "" {
+		pass = strings.TrimSpace(os.Getenv("IKUAI_PASS"))
+	}
+	if pass == "" {
+		return &TriadNodeResult{
+			Name:     "爱快 iKuai 4.0/3.x",
+			Platform: "ikuai",
+			IP:       targetIP,
+			Online:   false,
+			Details:  "未配置爱快管理密码",
+		}, fmt.Errorf("未配置爱快管理密码")
 	}
 	if cubexIP == "" {
 		cubexIP = m.GetOutboundIP(targetIP)
@@ -1564,7 +1618,10 @@ func (m *Manager) ProbeIKuaiMatrix(targetIP string, port int, user, pass, cubexI
 		}, err
 	}
 
-	hasRoute, hasDNS, details, _ := client.InspectRouting(cubexIP)
+	hasRoute, hasDNS, details, inspErr := client.InspectRouting(cubexIP)
+	if inspErr != nil && details == "" {
+		details = "路由巡检异常: " + inspErr.Error()
+	}
 	return &TriadNodeResult{
 		Name:      "爱快 iKuai " + stat.Version,
 		Platform:  "ikuai",
@@ -1602,7 +1659,23 @@ func (m *Manager) ProbeOpenWrtMatrix(targetIP string, port int, user, pass, cube
 		user = "root"
 	}
 	if pass == "" {
-		pass = "password"
+		m.mu.RLock()
+		if m.config.Host == targetIP && m.config.Password != "" {
+			pass = m.config.Password
+		}
+		m.mu.RUnlock()
+	}
+	if pass == "" {
+		pass = strings.TrimSpace(os.Getenv("OPENWRT_PASS"))
+	}
+	if pass == "" {
+		return &TriadNodeResult{
+			Name:     "iStoreOS / OpenWrt",
+			Platform: "openwrt",
+			IP:       targetIP,
+			Online:   false,
+			Details:  "未配置 OpenWrt 管理密码",
+		}, fmt.Errorf("未配置 OpenWrt 管理密码")
 	}
 	if cubexIP == "" {
 		cubexIP = m.GetOutboundIP(targetIP)
@@ -1629,7 +1702,10 @@ func (m *Manager) ProbeOpenWrtMatrix(targetIP string, port int, user, pass, cube
 		}, err
 	}
 
-	hasRoute, hasDNS, details, _ := client.InspectRouting(cubexIP)
+	hasRoute, hasDNS, details, inspErr := client.InspectRouting(cubexIP)
+	if inspErr != nil && details == "" {
+		details = "路由巡检异常: " + inspErr.Error()
+	}
 	ver := sysInfo.Release
 	if ver == "" {
 		ver = sysInfo.Model
@@ -2274,10 +2350,13 @@ func probeRouterOSWANList(client *http.Client, baseURL, user, password string) [
 	}
 	req.SetBasicAuth(user, password)
 	resp, err := client.Do(req)
-	if err != nil || resp.StatusCode != http.StatusOK {
+	if err != nil {
 		return wanList
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return wanList
+	}
 
 	var addrs []map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&addrs); err == nil {

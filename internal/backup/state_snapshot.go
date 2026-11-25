@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // StateSnapshot represents a complete, cryptographically verified backup archive for CubeX.
@@ -183,19 +185,25 @@ func (sm *StateSnapshotManager) RestoreSnapshot(rawBytes []byte, reloadFn func()
 	// Restore Host Config if present
 	if len(snap.HostConfig) > 0 {
 		hostPath := filepath.Join(sm.dataDir, "host-config.json")
-		_ = os.WriteFile(hostPath, snap.HostConfig, 0644)
+		if err := schema.WriteFileAtomicSecure(hostPath, snap.HostConfig); err != nil {
+			return nil, fmt.Errorf("failed to restore host-config.json: %w", err)
+		}
 	}
 
 	// Restore ROS Config if present
 	if len(snap.ROSConfig) > 0 {
 		rosPath := filepath.Join(sm.dataDir, "ros-config.json")
-		_ = os.WriteFile(rosPath, snap.ROSConfig, 0644)
+		if err := schema.WriteFileAtomicSecure(rosPath, snap.ROSConfig); err != nil {
+			return nil, fmt.Errorf("failed to restore ros-config.json: %w", err)
+		}
 	}
 
 	// Restore Devices if present
 	if len(snap.DevicePolicies) > 0 {
 		devPath := filepath.Join(sm.dataDir, "devices.json")
-		_ = os.WriteFile(devPath, snap.DevicePolicies, 0644)
+		if err := schema.WriteFileAtomicSecure(devPath, snap.DevicePolicies); err != nil {
+			return nil, fmt.Errorf("failed to restore devices.json: %w", err)
+		}
 	}
 
 	// Trigger live daemon re-indexing

@@ -163,11 +163,7 @@ func (m *FastTrackSymbiosisManager) persist() error {
 	if err != nil {
 		return err
 	}
-	tmp := m.storePath + ".tmp"
-	if err := os.WriteFile(tmp, data, 0644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, m.storePath)
+	return schema.WriteFileAtomicSecure(m.storePath, data)
 }
 
 func (m *FastTrackSymbiosisManager) loadPersisted() error {

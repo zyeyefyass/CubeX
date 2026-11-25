@@ -15,6 +15,7 @@ BLUE='\033[0;34m'
 RED='\033[0;31m'
 NC='\033[0m'
 BOLD='\033[1m'
+msg() { printf '%b\n' "$*"; }
 
 clear || true
 cat << "EOF"
@@ -33,8 +34,8 @@ echo ""
 # 1. 权限与运行环境检查
 # ─────────────────────────────────────────────────────────────────────────────
 if [ "$(id -u)" -ne 0 ]; then
-    echo -e "${RED}❌ 错误: 此安装脚本需要 root 超级用户权限执行。${NC}"
-    echo -e "${YELLOW}👉 请使用: sudo bash $0${NC}"
+    msg "${RED}❌ 错误: 此安装脚本需要 root 超级用户权限执行。${NC}"
+    msg "${YELLOW}👉 请使用: sudo bash $0${NC}"
     exit 1
 fi
 
@@ -50,24 +51,38 @@ case "$ARCH" in
         TARGET_ARCH="arm64"
         ;;
     *)
-        echo -e "${RED}❌ 不支持的 CPU 架构: $ARCH (仅支持 x86_64 / arm64)${NC}"
+        msg "${RED}❌ 不支持的 CPU 架构: $ARCH (仅支持 x86_64 / arm64)${NC}"
         exit 1
         ;;
 esac
-echo -e "${GREEN}🔍 检测到处理器架构: ${BOLD}${TARGET_ARCH}${NC}"
-# 自动检测并安装必要依赖 (curl / unzip / ca-certificates / iptables)
+msg "${GREEN}🔍 检测到处理器架构: ${BOLD}${TARGET_ARCH}${NC}"
+# 自动检测并安装必要依赖 (curl / unzip / ca-certificates / iptables)，带超时保护防止断网或 DNS 自环宿主无限卡死
+pkg_run_timeout() {
+    _secs="$1"
+    shift
+    if command -v timeout >/dev/null 2>&1; then
+        if timeout 1 true >/dev/null 2>&1; then
+            timeout "$_secs" "$@" >/dev/null 2>&1 || true
+        else
+            timeout -t "$_secs" "$@" >/dev/null 2>&1 || true
+        fi
+    else
+        "$@" >/dev/null 2>&1 || true
+    fi
+}
+
 if ! command -v curl >/dev/null 2>&1 || ! command -v unzip >/dev/null 2>&1 || ! command -v iptables >/dev/null 2>&1; then
-    echo -e "${YELLOW}📦 检测到缺少基础工具 (curl / unzip / iptables)，正在自动安装依赖...${NC}"
+    msg "${YELLOW}📦 检测到缺少基础工具 (curl / unzip / iptables)，正在自动安装依赖...${NC}"
     if command -v apt-get >/dev/null 2>&1; then
-        apt-get update -y >/dev/null 2>&1 || true
-        apt-get install -y curl ca-certificates unzip iptables iproute2 procps >/dev/null 2>&1 || true
+        pkg_run_timeout 10 apt-get -o Acquire::http::Timeout=5 -o Acquire::https::Timeout=5 update -y
+        pkg_run_timeout 20 apt-get -o Acquire::http::Timeout=5 -o Acquire::https::Timeout=5 install -y curl ca-certificates unzip iptables iproute2 procps
     elif command -v apk >/dev/null 2>&1; then
-        apk update >/dev/null 2>&1 || true
-        apk add --no-cache curl ca-certificates unzip iptables iproute2 procps >/dev/null 2>&1 || true
+        pkg_run_timeout 10 apk update
+        pkg_run_timeout 20 apk add --no-cache curl ca-certificates unzip iptables iproute2 procps
     elif command -v dnf >/dev/null 2>&1; then
-        dnf install -y curl ca-certificates unzip iptables iproute procps-ng >/dev/null 2>&1 || true
+        pkg_run_timeout 20 dnf install -y curl ca-certificates unzip iptables iproute procps-ng
     elif command -v yum >/dev/null 2>&1; then
-        yum install -y curl ca-certificates unzip iptables iproute procps-ng >/dev/null 2>&1 || true
+        pkg_run_timeout 20 yum install -y curl ca-certificates unzip iptables iproute procps-ng
     fi
 fi
 
@@ -133,11 +148,11 @@ if [ "$IS_IKUAI_GATEWAY" -eq 1 ]; then
     fi
 fi
 
-echo -e "${CYAN}🖥️  检测到宿主平台: ${BOLD}${DETECTED_HOST_NAME}${NC}"
-echo -e "${BLUE}📁 自动匹配推荐部署路径: ${BOLD}${DEFAULT_INSTALL_DIR}${NC}"
+msg "${CYAN}🖥️  检测到宿主平台: ${BOLD}${DETECTED_HOST_NAME}${NC}"
+msg "${BLUE}📁 自动匹配推荐部署路径: ${BOLD}${DEFAULT_INSTALL_DIR}${NC}"
 if [ "$IS_IKUAI_GATEWAY" -eq 1 ]; then
-    echo -e "${PURPLE}🚀 嗅探到上级主路由为: ${BOLD}爱快 iKuai 企业级路由 (${DEFAULT_GW})${NC}"
-    echo -e "${CYAN}💡 【爱快宿主共生建议】: 部署完成后，在 CubeX 驾驶舱【宿主共生凭据】中填入爱快 IP (${DEFAULT_GW}) 与管理密码，系统将全自动下发 198.18.0.0/15 静态回指与 DHCP 联动加固！${NC}"
+    msg "${PURPLE}🚀 嗅探到上级主路由为: ${BOLD}爱快 iKuai 企业级路由 (${DEFAULT_GW})${NC}"
+    msg "${CYAN}💡 【爱快宿主共生建议】: 部署完成后，在 CubeX 驾驶舱【宿主共生凭据】中填入爱快 IP (${DEFAULT_GW}) 与管理密码，系统将全自动下发 198.18.0.0/15 静态回指与 DHCP 联动加固！${NC}"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -180,7 +195,7 @@ fi
 
 if [ "$AUTO_CONFIRM" -eq 0 ]; then
     echo ""
-    echo -e "${BOLD}请选择或确认安装目录:${NC} (直接回车保持默认)"
+    msg "${BOLD}请选择或确认安装目录:${NC} (直接回车保持默认)"
     INPUT_DIR=""
     if [ -r /dev/tty ]; then
         read -r -p "安装路径 [${DEFAULT_INSTALL_DIR}]: " INPUT_DIR </dev/tty || INPUT_DIR=""
@@ -198,14 +213,14 @@ if [ "$AUTO_CONFIRM" -eq 0 ]; then
 
     # 飞牛 fnOS 友好提示
     if [ "$DETECTED_HOST" = "fnos" ] && [ "$INSTALL_DIR" = "/vol1/1000/cubex" ]; then
-        echo -e "${GREEN}✨ 已应用飞牛官方推荐持久化目录: /vol1/1000/cubex${NC}"
+        msg "${GREEN}✨ 已应用飞牛官方推荐持久化目录: /vol1/1000/cubex${NC}"
     fi
 
     if [ -z "$DEPLOY_MODE" ]; then
         echo ""
-        echo -e "${BOLD}请选择运行部署模式:${NC}"
-        echo -e "  ${CYAN}1) Docker 容器化主旁一体部署 (推荐 · 隔离性好 · 飞牛/PVE/RouterOS/爱快首选)${NC}"
-        echo -e "  ${PURPLE}2) 原生单二进制 Systemd 守护部署 (纯粹裸跑 · 极致轻量低开销 · 极客首选)${NC}"
+        msg "${BOLD}请选择运行部署模式:${NC}"
+        msg "  ${CYAN}1) Docker 容器化主旁一体部署 (推荐 · 隔离性好 · 飞牛/PVE/RouterOS/爱快首选)${NC}"
+        msg "  ${PURPLE}2) 原生单二进制 Systemd 守护部署 (纯粹裸跑 · 极致轻量低开销 · 极客首选)${NC}"
         MODE_CHOICE=""
         if [ -r /dev/tty ]; then
             read -r -p "请输入选项 [1/2, 默认 1]: " MODE_CHOICE </dev/tty || MODE_CHOICE=""
@@ -235,7 +250,7 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────
 # 5. Linux 内核网络协议栈加固与爱快 / ROS / Linux 专属调优
 # ─────────────────────────────────────────────────────────────────────────────
-echo -e "\n${YELLOW}⚙️  [1/4] 执行宿主底层网络协议栈加固 (开启内核转发与网络缓冲区优化)...${NC}"
+msg "\n${YELLOW}⚙️  [1/4] 执行宿主底层网络协议栈加固 (开启内核转发与网络缓冲区优化)...${NC}"
 
 # 开启 IP 转发
 sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
@@ -265,7 +280,7 @@ fi
 
 # 🌟 爱快 iKuai 宿主机 / 主路由联动专属网络协议栈优化
 if [ "$IS_IKUAI_GATEWAY" -eq 1 ] || [ "$IS_IKUAI_HOST" -eq 1 ]; then
-    echo -e "${PURPLE}🚀 [爱快专属优化] 检测到爱快环境，正在注入爱快旁路四项底层加固...${NC}"
+    msg "${PURPLE}🚀 [爱快专属优化] 检测到爱快环境，正在注入爱快旁路四项底层加固...${NC}"
     
     # 1. 禁用反向路径过滤 (非对称旁路由放行，彻底消除爱快重定向丢包)
     sysctl -w net.ipv4.conf.all.rp_filter=0 >/dev/null 2>&1 || true
@@ -292,10 +307,10 @@ if [ "$IS_IKUAI_GATEWAY" -eq 1 ] || [ "$IS_IKUAI_HOST" -eq 1 ]; then
         iptables -t mangle -A POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
     fi
 
-    echo -e "${GREEN}  ✓ 爱快非对称路由直通 (rp_filter=0) 已生效${NC}"
-    echo -e "${GREEN}  ✓ 爱快 ARP 抑风暴与防漂移 (arp_ignore=1/arp_announce=2) 已就绪${NC}"
-    echo -e "${GREEN}  ✓ 爱快 PPPoE 自动 MSS 钳制已加载 (解决网页与测速截断卡顿)${NC}"
-    echo -e "${GREEN}  ✓ 爱快 ICMP 环路抑制已就绪${NC}"
+    msg "${GREEN}  ✓ 爱快非对称路由直通 (rp_filter=0) 已生效${NC}"
+    msg "${GREEN}  ✓ 爱快 ARP 抑风暴与防漂移 (arp_ignore=1/arp_announce=2) 已就绪${NC}"
+    msg "${GREEN}  ✓ 爱快 PPPoE 自动 MSS 钳制已加载 (解决网页与测速截断卡顿)${NC}"
+    msg "${GREEN}  ✓ 爱快 ICMP 环路抑制已就绪${NC}"
 fi
 
 # 检查并自动创建 /dev/net/tun
@@ -325,17 +340,32 @@ fi
 # ─────────────────────────────────────────────────────────────────────────────
 # 6. 目录结构初始化与数据包释放
 # ─────────────────────────────────────────────────────────────────────────────
-echo -e "${YELLOW}📁 [2/4] 初始化目录与数据包释放 (${INSTALL_DIR})...${NC}"
+msg "${YELLOW}📁 [2/4] 初始化目录与数据包释放 (${INSTALL_DIR})...${NC}"
 mkdir -p "$INSTALL_DIR/bin" "$INSTALL_DIR/etc/rules" "$INSTALL_DIR/data"
 
-# 若当前目录已有 etc 数据包，则直接同步复制
+# 若当前目录已有 etc 数据包，则保护已有用户配置后增量释放
 CURRENT_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SRC_ETC=""
 if [ -d "$CURRENT_SCRIPT_DIR/../etc" ]; then
-    cp -r "$CURRENT_SCRIPT_DIR/../etc/"* "$INSTALL_DIR/etc/"
+    SRC_ETC="$CURRENT_SCRIPT_DIR/../etc"
 elif [ -d "$CURRENT_SCRIPT_DIR/etc" ]; then
-    cp -r "$CURRENT_SCRIPT_DIR/etc/"* "$INSTALL_DIR/etc/"
+    SRC_ETC="$CURRENT_SCRIPT_DIR/etc"
 elif [ -d "./etc" ]; then
-    cp -r "./etc/"* "$INSTALL_DIR/etc/"
+    SRC_ETC="./etc"
+fi
+if [ -n "$SRC_ETC" ]; then
+    for item in "$SRC_ETC"/*; do
+        [ -e "$item" ] || continue
+        base=$(basename "$item")
+        case "$base" in
+            config.yaml|config.json)
+                [ -e "$INSTALL_DIR/etc/$base" ] || cp -r "$item" "$INSTALL_DIR/etc/"
+                ;;
+            *)
+                cp -r "$item" "$INSTALL_DIR/etc/"
+                ;;
+        esac
+    done
 fi
 
 # 若飞牛 fnOS，赋予 1000:1000 读写权限防止容器访问受阻
@@ -347,11 +377,11 @@ fi
 # 7. 根据选择的部署模式下发配置与拉起
 # ─────────────────────────────────────────────────────────────────────────────
 if [ "$DEPLOY_MODE" = "docker" ]; then
-    echo -e "${YELLOW}🐳 [3/4] 正在配置 Docker 容器化主旁一体网关...${NC}"
+    msg "${YELLOW}🐳 [3/4] 正在配置 Docker 容器化主旁一体网关...${NC}"
     
     # 确保 docker 已安装
     if ! command -v docker >/dev/null 2>&1; then
-        echo -e "${RED}⚠️  检测到当前系统未安装 Docker，正在自动降级为原生单二进制守护部署...${NC}"
+        msg "${RED}⚠️  检测到当前系统未安装 Docker，正在自动降级为原生单二进制守护部署...${NC}"
         DEPLOY_MODE="native"
     fi
 fi
@@ -359,14 +389,14 @@ fi
 APP_PORT="${PORT:-${CUBEX_PORT:-2026}}"
 if command -v ss >/dev/null 2>&1; then
     if ss -tuln | grep -q ":${APP_PORT} "; then
-        if docker ps 2>/dev/null | grep -q "cubex" || (command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet cubexd 2>/dev/null); then
-            echo -e "${CYAN}💡 检测到已有 CubeX 运行于端口 ${APP_PORT}，将执行平滑替换升级...${NC}"
+        if docker ps 2>/dev/null | grep -q "cubex" || (command -v systemctl >/dev/null 2>&1 && (systemctl is-active --quiet cubex 2>/dev/null || systemctl is-active --quiet cubexd 2>/dev/null)) || pgrep -x cubexd >/dev/null 2>&1; then
+            msg "${CYAN}💡 检测到已有 CubeX 运行于端口 ${APP_PORT}，将执行平滑替换升级...${NC}"
         else
-            echo -e "${YELLOW}⚠️ 宿主端口 ${APP_PORT} 已被其他应用占用，启动智能空闲端口探查...${NC}"
+            msg "${YELLOW}⚠️ 宿主端口 ${APP_PORT} 已被其他应用占用，启动智能空闲端口探查...${NC}"
             while ss -tuln | grep -q ":${APP_PORT} "; do
                 APP_PORT=$((APP_PORT + 1))
             done
-            echo -e "${GREEN}✅ 自动切换至空闲可用端口: ${APP_PORT}${NC}"
+            msg "${GREEN}✅ 自动切换至空闲可用端口: ${APP_PORT}${NC}"
         fi
     fi
 fi
@@ -404,7 +434,7 @@ services:
         max-file: "3"
 EOF
 
-    echo -e "${GREEN}✅ 已生成 docker-compose.yml 配置文件 (内存配额: ${HOST_GOMEMLIMIT})${NC}"
+    msg "${GREEN}✅ 已生成 docker-compose.yml 配置文件 (内存配额: ${HOST_GOMEMLIMIT})${NC}"
     cd "$INSTALL_DIR"
     
     if command -v docker-compose >/dev/null 2>&1; then
@@ -414,16 +444,16 @@ EOF
         docker compose down 2>/dev/null || true
         docker compose up -d
     else
-        echo -e "${CYAN}💡 正在拉取最新版 Docker 镜像 (docker.io/fyasshole/cubex:latest)...${NC}"
+        msg "${CYAN}💡 正在拉取最新版 Docker 镜像 (docker.io/fyasshole/cubex:latest)...${NC}"
         DOCKER_IMG="docker.io/fyasshole/cubex:latest"
         if ! docker pull "$DOCKER_IMG" 2>/dev/null; then
-            echo -e "${YELLOW}⚠️ GHCR 镜像源拉取超时，切换至 Docker Hub: docker.io/fyasshole/cubex:latest...${NC}"
+            msg "${YELLOW}⚠️ GHCR 镜像源拉取超时，切换至 Docker Hub: docker.io/fyasshole/cubex:latest...${NC}"
             docker pull "docker.io/fyasshole/cubex:latest" 2>/dev/null || true
             if docker inspect "docker.io/fyasshole/cubex:latest" >/dev/null 2>&1; then
                 DOCKER_IMG="docker.io/fyasshole/cubex:latest"
             fi
         fi
-        echo -e "${CYAN}💡 正在通过标准 docker run 命令拉起容器...${NC}"
+        msg "${CYAN}💡 正在通过标准 docker run 命令拉起容器...${NC}"
         docker stop cubex 2>/dev/null || true
         docker rm cubex 2>/dev/null || true
         docker run -d \
@@ -445,103 +475,166 @@ EOF
     fi
 
 else
-        echo -e "${PURPLE}⚡ [3/4] 正在配置原生单二进制 Systemd 守护进程...${NC}"
+        msg "${PURPLE}⚡ [3/4] 正在配置原生单二进制 Systemd 守护进程...${NC}"
     
-    # 优先查找本地完整发行归档，或自动从 GitHub Releases 下载全量包 (包含双引擎与105套规则)
+    # ZIP 校验与跨平台解压辅助 (优先 unzip，缺少 unzip 时自动回退 python3 zipfile)
+    zip_is_valid() {
+        _zf="$1"
+        [ -s "$_zf" ] || return 1
+        if command -v unzip >/dev/null 2>&1; then
+            unzip -t "$_zf" >/dev/null 2>&1 || unzip -l "$_zf" >/dev/null 2>&1
+            return $?
+        elif command -v python3 >/dev/null 2>&1; then
+            python3 -c 'import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); sys.exit(1 if z.testzip() else 0)' "$_zf" >/dev/null 2>&1
+            return $?
+        fi
+        return 1
+    }
+    zip_extract_pkg() {
+        _zf="$1"; _dst="$2"; _preserve="$3"
+        if command -v unzip >/dev/null 2>&1; then
+            if [ "$_preserve" = "1" ]; then
+                unzip -q -o "$_zf" -x "data/*" "etc/config.*" -d "$_dst" 2>/dev/null || true
+            else
+                unzip -q -o "$_zf" -d "$_dst" 2>/dev/null || true
+            fi
+        elif command -v python3 >/dev/null 2>&1; then
+            python3 -c '
+import sys, os, zipfile, fnmatch
+zf, dst, preserve = sys.argv[1], sys.argv[2], sys.argv[3] == "1"
+with zipfile.ZipFile(zf, "r") as z:
+    for m in z.infolist():
+        name = m.filename.replace("\\", "/").strip("/")
+        if not name: continue
+        if preserve and (fnmatch.fnmatch(name, "data/*") or fnmatch.fnmatch(name, "etc/config.*")): continue
+        t = os.path.join(dst, name)
+        if m.is_dir() or name.endswith("/"): os.makedirs(t, exist_ok=True)
+        else:
+            os.makedirs(os.path.dirname(t), exist_ok=True)
+            with z.open(m) as s, open(t, "wb") as d: d.write(s.read())
+            if m.external_attr > 0: os.chmod(t, (m.external_attr >> 16) & 0o777)
+' "$_zf" "$_dst" "$_preserve" 2>/dev/null || true
+        fi
+    }
+
+    # 优先查找本地完整发行归档，或自动从 GitHub Releases 加速源下载全量包 (包含双引擎与105套规则)
     NEED_DOWNLOAD=1
     LOCAL_ZIP=$(ls "$CURRENT_SCRIPT_DIR/../dist/release/CubeX-"*"-linux-$TARGET_ARCH.zip" "$CURRENT_SCRIPT_DIR/../dist/CubeX-"*"-linux-$TARGET_ARCH.zip" "./dist/release/CubeX-"*"-linux-$TARGET_ARCH.zip" "./dist/CubeX-"*"-linux-$TARGET_ARCH.zip" "/root/CubeX-"*"-linux-$TARGET_ARCH.zip" "/tmp/CubeX-"*"-linux-$TARGET_ARCH.zip" 2>/dev/null | sort -V | tail -n1 || true)
-    if [ -n "$LOCAL_ZIP" ] && [ -f "$LOCAL_ZIP" ]; then
-        echo -e "${GREEN}📦 发现本地发行归档包 (${LOCAL_ZIP})，直接 0 秒解压部署...${NC}"
-        unzip -q -o "$LOCAL_ZIP" -d "$INSTALL_DIR" 2>/dev/null || true
+    if [ -n "$LOCAL_ZIP" ] && [ -f "$LOCAL_ZIP" ] && zip_is_valid "$LOCAL_ZIP"; then
+        msg "${GREEN}📦 发现本地发行归档包 (${LOCAL_ZIP})，直接 0 秒解压部署...${NC}"
+        # 停用旧服务防止 BusyBox unzip 覆写运行中二进制报错 (Text file busy)
+        if command -v systemctl >/dev/null 2>&1; then systemctl stop cubex 2>/dev/null || true; fi
+        if command -v rc-service >/dev/null 2>&1; then rc-service cubex stop 2>/dev/null || true; fi
+        if [ -s "$INSTALL_DIR/data/config.ir.json" ]; then
+            zip_extract_pkg "$LOCAL_ZIP" "$INSTALL_DIR" "1"
+        else
+            zip_extract_pkg "$LOCAL_ZIP" "$INSTALL_DIR" "0"
+        fi
         NEED_DOWNLOAD=0
     elif [ -f "$CURRENT_SCRIPT_DIR/../dist/cubexd-linux-$TARGET_ARCH" ]; then
+        if command -v systemctl >/dev/null 2>&1; then systemctl stop cubex 2>/dev/null || true; fi
+        if command -v rc-service >/dev/null 2>&1; then rc-service cubex stop 2>/dev/null || true; fi
         cp "$CURRENT_SCRIPT_DIR/../dist/cubexd-linux-$TARGET_ARCH" "$INSTALL_DIR/bin/cubexd"
         NEED_DOWNLOAD=0
     fi
 
+    GH_MIRRORS="https://ghfast.top https://ghproxy.net https://gh-proxy.com https://gh.ddlc.top DIRECT"
     if [ "$NEED_DOWNLOAD" -eq 1 ] && [ ! -f "$INSTALL_DIR/bin/cubexd" ]; then
-        echo -e "${CYAN}🌐 正在从 GitHub Releases 拉取最新完整发布包 (双内核 + 105套规则集 + 控制面)...${NC}"
+        msg "${CYAN}🌐 正在从 GitHub Releases 加速源拉取最新完整发布包 (双内核 + 105套规则集 + 控制面)...${NC}"
         REL_TAG="$CUSTOM_VER"
         if [ -z "$REL_TAG" ]; then
-            for M in "https://gh-proxy.com" "https://ghproxy.net" ""; do
+            for M in "https://ghfast.top" "https://ghproxy.net" "https://gh-proxy.com" "https://gh.ddlc.top" ""; do
                 PREFIX=""
                 [ -n "$M" ] && PREFIX="${M}/"
                 LATEST_JSON=$(curl -4 -sSL --connect-timeout 4 -m 8 "${PREFIX}https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
-                TAG_CANDIDATE=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
+                TAG_CANDIDATE=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4 | grep -E '^v[0-9]+' || true)
                 if [ -n "$TAG_CANDIDATE" ]; then
                     REL_TAG="$TAG_CANDIDATE"
                     break
                 fi
-                REL_TAG=$(curl -4 -sSL --connect-timeout 3 -m 5 -I "${PREFIX}https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
+                REL_TAG=$(curl -4 -sSL --connect-timeout 3 -m 5 -I "${PREFIX}https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "^location:" | grep -oE 'tag/v[0-9][^/ \r\n]*' | cut -d/ -f2 | tr -d '\r\n' | grep -E '^v[0-9]+' || true)
                 [ -n "$REL_TAG" ] && break
             done
         fi
-        [ -z "$REL_TAG" ] && REL_TAG="v9.93"
+        [ -z "$REL_TAG" ] && REL_TAG="v9.94"
         ZIP_NAME="CubeX-${REL_TAG}-linux-${TARGET_ARCH}.zip"
         ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
 
         TMP_ZIP="/tmp/${ZIP_NAME}"
-        if [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
-            echo -e "${GREEN}📦 发现本地已缓存的完整归档: ${TMP_ZIP}，秒级解压部署...${NC}"
+        if [ -s "$TMP_ZIP" ] && zip_is_valid "$TMP_ZIP"; then
+            msg "${GREEN}📦 发现本地已缓存的完整归档: ${TMP_ZIP}，秒级解压部署...${NC}"
         else
-            rm -f "$TMP_ZIP"
-            echo -e "${CYAN}   -> 正在通过国内多级高速镜像源智能轮询下载 ${ZIP_NAME} (约 80MB，免代理极速拉取)...${NC}"
-            GH_MIRRORS="https://gh-proxy.com https://ghproxy.net DIRECT"
+            rm -f "${TMP_ZIP}.dl"
+            msg "${CYAN}   -> 正在通过国内多级高速镜像源智能轮询下载 ${ZIP_NAME} (约 80MB，无代理极速拉取)...${NC}"
             DOWNLOAD_OK=0
             for MIRROR in $GH_MIRRORS; do
                 if [ "$MIRROR" != "DIRECT" ]; then
                     DL_LINK="${MIRROR}/${ZIP_URL}"
-                    echo -e "${CYAN}      [镜像尝试] 正在连接: ${MIRROR}...${NC}"
+                    msg "${CYAN}      [镜像尝试] 正在连接: ${MIRROR}...${NC}"
                 else
                     DL_LINK="${ZIP_URL}"
-                    echo -e "${CYAN}      [官方直连] 正在连接: GitHub...${NC}"
+                    msg "${CYAN}      [官方直连] 正在连接: GitHub...${NC}"
                 fi
-                if curl -4 --http1.1 -fsSL --connect-timeout 6 -m 300 -o "$TMP_ZIP" "$DL_LINK" 2>/dev/null && [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
+                if curl -4 --http1.1 -fsSL --connect-timeout 6 -m 300 -o "${TMP_ZIP}.dl" "$DL_LINK" 2>/dev/null && zip_is_valid "${TMP_ZIP}.dl"; then
+                    mv -f "${TMP_ZIP}.dl" "$TMP_ZIP"
                     DOWNLOAD_OK=1
-                    echo -e "${GREEN}      ✓ 高速通道连接成功并完成完整性校验！${NC}"
+                    msg "${GREEN}      ✓ 高速通道连接成功并完成完整性校验！${NC}"
                     break
                 fi
-                rm -f "$TMP_ZIP"
+                rm -f "${TMP_ZIP}.dl"
             done
         fi
 
-        if [ -s "$TMP_ZIP" ] && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
-            unzip -q -o "$TMP_ZIP" -d "$INSTALL_DIR" 2>/dev/null || true
-            echo -e "${GREEN}✅ 完整归档已成功释放至 ${INSTALL_DIR} (包含 Mihomo + sing-box 双核及全量规则)${NC}"
+        if [ -s "$TMP_ZIP" ] && zip_is_valid "$TMP_ZIP"; then
+            if [ -s "$INSTALL_DIR/data/config.ir.json" ]; then
+                zip_extract_pkg "$TMP_ZIP" "$INSTALL_DIR" "1"
+            else
+                zip_extract_pkg "$TMP_ZIP" "$INSTALL_DIR" "0"
+            fi
+            msg "${GREEN}✅ 完整归档已成功释放至 ${INSTALL_DIR} (包含 Mihomo + sing-box 双核及全量规则)${NC}"
         else
-            echo -e "${YELLOW}⚠️ 完整归档拉取失败，尝试独立拉取控制面与双引擎独立内核...${NC}"
+            msg "${YELLOW}⚠️ 完整归档拉取失败，尝试独立拉取控制面与双引擎独立内核...${NC}"
             DL_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${TARGET_ARCH}"
             for MIRROR in $GH_MIRRORS; do
                 BIN_LINK="${DL_URL}"
                 [ "$MIRROR" != "DIRECT" ] && BIN_LINK="${MIRROR}/${DL_URL}"
-                if curl -4 -sSL --connect-timeout 6 -m 120 -o "$INSTALL_DIR/bin/cubexd" "$BIN_LINK" 2>/dev/null && [ -s "$INSTALL_DIR/bin/cubexd" ]; then
+                TMP_DL="${INSTALL_DIR}/bin/.cubexd.dl.$$"
+                if curl -4 -fsSL --connect-timeout 6 -m 120 -o "$TMP_DL" "$BIN_LINK" 2>/dev/null && [ -s "$TMP_DL" ] && head -c 4 "$TMP_DL" 2>/dev/null | grep -q "ELF"; then
+                    mv -f "$TMP_DL" "$INSTALL_DIR/bin/cubexd"
                     break
                 fi
+                rm -f "$TMP_DL"
             done
 
             # 2. 检查并拉取 sing-box 核心
             if [ ! -f "$INSTALL_DIR/bin/sing-box" ]; then
-                echo -e "${CYAN}   -> 正在独立拉取 sing-box 核心...${NC}"
+                msg "${CYAN}   -> 正在独立拉取 sing-box 核心...${NC}"
                 SB_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/sing-box-linux-${TARGET_ARCH}"
                 for MIRROR in $GH_MIRRORS; do
                     BIN_LINK="${SB_URL}"
                     [ "$MIRROR" != "DIRECT" ] && BIN_LINK="${MIRROR}/${SB_URL}"
-                    if curl -4 -sSL --connect-timeout 6 -m 120 -o "$INSTALL_DIR/bin/sing-box" "$BIN_LINK" 2>/dev/null && [ -s "$INSTALL_DIR/bin/sing-box" ]; then
+                    TMP_DL="${INSTALL_DIR}/bin/.sing-box.dl.$$"
+                    if curl -4 -fsSL --connect-timeout 6 -m 120 -o "$TMP_DL" "$BIN_LINK" 2>/dev/null && [ -s "$TMP_DL" ] && head -c 4 "$TMP_DL" 2>/dev/null | grep -q "ELF"; then
+                        mv -f "$TMP_DL" "$INSTALL_DIR/bin/sing-box"
                         break
                     fi
+                    rm -f "$TMP_DL"
                 done
             fi
 
             # 3. 检查并拉取 mihomo 核心
             if [ ! -f "$INSTALL_DIR/bin/mihomo" ]; then
-                echo -e "${CYAN}   -> 正在独立拉取 mihomo 核心...${NC}"
+                msg "${CYAN}   -> 正在独立拉取 mihomo 核心...${NC}"
                 MH_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/mihomo-linux-${TARGET_ARCH}"
                 for MIRROR in $GH_MIRRORS; do
                     BIN_LINK="${MH_URL}"
                     [ "$MIRROR" != "DIRECT" ] && BIN_LINK="${MIRROR}/${MH_URL}"
-                    if curl -4 -sSL --connect-timeout 6 -m 120 -o "$INSTALL_DIR/bin/mihomo" "$BIN_LINK" 2>/dev/null && [ -s "$INSTALL_DIR/bin/mihomo" ]; then
+                    TMP_DL="${INSTALL_DIR}/bin/.mihomo.dl.$$"
+                    if curl -4 -fsSL --connect-timeout 6 -m 120 -o "$TMP_DL" "$BIN_LINK" 2>/dev/null && [ -s "$TMP_DL" ] && head -c 4 "$TMP_DL" 2>/dev/null | grep -q "ELF"; then
+                        mv -f "$TMP_DL" "$INSTALL_DIR/bin/mihomo"
                         break
                     fi
+                    rm -f "$TMP_DL"
                 done
             fi
         fi
@@ -549,14 +642,14 @@ else
     chmod +x "$INSTALL_DIR/bin/"* 2>/dev/null || true
 
     if [ ! -f "$INSTALL_DIR/bin/cubexd" ] || [ ! -s "$INSTALL_DIR/bin/cubexd" ]; then
-        echo -e "${RED}❌ 致命错误: 未能获取到有效的 cubexd 控制面二进制文件，请检查网络连接或权限后重试。${NC}"
+        msg "${RED}❌ 致命错误: 未能获取到有效的 cubexd 控制面二进制文件，请检查网络连接或权限后重试。${NC}"
         exit 1
     fi
 
     if [ ! -f "$INSTALL_DIR/bin/sing-box" ] && [ ! -f "$INSTALL_DIR/bin/mihomo" ]; then
-        echo -e "${RED}❌ 致命错误: 双引擎核心文件 (sing-box / mihomo) 均缺失！${NC}"
-        echo -e "${YELLOW}👉 严重警告: 控制面在没有底层代理内核的情况下无法转发任何网络流量！${NC}"
-        echo -e "${YELLOW}👉 解决建议: 请检查宿主网络/镜像源连接，或将完整的 ${ZIP_NAME} 放置于 /tmp/ 目录后重新运行本脚本。${NC}"
+        msg "${RED}❌ 致命错误: 双引擎核心文件 (sing-box / mihomo) 均缺失！${NC}"
+        msg "${YELLOW}👉 严重警告: 控制面在没有底层代理内核的情况下无法转发任何网络流量！${NC}"
+        msg "${YELLOW}👉 解决建议: 请检查宿主网络/镜像源连接，或将完整的 ${ZIP_NAME} 放置于 /tmp/ 目录后重新运行本脚本。${NC}"
         exit 1
     fi
 
@@ -591,7 +684,7 @@ EOF
         systemctl daemon-reload
         systemctl enable cubex >/dev/null 2>&1 || true
         systemctl restart cubex || true
-        echo -e "${GREEN}✅ systemd 服务已注册并启动 (/etc/systemd/system/cubex.service, 软上限: ${HOST_GOMEMLIMIT})${NC}"
+        msg "${GREEN}✅ systemd 服务已注册并启动 (/etc/systemd/system/cubex.service, 软上限: ${HOST_GOMEMLIMIT})${NC}"
     elif command -v rc-service >/dev/null 2>&1 || [ -d /etc/init.d ]; then
         cat <<EOF > /etc/init.d/cubex
 #!/sbin/openrc-run
@@ -622,17 +715,17 @@ EOF
         if command -v rc-service >/dev/null 2>&1; then
             rc-service cubex restart >/dev/null 2>&1 || rc-service cubex start >/dev/null 2>&1 || true
         fi
-        echo -e "${GREEN}✅ OpenRC 服务已注册并启动 (/etc/init.d/cubex, 软上限: ${HOST_GOMEMLIMIT})${NC}"
+        msg "${GREEN}✅ OpenRC 服务已注册并启动 (/etc/init.d/cubex, 软上限: ${HOST_GOMEMLIMIT})${NC}"
     else
-        nohup "$INSTALL_DIR/bin/cubexd" -dir "$INSTALL_DIR" -listen ":${APP_PORT}" >/var/log/cubexd.log 2>&1 &
-        echo -e "${GREEN}✅ 后台守护进程已拉起 (PID: $!)${NC}"
+        nohup "$INSTALL_DIR/bin/cubexd" -dir "$INSTALL_DIR" -listen ":${APP_PORT}" </dev/null >/var/log/cubexd.log 2>&1 &
+        msg "${GREEN}✅ 后台守护进程已拉起 (PID: $!)${NC}"
     fi
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 8. 快捷命令软链接与部署完成驾驶舱
 # ─────────────────────────────────────────────────────────────────────────────
-echo -e "${YELLOW}🔗 [4/4] 注册全局管理快捷指令 (cubex)...${NC}"
+msg "${YELLOW}🔗 [4/4] 注册全局管理快捷指令 (cubex)...${NC}"
 mkdir -p /usr/local/bin 2>/dev/null || true
 
 # 如果本地存在编译好的 cubex 运维 CLI，则优先链接或复制
@@ -647,21 +740,28 @@ for cli_path in "$INSTALL_DIR/bin/cubex" "$CURRENT_SCRIPT_DIR/../dist/cubex-linu
 done
 
 if [ "$CLI_INSTALLED" -eq 0 ]; then
-    echo -e "${CYAN}🌐 正在尝试拉取最新版原生运维 CLI (cubex-linux-${TARGET_ARCH})...${NC}"
+    msg "${CYAN}🌐 正在通过加速镜像源尝试拉取最新版原生运维 CLI (cubex-linux-${TARGET_ARCH})...${NC}"
     CLI_URL="https://github.com/zyeyefyass/CubeX/releases/latest/download/cubex-linux-$TARGET_ARCH"
-    CLI_MIRROR="https://gh-proxy.com/$CLI_URL"
-    if curl -4 -sSL --connect-timeout 5 -m 30 -o /usr/local/bin/cubex "$CLI_URL" 2>/dev/null && [ -s /usr/local/bin/cubex ] && head -c 4 /usr/local/bin/cubex 2>/dev/null | grep -q "ELF"; then
-        chmod +x /usr/local/bin/cubex 2>/dev/null || true
-        CLI_INSTALLED=1
-    elif curl -4 -sSL --connect-timeout 6 -m 30 -o /usr/local/bin/cubex "$CLI_MIRROR" 2>/dev/null && [ -s /usr/local/bin/cubex ] && head -c 4 /usr/local/bin/cubex 2>/dev/null | grep -q "ELF"; then
-        chmod +x /usr/local/bin/cubex 2>/dev/null || true
-        CLI_INSTALLED=1
-    fi
+    for MIRROR in "https://ghfast.top" "https://ghproxy.net" "https://gh-proxy.com" "https://gh.ddlc.top" ""; do
+        CLI_DL="$CLI_URL"
+        [ -n "$MIRROR" ] && CLI_DL="${MIRROR}/${CLI_URL}"
+        TMP_CLI="/tmp/cubex_cli_$$.tmp"
+        if curl -4 -fsSL --connect-timeout 5 -m 30 -o "$TMP_CLI" "$CLI_DL" 2>/dev/null && [ -s "$TMP_CLI" ] && head -c 4 "$TMP_CLI" 2>/dev/null | grep -q "ELF"; then
+            mv -f "$TMP_CLI" /usr/local/bin/cubex
+            chmod +x /usr/local/bin/cubex 2>/dev/null || true
+            CLI_INSTALLED=1
+            break
+        fi
+        rm -f "$TMP_CLI"
+    done
 fi
 
 if [ "$CLI_INSTALLED" -eq 0 ]; then
-cat << 'EOF' > /usr/local/bin/cubex
+cat <<EOF > /usr/local/bin/cubex
 #!/bin/sh
+APP_PORT="${APP_PORT}"
+EOF
+cat << 'EOF' >> /usr/local/bin/cubex
 ACTION="$1"
 case "$ACTION" in
     status)
@@ -741,47 +841,47 @@ if [ -r /etc/resolv.conf ]; then
 fi
 
 echo ""
-echo -e "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"
-echo -e "${BOLD}${GREEN}🎉 恭喜！CubeX · 次世代双擎高可用旁路网关部署成功！${NC}"
-echo -e "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"
-echo -e "  🌐 ${BOLD}Web 控制驾驶舱:${NC}   ${CYAN}http://${LOCAL_IP}:${APP_PORT}${NC}"
-echo -e "  🖥️  ${BOLD}已识别宿主底座:${NC}   ${PURPLE}${DETECTED_HOST_NAME}${NC}"
-echo -e "  📁 ${BOLD}持久化工作目录:${NC}   ${BLUE}${INSTALL_DIR}${NC}"
-echo -e "  ⚡ ${BOLD}双核心代理架构:${NC}   ${GREEN}Mihomo Meta ⇄ sing-box v1.14+ (毫秒级零断网热切)${NC}"
-echo -e "  🛡️  ${BOLD}权威规则数据库:${NC}   ${CYAN}217heidai MRS 广告拦截 + 隐私反追踪 + 0 明文 DNS 阻断${NC}"
-echo -e "  💾 ${BOLD}宿主自适应内存:${NC}   ${YELLOW}GOMEMLIMIT=${HOST_GOMEMLIMIT} (物理内存分级防护)${NC}"
+msg "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"
+msg "${BOLD}${GREEN}🎉 恭喜！CubeX · 次世代双擎高可用旁路网关部署成功！${NC}"
+msg "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"
+msg "  🌐 ${BOLD}Web 控制驾驶舱:${NC}   ${CYAN}http://${LOCAL_IP}:${APP_PORT}${NC}"
+msg "  🖥️  ${BOLD}已识别宿主底座:${NC}   ${PURPLE}${DETECTED_HOST_NAME}${NC}"
+msg "  📁 ${BOLD}持久化工作目录:${NC}   ${BLUE}${INSTALL_DIR}${NC}"
+msg "  ⚡ ${BOLD}双核心代理架构:${NC}   ${GREEN}Mihomo Meta ⇄ sing-box v1.14+ (毫秒级零断网热切)${NC}"
+msg "  🛡️  ${BOLD}权威规则数据库:${NC}   ${CYAN}217heidai MRS 广告拦截 + 隐私反追踪 + 0 明文 DNS 阻断${NC}"
+msg "  💾 ${BOLD}宿主自适应内存:${NC}   ${YELLOW}GOMEMLIMIT=${HOST_GOMEMLIMIT} (物理内存分级防护)${NC}"
 echo ""
-echo -e "${BOLD}常用运维指令:${NC}"
-echo -e "  • 查看运行状态:   ${YELLOW}cubex status${NC}"
-echo -e "  • 追踪实时日志:   ${YELLOW}cubex log${NC}"
-echo -e "  • 重启网关服务:   ${YELLOW}cubex restart${NC}"
-echo -e "  • 热重载分流配置: ${YELLOW}cubex reload${NC}"
+msg "${BOLD}常用运维指令:${NC}"
+msg "  • 查看运行状态:   ${YELLOW}cubex status${NC}"
+msg "  • 追踪实时日志:   ${YELLOW}cubex log${NC}"
+msg "  • 重启网关服务:   ${YELLOW}cubex restart${NC}"
+msg "  • 热重载分流配置: ${YELLOW}cubex reload${NC}"
 if [ "$IS_IKUAI_GATEWAY" -eq 1 ]; then
     echo ""
-    echo -e "${PURPLE}═════════════════════════════════════════════════════════════════════════${NC}"
-    echo -e "${BOLD}${PURPLE}🚀 【爱快 iKuai 宿主联动中枢就绪】(已嗅探到上级爱快主路由: ${DEFAULT_GW})${NC}"
-    echo -e "${PURPLE}═════════════════════════════════════════════════════════════════════════${NC}"
-    echo -e "  💡 爱快旁路由拓扑核心：需在爱快中将 ${BOLD}198.18.0.0/15${NC} 静态回指路由指向 CubeX (${LOCAL_IP})"
-    echo -e "  🔧 ${BOLD}全自动一键配置步骤:${NC}"
-    echo -e "     1. 浏览器打开: ${CYAN}http://${LOCAL_IP}:${APP_PORT}${NC}"
-    echo -e "     2. 进入左侧导航【宿主共生凭据】，选择【爱快 iKuai】"
-    echo -e "     3. 填入爱快地址 (${DEFAULT_GW}) 与 Web 管理密码"
-    echo -e "     4. 点击【一键自愈与规则加固】，系统自动写入 198.18.0.0/15 静态回指与 DHCP 首选 DNS！"
-    echo -e "  💻 也可在当前终端执行: ${CYAN}cubex ikuai${NC} 触发自动同步"
+    msg "${PURPLE}═════════════════════════════════════════════════════════════════════════${NC}"
+    msg "${BOLD}${PURPLE}🚀 【爱快 iKuai 宿主联动中枢就绪】(已嗅探到上级爱快主路由: ${DEFAULT_GW})${NC}"
+    msg "${PURPLE}═════════════════════════════════════════════════════════════════════════${NC}"
+    msg "  💡 爱快旁路由拓扑核心：需在爱快中将 ${BOLD}198.18.0.0/15${NC} 静态回指路由指向 CubeX (${LOCAL_IP})"
+    msg "  🔧 ${BOLD}全自动一键配置步骤:${NC}"
+    msg "     1. 浏览器打开: ${CYAN}http://${LOCAL_IP}:${APP_PORT}${NC}"
+    msg "     2. 进入左侧导航【宿主共生凭据】，选择【爱快 iKuai】"
+    msg "     3. 填入爱快地址 (${DEFAULT_GW}) 与 Web 管理密码"
+    msg "     4. 点击【一键自愈与规则加固】，系统自动写入 198.18.0.0/15 静态回指与 DHCP 首选 DNS！"
+    msg "  💻 也可在当前终端执行: ${CYAN}cubex ikuai${NC} 触发自动同步"
 fi
 if [ -n "$RESOLV_LOOP_MATCHES" ]; then
     echo ""
-    echo -e "${RED}═════════════════════════════════════════════════════════════════════════${NC}"
-    echo -e "${BOLD}${RED}⚠️  [DNS 防自环告警] 检测到 /etc/resolv.conf 指向本机或回环地址:${RESOLV_LOOP_MATCHES}${NC}"
-    echo -e "${YELLOW}   • 风险说明: 旁路由模式下若宿主机自身 DNS 指向自己，DHCP 续租后极易引发 DNS 自环死锁！${NC}"
-    echo -e "${YELLOW}   • 引擎兜底: CubeX v9.93+ 将自动弃用 dns-local 并安全回退至 ${RESOLV_SAFE_GW}，防止断网。${NC}"
-    echo -e "${CYAN}   • 温和修复指引 (切勿使用 chattr +i 锁死 /etc/resolv.conf，以免破坏 systemd-resolved / NetworkManager):${NC}"
-    echo -e "     1. 为本机配置静态 IP，并将本机自身 DNS 固定为上级网关或公共 DNS (${BOLD}${RESOLV_SAFE_GW}${NC})"
-    echo -e "     2. NetworkManager 示例: ${YELLOW}nmcli con mod <连接名> ipv4.dns \"${RESOLV_SAFE_GW}\" ipv4.ignore-auto-dns yes && nmcli con up <连接名>${NC}"
-    echo -e "     3. systemd-resolved 示例: 在 ${YELLOW}/etc/systemd/resolved.conf${NC} 设置 ${YELLOW}DNS=${RESOLV_SAFE_GW}${NC} 后重启服务"
-    echo -e "${RED}═════════════════════════════════════════════════════════════════════════${NC}"
+    msg "${RED}═════════════════════════════════════════════════════════════════════════${NC}"
+    msg "${BOLD}${RED}⚠️  [DNS 防自环告警] 检测到 /etc/resolv.conf 指向本机或回环地址:${RESOLV_LOOP_MATCHES}${NC}"
+    msg "${YELLOW}   • 风险说明: 旁路由模式下若宿主机自身 DNS 指向自己，DHCP 续租后极易引发 DNS 自环死锁！${NC}"
+    msg "${YELLOW}   • 引擎兜底: CubeX v9.93+ 将自动弃用 dns-local 并安全回退至 ${RESOLV_SAFE_GW}，防止断网。${NC}"
+    msg "${CYAN}   • 温和修复指引 (切勿使用 chattr +i 锁死 /etc/resolv.conf，以免破坏 systemd-resolved / NetworkManager):${NC}"
+    msg "     1. 为本机配置静态 IP，并将本机自身 DNS 固定为上级网关或公共 DNS (${BOLD}${RESOLV_SAFE_GW}${NC})"
+    msg "     2. NetworkManager 示例: ${YELLOW}nmcli con mod <连接名> ipv4.dns \"${RESOLV_SAFE_GW}\" ipv4.ignore-auto-dns yes && nmcli con up <连接名>${NC}"
+    msg "     3. systemd-resolved 示例: 在 ${YELLOW}/etc/systemd/resolved.conf${NC} 设置 ${YELLOW}DNS=${RESOLV_SAFE_GW}${NC} 后重启服务"
+    msg "${RED}═════════════════════════════════════════════════════════════════════════${NC}"
 else
     echo ""
-    echo -e "${CYAN}💡 [防 DNS 自环提示] 若后续将主路由 DHCP DNS 设为本机 (${LOCAL_IP})，请为本机固定静态 IP 与独立 DNS (${RESOLV_SAFE_GW})，避免 DHCP 续租覆盖 /etc/resolv.conf。${NC}"
+    msg "${CYAN}💡 [防 DNS 自环提示] 若后续将主路由 DHCP DNS 设为本机 (${LOCAL_IP})，请为本机固定静态 IP 与独立 DNS (${RESOLV_SAFE_GW})，避免 DHCP 续租覆盖 /etc/resolv.conf。${NC}"
 fi
-echo -e "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"
+msg "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"

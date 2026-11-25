@@ -137,13 +137,16 @@ func TestUpgradePanel_CrossSegmentV999ToV991(t *testing.T) {
 	defer ts.Close()
 
 	mgr := NewManager(tmpDir)
+	defer mgr.Close()
+	mgr.mu.Lock()
 	mgr.cachedLatestPanel = "v9.91"
-	mgr.URLOptimizer = func(rawURL string) string {
+	mgr.mu.Unlock()
+	mgr.SetURLOptimizer(func(rawURL string) string {
 		if idx := strings.Index(rawURL, "/releases/download/"); idx >= 0 {
 			return ts.URL + rawURL[idx:]
 		}
 		return rawURL
-	}
+	})
 
 	// Simulate check + download path using ShouldAllowPanelUpgrade
 	curr := mgr.getEffectiveLocalPanelVersion()
@@ -152,7 +155,7 @@ func TestUpgradePanel_CrossSegmentV999ToV991(t *testing.T) {
 	}
 
 	destPath := filepath.Join(binDir, "cubexd.new")
-	dlURL := mgr.URLOptimizer(fmt.Sprintf("https://github.com/zyeyefyass/CubeX/releases/download/%s/cubexd-linux-amd64", "v9.91"))
+	dlURL := mgr.optimizeURL(fmt.Sprintf("https://github.com/zyeyefyass/CubeX/releases/download/%s/cubexd-linux-amd64", "v9.91"))
 	if err := mgr.downloadFile(dlURL, destPath); err != nil {
 		t.Fatalf("downloadFile failed: %v", err)
 	}

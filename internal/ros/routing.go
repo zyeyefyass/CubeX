@@ -44,9 +44,6 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 	rosConnected, rosVersion := m.checkROSConnection()
 	rosCfg := m.GetConfig()
 	cubexIP := m.GetOutboundIP()
-	if cubexIP == "" {
-		cubexIP = m.GetOutboundIP()
-	}
 
 	report := &InspectionReport{
 		Connected:  rosConnected,
@@ -2570,81 +2567,119 @@ func (m *Manager) GetContainerRegistryURL() (string, error) {
 
 // TriggerPreShutdownFailover immediately disables DNS hijack and Fake-IP route on RouterOS before CubeX shuts down.
 func (m *Manager) TriggerPreShutdownFailover() error {
+	var firstErr error
+	recordErr := func(e error) {
+		if e != nil && firstErr == nil {
+			firstErr = e
+		}
+	}
 	// 1. Disable DNS hijack rules
-	if data, err := m.QueryROS("/ip/firewall/nat"); err == nil {
+	data, err := m.QueryROS("/ip/firewall/nat")
+	if err != nil {
+		recordErr(err)
+	} else {
 		var nats []map[string]any
-		if json.Unmarshal(data, &nats) == nil {
+		if uErr := json.Unmarshal(data, &nats); uErr != nil {
+			recordErr(uErr)
+		} else {
 			for _, n := range nats {
 				comment, _ := n["comment"].(string)
 				id, _ := n[".id"].(string)
 				if strings.Contains(comment, "CubeX-DNS-Hijack") && id != "" {
-					_ = m.PatchROS("/ip/firewall/nat/"+id, map[string]any{"disabled": "true"})
+					recordErr(m.PatchROS("/ip/firewall/nat/"+id, map[string]any{"disabled": "true"}))
 				}
 			}
 		}
 	}
 	// 2. Disable Fake-IP route
-	if data, err := m.QueryROS("/ip/route"); err == nil {
+	rData, rErr := m.QueryROS("/ip/route")
+	if rErr != nil {
+		recordErr(rErr)
+	} else {
 		var routes []map[string]any
-		if json.Unmarshal(data, &routes) == nil {
+		if uErr := json.Unmarshal(rData, &routes); uErr != nil {
+			recordErr(uErr)
+		} else {
 			for _, r := range routes {
 				dst, _ := r["dst-address"].(string)
 				id, _ := r[".id"].(string)
 				if dst == "198.18.0.0/15" && id != "" {
-					_ = m.PatchROS("/ip/route/"+id, map[string]any{"disabled": "true"})
+					recordErr(m.PatchROS("/ip/route/"+id, map[string]any{"disabled": "true"}))
 				}
 			}
 		}
 	}
 	// 3. Flush RouterOS DNS cache
-	_, _ = m.PostROS("/ip/dns/cache/flush", nil)
-	return nil
+	_, fErr := m.PostROS("/ip/dns/cache/flush", nil)
+	recordErr(fErr)
+	return firstErr
 }
 
 // RestoreRulesAfterBoot ensures that DNS hijack NAT rules and Fake-IP static route on RouterOS
 // are re-enabled (disabled: false) when CubeX starts up.
 func (m *Manager) RestoreRulesAfterBoot() error {
+	var firstErr error
+	recordErr := func(e error) {
+		if e != nil && firstErr == nil {
+			firstErr = e
+		}
+	}
 	// 1. Enable DNS hijack rules
-	if data, err := m.QueryROS("/ip/firewall/nat"); err == nil {
+	data, err := m.QueryROS("/ip/firewall/nat")
+	if err != nil {
+		recordErr(err)
+	} else {
 		var nats []map[string]any
-		if json.Unmarshal(data, &nats) == nil {
+		if uErr := json.Unmarshal(data, &nats); uErr != nil {
+			recordErr(uErr)
+		} else {
 			for _, n := range nats {
 				comment, _ := n["comment"].(string)
 				id, _ := n[".id"].(string)
 				disabledStr := fmt.Sprintf("%v", n["disabled"])
 				if disabledStr == "true" && strings.Contains(comment, "CubeX-DNS-Hijack") && id != "" {
-					_ = m.PatchROS("/ip/firewall/nat/"+id, map[string]any{"disabled": "false"})
+					recordErr(m.PatchROS("/ip/firewall/nat/"+id, map[string]any{"disabled": "false"}))
 				}
 			}
 		}
 	}
 	// 2. Enable Fake-IP route
-	if data, err := m.QueryROS("/ip/route"); err == nil {
+	rData, rErr := m.QueryROS("/ip/route")
+	if rErr != nil {
+		recordErr(rErr)
+	} else {
 		var routes []map[string]any
-		if json.Unmarshal(data, &routes) == nil {
+		if uErr := json.Unmarshal(rData, &routes); uErr != nil {
+			recordErr(uErr)
+		} else {
 			for _, r := range routes {
 				dst, _ := r["dst-address"].(string)
 				id, _ := r[".id"].(string)
 				disabledStr := fmt.Sprintf("%v", r["disabled"])
 				if disabledStr == "true" && dst == "198.18.0.0/15" && id != "" {
-					_ = m.PatchROS("/ip/route/"+id, map[string]any{"disabled": "false"})
+					recordErr(m.PatchROS("/ip/route/"+id, map[string]any{"disabled": "false"}))
 				}
 			}
 		}
 	}
 	// 3. Flush RouterOS DNS cache
-	_, _ = m.PostROS("/ip/dns/cache/flush", nil)
-	return nil
+	_, fErr := m.PostROS("/ip/dns/cache/flush", nil)
+	recordErr(fErr)
+	return firstErr
 }
 
 // EnsureFakeIPRoute verifies that the static route 198.18.0.0/15 pointing to targetIP exists on RouterOS.
 // If missing or inactive, it re-creates or re-enables it immediately and returns true (restored).
 func (m *Manager) EnsureFakeIPRoute(targetIP string) bool {
-	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
+	isValidIPv4 := func(s string) bool {
+		ip := net.ParseIP(strings.TrimSpace(s))
+		return ip != nil && ip.To4() != nil && !ip.IsLoopback()
+	}
+	if !isValidIPv4(targetIP) {
 		targetIP = m.GetOutboundIP()
 	}
-	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
-		targetIP = m.GetOutboundIP()
+	if !isValidIPv4(targetIP) {
+		return false
 	}
 	data, err := m.QueryROS("/ip/route")
 	if err != nil {
@@ -2665,11 +2700,13 @@ func (m *Manager) EnsureFakeIPRoute(targetIP string) bool {
 				return false // Already active and intact
 			}
 			if id != "" {
-				_ = m.PatchROS("/ip/route/"+id, map[string]any{
+				if err := m.PatchROS("/ip/route/"+id, map[string]any{
 					"disabled": "false",
 					"gateway":  targetIP,
-				})
-				return true
+				}); err == nil {
+					return true
+				}
+				return false
 			}
 		}
 	}
@@ -2767,7 +2804,7 @@ func BuildNetwatchDownScript(targetIP string, controlPort int, fallbackDNS strin
 		graceTicks = 4
 	}
 	healthURL := fmt.Sprintf("http://%s:%d/healthz/dataplane", targetIP, controlPort)
-	s := fmt.Sprintf(`:global cubexForceBypass; :local recovered false; :if ($cubexForceBypass != true) do={ :local i 0; :while (($i < %d) && (!$recovered)) do={ :delay 550ms; :set i ($i + 1); :if ([/ping %s count=1 interval=200ms] > 0) do={ :do { /tool fetch url="%s" http-method=get output=none as-value; :set recovered true; } on-error={}; }; }; }; :if ($recovered) do={ :log info "CubeX HA: Transient reload (<2.2s) absorbed smoothly, 0 route/DNS flap."; :return; }; :local activeRoutes [/ip route find where comment~"CubeX-FakeIP-Backtrack" and disabled=no]; :if ([:len $activeRoutes] > 0) do={ /ip route disable $activeRoutes; /ip dns set servers=%s; /ip dns cache flush; :log warning "CubeX HA: L2 Escape activated! Switched to RouterOS native DNS (%s)."; }; :local activeDnsNats [/ip firewall nat find where comment~"CubeX-Client-DNS-Redirect" and disabled=no]; :if ([:len $activeDnsNats] > 0) do={ /ip firewall nat disable $activeDnsNats; :log warning "CubeX HA: Suspended client DNS redirect on escape to prevent TV blackouts."; };`,
+	s := fmt.Sprintf(`:global cubexForceBypass; :local recovered false; :if ($cubexForceBypass != true) do={ :local i 0; :while (($i < %d) && (!$recovered)) do={ :delay 550ms; :set i ($i + 1); :if ([/ping %s count=1 interval=200ms] > 0) do={ :do { /tool fetch url="%s" http-method=get output=none as-value; :set recovered true; } on-error={}; }; }; }; :if ($recovered) do={ :log info "CubeX HA: Transient reload (<2.2s) absorbed smoothly, 0 route/DNS flap."; } else={ :local activeRoutes [/ip route find where comment~"CubeX-FakeIP-Backtrack" and !disabled]; :if ([:len $activeRoutes] > 0) do={ /ip route disable $activeRoutes; /ip dns set servers=%s; /ip dns cache flush; :log warning "CubeX HA: L2 Escape activated! Switched to RouterOS native DNS (%s)."; }; :local activeDnsNats [/ip firewall nat find where comment~"CubeX-Client-DNS-Redirect" and !disabled]; :if ([:len $activeDnsNats] > 0) do={ /ip firewall nat disable $activeDnsNats; :log warning "CubeX HA: Suspended client DNS redirect on escape to prevent TV blackouts."; }; };`,
 		graceTicks, targetIP, healthURL, fallbackDNS, fallbackDNS)
 	return compactROSScript(s)
 }
@@ -2778,7 +2815,7 @@ func BuildNetwatchUpScript(targetIP string, controlPort int) string {
 		controlPort = 2026
 	}
 	healthURL := fmt.Sprintf("http://%s:%d/healthz/dataplane", targetIP, controlPort)
-	s := fmt.Sprintf(`:global cubexForceBypass; :local escapedRoutes [/ip route find where comment~"CubeX-FakeIP-Backtrack" and disabled=yes]; :local curDns [:tostr [/ip dns get servers]]; :if (([:len $escapedRoutes] = 0) && ($curDns = "%s")) do={ :return; }; :delay 1200ms; :local ready false; :if ([/ping %s count=1 interval=200ms] > 0) do={ :do { /tool fetch url="%s" http-method=get output=none as-value; :set ready true; } on-error={}; }; :if (!$ready) do={ :log warning "CubeX HA: Port up but /healthz not ready after dampening window, holding escape state."; :return; }; :set cubexForceBypass false; /ip dns set servers=%s; :if ([:len $escapedRoutes] > 0) do={ /ip route enable $escapedRoutes; }; :local disabledDnsNats [/ip firewall nat find where comment~"CubeX-Client-DNS-Redirect" and disabled=yes]; :if ([:len $disabledDnsNats] > 0) do={ /ip firewall nat enable $disabledDnsNats; :log info "CubeX HA: Re-enabled client DNS redirect."; }; /ip dns cache flush; :log info "CubeX HA: Service verified stable, restored Fake-IP backtrack and CubeX DNS.";`,
+	s := fmt.Sprintf(`:global cubexForceBypass; :local escapedRoutes [/ip route find where comment~"CubeX-FakeIP-Backtrack" and disabled]; :local curDns [:tostr [/ip dns get servers]]; :if (([:len $escapedRoutes] > 0) || ($curDns != "%s")) do={ :delay 1200ms; :local ready false; :if ([/ping %s count=1 interval=200ms] > 0) do={ :do { /tool fetch url="%s" http-method=get output=none as-value; :set ready true; } on-error={}; }; :if (!$ready) do={ :log warning "CubeX HA: Port up but /healthz not ready after dampening window, holding escape state."; } else={ :set cubexForceBypass false; /ip dns set servers=%s; :if ([:len $escapedRoutes] > 0) do={ /ip route enable $escapedRoutes; }; :local disabledDnsNats [/ip firewall nat find where comment~"CubeX-Client-DNS-Redirect" and disabled]; :if ([:len $disabledDnsNats] > 0) do={ /ip firewall nat enable $disabledDnsNats; :log info "CubeX HA: Re-enabled client DNS redirect."; }; /ip dns cache flush; :log info "CubeX HA: Service verified stable, restored Fake-IP backtrack and CubeX DNS."; }; };`,
 		targetIP, targetIP, healthURL, targetIP)
 	return compactROSScript(s)
 }
@@ -2808,42 +2845,58 @@ func escapeROSQuotedString(s string) string {
 // If maintenance is false: it prepares for hot reload (the 2.2s anti-flapping Netwatch absorbs restart).
 func (m *Manager) GracefulDrain(ctx context.Context, maintenance bool) error {
 	m.mu.RLock()
-	host := m.config.Host
+	host := strings.TrimSpace(m.config.Host)
+	password := m.config.Password
 	m.mu.RUnlock()
-	if host == "" {
+	if host == "" || password == "" {
 		return nil
 	}
 	if maintenance {
+		var firstErr error
+		recordErr := func(e error) {
+			if e != nil && firstErr == nil {
+				firstErr = e
+			}
+		}
 		// 1. Disable Fake-IP backtrack routes
-		if rData, err := m.QueryROS("/ip/route"); err == nil {
+		if rData, err := m.QueryROS("/ip/route"); err != nil {
+			return err
+		} else {
 			var routes []map[string]any
-			if json.Unmarshal(rData, &routes) == nil {
+			if uErr := json.Unmarshal(rData, &routes); uErr != nil {
+				recordErr(uErr)
+			} else {
 				for _, r := range routes {
 					id, _ := r[".id"].(string)
 					comment, _ := r["comment"].(string)
 					if strings.Contains(comment, "CubeX-FakeIP-Backtrack") && id != "" {
-						_ = m.PatchROS("/ip/route/"+id, map[string]any{"disabled": "true"})
+						recordErr(m.PatchROS("/ip/route/"+id, map[string]any{"disabled": "true"}))
 					}
 				}
 			}
 		}
 		// 2. Disable Client DNS Redirect NAT rules
-		if nData, err := m.QueryROS("/ip/firewall/nat"); err == nil {
+		if nData, err := m.QueryROS("/ip/firewall/nat"); err != nil {
+			recordErr(err)
+		} else {
 			var nats []map[string]any
-			if json.Unmarshal(nData, &nats) == nil {
+			if uErr := json.Unmarshal(nData, &nats); uErr != nil {
+				recordErr(uErr)
+			} else {
 				for _, n := range nats {
 					id, _ := n[".id"].(string)
 					comment, _ := n["comment"].(string)
 					if strings.Contains(comment, "CubeX-Client-DNS-Redirect") && id != "" {
-						_ = m.PatchROS("/ip/firewall/nat/"+id, map[string]any{"disabled": "yes"})
+						recordErr(m.PatchROS("/ip/firewall/nat/"+id, map[string]any{"disabled": "yes"}))
 					}
 				}
 			}
 		}
 		// 3. Set RouterOS DNS to fallback DNS and flush cache
-		_ = m.PatchROS("/ip/dns", map[string]any{"servers": "223.5.5.5,119.29.29.29"})
-		_, _ = m.PostROS("/ip/dns/cache/flush", nil)
-		return nil
+		recordErr(m.PatchROS("/ip/dns", map[string]any{"servers": "223.5.5.5,119.29.29.29"}))
+		_, fErr := m.PostROS("/ip/dns/cache/flush", nil)
+		recordErr(fErr)
+		return firstErr
 	}
 	return nil
 }
@@ -2851,42 +2904,58 @@ func (m *Manager) GracefulDrain(ctx context.Context, maintenance bool) error {
 // NotifyEngineReady restores the Fake-IP backtrack routes and sets RouterOS DNS back to CubeX IP.
 func (m *Manager) NotifyEngineReady(ctx context.Context) error {
 	m.mu.RLock()
-	host := m.config.Host
+	host := strings.TrimSpace(m.config.Host)
+	password := m.config.Password
 	m.mu.RUnlock()
-	if host == "" {
+	if host == "" || password == "" {
 		return nil
 	}
+	var firstErr error
+	recordErr := func(e error) {
+		if e != nil && firstErr == nil {
+			firstErr = e
+		}
+	}
 	targetIP := m.GetOutboundIP()
-	// 1. Enable Fake-IP backtrack routes
-	if rData, err := m.QueryROS("/ip/route"); err == nil {
+	// 1. Enable Fake-IP backtrack routes (fail fast if router unreachable to avoid multi-timeout hang)
+	if rData, err := m.QueryROS("/ip/route"); err != nil {
+		return err
+	} else {
 		var routes []map[string]any
-		if json.Unmarshal(rData, &routes) == nil {
+		if uErr := json.Unmarshal(rData, &routes); uErr != nil {
+			recordErr(uErr)
+		} else {
 			for _, r := range routes {
 				id, _ := r[".id"].(string)
 				comment, _ := r["comment"].(string)
 				if strings.Contains(comment, "CubeX-FakeIP-Backtrack") && id != "" {
-					_ = m.PatchROS("/ip/route/"+id, map[string]any{"disabled": "false"})
+					recordErr(m.PatchROS("/ip/route/"+id, map[string]any{"disabled": "false"}))
 				}
 			}
 		}
 	}
 	// 2. Re-enable Client DNS Redirect NAT rules
-	if nData, err := m.QueryROS("/ip/firewall/nat"); err == nil {
+	if nData, err := m.QueryROS("/ip/firewall/nat"); err != nil {
+		recordErr(err)
+	} else {
 		var nats []map[string]any
-		if json.Unmarshal(nData, &nats) == nil {
+		if uErr := json.Unmarshal(nData, &nats); uErr != nil {
+			recordErr(uErr)
+		} else {
 			for _, n := range nats {
 				id, _ := n[".id"].(string)
 				comment, _ := n["comment"].(string)
 				if strings.Contains(comment, "CubeX-Client-DNS-Redirect") && id != "" {
-					_ = m.PatchROS("/ip/firewall/nat/"+id, map[string]any{"disabled": "no"})
+					recordErr(m.PatchROS("/ip/firewall/nat/"+id, map[string]any{"disabled": "no"}))
 				}
 			}
 		}
 	}
 	// 3. Set RouterOS DNS to targetIP and flush cache
 	if targetIP != "" {
-		_ = m.PatchROS("/ip/dns", map[string]any{"servers": targetIP})
-		_, _ = m.PostROS("/ip/dns/cache/flush", nil)
+		recordErr(m.PatchROS("/ip/dns", map[string]any{"servers": targetIP}))
+		_, fErr := m.PostROS("/ip/dns/cache/flush", nil)
+		recordErr(fErr)
 	}
-	return nil
+	return firstErr
 }

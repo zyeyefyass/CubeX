@@ -109,6 +109,7 @@ type Manager struct {
 	precompiledConfig map[schema.EngineType][]byte
 	precompiledMu     sync.RWMutex
 	irVersion         uint64
+	switching         atomic.Bool
 	switchingGraceDeadline atomic.Int64
 	stopCh chan struct{}
 	stopOnce sync.Once
@@ -143,7 +144,7 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 
 		var savedIR schema.ConfigIR
 
-		if json.Unmarshal(data, &savedIR) == nil && len(savedIR.Proxies) > 0 {
+		if uErr := json.Unmarshal(data, &savedIR); uErr == nil {
 
 			// Clean up any corrupted groups from old files
 
@@ -167,7 +168,19 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 
 			loaded = true
 
+		} else {
+
+			log.Printf("⚠️ [Engine] Failed to parse config.ir.json (%v); backing up corrupt file", uErr)
+
+			corruptPath := fmt.Sprintf("%s.corrupt.%d", irFile, time.Now().Unix())
+
+			_ = os.Rename(irFile, corruptPath)
+
 		}
+
+	} else if !os.IsNotExist(err) {
+
+		log.Printf("⚠️ [Engine] Failed to read config.ir.json (%v)", err)
 
 	}
 
@@ -181,11 +194,15 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 
 			var goodIR schema.ConfigIR
 
-			if json.Unmarshal(gData, &goodIR) == nil && len(goodIR.Proxies) > 0 {
+			if uErr := json.Unmarshal(gData, &goodIR); uErr == nil {
 
 				initialIR = &goodIR
 
 				log.Printf("🛡️ [Engine] Restored configuration from last-known-good snapshot (%d proxies)", len(goodIR.Proxies))
+
+			} else {
+
+				log.Printf("⚠️ [Engine] Failed to parse last-known-good snapshot (%v)", uErr)
 
 			}
 
@@ -198,6 +215,12 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 	if initialIR.Network.DNSPort == 0 || initialIR.Network.DNSPort == 1053 {
 
 		initialIR.Network.DNSPort = 53
+
+	}
+
+	if initialIR.Network.ClashAPIPort <= 0 {
+
+		initialIR.Network.ClashAPIPort = 9090
 
 	}
 
@@ -253,7 +276,7 @@ func (m *Manager) WarmStandbyConfigs() {
 // prewarmStandbyVersion performs async precompilation guarded by targetVer generation counter to eliminate ABA race conditions.
 func (m *Manager) prewarmStandbyVersion(targetVer uint64) {
 	m.mu.RLock()
-	ir := m.ir
+	ir := m.ir.Clone()
 	eng := m.activeEngine
 	m.mu.RUnlock()
 	if ir == nil {
@@ -413,37 +436,74 @@ func (m *Manager) GetLastResult() *SwitchResult {
 
 // GetIR returns a reference to the active IR config.
 
+func (m *Manager) snapshotNetMeta() (clashAPI, clashSecret, tunIface string) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	clashAPI = m.clashAPI
+	tunIface = "cubex-tun"
+	if m.ir != nil {
+		clashSecret = m.ir.Network.ClashSecret
+		if m.ir.Network.TunInterface != "" {
+			tunIface = m.ir.Network.TunInterface
+		}
+	}
+	return clashAPI, clashSecret, tunIface
+}
+
+// GetIR returns a defensive deep copy of the configuration IR to prevent caller data races.
 func (m *Manager) GetIR() *schema.ConfigIR {
 
 	m.mu.RLock()
 
 	defer m.mu.RUnlock()
 
-	return m.ir
+	return m.ir.Clone()
 
 }
 
-// UpdateIR safely updates the configuration IR in memory, increments irVersion,
-// immediately invalidates stale precompiled configs under lock, persists to disk,
+// UpdateIRWithErr safely updates the configuration IR in memory, increments irVersion,
+// immediately invalidates stale precompiled configs under lock, persists atomically to disk,
 // and asynchronously prewarms the standby engine for the new irVersion.
-func (m *Manager) UpdateIR(newIR *schema.ConfigIR) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+func (m *Manager) UpdateIRWithErr(newIR *schema.ConfigIR) error {
+	if newIR == nil {
+		return fmt.Errorf("cannot update engine with nil ConfigIR")
+	}
 
+	m.mu.Lock()
 	curVer := atomic.AddUint64(&m.irVersion, 1)
 
 	m.precompiledMu.Lock()
 	m.precompiledConfig = make(map[schema.EngineType][]byte)
 	m.precompiledMu.Unlock()
 
-	m.ir = newIR
+	cloned := newIR.Clone()
+	if cloned.Meta.ActiveEngine == "" && m.activeEngine != "" {
+		cloned.Meta.ActiveEngine = m.activeEngine
+	}
+	m.ir = cloned
 
 	_ = os.MkdirAll(filepath.Join(m.workDir, "data"), 0700)
-	if data, err := json.MarshalIndent(newIR, "", "  "); err == nil {
-		_ = schema.WriteFileAtomicSecure(filepath.Join(m.workDir, "data", "config.ir.json"), data)
+	var persistErr error
+	if data, err := json.MarshalIndent(cloned, "", "  "); err != nil {
+		persistErr = err
+	} else if err := schema.WriteFileAtomicSecure(filepath.Join(m.workDir, "data", "config.ir.json"), data); err != nil {
+		persistErr = err
+	}
+	m.mu.Unlock()
+
+	if persistErr != nil {
+		return persistErr
 	}
 
 	go m.prewarmStandbyVersion(curVer)
+	return nil
+}
+
+// UpdateIR safely updates the configuration IR and logs any persistence failure.
+func (m *Manager) UpdateIR(newIR *schema.ConfigIR) {
+	if err := m.UpdateIRWithErr(newIR); err != nil {
+		log.Printf("⚠️ [Engine] Failed to persist updated ConfigIR: %v", err)
+	}
 }
 
 // SnapshotClashState snapshots active selector node choices from 127.0.0.1:9090/proxies.
@@ -515,6 +575,8 @@ func (m *Manager) RestoreClashState(snapshot map[string]string) int {
 
 	}
 
+	_, clashSecret, _ := m.snapshotNetMeta()
+
 	var wg sync.WaitGroup
 
 	var restoredCount int64
@@ -559,9 +621,9 @@ func (m *Manager) RestoreClashState(snapshot map[string]string) int {
 
 			req.Header.Set("Content-Type", "application/json")
 
-			if m.ir != nil && m.ir.Network.ClashSecret != "" {
+			if clashSecret != "" {
 
-				req.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
+				req.Header.Set("Authorization", "Bearer "+clashSecret)
 
 			}
 
@@ -923,7 +985,7 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 
 }
 
-func (m *Manager) startEngineProcess(eng schema.EngineType, cmd *exec.Cmd) error {
+func (m *Manager) startEngineProcess(eng schema.EngineType, cmd *exec.Cmd) (*sync.WaitGroup, error) {
 
 	stdoutPipe, err := cmd.StdoutPipe()
 
@@ -943,37 +1005,81 @@ func (m *Manager) startEngineProcess(eng schema.EngineType, cmd *exec.Cmd) error
 
 	if err := cmd.Start(); err != nil {
 
-		return err
+		return nil, err
 
 	}
 
+	var pipeWG sync.WaitGroup
+
 	if stdoutPipe != nil {
 
-		go m.streamLogPipe(eng, "stdout", stdoutPipe)
+		pipeWG.Add(1)
+
+		go func() {
+
+			defer pipeWG.Done()
+
+			m.streamLogPipe(eng, "stdout", stdoutPipe)
+
+		}()
 
 	}
 
 	if stderrPipe != nil {
 
-		go m.streamLogPipe(eng, "stderr", stderrPipe)
+		pipeWG.Add(1)
+
+		go func() {
+
+			defer pipeWG.Done()
+
+			m.streamLogPipe(eng, "stderr", stderrPipe)
+
+		}()
 
 	}
 
-	return nil
+	return &pipeWG, nil
 
 }
 
+func (m *Manager) waitEngineProcess(eng schema.EngineType, cmd *exec.Cmd, pipeWG *sync.WaitGroup, done chan struct{}) {
+	pid := 0
+	if cmd != nil && cmd.Process != nil {
+		pid = cmd.Process.Pid
+	}
+	if pipeWG != nil {
+		pipeWG.Wait()
+	}
+	err := cmd.Wait()
+	state := cmd.ProcessState
+	if err != nil || (state != nil && !state.Success()) {
+		detail := m.summarizeRecentStderr()
+		if detail != "" {
+			m.setLastCoreError(fmt.Sprintf("%s (PID %d) 异常退出 (%v): %s", eng, pid, err, detail))
+		} else {
+			m.setLastCoreError(fmt.Sprintf("%s (PID %d) 异常退出 (%v, state: %v)", eng, pid, err, state))
+		}
+	}
+	log.Printf("⚠️ [Engine] Core process %s (PID %d) exited: %v (state: %v)", eng, pid, err, state)
+	close(done)
+}
+
 func (m *Manager) dryRunCheck(eng schema.EngineType, binPath, etcDir, configPath string) error {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+
+	defer cancel()
 
 	var testCmd *exec.Cmd
 
 	if eng == schema.EngineMihomo {
 
-		testCmd = exec.Command(binPath, "-t", "-d", etcDir, "-f", configPath)
+		testCmd = exec.CommandContext(ctx, binPath, "-t", "-d", etcDir, "-f", configPath)
 
 	} else {
 
-		testCmd = exec.Command(binPath, "check", "-c", configPath, "-D", etcDir)
+		testCmd = exec.CommandContext(ctx, binPath, "check", "-c", configPath, "-D", etcDir)
 
 		testCmd.Dir = etcDir
 
@@ -1124,27 +1230,36 @@ func (m *Manager) stopCurrentCoreWithGrace(gracePeriod time.Duration) {
 }
 
 func (m *Manager) probeCoreHealth(target schema.EngineType, maxWait time.Duration) bool {
+	return m.probeCoreHealthFor(m.currentProc, m.procDone, target, m.clashAPI, maxWait)
+}
+
+func (m *Manager) probeCoreHealthFor(proc *os.Process, procDone <-chan struct{}, target schema.EngineType, clashAPI string, maxWait time.Duration) bool {
 	deadline := time.Now().Add(maxWait)
 	backoff := 3 * time.Millisecond
 	maxBackoff := 25 * time.Millisecond
 
+	probeAddr := "127.0.0.1:9090"
+	if u, err := url.Parse(clashAPI); err == nil && u.Host != "" {
+		probeAddr = u.Host
+	}
+
 	for time.Now().Before(deadline) {
-		if m.currentProc == nil {
+		if proc == nil {
 			return false
 		}
 
 		// Fail-fast if process exited prematurely
-		if m.procDone != nil {
+		if procDone != nil {
 			select {
-			case <-m.procDone:
+			case <-procDone:
 				log.Printf("🚨 [Engine] Target core process exited prematurely during startup")
 				return false
 			default:
 			}
 		}
 
-		// Fast TCP connect probe: as soon as Clash API port 9090 accepts connection, core is fully initialized
-		c, err := net.DialTimeout("tcp", "127.0.0.1:9090", 10*time.Millisecond)
+		// Fast TCP connect probe: as soon as Clash API port accepts connection, core is fully initialized
+		c, err := net.DialTimeout("tcp", probeAddr, 10*time.Millisecond)
 		if err == nil {
 			_ = c.Close()
 			return true
@@ -1212,7 +1327,7 @@ func (m *Manager) rollback(eng schema.EngineType, etcDir string, snapshot map[st
 
 	cmd := m.buildCmd(eng, binPath, etcDir, configPath)
 
-	if err := m.startEngineProcess(eng, cmd); err == nil {
+	if pipeWG, err := m.startEngineProcess(eng, cmd); err == nil {
 
 		m.currentProc = cmd.Process
 
@@ -1222,15 +1337,7 @@ func (m *Manager) rollback(eng schema.EngineType, etcDir string, snapshot map[st
 
 		log.Printf("🛡️ [Engine] Rollback process for %s started with PID %d", eng, cmd.Process.Pid)
 
-		go func(proc *os.Process, e schema.EngineType, d chan struct{}) {
-
-			state, err := proc.Wait()
-
-			log.Printf("⚠️ [Engine] Rollback core %s (PID %d) exited: %v (state: %v)", e, proc.Pid, err, state)
-
-			close(d)
-
-		}(cmd.Process, eng, done)
+		go m.waitEngineProcess(eng, cmd, pipeWG, done)
 
 		if m.probeCoreHealth(eng, 3*time.Second) {
 
@@ -1238,7 +1345,17 @@ func (m *Manager) rollback(eng schema.EngineType, etcDir string, snapshot map[st
 
 			m.activeEngine = eng
 
-			m.ir.Meta.ActiveEngine = eng
+			if m.ir != nil {
+
+				m.ir.Meta.ActiveEngine = eng
+
+				if data, mErr := json.MarshalIndent(m.ir, "", "  "); mErr == nil {
+
+					_ = schema.WriteFileAtomicSecure(filepath.Join(m.workDir, "data", "config.ir.json"), data)
+
+				}
+
+			}
 
 			log.Printf("✅ [Engine] Self-healing rollback to %s succeeded! Network preserved.", eng)
 
@@ -1258,13 +1375,13 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	m.mu.Lock()
 
-	m.stopping = true
-	// Set 1500ms grace window for /healthz/dataplane to prevent Netwatch false alarms during active switch
+	m.switching.Store(true)
+	// Set 1500ms grace window for /healthz/dataplane and Supervisor to prevent false alarms during active switch
 	m.switchingGraceDeadline.Store(time.Now().Add(1500 * time.Millisecond).UnixNano())
 
 	defer func() {
 
-		m.stopping = false
+		m.switching.Store(false)
 		m.switchingGraceDeadline.Store(0)
 
 		m.mu.Unlock()
@@ -1422,7 +1539,8 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	tStartStart := time.Now()
 	m.clearRecentCoreOutput()
 	cmd := m.buildCmd(target, binPath, etcDir, targetConfigPath)
-	if err := m.startEngineProcess(target, cmd); err != nil {
+	pipeWG, err := m.startEngineProcess(target, cmd)
+	if err != nil {
 		log.Printf("🚨 [Engine] Failed to spawn %s: %v. Triggering self-healing rollback to %s!", target, err, fromEngine)
 		m.setLastCoreError(err.Error())
 		res.ErrorMessage = fmt.Sprintf("failed to spawn %s: %v", target, err)
@@ -1439,19 +1557,7 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	m.procDone = done
 	log.Printf("🚀 [Engine] Core engine %s started with PID %d", target, cmd.Process.Pid)
 
-	go func(proc *os.Process, eng schema.EngineType, d chan struct{}) {
-		state, err := proc.Wait()
-		if err != nil || (state != nil && !state.Success()) {
-			detail := m.summarizeRecentStderr()
-			if detail != "" {
-				m.setLastCoreError(fmt.Sprintf("%s (PID %d) 异常退出 (%v): %s", eng, proc.Pid, err, detail))
-			} else {
-				m.setLastCoreError(fmt.Sprintf("%s (PID %d) 异常退出 (%v, state: %v)", eng, proc.Pid, err, state))
-			}
-		}
-		log.Printf("⚠️ [Engine] Core process %s (PID %d) exited: %v (state: %v)", eng, proc.Pid, err, state)
-		close(d)
-	}(cmd.Process, target, done)
+	go m.waitEngineProcess(target, cmd, pipeWG, done)
 	dStart := time.Since(tStartStart).Milliseconds()
 
 	// Step 6: Active Health Probe (verify Clash API and DNS readiness within 3s)
@@ -1492,9 +1598,16 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	res.TotalCostMs = res.ElapsedMs
 	if m.ir != nil {
 		res.ActiveRules = len(m.ir.Rules)
+		m.ir.Meta.ActiveEngine = target
+		atomic.AddUint64(&m.irVersion, 1)
+		m.precompiledMu.Lock()
+		m.precompiledConfig = make(map[schema.EngineType][]byte)
+		m.precompiledMu.Unlock()
+		if data, mErr := json.MarshalIndent(m.ir, "", "  "); mErr == nil {
+			_ = schema.WriteFileAtomicSecure(filepath.Join(m.workDir, "data", "config.ir.json"), data)
+		}
 	}
 	m.activeEngine = target
-	m.ir.Meta.ActiveEngine = target
 	res.Success = true
 	m.lastResult = res
 	m.ResetCircuitBreaker()
@@ -1539,17 +1652,11 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 
 	time.Sleep(150 * time.Millisecond)
 
+	clashAPI, clashSecret, tunIface := m.snapshotNetMeta()
+
 	// In Linux environments (PVE LXC / Container / Host), ensure Fake-IP route 198.18.0.0/15 dev cubex-tun is active
 
 	if runtime.GOOS == "linux" {
-
-		tunIface := "cubex-tun"
-
-		if m.ir != nil && m.ir.Network.TunInterface != "" {
-
-			tunIface = m.ir.Network.TunInterface
-
-		}
 
 		_ = exec.Command("ip", "route", "replace", "198.18.0.0/15", "dev", tunIface).Run()
 		_ = exec.Command("conntrack", "-D", "-d", "198.18.0.0/15").Run()
@@ -1566,7 +1673,7 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 
 		// 1. Warm specific proxy
 
-		uProxy := fmt.Sprintf("%s/proxies/%s/delay?url=%s&timeout=2000", m.clashAPI, escaped, url.QueryEscape(testURL))
+		uProxy := fmt.Sprintf("%s/proxies/%s/delay?url=%s&timeout=2000", clashAPI, escaped, url.QueryEscape(testURL))
 
 		ctx, cancel := context.WithTimeout(context.Background(), 2200*time.Millisecond)
 
@@ -1574,9 +1681,9 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 
 		if err == nil {
 
-			if m.ir != nil && m.ir.Network.ClashSecret != "" {
+			if clashSecret != "" {
 
-				req.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
+				req.Header.Set("Authorization", "Bearer "+clashSecret)
 
 			}
 
@@ -1594,7 +1701,7 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 
 		// 2. Pre-warm entire group
 
-		uGroup := fmt.Sprintf("%s/group/%s/delay?url=%s&timeout=2000", m.clashAPI, escaped, url.QueryEscape(testURL))
+		uGroup := fmt.Sprintf("%s/group/%s/delay?url=%s&timeout=2000", clashAPI, escaped, url.QueryEscape(testURL))
 
 		ctx2, cancel2 := context.WithTimeout(context.Background(), 2200*time.Millisecond)
 
@@ -1602,9 +1709,9 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 
 		if err2 == nil {
 
-			if m.ir != nil && m.ir.Network.ClashSecret != "" {
+			if clashSecret != "" {
 
-				req2.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
+				req2.Header.Set("Authorization", "Bearer "+clashSecret)
 
 			}
 
@@ -1639,14 +1746,19 @@ func (m *Manager) StartSupervisor() {
 			case <-m.stopCh:
 				return
 			case <-ticker.C:
-				m.mu.Lock()
+				m.mu.RLock()
 				stopping := m.stopping
 				active := m.activeEngine
 				proc := m.currentProc
-				m.mu.Unlock()
+				procDone := m.procDone
+				clashAPI := m.clashAPI
+				m.mu.RUnlock()
 
 				if stopping {
 					return
+				}
+				if m.switching.Load() || m.IsSwitchingInGracePeriod() {
+					continue
 				}
 				if m.IsCircuitBroken() {
 					continue
@@ -1673,7 +1785,7 @@ func (m *Manager) StartSupervisor() {
 
 			if isAlive {
 
-				isAlive = m.probeCoreHealth(active, 1200*time.Millisecond)
+				isAlive = m.probeCoreHealthFor(proc, procDone, active, clashAPI, 1200*time.Millisecond)
 
 			}
 
@@ -1795,7 +1907,9 @@ func (m *Manager) GetLastKnownGoodTime() string {
 
 func (m *Manager) PatrolCircuitBreaker() int {
 
-	u := fmt.Sprintf("%s/proxies", m.clashAPI)
+	clashAPI, clashSecret, _ := m.snapshotNetMeta()
+
+	u := fmt.Sprintf("%s/proxies", clashAPI)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1200*time.Millisecond)
 
@@ -1809,21 +1923,27 @@ func (m *Manager) PatrolCircuitBreaker() int {
 
 	}
 
-	if m.ir != nil && m.ir.Network.ClashSecret != "" {
+	if clashSecret != "" {
 
-		req.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
+		req.Header.Set("Authorization", "Bearer "+clashSecret)
 
 	}
 
 	resp, err := m.httpClient.Do(req)
 
-	if err != nil || resp.StatusCode != http.StatusOK {
+	if err != nil {
 
 		return 0
 
 	}
 
-	defer resp.Body.Close()
+	defer netutil.DrainAndCloseBody(resp)
+
+	if resp.StatusCode != http.StatusOK {
+
+		return 0
+
+	}
 
 	body, err := io.ReadAll(resp.Body)
 
@@ -1961,15 +2081,19 @@ func (m *Manager) PatrolCircuitBreaker() int {
 
 					pReq.Header.Set("Content-Type", "application/json")
 
-					if m.ir != nil && m.ir.Network.ClashSecret != "" {
+					if clashSecret != "" {
 
-						pReq.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
+						pReq.Header.Set("Authorization", "Bearer "+clashSecret)
 
 					}
 
 					if pResp, err := m.httpClient.Do(pReq); err == nil {
 
-						pResp.Body.Close()
+						pStatus := pResp.StatusCode
+						netutil.DrainAndCloseBody(pResp)
+						if pStatus != http.StatusOK && pStatus != http.StatusNoContent {
+							continue
+						}
 
 						m.mu.Lock()
 
@@ -1986,6 +2110,11 @@ func (m *Manager) PatrolCircuitBreaker() int {
 								}
 
 							}
+
+							atomic.AddUint64(&m.irVersion, 1)
+							m.precompiledMu.Lock()
+							m.precompiledConfig = make(map[schema.EngineType][]byte)
+							m.precompiledMu.Unlock()
 
 							if data, err := json.MarshalIndent(m.ir, "", "  "); err == nil {
 
@@ -2041,11 +2170,14 @@ func (m *Manager) StartEndToEndWatchdog() {
 				m.mu.RLock()
 				stopping := m.stopping
 				active := m.activeEngine
-				ir := m.ir
+				ir := m.ir.Clone()
 				m.mu.RUnlock()
 
 				if stopping {
 					return
+				}
+				if m.switching.Load() || m.IsSwitchingInGracePeriod() {
+					continue
 				}
 				if m.IsCircuitBroken() {
 					continue
@@ -2115,6 +2247,8 @@ func (m *Manager) StartEndToEndWatchdog() {
 
 			}
 
+			transport.CloseIdleConnections()
+
 			cancel()
 
 			if ok {
@@ -2179,25 +2313,30 @@ func (m *Manager) SetSwitchingGraceDeadline(deadline time.Time) {
 // flushStaleConnectionsAfterSwitch cleans up stale half-open connections in the kernel after an engine switch,
 // so client browsers immediately re-resolve and connect with the new core's Fake-IP pool.
 func (m *Manager) flushStaleConnectionsAfterSwitch() {
-	if m.ir == nil {
-		return
+	m.mu.RLock()
+	port := 9090
+	secret := ""
+	if m.ir != nil {
+		if m.ir.Network.ClashAPIPort > 0 {
+			port = m.ir.Network.ClashAPIPort
+		}
+		secret = m.ir.Network.ClashSecret
 	}
-	port := m.ir.Network.ClashAPIPort
-	if port <= 0 {
-		port = 9090
-	}
-	url := fmt.Sprintf("http://127.0.0.1:%d/connections", port)
-	req, err := http.NewRequest(http.MethodDelete, url, nil)
+	m.mu.RUnlock()
+
+	u := fmt.Sprintf("http://127.0.0.1:%d/connections", port)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, u, nil)
 	if err != nil {
 		return
 	}
-	if m.ir.Network.ClashSecret != "" {
-		req.Header.Set("Authorization", "Bearer "+m.ir.Network.ClashSecret)
+	if secret != "" {
+		req.Header.Set("Authorization", "Bearer "+secret)
 	}
-	client := &http.Client{Timeout: 1 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := m.httpClient.Do(req)
 	if err == nil {
 		netutil.DrainAndCloseBody(resp)
-		log.Printf("🧹 [Engine] Flushed stale connections via Clash API (%s)", url)
+		log.Printf("🧹 [Engine] Flushed stale connections via Clash API (%s)", u)
 	}
 }

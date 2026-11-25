@@ -389,15 +389,17 @@ func (s *Server) handleSmartPingConfig(w http.ResponseWriter, r *http.Request) {
 			s.smartPingIntervalMin = *req.IntervalMin
 		}
 	}
+	enabled := s.smartPingEnabled
+	intervalMin := s.smartPingIntervalMin
 	s.smartPingMutex.Unlock()
 
-	s.logBuffer.Add("INFO", "SMARTPING", fmt.Sprintf("智能健康巡检配置已更新: 启用=%v, 周期=%d分钟", s.smartPingEnabled, s.smartPingIntervalMin))
+	s.logBuffer.Add("INFO", "SMARTPING", fmt.Sprintf("智能健康巡检配置已更新: 启用=%v, 周期=%d分钟", enabled, intervalMin))
 
 	sendJSON(w, map[string]any{
 		"ok":       true,
 		"message":  "配置更新成功",
-		"enabled":  s.smartPingEnabled,
-		"interval": s.smartPingIntervalMin,
+		"enabled":  enabled,
+		"interval": intervalMin,
 	})
 }
 

@@ -55,18 +55,23 @@ func (s *Server) Run(listenAddr string) error {
 	httpServer := &http.Server{
 		Handler: handler,
 	}
+	var httpServer80 *http.Server
 
 	// Dual-port listening: if port 80 is available (e.g. standalone container), also serve on port 80 for seamless access (http://<IP>)
 	if listenAddr != ":80" && listenAddr != "0.0.0.0:80" {
-		SafeGo("WebDirectPort80", func() {
-			ln80, err80 := net.Listen("tcp", ":80")
-			if err80 == nil {
-				log.Printf("🌐 [Web Direct] Port 80 is free! Also serving dashboard directly at http://<host-ip>/ (Port 80)\n")
-				_ = http.Serve(ln80, handler)
-			} else {
-				log.Printf("ℹ️ [Web Direct] Port 80 is reserved or occupied by host (%v), continuing on %s\n", err80, actualAddr)
-			}
-		})
+		ln80, err80 := net.Listen("tcp", ":80")
+		if err80 == nil {
+			log.Printf("🌐 [Web Direct] Port 80 is free! Also serving dashboard directly at http://<host-ip>/ (Port 80)\n")
+			httpServer80 = &http.Server{Handler: handler}
+			srv80 := httpServer80
+			SafeGo("WebDirectPort80", func() {
+				if sErr := srv80.Serve(ln80); sErr != nil && sErr != http.ErrServerClosed {
+					log.Printf("ℹ️ [Web Direct] Port 80 server stopped: %v\n", sErr)
+				}
+			})
+		} else {
+			log.Printf("ℹ️ [Web Direct] Port 80 is reserved or occupied by host (%v), continuing on %s\n", err80, actualAddr)
+		}
 	}
 
 	sigCh := make(chan os.Signal, 1)
@@ -75,8 +80,16 @@ func (s *Server) Run(listenAddr string) error {
 	SafeGo("SignalSupervisor", func() {
 		sig := <-sigCh
 		log.Printf("🛑 接收到系统终止信号 [%v]，启动 LTS 确定性无阻塞退出序列...\n", sig)
+		// 立即关闭 HTTP 监听套接字，避免重启时新进程因等待引擎退出窗口 (GracefulDrain/Stop) 而误判端口占用并漂移至 2027+
+		httpShutdownCtx, httpCancel := context.WithTimeout(context.Background(), 800*time.Millisecond)
+		if httpServer80 != nil {
+			_ = httpServer80.Shutdown(httpShutdownCtx)
+		}
+		_ = httpServer.Shutdown(httpShutdownCtx)
+		httpCancel()
+
 		s.Close()
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 		defer cancel()
 
 		ltsSupervisor.DeterministicShutdown(
@@ -92,6 +105,9 @@ func (s *Server) Run(listenAddr string) error {
 				return nil
 			},
 			func(ctx context.Context) error {
+				if httpServer80 != nil {
+					_ = httpServer80.Shutdown(ctx)
+				}
 				return httpServer.Shutdown(ctx)
 			},
 		)
@@ -511,11 +527,39 @@ func (s *Server) handleEngineMode(w http.ResponseWriter, r *http.Request) {
 		Mode string `json:"mode"`
 	}
 
-	_ = json.NewDecoder(r.Body).Decode(&req)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request payload: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	mode := strings.ToLower(strings.TrimSpace(req.Mode))
+	switch mode {
+	case string(schema.ModeRule), string(schema.ModeGlobal), string(schema.ModeDirect):
+	default:
+		http.Error(w, "unsupported proxy mode (allowed: rule, global, direct)", http.StatusBadRequest)
+		return
+	}
 
 	ir := s.engMgr.GetIR()
+	if ir == nil {
+		http.Error(w, "IR not initialized", http.StatusInternalServerError)
+		return
+	}
 
-	ir.Meta.ProxyMode = schema.ProxyMode(req.Mode)
+	ir.Meta.ProxyMode = schema.ProxyMode(mode)
+	if err := s.engMgr.UpdateIRWithErr(ir); err != nil {
+		http.Error(w, "failed to persist mode change: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.ir = ir
+
+	active := s.engMgr.GetActiveEngine()
+	if active != "" {
+		if _, err := s.engMgr.SwitchEngine(active); err != nil {
+			sendJSON(w, map[string]any{"status": "saved_with_warning", "mode": ir.Meta.ProxyMode, "warning": err.Error()})
+			return
+		}
+	}
 
 	sendJSON(w, map[string]any{"status": "ok", "mode": ir.Meta.ProxyMode})
 

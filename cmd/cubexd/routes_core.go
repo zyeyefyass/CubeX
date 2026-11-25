@@ -713,21 +713,21 @@ func gzipMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") ||
+		if r.Method == http.MethodOptions || r.Method == http.MethodHead ||
+			!strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") ||
 			r.Header.Get("Upgrade") != "" ||
 			strings.Contains(r.Header.Get("Accept"), "text/event-stream") {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		w.Header().Set("Vary", "Accept-Encoding")
-		w.Header().Set("Content-Encoding", "gzip")
-
 		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {
 			next.ServeHTTP(w, r)
 			return
 		}
+		w.Header().Set("Vary", "Accept-Encoding")
+		w.Header().Set("Content-Encoding", "gzip")
 		defer gz.Close()
 
 		gzw := &gzipResponseWriter{ResponseWriter: w, writer: gz}
@@ -1214,8 +1214,15 @@ func (s *Server) handleUIState(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		_ = os.MkdirAll(filepath.Dir(stateFile), 0755)
-		b, _ := json.MarshalIndent(payload, "", "  ")
-		_ = WriteFileAtomic(stateFile, b, 0644)
+		b, mErr := json.MarshalIndent(payload, "", "  ")
+		if mErr != nil {
+			http.Error(w, mErr.Error(), http.StatusInternalServerError)
+			return
+		}
+		if wErr := WriteFileAtomic(stateFile, b, 0644); wErr != nil {
+			http.Error(w, wErr.Error(), http.StatusInternalServerError)
+			return
+		}
 		sendJSON(w, map[string]any{"ok": true})
 		return
 	}
@@ -1242,6 +1249,8 @@ func (s *Server) handleConfigIR(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodPut || r.Method == http.MethodPost {
 
+		r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
+
 		var newIR schema.ConfigIR
 
 		if err := json.NewDecoder(r.Body).Decode(&newIR); err != nil {
@@ -1252,9 +1261,26 @@ func (s *Server) handleConfigIR(w http.ResponseWriter, r *http.Request) {
 
 		}
 
+		if newIR.Network.MixedPort < 1 || newIR.Network.MixedPort > 65535 ||
+			newIR.Network.DNSPort < 1 || newIR.Network.DNSPort > 65535 ||
+			newIR.Network.ClashAPIPort < 1 || newIR.Network.ClashAPIPort > 65535 {
+			http.Error(w, "invalid network port range in ConfigIR", http.StatusBadRequest)
+			return
+		}
+		if newIR.Meta.ActiveEngine != "" &&
+			newIR.Meta.ActiveEngine != schema.EngineMihomo &&
+			newIR.Meta.ActiveEngine != schema.EngineSingbox {
+			http.Error(w, "invalid active_engine in ConfigIR", http.StatusBadRequest)
+			return
+		}
+
 		newIR.UpdatedAt = time.Now()
 
-		s.engMgr.UpdateIR(&newIR)
+		if err := s.engMgr.UpdateIRWithErr(&newIR); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		s.ir = s.engMgr.GetIR()
 
 		sendJSON(w, map[string]any{"status": "saved", "updated_at": newIR.UpdatedAt})
 
@@ -1514,13 +1540,20 @@ func (s *Server) handleBackupImport(w http.ResponseWriter, r *http.Request) {
 
 			schema.SyncAllStrategyGroups(&restoredIR)
 
-			s.engMgr.UpdateIR(&restoredIR)
+			_ = s.engMgr.UpdateIRWithErr(&restoredIR)
 
-			s.ir = &restoredIR
+			s.ir = s.engMgr.GetIR()
 
 			subCount = len(restoredIR.Subscriptions)
 
 			proxyCount = len(restoredIR.Proxies)
+
+			if s.devMgr != nil {
+				s.devMgr.Reload()
+			}
+			if s.engMgr.GetActiveEngine() != "" {
+				_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+			}
 
 		}
 
@@ -1643,6 +1676,11 @@ func (s *Server) handleAIDiagnose(w http.ResponseWriter, r *http.Request) {
 
 
 func (s *Server) handleSystemOverview(w http.ResponseWriter, r *http.Request) {
+
+	if s.rosMgr == nil {
+		sendJSON(w, map[string]any{"cubex_version": version, "panel_curr_version": version, "panel_latest_version": version, "panel_update_avail": false})
+		return
+	}
 
 	overview := s.rosMgr.GetOverview()
 
@@ -1865,6 +1903,10 @@ func (s *Server) handleUpgradePanel(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[CubeX] Restarting process for upgrade...")
 		SafeGo("PanelRestart", func() {
 			time.Sleep(1200 * time.Millisecond)
+			s.Close()
+			if s.engMgr != nil {
+				s.engMgr.Stop()
+			}
 			if _, err := exec.LookPath("rc-service"); err == nil {
 				log.Printf("[CubeX] Executing rc-service cubexd restart...")
 				if err := exec.Command("rc-service", "cubexd", "restart").Start(); err == nil {
@@ -2196,7 +2238,15 @@ func (s *Server) handleSnapshotExport(w http.ResponseWriter, r *http.Request) {
 		sendJSON(w, map[string]any{"status": "error", "message": err.Error()})
 		return
 	}
-	s.logBuffer.Add("INFO", "BACKUP", fmt.Sprintf("已成功创建系统全量灾备快照 (校验签名: %s)", snap.ChecksumSHA256[:12]))
+	checksumPrefix := ""
+	if snap != nil {
+		if len(snap.ChecksumSHA256) >= 12 {
+			checksumPrefix = snap.ChecksumSHA256[:12]
+		} else {
+			checksumPrefix = snap.ChecksumSHA256
+		}
+	}
+	s.logBuffer.Add("INFO", "BACKUP", fmt.Sprintf("已成功创建系统全量灾备快照 (校验签名: %s)", checksumPrefix))
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=cubex-backup-%s-%d.cubex-backup.json", version, snap.Timestamp))
 	w.Write(finalBytes)
@@ -2252,13 +2302,36 @@ func (s *Server) handleSnapshotRestore(w http.ResponseWriter, r *http.Request) {
 		sendJSON(w, map[string]any{"status": "error", "message": "snapshot manager not initialized"})
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, 16<<20)
 	body, err := io.ReadAll(r.Body)
 	if err != nil || len(body) == 0 {
-		sendJSON(w, map[string]any{"status": "error", "message": "empty snapshot payload"})
+		msg := "empty snapshot payload"
+		if err != nil {
+			msg = err.Error()
+		}
+		sendJSON(w, map[string]any{"status": "error", "message": msg})
 		return
 	}
 	res, err := s.snapshotMgr.RestoreSnapshot(body, func() error {
-		_, switchErr := s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+		irFile := filepath.Join(s.workDir, "data", "config.ir.json")
+		if data, rErr := os.ReadFile(irFile); rErr == nil {
+			var restoredIR schema.ConfigIR
+			if uErr := json.Unmarshal(data, &restoredIR); uErr == nil {
+				schema.SyncAllStrategyGroups(&restoredIR)
+				if err := s.engMgr.UpdateIRWithErr(&restoredIR); err != nil {
+					return err
+				}
+				s.ir = s.engMgr.GetIR()
+			}
+		}
+		if s.devMgr != nil {
+			s.devMgr.Reload()
+		}
+		active := s.engMgr.GetActiveEngine()
+		if active == "" {
+			return nil
+		}
+		_, switchErr := s.engMgr.SwitchEngine(active)
 		return switchErr
 	})
 	if err != nil {

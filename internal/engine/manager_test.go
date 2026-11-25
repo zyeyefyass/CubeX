@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -239,6 +241,43 @@ func TestStreamLogPipe_CapturesV3StderrError(t *testing.T) {
 	st := mgr.GetEngineFaultStatus()
 	if st.LastCoreError != v3Msg {
 		t.Fatalf("expected LastCoreError=%q, got %q", v3Msg, st.LastCoreError)
+	}
+}
+
+func TestNewManager_EmptyProxiesPreservedAndCorruptBackedUp(t *testing.T) {
+	// 1. Empty proxies with custom rule/port must NOT be discarded by default IR
+	tmpDir := t.TempDir()
+	dataDir := filepath.Join(tmpDir, "data")
+	if err := os.MkdirAll(dataDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	customJSON := `{"meta":{"active_engine":"sing-box","proxy_mode":"global"},"network":{"mixed_port":17890,"dns_port":53,"clash_api_port":9090},"proxies":[],"rules":[{"type":"DOMAIN-SUFFIX","payload":"example.com","target":"DIRECT"}]}`
+	irPath := filepath.Join(dataDir, "config.ir.json")
+	if err := os.WriteFile(irPath, []byte(customJSON), 0600); err != nil {
+		t.Fatal(err)
+	}
+	mgr := NewManager(tmpDir, schema.NewDefaultIR())
+	defer mgr.Stop()
+	got := mgr.GetIR()
+	if got.Network.MixedPort != 17890 || got.Meta.ProxyMode != schema.ModeGlobal {
+		t.Fatalf("expected empty-proxy custom config preserved, got mixed_port=%d mode=%s", got.Network.MixedPort, got.Meta.ProxyMode)
+	}
+
+	// 2. Corrupt config.ir.json must be backed up as .corrupt.*
+	corruptDir := t.TempDir()
+	cDataDir := filepath.Join(corruptDir, "data")
+	if err := os.MkdirAll(cDataDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	cIrPath := filepath.Join(cDataDir, "config.ir.json")
+	if err := os.WriteFile(cIrPath, []byte("{corrupt json"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	mgr2 := NewManager(corruptDir, schema.NewDefaultIR())
+	defer mgr2.Stop()
+	matches, _ := filepath.Glob(cIrPath + ".corrupt.*")
+	if len(matches) == 0 {
+		t.Fatalf("expected corrupt config.ir.json to be backed up with .corrupt.* suffix")
 	}
 }
 

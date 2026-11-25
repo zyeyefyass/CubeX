@@ -76,6 +76,9 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 	// Engine Manager
 
 	engMgr := engine.NewManager(dir, cfgIR)
+	if loadedIR := engMgr.GetIR(); loadedIR != nil {
+		cfgIR = loadedIR
+	}
 
 	// Netstack Controller
 
@@ -127,6 +130,7 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 	cfgIR.DNSRewriteEnabled = rwCfg.Enabled
 
 	cfgIR.DNSRewrites = rwCfg.Rules
+	engMgr.UpdateIR(cfgIR)
 
 	// Backup Time Machine Manager
 
@@ -308,6 +312,8 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 			ForceProxyDomains:  uSpec.ForceProxyDomains,
 			ForceRejectDomains: uSpec.ForceRejectDomains,
 		}
+		engMgr.UpdateIR(cfgIR)
+		srv.ir = engMgr.GetIR()
 	}
 	srv.clientInspector = telemetry.NewClientInspector(clashAPIAddr, clashSecret)
 	srv.stallDetector = probe.NewPassiveStallDetector()
@@ -363,13 +369,19 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 			srv.logBuffer.Add("INFO", "FAIL_OPEN", fmt.Sprintf("✅ 代理引擎恢复健康，已切回正常加速: %s", reason))
 		}
 	})
+	stopCtx, stopCancel := context.WithCancel(context.Background())
+	SafeGo("StopCtxMonitor", func() {
+		<-srv.stopCh
+		stopCancel()
+	})
+
 	srv.memGuard = perf.NewMemoryGuard(24, nil)
 	SafeGo("IdleMemoryScavenger", func() {
-		srv.memGuard.StartIdleScavenger(context.Background(), 3*time.Minute)
+		srv.memGuard.StartIdleScavenger(stopCtx, 3*time.Minute)
 	})
 
 	SafeGo("EWMAScheduler", func() {
-		srv.ewmaSched.Run(context.Background())
+		srv.ewmaSched.Run(stopCtx)
 	})
 
 	SafeGo("WANHealerWatch", func() {
@@ -390,7 +402,7 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 			}
 			return false
 		}
-		srv.wanHealer.WatchGatewayTransition(context.Background(), 15*time.Second, probeGateway)
+		srv.wanHealer.WatchGatewayTransition(stopCtx, 15*time.Second, probeGateway)
 	})
 
 	srv.initTrafficState()
@@ -402,7 +414,7 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 	srv.startDailySubscriptionAutoUpdate()
 	srv.startSmartHealthPing()
 	SafeGo("DataplaneHealthLoop", func() {
-		srv.startDataplaneHealthLoop(context.Background())
+		srv.startDataplaneHealthLoop(stopCtx)
 	})
 
 	// 7x24h 智能哨兵巡检与异常自愈黑匣子
@@ -1041,6 +1053,9 @@ type Server struct {
 	reloadTimerMu sync.Mutex
 	reloadTimer   *time.Timer
 
+	delaySaveMu    sync.Mutex
+	delaySaveTimer *time.Timer
+
 	stopCh   chan struct{}
 	stopOnce sync.Once
 }
@@ -1048,6 +1063,25 @@ type Server struct {
 // Close gracefully stops the server background workers and sets draining
 func (s *Server) Close() {
 	s.draining.Store(true)
+	s.reloadTimerMu.Lock()
+	if s.reloadTimer != nil {
+		s.reloadTimer.Stop()
+		s.reloadTimer = nil
+	}
+	s.reloadTimerMu.Unlock()
+
+	s.delaySaveMu.Lock()
+	if s.delaySaveTimer != nil {
+		s.delaySaveTimer.Stop()
+		s.delaySaveTimer = nil
+	}
+	s.delaySaveMu.Unlock()
+
+	s.trafficMu.Lock()
+	s.saveTrafficStateLocked(true)
+	s.trafficMu.Unlock()
+	s.savePersistentDelayCache()
+
 	if s.monthlyLedger != nil {
 		s.monthlyLedger.Close()
 	}
@@ -1119,7 +1153,7 @@ func WriteFileAtomic(filename string, data []byte, perm os.FileMode) error {
 	}
 	tmpFile, err := os.CreateTemp(dir, filepath.Base(filename)+".*.tmp")
 	if err != nil {
-		return os.WriteFile(filename, data, perm)
+		return err
 	}
 	tmpName := tmpFile.Name()
 	defer func() {
@@ -1193,6 +1227,22 @@ func (s *Server) loadPersistentDelayCache() {
 }
 
 
+
+func (s *Server) scheduleSavePersistentDelayCache() {
+	s.delaySaveMu.Lock()
+	defer s.delaySaveMu.Unlock()
+	if s.delaySaveTimer != nil {
+		return
+	}
+	s.delaySaveTimer = time.AfterFunc(2*time.Second, func() {
+		s.delaySaveMu.Lock()
+		s.delaySaveTimer = nil
+		s.delaySaveMu.Unlock()
+		if !s.draining.Load() {
+			s.savePersistentDelayCache()
+		}
+	})
+}
 
 func (s *Server) savePersistentDelayCache() {
 	s.delayCacheMu.RLock()

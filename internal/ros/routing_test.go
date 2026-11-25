@@ -139,6 +139,14 @@ func TestBuildNetwatchAntiFlappingScripts(t *testing.T) {
 	if !strings.Contains(upScript, "/healthz/dataplane") {
 		t.Error("upScript missing /healthz/dataplane readiness check")
 	}
+	for _, s := range []string{downScript, upScript} {
+		if strings.Contains(s, ":return;") {
+			t.Errorf("netwatch script must not contain bare ':return;' (fails in RouterOS 7.25.2): %s", s)
+		}
+		if strings.Contains(s, "disabled=no") || strings.Contains(s, "disabled=yes") {
+			t.Errorf("netwatch script must use '!disabled'/'disabled' instead of disabled=no/yes for RouterOS 7.25.2 compatibility: %s", s)
+		}
+	}
 }
 
 func TestMultiWANRoutingRulePayload(t *testing.T) {

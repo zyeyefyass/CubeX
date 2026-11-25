@@ -257,7 +257,9 @@ func (m *Manager) EnsureDevicePolicyMangleRule() error {
 	}
 
 	var mangles []map[string]any
-	_ = json.Unmarshal(data, &mangles)
+	if uErr := json.Unmarshal(data, &mangles); uErr != nil {
+		return fmt.Errorf("解析 RouterOS mangle 列表失败: %w", uErr)
+	}
 
 	ruleComment := "CubeX Per-Device Policy Routing"
 	for _, mg := range mangles {
@@ -282,7 +284,9 @@ func (m *Manager) EnsureDevicePolicyMangleRule() error {
 	if err != nil {
 		return err
 	}
-	_ = m.EnsureClientDNSRedirectRule()
+	if dErr := m.EnsureClientDNSRedirectRule(); dErr != nil {
+		return dErr
+	}
 	return m.EnsureBlockDoTRule()
 }
 
@@ -295,7 +299,9 @@ func (m *Manager) EnsureBlockDoTRule() error {
 	}
 
 	var filters []map[string]any
-	_ = json.Unmarshal(data, &filters)
+	if uErr := json.Unmarshal(data, &filters); uErr != nil {
+		return fmt.Errorf("解析 RouterOS filter 规则失败: %w", uErr)
+	}
 
 	hasTCP := false
 	hasUDP := false
@@ -313,7 +319,7 @@ func (m *Manager) EnsureBlockDoTRule() error {
 	}
 
 	if !hasTCP {
-		_, _ = m.PutROS("/ip/firewall/filter", map[string]any{
+		if _, err := m.PutROS("/ip/firewall/filter", map[string]any{
 			"chain":            "forward",
 			"action":           "reject",
 			"reject-with":      "tcp-reset",
@@ -321,11 +327,13 @@ func (m *Manager) EnsureBlockDoTRule() error {
 			"dst-port":         "853",
 			"src-address-list": "cubex-clients",
 			"comment":          "CubeX-Block-DoT-TCP",
-		})
+		}); err != nil {
+			return err
+		}
 	}
 
 	if !hasUDP {
-		_, _ = m.PutROS("/ip/firewall/filter", map[string]any{
+		if _, err := m.PutROS("/ip/firewall/filter", map[string]any{
 			"chain":            "forward",
 			"action":           "reject",
 			"reject-with":      "icmp-network-unreachable",
@@ -333,7 +341,9 @@ func (m *Manager) EnsureBlockDoTRule() error {
 			"dst-port":         "853",
 			"src-address-list": "cubex-clients",
 			"comment":          "CubeX-Block-DoT-UDP",
-		})
+		}); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -348,7 +358,9 @@ func (m *Manager) EnsureClientDNSRedirectRule() error {
 	}
 
 	var nats []map[string]any
-	_ = json.Unmarshal(data, &nats)
+	if uErr := json.Unmarshal(data, &nats); uErr != nil {
+		return fmt.Errorf("解析 RouterOS nat 规则失败: %w", uErr)
+	}
 
 	hasUDP := false
 	hasTCP := false
@@ -365,7 +377,7 @@ func (m *Manager) EnsureClientDNSRedirectRule() error {
 	}
 
 	if !hasUDP {
-		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
+		if _, err := m.PutROS("/ip/firewall/nat", map[string]any{
 			"chain":            "dstnat",
 			"action":           "redirect",
 			"protocol":         "udp",
@@ -373,11 +385,13 @@ func (m *Manager) EnsureClientDNSRedirectRule() error {
 			"src-address-list": "cubex-clients",
 			"dst-address-type": "!local",
 			"comment":          "CubeX-Client-DNS-Redirect",
-		})
+		}); err != nil {
+			return err
+		}
 	}
 
 	if !hasTCP {
-		_, _ = m.PutROS("/ip/firewall/nat", map[string]any{
+		if _, err := m.PutROS("/ip/firewall/nat", map[string]any{
 			"chain":            "dstnat",
 			"action":           "redirect",
 			"protocol":         "tcp",
@@ -385,7 +399,9 @@ func (m *Manager) EnsureClientDNSRedirectRule() error {
 			"src-address-list": "cubex-clients",
 			"dst-address-type": "!local",
 			"comment":          "CubeX-Client-DNS-Redirect",
-		})
+		}); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -427,7 +443,8 @@ func (m *Manager) GetProxiedClients() ([]string, error) {
 // SetClientProxy adds or removes a specific IP from cubex-clients address list.
 func (m *Manager) SetClientProxy(ip string, enable bool, comment string) error {
 	ip = strings.TrimSpace(ip)
-	if ip == "" || net.ParseIP(ip) == nil {
+	parsedIP := net.ParseIP(ip)
+	if ip == "" || parsedIP == nil || parsedIP.IsLoopback() {
 		return fmt.Errorf("invalid IP: %s", ip)
 	}
 
@@ -439,7 +456,9 @@ func (m *Manager) SetClientProxy(ip string, enable bool, comment string) error {
 	}
 
 	// Always ensure the Mangle rule exists before adding clients
-	_ = m.EnsureDevicePolicyMangleRule()
+	if mErr := m.EnsureDevicePolicyMangleRule(); mErr != nil {
+		return mErr
+	}
 
 	data, err := m.QueryROS("/ip/firewall/address-list")
 	if err != nil {
@@ -447,7 +466,9 @@ func (m *Manager) SetClientProxy(ip string, enable bool, comment string) error {
 	}
 
 	var list []map[string]any
-	_ = json.Unmarshal(data, &list)
+	if uErr := json.Unmarshal(data, &list); uErr != nil {
+		return fmt.Errorf("解析 RouterOS address-list 失败: %w", uErr)
+	}
 
 	var existingID string
 	for _, item := range list {
@@ -486,8 +507,11 @@ func (m *Manager) SetClientProxy(ip string, enable bool, comment string) error {
 
 // BatchSetClientProxy enables or disables proxy for a batch of IPs.
 func (m *Manager) BatchSetClientProxy(ips []string, enable bool) error {
+	var firstErr error
 	for _, ip := range ips {
-		_ = m.SetClientProxy(ip, enable, "")
+		if err := m.SetClientProxy(ip, enable, ""); err != nil && firstErr == nil {
+			firstErr = err
+		}
 	}
-	return nil
+	return firstErr
 }

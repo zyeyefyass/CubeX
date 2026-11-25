@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   cubex:
-    image: cubex:latest
+    image: fyasshole/cubex:latest
     container_name: cubex
     restart: unless-stopped
     network_mode: host
@@ -13,9 +13,8 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     volumes:
-      - /vol1/@appdata/cubex/etc:/opt/CubeX/etc
-      - /vol1/@appdata/cubex/data:/opt/CubeX/data
-      - /vol1/@appdata/cubex/rules:/opt/CubeX/rules
+      - /vol1/@appdata/cubex/etc:/app/etc
+      - /vol1/@appdata/cubex/data:/app/data
       - /etc/localtime:/etc/localtime:ro
     environment:
       - TZ=Asia/Shanghai

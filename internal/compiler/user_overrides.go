@@ -2,10 +2,13 @@ package compiler
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // UserOverrideSpec 定义用户自定义的最高优先级分流规则（独立持久化，订阅更新永不丢失）
@@ -38,7 +41,9 @@ func NewUserOverrideManager(workDir string) *UserOverrideManager {
 	m := &UserOverrideManager{
 		filePath: filepath.Join(dataDir, "user_overrides.json"),
 	}
-	_ = m.loadFromDisk()
+	if err := m.loadFromDisk(); err != nil && !os.IsNotExist(err) {
+		log.Printf("⚠️ [UserOverrides] Failed to load %s: %v", m.filePath, err)
+	}
 	return m
 }
 
@@ -155,23 +160,21 @@ func (m *UserOverrideManager) loadFromDisk() error {
 	if err := json.Unmarshal(raw, &spec); err != nil {
 		return err
 	}
+	cleaned := UserOverrideSpec{
+		ForceDirectDomains: normalizeDomainList(spec.ForceDirectDomains),
+		ForceProxyDomains:  normalizeDomainList(spec.ForceProxyDomains),
+		ForceRejectDomains: normalizeDomainList(spec.ForceRejectDomains),
+	}
 	m.mu.Lock()
-	m.current = spec
+	m.current = cleaned
 	m.mu.Unlock()
 	return nil
 }
 
 func (m *UserOverrideManager) saveToDiskLocked() error {
-	if err := os.MkdirAll(filepath.Dir(m.filePath), 0755); err != nil {
-		return err
-	}
 	data, err := json.MarshalIndent(m.current, "", "  ")
 	if err != nil {
 		return err
 	}
-	tmp := m.filePath + ".tmp"
-	if err := os.WriteFile(tmp, data, 0644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, m.filePath)
+	return schema.WriteFileAtomicSecure(m.filePath, data)
 }

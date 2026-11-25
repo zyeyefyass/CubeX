@@ -294,9 +294,10 @@ func (s *Server) saveTrafficStateLocked(force bool) {
 	if err == nil {
 		stateFile := filepath.Join(s.workDir, "data", "traffic_state.json")
 		_ = os.MkdirAll(filepath.Dir(stateFile), 0755)
-		_ = WriteFileAtomic(stateFile, b, 0644)
-		s.lastTrafficDiskSave = time.Now()
-		s.lastSavedOutBytes = s.monthOutboundBytes
+		if wErr := WriteFileAtomic(stateFile, b, 0644); wErr == nil {
+			s.lastTrafficDiskSave = time.Now()
+			s.lastSavedOutBytes = s.monthOutboundBytes
+		}
 	}
 }
 
@@ -451,25 +452,55 @@ func (s *Server) handleTelemetryTraffic(w http.ResponseWriter, r *http.Request) 
 
 func (s *Server) startTrafficCollector() {
 	var samplerOnce sync.Once
+	streamClient := &http.Client{
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
+	}
 	SafeGo("TrafficCollector", func() {
 
 		for {
 
+			select {
+			case <-s.stopCh:
+				return
+			default:
+			}
+			if s.draining.Load() {
+				return
+			}
+
 			clashPort := 9090
 
-			if ir := s.engMgr.GetIR(); ir != nil && ir.Network.ClashAPIPort > 0 {
+			if s.engMgr != nil {
+				if ir := s.engMgr.GetIR(); ir != nil && ir.Network.ClashAPIPort > 0 {
 
-				clashPort = ir.Network.ClashAPIPort
+					clashPort = ir.Network.ClashAPIPort
 
+				}
 			}
 
 			reqURL := fmt.Sprintf("http://127.0.0.1:%d/traffic", clashPort)
 
-			resp, err := http.Get(reqURL)
+			req, reqErr := http.NewRequest(http.MethodGet, reqURL, nil)
+			if reqErr != nil {
+				select {
+				case <-s.stopCh:
+					return
+				case <-time.After(2 * time.Second):
+				}
+				continue
+			}
+
+			resp, err := streamClient.Do(req)
 
 			if err != nil {
 
-				time.Sleep(2 * time.Second)
+				select {
+				case <-s.stopCh:
+					return
+				case <-time.After(2 * time.Second):
+				}
 
 				continue
 
@@ -477,7 +508,11 @@ func (s *Server) startTrafficCollector() {
 
 			if resp.StatusCode != http.StatusOK {
 				netutil.DrainAndCloseBody(resp)
-				time.Sleep(2 * time.Second)
+				select {
+				case <-s.stopCh:
+					return
+				case <-time.After(2 * time.Second):
+				}
 				continue
 			}
 
@@ -547,7 +582,11 @@ func (s *Server) startTrafficCollector() {
 
 			netutil.DrainAndCloseBody(resp)
 
-			time.Sleep(1 * time.Second)
+			select {
+			case <-s.stopCh:
+				return
+			case <-time.After(1 * time.Second):
+			}
 
 		}
 

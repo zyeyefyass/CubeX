@@ -3,9 +3,12 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/zyeyefyass/CubeX/internal/engine"
 	"github.com/zyeyefyass/CubeX/internal/host"
 	"github.com/zyeyefyass/CubeX/internal/schema"
 )
@@ -137,5 +140,44 @@ func TestSecretMaskingAndRestore(t *testing.T) {
 	})
 	if rosMasked["password"] != schema.SecretMaskPlaceholder {
 		t.Fatalf("expected ros password masked, got %q", rosMasked["password"])
+	}
+}
+
+func TestConsoleAuth_CorruptConfigFailsClosedAndEngineModeValidation(t *testing.T) {
+	tmpDir := t.TempDir()
+	dataDir := filepath.Join(tmpDir, "data")
+	if err := os.MkdirAll(dataDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dataDir, "console-auth.json"), []byte("{corrupt"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	mgr := NewConsoleAuthManager(tmpDir)
+	if !mgr.IsEnabled() {
+		t.Fatalf("expected corrupt console-auth.json to fail closed (IsEnabled=true)")
+	}
+	if mgr.VerifyPassword("anything") {
+		t.Fatalf("expected corrupt auth config to reject any login attempt")
+	}
+
+	engMgr := engine.NewManager(tmpDir, schema.NewDefaultIR())
+	defer engMgr.Stop()
+	srv := &Server{workDir: tmpDir, engMgr: engMgr, ir: engMgr.GetIR()}
+
+	badReq := httptest.NewRequest(http.MethodPost, "/api/v1/engine/mode", strings.NewReader(`{"mode":"invalid-mode"}`))
+	badRec := httptest.NewRecorder()
+	srv.handleEngineMode(badRec, badReq)
+	if badRec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid proxy mode, got %d", badRec.Code)
+	}
+
+	okReq := httptest.NewRequest(http.MethodPost, "/api/v1/engine/mode", strings.NewReader(`{"mode":"global"}`))
+	okRec := httptest.NewRecorder()
+	srv.handleEngineMode(okRec, okReq)
+	if okRec.Code != http.StatusOK && okRec.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 200 (or 500 only if switch fails without binary), got %d", okRec.Code)
+	}
+	if engMgr.GetIR().Meta.ProxyMode != schema.ModeGlobal {
+		t.Fatalf("expected ProxyMode persisted to IR as global, got %s", engMgr.GetIR().Meta.ProxyMode)
 	}
 }

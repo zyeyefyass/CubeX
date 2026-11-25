@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	version = "v9.93"
+	version = "v9.94"
 
 	startTime = time.Now()
 )
@@ -127,6 +127,16 @@ func bindWithFallback(initialAddr string) (net.Listener, string, error) {
 	errStr := strings.ToLower(err.Error())
 	if !strings.Contains(errStr, "address already in use") && !strings.Contains(errStr, "only one usage of each socket address") && !strings.Contains(errStr, "bind") {
 		return nil, initialAddr, err
+	}
+
+	// 重启瞬态退避窗口：等待旧进程释放套接字（最长 2s），避免 supervise-daemon / systemd 快速拉起时误判占用并漂移端口
+	for attempt := 0; attempt < 8; attempt++ {
+		time.Sleep(250 * time.Millisecond)
+		if retryLn, retryErr := net.Listen("tcp", initialAddr); retryErr == nil {
+			return retryLn, initialAddr, nil
+		} else {
+			err = retryErr
+		}
 	}
 
 	host, portStr, splitErr := net.SplitHostPort(initialAddr)

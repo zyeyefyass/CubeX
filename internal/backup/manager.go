@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // BackupData represents a full snapshot of CubeX system configuration.
@@ -158,26 +160,34 @@ func (m *Manager) ImportBackup(b *BackupData) error {
 	if len(corePayload) > 0 {
 		for _, fn := range []string{"config.ir.json", "cubex-state.json", "state.json"} {
 			stateFile := filepath.Join(dataDir, fn)
-			_ = os.WriteFile(stateFile, corePayload, 0644)
+			if err := schema.WriteFileAtomicSecure(stateFile, corePayload); err != nil {
+				return fmt.Errorf("恢复 %s 失败: %w", fn, err)
+			}
 		}
 	}
 
 	// 2. Restore host-config.json if present
 	if len(b.HostConfig) > 0 {
 		hostFile := filepath.Join(dataDir, "host-config.json")
-		_ = os.WriteFile(hostFile, b.HostConfig, 0644)
+		if err := schema.WriteFileAtomicSecure(hostFile, b.HostConfig); err != nil {
+			return fmt.Errorf("恢复 host-config.json 失败: %w", err)
+		}
 	}
 
 	// 3. Restore ros-config.json if present
 	if len(b.ROSConfig) > 0 {
 		rosFile := filepath.Join(dataDir, "ros-config.json")
-		_ = os.WriteFile(rosFile, b.ROSConfig, 0644)
+		if err := schema.WriteFileAtomicSecure(rosFile, b.ROSConfig); err != nil {
+			return fmt.Errorf("恢复 ros-config.json 失败: %w", err)
+		}
 	}
 
 	// 5. Restore devices.json if present
 	if len(b.Devices) > 0 {
 		devFile := filepath.Join(dataDir, "devices.json")
-		_ = os.WriteFile(devFile, b.Devices, 0644)
+		if err := schema.WriteFileAtomicSecure(devFile, b.Devices); err != nil {
+			return fmt.Errorf("恢复 devices.json 失败: %w", err)
+		}
 	}
 
 	return nil

@@ -117,9 +117,9 @@ func AuditResolvConf(resolvPath string, localIPs []string, gatewayIP string) Res
 	}
 	if localIPs == nil {
 		localIPs = CollectLocalInterfaceIPs()
-	}
-	if strings.TrimSpace(gatewayIP) == "" {
-		_, gatewayIP = parseProcNetDefaultRoute("/proc/net/route")
+		if strings.TrimSpace(gatewayIP) == "" {
+			_, gatewayIP = parseProcNetDefaultRoute("/proc/net/route")
+		}
 	}
 
 	raw, err := os.ReadFile(resolvPath)

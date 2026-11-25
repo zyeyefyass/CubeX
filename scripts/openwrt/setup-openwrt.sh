@@ -13,10 +13,11 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
+msg() { printf '%b\n' "$*"; }
 
-echo -e "${CYAN}========================================================================${NC}"
-echo -e "${CYAN}🌌 正在启动 CubeX 宿主共生零感网络系统 · OpenWrt Docker 自动化编排流水线${NC}"
-echo -e "${CYAN}========================================================================${NC}"
+msg "${CYAN}========================================================================${NC}"
+msg "${CYAN}🌌 正在启动 CubeX 宿主共生零感网络系统 · OpenWrt Docker 自动化编排流水线${NC}"
+msg "${CYAN}========================================================================${NC}"
 
 # 1. 架构检测 (Arch Detection)
 ARCH_RAW=$(uname -m)
@@ -28,24 +29,24 @@ case "$ARCH_RAW" in
         ARCH="arm64"
         ;;
     *)
-        echo -e "${RED}❌ 暂不支持的硬件架构: ${ARCH_RAW}。CubeX 官方支持 amd64 与 arm64。${NC}"
+        msg "${RED}❌ 暂不支持的硬件架构: ${ARCH_RAW}。CubeX 官方支持 amd64 与 arm64。${NC}"
         exit 1
         ;;
 esac
-echo -e "${GREEN}✅ [1/6 硬件识别] 检测到宿主架构: ${ARCH_RAW} ➔ 匹配运行镜像架构: ${ARCH}${NC}"
+msg "${GREEN}✅ [1/6 硬件识别] 检测到宿主架构: ${ARCH_RAW} ➔ 匹配运行镜像架构: ${ARCH}${NC}"
 
 # 2. Docker 守护进程检测与全自动自愈拉起 (Docker Detection & Auto-Start)
-echo -e "${CYAN}🔍 [2/6 Docker检测] 正在巡检 OpenWrt Docker 服务与守护进程...${NC}"
+msg "${CYAN}🔍 [2/6 Docker检测] 正在巡检 OpenWrt Docker 服务与守护进程...${NC}"
 
 # 2.1 检查 Docker 服务是否已安装
 if ! command -v docker >/dev/null 2>&1; then
-    echo -e "${YELLOW}⚠️ 未检测到 Docker 命令行工具，正在尝试自动安装...${NC}"
+    msg "${YELLOW}⚠️ 未检测到 Docker 命令行工具，正在尝试自动安装...${NC}"
     if command -v apk >/dev/null 2>&1; then
-        echo -e "${CYAN}   -> 识别到新一代 apk 包管理器 (OpenWrt 24+ / iStoreOS 25+)，正在执行 apk 安装...${NC}"
+        msg "${CYAN}   -> 识别到新一代 apk 包管理器 (OpenWrt 24+ / iStoreOS 25+)，正在执行 apk 安装...${NC}"
         apk update
         apk add dockerd docker docker-compose luci-app-dockerman curl ca-certificates 2>/dev/null || apk add dockerd docker 2>/dev/null || true
     elif command -v opkg >/dev/null 2>&1; then
-        echo -e "${CYAN}   -> 识别到 opkg 包管理器，正在执行 opkg 安装...${NC}"
+        msg "${CYAN}   -> 识别到 opkg 包管理器，正在执行 opkg 安装...${NC}"
         # 国内镜像加速: 若检测到官方源连通困难，自动切换为清华大学开源镜像源
         if [ -f /etc/opkg/distfeeds.conf ]; then
             sed -i 's/downloads.openwrt.org/mirrors.tuna.tsinghua.edu.cn\/openwrt/g' /etc/opkg/distfeeds.conf 2>/dev/null || true
@@ -57,7 +58,7 @@ fi
 
 # 2.2 检查 Docker 守护进程是否在运行，未开启则自动开启并激活服务
 if ! docker info >/dev/null 2>&1; then
-    echo -e "${YELLOW}⚠️ Docker 守护进程尚未处于活跃状态，正在自动启用并拉起服务...${NC}"
+    msg "${YELLOW}⚠️ Docker 守护进程尚未处于活跃状态，正在自动启用并拉起服务...${NC}"
     if [ -f /etc/init.d/dockerd ]; then
         /etc/init.d/dockerd enable >/dev/null 2>&1 || true
         /etc/init.d/dockerd start >/dev/null 2>&1 || true
@@ -75,11 +76,11 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 if ! docker info >/dev/null 2>&1; then
-    echo -e "${RED}❌ Docker 守护进程无法自动启动！${NC}"
-    echo -e "${RED}   请在 OpenWrt/iStoreOS 后台【Docker】或【系统服务】中手动开启 Docker 服务后重新运行本脚本。${NC}"
+    msg "${RED}❌ Docker 守护进程无法自动启动！${NC}"
+    msg "${RED}   请在 OpenWrt/iStoreOS 后台【Docker】或【系统服务】中手动开启 Docker 服务后重新运行本脚本。${NC}"
     exit 1
 fi
-echo -e "${GREEN}✅ [2/6 Docker就绪] OpenWrt Docker 守护进程运行正常${NC}"
+msg "${GREEN}✅ [2/6 Docker就绪] OpenWrt Docker 守护进程运行正常${NC}"
 
 # 3. LAN 网桥、主网关与 IP 动态计算 (Subnet & Gateway Probing)
 LAN_IF="br-lan"
@@ -99,7 +100,7 @@ if [ -z "$ROUTER_IP" ]; then
     ROUTER_IP=$(ip route show default 2>/dev/null | awk '{print $3}' | head -n 1)
 fi
 if [ -z "$ROUTER_IP" ]; then
-    echo -e "${RED}❌ 无法自动嗅探局域网主网关与子网，请检查网络配置或网卡连接！${NC}"
+    msg "${RED}❌ 无法自动嗅探局域网主网关与子网，请检查网络配置或网卡连接！${NC}"
     exit 1
 fi
 
@@ -114,10 +115,10 @@ UPSTREAM_PREFIX=$(echo "$UPSTREAM_GW" | cut -d. -f1-3)
 # 判断条件：只有当上级网关与 LAN IP 处于同一子网网段且不等于自身 IP，并且默认路由出接口不是 PPPoE/WAN 口时，才属于旁路由底座
 if [ -n "$UPSTREAM_GW" ] && [ "$UPSTREAM_PREFIX" = "$IP_PREFIX" ] && [ "$UPSTREAM_GW" != "$ROUTER_IP" ] && ! echo "$DEF_ROUTE_DEV" | grep -qE '^(ppp|wan)'; then
     MACVLAN_GW="$UPSTREAM_GW"
-    echo -e "${GREEN}✅ [3/6 模式识别] 当前 OpenWrt 处于旁路由底座，上级物理主网关为: ${UPSTREAM_GW}${NC}"
+    msg "${GREEN}✅ [3/6 模式识别] 当前 OpenWrt 处于旁路由底座，上级物理主网关为: ${UPSTREAM_GW}${NC}"
 else
     MACVLAN_GW="$ROUTER_IP"
-    echo -e "${GREEN}✅ [3/6 模式识别] 当前 OpenWrt 处于主路由底座 (WAN 出口: ${DEF_ROUTE_DEV:-pppoe-wan})，主网关为: ${ROUTER_IP}${NC}"
+    msg "${GREEN}✅ [3/6 模式识别] 当前 OpenWrt 处于主路由底座 (WAN 出口: ${DEF_ROUTE_DEV:-pppoe-wan})，主网关为: ${ROUTER_IP}${NC}"
 fi
 
 NET_NAME="cubex-macvlan"
@@ -149,12 +150,12 @@ fi
 SHIM_IP="${IP_PREFIX}.228"
 [ "$SHIM_IP" = "$CUBEX_IP" ] && SHIM_IP="${IP_PREFIX}.229"
 
-echo -e "${GREEN}✅ [3/6 自动配赋] 分配 CubeX 独立物理 IP: ${CUBEX_IP} (Macvlan 网关: ${MACVLAN_GW})${NC}"
+msg "${GREEN}✅ [3/6 自动配赋] 分配 CubeX 独立物理 IP: ${CUBEX_IP} (Macvlan 网关: ${MACVLAN_GW})${NC}"
 
 # 4. 创建 Docker Macvlan 独立网络与 Shim 互通接口
-echo -e "${CYAN}🔧 [4/6 网络编排] 准备 Macvlan 隔离网络 (${NET_NAME} 绑定 ${LAN_IF})...${NC}"
+msg "${CYAN}🔧 [4/6 网络编排] 准备 Macvlan 隔离网络 (${NET_NAME} 绑定 ${LAN_IF})...${NC}"
 if docker network inspect "$NET_NAME" >/dev/null 2>&1; then
-    echo -e "${GREEN}   -> 检测到已存在 Macvlan 网络 (${NET_NAME})，自动复用现有网络配置${NC}"
+    msg "${GREEN}   -> 检测到已存在 Macvlan 网络 (${NET_NAME})，自动复用现有网络配置${NC}"
 else
     docker network create -d macvlan \
         --subnet="$SUBNET" \
@@ -194,7 +195,9 @@ if which uci >/dev/null 2>&1; then
     uci set network.cubex_shim_route.netmask='255.255.255.255'
     uci commit network 2>/dev/null || true
 
+    uci -q del_list firewall.@zone[0].device='macvlan-shim' || true
     uci add_list firewall.@zone[0].device='macvlan-shim' 2>/dev/null || true
+    uci -q del_list firewall.@zone[0].network='cubex_shim' || true
     uci add_list firewall.@zone[0].network='cubex_shim' 2>/dev/null || true
     
     # 宿主 2026 端口原生透明映射至容器 (免 iptables 刷新丢失)
@@ -223,7 +226,7 @@ if which uci >/dev/null 2>&1; then
 
     # Flow Offloading (流量加速) 避坑加固: 豁免 198.18.0.0/15, 杜绝旁路规则被快路径跳过
     if [ "$(uci -q get firewall.@defaults[0].flow_offloading)" = "1" ] || [ "$(uci -q get firewall.@defaults[0].flow_offloading_hw)" = "1" ]; then
-        echo -e "${YELLOW}   -> 检测到 OpenWrt 开启了 Flow Offloading (加速流表)，注入豁免规则以确保 100% 规则分流...${NC}"
+        msg "${YELLOW}   -> 检测到 OpenWrt 开启了 Flow Offloading (加速流表)，注入豁免规则以确保 100% 规则分流...${NC}"
         mkdir -p /etc/nftables.d 2>/dev/null || true
         cat << 'NFT_EOF' > /etc/nftables.d/10-cubex-offload-exempt.nft
 chain cubex_flow_exempt {
@@ -239,29 +242,39 @@ NFT_EOF
     /etc/init.d/firewall reload >/dev/null 2>&1 || true
 fi
 
-# 持久化 macvlan-shim 与容器回指宿主路由开机自启
+# 持久化 macvlan-shim 与容器回指宿主路由开机自启 (幂等块管理)
 if [ -f /etc/rc.local ]; then
+    sed -i '/^# BEGIN CUBEX$/,/^# END CUBEX$/d' /etc/rc.local 2>/dev/null || true
     sed -i '/macvlan-shim/d' /etc/rc.local 2>/dev/null || true
     sed -i '/cubex.*ip route/d' /etc/rc.local 2>/dev/null || true
-    sed -i -e '$i ip link add macvlan-shim link '"$LAN_IF"' type macvlan mode bridge 2>/dev/null || true' /etc/rc.local
-    sed -i -e '$i ip addr add '"$SHIM_IP"'/24 dev macvlan-shim 2>/dev/null || true' /etc/rc.local
-    sed -i -e '$i ip link set macvlan-shim up 2>/dev/null || true' /etc/rc.local
-    sed -i -e '$i ip route add '"$CUBEX_IP"'/32 dev macvlan-shim 2>/dev/null || true' /etc/rc.local
-    sed -i -e '$i docker exec cubex ip route add '"$ROUTER_IP"'/32 via '"$SHIM_IP"' dev eth0 2>/dev/null || true' /etc/rc.local
+    RC_TMP="/tmp/rc.local.cubex.$$"
+    grep -v '^exit 0$' /etc/rc.local > "$RC_TMP" 2>/dev/null || true
+    cat << RCEOF >> "$RC_TMP"
+# BEGIN CUBEX
+ip link add macvlan-shim link ${LAN_IF} type macvlan mode bridge 2>/dev/null || true
+ip addr add ${SHIM_IP}/24 dev macvlan-shim 2>/dev/null || true
+ip link set macvlan-shim up 2>/dev/null || true
+ip route replace ${CUBEX_IP}/32 dev macvlan-shim 2>/dev/null || true
+docker exec cubex ip route replace ${ROUTER_IP}/32 via ${SHIM_IP} dev eth0 2>/dev/null || true
+# END CUBEX
+exit 0
+RCEOF
+    mv "$RC_TMP" /etc/rc.local
+    chmod +x /etc/rc.local 2>/dev/null || true
 fi
 
-# 5. 部署拉起 CubeX 容器
+# 5. 部署拉起 CubeX 容器 (先确保新镜像就绪，再平滑替换旧容器)
 CONTAINER_NAME="cubex"
-docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
 
 # 优先检查并自动载入同目录下的离线镜像包
 LOCAL_TAR=$(ls CubeX-*-docker-*.tar.gz 2>/dev/null | head -n 1 || true)
-if [ -n "$LOCAL_TAR" ]; then
-    echo -e "${GREEN}📦 [5/6 离线识别] 发现当前目录离线镜像包: ${LOCAL_TAR}，正在载入本地 Docker...${NC}"
-    docker load -i "$LOCAL_TAR"
-    TAGGED_ID=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^cubex:' | head -n 1)
-    if [ -n "$TAGGED_ID" ] && [ "$TAGGED_ID" != "cubex:latest" ]; then
-        docker tag "$TAGGED_ID" "cubex:latest" 2>/dev/null || true
+if [ -n "$LOCAL_TAR" ] && gzip -t "$LOCAL_TAR" 2>/dev/null; then
+    msg "${GREEN}📦 [5/6 离线识别] 发现当前目录离线镜像包: ${LOCAL_TAR}，正在载入本地 Docker...${NC}"
+    if docker load -i "$LOCAL_TAR"; then
+        TAGGED_ID=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^(cubex|fyasshole/cubex):' | head -n 1)
+        if [ -n "$TAGGED_ID" ] && [ "$TAGGED_ID" != "cubex:latest" ]; then
+            docker tag "$TAGGED_ID" "cubex:latest" 2>/dev/null || true
+        fi
     fi
 fi
 
@@ -286,42 +299,58 @@ fi
 
 # 2. 如果本地仍无可用镜像，执行多通道极速拉取策略
 if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
-    echo -e "${YELLOW}   -> 本地暂无可用镜像，正在进行多通道镜像获取 (在线加速 / 离线安装包)...${NC}"
+    msg "${YELLOW}   -> 本地暂无可用镜像，正在进行多通道镜像获取 (在线加速 / 离线安装包)...${NC}"
     PULL_SUCCESS=0
 
-    # 2.1 方案 A: 优先尝试从官方 Docker Hub 镜像源直接在线拉取 (支持国内镜像加速)
-    echo -e "${CYAN}   -> [通道 1/2] 正在尝试直接拉取官方 Docker 镜像: fyasshole/cubex:latest ...${NC}"
-    if docker pull "fyasshole/cubex:latest" 2>&1; then
-        docker tag "fyasshole/cubex:latest" "cubex:latest" 2>/dev/null || true
-        if docker inspect "cubex:latest" >/dev/null 2>&1; then
-            echo -e "${GREEN}   ✓ 官方 Docker 镜像拉取成功！${NC}"
-            PULL_SUCCESS=1
-            IMAGE="cubex:latest"
+    # 2.0 方案 0: 若 /tmp 或 /root 已预置离线 Docker 归档包，0 秒校验直载 (无外网/Docker Hub 阻断兜底)
+    OFFLINE_TAR=$(ls /tmp/CubeX-*-docker-"${ARCH}".tar.gz /root/CubeX-*-docker-"${ARCH}".tar.gz 2>/dev/null | sort -V | tail -n1 || true)
+    if [ -n "$OFFLINE_TAR" ] && [ -s "$OFFLINE_TAR" ] && gzip -t "$OFFLINE_TAR" 2>/dev/null; then
+        msg "${GREEN}📦 [离线兜底] 发现本地离线 Docker 归档 (${OFFLINE_TAR})，正在校验并载入...${NC}"
+        if docker load -i "$OFFLINE_TAR"; then
+            EXISTING_TAG=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^(cubex|fyasshole/cubex|ghcr.io/zyeyefyass/cubex):' | head -n 1 || true)
+            [ -n "$EXISTING_TAG" ] && docker tag "$EXISTING_TAG" "cubex:latest" 2>/dev/null || true
+            if docker inspect "cubex:latest" >/dev/null 2>&1; then
+                PULL_SUCCESS=1
+                IMAGE="cubex:latest"
+            fi
+        fi
+    fi
+
+    # 2.1 方案 A: 尝试从 Docker Hub 拉取官方镜像 (带超时防卡死)
+    if [ "$PULL_SUCCESS" = "0" ]; then
+        msg "${CYAN}   -> [通道 1/2] 正在尝试直接拉取官方 Docker 镜像: fyasshole/cubex:latest ...${NC}"
+        if (command -v timeout >/dev/null 2>&1 && timeout 45 docker pull "fyasshole/cubex:latest" 2>&1) || (! command -v timeout >/dev/null 2>&1 && docker pull "fyasshole/cubex:latest" 2>&1); then
+            docker tag "fyasshole/cubex:latest" "cubex:latest" 2>/dev/null || true
+            if docker inspect "cubex:latest" >/dev/null 2>&1; then
+                msg "${GREEN}   ✓ 官方 Docker 镜像拉取成功！${NC}"
+                PULL_SUCCESS=1
+                IMAGE="cubex:latest"
+            fi
         fi
     fi
 
     # 2.2 方案 B: 若在线 docker pull 超时/不可达，从高速 GitHub Releases 加速源拉取完整 Docker 归档包
     if [ "$PULL_SUCCESS" = "0" ]; then
-        echo -e "${YELLOW}   -> [通道 2/2] 在线 docker pull 受阻，切换为高速离线安装包下载 (CubeX-docker-${ARCH}.tar.gz)...${NC}"
+        msg "${YELLOW}   -> [通道 2/2] 在线 docker pull 受阻，切换为高速离线安装包下载 (CubeX-docker-${ARCH}.tar.gz)...${NC}"
         TMP_TAR="/tmp/cubex-docker-${ARCH}.tar.gz"
         REL_TAG=""
 
-        # 智能探查最新稳定版本号 (多源竞速，兼顾重定向与 API)
+        # 智能探查最新稳定版本号 (多源竞速，兼顾重定向与 API，拒绝 502/HTML 污染)
         for MIRROR in "https://ghfast.top" "https://ghproxy.net" "https://gh-proxy.com" "https://gh.ddlc.top"; do
-            REDIRECT_TAG=$(curl -4 --http1.1 -sSL --connect-timeout 4 -m 6 -I "${MIRROR}/https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i '^location:' | sed -E 's/.*tag\///' | tr -d '\r\n')
+            REDIRECT_TAG=$(curl -4 --http1.1 -sSL --connect-timeout 4 -m 6 -I "${MIRROR}/https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i '^location:' | sed -E 's/.*tag\///' | tr -d '\r\n' | grep -E '^v[0-9]+' || true)
             if [ -n "$REDIRECT_TAG" ]; then
                 REL_TAG="$REDIRECT_TAG"
                 break
             fi
             LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 4 -m 6 "${MIRROR}/https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
             if [ -n "$LATEST_JSON" ]; then
-                REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
+                REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4 | grep -E '^v[0-9]+' || true)
                 [ -n "$REL_TAG" ] && break
             fi
         done
-        [ -z "$REL_TAG" ] && REL_TAG="v9.9.5"
+        [ -z "$REL_TAG" ] && REL_TAG="v9.94"
 
-        echo -e "${CYAN}   -> 匹配最新发布版本: ${REL_TAG}${NC}"
+        msg "${CYAN}   -> 匹配最新发布版本: ${REL_TAG}${NC}"
 
         for MIRROR in "https://ghfast.top" "https://ghproxy.net" "https://gh-proxy.com" "https://gh.ddlc.top" ""; do
             if [ -n "$MIRROR" ]; then
@@ -329,7 +358,7 @@ if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
             else
                 TAR_DL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/CubeX-${REL_TAG}-docker-${ARCH}.tar.gz"
             fi
-            echo -e "${CYAN}   -> 正在连接高速下载源: ${TAR_DL} ...${NC}"
+            msg "${CYAN}   -> 正在连接高速下载源: ${TAR_DL} ...${NC}"
             rm -f "$TMP_TAR" 2>/dev/null || true
             if command -v curl >/dev/null 2>&1; then
                 curl -4 --http1.1 -# -L --connect-timeout 10 -m 360 -o "$TMP_TAR" "$TAR_DL" 2>&1 || true
@@ -337,7 +366,7 @@ if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
                 wget -4 -c -T 20 -O "$TMP_TAR" "$TAR_DL" 2>&1 || true
             fi
             if [ -s "$TMP_TAR" ] && gzip -t "$TMP_TAR" 2>/dev/null; then
-                echo -e "${GREEN}   ✓ 镜像包下载完成并通过完整性校验，正在载入 Docker...${NC}"
+                msg "${GREEN}   ✓ 镜像包下载完成并通过完整性校验，正在载入 Docker...${NC}"
                 if docker load -i "$TMP_TAR"; then
                     rm -f "$TMP_TAR"
                     PULL_SUCCESS=1
@@ -350,14 +379,15 @@ if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
 
     # 2.3 最终守门员校验
     if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
-        echo -e "${RED}❌ 无法获取 CubeX 运行镜像！${NC}"
-        echo -e "${YELLOW}💡 建议解决方式：${NC}"
-        echo -e "   1. 检查路由器是否能正常连接外网；"
-        echo -e "   2. 手动执行命令拉取镜像：docker pull fyasshole/cubex:latest"
-        echo -e "   3. 或手动下载发布包中的 CubeX-*-docker-${ARCH}.tar.gz 传至软路由后执行: docker load -i CubeX-*-docker-${ARCH}.tar.gz"
+        msg "${RED}❌ 无法获取 CubeX 运行镜像！(已保留现有运行容器不变)${NC}"
+        msg "${YELLOW}💡 建议解决方式：${NC}"
+        msg "   1. 检查路由器是否能正常连接外网；"
+        msg "   2. 手动执行命令拉取镜像：docker pull fyasshole/cubex:latest"
+        msg "   3. 或手动下载发布包中的 CubeX-*-docker-${ARCH}.tar.gz 传至软路由后执行: docker load -i CubeX-*-docker-${ARCH}.tar.gz"
         exit 1
     fi
 fi
+docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
 
 mkdir -p /etc/cubex/data
 
@@ -374,7 +404,7 @@ if [ -c /dev/net/tun ]; then
     DEV_TUN_OPT="--device=/dev/net/tun"
 fi
 
-echo -e "${CYAN}📦 [5/6 容器拉起] 正在拉起 CubeX 容器 (${CONTAINER_NAME} @ ${CUBEX_IP} 使用镜像: ${IMAGE})...${NC}"
+msg "${CYAN}📦 [5/6 容器拉起] 正在拉起 CubeX 容器 (${CONTAINER_NAME} @ ${CUBEX_IP} 使用镜像: ${IMAGE})...${NC}"
 
 docker run -d \
     --name "$CONTAINER_NAME" \
@@ -392,7 +422,7 @@ sleep 2
 docker exec "$CONTAINER_NAME" ip route add "${ROUTER_IP}/32" via "$SHIM_IP" dev eth0 2>/dev/null || true
 
 # 6. 下发三大一键配置 (策略回指 + DHCP 黄金解耦 + IPv6 防泄露 + 0秒逃生)
-echo -e "${CYAN}⚡ [6/6 一键自愈] 正在下发 OpenWrt UCI 策略路由与防火墙加固...${NC}"
+msg "${CYAN}⚡ [6/6 一键自愈] 正在下发 OpenWrt UCI 策略路由与防火墙加固...${NC}"
 
 # 6.1 Fake-IP 回指路由 (198.18.0.0/15 - 先入内核即刻生效，再持久化至 UCI)
 ip route replace 198.18.0.0/15 via "$CUBEX_IP" dev "$LAN_IF" 2>/dev/null || ip route replace 198.18.0.0/15 via "$CUBEX_IP" 2>/dev/null || true
@@ -472,7 +502,7 @@ uci commit firewall 2>/dev/null || true
 
 # Flow Offloading (流量加速) 避坑加固: 豁免 198.18.0.0/15, 杜绝旁路规则被快路径跳过
 if [ "$(uci -q get firewall.@defaults[0].flow_offloading)" = "1" ] || [ "$(uci -q get firewall.@defaults[0].flow_offloading_hw)" = "1" ]; then
-    echo -e "${YELLOW}   -> 检测到 OpenWrt 开启了 Flow Offloading (加速流表)，注入豁免规则以确保 100% 规则分流...${NC}"
+    msg "${YELLOW}   -> 检测到 OpenWrt 开启了 Flow Offloading (加速流表)，注入豁免规则以确保 100% 规则分流...${NC}"
     mkdir -p /etc/nftables.d 2>/dev/null || true
     cat << 'NFT_EOF' > /etc/nftables.d/10-cubex-offload-exempt.nft
 chain cubex_flow_exempt {
@@ -497,7 +527,7 @@ BACKUP_DNS="223.5.5.5"
 
 is_down=0
 while true; do
-    if docker exec "${CONTAINER_NAME}" curl -fsSL -m 1 http://127.0.0.1:2026/api/health 2>/dev/null | grep -q "status" || nc -z -w 1 "\${CUBEX_IP}" 2026 >/dev/null 2>&1 || wget -q -T 1 -O - "http://\${CUBEX_IP}:2026/api/health" 2>/dev/null | grep -q "status"; then
+    if nc -z -w 1 "\${CUBEX_IP}" 2026 >/dev/null 2>&1 || wget -q -T 1 -O - "http://\${CUBEX_IP}:2026/api/health" 2>/dev/null | grep -q "status" || docker exec "${CONTAINER_NAME}" curl -fsSL -m 1 http://127.0.0.1:2026/api/health 2>/dev/null | grep -q "status"; then
         if [ "\$is_down" -eq 1 ]; then
             logger -t cubex-watchdog "🛡️ CubeX Gateway revived! Restoring Fake-IP route and DNS to \${CUBEX_IP}"
             ip route replace 198.18.0.0/15 via "\${CUBEX_IP}" 2>/dev/null || true
@@ -557,10 +587,10 @@ chmod +x /etc/init.d/cubex-watchdog
 /etc/init.d/cubex-watchdog enable >/dev/null 2>&1 || true
 /etc/init.d/cubex-watchdog restart >/dev/null 2>&1 || true
 
-echo -e "${GREEN}========================================================================${NC}"
-echo -e "${GREEN}🎉 恭喜！CubeX OpenWrt Docker 宿主共生系统已全自动部署并加固完毕！${NC}"
-echo -e "${GREEN}👉 CubeX Web 控制台驾驶舱: http://${CUBEX_IP}:2026${NC}"
-echo -e "${GREEN}👉 主路由 OpenWrt 网关管理: http://${ROUTER_IP}${NC}"
-echo -e "${YELLOW}💡 提示: 进入 CubeX 控制台联动主路由时，【宿主/主路由 IP】填写 OpenWrt IP (${ROUTER_IP})，切勿误填 CubeX 自身 IP (${CUBEX_IP})！${NC}"
-echo -e "${GREEN}🛡️ 全屋设备无需任何手动设置，已自动继承透明代理、去广告与0秒逃生！${NC}"
-echo -e "${GREEN}========================================================================${NC}"
+msg "${GREEN}========================================================================${NC}"
+msg "${GREEN}🎉 恭喜！CubeX OpenWrt Docker 宿主共生系统已全自动部署并加固完毕！${NC}"
+msg "${GREEN}👉 CubeX Web 控制台驾驶舱: http://${CUBEX_IP}:2026${NC}"
+msg "${GREEN}👉 主路由 OpenWrt 网关管理: http://${ROUTER_IP}${NC}"
+msg "${YELLOW}💡 提示: 进入 CubeX 控制台联动主路由时，【宿主/主路由 IP】填写 OpenWrt IP (${ROUTER_IP})，切勿误填 CubeX 自身 IP (${CUBEX_IP})！${NC}"
+msg "${GREEN}🛡️ 全屋设备无需任何手动设置，已自动继承透明代理、去广告与0秒逃生！${NC}"
+msg "${GREEN}========================================================================${NC}"

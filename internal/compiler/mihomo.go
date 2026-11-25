@@ -67,11 +67,33 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	}
 
+	ir = ir.Clone()
+
 	SanitizeIR(ir)
 
 	net := ir.Network
+	if net.MixedPort <= 0 {
+		net.MixedPort = 7890
+	}
+	if net.RedirPort <= 0 {
+		net.RedirPort = 7892
+	}
+	if net.TProxyPort <= 0 {
+		net.TProxyPort = 7893
+	}
+	if net.ClashAPIPort <= 0 {
+		net.ClashAPIPort = 9090
+	}
 
 	dns := ir.DNS
+	if strings.TrimSpace(dns.FakeIPRange) == "" {
+		dns.FakeIPRange = "198.18.0.1/16"
+	}
+
+	proxyMode := string(ir.Meta.ProxyMode)
+	if proxyMode == "" {
+		proxyMode = string(schema.ModeRule)
+	}
 
 	logLevel := "info"
 
@@ -91,7 +113,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		"allow-lan": net.AllowLAN,
 
-		"mode": string(ir.Meta.ProxyMode),
+		"mode": proxyMode,
 
 		"log-level": logLevel,
 
@@ -223,19 +245,23 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	}
 
 	// Determine outbound proxy group for remote DoH queries
-
-	foreignGroup := "🌐 国外流量"
-
+	foreignGroup := ""
 	for _, g := range ir.Groups {
-
 		if g.Name == "🌐 国外流量" || g.Name == "🚀 国外" || g.Name == "PROXY" || g.Name == "🐟 漏网之鱼" {
-
 			foreignGroup = g.Name
-
 			break
-
 		}
-
+	}
+	if foreignGroup == "" {
+		for _, g := range ir.Groups {
+			if !g.Disabled && g.Name != "DIRECT" && g.Name != "REJECT" && g.Name != "🎯 全球直连" && g.Name != "🛑 广告拦截" {
+				foreignGroup = g.Name
+				break
+			}
+		}
+	}
+	if foreignGroup == "" {
+		foreignGroup = "DIRECT"
 	}
 
 	// DNS Configuration (Mihomo v1.19+ anti-leak & proxy-server bootstrap)
@@ -257,17 +283,48 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	hasGFWMRS := isMRSAvailable("./rules/gfw_domain.mrs")
 
 	directDNSList := []string{
-
 		"223.5.5.5",
-
 		"119.29.29.29",
+	}
+	if len(dns.DirectDNS) > 0 {
+		customDirect := make([]string, 0, len(dns.DirectDNS))
+		for _, d := range dns.DirectDNS {
+			if s := strings.TrimSpace(d); s != "" {
+				customDirect = append(customDirect, s)
+			}
+		}
+		if len(customDirect) > 0 {
+			directDNSList = customDirect
+		}
 	}
 
 	fallbackDNSList := []string{
-
 		"https://1.1.1.1/dns-query#disable-qtype-65=true",
-
 		"https://8.8.8.8/dns-query#disable-qtype-65=true",
+	}
+	rawRemote := dns.RemoteDNS
+	if len(rawRemote) == 0 {
+		rawRemote = dns.FallbackDNS
+	}
+	if len(rawRemote) > 0 {
+		customRemote := make([]string, 0, len(rawRemote))
+		for _, d := range rawRemote {
+			s := strings.TrimSpace(d)
+			if s == "" {
+				continue
+			}
+			if strings.HasPrefix(s, "https://") && !strings.Contains(s, "disable-qtype-65=true") {
+				if strings.Contains(s, "#") {
+					s += "&disable-qtype-65=true"
+				} else {
+					s += "#disable-qtype-65=true"
+				}
+			}
+			customRemote = append(customRemote, s)
+		}
+		if len(customRemote) > 0 {
+			fallbackDNSList = customRemote
+		}
 	}
 
 	var cleanFakeIPFilter []string
@@ -1742,7 +1799,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		// 0c. Force Proxy (Tunnel proxy)
 		if len(ir.UserOverrides.ForceProxyDomains) > 0 {
 			proxyTarget := foreignGroup
-			if proxyTarget == "" {
+			if proxyTarget == "" || !validTargets[proxyTarget] {
 				proxyTarget = "DIRECT"
 			}
 			for _, d := range ir.UserOverrides.ForceProxyDomains {
@@ -1754,6 +1811,14 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		}
 	}
 
+	hasRealProxy := false
+	for _, p := range ir.Proxies {
+		if strings.TrimSpace(p.Server) != "" && p.Port > 0 {
+			hasRealProxy = true
+			break
+		}
+	}
+
 	// 1. Device Policies (Top Priority)
 	for _, dev := range ir.DevicePolicies {
 		ip := strings.TrimSpace(dev.IP)
@@ -1762,18 +1827,35 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		}
 		cidr := ip
 		if !strings.Contains(cidr, "/") {
-			cidr = cidr + "/32"
+			if parsed := stdnet.ParseIP(cidr); parsed == nil {
+				continue
+			}
+			if strings.Contains(cidr, ":") {
+				cidr = cidr + "/128"
+			} else {
+				cidr = cidr + "/32"
+			}
+		} else if _, _, err := stdnet.ParseCIDR(cidr); err != nil {
+			continue
 		}
 
 		if dev.Mode == "bypass" {
 			rulesList = append(rulesList, fmt.Sprintf("SRC-IP-CIDR,%s,DIRECT", cidr))
 		} else if dev.Mode == "node" && dev.BoundNode != "" {
-			rulesList = append(rulesList, fmt.Sprintf("SRC-IP-CIDR,%s,%s", cidr, dev.BoundNode))
+			target := dev.BoundNode
+			if hasRealProxy && !validTargets[target] {
+				if foreignGroup != "" && validTargets[foreignGroup] {
+					target = foreignGroup
+				} else {
+					target = "DIRECT"
+				}
+			}
+			rulesList = append(rulesList, fmt.Sprintf("SRC-IP-CIDR,%s,%s", cidr, target))
 		} else if dev.Mode == "media" {
 			target := foreignGroup
-			if dev.BoundNode != "" {
+			if dev.BoundNode != "" && validTargets[dev.BoundNode] {
 				target = dev.BoundNode
-			} else if target == "" {
+			} else if target == "" || !validTargets[target] {
 				target = "DIRECT"
 			}
 			// 🎬 影音/NAS 专属模式：海报刮削/字幕/Docker/GitHub 精准走加速通道

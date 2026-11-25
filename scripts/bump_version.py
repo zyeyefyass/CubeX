@@ -62,9 +62,15 @@ with open("web/src/App.vue", "w", encoding="utf-8", newline='') as f:
     f.write(vue_text)
 print("✓ Updated web/src/App.vue fallback versions")
 
-# 8. install scripts fallback tags
+# 8. install scripts & ros scripts fallback tags
 replace_in_file("scripts/install.sh", r'REL_TAG="(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?"', f'REL_TAG="{TARGET_TAG}"')
 replace_in_file("scripts/install_pve_lxc.sh", r'REL_TAG="(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?"', f'REL_TAG="{TARGET_TAG}"')
+if os.path.exists("scripts/openwrt/setup-openwrt.sh"):
+    replace_in_file("scripts/openwrt/setup-openwrt.sh", r'REL_TAG="(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?"', f'REL_TAG="{TARGET_TAG}"')
+if os.path.exists("scripts/install_ros_container.rsc"):
+    replace_in_file("scripts/install_ros_container.rsc", r'CubeX-(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?-ros-', f'CubeX-{TARGET_TAG}-ros-')
+if os.path.exists("scripts/ros/setup-routeros-v7.rsc"):
+    replace_in_file("scripts/ros/setup-routeros-v7.rsc", r'CubeX-(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?-ros-', f'CubeX-{TARGET_TAG}-ros-')
 if os.path.exists("scripts/build_fnos_fpk.py"):
     replace_in_file("scripts/build_fnos_fpk.py", r'VERSION\s*=\s*"(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?"', f'VERSION = "{CLEAN_NUM}"')
 

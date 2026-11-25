@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -228,11 +229,18 @@ func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
 
 		}
 
-	} else {
+	} else if strings.HasPrefix(req.URL, "file://") {
 
-		filePath := strings.TrimPrefix(req.URL, "file://")
+		dataDir := filepath.Clean(filepath.Join(s.workDir, "data"))
+		rawPath := strings.TrimPrefix(req.URL, "file://")
+		absPath, absErr := filepath.Abs(rawPath)
+		rel, relErr := filepath.Rel(dataDir, absPath)
+		if absErr != nil || relErr != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+			sendJSON(w, map[string]any{"status": "error", "error": "本地订阅文件仅允许读取数据目录内的文件"})
+			return
+		}
 
-		data, err := os.ReadFile(filePath)
+		data, err := os.ReadFile(absPath)
 
 		if err != nil {
 
@@ -260,6 +268,11 @@ func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
 
 			DurationMs: 1,
 		}
+
+	} else {
+
+		sendJSON(w, map[string]any{"status": "error", "error": "不支持的订阅协议，仅允许 http/https 或数据目录内 file://"})
+		return
 
 	}
 
@@ -1897,7 +1910,10 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 		ID    string `json:"id"`
 		Force bool   `json:"force"`
 	}
-	_ = json.NewDecoder(r.Body).Decode(&req)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil && err != io.EOF {
+		http.Error(w, "invalid json: "+err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	if req.ID == "" {
 		subsUpdated, totalNodes, err := s.UpdateAllSubscriptions()
@@ -2186,9 +2202,16 @@ func (s *Server) startDailySubscriptionAutoUpdate() {
 
 			s.logBuffer.Add("INFO", "SUB", fmt.Sprintf("定时任务: 12小时双周期订阅自动同步就绪 (下次触发: %s)", nextSync.Format("2006-01-02 15:04:05")))
 
+			timer := time.NewTimer(durationUntil)
 			select {
 
-			case <-time.After(durationUntil):
+			case <-s.stopCh:
+
+				timer.Stop()
+
+				return
+
+			case <-timer.C:
 
 				log.Println("⏰ [Sub-Cron] 订阅同步周期已到达：正在全自动拉取更新所有订阅...")
 
@@ -2338,8 +2361,8 @@ func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSe
 	// 写入多策略组共享缓存
 	s.delayCacheMu.Lock()
 	s.delayCache[node.Name] = delayCacheEntry{result: res, testedAt: time.Now()}
-	go s.savePersistentDelayCache()
 	s.delayCacheMu.Unlock()
+	s.scheduleSavePersistentDelayCache()
 
 	call.val = res
 	return res

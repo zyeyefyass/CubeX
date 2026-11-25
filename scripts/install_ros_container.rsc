@@ -91,14 +91,13 @@ $printMsg "🛡️ [3/5 路由与容灾编排] 注入 198.18.0.0/15 静态路由
 
 # 5. 存储介质探查与容器准备
 $printMsg "📦 [4/5 存储与环境就绪] 正在定位可用磁盘分区...";
-:local diskRoot "disk1";
-:if ([:len [/disk find where free > 100000000]] > 0) do={
-    :set diskRoot [/disk get [find where free > 100000000] slot];
+:local diskRoot "";
+:local diskList [/disk find where free > 100000000];
+:if ([:len $diskList] > 0) do={
+    :set diskRoot [/disk get [:pick $diskList 0] slot];
 } else={
     :if ([:len [/file find where name="disk1"]] > 0) do={
         :set diskRoot "disk1";
-    } else={
-        :set diskRoot "";
     }
 }
 
@@ -107,11 +106,25 @@ $printMsg "📦 [4/5 存储与环境就绪] 正在定位可用磁盘分区...";
     :set installDir ($diskRoot . "/cubex");
 }
 
-:local tarName ("cubex-ros-" . $tarArch . ".tar");
+:local tarName ("CubeX-v9.94-ros-" . $tarArch . ".tar");
+:local foundTar "";
+:if ([:len [/file find where name=$tarName]] > 0) do={
+    :set foundTar $tarName;
+} else={
+    :foreach f in=[/file find] do={
+        :local fName [/file get $f name];
+        :if ([:typeof [:find $fName ("ros-" . $tarArch . ".tar")]] != "nil") do={
+            :set foundTar $fName;
+        }
+    }
+    :if ($foundTar = "") do={
+        :set foundTar ("cubex-ros-" . $tarArch . ".tar");
+    }
+}
 $printMsg ("✨ [5/5 部署完毕] 微子网已就绪: 宿主 172.17.0.1 ⇄ 容器 172.17.0.2");
-$printMsg ("👉 请将 " . $tarName . " 上传至 RouterOS 根目录，执行启动指令:");
-$printMsg ("/container add file=" . $tarName . " interface=veth-cubex root-dir=" . $installDir . " start-on-boot=yes logging=yes");
-$printMsg ("/container start [find file=" . $tarName . "]");
+$printMsg ("👉 若尚未下载镜像，请先上传 " . $tarName . " 或通过在线镜像 fyasshole/cubex:latest 拉取，然后执行:");
+$printMsg ("/container add file=" . $foundTar . " interface=veth-cubex root-dir=" . $installDir . " start-on-boot=yes logging=yes");
+$printMsg ("/container start [find root-dir=\"" . $installDir . "\"]");
 $printMsg "=========================================================================";
 $printMsg "🎉 CubeX RouterOS v7 容器单机自闭环脚本执行完毕！";
 $printMsg "=========================================================================";

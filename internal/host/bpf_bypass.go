@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // BpfBypassRule BPF/XDP 快速短路直通规则项
@@ -136,10 +138,7 @@ func (m *BpfBypassManager) persistLocked() {
 		return
 	}
 	_ = os.MkdirAll(m.dataDir, 0755)
-	tmpPath := m.filePath + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0644); err == nil {
-		_ = os.Rename(tmpPath, m.filePath)
-	}
+	_ = schema.WriteFileAtomicSecure(m.filePath, data)
 }
 
 // GetStatus 获取 BPF 短路直通运行状态

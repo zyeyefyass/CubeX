@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/zyeyefyass/CubeX/internal/compiler"
+	"github.com/zyeyefyass/CubeX/internal/netutil"
 	"github.com/zyeyefyass/CubeX/internal/probe"
 	"github.com/zyeyefyass/CubeX/internal/schema"
 )
@@ -243,12 +244,14 @@ func (s *Server) handleProxyBurstSpeedtest(w http.ResponseWriter, r *http.Reques
 	if err == nil {
 		burstReq.Header.Set("Range", "bytes=0-2097151")
 		proxyURL, _ := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", mixedPort))
+		burstTr := &http.Transport{
+			Proxy:             http.ProxyURL(proxyURL),
+			DisableKeepAlives: true,
+		}
+		defer burstTr.CloseIdleConnections()
 		burstClient := &http.Client{
-			Transport: &http.Transport{
-				Proxy:             http.ProxyURL(proxyURL),
-				DisableKeepAlives: true,
-			},
-			Timeout: 3 * time.Second,
+			Transport: burstTr,
+			Timeout:   3 * time.Second,
 		}
 		startTime := time.Now()
 		resp, bErr := burstClient.Do(burstReq)
@@ -425,18 +428,20 @@ func (s *Server) handleTelemetryConnectionsTree(w http.ResponseWriter, r *http.R
 	var rawConns []json.RawMessage
 	var downTotal, upTotal int64
 
-	if err == nil && resp.StatusCode == http.StatusOK {
-		var cr struct {
-			DownloadTotal int64             `json:"downloadTotal"`
-			UploadTotal   int64             `json:"uploadTotal"`
-			Connections   []json.RawMessage `json:"connections"`
+	if err == nil {
+		if resp.StatusCode == http.StatusOK {
+			var cr struct {
+				DownloadTotal int64             `json:"downloadTotal"`
+				UploadTotal   int64             `json:"uploadTotal"`
+				Connections   []json.RawMessage `json:"connections"`
+			}
+			if json.NewDecoder(resp.Body).Decode(&cr) == nil {
+				rawConns = cr.Connections
+				downTotal = cr.DownloadTotal
+				upTotal = cr.UploadTotal
+			}
 		}
-		if json.NewDecoder(resp.Body).Decode(&cr) == nil {
-			rawConns = cr.Connections
-			downTotal = cr.DownloadTotal
-			upTotal = cr.UploadTotal
-		}
-		resp.Body.Close()
+		netutil.DrainAndCloseBody(resp)
 	}
 
 	// Read UserOverrides for marking override policy

@@ -55,12 +55,12 @@ def get_tag():
 
 TAG = get_tag()
 
-RELEASE_TITLE = f"CubeX {TAG} · 根治宿主机 DNS 自环死锁 · 防死锁 dns-hosts 规则 · 启动期自环巡检 · RouterOS 对称撤回"
+RELEASE_TITLE = f"CubeX {TAG} · 并发竞态加固 · 三底座自愈与看门狗逃生回切 · 全脚本无代理容错 · 离线包兼容"
 
-RELEASE_BODY = f"""1. **根治宿主机 DHCP 续租引发的 DNS 自环死锁**：`sing-box` 编译前自动巡检宿主机 `/etc/resolv.conf`，一旦发现指向 `127.0.0.1`、`::1` 或本机局域网 IP，自动弃用 `type: "local"` 并安全回退至上级网关或 `223.5.5.5`，彻底消除自己问自己的死循环风暴。
-2. **接入防死锁 `dns-hosts` 规则**：将内置公共 DNS 静态解析表（`dns.alidns.com`、`doh.pub`、`dns.google`、`cloudflare-dns.com`）接入 `dns.rules` 优先命中，消除引导域名解析死锁。
-3. **新增启动期 DNS 自环巡检指引**：在 `install.sh` 与 `cubexd` 启动预检中温和检测本机 DNS 自环风险并输出固定 DNS 修复指引，不锁死系统网络管理文件。
-4. **补齐 RouterOS 一键对称撤回**：完善 `POST /api/v1/host/bypass/remove` 对 RouterOS 的原生撤回能力，完整清理旁路路由、规则与看门狗并恢复上游 DNS，与爱快、开源软路由完全对称。
+RELEASE_BODY = f"""1. **修复并发配置与热切竞态**：加固后端全局配置读写锁、热切/分流模式/快照原子写盘，优化服务停止与原端口重试机制，消除重启端口漂移与无软路由凭据切换等待卡顿，并通过 Linux 并发竞态检测。
+2. **强化三大软路由底座全链路自愈与看门狗逃生回切**：修复多主路由驱动串台与缓存失效问题，修正 RouterOS 7.25.2 看门狗逃生与恢复回切脚本兼容性，实测断流自动切换备用解析与禁用回指、恢复后自动回切、一键撤回零残留。
+3. **修复全套安装脚本在无代理与异常网络下的容错及配置保留**：通用与容器安装脚本全面加入包管理器防卡死超时、无解压工具自动回退、错误页与坏包拦截、原地二次重跑保留历史配置，同步修正软路由容器脚本匹配语法。
+4. **补齐容器镜像与飞牛离线包兼容**：统一飞牛套件镜像名称与容器路径映射，支持无外网直连状态下的本地离线归档包导入即用。
 
 ---
 
@@ -83,9 +83,13 @@ RELEASE_BODY = f"""1. **根治宿主机 DHCP 续租引发的 DNS 自环死锁**�
 | `cubexd-linux-arm64` | Linux ARM64 (单二进制) | ARM64 后端控制面主守护进程单二进制（支持原地替换平滑热升级） |
 | `cubex-linux-amd64` | Linux x86_64 (CLI) | 命令行终端运维管理工具单二进制 |
 | `cubex-linux-arm64` | Linux ARM64 (CLI) | ARM64 命令行终端运维管理工具单二进制 |
-| `install_ros_container.rsc` | RouterOS 终端 | RouterOS 原生一键部署与逃生看门狗自动化配置脚本 |
-| `install.sh` | 通用一键安装脚本 | 通用一键部署主脚本 |
-| `SHA256SUMS` | 全平台校验文件 | 所有发布产物完整性 SHA256 校验清单 |
+| `install_ros_container.rsc` | RouterOS v7 容器 | RouterOS 原生容器一键部署与看门狗配置脚本 |
+| `install_openwrt_docker.sh` | OpenWrt Docker | OpenWrt / iStoreOS 容器一键安装脚本 |
+| `setup-routeros-v7.rsc` | RouterOS 终端 | RouterOS 旁路策略路由与看门狗一键编排脚本 |
+| `setup-openwrt.sh` | OpenWrt 终端 | OpenWrt / iStoreOS 原生安装与联动脚本 |
+| `install_pve_lxc.sh` | Proxmox VE | PVE 容器一键创建与迁移升级脚本 |
+| `install.sh` | 通用一键安装脚本 | 通用主机一键部署与平滑升级主脚本 |
+| `SHA256SUMS` | 全平台校验文件 | 全部 19 项发布产物完整性 SHA256 校验清单 |
 """
 
 

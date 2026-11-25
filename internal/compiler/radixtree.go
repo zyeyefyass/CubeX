@@ -124,7 +124,7 @@ func (t *CompactCIDRTree) InsertCIDR(cidrStr, target string) bool {
 
 	ones, bits := ipnet.Mask.Size()
 	if bits != 32 {
-		return false
+		return true // IPv4-mapped IPv6 CIDR (bits=128): skip radix pruning and keep rule intact
 	}
 
 	curr := t.root

@@ -399,7 +399,7 @@ $printMsg ("✅ [3/5 网段与IP分配] 主路由IP: " . $bridgeIP . " | 局域�
 # ─────────────────────────────────────────────────────────────────────────────
 # 步骤 5: 配置容器存储、策略路由与自动部署启动 CubeX
 # ─────────────────────────────────────────────────────────────────────────────
-# 智能探测高速存储磁盘 (优先外部 disk1 / usb1，没有则使用内置根目录)
+# 智能探测高速存储磁盘 (优先容量充足磁盘 / disk1 / usb1，没有则使用内置根目录)
 :local storeDir "cubex";
 :local pullDir "cubex/pull";
 # 若存在无容器绑定的孤立旧 root-dir 目录残留，自动清理以允许 RouterOS 正常解压
@@ -407,13 +407,22 @@ $printMsg ("✅ [3/5 网段与IP分配] 主路由IP: " . $bridgeIP . " | 局域�
     :do { /file remove [find name=$storeDir]; } on-error={};
 }
 :do {
-    :if ([:len [/file find name="disk1"]] > 0) do={
-        :set storeDir "disk1/cubex";
-        :set pullDir "disk1/pull";
+    :local freeDisks [/disk find where free > 100000000];
+    :if ([:len $freeDisks] > 0) do={
+        :local dSlot [/disk get [:pick $freeDisks 0] slot];
+        :if ($dSlot != "") do={
+            :set storeDir ($dSlot . "/cubex");
+            :set pullDir ($dSlot . "/pull");
+        }
     } else={
-        :if ([:len [/file find name="usb1"]] > 0) do={
-            :set storeDir "usb1/cubex";
-            :set pullDir "usb1/pull";
+        :if ([:len [/file find name="disk1"]] > 0) do={
+            :set storeDir "disk1/cubex";
+            :set pullDir "disk1/pull";
+        } else={
+            :if ([:len [/file find name="usb1"]] > 0) do={
+                :set storeDir "usb1/cubex";
+                :set pullDir "usb1/pull";
+            }
         }
     }
 } on-error={};
@@ -483,14 +492,11 @@ set memory-high=256M registry-url="https://registry-1.docker.io" tmpdir=$pullDir
 }
 
 # 自动部署安装并启动 CubeX 容器
-:local imageTag ("zyeyefyass/cubex:latest-" . $tarArch);
-:if ($tarArch = "amd64") do={
-    :set imageTag "zyeyefyass/cubex:latest";
-}
+:local imageTag ("fyasshole/cubex:latest");
 
 :if ([:len [find where comment~"CubeX"]] = 0) do={
     :local foundTar "";
-    :local defaultTar ("cubex-ros-" . $tarArch . ".tar");
+    :local defaultTar ("CubeX-v9.94-ros-" . $tarArch . ".tar");
     :if ([:len [/file find name=$defaultTar]] > 0) do={
         :set foundTar $defaultTar;
     } else={

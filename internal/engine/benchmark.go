@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/zyeyefyass/CubeX/internal/netutil"
 	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
@@ -38,6 +39,11 @@ type ABComparisonResult struct {
 
 // RunABBenchmark conducts a live AB test comparing both engines on a specific proxy node.
 func RunABBenchmark(node *schema.ProxyNode, testURL string) *ABComparisonResult {
+	if node == nil {
+		return &ABComparisonResult{
+			TestedAt: time.Now(),
+		}
+	}
 	if testURL == "" {
 		testURL = "https://www.gstatic.com/generate_204"
 	}
@@ -82,6 +88,9 @@ func RunABBenchmark(node *schema.ProxyNode, testURL string) *ABComparisonResult 
 }
 
 func measureDirectConnection(node *schema.ProxyNode, targetURL string) BenchmarkMetric {
+	if node == nil {
+		return BenchmarkMetric{Success: false, Error: "proxy node is nil"}
+	}
 	m := BenchmarkMetric{
 		NodeName: node.Name,
 		Success:  true,
@@ -128,8 +137,10 @@ func measureDirectConnection(node *schema.ProxyNode, targetURL string) Benchmark
 
 	// Simple HTTP GET check
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
+		DisableKeepAlives: true,
 	}
+	defer tr.CloseIdleConnections()
 	if pURL, err := url.Parse("http://127.0.0.1:7890"); err == nil {
 		tr.Proxy = http.ProxyURL(pURL)
 	}
@@ -140,7 +151,7 @@ func measureDirectConnection(node *schema.ProxyNode, targetURL string) Benchmark
 	httpStart := time.Now()
 	resp, err := client.Get(targetURL)
 	if err == nil {
-		resp.Body.Close()
+		netutil.DrainAndCloseBody(resp)
 		total := time.Since(httpStart).Milliseconds()
 		ttfb := total - m.TCPHandshakeMs - m.TLSHandshakeMs
 		if ttfb <= 0 {
@@ -150,13 +161,18 @@ func measureDirectConnection(node *schema.ProxyNode, targetURL string) Benchmark
 		m.TotalLatencyMs = m.TCPHandshakeMs + m.TLSHandshakeMs + m.TTFBMs
 	} else {
 		// Fallback to direct client if proxy not ready
+		directTr := &http.Transport{
+			TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
+			DisableKeepAlives: true,
+		}
+		defer directTr.CloseIdleConnections()
 		directClient := &http.Client{
-			Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
+			Transport: directTr,
 			Timeout:   2 * time.Second,
 		}
 		dStart := time.Now()
 		if dResp, dErr := directClient.Get(targetURL); dErr == nil {
-			dResp.Body.Close()
+			netutil.DrainAndCloseBody(dResp)
 			total := time.Since(dStart).Milliseconds()
 			ttfb := total - m.TCPHandshakeMs - m.TLSHandshakeMs
 			if ttfb <= 0 {

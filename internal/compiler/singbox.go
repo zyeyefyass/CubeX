@@ -9,6 +9,8 @@ import (
 
 	"net"
 
+	stdnet "net"
+
 	"net/url"
 
 	"os"
@@ -94,9 +96,9 @@ func makeSingboxDNSServer(tag, rawAddr, detour string) map[string]any {
 
 			if u.Port() != "" {
 
-				p, _ := strconv.Atoi(u.Port())
-
-				serverMap["server_port"] = p
+				if p, pErr := strconv.Atoi(u.Port()); pErr == nil && p > 0 {
+					serverMap["server_port"] = p
+				}
 
 			}
 
@@ -115,18 +117,34 @@ func makeSingboxDNSServer(tag, rawAddr, detour string) map[string]any {
 	} else if strings.HasPrefix(rawAddr, "tls://") {
 
 		serverMap["type"] = "tls"
-
-		serverMap["server"] = strings.TrimPrefix(rawAddr, "tls://")
-
+		hostPort := strings.TrimSpace(strings.TrimPrefix(rawAddr, "tls://"))
+		if idx := strings.IndexByte(hostPort, '/'); idx >= 0 {
+			hostPort = hostPort[:idx]
+		}
+		serverMap["server"] = hostPort
 		serverMap["server_port"] = 853
+		if h, pStr, err := net.SplitHostPort(hostPort); err == nil && h != "" {
+			serverMap["server"] = h
+			if p, pErr := strconv.Atoi(pStr); pErr == nil && p > 0 {
+				serverMap["server_port"] = p
+			}
+		}
 
 	} else if strings.HasPrefix(rawAddr, "tcp://") {
 
 		serverMap["type"] = "tcp"
-
-		serverMap["server"] = strings.TrimPrefix(rawAddr, "tcp://")
-
+		hostPort := strings.TrimSpace(strings.TrimPrefix(rawAddr, "tcp://"))
+		if idx := strings.IndexByte(hostPort, '/'); idx >= 0 {
+			hostPort = hostPort[:idx]
+		}
+		serverMap["server"] = hostPort
 		serverMap["server_port"] = 53
+		if h, pStr, err := net.SplitHostPort(hostPort); err == nil && h != "" {
+			serverMap["server"] = h
+			if p, pErr := strconv.Atoi(pStr); pErr == nil && p > 0 {
+				serverMap["server_port"] = p
+			}
+		}
 
 	} else {
 
@@ -223,9 +241,23 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 
 	}
 
+	ir = ir.Clone()
+
 	SanitizeIR(ir)
 
 	net := ir.Network
+	if strings.TrimSpace(net.TunInterface) == "" {
+		net.TunInterface = "cubex-tun"
+	}
+	if strings.TrimSpace(net.TunIPv4) == "" {
+		net.TunIPv4 = "172.19.0.1/30"
+	}
+	if net.MixedPort <= 0 {
+		net.MixedPort = 7890
+	}
+	if net.ClashAPIPort <= 0 {
+		net.ClashAPIPort = 9090
+	}
 
 	dns := ir.DNS
 
@@ -267,19 +299,23 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 	}
 
 	// Find foreign outbound group tag for remote DNS tunnel detour
-
-	foreignDetour := "🌐 国外流量"
-
+	foreignDetour := ""
 	for _, g := range ir.Groups {
-
 		if g.Name == "🌐 国外流量" || g.Name == "🚀 国外" || g.Name == "PROXY" || g.Name == "🐟 漏网之鱼" {
-
 			foreignDetour = g.Name
-
 			break
-
 		}
-
+	}
+	if foreignDetour == "" {
+		for _, g := range ir.Groups {
+			if !g.Disabled && g.Name != "DIRECT" && g.Name != "REJECT" && g.Name != "🎯 全球直连" && g.Name != "🛑 广告拦截" {
+				foreignDetour = g.Name
+				break
+			}
+		}
+	}
+	if foreignDetour == "" {
+		foreignDetour = "direct"
 	}
 
 	directServer := makeSingboxDNSServer("dns-direct", directDNSAddr, "direct")
@@ -1978,16 +2014,20 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 
 	// A. Inbound Sniff & DNS Hijack (sing-box 1.14+ action format)
 
-	routeRules = append(routeRules, map[string]any{
-
-		"inbound": []string{"tun-in", "tproxy-in", "redir-in", "mixed-in"},
-
-		"action": "sniff",
-
-		"sniffer": []string{"http", "tls"},
-
-		"timeout": "150ms",
-	})
+	sniffInbounds := make([]string, 0, len(inbounds))
+	for _, inb := range inbounds {
+		if tag, ok := inb["tag"].(string); ok && tag != "" && tag != "dns-in" {
+			sniffInbounds = append(sniffInbounds, tag)
+		}
+	}
+	if len(sniffInbounds) > 0 {
+		routeRules = append(routeRules, map[string]any{
+			"inbound": sniffInbounds,
+			"action":  "sniff",
+			"sniffer": []string{"http", "tls"},
+			"timeout": "150ms",
+		})
+	}
 
 	routeRules = append(routeRules, map[string]any{
 
@@ -2358,14 +2398,16 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 
 		}
 
-		if strings.Contains(p.Server, ":") || (strings.Count(p.Server, ".") == 3 && !strings.ContainsAny(p.Server, "abcdefghijklmnopqrstuvwxyz")) {
+		if isIPAddress(p.Server) {
 
 			cidr := p.Server
 
 			if !strings.Contains(cidr, "/") {
-
-				cidr = cidr + "/32"
-
+				if strings.Contains(cidr, ":") {
+					cidr = cidr + "/128"
+				} else {
+					cidr = cidr + "/32"
+				}
 			}
 
 			nodeIPs = append(nodeIPs, cidr)
@@ -2407,6 +2449,14 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 
 	}
 
+	hasRealProxy := false
+	for _, p := range ir.Proxies {
+		if strings.TrimSpace(p.Server) != "" && p.Port > 0 {
+			hasRealProxy = true
+			break
+		}
+	}
+
 	// D. Device Policies (Top Priority)
 	for _, dev := range ir.DevicePolicies {
 		ip := strings.TrimSpace(dev.IP)
@@ -2415,7 +2465,16 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 		}
 		cidr := ip
 		if !strings.Contains(cidr, "/") {
-			cidr = cidr + "/32"
+			if parsed := stdnet.ParseIP(cidr); parsed == nil {
+				continue
+			}
+			if strings.Contains(cidr, ":") {
+				cidr = cidr + "/128"
+			} else {
+				cidr = cidr + "/32"
+			}
+		} else if _, _, err := stdnet.ParseCIDR(cidr); err != nil {
+			continue
 		}
 
 		if dev.Mode == "bypass" {
@@ -2424,15 +2483,23 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 				"outbound":       "direct",
 			})
 		} else if dev.Mode == "node" && dev.BoundNode != "" {
+			target := dev.BoundNode
+			if hasRealProxy && !validOutbounds[target] {
+				if foreignDetour != "" && validOutbounds[foreignDetour] {
+					target = foreignDetour
+				} else {
+					target = "direct"
+				}
+			}
 			routeRules = append(routeRules, map[string]any{
 				"source_ip_cidr": []string{cidr},
-				"outbound":       dev.BoundNode,
+				"outbound":       target,
 			})
 		} else if dev.Mode == "media" {
 			target := foreignDetour
-			if dev.BoundNode != "" {
+			if dev.BoundNode != "" && validOutbounds[dev.BoundNode] {
 				target = dev.BoundNode
-			} else if target == "" {
+			} else if target == "" || !validOutbounds[target] {
 				target = "direct"
 			}
 			// 🎬 影音/NAS 专属模式：海报刮削/字幕/Docker/GitHub 精准走加速
@@ -2829,9 +2896,10 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 
 		// Deduplicate built-in rules
 
-		val := strings.ToLower(r.Value)
+		val := strings.ToLower(strings.TrimSpace(r.Value))
+		isBuiltinAdGeosite := val == "ad" || val == "ads" || val == "category-ads" || val == "category-ads-all" || val == "adblock"
 
-		if (rType == "geosite" && (val == "cn" || strings.Contains(val, "ad"))) ||
+		if (rType == "geosite" && (val == "cn" || isBuiltinAdGeosite)) ||
 
 			(rType == "geoip" && (val == "cn" || val == "private")) ||
 

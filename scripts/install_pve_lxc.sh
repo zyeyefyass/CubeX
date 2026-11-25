@@ -48,6 +48,7 @@ AUTO_CONFIRM=0
 CUSTOM_IP=""
 CUSTOM_VMID=""
 CUSTOM_GW=""
+CUSTOM_BRIDGE=""
 CUSTOM_VER="${CUBEX_VERSION:-}"
 
 for arg in "$@"; do
@@ -63,6 +64,9 @@ for arg in "$@"; do
             ;;
         --gw=*)
             CUSTOM_GW="${arg#*=}"
+            ;;
+        --bridge=*)
+            CUSTOM_BRIDGE="${arg#*=}"
             ;;
         --version=*|-v=*)
             CUSTOM_VER="${arg#*=}"
@@ -116,7 +120,11 @@ if [ -n "$CUSTOM_GW" ]; then
     GW_IP="$CUSTOM_GW"
 fi
 
-PVE_BRIDGE=$(ip route show default 2>/dev/null | awk '{print $5}' | head -n1)
+if [ -n "$CUSTOM_BRIDGE" ]; then
+    PVE_BRIDGE="$CUSTOM_BRIDGE"
+else
+    PVE_BRIDGE=$(ip route show default 2>/dev/null | awk '{print $5}' | head -n1)
+fi
 if [ -z "$PVE_BRIDGE" ] || ! ip link show "$PVE_BRIDGE" >/dev/null 2>&1; then
     PVE_BRIDGE="vmbr0"
 fi
@@ -240,7 +248,9 @@ fi
 IS_UPGRADE=0
 if pct status "$CT_ID" >/dev/null 2>&1 || [ -f "/etc/pve/lxc/${CT_ID}.conf" ]; then
     echo -e "${BLUE}🔍 发现已存在容器 CT ${CT_ID}，正在执行静态磁盘挂载安全探测...${NC}"
-    MOUNT_DIR=$(pct mount "$CT_ID" 2>/dev/null || true)
+    CT_CUR_STATUS=$(pct status "$CT_ID" 2>/dev/null | awk '{print $2}')
+    MOUNT_DIR=""
+    MOUNT_PATH=""
     
     # 架构铁律：通过 trap 确保任何异常退出均执行 pct unmount，防止挂载残留锁死容器
     CLEANUP_LXC_MOUNT() {
@@ -252,21 +262,30 @@ if pct status "$CT_ID" >/dev/null 2>&1 || [ -f "/etc/pve/lxc/${CT_ID}.conf" ]; t
     trap CLEANUP_LXC_MOUNT EXIT INT TERM
     
     CUBEX_EXISTS=0
-    if [ -n "$MOUNT_DIR" ]; then
-        # 兼容 /opt/cubex 与旧版 /opt/CubeX 路径，同时探测核心二进制或用户数据目录
-        if [ -f "$MOUNT_DIR/opt/cubex/bin/cubexd" ] || [ -f "$MOUNT_DIR/opt/CubeX/bin/cubexd" ] || \
-           [ -d "$MOUNT_DIR/opt/cubex/data" ] || [ -d "$MOUNT_DIR/opt/CubeX/data" ]; then
-            CUBEX_EXISTS=1
-        fi
-        pct unmount "$CT_ID" >/dev/null 2>&1 || true
-        MOUNT_DIR=""
-    else
-        # 容器运行中时备用动态探测
+    if [ "$CT_CUR_STATUS" = "running" ]; then
         if pct exec "$CT_ID" -- test -f /opt/cubex/bin/cubexd >/dev/null 2>&1 || \
            pct exec "$CT_ID" -- test -f /opt/CubeX/bin/cubexd >/dev/null 2>&1 || \
            pct exec "$CT_ID" -- test -d /opt/cubex/data >/dev/null 2>&1 || \
            pct exec "$CT_ID" -- test -d /opt/CubeX/data >/dev/null 2>&1; then
             CUBEX_EXISTS=1
+        fi
+    else
+        MOUNT_RAW=$(pct mount "$CT_ID" 2>/dev/null || true)
+        if [ -n "$MOUNT_RAW" ]; then
+            MOUNT_DIR="1"
+            MOUNT_PATH=$(printf '%s\n' "$MOUNT_RAW" | grep -oE "/[^[:space:]'\"]+" | head -n1 || true)
+            [ -z "$MOUNT_PATH" ] && [ -d "/var/lib/lxc/${CT_ID}/rootfs" ] && MOUNT_PATH="/var/lib/lxc/${CT_ID}/rootfs"
+        fi
+        if [ -n "$MOUNT_PATH" ] && [ -d "$MOUNT_PATH" ]; then
+            # 兼容 /opt/cubex 与旧版 /opt/CubeX 路径，同时探测核心二进制或用户数据目录
+            if [ -f "$MOUNT_PATH/opt/cubex/bin/cubexd" ] || [ -f "$MOUNT_PATH/opt/CubeX/bin/cubexd" ] || \
+               [ -d "$MOUNT_PATH/opt/cubex/data" ] || [ -d "$MOUNT_PATH/opt/CubeX/data" ]; then
+                CUBEX_EXISTS=1
+            fi
+        fi
+        if [ -n "$MOUNT_DIR" ]; then
+            pct unmount "$CT_ID" >/dev/null 2>&1 || true
+            MOUNT_DIR=""
         fi
     fi
     
@@ -407,26 +426,22 @@ for M in $MIRRORS; do
 http://${M}/alpine/${BRANCH}/main
 http://${M}/alpine/${BRANCH}/community
 REPO
-    if apk update --quiet; then
+    if (command -v timeout >/dev/null 2>&1 && { timeout 10 apk update --quiet 2>/dev/null || timeout -t 10 apk update --quiet 2>/dev/null; }) || (! command -v timeout >/dev/null 2>&1 && apk update --quiet 2>/dev/null); then
         UPDATED=1
         break
     fi
     sleep 1
 done
 
-if [ "$UPDATED" -eq 0 ]; then
-    apk update || true
-fi
-
-# 依赖安装自愈重试 (最多 3 次)
+# 依赖安装自愈重试 (最多 2 次，带超时防断网宿主机长时间卡死)
 INSTALLED=0
-for attempt in 1 2 3; do
-    if apk add --no-cache curl ca-certificates iptables ip6tables iproute2 tzdata unzip; then
+for attempt in 1 2; do
+    if (command -v timeout >/dev/null 2>&1 && { timeout 25 apk add --no-cache curl ca-certificates iptables ip6tables iproute2 tzdata unzip 2>/dev/null || timeout -t 25 apk add --no-cache curl ca-certificates iptables ip6tables iproute2 tzdata unzip 2>/dev/null; }) || (! command -v timeout >/dev/null 2>&1 && apk add --no-cache curl ca-certificates iptables ip6tables iproute2 tzdata unzip 2>/dev/null); then
         INSTALLED=1
         break
     fi
-    echo "正在重试依赖安装 ($attempt/3)..."
-    sleep 2
+    echo "正在重试依赖安装 ($attempt/2)..."
+    sleep 1
 done
 
 # 安装完成 ca-certificates 后无缝升级回安全 HTTPS 镜像源
@@ -469,10 +484,25 @@ fi
 rc-update add cubexd default >/dev/null 2>&1
 EOF
 else
-    echo -e "\n${CYAN}🔄 [3/5] 原地升级容器内二进制与规则集 (保留 /opt/CubeX/data 与 /opt/CubeX/etc 用户数据)...${NC}"
+    echo -e "\n${CYAN}🔄 [3/5] 原地升级容器内二进制与规则集 (保留 /opt/CubeX/data 与 /opt/CubeX/etc 用户数据并兼容迁移旧 /opt/cubex)...${NC}"
+    pct exec "$CT_ID" -- sh -s << 'MIGRATE_EOF'
+mkdir -p /opt/CubeX/bin /opt/CubeX/data /opt/CubeX/etc /opt/CubeX/rules
+if [ -d /opt/cubex ] && [ ! -L /opt/cubex ]; then
+    for sub in data etc rules; do
+        if [ -d "/opt/cubex/$sub" ]; then
+            cp -rn "/opt/cubex/$sub/." "/opt/CubeX/$sub/" 2>/dev/null || cp -r "/opt/cubex/$sub/." "/opt/CubeX/$sub/" 2>/dev/null || true
+        fi
+    done
+    mv /opt/cubex "/opt/cubex.migrated.$(date +%s)" 2>/dev/null || true
+    ln -sf /opt/CubeX /opt/cubex 2>/dev/null || true
+fi
+if [ -f /etc/init.d/cubexd ] && grep -q "/opt/cubex/" /etc/init.d/cubexd 2>/dev/null; then
+    sed -i 's|/opt/cubex/|/opt/CubeX/|g; s|directory="/opt/cubex"|directory="/opt/CubeX"|g' /etc/init.d/cubexd 2>/dev/null || true
+fi
+MIGRATE_EOF
 fi
 
-echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX ${CUSTOM_VER:-v9.9.6} 双核完整发布包 (${PVE_ARCH})...${NC}"
+echo -e "   -> ${BOLD}[5.4/5.4] 正在拉取并释放 CubeX ${CUSTOM_VER:-latest} 双核完整发布包 (${PVE_ARCH})...${NC}"
 # 10. 推送或下载 CubeX 完整发布包 (优先检测宿主本地安装包，0 秒直推免下载)
 if [ -n "$CUSTOM_VER" ]; then
     LOCAL_PKG=$(ls dist/release/CubeX-${CUSTOM_VER}*-linux-${PVE_ARCH}.zip 2>/dev/null | sort -V | tail -n1 || true)
@@ -485,43 +515,61 @@ else
 fi
 
 CHOSEN_ZIP=""
-if [ -n "$LOCAL_PKG" ] && [ -f "$LOCAL_PKG" ]; then
-    CHOSEN_ZIP="$LOCAL_PKG"
-elif [ -n "$CACHE_PKG" ] && [ -s "$CACHE_PKG" ]; then
-    CHOSEN_ZIP="$CACHE_PKG"
-elif [ -n "$ROOT_PKG" ] && [ -s "$ROOT_PKG" ]; then
-    CHOSEN_ZIP="$ROOT_PKG"
-fi
+for cand_zip in "$LOCAL_PKG" "$CACHE_PKG" "$ROOT_PKG"; do
+    if [ -n "$cand_zip" ] && [ -s "$cand_zip" ]; then
+        cand_ok=0
+        if command -v unzip >/dev/null 2>&1 && unzip -t "$cand_zip" >/dev/null 2>&1; then
+            cand_ok=1
+        elif command -v python3 >/dev/null 2>&1 && python3 -c "import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); bad=z.testzip(); sys.exit(1 if bad else 0)" "$cand_zip" 2>/dev/null; then
+            cand_ok=1
+        fi
+        if [ "$cand_ok" -eq 1 ]; then
+            CHOSEN_ZIP="$cand_zip"
+            break
+        else
+            echo -e "${YELLOW}⚠️ 本地缓存包损坏或格式异常，已拦截拒绝使用: ${cand_zip}${NC}"
+        fi
+    fi
+done
 
-# 若宿主机本地无缓存包，直接由 PVE 宿主机拉取发布包 (宿主网络环境更完备，彻底解决容器内无 unzip / DNS 解析超时问题)
+# 若宿主机本地无有效缓存包，直接由 PVE 宿主机从国内高速加速源拉取发布包
 if [ -z "$CHOSEN_ZIP" ]; then
     echo -e "${BLUE}🌐 正在由 PVE 宿主机拉取完整发布包 (${PVE_ARCH} 双内核 + 105套规则集 + 控制面)...${NC}"
     REL_TAG="$CUSTOM_VER"
     if [ -z "$REL_TAG" ]; then
-        for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
+        for MIRROR in "https://ghfast.top" "https://ghproxy.net" "https://gh-proxy.com" "https://gh.ddlc.top" ""; do
             PREFIX="${MIRROR:+$MIRROR/}"
             LATEST_JSON=$(curl -4 --http1.1 -fsSL --connect-timeout 4 -m 8 "${PREFIX}https://api.github.com/repos/zyeyefyass/CubeX/releases/latest" 2>/dev/null || true)
             if [ -n "$LATEST_JSON" ]; then
-                REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4)
+                REL_TAG=$(echo "$LATEST_JSON" | grep -o '"tag_name": *"[^"]*"' | head -n1 | cut -d'"' -f4 | grep -E '^v[0-9]+' || true)
                 [ -n "$REL_TAG" ] && break
             fi
-            REL_TAG=$(curl -4 --http1.1 -sSL --connect-timeout 4 -m 6 -I "${PREFIX}https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "location:" | grep -oE 'tag/[^/ \r\n]+' | cut -d/ -f2 | tr -d '\r\n')
+            REL_TAG=$(curl -4 --http1.1 -sSL --connect-timeout 4 -m 6 -I "${PREFIX}https://github.com/zyeyefyass/CubeX/releases/latest" 2>/dev/null | grep -i "^location:" | grep -oE 'tag/v[0-9][^/ \r\n]*' | cut -d/ -f2 | tr -d '\r\n' | grep -E '^v[0-9]+' || true)
             [ -n "$REL_TAG" ] && break
         done
     fi
-    [ -z "$REL_TAG" ] && REL_TAG="v9.93"
+    [ -z "$REL_TAG" ] && REL_TAG="v9.94"
 
     ZIP_NAME="CubeX-${REL_TAG}-linux-${PVE_ARCH}.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"
     rm -f "$TMP_ZIP"
 
-    DOWNLOAD_URLS="https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
+    DOWNLOAD_URLS="https://ghfast.top/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://ghproxy.net/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://gh-proxy.com/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://gh.ddlc.top/https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME} https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
 
     for DL_URL in $DOWNLOAD_URLS; do
         echo -e "   -> 尝试节点: ${DL_URL} ..."
         if curl -4 --http1.1 -fL --progress-bar --connect-timeout 8 -m 120 -o "$TMP_ZIP" "$DL_URL" && [ -s "$TMP_ZIP" ]; then
-            CHOSEN_ZIP="$TMP_ZIP"
-            break
+            ZIP_VALID=0
+            if command -v unzip >/dev/null 2>&1 && unzip -t "$TMP_ZIP" >/dev/null 2>&1; then
+                ZIP_VALID=1
+            elif command -v python3 >/dev/null 2>&1 && python3 -c "import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); bad=z.testzip(); sys.exit(1 if bad else 0)" "$TMP_ZIP" 2>/dev/null; then
+                ZIP_VALID=1
+            fi
+            if [ "$ZIP_VALID" -eq 1 ]; then
+                CHOSEN_ZIP="$TMP_ZIP"
+                break
+            fi
+            echo -e "${YELLOW}   ⚠️ 校验失败: ${TMP_ZIP} 压缩包损坏，自动切换下一镜像...${NC}"
         fi
         rm -f "$TMP_ZIP"
     done
@@ -582,11 +630,11 @@ fi
 if [ "$UNPACKED_OK" -eq 0 ]; then
     echo -e "${YELLOW}⚠️ 完整包拉取受阻，启用宿主机独立拉取控制面与内核降级策略...${NC}"
     pct exec "$CT_ID" -- mkdir -p /opt/CubeX/bin /opt/CubeX/rules /opt/CubeX/etc /opt/CubeX/data /usr/local/bin
-    REL_TAG="${CUSTOM_VER:-v9.9.6}"
+    REL_TAG="${CUSTOM_VER:-${REL_TAG:-v9.94}}"
     
     # 1. cubexd 控制面
     TMP_BIN="/tmp/cubexd_${PVE_ARCH}_$$"
-    for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
+    for MIRROR in "https://ghfast.top" "https://ghproxy.net" "https://gh-proxy.com" "https://gh.ddlc.top" ""; do
         PREFIX="${MIRROR:+$MIRROR/}"
         BIN_URL="${PREFIX}https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${PVE_ARCH}"
         if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o "$TMP_BIN" "$BIN_URL" 2>/dev/null && [ -s "$TMP_BIN" ] && head -c 4 "$TMP_BIN" 2>/dev/null | grep -q "ELF"; then
@@ -599,7 +647,7 @@ if [ "$UNPACKED_OK" -eq 0 ]; then
 
     # 2. sing-box 核心
     TMP_SB="/tmp/sb_${PVE_ARCH}_$$"
-    for MIRROR in "https://gh-proxy.com" "https://ghproxy.net" ""; do
+    for MIRROR in "https://ghfast.top" "https://ghproxy.net" "https://gh-proxy.com" "https://gh.ddlc.top" ""; do
         PREFIX="${MIRROR:+$MIRROR/}"
         SB_URL="${PREFIX}https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/sing-box-linux-${PVE_ARCH}"
         if curl -4 --http1.1 -fsSL --connect-timeout 8 -m 60 -o "$TMP_SB" "$SB_URL" 2>/dev/null && [ -s "$TMP_SB" ] && head -c 4 "$TMP_SB" 2>/dev/null | grep -q "ELF"; then

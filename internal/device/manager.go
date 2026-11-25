@@ -71,6 +71,10 @@ func NewManager(rootDir string, rosMgr *ros.Manager, clashURL string) *Manager {
 	return m
 }
 
+func (m *Manager) Reload() {
+	m.loadStore()
+}
+
 func (m *Manager) loadStore() {
 	m.mu.Lock()
 	defer m.mu.Unlock()

@@ -42,6 +42,7 @@ type ShadowAuditorManager struct {
 	silentAutoHealsCompleted int
 	items                    map[string]*ShadowAuditItem
 	stopCh                   chan struct{}
+	stopOnce                 sync.Once
 }
 
 // NewShadowAuditorManager 创建影子巡检管理器
@@ -198,7 +199,9 @@ func (m *ShadowAuditorManager) Toggle(enabled bool) ShadowAuditorStatus {
 
 // Close 关闭巡检
 func (m *ShadowAuditorManager) Close() {
-	close(m.stopCh)
+	m.stopOnce.Do(func() {
+		close(m.stopCh)
+	})
 }
 
 func (m *ShadowAuditorManager) save() {
@@ -226,11 +229,7 @@ func (m *ShadowAuditorManager) save() {
 
 	dir := filepath.Dir(m.filePath)
 	_ = os.MkdirAll(dir, 0755)
-
-	tmpFile := m.filePath + ".tmp"
-	if err := os.WriteFile(tmpFile, bytes, 0644); err == nil {
-		_ = os.Rename(tmpFile, m.filePath)
-	}
+	_ = schema.WriteFileAtomicSecure(m.filePath, bytes)
 }
 
 func (m *ShadowAuditorManager) load() {

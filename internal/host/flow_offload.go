@@ -9,6 +9,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // FlowOffloadMode defines how hardware acceleration interacts with the gateway.
@@ -223,9 +225,5 @@ func (m *FlowOffloadManager) saveUnlocked() error {
 	if err != nil {
 		return err
 	}
-	tmp := m.storePath + ".tmp"
-	if err := os.WriteFile(tmp, data, 0644); err != nil {
-		return err
-	}
-	return os.Rename(tmp, m.storePath)
+	return schema.WriteFileAtomicSecure(m.storePath, data)
 }

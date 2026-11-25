@@ -47,7 +47,7 @@ def desensitize(target_dir):
             # Wipe subscriptions & node proxies
             ir["subscriptions"] = []
             ir["proxies"] = []
-            ir["device_policies"] = {}
+            ir["device_policies"] = []
 
             # Sanitize groups: strip ANY node proxy names
             for g in ir.get("groups", []):

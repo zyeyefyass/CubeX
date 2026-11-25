@@ -1650,10 +1650,10 @@ func (s *Server) resolveActiveHostPlatform() (string, host.HostConfig, *host.Hos
 	cached := s.hostMgr.GetCachedHostInfo()
 
 	plat := ""
-	if cached != nil && cached.Connected && cached.PlatformID != "" {
+	if explicit := strings.ToLower(strings.TrimSpace(hostCfg.PlatformType)); explicit != "" && explicit != "auto" {
+		plat = explicit
+	} else if cached != nil && cached.Connected && cached.PlatformID != "" {
 		plat = strings.ToLower(strings.TrimSpace(cached.PlatformID))
-	} else if hostCfg.PlatformType != "" && !strings.EqualFold(hostCfg.PlatformType, "auto") {
-		plat = strings.ToLower(strings.TrimSpace(hostCfg.PlatformType))
 	}
 	return plat, hostCfg, cached
 }

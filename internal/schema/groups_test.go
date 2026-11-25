@@ -263,3 +263,42 @@ func TestFilterNodesByKeywords(t *testing.T) {
 		t.Fatalf("expected 2 nodes for case-insensitive 'bgp', got %d: %v", len(resCase), resCase)
 	}
 }
+
+func TestConfigIR_CloneDeepIsolation(t *testing.T) {
+	orig := NewDefaultIR()
+	orig.Meta.ActiveEngine = EngineSingbox
+	orig.Proxies = append(orig.Proxies, ProxyNode{
+		Name:      "n1",
+		Type:      "vless",
+		Server:    "1.2.3.4",
+		Port:      443,
+		RawConfig: map[string]any{"nested": map[string]any{"alpn": []string{"h2"}}},
+	})
+	idx := len(orig.Proxies) - 1
+	orig.Rules = append(orig.Rules, Rule{Type: "DOMAIN-SUFFIX", Value: "example.com", Target: "DIRECT"})
+	rIdx := len(orig.Rules) - 1
+	orig.UserOverrides = &UserOverrideRules{ForceDirectDomains: []string{"example.org"}}
+
+	cloned := orig.Clone()
+	cloned.Meta.ActiveEngine = EngineMihomo
+	cloned.Proxies[idx].Name = "mutated"
+	cloned.Proxies[idx].RawConfig["nested"].(map[string]any)["alpn"].([]string)[0] = "http/1.1"
+	cloned.Rules[rIdx].Value = "mutated.com"
+	cloned.UserOverrides.ForceDirectDomains[0] = "mutated.org"
+
+	if orig.Meta.ActiveEngine != EngineSingbox {
+		t.Fatalf("orig Meta.ActiveEngine mutated")
+	}
+	if orig.Proxies[idx].Name != "n1" {
+		t.Fatalf("orig Proxies[idx].Name mutated")
+	}
+	if orig.Proxies[idx].RawConfig["nested"].(map[string]any)["alpn"].([]string)[0] != "h2" {
+		t.Fatalf("orig nested slice in RawConfig mutated")
+	}
+	if orig.Rules[rIdx].Value != "example.com" {
+		t.Fatalf("orig Rules[rIdx] mutated")
+	}
+	if orig.UserOverrides.ForceDirectDomains[0] != "example.org" {
+		t.Fatalf("orig UserOverrides mutated")
+	}
+}

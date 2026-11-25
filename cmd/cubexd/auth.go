@@ -53,11 +53,17 @@ func NewConsoleAuthManager(workDir string) *ConsoleAuthManager {
 func (m *ConsoleAuthManager) load() {
 	data, err := os.ReadFile(m.filePath)
 	if err != nil {
+		if !os.IsNotExist(err) {
+			m.cfg = consoleAuthConfig{Enabled: true}
+		}
 		return
 	}
 	var cfg consoleAuthConfig
-	if json.Unmarshal(data, &cfg) == nil {
+	if err := json.Unmarshal(data, &cfg); err == nil {
 		m.cfg = cfg
+	} else {
+		// Fail-closed: corrupt auth file must lock access until repaired instead of silently disabling auth
+		m.cfg = consoleAuthConfig{Enabled: true}
 	}
 }
 
@@ -86,15 +92,19 @@ func randomHex(nBytes int) (string, error) {
 func (m *ConsoleAuthManager) IsEnabled() bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	return m.cfg.Enabled && m.cfg.PasswordHash != ""
+	return m.cfg.Enabled
 }
 
 // VerifyPassword checks password in constant time.
 func (m *ConsoleAuthManager) VerifyPassword(password string) bool {
+	password = strings.TrimSpace(password)
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	if !m.cfg.Enabled || m.cfg.PasswordHash == "" {
+	if !m.cfg.Enabled {
 		return true
+	}
+	if m.cfg.PasswordHash == "" {
+		return false
 	}
 	candidate := hashConsolePassword(m.cfg.Salt, password)
 	return subtle.ConstantTimeCompare([]byte(candidate), []byte(m.cfg.PasswordHash)) == 1

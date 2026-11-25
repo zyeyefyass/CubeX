@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
 // MultiWANPolicyMode 多宽带分流策略模式
@@ -218,9 +220,5 @@ func (m *MultiWANBindingManager) saveLocked() {
 	if err != nil {
 		return
 	}
-
-	tmp := m.filePath + ".tmp"
-	if err := os.WriteFile(tmp, data, 0644); err == nil {
-		_ = os.Rename(tmp, m.filePath)
-	}
+	_ = schema.WriteFileAtomicSecure(m.filePath, data)
 }

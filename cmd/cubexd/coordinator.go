@@ -56,7 +56,9 @@ func (c *RuntimeCoordinator) CoordinatedSwitchEngine(ctx context.Context, target
 
 	// Step 2: 置位 ROS 热重载模式（不切断回程路由，由 ROS 2.2s 防抖窗口平滑保护）
 	if c.haGuard != nil {
-		_ = c.haGuard.GracefulDrain(ctx, false)
+		drainCtx, drainCancel := context.WithTimeout(ctx, 2*time.Second)
+		_ = c.haGuard.GracefulDrain(drainCtx, false)
+		drainCancel()
 	}
 
 	// Step 3: 执行 60ms 进程组同步屏障切核与 VFS 预热启动
@@ -74,7 +76,9 @@ func (c *RuntimeCoordinator) CoordinatedSwitchEngine(ctx context.Context, target
 		c.scheduler.NotifyEngineSwitched()
 	}
 	if c.haGuard != nil {
-		_ = c.haGuard.NotifyEngineReady(ctx)
+		readyCtx, readyCancel := context.WithTimeout(ctx, 3*time.Second)
+		_ = c.haGuard.NotifyEngineReady(readyCtx)
+		readyCancel()
 	}
 
 	// Step 5: 强制回收切核期间产生的临时堆对象与归还操作系统内存
