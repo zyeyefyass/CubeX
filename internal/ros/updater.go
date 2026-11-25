@@ -386,7 +386,7 @@ func (m *Manager) GetOverview() map[string]any {
 
 	if latestPanel == "" {
 
-		latestPanel = "v9.92"
+		latestPanel = "v9.93"
 
 	}
 
@@ -1276,7 +1276,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 // ──────────────────────────────────────────────
 
 func (m *Manager) getLocalPanelVersion() string {
-	return "v9.92"
+	return "v9.93"
 
 }
 

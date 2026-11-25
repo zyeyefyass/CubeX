@@ -1,7 +1,10 @@
 package ros
 
 import (
+	"encoding/json"
 	"net"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -206,5 +209,78 @@ func TestManglePCCExemptionIdempotency(t *testing.T) {
 	}
 	if !needReEnableHost {
 		t.Error("expected needReEnableHost to be true for disabled rule")
+	}
+}
+
+func TestRouterOSManager_RemoveBypass(t *testing.T) {
+	// 1. Unconfigured RouterOS should return a clear error
+	unconfMgr := NewManager(t.TempDir())
+	if _, err := unconfMgr.RemoveBypass("192.168.99.2", "223.5.5.5"); err == nil {
+		t.Fatalf("expected error when RouterOS is not configured")
+	}
+
+	// 2. Configured RouterOS withdraws routes, blackholes, netwatch, DNS, and DHCP overrides symmetrically
+	var deleted []string
+	var dhcpPatched map[string]any
+	mockROS := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodDelete {
+			deleted = append(deleted, r.URL.Path)
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+			return
+		}
+		switch r.URL.Path {
+		case "/rest/system/resource":
+			_ = json.NewEncoder(w).Encode(map[string]any{"version": "7.25.2"})
+		case "/rest/ip/route":
+			_ = json.NewEncoder(w).Encode([]map[string]any{
+				{".id": "*BH1", "dst-address": "198.18.0.0/15", "blackhole": true, "comment": "CubeX-FakeIP-Blackhole"},
+				{".id": "*BT1", "dst-address": "198.18.0.0/15", "routing-table": "main", "gateway": "192.168.99.2", "comment": "CubeX-FakeIP-Backtrack"},
+			})
+		case "/rest/ip/dns":
+			if r.Method == http.MethodGet {
+				_ = json.NewEncoder(w).Encode(map[string]any{"servers": "192.168.99.2"})
+			} else {
+				_ = json.NewEncoder(w).Encode(map[string]any{})
+			}
+		case "/rest/ip/dhcp-server/network":
+			_ = json.NewEncoder(w).Encode([]map[string]any{
+				{".id": "*DH1", "address": "192.168.99.0/24", "gateway": "192.168.99.1", "dns-server": "192.168.99.2"},
+			})
+		case "/rest/ip/dhcp-server/network/*DH1":
+			_ = json.NewDecoder(r.Body).Decode(&dhcpPatched)
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+		case "/rest/ip/firewall/connection":
+			_ = json.NewEncoder(w).Encode([]map[string]any{
+				{".id": "*CN1", "dst-address": "198.18.0.12:443"},
+			})
+		default:
+			_ = json.NewEncoder(w).Encode([]any{})
+		}
+	}))
+	defer mockROS.Close()
+
+	parts := strings.Split(strings.TrimPrefix(mockROS.URL, "https://"), ":")
+	mgr := NewManager(t.TempDir())
+	if err := mgr.SaveConfig(map[string]string{
+		"host": parts[0], "port": parts[1], "user": "admin", "password": "pwd",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	logs, err := mgr.RemoveBypass("192.168.99.2", "223.5.5.5")
+	if err != nil {
+		t.Fatalf("RemoveBypass failed: %v", err)
+	}
+	if len(logs) == 0 {
+		t.Fatalf("expected non-empty logs from RemoveBypass")
+	}
+	if dhcpPatched["dns-server"] != "223.5.5.5" {
+		t.Fatalf("expected DHCP dns-server restored to 223.5.5.5, got %v", dhcpPatched)
+	}
+	deletedStr := strings.Join(deleted, ",")
+	for _, want := range []string{"*BH1", "*BT1", "*CN1"} {
+		if !strings.Contains(deletedStr, want) {
+			t.Errorf("expected %s deleted, got %v", want, deleted)
+		}
 	}
 }

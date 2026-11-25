@@ -1,6 +1,7 @@
-param(
+﻿param(
 
-    [switch]$IncludeWindows = $false
+    [switch]$IncludeWindows = $false,
+    [switch]$SkipHealthAudit = $false
 
 )
 
@@ -8,7 +9,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$Version = "v9.92"
+$Version = "v9.93"
 
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 
@@ -30,16 +31,20 @@ if (Test-Path $ReleaseDir) {
 }
 
 # 0. Mandatory Pre-Release Full-Stack Health Audit
-Write-Host "🩺 [0/4] Executing Mandatory Full-Stack Health Audit Doctor..." -ForegroundColor Yellow
+if (-not $SkipHealthAudit) {
+    Write-Host "🩺 [0/4] Executing Mandatory Full-Stack Health Audit Doctor..." -ForegroundColor Yellow
 
-python "$PSScriptRoot\audit_codebase_health.py"
+    python "$PSScriptRoot\audit_codebase_health.py"
 
-if ($LASTEXITCODE -ne 0) {
+    if ($LASTEXITCODE -ne 0) {
 
-    Write-Error "Pre-release codebase health audit failed! Release aborted."
+        Write-Error "Pre-release codebase health audit failed! Release aborted."
 
-    exit 1
+        exit 1
 
+    }
+} else {
+    Write-Host "🛡️ [0/4] Skipping live CT107/Router probe in health audit (-SkipHealthAudit)" -ForegroundColor DarkCyan
 }
 
 

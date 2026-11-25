@@ -21,6 +21,7 @@ import (
 
 	"strings"
 
+	"github.com/zyeyefyass/CubeX/internal/netenv"
 	"github.com/zyeyefyass/CubeX/internal/schema"
 )
 
@@ -187,8 +188,34 @@ func isSRSAvailable(ruleFilename string) bool {
 }
 
 // BuildSingBox transcompiles CubeX Universal IR to sing-box v1.14.4+ config.json
-
 func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
+	return BuildSingBoxWithResolvConf(ir, "/etc/resolv.conf", nil, schema.DetectDefaultGateway())
+}
+
+// resolveSafeLocalDNSServer builds the dns-local server entry while preventing DNS self-loops
+// if the host resolv.conf points to loopback (127.0.0.1 / ::1) or one of the host's own LAN IPs.
+func resolveSafeLocalDNSServer(resolvConfPath string, localIPs []string, gatewayIP string) (map[string]any, netenv.ResolvConfAudit) {
+	audit := netenv.AuditResolvConf(resolvConfPath, localIPs, gatewayIP)
+	if audit.HasSelfLoop {
+		log.Printf("⚠️ [DNS防自环] 检测到宿主机 %s 存在本机/回环 nameserver (%s)，已自动弃用 dns-local (type: local) 并安全回退至 %s",
+			audit.Path, strings.Join(audit.LoopedAddrs, ", "), audit.FallbackDNS)
+		return map[string]any{
+			"tag":         "dns-local",
+			"type":        "udp",
+			"server":      audit.FallbackDNS,
+			"server_port": 53,
+			"detour":      "direct",
+		}, audit
+	}
+	return map[string]any{
+		"tag":  "dns-local",
+		"type": "local",
+	}, audit
+}
+
+// BuildSingBoxWithResolvConf compiles CubeX IR into sing-box JSON using the supplied resolv.conf path,
+// local interface IP list, and upstream gateway IP for deterministic DNS self-loop immunity.
+func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, localIPs []string, gatewayIP string) ([]byte, error) {
 
 	if ir == nil {
 
@@ -297,16 +324,13 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 	}
 
+	localDNSServer, _ := resolveSafeLocalDNSServer(resolvConfPath, localIPs, gatewayIP)
+
 	cfg["dns"] = map[string]any{
 
 		"servers": []map[string]any{
 
-			{
-
-				"tag": "dns-local",
-
-				"type": "local",
-			},
+			localDNSServer,
 
 			{
 
@@ -434,6 +458,31 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 				{
 
+					"query_type": func() []string {
+						qt := []string{"HTTPS", "SVCB"}
+						if !net.IPv6 {
+							qt = append(qt, "AAAA")
+						}
+						return qt
+					}(),
+
+					"action": "predefined",
+
+					"rcode": "NOERROR",
+				},
+
+				{
+					"domain": []string{
+						"dns.alidns.com",
+						"doh.pub",
+						"dns.google",
+						"cloudflare-dns.com",
+					},
+					"server": "dns-hosts",
+				},
+
+				{
+
 					"domain_suffix": []string{".lan", ".local", ".home", ".internal", ".home.arpa", ".test"},
 
 					"server": "dns-local",
@@ -451,21 +500,6 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 					"domain": proxyDirectDomains,
 
 					"server": "dns-bootstrap",
-				},
-
-				{
-
-					"query_type": func() []string {
-						qt := []string{"HTTPS", "SVCB"}
-						if !net.IPv6 {
-							qt = append(qt, "AAAA")
-						}
-						return qt
-					}(),
-
-					"action": "predefined",
-
-					"rcode": "NOERROR",
 				},
 
 				{

@@ -27,8 +27,10 @@ REPO = "zyeyefyass/CubeX"
 def detect_proxy():
     env = os.environ.get("CUBEX_RELEASE_PROXY") or os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY")
     if env:
+        if env.strip().upper() == "DIRECT":
+            return ""
         return env
-    for host in ["10.0.0.7", "127.0.0.1"]:
+    for host in ["127.0.0.1"]:
         try:
             s = socket.socket()
             s.settimeout(0.3)
@@ -44,22 +46,23 @@ PROXY = detect_proxy()
 def get_tag():
     try:
         with open(ROOT_DIR / "meta.json", "r", encoding="utf-8") as f:
-            v = json.load(f).get("version", "v9.9.2")
+            v = json.load(f).get("version", "v9.93")
             if not v.startswith("v"):
                 v = f"v{v}"
             return v
     except Exception:
-        return "v9.9.2"
+        return "v9.93"
 
 TAG = get_tag()
 
-RELEASE_TITLE = f"CubeX {TAG} · 容器通用指令集兼容修复 · 双核灾备熔断保护 · 虚拟网卡预检与老内核兜底"
+RELEASE_TITLE = f"CubeX {TAG} · 根治宿主机 DNS 自环死锁 · 防死锁 dns-hosts 规则 · 启动期自环巡检 · RouterOS 对称撤回"
 
-RELEASE_BODY = f"""# CubeX {TAG} · 容器通用指令集兼容修复 · 双核灾备熔断保护 · 虚拟网卡预检与老内核兜底
+RELEASE_BODY = f"""# CubeX {TAG} · 根治宿主机 DNS 自环死锁 · 防死锁 dns-hosts 规则 · 启动期自环巡检 · RouterOS 对称撤回
 
-1. **修复容器镜像旧层残留与通用处理器兼容**：重做离线容器归档打包流程，强制写入全通用指令集核心，彻底解决赛扬 J4125 等无高级指令集处理器启动报错退出问题；并在发布审计前移拦截异常指令集二进制。
-2. **双核灾备熔断与真实报错透出**：主备内核均不可用或短时连续切换失败时立即熔断并停止死循环拉起，直接在控制台顶部醒目展示真实失败原因与查看日志入口。
-3. **虚拟网卡设备预检与老内核兼容**：启动核心前预检虚拟网卡设备存在性与读写权限，缺失直接提示宿主机激活命令；识别到群晖等 4.4 老内核自动切换兼容协议栈与安全路由策略。
+1. **根治宿主机 DHCP 续租引发的 DNS 自环死锁**：`sing-box` 编译前自动巡检宿主机 `/etc/resolv.conf`，一旦发现指向 `127.0.0.1`、`::1` 或本机局域网 IP，自动弃用 `type: "local"` 并安全回退至上级网关或 `223.5.5.5`，彻底消除自己问自己的死循环风暴。
+2. **接入防死锁 `dns-hosts` 规则**：将内置公共 DNS 静态解析表（`dns.alidns.com`、`doh.pub`、`dns.google`、`cloudflare-dns.com`）接入 `dns.rules` 优先命中，消除引导域名解析死锁。
+3. **新增启动期 DNS 自环巡检指引**：在 `install.sh` 与 `cubexd` 启动预检中温和检测本机 DNS 自环风险并输出固定 DNS 修复指引，不锁死系统网络管理文件。
+4. **补齐 RouterOS 一键对称撤回**：完善 `POST /api/v1/host/bypass/remove` 对 RouterOS 的原生撤回能力，完整清理旁路路由、规则与看门狗并恢复上游 DNS，与爱快、开源软路由完全对称。
 
 ---
 
@@ -95,7 +98,10 @@ def gh_api(token, method, path, data=None):
         "-H", "Accept: application/vnd.github.v3+json",
         "-H", "User-Agent: CubeX-Release-Agent",
     ]
-    cmd = ["curl.exe", "-s", "-w", "\n%{http_code}", "-X", method] + headers
+    curl_bin = r"C:\Program Files\Git\mingw64\bin\curl.exe"
+    if not os.path.exists(curl_bin):
+        curl_bin = "curl.exe"
+    cmd = [curl_bin, "-s", "-w", "\n%{http_code}", "-X", method] + headers
     if PROXY:
         cmd.extend(["-x", PROXY])
 

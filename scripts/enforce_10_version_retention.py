@@ -54,8 +54,8 @@ def get_github_token():
 
 TOKEN = get_github_token()
 
-PROXY = os.environ.get('HTTP_PROXY') or 'http://10.0.0.7:7890'
-if PROXY:
+PROXY = os.environ.get('CUBEX_RELEASE_PROXY') or os.environ.get('HTTPS_PROXY') or os.environ.get('HTTP_PROXY') or ''
+if PROXY and PROXY.strip().upper() != 'DIRECT':
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({'http': PROXY, 'https': PROXY}))
     urllib.request.install_opener(opener)
 
@@ -108,9 +108,16 @@ def prune_git_tags(keep_tags):
         print("   ⚠️ No active keep_tags provided. Skipping tag pruning.")
         return
 
-    # Get local tags
+    # Get local & remote tags
     proc = subprocess.run(['git', 'tag', '-l'], capture_output=True, text=True)
-    all_tags = [t.strip() for t in proc.stdout.splitlines() if t.strip()]
+    local_tags = {t.strip() for t in proc.stdout.splitlines() if t.strip()}
+    remote_proc = subprocess.run(['git', 'ls-remote', '--tags', 'origin'], capture_output=True, text=True)
+    remote_tags = set()
+    for line in remote_proc.stdout.splitlines():
+        parts = line.strip().split('\t')
+        if len(parts) == 2 and parts[1].startswith('refs/tags/') and not parts[1].endswith('^{}'):
+            remote_tags.add(parts[1][len('refs/tags/'):])
+    all_tags = sorted(local_tags | remote_tags)
     
     keep_set = set(keep_tags)
     tags_to_delete = [t for t in all_tags if t not in keep_set]

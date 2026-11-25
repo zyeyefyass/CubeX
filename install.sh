@@ -476,7 +476,7 @@ else
                 [ -n "$REL_TAG" ] && break
             done
         fi
-        [ -z "$REL_TAG" ] && REL_TAG="v9.92"
+        [ -z "$REL_TAG" ] && REL_TAG="v9.93"
         ZIP_NAME="CubeX-${REL_TAG}-linux-${TARGET_ARCH}.zip"
         ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
 
@@ -710,6 +710,36 @@ fi
 # 获取本机局域网 IP
 LOCAL_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++)if($i=="src")print $(i+1)}' || hostname -i 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 8.5 宿主机 /etc/resolv.conf 温和防 DNS 自环预检（禁止 chattr +i 锁文件）
+# ─────────────────────────────────────────────────────────────────────────────
+RESOLV_LOOP_MATCHES=""
+RESOLV_SAFE_GW="${DEFAULT_GW:-223.5.5.5}"
+if [ "$RESOLV_SAFE_GW" = "$LOCAL_IP" ] || [ -z "$RESOLV_SAFE_GW" ]; then
+    RESOLV_SAFE_GW="223.5.5.5"
+fi
+if [ -r /etc/resolv.conf ]; then
+    HOST_ALL_IPS=$(ip -o addr show 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | tr '\n' ' ')
+    RESOLV_NAMESERVERS=$(awk '/^[[:space:]]*nameserver[[:space:]]+/ {print $2}' /etc/resolv.conf 2>/dev/null || true)
+    for ns in $RESOLV_NAMESERVERS; do
+        ns_clean="${ns%%#*}"
+        ns_nozone="${ns_clean%%%*}"
+        case "$ns_nozone" in
+            127.*|::1|0.0.0.0|::|"$LOCAL_IP")
+                RESOLV_LOOP_MATCHES="${RESOLV_LOOP_MATCHES} ${ns_clean}"
+                ;;
+            *)
+                for hip in $HOST_ALL_IPS; do
+                    if [ "$ns_nozone" = "$hip" ]; then
+                        RESOLV_LOOP_MATCHES="${RESOLV_LOOP_MATCHES} ${ns_clean}"
+                        break
+                    fi
+                done
+                ;;
+        esac
+    done
+fi
+
 echo ""
 echo -e "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"
 echo -e "${BOLD}${GREEN}🎉 恭喜！CubeX · 次世代双擎高可用旁路网关部署成功！${NC}"
@@ -738,5 +768,20 @@ if [ "$IS_IKUAI_GATEWAY" -eq 1 ]; then
     echo -e "     3. 填入爱快地址 (${DEFAULT_GW}) 与 Web 管理密码"
     echo -e "     4. 点击【一键自愈与规则加固】，系统自动写入 198.18.0.0/15 静态回指与 DHCP 首选 DNS！"
     echo -e "  💻 也可在当前终端执行: ${CYAN}cubex ikuai${NC} 触发自动同步"
+fi
+if [ -n "$RESOLV_LOOP_MATCHES" ]; then
+    echo ""
+    echo -e "${RED}═════════════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${BOLD}${RED}⚠️  [DNS 防自环告警] 检测到 /etc/resolv.conf 指向本机或回环地址:${RESOLV_LOOP_MATCHES}${NC}"
+    echo -e "${YELLOW}   • 风险说明: 旁路由模式下若宿主机自身 DNS 指向自己，DHCP 续租后极易引发 DNS 自环死锁！${NC}"
+    echo -e "${YELLOW}   • 引擎兜底: CubeX v9.93+ 将自动弃用 dns-local 并安全回退至 ${RESOLV_SAFE_GW}，防止断网。${NC}"
+    echo -e "${CYAN}   • 温和修复指引 (切勿使用 chattr +i 锁死 /etc/resolv.conf，以免破坏 systemd-resolved / NetworkManager):${NC}"
+    echo -e "     1. 为本机配置静态 IP，并将本机自身 DNS 固定为上级网关或公共 DNS (${BOLD}${RESOLV_SAFE_GW}${NC})"
+    echo -e "     2. NetworkManager 示例: ${YELLOW}nmcli con mod <连接名> ipv4.dns \"${RESOLV_SAFE_GW}\" ipv4.ignore-auto-dns yes && nmcli con up <连接名>${NC}"
+    echo -e "     3. systemd-resolved 示例: 在 ${YELLOW}/etc/systemd/resolved.conf${NC} 设置 ${YELLOW}DNS=${RESOLV_SAFE_GW}${NC} 后重启服务"
+    echo -e "${RED}═════════════════════════════════════════════════════════════════════════${NC}"
+else
+    echo ""
+    echo -e "${CYAN}💡 [防 DNS 自环提示] 若后续将主路由 DHCP DNS 设为本机 (${LOCAL_IP})，请为本机固定静态 IP 与独立 DNS (${RESOLV_SAFE_GW})，避免 DHCP 续租覆盖 /etc/resolv.conf。${NC}"
 fi
 echo -e "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"

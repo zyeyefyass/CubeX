@@ -21,6 +21,7 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/healing"
 	"github.com/zyeyefyass/CubeX/internal/host"
 	"github.com/zyeyefyass/CubeX/internal/mcp"
+	"github.com/zyeyefyass/CubeX/internal/netenv"
 	"github.com/zyeyefyass/CubeX/internal/netstack"
 	"github.com/zyeyefyass/CubeX/internal/onboarding"
 	"github.com/zyeyefyass/CubeX/internal/perf"
@@ -152,6 +153,16 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 	logWriter := &LogBufferWriter{buf: logBuffer}
 
 	log.SetOutput(io.MultiWriter(os.Stderr, logWriter))
+
+	if runtime.GOOS == "linux" {
+		resolvAudit := netenv.AuditResolvConf("/etc/resolv.conf", nil, detectedGW)
+		if resolvAudit.HasSelfLoop {
+			log.Printf("⚠️ [DNS防自环预检] %s\n👉 修复指引:\n%s", resolvAudit.Warning, resolvAudit.Remediation)
+			logBuffer.Add("WARN", "DNS_GUARD", resolvAudit.Warning)
+		} else if resolvAudit.Readable {
+			logBuffer.Add("INFO", "DNS_GUARD", fmt.Sprintf("宿主机 /etc/resolv.conf 启动预检通过，无自环风险 (nameservers: %s)", strings.Join(resolvAudit.Nameservers, ", ")))
+		}
+	}
 
 	themeMgr, err := themes.NewManager(filepath.Join(dir, "data", "themes"), filepath.Join(dir, "data", "wallpapers"))
 	if err != nil {

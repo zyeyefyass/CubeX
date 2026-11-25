@@ -51,7 +51,7 @@ func RunOnboardingDoctor(ctx context.Context, hostIP string, controlPort int, fa
 		fakeIPSubnet = "198.18.0.0/15"
 	}
 
-	checks := make([]CheckItemStatus, 0, 4)
+	checks := make([]CheckItemStatus, 0, 5)
 
 	// Check 1: /dev/net/tun 字符设备可用性校验
 	tunCheck := checkTunDevice()
@@ -68,6 +68,10 @@ func RunOnboardingDoctor(ctx context.Context, hostIP string, controlPort int, fa
 	// Check 4: IPv6 PMTU 动态钳制与防握手卡死校验
 	pmtuCheck := checkIPv6PMTUClamp(ctx)
 	checks = append(checks, pmtuCheck)
+
+	// Check 5: 宿主机 /etc/resolv.conf DNS 自环预检（温和检测，不锁文件）
+	resolvCheck := checkResolvConfSelfLoop(hostIP)
+	checks = append(checks, resolvCheck)
 
 	allRequiredPassed := tunCheck.Passed && capCheck.Passed
 
@@ -158,6 +162,34 @@ func checkIPv6PMTUClamp(_ context.Context) CheckItemStatus {
 	item.Detail = "IPv6 PMTU 防丢包自愈特性已接入中枢"
 	item.Remediation = "【RouterOS 修复】若国内大平台登录偶发卡顿，请在 ROS 终端执行一键钳制：\n" +
 		"/ipv6 firewall mangle add chain=forward protocol=tcp tcp-flags=syn action=change-mss new-mss=clamp-to-pmtu passthrough=yes comment=\"CubeX_IPv6_MSS_Clamp\""
+	return item
+}
+
+func checkResolvConfSelfLoop(hostIP string) CheckItemStatus {
+	item := CheckItemStatus{
+		ID:       "resolv_conf_loop_guard",
+		Title:    "宿主机 DNS 防自环检测 (/etc/resolv.conf)",
+		Severity: "RECOMMENDED",
+	}
+
+	var localIPs []string
+	if strings.TrimSpace(hostIP) != "" && hostIP != netenv.PlaceholderLocalIP {
+		localIPs = append(netenv.CollectLocalInterfaceIPs(), hostIP)
+	}
+	audit := netenv.AuditResolvConf("/etc/resolv.conf", localIPs, "")
+	if !audit.Readable {
+		item.Passed = true
+		item.Detail = "当前宿主未检测到 /etc/resolv.conf（跳过本机 DNS 自环检测）"
+		return item
+	}
+	if audit.HasSelfLoop {
+		item.Passed = false
+		item.Detail = audit.Warning
+		item.Remediation = audit.Remediation
+		return item
+	}
+	item.Passed = true
+	item.Detail = fmt.Sprintf("/etc/resolv.conf 无自环风险 (nameservers: %s)", strings.Join(audit.Nameservers, ", "))
 	return item
 }
 

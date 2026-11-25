@@ -1767,6 +1767,290 @@ func (m *Manager) CleanRoutingRules() (*ApplyResult, error) {
 	return res, nil
 }
 
+// RemoveBypass cleanly withdraws all CubeX routes, tables, routing rules, firewall/NAT/mangle rules,
+// address lists, IPv6 protections, Netwatch probes, and restores RouterOS DNS/DHCP to backupDNS.
+func (m *Manager) RemoveBypass(targetIP, backupDNS string) ([]string, error) {
+	m.mu.RLock()
+	rosHost := strings.TrimSpace(m.config.Host)
+	m.mu.RUnlock()
+	if rosHost == "" {
+		return nil, fmt.Errorf("RouterOS 主路由未配置，无法执行旁路策略撤回")
+	}
+
+	if targetIP == "" || net.ParseIP(targetIP) == nil || net.ParseIP(targetIP).To4() == nil {
+		targetIP = m.GetOutboundIP()
+	}
+	backupDNS = strings.TrimSpace(backupDNS)
+	if backupDNS == "" {
+		backupDNS = "223.5.5.5"
+	}
+
+	// Verify REST API connectivity before withdrawing rules
+	if _, err := m.QueryROS("/system/resource"); err != nil {
+		return nil, fmt.Errorf("无法连接 RouterOS REST API (%s): %w", rosHost, err)
+	}
+
+	logs := make([]string, 0, 12)
+
+	// 1. Remove Netwatch probes first so down/up scripts do not trigger mid-withdrawal
+	if data, err := m.QueryROS("/tool/netwatch"); err == nil {
+		var nwList []map[string]any
+		_ = json.Unmarshal(data, &nwList)
+		removedNW := 0
+		for _, nw := range nwList {
+			comment, _ := nw["comment"].(string)
+			host, _ := nw["host"].(string)
+			id, _ := nw[".id"].(string)
+			if id != "" && (strings.Contains(comment, "CubeX") || strings.Contains(comment, "MiCube") || (targetIP != "" && host == targetIP && comment != "")) {
+				if m.DeleteROS("/tool/netwatch/"+id) == nil {
+					removedNW++
+				}
+			}
+		}
+		if removedNW > 0 {
+			logs = append(logs, fmt.Sprintf("✓ [RouterOS] 已卸载 %d 条 CubeX Netwatch 毫秒逃生探针", removedNW))
+		}
+	}
+
+	// 2. Remove CubeX / Fake-IP routes before removing routing tables
+	if data, err := m.QueryROS("/ip/route"); err == nil {
+		var routes []map[string]any
+		_ = json.Unmarshal(data, &routes)
+		removedRoutes := 0
+		for _, r := range routes {
+			id, _ := r[".id"].(string)
+			if id == "" {
+				continue
+			}
+			table, _ := r["routing-table"].(string)
+			dst := fmt.Sprintf("%v", r["dst-address"])
+			gw := fmt.Sprintf("%v", r["gateway"])
+			comm, _ := r["comment"].(string)
+
+			isCubexTable := table == "cubex" || table == "micube"
+			isCubexComment := strings.Contains(comm, "CubeX") || strings.Contains(comm, "MiCube")
+			isFakeIPRoute := (table == "" || table == "main") &&
+				(dst == "198.18.0.0/15" || dst == "198.18.0.0/16" || dst == "198.19.0.0/16") &&
+				(isCubexComment || targetIP == "" || gw == targetIP || strings.Contains(gw, targetIP))
+
+			if isCubexTable || isCubexComment || isFakeIPRoute {
+				if m.DeleteROS("/ip/route/"+id) == nil {
+					removedRoutes++
+				}
+			}
+		}
+		if removedRoutes > 0 {
+			logs = append(logs, fmt.Sprintf("✓ [RouterOS] 已撤回 %d 条 CubeX 策略路由与 198.18.0.0/15 Fake-IP 回指/黑洞路由", removedRoutes))
+		}
+	}
+
+	// 3. Remove /routing/table entries (cubex / micube)
+	if data, err := m.QueryROS("/routing/table"); err == nil {
+		var tables []map[string]any
+		_ = json.Unmarshal(data, &tables)
+		for _, tbl := range tables {
+			name, _ := tbl["name"].(string)
+			id, _ := tbl[".id"].(string)
+			if id != "" && (name == "cubex" || name == "micube") {
+				if m.DeleteROS("/routing/table/"+id) == nil {
+					logs = append(logs, fmt.Sprintf("✓ [RouterOS] 已删除策略路由表 /routing/table (%s)", name))
+				}
+			}
+		}
+	}
+
+	// 4. Remove /routing/rule Multi-WAN protection rules
+	if data, err := m.QueryROS("/routing/rule"); err == nil {
+		var rules []map[string]any
+		_ = json.Unmarshal(data, &rules)
+		removedRules := 0
+		for _, rr := range rules {
+			id, _ := rr[".id"].(string)
+			comm, _ := rr["comment"].(string)
+			dst := fmt.Sprintf("%v", rr["dst-address"])
+			tbl := fmt.Sprintf("%v", rr["table"])
+			if id != "" && (strings.Contains(comm, "CubeX") || strings.Contains(comm, "MiCube") || (dst == "198.18.0.0/15" && tbl == "main")) {
+				if m.DeleteROS("/routing/rule/"+id) == nil {
+					removedRules++
+				}
+			}
+		}
+		if removedRules > 0 {
+			logs = append(logs, fmt.Sprintf("✓ [RouterOS] 已清理 %d 条 Multi-WAN 策略路由保护规则 (/routing/rule)", removedRules))
+		}
+	}
+
+	// 5. Remove CubeX Mangle, NAT, and Filter rules (preserving native FastTrack)
+	if data, err := m.QueryROS("/ip/firewall/mangle"); err == nil {
+		var mangles []map[string]any
+		_ = json.Unmarshal(data, &mangles)
+		removedMangle := 0
+		for _, mg := range mangles {
+			id, _ := mg[".id"].(string)
+			comm, _ := mg["comment"].(string)
+			mark, _ := mg["new-routing-mark"].(string)
+			if id != "" && (strings.Contains(comm, "CubeX") || strings.Contains(comm, "MiCube") || mark == "cubex" || mark == "micube") {
+				if m.DeleteROS("/ip/firewall/mangle/"+id) == nil {
+					removedMangle++
+				}
+			}
+		}
+		if removedMangle > 0 {
+			logs = append(logs, fmt.Sprintf("✓ [RouterOS] 已清理 %d 条 CubeX Mangle 放行与 MSS 钳制规则", removedMangle))
+		}
+	}
+
+	if data, err := m.QueryROS("/ip/firewall/nat"); err == nil {
+		var nats []map[string]any
+		_ = json.Unmarshal(data, &nats)
+		removedNAT := 0
+		for _, n := range nats {
+			id, _ := n[".id"].(string)
+			comm, _ := n["comment"].(string)
+			if id != "" && (strings.Contains(comm, "CubeX") || strings.Contains(comm, "MiCube")) {
+				if m.DeleteROS("/ip/firewall/nat/"+id) == nil {
+					removedNAT++
+				}
+			}
+		}
+		if removedNAT > 0 {
+			logs = append(logs, fmt.Sprintf("✓ [RouterOS] 已清理 %d 条 CubeX NAT / DNS 重定向规则", removedNAT))
+		}
+	}
+
+	if data, err := m.QueryROS("/ip/firewall/filter"); err == nil {
+		var filters []map[string]any
+		_ = json.Unmarshal(data, &filters)
+		removedFilter := 0
+		for _, f := range filters {
+			id, _ := f[".id"].(string)
+			comm, _ := f["comment"].(string)
+			action, _ := f["action"].(string)
+			if id != "" && action != "fasttrack-connection" && (strings.Contains(comm, "CubeX") || strings.Contains(comm, "MiCube")) {
+				if m.DeleteROS("/ip/firewall/filter/"+id) == nil {
+					removedFilter++
+				}
+			}
+		}
+		if removedFilter > 0 {
+			logs = append(logs, fmt.Sprintf("✓ [RouterOS] 已清理 %d 条 CubeX 防火墙 Forward / DoT 拦截规则", removedFilter))
+		}
+	}
+
+	// 6. Remove CubeX address-list entries
+	if data, err := m.QueryROS("/ip/firewall/address-list"); err == nil {
+		var lists []map[string]any
+		_ = json.Unmarshal(data, &lists)
+		removedAddr := 0
+		for _, item := range lists {
+			id, _ := item[".id"].(string)
+			listName, _ := item["list"].(string)
+			comm, _ := item["comment"].(string)
+			if id == "" {
+				continue
+			}
+			isCubexList := listName == "CUBEX_BYPASS" || listName == "MICUBE_BYPASS" || listName == "cubex-clients"
+			isCubexLAN := listName == "LAN_SUBNET" && (comm == "Local LAN Subnet" || strings.Contains(comm, "CubeX"))
+			if isCubexList || isCubexLAN || strings.Contains(comm, "CubeX") || strings.Contains(comm, "MiCube") {
+				if m.DeleteROS("/ip/firewall/address-list/"+id) == nil {
+					removedAddr++
+				}
+			}
+		}
+		if removedAddr > 0 {
+			logs = append(logs, fmt.Sprintf("✓ [RouterOS] 已清理 %d 条 CUBEX_BYPASS / LAN_SUBNET / cubex-clients 地址清单", removedAddr))
+		}
+	}
+
+	// 7. Remove IPv6 firewall filter & mangle rules created by CubeX
+	for _, v6Path := range []string{"/ipv6/firewall/filter", "/ipv6/firewall/mangle"} {
+		if data, err := m.QueryROS(v6Path); err == nil {
+			var rules []map[string]any
+			_ = json.Unmarshal(data, &rules)
+			removedV6 := 0
+			for _, r := range rules {
+				id, _ := r[".id"].(string)
+				comm, _ := r["comment"].(string)
+				if id != "" && (strings.Contains(comm, "CubeX") || strings.Contains(comm, "MiCube")) {
+					if m.DeleteROS(v6Path+"/"+id) == nil {
+						removedV6++
+					}
+				}
+			}
+			if removedV6 > 0 {
+				logs = append(logs, fmt.Sprintf("✓ [RouterOS] 已清理 %d 条 %s CubeX 规则", removedV6, v6Path))
+			}
+		}
+	}
+
+	// 8. Restore RouterOS DNS servers & flush cache
+	restoreDNS := true
+	if dnsData, err := m.QueryROS("/ip/dns"); err == nil {
+		var dnsCfg map[string]any
+		if json.Unmarshal(dnsData, &dnsCfg) == nil {
+			curServers := fmt.Sprintf("%v", dnsCfg["servers"])
+			if targetIP != "" && curServers != "" && curServers != "<nil>" && !strings.Contains(curServers, targetIP) {
+				restoreDNS = false
+			}
+		}
+	}
+	if restoreDNS {
+		if err := m.PatchROS("/ip/dns", map[string]any{
+			"servers": backupDNS,
+		}); err != nil {
+			_, _ = m.PostROS("/ip/dns/set", map[string]any{
+				"servers": backupDNS,
+			})
+		}
+		_, _ = m.PostROS("/ip/dns/cache/flush", map[string]any{})
+		logs = append(logs, fmt.Sprintf("✓ [RouterOS] 已恢复主路由 DNS 上游为 %s 并刷新 DNS 缓存", backupDNS))
+	}
+
+	// 9. Restore any DHCP network entries that still point to targetIP
+	if targetIP != "" {
+		if dhcpData, err := m.QueryROS("/ip/dhcp-server/network"); err == nil {
+			var dhcpNets []map[string]any
+			if json.Unmarshal(dhcpData, &dhcpNets) == nil {
+				for _, dn := range dhcpNets {
+					dnID, _ := dn[".id"].(string)
+					currDNS, _ := dn["dns-server"].(string)
+					currGW, _ := dn["gateway"].(string)
+					dnAddr, _ := dn["address"].(string)
+					if dnID == "" || (currDNS != targetIP && currGW != targetIP) {
+						continue
+					}
+					patchMap := make(map[string]any)
+					if currDNS == targetIP {
+						patchMap["dns-server"] = backupDNS
+					}
+					if currGW == targetIP {
+						if _, sub, err := net.ParseCIDR(dnAddr); err == nil && sub != nil {
+							if ip4 := sub.IP.To4(); ip4 != nil {
+								patchMap["gateway"] = net.IPv4(ip4[0], ip4[1], ip4[2], 1).String()
+							}
+						}
+					}
+					if len(patchMap) > 0 && m.PatchROS("/ip/dhcp-server/network/"+dnID, patchMap) == nil {
+						logs = append(logs, fmt.Sprintf("✓ [RouterOS] 已校准 DHCP 网络 (%s) 网关/DNS 配置", dnAddr))
+					}
+				}
+			}
+		}
+	}
+
+	if purged := m.PurgeStaleFakeIPConnections(); purged > 0 {
+		logs = append(logs, fmt.Sprintf("✓ [RouterOS] 已清理 %d 条残留 Fake-IP 连接跟踪会话", purged))
+	}
+
+	if len(logs) == 0 {
+		logs = append(logs, "✓ [RouterOS] 巡检完成，主路由当前无待撤回的 CubeX 旁路策略与路由规则")
+	} else {
+		logs = append(logs, "🎉 [RouterOS] 旁路策略、路由表与 DNS 已对称撤回完毕，主路由恢复纯净原生直连态")
+	}
+
+	return logs, nil
+}
+
 // CleanAndReapplyRouting performs a thorough cleanup of RouterOS firewall mangle/nat/filter rules,
 // purges conflicting Fake-IP routes, and fully reconfigures pristine subnet-wide gateway & DNS architecture.
 // PurgeConflictingFakeIPRoutes scans and removes any static routes for 198.18.0.0/15 or /16

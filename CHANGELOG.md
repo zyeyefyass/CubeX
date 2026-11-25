@@ -4,6 +4,17 @@
 
 ---
 
+## [v9.93] - 2026-11-25
+
+### 👑 根治宿主机 DHCP 续租 DNS 自环死锁 · 防死锁 dns-hosts 规则 · 启动期自环巡检 · RouterOS 对称撤回
+
+1. **根治宿主机 DHCP 续租引发的 DNS 自环死锁**：`sing-box` 编译配置前自动检查宿主机 `/etc/resolv.conf`，一旦发现指向 `127.0.0.1`、`::1` 或本机局域网 IP，立即自动弃用 `type: "local"` 并安全回退至上级网关或 `223.5.5.5`，彻底杜绝自己问自己的死循环风暴。
+2. **接入防死锁 `dns-hosts` 规则**：将内置的公共 DNS 静态解析表（`dns.alidns.com`、`doh.pub`、`dns.google`、`cloudflare-dns.com`）正式接入 `dns.rules` 高优先级匹配，确保引导域名零外部依赖瞬时解析。
+3. **新增启动期 DNS 自环巡检指引**：在 `install.sh`、`cubexd` 启动预检及体检报告中同步加入 `/etc/resolv.conf` 温和自环检测与固定静态 DNS 修复指引，绝不粗暴锁死系统文件。
+4. **补齐 RouterOS 一键对称撤回**：完善 `POST /api/v1/host/bypass/remove` 对 RouterOS 的原生撤回能力，完整清理策略路由、Fake-IP 回指/黑洞、防火墙规则、地址清单与 Netwatch 探针并恢复上游 DNS，实现三大软路由底座撤回完全对称。
+
+---
+
 ## [v9.92] - 2026-11-25
 
 ### 👑 容器镜像通用指令集兼容修复 · 双核灾备熔断与真实报错透出 · 虚拟网卡预检与老内核兜底

@@ -2668,14 +2668,47 @@ func (s *Server) handleHostBypassRemove(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	var req struct {
+		BackupDNS string `json:"backup_dns"`
+		TargetIP  string `json:"target_ip"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	platID, hostCfg, _ := s.resolveActiveHostPlatform()
+	rosConfigured := s.rosMgr != nil && strings.TrimSpace(s.rosMgr.GetConfig()["host"]) != ""
+	if platID == "routeros" || (platID != "ikuai" && platID != "openwrt" && rosConfigured) {
+		if s.rosMgr == nil {
+			sendJSON(w, map[string]any{"ok": false, "error": "RouterOS 管理器未就绪"})
+			return
+		}
+		if strings.TrimSpace(s.rosMgr.GetConfig()["host"]) == "" && hostCfg.Host != "" {
+			portStr := strconv.Itoa(hostCfg.Port)
+			if hostCfg.Port <= 0 || hostCfg.Port == 22 {
+				portStr = "80"
+			}
+			_ = s.rosMgr.SaveConfig(map[string]string{
+				"host":     hostCfg.Host,
+				"port":     portStr,
+				"user":     hostCfg.User,
+				"password": hostCfg.Password,
+			})
+		}
+		logs, err := s.rosMgr.RemoveBypass(req.TargetIP, req.BackupDNS)
+		if err != nil {
+			sendJSON(w, map[string]any{"ok": false, "error": err.Error(), "logs": logs})
+			return
+		}
+		if s.logBuffer != nil {
+			s.logBuffer.Add("INFO", "ROS", "RouterOS 旁路策略、Fake-IP 路由与 DNS 已对称撤回，零残留")
+		}
+		sendJSON(w, map[string]any{"ok": true, "message": "RouterOS 旁路策略与路由规则已完整撤回，零残留", "logs": logs})
+		return
+	}
+
 	if s.hostMgr == nil {
 		sendJSON(w, map[string]any{"ok": false, "error": "宿主管理器未就绪"})
 		return
 	}
-	var req struct {
-		BackupDNS string `json:"backup_dns"`
-	}
-	_ = json.NewDecoder(r.Body).Decode(&req)
 	logs, err := s.hostMgr.RemoveHostBypass(req.BackupDNS)
 	if err != nil {
 		sendJSON(w, map[string]any{"ok": false, "error": err.Error(), "logs": logs})

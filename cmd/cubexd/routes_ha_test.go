@@ -141,7 +141,7 @@ func TestIKuaiSelfHeal_NeverHitsRouterOSRestOrPort22(t *testing.T) {
 
 func TestRouterOSSelfHealAndPort22Rejection(t *testing.T) {
 	var rosRestHits atomic.Int32
-	mockROS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	mockROS := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/rest/") {
 			rosRestHits.Add(1)
 		}
@@ -175,7 +175,7 @@ func TestRouterOSSelfHealAndPort22Rejection(t *testing.T) {
 	}))
 	defer mockROS.Close()
 
-	parts := strings.Split(strings.TrimPrefix(mockROS.URL, "http://"), ":")
+	parts := strings.Split(strings.TrimPrefix(mockROS.URL, "https://"), ":")
 	hostIP := parts[0]
 	portNum, _ := strconv.Atoi(parts[1])
 
@@ -217,5 +217,120 @@ func TestRouterOSSelfHealAndPort22Rejection(t *testing.T) {
 	}
 	if rosRestHits.Load() == 0 {
 		t.Fatalf("expected RouterOS /rest/ APIs to be called when platform is routeros")
+	}
+}
+
+func TestHostBypassRemove_RouterOSSymmetry(t *testing.T) {
+	var deletedPaths []string
+	var patchedDNS bool
+	var flushedDNS bool
+
+	mockROS := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodDelete {
+			deletedPaths = append(deletedPaths, r.URL.Path)
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+			return
+		}
+		switch r.URL.Path {
+		case "/rest/system/resource":
+			_ = json.NewEncoder(w).Encode(map[string]any{"platform": "MikroTik", "version": "7.25.2"})
+		case "/rest/tool/netwatch":
+			_ = json.NewEncoder(w).Encode([]map[string]any{{".id": "*NW1", "comment": "CubeX-HA-Failover", "host": "192.168.99.2"}})
+		case "/rest/ip/route":
+			_ = json.NewEncoder(w).Encode([]map[string]any{
+				{".id": "*RT1", "dst-address": "0.0.0.0/0", "routing-table": "cubex", "gateway": "192.168.99.2", "comment": "CubeX Gateway Route"},
+				{".id": "*RT2", "dst-address": "198.18.0.0/15", "routing-table": "main", "gateway": "192.168.99.2", "comment": "CubeX-FakeIP-Backtrack"},
+			})
+		case "/rest/routing/table":
+			_ = json.NewEncoder(w).Encode([]map[string]any{{".id": "*TBL1", "name": "cubex"}})
+		case "/rest/routing/rule":
+			_ = json.NewEncoder(w).Encode([]map[string]any{{".id": "*RR1", "dst-address": "198.18.0.0/15", "table": "main", "comment": "CubeX-MultiWAN-FakeIP-Protect"}})
+		case "/rest/ip/firewall/mangle":
+			_ = json.NewEncoder(w).Encode([]map[string]any{{".id": "*MG1", "comment": "CubeX-PCC-Exempt-FakeIP"}})
+		case "/rest/ip/firewall/nat":
+			_ = json.NewEncoder(w).Encode([]map[string]any{{".id": "*NAT1", "comment": "CubeX-Client-DNS-Redirect"}})
+		case "/rest/ip/firewall/filter":
+			_ = json.NewEncoder(w).Encode([]map[string]any{
+				{".id": "*FLT_FT", "chain": "forward", "action": "fasttrack-connection", "comment": "FastTrack Full Hardware Acceleration"},
+				{".id": "*FLT1", "chain": "forward", "action": "accept", "comment": "CubeX Fake-IP Forward Accept"},
+			})
+		case "/rest/ip/firewall/address-list":
+			_ = json.NewEncoder(w).Encode([]map[string]any{{".id": "*AL1", "list": "CUBEX_BYPASS", "address": "192.168.99.2"}})
+		case "/rest/ipv6/firewall/filter":
+			_ = json.NewEncoder(w).Encode([]map[string]any{{".id": "*V6F1", "comment": "CubeX Block Rogue IPv6 DNS UDP"}})
+		case "/rest/ipv6/firewall/mangle":
+			_ = json.NewEncoder(w).Encode([]map[string]any{{".id": "*V6M1", "comment": "CubeX_IPv6_MSS_Clamp"}})
+		case "/rest/ip/dns":
+			if r.Method == http.MethodGet {
+				_ = json.NewEncoder(w).Encode(map[string]any{"servers": "192.168.99.2"})
+			} else {
+				patchedDNS = true
+				_ = json.NewEncoder(w).Encode(map[string]any{})
+			}
+		case "/rest/ip/dns/cache/flush":
+			flushedDNS = true
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+		default:
+			_ = json.NewEncoder(w).Encode([]any{})
+		}
+	}))
+	defer mockROS.Close()
+
+	parts := strings.Split(strings.TrimPrefix(mockROS.URL, "https://"), ":")
+	hostIP := parts[0]
+	portNum, _ := strconv.Atoi(parts[1])
+
+	tmpDir := t.TempDir()
+	srv := &Server{
+		hostMgr: host.NewManager(tmpDir),
+		rosMgr:  ros.NewManager(tmpDir),
+	}
+	if err := srv.rosMgr.SaveConfig(map[string]string{
+		"host": hostIP, "port": strconv.Itoa(portNum), "user": "admin", "password": "pwd",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/host/bypass/remove", strings.NewReader(`{"backup_dns":"223.5.5.5","target_ip":"192.168.99.2"}`))
+	srv.handleHostBypassRemove(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatal(err)
+	}
+	if ok, _ := resp["ok"].(bool); !ok {
+		t.Fatalf("expected ok=true, got %v", resp)
+	}
+	if !patchedDNS || !flushedDNS {
+		t.Fatalf("expected DNS restore & flush (patched=%v, flushed=%v)", patchedDNS, flushedDNS)
+	}
+	deletedSet := map[string]bool{}
+	for _, p := range deletedPaths {
+		deletedSet[p] = true
+	}
+	for _, want := range []string{
+		"/rest/tool/netwatch/*NW1",
+		"/rest/ip/route/*RT1",
+		"/rest/ip/route/*RT2",
+		"/rest/routing/table/*TBL1",
+		"/rest/routing/rule/*RR1",
+		"/rest/ip/firewall/mangle/*MG1",
+		"/rest/ip/firewall/nat/*NAT1",
+		"/rest/ip/firewall/filter/*FLT1",
+		"/rest/ip/firewall/address-list/*AL1",
+		"/rest/ipv6/firewall/filter/*V6F1",
+		"/rest/ipv6/firewall/mangle/*V6M1",
+	} {
+		if !deletedSet[want] {
+			t.Errorf("missing symmetric deletion of %s (deleted=%v)", want, deletedPaths)
+		}
+	}
+	if deletedSet["/rest/ip/firewall/filter/*FLT_FT"] {
+		t.Errorf("must NOT delete native RouterOS fasttrack-connection rule")
 	}
 }
