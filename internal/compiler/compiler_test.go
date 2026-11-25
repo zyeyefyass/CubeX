@@ -965,3 +965,121 @@ func TestFnOSLuckySTUNAndTUNConvergence(t *testing.T) {
 		t.Errorf("Singbox DNS rules missing domain_regex for STUN/TURN -> dns-direct rule")
 	}
 }
+
+func TestCompileDualCoreSafePassthroughPause(t *testing.T) {
+	ir := schema.NewDefaultIR()
+	ir.Meta.ProxyPaused = true
+	ir.Meta.ProxyMode = schema.ModeDirect
+
+	// 1. Mihomo YAML verification: mode=direct, fake-ip disabled (enhanced-mode=normal), MATCH,DIRECT
+	mihomoBytes, err := compiler.BuildMihomo(ir)
+	if err != nil {
+		t.Fatalf("BuildMihomo failed in safe passthrough pause: %v", err)
+	}
+	var mCfg map[string]any
+	if err := yaml.Unmarshal(mihomoBytes, &mCfg); err != nil {
+		t.Fatalf("unmarshal mihomo yaml failed: %v", err)
+	}
+	if mCfg["mode"] != "direct" {
+		t.Errorf("expected mihomo mode=direct, got %v", mCfg["mode"])
+	}
+	mDNS, _ := mCfg["dns"].(map[string]any)
+	if mDNS["enhanced-mode"] == "fake-ip" {
+		t.Errorf("expected mihomo enhanced-mode != fake-ip when paused, got %v", mDNS["enhanced-mode"])
+	}
+	if _, hasFakeRange := mDNS["fake-ip-range"]; hasFakeRange {
+		t.Errorf("expected mihomo fake-ip-range omitted when paused")
+	}
+	mRules, _ := mCfg["rules"].([]any)
+	if len(mRules) != 1 || mRules[0] != "MATCH,DIRECT" {
+		t.Errorf("expected mihomo rules=[MATCH,DIRECT] when paused, got %v", mRules)
+	}
+
+	// 2. sing-box JSON verification: no dns-fakeip server/rule, dns.final=dns-direct, route.final=direct, hijack-dns preserved
+	sbBytes, err := compiler.BuildSingBox(ir)
+	if err != nil {
+		t.Fatalf("CompileSingboxJSON failed in safe passthrough pause: %v", err)
+	}
+	var sbCfg map[string]any
+	if err := json.Unmarshal(sbBytes, &sbCfg); err != nil {
+		t.Fatalf("unmarshal singbox json failed: %v", err)
+	}
+	sbDNS, _ := sbCfg["dns"].(map[string]any)
+	if sbDNS["final"] != "dns-direct" {
+		t.Errorf("expected singbox dns.final=dns-direct when paused, got %v", sbDNS["final"])
+	}
+	for _, s := range sbDNS["servers"].([]any) {
+		sm, _ := s.(map[string]any)
+		if sm["tag"] == "dns-fakeip" || sm["type"] == "fakeip" {
+			t.Errorf("expected singbox dns.servers not to contain fakeip when paused: %+v", sm)
+		}
+	}
+	for _, r := range sbDNS["rules"].([]any) {
+		rm, _ := r.(map[string]any)
+		if rm["server"] == "dns-fakeip" {
+			t.Errorf("expected singbox dns.rules not to route to dns-fakeip when paused: %+v", rm)
+		}
+	}
+	sbRoute, _ := sbCfg["route"].(map[string]any)
+	if sbRoute["final"] != "direct" {
+		t.Errorf("expected singbox route.final=direct when paused, got %v", sbRoute["final"])
+	}
+	hasHijack := false
+	for _, r := range sbRoute["rules"].([]any) {
+		rm, _ := r.(map[string]any)
+		if rm["action"] == "hijack-dns" {
+			hasHijack = true
+			break
+		}
+	}
+	if !hasHijack {
+		t.Errorf("expected singbox route.rules to preserve hijack-dns so :53 DNS stays online when paused")
+	}
+}
+
+func TestSingboxNoEmptyDomainRuleOnZeroDomainProxies(t *testing.T) {
+	ir := schema.NewDefaultIR()
+	ir.Proxies = nil
+	sbBytes, err := compiler.BuildSingBox(ir)
+	if err != nil {
+		t.Fatalf("BuildSingBox failed: %v", err)
+	}
+	var sbCfg map[string]any
+	if err := json.Unmarshal(sbBytes, &sbCfg); err != nil {
+		t.Fatalf("unmarshal singbox json failed: %v", err)
+	}
+	sbDNS, _ := sbCfg["dns"].(map[string]any)
+	for i, r := range sbDNS["rules"].([]any) {
+		rm, _ := r.(map[string]any)
+		if domains, hasDomain := rm["domain"]; hasDomain {
+			arr, _ := domains.([]any)
+			if len(arr) == 0 {
+				t.Fatalf("singbox dns.rules[%d] contains empty domain array which matches all queries and leaks DNS: %+v", i, rm)
+			}
+		}
+	}
+
+	// Also verify custom ip:port direct_dns splits server and server_port cleanly in sing-box config
+	ir.DNS.DirectDNS = []string{"192.168.99.254:5353"}
+	sbBytes2, err := compiler.BuildSingBox(ir)
+	if err != nil {
+		t.Fatalf("BuildSingBox with custom ip:port failed: %v", err)
+	}
+	var sbCfg2 map[string]any
+	if err := json.Unmarshal(sbBytes2, &sbCfg2); err != nil {
+		t.Fatalf("unmarshal singbox json failed: %v", err)
+	}
+	foundCustomPort := false
+	for _, s := range sbCfg2["dns"].(map[string]any)["servers"].([]any) {
+		sm, _ := s.(map[string]any)
+		if sm["tag"] == "dns-direct" {
+			if sm["server"] != "192.168.99.254" || int(sm["server_port"].(float64)) != 5353 {
+				t.Fatalf("expected dns-direct server=192.168.99.254 server_port=5353, got %+v", sm)
+			}
+			foundCustomPort = true
+		}
+	}
+	if !foundCustomPort {
+		t.Fatalf("dns-direct server not found")
+	}
+}

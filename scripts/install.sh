@@ -556,7 +556,7 @@ with zipfile.ZipFile(zf, "r") as z:
                 [ -n "$REL_TAG" ] && break
             done
         fi
-        [ -z "$REL_TAG" ] && REL_TAG="v9.94"
+        [ -z "$REL_TAG" ] && REL_TAG="v9.95"
         ZIP_NAME="CubeX-${REL_TAG}-linux-${TARGET_ARCH}.zip"
         ZIP_URL="https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/${ZIP_NAME}"
 

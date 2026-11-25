@@ -239,9 +239,9 @@
               </div>
 
               <!-- 统一自适应全链路自愈主操作卡片 (全宽通栏) -->
-              <div class="w-full">
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-3">
                 <button @click="app.inspectAndCleanReapplyRos" :disabled="app.cleaningRosFirewall"
-                  class="w-full p-4 rounded-2xl bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/80 hover:border-cyan-400 text-slate-900 transition-all flex items-center justify-between group shadow-md cursor-pointer">
+                  class="lg:col-span-9 w-full p-4 rounded-2xl bg-[#F1F4F9] hover:bg-slate-200 border border-slate-300/80 hover:border-cyan-400 text-slate-900 transition-all flex items-center justify-between group shadow-md cursor-pointer">
                   <div class="flex items-center gap-3.5">
                     <div class="w-11 h-11 rounded-2xl bg-cyan-100 border border-cyan-300 flex items-center justify-center text-xl shrink-0 shadow-inner">
                       <span v-if="app.cleaningRosFirewall" class="animate-spin text-cyan-700">↻</span>
@@ -263,6 +263,19 @@
                     <span>{{ app.cleaningRosFirewall ? '全栈自愈执行中...' : '立即自愈' }}</span>
                     <span class="group-hover:translate-x-1.5 transition-transform text-sm sm:text-base">➔</span>
                   </div>
+                </button>
+
+                <button @click="app.withdrawHostBypass()" :disabled="app.withdrawingHostBypass"
+                  class="lg:col-span-3 w-full p-4 rounded-2xl bg-white hover:bg-rose-50 border border-rose-300 hover:border-rose-400 text-rose-900 transition-all flex flex-col justify-center items-start gap-1 shadow-sm cursor-pointer disabled:opacity-50"
+                  title="对称清理 RouterOS / 爱快 iKuai / OpenWrt 主路由上的 198.18.0.0/15 回指与 DNS 联动（临时停用请用网络中枢的「暂停代理」）">
+                  <div class="font-extrabold text-xs sm:text-sm flex items-center gap-1.5">
+                    <span v-if="app.withdrawingHostBypass" class="inline-block animate-spin">↻</span>
+                    <span v-else>🧹</span>
+                    <span>{{ app.withdrawingHostBypass ? '正在撤回...' : '撤回主路由规则' }}</span>
+                  </div>
+                  <span class="text-[11px] text-rose-700 font-medium text-left leading-snug">
+                    支持 ROS / 爱快 / OpenWrt · 零残留清理回指与 DNS
+                  </span>
                 </button>
               </div>
 

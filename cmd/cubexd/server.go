@@ -424,11 +424,12 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 			return nil
 		},
 		func() error {
-			srv.logBuffer.Add("INFO", "SENTINEL", "哨兵自愈触发：核验 table cubex 策略路由与回指")
-			if srv.rosMgr != nil {
-				srv.rosMgr.EnsureFakeIPRoute("")
-				_ = srv.rosMgr.PurgeStaleFakeIPConnections()
+			if !srv.shouldRunROSPatrol() {
+				return nil
 			}
+			srv.logBuffer.Add("INFO", "SENTINEL", "哨兵自愈触发：核验 table cubex 策略路由与回指")
+			srv.rosMgr.EnsureFakeIPRoute("")
+			_ = srv.rosMgr.PurgeStaleFakeIPConnections()
 			return nil
 		},
 		func() error {
@@ -441,10 +442,11 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 	// AI 智能自愈主动干预总线回调挂载
 	srv.activeHealerMgr.RegisterCallbacks(
 		func() (int, error) {
-			srv.logBuffer.Add("INFO", "HEALER", "已主动清算 198.18.0.0/15 悬挂流表与僵尸连接")
-			if srv.rosMgr != nil {
-				_ = srv.rosMgr.PurgeStaleFakeIPConnections()
+			if !srv.shouldRunROSPatrol() {
+				return 0, nil
 			}
+			srv.logBuffer.Add("INFO", "HEALER", "已主动清算 198.18.0.0/15 悬挂流表与僵尸连接")
+			_ = srv.rosMgr.PurgeStaleFakeIPConnections()
 			return 14, nil
 		},
 		func() (string, error) {
@@ -453,10 +455,11 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 			return "failover", err
 		},
 		func() error {
-			srv.logBuffer.Add("INFO", "HEALER", "已刷新 RouterOS table cubex 策略路由与爱快回指表")
-			if srv.rosMgr != nil {
-				srv.rosMgr.EnsureFakeIPRoute("")
+			if !srv.shouldRunROSPatrol() {
+				return nil
 			}
+			srv.logBuffer.Add("INFO", "HEALER", "已刷新 RouterOS table cubex 策略路由与爱快回指表")
+			srv.rosMgr.EnsureFakeIPRoute("")
 			return nil
 		},
 		func() error {
@@ -505,7 +508,7 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 
 		}
 
-		if rosMgr != nil {
+		if srv.shouldRunROSPatrol() {
 
 			SafeGo("DaemonROSBoot", func() {
 
@@ -564,7 +567,7 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 				if srv.activeHealerMgr != nil {
 					srv.activeHealerMgr.TriggerRemediation(healing.Tier3HostRouteHeal, "IPv6-PD-Shift: "+evt.IP.String(), 0, 0)
 				}
-				if srv.rosMgr != nil {
+				if srv.shouldRunROSPatrol() {
 					_ = srv.rosMgr.RestoreRulesAfterBoot()
 				}
 			})
@@ -1309,6 +1312,28 @@ func (s *Server) syncAdblockToEngines() {
 
 
 
+// shouldRunROSPatrol returns true only when RouterOS credentials are configured
+// and the active host platform is not explicitly set to another companion router/standalone mode.
+func (s *Server) shouldRunROSPatrol() bool {
+	if s.rosMgr == nil || !s.rosMgr.IsConfigured() {
+		return false
+	}
+	if s.hostMgr != nil {
+		cfg := s.hostMgr.GetConfig()
+		plat := strings.ToLower(strings.TrimSpace(cfg.PlatformType))
+		if plat != "" && plat != "routeros" {
+			return false
+		}
+		if cached := s.hostMgr.GetCachedHostInfo(); cached != nil && cached.Connected {
+			cPlat := strings.ToLower(strings.TrimSpace(cached.PlatformID))
+			if cPlat == "ikuai" || cPlat == "openwrt" {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func (s *Server) syncDNSRewriteToEngines() {
 
 	if s.dnsRewriteMgr == nil || s.engMgr == nil {
@@ -1326,6 +1351,8 @@ func (s *Server) syncDNSRewriteToEngines() {
 		ir.DNSRewriteEnabled = cfg.Enabled
 
 		ir.DNSRewrites = cfg.Rules
+
+		_ = s.engMgr.UpdateIRWithErr(ir)
 
 		SafeGo("DNSRewriteSyncReload", func() {
 			_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())

@@ -94,6 +94,10 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	if proxyMode == "" {
 		proxyMode = string(schema.ModeRule)
 	}
+	isDirectPassthrough := ir.Meta.ProxyPaused || ir.Meta.ProxyMode == schema.ModeDirect
+	if isDirectPassthrough {
+		proxyMode = string(schema.ModeDirect)
+	}
 
 	logLevel := "info"
 
@@ -565,12 +569,6 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		"ipv6": net.IPv6,
 
-		"enhanced-mode": "fake-ip",
-
-		"fake-ip-range": dns.FakeIPRange,
-
-		"fake-ip-filter": cleanFakeIPFilter,
-
 		"default-nameserver": []string{
 
 			"223.5.5.5",
@@ -588,86 +586,99 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"direct-nameserver": directDNSList,
 	}
 
-	if hasCNDomainMRS {
-
-		nsPolicy := map[string]any{
-
-			"rule-set:cn_domain": directDNSList,
-
-			"+.cn": directDNSList,
-
-			"*.lan": directDNSList,
-
-			"*.local": directDNSList,
-
-			"*.home": directDNSList,
-
-			"*.internal": directDNSList,
-
-			"*.home.arpa": directDNSList,
-
-			"*.localdomain": directDNSList,
-
-			"localhost": directDNSList,
-		}
-
-		if hasCNNotDomainMRS {
-
-			nsPolicy["rule-set:cn_not_domain_mrs"] = fallbackDNSList
-
-		}
-
-		if hasGFWMRS {
-
-			nsPolicy["rule-set:gfw_mrs"] = fallbackDNSList
-
-		}
-
-		dnsMap["nameserver"] = fallbackDNSList
-
-		dnsMap["respect-rules"] = true
-
-		dnsMap["use-hosts"] = true
-
-		dnsMap["use-system-hosts"] = false
-
-		dnsMap["nameserver-policy"] = nsPolicy
-
-	} else {
-
+	if isDirectPassthrough {
+		// 安全直通暂停模式：保持 53 端口在线并关闭 Fake-IP，直接由直连 DNS 返回真实公网 IP
+		dnsMap["enhanced-mode"] = "normal"
 		dnsMap["nameserver"] = directDNSList
-
-		dnsMap["fallback"] = fallbackDNSList
-
-		dnsMap["respect-rules"] = true
-
+		dnsMap["respect-rules"] = false
 		dnsMap["use-hosts"] = true
-
 		dnsMap["use-system-hosts"] = false
+	} else {
+		dnsMap["enhanced-mode"] = "fake-ip"
+		dnsMap["fake-ip-range"] = dns.FakeIPRange
+		dnsMap["fake-ip-filter"] = cleanFakeIPFilter
 
-		dnsMap["fallback-filter"] = map[string]any{
+		if hasCNDomainMRS {
 
-			"geoip": true,
+			nsPolicy := map[string]any{
 
-			"geoip-code": "CN",
+				"rule-set:cn_domain": directDNSList,
 
-			"ipcidr": []string{
+				"+.cn": directDNSList,
 
-				"240.0.0.0/4",
-			},
+				"*.lan": directDNSList,
+
+				"*.local": directDNSList,
+
+				"*.home": directDNSList,
+
+				"*.internal": directDNSList,
+
+				"*.home.arpa": directDNSList,
+
+				"*.localdomain": directDNSList,
+
+				"localhost": directDNSList,
+			}
+
+			if hasCNNotDomainMRS {
+
+				nsPolicy["rule-set:cn_not_domain_mrs"] = fallbackDNSList
+
+			}
+
+			if hasGFWMRS {
+
+				nsPolicy["rule-set:gfw_mrs"] = fallbackDNSList
+
+			}
+
+			dnsMap["nameserver"] = fallbackDNSList
+
+			dnsMap["respect-rules"] = true
+
+			dnsMap["use-hosts"] = true
+
+			dnsMap["use-system-hosts"] = false
+
+			dnsMap["nameserver-policy"] = nsPolicy
+
+		} else {
+
+			dnsMap["nameserver"] = directDNSList
+
+			dnsMap["fallback"] = fallbackDNSList
+
+			dnsMap["respect-rules"] = true
+
+			dnsMap["use-hosts"] = true
+
+			dnsMap["use-system-hosts"] = false
+
+			dnsMap["fallback-filter"] = map[string]any{
+
+				"geoip": true,
+
+				"geoip-code": "CN",
+
+				"ipcidr": []string{
+
+					"240.0.0.0/4",
+				},
+			}
+
+			dnsMap["nameserver-policy"] = map[string]any{
+
+				"geosite:cn,private": directDNSList,
+
+				"geosite:cn": directDNSList,
+
+				"geosite:private": directDNSList,
+
+				"geosite:geolocation-!cn": fallbackDNSList,
+			}
+
 		}
-
-		dnsMap["nameserver-policy"] = map[string]any{
-
-			"geosite:cn,private": directDNSList,
-
-			"geosite:cn": directDNSList,
-
-			"geosite:private": directDNSList,
-
-			"geosite:geolocation-!cn": fallbackDNSList,
-		}
-
 	}
 
 	cfg["dns"] = dnsMap
@@ -2440,6 +2451,11 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	if ir.Network.QUICPolicy == "block" {
 		optimizedRules, _ = InjectQUICDegradationRule(true, optimizedRules, nil)
+	}
+
+	if isDirectPassthrough {
+		cfg["rules"] = []string{"MATCH,DIRECT"}
+		return yaml.Marshal(cfg)
 	}
 
 	cfg["rules"] = optimizedRules

@@ -112,6 +112,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/v1/engine/switch", s.handleEngineSwitch)
 
 	mux.HandleFunc("/api/v1/engine/mode", s.handleEngineMode)
+	mux.HandleFunc("/api/v1/engine/pause", s.handleEnginePause)
 
 	mux.HandleFunc("/api/v1/engine/benchmark", s.handleBenchmark)
 
@@ -798,6 +799,10 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 		"edition": ir.Meta.Edition,
 
 		"proxy_mode": ir.Meta.ProxyMode,
+
+		"proxy_paused": ir.Meta.ProxyPaused,
+
+		"pre_pause_mode": ir.Meta.PrePauseMode,
 
 		"active_profile": ir.Meta.ActiveProfile,
 

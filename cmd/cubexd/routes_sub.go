@@ -2377,9 +2377,17 @@ func (s *Server) executeNodeRealDelayProbe(node schema.ProxyNode, clashPort int,
 	escaped = strings.ReplaceAll(escaped, "[", "%5B")
 	escaped = strings.ReplaceAll(escaped, "]", "%5D")
 
-	// 极速探针：单次 1500ms 快速探测，首选 cp.cloudflare.com/generate_204
-	// 超时或失败直接判定失联，杜绝死节点二次串行重试导致的 5~10 秒排队阻塞
-	probe := "https://cp.cloudflare.com/generate_204"
+	// 兼容 Hysteria2 / TUIC / QUIC 与常规节点首次建连抖动：
+	// QUIC 类协议给予 4500ms 窗口，其余协议给予 3500ms，并提供双 204 权威探针自动回退避免单点误判超时。
+	timeoutMs := 3500
+	lowerType := strings.ToLower(strings.TrimSpace(node.Type))
+	if lowerType == "hysteria2" || lowerType == "hysteria" || lowerType == "tuic" || lowerType == "juicity" {
+		timeoutMs = 4500
+	}
+	probes := []string{
+		"http://www.gstatic.com/generate_204",
+		"https://cp.cloudflare.com/generate_204",
+	}
 
 	tr := &http.Transport{
 		DisableKeepAlives:   true,
@@ -2390,51 +2398,62 @@ func (s *Server) executeNodeRealDelayProbe(node schema.ProxyNode, clashPort int,
 	defer tr.CloseIdleConnections()
 	client := &http.Client{
 		Transport: tr,
-		Timeout:   2800 * time.Millisecond,
+		Timeout:   time.Duration(timeoutMs+1500) * time.Millisecond,
 	}
 
-	testURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?url=%s&timeout=1500",
-		clashPort, escaped, url.QueryEscape(probe))
-	req, err := http.NewRequest(http.MethodGet, testURL, nil)
-	if err != nil {
-		status, text := classifyDelayError(err.Error(), 0)
-		return NodeDelayResult{Delay: 0, Status: status, StatusText: text}
-	}
-	if clashSecret != "" {
-		req.Header.Set("Authorization", "Bearer "+clashSecret)
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		status, text := classifyDelayError(err.Error(), 0)
-		return NodeDelayResult{Delay: 0, Status: status, StatusText: text}
-	}
+	var lastStatus, lastText string
+	for idx, probe := range probes {
+		testURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?url=%s&timeout=%d",
+			clashPort, escaped, url.QueryEscape(probe), timeoutMs)
+		req, err := http.NewRequest(http.MethodGet, testURL, nil)
+		if err != nil {
+			lastStatus, lastText = classifyDelayError(err.Error(), 0)
+			continue
+		}
+		if clashSecret != "" {
+			req.Header.Set("Authorization", "Bearer "+clashSecret)
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			lastStatus, lastText = classifyDelayError(err.Error(), 0)
+			continue
+		}
 
-	bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-	resp.Body.Close()
+		bodyBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
+		resp.Body.Close()
 
-	var result struct {
-		Delay   int    `json:"delay"`
-		Message string `json:"message"`
-	}
-	_ = json.Unmarshal(bodyBytes, &result)
+		var result struct {
+			Delay   int    `json:"delay"`
+			Message string `json:"message"`
+		}
+		_ = json.Unmarshal(bodyBytes, &result)
 
-	if resp.StatusCode == http.StatusOK && result.Delay > 0 {
-		return NodeDelayResult{
-			Delay:      result.Delay,
-			Status:     "ok",
-			StatusText: "正常",
+		if resp.StatusCode == http.StatusOK && result.Delay > 0 {
+			return NodeDelayResult{
+				Delay:      result.Delay,
+				Status:     "ok",
+				StatusText: "正常",
+			}
+		}
+
+		errMsg := result.Message
+		if errMsg == "" {
+			errMsg = string(bodyBytes)
+		}
+		lastStatus, lastText = classifyDelayError(errMsg, resp.StatusCode)
+		// If the node itself is missing or connection explicitly refused, fail fast without retrying alternate probe
+		if idx == 0 && (lastStatus == "not_found" || lastStatus == "conn_refused") {
+			break
 		}
 	}
 
-	errMsg := result.Message
-	if errMsg == "" {
-		errMsg = string(bodyBytes)
+	if lastStatus == "" {
+		lastStatus, lastText = "timeout", "握手超时"
 	}
-	status, text := classifyDelayError(errMsg, resp.StatusCode)
 	return NodeDelayResult{
 		Delay:      0,
-		Status:     status,
-		StatusText: text,
+		Status:     lastStatus,
+		StatusText: lastText,
 	}
 }
 
@@ -2853,6 +2872,8 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 	}
 
 	wg.Wait()
+
+	s.engMgr.UpdateIR(ir)
 
 	// Immediate memory reclamation after batch node test
 

@@ -557,13 +557,26 @@
                 </div>
               </div>
 
-              <!-- Top Actions: 一键测快慢 / 自愈加固 / 托管开关 -->
+              <!-- Top Actions: 一键测快慢 / 安全直通暂停 / 自愈加固 / 托管开关 -->
               <div class="flex items-center gap-2.5 shrink-0 self-end md:self-center flex-wrap">
                 <button @click="triggerAllServiceProbes" :disabled="probingServiceLatencies"
                   class="px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 border border-sky-500 text-xs font-bold text-white flex items-center gap-1.5 transition active:scale-95 shadow-md cursor-pointer disabled:opacity-50"
                   title="立即对国内外主流网站重新测速">
                   <span :class="{'animate-spin': probingServiceLatencies}">⚡</span>
                   <span>一键测快慢</span>
+                </button>
+
+                <button @click="toggleSafePauseProxy()" :disabled="togglingProxyPause"
+                  :class="[
+                    'px-3.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-md cursor-pointer disabled:opacity-50',
+                    isProxyPaused
+                      ? 'bg-amber-600 hover:bg-amber-700 border-amber-500 text-white'
+                      : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-800'
+                  ]"
+                  :title="isProxyPaused ? '恢复原代理分流模式并重新启用 Fake-IP 分流' : '临时安全直通：保持 53 端口 DNS 与控制台在线，关闭 Fake-IP 返回真实 IP，全家直连上网'">
+                  <span v-if="togglingProxyPause" class="inline-block animate-spin">↻</span>
+                  <span v-else>{{ isProxyPaused ? '▶️' : '⏸️' }}</span>
+                  <span>{{ togglingProxyPause ? '切换中...' : (isProxyPaused ? '恢复运行' : '暂停代理') }}</span>
                 </button>
 
                 <button @click="triggerFastSelfHeal" :disabled="switchingEngine"
@@ -573,7 +586,7 @@
                 </button>
 
                 <!-- AutoPilot Toggle Switch (纯白亚克力底槽 + 高对比深石墨黑字) -->
-                <label class="flex items-center gap-2 cursor-pointer select-none bg-white hover:bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/90 shadow-sm transition">
+                <label class="flex items-center gap-2 cursor-pointer select-none bg-white hover:bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-300/90 shadow-sm transition">
                   <span class="text-xs font-bold text-[#0F172A]">自动省心</span>
                   <div class="relative">
                     <input type="checkbox" v-model="autoPilotEnabled" class="sr-only" />
@@ -581,6 +594,33 @@
                     <div :class="['absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-md', autoPilotEnabled ? 'translate-x-5' : 'translate-x-0']"></div>
                   </div>
                 </label>
+              </div>
+            </div>
+
+            <!-- ⏸️ 安全直通暂停模式横幅 (不断网、保持 :53 DNS 与 :2026 控制台在线) -->
+            <div v-if="isProxyPaused" class="mt-4 p-4 rounded-2xl bg-amber-50 border border-amber-400 text-amber-950 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shadow-sm">
+              <div class="flex items-start gap-3">
+                <span class="text-xl shrink-0 mt-0.5">🛡️</span>
+                <div class="space-y-1 text-xs">
+                  <div class="font-extrabold text-sm text-amber-950 flex items-center gap-2 flex-wrap">
+                    <span>当前处于【临时安全直通】模式（代理已暂停）</span>
+                    <span class="px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-950 border border-amber-400 font-mono text-[11px]">53 DNS 在线 · 已关闭 Fake-IP · 返回真实 IP</span>
+                  </div>
+                  <p class="text-amber-900 leading-relaxed font-medium">
+                    <strong>临时安全直通</strong>不会关闭核心与 53 端口解析，小米/华硕等终端不改主路由设置即可直接上网；如需彻底下线 CubeX，请使用「撤回主路由规则」清理 RouterOS / 爱快 / OpenWrt 静态回指与 DNS 联动。
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0 flex-wrap">
+                <button @click="toggleSafePauseProxy(false)" :disabled="togglingProxyPause"
+                  class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm cursor-pointer transition active:scale-95 disabled:opacity-50">
+                  ▶️ 恢复代理分流
+                </button>
+                <button @click="withdrawHostBypass()" :disabled="withdrawingHostBypass"
+                  class="px-3.5 py-2 rounded-xl bg-white hover:bg-rose-50 border border-rose-300 text-rose-800 text-xs font-bold shadow-sm cursor-pointer transition active:scale-95 disabled:opacity-50"
+                  title="仅当主路由已配置 RouterOS / 爱快 / OpenWrt 原生联动时，可一键清理主路由规则与备用 DNS">
+                  {{ withdrawingHostBypass ? '正在撤回...' : '🧹 撤回主路由规则' }}
+                </button>
               </div>
             </div>
 
@@ -682,15 +722,15 @@
                     <!-- Custom Dropdown Popover Menu -->
                     <div v-if="activeProbeDropdown === bi"
                       @mouseleave="activeProbeDropdown = null"
-                      class="absolute top-full mt-1.5 w-48 max-h-72 overflow-y-auto overscroll-contain bg-[#F1F4F9] border border-slate-300/80 rounded-2xl shadow-xl p-1.5 z-[100] text-slate-800 space-y-0.5 custom-scrollbar ring-1 ring-slate-300/40 animate-in fade-in zoom-in-95"
+                      class="absolute top-full mt-1.5 w-48 max-h-72 overflow-y-auto overscroll-contain bg-white border border-slate-300 rounded-2xl shadow-xl p-1.5 z-[100] text-slate-900 space-y-0.5 custom-scrollbar ring-1 ring-slate-200 animate-in fade-in zoom-in-95"
                       :class="bi >= 2 ? 'right-0 sm:left-0' : 'left-0'">
                       <button v-for="target in availableProbeTargets" :key="target.id"
                         @click.stop="selectProbeTarget(bi, target)"
-                        class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition text-left cursor-pointer"
-                        :class="item.id === target.id ? 'bg-cyan-500/25 text-emerald-200 font-bold border border-cyan-400/40 shadow-sm' : 'hover:bg-white/20 border border-white/20 text-slate-300 hover:text-white'">
+                        class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition text-left cursor-pointer border"
+                        :class="item.id === target.id ? 'bg-sky-50 text-sky-900 font-bold border-sky-400 shadow-sm' : 'border-transparent hover:bg-slate-100 text-slate-800 hover:text-slate-950'">
                         <BrandLogo :name="target.logo" size="w-4 h-4" class="shrink-0" />
                         <span class="truncate flex-1 font-medium">{{ target.name }}</span>
-                        <span v-if="item.id === target.id" class="text-emerald-300 text-xs font-bold shrink-0">✓</span>
+                        <span v-if="item.id === target.id" class="text-sky-700 text-xs font-bold shrink-0">✓</span>
                       </button>
                     </div>
                   </div>
@@ -782,38 +822,38 @@
               </div>
             </div>
 
-            <!-- 🌐 全息局域网动态流光拓扑看板 (Holographic Topology Bar) -->
-            <div class="p-4 rounded-2xl bg-black/40 border border-sky-500/20 shadow-inner flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-mono">
+            <!-- 🌐 全息局域网动态流光拓扑看板 (高对比浅雾晶透看板 · WCAG 4.5:1+) -->
+            <div class="p-4 rounded-2xl bg-white/95 border border-sky-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-mono">
               <!-- Left Node: Online Clients -->
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-sky-500/20 border border-indigo-400/30 flex items-center justify-center text-xl shadow-md shrink-0">
+                <div class="w-10 h-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-xl shadow-sm shrink-0">
                   📱
                 </div>
                 <div>
-                  <div class="text-slate-900 font-bold text-sm">全屋在线终端</div>
-                  <div class="text-slate-400 text-[11px]">{{ lanClients.length }} 台设备在线 · 动态嗅探</div>
+                  <div class="text-slate-900 font-extrabold text-sm">全屋在线终端</div>
+                  <div class="text-slate-600 text-[11px] font-medium">{{ lanClients.length }} 台设备在线 · 动态嗅探</div>
                 </div>
               </div>
 
               <!-- Flow Connection 1 -->
               <div class="hidden md:flex flex-1 items-center justify-center px-2">
-                <div class="w-full flex items-center gap-1 text-slate-500">
-                  <div class="h-0.5 flex-1 bg-gradient-to-r from-indigo-500/40 via-sky-400/60 to-cyan-400"></div>
-                  <span class="text-[10px] text-sky-300 animate-pulse font-sans">局域网流量 ➔</span>
+                <div class="w-full flex items-center gap-1.5 text-slate-600">
+                  <div class="h-0.5 flex-1 bg-gradient-to-r from-indigo-400/60 via-sky-500/70 to-cyan-500"></div>
+                  <span class="text-[11px] text-sky-800 font-bold font-sans">局域网流量 ➔</span>
                 </div>
               </div>
 
               <!-- Middle Node: CubeX Gateway Hub -->
-              <div class="flex items-center gap-3 px-3 py-2 rounded-xl bg-sky-950/40 border border-sky-400/30 shrink-0">
-                <div class="w-9 h-9 rounded-lg bg-sky-500/20 flex items-center justify-center text-lg text-sky-300 font-bold">
+              <div class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-sky-50/90 border border-sky-300 shrink-0 shadow-sm">
+                <div class="w-9 h-9 rounded-lg bg-sky-100 border border-sky-200 flex items-center justify-center text-lg text-sky-800 font-bold">
                   🧊
                 </div>
                 <div>
-                  <div class="text-slate-900 font-bold text-xs flex items-center gap-1.5">
+                  <div class="text-slate-900 font-extrabold text-xs flex items-center gap-1.5">
                     <span>CubeX 智能中枢</span>
-                    <span class="px-1.5 py-0.2 rounded bg-sky-500/30 text-sky-200 text-[10px]">{{ systemStatus?.host_ip || 'CubeX' }}</span>
+                    <span class="px-1.5 py-0.5 rounded bg-sky-600 text-white text-[10px] font-bold">{{ systemStatus?.host_ip || 'CubeX' }}</span>
                   </div>
-                  <div class="text-[10px] text-emerald-400 font-tabular font-sans">
+                  <div class="text-[11px] text-emerald-800 font-bold font-tabular font-sans mt-0.5">
                     ↓ {{ formatSpeed(liveDownSpeed) }} · ↑ {{ formatSpeed(liveUpSpeed) }}
                   </div>
                 </div>
@@ -821,121 +861,121 @@
 
               <!-- Flow Connection 2 -->
               <div class="hidden md:flex flex-1 items-center justify-center px-2">
-                <div class="w-full flex items-center gap-1 text-slate-500">
-                  <div class="h-0.5 flex-1 bg-gradient-to-r from-cyan-400 via-emerald-400/60 to-amber-400/60"></div>
-                  <span class="text-[10px] text-emerald-300 font-sans">双通道分流 ➔</span>
+                <div class="w-full flex items-center gap-1.5 text-slate-600">
+                  <div class="h-0.5 flex-1 bg-gradient-to-r from-cyan-500 via-emerald-500/70 to-amber-500/70"></div>
+                  <span class="text-[11px] text-emerald-800 font-bold font-sans">双通道分流 ➔</span>
                 </div>
               </div>
 
               <!-- Right Nodes: Dual Outbounds (Direct & Accelerated) -->
               <div class="flex items-center gap-2 shrink-0">
-                <div class="p-2 rounded-xl bg-emerald-950/40 border border-emerald-400/30 text-right leading-tight">
-                  <div class="text-[11px] font-bold text-emerald-300 flex items-center justify-end gap-1">
+                <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 text-right leading-tight shadow-sm">
+                  <div class="text-[11px] font-extrabold text-emerald-900 flex items-center justify-end gap-1">
                     <span>🏠 国内物理直连</span>
                   </div>
-                  <div class="text-[10px] text-slate-400 font-sans">硬件芯片直出 0延迟</div>
+                  <div class="text-[10px] text-emerald-800 font-medium font-sans mt-0.5">硬件芯片直出 0延迟</div>
                 </div>
 
-                <div class="p-2 rounded-xl bg-sky-950/40 border border-sky-400/30 text-right leading-tight">
-                  <div class="text-[11px] font-bold text-sky-300 flex items-center justify-end gap-1">
+                <div class="p-2.5 rounded-xl bg-sky-50 border border-sky-300 text-right leading-tight shadow-sm">
+                  <div class="text-[11px] font-extrabold text-sky-900 flex items-center justify-end gap-1">
                     <span>⚡ 海外规则加速</span>
                   </div>
-                  <div class="text-[10px] text-slate-400 font-sans">双核智能极速分流</div>
+                  <div class="text-[10px] text-sky-800 font-medium font-sans mt-0.5">双核智能极速分流</div>
                 </div>
               </div>
             </div>
 
-            <!-- 搜索与分类过滤器 -->
+            <!-- 搜索与分类过滤器 (高对比白底微晶条) -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-              <div class="flex items-center gap-1.5 bg-black/40 border border-white/10 rounded-xl p-1 text-xs flex-wrap sm:flex-nowrap">
+              <div class="flex items-center gap-1.5 bg-slate-100 border border-slate-300/80 rounded-xl p-1 text-xs flex-wrap sm:flex-nowrap shadow-sm">
                 <button @click="clientFilterMode = 'all'"
-                  :class="['px-3 py-1 rounded-lg transition font-medium cursor-pointer', clientFilterMode === 'all' ? 'bg-sky-500 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
+                  :class="['px-3 py-1 rounded-lg transition font-bold cursor-pointer', clientFilterMode === 'all' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/70']">
                   全部 ({{ lanClients.length }})
                 </button>
                 <button @click="clientFilterMode = 'proxy'"
-                  :class="['px-3 py-1 rounded-lg transition font-medium cursor-pointer', clientFilterMode === 'proxy' ? 'bg-emerald-500 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
+                  :class="['px-3 py-1 rounded-lg transition font-bold cursor-pointer', clientFilterMode === 'proxy' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/70']">
                   ⚡ 旁路中 ({{ proxiedClientsCount }})
                 </button>
                 <button @click="clientFilterMode = 'media'"
-                  :class="['px-3 py-1 rounded-lg transition font-medium cursor-pointer', clientFilterMode === 'media' ? 'bg-purple-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
+                  :class="['px-3 py-1 rounded-lg transition font-bold cursor-pointer', clientFilterMode === 'media' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/70']">
                   🎬 影音/NAS ({{ mediaClientsCount }})
                 </button>
                 <button @click="clientFilterMode = 'direct'"
-                  :class="['px-3 py-1 rounded-lg transition font-medium cursor-pointer', clientFilterMode === 'direct' ? 'bg-sky-700 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
+                  :class="['px-3 py-1 rounded-lg transition font-bold cursor-pointer', clientFilterMode === 'direct' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/70']">
                   🛡️ 直连中 ({{ directClientsCount }})
                 </button>
                 <button @click="clientFilterMode = 'online'"
-                  :class="['px-3 py-1 rounded-lg transition font-medium cursor-pointer', clientFilterMode === 'online' ? 'bg-cyan-600 text-white font-bold shadow-sm' : 'text-slate-400 hover:text-white']">
+                  :class="['px-3 py-1 rounded-lg transition font-bold cursor-pointer', clientFilterMode === 'online' ? 'bg-cyan-700 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/70']">
                   🟢 在线
                 </button>
               </div>
 
               <div class="relative sm:w-64">
                 <input v-model="clientSearchQuery" type="text" placeholder="搜索设备名 / IP / MAC..."
-                  class="w-full px-3 py-1.5 pl-8 rounded-xl bg-black/40 border border-white/15 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-400 transition" />
+                  class="w-full px-3 py-1.5 pl-8 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition shadow-sm" />
                 <span class="absolute left-2.5 top-2 text-xs text-slate-500">🔍</span>
-                <button v-if="clientSearchQuery" @click="clientSearchQuery = ''" class="absolute right-2.5 top-1.5 text-xs text-slate-400 hover:text-white">✕</button>
+                <button v-if="clientSearchQuery" @click="clientSearchQuery = ''" class="absolute right-2.5 top-1.5 text-xs text-slate-500 hover:text-slate-900">✕</button>
               </div>
             </div>
 
-            <!-- 全家设备卡片流 (Grid) -->
+            <!-- 全家设备卡片流 (Grid · 高对比纯亮卡面 + 3:1 清晰边框) -->
             <div v-if="filteredLanClients.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div v-for="dev in filteredLanClients" :key="dev.mac || dev.ip"
-                class="p-4 rounded-2xl border transition-all duration-300 relative group flex flex-col justify-between"
-                :class="(dev.mode === 'media' || dev.is_media) ? 'bg-gradient-to-br from-purple-950/40 via-indigo-950/30 to-purple-950/20 border-purple-500/40 shadow-lg shadow-purple-950/20' : (dev.is_proxied && dev.mode !== 'direct') ? 'bg-gradient-to-br from-emerald-950/40 to-teal-950/30 border-emerald-500/40 shadow-lg shadow-emerald-950/20' : 'bg-white/5 border-white/10 hover:border-white/20'">
+                class="p-4 rounded-2xl border transition-all duration-300 relative group flex flex-col justify-between shadow-sm"
+                :class="(dev.mode === 'media' || dev.is_media) ? 'bg-purple-50/95 border-purple-300 hover:border-purple-400' : (dev.is_proxied && dev.mode !== 'direct') ? 'bg-emerald-50/95 border-emerald-300 hover:border-emerald-400' : 'bg-white border-slate-300/90 hover:border-slate-400'">
 
                 <!-- 设备头部：图标、名称、就地改名、在线状态 -->
                 <div class="flex items-start gap-3">
-                  <span class="text-2xl p-2 rounded-xl bg-black/40 border border-white/10 shrink-0">
+                  <span class="text-2xl p-2 rounded-xl bg-slate-100 border border-slate-200 shrink-0">
                     {{ getDeviceIcon(dev) }}
                   </span>
                   <div class="min-w-0 flex-1">
                     <!-- 名称与就地编辑 -->
                     <div v-if="editingClientMAC === (dev.mac || dev.ip)" class="flex items-center gap-1.5">
                       <input v-model="editingClientName" @keyup.enter="saveClientAlias(dev)" @keyup.esc="editingClientMAC = ''"
-                        class="w-full px-2 py-0.5 rounded-lg bg-black/60 border border-sky-400 text-xs text-white focus:outline-none font-bold" />
-                      <button @click="saveClientAlias(dev)" class="px-2 py-0.5 rounded-lg bg-sky-500 text-white text-xs font-bold cursor-pointer">✓</button>
-                      <button @click="editingClientMAC = ''" class="px-2 py-0.5 rounded-lg bg-white/10 text-slate-300 text-xs cursor-pointer">✕</button>
+                        class="w-full px-2 py-0.5 rounded-lg bg-white border border-sky-500 text-xs text-slate-900 focus:outline-none font-bold" />
+                      <button @click="saveClientAlias(dev)" class="px-2 py-0.5 rounded-lg bg-sky-600 text-white text-xs font-bold cursor-pointer">✓</button>
+                      <button @click="editingClientMAC = ''" class="px-2 py-0.5 rounded-lg bg-slate-200 text-slate-800 text-xs font-bold cursor-pointer">✕</button>
                     </div>
                     <div v-else class="flex items-center justify-between gap-1">
                       <div @click="editingClientMAC = (dev.mac || dev.ip); editingClientName = (dev.name || dev.hostname || dev.ip)"
-                        class="font-black text-sm text-white truncate flex items-center gap-1.5 cursor-pointer hover:text-sky-300 transition" :title="'点击修改备注: ' + (dev.name || dev.ip)">
+                        class="font-black text-sm text-slate-900 truncate flex items-center gap-1.5 cursor-pointer hover:text-sky-700 transition" :title="'点击修改备注: ' + (dev.name || dev.ip)">
                         <span>{{ dev.name || dev.hostname || dev.ip }}</span>
-                        <span v-if="dev.is_custom" class="text-[10px] text-amber-300 font-normal">✎</span>
+                        <span v-if="dev.is_custom" class="text-[10px] text-amber-700 font-bold">✎</span>
                       </div>
                       <button @click="editingClientMAC = (dev.mac || dev.ip); editingClientName = (dev.name || dev.hostname || dev.ip)"
-                        class="opacity-0 group-hover:opacity-100 text-[11px] text-slate-400 hover:text-sky-300 transition shrink-0 p-0.5 cursor-pointer">
+                        class="opacity-0 group-hover:opacity-100 text-[11px] text-slate-600 hover:text-sky-700 font-bold transition shrink-0 p-0.5 cursor-pointer">
                         编辑备注
                       </button>
                     </div>
 
                     <!-- IP 与 MAC 地址 -->
-                    <div class="text-[11px] font-mono text-slate-400 flex items-center gap-2 mt-1">
-                      <span class="text-cyan-300 font-tabular">{{ dev.ip }}</span>
-                      <span class="text-slate-600">·</span>
-                      <span class="text-slate-400 truncate">{{ dev.mac && dev.mac !== '-' ? dev.mac : '局域网终端' }}</span>
+                    <div class="text-[11px] font-mono text-slate-600 flex items-center gap-2 mt-1">
+                      <span class="text-sky-800 font-bold font-tabular">{{ dev.ip }}</span>
+                      <span class="text-slate-400">·</span>
+                      <span class="text-slate-600 truncate font-medium">{{ dev.mac && dev.mac !== '-' ? dev.mac : '局域网终端' }}</span>
                     </div>
                   </div>
                 </div>
 
                 <!-- 分隔线与分流控制 3 档极速模式开关组 -->
-                <div class="pt-3.5 mt-3.5 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                <div class="pt-3.5 mt-3.5 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
                   <div class="min-w-0">
-                    <div class="text-xs font-bold flex items-center gap-1.5"
-                      :class="(dev.mode === 'media' || dev.is_media) ? 'text-purple-300' : (dev.is_proxied && dev.mode !== 'direct') ? 'text-emerald-300' : 'text-slate-300'">
+                    <div class="text-xs font-extrabold flex items-center gap-1.5"
+                      :class="(dev.mode === 'media' || dev.is_media) ? 'text-purple-900' : (dev.is_proxied && dev.mode !== 'direct') ? 'text-emerald-900' : 'text-slate-800'">
                       <span>{{ (dev.mode === 'media' || dev.is_media) ? '🎬 影音/NAS专属加速' : (dev.is_proxied && dev.mode !== 'direct') ? '⚡ 旁路全功能加速' : '🛡️ 主路由原生直连' }}</span>
                     </div>
-                    <div class="text-[10px] text-slate-400 font-mono mt-0.5 font-sans truncate">
+                    <div class="text-[10px] text-slate-600 font-medium mt-0.5 font-sans truncate">
                       {{ (dev.mode === 'media' || dev.is_media) ? '海报刮削加速 · PT下载物理直通' : (dev.is_proxied && dev.mode !== 'direct') ? '走 CubeX 智能分流与防泄露' : '走主路由默认物理网关直出' }}
                     </div>
                   </div>
 
                   <!-- 3 档极速模式微调开关 -->
-                  <div class="inline-flex items-center p-0.5 rounded-xl bg-black/60 border border-white/10 shrink-0 self-end sm:self-auto">
+                  <div class="inline-flex items-center p-0.5 rounded-xl bg-slate-100 border border-slate-300 shrink-0 self-end sm:self-auto">
                     <!-- ⚡ 旁路 -->
                     <button @click="setClientMode(dev, 'proxy')" :disabled="togglingClientIP === dev.ip"
-                      class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-0.5"
-                      :class="(dev.is_proxied && dev.mode !== 'media' && dev.mode !== 'direct') ? 'bg-emerald-500 text-slate-950 shadow-sm font-black' : 'text-slate-400 hover:text-slate-200'"
+                      class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-0.5 font-bold"
+                      :class="(dev.is_proxied && dev.mode !== 'media' && dev.mode !== 'direct') ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white'"
                       title="开启 CubeX 旁路全功能规则分流加速">
                       <span v-if="togglingClientIP === dev.ip && targetTogglingMode === 'proxy'" class="inline-block animate-spin text-[10px]">↻</span>
                       <span>⚡ 旁路</span>
@@ -943,8 +983,8 @@
 
                     <!-- 🎬 影音 -->
                     <button @click="setClientMode(dev, 'media')" :disabled="togglingClientIP === dev.ip"
-                      class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-0.5"
-                      :class="(dev.mode === 'media' || dev.is_media) ? 'bg-purple-600 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-200'"
+                      class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-0.5 font-bold"
+                      :class="(dev.mode === 'media' || dev.is_media) ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white'"
                       title="影视海报刮削与Docker加速 · PT/下载物理芯片直通">
                       <span v-if="togglingClientIP === dev.ip && targetTogglingMode === 'media'" class="inline-block animate-spin text-[10px]">↻</span>
                       <span>🎬 影音</span>
@@ -952,8 +992,8 @@
 
                     <!-- 🏠 直连 -->
                     <button @click="setClientMode(dev, 'direct')" :disabled="togglingClientIP === dev.ip"
-                      class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-0.5"
-                      :class="(!dev.is_proxied || dev.mode === 'direct') ? 'bg-white/20 text-white shadow-sm font-black' : 'text-slate-400 hover:text-slate-200'"
+                      class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-0.5 font-bold"
+                      :class="(!dev.is_proxied || dev.mode === 'direct') ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white'"
                       title="回归主路由原生物理芯片直通">
                       <span v-if="togglingClientIP === dev.ip && targetTogglingMode === 'direct'" class="inline-block animate-spin text-[10px]">↻</span>
                       <span>🏠 直连</span>
@@ -964,10 +1004,10 @@
             </div>
 
             <!-- 空状态提示 -->
-            <div v-else class="text-center py-10 space-y-2 text-slate-400">
+            <div v-else class="text-center py-10 space-y-2 text-slate-600 bg-white/80 rounded-2xl border border-slate-200">
               <div class="text-3xl">🔍</div>
-              <div class="text-sm font-bold text-slate-300">未找到匹配的局域网终端</div>
-              <div class="text-xs text-slate-500">点击右上角刷新，或清除搜索条件</div>
+              <div class="text-sm font-bold text-slate-900">未找到匹配的局域网终端</div>
+              <div class="text-xs text-slate-600">点击右上角刷新，或清除搜索条件</div>
             </div>
           </section>
 
@@ -1567,7 +1607,7 @@
 
                             <span v-else class="text-[8px] opacity-75">⚡</span>
 
-                            <span>{{ regionTestingMap[reg.id] ? (regionTestingMap[reg.id] === 'retry' ? '复测中' : '测速中') : (getRegionLatency(reg) > 0 ? getRegionLatency(reg) + 'ms' : '超时') }}</span>
+                            <span>{{ regionTestingMap[reg.id] ? (regionTestingMap[reg.id] === 'retry' ? '复测中' : '测速中') : (getRegionLatency(reg) > 0 ? getRegionLatency(reg) + 'ms' : (regionSpeedtestFailedMap[reg.id] ? '超时' : '未测速')) }}</span>
 
                           </span>
 
@@ -3971,7 +4011,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('ikuai') || name.includes('ikuai') || name.includes('爱快')) {
-    let ver = hw.version || 'v9.94'
+    let ver = hw.version || 'v9.95'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: '爱快 iKuai',
@@ -3980,7 +4020,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('openwrt') || name.includes('openwrt') || name.includes('lede')) {
-    let ver = hw.version || 'v9.94'
+    let ver = hw.version || 'v9.95'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: 'OpenWrt',
@@ -3998,7 +4038,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('fnos') || name.includes('fnos') || name.includes('飞牛')) {
-    let ver = hw.version || 'v9.94'
+    let ver = hw.version || 'v9.95'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: '飞牛 fnOS',
@@ -4406,6 +4446,9 @@ watch(activeMasterTab, (newTab) => {
   if (newTab === 'overview') {
     try { fetchLanClients(true) } catch(e){}
     try { fetchTelemetryTraffic() } catch(e){}
+  } else if (newTab === 'rules') {
+    fetchDnsFilterStats()
+    fetchDnsRewriteConfig()
   } else if (newTab === 'diagnostics') {
     fetchSystemLogs(true)
   } else if (newTab === 'system') {
@@ -10932,6 +10975,13 @@ const isStoreSafeMode = computed(() => {
   return false
 })
 
+const isProxyPaused = computed(() => {
+  return Boolean(systemStatus.value?.proxy_paused) || String(systemStatus.value?.proxy_mode || '').toLowerCase() === 'direct'
+})
+
+const togglingProxyPause = ref(false)
+const withdrawingHostBypass = ref(false)
+
 watch(isStoreSafeMode, (val) => {
   if (typeof document !== 'undefined') {
     if (val) {
@@ -11312,57 +11362,7 @@ const dnsRewriteConfig = ref({
 
   enabled: true,
 
-  rules: [
-
-    {
-
-      id: 'rw_google_play_services',
-
-      domain: 'services.googleapis.cn',
-
-      type: 'CNAME',
-
-      target: 'services.googleapis.com',
-
-      comment: '解决 Google Play 无法下载 App 问题 (0% 卡顿)',
-
-      enabled: true
-
-    },
-
-    {
-
-      id: 'rw_google_developers',
-
-      domain: 'developers.google.cn',
-
-      type: 'CNAME',
-
-      target: 'developers.google.com',
-
-      comment: '重定向至 Google 开发者海外官方全功能域',
-
-      enabled: true
-
-    },
-
-    {
-
-      id: 'rw_example_a_record',
-
-      domain: 'nas.lan',
-
-      type: 'A',
-
-      target: '127.0.0.1',
-
-      comment: '局域网 A 记录静态映射示例 (如将自定义域名直连私有 NAS 或服务器)',
-
-      enabled: false
-
-    }
-
-  ]
+  rules: []
 
 })
 
@@ -12965,6 +12965,72 @@ async function switchEngine(target) {
 
   }
 
+}
+
+async function toggleSafePauseProxy(explicitPaused = null) {
+  if (togglingProxyPause.value) return
+  const targetPaused = typeof explicitPaused === 'boolean' ? explicitPaused : !isProxyPaused.value
+  togglingProxyPause.value = true
+  try {
+    const res = await fetch('/api/v1/engine/pause', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paused: targetPaused })
+    })
+    const data = await res.json()
+    if (res.ok && data.ok) {
+      systemStatus.value = {
+        ...systemStatus.value,
+        proxy_paused: Boolean(data.proxy_paused),
+        proxy_mode: data.proxy_mode || (data.proxy_paused ? 'direct' : 'rule'),
+        pre_pause_mode: data.pre_pause_mode || systemStatus.value.pre_pause_mode
+      }
+      if (ir.value && ir.value.meta) {
+        ir.value.meta.proxy_paused = Boolean(data.proxy_paused)
+        ir.value.meta.proxy_mode = data.proxy_mode || ir.value.meta.proxy_mode
+      }
+      showToast(
+        data.proxy_paused
+          ? '⏸️ 已切至【临时安全直通】模式：53 DNS 与控制台保持在线，已关闭 Fake-IP 返回真实 IP'
+          : '▶️ 已恢复代理智能分流与 Fake-IP 加速模式'
+      )
+    } else {
+      showToast('❌ 切换直通暂停模式失败: ' + (data.error || res.status), true)
+    }
+  } catch (e) {
+    showToast('❌ 切换直通暂停模式异常: ' + (e?.message || '网络异常'), true)
+  } finally {
+    togglingProxyPause.value = false
+  }
+}
+
+async function withdrawHostBypass() {
+  if (withdrawingHostBypass.value) return
+  const ok = await askConfirm({
+    title: '撤回主路由旁路规则',
+    message: '此操作将通过已配置的原生联动接口（RouterOS / 爱快 iKuai / OpenWrt）对称清理 198.18.0.0/15 静态回指与 DNS 劫持/DHCP 联动并恢复备用 DNS。\n\n若仅需临时停用加速且不改主路由，建议使用「⏸️ 暂停代理（安全直通）」。确定要撤回主路由规则吗？',
+    confirmText: '确认撤回主路由规则',
+    variant: 'warning'
+  })
+  if (!ok) return
+  withdrawingHostBypass.value = true
+  try {
+    const res = await fetch('/api/v1/host/bypass/remove', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    })
+    const data = await res.json()
+    if (data.ok) {
+      showToast('🧹 ' + (data.message || '主路由旁路规则已对称撤回，零残留'))
+    } else {
+      showToast('⚠️ 撤回主路由规则未完成: ' + (data.error || '请先在宿主共生面板配置主路由凭据'), true)
+    }
+  } catch (e) {
+    showToast('❌ 撤回主路由规则请求失败: ' + (e?.message || '网络异常'), true)
+  } finally {
+    withdrawingHostBypass.value = false
+  }
 }
 
 async function togglePanic() {
@@ -16111,6 +16177,27 @@ function getRegionActiveNode(reg) {
 }
 
 const regionWinnerLatencyMap = ref({})
+const regionSpeedtestFailedMap = ref({})
+
+function syncRegionLatenciesFromProxies() {
+  for (const reg of (allRegionDefs.value || [])) {
+    const nodes = getRegionNodes(reg)
+    if (!nodes || nodes.length === 0) continue
+    let minDelay = 9999
+    let hasValid = false
+    for (const n of nodes) {
+      if (n.delay && n.delay > 0) {
+        hasValid = true
+        if (n.delay < minDelay) minDelay = n.delay
+      }
+    }
+    if (hasValid && minDelay < 9999) {
+      regionWinnerLatencyMap.value[reg.id] = minDelay
+      regionSpeedtestFailedMap.value[reg.id] = false
+      reg.winnerLatency = minDelay
+    }
+  }
+}
 
 function getRegionLatency(reg) {
 
@@ -16305,6 +16392,10 @@ async function processSpeedtestQueue() {
             if (data.results[p.name] !== undefined) {
               p.delay = data.results[p.name]
             }
+            if (data.diagnostics && data.diagnostics[p.name]) {
+              p.delay_status = data.diagnostics[p.name].status
+              p.delay_text = data.diagnostics[p.name].status_text
+            }
           }
         }
 
@@ -16315,11 +16406,13 @@ async function processSpeedtestQueue() {
         reg.winnerLatency = best
         regionWinnerLatencyMap.value[task.regId] = best
         if (reg.id) regionWinnerLatencyMap.value[reg.id] = best
+        regionSpeedtestFailedMap.value[task.regId] = best <= 0
         task.status = 'completed'
       } else {
         task.testedCount = nodeNames.length
         task.onlineCount = 0
         task.winnerDelay = 0
+        regionSpeedtestFailedMap.value[task.regId] = true
         task.status = 'completed'
       }
     } catch (e) {
@@ -16330,6 +16423,7 @@ async function processSpeedtestQueue() {
         task.onlineCount = 1
         task.isCached = true
       } else {
+        regionSpeedtestFailedMap.value[task.regId] = true
         task.status = 'error'
         task.errorMsg = e.name === 'AbortError' ? '节点响应超时' : (e.message || '网络瞬断')
       }
@@ -18965,6 +19059,8 @@ async function testSingleNode(node) {
 
         node.delay_text = data.status_text
 
+        syncRegionLatenciesFromProxies()
+
         if (data.delay > 0) {
 
           showToast(`「${node.name}」真实端到端延迟: ${node.delay}ms`)
@@ -19034,6 +19130,8 @@ async function testProviderNodes(nodes) {
       }
 
       showToast(`测速完成！${data.online_count || 0}/${nodes.length} 节点在线，平均延迟 ${data.avg_delay || 0}ms`)
+
+      syncRegionLatenciesFromProxies()
 
       return
 
@@ -22212,11 +22310,13 @@ async function runAuthorizedMountLoad() {
 
 
 
-  // Fetch Overview Dynamic Telemetry & DNS Filter Stats
+  // Fetch Overview Dynamic Telemetry & DNS Filter Stats & DNS Rewrite
 
   fetchTelemetryTraffic()
 
   fetchDnsFilterStats()
+
+  fetchDnsRewriteConfig()
 
   updateHourlyDistribution(telemetryMetrics.value.inboundTotalMB, telemetryMetrics.value.outboundTotalMB, telemetryMetrics.value.connections)
 
@@ -22230,7 +22330,7 @@ async function runAuthorizedMountLoad() {
 provide('cubexApp', reactive({
   showToast,
   isBackendOnline, checkBackendHeartbeat,
-  activeEngine, adblockStats, addFakeIpFilter, addWhitelistItem, aiActionResult, aiActions, aiConfig, aiLoading, aiPresetQuestions, aiPrompt, aiProviders, aiReply, authState, batchAddingNodes, batchImportingSubs, batchNodeText, batchSubText, chaosDrillReport, chaosReportModal, checkHostUpgrade, checkingGeoUpgrade, checkingHostUpgrade, chooseFreshStart, cleanActionLabelMap, cleaningRosFirewall, clearSystemLogs, completeInitWizard, confirmAndStartInitWizard, confirmSystemReboot, copyDiagnosticMarkdown, copyText, coreUpgradeFrozen, coreUpgradeLog, creatingGithubIssue, customNodes, deleteDnsRewriteRule, deleteNode, deleteSourceItem, deleteSubscription, diagnosticModal, displayedLogs, dnsBlockedLastY, dnsBlockedPath, dnsFilterStats, dnsLatencyLastY, dnsLatencyPath, dnsQueryLastY, dnsQueryPath, dnsRewriteConfig, editingDnsRewriteRule, editingRuleSource, executeAIAction, executeHostUpgrade, executingAIActionId, executingHostUpgrade, executionModal, exportBackup, fakeIpFilters, fakeIpLoading, fetchDnsFilterStats, fetchRouterHardware, fetchSystemLogs, filterConfig, filteredGeodataFiles, formatExpire, geoAutoUpdateEnabled, geoUpdateLog, geodataFilterCategory, geodataFilterEngine, geodataLastUpdateText, geodataSearchQuery, geodataStatus, getNodeDelayClass, getSubRegions, handleInitBackupUpload, handleInitFileDrop, hasAnyUpdate, healingSteps, hostBadge, hostConfig, hostInfo, hostLastExecution, hostUpgradeDetails, hostUpgradeResult, importBackup, initBackupFileInput, initDetectedPlatform, initExecuting, initHostForm, initImportStats, initImportSuccess, initImporting, initLogs, initWizardImportTab, initWizardStep, inspectAndCleanReapplyRos, ir, isHotRestarting, isIKuai, isOpenWrt, isProbingAll, isRouterOS, isSubDrawerExpanded, isUpdatingSource, launchFireworks, lockConsoleNow, logContainerRef, logFilterLevel, logFilterModule, logSearchQuery, newFakeIpInput, newWhitelistDomain, openAddDnsRewriteModal, openAddSourceModal, openEditDnsRewriteModal, openEditSourceModal, openGitHubIssuePrompt, openProbeModal, openSourcePreview, openUpgradeModal, onHostPlatformChange, panelUpgradeLog, parsedBatchNodes, parsedBatchSubs, previewingSource, probeAllFourDimensions, probeChecked, probeLastTime, refreshSourceItem, removeFakeIpFilter, removeWhitelistItem, resetDnsRewriteDefaults, routerHW, routerHWMemoryDisplay, runSecurityAudit, runSubSpeedTest, saveAIConfig, saveDnsRewriteRule, saveFilterAutoUpdate, saveRuleSource, savingAndLinkingHost, securityAudit, selectAIProvider, sendAIChat, setNodeAsPrimaryOutbound, showAISettingsModal, showAuthManageModal, showDnsRewriteModal, showImportModal, showInitWizardModal, showLogsModal, showProbeModal, showGeodataDetailModal, showRuleSourceModal, showSourcePreviewModal, saveCredentialsAndLinkHost, startInitStep3Execution, stopFireworks, subHealthMap, subMetaMap, subModalTab, subNodesMap, subQuotaMap, subSpeedTesting, submitBatchNodes, submitBatchSubs, submitInitWizardImportAndLaunch, systemOverview, toggleCoreUpgradeFreeze, toggleDnsRewriteMaster, toggleDnsRewriteRule, toggleFilterMaster, toggleGeoAutoUpdate, toggleSourceItem, toggleSubDrawer, toggleSubscription, triggerFastSelfHeal, triggerHotRestart, triggerWANHeal, triggerInitBackupSelect, triggerQuickAIPrompt, updateAllSubscriptions, updateDetailText, updateGeoData, updateSubscription, updateSummaryText, updatingGeo, upgradeCore, upgradePanel, upgradingCoreMihomo, upgradingCoreSingbox, upgradingPanel, uploadToGithubIssue
+  activeEngine, adblockStats, addFakeIpFilter, addWhitelistItem, aiActionResult, aiActions, aiConfig, aiLoading, aiPresetQuestions, aiPrompt, aiProviders, aiReply, authState, batchAddingNodes, batchImportingSubs, batchNodeText, batchSubText, chaosDrillReport, chaosReportModal, checkHostUpgrade, checkingGeoUpgrade, checkingHostUpgrade, chooseFreshStart, cleanActionLabelMap, cleaningRosFirewall, clearSystemLogs, completeInitWizard, confirmAndStartInitWizard, confirmSystemReboot, copyDiagnosticMarkdown, copyText, coreUpgradeFrozen, coreUpgradeLog, creatingGithubIssue, customNodes, deleteDnsRewriteRule, deleteNode, deleteSourceItem, deleteSubscription, diagnosticModal, displayedLogs, dnsBlockedLastY, dnsBlockedPath, dnsFilterStats, dnsLatencyLastY, dnsLatencyPath, dnsQueryLastY, dnsQueryPath, dnsRewriteConfig, editingDnsRewriteRule, editingRuleSource, executeAIAction, executeHostUpgrade, executingAIActionId, executingHostUpgrade, executionModal, exportBackup, fakeIpFilters, fakeIpLoading, fetchDnsFilterStats, fetchRouterHardware, fetchSystemLogs, filterConfig, filteredGeodataFiles, formatExpire, geoAutoUpdateEnabled, geoUpdateLog, geodataFilterCategory, geodataFilterEngine, geodataLastUpdateText, geodataSearchQuery, geodataStatus, getNodeDelayClass, getSubRegions, handleInitBackupUpload, handleInitFileDrop, hasAnyUpdate, healingSteps, hostBadge, hostConfig, hostInfo, hostLastExecution, hostUpgradeDetails, hostUpgradeResult, importBackup, initBackupFileInput, initDetectedPlatform, initExecuting, initHostForm, initImportStats, initImportSuccess, initImporting, initLogs, initWizardImportTab, initWizardStep, inspectAndCleanReapplyRos, ir, isHotRestarting, isIKuai, isOpenWrt, isProbingAll, isRouterOS, isSubDrawerExpanded, isUpdatingSource, launchFireworks, lockConsoleNow, logContainerRef, logFilterLevel, logFilterModule, logSearchQuery, newFakeIpInput, newWhitelistDomain, openAddDnsRewriteModal, openAddSourceModal, openEditDnsRewriteModal, openEditSourceModal, openGitHubIssuePrompt, openProbeModal, openSourcePreview, openUpgradeModal, onHostPlatformChange, panelUpgradeLog, parsedBatchNodes, parsedBatchSubs, previewingSource, probeAllFourDimensions, probeChecked, probeLastTime, refreshSourceItem, removeFakeIpFilter, removeWhitelistItem, resetDnsRewriteDefaults, routerHW, routerHWMemoryDisplay, runSecurityAudit, runSubSpeedTest, saveAIConfig, saveDnsRewriteRule, saveFilterAutoUpdate, saveRuleSource, savingAndLinkingHost, securityAudit, selectAIProvider, sendAIChat, setNodeAsPrimaryOutbound, showAISettingsModal, showAuthManageModal, showDnsRewriteModal, showImportModal, showInitWizardModal, showLogsModal, showProbeModal, showGeodataDetailModal, showRuleSourceModal, showSourcePreviewModal, saveCredentialsAndLinkHost, startInitStep3Execution, stopFireworks, subHealthMap, subMetaMap, subModalTab, subNodesMap, subQuotaMap, subSpeedTesting, submitBatchNodes, submitBatchSubs, submitInitWizardImportAndLaunch, systemOverview, toggleCoreUpgradeFreeze, toggleDnsRewriteMaster, toggleDnsRewriteRule, toggleFilterMaster, toggleGeoAutoUpdate, toggleSourceItem, toggleSubDrawer, toggleSubscription, triggerFastSelfHeal, triggerHotRestart, triggerWANHeal, triggerInitBackupSelect, triggerQuickAIPrompt, updateAllSubscriptions, updateDetailText, updateGeoData, updateSubscription, updateSummaryText, updatingGeo, upgradeCore, upgradePanel, upgradingCoreMihomo, upgradingCoreSingbox, upgradingPanel, uploadToGithubIssue, withdrawHostBypass, withdrawingHostBypass
 }))
 
 onMounted(async () => {
@@ -22419,6 +22519,7 @@ onMounted(async () => {
         fetchSystemLogs()
       } else if (activeMasterTab.value === 'rules') {
         fetchDnsFilterStats()
+        fetchDnsRewriteConfig()
       }
     })
   })

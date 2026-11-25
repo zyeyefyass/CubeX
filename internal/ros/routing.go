@@ -2094,6 +2094,9 @@ func (m *Manager) PurgeConflictingFakeIPRoutes(targetIP string) int {
 // PurgeStaleFakeIPConnections scans and removes lingering Fake-IP (198.18.0.0/15) connections
 // from the RouterOS connection tracking table.
 func (m *Manager) PurgeStaleFakeIPConnections() int {
+	if !m.IsConfigured() {
+		return 0
+	}
 	data, err := m.QueryROS("/ip/firewall/connection")
 	if err != nil {
 		return 0
@@ -2618,6 +2621,9 @@ func (m *Manager) TriggerPreShutdownFailover() error {
 // RestoreRulesAfterBoot ensures that DNS hijack NAT rules and Fake-IP static route on RouterOS
 // are re-enabled (disabled: false) when CubeX starts up.
 func (m *Manager) RestoreRulesAfterBoot() error {
+	if !m.IsConfigured() {
+		return nil
+	}
 	var firstErr error
 	recordErr := func(e error) {
 		if e != nil && firstErr == nil {
@@ -2671,6 +2677,9 @@ func (m *Manager) RestoreRulesAfterBoot() error {
 // EnsureFakeIPRoute verifies that the static route 198.18.0.0/15 pointing to targetIP exists on RouterOS.
 // If missing or inactive, it re-creates or re-enables it immediately and returns true (restored).
 func (m *Manager) EnsureFakeIPRoute(targetIP string) bool {
+	if !m.IsConfigured() {
+		return false
+	}
 	isValidIPv4 := func(s string) bool {
 		ip := net.ParseIP(strings.TrimSpace(s))
 		return ip != nil && ip.To4() != nil && !ip.IsLoopback()

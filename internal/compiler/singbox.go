@@ -156,9 +156,15 @@ func makeSingboxDNSServer(tag, rawAddr, detour string) map[string]any {
 
 		}
 
-		serverMap["server"] = rawAddr
-
+		hostPort := strings.TrimSpace(strings.TrimPrefix(rawAddr, "udp://"))
+		serverMap["server"] = hostPort
 		serverMap["server_port"] = 53
+		if h, pStr, err := net.SplitHostPort(hostPort); err == nil && h != "" {
+			serverMap["server"] = h
+			if p, pErr := strconv.Atoi(pStr); pErr == nil && p > 0 {
+				serverMap["server_port"] = p
+			}
+		}
 
 	}
 
@@ -280,6 +286,8 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 		},
 	}
 
+	isDirectPassthrough := ir.Meta.ProxyPaused || ir.Meta.ProxyMode == schema.ModeDirect
+
 	// 1. DNS Section (v1.14+ compliant)
 
 	directDNSAddr := "223.5.5.5"
@@ -362,77 +370,77 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 
 	localDNSServer, _ := resolveSafeLocalDNSServer(resolvConfPath, localIPs, gatewayIP)
 
-	cfg["dns"] = map[string]any{
+	dnsServers := []map[string]any{
 
-		"servers": []map[string]any{
+		localDNSServer,
 
-			localDNSServer,
+		{
 
-			{
+			"tag": "dns-hosts",
 
-				"tag": "dns-hosts",
+			"type": "hosts",
 
-				"type": "hosts",
+			"predefined": map[string]any{
 
-				"predefined": map[string]any{
+				"probe.test": []string{"127.0.0.1"},
 
-					"probe.test": []string{"127.0.0.1"},
+				"probe.internal": []string{"127.0.0.1"},
 
-					"probe.internal": []string{"127.0.0.1"},
+				"dns.alidns.com": []string{"223.5.5.5", "223.6.6.6"},
 
-					"dns.alidns.com": []string{"223.5.5.5", "223.6.6.6"},
+				"doh.pub": []string{"1.12.12.12", "120.53.53.53"},
 
-					"doh.pub": []string{"1.12.12.12", "120.53.53.53"},
+				"dns.google": []string{"8.8.8.8", "8.8.4.4"},
 
-					"dns.google": []string{"8.8.8.8", "8.8.4.4"},
+				"cloudflare-dns.com": []string{"1.1.1.1", "1.0.0.1"},
 
-					"cloudflare-dns.com": []string{"1.1.1.1", "1.0.0.1"},
+				"1.1.1.1": []string{"1.1.1.1"},
 
-					"1.1.1.1": []string{"1.1.1.1"},
-
-					"8.8.8.8": []string{"8.8.8.8"},
-				},
-			},
-
-			{
-
-				"tag": "dns-bootstrap",
-
-				"type": "udp",
-
-				"server": "223.5.5.5",
-
-				"server_port": 53,
-
-				"detour": "direct",
-			},
-
-			{
-
-				"tag": "dns-bootstrap-backup",
-
-				"type": "udp",
-
-				"server": "119.29.29.29",
-
-				"server_port": 53,
-
-				"detour": "direct",
-			},
-
-			directServer,
-
-			remoteServer,
-
-			{
-
-				"tag": "dns-fakeip",
-
-				"type": "fakeip",
-
-				"inet4_range": "198.18.0.0/15",
+				"8.8.8.8": []string{"8.8.8.8"},
 			},
 		},
+
+		{
+
+			"tag": "dns-bootstrap",
+
+			"type": "udp",
+
+			"server": "223.5.5.5",
+
+			"server_port": 53,
+
+			"detour": "direct",
+		},
+
+		{
+
+			"tag": "dns-bootstrap-backup",
+
+			"type": "udp",
+
+			"server": "119.29.29.29",
+
+			"server_port": 53,
+
+			"detour": "direct",
+		},
+
+		directServer,
+
+		remoteServer,
+	}
+	if !isDirectPassthrough {
+		dnsServers = append(dnsServers, map[string]any{
+			"tag":         "dns-fakeip",
+			"type":        "fakeip",
+			"inet4_range": "198.18.0.0/15",
+		})
+	}
+
+	cfg["dns"] = map[string]any{
+
+		"servers": dnsServers,
 
 		"rules": func() []map[string]any {
 
@@ -477,6 +485,38 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 
 				}
 
+			}
+
+			if isDirectPassthrough {
+				// 安全直通暂停模式：保留 53 端口在线与 DNS 重写，彻底关闭 Fake-IP 劫持，全部解析走 dns-direct 返回真实公网 IP
+				directPassthroughRules := []map[string]any{
+					{
+						"domain": []string{"probe.test", "probe.internal"},
+						"action": "predefined",
+						"rcode":  "NOERROR",
+						"answer": []string{"probe.test. 60 IN A 127.0.0.1", "probe.internal. 60 IN A 127.0.0.1"},
+					},
+					{
+						"query_type": func() []string {
+							qt := []string{"HTTPS", "SVCB"}
+							if !net.IPv6 {
+								qt = append(qt, "AAAA")
+							}
+							return qt
+						}(),
+						"action": "predefined",
+						"rcode":  "NOERROR",
+					},
+					{
+						"domain_suffix": []string{".lan", ".local", ".home", ".internal", ".home.arpa", ".test"},
+						"server":        "dns-local",
+					},
+					{
+						"domain_regex": []string{"^[^.]+$"},
+						"server":       "dns-local",
+					},
+				}
+				return append(rules, directPassthroughRules...)
 			}
 
 			baseRules := []map[string]any{
@@ -530,14 +570,14 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 
 					"server": "dns-local",
 				},
-
-				{
-
+			}
+			if len(proxyDirectDomains) > 0 {
+				baseRules = append(baseRules, map[string]any{
 					"domain": proxyDirectDomains,
-
 					"server": "dns-bootstrap",
-				},
-
+				})
+			}
+			baseRules = append(baseRules, []map[string]any{
 				{
 
 					"clash_mode": "direct",
@@ -727,13 +767,18 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 
 					"server": "dns-fakeip",
 				},
-			}
+			}...)
 
 			return append(rules, baseRules...)
 
 		}(),
 
-		"final": "dns-remote",
+		"final": func() string {
+			if isDirectPassthrough {
+				return "dns-direct"
+			}
+			return "dns-remote"
+		}(),
 
 		"reverse_mapping": true,
 
@@ -2961,6 +3006,52 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 
 		}
 
+	}
+
+	if isDirectPassthrough {
+		// 安全直通暂停模式：保留 sniff 与 hijack-dns 维持 53 端口解析在线，其余流量 100% 直出 direct
+		passthroughRules := make([]map[string]any, 0, 5)
+		if len(sniffInbounds) > 0 {
+			passthroughRules = append(passthroughRules, map[string]any{
+				"inbound": sniffInbounds,
+				"action":  "sniff",
+				"sniffer": []string{"http", "tls"},
+				"timeout": "150ms",
+			})
+		}
+		passthroughRules = append(passthroughRules,
+			map[string]any{"inbound": []string{"dns-in"}, "action": "hijack-dns"},
+			map[string]any{"port": []int{53, dnsPort}, "action": "hijack-dns"},
+			map[string]any{"protocol": "dns", "action": "hijack-dns"},
+		)
+		var dnsCfgMap map[string]any
+		if dMap, ok := cfg["dns"].(map[string]any); ok {
+			dnsCfgMap = dMap
+		}
+		activeRuleSets := pruneUnusedSingboxRuleSets(ruleSets, dnsCfgMap, passthroughRules)
+		cfg["route"] = map[string]any{
+			"auto_detect_interface":   false,
+			"default_interface":       detectDefaultInterface(),
+			"default_domain_resolver": "dns-direct",
+			"rule_set":                activeRuleSets,
+			"rules":                   passthroughRules,
+			"final":                   "direct",
+		}
+		clashDefaultMode := string(schema.ModeDirect)
+		cfg["experimental"] = map[string]any{
+			"cache_file": map[string]any{
+				"enabled":      true,
+				"path":         "singbox_cache.db",
+				"store_fakeip": false,
+				"store_dns":    true,
+			},
+			"clash_api": map[string]any{
+				"external_controller": fmt.Sprintf("0.0.0.0:%d", net.ClashAPIPort),
+				"secret":              net.ClashSecret,
+				"default_mode":        clashDefaultMode,
+			},
+		}
+		return json.MarshalIndent(cfg, "", "  ")
 	}
 
 	finalOutbound := "direct"

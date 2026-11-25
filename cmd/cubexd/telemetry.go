@@ -642,7 +642,7 @@ func (s *Server) startConntrackSweeper() {
 
 		time.Sleep(5 * time.Second)
 
-		if s.rosMgr != nil {
+		if s.shouldRunROSPatrol() {
 			targetIP := s.rosMgr.GetOutboundIP()
 			if targetIP == "" {
 				conn, err := net.Dial("udp", "8.8.8.8:80")
@@ -694,7 +694,7 @@ func (s *Server) startConntrackSweeper() {
 
 			loopCount++
 
-			if s.rosMgr != nil {
+			if s.shouldRunROSPatrol() {
 				targetIP := s.rosMgr.GetOutboundIP()
 				if targetIP == "" {
 					conn, err := net.Dial("udp", "8.8.8.8:80")

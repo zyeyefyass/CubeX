@@ -73,4 +73,33 @@ func TestDNSRewriteManager(t *testing.T) {
 	if len(mgr2.GetAllRules()) != len(rules) {
 		t.Errorf("Expected %d rules after deletion, got %d", len(rules), len(mgr2.GetAllRules()))
 	}
+
+	// Single rule add + reload persistence check
+	single, err := mgr2.AddRule("nas-box.lan", schema.DNSRewriteTypeA, "10.0.0.88", "NAS Box")
+	if err != nil {
+		t.Fatalf("Failed to add single A record: %v", err)
+	}
+	mgr3 := NewManager(tempDir)
+	cfg3 := mgr3.GetConfig()
+	foundSingle := false
+	for _, r := range cfg3.Rules {
+		if r.ID == single.ID && r.Domain == "nas-box.lan" && r.Target == "10.0.0.88" {
+			foundSingle = true
+			break
+		}
+	}
+	if !foundSingle {
+		t.Fatalf("expected single added rule %q to persist across NewManager reload, got %+v", single.ID, cfg3.Rules)
+	}
+
+	// Empty rules persistence check (clearing all rules must not revert to defaults on restart)
+	for _, r := range cfg3.Rules {
+		if err := mgr3.DeleteRule(r.ID); err != nil {
+			t.Fatalf("delete rule %s failed: %v", r.ID, err)
+		}
+	}
+	mgr4 := NewManager(tempDir)
+	if got := mgr4.GetAllRules(); len(got) != 0 {
+		t.Fatalf("expected 0 rules after clearing all and reloading, got %d", len(got))
+	}
 }

@@ -55,6 +55,8 @@ type MetaConfig struct {
 	Version       string     `json:"version" yaml:"version"`
 	ActiveEngine  EngineType `json:"active_engine" yaml:"active_engine"`
 	ProxyMode     ProxyMode  `json:"proxy_mode" yaml:"proxy_mode"`
+	ProxyPaused   bool       `json:"proxy_paused,omitempty" yaml:"proxy_paused,omitempty"`
+	PrePauseMode  ProxyMode  `json:"pre_pause_mode,omitempty" yaml:"pre_pause_mode,omitempty"`
 	ActiveProfile string     `json:"active_profile" yaml:"active_profile"`
 	Edition       string     `json:"edition" yaml:"edition"` // "geek" or "novice"
 	LogLevel      string     `json:"log_level" yaml:"log_level"`

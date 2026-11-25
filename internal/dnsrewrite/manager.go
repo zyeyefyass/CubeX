@@ -79,7 +79,7 @@ func NewManager(workDir string) *Manager {
 
 func (m *Manager) loadLocked() {
 	if _, err := os.Stat(m.filePath); os.IsNotExist(err) {
-		m.saveLocked()
+		_ = m.saveLocked()
 		return
 	}
 	data, err := os.ReadFile(m.filePath)
@@ -88,8 +88,8 @@ func (m *Manager) loadLocked() {
 	}
 	var loaded Config
 	if err := json.Unmarshal(data, &loaded); err == nil {
-		if len(loaded.Rules) == 0 {
-			loaded = DefaultConfig()
+		if loaded.Rules == nil {
+			loaded.Rules = []schema.DNSRewriteRule{}
 		}
 		m.cfg = loaded
 	}
@@ -100,7 +100,7 @@ func (m *Manager) saveLocked() error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(m.filePath, data, 0644)
+	return schema.WriteFileAtomicSecure(m.filePath, data)
 }
 
 // GetConfig returns a deep copy of the DNS rewrite configuration.

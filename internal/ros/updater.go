@@ -429,7 +429,7 @@ func (m *Manager) GetOverview() map[string]any {
 
 	if latestPanel == "" {
 
-		latestPanel = "v9.94"
+		latestPanel = "v9.95"
 
 	}
 
@@ -1294,7 +1294,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 // ──────────────────────────────────────────────
 
 func (m *Manager) getLocalPanelVersion() string {
-	return "v9.94"
+	return "v9.95"
 
 }
 
@@ -1312,6 +1312,14 @@ func (m *Manager) getEffectiveLocalPanelVersion() string {
 		}
 	}
 	return m.getLocalPanelVersion()
+}
+
+// IsConfigured returns true if RouterOS host and user credentials are non-empty.
+func (m *Manager) IsConfigured() bool {
+	m.mu.RLock()
+	configured := strings.TrimSpace(m.config.Host) != "" && strings.TrimSpace(m.config.User) != ""
+	m.mu.RUnlock()
+	return configured
 }
 
 // IsConnected returns whether the RouterOS host is currently reachable and authenticated.

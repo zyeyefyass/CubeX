@@ -547,6 +547,12 @@ func (s *Server) handleEngineMode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ir.Meta.ProxyMode = schema.ProxyMode(mode)
+	if ir.Meta.ProxyMode == schema.ModeDirect {
+		ir.Meta.ProxyPaused = true
+	} else {
+		ir.Meta.ProxyPaused = false
+		ir.Meta.PrePauseMode = ir.Meta.ProxyMode
+	}
 	if err := s.engMgr.UpdateIRWithErr(ir); err != nil {
 		http.Error(w, "failed to persist mode change: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -556,13 +562,96 @@ func (s *Server) handleEngineMode(w http.ResponseWriter, r *http.Request) {
 	active := s.engMgr.GetActiveEngine()
 	if active != "" {
 		if _, err := s.engMgr.SwitchEngine(active); err != nil {
-			sendJSON(w, map[string]any{"status": "saved_with_warning", "mode": ir.Meta.ProxyMode, "warning": err.Error()})
+			sendJSON(w, map[string]any{"status": "saved_with_warning", "mode": ir.Meta.ProxyMode, "proxy_paused": ir.Meta.ProxyPaused, "warning": err.Error()})
 			return
 		}
 	}
 
-	sendJSON(w, map[string]any{"status": "ok", "mode": ir.Meta.ProxyMode})
+	sendJSON(w, map[string]any{"status": "ok", "mode": ir.Meta.ProxyMode, "proxy_paused": ir.Meta.ProxyPaused})
 
+}
+
+// handleEnginePause switches CubeX into or out of safe direct passthrough pause mode:
+// keeps core + :53 DNS + :2026 console alive, disables Fake-IP hijacking (returns real IPs),
+// and routes all traffic direct without modifying user routers.
+func (s *Server) handleEnginePause(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Paused *bool `json:"paused"`
+	}
+	if r.Body != nil {
+		_ = json.NewDecoder(r.Body).Decode(&req)
+	}
+
+	ir := s.engMgr.GetIR()
+	if ir == nil {
+		http.Error(w, "IR not initialized", http.StatusInternalServerError)
+		return
+	}
+
+	targetPaused := !ir.Meta.ProxyPaused
+	if req.Paused != nil {
+		targetPaused = *req.Paused
+	}
+
+	if targetPaused {
+		if !ir.Meta.ProxyPaused && ir.Meta.ProxyMode != "" && ir.Meta.ProxyMode != schema.ModeDirect {
+			ir.Meta.PrePauseMode = ir.Meta.ProxyMode
+		}
+		if ir.Meta.PrePauseMode == "" || ir.Meta.PrePauseMode == schema.ModeDirect {
+			ir.Meta.PrePauseMode = schema.ModeRule
+		}
+		ir.Meta.ProxyPaused = true
+		ir.Meta.ProxyMode = schema.ModeDirect
+	} else {
+		restoreMode := ir.Meta.PrePauseMode
+		if restoreMode == "" || restoreMode == schema.ModeDirect {
+			restoreMode = schema.ModeRule
+		}
+		ir.Meta.ProxyPaused = false
+		ir.Meta.ProxyMode = restoreMode
+	}
+
+	if err := s.engMgr.UpdateIRWithErr(ir); err != nil {
+		http.Error(w, "failed to persist pause state: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.ir = ir
+
+	active := s.engMgr.GetActiveEngine()
+	if active != "" {
+		if _, err := s.engMgr.SwitchEngine(active); err != nil {
+			sendJSON(w, map[string]any{
+				"ok":             true,
+				"status":         "saved_with_warning",
+				"proxy_paused":   ir.Meta.ProxyPaused,
+				"proxy_mode":     ir.Meta.ProxyMode,
+				"pre_pause_mode": ir.Meta.PrePauseMode,
+				"warning":        err.Error(),
+			})
+			return
+		}
+	}
+
+	if s.logBuffer != nil {
+		if ir.Meta.ProxyPaused {
+			s.logBuffer.Add("INFO", "ENGINE", "已切换至安全直通暂停模式（保持 :53 DNS 与 :2026 控制台在线，已关闭 Fake-IP 返回真实公网 IP）")
+		} else {
+			s.logBuffer.Add("INFO", "ENGINE", fmt.Sprintf("已恢复代理分流运行（当前模式: %s）", ir.Meta.ProxyMode))
+		}
+	}
+
+	sendJSON(w, map[string]any{
+		"ok":             true,
+		"status":         "ok",
+		"proxy_paused":   ir.Meta.ProxyPaused,
+		"proxy_mode":     ir.Meta.ProxyMode,
+		"pre_pause_mode": ir.Meta.PrePauseMode,
+	})
 }
 
 
