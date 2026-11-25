@@ -13,10 +13,8 @@ import subprocess
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 os.chdir(ROOT)
 
-RAW_ARG = sys.argv[1] if len(sys.argv) > 1 else "9.5.0"
-CLEAN_NUM = RAW_ARG.lstrip("v").lstrip("Test-v").lstrip("Test v")
-if CLEAN_NUM.count('.') == 1:
-    CLEAN_NUM += ".0"
+RAW_ARG = sys.argv[1] if len(sys.argv) > 1 else "9.91"
+CLEAN_NUM = re.sub(r"^(?:Test[-_\s]*)?v?", "", RAW_ARG.strip(), flags=re.IGNORECASE)
 
 TARGET_VER = f"v{CLEAN_NUM}"
 TARGET_TAG = f"v{CLEAN_NUM}"

@@ -738,3 +738,74 @@ fi
 	}
 	return logs, nil
 }
+
+// RemoveBypass cleanly stops the watchdog and removes all CubeX UCI/firewall/mwan3/kernel rules from OpenWrt.
+func (c *Client) RemoveBypass(backupDNS string) ([]string, error) {
+	restoreDNS := ""
+	if trimmed := strings.TrimSpace(backupDNS); trimmed != "" {
+		restoreDNS = fmt.Sprintf("uci add_list dhcp.lan.dhcp_option='6,%s'", trimmed)
+	}
+
+	script := fmt.Sprintf(`
+set -e
+# 1. Stop & remove procd watchdog
+if [ -x /etc/init.d/cubex-watchdog ]; then
+    /etc/init.d/cubex-watchdog stop >/dev/null 2>&1 || true
+    /etc/init.d/cubex-watchdog disable >/dev/null 2>&1 || true
+fi
+rm -f /etc/init.d/cubex-watchdog /usr/bin/cubex-watchdog.sh
+
+# 2. Clean kernel route, ip rules, iptables & nftables overrides
+ip route del 198.18.0.0/15 2>/dev/null || true
+ip rule del to 198.18.0.0/15 lookup main pref 100 2>/dev/null || true
+while ip rule show | grep -q "pref 100.*lookup main"; do
+    ip rule del pref 100 2>/dev/null || break
+done
+iptables -D FORWARD -d 198.18.0.0/15 -j ACCEPT 2>/dev/null || true
+iptables -D FORWARD -s 198.18.0.0/15 -j ACCEPT 2>/dev/null || true
+iptables -t mangle -D PREROUTING -d 198.18.0.0/15 -j ACCEPT 2>/dev/null || true
+iptables -t mangle -D PREROUTING -s 198.18.0.0/15 -j ACCEPT 2>/dev/null || true
+rm -f /etc/nftables.d/10-cubex-offload-exempt.nft /etc/nftables.d/20-cubex-dns-intercept.nft 2>/dev/null || true
+
+# 3. Clean UCI network, firewall, mwan3 entries
+uci -q delete network.cubex_fakeip || true
+uci -q delete network.cubex_shim_route || true
+uci commit network 2>/dev/null || true
+
+uci -q delete firewall.cubex_dnat || true
+uci -q delete firewall.cubex_hairpin || true
+uci -q delete firewall.cubex_bypass || true
+uci commit firewall 2>/dev/null || true
+
+if [ -f /etc/config/mwan3 ]; then
+    uci -q delete mwan3.cubex_fakeip || true
+    uci -q delete mwan3.cubex_gw || true
+    uci commit mwan3 2>/dev/null || true
+    /usr/sbin/mwan3 restart >/dev/null 2>&1 || true
+fi
+
+# 4. Restore DHCP Option 6 and odhcpd DNS
+for opt in $(uci -q get dhcp.lan.dhcp_option 2>/dev/null); do
+    case "$opt" in
+        6,*) uci -q del_list dhcp.lan.dhcp_option="$opt" ;;
+    esac
+done
+%s
+uci -q delete dhcp.lan.ra_dns || true
+uci -q delete dhcp.lan.dns_service || true
+uci commit dhcp 2>/dev/null || true
+/etc/init.d/dnsmasq reload >/dev/null 2>&1 || /etc/init.d/dnsmasq restart >/dev/null 2>&1 || true
+/etc/init.d/odhcpd restart >/dev/null 2>&1 || true
+`, restoreDNS)
+
+	out, err := c.runSSHCommand(script)
+	if err != nil {
+		return nil, fmt.Errorf("RemoveBypass failed on OpenWrt: %w (%s)", err, out)
+	}
+
+	return []string{
+		"✓ [OpenWrt] 已停止并卸载 cubex-watchdog 守护脚本与 procd 服务",
+		"✓ [OpenWrt] 已清理 UCI network/firewall/mwan3 全部 CubeX 策略与 nftables 豁免文件",
+		"✓ [OpenWrt] 已移除内核 198.18.0.0/15 路由与 DHCP Option 6 劫持并重载 dnsmasq，无任何残留",
+	}, nil
+}

@@ -424,6 +424,8 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 
 	mux.HandleFunc("/api/v1/host/firewall/apply", s.handleHostFirewallApply)
 
+	mux.HandleFunc("/api/v1/host/bypass/remove", s.handleHostBypassRemove)
+
 	mux.HandleFunc("/api/v1/host/firewall/script", s.handleHostFirewallScript)
 
 	// 6. RouterOS v7 REST API Inspection & 1-Click Linkage

@@ -792,9 +792,18 @@ func (c *Client) DetectLANInterface(targetIP string) string {
 		if jsonErr := json.Unmarshal(resp.Payload(), &lanData); jsonErr == nil && len(lanData.Data) > 0 {
 			for _, item := range lanData.Data {
 				iface := fmt.Sprintf("%v", item["interface"])
+				if iface == "" || iface == "<nil>" {
+					iface = fmt.Sprintf("%v", item["name"])
+				}
 				ipStr := fmt.Sprintf("%v", item["ip_addr"])
 				maskStr := fmt.Sprintf("%v", item["netmask"])
-				if iface != "" && iface != "<nil>" && ipStr != "" && maskStr != "" {
+				if (ipStr == "" || ipStr == "<nil>") && item["ip_mask"] != nil {
+					if parts := strings.Split(fmt.Sprintf("%v", item["ip_mask"]), "/"); len(parts) == 2 {
+						ipStr = parts[0]
+						maskStr = parts[1]
+					}
+				}
+				if iface != "" && iface != "<nil>" && ipStr != "" && ipStr != "<nil>" && maskStr != "" && maskStr != "<nil>" {
 					ip := net.ParseIP(ipStr)
 					mask := parseIPv4Mask(maskStr)
 					if ip != nil && mask != nil {
@@ -934,6 +943,7 @@ func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
 		// 爱快 4.0+ 静态路由处理
 		var rData struct {
 			Data []struct {
+				ID      any    `json:"id"`
 				RowID   any    `json:"rowid"`
 				DstAddr string `json:"dst_addr"`
 				Gateway string `json:"gateway"`
@@ -943,25 +953,29 @@ func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
 
 		hasRoute := false
 		for _, r := range rData.Data {
-			if strings.HasPrefix(r.DstAddr, "198.18.0.0") {
+			if strings.HasPrefix(r.DstAddr, "198.18.0.0") || strings.HasPrefix(r.DstAddr, "198.19.0.0") {
 				if r.Gateway == cubexIP {
 					hasRoute = true
-					logs = append(logs, fmt.Sprintf("爱快 4.0 静态路由 198.18.0.0/15 -> %s 已存在，无需重复添加", cubexIP))
-					break
+					logs = append(logs, fmt.Sprintf("爱快 4.0 静态路由 %s -> %s 已存在，无需重复添加", r.DstAddr, cubexIP))
 				} else {
-					// Gateway mismatched, delete old
-					rowidStr := fmt.Sprintf("%v", r.RowID)
-					_, _ = c.Call("static_rt", "del", map[string]string{"rowid": rowidStr})
+					// Gateway mismatched, delete old (4.0.317 uses "id", older builds use "rowid")
+					if r.ID != nil {
+						_, _ = c.Call("static_rt", "del", map[string]any{"id": r.ID})
+					} else if r.RowID != nil {
+						_, _ = c.Call("static_rt", "del", map[string]any{"rowid": r.RowID})
+					}
 					logs = append(logs, fmt.Sprintf("清理指向错误网关 (%s) 的旧爱快 4.0 静态路由", r.Gateway))
 				}
 			}
 		}
 
 		if !hasRoute {
+			// Note: iKuai 4.0.317 strictly validates tagname length (<= 15 chars)
 			addResp, addErr := c.Call("static_rt", "add", map[string]any{
 				"enabled":   "yes",
 				"ip_type":   "4",
-				"tagname":   "CubeX-FakeIP-Bypass",
+				"tagname":   "CubeX-Bypass",
+				"comment":   "CubeX-FakeIP",
 				"prio":      1,
 				"dst_addr":  "198.18.0.0",
 				"netmask":   "255.254.0.0",
@@ -971,13 +985,29 @@ func (c *Client) ApplyBypass(cubexIP string) ([]string, error) {
 			if addErr == nil && addResp.IsSuccess() {
 				logs = append(logs, fmt.Sprintf("成功在爱快 4.0 中创建静态回指路由: 198.18.0.0/15 -> %s (接口 %s)", cubexIP, lanIf))
 			} else {
-				errMsg := "未知错误"
-				if addErr != nil {
-					errMsg = addErr.Error()
-				} else if addResp != nil {
-					errMsg = addResp.ErrorMessage()
+				// Fallback: dual /16 routes in case /15 mask validation fails on certain 4.0 builds
+				r1, e1 := c.Call("static_rt", "add", map[string]any{
+					"enabled": "yes", "ip_type": "4", "tagname": "CubeX-Bypass-1", "comment": "CubeX-FakeIP-1",
+					"prio": 1, "dst_addr": "198.18.0.0", "netmask": "255.255.0.0",
+					"gateway": cubexIP, "interface": lanIf,
+				})
+				r2, e2 := c.Call("static_rt", "add", map[string]any{
+					"enabled": "yes", "ip_type": "4", "tagname": "CubeX-Bypass-2", "comment": "CubeX-FakeIP-2",
+					"prio": 1, "dst_addr": "198.19.0.0", "netmask": "255.255.0.0",
+					"gateway": cubexIP, "interface": lanIf,
+				})
+				if e1 == nil && r1.IsSuccess() && e2 == nil && r2.IsSuccess() {
+					logs = append(logs, fmt.Sprintf("成功在爱快 4.0 中创建双 /16 静态回指路由: 198.18.0.0/16 & 198.19.0.0/16 -> %s (接口 %s)", cubexIP, lanIf))
+				} else {
+					errMsg := "未知错误"
+					if addErr != nil {
+						errMsg = addErr.Error()
+					} else if addResp != nil {
+						errMsg = addResp.ErrorMessage()
+					}
+					logs = append(logs, fmt.Sprintf("爱快 4.0 添加静态路由失败: %s", errMsg))
+					return logs, fmt.Errorf("爱快 4.0 添加静态路由失败: %s", errMsg)
 				}
-				logs = append(logs, fmt.Sprintf("爱快 4.0 添加静态路由失败: %s", errMsg))
 			}
 		}
 		return logs, nil
@@ -1217,4 +1247,129 @@ func (c *Client) SyncSelfHealing(cubexIP string) ([]string, error) {
 		return nil, fmt.Errorf("爱快自愈修复失败: %w", applyErr)
 	}
 	return append([]string{fmt.Sprintf("⚠️ 检测到爱快旁路配置漂移 (%s)，已触发自动自愈加固：", details)}, logs...), nil
+}
+
+// RemoveBypass cleanly withdraws CubeX static routes, Multi-WAN exemptions, DHCP DNS, and Option 6 from iKuai.
+func (c *Client) RemoveBypass(cubexIP, backupDNS string) ([]string, error) {
+	if strings.TrimSpace(backupDNS) == "" {
+		backupDNS = "223.5.5.5"
+	}
+	logs := []string{}
+
+	// 1. Restore DHCP server dns1 if pointing to cubexIP
+	fnDHCP, dhcpList, errDHCP := c.getDHCPConfig()
+	if errDHCP == nil && len(dhcpList) > 0 {
+		for _, d := range dhcpList {
+			currDNS1, _ := d["dns1"].(string)
+			currDNS2, _ := d["dns2"].(string)
+			if currDNS1 != "" && (cubexIP == "" || currDNS1 == cubexIP) {
+				targetDNS := backupDNS
+				if currDNS2 != "" && currDNS2 != cubexIP {
+					targetDNS = currDNS2
+				}
+				d["dns1"] = targetDNS
+				if editResp, err := c.Call(fnDHCP, "edit", d); err == nil && editResp.IsSuccess() {
+					logs = append(logs, fmt.Sprintf("✓ [爱快] 已撤回 DHCP 首选 DNS 并恢复为: %s", targetDNS))
+				}
+			}
+		}
+	}
+
+	// 2. Remove CubeX DHCP Option 6
+	for _, fn := range []string{"dhcp_option", "dhcp_custom"} {
+		resp, err := c.Call(fn, "show", map[string]string{"TYPE": "data,total", "limit": "0,50"})
+		if err == nil && resp.IsSuccess() && len(resp.Payload()) > 0 {
+			var optData struct {
+				Data []map[string]any `json:"data"`
+			}
+			if json.Unmarshal(resp.Payload(), &optData) == nil {
+				for _, item := range optData.Data {
+					comment := fmt.Sprintf("%v", item["comment"])
+					val := fmt.Sprintf("%v", item["ip"])
+					if strings.Contains(comment, "CubeX") || (cubexIP != "" && val == cubexIP) {
+						idVal := item["id"]
+						if idVal == nil {
+							idVal = item["rowid"]
+						}
+						if idVal != nil {
+							if delResp, delErr := c.Call(fn, "del", map[string]any{"id": idVal}); delErr == nil && delResp.IsSuccess() {
+								logs = append(logs, fmt.Sprintf("✓ [爱快] 已清理自定义 DHCP Option 6 (ID: %v)", idVal))
+							}
+						}
+					}
+				}
+			}
+			break
+		}
+	}
+
+	// 3. Remove 4.0 static_rt CubeX routes
+	if route4Resp, err4 := c.Call("static_rt", "show", map[string]string{"TYPE": "data,total", "limit": "0,100"}); err4 == nil && route4Resp.IsSuccess() {
+		var rData struct {
+			Data []struct {
+				ID      any    `json:"id"`
+				RowID   any    `json:"rowid"`
+				DstAddr string `json:"dst_addr"`
+				TagName string `json:"tagname"`
+			} `json:"data"`
+		}
+		if json.Unmarshal(route4Resp.Payload(), &rData) == nil {
+			for _, r := range rData.Data {
+				if strings.HasPrefix(r.DstAddr, "198.18.0.0") || strings.HasPrefix(r.DstAddr, "198.19.0.0") || strings.Contains(r.TagName, "CubeX") {
+					delParam := map[string]any{"rowid": fmt.Sprintf("%v", r.RowID)}
+					keyID := r.RowID
+					if r.ID != nil {
+						delParam = map[string]any{"id": r.ID}
+						keyID = r.ID
+					}
+					if delResp, delErr := c.Call("static_rt", "del", delParam); delErr == nil && delResp.IsSuccess() {
+						logs = append(logs, fmt.Sprintf("✓ [爱快 4.0] 已撤回静态回指路由 %s (id=%v)", r.DstAddr, keyID))
+					}
+				}
+			}
+		}
+	}
+
+	// 4. Remove 3.x route_static CubeX routes
+	if route3Resp, err3 := c.Call("route_static", "show", map[string]string{"TYPE": "data,total", "limit": "0,100"}); err3 == nil && route3Resp.IsSuccess() {
+		var rData struct {
+			Data []struct {
+				ID      any    `json:"id"`
+				IP      string `json:"ip"`
+				Comment string `json:"comment"`
+			} `json:"data"`
+		}
+		if json.Unmarshal(route3Resp.Payload(), &rData) == nil {
+			for _, r := range rData.Data {
+				if r.IP == "198.18.0.0" || r.IP == "198.19.0.0" || strings.Contains(r.Comment, "CubeX") {
+					if delResp, delErr := c.Call("route_static", "del", map[string]string{"id": fmt.Sprintf("%v", r.ID)}); delErr == nil && delResp.IsSuccess() {
+						logs = append(logs, fmt.Sprintf("✓ [爱快 3.x] 已撤回静态回指路由 %s (id=%v)", r.IP, r.ID))
+					}
+				}
+			}
+		}
+	}
+
+	// 5. Remove Multi-WAN exemptions
+	if mwResp, mwErr := c.Call("stream_ip", "show", map[string]string{"TYPE": "data,total", "limit": "0,100"}); mwErr == nil && mwResp.IsSuccess() {
+		var sData struct {
+			Data []map[string]any `json:"data"`
+		}
+		if json.Unmarshal(mwResp.Payload(), &sData) == nil {
+			for _, r := range sData.Data {
+				dstIP := fmt.Sprintf("%v", r["dst_ip"])
+				comment := fmt.Sprintf("%v", r["comment"])
+				if (strings.Contains(dstIP, "198.18.0.0") || strings.Contains(comment, "CubeX")) && r["id"] != nil {
+					if delResp, delErr := c.Call("stream_ip", "del", map[string]any{"id": r["id"]}); delErr == nil && delResp.IsSuccess() {
+						logs = append(logs, fmt.Sprintf("✓ [爱快] 已撤回多线豁免策略 (ID: %v)", r["id"]))
+					}
+				}
+			}
+		}
+	}
+
+	if len(logs) == 0 {
+		logs = append(logs, "✓ [爱快] 未发现残留 CubeX 旁路配置，状态已纯净")
+	}
+	return logs, nil
 }

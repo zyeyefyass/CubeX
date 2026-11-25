@@ -152,10 +152,29 @@
                 <span class="text-[11px] text-slate-600 font-mono font-medium">凭据仅保存在当前容器，绝不上传云端</span>
               </div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+                <div>
+                  <label class="block text-[11px] text-slate-800 font-bold mb-1">宿主底座类型</label>
+                  <select v-model="app.hostConfig.platform_type" @change="app.onHostPlatformChange"
+                    class="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all font-medium">
+                    <option value="">自动探测 (Auto)</option>
+                    <option value="routeros">RouterOS v7 (REST)</option>
+                    <option value="ikuai">爱快 iKuai (Web-RPC)</option>
+                    <option value="openwrt">OpenWrt / iStoreOS (SSH)</option>
+                    <option value="linux">Linux / 飞牛 / PVE (SSH)</option>
+                  </select>
+                </div>
                 <div>
                   <label class="block text-[11px] text-slate-800 font-bold mb-1">主路由 IP / 域名</label>
                   <input v-model="app.hostConfig.host" type="text" placeholder="自动探测或输入主路由 IP"
+                    class="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder-slate-400 text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all font-medium" />
+                </div>
+                <div>
+                  <label class="block text-[11px] text-slate-800 font-bold mb-1">
+                    管理端口
+                    <span class="text-[10px] font-normal text-slate-500">({{ (app.hostConfig.platform_type === 'openwrt' || app.hostConfig.platform_type === 'linux') ? 'SSH:22' : 'Web:80/443' }})</span>
+                  </label>
+                  <input v-model.number="app.hostConfig.port" type="number" min="1" max="65535" placeholder="80 / 443 / 22"
                     class="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 placeholder-slate-400 text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all font-medium" />
                 </div>
                 <div>

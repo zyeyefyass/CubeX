@@ -115,13 +115,48 @@ func (m *Manager) loadConfig() {
 	}
 }
 
+// ValidateHostPortForPlatform validates and normalizes the management port per host platform.
+func ValidateHostPortForPlatform(platformType string, port int) (int, error) {
+	plat := strings.ToLower(strings.TrimSpace(platformType))
+	switch plat {
+	case "ikuai":
+		if port == 22 {
+			return 0, fmt.Errorf("爱快 iKuai 走 Web-RPC 管理接口，不能使用 SSH 端口 22，请填写 80 或 443")
+		}
+		if port <= 0 {
+			return 80, nil
+		}
+		return port, nil
+	case "routeros":
+		if port == 22 {
+			return 0, fmt.Errorf("RouterOS REST API 不能使用 SSH 端口 22，请填写 80 (www) 或 443 (www-ssl)")
+		}
+		if port <= 0 {
+			return 80, nil
+		}
+		return port, nil
+	case "openwrt", "linux", "fnos", "pve":
+		if port <= 0 {
+			return 22, nil
+		}
+		return port, nil
+	default:
+		if port <= 0 {
+			return 22, nil
+		}
+		return port, nil
+	}
+}
+
 // SaveConfig persists the Host SSH configuration.
 func (m *Manager) SaveConfig(cfg HostConfig) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if cfg.Port <= 0 {
-		cfg.Port = 22
+	normPort, err := ValidateHostPortForPlatform(cfg.PlatformType, cfg.Port)
+	if err != nil {
+		return err
 	}
+	cfg.Port = normPort
 	if cfg.User == "" {
 		cfg.User = "root"
 	}
@@ -671,6 +706,12 @@ func (m *Manager) TestSSH(cfg HostConfig) (map[string]any, error) {
 		return nil, fmt.Errorf("检测到输入的 IP (%s) 为 CubeX 容器/本机自身 IP！此处必须填写上级主路由的管理 IP (例如主路由的真实 LAN IP，如 192.168.88.1 或当前网关)，切勿填写 CubeX 自身 IP", cfg.Host)
 	}
 
+	if normPort, err := ValidateHostPortForPlatform(cfg.PlatformType, cfg.Port); err != nil {
+		return nil, err
+	} else {
+		cfg.Port = normPort
+	}
+
 	// 1. If explicitly set to ikuai or openwrt, test directly
 	if cfg.PlatformType == "ikuai" {
 		return m.testIKuaiRPC(cfg)
@@ -749,7 +790,7 @@ func (m *Manager) syncToROSConfig(cfg HostConfig) error {
 	}
 	rosCfg["host"] = cfg.Host
 	portStr := "80"
-	if cfg.Port > 0 {
+	if cfg.Port > 0 && cfg.Port != 22 {
 		portStr = strconv.Itoa(cfg.Port)
 	}
 	rosCfg["port"] = portStr
@@ -1402,6 +1443,45 @@ func (m *Manager) SyncHostBypass() ([]string, error) {
 	}
 
 	return nil, nil
+}
+
+// RemoveHostBypass withdraws CubeX bypass routes, DHCP overrides, and watchdogs from iKuai or OpenWrt.
+func (m *Manager) RemoveHostBypass(backupDNS string) ([]string, error) {
+	m.mu.RLock()
+	cfg := m.config
+	cached := m.cachedInfo
+	m.mu.RUnlock()
+
+	if !cfg.Enabled || cfg.Host == "" {
+		return nil, fmt.Errorf("宿主机或主路由连接未配置")
+	}
+
+	plat := strings.ToLower(strings.TrimSpace(cfg.PlatformType))
+	if plat == "" && cached != nil {
+		plat = strings.ToLower(strings.TrimSpace(cached.PlatformID))
+	}
+
+	cubexIP := m.GetOutboundIP(cfg.Host)
+	switch plat {
+	case "ikuai":
+		client := ikuai.NewClient(ikuai.Config{
+			Host:     cfg.Host,
+			Port:     cfg.Port,
+			User:     cfg.User,
+			Password: cfg.Password,
+		})
+		return client.RemoveBypass(cubexIP, backupDNS)
+	case "openwrt":
+		client := openwrt.NewClient(openwrt.Config{
+			Host:     cfg.Host,
+			Port:     cfg.Port,
+			User:     cfg.User,
+			Password: cfg.Password,
+		})
+		return client.RemoveBypass(backupDNS)
+	default:
+		return []string{"当前宿主类型无待撤回的 iKuai/OpenWrt 旁路注入项"}, nil
+	}
 }
 
 // TriadNodeResult represents status for one of the three soft routers.

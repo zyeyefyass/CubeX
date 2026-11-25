@@ -386,7 +386,7 @@ func (m *Manager) GetOverview() map[string]any {
 
 	if latestPanel == "" {
 
-		latestPanel = "v9.9.9"
+		latestPanel = "v9.91"
 
 	}
 
@@ -500,11 +500,11 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 
 	}
 
-	currTag := m.getLocalPanelVersion()
+	currTag := m.getEffectiveLocalPanelVersion()
 
-	if !force && !IsVersionNewer(latestTag, currTag) {
+	if allow, reason := ShouldAllowPanelUpgrade(latestTag, currTag, force); !allow {
 
-		return currTag, fmt.Errorf("当前版本 (%s) 已是最新或高于云端版本 (%s)，无需升级", currTag, latestTag)
+		return currTag, fmt.Errorf("当前版本 (%s) 已是最新或高于云端版本 (%s)，无需升级 (%s)", currTag, latestTag, reason)
 
 	}
 
@@ -1012,22 +1012,16 @@ func (m *Manager) CheckROSFirmwareUpgradeDetails() (*ROSFirmwareCheckResult, err
 
 	}
 
-	scheme := "https"
-
-	if cfg.Port == "80" {
-
-		scheme = "http"
-
+	checkURL, urlErr := buildROSURLFrom(cfg.Host, cfg.Port, "system/package/update/check-for-updates")
+	if urlErr != nil {
+		return nil, urlErr
 	}
+	getURL, _ := buildROSURLFrom(cfg.Host, cfg.Port, "system/package/update")
 
 	tr := &http.Transport{
-
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-
 	client := &http.Client{Transport: tr, Timeout: 15 * time.Second}
-
-	checkURL := fmt.Sprintf("%s://%s:%s/rest/system/package/update/check-for-updates", scheme, cfg.Host, cfg.Port)
 
 	checkReq, _ := http.NewRequest(http.MethodPost, checkURL, bytes.NewBuffer([]byte("{}")))
 
@@ -1046,8 +1040,6 @@ func (m *Manager) CheckROSFirmwareUpgradeDetails() (*ROSFirmwareCheckResult, err
 		installed, latest, channel, status = parseROSUpdateJSON(postBody)
 
 	}
-
-	getURL := fmt.Sprintf("%s://%s:%s/rest/system/package/update", scheme, cfg.Host, cfg.Port)
 
 	// Poll GET if status is still searching
 
@@ -1208,12 +1200,9 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 
 	}
 
-	scheme := "https"
-
-	if cfg.Port == "80" {
-
-		scheme = "http"
-
+	statusUrl, urlErr := buildROSURLFrom(cfg.Host, cfg.Port, "system/package/update")
+	if urlErr != nil {
+		return urlErr
 	}
 
 	tr := &http.Transport{
@@ -1225,7 +1214,6 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 	}
 
 	// 1. Check if firmware is already downloaded
-	statusUrl := fmt.Sprintf("%s://%s:%s/rest/system/package/update", scheme, cfg.Host, cfg.Port)
 	stReq, _ := http.NewRequest(http.MethodGet, statusUrl, nil)
 	stReq.SetBasicAuth(cfg.User, cfg.Password)
 	
@@ -1244,7 +1232,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 
 	// 2. If not downloaded yet, trigger download first
 	if !alreadyDownloaded {
-		dlUrl := fmt.Sprintf("%s://%s:%s/rest/system/package/update/download", scheme, cfg.Host, cfg.Port)
+		dlUrl, _ := buildROSURLFrom(cfg.Host, cfg.Port, "system/package/update/download")
 		dlReq, _ := http.NewRequest(http.MethodPost, dlUrl, bytes.NewBuffer([]byte("{}")))
 		dlReq.SetBasicAuth(cfg.User, cfg.Password)
 		dlReq.Header.Set("Content-Type", "application/json")
@@ -1254,7 +1242,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 	}
 
 	// 3. Trigger install/reboot
-	url := fmt.Sprintf("%s://%s:%s/rest/system/package/update/install", scheme, cfg.Host, cfg.Port)
+	url, _ := buildROSURLFrom(cfg.Host, cfg.Port, "system/package/update/install")
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer([]byte("{}")))
 	if err != nil {
 		return err
@@ -1288,8 +1276,24 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 // ──────────────────────────────────────────────
 
 func (m *Manager) getLocalPanelVersion() string {
-	return "v9.9.9"
+	return "v9.91"
 
+}
+
+func (m *Manager) getEffectiveLocalPanelVersion() string {
+	if data, err := os.ReadFile(m.metaFile); err == nil {
+		var meta map[string]any
+		if json.Unmarshal(data, &meta) == nil {
+			if v, ok := meta["version"].(string); ok && strings.TrimSpace(v) != "" {
+				v = strings.TrimSpace(v)
+				if !strings.HasPrefix(strings.ToLower(v), "v") && !strings.HasPrefix(strings.ToLower(v), "test") {
+					v = "v" + v
+				}
+				return v
+			}
+		}
+	}
+	return m.getLocalPanelVersion()
 }
 
 // IsConnected returns whether the RouterOS host is currently reachable and authenticated.
@@ -1384,7 +1388,14 @@ func extractVersionNumbers(v string) []int {
 
 	}
 
+	// Prefer the first segment containing '.' so suffixes like "v9.91-rc1" or "v9.91-fix2" keep "9.91"
 	verStr := parts[len(parts)-1]
+	for _, p := range parts {
+		if strings.Contains(p, ".") {
+			verStr = strings.Trim(p, ".")
+			break
+		}
+	}
 
 	segStrs := strings.Split(verStr, ".")
 
@@ -1478,6 +1489,31 @@ func IsVersionNewer(candidate, current string) bool {
 
 	return false
 
+}
+
+// ShouldAllowPanelUpgrade evaluates whether upgrading from currTag to latestTag should proceed.
+// It supports cross-segment releases (e.g., v9.9.9 -> v9.91) and non-semver custom tags,
+// rejecting only when normalized tags are identical or currTag is strictly newer than latestTag.
+func ShouldAllowPanelUpgrade(latestTag, currTag string, force bool) (bool, string) {
+	if force {
+		return true, "forced"
+	}
+	latestTrim := strings.TrimSpace(latestTag)
+	currTrim := strings.TrimSpace(currTag)
+	if latestTrim == "" {
+		return false, "empty_latest"
+	}
+	if normalizeVersion(latestTrim) == normalizeVersion(currTrim) {
+		return false, "already_latest"
+	}
+	if IsVersionNewer(latestTrim, currTrim) {
+		return true, "newer_version"
+	}
+	if IsVersionNewer(currTrim, latestTrim) {
+		return false, "local_is_newer"
+	}
+	// Cross-format / custom suffix tags where numeric prefix matches or is unparsed
+	return true, "custom_or_cross_tag"
 }
 
 func fetchGitHubLatestTag(repo string) (string, error) {
@@ -1870,11 +1906,7 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 
 	ports := []string{m.config.Port}
 
-	if m.config.Port == "443" || m.config.Port == "" {
-
-		ports = []string{"80", "443"}
-
-	} else if m.config.Port == "80" {
+	if m.config.Port == "443" || m.config.Port == "80" || m.config.Port == "" || m.config.Port == "22" || m.config.Port == "0" {
 
 		ports = []string{"80", "443"}
 
@@ -1882,15 +1914,10 @@ func (m *Manager) checkROSConnection() (connected bool, version string) {
 
 	for _, p := range ports {
 
-		scheme := "https"
-
-		if p == "80" {
-
-			scheme = "http"
-
+		url, urlErr := buildROSURLFrom(m.config.Host, p, "system/resource")
+		if urlErr != nil {
+			continue
 		}
-
-		url := fmt.Sprintf("%s://%s:%s/rest/system/resource", scheme, m.config.Host, p)
 
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 
@@ -2877,9 +2904,13 @@ func (m *Manager) SaveConfig(v any) error {
 
 	}
 
-	if cfg.Port != "" {
+	if p := strings.TrimSpace(cfg.Port); p != "" && p != "22" && p != "0" {
 
-		m.config.Port = cfg.Port
+		m.config.Port = p
+
+	} else if m.config.Port == "" || m.config.Port == "22" || m.config.Port == "0" {
+
+		m.config.Port = "80"
 
 	}
 
@@ -2910,6 +2941,7 @@ func (m *Manager) loadConfig() {
 	}
 
 	_ = json.Unmarshal(data, &m.config)
+	m.config.Port = sanitizeROSPort(m.config.Port)
 
 }
 
@@ -2923,37 +2955,53 @@ func (m *Manager) saveConfigLocked() error {
 
 }
 
+func sanitizeROSPort(port string) string {
+	p := strings.TrimSpace(port)
+	if p == "" || p == "0" || p == "22" {
+		return "80"
+	}
+	return p
+}
+
+func buildROSURLFrom(host, port, apiPath string) (string, error) {
+	h := strings.TrimSpace(host)
+	if h == "" {
+		return "", fmt.Errorf("RouterOS not configured")
+	}
+	p := strings.TrimSpace(port)
+	if p == "22" {
+		return "", fmt.Errorf("RouterOS REST API 不能使用 SSH 端口 22，请填写 80 (www) 或 443 (www-ssl)")
+	}
+	if p == "" || p == "0" {
+		p = "80"
+	}
+	scheme := "https"
+	if p == "80" {
+		scheme = "http"
+	}
+	return fmt.Sprintf("%s://%s:%s/rest/%s", scheme, h, p, strings.TrimPrefix(apiPath, "/")), nil
+}
+
+func (m *Manager) buildROSURL(apiPath string) (user, pass, reqURL string, err error) {
+	m.mu.RLock()
+	host := m.config.Host
+	port := m.config.Port
+	user = m.config.User
+	pass = m.config.Password
+	m.mu.RUnlock()
+
+	reqURL, err = buildROSURLFrom(host, port, apiPath)
+	return user, pass, reqURL, err
+}
+
 // QueryROS executes an authenticated GET request against RouterOS REST API.
 
 func (m *Manager) QueryROS(path string) ([]byte, error) {
 
-	m.mu.RLock()
-
-	host := m.config.Host
-
-	port := m.config.Port
-
-	user := m.config.User
-
-	pass := m.config.Password
-
-	m.mu.RUnlock()
-
-	if host == "" {
-
-		return nil, fmt.Errorf("RouterOS not configured")
-
+	user, pass, url, err := m.buildROSURL(path)
+	if err != nil {
+		return nil, err
 	}
-
-	scheme := "https"
-
-	if port == "80" {
-
-		scheme = "http"
-
-	}
-
-	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, host, port, strings.TrimPrefix(path, "/"))
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 
@@ -2991,33 +3039,10 @@ func (m *Manager) QueryROS(path string) ([]byte, error) {
 
 func (m *Manager) PatchROS(path string, body any) error {
 
-	m.mu.RLock()
-
-	host := m.config.Host
-
-	port := m.config.Port
-
-	user := m.config.User
-
-	pass := m.config.Password
-
-	m.mu.RUnlock()
-
-	if host == "" {
-
-		return fmt.Errorf("RouterOS not configured")
-
+	user, pass, url, err := m.buildROSURL(path)
+	if err != nil {
+		return err
 	}
-
-	scheme := "https"
-
-	if port == "80" {
-
-		scheme = "http"
-
-	}
-
-	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, host, port, strings.TrimPrefix(path, "/"))
 
 	data, err := json.Marshal(body)
 
@@ -3067,33 +3092,10 @@ func (m *Manager) PatchROS(path string, body any) error {
 
 func (m *Manager) PutROS(path string, body any) ([]byte, error) {
 
-	m.mu.RLock()
-
-	host := m.config.Host
-
-	port := m.config.Port
-
-	user := m.config.User
-
-	pass := m.config.Password
-
-	m.mu.RUnlock()
-
-	if host == "" {
-
-		return nil, fmt.Errorf("RouterOS not configured")
-
+	user, pass, url, err := m.buildROSURL(path)
+	if err != nil {
+		return nil, err
 	}
-
-	scheme := "https"
-
-	if port == "80" {
-
-		scheme = "http"
-
-	}
-
-	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, host, port, strings.TrimPrefix(path, "/"))
 
 	var reader io.Reader
 
@@ -3151,33 +3153,10 @@ func (m *Manager) PutROS(path string, body any) ([]byte, error) {
 
 func (m *Manager) DeleteROS(path string) error {
 
-	m.mu.RLock()
-
-	host := m.config.Host
-
-	port := m.config.Port
-
-	user := m.config.User
-
-	pass := m.config.Password
-
-	m.mu.RUnlock()
-
-	if host == "" {
-
-		return fmt.Errorf("RouterOS not configured")
-
+	user, pass, url, err := m.buildROSURL(path)
+	if err != nil {
+		return err
 	}
-
-	scheme := "https"
-
-	if port == "80" {
-
-		scheme = "http"
-
-	}
-
-	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, host, port, strings.TrimPrefix(path, "/"))
 
 	req, err := http.NewRequest(http.MethodDelete, url, nil)
 
@@ -3217,33 +3196,10 @@ func (m *Manager) DeleteROS(path string) error {
 
 func (m *Manager) PostROS(path string, body any) ([]byte, error) {
 
-	m.mu.RLock()
-
-	host := m.config.Host
-
-	port := m.config.Port
-
-	user := m.config.User
-
-	pass := m.config.Password
-
-	m.mu.RUnlock()
-
-	if host == "" {
-
-		return nil, fmt.Errorf("RouterOS not configured")
-
+	user, pass, url, err := m.buildROSURL(path)
+	if err != nil {
+		return nil, err
 	}
-
-	scheme := "https"
-
-	if port == "80" {
-
-		scheme = "http"
-
-	}
-
-	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, host, port, strings.TrimPrefix(path, "/"))
 
 	var reader io.Reader
 
@@ -3409,33 +3365,10 @@ func (m *Manager) GetContainerMemoryCurrent() (float64, error) {
 
 func (m *Manager) GetROS(path string) ([]byte, error) {
 
-	m.mu.RLock()
-
-	host := m.config.Host
-
-	port := m.config.Port
-
-	user := m.config.User
-
-	pass := m.config.Password
-
-	m.mu.RUnlock()
-
-	if host == "" {
-
-		return nil, fmt.Errorf("RouterOS not configured")
-
+	user, pass, url, err := m.buildROSURL(path)
+	if err != nil {
+		return nil, err
 	}
-
-	scheme := "https"
-
-	if port == "80" {
-
-		scheme = "http"
-
-	}
-
-	url := fmt.Sprintf("%s://%s:%s/rest/%s", scheme, host, port, strings.TrimPrefix(path, "/"))
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 

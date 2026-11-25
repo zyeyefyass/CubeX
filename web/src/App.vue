@@ -3959,7 +3959,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('ikuai') || name.includes('ikuai') || name.includes('爱快')) {
-    let ver = hw.version || 'v9.9.9'
+    let ver = hw.version || 'v9.91'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: '爱快 iKuai',
@@ -3968,7 +3968,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('openwrt') || name.includes('openwrt') || name.includes('lede')) {
-    let ver = hw.version || 'v9.9.9'
+    let ver = hw.version || 'v9.91'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: 'OpenWrt',
@@ -3986,7 +3986,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('fnos') || name.includes('fnos') || name.includes('飞牛')) {
-    let ver = hw.version || 'v9.9.9'
+    let ver = hw.version || 'v9.91'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: '飞牛 fnOS',
@@ -9864,7 +9864,9 @@ const hostConfig = ref({
 
   user: '',
 
-  password: ''
+  password: '',
+
+  platform_type: ''
 
 })
 
@@ -13558,7 +13560,8 @@ async function fetchHostConfig() {
         host: data.host || '',
         port: data.port || 80,
         user: data.user || '',
-        password: data.password || ''
+        password: data.password || '',
+        platform_type: data.platform_type || ''
       }
       if (!initHostForm.value.host_ip && data.host) {
         initHostForm.value.host_ip = data.host
@@ -13572,6 +13575,32 @@ async function fetchHostConfig() {
 
 }
 
+function onHostPlatformChange() {
+
+  const plat = String(hostConfig.value.platform_type || '').toLowerCase()
+
+  const curPort = Number(hostConfig.value.port || 0)
+
+  if (plat === 'openwrt' || plat === 'linux') {
+
+    if (!curPort || curPort === 80 || curPort === 443) {
+
+      hostConfig.value.port = 22
+
+    }
+
+  } else if (plat === 'ikuai' || plat === 'routeros') {
+
+    if (!curPort || curPort === 22) {
+
+      hostConfig.value.port = 80
+
+    }
+
+  }
+
+}
+
 async function testAndSaveHostCredentials() {
 
   return saveCredentialsAndLinkHost()
@@ -13580,13 +13609,35 @@ async function testAndSaveHostCredentials() {
 
 async function saveCredentialsAndLinkHost() {
 
+  const plat = String(hostConfig.value.platform_type || '').toLowerCase()
+
+  const portNum = Number(hostConfig.value.port || 0)
+
+  if ((plat === 'ikuai' || plat === 'routeros') && portNum === 22) {
+
+    showToast(`❌ ${plat === 'ikuai' ? '爱快 iKuai' : 'RouterOS'} 走 Web/REST 管理接口，不能使用 SSH 端口 22，请改为 80 或 443`, true)
+
+    return
+
+  }
+
   savingAndLinkingHost.value = true
 
   showToast('🔍 正在测试宿主连接并验证凭据...')
 
   try {
 
-    // 1. Test host connection (MikroTik RouterOS REST API or Linux SSH)
+    const payload = {
+
+      ...hostConfig.value,
+
+      port: portNum > 0 ? portNum : ((plat === 'openwrt' || plat === 'linux') ? 22 : 80)
+
+    }
+
+    hostConfig.value.port = payload.port
+
+    // 1. Test host connection (RouterOS REST / iKuai Web-RPC / OpenWrt SSH)
 
     const testRes = await fetch('/api/v1/host/test', {
 
@@ -13594,7 +13645,7 @@ async function saveCredentialsAndLinkHost() {
 
       headers: { 'Content-Type': 'application/json' },
 
-      body: JSON.stringify(hostConfig.value)
+      body: JSON.stringify(payload)
 
     })
 
@@ -13608,23 +13659,17 @@ async function saveCredentialsAndLinkHost() {
 
     }
 
-    // 2. Persist credentials to host config and ros config (with enabled: true)
+    const detectedPlat = String(testData.platform_id || plat || '').toLowerCase()
 
-    const creds = {
+    if (detectedPlat) {
 
-      host: hostConfig.value.host,
-
-      port: String(hostConfig.value.port),
-
-      user: hostConfig.value.user,
-
-      password: hostConfig.value.password,
-
-      tls: hostConfig.value.tls ? 'true' : 'false'
+      hostConfig.value.platform_type = detectedPlat
 
     }
 
-    await Promise.allSettled([
+    // 2. Persist credentials; strictly avoid syncing SSH port 22 or non-ROS hosts into ros-config
+
+    const tasks = [
 
       fetch('/api/v1/host/config', {
 
@@ -13632,11 +13677,29 @@ async function saveCredentialsAndLinkHost() {
 
         headers: { 'Content-Type': 'application/json' },
 
-        body: JSON.stringify({ ...hostConfig.value, enabled: true })
+        body: JSON.stringify({ ...hostConfig.value, platform_type: detectedPlat || hostConfig.value.platform_type, enabled: true })
 
-      }),
+      })
 
-      fetch('/api/v1/ros/config', {
+    ]
+
+    if (detectedPlat === 'routeros' && Number(hostConfig.value.port) !== 22) {
+
+      const creds = {
+
+        host: hostConfig.value.host,
+
+        port: String(hostConfig.value.port),
+
+        user: hostConfig.value.user,
+
+        password: hostConfig.value.password,
+
+        tls: hostConfig.value.tls ? 'true' : 'false'
+
+      }
+
+      tasks.push(fetch('/api/v1/ros/config', {
 
         method: 'POST',
 
@@ -13644,9 +13707,11 @@ async function saveCredentialsAndLinkHost() {
 
         body: JSON.stringify(creds)
 
-      })
+      }))
 
-    ])
+    }
+
+    await Promise.allSettled(tasks)
 
     // Immediately reflect active host info
 
@@ -14356,7 +14421,7 @@ async function inspectAndCleanReapplyRos() {
 
       ? ('全栈自愈提示: ' + errors.join('; '))
 
-      : '🎉 全栈全链路自愈完成！核心安全规则已加固，RouterOS 策略路由与 IPv6 原生防泄露已全部生效！'
+      : (data1.message || '🎉 全栈全链路自愈完成！核心安全规则已加固，宿主策略路由与防泄露基线已全部生效！')
 
     showToast(msg, isErr)
 
@@ -22139,7 +22204,7 @@ async function runAuthorizedMountLoad() {
 provide('cubexApp', reactive({
   showToast,
   isBackendOnline, checkBackendHeartbeat,
-  activeEngine, adblockStats, addFakeIpFilter, addWhitelistItem, aiActionResult, aiActions, aiConfig, aiLoading, aiPresetQuestions, aiPrompt, aiProviders, aiReply, authState, batchAddingNodes, batchImportingSubs, batchNodeText, batchSubText, chaosDrillReport, chaosReportModal, checkHostUpgrade, checkingGeoUpgrade, checkingHostUpgrade, chooseFreshStart, cleanActionLabelMap, cleaningRosFirewall, clearSystemLogs, completeInitWizard, confirmAndStartInitWizard, confirmSystemReboot, copyDiagnosticMarkdown, copyText, coreUpgradeFrozen, coreUpgradeLog, creatingGithubIssue, customNodes, deleteDnsRewriteRule, deleteNode, deleteSourceItem, deleteSubscription, diagnosticModal, displayedLogs, dnsBlockedLastY, dnsBlockedPath, dnsFilterStats, dnsLatencyLastY, dnsLatencyPath, dnsQueryLastY, dnsQueryPath, dnsRewriteConfig, editingDnsRewriteRule, editingRuleSource, executeAIAction, executeHostUpgrade, executingAIActionId, executingHostUpgrade, executionModal, exportBackup, fakeIpFilters, fakeIpLoading, fetchDnsFilterStats, fetchRouterHardware, fetchSystemLogs, filterConfig, filteredGeodataFiles, formatExpire, geoAutoUpdateEnabled, geoUpdateLog, geodataFilterCategory, geodataFilterEngine, geodataLastUpdateText, geodataSearchQuery, geodataStatus, getNodeDelayClass, getSubRegions, handleInitBackupUpload, handleInitFileDrop, hasAnyUpdate, healingSteps, hostBadge, hostConfig, hostInfo, hostLastExecution, hostUpgradeDetails, hostUpgradeResult, importBackup, initBackupFileInput, initDetectedPlatform, initExecuting, initHostForm, initImportStats, initImportSuccess, initImporting, initLogs, initWizardImportTab, initWizardStep, inspectAndCleanReapplyRos, ir, isHotRestarting, isIKuai, isOpenWrt, isProbingAll, isRouterOS, isSubDrawerExpanded, isUpdatingSource, launchFireworks, lockConsoleNow, logContainerRef, logFilterLevel, logFilterModule, logSearchQuery, newFakeIpInput, newWhitelistDomain, openAddDnsRewriteModal, openAddSourceModal, openEditDnsRewriteModal, openEditSourceModal, openGitHubIssuePrompt, openProbeModal, openSourcePreview, openUpgradeModal, panelUpgradeLog, parsedBatchNodes, parsedBatchSubs, previewingSource, probeAllFourDimensions, probeChecked, probeLastTime, refreshSourceItem, removeFakeIpFilter, removeWhitelistItem, resetDnsRewriteDefaults, routerHW, routerHWMemoryDisplay, runSecurityAudit, runSubSpeedTest, saveAIConfig, saveDnsRewriteRule, saveFilterAutoUpdate, saveRuleSource, savingAndLinkingHost, securityAudit, selectAIProvider, sendAIChat, setNodeAsPrimaryOutbound, showAISettingsModal, showAuthManageModal, showDnsRewriteModal, showImportModal, showInitWizardModal, showLogsModal, showProbeModal, showGeodataDetailModal, showRuleSourceModal, showSourcePreviewModal, saveCredentialsAndLinkHost, startInitStep3Execution, stopFireworks, subHealthMap, subMetaMap, subModalTab, subNodesMap, subQuotaMap, subSpeedTesting, submitBatchNodes, submitBatchSubs, submitInitWizardImportAndLaunch, systemOverview, toggleCoreUpgradeFreeze, toggleDnsRewriteMaster, toggleDnsRewriteRule, toggleFilterMaster, toggleGeoAutoUpdate, toggleSourceItem, toggleSubDrawer, toggleSubscription, triggerFastSelfHeal, triggerHotRestart, triggerWANHeal, triggerInitBackupSelect, triggerQuickAIPrompt, updateAllSubscriptions, updateDetailText, updateGeoData, updateSubscription, updateSummaryText, updatingGeo, upgradeCore, upgradePanel, upgradingCoreMihomo, upgradingCoreSingbox, upgradingPanel, uploadToGithubIssue
+  activeEngine, adblockStats, addFakeIpFilter, addWhitelistItem, aiActionResult, aiActions, aiConfig, aiLoading, aiPresetQuestions, aiPrompt, aiProviders, aiReply, authState, batchAddingNodes, batchImportingSubs, batchNodeText, batchSubText, chaosDrillReport, chaosReportModal, checkHostUpgrade, checkingGeoUpgrade, checkingHostUpgrade, chooseFreshStart, cleanActionLabelMap, cleaningRosFirewall, clearSystemLogs, completeInitWizard, confirmAndStartInitWizard, confirmSystemReboot, copyDiagnosticMarkdown, copyText, coreUpgradeFrozen, coreUpgradeLog, creatingGithubIssue, customNodes, deleteDnsRewriteRule, deleteNode, deleteSourceItem, deleteSubscription, diagnosticModal, displayedLogs, dnsBlockedLastY, dnsBlockedPath, dnsFilterStats, dnsLatencyLastY, dnsLatencyPath, dnsQueryLastY, dnsQueryPath, dnsRewriteConfig, editingDnsRewriteRule, editingRuleSource, executeAIAction, executeHostUpgrade, executingAIActionId, executingHostUpgrade, executionModal, exportBackup, fakeIpFilters, fakeIpLoading, fetchDnsFilterStats, fetchRouterHardware, fetchSystemLogs, filterConfig, filteredGeodataFiles, formatExpire, geoAutoUpdateEnabled, geoUpdateLog, geodataFilterCategory, geodataFilterEngine, geodataLastUpdateText, geodataSearchQuery, geodataStatus, getNodeDelayClass, getSubRegions, handleInitBackupUpload, handleInitFileDrop, hasAnyUpdate, healingSteps, hostBadge, hostConfig, hostInfo, hostLastExecution, hostUpgradeDetails, hostUpgradeResult, importBackup, initBackupFileInput, initDetectedPlatform, initExecuting, initHostForm, initImportStats, initImportSuccess, initImporting, initLogs, initWizardImportTab, initWizardStep, inspectAndCleanReapplyRos, ir, isHotRestarting, isIKuai, isOpenWrt, isProbingAll, isRouterOS, isSubDrawerExpanded, isUpdatingSource, launchFireworks, lockConsoleNow, logContainerRef, logFilterLevel, logFilterModule, logSearchQuery, newFakeIpInput, newWhitelistDomain, openAddDnsRewriteModal, openAddSourceModal, openEditDnsRewriteModal, openEditSourceModal, openGitHubIssuePrompt, openProbeModal, openSourcePreview, openUpgradeModal, onHostPlatformChange, panelUpgradeLog, parsedBatchNodes, parsedBatchSubs, previewingSource, probeAllFourDimensions, probeChecked, probeLastTime, refreshSourceItem, removeFakeIpFilter, removeWhitelistItem, resetDnsRewriteDefaults, routerHW, routerHWMemoryDisplay, runSecurityAudit, runSubSpeedTest, saveAIConfig, saveDnsRewriteRule, saveFilterAutoUpdate, saveRuleSource, savingAndLinkingHost, securityAudit, selectAIProvider, sendAIChat, setNodeAsPrimaryOutbound, showAISettingsModal, showAuthManageModal, showDnsRewriteModal, showImportModal, showInitWizardModal, showLogsModal, showProbeModal, showGeodataDetailModal, showRuleSourceModal, showSourcePreviewModal, saveCredentialsAndLinkHost, startInitStep3Execution, stopFireworks, subHealthMap, subMetaMap, subModalTab, subNodesMap, subQuotaMap, subSpeedTesting, submitBatchNodes, submitBatchSubs, submitInitWizardImportAndLaunch, systemOverview, toggleCoreUpgradeFreeze, toggleDnsRewriteMaster, toggleDnsRewriteRule, toggleFilterMaster, toggleGeoAutoUpdate, toggleSourceItem, toggleSubDrawer, toggleSubscription, triggerFastSelfHeal, triggerHotRestart, triggerWANHeal, triggerInitBackupSelect, triggerQuickAIPrompt, updateAllSubscriptions, updateDetailText, updateGeoData, updateSubscription, updateSummaryText, updatingGeo, upgradeCore, upgradePanel, upgradingCoreMihomo, upgradingCoreSingbox, upgradingPanel, uploadToGithubIssue
 }))
 
 onMounted(async () => {

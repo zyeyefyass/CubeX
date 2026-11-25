@@ -12,6 +12,7 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/netstack"
 	"github.com/zyeyefyass/CubeX/internal/openwrt"
 	"github.com/zyeyefyass/CubeX/internal/qos"
+	"github.com/zyeyefyass/CubeX/internal/ros"
 	"github.com/zyeyefyass/CubeX/internal/schema"
 	"github.com/zyeyefyass/CubeX/internal/security"
 	"github.com/zyeyefyass/CubeX/internal/webrtc"
@@ -1369,18 +1370,30 @@ func (s *Server) handleHostConfig(w http.ResponseWriter, r *http.Request) {
 
 		}
 
-		if cfg.Host != "" && cfg.User != "" {
+		if cfg.Host != "" && cfg.User != "" && cfg.Port != 22 {
 
-			_ = s.rosMgr.SaveConfig(map[string]string{
+			plat := strings.ToLower(strings.TrimSpace(cfg.PlatformType))
+			if plat == "" {
+				if cached := s.hostMgr.GetCachedHostInfo(); cached != nil && cached.Connected {
+					plat = strings.ToLower(strings.TrimSpace(cached.PlatformID))
+				}
+			}
+			if plat == "routeros" {
+				portVal := cfg.Port
+				if portVal <= 0 {
+					portVal = 80
+				}
+				_ = s.rosMgr.SaveConfig(map[string]string{
 
-				"host": cfg.Host,
+					"host": cfg.Host,
 
-				"port": strconv.Itoa(cfg.Port),
+					"port": strconv.Itoa(portVal),
 
-				"user": cfg.User,
+					"user": cfg.User,
 
-				"password": cfg.Password,
-			})
+					"password": cfg.Password,
+				})
+			}
 
 		}
 
@@ -1419,6 +1432,13 @@ func (s *Server) handleHostTest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	restoreHostMaskedSecrets(&cfg, s.hostMgr.GetConfig())
+
+	if normPort, err := host.ValidateHostPortForPlatform(cfg.PlatformType, cfg.Port); err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error()})
+		return
+	} else {
+		cfg.Port = normPort
+	}
 
 	res, err := s.hostMgr.TestSSH(cfg)
 
@@ -1622,6 +1642,22 @@ func (s *Server) handleROSApply(w http.ResponseWriter, r *http.Request) {
 
 
 
+func (s *Server) resolveActiveHostPlatform() (string, host.HostConfig, *host.HostInfo) {
+	if s.hostMgr == nil {
+		return "", host.HostConfig{}, nil
+	}
+	hostCfg := s.hostMgr.GetConfig()
+	cached := s.hostMgr.GetCachedHostInfo()
+
+	plat := ""
+	if cached != nil && cached.Connected && cached.PlatformID != "" {
+		plat = strings.ToLower(strings.TrimSpace(cached.PlatformID))
+	} else if hostCfg.PlatformType != "" && !strings.EqualFold(hostCfg.PlatformType, "auto") {
+		plat = strings.ToLower(strings.TrimSpace(hostCfg.PlatformType))
+	}
+	return plat, hostCfg, cached
+}
+
 func (s *Server) handleROSCleanAndReapply(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -1668,7 +1704,81 @@ func (s *Server) handleROSCleanAndReapply(w http.ResponseWriter, r *http.Request
 
 	}
 
-	// 2. 外部宿主与主路由全栈网络编排 (原按钮 1 核心功能)
+	// 2. 按宿主底座平台精准分流全栈自愈 (严禁爱快/OpenWrt/Linux 误调 RouterOS REST API)
+	platID, hostCfg, _ := s.resolveActiveHostPlatform()
+
+	switch platID {
+	case "ikuai", "openwrt":
+		if s.hostMgr == nil || !hostCfg.Enabled || hostCfg.Host == "" {
+			sendJSON(w, &ros.ApplyResult{
+				Success: false,
+				Actions: localRemediations,
+				Errors:  []string{"宿主主路由 IP 或管理员凭据未配置，请先在【宿主共生凭据与鉴权】保存连接后再试"},
+			})
+			return
+		}
+		fwRes, err := s.hostMgr.ApplyFirewall("permissive", true)
+		actions := append([]string{}, localRemediations...)
+		if fwRes != nil && len(fwRes.Logs) > 0 {
+			actions = append(actions, fwRes.Logs...)
+		}
+		if err != nil {
+			sendJSON(w, &ros.ApplyResult{
+				Success: false,
+				Actions: actions,
+				Errors:  []string{err.Error()},
+			})
+			return
+		}
+		msg := "🎉 已成功原生联动爱快 iKuai 宿主！198.18.0.0/15 静态回指路由与 DHCP 联动已全自动配置生效！"
+		if platID == "openwrt" {
+			msg = "🎉 已成功原生联动 OpenWrt 宿主！静态回指路由、防火墙放行与 DHCP Option 6 已全自动配置生效！"
+		}
+		sendJSON(w, &ros.ApplyResult{
+			Success: true,
+			Message: msg,
+			Actions: actions,
+			Errors:  []string{},
+		})
+		return
+
+	case "linux", "fnos", "pve":
+		// 若宿主为 PVE/飞牛/Linux 容器宿主机且同时直连了 RouterOS 主路由，仍协同加固 RouterOS
+		if s.rosMgr != nil && s.rosMgr.IsConnected() {
+			break
+		}
+		if s.hostMgr != nil && hostCfg.Enabled && hostCfg.Host != "" {
+			fwRes, err := s.hostMgr.ApplyFirewall("permissive", true)
+			actions := append([]string{}, localRemediations...)
+			if fwRes != nil && len(fwRes.Logs) > 0 {
+				actions = append(actions, fwRes.Logs...)
+			}
+			if err != nil {
+				sendJSON(w, &ros.ApplyResult{
+					Success: false,
+					Actions: actions,
+					Errors:  []string{err.Error()},
+				})
+				return
+			}
+			sendJSON(w, &ros.ApplyResult{
+				Success: true,
+				Message: "🎉 Linux 宿主内核转发与防火墙规则已全链路自愈加固完成！",
+				Actions: actions,
+				Errors:  []string{},
+			})
+			return
+		}
+	}
+
+	if platID != "routeros" && (s.rosMgr == nil || !s.rosMgr.IsConnected()) {
+		sendJSON(w, &ros.ApplyResult{
+			Success: false,
+			Actions: localRemediations,
+			Errors:  []string{"未检测到已连接的 RouterOS / 爱快 / OpenWrt 主路由，请先在【宿主共生凭据与鉴权】填写主路由 IP、Web/REST 管理端口（RouterOS/爱快为 80 或 443，Linux 为 22）及账号密码并保存联动"},
+		})
+		return
+	}
 
 	res, err := s.rosMgr.CleanAndReapplyRouting(req.TargetIP)
 
@@ -1704,35 +1814,49 @@ func (s *Server) handleROSIpv6Setup(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	if s.hostMgr != nil {
+	platID, _, _ := s.resolveActiveHostPlatform()
 
-		cached := s.hostMgr.GetCachedHostInfo()
+	if platID == "openwrt" && s.hostMgr != nil {
 
-		if cached != nil && cached.PlatformID == "openwrt" {
+		logs, err := s.hostMgr.SetupOpenWrtIPv6()
 
-			logs, err := s.hostMgr.SetupOpenWrtIPv6()
+		if err != nil {
 
-			if err != nil {
-
-				sendJSON(w, map[string]any{"error": err.Error()})
-
-				return
-
-			}
-
-			sendJSON(w, map[string]any{
-
-				"success": true,
-
-				"logs": logs,
-
-				"message": "OpenWrt 原生 IPv6 锁定与防 DNS 泄露配置完成",
-			})
+			sendJSON(w, map[string]any{"error": err.Error()})
 
 			return
 
 		}
 
+		sendJSON(w, map[string]any{
+
+			"success": true,
+
+			"logs": logs,
+
+			"message": "OpenWrt 原生 IPv6 锁定与防 DNS 泄露配置完成",
+		})
+
+		return
+
+	}
+
+	if platID == "ikuai" {
+		sendJSON(w, map[string]any{
+			"success": true,
+			"actions": []string{"爱快 iKuai 底座无需执行 RouterOS IPv6 ND 编排，已由 CubeX 双核 DNS 清洗与 Fake-IP 隔离保障防泄露"},
+			"message": "爱快 iKuai 底座 IPv6 防泄露基线已确认",
+		})
+		return
+	}
+
+	if platID != "routeros" && (s.rosMgr == nil || !s.rosMgr.IsConnected()) {
+		sendJSON(w, map[string]any{
+			"success": true,
+			"actions": []string{"当前未连接 RouterOS 主路由，已跳过 RouterOS 原生 IPv6 编排"},
+			"message": "已跳过 RouterOS IPv6 编排",
+		})
+		return
 	}
 
 	var req struct {
@@ -1783,6 +1907,10 @@ func (s *Server) handleROSConfig(w http.ResponseWriter, r *http.Request) {
 			cfg["password"] = s.rosMgr.GetConfig()["password"]
 		}
 
+		if strings.TrimSpace(cfg["port"]) == "22" {
+			cfg["port"] = "80"
+		}
+
 		if err := s.rosMgr.SaveConfig(cfg); err != nil {
 
 			sendJSON(w, map[string]any{"error": err.Error()})
@@ -1795,24 +1923,34 @@ func (s *Server) handleROSConfig(w http.ResponseWriter, r *http.Request) {
 
 			port := 80
 
-			if p, err := strconv.Atoi(cfg["port"]); err == nil && p > 0 {
+			if p, err := strconv.Atoi(cfg["port"]); err == nil && p > 0 && p != 22 {
 
 				port = p
 
 			}
 
-			_ = s.hostMgr.SaveConfig(host.HostConfig{
+			existingHostCfg := s.hostMgr.GetConfig()
+			platType := existingHostCfg.PlatformType
+			if platType == "" {
+				platType = "routeros"
+			}
+			// Do not overwrite an existing iKuai / OpenWrt host config when ros/config is updated passively
+			if platType == "routeros" {
+				_ = s.hostMgr.SaveConfig(host.HostConfig{
 
-				Enabled: true,
+					Enabled: true,
 
-				Host: cfg["host"],
+					Host: cfg["host"],
 
-				Port: port,
+					Port: port,
 
-				User: cfg["user"],
+					User: cfg["user"],
 
-				Password: cfg["password"],
-			})
+					Password: cfg["password"],
+
+					PlatformType: platType,
+				})
+			}
 
 		}
 
@@ -2523,6 +2661,27 @@ func (s *Server) handleIkuaiSync(w http.ResponseWriter, r *http.Request) {
 	}
 	s.logBuffer.Add("INFO", "IKUAI", "爱快 Web-RPC 静态回指路由与 DHCP 联动同步完成")
 	sendJSON(w, map[string]any{"ok": true, "message": "爱快静态回指路由与 DHCP Option 6 联动同步加固成功", "logs": logs})
+}
+
+func (s *Server) handleHostBypassRemove(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.hostMgr == nil {
+		sendJSON(w, map[string]any{"ok": false, "error": "宿主管理器未就绪"})
+		return
+	}
+	var req struct {
+		BackupDNS string `json:"backup_dns"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	logs, err := s.hostMgr.RemoveHostBypass(req.BackupDNS)
+	if err != nil {
+		sendJSON(w, map[string]any{"ok": false, "error": err.Error(), "logs": logs})
+		return
+	}
+	sendJSON(w, map[string]any{"ok": true, "message": "宿主旁路策略与路由规则已完整撤回，零残留", "logs": logs})
 }
 
 

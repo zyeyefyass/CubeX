@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -125,5 +127,65 @@ func TestProbeRouterOSWANList(t *testing.T) {
 	}
 	if wanList[0].IP != "116.23.45.67" || wanList[1].IP != "120.52.88.99" {
 		t.Errorf("unexpected IPs: %s, %s", wanList[0].IP, wanList[1].IP)
+	}
+}
+
+func TestHostSaveConfigAndSyncROS_BlocksPort22Pollution(t *testing.T) {
+	tmpDir := t.TempDir()
+	m := NewManager(tmpDir)
+
+	if err := m.SaveConfig(HostConfig{
+		Host:         "192.168.2.253",
+		User:         "admin",
+		Password:     "pass",
+		PlatformType: "ikuai",
+		Port:         0,
+	}); err != nil {
+		t.Fatalf("SaveConfig failed: %v", err)
+	}
+	if m.GetConfig().Port != 80 {
+		t.Fatalf("expected ikuai empty port to default to 80, got %d", m.GetConfig().Port)
+	}
+
+	if err := m.syncToROSConfig(HostConfig{
+		Host:     "192.168.2.253",
+		Port:     22,
+		User:     "admin",
+		Password: "pass",
+	}); err != nil {
+		t.Fatalf("syncToROSConfig failed: %v", err)
+	}
+
+	rawBytes, err := os.ReadFile(filepath.Join(tmpDir, "data", "ros-config.json"))
+	if err != nil {
+		t.Fatalf("read ros-config.json failed: %v", err)
+	}
+	var rosCfg map[string]string
+	if err := json.Unmarshal(rawBytes, &rosCfg); err != nil {
+		t.Fatalf("unmarshal ros-config.json failed: %v", err)
+	}
+	if rosCfg["port"] == "22" {
+		t.Fatalf("syncToROSConfig must never write port 22 into ros-config.json")
+	}
+}
+
+func TestValidateHostPortForPlatform(t *testing.T) {
+	if _, err := ValidateHostPortForPlatform("ikuai", 22); err == nil {
+		t.Fatalf("expected error for ikuai with port 22")
+	}
+	if _, err := ValidateHostPortForPlatform("routeros", 22); err == nil {
+		t.Fatalf("expected error for routeros with port 22")
+	}
+	if p, err := ValidateHostPortForPlatform("ikuai", 0); err != nil || p != 80 {
+		t.Fatalf("expected ikuai empty port -> 80, got %d err=%v", p, err)
+	}
+	if p, err := ValidateHostPortForPlatform("routeros", 0); err != nil || p != 80 {
+		t.Fatalf("expected routeros empty port -> 80, got %d err=%v", p, err)
+	}
+	if p, err := ValidateHostPortForPlatform("openwrt", 0); err != nil || p != 22 {
+		t.Fatalf("expected openwrt empty port -> 22, got %d err=%v", p, err)
+	}
+	if p, err := ValidateHostPortForPlatform("openwrt", 22); err != nil || p != 22 {
+		t.Fatalf("expected openwrt port 22 valid, got %d err=%v", p, err)
 	}
 }
