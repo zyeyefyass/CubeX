@@ -698,6 +698,14 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 	}
 
+	legacyKernel, legacyRel := IsLegacyLinuxKernel()
+	if legacyKernel {
+		// Linux 4.4.x (e.g. Synology DS920+ DSM 4.4.60) lacks modern mixed/system socket options;
+		// force pure userspace gvisor stack and disable endpoint_independent_nat for crash-free startup.
+		tunStack = "gvisor"
+		log.Printf("[Compiler] 检测到 Linux 老内核 (%s)，sing-box TUN 自动切换为 gvisor 兼容协议栈", legacyRel)
+	}
+
 	tproxyPort := net.TProxyPort
 
 	if tproxyPort == 0 {
@@ -724,7 +732,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 
 	inbounds := make([]map[string]any, 0)
 
-	if runtime.GOOS != "windows" {
+	if runtime.GOOS != "windows" || strings.TrimSpace(os.Getenv("CUBEX_KERNEL_RELEASE")) != "" {
 		tunInbound := map[string]any{
 			"type":                     "tun",
 			"tag":                      "tun-in",
@@ -736,7 +744,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 			"strict_route":             false,
 			"stack":                    tunStack,
 			"udp_timeout":              "30s",
-			"endpoint_independent_nat": true,
+			"endpoint_independent_nat": !legacyKernel,
 		}
 
 		// 飞牛 / NAS 宿主机共生零冲突架构：
@@ -744,7 +752,7 @@ func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 		// 彻底解决 All-in-One 宿主下 Lucky STUN / PT / 宿主本地出站服务被吸入 TUN 导致非对称路由丢包与对称型 NAT 降级！
 		if !net.RouteAllTraffic {
 			routeAddrs := []string{"198.18.0.0/15"}
-			if net.IPv6 {
+			if net.IPv6 && (!legacyKernel || HasKernelIPv6Stack()) {
 				routeAddrs = append(routeAddrs, "fc00::/18")
 			}
 			tunInbound["route_address"] = routeAddrs

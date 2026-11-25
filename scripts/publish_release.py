@@ -53,14 +53,13 @@ def get_tag():
 
 TAG = get_tag()
 
-RELEASE_TITLE = f"CubeX {TAG} · 三类主路由自愈严格分流 · 管理端口防串扰校验 · 跨版本在线热更与稳定性加固"
+RELEASE_TITLE = f"CubeX {TAG} · 容器通用指令集兼容修复 · 双核灾备熔断保护 · 虚拟网卡预检与老内核兜底"
 
-RELEASE_BODY = f"""# CubeX {TAG} · 三类主路由自愈严格分流 · 管理端口防串扰校验 · 跨版本在线热更与稳定性加固
+RELEASE_BODY = f"""# CubeX {TAG} · 容器通用指令集兼容修复 · 双核灾备熔断保护 · 虚拟网卡预检与老内核兜底
 
-1. **三类主路由严格分流，彻底互不串台**：修复一键自愈时爱快与开源软路由误走另一套主路由接口的报错，三类底座各自严格走原生通道；兼容爱快 4.0.317 静态路由规格并支持一键无残留撤回。
-2. **管理端口严格防串扰校验**：前后端按主路由类型匹配默认端口，严禁将远程终端 22 端口误填为网页管理端口，消除端口错配导致的连接失败。
-3. **跨版本在线热更兼容**：调整在线更新版本比对逻辑，确保从历史版本平滑在线热更至 `{TAG}` 不再被误判为旧版本。
-4. **全底座隔离实测与稳定性收口**：完成爱快、开源软路由及软路由系统三大底座的联动、二次去重、撤回清零与断网逃生恢复验证，体积极简克制。
+1. **修复容器镜像旧层残留与通用处理器兼容**：重做离线容器归档打包流程，强制写入全通用指令集核心，彻底解决赛扬 J4125 等无高级指令集处理器启动报错退出问题；并在发布审计前移拦截异常指令集二进制。
+2. **双核灾备熔断与真实报错透出**：主备内核均不可用或短时连续切换失败时立即熔断并停止死循环拉起，直接在控制台顶部醒目展示真实失败原因与查看日志入口。
+3. **虚拟网卡设备预检与老内核兼容**：启动核心前预检虚拟网卡设备存在性与读写权限，缺失直接提示宿主机激活命令；识别到群晖等 4.4 老内核自动切换兼容协议栈与安全路由策略。
 
 ---
 
@@ -167,13 +166,20 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
 
     print(f"🚀 [正在上传] {name} ({round(size / 1024 / 1024, 2)} MB)...", flush=True)
 
+    curl_bin = r"C:\Program Files\Git\mingw64\bin\curl.exe"
+    if not os.path.exists(curl_bin):
+        curl_bin = "curl.exe"
+
     cmd = [
-        "curl.exe",
+        curl_bin,
+        "--http1.1",
         "-s", "-S",
         "-w", "\n%{http_code}",
         "-L",
-        "--connect-timeout", "30",
-        "--max-time", "1800",
+        "--connect-timeout", "25",
+        "--speed-limit", "20480",
+        "--speed-time", "30",
+        "--max-time", "1200",
         "-X", "POST",
         "-H", f"Authorization: token {token}",
         "-H", f"Content-Type: {content_type}",
@@ -184,7 +190,7 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
         cmd.extend(["-x", PROXY])
     cmd.append(upload_url)
 
-    for attempt in range(1, 4):
+    for attempt in range(1, 5):
         # Ensure no dirty starter exists before attempting upload
         assets = get_assets_map(token, release_id)
         if name in assets:
@@ -196,8 +202,8 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
             gh_api(token, "DELETE", f"/releases/assets/{cur_a['id']}")
             time.sleep(3)
 
-        print(f"   - 第 {attempt}/3 次传输...", flush=True)
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=1800)
+        print(f"   - 第 {attempt}/4 次传输...", flush=True)
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=1220)
 
         lines = res.stdout.strip().splitlines()
         http_code = lines[-1].strip() if lines else ""

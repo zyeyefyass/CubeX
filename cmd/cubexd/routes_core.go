@@ -783,6 +783,7 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 	lastRes := s.engMgr.GetLastResult()
 
 	appRSS, coreRSS, totalOverhead := s.getLiveMemoryMetrics()
+	faultStatus := s.engMgr.GetEngineFaultStatus()
 
 	resp := map[string]any{
 
@@ -821,6 +822,16 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 		"arch": runtime.GOARCH,
 
 		"last_switch_res": lastRes,
+
+		"engine_circuit_broken": faultStatus.CircuitBroken,
+
+		"engine_fault_reason": faultStatus.CircuitBrokenReason,
+
+		"last_core_error": faultStatus.LastCoreError,
+
+		"tun_ready": faultStatus.TunReady,
+
+		"tun_detail": faultStatus.TunDetail,
 
 		"tun_interface": ir.Network.TunInterface,
 
@@ -1980,10 +1991,11 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 	}
 
 	lastRes := s.engMgr.GetLastResult()
+	faultStatus := s.engMgr.GetEngineFaultStatus()
 
 	engineRunning := true
 
-	if lastRes != nil && !lastRes.Success {
+	if (lastRes != nil && !lastRes.Success) || faultStatus.CircuitBroken {
 
 		engineRunning = false
 
@@ -2023,6 +2035,8 @@ func (s *Server) handleSystemDiagnoseExport(w http.ResponseWriter, r *http.Reque
 		"core_pid": s.engMgr.GetCurrentProcPID(),
 
 		"last_switch": lastRes,
+
+		"fault_status": faultStatus,
 
 		"health_probes": liveHealth,
 	}

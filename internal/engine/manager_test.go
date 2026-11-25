@@ -118,3 +118,127 @@ func TestSwitchingGracePeriod(t *testing.T) {
 		t.Error("expected false after grace period expiration")
 	}
 }
+
+func TestCheckTunDevice_MissingAndPermissionErrors(t *testing.T) {
+	ok, msg := probeTunDevicePath("/nonexistent/dev/net/tun-cubex-test")
+	if ok {
+		t.Fatalf("expected missing tun device check to fail")
+	}
+	if !strings.Contains(msg, "--device /dev/net/tun") || !strings.Contains(msg, "tun.ko") {
+		t.Fatalf("expected actionable guidance in tun error, got: %s", msg)
+	}
+
+	permMsg := classifyTunOpenError("/dev/net/tun", errString("operation not permitted"))
+	if !strings.Contains(permMsg, "NET_ADMIN") || !strings.Contains(permMsg, "--device /dev/net/tun") {
+		t.Fatalf("expected NET_ADMIN guidance for permission error, got: %s", permMsg)
+	}
+
+	nodevMsg := classifyTunOpenError("/dev/net/tun", errString("no such device"))
+	if !strings.Contains(nodevMsg, "insmod /lib/modules/tun.ko") {
+		t.Fatalf("expected insmod guidance for ENODEV error, got: %s", nodevMsg)
+	}
+}
+
+type errString string
+
+func (e errString) Error() string { return string(e) }
+
+func TestSwitchEngine_BlockedWhenTunUnavailable(t *testing.T) {
+	origProbe := tunProbeFunc
+	defer func() { tunProbeFunc = origProbe }()
+
+	tunProbeFunc = func() (bool, string) {
+		return false, "缺少 TUN 虚拟网卡设备 (/dev/net/tun 不存在)"
+	}
+
+	tmpDir := t.TempDir()
+	mgr := NewManager(tmpDir, schema.NewDefaultIR())
+	res, err := mgr.SwitchEngine(schema.EngineSingbox)
+	if err == nil || res == nil || res.Success {
+		t.Fatalf("expected SwitchEngine to block when /dev/net/tun is unavailable, got res=%+v err=%v", res, err)
+	}
+	if !strings.Contains(res.ErrorMessage, "/dev/net/tun") {
+		t.Fatalf("expected ErrorMessage to contain /dev/net/tun, got %q", res.ErrorMessage)
+	}
+	st := mgr.GetEngineFaultStatus()
+	if st.TunReady {
+		t.Fatalf("expected TunReady=false, got true")
+	}
+	if !strings.Contains(st.LastCoreError, "/dev/net/tun") {
+		t.Fatalf("expected LastCoreError to preserve tun failure, got %q", st.LastCoreError)
+	}
+}
+
+func TestDualEngineFailoverCircuitBreaker_BothUnavailable(t *testing.T) {
+	mgr := &Manager{}
+	var calls []schema.EngineType
+	mgr.switchHook = func(target schema.EngineType) (*SwitchResult, error) {
+		calls = append(calls, target)
+		if target == schema.EngineSingbox {
+			return &SwitchResult{Success: false}, errString("sing-box exit status 1: no /dev/net/tun")
+		}
+		return &SwitchResult{Success: false}, errString("mihomo dry-run failed: This program can only be run on AMD64 processors with v3 microarchitecture support.")
+	}
+
+	// Simulate singbox active failure count == 1 -> tries quick restart singbox, then standby mihomo -> both fail -> MUST TRIP IMMEDIATELY
+	mgr.runSupervisorFailover(schema.EngineSingbox, schema.EngineMihomo, 1)
+	if len(calls) != 2 {
+		t.Fatalf("expected exactly 2 switch attempts (singbox then mihomo), got %d (%v)", len(calls), calls)
+	}
+	if !mgr.IsCircuitBroken() {
+		t.Fatalf("expected circuit breaker to trip when both active and standby cores fail")
+	}
+
+	st := mgr.GetEngineFaultStatus()
+	if !strings.Contains(st.CircuitBrokenReason, "v3 microarchitecture") || !strings.Contains(st.CircuitBrokenReason, "/dev/net/tun") {
+		t.Fatalf("expected CircuitBrokenReason to expose both core failures clearly, got: %s", st.CircuitBrokenReason)
+	}
+
+	// Further supervisor invocations while tripped MUST NOT invoke switchHook (no infinite loop!)
+	mgr.runSupervisorFailover(schema.EngineSingbox, schema.EngineMihomo, 2)
+	mgr.runSupervisorFailover(schema.EngineSingbox, schema.EngineMihomo, 3)
+	if len(calls) != 2 {
+		t.Fatalf("expected zero additional switch attempts once circuit broken, got total %d", len(calls))
+	}
+
+	// Resetting circuit breaker clears broken state
+	mgr.ResetCircuitBreaker()
+	if mgr.IsCircuitBroken() {
+		t.Fatalf("expected ResetCircuitBreaker to clear circuitBroken")
+	}
+}
+
+func TestDualEngineFailoverCircuitBreaker_RapidThrashingLimit(t *testing.T) {
+	mgr := &Manager{
+		failoverWindow:      60 * time.Second,
+		failoverMaxFailures: 4,
+	}
+	var calls int
+	mgr.switchHook = func(target schema.EngineType) (*SwitchResult, error) {
+		calls++
+		// Simulate core starts briefly (returns nil) but keeps crashing immediately afterward
+		return &SwitchResult{Success: true, ElapsedMs: 10}, nil
+	}
+
+	for i := 1; i <= 6; i++ {
+		mgr.runSupervisorFailover(schema.EngineSingbox, schema.EngineMihomo, i)
+	}
+	if !mgr.IsCircuitBroken() {
+		t.Fatalf("expected rapid thrashing (4 crashes within 60s) to trip circuit breaker")
+	}
+	if calls != 4 {
+		t.Fatalf("expected circuit breaker to stop loop at exactly 4 failover attempts, got %d", calls)
+	}
+}
+
+func TestStreamLogPipe_CapturesV3StderrError(t *testing.T) {
+	mgr := &Manager{}
+	v3Msg := "This program can only be run on AMD64 processors with v3 microarchitecture support."
+	mgr.streamLogPipe(schema.EngineMihomo, "stderr", strings.NewReader(v3Msg+"\n"))
+
+	st := mgr.GetEngineFaultStatus()
+	if st.LastCoreError != v3Msg {
+		t.Fatalf("expected LastCoreError=%q, got %q", v3Msg, st.LastCoreError)
+	}
+}
+

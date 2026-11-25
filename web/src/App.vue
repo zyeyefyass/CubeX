@@ -171,6 +171,18 @@
       </button>
     </div>
 
+    <!-- ⚠️ 双核灾备熔断 / TUN 设备就绪异常可观测横幅 -->
+    <div v-else-if="systemStatus.engine_circuit_broken || systemStatus.tun_ready === false" class="w-full bg-amber-50 border-b border-amber-300 text-amber-950 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs z-30 shrink-0">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="font-bold text-amber-800 shrink-0">⚠️ {{ systemStatus.engine_circuit_broken ? '双核容灾已熔断（已停止循环切换）' : 'TUN 设备预检异常' }}:</span>
+        <span class="font-mono text-amber-900 break-all">{{ systemStatus.engine_fault_reason || systemStatus.tun_detail || systemStatus.last_core_error }}</span>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button @click="showLogsModal = true" class="px-2.5 py-1 rounded border border-amber-400 bg-white hover:bg-amber-100 text-amber-900 font-semibold cursor-pointer">查看日志</button>
+        <button @click="switchEngine(activeEngine || 'mihomo')" class="px-2.5 py-1 rounded bg-amber-600 hover:bg-amber-700 text-white font-semibold cursor-pointer">重试拉起</button>
+      </div>
+    </div>
+
     <div :class="['flex-1 min-h-0 flex flex-col h-full relative overflow-hidden w-full max-w-full transition-opacity duration-300', isPeekMode ? 'zootopia-peek-active' : '']">
       <!-- 🚀 暮光冰晶固定顶栏 (Twilight Cockpit Topbar) -->
       <TwilightTopBar
@@ -3959,7 +3971,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('ikuai') || name.includes('ikuai') || name.includes('爱快')) {
-    let ver = hw.version || 'v9.91'
+    let ver = hw.version || 'v9.92'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: '爱快 iKuai',
@@ -3968,7 +3980,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('openwrt') || name.includes('openwrt') || name.includes('lede')) {
-    let ver = hw.version || 'v9.91'
+    let ver = hw.version || 'v9.92'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: 'OpenWrt',
@@ -3986,7 +3998,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('fnos') || name.includes('fnos') || name.includes('飞牛')) {
-    let ver = hw.version || 'v9.91'
+    let ver = hw.version || 'v9.92'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: '飞牛 fnOS',

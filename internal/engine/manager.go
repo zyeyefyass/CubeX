@@ -112,6 +112,17 @@ type Manager struct {
 	switchingGraceDeadline atomic.Int64
 	stopCh chan struct{}
 	stopOnce sync.Once
+
+	faultMu             sync.Mutex
+	circuitBroken       bool
+	circuitBrokenReason string
+	circuitBrokenAt     time.Time
+	failoverHistory     []time.Time
+	failoverWindow      time.Duration
+	failoverMaxFailures int
+	lastCoreError       string
+	recentStderr        []string
+	switchHook          func(schema.EngineType) (*SwitchResult, error)
 }
 
 // NewManager creates a dual-engine manager.
@@ -772,6 +783,7 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 		}
 
 		cleanLine := ansiStripRegex.ReplaceAllString(line, "")
+		m.captureCoreOutput(pipeType, cleanLine)
 
 		level := "INFO"
 
@@ -1351,6 +1363,16 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	binPath := m.findBinary(binName)
 
+	// Step 2.2: Pre-flight /dev/net/tun availability & permission check before launching core
+	if tunOK, tunReason := CheckTunDevice(); !tunOK {
+		m.setLastCoreError(tunReason)
+		m.log("ERROR", "ENGINE", fmt.Sprintf("❌ 启动前 TUN 设备预检失败 (%s): %s", target, tunReason))
+		res.Success = false
+		res.ErrorMessage = tunReason
+		m.lastResult = res
+		return res, fmt.Errorf("%s", tunReason)
+	}
+
 	// Step 2.5: Mandatory Pre-Switch Dry-Run Guard (Guarantees zero crashes from corrupt airport nodes)
 	tDryStart := time.Now()
 	if binPath != "" && runtime.GOOS == "linux" {
@@ -1359,6 +1381,7 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 		if _, verified := m.dryRunCache.Load(cacheKey); !verified {
 			if err := m.dryRunCheck(target, binPath, etcDir, targetConfigPath); err != nil {
+				m.setLastCoreError(err.Error())
 				m.log("ERROR", "ENGINE", fmt.Sprintf("⚠️ 目标内核配置预检失败，阻断热重载以保护当前稳定运行态: %v", err))
 				res.Success = false
 				res.ErrorMessage = "dry-run verification failed: " + err.Error()
@@ -1397,9 +1420,11 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	// Step 5: Start new engine
 	tStartStart := time.Now()
+	m.clearRecentCoreOutput()
 	cmd := m.buildCmd(target, binPath, etcDir, targetConfigPath)
 	if err := m.startEngineProcess(target, cmd); err != nil {
 		log.Printf("🚨 [Engine] Failed to spawn %s: %v. Triggering self-healing rollback to %s!", target, err, fromEngine)
+		m.setLastCoreError(err.Error())
 		res.ErrorMessage = fmt.Sprintf("failed to spawn %s: %v", target, err)
 		if fromEngine != "" && fromEngine != target {
 			m.rollback(fromEngine, etcDir, snapshot)
@@ -1416,6 +1441,14 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	go func(proc *os.Process, eng schema.EngineType, d chan struct{}) {
 		state, err := proc.Wait()
+		if err != nil || (state != nil && !state.Success()) {
+			detail := m.summarizeRecentStderr()
+			if detail != "" {
+				m.setLastCoreError(fmt.Sprintf("%s (PID %d) 异常退出 (%v): %s", eng, proc.Pid, err, detail))
+			} else {
+				m.setLastCoreError(fmt.Sprintf("%s (PID %d) 异常退出 (%v, state: %v)", eng, proc.Pid, err, state))
+			}
+		}
 		log.Printf("⚠️ [Engine] Core process %s (PID %d) exited: %v (state: %v)", eng, proc.Pid, err, state)
 		close(d)
 	}(cmd.Process, target, done)
@@ -1424,13 +1457,20 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	// Step 6: Active Health Probe (verify Clash API and DNS readiness within 3s)
 	tProbeStart := time.Now()
 	if !m.probeCoreHealth(target, 3*time.Second) {
+		detail := m.summarizeRecentStderr()
+		if detail != "" {
+			res.ErrorMessage = fmt.Sprintf("core %s failed liveness health check (%s); network rolled back to %s", target, detail, fromEngine)
+			m.log("ERROR", "ENGINE", fmt.Sprintf("❌ 核心 %s 启动后健康探针未就绪: %s", target, detail))
+		} else {
+			res.ErrorMessage = fmt.Sprintf("core %s failed liveness health check; network rolled back to %s", target, fromEngine)
+		}
+		m.setLastCoreError(res.ErrorMessage)
 		log.Printf("🚨 [Engine] Target core %s failed health probe after launch! Triggering self-healing rollback to %s...", target, fromEngine)
 		m.stopCurrentCore(binName)
 		if fromEngine != "" && fromEngine != target {
 			m.rollback(fromEngine, etcDir, snapshot)
 		}
 		res.Success = false
-		res.ErrorMessage = fmt.Sprintf("core %s failed liveness health check; network rolled back to %s", target, fromEngine)
 		m.lastResult = res
 		return res, fmt.Errorf("%s", res.ErrorMessage)
 	}
@@ -1457,6 +1497,7 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	m.ir.Meta.ActiveEngine = target
 	res.Success = true
 	m.lastResult = res
+	m.ResetCircuitBreaker()
 
 	// Stage 7.5: Reclaim unused Go heap spans back to OS kernel (maintains ~35MB RSS ceiling)
 	m.reclaimOSMemory()
@@ -1607,6 +1648,9 @@ func (m *Manager) StartSupervisor() {
 				if stopping {
 					return
 				}
+				if m.IsCircuitBroken() {
+					continue
+				}
 				if active == "" || proc == nil {
 					continue
 				}
@@ -1665,53 +1709,7 @@ func (m *Manager) StartSupervisor() {
 
 				}
 
-				if count == 1 {
-
-					m.log("INFO", "SUPERVISOR", fmt.Sprintf("🛡️ 自愈中枢正在极速重启核心 %s...", active))
-
-					if _, err := m.SwitchEngine(active); err == nil {
-
-						m.log("INFO", "SUPERVISOR", fmt.Sprintf("✅ 核心 %s 快速复位自愈成功", active))
-
-						log.Printf("✅ [Supervisor] Successfully revived engine %s on quick restart", active)
-
-					} else {
-
-						m.log("WARN", "SUPERVISOR", fmt.Sprintf("⚠️ 核心 %s 快速复位失败，立即毫秒级容灾切换至备用核心 %s...", active, standby))
-
-						if res, sErr := m.SwitchEngine(standby); sErr == nil {
-
-							m.log("INFO", "SUPERVISOR", fmt.Sprintf("✅ 容灾切换成功: 当前主控平滑降级至 %s (耗时 %d ms)", standby, res.ElapsedMs))
-
-							m.mu.Lock()
-
-							m.crashCount = 0
-
-							m.mu.Unlock()
-
-						}
-
-					}
-
-				} else {
-
-					m.log("WARN", "SUPERVISOR", fmt.Sprintf("🚨 核心 %s 连续异常，启动双核容灾切换 ➔ %s...", active, standby))
-
-					if res, err := m.SwitchEngine(standby); err == nil {
-
-						m.log("INFO", "SUPERVISOR", fmt.Sprintf("✅ 双核容灾自愈完成: 已平滑切换至 %s (耗时 %d ms, 恢复策略组: %d)", standby, res.ElapsedMs, res.RestoredGroups))
-
-						log.Printf("✅ [Supervisor] Auto-failover to %s succeeded in %d ms", standby, res.ElapsedMs)
-
-						m.mu.Lock()
-
-						m.crashCount = 0
-
-						m.mu.Unlock()
-
-					}
-
-				}
+				m.runSupervisorFailover(active, standby, count)
 
 			} else {
 
@@ -2048,6 +2046,9 @@ func (m *Manager) StartEndToEndWatchdog() {
 
 				if stopping {
 					return
+				}
+				if m.IsCircuitBroken() {
+					continue
 				}
 				if active == "" || ir == nil || len(ir.Proxies) == 0 {
 					continue

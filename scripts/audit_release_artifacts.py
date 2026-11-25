@@ -66,6 +66,28 @@ FORBIDDEN_FLAG_IMAGE_PATTERNS = [
     re.compile(r"flags-test\.png", re.IGNORECASE),
 ]
 
+FORBIDDEN_AMD64_V3_MARKERS = [
+    b"v3 microarchitecture support",
+    b"v4 microarchitecture support",
+]
+
+
+def check_amd64_binary_isa(archive_name, inner_path, content_bytes):
+    """Ensure published x86_64/amd64 Go ELF binaries do not require x86-64-v3 (AVX2) instructions."""
+    errors = []
+    if len(content_bytes) < 20 or content_bytes[:4] != b"\x7fELF":
+        return errors
+    # ELF64 little-endian e_machine at bytes 18..20 == 0x003e (EM_X86_64)
+    if content_bytes[4] != 2 or int.from_bytes(content_bytes[18:20], "little") != 0x3E:
+        return errors
+    for marker in FORBIDDEN_AMD64_V3_MARKERS:
+        if marker in content_bytes:
+            errors.append(
+                f"[{archive_name} -> {inner_path}] ISA COMPATIBILITY VIOLATION: "
+                f"AMD64 ELF binary requires '{marker.decode('ascii', 'ignore')}' (incompatible with Celeron J4125/N3450/non-AVX2 CPUs)!"
+            )
+    return errors
+
 def check_file_content(archive_name, inner_path, content_bytes):
     errors = []
     text = None
@@ -218,8 +240,28 @@ def audit_zip(archive_path):
                 content = zf.read(entry)
                 errs = check_file_content(archive_name, filename, content)
                 errors.extend(errs)
+            elif any(k in base for k in ("cubexd", "cubex", "mihomo", "sing-box")):
+                errors.extend(check_amd64_binary_isa(archive_name, filename, zf.read(entry)))
 
     print(f"   -> Checked {files_checked} total files ({configs_checked} config/text files).")
+    return errors
+
+def audit_nested_oci_layer(archive_name, layer_name, raw_bytes):
+    errors = []
+    for sub_mode in ("r:gz", "r:"):
+        try:
+            with tarfile.open(fileobj=io.BytesIO(raw_bytes), mode=sub_mode) as stf:
+                for sm in stf.getmembers():
+                    if not sm.isfile():
+                        continue
+                    sbase = os.path.basename(sm.name)
+                    if any(k in sbase for k in ("cubexd", "cubex", "mihomo", "sing-box")):
+                        sf = stf.extractfile(sm)
+                        if sf:
+                            errors.extend(check_amd64_binary_isa(archive_name, f"{layer_name}::{sm.name}", sf.read()))
+                break
+        except Exception:
+            continue
     return errors
 
 def audit_tar(archive_path):
@@ -246,7 +288,7 @@ def audit_tar(archive_path):
                 if pat.search(filename):
                     errors.append(f"[{archive_name}] FORBIDDEN FLAG IMAGE FILE: {filename}")
 
-            # Check content
+            # Check content / binary ISA / nested OCI layers
             if filename.endswith((".json", ".yaml", ".yml", ".rsc", ".conf", ".sh", ".env", ".txt", ".md")):
                 configs_checked += 1
                 f = tf.extractfile(member)
@@ -254,6 +296,14 @@ def audit_tar(archive_path):
                     content = f.read()
                     errs = check_file_content(archive_name, filename, content)
                     errors.extend(errs)
+            elif any(k in base for k in ("cubexd", "cubex", "mihomo", "sing-box")):
+                f = tf.extractfile(member)
+                if f:
+                    errors.extend(check_amd64_binary_isa(archive_name, filename, f.read()))
+            elif filename.startswith("blobs/sha256/") and member.size > 1024:
+                f = tf.extractfile(member)
+                if f:
+                    errors.extend(audit_nested_oci_layer(archive_name, filename, f.read()))
 
     print(f"   -> Checked {files_checked} total files ({configs_checked} config/text files).")
     return errors
@@ -282,6 +332,9 @@ def audit_directory(release_dir, allow_windows=False):
                     )
             if f.endswith((".zip", ".tar", ".tar.gz", ".tgz")):
                 archives.append(p)
+            elif any(k in f for k in ("cubexd", "cubex", "mihomo", "sing-box")) and not f.endswith(".fpk"):
+                with open(p, "rb") as bf:
+                    all_errors.extend(check_amd64_binary_isa("release-dir", f, bf.read()))
 
     if not archives and not all_errors:
         print(f"⚠️  No release archives (.tar, .tar.gz, .zip) found in {release_dir}")
@@ -309,6 +362,7 @@ def audit_directory(release_dir, allow_windows=False):
         print("   ✓ 0 Credentials / Passwords / Private Keys")
         print("   ✓ 0 RouterOS Cloud DDNS Serials")
         print("   ✓ 0 Runtime Caches / DBs (cache.db, logs, sqlite)")
+        print("   ✓ 0 x86-64-v3/v4 Restricted AMD64 Binaries (Universal Compatible)")
         print("   ✓ 0 Unauthorized Windows Release Artifacts")
         print("   ✓ 100% Clean-Room & Zero-Legacy Compliance")
         print("=" * 80)

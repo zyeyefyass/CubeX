@@ -132,6 +132,17 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	}
 
+	legacyKernel, legacyRel := IsLegacyLinuxKernel()
+	tunGSO := true
+	tunEndpointIndepNAT := true
+	if legacyKernel {
+		// Linux 4.4.x kernels lack full TUN GSO / VirtioNetHdr offload support.
+		tunStack = "gvisor"
+		tunGSO = false
+		tunEndpointIndepNAT = false
+		log.Printf("[Compiler] 检测到 Linux 老内核 (%s)，Mihomo TUN 自动启用 gvisor 兼容模式并关闭 GSO", legacyRel)
+	}
+
 	// TUN Configuration (Zero-copy gvisor/mixed stack with local subnet bypass)
 	tunCfg := map[string]any{
 		"enable":                   true,
@@ -143,10 +154,10 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		"strict-route":             false,
 		"dns-mode":                 "hijack",
 		"mtu":                      tunMTU,
-		"gso":                      true,
+		"gso":                      tunGSO,
 		"gso-max-size":             65536,
 		"udp-timeout":              60,
-		"endpoint-independent-nat": true,
+		"endpoint-independent-nat": tunEndpointIndepNAT,
 	}
 
 	// 飞牛 / NAS 宿主机共生零冲突架构：
@@ -154,7 +165,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 	// 彻底解决 All-in-One 宿主下 Lucky STUN / PT / 宿主本地出站服务被吸入 TUN 导致非对称路由丢包与对称型 NAT 降级！
 	if !net.RouteAllTraffic {
 		routeAddrs := []string{"198.18.0.0/15"}
-		if net.IPv6 {
+		if net.IPv6 && (!legacyKernel || HasKernelIPv6Stack()) {
 			routeAddrs = append(routeAddrs, "fc00::/18")
 		}
 		tunCfg["route-address"] = routeAddrs

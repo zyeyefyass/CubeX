@@ -52,17 +52,80 @@ for m in t_in.getmembers():
         else:
             blobs[m.name] = f.read()
 
-# 第一刀瘦身：使用标准编译的 cubexd-container-amd64 (~19MB)
+# 第一刀瘦身：使用标准编译的 cubexd-container-amd64 (~12MB)，并同步最新的通用兼容版 mihomo 与 sing-box
 cubexd_path = os.path.join(root_dir, "dist", "cubexd-container-amd64")
 if not os.path.exists(cubexd_path):
     cubexd_path = os.path.join(root_dir, "dist", "cubexd-linux-amd64")
 
+mihomo_path = os.path.join(root_dir, "bin", "amd64", "mihomo")
+singbox_path = os.path.join(root_dir, "bin", "amd64", "sing-box")
+entrypoint_path = os.path.join(root_dir, "scripts", "docker", "entrypoint.sh")
+
+for req_p in (cubexd_path, mihomo_path, singbox_path):
+    if not os.path.exists(req_p):
+        print(f"CRITICAL: Required amd64 binary missing: {req_p}")
+        exit(1)
+
 with open(cubexd_path, 'rb') as f:
     new_cubexd = f.read()
+with open(mihomo_path, 'rb') as f:
+    new_mihomo = f.read()
+with open(singbox_path, 'rb') as f:
+    new_singbox = f.read()
+with open(meta_file, 'rb') as f:
+    meta_bytes = f.read()
+entrypoint_bytes = b""
+if os.path.exists(entrypoint_path):
+    with open(entrypoint_path, 'rb') as f:
+        entrypoint_bytes = f.read()
 
-print(f"Read new cubexd ({cubexd_path}): {len(new_cubexd)} bytes ({len(new_cubexd)/(1024*1024):.2f} MB)")
+# Safety gate: never package a v3-only amd64 core binary
+for bname, braw in [("cubexd", new_cubexd), ("mihomo", new_mihomo), ("sing-box", new_singbox)]:
+    if b"v3 microarchitecture support" in braw or b"v4 microarchitecture support" in braw:
+        print(f"CRITICAL: Refusing to package x86-64-v3/v4 restricted binary for {bname}!")
+        exit(1)
 
-# Build updated cubexd layer
+print(f"Read cubexd ({cubexd_path}): {len(new_cubexd)/(1024*1024):.2f} MB")
+print(f"Read mihomo ({mihomo_path}): {len(new_mihomo)/(1024*1024):.2f} MB")
+print(f"Read sing-box ({singbox_path}): {len(new_singbox)/(1024*1024):.2f} MB")
+
+# Locate cfg and layers first, and strip stale app/bin/* & meta/entrypoint from all earlier layers
+cfg_name = manifest[0]['Config']
+cfg = json.loads(blobs[cfg_name].decode('utf-8'))
+layers = list(manifest[0]['Layers'])
+
+stale_paths = {
+    'app/bin/cubexd', 'app/bin/mihomo', 'app/bin/sing-box',
+    'app/meta.json', 'app/entrypoint.sh',
+}
+layer_idx = -1
+for i, l in enumerate(layers):
+    data = blobs[l]
+    try:
+        raw_tar = gzip.decompress(data)
+        sub = tarfile.open(fileobj=io.BytesIO(raw_tar))
+        names = set(sub.getnames())
+        if 'app/bin/cubexd' in names and layer_idx == -1:
+            layer_idx = i
+        if names & stale_paths:
+            clean_buf = io.BytesIO()
+            with tarfile.open(fileobj=clean_buf, mode='w') as clean_out:
+                for member in sub.getmembers():
+                    if member.name.lstrip('./') in stale_paths:
+                        continue
+                    fobj = sub.extractfile(member) if member.isfile() else None
+                    clean_out.addfile(member, fobj)
+            clean_raw = clean_buf.getvalue()
+            clean_gz = gzip.compress(clean_raw)
+            new_blob_digest = hashlib.sha256(clean_gz).hexdigest()
+            new_blob_name = f"blobs/sha256/{new_blob_digest}"
+            blobs[new_blob_name] = clean_gz
+            layers[i] = new_blob_name
+            cfg['rootfs']['diff_ids'][i] = f"sha256:{hashlib.sha256(clean_raw).hexdigest()}"
+    except Exception:
+        pass
+
+# Build updated app binary layer containing fresh cubexd + compatible mihomo + sing-box
 buf = io.BytesIO()
 with tarfile.open(fileobj=buf, mode='w') as sub:
     ti = tarfile.TarInfo(name='app/bin')
@@ -71,12 +134,18 @@ with tarfile.open(fileobj=buf, mode='w') as sub:
     ti.mtime = int(time.time())
     sub.addfile(ti)
 
-    ti = tarfile.TarInfo(name='app/bin/cubexd')
-    ti.type = tarfile.REGTYPE
-    ti.mode = 0o755
-    ti.size = len(new_cubexd)
-    ti.mtime = int(time.time())
-    sub.addfile(ti, io.BytesIO(new_cubexd))
+    for rel_name, payload, mode in [
+        ('app/bin/cubexd', new_cubexd, 0o755),
+        ('app/bin/mihomo', new_mihomo, 0o755),
+        ('app/bin/sing-box', new_singbox, 0o755),
+        ('app/meta.json', meta_bytes, 0o644),
+    ] + ([('app/entrypoint.sh', entrypoint_bytes, 0o755)] if entrypoint_bytes else []):
+        ti = tarfile.TarInfo(name=rel_name)
+        ti.type = tarfile.REGTYPE
+        ti.mode = mode
+        ti.size = len(payload)
+        ti.mtime = int(time.time())
+        sub.addfile(ti, io.BytesIO(payload))
 
 uncompressed_layer = buf.getvalue()
 diff_id = f"sha256:{hashlib.sha256(uncompressed_layer).hexdigest()}"
@@ -86,27 +155,12 @@ new_layer_blob = f"blobs/sha256/{layer_digest}"
 
 blobs[new_layer_blob] = compressed_layer
 
-# Find which layer contains cubexd dynamically
-layers = list(manifest[0]['Layers'])
-layer_idx = -1
-for i, l in enumerate(layers):
-    data = blobs[l]
-    try:
-        sub = tarfile.open(fileobj=io.BytesIO(gzip.decompress(data)))
-        if 'app/bin/cubexd' in sub.getnames():
-            layer_idx = i
-            break
-    except Exception:
-        pass
-
 if layer_idx == -1:
-    layer_idx = 4
+    layer_idx = len(layers) - 1
 print(f"Found cubexd target layer index: {layer_idx}")
 layers[layer_idx] = new_layer_blob
 
 # Update config json
-cfg_name = manifest[0]['Config']
-cfg = json.loads(blobs[cfg_name].decode('utf-8'))
 cfg['rootfs']['diff_ids'][layer_idx] = diff_id
 new_cfg_bytes = json.dumps(cfg, indent=2).encode('utf-8')
 new_cfg_digest = hashlib.sha256(new_cfg_bytes).hexdigest()
