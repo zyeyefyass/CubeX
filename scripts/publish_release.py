@@ -57,9 +57,7 @@ TAG = get_tag()
 
 RELEASE_TITLE = f"CubeX {TAG} · 根治宿主机 DNS 自环死锁 · 防死锁 dns-hosts 规则 · 启动期自环巡检 · RouterOS 对称撤回"
 
-RELEASE_BODY = f"""# CubeX {TAG} · 根治宿主机 DNS 自环死锁 · 防死锁 dns-hosts 规则 · 启动期自环巡检 · RouterOS 对称撤回
-
-1. **根治宿主机 DHCP 续租引发的 DNS 自环死锁**：`sing-box` 编译前自动巡检宿主机 `/etc/resolv.conf`，一旦发现指向 `127.0.0.1`、`::1` 或本机局域网 IP，自动弃用 `type: "local"` 并安全回退至上级网关或 `223.5.5.5`，彻底消除自己问自己的死循环风暴。
+RELEASE_BODY = f"""1. **根治宿主机 DHCP 续租引发的 DNS 自环死锁**：`sing-box` 编译前自动巡检宿主机 `/etc/resolv.conf`，一旦发现指向 `127.0.0.1`、`::1` 或本机局域网 IP，自动弃用 `type: "local"` 并安全回退至上级网关或 `223.5.5.5`，彻底消除自己问自己的死循环风暴。
 2. **接入防死锁 `dns-hosts` 规则**：将内置公共 DNS 静态解析表（`dns.alidns.com`、`doh.pub`、`dns.google`、`cloudflare-dns.com`）接入 `dns.rules` 优先命中，消除引导域名解析死锁。
 3. **新增启动期 DNS 自环巡检指引**：在 `install.sh` 与 `cubexd` 启动预检中温和检测本机 DNS 自环风险并输出固定 DNS 修复指引，不锁死系统网络管理文件。
 4. **补齐 RouterOS 一键对称撤回**：完善 `POST /api/v1/host/bypass/remove` 对 RouterOS 的原生撤回能力，完整清理旁路路由、规则与看门狗并恢复上游 DNS，与爱快、开源软路由完全对称。
