@@ -147,6 +147,63 @@ def get_assets_map(token, release_id):
         return {}
 
 
+def _upload_via_openssl(token: str, upload_url: str, file_path: Path, content_type: str) -> tuple[int, str, str]:
+    """使用 Python OpenSSL http.client 分块流式上传，规避 Windows Schannel 大文件断流。"""
+    import http.client
+    from urllib.parse import urlparse
+
+    parsed = urlparse(upload_url)
+    host = parsed.hostname
+    port = parsed.port or 443
+    path_q = parsed.path + (f"?{parsed.query}" if parsed.query else "")
+    total_size = file_path.stat().st_size
+
+    if PROXY:
+        p_url = urlparse(PROXY)
+        conn = http.client.HTTPSConnection(p_url.hostname, p_url.port or 8080, timeout=120)
+        conn.set_tunnel(host, port)
+    else:
+        conn = http.client.HTTPSConnection(host, port, timeout=120)
+
+    try:
+        conn.putrequest("POST", path_q)
+        conn.putheader("Authorization", f"token {token}")
+        conn.putheader("Content-Type", content_type)
+        conn.putheader("Content-Length", str(total_size))
+        conn.putheader("User-Agent", "CubeX-Release-Agent")
+        conn.putheader("Accept", "application/vnd.github.v3+json")
+        conn.endheaders()
+
+        sent = 0
+        next_report = 15 * 1024 * 1024
+        t0 = time.time()
+        with open(file_path, "rb") as fh:
+            while True:
+                chunk = fh.read(65536)
+                if not chunk:
+                    break
+                conn.send(chunk)
+                sent += len(chunk)
+                if sent >= next_report or sent == total_size:
+                    elapsed = max(0.1, time.time() - t0)
+                    mb_sent = sent / 1024 / 1024
+                    mb_tot = total_size / 1024 / 1024
+                    kbps = sent / 1024 / elapsed
+                    print(f"     -> OpenSSL 流式已发送 {mb_sent:.1f}/{mb_tot:.1f} MB ({kbps:.0f} KB/s)", flush=True)
+                    next_report += 15 * 1024 * 1024
+
+        resp = conn.getresponse()
+        body = resp.read().decode("utf-8", errors="replace")
+        return resp.status, body, ""
+    except Exception as exc:
+        return 0, "", str(exc)
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+
 def upload_asset(token, release_id, upload_url_tpl, file_path):
     name = file_path.name
     size = file_path.stat().st_size
@@ -189,9 +246,9 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
         "-w", "\n%{http_code}",
         "-L",
         "--connect-timeout", "25",
-        "--speed-limit", "20480",
-        "--speed-time", "30",
-        "--max-time", "240",
+        "--speed-limit", "10240",
+        "--speed-time", "60",
+        "--max-time", "900",
         "-X", "POST",
         "-H", f"Authorization: token {token}",
         "-H", f"Content-Type: {content_type}",
@@ -214,16 +271,24 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
             gh_api(token, "DELETE", f"/releases/assets/{cur_a['id']}")
             time.sleep(3)
 
-        print(f"   - 第 {attempt}/4 次传输...", flush=True)
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=1220)
-
-        lines = res.stdout.strip().splitlines()
-        http_code = lines[-1].strip() if lines else ""
+        use_openssl = (size >= 20 * 1024 * 1024) or (attempt >= 3)
+        if use_openssl:
+            print(f"   - 第 {attempt}/4 次传输 (OpenSSL 流式)...", flush=True)
+            status_code, _, err_msg = _upload_via_openssl(token, upload_url, file_path, content_type)
+            ret_code = 0 if status_code in (200, 201) else 1
+            http_code = str(status_code) if status_code else "000"
+        else:
+            print(f"   - 第 {attempt}/4 次传输 (curl)...", flush=True)
+            res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=960)
+            lines = res.stdout.strip().splitlines()
+            http_code = lines[-1].strip() if lines else ""
+            ret_code = res.returncode
+            err_msg = res.stderr[:150]
 
         # Wait for GitHub background storage finalization
         print("   - 等待 GitHub 云端入库终审校验...", flush=True)
         success = False
-        max_waits = 12 if (res.returncode == 0 and http_code in ("200", "201")) else 8
+        max_waits = 16 if (ret_code == 0 and http_code in ("200", "201")) else 8
         for wait_idx in range(max_waits):
             time.sleep(5)
             assets = get_assets_map(token, release_id)
@@ -238,7 +303,7 @@ def upload_asset(token, release_id, upload_url_tpl, file_path):
         if success:
             return True
 
-        print(f"   ⚠️ 第 {attempt} 次校验未通过: code={res.returncode}, http={http_code}, stderr={res.stderr[:150]}", flush=True)
+        print(f"   ⚠️ 第 {attempt} 次校验未通过: code={ret_code}, http={http_code}, err={err_msg}", flush=True)
         time.sleep(5)
 
     return False
@@ -332,12 +397,18 @@ def main():
 
     print(f"✅ {len(expected_assets)} 项发布资产全部就绪，开始上传至 GitHub Draft Release (ID: {release_id})...\n")
 
+    ordered_assets = sorted(expected_assets, key=lambda n: (RELEASE_DIR / n).stat().st_size)
+    small_assets = [n for n in ordered_assets if (RELEASE_DIR / n).stat().st_size < 20 * 1024 * 1024]
+    large_assets = [n for n in ordered_assets if (RELEASE_DIR / n).stat().st_size >= 20 * 1024 * 1024]
+
     failed = []
-    for item in expected_assets:
-        p = RELEASE_DIR / item
-        ok = upload_asset(token, release_id, upload_url_tpl, p)
-        if not ok:
+    for item in small_assets:
+        if not upload_asset(token, release_id, upload_url_tpl, RELEASE_DIR / item):
             failed.append(item)
+    if large_assets:
+        for item in large_assets:
+            if not upload_asset(token, release_id, upload_url_tpl, RELEASE_DIR / item):
+                failed.append(item)
 
     if failed:
         print(f"\n❌ 上传失败列表 ({len(failed)} 项): {failed}")
