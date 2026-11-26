@@ -118,6 +118,7 @@ type Manager struct {
 	circuitBroken       bool
 	circuitBrokenReason string
 	circuitBrokenAt     time.Time
+	circuitHoldLogAt    map[string]time.Time
 	failoverHistory     []time.Time
 	failoverWindow      time.Duration
 	failoverMaxFailures int
@@ -1954,19 +1955,7 @@ func (m *Manager) PatrolCircuitBreaker() int {
 	}
 
 	var data struct {
-		Proxies map[string]struct {
-			Name string `json:"name"`
-
-			Type string `json:"type"`
-
-			Now string `json:"now"`
-
-			All []string `json:"all"`
-
-			History []struct {
-				Delay int `json:"delay"`
-			} `json:"history"`
-		} `json:"proxies"`
+		Proxies map[string]clashProxyEntry `json:"proxies"`
 	}
 
 	if err := json.Unmarshal(body, &data); err != nil {
@@ -1976,6 +1965,7 @@ func (m *Manager) PatrolCircuitBreaker() int {
 	}
 
 	healedCount := 0
+	globalPhysicalCount := countGlobalPhysicalNodes(data.Proxies)
 
 	isSafeTarget := func(name string) bool {
 
@@ -2021,55 +2011,19 @@ func (m *Manager) PatrolCircuitBreaker() int {
 
 		if isDead {
 
-			// Find optimal fallback dynamic target from grp.All
-
-			var fallbackTarget string
-
-			for _, candidate := range grp.All {
-
-				if strings.Contains(candidate, "自动") && !schema.IsInformationalOrInvalidNode(candidate) {
-
-					fallbackTarget = candidate
-
-					break
-
-				}
-
+			if globalPhysicalCount <= 1 {
+				m.logCircuitHoldOnce(grpName, grp.Now, fmt.Sprintf("🛡️ 智能熔断: 策略组 [%s] 节点 [%s] 异常(%dms)，但全局仅配置 %d 个有效物理节点，禁止切入空分组或 DIRECT，原地保留等待主路由/外网恢复", grpName, grp.Now, lastDelay, globalPhysicalCount))
+				continue
 			}
 
+			// Find optimal non-empty fallback dynamic target from grp.All
+			fallbackTarget := selectCircuitBreakerFallback(data.Proxies, grp.All, grp.Now)
 			if fallbackTarget == "" {
-
-				for _, candidate := range grp.All {
-
-					if (strings.Contains(candidate, "故转") || strings.Contains(candidate, "容灾")) && !schema.IsInformationalOrInvalidNode(candidate) {
-
-						fallbackTarget = candidate
-
-						break
-
-					}
-
-				}
-
+				m.logCircuitHoldOnce(grpName, grp.Now, fmt.Sprintf("🛡️ 智能熔断: 策略组 [%s] 节点 [%s] 异常(%dms)，备选自动/容灾分组均为空或无其他可用物理节点，原地保留等待主路由/外网恢复", grpName, grp.Now, lastDelay))
+				continue
 			}
 
-			if fallbackTarget == "" {
-
-				for _, candidate := range grp.All {
-
-					if (candidate == "🌐 国外流量" || candidate == "DIRECT") && !schema.IsInformationalOrInvalidNode(candidate) {
-
-						fallbackTarget = candidate
-
-						break
-
-					}
-
-				}
-
-			}
-
-			if fallbackTarget != "" && fallbackTarget != grp.Now {
+			if fallbackTarget != grp.Now {
 
 				putURL := fmt.Sprintf("%s/proxies/%s", m.clashAPI, url.PathEscape(grpName))
 
@@ -2339,4 +2293,118 @@ func (m *Manager) flushStaleConnectionsAfterSwitch() {
 		netutil.DrainAndCloseBody(resp)
 		log.Printf("🧹 [Engine] Flushed stale connections via Clash API (%s)", u)
 	}
+}
+
+type clashProxyEntry struct {
+	Name    string   `json:"name"`
+	Type    string   `json:"type"`
+	Now     string   `json:"now"`
+	All     []string `json:"all"`
+	History []struct {
+		Delay int `json:"delay"`
+	} `json:"history"`
+}
+
+func isVirtualOrBuiltInProxy(name, typ string) bool {
+	switch strings.ToUpper(strings.TrimSpace(name)) {
+	case "", "DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE", "GLOBAL", "BLOCK", "DNS-OUT":
+		return true
+	}
+	if schema.IsInformationalOrInvalidNode(name) {
+		return true
+	}
+	switch strings.ToLower(strings.TrimSpace(typ)) {
+	case "", "selector", "urltest", "url-test", "fallback", "loadbalance", "load-balance", "relay",
+		"direct", "reject", "rejectdrop", "reject-drop", "block", "pass", "compatible", "dns", "unknown":
+		return true
+	}
+	return false
+}
+
+func collectValidPhysicalNodes(proxies map[string]clashProxyEntry, target string, visited map[string]bool) []string {
+	if target == "" || visited[target] {
+		return nil
+	}
+	visited[target] = true
+
+	entry, ok := proxies[target]
+	if !ok {
+		return nil
+	}
+	if len(entry.All) == 0 {
+		if isVirtualOrBuiltInProxy(target, entry.Type) {
+			return nil
+		}
+		return []string{target}
+	}
+
+	var out []string
+	seen := make(map[string]bool)
+	for _, member := range entry.All {
+		for _, node := range collectValidPhysicalNodes(proxies, member, visited) {
+			if !seen[node] {
+				seen[node] = true
+				out = append(out, node)
+			}
+		}
+	}
+	return out
+}
+
+func countGlobalPhysicalNodes(proxies map[string]clashProxyEntry) int {
+	count := 0
+	for name, entry := range proxies {
+		if len(entry.All) == 0 && !isVirtualOrBuiltInProxy(name, entry.Type) {
+			count++
+		}
+	}
+	return count
+}
+
+func groupHasUsableAlternative(proxies map[string]clashProxyEntry, candidate, currentDead string) bool {
+	if candidate == "" || candidate == currentDead || schema.IsInformationalOrInvalidNode(candidate) {
+		return false
+	}
+	nodes := collectValidPhysicalNodes(proxies, candidate, make(map[string]bool))
+	for _, n := range nodes {
+		if n != currentDead {
+			return true
+		}
+	}
+	return false
+}
+
+func selectCircuitBreakerFallback(proxies map[string]clashProxyEntry, candidates []string, currentDead string) string {
+	tiers := []func(string) bool{
+		func(c string) bool { return strings.Contains(c, "自动") },
+		func(c string) bool { return strings.Contains(c, "故转") || strings.Contains(c, "容灾") },
+		func(c string) bool { return c == "🌐 国外流量" },
+	}
+	for _, matchTier := range tiers {
+		for _, candidate := range candidates {
+			if matchTier(candidate) && groupHasUsableAlternative(proxies, candidate, currentDead) {
+				return candidate
+			}
+		}
+	}
+	return ""
+}
+
+func (m *Manager) logCircuitHoldOnce(grpName, nodeName, msg string) {
+	key := grpName + "|" + nodeName
+	now := time.Now()
+	m.faultMu.Lock()
+	if m.circuitHoldLogAt == nil {
+		m.circuitHoldLogAt = make(map[string]time.Time)
+	}
+	last, exists := m.circuitHoldLogAt[key]
+	if exists && now.Sub(last) < 60*time.Second {
+		m.faultMu.Unlock()
+		return
+	}
+	m.circuitHoldLogAt[key] = now
+	m.faultMu.Unlock()
+
+	log.Print(msg)
+	m.log("WARN", "HA", msg)
 }

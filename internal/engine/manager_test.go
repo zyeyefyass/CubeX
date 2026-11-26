@@ -1,9 +1,13 @@
 package engine
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -278,6 +282,190 @@ func TestNewManager_EmptyProxiesPreservedAndCorruptBackedUp(t *testing.T) {
 	matches, _ := filepath.Glob(cIrPath + ".corrupt.*")
 	if len(matches) == 0 {
 		t.Fatalf("expected corrupt config.ir.json to be backed up with .corrupt.* suffix")
+	}
+}
+
+func TestPatrolCircuitBreaker_SingleNodeDoesNotSwitchToEmptyGroup(t *testing.T) {
+	var mu sync.Mutex
+	var putCalls []string
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/proxies" {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"proxies": map[string]any{
+					"🚀 节点选择": map[string]any{
+						"name": "🚀 节点选择",
+						"type": "Selector",
+						"now":  "自建-新加坡-01",
+						"all":  []string{"🇭🇰 香港自动", "🇸🇬 新加坡自动", "🇭🇰 香港故转", "🌐 国外流量", "自建-新加坡-01", "DIRECT"},
+					},
+					"🇭🇰 香港自动": map[string]any{
+						"name": "🇭🇰 香港自动",
+						"type": "URLTest",
+						"now":  "DIRECT",
+						"all":  []string{"DIRECT"},
+					},
+					"🇸🇬 新加坡自动": map[string]any{
+						"name": "🇸🇬 新加坡自动",
+						"type": "URLTest",
+						"now":  "自建-新加坡-01",
+						"all":  []string{"自建-新加坡-01"},
+					},
+					"🇭🇰 香港故转": map[string]any{
+						"name": "🇭🇰 香港故转",
+						"type": "Fallback",
+						"now":  "DIRECT",
+						"all":  []string{"DIRECT"},
+					},
+					"🌐 国外流量": map[string]any{
+						"name": "🌐 国外流量",
+						"type": "Selector",
+						"now":  "🇭🇰 香港自动",
+						"all":  []string{"🇭🇰 香港自动", "DIRECT"},
+					},
+					"自建-新加坡-01": map[string]any{
+						"name":    "自建-新加坡-01",
+						"type":    "VLESS",
+						"history": []map[string]any{{"delay": 0}},
+					},
+					"DIRECT": map[string]any{
+						"name": "DIRECT",
+						"type": "Direct",
+					},
+				},
+			})
+			return
+		}
+		if r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/proxies/") {
+			mu.Lock()
+			putCalls = append(putCalls, r.URL.Path)
+			mu.Unlock()
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	ir := schema.NewDefaultIR()
+	ir.Groups = []schema.StrategyGroup{
+		{Name: "🚀 节点选择", Type: "select", Now: "自建-新加坡-01", Proxies: []string{"🇭🇰 香港自动", "自建-新加坡-01", "DIRECT"}},
+	}
+	mgr := &Manager{
+		ir:         ir,
+		workDir:    t.TempDir(),
+		clashAPI:   srv.URL,
+		httpClient: srv.Client(),
+	}
+	var logs []string
+	mgr.SetLogCallback(func(level, module, msg string) {
+		logs = append(logs, msg)
+	})
+
+	healed := mgr.PatrolCircuitBreaker()
+	if healed != 0 {
+		t.Fatalf("expected healed=0 when only 1 global physical node exists, got %d", healed)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(putCalls) != 0 {
+		t.Fatalf("expected no PUT /proxies switch calls in single-node scenario, got %v", putCalls)
+	}
+	if mgr.ir.Groups[0].Now != "自建-新加坡-01" {
+		t.Fatalf("expected group Now to remain '自建-新加坡-01', got %q", mgr.ir.Groups[0].Now)
+	}
+	if len(logs) == 0 || !strings.Contains(logs[0], "原地保留") {
+		t.Fatalf("expected hold-in-place log message, got %v", logs)
+	}
+}
+
+func TestPatrolCircuitBreaker_MultiNodeSwitchesToNonEmptyAutoGroup(t *testing.T) {
+	var mu sync.Mutex
+	var switchedTo string
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/proxies" {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"proxies": map[string]any{
+					"🚀 节点选择": map[string]any{
+						"name": "🚀 节点选择",
+						"type": "Selector",
+						"now":  "美国-01",
+						"all":  []string{"🇭🇰 香港自动", "🇯🇵 日本自动", "🇺🇸 美国自动", "美国-01", "日本-01", "DIRECT"},
+					},
+					"🇭🇰 香港自动": map[string]any{
+						"name": "🇭🇰 香港自动",
+						"type": "URLTest",
+						"now":  "DIRECT",
+						"all":  []string{"DIRECT"},
+					},
+					"🇯🇵 日本自动": map[string]any{
+						"name": "🇯🇵 日本自动",
+						"type": "URLTest",
+						"now":  "日本-01",
+						"all":  []string{"日本-01"},
+					},
+					"🇺🇸 美国自动": map[string]any{
+						"name": "🇺🇸 美国自动",
+						"type": "URLTest",
+						"now":  "美国-01",
+						"all":  []string{"美国-01"},
+					},
+					"美国-01": map[string]any{
+						"name":    "美国-01",
+						"type":    "VLESS",
+						"history": []map[string]any{{"delay": 0}},
+					},
+					"日本-01": map[string]any{
+						"name":    "日本-01",
+						"type":    "VLESS",
+						"history": []map[string]any{{"delay": 45}},
+					},
+					"DIRECT": map[string]any{
+						"name": "DIRECT",
+						"type": "Direct",
+					},
+				},
+			})
+			return
+		}
+		if r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/proxies/") {
+			var payload struct {
+				Name string `json:"name"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&payload)
+			mu.Lock()
+			switchedTo = payload.Name
+			mu.Unlock()
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	ir := schema.NewDefaultIR()
+	ir.Groups = []schema.StrategyGroup{
+		{Name: "🚀 节点选择", Type: "select", Now: "美国-01", Proxies: []string{"🇭🇰 香港自动", "🇯🇵 日本自动", "🇺🇸 美国自动", "美国-01", "日本-01", "DIRECT"}},
+	}
+	mgr := &Manager{
+		ir:         ir,
+		workDir:    t.TempDir(),
+		clashAPI:   srv.URL,
+		httpClient: srv.Client(),
+	}
+
+	healed := mgr.PatrolCircuitBreaker()
+	if healed != 1 {
+		t.Fatalf("expected healed=1 when a non-empty auto group exists, got %d", healed)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if switchedTo != "🇯🇵 日本自动" {
+		t.Fatalf("expected fallback to non-empty '🇯🇵 日本自动' (skipping empty '🇭🇰 香港自动'), got %q", switchedTo)
+	}
+	if mgr.ir.Groups[0].Now != "🇯🇵 日本自动" {
+		t.Fatalf("expected persisted group Now='🇯🇵 日本自动', got %q", mgr.ir.Groups[0].Now)
 	}
 }
 

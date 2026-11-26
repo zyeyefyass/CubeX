@@ -6,7 +6,7 @@
 # ═════════════════════════════════════════════════════════════════════════════
 set -e
 
-VERSION="v9.95"
+VERSION="v9.96"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 RELEASE_DIR="$DIST_DIR/release"
@@ -155,7 +155,7 @@ ls -lh "$RELEASE_DIR"
 
 # 6. Strict Automated Post-Packaging Desensitization & Unpack Audit
 echo "🛡️  Executing Mandatory Post-Packaging Desensitization Audit (.tar & .zip independent unpack)..."
-python3 "$ROOT_DIR/scripts/audit_release_artifacts.py" "$RELEASE_DIR"
+python3 "$ROOT_DIR/scripts/audit_release_artifacts.py" "$RELEASE_DIR" --expected-version "$VERSION"
 
 # Enforce Strict 10-Version Retention Policy Across All Platforms
 python3 "$ROOT_DIR/scripts/enforce_10_version_retention.py"

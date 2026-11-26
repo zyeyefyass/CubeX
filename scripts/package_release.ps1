@@ -9,7 +9,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$Version = "v9.95"
+$Version = "v9.96"
 
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 
@@ -397,7 +397,7 @@ Get-ChildItem -Path $ReleaseDir | Select-Object Name, Length
 
 Write-Host "`n🛡? Executing Mandatory Post-Packaging Desensitization Audit (.tar & .zip independent unpack)..." -ForegroundColor Cyan
 
-$auditArgs = @("$ReleaseDir")
+$auditArgs = @("$ReleaseDir", "--expected-version", "$Version")
 
 if ($IncludeWindows) {
 

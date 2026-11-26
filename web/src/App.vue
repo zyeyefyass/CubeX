@@ -4011,7 +4011,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('ikuai') || name.includes('ikuai') || name.includes('爱快')) {
-    let ver = hw.version || 'v9.95'
+    let ver = hw.version || 'v9.96'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: '爱快 iKuai',
@@ -4020,7 +4020,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('openwrt') || name.includes('openwrt') || name.includes('lede')) {
-    let ver = hw.version || 'v9.95'
+    let ver = hw.version || 'v9.96'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: 'OpenWrt',
@@ -4038,7 +4038,7 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('fnos') || name.includes('fnos') || name.includes('飞牛')) {
-    let ver = hw.version || 'v9.95'
+    let ver = hw.version || 'v9.96'
     if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: '飞牛 fnOS',
@@ -9224,6 +9224,7 @@ async function fetchDnsFilterStats() {
 // ── Host Base & Upgrades State ──
 
 const savingAndLinkingHost = ref(false)
+const savingAndLinkingStage = ref('')
 
 // ── P1: 4K 高密驾驶舱模式与智能探活状态 ──
 
@@ -13700,6 +13701,7 @@ async function saveCredentialsAndLinkHost() {
   }
 
   savingAndLinkingHost.value = true
+  savingAndLinkingStage.value = '正在验证连接...'
 
   showToast('🔍 正在测试宿主连接并验证凭据...')
 
@@ -13754,6 +13756,8 @@ async function saveCredentialsAndLinkHost() {
       hostConfig.value.platform_type = detectedPlat
 
     }
+
+    savingAndLinkingStage.value = '正在保存凭据...'
 
     // 2. Persist credentials; strictly avoid syncing SSH port 22 or non-ROS hosts into ros-config
 
@@ -13833,17 +13837,21 @@ async function saveCredentialsAndLinkHost() {
 
     // 3. Trigger auto setup host platform (routing / firewall / ip_forward)
 
+    savingAndLinkingStage.value = '正在下发路由联动...'
+
     showToast('⚡ 凭据测试通过，正在全自动编排宿主策略路由与网络转发...')
 
     const autoRes = await fetchWithTimeout('/api/v1/host/auto-setup', { method: 'POST' }, 25000)
 
     const autoData = await autoRes.json()
 
-    // 4. Refresh telemetry
+    // 4. Refresh telemetry (short bounded wait so button does not feel stuck after auto-setup completes)
+
+    savingAndLinkingStage.value = '正在刷新状态...'
 
     await Promise.race([
       refreshHostTelemetry(),
-      new Promise(resolve => setTimeout(resolve, 6000))
+      new Promise(resolve => setTimeout(resolve, 1500))
     ])
 
     refreshHealthRadar()
@@ -13866,6 +13874,7 @@ async function saveCredentialsAndLinkHost() {
   } finally {
 
     savingAndLinkingHost.value = false
+    savingAndLinkingStage.value = ''
 
   }
 
@@ -22330,7 +22339,7 @@ async function runAuthorizedMountLoad() {
 provide('cubexApp', reactive({
   showToast,
   isBackendOnline, checkBackendHeartbeat,
-  activeEngine, adblockStats, addFakeIpFilter, addWhitelistItem, aiActionResult, aiActions, aiConfig, aiLoading, aiPresetQuestions, aiPrompt, aiProviders, aiReply, authState, batchAddingNodes, batchImportingSubs, batchNodeText, batchSubText, chaosDrillReport, chaosReportModal, checkHostUpgrade, checkingGeoUpgrade, checkingHostUpgrade, chooseFreshStart, cleanActionLabelMap, cleaningRosFirewall, clearSystemLogs, completeInitWizard, confirmAndStartInitWizard, confirmSystemReboot, copyDiagnosticMarkdown, copyText, coreUpgradeFrozen, coreUpgradeLog, creatingGithubIssue, customNodes, deleteDnsRewriteRule, deleteNode, deleteSourceItem, deleteSubscription, diagnosticModal, displayedLogs, dnsBlockedLastY, dnsBlockedPath, dnsFilterStats, dnsLatencyLastY, dnsLatencyPath, dnsQueryLastY, dnsQueryPath, dnsRewriteConfig, editingDnsRewriteRule, editingRuleSource, executeAIAction, executeHostUpgrade, executingAIActionId, executingHostUpgrade, executionModal, exportBackup, fakeIpFilters, fakeIpLoading, fetchDnsFilterStats, fetchRouterHardware, fetchSystemLogs, filterConfig, filteredGeodataFiles, formatExpire, geoAutoUpdateEnabled, geoUpdateLog, geodataFilterCategory, geodataFilterEngine, geodataLastUpdateText, geodataSearchQuery, geodataStatus, getNodeDelayClass, getSubRegions, handleInitBackupUpload, handleInitFileDrop, hasAnyUpdate, healingSteps, hostBadge, hostConfig, hostInfo, hostLastExecution, hostUpgradeDetails, hostUpgradeResult, importBackup, initBackupFileInput, initDetectedPlatform, initExecuting, initHostForm, initImportStats, initImportSuccess, initImporting, initLogs, initWizardImportTab, initWizardStep, inspectAndCleanReapplyRos, ir, isHotRestarting, isIKuai, isOpenWrt, isProbingAll, isRouterOS, isSubDrawerExpanded, isUpdatingSource, launchFireworks, lockConsoleNow, logContainerRef, logFilterLevel, logFilterModule, logSearchQuery, newFakeIpInput, newWhitelistDomain, openAddDnsRewriteModal, openAddSourceModal, openEditDnsRewriteModal, openEditSourceModal, openGitHubIssuePrompt, openProbeModal, openSourcePreview, openUpgradeModal, onHostPlatformChange, panelUpgradeLog, parsedBatchNodes, parsedBatchSubs, previewingSource, probeAllFourDimensions, probeChecked, probeLastTime, refreshSourceItem, removeFakeIpFilter, removeWhitelistItem, resetDnsRewriteDefaults, routerHW, routerHWMemoryDisplay, runSecurityAudit, runSubSpeedTest, saveAIConfig, saveDnsRewriteRule, saveFilterAutoUpdate, saveRuleSource, savingAndLinkingHost, securityAudit, selectAIProvider, sendAIChat, setNodeAsPrimaryOutbound, showAISettingsModal, showAuthManageModal, showDnsRewriteModal, showImportModal, showInitWizardModal, showLogsModal, showProbeModal, showGeodataDetailModal, showRuleSourceModal, showSourcePreviewModal, saveCredentialsAndLinkHost, startInitStep3Execution, stopFireworks, subHealthMap, subMetaMap, subModalTab, subNodesMap, subQuotaMap, subSpeedTesting, submitBatchNodes, submitBatchSubs, submitInitWizardImportAndLaunch, systemOverview, toggleCoreUpgradeFreeze, toggleDnsRewriteMaster, toggleDnsRewriteRule, toggleFilterMaster, toggleGeoAutoUpdate, toggleSourceItem, toggleSubDrawer, toggleSubscription, triggerFastSelfHeal, triggerHotRestart, triggerWANHeal, triggerInitBackupSelect, triggerQuickAIPrompt, updateAllSubscriptions, updateDetailText, updateGeoData, updateSubscription, updateSummaryText, updatingGeo, upgradeCore, upgradePanel, upgradingCoreMihomo, upgradingCoreSingbox, upgradingPanel, uploadToGithubIssue, withdrawHostBypass, withdrawingHostBypass
+  activeEngine, adblockStats, addFakeIpFilter, addWhitelistItem, aiActionResult, aiActions, aiConfig, aiLoading, aiPresetQuestions, aiPrompt, aiProviders, aiReply, authState, batchAddingNodes, batchImportingSubs, batchNodeText, batchSubText, chaosDrillReport, chaosReportModal, checkHostUpgrade, checkingGeoUpgrade, checkingHostUpgrade, chooseFreshStart, cleanActionLabelMap, cleaningRosFirewall, clearSystemLogs, completeInitWizard, confirmAndStartInitWizard, confirmSystemReboot, copyDiagnosticMarkdown, copyText, coreUpgradeFrozen, coreUpgradeLog, creatingGithubIssue, customNodes, deleteDnsRewriteRule, deleteNode, deleteSourceItem, deleteSubscription, diagnosticModal, displayedLogs, dnsBlockedLastY, dnsBlockedPath, dnsFilterStats, dnsLatencyLastY, dnsLatencyPath, dnsQueryLastY, dnsQueryPath, dnsRewriteConfig, editingDnsRewriteRule, editingRuleSource, executeAIAction, executeHostUpgrade, executingAIActionId, executingHostUpgrade, executionModal, exportBackup, fakeIpFilters, fakeIpLoading, fetchDnsFilterStats, fetchRouterHardware, fetchSystemLogs, filterConfig, filteredGeodataFiles, formatExpire, geoAutoUpdateEnabled, geoUpdateLog, geodataFilterCategory, geodataFilterEngine, geodataLastUpdateText, geodataSearchQuery, geodataStatus, getNodeDelayClass, getSubRegions, handleInitBackupUpload, handleInitFileDrop, hasAnyUpdate, healingSteps, hostBadge, hostConfig, hostInfo, hostLastExecution, hostUpgradeDetails, hostUpgradeResult, importBackup, initBackupFileInput, initDetectedPlatform, initExecuting, initHostForm, initImportStats, initImportSuccess, initImporting, initLogs, initWizardImportTab, initWizardStep, inspectAndCleanReapplyRos, ir, isHotRestarting, isIKuai, isOpenWrt, isProbingAll, isRouterOS, isSubDrawerExpanded, isUpdatingSource, launchFireworks, lockConsoleNow, logContainerRef, logFilterLevel, logFilterModule, logSearchQuery, newFakeIpInput, newWhitelistDomain, openAddDnsRewriteModal, openAddSourceModal, openEditDnsRewriteModal, openEditSourceModal, openGitHubIssuePrompt, openProbeModal, openSourcePreview, openUpgradeModal, onHostPlatformChange, panelUpgradeLog, parsedBatchNodes, parsedBatchSubs, previewingSource, probeAllFourDimensions, probeChecked, probeLastTime, refreshSourceItem, removeFakeIpFilter, removeWhitelistItem, resetDnsRewriteDefaults, routerHW, routerHWMemoryDisplay, runSecurityAudit, runSubSpeedTest, saveAIConfig, saveDnsRewriteRule, saveFilterAutoUpdate, saveRuleSource, savingAndLinkingHost, savingAndLinkingStage, securityAudit, selectAIProvider, sendAIChat, setNodeAsPrimaryOutbound, showAISettingsModal, showAuthManageModal, showDnsRewriteModal, showImportModal, showInitWizardModal, showLogsModal, showProbeModal, showGeodataDetailModal, showRuleSourceModal, showSourcePreviewModal, saveCredentialsAndLinkHost, startInitStep3Execution, stopFireworks, subHealthMap, subMetaMap, subModalTab, subNodesMap, subQuotaMap, subSpeedTesting, submitBatchNodes, submitBatchSubs, submitInitWizardImportAndLaunch, systemOverview, toggleCoreUpgradeFreeze, toggleDnsRewriteMaster, toggleDnsRewriteRule, toggleFilterMaster, toggleGeoAutoUpdate, toggleSourceItem, toggleSubDrawer, toggleSubscription, triggerFastSelfHeal, triggerHotRestart, triggerWANHeal, triggerInitBackupSelect, triggerQuickAIPrompt, updateAllSubscriptions, updateDetailText, updateGeoData, updateSubscription, updateSummaryText, updatingGeo, upgradeCore, upgradePanel, upgradingCoreMihomo, upgradingCoreSingbox, upgradingPanel, uploadToGithubIssue, withdrawHostBypass, withdrawingHostBypass
 }))
 
 onMounted(async () => {

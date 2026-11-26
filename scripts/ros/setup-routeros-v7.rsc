@@ -496,7 +496,7 @@ set memory-high=256M registry-url="https://registry-1.docker.io" tmpdir=$pullDir
 
 :if ([:len [find where comment~"CubeX"]] = 0) do={
     :local foundTar "";
-    :local defaultTar ("CubeX-v9.95-ros-" . $tarArch . ".tar");
+    :local defaultTar ("CubeX-v9.96-ros-" . $tarArch . ".tar");
     :if ([:len [/file find name=$defaultTar]] > 0) do={
         :set foundTar $defaultTar;
     } else={

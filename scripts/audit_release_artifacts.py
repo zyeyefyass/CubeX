@@ -17,6 +17,51 @@ import tarfile
 import zipfile
 import io
 
+META_JSON_PATH = os.path.join(os.path.dirname(__file__), "..", "meta.json")
+
+
+def normalize_version_tag(ver_str):
+    if not ver_str:
+        return ""
+    clean = re.sub(r"^(?:Test[-_\s]*)?v?", "", ver_str.strip(), flags=re.IGNORECASE)
+    return f"v{clean}" if clean else ""
+
+
+def resolve_expected_version(explicit_version=None):
+    if explicit_version:
+        return normalize_version_tag(explicit_version)
+    try:
+        if os.path.exists(META_JSON_PATH):
+            with open(META_JSON_PATH, "r", encoding="utf-8") as mf:
+                data = json.load(mf)
+            return normalize_version_tag(data.get("version", ""))
+    except Exception:
+        pass
+    return ""
+
+
+def is_cubexd_binary(inner_path, content_bytes):
+    base = os.path.basename(inner_path).lower()
+    if not (base == "cubexd" or base == "cubexd.exe" or base.startswith("cubexd-")):
+        return False
+    if base.endswith((".fpk", ".zip", ".tar", ".gz", ".sha256", ".txt", ".json", ".md", ".sh", ".rsc")):
+        return False
+    if len(content_bytes) >= 4 and (content_bytes[:4] == b"\x7fELF" or content_bytes[:2] == b"MZ"):
+        return True
+    return False
+
+
+def check_cubexd_binary_version(archive_name, inner_path, content_bytes, expected_version):
+    errors = []
+    if not expected_version or not is_cubexd_binary(inner_path, content_bytes):
+        return errors, False
+    if expected_version.encode("utf-8") not in content_bytes:
+        errors.append(
+            f"[{archive_name} -> {inner_path}] VERSION MISMATCH: "
+            f"cubexd binary does not embed expected version '{expected_version}'!"
+        )
+    return errors, True
+
 FORBIDDEN_FILE_PATTERNS = [
     r"^cache\.db$",
     r"\.log$",
@@ -211,11 +256,12 @@ def check_file_content(archive_name, inner_path, content_bytes):
 
     return errors
 
-def audit_zip(archive_path):
+def audit_zip(archive_path, expected_version=""):
     archive_name = os.path.basename(archive_path)
     errors = []
     files_checked = 0
     configs_checked = 0
+    cubexd_checked = 0
 
     print(f"\n📦 Auditing ZIP Archive: {archive_name}")
     with zipfile.ZipFile(archive_path, 'r') as zf:
@@ -241,13 +287,22 @@ def audit_zip(archive_path):
                 errs = check_file_content(archive_name, filename, content)
                 errors.extend(errs)
             elif any(k in base for k in ("cubexd", "cubex", "mihomo", "sing-box")):
-                errors.extend(check_amd64_binary_isa(archive_name, filename, zf.read(entry)))
+                bcontent = zf.read(entry)
+                errors.extend(check_amd64_binary_isa(archive_name, filename, bcontent))
+                ver_errs, found = check_cubexd_binary_version(archive_name, filename, bcontent, expected_version)
+                errors.extend(ver_errs)
+                if found:
+                    cubexd_checked += 1
 
-    print(f"   -> Checked {files_checked} total files ({configs_checked} config/text files).")
-    return errors
+    if expected_version and "cubex" in archive_name.lower() and cubexd_checked == 0:
+        errors.append(f"[{archive_name}] VERSION AUDIT ERROR: No cubexd executable found inside ZIP archive!")
 
-def audit_nested_oci_layer(archive_name, layer_name, raw_bytes):
+    print(f"   -> Checked {files_checked} total files ({configs_checked} config/text files, {cubexd_checked} cubexd binaries).")
+    return errors, cubexd_checked
+
+def audit_nested_oci_layer(archive_name, layer_name, raw_bytes, expected_version=""):
     errors = []
+    cubexd_checked = 0
     for sub_mode in ("r:gz", "r:"):
         try:
             with tarfile.open(fileobj=io.BytesIO(raw_bytes), mode=sub_mode) as stf:
@@ -258,17 +313,24 @@ def audit_nested_oci_layer(archive_name, layer_name, raw_bytes):
                     if any(k in sbase for k in ("cubexd", "cubex", "mihomo", "sing-box")):
                         sf = stf.extractfile(sm)
                         if sf:
-                            errors.extend(check_amd64_binary_isa(archive_name, f"{layer_name}::{sm.name}", sf.read()))
+                            bcontent = sf.read()
+                            inner = f"{layer_name}::{sm.name}"
+                            errors.extend(check_amd64_binary_isa(archive_name, inner, bcontent))
+                            ver_errs, found = check_cubexd_binary_version(archive_name, inner, bcontent, expected_version)
+                            errors.extend(ver_errs)
+                            if found:
+                                cubexd_checked += 1
                 break
         except Exception:
             continue
-    return errors
+    return errors, cubexd_checked
 
-def audit_tar(archive_path):
+def audit_tar(archive_path, expected_version=""):
     archive_name = os.path.basename(archive_path)
     errors = []
     files_checked = 0
     configs_checked = 0
+    cubexd_checked = 0
 
     mode = "r:*" if archive_path.endswith((".tar.gz", ".tgz")) else "r:"
     print(f"\n📦 Auditing TAR Archive: {archive_name} (mode: {mode})")
@@ -299,19 +361,31 @@ def audit_tar(archive_path):
             elif any(k in base for k in ("cubexd", "cubex", "mihomo", "sing-box")):
                 f = tf.extractfile(member)
                 if f:
-                    errors.extend(check_amd64_binary_isa(archive_name, filename, f.read()))
+                    bcontent = f.read()
+                    errors.extend(check_amd64_binary_isa(archive_name, filename, bcontent))
+                    ver_errs, found = check_cubexd_binary_version(archive_name, filename, bcontent, expected_version)
+                    errors.extend(ver_errs)
+                    if found:
+                        cubexd_checked += 1
             elif filename.startswith("blobs/sha256/") and member.size > 1024:
                 f = tf.extractfile(member)
                 if f:
-                    errors.extend(audit_nested_oci_layer(archive_name, filename, f.read()))
+                    l_errs, l_cnt = audit_nested_oci_layer(archive_name, filename, f.read(), expected_version)
+                    errors.extend(l_errs)
+                    cubexd_checked += l_cnt
 
-    print(f"   -> Checked {files_checked} total files ({configs_checked} config/text files).")
-    return errors
+    if expected_version and "cubex" in archive_name.lower() and cubexd_checked == 0:
+        errors.append(f"[{archive_name}] VERSION AUDIT ERROR: No cubexd executable found inside TAR/OCI archive!")
 
-def audit_directory(release_dir, allow_windows=False):
+    print(f"   -> Checked {files_checked} total files ({configs_checked} config/text files, {cubexd_checked} cubexd binaries).")
+    return errors, cubexd_checked
+
+def audit_directory(release_dir, allow_windows=False, expected_version=None):
+    target_version = resolve_expected_version(expected_version)
     print("=" * 80)
     print("🛡️  CubeX Automated Release Artifacts Desensitization Audit")
     print(f"🎯 Target Directory: {release_dir}")
+    print(f"🏷️  Expected Version: {target_version or '(not set)'}")
     print(f"🔒 Windows Policy: {'Allowed' if allow_windows else 'STRICTLY FORBIDDEN (No Windows release without explicit instruction)'}")
     print("=" * 80)
 
@@ -320,7 +394,9 @@ def audit_directory(release_dir, allow_windows=False):
 
     all_errors = []
     archives = []
-    for f in os.listdir(release_dir):
+    standalone_cubexd_checked = 0
+    archive_cubexd_checked = 0
+    for f in sorted(os.listdir(release_dir)):
         p = os.path.join(release_dir, f)
         if os.path.isfile(p):
             # Check for forbidden Windows release packages
@@ -334,19 +410,30 @@ def audit_directory(release_dir, allow_windows=False):
                 archives.append(p)
             elif any(k in f for k in ("cubexd", "cubex", "mihomo", "sing-box")) and not f.endswith(".fpk"):
                 with open(p, "rb") as bf:
-                    all_errors.extend(check_amd64_binary_isa("release-dir", f, bf.read()))
+                    bcontent = bf.read()
+                all_errors.extend(check_amd64_binary_isa("release-dir", f, bcontent))
+                ver_errs, found = check_cubexd_binary_version("release-dir", f, bcontent, target_version)
+                all_errors.extend(ver_errs)
+                if found:
+                    standalone_cubexd_checked += 1
 
-    if not archives and not all_errors:
+    if not archives and standalone_cubexd_checked == 0 and not all_errors:
         print(f"⚠️  No release archives (.tar, .tar.gz, .zip) found in {release_dir}")
         sys.exit(0)
 
     for arch in sorted(archives):
         if arch.endswith(".zip"):
-            errs = audit_zip(arch)
+            errs, cnt = audit_zip(arch, target_version)
             all_errors.extend(errs)
+            archive_cubexd_checked += cnt
         elif arch.endswith((".tar", ".tar.gz", ".tgz")):
-            errs = audit_tar(arch)
+            errs, cnt = audit_tar(arch, target_version)
             all_errors.extend(errs)
+            archive_cubexd_checked += cnt
+
+    total_cubexd_checked = standalone_cubexd_checked + archive_cubexd_checked
+    if target_version and total_cubexd_checked == 0:
+        all_errors.append(f"[release-dir] VERSION AUDIT ERROR: Found 0 cubexd binaries in {release_dir} to verify version '{target_version}'!")
 
     print("\n" + "=" * 80)
     if all_errors:
@@ -356,7 +443,7 @@ def audit_directory(release_dir, allow_windows=False):
         print("=" * 80)
         sys.exit(1)
     else:
-        print(f"✅ AUDIT PASSED! All {len(archives)} release archives verified 100% clean & desensitized.")
+        print(f"✅ AUDIT PASSED! All {len(archives)} release archives & {total_cubexd_checked} cubexd binaries verified clean, desensitized & version-aligned ({target_version}).")
         print("   ✓ 0 Subscriptions (Strictly wiped)")
         print("   ✓ 0 Private Nodes / Proxies (Strictly wiped)")
         print("   ✓ 0 Credentials / Passwords / Private Keys")
@@ -364,13 +451,16 @@ def audit_directory(release_dir, allow_windows=False):
         print("   ✓ 0 Runtime Caches / DBs (cache.db, logs, sqlite)")
         print("   ✓ 0 x86-64-v3/v4 Restricted AMD64 Binaries (Universal Compatible)")
         print("   ✓ 0 Unauthorized Windows Release Artifacts")
+        print(f"   ✓ 100% Binary Version Alignment ({target_version}) across standalone, .zip, .tar, .tar.gz & OCI layers")
         print("   ✓ 100% Clean-Room & Zero-Legacy Compliance")
         print("=" * 80)
         sys.exit(0)
 
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    allow_win = "--allow-windows" in args
-    clean_args = [a for a in args if a != "--allow-windows"]
-    target = clean_args[0] if clean_args else os.path.join(os.path.dirname(__file__), "..", "dist", "release")
-    audit_directory(target, allow_windows=allow_win)
+    import argparse
+    parser = argparse.ArgumentParser(description="CubeX Release Artifacts Desensitization & Version Auditor")
+    parser.add_argument("release_dir", nargs="?", default=os.path.join(os.path.dirname(__file__), "..", "dist", "release"))
+    parser.add_argument("--allow-windows", action="store_true", help="Allow Windows release binaries")
+    parser.add_argument("--expected-version", "--version", dest="expected_version", default=None, help="Expected cubexd version string (e.g. v9.96)")
+    parsed = parser.parse_args()
+    audit_directory(parsed.release_dir, allow_windows=parsed.allow_windows, expected_version=parsed.expected_version)

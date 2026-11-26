@@ -197,7 +197,7 @@
                 <button @click="app.saveCredentialsAndLinkHost" :disabled="app.savingAndLinkingHost"
                   class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-600 hover:from-sky-500 hover:to-cyan-500 text-white font-extrabold text-xs font-mono transition-all flex items-center gap-1.5 shadow-md cursor-pointer active:scale-95 disabled:opacity-50">
                   <span v-if="app.savingAndLinkingHost" class="inline-block animate-spin">↻</span>
-                  <span>{{ app.savingAndLinkingHost ? '正在验证连接...' : '保存凭据并立即联动' }}</span>
+                  <span>{{ app.savingAndLinkingHost ? (app.savingAndLinkingStage || '正在验证连接...') : '保存凭据并立即联动' }}</span>
                 </button>
               </div>
 
