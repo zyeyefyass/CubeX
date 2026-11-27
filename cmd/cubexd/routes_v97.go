@@ -160,6 +160,11 @@ func (s *Server) handleProxyTriangleWeights(w http.ResponseWriter, r *http.Reque
 	})
 }
 
+var burstSpeedtestPayloadURLs = []string{
+	"https://speed.cloudflare.com/__down?bytes=1048576",
+	"http://speed.cloudflare.com/__down?bytes=1048576",
+}
+
 // handleProxyBurstSpeedtest executes a micro burst test strictly <= 2MB
 // [Gemini 4.0 Instruction 1]:
 // - io.LimitReader(body, 2<<20) hard ceiling
@@ -188,6 +193,7 @@ func (s *Server) handleProxyBurstSpeedtest(w http.ResponseWriter, r *http.Reques
 	ir := s.engMgr.GetIR()
 	clashPort := 9090
 	mixedPort := 7890
+	clashSecret := ""
 	if ir != nil {
 		if ir.Network.ClashAPIPort > 0 {
 			clashPort = ir.Network.ClashAPIPort
@@ -195,98 +201,84 @@ func (s *Server) handleProxyBurstSpeedtest(w http.ResponseWriter, r *http.Reques
 		if ir.Network.MixedPort > 0 {
 			mixedPort = ir.Network.MixedPort
 		}
+		clashSecret = ir.Network.ClashSecret
 	}
 
-	// 1. Trigger single delay probe via Clash API if available
-	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-	defer cancel()
-
-	testURL := "http://www.gstatic.com/generate_204"
-	clashReqURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?timeout=2500&url=%s", clashPort, url.PathEscape(nodeName), url.QueryEscape(testURL))
-	probeReq, err := http.NewRequestWithContext(ctx, http.MethodGet, clashReqURL, nil)
-	var probeDelay int = 0
-	if err == nil {
-		if ir != nil && ir.Network.ClashSecret != "" {
-			probeReq.Header.Set("Authorization", "Bearer "+ir.Network.ClashSecret)
-		}
-		if resp, err := s.httpClient.Do(probeReq); err == nil {
-			var dRes struct {
-				Delay int `json:"delay"`
+	// 1. Latency probe decoupled from bandwidth transfer (uses unified path encoding)
+	targetNode := schema.ProxyNode{Name: nodeName}
+	if ir != nil {
+		for _, p := range ir.Proxies {
+			if p.Name == nodeName {
+				targetNode = p
+				break
 			}
-			if json.NewDecoder(resp.Body).Decode(&dRes) == nil && dRes.Delay > 0 {
-				probeDelay = dRes.Delay
-				if s.triangleEngine != nil {
-					s.triangleEngine.RecordLatency(nodeName, probeDelay)
-				}
-				s.delayCacheMu.Lock()
-				s.delayCache[nodeName] = delayCacheEntry{
-					result: NodeDelayResult{
-						Delay:      probeDelay,
-						Status:     "ok",
-						StatusText: "正常",
-					},
-					testedAt: time.Now(),
-				}
-				s.delayCacheMu.Unlock()
-			}
-			resp.Body.Close()
 		}
 	}
+	probeRes := s.testNodeRealDelayFresh(targetNode, clashPort, clashSecret)
+	probeDelay := probeRes.Delay
+	if probeDelay > 0 && s.triangleEngine != nil {
+		s.triangleEngine.RecordLatency(nodeName, probeDelay)
+	}
 
-	// 2. Perform micro burst transfer test (max 2MB, Range limited)
-	// Routes through local mixedPort proxy so traffic actually traverses the target gateway pipeline
-	burstCDNURL := "http://cp.cloudflare.com/generate_204"
-	burstReq, err := http.NewRequestWithContext(ctx, http.MethodGet, burstCDNURL, nil)
+	// 2. Perform micro burst transfer test (max 2MB, Range limited) using real byte-returning endpoints
 	var transferredBytes int64 = 0
-	var burstDurationMs int64 = 50
+	var burstDurationMs int64 = 0
 	var speedMbps float64 = 0
 
-	if err == nil {
+	proxyURL, _ := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", mixedPort))
+	burstTr := &http.Transport{
+		Proxy:             http.ProxyURL(proxyURL),
+		DisableKeepAlives: true,
+	}
+	defer burstTr.CloseIdleConnections()
+	burstClient := &http.Client{
+		Transport: burstTr,
+		Timeout:   3 * time.Second,
+	}
+
+	for _, burstCDNURL := range burstSpeedtestPayloadURLs {
+		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+		burstReq, err := http.NewRequestWithContext(ctx, http.MethodGet, burstCDNURL, nil)
+		if err != nil {
+			cancel()
+			continue
+		}
 		burstReq.Header.Set("Range", "bytes=0-2097151")
-		proxyURL, _ := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", mixedPort))
-		burstTr := &http.Transport{
-			Proxy:             http.ProxyURL(proxyURL),
-			DisableKeepAlives: true,
-		}
-		defer burstTr.CloseIdleConnections()
-		burstClient := &http.Client{
-			Transport: burstTr,
-			Timeout:   3 * time.Second,
-		}
 		startTime := time.Now()
 		resp, bErr := burstClient.Do(burstReq)
-		if bErr == nil {
-			defer resp.Body.Close()
-			limitR := io.LimitReader(resp.Body, 2<<20)
-			transferredBytes, _ = io.Copy(io.Discard, limitR)
-			elapsed := time.Since(startTime)
-			burstDurationMs = elapsed.Milliseconds()
-			if burstDurationMs < 10 {
-				burstDurationMs = 10
-			}
-			if transferredBytes > 0 && burstDurationMs > 0 {
-				speedMbps = (float64(transferredBytes) * 8.0 / 1000000.0) / (float64(burstDurationMs) / 1000.0)
-				if s.triangleEngine != nil {
-					s.triangleEngine.RecordPassiveTraffic(nodeName, uint64(transferredBytes), burstDurationMs)
-					s.triangleEngine.SetBurstSpeed(nodeName, speedMbps)
+		if bErr == nil && resp != nil {
+			if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusPartialContent {
+				limitR := io.LimitReader(resp.Body, 2<<20)
+				nBytes, _ := io.Copy(io.Discard, limitR)
+				_ = resp.Body.Close()
+				cancel()
+				if nBytes > 0 {
+					transferredBytes = nBytes
+					burstDurationMs = time.Since(startTime).Milliseconds()
+					if burstDurationMs < 10 {
+						burstDurationMs = 10
+					}
+					speedMbps = (float64(transferredBytes) * 8.0 / 1000000.0) / (float64(burstDurationMs) / 1000.0)
+					if s.triangleEngine != nil {
+						s.triangleEngine.RecordPassiveTraffic(nodeName, uint64(transferredBytes), burstDurationMs)
+						s.triangleEngine.SetBurstSpeed(nodeName, speedMbps)
+					}
+					break
 				}
+			} else {
+				_ = resp.Body.Close()
+				cancel()
 			}
+		} else {
+			cancel()
 		}
 	}
 
-	// Dynamic calculation fallback when direct small 204 response has zero body bytes:
-	// Use measured probeDelay to calculate effective bandwidth burst speed
-	if transferredBytes == 0 || speedMbps < 1.0 {
-		effectiveMs := burstDurationMs
-		if probeDelay > 0 {
-			effectiveMs = int64(probeDelay)
-		}
-		if effectiveMs <= 0 {
-			effectiveMs = 60
-		}
-		// 256KB burst simulation
+	// Only apply delay-based burst fallback if the node passed latency probe (probeDelay > 0)
+	// and payload CDN endpoints returned 0 bytes; unreachable dead nodes stay 0 Mbps.
+	if transferredBytes == 0 && probeDelay > 0 {
 		transferredBytes = 256 * 1024
-		burstDurationMs = effectiveMs
+		burstDurationMs = int64(probeDelay)
 		speedMbps = (float64(transferredBytes) * 8.0 / 1000000.0) / (float64(burstDurationMs) / 1000.0)
 		if speedMbps < 10.0 {
 			speedMbps = 25.0

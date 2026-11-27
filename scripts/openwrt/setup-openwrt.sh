@@ -348,7 +348,7 @@ if ! docker inspect "$IMAGE" >/dev/null 2>&1; then
                 [ -n "$REL_TAG" ] && break
             fi
         done
-        [ -z "$REL_TAG" ] && REL_TAG="v9.96"
+        [ -z "$REL_TAG" ] && REL_TAG="v9.97"
 
         msg "${CYAN}   -> 匹配最新发布版本: ${REL_TAG}${NC}"
 

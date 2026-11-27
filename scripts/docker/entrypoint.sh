@@ -94,11 +94,15 @@ fi
 
 # 4. Set working directory and listen port
 LISTEN_PORT="${CUBEX_PORT:-2026}"
-echo "🌟 [CubeX] Listening on 0.0.0.0:${LISTEN_PORT} (Dual-Engine: Mihomo + sing-box ready)"
+export CUBEX_SUPERVISED=1
+echo "🌟 [CubeX] Listening on 0.0.0.0:${LISTEN_PORT} (Dual-Engine: Mihomo + sing-box ready, CUBEX_SUPERVISED=1)"
 
 chmod +x /app/bin/* 2>/dev/null || true
 cd /app
 while true; do
+    # Reap any orphaned proxy core processes before respawning the single control-plane daemon
+    pkill -x mihomo 2>/dev/null || killall mihomo 2>/dev/null || true
+    pkill -x sing-box 2>/dev/null || killall sing-box 2>/dev/null || true
     /app/bin/cubexd -dir /app -listen ":${LISTEN_PORT}" "$@" || true
     echo "🔄 [CubeX] Daemon exited. Respawning in 1 second..."
     sleep 1

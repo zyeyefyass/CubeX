@@ -478,6 +478,10 @@
 
                 </div>
 
+                <p v-if="app.systemStatus?.in_docker" class="text-[11px] text-amber-600 font-medium leading-relaxed">
+                  🐳 容器环境提示：在线热更仅替换控制面程序，含双核与规则集的完整升级建议拉取最新镜像重建容器。
+                </p>
+
                 <!-- Tier 4: Terminal Viewport (h-[70px] sm:h-[76px]) -->
 
                 <div class="h-[70px] sm:h-[76px] p-3 rounded-xl bg-slate-950/90 border border-slate-800 text-xs font-mono text-emerald-300 leading-relaxed overflow-y-auto custom-scrollbar flex items-center shadow-inner">

@@ -12,12 +12,14 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/sub"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -1161,7 +1163,7 @@ func (s *Server) handleGroupSelect(w http.ResponseWriter, r *http.Request) {
 
 			payload, _ := json.Marshal(map[string]string{"name": req.Node})
 
-			escapedGroup := url.PathEscape(req.Group)
+			escapedGroup := encodeClashProxyPath(req.Group)
 
 			reqURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s", ir.Network.ClashAPIPort, escapedGroup)
 
@@ -2313,7 +2315,22 @@ func classifyDelayError(errStr string, httpCode int) (string, string) {
 
 
 
+func encodeClashProxyPath(name string) string {
+	escaped := url.PathEscape(name)
+	escaped = strings.ReplaceAll(escaped, "[", "%5B")
+	escaped = strings.ReplaceAll(escaped, "]", "%5D")
+	return escaped
+}
+
 func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSecret string) NodeDelayResult {
+	return s.testNodeRealDelayWithOpts(node, clashPort, clashSecret, false)
+}
+
+func (s *Server) testNodeRealDelayFresh(node schema.ProxyNode, clashPort int, clashSecret string) NodeDelayResult {
+	return s.testNodeRealDelayWithOpts(node, clashPort, clashSecret, true)
+}
+
+func (s *Server) testNodeRealDelayWithOpts(node schema.ProxyNode, clashPort int, clashSecret string, bypassCache bool) NodeDelayResult {
 	if clashPort <= 0 || node.Name == "" {
 		return NodeDelayResult{Delay: 0, Status: "error", StatusText: "节点未就绪"}
 	}
@@ -2324,13 +2341,15 @@ func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSe
 		return NodeDelayResult{Delay: 0, Status: "block", StatusText: "阻断"}
 	}
 
-	// 1. 查询多策略组共享测速缓存 (20秒内有效)
-	s.delayCacheMu.RLock()
-	if c, ok := s.delayCache[node.Name]; ok && time.Since(c.testedAt) < 20*time.Second {
+	// 1. 查询多策略组共享测速缓存 (仅复用 Delay > 0 的有效结果，失败结果绝不缓存；手动触发时跳过缓存)
+	if !bypassCache {
+		s.delayCacheMu.RLock()
+		if c, ok := s.delayCache[node.Name]; ok && c.result.Delay > 0 && time.Since(c.testedAt) < 20*time.Second {
+			s.delayCacheMu.RUnlock()
+			return c.result
+		}
 		s.delayCacheMu.RUnlock()
-		return c.result
 	}
-	s.delayCacheMu.RUnlock()
 
 	// 2. In-Flight Singleflight 并发去重 (同节点多策略组共享同一物理探针)
 	s.delaySFMu.Lock()
@@ -2358,24 +2377,69 @@ func (s *Server) testNodeRealDelay(node schema.ProxyNode, clashPort int, clashSe
 		s.ewmaMgr.RecordSample(node.Name, res.Delay, res.Delay > 0)
 	}
 
-	// 写入多策略组共享缓存
+	// 仅缓存有效成功延迟 (Delay > 0)；失败/超时节点严禁写入 20s 缓存污染后续重试，并剔除陈旧缓存
 	s.delayCacheMu.Lock()
-	s.delayCache[node.Name] = delayCacheEntry{result: res, testedAt: time.Now()}
+	if res.Delay > 0 {
+		s.delayCache[node.Name] = delayCacheEntry{result: res, testedAt: time.Now()}
+	} else if s.delayCache != nil {
+		delete(s.delayCache, node.Name)
+	}
 	s.delayCacheMu.Unlock()
-	s.scheduleSavePersistentDelayCache()
+	if res.Delay > 0 {
+		s.scheduleSavePersistentDelayCache()
+	}
 
 	call.val = res
 	return res
 }
 
+func probeSlashNodeFallback(client *http.Client, clashPort int, clashSecret string, node schema.ProxyNode) (NodeDelayResult, bool) {
+	if !strings.Contains(node.Name, "/") || node.Server == "" || node.Port <= 0 {
+		return NodeDelayResult{}, false
+	}
+	listURL := fmt.Sprintf("http://127.0.0.1:%d/proxies", clashPort)
+	req, err := http.NewRequest(http.MethodGet, listURL, nil)
+	if err != nil {
+		return NodeDelayResult{}, false
+	}
+	if clashSecret != "" {
+		req.Header.Set("Authorization", "Bearer "+clashSecret)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return NodeDelayResult{}, false
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return NodeDelayResult{}, false
+	}
+	var data struct {
+		Proxies map[string]json.RawMessage `json:"proxies"`
+	}
+	if json.NewDecoder(io.LimitReader(resp.Body, 4<<20)).Decode(&data) != nil {
+		return NodeDelayResult{}, false
+	}
+	if _, exists := data.Proxies[node.Name]; !exists {
+		return NodeDelayResult{}, false
+	}
 
-
-
+	// Node is confirmed loaded in Clash core, but '/' in path triggered router 404; fall back to TCP handshake RTT
+	start := time.Now()
+	conn, dialErr := net.DialTimeout("tcp", net.JoinHostPort(node.Server, strconv.Itoa(node.Port)), 2500*time.Millisecond)
+	if dialErr != nil {
+		status, text := classifyDelayError(dialErr.Error(), 0)
+		return NodeDelayResult{Delay: 0, Status: status, StatusText: text}, true
+	}
+	_ = conn.Close()
+	rtt := int(time.Since(start).Milliseconds())
+	if rtt < 1 {
+		rtt = 1
+	}
+	return NodeDelayResult{Delay: rtt, Status: "ok", StatusText: "正常"}, true
+}
 
 func (s *Server) executeNodeRealDelayProbe(node schema.ProxyNode, clashPort int, clashSecret string) NodeDelayResult {
-	escaped := url.PathEscape(node.Name)
-	escaped = strings.ReplaceAll(escaped, "[", "%5B")
-	escaped = strings.ReplaceAll(escaped, "]", "%5D")
+	escaped := encodeClashProxyPath(node.Name)
 
 	// 兼容 Hysteria2 / TUIC / QUIC 与常规节点首次建连抖动：
 	// QUIC 类协议给予 4500ms 窗口，其余协议给予 3500ms，并提供双 204 权威探针自动回退避免单点误判超时。
@@ -2443,6 +2507,11 @@ func (s *Server) executeNodeRealDelayProbe(node schema.ProxyNode, clashPort int,
 		lastStatus, lastText = classifyDelayError(errMsg, resp.StatusCode)
 		// If the node itself is missing or connection explicitly refused, fail fast without retrying alternate probe
 		if idx == 0 && (lastStatus == "not_found" || lastStatus == "conn_refused") {
+			if lastStatus == "not_found" {
+				if fbRes, handled := probeSlashNodeFallback(client, clashPort, clashSecret, node); handled {
+					return fbRes
+				}
+			}
 			break
 		}
 	}
@@ -2522,7 +2591,7 @@ func (s *Server) handleProxyDelay(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	res := s.testNodeRealDelay(*targetNode, clashPort, clashSecret)
+	res := s.testNodeRealDelayFresh(*targetNode, clashPort, clashSecret)
 
 	if targetIdx >= 0 {
 
@@ -2642,9 +2711,8 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 
 	var wg sync.WaitGroup
 
-	// Throttle to 8 concurrent tests to protect router memory
-
-	semaphore := make(chan struct{}, 8)
+	// Throttle to 16 concurrent tests to balance large-subscription latency and router memory
+	semaphore := make(chan struct{}, 16)
 
 	var mu sync.Mutex
 
@@ -2662,7 +2730,7 @@ func (s *Server) handleSubSpeedTest(w http.ResponseWriter, r *http.Request) {
 			defer wg.Done()
 			defer func() { <-semaphore }()
 
-			res := s.testNodeRealDelay(item.node, clashPort, clashSecret)
+			res := s.testNodeRealDelayFresh(item.node, clashPort, clashSecret)
 
 			mu.Lock()
 			if item.index >= 0 && item.index < len(ir.Proxies) {
@@ -2849,7 +2917,7 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 			defer wg.Done()
 			defer func() { <-semaphore }()
 
-			res := s.testNodeRealDelay(item.node, clashPort, clashSecret)
+			res := s.testNodeRealDelayFresh(item.node, clashPort, clashSecret)
 
 			mu.Lock()
 			if item.index >= 0 && item.index < len(ir.Proxies) {
@@ -2898,7 +2966,7 @@ func (s *Server) handleProxiesSpeedTest(w http.ResponseWriter, r *http.Request) 
 	if req.Group != "" && ir.Network.ClashAPIPort > 0 {
 		grp, port := req.Group, ir.Network.ClashAPIPort
 		SafeGo("GroupDelayProbe", func() {
-			escaped := url.PathEscape(grp)
+			escaped := encodeClashProxyPath(grp)
 			u := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s/delay?url=https://cp.cloudflare.com/generate_204&timeout=1800", port, escaped)
 			client := http.Client{Timeout: 2500 * time.Millisecond}
 			if resp, err := client.Get(u); err == nil && resp != nil {

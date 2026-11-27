@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -177,7 +176,7 @@ func (s *Server) executeSmartHealthPing(force bool) {
 					switchNode := bestCandidate.Name
 					SafeGo("SmartPingClashNotify", func() {
 						payload, _ := json.Marshal(map[string]string{"name": switchNode})
-						escapedGroup := url.PathEscape(switchGroup)
+						escapedGroup := encodeClashProxyPath(switchGroup)
 						reqURL := fmt.Sprintf("http://127.0.0.1:%d/proxies/%s", clashPort, escapedGroup)
 						client := http.Client{Timeout: 1 * time.Second}
 						cReq, err := http.NewRequest(http.MethodPut, reqURL, bytes.NewBuffer(payload))

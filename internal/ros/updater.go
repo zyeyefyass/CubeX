@@ -429,7 +429,7 @@ func (m *Manager) GetOverview() map[string]any {
 
 	if latestPanel == "" {
 
-		latestPanel = "v9.96"
+		latestPanel = "v9.97"
 
 	}
 
@@ -590,7 +590,11 @@ func (m *Manager) UpgradePanel(force bool, restartFn func() error) (string, erro
 		effectiveTag, assetName,
 	)
 
-	binURL = m.optimizeURL(binURL)
+	if customBase := strings.TrimRight(strings.TrimSpace(os.Getenv("CUBEX_PANEL_UPDATE_BASE_URL")), "/"); customBase != "" {
+		binURL = fmt.Sprintf("%s/download/%s/%s", customBase, effectiveTag, assetName)
+	} else {
+		binURL = m.optimizeURL(binURL)
+	}
 
 	downloadErr := m.downloadFile(binURL, tmpPath)
 
@@ -1294,7 +1298,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 // ──────────────────────────────────────────────
 
 func (m *Manager) getLocalPanelVersion() string {
-	return "v9.96"
+	return "v9.97"
 
 }
 
@@ -1783,6 +1787,21 @@ func fetchGitHubLatestTag(repo string) (string, error) {
 }
 
 func (m *Manager) fetchLatestPanelVersion() (string, error) {
+	if customBase := strings.TrimRight(strings.TrimSpace(os.Getenv("CUBEX_PANEL_UPDATE_BASE_URL")), "/"); customBase != "" {
+		client := &http.Client{Timeout: 5 * time.Second}
+		resp, err := client.Get(customBase + "/latest")
+		if err == nil {
+			defer resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				var rel struct {
+					TagName string `json:"tag_name"`
+				}
+				if json.NewDecoder(resp.Body).Decode(&rel) == nil && rel.TagName != "" {
+					return rel.TagName, nil
+				}
+			}
+		}
+	}
 
 	tag, err := fetchGitHubLatestTag("zyeyefyass/CubeX")
 

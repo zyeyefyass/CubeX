@@ -852,6 +852,7 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 
 		"initialized": len(ir.Proxies) > 0 || len(ir.Subscriptions) > 0,
 		"store_mode": s.isStoreSafeMode(),
+		"in_docker":  isSupervisedContainerEnv(),
 
 		"total_groups": len(ir.Groups),
 	}
@@ -1892,6 +1893,55 @@ func (s *Server) handleUpgradeGeoData(w http.ResponseWriter, r *http.Request) {
 
 
 
+var dockerEnvMarkerPath = "/.dockerenv"
+
+func isSupervisedContainerEnv() bool {
+	if strings.TrimSpace(os.Getenv("CUBEX_SUPERVISED")) == "1" {
+		return true
+	}
+	if _, err := os.Stat(dockerEnvMarkerPath); err == nil {
+		return true
+	}
+	return false
+}
+
+func executePanelRestart(
+	s *Server,
+	isContainer bool,
+	serviceRestartFn func() bool,
+	spawnDetachedFn func(string, []string) error,
+	exitFn func(int),
+) {
+	if s != nil {
+		s.Close()
+		if s.engMgr != nil {
+			s.engMgr.Stop()
+		}
+	}
+
+	if isContainer {
+		log.Printf("[CubeX] Supervised container environment detected: skipping self-spawn and exiting cleanly for supervisor respawn")
+		if exitFn != nil {
+			exitFn(0)
+		}
+		return
+	}
+
+	if serviceRestartFn != nil && serviceRestartFn() {
+		return
+	}
+
+	if spawnDetachedFn != nil {
+		if exe, err := os.Executable(); err == nil {
+			log.Printf("[CubeX] Self-spawning detached binary %s...", exe)
+			_ = spawnDetachedFn(exe, os.Args[1:])
+		}
+	}
+	if exitFn != nil {
+		exitFn(0)
+	}
+}
+
 func (s *Server) handleUpgradePanel(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
@@ -1908,30 +1958,31 @@ func (s *Server) handleUpgradePanel(w http.ResponseWriter, r *http.Request) {
 		log.Printf("[CubeX] Restarting process for upgrade...")
 		SafeGo("PanelRestart", func() {
 			time.Sleep(1200 * time.Millisecond)
-			s.Close()
-			if s.engMgr != nil {
-				s.engMgr.Stop()
-			}
-			if _, err := exec.LookPath("rc-service"); err == nil {
-				log.Printf("[CubeX] Executing rc-service cubexd restart...")
-				if err := exec.Command("rc-service", "cubexd", "restart").Start(); err == nil {
-					return
-				}
-			}
-			if _, err := exec.LookPath("systemctl"); err == nil {
-				log.Printf("[CubeX] Executing systemctl restart cubexd...")
-				if err := exec.Command("systemctl", "restart", "cubexd").Start(); err == nil {
-					return
-				}
-			}
-			exe, err := os.Executable()
-			if err == nil {
-				log.Printf("[CubeX] Self-spawning detached binary %s...", exe)
-				cmd := exec.Command(exe, os.Args[1:]...)
-				cmd.Dir = filepath.Dir(exe)
-				_ = cmd.Start()
-			}
-			os.Exit(0)
+			executePanelRestart(
+				s,
+				isSupervisedContainerEnv(),
+				func() bool {
+					if _, err := exec.LookPath("rc-service"); err == nil {
+						log.Printf("[CubeX] Executing rc-service cubexd restart...")
+						if err := exec.Command("rc-service", "cubexd", "restart").Start(); err == nil {
+							return true
+						}
+					}
+					if _, err := exec.LookPath("systemctl"); err == nil {
+						log.Printf("[CubeX] Executing systemctl restart cubexd...")
+						if err := exec.Command("systemctl", "restart", "cubexd").Start(); err == nil {
+							return true
+						}
+					}
+					return false
+				},
+				func(exe string, args []string) error {
+					cmd := exec.Command(exe, args...)
+					cmd.Dir = filepath.Dir(exe)
+					return cmd.Start()
+				},
+				os.Exit,
+			)
 		})
 		return nil
 	})

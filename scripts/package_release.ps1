@@ -9,7 +9,7 @@
 
 $ErrorActionPreference = "Stop"
 
-$Version = "v9.96"
+$Version = "v9.97"
 
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 
