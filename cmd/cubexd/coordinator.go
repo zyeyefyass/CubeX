@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"os"
 	"runtime"
 	"runtime/debug"
 	"time"
@@ -111,9 +110,4 @@ func (c *RuntimeCoordinator) GracefulShutdown(ctx context.Context, isMaintenance
 		c.engineMgr.Stop()
 	}
 	return nil
-}
-
-// EnsureFDLimit 启动时自动抬升进程文件描述符上限，防止高并发连接下报 too many open files
-func EnsureFDLimit(minLimit uint64) {
-	_ = os.Setenv("GODEBUG", "madvdontneed=1")
 }

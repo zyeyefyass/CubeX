@@ -548,7 +548,7 @@ if [ -z "$CHOSEN_ZIP" ]; then
             [ -n "$REL_TAG" ] && break
         done
     fi
-    [ -z "$REL_TAG" ] && REL_TAG="v9.97"
+    [ -z "$REL_TAG" ] && REL_TAG="v9.98"
 
     ZIP_NAME="CubeX-${REL_TAG}-linux-${PVE_ARCH}.zip"
     TMP_ZIP="/tmp/${ZIP_NAME}"
@@ -630,7 +630,7 @@ fi
 if [ "$UNPACKED_OK" -eq 0 ]; then
     echo -e "${YELLOW}⚠️ 完整包拉取受阻，启用宿主机独立拉取控制面与内核降级策略...${NC}"
     pct exec "$CT_ID" -- mkdir -p /opt/CubeX/bin /opt/CubeX/rules /opt/CubeX/etc /opt/CubeX/data /usr/local/bin
-    REL_TAG="${CUSTOM_VER:-${REL_TAG:-v9.94}}"
+    REL_TAG="${CUSTOM_VER:-${REL_TAG:-v9.98}}"
     
     # 1. cubexd 控制面
     TMP_BIN="/tmp/cubexd_${PVE_ARCH}_$$"

@@ -15,8 +15,6 @@ import (
 
 	"os"
 
-	"path/filepath"
-
 	"runtime"
 
 	"strconv"
@@ -173,45 +171,11 @@ func makeSingboxDNSServer(tag, rawAddr, detour string) map[string]any {
 }
 
 // isSRSAvailable checks whether a compiled binary sing-box rule set exists on disk.
-
 func isSRSAvailable(ruleFilename string) bool {
-
-	clean := strings.TrimPrefix(ruleFilename, "./")
-
-	clean = strings.TrimPrefix(clean, "/")
-
-	candidates := []string{
-
-		filepath.Join("/opt/CubeX/etc", clean),
-
-		filepath.Join("/cubex/app/etc", clean),
-
-		filepath.Join("etc", clean),
-
-		clean,
-
-		ruleFilename,
-
-		filepath.Join("..", "etc", clean),
-
-		filepath.Join("..", "..", "etc", clean),
-	}
-
-	for _, c := range candidates {
-
-		if fi, err := os.Stat(c); err == nil && fi.Size() > 100 {
-
-			return true
-
-		}
-
-	}
-
-	return false
-
+	return isRuleSetAvailable(ruleFilename, 100)
 }
 
-// BuildSingBox transcompiles CubeX Universal IR to sing-box v1.14.4+ config.json
+// BuildSingBox transcompiles CubeX Universal IR to sing-box v1.14.5+ config.json
 func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	return BuildSingBoxWithResolvConf(ir, "/etc/resolv.conf", nil, schema.DetectDefaultGateway())
 }
@@ -1483,12 +1447,6 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 				if sid, ok := realityOpts["short-id"].(string); ok && sid != "" {
 
 					realityMap["short_id"] = sid
-
-					if spx, ok := realityOpts["spider-x"].(string); ok && spx != "" {
-						realityMap["spider_x"] = spx
-					} else if spx, ok := realityOpts["spider_x"].(string); ok && spx != "" {
-						realityMap["spider_x"] = spx
-					}
 
 				}
 

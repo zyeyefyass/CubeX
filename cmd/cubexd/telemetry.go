@@ -25,46 +25,6 @@ import (
 	"time"
 )
 
-func getCgroupMemoryMB() float64 {
-
-	// 1. Linux cgroup v2
-
-	if data, err := os.ReadFile("/sys/fs/cgroup/memory.current"); err == nil {
-
-		if val, err := strconv.ParseFloat(strings.TrimSpace(string(data)), 64); err == nil && val > 0 {
-
-			return val / (1024 * 1024)
-
-		}
-
-	}
-
-	// 2. Linux cgroup v1
-
-	for _, p := range []string{
-
-		"/sys/fs/cgroup/memory/memory.usage_in_bytes",
-
-		"/sys/fs/cgroup/memory.usage_in_bytes",
-	} {
-
-		if data, err := os.ReadFile(p); err == nil {
-
-			if val, err := strconv.ParseFloat(strings.TrimSpace(string(data)), 64); err == nil && val > 0 {
-
-				return val / (1024 * 1024)
-
-			}
-
-		}
-
-	}
-
-	return 0
-
-}
-
-
 
 func (s *Server) getLiveMemoryMetrics() (appRSS float64, coreRSS float64, totalOverhead float64) {
 

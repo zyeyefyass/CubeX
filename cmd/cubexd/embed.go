@@ -3,7 +3,6 @@ package main
 import (
 	"embed"
 	"io/fs"
-	"net/http"
 )
 
 //go:embed all:dist
@@ -15,8 +14,4 @@ func getEmbeddedFS() fs.FS {
 		return embeddedWeb
 	}
 	return sub
-}
-
-func getFileSystem() http.FileSystem {
-	return http.FS(getEmbeddedFS())
 }

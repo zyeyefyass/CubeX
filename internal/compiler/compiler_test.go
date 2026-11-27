@@ -1083,3 +1083,88 @@ func TestSingboxNoEmptyDomainRuleOnZeroDomainProxies(t *testing.T) {
 		t.Fatalf("dns-direct server not found")
 	}
 }
+
+func TestRealitySpiderXDualCoreIsolationAndFakeIPCIDR(t *testing.T) {
+	ir := schema.NewDefaultIR()
+	ir.Proxies = []schema.ProxyNode{
+		{
+			Name:    "VLESS-Reality-SpiderX",
+			Type:    "vless",
+			Server:  "reality.example.com",
+			Port:    443,
+			UUID:    "9442a3e9-48f2-49b7-8e8e-0bfb446e9669",
+			Flow:    "xtls-rprx-vision",
+			TLS:     true,
+			SNI:     "www.apple.com",
+			Network: "tcp",
+			RawConfig: map[string]any{
+				"client-fingerprint": "chrome",
+				"reality-opts": map[string]any{
+					"public-key": "dGVzdC1yZWFsaXR5LXB1YmtleS0xMjM0NTY3ODkwMTI",
+					"short-id":   "a1b2c3d4",
+					"spider-x":   "/news",
+				},
+			},
+		},
+	}
+
+	// 1. sing-box JSON must omit unsupported spider_x while keeping public_key & short_id
+	sbBytes, err := compiler.BuildSingBox(ir)
+	if err != nil {
+		t.Fatalf("BuildSingBox failed: %v", err)
+	}
+	var sbCfg struct {
+		Outbounds []map[string]any `json:"outbounds"`
+	}
+	if err := json.Unmarshal(sbBytes, &sbCfg); err != nil {
+		t.Fatalf("unmarshal singbox json failed: %v", err)
+	}
+	var realityNode map[string]any
+	for _, ob := range sbCfg.Outbounds {
+		if ob["tag"] == "VLESS-Reality-SpiderX" {
+			realityNode = ob
+			break
+		}
+	}
+	if realityNode == nil {
+		t.Fatalf("missing VLESS-Reality-SpiderX outbound in sing-box config")
+	}
+	tlsObj, _ := realityNode["tls"].(map[string]any)
+	realityObj, _ := tlsObj["reality"].(map[string]any)
+	if realityObj["public_key"] == "" || realityObj["short_id"] != "a1b2c3d4" {
+		t.Fatalf("expected sing-box reality public_key and short_id preserved, got %+v", realityObj)
+	}
+	if _, hasSpiderX := realityObj["spider_x"]; hasSpiderX {
+		t.Fatalf("sing-box reality config must NOT emit unsupported spider_x field, got %+v", realityObj)
+	}
+
+	// 2. Mihomo YAML must preserve spider-x and align default fake-ip-range to 198.18.0.0/15
+	ir.DNS.FakeIPRange = ""
+	mhBytes, err := compiler.BuildMihomo(ir)
+	if err != nil {
+		t.Fatalf("BuildMihomo failed: %v", err)
+	}
+	var mhCfg map[string]any
+	if err := yaml.Unmarshal(mhBytes, &mhCfg); err != nil {
+		t.Fatalf("unmarshal mihomo yaml failed: %v", err)
+	}
+	mhDNS, _ := mhCfg["dns"].(map[string]any)
+	if mhDNS["fake-ip-range"] != "198.18.0.0/15" {
+		t.Fatalf("expected mihomo default fake-ip-range 198.18.0.0/15, got %v", mhDNS["fake-ip-range"])
+	}
+	mhProxies, _ := mhCfg["proxies"].([]any)
+	var mhReality map[string]any
+	for _, raw := range mhProxies {
+		if pm, ok := raw.(map[string]any); ok && pm["name"] == "VLESS-Reality-SpiderX" {
+			mhReality = pm
+			break
+		}
+	}
+	if mhReality == nil {
+		t.Fatalf("missing VLESS-Reality-SpiderX proxy in mihomo yaml")
+	}
+	mhROpts, _ := mhReality["reality-opts"].(map[string]any)
+	if mhROpts["spider-x"] != "/news" {
+		t.Fatalf("expected mihomo reality-opts.spider-x=/news preserved, got %+v", mhROpts)
+	}
+}

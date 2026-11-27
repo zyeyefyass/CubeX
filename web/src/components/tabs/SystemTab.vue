@@ -586,17 +586,17 @@
 
                   <div class="flex items-center justify-between">
 
-                    <span>sing-box 内核: <strong class="text-slate-900 font-black text-sm">{{ app.systemOverview.singbox_curr_version || 'v1.14.4' }}</strong></span>
+                    <span>sing-box 内核: <strong class="text-slate-900 font-black text-sm">{{ app.systemOverview.singbox_curr_version || '--' }}</strong></span>
 
-                    <span class="text-slate-500">官方最新: <span :class="app.systemOverview.singbox_update_avail ? 'text-amber-600 font-bold' : 'text-slate-800 font-bold'">{{ app.systemOverview.singbox_latest_version || 'v1.14.4' }}</span></span>
+                    <span class="text-slate-500">官方最新: <span :class="app.systemOverview.singbox_update_avail ? 'text-amber-600 font-bold' : 'text-slate-800 font-bold'">{{ app.systemOverview.singbox_latest_version || '--' }}</span></span>
 
                   </div>
 
                   <div class="flex items-center justify-between">
 
-                    <span>Mihomo 内核: <strong class="text-slate-900 font-black text-sm">{{ app.systemOverview.mihomo_curr_version || 'v1.19.34' }}</strong></span>
+                    <span>Mihomo 内核: <strong class="text-slate-900 font-black text-sm">{{ app.systemOverview.mihomo_curr_version || '--' }}</strong></span>
 
-                    <span class="text-slate-500">官方最新: <span :class="app.systemOverview.mihomo_update_avail ? 'text-amber-600 font-bold' : 'text-slate-800 font-bold'">{{ app.systemOverview.mihomo_latest_version || 'v1.19.34' }}</span></span>
+                    <span class="text-slate-500">官方最新: <span :class="app.systemOverview.mihomo_update_avail ? 'text-amber-600 font-bold' : 'text-slate-800 font-bold'">{{ app.systemOverview.mihomo_latest_version || '--' }}</span></span>
 
                   </div>
 
@@ -1276,6 +1276,7 @@
 <script setup>
 import { inject, ref, onMounted } from 'vue'
 import ZootopiaIcon from '../ZootopiaIcon.vue'
+import { copyTextToClipboard } from '../../utils/clipboard'
 
 const app = inject('cubexApp')
 
@@ -1317,37 +1318,16 @@ async function verifySymbioticLoop() {
   }
 }
 
-function copyToClipboard(text, msg = '已复制到剪贴板') {
+async function copyToClipboard(text, msg = '已复制到剪贴板') {
   if (!text) return
-  if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => {
-      if (app && typeof app.showToast === 'function') {
-        app.showToast('📋 ' + msg)
-      }
-    }).catch(() => {
-      fallbackCopyText(text, msg)
-    })
-  } else {
-    fallbackCopyText(text, msg)
-  }
-}
-
-function fallbackCopyText(text, msg) {
-  const ta = document.createElement('textarea')
-  ta.value = text
-  document.body.appendChild(ta)
-  ta.select()
-  try {
-    document.execCommand('copy')
-    if (app && typeof app.showToast === 'function') {
+  const ok = await copyTextToClipboard(text)
+  if (app && typeof app.showToast === 'function') {
+    if (ok) {
       app.showToast('📋 ' + msg)
-    }
-  } catch (e) {
-    if (app && typeof app.showToast === 'function') {
+    } else {
       app.showToast('⚠️ 复制失败，请手动选择复制', 'error')
     }
   }
-  document.body.removeChild(ta)
 }
 
 function copyRouterOSScript() {

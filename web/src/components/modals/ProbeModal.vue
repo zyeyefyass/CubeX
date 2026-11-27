@@ -123,7 +123,7 @@
 
                 <span>Mihomo 核心:</span>
 
-                <span class="text-slate-800">{{ app.systemOverview.mihomo_curr_version || 'v1.19.16' }}</span>
+                <span class="text-slate-800">{{ app.systemOverview.mihomo_curr_version || '--' }}</span>
 
               </div>
 
@@ -131,7 +131,7 @@
 
                 <span>sing-box 核心:</span>
 
-                <span class="text-slate-800">{{ app.systemOverview.singbox_curr_version || 'v1.14.4' }}</span>
+                <span class="text-slate-800">{{ app.systemOverview.singbox_curr_version || '--' }}</span>
 
               </div>
 
@@ -155,7 +155,7 @@
 
               </span>
 
-              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">✓ {{ (app.geodataStatus.total_rules || 236255).toLocaleString() }} 条规则</span>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">✓ {{ (app.geodataStatus.total_rules || 0).toLocaleString() }} 条规则</span>
 
             </div>
 
@@ -165,7 +165,7 @@
 
                 <span>版本标识:</span>
 
-                <span class="text-slate-800">{{ app.geodataStatus.version || '20261021' }}</span>
+                <span class="text-slate-800">{{ app.geodataStatus.version || '--' }}</span>
 
               </div>
 
@@ -173,7 +173,7 @@
 
                 <span>规则文件:</span>
 
-                <span class="text-emerald-400">{{ app.geodataStatus.rules_count || 105 }} 套 MRS/SRS 二进制规则</span>
+                <span class="text-emerald-400">{{ app.geodataStatus.rules_count || 0 }} 套 MRS/SRS 二进制规则</span>
 
               </div>
 

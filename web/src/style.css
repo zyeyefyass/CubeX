@@ -57,13 +57,7 @@ body::before {
 
 /* 一级大卡片容器（柔和雾白 · 24px 大圆角 · 柔和收边 · 彻底禁绝 backdrop-filter 释放 GPU） */
 .macos-glass-card,
-.macos-card,
-.liquid-glass,
-.glass-aurora,
-.glass-matrix,
-.glass-novice,
-.glass-obsidian,
-.host-card {
+.macos-card {
   background: rgba(228, 233, 240, 0.90) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -78,13 +72,7 @@ body::before {
 }
 
 .macos-glass-card:hover,
-.macos-card:hover,
-.liquid-glass:hover,
-.glass-aurora:hover,
-.glass-matrix:hover,
-.glass-novice:hover,
-.glass-obsidian:hover,
-.host-card:hover {
+.macos-card:hover {
   background: rgba(235, 239, 245, 0.94) !important;
   border-color: rgba(148, 163, 184, 0.50) !important;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08) !important;
@@ -113,8 +101,7 @@ body::before {
 }
 
 /* 顶部与全局胶囊组件 */
-.macos-capsule,
-.windhawk-pill {
+.macos-capsule {
   background: rgba(241, 244, 249, 0.94) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -124,18 +111,14 @@ body::before {
   transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
 }
 
-.macos-capsule:hover,
-.windhawk-pill:hover {
+.macos-capsule:hover {
   background: rgba(248, 250, 252, 0.98) !important;
   border-color: rgba(148, 163, 184, 0.8) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
 }
 
-/* 二级嵌套子卡片与滚动列表项 */
-.macos-sub-card,
-.sub-card-glass,
-.virtualized-node-card,
-.virtualized-rule-row {
+/* 二级嵌套子卡片 */
+.macos-sub-card {
   background: rgba(241, 244, 249, 0.94) !important;
   border: 1px solid rgba(203, 213, 225, 0.60) !important;
   backdrop-filter: none !important;
@@ -147,22 +130,10 @@ body::before {
   transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-.macos-sub-card:hover,
-.sub-card-glass:hover,
-.virtualized-node-card:hover,
-.virtualized-rule-row:hover {
+.macos-sub-card:hover {
   background: rgba(248, 250, 252, 0.98) !important;
   border-color: rgba(148, 163, 184, 0.8) !important;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06) !important;
-}
-
-/* 浏览器原生虚拟化与极速重绘隔离 */
-.virtualized-node-card,
-.virtualized-rule-row,
-.virtualized-item {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 64px;
-  contain: layout style paint;
 }
 
 /* 一键赏景模式 (Peek Mode) */
@@ -180,9 +151,7 @@ body.wallpaper-peek-mode .zootopia-peek-active {
 }
 
 /* 日志流终端视窗 (纯净深黑夜晶) */
-.bg-\[\#000d1a\],
-.terminal-screen-window,
-.terminal-window {
+.bg-\[\#000d1a\] {
   background: rgba(15, 23, 42, 0.95) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -190,11 +159,6 @@ body.wallpaper-peek-mode .zootopia-peek-active {
   border-radius: 14px !important;
   color: #f8fafc !important;
   text-shadow: none !important;
-}
-
-.terminal-screen-window *,
-.terminal-window * {
-  color: inherit;
 }
 
 /* 输入控件规范 (Input / Select / Textarea) */
@@ -238,18 +202,10 @@ h1, h2, h3, h4, .macos-title {
   text-shadow: none !important;
 }
 
-.macos-subtitle {
-  color: #475569 !important;
-  text-shadow: none !important;
-}
-
 .macos-glass-card h1, .macos-glass-card h2, .macos-glass-card h3, .macos-glass-card h4,
 .macos-card h1, .macos-card h2, .macos-card h3, .macos-card h4,
-.host-card h1, .host-card h2, .host-card h3, .host-card h4,
 .macos-sidebar h1, .macos-sidebar h2, .macos-sidebar h3,
-.macos-topbar h1, .macos-topbar h2, .macos-topbar h3,
-.diagnostic-drawer h1, .diagnostic-drawer h2, .diagnostic-drawer h3,
-.theme-drawer h1, .theme-drawer h2, .theme-drawer h3 {
+.macos-topbar h1, .macos-topbar h2, .macos-topbar h3 {
   color: #0f172a !important;
 }
 
@@ -274,36 +230,6 @@ h1, h2, h3, h4, .macos-title {
   color: #ffffff !important;
 }
 
-/* 抽屉与浮动面板 */
-.diagnostic-drawer,
-.theme-drawer {
-  background: rgba(228, 233, 240, 0.96) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border-left: 1px solid rgba(148, 163, 184, 0.35) !important;
-  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.12) !important;
-  color: #1e293b !important;
-}
-
-/* 导航栏状态 */
-.macos-sidebar nav button:not(.active-nav) {
-  color: #475569 !important;
-}
-.macos-sidebar nav button:not(.active-nav):hover {
-  background: rgba(241, 244, 249, 0.94) !important;
-  color: #0f172a !important;
-}
-
-.macos-sidebar nav button.active-nav {
-  background: #0f172a !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.22) !important;
-  border: 1px solid rgba(255, 255, 255, 0.20) !important;
-}
-.macos-sidebar nav button.active-nav * {
-  color: #ffffff !important;
-}
-
 /* 顶部双核热切居中药丸 */
 #cubex-topbar-engine-switch button.active-engine {
   background: #0f172a !important;
@@ -322,34 +248,6 @@ h1, h2, h3, h4, .macos-title {
 #cubex-topbar-engine-switch button:not(.active-engine):hover {
   background: rgba(241, 244, 249, 0.94) !important;
   color: #0f172a !important;
-}
-
-/* 呼吸脉冲 */
-@keyframes twilight-pulse {
-  0%, 100% {
-    opacity: 0.85;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-.animate-obsidian-pulse,
-.animate-emerald-pulse,
-.animate-sunset-pulse {
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
-  animation: twilight-pulse 2.2s infinite ease-in-out;
-}
-
-/* 弹窗与抽屉 Glass-Pop 动效 */
-.glass-pop-enter-active,
-.glass-pop-leave-active {
-  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.glass-pop-enter-from,
-.glass-pop-leave-to {
-  opacity: 0;
-  transform: scale(0.96) translateY(12px);
 }
 
 /* 滚动条 */
@@ -387,16 +285,9 @@ h1, h2, h3, h4, .macos-title {
   background: rgba(100, 116, 139, 0.75);
 }
 
-.border-l-4 {
-  border-left-width: 1px !important;
-}
-
 /* Safe area utilities */
 .pb-safe {
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
-}
-.pt-safe {
-  padding-top: env(safe-area-inset-top, 0px);
 }
 .safe-h-screen {
   height: 100vh;
@@ -424,14 +315,11 @@ select option:hover {
 /* ⚡ 全局禁绝 backdrop-filter（释放 90% GPU 压力与滚动 Overdraw）        */
 /* ══════════════════════════════════════════════════════════════════════ */
 
-.backdrop-blur-none,
 .backdrop-blur-sm,
 .backdrop-blur,
 .backdrop-blur-md,
-.backdrop-blur-lg,
 .backdrop-blur-xl,
-.backdrop-blur-2xl,
-.backdrop-blur-3xl {
+.backdrop-blur-2xl {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -467,19 +355,12 @@ button, a, input, select, textarea, [role="button"] {
     -webkit-backdrop-filter: none !important;
   }
 
-  .macos-glass-card,
-  .liquid-glass,
-  .glass-aurora,
-  .glass-matrix,
-  .glass-novice,
-  .glass-obsidian,
-  .host-card {
+  .macos-glass-card {
     background: rgba(228, 233, 240, 0.96) !important;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
   }
 
-  .macos-sub-card,
-  .sub-card-glass {
+  .macos-sub-card {
     background: rgba(241, 244, 249, 0.98) !important;
   }
 
@@ -496,8 +377,7 @@ button, a, input, select, textarea, [role="button"] {
 
 /* 等宽数字排版：高频刷新上下行速率与毫秒延迟时绝对零布局抖动 (CLS = 0) */
 .tabular-nums,
-.font-tabular,
-.metric-tabular {
+.font-tabular {
   font-variant-numeric: tabular-nums !important;
 }
 
@@ -514,9 +394,8 @@ button, a, input, select, textarea, [role="button"] {
   contain: layout style;
 }
 
-/* 原生 <dialog> 与 Popover API 顶层壳加速 */
-dialog.modern-dialog,
-[popover].modern-popover {
+/* 原生 <dialog> 顶层壳加速 */
+dialog.modern-dialog {
   margin: auto;
   border: none;
   background: transparent;
@@ -527,8 +406,7 @@ dialog.modern-dialog,
   outline: none;
 }
 
-dialog.modern-dialog::backdrop,
-[popover]::backdrop {
+dialog.modern-dialog::backdrop {
   background: rgba(0, 8, 20, 0.60);
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;

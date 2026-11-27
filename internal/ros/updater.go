@@ -44,6 +44,8 @@ import (
 	"sync"
 
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/config"
 )
 
 // Manager handles RouterOS connectivity, Mihomo core upgrades,
@@ -421,21 +423,23 @@ func (m *Manager) GetOverview() map[string]any {
 	totalHdd := m.lastTotalHddSpace
 	m.mu.RUnlock()
 
+	defSingboxVer, defMihomoVer := config.MetaCoreVersions(m.metaFile)
+
 	if latestMihomo == "" {
 
-		latestMihomo = "v1.19.34"
+		latestMihomo = defMihomoVer
 
 	}
 
 	if latestPanel == "" {
 
-		latestPanel = "v9.97"
+		latestPanel = "v9.98"
 
 	}
 
 	if latestSingbox == "" {
 
-		latestSingbox = "v1.14.4"
+		latestSingbox = defSingboxVer
 
 	}
 
@@ -1298,7 +1302,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 // ──────────────────────────────────────────────
 
 func (m *Manager) getLocalPanelVersion() string {
-	return "v9.97"
+	return "v9.98"
 
 }
 
@@ -1817,13 +1821,15 @@ func (m *Manager) fetchLatestPanelVersion() (string, error) {
 
 func (m *Manager) getLocalMihomoVersion() string {
 
+	_, defMihomoVer := config.MetaCoreVersions(m.metaFile)
+
 	mihomoPath := filepath.Join(m.binDir, "mihomo")
 
 	out, err := exec.Command(mihomoPath, "-v").CombinedOutput()
 
 	if err != nil {
 
-		return "v1.19.34"
+		return defMihomoVer
 
 	}
 
@@ -1839,7 +1845,7 @@ func (m *Manager) getLocalMihomoVersion() string {
 
 	}
 
-	return "v1.19.34"
+	return defMihomoVer
 
 }
 
@@ -1853,7 +1859,8 @@ func (m *Manager) fetchLatestMihomoVersion() (string, error) {
 
 	}
 
-	return "v1.19.34", nil
+	_, defMihomoVer := config.MetaCoreVersions(m.metaFile)
+	return defMihomoVer, nil
 
 }
 
@@ -1873,9 +1880,11 @@ func (m *Manager) getLocalSingboxVersion() string {
 
 	out, err := exec.Command(singboxPath, "version").CombinedOutput()
 
+	defSingboxVer, _ := config.MetaCoreVersions(m.metaFile)
+
 	if err != nil {
 
-		return "v1.14.4"
+		return defSingboxVer
 
 	}
 
@@ -1913,7 +1922,7 @@ func (m *Manager) getLocalSingboxVersion() string {
 
 	}
 
-	return "v1.14.4"
+	return defSingboxVer
 
 }
 
@@ -1927,7 +1936,8 @@ func (m *Manager) fetchLatestSingboxVersion() (string, error) {
 
 	}
 
-	return "v1.14.4", nil
+	defSingboxVer, _ := config.MetaCoreVersions(m.metaFile)
+	return defSingboxVer, nil
 
 }
 

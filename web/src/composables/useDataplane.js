@@ -1,6 +1,7 @@
 // web/src/composables/useDataplane.js
-// CubeX v9.9.4 数据面健康契约与大白话诊断中枢
+// CubeX 数据面健康契约与大白话诊断中枢
 import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue'
+import { copyTextToClipboard } from '../utils/clipboard'
 
 export function useDataplane() {
   const snapshot = shallowRef({
@@ -111,12 +112,7 @@ export function useDataplane() {
       diagnosis: s.healthy ? '全链路健康，Fake-IP 与网关转发处于最优稳态' : '触发无损降级逃生网，建议检查双核配置或上游链路'
     }
     const text = JSON.stringify(report, null, 2)
-    try {
-      await navigator.clipboard.writeText(text)
-      return true
-    } catch {
-      return false
-    }
+    return await copyTextToClipboard(text)
   }
 
   return {

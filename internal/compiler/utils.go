@@ -2,8 +2,31 @@ package compiler
 
 import (
 	"encoding/base64"
+	"os"
+	"path/filepath"
 	"strings"
 )
+
+// isRuleSetAvailable checks whether a compiled binary MRS/SRS rule set exists on disk.
+func isRuleSetAvailable(ruleFilename string, minSize int64) bool {
+	clean := strings.TrimPrefix(ruleFilename, "./")
+	clean = strings.TrimPrefix(clean, "/")
+	candidates := []string{
+		filepath.Join("/opt/CubeX/etc", clean),
+		filepath.Join("/cubex/app/etc", clean),
+		filepath.Join("etc", clean),
+		clean,
+		ruleFilename,
+		filepath.Join("..", "etc", clean),
+		filepath.Join("..", "..", "etc", clean),
+	}
+	for _, c := range candidates {
+		if fi, err := os.Stat(c); err == nil && fi.Size() > minSize {
+			return true
+		}
+	}
+	return false
+}
 
 // ValidSSCiphers defines Shadowsocks ciphers supported across Mihomo and Sing-box.
 var ValidSSCiphers = map[string]bool{

@@ -1,5 +1,5 @@
 # ==============================================================================
-# 🌌 CubeX Test v5.3 · 飞牛 fnOS 专属 Compose 编排文件
+# 🌌 CubeX · 飞牛 fnOS 专属 Compose 编排文件 (v9.98)
 # 官方应用中心 / 第三方应用源标准定义
 # ==============================================================================
 version: '3.8'
@@ -17,9 +17,8 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     volumes:
-      - /vol1/1000/docker/cubex/etc:/opt/CubeX/etc
-      - /vol1/1000/docker/cubex/data:/opt/CubeX/data
-      - /vol1/1000/docker/cubex/rules:/opt/CubeX/rules
+      - /vol1/1000/docker/cubex/etc:/app/etc
+      - /vol1/1000/docker/cubex/data:/app/data
       - /etc/localtime:/etc/localtime:ro
     environment:
       - TZ=Asia/Shanghai

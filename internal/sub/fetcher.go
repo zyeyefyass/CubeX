@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/zyeyefyass/CubeX/internal/config"
 	"github.com/zyeyefyass/CubeX/internal/netutil"
 	"io"
 	"net"
@@ -93,8 +94,12 @@ func (f *Fetcher) Fetch(urlStr string) (*FetchResult, error) {
 		return res, nil
 	}
 
-	// Automatic fallback to local core mixed-port (7890) if direct fetching times out or is blocked by GFW
-	proxyURL, pErr := url.Parse("http://127.0.0.1:7890")
+	// Automatic fallback to local core mixed-port if direct fetching times out or is blocked by GFW
+	mixedAddr := config.GlobalRuntimeSpec.MixedProxyAddr
+	if !strings.Contains(mixedAddr, "://") {
+		mixedAddr = "http://" + mixedAddr
+	}
+	proxyURL, pErr := url.Parse(mixedAddr)
 	if pErr == nil {
 		proxyClient := &http.Client{
 			Transport: &http.Transport{
@@ -119,7 +124,8 @@ func (f *Fetcher) doFetch(urlStr string, client *http.Client) (*FetchResult, err
 		return nil, fmt.Errorf("invalid subscription url: %w", err)
 	}
 
-	req.Header.Set("User-Agent", "Clash.Meta; sing-box/1.14.4; CubeX-Universal/1.0")
+	singboxVer, _ := config.MetaCoreVersions()
+	req.Header.Set("User-Agent", fmt.Sprintf("Clash.Meta; sing-box/%s; CubeX-Universal/1.0", strings.TrimPrefix(singboxVer, "v")))
 
 	resp, err := client.Do(req)
 	if err != nil {

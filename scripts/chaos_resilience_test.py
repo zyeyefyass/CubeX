@@ -13,19 +13,28 @@ import base64
 import subprocess
 import paramiko
 
-ROS_IP = "10.0.0.1"
-ROS_AUTH = base64.b64encode(b"zyy:820130").decode("ascii")
+import os
+import sys
+
+ROS_IP = os.environ.get("CUBEX_TEST_ROS_HOST", "").strip()
+ROS_USER = os.environ.get("CUBEX_TEST_ROS_USER", "admin").strip()
+ROS_PASS = os.environ.get("CUBEX_TEST_ROS_PASS", "").strip()
+ROS_AUTH = base64.b64encode(f"{ROS_USER}:{ROS_PASS}".encode("utf-8")).decode("ascii")
 ROS_HEADERS = {
     "Authorization": f"Basic {ROS_AUTH}",
     "Content-Type": "application/json"
 }
 
-PVE_IP = "10.0.0.9"
-PVE_USER = "root"
-PVE_PASS = "poi098)(*"
-CT_ID = "107"
-CUBEX_IP = "10.0.0.7"
-CUBEX_PORT = 2026
+PVE_IP = os.environ.get("CUBEX_PVE_HOST", "").strip()
+PVE_USER = os.environ.get("CUBEX_PVE_USER", "root").strip()
+PVE_PASS = os.environ.get("CUBEX_PVE_PASS", "").strip()
+CT_ID = os.environ.get("CUBEX_TEST_CT", "").strip()
+CUBEX_IP = os.environ.get("CUBEX_TEST_HOST", "").strip()
+CUBEX_PORT = int(os.environ.get("CUBEX_PORT", "2026"))
+
+if not all([ROS_IP, PVE_IP, PVE_PASS, CT_ID, CUBEX_IP]):
+    print("❌ 请通过环境变量 CUBEX_TEST_ROS_HOST / CUBEX_PVE_HOST / CUBEX_PVE_PASS / CUBEX_TEST_CT / CUBEX_TEST_HOST 指定隔离演练靶机与凭证。")
+    sys.exit(1)
 
 def ros_api(method, path, data=None):
     url = f"http://{ROS_IP}/rest{path}"

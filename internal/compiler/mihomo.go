@@ -7,10 +7,6 @@ import (
 
 	"log"
 
-	"os"
-
-	"path/filepath"
-
 	"strings"
 
 	"github.com/zyeyefyass/CubeX/internal/schema"
@@ -19,42 +15,8 @@ import (
 )
 
 // isMRSAvailable checks whether a compiled binary Mihomo rule set exists on disk.
-
 func isMRSAvailable(ruleFilename string) bool {
-
-	clean := strings.TrimPrefix(ruleFilename, "./")
-
-	clean = strings.TrimPrefix(clean, "/")
-
-	candidates := []string{
-
-		filepath.Join("/opt/CubeX/etc", clean),
-
-		filepath.Join("/cubex/app/etc", clean),
-
-		filepath.Join("etc", clean),
-
-		clean,
-
-		ruleFilename,
-
-		filepath.Join("..", "etc", clean),
-
-		filepath.Join("..", "..", "etc", clean),
-	}
-
-	for _, c := range candidates {
-
-		if fi, err := os.Stat(c); err == nil && fi.Size() > 50 {
-
-			return true
-
-		}
-
-	}
-
-	return false
-
+	return isRuleSetAvailable(ruleFilename, 50)
 }
 
 // BuildMihomo transcompiles CubeX Universal IR to production Mihomo config.yaml
@@ -87,7 +49,7 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 	dns := ir.DNS
 	if strings.TrimSpace(dns.FakeIPRange) == "" {
-		dns.FakeIPRange = "198.18.0.1/16"
+		dns.FakeIPRange = "198.18.0.0/15"
 	}
 
 	proxyMode := string(ir.Meta.ProxyMode)

@@ -105,7 +105,7 @@ defineProps({
   },
   appVersion: {
     type: String,
-    default: 'v9.91'
+    default: '--'
   },
   activeEngine: {
     type: String,

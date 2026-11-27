@@ -267,8 +267,8 @@ func (s *Server) registerDefaultUpstreamProviders() {
 		dim:         upstream.DimControlPlane,
 		displayName: "CubeX 控制面与全息交互面板",
 		probeFn: func(ctx context.Context) (*upstream.VersionStatus, error) {
-			curVer := "Test v8.9"
 			ov := s.rosMgr.GetOverview()
+			curVer, _ := ov["panel_curr_version"].(string)
 			remoteVer, _ := ov["remote_version"].(string)
 			hasUpdate, _ := ov["has_update"].(bool)
 			return &upstream.VersionStatus{

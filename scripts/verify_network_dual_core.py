@@ -6,25 +6,16 @@ Executes 2 full cycles of engine switching (Mihomo <-> sing-box)
 and verifies domestic direct, foreign proxy, and DNS Fake-IP resolution.
 """
 
+import os
 import sys
 import time
 import json
 import subprocess
 import urllib.request
 
-def find_active_host():
-    for candidate in ["10.0.0.7", "10.0.0.11", "127.0.0.1"]:
-        try:
-            req = urllib.request.Request(f"http://{candidate}:2026/api/v1/system/status")
-            with urllib.request.urlopen(req, timeout=1.5) as r:
-                return candidate
-        except Exception:
-            continue
-    return "10.0.0.7"
-
-HOST_CUBEX = find_active_host()
-PORT_API = 2026
-PORT_PROXY = 7890
+HOST_CUBEX = os.environ.get("CUBEX_TEST_HOST", "127.0.0.1").strip() or "127.0.0.1"
+PORT_API = int(os.environ.get("CUBEX_PORT", "2026"))
+PORT_PROXY = int(os.environ.get("CUBEX_MIXED_PORT", "7890"))
 
 def get_overview():
     try:

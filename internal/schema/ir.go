@@ -81,7 +81,7 @@ type NetworkConfig struct {
 
 type DNSConfig struct {
 	EnableFakeIP bool      `json:"enable_fake_ip" yaml:"enable_fake_ip"`
-	FakeIPRange  string    `json:"fake_ip_range" yaml:"fake_ip_range"` // 198.18.0.1/16
+	FakeIPRange  string    `json:"fake_ip_range" yaml:"fake_ip_range"` // 198.18.0.0/15
 	FakeIPFilter []string  `json:"fake_ip_filter" yaml:"fake_ip_filter"`
 	DirectDNS    []string  `json:"direct_dns" yaml:"direct_dns"`
 	RemoteDNS    []string  `json:"remote_dns" yaml:"remote_dns"`
@@ -205,7 +205,7 @@ func NewDefaultIR() *ConfigIR {
 		},
 		DNS: DNSConfig{
 			EnableFakeIP: true,
-			FakeIPRange:  "198.18.0.1/16",
+			FakeIPRange:  "198.18.0.0/15",
 			FakeIPFilter: []string{
 				"geosite:cn",
 				"+.cn",

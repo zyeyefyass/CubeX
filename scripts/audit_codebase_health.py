@@ -285,24 +285,29 @@ if os.path.exists(audit_script):
         results["failures"] += 1
 
 # -------------------------------------------------------------
-# CHECK 7: Live Runtime Inspection (PVE / CT 107 if accessible)
+# CHECK 7: Live Runtime Inspection (Optional via CUBEX_LIVE_PROBE_URL)
 # -------------------------------------------------------------
 log_header("CHECK 7: Live Deployment & Dual-Engine Runtime Health Probe")
-try:
-    import urllib.request
-    req = urllib.request.Request("http://10.0.0.7:2026/api/v1/system/status")
-    with urllib.request.urlopen(req, timeout=3) as resp:
-        live_status = json.loads(resp.read().decode("utf-8"))
-        print("  ✓ CT 107 Live CubeX daemon reachable!")
-        print(f"    - Active Engine: {live_status.get('active_engine')}")
-        print(f"    - Core Memory RSS: {live_status.get('core_memory_mb'):.2f} MB")
-        print(f"    - Running Goroutines: {live_status.get('goroutines')}")
-        print(f"    - Total Proxies: {live_status.get('total_proxies')}")
-        results["checks"]["live_runtime"] = {"status": "PASS", "data": live_status}
-        results["passed"] += 1
-except Exception as e:
-    print(f"  • Live daemon (10.0.0.7:2026) currently offline or unreachable ({e}).")
-    results["checks"]["live_runtime"] = {"status": "OFFLINE"}
+probe_url = os.environ.get("CUBEX_LIVE_PROBE_URL", "").strip()
+if probe_url:
+    try:
+        import urllib.request
+        req = urllib.request.Request(probe_url)
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            live_status = json.loads(resp.read().decode("utf-8"))
+            print(f"  ✓ Live CubeX daemon reachable ({probe_url})!")
+            print(f"    - Active Engine: {live_status.get('active_engine')}")
+            print(f"    - Core Memory RSS: {live_status.get('core_memory_mb'):.2f} MB")
+            print(f"    - Running Goroutines: {live_status.get('goroutines')}")
+            print(f"    - Total Proxies: {live_status.get('total_proxies')}")
+            results["checks"]["live_runtime"] = {"status": "PASS", "data": live_status}
+            results["passed"] += 1
+    except Exception as e:
+        print(f"  • Live daemon ({probe_url}) currently offline or unreachable ({e}).")
+        results["checks"]["live_runtime"] = {"status": "OFFLINE"}
+else:
+    print("  • Skipping live probe (set CUBEX_LIVE_PROBE_URL to probe an isolated sandbox instance).")
+    results["checks"]["live_runtime"] = {"status": "SKIP"}
 
 # -------------------------------------------------------------
 # CHECK 8: Atomic Multi-File Version Consistency Gating
@@ -331,7 +336,7 @@ for p, pat in files_to_verify.items():
 # 焊死 SHA256 脚本单一真理源门禁 (scripts/ -> 根目录物理副本一致性校验，绝无 Git symlink)
 import hashlib
 script_sync_errors = []
-for sname in ['install.sh', 'install_pve_lxc.sh']:
+for sname in ['install.sh', 'install_pve_lxc.sh', 'install_ros_container.rsc']:
     src_f = os.path.join(ROOT, 'scripts', sname)
     dst_f = os.path.join(ROOT, sname)
     if not os.path.exists(dst_f):
@@ -347,7 +352,7 @@ if len(unique_versions) == 1 and 'NOT_FOUND' not in unique_versions and not scri
     v_num = list(unique_versions)[0]
     display_tag = f"v{v_num}" if not v_num.startswith("v") else v_num
     print(f"  ✓ 100% Atomic Consistency PASS: All 10 core files strictly aligned at {display_tag} (Tag: {display_tag})")
-    print(f"  ✓ Single-Source-of-Truth SHA256 PASSED (install.sh & install_pve_lxc.sh)")
+    print(f"  ✓ Single-Source-of-Truth SHA256 PASSED (install.sh, install_pve_lxc.sh & install_ros_container.rsc)")
     results["checks"]["version_consistency"] = {"status": "PASS", "version": display_tag}
     results["passed"] += 1
 else:

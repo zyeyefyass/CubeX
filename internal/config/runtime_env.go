@@ -1,12 +1,59 @@
 package config
 
 import (
+	"encoding/json"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/zyeyefyass/CubeX/internal/netenv"
 )
+
+// 全局系统与内核版本默认常量（单一真源兜底）
+const (
+	DefaultPort          = 2026
+	DefaultPortStr       = "2026"
+	DefaultFakeIPRange   = "198.18.0.0/15"
+	DefaultFakeIPv6Range = "fc00::/18"
+
+	DefaultSingBoxVersion = "v1.14.5"
+	DefaultMihomoVersion  = "v1.19.34"
+)
+
+// MetaCoreVersions 从 meta.json 单一真源读取当前随包对齐的双核版本，缺失时安全回退默认版本。
+func MetaCoreVersions(metaPaths ...string) (singboxVer, mihomoVer string) {
+	singboxVer = DefaultSingBoxVersion
+	mihomoVer = DefaultMihomoVersion
+
+	candidates := append([]string{}, metaPaths...)
+	candidates = append(candidates, "meta.json", "/app/meta.json", "/opt/CubeX/meta.json")
+	for _, p := range candidates {
+		if strings.TrimSpace(p) == "" {
+			continue
+		}
+		data, err := os.ReadFile(p)
+		if err != nil {
+			continue
+		}
+		var meta struct {
+			CoreVersions struct {
+				SingBox string `json:"sing_box"`
+				Mihomo  string `json:"mihomo"`
+			} `json:"core_versions"`
+		}
+		if json.Unmarshal(data, &meta) == nil {
+			if v := strings.TrimSpace(meta.CoreVersions.SingBox); v != "" {
+				singboxVer = v
+			}
+			if v := strings.TrimSpace(meta.CoreVersions.Mihomo); v != "" {
+				mihomoVer = v
+			}
+			return singboxVer, mihomoVer
+		}
+	}
+	return singboxVer, mihomoVer
+}
 
 // RuntimeSpec 统一收口全项目所有网络端点、探针目标与资源配额，彻底消灭硬编码
 type RuntimeSpec struct {

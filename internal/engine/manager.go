@@ -778,11 +778,6 @@ func getAdaptiveEngineMemoryLimits() (gomemlimit string, gogc string) {
 	return fmt.Sprintf("GOMEMLIMIT=%dMiB", limitMb), fmt.Sprintf("GOGC=%d", gc)
 }
 
-func getAdaptiveGOMEMLIMIT() string {
-	limit, _ := getAdaptiveEngineMemoryLimits()
-	return limit
-}
-
 func (m *Manager) buildCmd(eng schema.EngineType, binPath, etcDir, configPath string) *exec.Cmd {
 
 	var cmd *exec.Cmd

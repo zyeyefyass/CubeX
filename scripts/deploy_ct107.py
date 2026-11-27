@@ -1,12 +1,18 @@
 import paramiko
 import os
+import sys
 
-PVE_HOST = '10.0.0.9'
-PVE_PORT = 22
-PVE_USER = 'root'
-PVE_PASS = 'poi098)(*'
+PVE_HOST = os.environ.get('CUBEX_PVE_HOST', '').strip()
+PVE_PORT = int(os.environ.get('CUBEX_PVE_PORT', '22'))
+PVE_USER = os.environ.get('CUBEX_PVE_USER', 'root').strip()
+PVE_PASS = os.environ.get('CUBEX_PVE_PASS', '').strip()
+TARGET_CT = os.environ.get('CUBEX_TARGET_CT', '').strip()
 
-print(f"Connecting to PVE {PVE_HOST}...")
+if not PVE_HOST or not PVE_PASS or not TARGET_CT:
+    print("❌ 请通过环境变量 CUBEX_PVE_HOST / CUBEX_PVE_PASS / CUBEX_TARGET_CT 指定目标隔离容器与凭证。")
+    sys.exit(1)
+
+print(f"Connecting to PVE {PVE_HOST} (target CT {TARGET_CT})...")
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 ssh.connect(PVE_HOST, port=PVE_PORT, username=PVE_USER, password=PVE_PASS, timeout=10)
@@ -47,12 +53,12 @@ def run_ssh(cmd):
     err = stderr.read().decode().strip()
     return out, err
 
-print("Stopping cubexd in CT 107...")
-out, err = run_ssh("pct exec 107 -- rc-service cubexd stop")
+print(f"Stopping cubexd in CT {TARGET_CT}...")
+out, err = run_ssh(f"pct exec {TARGET_CT} -- rc-service cubexd stop")
 print("Stop result:", out, err)
 
-print("Updating /etc/init.d/cubexd memory limits...")
-run_ssh("""pct exec 107 -- sh -c 'cat << "INIT" > /etc/init.d/cubexd
+print(f"Updating /etc/init.d/cubexd memory limits in CT {TARGET_CT}...")
+run_ssh(f"""pct exec {TARGET_CT} -- sh -c 'cat << "INIT" > /etc/init.d/cubexd
 #!/sbin/openrc-run
 name="cubexd"
 description="CubeX System Control Plane Daemon"
@@ -69,47 +75,47 @@ export GOGC="100"
 export GODEBUG="madvdontneed=1"
 export TZ="Asia/Shanghai"
 
-depend() {
+depend() {{
     need net
     after firewall
-}
+}}
 INIT
 chmod 755 /etc/init.d/cubexd'""")
 
-print("Pushing binaries into CT 107...")
-run_ssh("pct push 107 /tmp/cubexd /opt/CubeX/bin/cubexd")
-run_ssh("pct push 107 /tmp/cubex /opt/CubeX/bin/cubex")
-run_ssh("pct exec 107 -- chmod +x /opt/CubeX/bin/cubexd /opt/CubeX/bin/cubex")
+print(f"Pushing binaries into CT {TARGET_CT}...")
+run_ssh(f"pct push {TARGET_CT} /tmp/cubexd /opt/CubeX/bin/cubexd")
+run_ssh(f"pct push {TARGET_CT} /tmp/cubex /opt/CubeX/bin/cubex")
+run_ssh(f"pct exec {TARGET_CT} -- chmod +x /opt/CubeX/bin/cubexd /opt/CubeX/bin/cubex")
 
-print("Setting up wallpapers in CT 107 (/etc/cubex/data/wallpapers)...")
-run_ssh("pct exec 107 -- mkdir -p /etc/cubex/data/wallpapers")
+print(f"Setting up wallpapers in CT {TARGET_CT} (/etc/cubex/data/wallpapers)...")
+run_ssh(f"pct exec {TARGET_CT} -- mkdir -p /etc/cubex/data/wallpapers")
 for wp in wallpapers:
-    run_ssh(f"pct push 107 /tmp/{wp} /etc/cubex/data/wallpapers/{wp}")
+    run_ssh(f"pct push {TARGET_CT} /tmp/{wp} /etc/cubex/data/wallpapers/{wp}")
 
-print("Setting up dark-skull-luxury theme in CT 107 (/etc/cubex/data/themes)...")
-run_ssh("pct exec 107 -- mkdir -p /etc/cubex/data/themes/dark-skull-luxury")
-run_ssh("pct push 107 /tmp/dark-skull-luxury-1080p.cbxtheme /tmp/dark-skull-luxury-1080p.cbxtheme")
-run_ssh("pct exec 107 -- unzip -o /tmp/dark-skull-luxury-1080p.cbxtheme -d /etc/cubex/data/themes/dark-skull-luxury")
-run_ssh("""pct exec 107 -- sh -c 'cat << "THEMECFG" > /etc/cubex/data/themes/config.json
-{
+print(f"Setting up dark-skull-luxury theme in CT {TARGET_CT} (/etc/cubex/data/themes)...")
+run_ssh(f"pct exec {TARGET_CT} -- mkdir -p /etc/cubex/data/themes/dark-skull-luxury")
+run_ssh(f"pct push {TARGET_CT} /tmp/dark-skull-luxury-1080p.cbxtheme /tmp/dark-skull-luxury-1080p.cbxtheme")
+run_ssh(f"pct exec {TARGET_CT} -- unzip -o /tmp/dark-skull-luxury-1080p.cbxtheme -d /etc/cubex/data/themes/dark-skull-luxury")
+run_ssh(f"""pct exec {TARGET_CT} -- sh -c 'cat << "THEMECFG" > /etc/cubex/data/themes/config.json
+{{
   "active_theme_id": "dark-skull-luxury",
   "playback_mode": "auto"
-}
+}}
 THEMECFG'""")
 
 print("Syncing themes and wallpapers to /opt/CubeX/data...")
-run_ssh("pct exec 107 -- cp -rf /etc/cubex/data/themes /opt/CubeX/data/ && pct exec 107 -- cp -rf /etc/cubex/data/wallpapers /opt/CubeX/data/")
+run_ssh(f"pct exec {TARGET_CT} -- cp -rf /etc/cubex/data/themes /opt/CubeX/data/ && pct exec {TARGET_CT} -- cp -rf /etc/cubex/data/wallpapers /opt/CubeX/data/")
 
-print("Starting cubexd in CT 107...")
-out, err = run_ssh("pct exec 107 -- rc-service cubexd start")
+print(f"Starting cubexd in CT {TARGET_CT}...")
+out, err = run_ssh(f"pct exec {TARGET_CT} -- rc-service cubexd start")
 print("Start result:", out, err)
 
 # Verify running process & MD5 & Size
-out, _ = run_ssh("pct exec 107 -- ls -lh /opt/CubeX/bin/cubexd")
-print("CT 107 cubexd size:", out)
+out, _ = run_ssh(f"pct exec {TARGET_CT} -- ls -lh /opt/CubeX/bin/cubexd")
+print(f"CT {TARGET_CT} cubexd size:", out)
 
-out, _ = run_ssh("pct exec 107 -- rc-status | grep cubexd")
-print("CT 107 service status:", out)
+out, _ = run_ssh(f"pct exec {TARGET_CT} -- rc-status | grep cubexd")
+print(f"CT {TARGET_CT} service status:", out)
 
 ssh.close()
-print("🎉 Deployment to CT 107 completed!")
+print(f"🎉 Deployment to CT {TARGET_CT} completed!")

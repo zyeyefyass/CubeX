@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/netutil"
 )
 
 // ActionPill represents an executable action suggested by AI Copilot.
@@ -381,7 +383,7 @@ func (c *Copilot) chatOpenAI(cfg CopilotConfig, prompt string) (string, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
 
-	client := &http.Client{Timeout: 60 * time.Second}
+	client := netutil.NewBoundedHTTPClient(60 * time.Second)
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("API request failed: %w", err)
@@ -449,7 +451,7 @@ func (c *Copilot) chatGemini(cfg CopilotConfig, prompt string) (string, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 60 * time.Second}
+	client := netutil.NewBoundedHTTPClient(60 * time.Second)
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("Gemini API request failed: %w", err)
@@ -520,7 +522,7 @@ func (c *Copilot) chatClaude(cfg CopilotConfig, prompt string) (string, error) {
 	req.Header.Set("x-api-key", cfg.APIKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
 
-	client := &http.Client{Timeout: 60 * time.Second}
+	client := netutil.NewBoundedHTTPClient(60 * time.Second)
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("Claude API request failed: %w", err)
@@ -579,7 +581,7 @@ func (c *Copilot) chatOpenCodeZen(cfg CopilotConfig, prompt string) (string, err
 		req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := netutil.NewBoundedHTTPClient(30 * time.Second)
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("OpenCode Zen request failed: %w", err)
@@ -619,9 +621,6 @@ func (c *Copilot) offlineResponse(prompt string) string {
 	}
 
 	switch {
-	case strings.Contains(lower, "wireguard") || strings.Contains(lower, "穿透") || strings.Contains(lower, "wg"):
-		return "ℹ️ 【功能说明：WireGuard 移动穿透已全量下线】\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 安全架构说明：CubeX 现已全面剥离并彻底下线 WireGuard 穿透模块，零开放外部 UDP 端口，实现 100% 局域网闭环与纯净高安全。\n• 远程运维建议：若需从外部管理 CubeX 或宿主软路由，推荐通过主路由原生安全隧道、Tailscale、ZeroTier 或 RouterOS 官方 Back-To-Home 方案直连，CubeX 内部保持纯净专注的代理网关转发与 DNS 净化。"
-
 	case strings.Contains(lower, "dns") || strings.Contains(lower, "解析") || strings.Contains(lower, "fake-ip"):
 		return "🛡️ 【DNS 场景与防泄露专项体检报告】\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n• 当前运行模式：Fake-IP 智能剥离（198.18.0.0/15 虚拟地址池）\n• 核心拦截代理：本地 7853 端口由 Mihomo 专有处理\n• 国内直连优化：已启用真实 IP 直连直出，国内 CDN 精准调度无减速\n• 故障应急兜底：SmartRelay 自动监视，核心未启动时秒级回退至 223.5.5.5 / 119.29.29.29\n• 安全评估结论：✅ 0 明文回退，0 泄露风险，完全杜绝运营商劫持。\n\n如需测试具体域名分流，可在「路由探测」输入网址直接验证。"
 

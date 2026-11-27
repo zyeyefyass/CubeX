@@ -292,3 +292,111 @@ func TestRouterOSManager_RemoveBypass(t *testing.T) {
 		}
 	}
 }
+
+func TestApplyAndCleanRouting_LegacyTableAndDanglingMangle(t *testing.T) {
+	// Simulate RouterOS behavior: deleting /routing/table/*TBL_OLD turns mangle mark "table-cubex-8228" into "*400"
+	var tableDeleted bool
+	var deletedMangles []string
+	var deletedOrder []string
+
+	mockROS := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodDelete {
+			deletedOrder = append(deletedOrder, r.URL.Path)
+			if r.URL.Path == "/rest/routing/table/*TBL_OLD" {
+				tableDeleted = true
+			}
+			if strings.HasPrefix(r.URL.Path, "/rest/ip/firewall/mangle/") {
+				deletedMangles = append(deletedMangles, strings.TrimPrefix(r.URL.Path, "/rest/ip/firewall/mangle/"))
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{})
+			return
+		}
+		if r.Method == http.MethodPut || r.Method == http.MethodPost {
+			_ = json.NewEncoder(w).Encode(map[string]any{".id": "*NEW"})
+			return
+		}
+		switch r.URL.Path {
+		case "/rest/system/resource":
+			_ = json.NewEncoder(w).Encode(map[string]any{"version": "7.25.2"})
+		case "/rest/routing/table":
+			tables := []map[string]any{{".id": "*TBL_CUBEX", "name": "cubex"}}
+			if !tableDeleted {
+				tables = append(tables, map[string]any{".id": "*TBL_OLD", "name": "table-cubex-8228"})
+			}
+			_ = json.NewEncoder(w).Encode(tables)
+		case "/rest/ip/firewall/mangle":
+			mark := "table-cubex-8228"
+			if tableDeleted {
+				mark = "*400"
+			}
+			_ = json.NewEncoder(w).Encode([]map[string]any{
+				{".id": "*MG_LEGACY", "chain": "prerouting", "action": "mark-routing", "new-routing-mark": mark, "src-address-list": "!CUBEX_BYPASS"},
+				{".id": "*MG_DANGLING", "chain": "prerouting", "action": "mark-routing", "new-routing-mark": "*400"},
+			})
+		case "/rest/ip/route":
+			_ = json.NewEncoder(w).Encode([]map[string]any{
+				{".id": "*RT_CUBEX", "dst-address": "0.0.0.0/0", "routing-table": "cubex", "gateway": "192.168.99.10"},
+				{".id": "*RT_FIP", "dst-address": "198.18.0.0/15", "routing-table": "main", "gateway": "192.168.99.10"},
+				{".id": "*RT_BH", "dst-address": "198.18.0.0/15", "blackhole": true, "comment": "CubeX-FakeIP-Blackhole"},
+			})
+		case "/rest/ip/dns":
+			_ = json.NewEncoder(w).Encode(map[string]any{"servers": "192.168.99.10"})
+		default:
+			_ = json.NewEncoder(w).Encode([]any{})
+		}
+	}))
+	defer mockROS.Close()
+
+	parts := strings.Split(strings.TrimPrefix(mockROS.URL, "https://"), ":")
+	mgr := NewManager(t.TempDir())
+	if err := mgr.SaveConfig(map[string]string{
+		"host": parts[0], "port": parts[1], "user": "admin", "password": "pwd",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := mgr.ApplyRouting("192.168.99.10")
+	if err != nil {
+		t.Fatalf("ApplyRouting failed: %v", err)
+	}
+	if !res.Success {
+		t.Fatalf("expected ApplyRouting Success, got errors=%v", res.Errors)
+	}
+	deletedStr := strings.Join(deletedMangles, ",")
+	if !strings.Contains(deletedStr, "*MG_LEGACY") || !strings.Contains(deletedStr, "*MG_DANGLING") {
+		t.Fatalf("expected both legacy and dangling mangle rules deleted, got %v", deletedMangles)
+	}
+
+	// Verify mangle deletion occurred before table deletion
+	idxMangle, idxTable := -1, -1
+	for i, p := range deletedOrder {
+		if p == "/rest/ip/firewall/mangle/*MG_LEGACY" && idxMangle == -1 {
+			idxMangle = i
+		}
+		if p == "/rest/routing/table/*TBL_OLD" && idxTable == -1 {
+			idxTable = i
+		}
+	}
+	if idxMangle == -1 || idxTable == -1 || idxMangle > idxTable {
+		t.Fatalf("expected legacy mangle deleted before legacy table deletion, order=%v", deletedOrder)
+	}
+
+	// Also verify CleanAndReapplyRouting & RemoveBypass handle dangling "*400" marks
+	deletedMangles = nil
+	tableDeleted = true
+	if _, err := mgr.CleanAndReapplyRouting("192.168.99.10"); err != nil {
+		t.Fatalf("CleanAndReapplyRouting failed: %v", err)
+	}
+	if !strings.Contains(strings.Join(deletedMangles, ","), "*MG_DANGLING") {
+		t.Fatalf("CleanAndReapplyRouting missed dangling *400 mangle rule: %v", deletedMangles)
+	}
+
+	deletedMangles = nil
+	if _, err := mgr.RemoveBypass("192.168.99.10", "223.5.5.5"); err != nil {
+		t.Fatalf("RemoveBypass failed: %v", err)
+	}
+	if !strings.Contains(strings.Join(deletedMangles, ","), "*MG_DANGLING") {
+		t.Fatalf("RemoveBypass missed dangling *400 mangle rule: %v", deletedMangles)
+	}
+}

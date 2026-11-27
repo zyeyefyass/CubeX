@@ -430,16 +430,21 @@ $printMsg ("✅ [3/5 网段与IP分配] 主路由IP: " . $bridgeIP . " | 局域�
 /container config
 set memory-high=256M registry-url="https://registry-1.docker.io" tmpdir=$pullDir
 
-# 创建隔离策略路由表 table-cubex-8228 (防死锁)
+# 创建隔离策略路由表 cubex (防死锁，并平滑清理存量 table-cubex-8228)
+:do {
+    :foreach oldR in=[/ip route find where routing-table="table-cubex-8228"] do={ /ip route remove $oldR; }
+    :foreach oldT in=[/routing table find where name="table-cubex-8228"] do={ /routing table remove $oldT; }
+} on-error={};
+
 /routing table
-:if ([:len [find name="table-cubex-8228"]] = 0) do={
-    add fib name=table-cubex-8228 comment="CubeX-Proxy-Table"
-    $printMsg "✅ [5/5 策略路由] 已建立 table-cubex-8228 隔离策略路由表";
+:if ([:len [find name="cubex"]] = 0) do={
+    add fib name=cubex comment="CubeX-Proxy-Table"
+    $printMsg "✅ [5/5 策略路由] 已建立 cubex 隔离策略路由表";
 }
 
 /ip route
-:if ([:len [find routing-table=table-cubex-8228]] = 0) do={
-    add dst-address=0.0.0.0/0 gateway=$cubexIP routing-table=table-cubex-8228 check-gateway=ping comment="CubeX-Default-Gateway"
+:if ([:len [find routing-table=cubex]] = 0) do={
+    add dst-address=0.0.0.0/0 gateway=$cubexIP routing-table=cubex check-gateway=ping comment="CubeX-Default-Gateway"
     $printMsg ("✅ [5/5 默认下一跳] 已下发默认策略路由指向 " . $cubexIP . " (支持 ping 毫秒自愈逃生)");
 }
 
@@ -496,7 +501,7 @@ set memory-high=256M registry-url="https://registry-1.docker.io" tmpdir=$pullDir
 
 :if ([:len [find where comment~"CubeX"]] = 0) do={
     :local foundTar "";
-    :local defaultTar ("CubeX-v9.97-ros-" . $tarArch . ".tar");
+    :local defaultTar ("CubeX-v9.98-ros-" . $tarArch . ".tar");
     :if ([:len [/file find name=$defaultTar]] > 0) do={
         :set foundTar $defaultTar;
     } else={

@@ -189,3 +189,65 @@ func TestValidateHostPortForPlatform(t *testing.T) {
 		t.Fatalf("expected openwrt port 22 valid, got %d err=%v", p, err)
 	}
 }
+
+func TestDetectLocalHostFrom_AllPlatforms(t *testing.T) {
+	m := NewManager(t.TempDir())
+	cases := []struct {
+		name            string
+		openwrtRel      string
+		osRel           string
+		hasDockerEnv    bool
+		cubexSupervised bool
+		proc1Environ    string
+		proc1Cgroup     string
+		wantHost        string
+		wantPlatformID  string
+	}{
+		{
+			name:           "Docker container on Alpine base image",
+			osRel:          "NAME=\"Alpine Linux\"\nPRETTY_NAME=\"Alpine Linux v3.24\"\n",
+			hasDockerEnv:   true,
+			wantHost:       "Linux Docker",
+			wantPlatformID: "linux",
+		},
+		{
+			name:            "Docker container via CUBEX_SUPERVISED",
+			osRel:           "PRETTY_NAME=\"Debian GNU/Linux 12\"\n",
+			cubexSupervised: true,
+			wantHost:        "Linux Docker",
+			wantPlatformID:  "linux",
+		},
+		{
+			name:           "PVE LXC Alpine container",
+			osRel:          "NAME=\"Alpine Linux\"\nPRETTY_NAME=\"Alpine Linux v3.24\"\n",
+			proc1Environ:   "container=lxc\x00PATH=/usr/sbin:/usr/bin\n",
+			wantHost:       "PVE LXC (Alpine)",
+			wantPlatformID: "pve",
+		},
+		{
+			name:           "Native Alpine Linux host",
+			osRel:          "NAME=\"Alpine Linux\"\nPRETTY_NAME=\"Alpine Linux v3.24\"\n",
+			wantHost:       "Alpine Linux",
+			wantPlatformID: "alpine",
+		},
+		{
+			name:           "Unknown generic Linux host",
+			osRel:          "NAME=\"Arch Linux\"\nPRETTY_NAME=\"Arch Linux\"\n",
+			wantHost:       "Linux",
+			wantPlatformID: "linux",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			gotHost := detectLocalHostFrom(tc.openwrtRel, tc.osRel, tc.hasDockerEnv, tc.cubexSupervised, tc.proc1Environ, tc.proc1Cgroup)
+			if gotHost != tc.wantHost {
+				t.Fatalf("detectLocalHostFrom() = %q, want %q", gotHost, tc.wantHost)
+			}
+			gotPlat := m.detectLocalPlatformID(gotHost)
+			if gotPlat != tc.wantPlatformID {
+				t.Fatalf("detectLocalPlatformID(%q) = %q, want %q", gotHost, gotPlat, tc.wantPlatformID)
+			}
+		})
+	}
+}

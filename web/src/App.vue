@@ -3860,6 +3860,8 @@ import { frameScheduler, enablePeekModeWithGuard } from './utils/scheduler'
 import { GeekCommandController } from './utils/command-palette'
 import { SymbioticStreamClient, bindGeekCommandPalette } from './utils/telemetry-stream'
 import { freezeTelemetryPayload } from './utils/perf-freeze.js'
+import { formatBytes } from './utils/format.js'
+import { copyTextToClipboard } from './utils/clipboard.js'
 
 // ── Global Console Auth & Unified Confirm Dialog ──
 if (typeof window !== 'undefined' && !window.__cubexNativeFetch) {
@@ -3975,10 +3977,7 @@ watch(() => ir.value?.proxies, (newProxies) => {
 }, { immediate: true })
 
 const computedAppVersion = computed(() => {
-  if (systemStatus.value?.version && systemStatus.value.version !== 'v9.8.0') {
-    return systemStatus.value.version
-  }
-  return 'v9.9.4'
+  return systemOverview.value?.panel_curr_version || systemStatus.value?.version || '--'
 })
 
 const activeHostBadge = computed(() => {
@@ -4011,8 +4010,8 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('ikuai') || name.includes('ikuai') || name.includes('爱快')) {
-    let ver = hw.version || 'v9.97'
-    if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
+    let ver = hw.version || '--'
+    if (ver && ver !== '--' && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: '爱快 iKuai',
       version: ver,
@@ -4020,8 +4019,8 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('openwrt') || name.includes('openwrt') || name.includes('lede')) {
-    let ver = hw.version || 'v9.97'
-    if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
+    let ver = hw.version || '--'
+    if (ver && ver !== '--' && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: 'OpenWrt',
       version: ver,
@@ -4038,8 +4037,8 @@ const mainRouterPlatform = computed(() => {
     }
   }
   if (p.includes('fnos') || name.includes('fnos') || name.includes('飞牛')) {
-    let ver = hw.version || 'v9.97'
-    if (ver && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
+    let ver = hw.version || '--'
+    if (ver && ver !== '--' && !ver.startsWith('v') && !ver.startsWith('V')) ver = 'v' + ver
     return {
       name: '飞牛 fnOS',
       version: ver,
@@ -4135,22 +4134,6 @@ const currentActiveRoute = computed(() => {
       category: '海外加速'
     }
   }
-})
-
-const displayLanDevices = computed(() => {
-  try {
-    const list = filteredLanClients.value || lanClients.value || []
-    if (Array.isArray(list) && list.length > 0) {
-      return list.slice(0, 6)
-    }
-  } catch (e) {}
-  return [
-    { name: '我的 iPhone', ip: '192.168.1.101', is_proxied: true, down_speed: '1.2 MB/s', hostname: 'iPhone' },
-    { name: 'MacBook Pro', ip: '192.168.1.102', is_proxied: true, down_speed: '3.4 MB/s', hostname: 'MacBook' },
-    { name: '客厅小米电视', ip: '192.168.1.105', is_proxied: false, down_speed: '空闲', hostname: 'Xiaomi-TV' },
-    { name: '卧室智能音箱', ip: '192.168.1.108', is_proxied: false, down_speed: '空闲', hostname: 'Smart-Speaker' },
-    { name: 'iPad Air', ip: '192.168.1.110', is_proxied: true, down_speed: '820 KB/s', hostname: 'iPad' }
-  ]
 })
 
 const triggerOneClickSpeedTest = async () => {
@@ -10944,7 +10927,7 @@ function triggerQuickAIPrompt(prompt) {
 
 const systemStatus = ref({
 
-  version: 'v9.8.0',
+  version: '',
 
   uptime_seconds: 1420,
 
@@ -11235,65 +11218,7 @@ async function copyToClipboard(text, msg = '📋 已复制到剪贴板！') {
 
   }
 
-  let copied = false
-
-  // 1. Try modern Clipboard API if supported and in secure context
-
-  if (navigator?.clipboard && window.isSecureContext) {
-
-    try {
-
-      await navigator.clipboard.writeText(text)
-
-      copied = true
-
-    } catch (e) {
-
-      copied = false
-
-    }
-
-  }
-
-  // 2. Fallback to textarea + execCommand('copy') for HTTP LAN access (LAN gateway UI)
-
-  if (!copied) {
-
-    try {
-
-      const el = document.createElement('textarea')
-
-      el.value = text
-
-      el.setAttribute('readonly', '')
-
-      el.style.position = 'fixed'
-
-      el.style.left = '-9999px'
-
-      el.style.top = '-9999px'
-
-      el.style.opacity = '0'
-
-      document.body.appendChild(el)
-
-      el.focus()
-
-      el.select()
-
-      el.setSelectionRange(0, el.value.length)
-
-      copied = document.execCommand('copy')
-
-      document.body.removeChild(el)
-
-    } catch (err) {
-
-      copied = false
-
-    }
-
-  }
+  const copied = await copyTextToClipboard(text)
 
   if (copied) {
 
@@ -11301,13 +11226,11 @@ async function copyToClipboard(text, msg = '📋 已复制到剪贴板！') {
 
     return true
 
-  } else {
-
-    showToast('复制失败，请手动选择复制', true)
-
-    return false
-
   }
+
+  showToast('复制失败，请手动选择复制', true)
+
+  return false
 
 }
 
@@ -15384,12 +15307,6 @@ const matchedKeywordNodes = computed(() => {
   }).map(p => p.name)
 
 })
-
-function getCountryFlag(code) {
-
-  return code || '全球'
-
-}
 
 function getCountryName(code) {
 
@@ -20907,20 +20824,6 @@ async function deleteNode(nodeName) {
 }
 
 // ── Subscription Telemetry & Health Diagnostics Helpers ──
-
-function formatBytes(bytes) {
-
-  if (!bytes || bytes <= 0) return '0 B'
-
-  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
-
-  const i = Math.floor(Math.log(bytes) / Math.log(1024))
-
-  const val = (bytes / Math.pow(1024, i)).toFixed(i >= 3 ? 2 : 1)
-
-  return `${val} ${units[i]}`
-
-}
 
 function formatExpire(expireTimestamp) {
 

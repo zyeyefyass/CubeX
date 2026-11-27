@@ -172,7 +172,10 @@ func (m *Manager) SaveConfig(cfg HostConfig) error {
 	if cfg.PrivateKey == "******" || (cfg.PrivateKey == "" && cfg.Host == m.config.Host) {
 		cfg.PrivateKey = m.config.PrivateKey
 	}
-	if cfg.Host != "" {
+	if strings.TrimSpace(cfg.Host) == "" {
+		cfg.Enabled = false
+		cfg.PlatformType = ""
+	} else if cfg.Host != "" {
 		cfg.Enabled = true
 	}
 	if !strings.EqualFold(cfg.Host, m.config.Host) || cfg.Port != m.config.Port || !strings.EqualFold(cfg.PlatformType, m.config.PlatformType) || !cfg.Enabled {
@@ -1723,71 +1726,6 @@ func (m *Manager) ProbeOpenWrtMatrix(targetIP string, port int, user, pass, cube
 	}, nil
 }
 
-// CleanupHostWireGuard stops and purges all legacy tunnel services and rules on fnOS / Linux host.
-func (m *Manager) CleanupHostWireGuard() (string, error) {
-	m.mu.RLock()
-	cfg := m.config
-	m.mu.RUnlock()
-
-	if !cfg.Enabled || cfg.Host == "" {
-		return "", fmt.Errorf("请先在【宿主机运维】中配置并启用宿主机 SSH 连接")
-	}
-
-	client, err := m.getSSHClient(cfg)
-	if err != nil {
-		return "", fmt.Errorf("无法连接宿主机: %w", err)
-	}
-	defer client.Close()
-
-	var logs []string
-
-	// 1. Stop & disable legacy services
-	stopCmd := "systemctl stop wg-quick@wg0 2>/dev/null; systemctl disable wg-quick@wg0 2>/dev/null; wg-quick down wg0 2>/dev/null; ip link delete wg0 2>/dev/null || true"
-	if session, err := client.NewSession(); err == nil {
-		_ = session.Run(stopCmd)
-		session.Close()
-		logs = append(logs, "✅ 已停止并下线宿主机历史遗留服务与虚拟接口")
-	}
-
-	// 2. Remove configuration files
-	rmCmd := "rm -f /etc/wireguard/wg0.conf /etc/wireguard/micube-wg.conf /etc/wireguard/cubex-wg.conf"
-	if session, err := client.NewSession(); err == nil {
-		_ = session.Run(rmCmd)
-		session.Close()
-		logs = append(logs, "✅ 已彻底清除宿主机历史遗留配置文件")
-	}
-
-	// 3. Remove iptables firewall rules
-	cleanFwCmd := `iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true
-iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true
-iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true
-iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true
-iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true
-command -v netfilter-persistent &>/dev/null && netfilter-persistent save || true`
-	if session, err := client.NewSession(); err == nil {
-		_ = session.Run(cleanFwCmd)
-		session.Close()
-		logs = append(logs, "✅ 已从宿主机防火墙彻底注销历史遗留端口与规则")
-	}
-
-	return strings.Join(logs, "\n"), nil
-}
-
-// DeployHostWireGuard is deprecated. It cleans up legacy rules on the host.
-func (m *Manager) DeployHostWireGuard(wgServerConf string) (string, error) {
-	return m.CleanupHostWireGuard()
-}
-
-// SyncPeerToHost is deprecated and no-op.
-func (m *Manager) SyncPeerToHost(publicKey, clientIP string) error {
-	return nil
-}
-
-// RemovePeerFromHost is deprecated and no-op.
-func (m *Manager) RemovePeerFromHost(publicKey string) error {
-	return nil
-}
-
 // CheckHostUpgrade queries upgradable packages on the host.
 func (m *Manager) CheckHostUpgrade() (string, error) {
 	m.mu.RLock()
@@ -1946,35 +1884,6 @@ echo "✅ [CubeX] 宿主机网络与防火墙已以【🟢 宽松模式】成功
 `
 }
 
-// GenerateCleanupWireGuardScript creates a 1-click script to purge all legacy artifacts from host.
-func (m *Manager) GenerateCleanupWireGuardScript() string {
-	return `#!/usr/bin/env bash
-# ========================================================
-#  CubeX · 宿主机历史遗留接口残留清理脚本
-# ========================================================
-set -e
-
-echo "🧹 [CubeX] 正在清理宿主机历史遗留残留与防火墙规则..."
-
-systemctl stop wg-quick@wg0 2>/dev/null || true
-systemctl disable wg-quick@wg0 2>/dev/null || true
-wg-quick down wg0 2>/dev/null || true
-ip link delete wg0 2>/dev/null || true
-ip link delete micube-wg 2>/dev/null || true
-ip link delete cubex-wg 2>/dev/null || true
-rm -f /etc/wireguard/wg0.conf /etc/wireguard/micube-wg.conf /etc/wireguard/cubex-wg.conf
-
-iptables -D INPUT -p udp --dport 13231 -j ACCEPT 2>/dev/null || true
-iptables -D INPUT -p udp --dport 51820 -j ACCEPT 2>/dev/null || true
-iptables -t nat -D POSTROUTING -s 10.88.0.0/24 ! -o wg+ -j MASQUERADE 2>/dev/null || true
-iptables -D FORWARD -s 10.88.0.0/24 -j ACCEPT 2>/dev/null || true
-iptables -D FORWARD -d 10.88.0.0/24 -j ACCEPT 2>/dev/null || true
-which netfilter-persistent &>/dev/null && netfilter-persistent save || (which iptables-save &>/dev/null && iptables-save > /etc/iptables.rules 2>/dev/null || true)
-
-echo "✅ [CubeX] 宿主机历史遗留规则与服务已彻底清理干净！"
-`
-}
-
 func probeLocalMetrics() (isContainer bool, containerType string, osName string, cores int, loadStr string, memUsed string, memTotal string, kernelVer string) {
 	cores = runtime.NumCPU()
 	if cores < 1 {
@@ -2071,16 +1980,16 @@ func probeLocalMetrics() (isContainer bool, containerType string, osName string,
 	}
 
 	// Detect Container Environment
-	if _, err := os.Stat("/.dockerenv"); err == nil {
+	if _, err := os.Stat("/.dockerenv"); err == nil || os.Getenv("CUBEX_SUPERVISED") == "1" {
 		isContainer = true
 		containerType = "Docker 容器"
 	} else if data, err := os.ReadFile("/proc/1/environ"); err == nil && (strings.Contains(string(data), "container=lxc") || strings.Contains(string(data), "lxc")) {
 		isContainer = true
 		containerType = "PVE LXC (CT) 容器"
-	} else if data, err := os.ReadFile("/proc/1/cgroup"); err == nil && (strings.Contains(string(data), "lxc") || strings.Contains(string(data), "docker")) {
+	} else if data, err := os.ReadFile("/proc/1/cgroup"); err == nil && (strings.Contains(string(data), "docker") || strings.Contains(string(data), "containerd")) {
 		isContainer = true
-		containerType = "PVE LXC (CT) 容器"
-	} else if strings.Contains(osName, "Alpine") {
+		containerType = "Docker 容器"
+	} else if data, err := os.ReadFile("/proc/1/cgroup"); err == nil && strings.Contains(string(data), "lxc") {
 		isContainer = true
 		containerType = "PVE LXC (CT) 容器"
 	}
@@ -2103,31 +2012,62 @@ func probeLocalMetrics() (isContainer bool, containerType string, osName string,
 }
 
 func (m *Manager) detectLocalHost() string {
-	if data, err := os.ReadFile("/etc/openwrt_release"); err == nil && len(data) > 0 {
+	openwrtRel, _ := os.ReadFile("/etc/openwrt_release")
+	osRel, _ := os.ReadFile("/etc/os-release")
+	_, dockerErr := os.Stat("/.dockerenv")
+	supervised := os.Getenv("CUBEX_SUPERVISED") == "1"
+	proc1Env, _ := os.ReadFile("/proc/1/environ")
+	proc1Cg, _ := os.ReadFile("/proc/1/cgroup")
+	return detectLocalHostFrom(string(openwrtRel), string(osRel), dockerErr == nil, supervised, string(proc1Env), string(proc1Cg))
+}
+
+func detectLocalHostFrom(openwrtRelease, osRelease string, hasDockerEnv, cubexSupervised bool, proc1Environ, proc1Cgroup string) string {
+	if strings.TrimSpace(openwrtRelease) != "" {
 		return "OpenWrt 智能软路由"
 	}
-	if data, err := os.ReadFile("/etc/os-release"); err == nil {
-		c := strings.ToLower(string(data))
-		if strings.Contains(c, "openwrt") || strings.Contains(c, "immortalwrt") || strings.Contains(c, "lede") {
-			return "OpenWrt 智能软路由"
-		}
-		if strings.Contains(c, "fnos") || strings.Contains(c, "trim") {
-			return "飞牛 fnOS"
-		}
-		if strings.Contains(c, "pve") || strings.Contains(c, "proxmox") {
-			return "Proxmox VE (PVE)"
-		}
-		if strings.Contains(c, "synology") {
-			return "群晖 Synology DSM"
-		}
-		if strings.Contains(c, "ubuntu") {
-			return "Ubuntu Server"
+	c := strings.ToLower(osRelease)
+	if strings.Contains(c, "openwrt") || strings.Contains(c, "immortalwrt") || strings.Contains(c, "lede") {
+		return "OpenWrt 智能软路由"
+	}
+	if strings.Contains(c, "fnos") || strings.Contains(c, "trim") {
+		return "飞牛 fnOS"
+	}
+	if strings.Contains(c, "pve") || strings.Contains(c, "proxmox") {
+		return "Proxmox VE (PVE)"
+	}
+	if strings.Contains(c, "synology") {
+		return "群晖 Synology DSM"
+	}
+
+	envLower := strings.ToLower(proc1Environ)
+	cgLower := strings.ToLower(proc1Cgroup)
+	if hasDockerEnv || cubexSupervised ||
+		strings.Contains(cgLower, "docker") || strings.Contains(cgLower, "containerd") ||
+		strings.Contains(envLower, "container=docker") || strings.Contains(envLower, "container=oci") {
+		return "Linux Docker"
+	}
+	if strings.Contains(envLower, "container=lxc") || strings.Contains(envLower, "lxc") || strings.Contains(cgLower, "lxc") {
+		if strings.Contains(c, "alpine") {
+			return "PVE LXC (Alpine)"
 		}
 		if strings.Contains(c, "debian") {
-			return "Debian GNU/Linux"
+			return "PVE LXC (Debian)"
 		}
+		if strings.Contains(c, "ubuntu") {
+			return "PVE LXC (Ubuntu)"
+		}
+		return "PVE LXC"
 	}
-	return "Linux Docker"
+	if strings.Contains(c, "alpine") {
+		return "Alpine Linux"
+	}
+	if strings.Contains(c, "ubuntu") {
+		return "Ubuntu Server"
+	}
+	if strings.Contains(c, "debian") {
+		return "Debian GNU/Linux"
+	}
+	return "Linux"
 }
 
 func (m *Manager) detectLocalPlatformID(name string) string {
@@ -2143,6 +2083,9 @@ func (m *Manager) detectLocalPlatformID(name string) string {
 	}
 	if strings.Contains(lower, "synology") || strings.Contains(lower, "群晖") {
 		return "synology"
+	}
+	if strings.Contains(lower, "alpine") {
+		return "alpine"
 	}
 	if strings.Contains(lower, "ubuntu") {
 		return "ubuntu"

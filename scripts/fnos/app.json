@@ -1,8 +1,8 @@
 {
   "name": "cubex",
   "title": "CubeX",
-  "version": "Test v5.3",
-  "description": "宿主共生双引擎智能透明网关 · 网关+DNS全双双指主路由 · 全家终端0改动 · Docker Hub 10K+里程碑",
+  "version": "v9.98",
+  "description": "宿主共生双引擎智能透明网关 · 网关与DNS统一协同 · 全家终端零改动接入",
   "icon": "https://raw.githubusercontent.com/zyeyefyass/CubeX/main/logo-cubex.svg",
   "developer": "fyasshole",
   "homepage": "https://github.com/zyeyefyass/CubeX",
@@ -11,7 +11,7 @@
     "utilities"
   ],
   "compose": {
-    "version": "3.8",
+    "version": "v9.98",
     "services": {
       "cubex": {
         "image": "fyasshole/cubex:latest",
@@ -27,9 +27,8 @@
           "/dev/net/tun:/dev/net/tun"
         ],
         "volumes": [
-          "/vol1/1000/docker/cubex/etc:/opt/CubeX/etc",
-          "/vol1/1000/docker/cubex/data:/opt/CubeX/data",
-          "/vol1/1000/docker/cubex/rules:/opt/CubeX/rules",
+          "/vol1/1000/docker/cubex/etc:/app/etc",
+          "/vol1/1000/docker/cubex/data:/app/data",
           "/etc/localtime:/etc/localtime:ro"
         ],
         "environment": [

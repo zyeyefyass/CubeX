@@ -73,13 +73,26 @@ if os.path.exists("scripts/ros/setup-routeros-v7.rsc"):
     replace_in_file("scripts/ros/setup-routeros-v7.rsc", r'CubeX-(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?-ros-', f'CubeX-{TARGET_TAG}-ros-')
 if os.path.exists("scripts/build_fnos_fpk.py"):
     replace_in_file("scripts/build_fnos_fpk.py", r'VERSION\s*=\s*"(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?"', f'VERSION = "{CLEAN_NUM}"')
+if os.path.exists("scripts/install_pve_lxc.sh"):
+    replace_in_file("scripts/install_pve_lxc.sh", r'\$\{CUSTOM_VER:-\$\{REL_TAG:-(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?\}\}', f'${{CUSTOM_VER:-${{REL_TAG:-{TARGET_TAG}}}}}')
+if os.path.exists("Dockerfile"):
+    replace_in_file("Dockerfile", r'ARG CUBEX_VERSION=(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?', f'ARG CUBEX_VERSION={TARGET_TAG}')
+if os.path.exists("scripts/fnos/app.json"):
+    replace_in_file("scripts/fnos/app.json", r'"version":\s*"(?:Test\s+)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?"', f'"version": "{TARGET_VER}"')
+if os.path.exists("scripts/fnos/docker-compose.yml"):
+    replace_in_file("scripts/fnos/docker-compose.yml", r'\(v[0-9]+\.[0-9]+(?:\.[0-9]+)?\)', f'({TARGET_VER})')
+if os.path.exists("scripts/fnos/install-fnos.sh"):
+    replace_in_file("scripts/fnos/install-fnos.sh", r'CubeX (?:Test )?v[0-9]+\.[0-9]+(?:\.[0-9]+)?', f'CubeX {TARGET_VER}')
 
 # 9. Sync scripts to root ensuring single source of truth & SHA256 consistency
 import shutil
 shutil.copyfile("scripts/install.sh", "install.sh")
 shutil.copyfile("scripts/install_pve_lxc.sh", "install_pve_lxc.sh")
+if os.path.exists("scripts/install_ros_container.rsc"):
+    shutil.copyfile("scripts/install_ros_container.rsc", "install_ros_container.rsc")
 print("✓ Synchronized scripts/install.sh -> install.sh")
 print("✓ Synchronized scripts/install_pve_lxc.sh -> install_pve_lxc.sh")
+print("✓ Synchronized scripts/install_ros_container.rsc -> install_ros_container.rsc")
 
 # 10. Verify consistency across all 10 core files
 print("\n🔍 Verifying atomic version consistency across all 10 core files...")

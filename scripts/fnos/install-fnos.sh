@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# 🌌 CubeX Test v5.3 · 飞牛 fnOS 专属极简一键直装脚本
+# 🌌 CubeX v9.98 · 飞牛 fnOS 专属极简一键直装脚本
 # 专为 飞牛 fnOS (Debian 底座) 量身定制：自动探查网卡、持久化卷编排与开箱即用
 # ==============================================================================
 set -euo pipefail
 
 echo -e "\033[1;36m=================================================================\033[0m"
-echo -e "\033[1;36m  🌌 CubeX Test v5.3 · 飞牛 fnOS 专属宿主共生透明网关部署  \033[0m"
-echo -e "\033[1;36m  🏆 Docker Hub 10K+ 里程碑 · 网关+DNS全指主路由 · 0改动躺平  \033[0m"
+echo -e "\033[1;36m  🌌 CubeX v9.98 · 飞牛 fnOS 专属宿主共生透明网关部署          \033[0m"
+echo -e "\033[1;36m  🛡️ 网关与DNS统一协同 · 全家终端零改动 · 全链路自愈             \033[0m"
 echo -e "\033[1;36m=================================================================\033[0m"
 
 # 1. 检查 root 权限
@@ -49,7 +49,7 @@ elif [ -d "/vol2" ]; then
 fi
 
 echo -e "  * 数据持久化路径: \033[1;33m${STORAGE_BASE}\033[0m"
-mkdir -p "${STORAGE_BASE}/etc" "${STORAGE_BASE}/data" "${STORAGE_BASE}/rules"
+mkdir -p "${STORAGE_BASE}/etc" "${STORAGE_BASE}/data"
 
 # 5. 确保 TUN 驱动模块加载
 if [ ! -c /dev/net/tun ]; then
@@ -81,9 +81,8 @@ docker run -d \
   --cap-add=NET_ADMIN \
   --cap-add=NET_RAW \
   --device /dev/net/tun:/dev/net/tun \
-  -v "${STORAGE_BASE}/etc:/opt/CubeX/etc" \
-  -v "${STORAGE_BASE}/data:/opt/CubeX/data" \
-  -v "${STORAGE_BASE}/rules:/opt/CubeX/rules" \
+  -v "${STORAGE_BASE}/etc:/app/etc" \
+  -v "${STORAGE_BASE}/data:/app/data" \
   -v /etc/localtime:/etc/localtime:ro \
   -e TZ=Asia/Shanghai \
   -e CUBEX_ENV=production \
@@ -93,7 +92,7 @@ docker run -d \
   fyasshole/cubex:latest
 
 echo -e "\n\033[1;32m=================================================================\033[0m"
-echo -e "\033[1;32m  🎉 恭喜！CubeX Test v5.3 在飞牛 fnOS 上启动成功！            \033[0m"
+echo -e "\033[1;32m  🎉 恭喜！CubeX v9.98 在飞牛 fnOS 上启动成功！                \033[0m"
 echo -e "\033[1;32m=================================================================\033[0m"
 echo -e "👉 \033[1;37mWeb 控制台访问入口:\033[0m \033[1;36mhttp://${HOST_IP:-127.0.0.1}:2026\033[0m"
 echo -e "👉 \033[1;37m主路由联动两步法:\033[0m"

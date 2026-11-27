@@ -1649,6 +1649,13 @@ func (s *Server) resolveActiveHostPlatform() (string, host.HostConfig, *host.Hos
 	hostCfg := s.hostMgr.GetConfig()
 	cached := s.hostMgr.GetCachedHostInfo()
 
+	if !hostCfg.Enabled || strings.TrimSpace(hostCfg.Host) == "" {
+		if s.rosMgr != nil && s.rosMgr.IsConnected() {
+			return "routeros", hostCfg, cached
+		}
+		return "", hostCfg, cached
+	}
+
 	plat := ""
 	if explicit := strings.ToLower(strings.TrimSpace(hostCfg.PlatformType)); explicit != "" && explicit != "auto" {
 		plat = explicit
@@ -1723,6 +1730,11 @@ func (s *Server) handleROSCleanAndReapply(w http.ResponseWriter, r *http.Request
 			actions = append(actions, fwRes.Logs...)
 		}
 		if err != nil {
+			// If a stale OpenWrt/iKuai host config fails while RouterOS REST API is actively connected, switch cleanly to RouterOS
+			if s.rosMgr != nil && strings.TrimSpace(s.rosMgr.GetConfig()["host"]) != "" && s.rosMgr.IsConnected() {
+				platID = "routeros"
+				break
+			}
 			sendJSON(w, &ros.ApplyResult{
 				Success: false,
 				Actions: actions,
@@ -1930,12 +1942,15 @@ func (s *Server) handleROSConfig(w http.ResponseWriter, r *http.Request) {
 			}
 
 			existingHostCfg := s.hostMgr.GetConfig()
-			platType := existingHostCfg.PlatformType
-			if platType == "" {
-				platType = "routeros"
-			}
-			// Do not overwrite an existing iKuai / OpenWrt host config when ros/config is updated passively
-			if platType == "routeros" {
+			platType := strings.ToLower(strings.TrimSpace(existingHostCfg.PlatformType))
+			// Sync into hostMgr when unconfigured/disabled/routeros/auto, or when RouterOS REST API is actually verified reachable
+			shouldSyncHost := !existingHostCfg.Enabled ||
+				strings.TrimSpace(existingHostCfg.Host) == "" ||
+				platType == "" ||
+				platType == "auto" ||
+				platType == "routeros" ||
+				((platType == "openwrt" || platType == "ikuai") && s.rosMgr != nil && s.rosMgr.IsConnected())
+			if shouldSyncHost {
 				_ = s.hostMgr.SaveConfig(host.HostConfig{
 
 					Enabled: true,
@@ -1948,7 +1963,7 @@ func (s *Server) handleROSConfig(w http.ResponseWriter, r *http.Request) {
 
 					Password: cfg["password"],
 
-					PlatformType: platType,
+					PlatformType: "routeros",
 				})
 			}
 
@@ -2711,6 +2726,18 @@ func (s *Server) handleHostBypassRemove(w http.ResponseWriter, r *http.Request) 
 	}
 	logs, err := s.hostMgr.RemoveHostBypass(req.BackupDNS)
 	if err != nil {
+		if (platID == "ikuai" || platID == "openwrt") && s.rosMgr != nil && strings.TrimSpace(s.rosMgr.GetConfig()["host"]) != "" && s.rosMgr.IsConnected() {
+			rosLogs, rosErr := s.rosMgr.RemoveBypass(req.TargetIP, req.BackupDNS)
+			if rosErr != nil {
+				sendJSON(w, map[string]any{"ok": false, "error": rosErr.Error(), "logs": rosLogs})
+				return
+			}
+			if s.logBuffer != nil {
+				s.logBuffer.Add("INFO", "ROS", "RouterOS 旁路策略、Fake-IP 路由与 DNS 已对称撤回，零残留")
+			}
+			sendJSON(w, map[string]any{"ok": true, "message": "RouterOS 旁路策略与路由规则已完整撤回，零残留", "logs": rosLogs})
+			return
+		}
 		sendJSON(w, map[string]any{"ok": false, "error": err.Error(), "logs": logs})
 		return
 	}

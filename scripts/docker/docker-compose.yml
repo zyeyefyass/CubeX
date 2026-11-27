@@ -17,9 +17,8 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     volumes:
-      - /opt/CubeX/etc:/opt/CubeX/etc
-      - /opt/CubeX/data:/opt/CubeX/data
-      - /opt/CubeX/rules:/opt/CubeX/rules
+      - ./etc:/app/etc
+      - ./data:/app/data
       - /etc/localtime:/etc/localtime:ro
     environment:
       - TZ=Asia/Shanghai

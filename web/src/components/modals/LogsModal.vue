@@ -369,6 +369,7 @@
 
 <script setup>
 import { inject, ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { formatBytes } from '../../utils/format'
 
 const app = inject('cubexApp')
 
@@ -598,14 +599,6 @@ async function quickOverride(target, outbound) {
   } catch (e) {
     showToast('改分流请求异常: ' + e.message)
   }
-}
-
-function formatBytes(bytes) {
-  if (!bytes || bytes <= 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
 }
 
 let connTimer = null

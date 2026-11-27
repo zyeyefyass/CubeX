@@ -63,12 +63,6 @@ func NewManager() *Manager {
 		connectionAttemptDelayMs:   150, // RFC 8305 Section 5 recommendation (100-250ms)
 		domesticIPv6DirectActive:   true,
 		internationalFallbackReady: true,
-		avgIPv6LatencyMs:           18.4,
-		avgIPv4LatencyMs:           24.2,
-		totalDualStackQueries:      12840,
-		ipv6Wins:                   8450,
-		ipv4FallbackWins:           4390,
-		leakageBlockedCount:        312,
 		updatedAt:                  time.Now(),
 	}
 }

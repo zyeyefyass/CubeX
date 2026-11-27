@@ -334,3 +334,96 @@ func TestHostBypassRemove_RouterOSSymmetry(t *testing.T) {
 		t.Errorf("must NOT delete native RouterOS fasttrack-connection rule")
 	}
 }
+
+func TestSwitchFromOpenWrtToRouterOS_CleanAndRemoveBypass(t *testing.T) {
+	var rosRestHits atomic.Int32
+	mockROS := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/rest/") {
+			rosRestHits.Add(1)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodDelete || r.Method == http.MethodPut || r.Method == http.MethodPost || r.Method == http.MethodPatch {
+			_ = json.NewEncoder(w).Encode(map[string]any{".id": "*1"})
+			return
+		}
+		switch r.URL.Path {
+		case "/rest/system/resource":
+			_ = json.NewEncoder(w).Encode(map[string]any{"platform": "MikroTik", "version": "7.25.2"})
+		case "/rest/routing/table":
+			_ = json.NewEncoder(w).Encode([]map[string]any{{".id": "*T1", "name": "cubex"}})
+		case "/rest/ip/route":
+			_ = json.NewEncoder(w).Encode([]map[string]any{
+				{".id": "*R1", "dst-address": "0.0.0.0/0", "routing-table": "cubex", "gateway": "192.168.99.10"},
+				{".id": "*R2", "dst-address": "198.18.0.0/15", "routing-table": "main", "gateway": "192.168.99.10", "comment": "CubeX-FakeIP-Backtrack"},
+			})
+		case "/rest/ip/dns":
+			_ = json.NewEncoder(w).Encode(map[string]any{"servers": "192.168.99.10"})
+		default:
+			_ = json.NewEncoder(w).Encode([]any{})
+		}
+	}))
+	defer mockROS.Close()
+
+	parts := strings.Split(strings.TrimPrefix(mockROS.URL, "https://"), ":")
+	hostIP := parts[0]
+	portNum, _ := strconv.Atoi(parts[1])
+
+	tmpDir := t.TempDir()
+	srv := &Server{
+		hostMgr: host.NewManager(tmpDir),
+		rosMgr:  ros.NewManager(tmpDir),
+	}
+
+	// 1. Seed stale OpenWrt host config on an unreachable SSH port
+	if err := srv.hostMgr.SaveConfig(host.HostConfig{
+		Enabled:      true,
+		Host:         hostIP,
+		Port:         22,
+		User:         "root",
+		Password:     "password",
+		PlatformType: "openwrt",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// 2. Save RouterOS config via /api/v1/ros/config -> must detect live ROS and sync hostMgr
+	rosBody, _ := json.Marshal(map[string]string{
+		"host":     hostIP,
+		"port":     strconv.Itoa(portNum),
+		"user":     "admin",
+		"password": "pwd",
+	})
+	recCfg := httptest.NewRecorder()
+	srv.handleROSConfig(recCfg, httptest.NewRequest(http.MethodPost, "/api/v1/ros/config", bytes.NewReader(rosBody)))
+	if recCfg.Code != http.StatusOK {
+		t.Fatalf("handleROSConfig returned %d: %s", recCfg.Code, recCfg.Body.String())
+	}
+	if gotPlat := srv.hostMgr.GetConfig().PlatformType; gotPlat != "routeros" {
+		t.Fatalf("expected hostMgr PlatformType synced to routeros, got %q", gotPlat)
+	}
+
+	// 3. Even if hostCfg is disabled with stale openwrt PlatformType, resolveActiveHostPlatform must see routeros
+	_ = srv.hostMgr.SaveConfig(host.HostConfig{Enabled: false, Host: "", PlatformType: "openwrt"})
+	plat, _, _ := srv.resolveActiveHostPlatform()
+	if plat != "routeros" {
+		t.Fatalf("expected resolveActiveHostPlatform() == routeros when hostCfg disabled & rosMgr connected, got %q", plat)
+	}
+
+	// 4. CleanAndReapply & RemoveBypass must succeed via RouterOS REST without dialing SSH port 22
+	recHeal := httptest.NewRecorder()
+	srv.handleROSCleanAndReapply(recHeal, httptest.NewRequest(http.MethodPost, "/api/v1/ros/clean-and-reapply", strings.NewReader(`{"target_ip":"192.168.99.10"}`)))
+	var healRes ros.ApplyResult
+	if err := json.Unmarshal(recHeal.Body.Bytes(), &healRes); err != nil || !healRes.Success {
+		t.Fatalf("handleROSCleanAndReapply failed: %v body=%s", err, recHeal.Body.String())
+	}
+
+	recRem := httptest.NewRecorder()
+	srv.handleHostBypassRemove(recRem, httptest.NewRequest(http.MethodPost, "/api/v1/host/bypass/remove", strings.NewReader(`{"target_ip":"192.168.99.10","backup_dns":"223.5.5.5"}`)))
+	var remRes map[string]any
+	if err := json.Unmarshal(recRem.Body.Bytes(), &remRes); err != nil || remRes["ok"] != true {
+		t.Fatalf("handleHostBypassRemove failed: %v body=%s", err, recRem.Body.String())
+	}
+	if rosRestHits.Load() == 0 {
+		t.Fatalf("expected RouterOS REST API calls")
+	}
+}

@@ -1,27 +1,5 @@
 // web/src/utils/command-palette.js
 
-// 根据实时字节速率映射为 3 个离散动画档位，避免每帧修改 DOM 触发样式重算
-export function computeFlowDurationTier(bytesPerSec) {
-  if (bytesPerSec < 64 * 1024) return '4.5s'       // 轻载呼吸态
-  if (bytesPerSec < 4 * 1024 * 1024) return '1.8s' // 中速巡航态
-  return '0.75s'                                   // 千兆满血狂飙态
-}
-
-export function updateTopologySpeedTiers(railContainerEl, proxyBps, directBps) {
-  if (!railContainerEl) return
-  const nextJudy = computeFlowDurationTier(proxyBps)
-  const nextNick = computeFlowDurationTier(directBps)
-
-  if (railContainerEl.dataset.judyTier !== nextJudy) {
-    railContainerEl.dataset.judyTier = nextJudy
-    railContainerEl.style.setProperty('--judy-flow-duration', nextJudy)
-  }
-  if (railContainerEl.dataset.nickTier !== nextNick) {
-    railContainerEl.dataset.nickTier = nextNick
-    railContainerEl.style.setProperty('--nick-flow-duration', nextNick)
-  }
-}
-
 // Ctrl/Cmd + K 极客指令舱键盘状态机（支持上下键循环、关键词过滤、Enter 执行）
 export class GeekCommandController {
   constructor(commands = []) {

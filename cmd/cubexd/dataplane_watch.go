@@ -44,7 +44,7 @@ func (s *Server) startDataplaneHealthLoop(ctx context.Context) {
 	ticker := time.NewTicker(1000 * time.Millisecond)
 	defer ticker.Stop()
 
-	httpClient := &http.Client{Timeout: 400 * time.Millisecond}
+	httpClient := netutil.NewBoundedHTTPClient(400 * time.Millisecond)
 
 	failStreak := 0
 	successStreak := 1

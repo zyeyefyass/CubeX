@@ -66,7 +66,7 @@ func BuildTriRouterSymbiosisBundle(cubexIP, gatewayIP, fallbackDNS string, contr
 
 	// 2. OpenWrt / iStoreOS 一键 UCI 自动化配置与断网逃生守护脚本
 	openwrtScript := fmt.Sprintf(`#!/bin/sh
-# === CubeX v9.2.0 x OpenWrt 一键共生配置与自动断网保护脚本 ===
+# === CubeX x OpenWrt 一键共生配置与自动断网保护脚本 ===
 uci -q delete network.cubex_fakeip
 uci set network.cubex_fakeip="route"
 uci set network.cubex_fakeip.interface="lan"

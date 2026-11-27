@@ -94,12 +94,12 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		_ = json.Unmarshal(data, &tables)
 	}
 
-	// 1. Check /routing/table (table cubex / micube)
+	// 1. Check /routing/table (table cubex, plus legacy micube / table-cubex-8228)
 	tableOK := false
 	var tableVal string
 	for _, t := range tables {
 		name, _ := t["name"].(string)
-		if name == "cubex" || name == "micube" {
+		if name == "cubex" || name == "micube" || name == "table-cubex-8228" {
 			fib, _ := t["fib"].(bool)
 			if !fib {
 				if fibStr, ok := t["fib"].(string); ok && (fibStr == "true" || fibStr == "yes") {
@@ -132,14 +132,14 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		})
 	}
 
-	// 2. Check /ip/route (default route in table cubex/micube pointing to targetIP)
+	// 2. Check /ip/route (default route in table cubex / legacy tables pointing to targetIP)
 	routeOK := false
 	var routeVal string
 	for _, r := range routes {
 		table, _ := r["routing-table"].(string)
 		dst, _ := r["dst-address"].(string)
 		gw, _ := r["gateway"].(string)
-		if (table == "cubex" || table == "micube") && (dst == "0.0.0.0/0" || strings.HasPrefix(dst, "0.0.0.0")) {
+		if (table == "cubex" || table == "micube" || table == "table-cubex-8228") && (dst == "0.0.0.0/0" || strings.HasPrefix(dst, "0.0.0.0")) {
 			routeOK = true
 			routeVal = fmt.Sprintf("dst=%s gw=%s (table=%s)", dst, gw, table)
 			break
@@ -349,7 +349,7 @@ func (m *Manager) InspectRouting() (*InspectionReport, error) {
 		mark, _ := mg["new-routing-mark"].(string)
 		chain, _ := mg["chain"].(string)
 		disabled, _ := mg["disabled"].(bool)
-		if action == "mark-routing" && (mark == "cubex" || mark == "micube") && chain == "prerouting" && !disabled {
+		if action == "mark-routing" && (mark == "cubex" || mark == "micube" || mark == "table-cubex-8228") && chain == "prerouting" && !disabled {
 			mangleOK = true
 			mangleVal = fmt.Sprintf("chain=%s action=mark-routing mark=%s", chain, mark)
 			break
@@ -800,10 +800,13 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		Errors:  make([]string, 0),
 	}
 
-	// 1. Ensure /routing/table: Standard cubex (fib=true) with automatic migration from legacy micube
+	// 1. Ensure /routing/table: Standard cubex (fib=true) with automatic migration from legacy micube / table-cubex-8228
 	targetTableName := "cubex"
 	hasCubexTable := false
-	var legacyTableID string
+	legacyTables := make([]struct {
+		id   string
+		name string
+	}, 0, 2)
 	if data, err := m.QueryROS("/routing/table"); err == nil {
 		var tables []map[string]any
 		_ = json.Unmarshal(data, &tables)
@@ -811,9 +814,12 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 			name, _ := t["name"].(string)
 			if name == "cubex" {
 				hasCubexTable = true
-			} else if name == "micube" {
-				if id, ok := t[".id"].(string); ok {
-					legacyTableID = id
+			} else if name == "micube" || name == "table-cubex-8228" {
+				if id, ok := t[".id"].(string); ok && id != "" {
+					legacyTables = append(legacyTables, struct {
+						id   string
+						name string
+					}{id: id, name: name})
 				}
 			}
 		}
@@ -841,7 +847,7 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		for _, r := range existingRoutes {
 			table, _ := r["routing-table"].(string)
 			dst := fmt.Sprintf("%v", r["dst-address"])
-			if (table == targetTableName || table == "micube" || table == "cubex") && (dst == "0.0.0.0/0" || strings.HasPrefix(dst, "0.0.0.0")) {
+			if table == targetTableName && (dst == "0.0.0.0/0" || strings.HasPrefix(dst, "0.0.0.0")) {
 				defaultRouteExists = true
 				if id, ok := r[".id"].(string); ok {
 					existingDefaultRouteID = id
@@ -870,17 +876,34 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 		res.Actions = append(res.Actions, fmt.Sprintf("已更新现有策略路由网关为 %s", targetIP))
 	}
 
-	// 2a. Atomically clean legacy micube routes and table to complete hot migration
-	if legacyTableID != "" {
+	// 2a. Atomically clean legacy mangle rules, routes, and tables (micube / table-cubex-8228) BEFORE deleting tables
+	// Deleting /routing/table first causes RouterOS to turn mangle new-routing-mark into orphan "*hex" IDs (e.g. "*400").
+	legacyNames := make([]string, 0, len(legacyTables))
+	for _, lt := range legacyTables {
+		legacyNames = append(legacyNames, lt.name)
+	}
+	if mData, mErr := m.QueryROS("/ip/firewall/mangle"); mErr == nil {
+		var preMangles []map[string]any
+		_ = json.Unmarshal(mData, &preMangles)
+		for _, mg := range preMangles {
+			id, _ := mg[".id"].(string)
+			if id != "" && isLegacyRoutingMangle(mg, legacyNames...) {
+				if m.DeleteROS("/ip/firewall/mangle/"+id) == nil {
+					res.Actions = append(res.Actions, "已前置清理旧版/悬空 RouterOS Mangle 策略分流规则")
+				}
+			}
+		}
+	}
+	for _, lt := range legacyTables {
 		for _, r := range existingRoutes {
-			if r["routing-table"] == "micube" {
+			if r["routing-table"] == lt.name {
 				if rid, ok := r[".id"].(string); ok && rid != "" {
 					_ = m.DeleteROS("/ip/route/" + rid)
 				}
 			}
 		}
-		if err := m.DeleteROS("/routing/table/" + legacyTableID); err == nil {
-			res.Actions = append(res.Actions, "已平滑完成 RouterOS 策略路由表热迁移（旧 micube 表已无缝升级为标准 cubex）")
+		if err := m.DeleteROS("/routing/table/" + lt.id); err == nil {
+			res.Actions = append(res.Actions, fmt.Sprintf("已平滑完成 RouterOS 策略路由表热迁移（旧 %s 表已无缝升级为标准 cubex）", lt.name))
 		}
 	}
 
@@ -1177,16 +1200,17 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 	var existingMangles []map[string]any
 	if data, err := m.QueryROS("/ip/firewall/mangle"); err == nil {
 		_ = json.Unmarshal(data, &existingMangles)
+		kept := existingMangles[:0]
 		for _, mg := range existingMangles {
-			mark, _ := mg["new-routing-mark"].(string)
-			srcList, _ := mg["src-address-list"].(string)
-			comment, _ := mg["comment"].(string)
 			id, _ := mg[".id"].(string)
-			if (mark == "micube" || strings.Contains(comment, "CubeX")) && srcList == "!MICUBE_BYPASS" && id != "" {
+			if id != "" && isLegacyRoutingMangle(mg) {
 				_ = m.DeleteROS("/ip/firewall/mangle/" + id)
-				res.Actions = append(res.Actions, "已移除全局强制 Mangle 分流打标规则（杜绝单点断网，保障同网段任意 IP 自由作为网关）")
+				res.Actions = append(res.Actions, "已移除全局强制或悬空 Mangle 分流打标规则（杜绝单点断网与孤立表引用）")
+				continue
 			}
+			kept = append(kept, mg)
 		}
+		existingMangles = kept
 	}
 
 	// 5-pcc. Ensure Multi-WAN PCC Exemption in Mangle (/ip/firewall/mangle)
@@ -1706,6 +1730,47 @@ func (m *Manager) ApplyRouting(targetIP string) (*ApplyResult, error) {
 	return res, nil
 }
 
+// isDanglingROSID returns true when RouterOS reports an orphan table OID (e.g. "*400")
+// after a referenced /routing/table entry was deleted before its mangle rule.
+func isDanglingROSID(mark string) bool {
+	mark = strings.TrimSpace(mark)
+	if !strings.HasPrefix(mark, "*") || len(mark) < 2 {
+		return false
+	}
+	for _, r := range mark[1:] {
+		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
+			return false
+		}
+	}
+	return true
+}
+
+// isLegacyRoutingMangle identifies legacy or dangling policy-routing mangle rules
+// while preserving CubeX-PCC-Exempt-* accept rules.
+func isLegacyRoutingMangle(mg map[string]any, extraTableNames ...string) bool {
+	mark, _ := mg["new-routing-mark"].(string)
+	srcList, _ := mg["src-address-list"].(string)
+	comment, _ := mg["comment"].(string)
+
+	if mark == "micube" || mark == "table-cubex-8228" || isDanglingROSID(mark) {
+		return true
+	}
+	for _, name := range extraTableNames {
+		if name != "" && mark == name {
+			return true
+		}
+	}
+	if srcList == "!MICUBE_BYPASS" || srcList == "!CUBEX_BYPASS" {
+		if mark == "cubex" || strings.Contains(comment, "CubeX") || strings.Contains(comment, "MiCube") {
+			return true
+		}
+	}
+	if strings.Contains(comment, "MiCube") || strings.Contains(comment, "CubeX Policy Routing") {
+		return true
+	}
+	return false
+}
+
 // CleanRoutingRules cleanly removes Mangle mark-routing and DNS dst-nat hijack rules from RouterOS.
 func (m *Manager) CleanRoutingRules() (*ApplyResult, error) {
 	res := &ApplyResult{
@@ -1714,15 +1779,14 @@ func (m *Manager) CleanRoutingRules() (*ApplyResult, error) {
 		Errors:  make([]string, 0),
 	}
 
-	// 1. Remove Mangle rule with comment "CubeX Policy Routing" or mark "micube"
+	// 1. Remove Mangle rule with comment "CubeX Policy Routing" or legacy/dangling marks
 	if data, err := m.QueryROS("/ip/firewall/mangle"); err == nil {
 		var mangles []map[string]any
 		_ = json.Unmarshal(data, &mangles)
 		for _, mg := range mangles {
 			comment, _ := mg["comment"].(string)
-			mark, _ := mg["new-routing-mark"].(string)
 			id, _ := mg[".id"].(string)
-			if (strings.Contains(comment, "CubeX") || strings.Contains(comment, "MiCube") || mark == "micube") && id != "" {
+			if id != "" && (strings.Contains(comment, "CubeX") || strings.Contains(comment, "MiCube") || isLegacyRoutingMangle(mg)) {
 				if delErr := m.DeleteROS("/ip/firewall/mangle/" + id); delErr == nil {
 					res.Actions = append(res.Actions, "已移除 RouterOS Mangle 策略分流打标规则")
 				}
@@ -1824,7 +1888,7 @@ func (m *Manager) RemoveBypass(targetIP, backupDNS string) ([]string, error) {
 			gw := fmt.Sprintf("%v", r["gateway"])
 			comm, _ := r["comment"].(string)
 
-			isCubexTable := table == "cubex" || table == "micube"
+			isCubexTable := table == "cubex" || table == "micube" || table == "table-cubex-8228"
 			isCubexComment := strings.Contains(comm, "CubeX") || strings.Contains(comm, "MiCube")
 			isFakeIPRoute := (table == "" || table == "main") &&
 				(dst == "198.18.0.0/15" || dst == "198.18.0.0/16" || dst == "198.19.0.0/16") &&
@@ -1841,14 +1905,35 @@ func (m *Manager) RemoveBypass(targetIP, backupDNS string) ([]string, error) {
 		}
 	}
 
-	// 3. Remove /routing/table entries (cubex / micube)
+	// 2b. Remove CubeX / legacy / dangling Mangle rules BEFORE deleting /routing/table
+	// so RouterOS never converts active marks into orphan "*hex" references.
+	if data, err := m.QueryROS("/ip/firewall/mangle"); err == nil {
+		var mangles []map[string]any
+		_ = json.Unmarshal(data, &mangles)
+		removedMangle := 0
+		for _, mg := range mangles {
+			id, _ := mg[".id"].(string)
+			comm, _ := mg["comment"].(string)
+			mark, _ := mg["new-routing-mark"].(string)
+			if id != "" && (strings.Contains(comm, "CubeX") || strings.Contains(comm, "MiCube") || mark == "cubex" || isLegacyRoutingMangle(mg)) {
+				if m.DeleteROS("/ip/firewall/mangle/"+id) == nil {
+					removedMangle++
+				}
+			}
+		}
+		if removedMangle > 0 {
+			logs = append(logs, fmt.Sprintf("✓ [RouterOS] 已清理 %d 条 CubeX Mangle 放行与策略打标规则", removedMangle))
+		}
+	}
+
+	// 3. Remove /routing/table entries (cubex / micube / table-cubex-8228)
 	if data, err := m.QueryROS("/routing/table"); err == nil {
 		var tables []map[string]any
 		_ = json.Unmarshal(data, &tables)
 		for _, tbl := range tables {
 			name, _ := tbl["name"].(string)
 			id, _ := tbl[".id"].(string)
-			if id != "" && (name == "cubex" || name == "micube") {
+			if id != "" && (name == "cubex" || name == "micube" || name == "table-cubex-8228") {
 				if m.DeleteROS("/routing/table/"+id) == nil {
 					logs = append(logs, fmt.Sprintf("✓ [RouterOS] 已删除策略路由表 /routing/table (%s)", name))
 				}
@@ -1877,25 +1962,7 @@ func (m *Manager) RemoveBypass(targetIP, backupDNS string) ([]string, error) {
 		}
 	}
 
-	// 5. Remove CubeX Mangle, NAT, and Filter rules (preserving native FastTrack)
-	if data, err := m.QueryROS("/ip/firewall/mangle"); err == nil {
-		var mangles []map[string]any
-		_ = json.Unmarshal(data, &mangles)
-		removedMangle := 0
-		for _, mg := range mangles {
-			id, _ := mg[".id"].(string)
-			comm, _ := mg["comment"].(string)
-			mark, _ := mg["new-routing-mark"].(string)
-			if id != "" && (strings.Contains(comm, "CubeX") || strings.Contains(comm, "MiCube") || mark == "cubex" || mark == "micube") {
-				if m.DeleteROS("/ip/firewall/mangle/"+id) == nil {
-					removedMangle++
-				}
-			}
-		}
-		if removedMangle > 0 {
-			logs = append(logs, fmt.Sprintf("✓ [RouterOS] 已清理 %d 条 CubeX Mangle 放行与 MSS 钳制规则", removedMangle))
-		}
-	}
+	// 5. Remove CubeX NAT and Filter rules (preserving native FastTrack)
 
 	if data, err := m.QueryROS("/ip/firewall/nat"); err == nil {
 		var nats []map[string]any
@@ -2132,15 +2199,14 @@ func (m *Manager) CleanAndReapplyRouting(targetIP string) (*ApplyResult, error) 
 		Errors:  make([]string, 0),
 	}
 
-	// 1. Clean Mangle rules (any with micube or CubeX/MiCube)
+	// 1. Clean Mangle rules (any with micube / table-cubex-8228 / dangling *hex mark or CubeX/MiCube)
 	if data, err := m.QueryROS("/ip/firewall/mangle"); err == nil {
 		var mangles []map[string]any
 		_ = json.Unmarshal(data, &mangles)
 		for _, mg := range mangles {
 			comment, _ := mg["comment"].(string)
-			mark, _ := mg["new-routing-mark"].(string)
 			id, _ := mg[".id"].(string)
-			if (strings.Contains(comment, "CubeX") || strings.Contains(comment, "MiCube") || mark == "micube") && id != "" {
+			if id != "" && (strings.Contains(comment, "CubeX") || strings.Contains(comment, "MiCube") || isLegacyRoutingMangle(mg)) {
 				if delErr := m.DeleteROS("/ip/firewall/mangle/" + id); delErr == nil {
 					res.Actions = append(res.Actions, "已清理 RouterOS Mangle 策略分流打标规则 (杜绝全局抢流)")
 				}
