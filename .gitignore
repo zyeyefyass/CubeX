@@ -15,10 +15,13 @@ web/dist/
 web/.vite/
 
 # Persistent runtime data
-etc/*
-!etc/rules/
-!etc/rules/**
-data/
+/etc/*
+!/etc/rules/
+!/etc/rules/**
+/data/
+internal/*/data/
+!packaging/defaults/data/
+!packaging/defaults/data/**
 
 # Agent and assistant rules
 .agents/

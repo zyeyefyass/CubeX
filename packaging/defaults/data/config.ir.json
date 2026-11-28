@@ -1,0 +1,867 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "active_engine": "mihomo",
+    "proxy_mode": "rule",
+    "active_profile": "balanced",
+    "edition": "",
+    "log_level": "info"
+  },
+  "network": {
+    "tun_interface": "cubex-tun",
+    "tun_ipv4": "172.19.0.1/30",
+    "tun_mtu": 1500,
+    "tun_stack": "system",
+    "tproxy_port": 7893,
+    "mixed_port": 7890,
+    "redir_port": 7892,
+    "dns_port": 53,
+    "clash_api_port": 9090,
+    "clash_secret": "",
+    "allow_lan": true,
+    "ipv6": true,
+    "quic_policy": "direct"
+  },
+  "dns": {
+    "enable_fake_ip": true,
+    "fake_ip_range": "198.18.0.0/15",
+    "fake_ip_filter": [
+      "geosite:cn",
+      "+.cn",
+      "*.lan",
+      "*.local",
+      "localhost",
+      "+.msftconnecttest.com",
+      "+.msftncsi.com",
+      "+.test-ipv6.com",
+      "test-ipv6.com",
+      "+.routeros.com",
+      "+.mikrotik.com",
+      "+.bilibili.com",
+      "+.baidu.com",
+      "+.qq.com",
+      "+.taobao.com",
+      "+.jd.com",
+      "+.alipay.com",
+      "+.163.com"
+    ],
+    "direct_dns": [
+      "223.5.5.5",
+      "119.29.29.29"
+    ],
+    "remote_dns": [
+      "https://1.1.1.1/dns-query",
+      "https://8.8.8.8/dns-query"
+    ],
+    "fallback_dns": [
+      "https://cloudflare-dns.com/dns-query"
+    ],
+    "dns_rules": [
+      {
+        "domain_matches": [
+          "geosite:cn",
+          "domain:cn"
+        ],
+        "server_tag": "direct"
+      },
+      {
+        "domain_matches": [
+          "geosite:geolocation-!cn"
+        ],
+        "server_tag": "remote"
+      }
+    ]
+  },
+  "subscriptions": [],
+  "proxies": [],
+  "groups": [
+    {
+      "name": "🇭🇰 香港自动",
+      "type": "urltest",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "tolerance": 50,
+      "icon": "🇭🇰",
+      "category": "region",
+      "region": "HK",
+      "policy": "auto"
+    },
+    {
+      "name": "🇭🇰 香港故转",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "icon": "🇭🇰",
+      "category": "region",
+      "region": "HK",
+      "policy": "fallback"
+    },
+    {
+      "name": "🇭🇰 香港容灾",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 180,
+      "icon": "🇭🇰",
+      "category": "region",
+      "region": "HK",
+      "policy": "disaster"
+    },
+    {
+      "name": "🇹🇼 台湾自动",
+      "type": "urltest",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "tolerance": 50,
+      "icon": "🇹🇼",
+      "category": "region",
+      "region": "TW",
+      "policy": "auto"
+    },
+    {
+      "name": "🇹🇼 台湾故转",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "icon": "🇹🇼",
+      "category": "region",
+      "region": "TW",
+      "policy": "fallback"
+    },
+    {
+      "name": "🇹🇼 台湾容灾",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 180,
+      "icon": "🇹🇼",
+      "category": "region",
+      "region": "TW",
+      "policy": "disaster"
+    },
+    {
+      "name": "🇯🇵 日本自动",
+      "type": "urltest",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "tolerance": 50,
+      "icon": "🇯🇵",
+      "category": "region",
+      "region": "JP",
+      "policy": "auto"
+    },
+    {
+      "name": "🇯🇵 日本故转",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "icon": "🇯🇵",
+      "category": "region",
+      "region": "JP",
+      "policy": "fallback"
+    },
+    {
+      "name": "🇯🇵 日本容灾",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 180,
+      "icon": "🇯🇵",
+      "category": "region",
+      "region": "JP",
+      "policy": "disaster"
+    },
+    {
+      "name": "🇰🇷 韩国自动",
+      "type": "urltest",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "tolerance": 50,
+      "icon": "🇰🇷",
+      "category": "region",
+      "region": "KR",
+      "policy": "auto"
+    },
+    {
+      "name": "🇰🇷 韩国故转",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "icon": "🇰🇷",
+      "category": "region",
+      "region": "KR",
+      "policy": "fallback"
+    },
+    {
+      "name": "🇰🇷 韩国容灾",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 180,
+      "icon": "🇰🇷",
+      "category": "region",
+      "region": "KR",
+      "policy": "disaster"
+    },
+    {
+      "name": "🇸🇬 新加坡自动",
+      "type": "urltest",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "tolerance": 50,
+      "icon": "🇸🇬",
+      "category": "region",
+      "region": "SG",
+      "policy": "auto"
+    },
+    {
+      "name": "🇸🇬 新加坡故转",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "icon": "🇸🇬",
+      "category": "region",
+      "region": "SG",
+      "policy": "fallback"
+    },
+    {
+      "name": "🇸🇬 新加坡容灾",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 180,
+      "icon": "🇸🇬",
+      "category": "region",
+      "region": "SG",
+      "policy": "disaster"
+    },
+    {
+      "name": "🇺🇸 美国自动",
+      "type": "urltest",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "tolerance": 50,
+      "icon": "🇺🇸",
+      "category": "region",
+      "region": "US",
+      "policy": "auto"
+    },
+    {
+      "name": "🇺🇸 美国故转",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "icon": "🇺🇸",
+      "category": "region",
+      "region": "US",
+      "policy": "fallback"
+    },
+    {
+      "name": "🇺🇸 美国容灾",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 180,
+      "icon": "🇺🇸",
+      "category": "region",
+      "region": "US",
+      "policy": "disaster"
+    },
+    {
+      "name": "🏠 自建自动",
+      "type": "urltest",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "tolerance": 50,
+      "icon": "🏠",
+      "category": "region",
+      "region": "CUSTOM",
+      "policy": "auto"
+    },
+    {
+      "name": "🏠 自建故转",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "icon": "🏠",
+      "category": "region",
+      "region": "CUSTOM",
+      "policy": "fallback"
+    },
+    {
+      "name": "🏠 自建容灾",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 180,
+      "icon": "🏠",
+      "category": "region",
+      "region": "CUSTOM",
+      "policy": "disaster"
+    },
+    {
+      "name": "🌐 其它自动",
+      "type": "urltest",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "tolerance": 50,
+      "icon": "🌐",
+      "category": "region",
+      "region": "OTHERS",
+      "policy": "auto"
+    },
+    {
+      "name": "🌐 其它故转",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 300,
+      "icon": "🌐",
+      "category": "region",
+      "region": "OTHERS",
+      "policy": "fallback"
+    },
+    {
+      "name": "🌐 其它容灾",
+      "type": "fallback",
+      "proxies": [
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": 180,
+      "icon": "🌐",
+      "category": "region",
+      "region": "OTHERS",
+      "policy": "disaster"
+    },
+    {
+      "name": "🎯 国内流量",
+      "type": "select",
+      "proxies": [
+        "🇭🇰 香港自动",
+        "🇭🇰 香港故转",
+        "🇹🇼 台湾自动",
+        "🇹🇼 台湾故转",
+        "🇯🇵 日本自动",
+        "🇯🇵 日本故转",
+        "🇰🇷 韩国自动",
+        "🇰🇷 韩国故转",
+        "🇸🇬 新加坡自动",
+        "🇸🇬 新加坡故转",
+        "🇺🇸 美国自动",
+        "🇺🇸 美国故转",
+        "🏠 自建自动",
+        "🏠 自建故转",
+        "🌐 其它自动",
+        "🌐 其它故转",
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "icon": "direct",
+      "category": "business"
+    },
+    {
+      "name": "🌐 国外流量",
+      "type": "select",
+      "proxies": [
+        "🇭🇰 香港自动",
+        "🇭🇰 香港故转",
+        "🇹🇼 台湾自动",
+        "🇹🇼 台湾故转",
+        "🇯🇵 日本自动",
+        "🇯🇵 日本故转",
+        "🇰🇷 韩国自动",
+        "🇰🇷 韩国故转",
+        "🇸🇬 新加坡自动",
+        "🇸🇬 新加坡故转",
+        "🇺🇸 美国自动",
+        "🇺🇸 美国故转",
+        "🏠 自建自动",
+        "🏠 自建故转",
+        "🌐 其它自动",
+        "🌐 其它故转",
+        "DIRECT"
+      ],
+      "now": "🇭🇰 香港自动",
+      "icon": "globe",
+      "category": "business"
+    },
+    {
+      "name": "AI",
+      "type": "select",
+      "proxies": [
+        "🇸🇬 新加坡自动",
+        "🇯🇵 日本自动",
+        "🇹🇼 台湾自动",
+        "🇺🇸 美国自动",
+        "🇰🇷 韩国自动",
+        "🇸🇬 新加坡故转",
+        "🇯🇵 日本故转",
+        "🇹🇼 台湾故转",
+        "🇺🇸 美国故转",
+        "🇰🇷 韩国故转",
+        "🏠 自建自动",
+        "🏠 自建故转",
+        "🌐 其它自动",
+        "🌐 其它故转"
+      ],
+      "now": "🇸🇬 新加坡自动",
+      "icon": "openai",
+      "category": "business"
+    },
+    {
+      "name": "Gemini \u0026 Antigravity",
+      "type": "select",
+      "proxies": [
+        "🇸🇬 新加坡自动",
+        "🇯🇵 日本自动",
+        "🇹🇼 台湾自动",
+        "🇺🇸 美国自动",
+        "🇰🇷 韩国自动",
+        "🇸🇬 新加坡故转",
+        "🇯🇵 日本故转",
+        "🇹🇼 台湾故转",
+        "🇺🇸 美国故转",
+        "🇰🇷 韩国故转",
+        "🏠 自建自动",
+        "🏠 自建故转",
+        "🌐 其它自动",
+        "🌐 其它故转"
+      ],
+      "now": "🇸🇬 新加坡自动",
+      "icon": "google",
+      "category": "business"
+    },
+    {
+      "name": "YouTube",
+      "type": "select",
+      "proxies": [
+        "🇭🇰 香港自动",
+        "🇭🇰 香港故转",
+        "🇹🇼 台湾自动",
+        "🇹🇼 台湾故转",
+        "🇯🇵 日本自动",
+        "🇯🇵 日本故转",
+        "🇰🇷 韩国自动",
+        "🇰🇷 韩国故转",
+        "🇸🇬 新加坡自动",
+        "🇸🇬 新加坡故转",
+        "🇺🇸 美国自动",
+        "🇺🇸 美国故转",
+        "🏠 自建自动",
+        "🏠 自建故转",
+        "🌐 其它自动",
+        "🌐 其它故转",
+        "DIRECT"
+      ],
+      "now": "🇯🇵 日本自动",
+      "icon": "youtube",
+      "category": "business"
+    },
+    {
+      "name": "Google",
+      "type": "select",
+      "proxies": [
+        "🇭🇰 香港自动",
+        "🇭🇰 香港故转",
+        "🇹🇼 台湾自动",
+        "🇹🇼 台湾故转",
+        "🇯🇵 日本自动",
+        "🇯🇵 日本故转",
+        "🇰🇷 韩国自动",
+        "🇰🇷 韩国故转",
+        "🇸🇬 新加坡自动",
+        "🇸🇬 新加坡故转",
+        "🇺🇸 美国自动",
+        "🇺🇸 美国故转",
+        "🏠 自建自动",
+        "🏠 自建故转",
+        "🌐 其它自动",
+        "🌐 其它故转",
+        "DIRECT"
+      ],
+      "now": "🇯🇵 日本自动",
+      "icon": "google",
+      "category": "business"
+    },
+    {
+      "name": "GitHub \u0026 Docker",
+      "type": "select",
+      "proxies": [
+        "🇭🇰 香港自动",
+        "🇭🇰 香港故转",
+        "🇹🇼 台湾自动",
+        "🇹🇼 台湾故转",
+        "🇯🇵 日本自动",
+        "🇯🇵 日本故转",
+        "🇰🇷 韩国自动",
+        "🇰🇷 韩国故转",
+        "🇸🇬 新加坡自动",
+        "🇸🇬 新加坡故转",
+        "🇺🇸 美国自动",
+        "🇺🇸 美国故转",
+        "🏠 自建自动",
+        "🏠 自建故转",
+        "🌐 其它自动",
+        "🌐 其它故转",
+        "DIRECT"
+      ],
+      "now": "🇭🇰 香港自动",
+      "icon": "github",
+      "category": "business"
+    },
+    {
+      "name": "Telegram",
+      "type": "select",
+      "proxies": [
+        "🇭🇰 香港自动",
+        "🇭🇰 香港故转",
+        "🇹🇼 台湾自动",
+        "🇹🇼 台湾故转",
+        "🇯🇵 日本自动",
+        "🇯🇵 日本故转",
+        "🇰🇷 韩国自动",
+        "🇰🇷 韩国故转",
+        "🇸🇬 新加坡自动",
+        "🇸🇬 新加坡故转",
+        "🇺🇸 美国自动",
+        "🇺🇸 美国故转",
+        "🏠 自建自动",
+        "🏠 自建故转",
+        "🌐 其它自动",
+        "🌐 其它故转",
+        "DIRECT"
+      ],
+      "now": "🇭🇰 香港自动",
+      "icon": "telegram",
+      "category": "business"
+    },
+    {
+      "name": "Twitter (X)",
+      "type": "select",
+      "proxies": [
+        "🇭🇰 香港自动",
+        "🇭🇰 香港故转",
+        "🇹🇼 台湾自动",
+        "🇹🇼 台湾故转",
+        "🇯🇵 日本自动",
+        "🇯🇵 日本故转",
+        "🇰🇷 韩国自动",
+        "🇰🇷 韩国故转",
+        "🇸🇬 新加坡自动",
+        "🇸🇬 新加坡故转",
+        "🇺🇸 美国自动",
+        "🇺🇸 美国故转",
+        "🏠 自建自动",
+        "🏠 自建故转",
+        "🌐 其它自动",
+        "🌐 其它故转",
+        "DIRECT"
+      ],
+      "now": "🇭🇰 香港自动",
+      "icon": "twitter",
+      "category": "business"
+    },
+    {
+      "name": "Netflix \u0026 流媒体",
+      "type": "select",
+      "proxies": [
+        "🇭🇰 香港自动",
+        "🇭🇰 香港故转",
+        "🇹🇼 台湾自动",
+        "🇹🇼 台湾故转",
+        "🇯🇵 日本自动",
+        "🇯🇵 日本故转",
+        "🇰🇷 韩国自动",
+        "🇰🇷 韩国故转",
+        "🇸🇬 新加坡自动",
+        "🇸🇬 新加坡故转",
+        "🇺🇸 美国自动",
+        "🇺🇸 美国故转",
+        "🏠 自建自动",
+        "🏠 自建故转",
+        "🌐 其它自动",
+        "🌐 其它故转",
+        "DIRECT"
+      ],
+      "now": "🇯🇵 日本自动",
+      "icon": "netflix",
+      "category": "business"
+    },
+    {
+      "name": "Apple 服务",
+      "type": "select",
+      "proxies": [
+        "🇭🇰 香港自动",
+        "🇭🇰 香港故转",
+        "🇹🇼 台湾自动",
+        "🇹🇼 台湾故转",
+        "🇯🇵 日本自动",
+        "🇯🇵 日本故转",
+        "🇰🇷 韩国自动",
+        "🇰🇷 韩国故转",
+        "🇸🇬 新加坡自动",
+        "🇸🇬 新加坡故转",
+        "🇺🇸 美国自动",
+        "🇺🇸 美国故转",
+        "🏠 自建自动",
+        "🏠 自建故转",
+        "🌐 其它自动",
+        "🌐 其它故转",
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "icon": "apple",
+      "category": "business"
+    },
+    {
+      "name": "Microsoft",
+      "type": "select",
+      "proxies": [
+        "🇭🇰 香港自动",
+        "🇭🇰 香港故转",
+        "🇹🇼 台湾自动",
+        "🇹🇼 台湾故转",
+        "🇯🇵 日本自动",
+        "🇯🇵 日本故转",
+        "🇰🇷 韩国自动",
+        "🇰🇷 韩国故转",
+        "🇸🇬 新加坡自动",
+        "🇸🇬 新加坡故转",
+        "🇺🇸 美国自动",
+        "🇺🇸 美国故转",
+        "🏠 自建自动",
+        "🏠 自建故转",
+        "🌐 其它自动",
+        "🌐 其它故转",
+        "DIRECT"
+      ],
+      "now": "DIRECT",
+      "icon": "microsoft",
+      "category": "business"
+    },
+    {
+      "name": "Spotify",
+      "type": "select",
+      "proxies": [
+        "🇭🇰 香港自动",
+        "🇭🇰 香港故转",
+        "🇹🇼 台湾自动",
+        "🇹🇼 台湾故转",
+        "🇯🇵 日本自动",
+        "🇯🇵 日本故转",
+        "🇰🇷 韩国自动",
+        "🇰🇷 韩国故转",
+        "🇸🇬 新加坡自动",
+        "🇸🇬 新加坡故转",
+        "🇺🇸 美国自动",
+        "🇺🇸 美国故转",
+        "🏠 自建自动",
+        "🏠 自建故转",
+        "🌐 其它自动",
+        "🌐 其它故转",
+        "DIRECT"
+      ],
+      "now": "🇭🇰 香港自动",
+      "icon": "spotify",
+      "category": "business"
+    },
+    {
+      "name": "Steam 游戏",
+      "type": "select",
+      "proxies": [
+        "🇭🇰 香港自动",
+        "🇭🇰 香港故转",
+        "🇹🇼 台湾自动",
+        "🇹🇼 台湾故转",
+        "🇯🇵 日本自动",
+        "🇯🇵 日本故转",
+        "🇰🇷 韩国自动",
+        "🇰🇷 韩国故转",
+        "🇸🇬 新加坡自动",
+        "🇸🇬 新加坡故转",
+        "🇺🇸 美国自动",
+        "🇺🇸 美国故转",
+        "🏠 自建自动",
+        "🏠 自建故转",
+        "🌐 其它自动",
+        "🌐 其它故转",
+        "DIRECT"
+      ],
+      "now": "🇭🇰 香港自动",
+      "icon": "steam",
+      "category": "business"
+    },
+    {
+      "name": "🐟 漏网之鱼",
+      "type": "select",
+      "proxies": [
+        "🇭🇰 香港自动",
+        "🇭🇰 香港故转",
+        "🇹🇼 台湾自动",
+        "🇹🇼 台湾故转",
+        "🇯🇵 日本自动",
+        "🇯🇵 日本故转",
+        "🇰🇷 韩国自动",
+        "🇰🇷 韩国故转",
+        "🇸🇬 新加坡自动",
+        "🇸🇬 新加坡故转",
+        "🇺🇸 美国自动",
+        "🇺🇸 美国故转",
+        "🏠 自建自动",
+        "🏠 自建故转",
+        "🌐 其它自动",
+        "🌐 其它故转",
+        "DIRECT"
+      ],
+      "now": "🇭🇰 香港自动",
+      "icon": "fish",
+      "category": "business"
+    }
+  ],
+  "rules": [
+    {
+      "type": "geosite",
+      "value": "category-ads-all",
+      "target": "🛑 广告拦截"
+    },
+    {
+      "type": "geosite",
+      "value": "cn",
+      "target": "🎯 全球直连"
+    },
+    {
+      "type": "geoip",
+      "value": "cn",
+      "target": "🎯 全球直连"
+    },
+    {
+      "type": "geoip",
+      "value": "private",
+      "target": "🎯 全球直连"
+    },
+    {
+      "type": "match",
+      "value": "",
+      "target": "🐟 漏网之鱼"
+    }
+  ],
+  "device_policies": [],
+  "profiles": [
+    {
+      "id": "balanced",
+      "name": "家庭日常平衡",
+      "description": "智能规则分流，优先直连，国内低延迟，海外秒开",
+      "direct_bypass": true,
+      "quic_block": true,
+      "ad_block": true,
+      "speedtest_url": "https://www.gstatic.com/generate_204"
+    },
+    {
+      "id": "gaming",
+      "name": "游戏低延迟专线",
+      "description": "TUN 协议栈内核优化，UDP 全链路加速，防跳出口",
+      "direct_bypass": true,
+      "quic_block": false,
+      "ad_block": true,
+      "speedtest_url": "https://www.gstatic.com/generate_204"
+    },
+    {
+      "id": "geek",
+      "name": "极客无损调试",
+      "description": "全链路嗅探与日志追踪，无损全协议开放",
+      "direct_bypass": false,
+      "quic_block": false,
+      "ad_block": false,
+      "speedtest_url": "https://www.gstatic.com/generate_204"
+    }
+  ],
+  "adblock_enabled": false,
+  "dns_rewrite_enabled": false,
+  "updated_at": "2026-11-28T10:27:07.1533293+08:00"
+}

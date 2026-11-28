@@ -11,7 +11,9 @@ docs
 video_materials
 bin/windows
 bin/*.exe
-data/*
+/data/*
+!packaging/defaults/data/
+!packaging/defaults/data/**
 etc/cache.db
 etc/geoip.metadb
 etc/*.db
