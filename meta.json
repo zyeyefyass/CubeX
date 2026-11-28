@@ -2,7 +2,7 @@
   "name": "CubeX",
   "codename": "TwilightCrystal",
   "subtitle": "HOST-SYMBIOTIC ZERO-PERCEPTION GATEWAY",
-  "version": "v9.992",
+  "version": "v9.993",
   "core_versions": {
     "sing_box": "v1.14.6",
     "mihomo": "v1.19.34"

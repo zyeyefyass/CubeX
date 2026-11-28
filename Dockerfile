@@ -28,7 +28,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
 # Stage 3: Minimal Runtime Container
 FROM --platform=$TARGETPLATFORM alpine:3.21 AS runtime
 ARG TARGETARCH
-ARG CUBEX_VERSION=v9.992
+ARG CUBEX_VERSION=v9.993
 
 # Install essential network tools for transparent proxy, TUN, and routing (both cores are pure static ELFs)
 RUN apk add --no-cache \

@@ -10,7 +10,7 @@ RED='\033[0;31m'
 NC='\033[0m'
 BOLD='\033[1m'
 
-CUBEX_DEFAULT_TAG="v9.992"
+CUBEX_DEFAULT_TAG="v9.993"
 CUBEX_GH_MIRRORS="https://ghfast.top https://ghproxy.net https://gh-proxy.com https://gh.ddlc.top DIRECT"
 CUBEX_FASTEST_MIRROR=""
 

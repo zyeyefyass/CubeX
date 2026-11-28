@@ -15,26 +15,14 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// IPv6AddressEvent represents an IPv6 GUA address event.
-type IPv6AddressEvent struct {
-	IP        net.IP
-	PrefixLen int
-	IsDeleted bool
-	Interface string
-}
-
 // IPv6PrefixWatcher monitors Linux kernel Netlink RTMGRP_IPV6_IFADDR events
-// with precise GUA filtering, DAD tentative suppression, and 2.5s debounce.
+// with precise GUA filtering, DAD tentative suppression, multi-prefix deduplication, and 2.5s debounce.
 type IPv6PrefixWatcher struct {
-	fd           int
-	stopCh       <-chan struct{}
-	onChanged    func(event IPv6AddressEvent)
-	mu           sync.Mutex
-	debounceTimer *time.Timer
-	pendingEvent IPv6AddressEvent
-	lastGUA      atomic.Value // string
-	isClosed     atomic.Bool
-	stopOnce     sync.Once
+	fd       int
+	stopCh   <-chan struct{}
+	tracker  *ipv6PrefixTracker
+	isClosed atomic.Bool
+	stopOnce sync.Once
 }
 
 // NewIPv6PrefixWatcher initializes a netlink socket and starts monitoring.
@@ -58,11 +46,10 @@ func NewIPv6PrefixWatcher(stopCh <-chan struct{}, onChanged func(event IPv6Addre
 	}
 
 	w := &IPv6PrefixWatcher{
-		fd:        fd,
-		stopCh:    stopCh,
-		onChanged: onChanged,
+		fd:      fd,
+		stopCh:  stopCh,
+		tracker: newIPv6PrefixTracker(2500*time.Millisecond, onChanged),
 	}
-	w.lastGUA.Store("")
 
 	go w.readLoop()
 	go w.waitStop()
@@ -74,12 +61,9 @@ func NewIPv6PrefixWatcher(stopCh <-chan struct{}, onChanged func(event IPv6Addre
 func (w *IPv6PrefixWatcher) Close() {
 	w.stopOnce.Do(func() {
 		w.isClosed.Store(true)
-		w.mu.Lock()
-		if w.debounceTimer != nil {
-			w.debounceTimer.Stop()
-			w.debounceTimer = nil
+		if w.tracker != nil {
+			w.tracker.Close()
 		}
-		w.mu.Unlock()
 		if w.fd > 0 {
 			_ = unix.Close(w.fd)
 		}
@@ -195,7 +179,9 @@ func (w *IPv6PrefixWatcher) parseNetlinkMessages(data []byte) {
 			Interface: ifName,
 		}
 
-		w.scheduleDebouncedEvent(event)
+		if w.tracker != nil {
+			w.tracker.HandleEvent(event)
+		}
 	}
 }
 
@@ -231,69 +217,4 @@ func parseIfAddrAttrs(data []byte) (net.IP, uint32) {
 	}
 
 	return ip, flags
-}
-
-// IsIPv6GUA checks whether an IPv6 address belongs to the 2000::/3 Global Unicast Address range.
-func IsIPv6GUA(ip net.IP) bool {
-	if ip == nil {
-		return false
-	}
-	ip16 := ip.To16()
-	if ip16 == nil || ip.To4() != nil {
-		return false
-	}
-	// 2000::/3 -> first 3 bits are 001 -> (ip[0] & 0xe0) == 0x20
-	return (ip16[0] & 0xe0) == 0x20
-}
-
-func (w *IPv6PrefixWatcher) scheduleDebouncedEvent(event IPv6AddressEvent) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	if w.isClosed.Load() {
-		return
-	}
-
-	// 比较当前已知前缀是否真正发生变化
-	ipStr := event.IP.String()
-	last := w.lastGUA.Load().(string)
-	if !event.IsDeleted && ipStr == last {
-		// 相同 GUA 地址重复通知，忽略
-		return
-	}
-
-	w.pendingEvent = event
-
-	// 🛡️ 师父防雷补丁：单定时器复用防抖 (2.5秒)，0 协程泄漏
-	if w.debounceTimer == nil {
-		w.debounceTimer = time.AfterFunc(2500*time.Millisecond, w.fireDebouncedEvent)
-	} else {
-		if !w.debounceTimer.Stop() {
-			select {
-			case <-w.debounceTimer.C:
-			default:
-			}
-		}
-		w.debounceTimer.Reset(2500 * time.Millisecond)
-	}
-}
-
-func (w *IPv6PrefixWatcher) fireDebouncedEvent() {
-	w.mu.Lock()
-	event := w.pendingEvent
-	w.mu.Unlock()
-
-	if w.isClosed.Load() {
-		return
-	}
-
-	if !event.IsDeleted {
-		w.lastGUA.Store(event.IP.String())
-	} else {
-		w.lastGUA.Store("")
-	}
-
-	if w.onChanged != nil {
-		w.onChanged(event)
-	}
 }

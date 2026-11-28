@@ -982,6 +982,10 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 
 		}
 
+		if !net.IPv6 && isProxyIPv6Literal(p) {
+			continue
+		}
+
 		pNet := strings.ToLower(strings.TrimSpace(p.Network))
 		if pNet == "" && p.RawConfig != nil {
 			if n, ok := p.RawConfig["network"].(string); ok {

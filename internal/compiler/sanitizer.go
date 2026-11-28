@@ -86,6 +86,9 @@ func SanitizeIR(ir *schema.ConfigIR) {
 
 	// 2. Sanitize Proxies
 	ir.Proxies = SanitizeAndDeduplicateNodes(ir.Proxies)
+	if !ir.Network.IPv6 {
+		ir.Proxies = FilterIPv6LiteralNodes(ir.Proxies)
+	}
 
 	// 2b. Auto-extract AI compliant nodes and inject/update "AI 专线" group
 	var validProxyNames []string
@@ -153,6 +156,52 @@ func ReconcilePolicyGroups(groups []schema.StrategyGroup, validNodes []schema.Pr
 	}
 
 	return cleanedGroups
+}
+
+// IsIPv6LiteralHost reports whether host is a pure IPv6 literal address
+// (ignoring optional brackets and zone IDs, and excluding IPv4-mapped IPv6).
+func IsIPv6LiteralHost(host string) bool {
+	h := strings.TrimSpace(host)
+	h = strings.TrimPrefix(h, "[")
+	h = strings.TrimSuffix(h, "]")
+	if idx := strings.IndexByte(h, '%'); idx != -1 {
+		h = h[:idx]
+	}
+	if h == "" {
+		return false
+	}
+	ip := net.ParseIP(h)
+	return ip != nil && ip.To4() == nil
+}
+
+func isProxyIPv6Literal(p schema.ProxyNode) bool {
+	if IsIPv6LiteralHost(p.Server) {
+		return true
+	}
+	if p.RawConfig != nil {
+		if rawSrv, ok := p.RawConfig["server"].(string); ok && IsIPv6LiteralHost(rawSrv) {
+			return true
+		}
+	}
+	return false
+}
+
+// FilterIPv6LiteralNodes drops proxy nodes whose server address is a pure IPv6 literal
+// when IPv6 is disabled, preventing "ip version error" dial loops.
+func FilterIPv6LiteralNodes(nodes []schema.ProxyNode) []schema.ProxyNode {
+	filtered := make([]schema.ProxyNode, 0, len(nodes))
+	dropped := 0
+	for _, p := range nodes {
+		if isProxyIPv6Literal(p) {
+			dropped++
+			continue
+		}
+		filtered = append(filtered, p)
+	}
+	if dropped > 0 {
+		log.Printf("[IPv6Guard] IPv6 disabled: filtered %d pure IPv6 literal proxy node(s)", dropped)
+	}
+	return filtered
 }
 
 // SanitizeAndDeduplicateNodes filters out airport pseudo-nodes (remaining traffic, expiration, website URLs),

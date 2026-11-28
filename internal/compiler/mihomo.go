@@ -724,6 +724,10 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 
 		}
 
+		if !net.IPv6 && isProxyIPv6Literal(p) {
+			continue
+		}
+
 		pMap := make(map[string]any)
 
 		for k, v := range p.RawConfig {

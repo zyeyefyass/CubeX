@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -170,5 +171,162 @@ func TestEWMAScheduler_BareHostPortAndErrorPropagation(t *testing.T) {
 	}
 	if err := schedErr.switchClashGroup(context.Background(), "Proxy", "N2"); err == nil {
 		t.Fatalf("expected explicit error on HTTP 500 switchClashGroup")
+	}
+}
+
+func TestEWMAScheduler_NeverTouchesDomesticOrManualSelectorOrDisasterGroups(t *testing.T) {
+	var mu sync.Mutex
+	putCount := make(map[string]int)
+	latestSelection := map[string]string{
+		"🎯 国内流量":  "DIRECT",
+		"Google":   "Slow-TW",
+		"🌐 国外流量":  "Slow-HK",
+		"🇯🇵 日本容灾": "Slow-JP",
+		"🇭🇰 香港自动": "Slow-HK",
+		"🇭🇰 香港故转": "Slow-HK",
+		"🇸🇬 新加坡故转": "Slow-SG",
+	}
+
+	delays := map[string]int{
+		"Fast-HK": 18,
+		"Slow-HK": 180,
+		"Slow-TW": 210,
+		"Slow-JP": 190,
+		"Slow-SG": 170,
+		"Fast-SG": 22,
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/proxies" {
+			mu.Lock()
+			snap := map[string]any{
+				"Fast-HK": map[string]any{"name": "Fast-HK", "type": "Shadowsocks"},
+				"Slow-HK": map[string]any{"name": "Slow-HK", "type": "Shadowsocks"},
+				"Slow-TW": map[string]any{"name": "Slow-TW", "type": "Shadowsocks"},
+				"Slow-JP": map[string]any{"name": "Slow-JP", "type": "Shadowsocks"},
+				"Slow-SG": map[string]any{"name": "Slow-SG", "type": "Shadowsocks"},
+				"Fast-SG": map[string]any{"name": "Fast-SG", "type": "Shadowsocks"},
+				"🎯 国内流量": map[string]any{
+					"name": "🎯 国内流量", "type": "Selector",
+					"now": latestSelection["🎯 国内流量"],
+					"all": []string{"Fast-HK", "DIRECT"},
+				},
+				"Google": map[string]any{
+					"name": "Google", "type": "Selector",
+					"now": latestSelection["Google"],
+					"all": []string{"Slow-TW", "Fast-HK", "DIRECT"},
+				},
+				"🌐 国外流量": map[string]any{
+					"name": "🌐 国外流量", "type": "Selector",
+					"now": latestSelection["🌐 国外流量"],
+					"all": []string{"Slow-HK", "Fast-HK", "DIRECT"},
+				},
+				"🇯🇵 日本容灾": map[string]any{
+					"name": "🇯🇵 日本容灾", "type": "Fallback",
+					"now": latestSelection["🇯🇵 日本容灾"],
+					"all": []string{"Slow-JP", "Fast-HK", "DIRECT"},
+				},
+				"🇭🇰 香港自动": map[string]any{
+					"name": "🇭🇰 香港自动", "type": "URLTest",
+					"now": latestSelection["🇭🇰 香港自动"],
+					"all": []string{"Slow-HK", "Fast-HK"},
+				},
+				"🇭🇰 香港故转": map[string]any{
+					"name": "🇭🇰 香港故转", "type": "Fallback",
+					"now": latestSelection["🇭🇰 香港故转"],
+					"all": []string{"Slow-HK", "Fast-HK"},
+				},
+				// 模拟 sing-box 将 fallback 组编译为 Selector 的双核场景
+				"🇸🇬 新加坡故转": map[string]any{
+					"name": "🇸🇬 新加坡故转", "type": "Selector",
+					"now": latestSelection["🇸🇬 新加坡故转"],
+					"all": []string{"Slow-SG", "Fast-SG"},
+				},
+			}
+			mu.Unlock()
+			_ = json.NewEncoder(w).Encode(map[string]any{"proxies": snap})
+			return
+		}
+		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/proxies/") && strings.HasSuffix(r.URL.Path, "/delay") {
+			node := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/proxies/"), "/delay")
+			if d, ok := delays[node]; ok {
+				_ = json.NewEncoder(w).Encode(map[string]any{"delay": d})
+				return
+			}
+			w.WriteHeader(http.StatusGatewayTimeout)
+			return
+		}
+		if r.Method == http.MethodPut && strings.HasPrefix(r.URL.Path, "/proxies/") {
+			grp := strings.TrimPrefix(r.URL.Path, "/proxies/")
+			var body struct {
+				Name string `json:"name"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			mu.Lock()
+			putCount[grp]++
+			if body.Name != "" {
+				latestSelection[grp] = body.Name
+			}
+			mu.Unlock()
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	// 子场景 1：ManagedGroups 为空（自动探测模式）
+	schedAuto := NewEWMAScheduler(SchedulerConfig{
+		ClashAPIBase:      srv.URL,
+		SwitchMarginMs:    25,
+		SwitchMarginRatio: 0.18,
+		SwitchCooldown:    time.Millisecond,
+	}, NewEWMAManager(), nil)
+
+	for i := 0; i < 4; i++ {
+		schedAuto.RunSingleCycle(context.Background())
+	}
+
+	// 子场景 2：显式白名单（含故意夹带 🎯 国内流量 / Google / 🇯🇵 日本容灾 的对抗用例）
+	schedExplicit := NewEWMAScheduler(SchedulerConfig{
+		ClashAPIBase:      srv.URL,
+		SwitchMarginMs:    25,
+		SwitchMarginRatio: 0.18,
+		SwitchCooldown:    time.Millisecond,
+		ManagedGroups: []string{
+			"🎯 国内流量",
+			"Google",
+			"🌐 国外流量",
+			"🇯🇵 日本容灾",
+			"🇭🇰 香港自动",
+			"🇭🇰 香港故转",
+			"🇸🇬 新加坡故转",
+		},
+	}, NewEWMAManager(), nil)
+
+	for i := 0; i < 4; i++ {
+		schedExplicit.RunSingleCycle(context.Background())
+	}
+
+	// 子场景 3：黑洞惩罚轮换也不能触碰非托管组
+	schedExplicit.PenalizeAndRotateActive("test-blackhole")
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	forbiddenGroups := []string{"🎯 国内流量", "Google", "🌐 国外流量", "🇯🇵 日本容灾"}
+	for _, g := range forbiddenGroups {
+		if putCount[g] != 0 {
+			t.Fatalf("EWMA must NEVER switch forbidden group %q, but observed %d PUT(s)", g, putCount[g])
+		}
+	}
+	if putCount["🇭🇰 香港自动"] == 0 {
+		t.Errorf("expected URLTest group 🇭🇰 香港自动 to be optimized by EWMA, got 0 PUTs")
+	}
+	if putCount["🇭🇰 香港故转"] == 0 {
+		t.Errorf("expected Fallback group 🇭🇰 香港故转 to be optimized by EWMA, got 0 PUTs")
+	}
+	if putCount["🇸🇬 新加坡故转"] == 0 {
+		t.Errorf("expected sing-box Selector-backed 🇸🇬 新加坡故转 to be optimized by EWMA, got 0 PUTs")
 	}
 }

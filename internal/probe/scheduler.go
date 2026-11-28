@@ -26,7 +26,7 @@ type SchedulerConfig struct {
 	SwitchMarginMs    int           // proactive absolute improvement margin, default 25ms
 	SwitchMarginRatio float64       // proactive relative improvement ratio, default 0.18 (18%)
 	SwitchCooldown    time.Duration // per-group proactive switch cooldown, default 60s
-	ManagedGroups     []string      // explicit groups to manage (empty = auto-detect all non-builtin selector groups)
+	ManagedGroups     []string      // explicit groups to manage (empty = auto-detect non-excluded URLTest/Fallback groups only)
 }
 
 // SwitchEvent records an audited closed-loop proxy routing transition.
@@ -402,6 +402,16 @@ func (s *EWMAScheduler) fetchProxiesSnapshot(ctx context.Context) (map[string]cl
 	return s.api.GetProxies(ctx)
 }
 
+func isExcludedFromEWMA(name string) bool {
+	if name == "" || name == "GLOBAL" || name == "🎯 国内流量" || name == "🎯 全球直连" || name == "🛑 广告拦截" {
+		return true
+	}
+	return strings.Contains(name, "国内") ||
+		strings.Contains(name, "直连") ||
+		strings.Contains(name, "容灾") ||
+		strings.Contains(name, "广告")
+}
+
 func (s *EWMAScheduler) filterManagedGroups(proxies map[string]clashProxyItem) []clashProxyItem {
 	managedSet := make(map[string]struct{}, len(s.cfg.ManagedGroups))
 	for _, g := range s.cfg.ManagedGroups {
@@ -410,16 +420,32 @@ func (s *EWMAScheduler) filterManagedGroups(proxies map[string]clashProxyItem) [
 
 	out := make([]clashProxyItem, 0, 4)
 	for name, item := range proxies {
-		if !strings.EqualFold(item.Type, "Selector") && !strings.EqualFold(item.Type, "URLTest") && !strings.EqualFold(item.Type, "Fallback") {
+		if isExcludedFromEWMA(name) {
 			continue
 		}
-		if name == "GLOBAL" {
+		isURLTest := strings.EqualFold(item.Type, "URLTest")
+		isFallback := strings.EqualFold(item.Type, "Fallback")
+		isSelector := strings.EqualFold(item.Type, "Selector")
+		if !isURLTest && !isFallback && !isSelector {
 			continue
 		}
-		if len(managedSet) > 0 {
+
+		if len(managedSet) == 0 {
+			// 自动探测模式：仅接管 URLTest / Fallback 组，绝不篡改任何手动 Selector 组
+			if !isURLTest && !isFallback {
+				continue
+			}
+		} else {
 			if _, ok := managedSet[name]; !ok {
 				continue
 			}
+			// 显式白名单模式：允许 URLTest / Fallback，以及兼容 sing-box 将 *故转 组编译为 Selector 的场景
+			if isSelector && !strings.Contains(name, "故转") {
+				continue
+			}
+		}
+		if item.Name == "" {
+			item.Name = name
 		}
 		out = append(out, item)
 	}

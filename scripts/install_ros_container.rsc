@@ -28,7 +28,7 @@
 :local arch [/system resource get architecture-name];
 :local pkgArch "";
 :local tarArch "";
-:local cubexDefaultTarPrefix "CubeX-v9.992-ros-";
+:local cubexDefaultTarPrefix "CubeX-v9.993-ros-";
 
 :if ($arch = "x86_64" or $arch = "x86") do={
     :set pkgArch "x86";

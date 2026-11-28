@@ -347,11 +347,22 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 		srv.logBuffer.Add("INFO", "AutoPilot", fmt.Sprintf("被动流量遥测: 节点 [%s] 试探恢复正常，已解除隔离", nodeName))
 	})
 
+	managedEWMA := make([]string, 0, len(schema.StandardRegions)*2)
+	for _, reg := range schema.StandardRegions {
+		if reg.AutoName != "" {
+			managedEWMA = append(managedEWMA, reg.AutoName)
+		}
+		if reg.FallName != "" {
+			managedEWMA = append(managedEWMA, reg.FallName)
+		}
+	}
+
 	srv.ewmaSched = probe.NewEWMAScheduler(probe.SchedulerConfig{
 		ClashAPIBase:   clashAPIAddr,
 		ClashAPISecret: clashSecret,
 		TickInterval:   15 * time.Second,
 		MaxConcurrency: 4,
+		ManagedGroups:  managedEWMA,
 	}, srv.ewmaMgr, func(ev probe.SwitchEvent) {
 		srv.logBuffer.Add("INFO", "EWMA", fmt.Sprintf("微秒闭环选路: 组 [%s] 节点自适应切换: %s -> %s (原因: %s, 紧急: %v)", ev.Group, ev.FromNode, ev.ToNode, ev.Reason, ev.Emergency))
 		if srv.staleFlowKiller != nil && ev.FromNode != "" {
@@ -585,14 +596,7 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 	if runtime.GOOS == "linux" {
 		SafeGo("IPv6NetlinkWatcher", func() {
 			watcher, err := netstack.NewIPv6PrefixWatcher(srv.stopCh, func(evt netstack.IPv6AddressEvent) {
-				log.Printf("🌐 [IPv6自愈总线] 捕获公网单播前缀变更: %s/%d (网卡: %s, 删除: %v)，触发策略路由平滑刷新",
-					evt.IP, evt.PrefixLen, evt.Interface, evt.IsDeleted)
-				if srv.activeHealerMgr != nil {
-					srv.activeHealerMgr.TriggerRemediation(healing.Tier3HostRouteHeal, "IPv6-PD-Shift: "+evt.IP.String(), 0, 0)
-				}
-				if srv.shouldRunROSPatrol() {
-					_ = srv.rosMgr.RestoreRulesAfterBoot()
-				}
+				srv.handleIPv6PrefixChanged(evt)
 			})
 			if err != nil {
 				log.Printf("[IPv6-Netlink] 初始化监听失败: %v", err)
@@ -1536,6 +1540,32 @@ func parseAdblockIntercept(msg string) (domain, clientIP, rule string, ok bool) 
 	}
 
 	return "", "", "", false
+}
+
+func (s *Server) handleIPv6PrefixChanged(evt netstack.IPv6AddressEvent) bool {
+	if s == nil {
+		return false
+	}
+	var curIR *schema.ConfigIR
+	if s.engMgr != nil {
+		curIR = s.engMgr.GetIR()
+	}
+	if curIR == nil {
+		curIR = s.ir
+	}
+	if curIR == nil || !curIR.Network.IPv6 {
+		return false
+	}
+
+	log.Printf("🌐 [IPv6自愈总线] 捕获公网单播前缀变更: %s/%d (网卡: %s, 删除: %v)，触发策略路由平滑刷新",
+		evt.IP, evt.PrefixLen, evt.Interface, evt.IsDeleted)
+	if s.activeHealerMgr != nil {
+		s.activeHealerMgr.TriggerRemediation(healing.Tier3HostRouteHeal, "IPv6-PD-Shift: "+evt.IP.String(), 0, 0)
+	}
+	if s.shouldRunROSPatrol() && s.rosMgr != nil {
+		_ = s.rosMgr.RestoreRulesAfterBoot()
+	}
+	return true
 }
 
 // ──────────────────────────────────────────────
