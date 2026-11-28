@@ -66,13 +66,39 @@ jobs:
         env:
           TAG: ${{ inputs.tag }}
         run: |
-          IMAGE="fyasshole/cubex:${TAG}"
-          for ARCH in amd64 arm64; do
-            echo "Pulling ${IMAGE} for linux/${ARCH}..."
-            docker pull --platform "linux/${ARCH}" "${IMAGE}"
-            docker save -o "dist/docker/CubeX-ros-${ARCH}-oci-base.tar" "${IMAGE}"
-            docker rmi "${IMAGE}"
-          done
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+
+          tag = os.environ["TAG"]
+          image = f"fyasshole/cubex:{tag}"
+          raw = subprocess.check_output(
+              ["docker", "buildx", "imagetools", "inspect", "--raw", image],
+              text=True,
+          )
+          index = json.loads(raw)
+          manifests = index.get("manifests", [])
+
+          for arch in ("amd64", "arm64"):
+              digest = ""
+              for m in manifests:
+                  plat = m.get("platform") or {}
+                  if plat.get("os") == "linux" and plat.get("architecture") == arch:
+                      digest = m.get("digest", "")
+                      break
+              if not digest:
+                  raise RuntimeError(f"Could not resolve linux/{arch} digest from {image}")
+
+              ref = f"fyasshole/cubex@{digest}"
+              local_tag = f"cubex-base:{arch}"
+              out_tar = f"dist/docker/CubeX-ros-{arch}-oci-base.tar"
+              print(f"Pulling {ref} (linux/{arch}) -> {out_tar}...")
+              subprocess.run(["docker", "pull", ref], check=True)
+              subprocess.run(["docker", "tag", ref, local_tag], check=True)
+              subprocess.run(["docker", "save", "-o", out_tar, local_tag], check=True)
+              subprocess.run(["docker", "rmi", local_tag, ref], check=False)
+          PY
 
       - name: Build 4 Container Offline Archives (ROS + Docker)
         run: |
