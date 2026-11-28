@@ -651,9 +651,20 @@
 
       <!-- Built-in Defaults Display -->
       <div class="space-y-1.5 pt-2 border-t text-xs" style="border-color: var(--cbx-border-soft);">
-        <span class="cbx-text-sub font-semibold flex items-center gap-1.5">
-          <span>🛡️</span> 系统内置免 Fake-IP 直连项 (部分展示):
-        </span>
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <span class="cbx-text-sub font-semibold flex items-center gap-1.5">
+            <span>🛡️</span> 系统内置免 Fake-IP 直连项 ({{ app.fakeIpBuiltinCount || 32 }} 条 · {{ app.fakeIpBuiltinEnabled ? '已启用' : '已关闭' }}):
+          </span>
+          <button
+            type="button"
+            @click="app.toggleFakeIpBuiltin"
+            :disabled="app.fakeIpLoading"
+            class="px-2.5 py-1 rounded-lg text-[11px] font-bold border transition cursor-pointer"
+            :class="app.fakeIpBuiltinEnabled ? 'cbx-badge-ok' : 'cbx-btn-ghost'"
+          >
+            {{ app.fakeIpBuiltinEnabled ? '✓ 内置清单已开启' : '○ 内置清单已关闭' }}
+          </button>
+        </div>
         <div class="flex flex-wrap gap-1.5 text-[11px] font-mono">
           <span class="px-2 py-0.5 rounded-lg cbx-badge-ok border font-medium shadow-sm">+.zspace.com (极空间NAS)</span>
           <span class="px-2 py-0.5 rounded-lg cbx-badge-ok border font-medium shadow-sm">+.zspace.cn</span>

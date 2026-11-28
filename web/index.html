@@ -11,19 +11,28 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="CubeX" />
     <meta name="application-name" content="CubeX" />
-    <meta name="color-scheme" content="dark light" />
-    <meta name="msapplication-TileColor" content="#090f1d" />
-    <meta name="theme-color" content="#090f1d" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="msapplication-TileColor" content="#0D0D11" />
+    <meta name="theme-color" content="#0D0D11" />
     <title>CubeX · 宿主共生零感网络系统</title>
     <script>
       (function () {
         try {
           var saved = localStorage.getItem('cubex_color_mode');
           var mode = (saved === 'light' || saved === 'dark') ? saved : 'dark';
-          document.documentElement.setAttribute('data-theme', mode);
-          document.documentElement.style.colorScheme = mode;
+          var bg = mode === 'light' ? '#F4F4F9' : '#0D0D11';
+          var root = document.documentElement;
+          root.setAttribute('data-theme', mode);
+          root.style.colorScheme = mode;
+          root.style.backgroundColor = bg;
+          var tc = document.querySelector('meta[name="theme-color"]');
+          if (tc) tc.setAttribute('content', bg);
+          var ms = document.querySelector('meta[name="msapplication-TileColor"]');
+          if (ms) ms.setAttribute('content', bg);
         } catch (e) {
           document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.style.colorScheme = 'dark';
+          document.documentElement.style.backgroundColor = '#0D0D11';
         }
       })();
     </script>

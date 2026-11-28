@@ -685,7 +685,7 @@
           </div>
         </div>
 
-        <!-- 2. 防手残时光机全量备份 -->
+        <!-- 2. 配置备份与恢复 (迁移包导出与导入恢复) -->
         <div class="p-5 sm:p-7 rounded-2xl sm:rounded-3xl cbx-card hover:border-indigo-400/50 transition-all duration-300 space-y-4 flex flex-col justify-between group">
           <div>
             <div class="flex items-center justify-between gap-3">
@@ -694,29 +694,31 @@
                   <ZootopiaIcon name="system" :size="32" class="drop-shadow-md" />
                 </div>
                 <div class="min-w-0">
-                  <h4 class="text-sm sm:text-base font-extrabold cbx-text-main tracking-wide">防手残时光机全量备份</h4>
-                  <span class="text-[11px] font-mono text-indigo-700 dark:text-indigo-300 font-bold">无损快照 · 秒级灾备恢复</span>
+                  <h4 class="text-sm sm:text-base font-extrabold cbx-text-main tracking-wide">配置备份与恢复</h4>
+                  <span class="text-[11px] font-mono text-indigo-700 dark:text-indigo-300 font-bold">脱敏配置迁移包 (.tar.gz) · 秒级恢复</span>
                 </div>
               </div>
               <span class="text-[10px] font-mono px-2 py-0.5 rounded-md cbx-badge-purple border font-bold shrink-0">
-                秒级快照
+                轻量迁移包
               </span>
             </div>
             <p class="text-xs cbx-text-sub mt-3.5 leading-relaxed">
-              一键打包导出包含双核配置、分流策略规则、宿主共生凭据在内的全量系统快照，遭遇任何误操作或故障均可一键导入秒级自愈。
+              一键导出包含订阅、规则、覆写、DNS 重写与基础设置的脱敏配置压缩包（<code class="font-mono">.tar.gz</code>，不含运行日志与数据库），支持跨设备导入恢复并自动重新编排。
             </p>
           </div>
 
           <div class="space-y-3 pt-2">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button @click="app.exportBackup" class="h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md select-none">
-                <span class="text-sm">📥</span>
-                <span>导出系统快照</span>
+              <button @click="app.exportBackup" :disabled="app.exportingBackup" class="h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-[13px] font-bold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-md select-none disabled:opacity-50">
+                <span v-if="app.exportingBackup" class="inline-block animate-spin text-sm">↻</span>
+                <span v-else class="text-sm">📥</span>
+                <span>{{ app.exportingBackup ? '打包导出中...' : '导出备份 (.tar.gz)' }}</span>
               </button>
-              <label class="h-11 rounded-xl cbx-btn-ghost text-xs sm:text-[13px] font-semibold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer text-center shadow-sm select-none">
-                <span class="text-sm">📤</span>
-                <span>导入快照恢复</span>
-                <input type="file" accept=".json" @change="app.importBackup" class="hidden" />
+              <label class="h-11 rounded-xl cbx-btn-ghost text-xs sm:text-[13px] font-semibold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer text-center shadow-sm select-none" :class="app.importingBackup ? 'opacity-60 pointer-events-none' : ''">
+                <span v-if="app.importingBackup" class="inline-block animate-spin text-sm">↻</span>
+                <span v-else class="text-sm">📤</span>
+                <span>{{ app.importingBackup ? '导入恢复中...' : '导入恢复 (.tar.gz)' }}</span>
+                <input type="file" accept=".tar.gz,.tgz,application/gzip,application/x-gzip" @change="app.importBackup" class="hidden" />
               </label>
               <button @click="app.triggerHotRestart" :disabled="app.isHotRestarting" class="h-11 rounded-xl cbx-btn-ghost text-xs sm:text-[13px] font-semibold transition flex items-center justify-center gap-2 active:scale-98 cursor-pointer shadow-sm disabled:opacity-50 select-none" title="平滑热重载双核代理引擎">
                 <span v-if="app.isHotRestarting" class="inline-block animate-spin text-sm">↻</span>
