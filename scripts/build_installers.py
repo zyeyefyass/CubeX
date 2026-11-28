@@ -6,9 +6,16 @@ Assembles standalone POSIX sh / bash / RouterOS .rsc installers from scripts/mod
 and ensures backward-compatible forwarding wrappers stay in sync.
 """
 import argparse
+import gzip
+import hashlib
+import io
 import os
 import re
+import shutil
+import subprocess
 import sys
+import tarfile
+import tempfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 MODULES_DIR = os.path.join(ROOT, "scripts", "modules")
@@ -177,11 +184,35 @@ def build_rsc(template_rel: str) -> str:
     return AUTO_HEADER_RSC + rendered
 
 
+def build_istoreos_run_header(
+    arch: str = "@@CUBEX_ARCH@@",
+    payload_sha256: str = "@@CUBEX_PAYLOAD_SHA256@@",
+    payload_size: str = "@@CUBEX_PAYLOAD_SIZE@@",
+) -> str:
+    ver = extract_common_version()
+    mod = read_mod("platform_istoreos_run.sh")
+    rendered = (
+        mod.replace("@@CUBEX_VERSION@@", ver)
+        .replace("@@CUBEX_ARCH@@", arch)
+        .replace("@@CUBEX_PAYLOAD_SHA256@@", payload_sha256)
+        .replace("@@CUBEX_PAYLOAD_SIZE@@", str(payload_size))
+    )
+    if not rendered.endswith("\n"):
+        rendered += "\n"
+    if not rendered.endswith("__ARCHIVE_BELOW__\n"):
+        rendered += "__ARCHIVE_BELOW__\n"
+    return f"""#!/bin/sh
+{AUTO_HEADER_SH}set -e
+
+{rendered}"""
+
+
 def expected_outputs() -> dict[str, str]:
     install_sh = build_install_sh()
     pve_sh = build_pve_lxc_sh()
     ros_container = build_rsc("ros/container.rsc")
     ros_bypass = build_rsc("ros/bypass.rsc")
+    istoreos_header = build_istoreos_run_header()
     ow_setup = build_forwarding_wrapper(
         "scripts/openwrt/setup-openwrt.sh",
         "适用底座: OpenWrt / iStoreOS Docker Macvlan (自动转发至 install.sh --platform=openwrt-docker)",
@@ -206,6 +237,7 @@ def expected_outputs() -> dict[str, str]:
         "scripts/install_pve_lxc.sh": pve_sh,
         "install_pve_lxc.sh": pve_sh,
         "scripts/openwrt/setup-openwrt.sh": ow_setup,
+        "scripts/openwrt/istoreos-run-header.sh": istoreos_header,
         "scripts/install_openwrt_docker.sh": ow_docker,
         "scripts/fnos/install-fnos.sh": fnos_wrap,
         "scripts/install_ros_container.rsc": ros_container,
@@ -214,9 +246,203 @@ def expected_outputs() -> dict[str, str]:
     }
 
 
+ISTOREOS_RUN_SIZE_LIMIT_BYTES = 32 * 1024 * 1024
+POSIX_BASHISM_PATTERNS = [
+    (r"(^|[;&|(\s])\[\[(\s|$)", "[["),
+    (r"(^|[;&|\s])declare\s+", "declare"),
+    (r"(^|[;&|\s])source\s+", "source (use '.')"),
+    (r"&>\s*\S", "&> redirect"),
+    (r"<<<", "<<< herestring"),
+]
+
+
+def _find_sh_binary() -> str | None:
+    found = shutil.which("sh")
+    if found:
+        return found
+    for cand in (
+        r"C:\Program Files\Git\bin\sh.exe",
+        r"C:\Program Files\Git\usr\bin\sh.exe",
+        "/bin/sh",
+        "/usr/bin/sh",
+    ):
+        if os.path.exists(cand):
+            return cand
+    return None
+
+
+def verify_posix_shell_script(script_text: str, label: str) -> None:
+    delim = None
+    for lno, line in enumerate(script_text.splitlines(), 1):
+        s = line.strip()
+        if delim is not None:
+            if s == delim:
+                delim = None
+            continue
+        m_hd = re.search(r"<<-?\s*['\"]?([A-Za-z0-9_]+)['\"]?", line)
+        if m_hd and not line.lstrip().startswith("#"):
+            if "'" in line[m_hd.start():m_hd.end()]:
+                delim = m_hd.group(1)
+        if line.lstrip().startswith("#"):
+            continue
+        for pat, desc in POSIX_BASHISM_PATTERNS:
+            if re.search(pat, line):
+                raise RuntimeError(f"POSIX bashism '{desc}' in {label}:{lno}: {s[:80]}")
+
+    sh_bin = _find_sh_binary()
+    if sh_bin:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".sh", delete=False, newline="\n") as tf:
+            tf.write(script_text)
+            tmp_path = tf.name
+        try:
+            res = subprocess.run([sh_bin, "-n", tmp_path], capture_output=True, text=True)
+            if res.returncode != 0:
+                raise RuntimeError(f"sh -n syntax check failed on {label}: {res.stderr or res.stdout}")
+        finally:
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+
+
+def _build_istoreos_payload_tgz(arch: str) -> bytes:
+    dist_dir = os.path.join(ROOT, "dist")
+    cubexd_path = os.path.join(dist_dir, f"cubexd-linux-{arch}")
+    cubex_path = os.path.join(dist_dir, f"cubex-linux-{arch}")
+    meta_path = os.path.join(ROOT, "meta.json")
+    default_ir_path = os.path.join(ROOT, "packaging", "defaults", "data", "config.ir.json")
+    uninstall_path = os.path.join(MODULES_DIR, "istoreos_uninstall.sh")
+    rules_dir = os.path.join(ROOT, "etc", "rules")
+
+    for req in (cubexd_path, cubex_path, meta_path, default_ir_path, uninstall_path):
+        if not os.path.exists(req):
+            raise FileNotFoundError(f"Required iStoreOS .run asset missing for {arch}: {req}")
+
+    with open(cubexd_path, "rb") as f:
+        cubexd_bytes = f.read()
+    with open(cubex_path, "rb") as f:
+        cubex_bytes = f.read()
+    if arch == "amd64":
+        for bname, braw in (("cubexd", cubexd_bytes), ("cubex", cubex_bytes)):
+            if b"v3 microarchitecture support" in braw or b"v4 microarchitecture support" in braw:
+                raise RuntimeError(f"Refusing x86-64-v3/v4 restricted binary for {bname}")
+
+    with open(meta_path, "rb") as f:
+        meta_bytes = f.read()
+    with open(default_ir_path, "rb") as f:
+        ir_bytes = f.read()
+    uninstall_text = read_mod("istoreos_uninstall.sh")
+    verify_posix_shell_script(uninstall_text, "scripts/modules/istoreos_uninstall.sh")
+    uninstall_bytes = uninstall_text.encode("utf-8")
+
+    gz_buf = io.BytesIO()
+    with gzip.GzipFile(fileobj=gz_buf, mode="wb", compresslevel=9, mtime=0) as gzf:
+        with tarfile.open(fileobj=gzf, mode="w") as tf:
+            for dname in ("bin", "etc", "etc/rules", "data"):
+                di = tarfile.TarInfo(name=dname)
+                di.type = tarfile.DIRTYPE
+                di.mode = 0o755
+                di.mtime = 0
+                tf.addfile(di)
+
+            def add_bytes(rel: str, data: bytes, mode: int) -> None:
+                ti = tarfile.TarInfo(name=rel)
+                ti.type = tarfile.REGTYPE
+                ti.mode = mode
+                ti.size = len(data)
+                ti.mtime = 0
+                tf.addfile(ti, io.BytesIO(data))
+
+            add_bytes("bin/cubexd", cubexd_bytes, 0o755)
+            add_bytes("bin/cubex", cubex_bytes, 0o755)
+            add_bytes("meta.json", meta_bytes, 0o644)
+            add_bytes("data/config.ir.json", ir_bytes, 0o644)
+            add_bytes("uninstall.sh", uninstall_bytes, 0o755)
+
+            if os.path.isdir(rules_dir):
+                for fname in sorted(os.listdir(rules_dir)):
+                    fpath = os.path.join(rules_dir, fname)
+                    if os.path.isfile(fpath):
+                        with open(fpath, "rb") as rf:
+                            add_bytes(f"etc/rules/{fname}", rf.read(), 0o644)
+
+    return gz_buf.getvalue()
+
+
+def build_istoreos_run_packages(arches: list[str] | None = None) -> list[str]:
+    target_arches = arches or ["amd64", "arm64"]
+    release_dir = os.path.join(ROOT, "dist", "release")
+    os.makedirs(release_dir, exist_ok=True)
+    built_paths = []
+
+    for arch in target_arches:
+        payload_bytes = _build_istoreos_payload_tgz(arch)
+        payload_sha256 = hashlib.sha256(payload_bytes).hexdigest()
+        payload_size = len(payload_bytes)
+        header_text = build_istoreos_run_header(
+            arch=arch,
+            payload_sha256=payload_sha256,
+            payload_size=str(payload_size),
+        )
+        verify_posix_shell_script(header_text, f"cubex_istoreos_{arch}.run header")
+
+        header_bytes = header_text.encode("utf-8")
+        out_path = os.path.join(release_dir, f"cubex_istoreos_{arch}.run")
+        with open(out_path, "wb") as f:
+            f.write(header_bytes)
+            f.write(payload_bytes)
+        try:
+            os.chmod(out_path, 0o755)
+        except Exception:
+            pass
+
+        # Self-verify generated .run file: marker split, embedded SHA256, tar contents, and 32MB limit
+        with open(out_path, "rb") as f:
+            raw = f.read()
+        marker = b"\n__ARCHIVE_BELOW__\n"
+        idx = raw.find(marker)
+        if idx < 0:
+            raise RuntimeError(f"Self-check failed: missing __ARCHIVE_BELOW__ marker in {out_path}")
+        disk_header = raw[: idx + len(marker)].decode("utf-8")
+        disk_payload = raw[idx + len(marker) :]
+        m_sha = re.search(r'^CUBEX_PAYLOAD_SHA256="([0-9a-f]{64})"', disk_header, re.MULTILINE)
+        if not m_sha or m_sha.group(1) != hashlib.sha256(disk_payload).hexdigest():
+            raise RuntimeError(f"Self-check failed: embedded SHA256 mismatch in {out_path}")
+        with tarfile.open(fileobj=io.BytesIO(disk_payload), mode="r:gz") as tf:
+            names = set(tf.getnames())
+            for req in ("bin/cubexd", "bin/cubex", "uninstall.sh", "meta.json", "data/config.ir.json"):
+                if req not in names:
+                    raise RuntimeError(f"Self-check failed: {out_path} missing '{req}' in payload")
+
+        total_bytes = len(raw)
+        total_mb = total_bytes / (1024 * 1024)
+        if total_bytes > ISTOREOS_RUN_SIZE_LIMIT_BYTES:
+            raise RuntimeError(
+                f"SIZE GATE EXCEEDED: {os.path.basename(out_path)} is {total_mb:.2f} MB > 32.00 MB limit!"
+            )
+        print(
+            f"✓ Built {os.path.relpath(out_path, ROOT)} "
+            f"({total_mb:.2f} MB / {total_bytes} B, payload sha256={payload_sha256[:12]}...)"
+        )
+        built_paths.append(out_path)
+
+    return built_paths
+
+
 def main():
     parser = argparse.ArgumentParser(description="Build modular CubeX installers")
     parser.add_argument("--check", action="store_true", help="Verify generated outputs match files on disk")
+    parser.add_argument(
+        "--build-istoreos-run",
+        action="store_true",
+        help="Build self-extracting iStoreOS/OpenWrt .run packages in dist/release/",
+    )
+    parser.add_argument(
+        "--arch",
+        choices=["all", "amd64", "arm64"],
+        default="all",
+        help="Target architecture when --build-istoreos-run is specified",
+    )
     args = parser.parse_args()
 
     outputs = expected_outputs()
@@ -235,6 +461,11 @@ def main():
             print(f"❌ Installer parity check FAILED! Out-of-sync generated files: {mismatches}")
             sys.exit(1)
         print(f"✓ Modular installer parity check PASSED ({len(outputs)} files in sync with scripts/modules/)")
+        return
+
+    if args.build_istoreos_run:
+        arches = ["amd64", "arm64"] if args.arch == "all" else [args.arch]
+        build_istoreos_run_packages(arches)
         return
 
     for rel, content in outputs.items():

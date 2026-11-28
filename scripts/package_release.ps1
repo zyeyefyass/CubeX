@@ -257,6 +257,14 @@ if (Test-Path "$RootDir\dist-fpk") {
     Copy-Item -Path "$RootDir\dist-fpk\*.fpk" -Destination $ReleaseDir -Force
 }
 
+# Build iStoreOS / OpenWrt Self-Extracting .run Installers (amd64 & arm64)
+Write-Host "📦 [*] Packaging iStoreOS / OpenWrt Self-Extracting .run Installers..." -ForegroundColor Yellow
+python "$RootDir\scripts\build_installers.py" --build-istoreos-run | Out-Host
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "iStoreOS .run installer packaging failed!"
+    exit 1
+}
+
 
 
 # Copy standalone cubexd gateway binaries for 1-click in-place hot-upgrade
