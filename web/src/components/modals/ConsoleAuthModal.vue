@@ -138,6 +138,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { apiFetch } from '../../utils/apiFetch.js'
 
 const props = defineProps({
   mode: { type: String, default: 'login' },
@@ -168,11 +169,9 @@ async function submitLogin() {
   submitting.value = true
   errorMsg.value = ''
   try {
-    const fn = window.__cubexNativeFetch || fetch
-    const res = await fn('/api/v1/auth/login', {
+    const res = await apiFetch('/api/v1/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: loginPassword.value })
+      json: { password: loginPassword.value }
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok || data.ok === false) {
@@ -201,14 +200,12 @@ async function submitPasswordUpdate() {
   }
   submitting.value = true
   try {
-    const fn = window.__cubexNativeFetch || fetch
-    const res = await fn('/api/v1/auth/password', {
+    const res = await apiFetch('/api/v1/auth/password', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      json: {
         current_password: currentPassword.value,
         new_password: newPassword.value
-      })
+      }
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok || data.ok === false) {
@@ -228,8 +225,7 @@ async function lockNow() {
   if (submitting.value) return
   submitting.value = true
   try {
-    const fn = window.__cubexNativeFetch || fetch
-    await fn('/api/v1/auth/logout', { method: 'POST' })
+    await apiFetch('/api/v1/auth/logout', { method: 'POST' })
     emit('locked')
     emit('close')
   } catch (e) {

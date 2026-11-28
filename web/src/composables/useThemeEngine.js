@@ -22,11 +22,18 @@ const colorMode = ref(getInitialColorMode())
 function applyColorMode(mode) {
   if (typeof document === 'undefined') return
   const normalized = mode === 'light' ? 'light' : 'dark'
-  document.documentElement.setAttribute('data-theme', normalized)
-  document.documentElement.style.colorScheme = normalized
+  const canvasColor = normalized === 'light' ? '#F4F4F9' : '#0D0D11'
+  const root = document.documentElement
+  root.setAttribute('data-theme', normalized)
+  root.style.colorScheme = normalized
+  root.style.backgroundColor = canvasColor
   const themeMeta = document.querySelector('meta[name="theme-color"]')
   if (themeMeta) {
-    themeMeta.setAttribute('content', normalized === 'light' ? '#eef2f7' : '#090f1d')
+    themeMeta.setAttribute('content', canvasColor)
+  }
+  const tileMeta = document.querySelector('meta[name="msapplication-TileColor"]')
+  if (tileMeta) {
+    tileMeta.setAttribute('content', canvasColor)
   }
 }
 
@@ -46,6 +53,16 @@ function toggleColorMode() {
 }
 
 applyColorMode(colorMode.value)
+
+if (typeof window !== 'undefined' && !window.__cubexThemeStorageBound) {
+  window.__cubexThemeStorageBound = true
+  window.addEventListener('storage', (e) => {
+    if (e.key === COLOR_MODE_STORAGE_KEY && (e.newValue === 'light' || e.newValue === 'dark')) {
+      colorMode.value = e.newValue
+      applyColorMode(e.newValue)
+    }
+  })
+}
 
 const tokenKeyRegex = /^--cbx-[a-z0-9_-]+$/
 const tokenColorRegex = /^(#[0-9a-fA-F]{3,8}|rgba?\([0-9.,\s%]+\)|hsla?\([0-9.,\s%deg]+\))$/

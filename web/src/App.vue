@@ -98,28 +98,28 @@
 
             :class="[
 
-              'w-full flex items-center rounded-2xl transition-all duration-200 select-none group relative gap-3 px-3.5 py-3 border text-left cursor-pointer',
+              'w-full flex items-center rounded-xl transition-all duration-200 select-none group relative gap-3 px-3.5 py-3 border text-left cursor-pointer',
 
               activeMasterTab === item.id
 
-                ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white shadow-lg shadow-sky-500/25 border-sky-400/50'
+                ? 'cbx-nav-active shadow-sm border-transparent'
 
-                : 'cbx-text-main hover:bg-sky-500/10 border-transparent hover:border-sky-400/30'
+                : 'cbx-text-main hover:bg-[var(--cbx-surface-hover)] border-transparent'
 
             ]">
 
             <ZootopiaIcon :name="item.id" :active="activeMasterTab === item.id" :size="24" class="shrink-0 transition-transform group-hover:scale-110" />
 
             <div class="min-w-0 flex-1 leading-tight">
-              <div :class="['text-[15px] tracking-wide truncate', activeMasterTab === item.id ? 'font-black text-white' : 'font-extrabold cbx-text-main']">
+              <div :class="['text-[15px] tracking-wide truncate cbx-text-main', activeMasterTab === item.id ? 'font-semibold' : 'font-extrabold']">
                 {{ item.label }}
               </div>
-              <div :class="['text-[11px] mt-0.5 truncate', activeMasterTab === item.id ? 'text-sky-100 font-medium' : 'cbx-text-sub font-normal']">
+              <div class="text-[11px] mt-0.5 truncate cbx-text-sub font-normal">
                 {{ item.subtitle }}
               </div>
             </div>
 
-            <span v-if="activeMasterTab === item.id" class="ml-auto w-2 h-2 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.9)] shrink-0"></span>
+            <span v-if="activeMasterTab === item.id" class="ml-auto w-2 h-2 rounded-full shrink-0" style="background-color: var(--cbx-active-indicator);"></span>
 
           </button>
 
@@ -679,6 +679,18 @@
             </div>
           </section>
 
+          <!-- 驾驶舱双卡片联动：一键连通性验收 + 宿主性能与速率 -->
+          <CockpitDualCards
+            :active-tab="activeMasterTab"
+            :needs-auth-unlock="needsAuthUnlock"
+            :active-engine="activeEngine"
+            :host-cpu="routerHWMemoryDisplay.cpu"
+            :host-memory-free="routerHWMemoryDisplay.freeStr"
+            :host-memory-total="routerHWMemoryDisplay.totalStr"
+            :connections-count="telemetryMetrics.connections"
+            :fallback-node-name="currentActiveRoute.nodeName"
+          />
+
           <!-- 视区 2: 常用主流网站响应速度 -->
           <section :class="['rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 transition shadow-lg relative cbx-card', activeProbeDropdown !== null ? 'z-40' : 'z-20', activeEngine === 'singbox' ? 'ring-1 ring-sky-400/20' : 'ring-1 ring-purple-400/20']">
             <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b" style="border-color: var(--cbx-border-soft);">
@@ -1111,6 +1123,30 @@
 
               <div class="flex items-center gap-2 shrink-0 flex-wrap">
 
+                <!-- 极简 / 完整视图 快捷切换（持久化） -->
+                <div class="inline-flex items-center p-1 rounded-2xl cbx-sub-card gap-1" role="group" aria-label="策略视图模式切换">
+                  <button
+                    type="button"
+                    @click="setRoutingViewMode('minimal')"
+                    :class="[
+                      'px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer select-none',
+                      routingViewMode === 'minimal' ? 'cbx-badge-info shadow-sm' : 'cbx-text-sub hover:cbx-text-main'
+                    ]"
+                  >
+                    极简视图
+                  </button>
+                  <button
+                    type="button"
+                    @click="setRoutingViewMode('full')"
+                    :class="[
+                      'px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer select-none',
+                      routingViewMode === 'full' ? 'cbx-badge-info shadow-sm' : 'cbx-text-sub hover:cbx-text-main'
+                    ]"
+                  >
+                    完整视图
+                  </button>
+                </div>
+
                 <button @click="runAllLatencyTest" :disabled="testingLatency"
 
                   class="min-h-[40px] px-3.5 rounded-2xl text-xs font-bold cbx-btn-ghost transition flex items-center gap-1.5 shadow-sm active:scale-95 whitespace-nowrap cursor-pointer">
@@ -1203,17 +1239,132 @@
 
             <div v-if="routingSubTab === 'policy'" class="space-y-4">
 
-              <div v-if="filteredPolicies.length === 0" class="p-8 text-center rounded-3xl cbx-card cbx-text-sub">
+              <!-- 极简模式：核心策略凸显与地区一键筛选 -->
+              <div v-if="routingViewMode === 'minimal'" class="cbx-card p-3.5 sm:p-4 space-y-2.5">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-bold cbx-badge-info border">极简聚焦</span>
+                    <span class="text-xs font-bold cbx-text-main">仅凸显 Proxy / Streaming / AI 等核心策略</span>
+                    <span class="text-[11px] font-mono tabular-nums cbx-text-muted">({{ displayedPolicies.length }} 组)</span>
+                  </div>
+                  <button
+                    v-if="routingRegionFilter !== 'ALL'"
+                    type="button"
+                    @click="applyRegionToCorePolicies(routingRegionFilter)"
+                    class="px-3 py-1 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold transition active:scale-95 cursor-pointer"
+                  >
+                    一键将核心策略切至「{{ selectedRegionFilterLabel }}」
+                  </button>
+                </div>
+
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-[11px] font-bold cbx-text-sub mr-1">地区一键筛选:</span>
+                  <button
+                    v-for="pill in minimalRegionPills"
+                    :key="pill.id"
+                    type="button"
+                    @click="routingRegionFilter = pill.id"
+                    :class="[
+                      'px-2.5 py-1 rounded-xl text-xs font-bold transition cursor-pointer border',
+                      routingRegionFilter === pill.id ? 'cbx-badge-info shadow-sm' : 'cbx-btn-ghost'
+                    ]"
+                  >
+                    {{ pill.label }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- 免 Fake-IP 快捷加白 -->
+              <div class="cbx-card p-4 sm:p-5 space-y-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div class="space-y-0.5">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="text-sm font-extrabold cbx-text-main">免 Fake-IP 快捷加白</span>
+                      <span class="text-[11px] font-mono tabular-nums px-2 py-0.5 rounded-full cbx-badge-ok border font-bold">
+                        内置 {{ fakeIpBuiltinCount }} 条 + 自定义 {{ fakeIpFilters.length }} 条
+                      </span>
+                    </div>
+                    <p class="text-xs cbx-text-sub">
+                      加入白名单的域名跳过 Fake-IP 拦截直接返回真实 IP（银行 App / 智能家居 / NAS / BT 等）
+                    </p>
+                  </div>
+
+                  <label class="inline-flex items-center gap-2 cursor-pointer select-none cbx-sub-card px-3 py-1.5 rounded-xl shrink-0">
+                    <span class="text-xs font-bold cbx-text-main">内置兼容清单</span>
+                    <input
+                      type="checkbox"
+                      :checked="fakeIpBuiltinEnabled"
+                      :disabled="fakeIpLoading"
+                      @change="toggleFakeIpBuiltin"
+                      class="sr-only"
+                    />
+                    <span
+                      :class="[
+                        'w-9 h-5 rounded-full relative transition-colors duration-200 inline-block',
+                        fakeIpBuiltinEnabled ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-600'
+                      ]"
+                    >
+                      <span
+                        :class="[
+                          'absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-200 shadow-sm',
+                          fakeIpBuiltinEnabled ? 'translate-x-4' : 'translate-x-0'
+                        ]"
+                      ></span>
+                    </span>
+                  </label>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-2">
+                  <input
+                    v-model="newFakeIpInput"
+                    @keyup.enter="addFakeIpFilter"
+                    type="text"
+                    placeholder="输入需免 Fake-IP 放行的域名，例如 +.cmbchina.com 或 nas.local"
+                    class="flex-1 px-3 py-2 rounded-xl text-xs font-mono"
+                  />
+                  <button
+                    type="button"
+                    @click="addFakeIpFilter"
+                    :disabled="fakeIpLoading || !newFakeIpInput.trim()"
+                    class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-45 text-white text-xs font-bold transition cursor-pointer shrink-0 active:scale-95"
+                  >
+                    {{ fakeIpLoading ? '同步中...' : '➕ 快捷加白' }}
+                  </button>
+                </div>
+
+                <div v-if="fakeIpFilters.length > 0" class="flex flex-wrap gap-1.5 pt-1">
+                  <span
+                    v-for="domain in fakeIpFilters"
+                    :key="domain"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl cbx-badge-info border text-xs font-mono font-semibold"
+                  >
+                    <span>{{ domain }}</span>
+                    <button
+                      type="button"
+                      @click="removeFakeIpFilter(domain)"
+                      :disabled="fakeIpLoading"
+                      class="hover:opacity-75 px-1 font-bold cursor-pointer"
+                      :aria-label="`移除 ${domain}`"
+                      title="移除此白名单域名"
+                    >✕</button>
+                  </span>
+                </div>
+                <div v-else class="text-[11px] font-mono cbx-text-muted">
+                  暂无自定义白名单域名，可通过上方输入框快捷添加。
+                </div>
+              </div>
+
+              <div v-if="displayedPolicies.length === 0" class="p-8 text-center rounded-3xl cbx-card cbx-text-sub">
 
                 <span class="text-2xl block mb-2">🔍</span>
 
-                <span>未找到与「{{ routingSearchQuery }}」匹配的分流策略</span>
+                <span>{{ routingSearchQuery ? `未找到与「${routingSearchQuery}」匹配的分流策略` : '当前筛选条件下暂无匹配策略' }}</span>
 
               </div>
 
-              <div v-for="(grp, grpIdx) in filteredPolicies" :key="grp.name"
+              <div v-for="(grp, grpIdx) in displayedPolicies" :key="grp.name"
 
-                :draggable="!grp.is_immutable"
+                :draggable="!grp.is_immutable && routingViewMode !== 'minimal'"
 
                 @dragstart="onDragStart($event, grpIdx)"
 
@@ -3567,6 +3718,50 @@
             @cancel="resolveConfirmDialog(false)"
           />
 
+          <!-- 轻量非阻塞安全提醒：未开启控制台访问密码 -->
+          <teleport to="body">
+            <div
+              v-if="passwordSafetyVisible"
+              role="dialog"
+              aria-modal="false"
+              aria-labelledby="cbx-pwd-tip-title"
+              class="fixed inset-0 z-[10450] flex items-center justify-center p-4 bg-black/50 animate-in fade-in"
+              @click.self="dismissPasswordSafetyTip"
+            >
+              <div class="w-full max-w-md cbx-modal-shell rounded-2xl p-5 sm:p-6 space-y-4">
+                <div class="flex items-start gap-3">
+                  <div class="w-10 h-10 rounded-xl cbx-badge-warn border flex items-center justify-center text-lg shrink-0" aria-hidden="true">
+                    🔐
+                  </div>
+                  <div class="min-w-0 flex-1 space-y-1">
+                    <h3 id="cbx-pwd-tip-title" class="text-sm sm:text-base font-extrabold cbx-text-main">
+                      控制台安全提醒
+                    </h3>
+                    <p class="text-xs cbx-text-sub leading-relaxed font-medium">
+                      为了您的网络安全，建议前往侧边栏‘系统设置’开启访问密码
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center justify-end gap-2.5 pt-2 border-t" style="border-color: var(--cbx-border-sub);">
+                  <button
+                    type="button"
+                    @click="skipPasswordSafetyTip"
+                    class="cbx-btn-ghost px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
+                  >
+                    本次跳过
+                  </button>
+                  <button
+                    type="button"
+                    @click="goToAuthSettingsFromTip"
+                    class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-extrabold transition cursor-pointer shadow-sm"
+                  >
+                    前往设置
+                  </button>
+                </div>
+              </div>
+            </div>
+          </teleport>
+
           <ConsoleAuthModal
             mode="manage"
             :visible="showAuthManageModal"
@@ -3676,12 +3871,13 @@
 import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick, provide, defineAsyncComponent } from 'vue'
 import TwilightTopBar from './components/TwilightTopBar.vue'
 import ThemeBackground from './components/ThemeBackground.vue'
+const CockpitDualCards = defineAsyncComponent(() => import('./components/CockpitDualCards.vue'))
 import { useDataplane } from './composables/useDataplane.js'
 import { useStreamBuffer } from './composables/useStreamBuffer.js'
 import { useThemeEngine } from './composables/useThemeEngine.js'
 const SubscriptionMatrix = defineAsyncComponent(() => import('./components/subscriptions/SubscriptionMatrix.vue'))
 const FullHealthModal = defineAsyncComponent(() => import('./components/modals/FullHealthModal.vue'))
-import ConfirmDialog from './components/modals/ConfirmDialog.vue'
+const ConfirmDialog = defineAsyncComponent(() => import('./components/modals/ConfirmDialog.vue'))
 const RulesTab = defineAsyncComponent(() => import('./components/tabs/RulesTab.vue'))
 const SystemTab = defineAsyncComponent(() => import('./components/tabs/SystemTab.vue'))
 const LogsModal = defineAsyncComponent(() => import('./components/modals/LogsModal.vue'))
@@ -3692,7 +3888,7 @@ const ProbeModal = defineAsyncComponent(() => import('./components/modals/ProbeM
 const GeodataDetailModal = defineAsyncComponent(() => import('./components/modals/GeodataDetailModal.vue'))
 const DiagnosticOpsModals = defineAsyncComponent(() => import('./components/modals/DiagnosticOpsModals.vue'))
 const IPPerspectiveModal = defineAsyncComponent(() => import('./components/modals/IPPerspectiveModal.vue'))
-import ConsoleAuthModal from './components/modals/ConsoleAuthModal.vue'
+const ConsoleAuthModal = defineAsyncComponent(() => import('./components/modals/ConsoleAuthModal.vue'))
 import { frameScheduler, enablePeekModeWithGuard } from './utils/scheduler'
 import { GeekCommandController, bindGeekCommandPalette } from './utils/command-palette'
 import { apiFetch, configureApiClient } from './utils/apiFetch'
@@ -3911,7 +4107,7 @@ const isFailOpenActive = computed(() => !!autopilotStatus.value?.fail_open?.acti
 
 const fetchAutoPilotStatus = async () => {
   try {
-    const res = await fetch('/api/v1/autopilot/status')
+    const res = await apiFetch('/api/v1/autopilot/status')
     if (res.ok) {
       autopilotStatus.value = await res.json()
     }
@@ -4016,6 +4212,40 @@ function resolveConfirmDialog(accepted) {
   if (fn) fn(Boolean(accepted))
 }
 
+const passwordSafetyVisible = ref(false)
+let passwordSafetyResolver = null
+
+function ensurePasswordSafetyConfirmed() {
+  if (authState.value?.enabled) return Promise.resolve(true)
+  return new Promise((resolve) => {
+    passwordSafetyResolver = resolve
+    passwordSafetyVisible.value = true
+  })
+}
+
+function skipPasswordSafetyTip() {
+  passwordSafetyVisible.value = false
+  const fn = passwordSafetyResolver
+  passwordSafetyResolver = null
+  if (fn) fn(true)
+}
+
+function dismissPasswordSafetyTip() {
+  passwordSafetyVisible.value = false
+  const fn = passwordSafetyResolver
+  passwordSafetyResolver = null
+  if (fn) fn(false)
+}
+
+function goToAuthSettingsFromTip() {
+  passwordSafetyVisible.value = false
+  const fn = passwordSafetyResolver
+  passwordSafetyResolver = null
+  if (fn) fn(false)
+  activeMasterTab.value = 'system'
+  showAuthManageModal.value = true
+}
+
 // ── Ctrl/Cmd + K 疯狂动物城极客瞬态指令舱 (Command Palette) ──
 const showCommandPalette = ref(false)
 const commandPaletteQuery = ref('')
@@ -4028,7 +4258,7 @@ const ewmaMatrix = ref([])
 async function toggleHADrain() {
   const next = !isHADraining.value
   try {
-    const res = await fetch('/api/v1/ha/drain', {
+    const res = await apiFetch('/api/v1/ha/drain', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode: next ? 'maintenance' : 'resume' })
@@ -4045,7 +4275,7 @@ async function toggleHADrain() {
 
 async function fetchEWMAMatrix() {
   try {
-    const res = await fetch('/api/v1/probe/ewma/matrix')
+    const res = await apiFetch('/api/v1/probe/ewma/matrix')
     if (res.ok) {
       const data = await res.json()
       ewmaMatrix.value = data.matrix || []
@@ -4136,8 +4366,7 @@ function onCommandPaletteKeyDown(e) {
 
 async function refreshConsoleAuthStatus() {
   try {
-    const fn = window.__cubexNativeFetch || fetch
-    const res = await fn('/api/v1/auth/status')
+    const res = await apiFetch('/api/v1/auth/status')
     if (res.ok) {
       const data = await res.json()
       authState.value = {
@@ -4154,8 +4383,7 @@ async function refreshConsoleAuthStatus() {
 
 async function lockConsoleNow() {
   try {
-    const fn = window.__cubexNativeFetch || fetch
-    await fn('/api/v1/auth/logout', { method: 'POST' })
+    await apiFetch('/api/v1/auth/logout', { method: 'POST' })
     authState.value.authenticated = false
     showToast('🔒 控制台已锁定')
   } catch (e) {
@@ -4177,9 +4405,9 @@ function handleAuthLocked() {
 import ZootopiaIcon from './components/ZootopiaIcon.vue'
 
 import CubeXLogo from './components/CubeXLogo.vue'
-import BrandLogo from './components/BrandLogo.vue'
-import LogoPicker from './components/LogoPicker.vue'
-import RegionFlag from './components/RegionFlag.vue'
+const BrandLogo = defineAsyncComponent(() => import('./components/BrandLogo.vue'))
+const LogoPicker = defineAsyncComponent(() => import('./components/LogoPicker.vue'))
+const RegionFlag = defineAsyncComponent(() => import('./components/RegionFlag.vue'))
 
 // ── Master Navigation Hubs (核心模块导航 - 支持全状态记忆与 F5 刷新锁定) ──
 
@@ -4394,7 +4622,8 @@ async function triggerBurstSpeedtest(nodeName) {
   if (!nodeName) return
   showToast(`正在对 [${nodeName}] 发起 ≤2MB 闪电测速...`, 'info')
   try {
-    const res = await fetch('/api/v1/config/proxies/burst-speedtest', {
+    const res = await apiFetch('/api/v1/config/proxies/burst-speedtest', {
+      timeoutMs: 60000,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ node: nodeName })
@@ -4413,7 +4642,7 @@ async function triggerBurstSpeedtest(nodeName) {
 
 async function fetchTriangleScores() {
   try {
-    const res = await fetch('/api/v1/config/proxies/triangle-scores')
+    const res = await apiFetch('/api/v1/config/proxies/triangle-scores')
     if (res.ok) {
       const data = await res.json()
       if (data.ok && data.scores) {
@@ -4460,7 +4689,7 @@ async function triggerFullHealthAudit() {
 
   try {
 
-    const res = await fetch('/api/v1/health/full-audit')
+    const res = await apiFetch('/api/v1/health/full-audit')
 
     if (res.ok) {
 
@@ -4495,7 +4724,7 @@ async function fetchNodeScores() {
   try {
     fetchTriangleScores()
 
-    const res = await fetch('/api/v1/config/proxies/scores')
+    const res = await apiFetch('/api/v1/config/proxies/scores')
 
     if (res.ok) {
 
@@ -4523,7 +4752,7 @@ async function refreshHealthRadar(manual = false) {
 
   try {
 
-    const res = await fetch('/api/v1/health/radar')
+    const res = await apiFetch('/api/v1/health/radar')
 
     if (res.ok) {
 
@@ -4601,7 +4830,7 @@ const fetchChaosStatus = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/chaos/status')
+    const res = await apiFetch('/api/v1/chaos/status')
 
     if (res.ok) {
 
@@ -4625,7 +4854,7 @@ const runChaosDrill = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/chaos/drill', { method: 'POST' })
+    const res = await apiFetch('/api/v1/chaos/drill', { method: 'POST' })
 
     const data = await res.json()
 
@@ -4687,7 +4916,7 @@ const fetchQoSStatus = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/network/qos/status')
+    const res = await apiFetch('/api/v1/network/qos/status')
 
     if (res.ok) {
 
@@ -4723,7 +4952,7 @@ const fetchRulesDeltaStatus = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/rules/delta/status')
+    const res = await apiFetch('/api/v1/rules/delta/status')
 
     if (res.ok) {
 
@@ -4761,7 +4990,7 @@ const fetchMultiWANStatus = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/host/multiwan/status')
+    const res = await apiFetch('/api/v1/host/multiwan/status')
 
     if (res.ok) {
 
@@ -4795,7 +5024,7 @@ const runDiagnostics = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/diagnostics/run', { method: 'POST' })
+    const res = await apiFetch('/api/v1/diagnostics/run', { method: 'POST' })
 
     if (res.ok) {
 
@@ -4821,7 +5050,7 @@ const triggerFastSelfHeal = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/diagnostics/heal', { method: 'POST' })
+    const res = await apiFetch('/api/v1/diagnostics/heal', { method: 'POST' })
 
     if (res.ok) {
 
@@ -4857,7 +5086,7 @@ const rfc8305Status = ref({
 const probingRFC8305 = ref(false)
 const fetchRFC8305 = async () => {
   try {
-    const res = await fetch('/api/v1/network/happyeyeballs/v2/status')
+    const res = await apiFetch('/api/v1/network/happyeyeballs/v2/status')
     if (res.ok) {
       const d = await res.json()
       if (d.happy_eyeballs) rfc8305Status.value = d.happy_eyeballs
@@ -4868,7 +5097,7 @@ const probeRFC8305 = async () => {
   if (probingRFC8305.value) return
   probingRFC8305.value = true
   try {
-    const res = await fetch('/api/v1/network/happyeyeballs/v2/probe', {
+    const res = await apiFetch('/api/v1/network/happyeyeballs/v2/probe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ domain: 'google.com' })
@@ -4896,7 +5125,7 @@ const spliceStatus = ref({
 const flushingSplice = ref(false)
 const fetchSplice = async () => {
   try {
-    const res = await fetch('/api/v1/system/splice/status')
+    const res = await apiFetch('/api/v1/system/splice/status')
     if (res.ok) {
       const d = await res.json()
       if (d.splice) spliceStatus.value = d.splice
@@ -4907,7 +5136,7 @@ const flushSplicePipes = async () => {
   if (flushingSplice.value) return
   flushingSplice.value = true
   try {
-    const res = await fetch('/api/v1/system/splice/flush', { method: 'POST' })
+    const res = await apiFetch('/api/v1/system/splice/flush', { method: 'POST' })
     if (res.ok) {
       const d = await res.json()
       await fetchSplice()
@@ -4933,7 +5162,7 @@ const bidirHeartbeatStatus = ref({
 const patchingBidir = ref(false)
 const fetchBidirHeartbeat = async () => {
   try {
-    const res = await fetch('/api/v1/ros/bidirheartbeat/status')
+    const res = await apiFetch('/api/v1/ros/bidirheartbeat/status')
     if (res.ok) {
       const d = await res.json()
       if (d.bidir_heartbeat) bidirHeartbeatStatus.value = d.bidir_heartbeat
@@ -4944,7 +5173,7 @@ const applyBidirPatch = async () => {
   if (patchingBidir.value) return
   patchingBidir.value = true
   try {
-    const res = await fetch('/api/v1/ros/bidirheartbeat/patch', { method: 'POST' })
+    const res = await apiFetch('/api/v1/ros/bidirheartbeat/patch', { method: 'POST' })
     if (res.ok) {
       const d = await res.json()
       await fetchBidirHeartbeat()
@@ -4997,7 +5226,7 @@ const fetchBBRStatus = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/network/bbr/status')
+    const res = await apiFetch('/api/v1/network/bbr/status')
 
     if (res.ok) {
 
@@ -5021,7 +5250,7 @@ const optimizeBBR = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/network/bbr/optimize', { method: 'POST' })
+    const res = await apiFetch('/api/v1/network/bbr/optimize', { method: 'POST' })
 
     const data = await res.json()
 
@@ -5053,7 +5282,7 @@ const fetchHappyEyeballs = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/network/happyeyeballs/status')
+    const res = await apiFetch('/api/v1/network/happyeyeballs/status')
 
     if (res.ok) {
 
@@ -5091,7 +5320,7 @@ const fetchNetworkTopology = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/network/topology')
+    const res = await apiFetch('/api/v1/network/topology')
 
     if (res.ok) {
 
@@ -5115,7 +5344,7 @@ const refreshTopology = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/network/topology/refresh', { method: 'POST' })
+    const res = await apiFetch('/api/v1/network/topology/refresh', { method: 'POST' })
 
     const data = await res.json()
 
@@ -5145,7 +5374,7 @@ const fetchDeviceFlows = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/devices/telemetry')
+    const res = await apiFetch('/api/v1/devices/telemetry')
 
     if (res.ok) {
 
@@ -5167,7 +5396,7 @@ const setDevicePriority = async (dev, priority) => {
 
   try {
 
-    const res = await fetch('/api/v1/devices/priority', {
+    const res = await apiFetch('/api/v1/devices/priority', {
 
       method: 'POST',
 
@@ -5245,7 +5474,7 @@ const fetchSentinelStatus = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/sentinel/status')
+    const res = await apiFetch('/api/v1/sentinel/status')
 
     if (res.ok) {
 
@@ -5269,7 +5498,7 @@ const triggerSentinelHeal = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/sentinel/trigger', { method: 'POST' })
+    const res = await apiFetch('/api/v1/sentinel/trigger', { method: 'POST' })
 
     const data = await res.json()
 
@@ -5321,7 +5550,7 @@ const fetchQUICMigration = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/network/quic/migration/status')
+    const res = await apiFetch('/api/v1/network/quic/migration/status')
 
     if (res.ok) {
 
@@ -5375,7 +5604,7 @@ const fetchSceneStatus = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/profile/scene')
+    const res = await apiFetch('/api/v1/profile/scene')
 
     if (res.ok) {
 
@@ -5397,7 +5626,7 @@ const switchScenePreset = async (mode) => {
 
   try {
 
-    const res = await fetch('/api/v1/profile/scene', {
+    const res = await apiFetch('/api/v1/profile/scene', {
 
       method: 'POST',
 
@@ -5489,7 +5718,7 @@ const fetchTimeMachine = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/telemetry/timemachine')
+    const res = await apiFetch('/api/v1/telemetry/timemachine')
 
     if (res.ok) {
 
@@ -5533,7 +5762,7 @@ const fetchDNSRadar = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/dns/radar')
+    const res = await apiFetch('/api/v1/dns/radar')
 
     if (res.ok) {
 
@@ -5557,7 +5786,7 @@ const runDNSRadarProbe = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/dns/radar/probe', { method: 'POST' })
+    const res = await apiFetch('/api/v1/dns/radar/probe', { method: 'POST' })
 
     const data = await res.json()
 
@@ -5689,7 +5918,7 @@ async function checkBackendHeartbeat() {
   try {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 2000)
-    const res = await fetch('/api/health', { signal: controller.signal, cache: 'no-store' })
+    const res = await apiFetch('/api/health', { signal: controller.signal, cache: 'no-store' })
     clearTimeout(timer)
     if (res.ok) {
       if (!isBackendOnline.value) {
@@ -5737,7 +5966,7 @@ const fetchMultiwanBinding = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/host/multiwan/binding')
+    const res = await apiFetch('/api/v1/host/multiwan/binding')
 
     if (res.ok) {
 
@@ -5757,7 +5986,7 @@ const updateMultiwanPolicy = async (newPolicy) => {
 
   try {
 
-    const res = await fetch('/api/v1/host/multiwan/binding', {
+    const res = await apiFetch('/api/v1/host/multiwan/binding', {
 
       method: 'POST',
 
@@ -5811,7 +6040,7 @@ const fetchJitterReport = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/network/jitter/report')
+    const res = await apiFetch('/api/v1/network/jitter/report')
 
     if (res.ok) {
 
@@ -5831,7 +6060,7 @@ const runJitterProbe = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/network/jitter/probe', { method: 'POST' })
+    const res = await apiFetch('/api/v1/network/jitter/probe', { method: 'POST' })
 
     if (res.ok) {
 
@@ -5885,7 +6114,7 @@ const fetchWeeklyReport = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/telemetry/weekly')
+    const res = await apiFetch('/api/v1/telemetry/weekly')
 
     if (res.ok) {
 
@@ -5937,7 +6166,7 @@ const fetchActiveHealing = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/healing/active-status')
+    const res = await apiFetch('/api/v1/healing/active-status')
 
     if (res.ok) {
 
@@ -5955,7 +6184,7 @@ const updateHealingMode = async (mode) => {
 
   try {
 
-    const res = await fetch('/api/v1/healing/active-toggle', {
+    const res = await apiFetch('/api/v1/healing/active-toggle', {
 
       method: 'POST',
 
@@ -5989,7 +6218,7 @@ const triggerManualHealing = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/healing/trigger-manual', {
+    const res = await apiFetch('/api/v1/healing/trigger-manual', {
 
       method: 'POST',
 
@@ -6053,7 +6282,7 @@ const fetchXDPStatus = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/netstack/xdp/status')
+    const res = await apiFetch('/api/v1/netstack/xdp/status')
 
     if (res.ok) {
 
@@ -6075,7 +6304,7 @@ const toggleXDP = async () => {
 
     const nextState = !xdpBypassStatus.value.enabled
 
-    const res = await fetch('/api/v1/netstack/xdp/toggle', {
+    const res = await apiFetch('/api/v1/netstack/xdp/toggle', {
 
       method: 'POST',
 
@@ -6135,7 +6364,7 @@ const fetchWiFiQoS = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/netstack/wifi/qos/status')
+    const res = await apiFetch('/api/v1/netstack/wifi/qos/status')
 
     if (res.ok) {
 
@@ -6155,7 +6384,7 @@ const inspectWiFiQoS = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/netstack/wifi/qos/inspect', { method: 'POST' })
+    const res = await apiFetch('/api/v1/netstack/wifi/qos/inspect', { method: 'POST' })
 
     if (res.ok) {
 
@@ -6183,7 +6412,7 @@ const tuneWiFiClientVIP = async (ip, isVIP) => {
 
   try {
 
-    const res = await fetch('/api/v1/netstack/wifi/qos/tune', {
+    const res = await apiFetch('/api/v1/netstack/wifi/qos/tune', {
 
       method: 'POST',
 
@@ -6225,7 +6454,7 @@ const optimizingFlowOffload = ref(false)
 
 const fetchFlowOffload = async () => {
   try {
-    const res = await fetch('/api/v1/host/flow-offload/status')
+    const res = await apiFetch('/api/v1/host/flow-offload/status')
     if (res.ok) {
       const data = await res.json()
       if (data.flow_offload) flowOffloadStatus.value = data.flow_offload
@@ -6237,7 +6466,7 @@ const toggleFlowOffload = async () => {
   togglingFlowOffload.value = true
   try {
     const nextState = !flowOffloadStatus.value.enabled
-    const res = await fetch('/api/v1/host/flow-offload/toggle', {
+    const res = await apiFetch('/api/v1/host/flow-offload/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled: nextState, mode: 'fasttrack_passthrough' })
@@ -6257,7 +6486,7 @@ const toggleFlowOffload = async () => {
 const optimizeFlowOffload = async () => {
   optimizingFlowOffload.value = true
   try {
-    const res = await fetch('/api/v1/host/flow-offload/optimize', { method: 'POST' })
+    const res = await apiFetch('/api/v1/host/flow-offload/optimize', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.flow_offload) flowOffloadStatus.value = data.flow_offload
@@ -6283,7 +6512,7 @@ const probingPMTU = ref(false)
 
 const fetchPMTUReport = async () => {
   try {
-    const res = await fetch('/api/v1/network/pmtu/status')
+    const res = await apiFetch('/api/v1/network/pmtu/status')
     if (res.ok) {
       const data = await res.json()
       if (data.pmtu) pmtuRadarReport.value = data.pmtu
@@ -6294,7 +6523,7 @@ const fetchPMTUReport = async () => {
 const runPMTUProbe = async () => {
   probingPMTU.value = true
   try {
-    const res = await fetch('/api/v1/network/pmtu/probe', { method: 'POST' })
+    const res = await apiFetch('/api/v1/network/pmtu/probe', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.pmtu) pmtuRadarReport.value = data.pmtu
@@ -6321,7 +6550,7 @@ const scanningLANGuardian = ref(false)
 
 const fetchLANGuardian = async () => {
   try {
-    const res = await fetch('/api/v1/security/guardian/status')
+    const res = await apiFetch('/api/v1/security/guardian/status')
     if (res.ok) {
       const data = await res.json()
       if (data.guardian) lanGuardianStatus.value = data.guardian
@@ -6332,7 +6561,7 @@ const fetchLANGuardian = async () => {
 const runLANGuardianScan = async () => {
   scanningLANGuardian.value = true
   try {
-    const res = await fetch('/api/v1/security/guardian/scan', { method: 'POST' })
+    const res = await apiFetch('/api/v1/security/guardian/scan', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.guardian) lanGuardianStatus.value = data.guardian
@@ -6367,7 +6596,7 @@ const flushingDNSPrefetch = ref(false)
 
 const fetchDNSPrefetch = async () => {
   try {
-    const res = await fetch('/api/v1/network/dns/prefetch/status')
+    const res = await apiFetch('/api/v1/network/dns/prefetch/status')
     if (res.ok) {
       const data = await res.json()
       if (data.prefetch) dnsPrefetchStatus.value = data.prefetch
@@ -6379,7 +6608,7 @@ const toggleDNSPrefetch = async () => {
   togglingDNSPrefetch.value = true
   try {
     const next = !dnsPrefetchStatus.value.enabled
-    const res = await fetch('/api/v1/network/dns/prefetch/toggle', {
+    const res = await apiFetch('/api/v1/network/dns/prefetch/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled: next })
@@ -6399,7 +6628,7 @@ const toggleDNSPrefetch = async () => {
 const flushDNSPrefetch = async () => {
   flushingDNSPrefetch.value = true
   try {
-    const res = await fetch('/api/v1/network/dns/prefetch/flush', { method: 'POST' })
+    const res = await apiFetch('/api/v1/network/dns/prefetch/flush', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.prefetch) dnsPrefetchStatus.value = data.prefetch
@@ -6428,7 +6657,7 @@ const togglingShadow = ref(false)
 
 const fetchShadowAuditor = async () => {
   try {
-    const res = await fetch('/api/v1/host/shadow/status')
+    const res = await apiFetch('/api/v1/host/shadow/status')
     if (res.ok) {
       const data = await res.json()
       if (data.shadow) shadowAuditorStatus.value = data.shadow
@@ -6439,7 +6668,7 @@ const fetchShadowAuditor = async () => {
 const runShadowAudit = async () => {
   auditingShadow.value = true
   try {
-    const res = await fetch('/api/v1/host/shadow/audit', { method: 'POST' })
+    const res = await apiFetch('/api/v1/host/shadow/audit', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.shadow) shadowAuditorStatus.value = data.shadow
@@ -6456,7 +6685,7 @@ const toggleShadowAuditor = async () => {
   togglingShadow.value = true
   try {
     const next = !shadowAuditorStatus.value.enabled
-    const res = await fetch('/api/v1/host/shadow/toggle', {
+    const res = await apiFetch('/api/v1/host/shadow/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled: next })
@@ -6488,7 +6717,7 @@ const resettingSessionAffinity = ref(false)
 
 const fetchSessionAffinity = async () => {
   try {
-    const res = await fetch('/api/v1/proxy/session-affinity/status')
+    const res = await apiFetch('/api/v1/proxy/session-affinity/status')
     if (res.ok) {
       const data = await res.json()
       if (data.session_affinity) sessionAffinityStatus.value = data.session_affinity
@@ -6500,7 +6729,7 @@ const toggleSessionAffinity = async () => {
   togglingSessionAffinity.value = true
   try {
     const next = !sessionAffinityStatus.value.enabled
-    const res = await fetch('/api/v1/proxy/session-affinity/toggle', {
+    const res = await apiFetch('/api/v1/proxy/session-affinity/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled: next, strategy: sessionAffinityStatus.value.strategy })
@@ -6520,7 +6749,7 @@ const toggleSessionAffinity = async () => {
 const resetSessionAffinity = async () => {
   resettingSessionAffinity.value = true
   try {
-    const res = await fetch('/api/v1/proxy/session-affinity/reset', { method: 'POST' })
+    const res = await apiFetch('/api/v1/proxy/session-affinity/reset', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.session_affinity) sessionAffinityStatus.value = data.session_affinity
@@ -6553,7 +6782,7 @@ const flushingConntrack = ref(false)
 
 const fetchMemoryConntrack = async () => {
   try {
-    const res = await fetch('/api/v1/system/memory-conntrack/status')
+    const res = await apiFetch('/api/v1/system/memory-conntrack/status')
     if (res.ok) {
       const data = await res.json()
       if (data.memory_conntrack) memoryConntrackStatus.value = data.memory_conntrack
@@ -6564,7 +6793,7 @@ const fetchMemoryConntrack = async () => {
 const runMemoryReclaim = async () => {
   reclaimingMemory.value = true
   try {
-    const res = await fetch('/api/v1/system/memory/reclaim', { method: 'POST' })
+    const res = await apiFetch('/api/v1/system/memory/reclaim', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.memory_conntrack) memoryConntrackStatus.value = data.memory_conntrack
@@ -6580,7 +6809,7 @@ const runMemoryReclaim = async () => {
 const runConntrackFlush = async () => {
   flushingConntrack.value = true
   try {
-    const res = await fetch('/api/v1/system/conntrack/flush', { method: 'POST' })
+    const res = await apiFetch('/api/v1/system/conntrack/flush', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.memory_conntrack) memoryConntrackStatus.value = data.memory_conntrack
@@ -6637,7 +6866,7 @@ const healingStreaming = ref(false)
 
 const fetchStreamingReport = async () => {
   try {
-    const res = await fetch('/api/v1/diagnostics/streaming/report')
+    const res = await apiFetch('/api/v1/diagnostics/streaming/report')
     if (res.ok) {
       const data = await res.json()
       if (data.report) streamingReport.value = data.report
@@ -6648,7 +6877,7 @@ const fetchStreamingReport = async () => {
 const runStreamingDiagnosis = async () => {
   diagnosingStreaming.value = true
   try {
-    const res = await fetch('/api/v1/diagnostics/streaming/run', { method: 'POST' })
+    const res = await apiFetch('/api/v1/diagnostics/streaming/run', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.report) {
@@ -6666,7 +6895,7 @@ const runStreamingDiagnosis = async () => {
 const triggerStreamingHeal = async () => {
   healingStreaming.value = true
   try {
-    const res = await fetch('/api/v1/diagnostics/streaming/heal', { method: 'POST' })
+    const res = await apiFetch('/api/v1/diagnostics/streaming/heal', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.heal_result) {
@@ -6702,7 +6931,7 @@ const togglingAdaptiveSlicing = ref(false)
 
 const fetchAdaptiveSlicing = async () => {
   try {
-    const res = await fetch('/api/v1/network/adaptive-slicing/status')
+    const res = await apiFetch('/api/v1/network/adaptive-slicing/status')
     if (res.ok) {
       const data = await res.json()
       if (data.slicing) adaptiveSlicingStatus.value = data.slicing
@@ -6714,7 +6943,7 @@ const toggleAdaptiveSlicing = async () => {
   togglingAdaptiveSlicing.value = true
   try {
     const next = !adaptiveSlicingStatus.value.enabled
-    const res = await fetch('/api/v1/network/adaptive-slicing/tune', {
+    const res = await apiFetch('/api/v1/network/adaptive-slicing/tune', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled: next, threshold_mbps: adaptiveSlicingStatus.value.congestion_threshold_mbps })
@@ -6747,7 +6976,7 @@ const optimizingBpfBypass = ref(false)
 
 const fetchBpfBypass = async () => {
   try {
-    const res = await fetch('/api/v1/host/bpf-bypass/status')
+    const res = await apiFetch('/api/v1/host/bpf-bypass/status')
     if (res.ok) {
       const data = await res.json()
       if (data.bpf_bypass) bpfBypassStatus.value = data.bpf_bypass
@@ -6758,7 +6987,7 @@ const fetchBpfBypass = async () => {
 const optimizeBpfBypass = async () => {
   optimizingBpfBypass.value = true
   try {
-    const res = await fetch('/api/v1/host/bpf-bypass/optimize', { method: 'POST' })
+    const res = await apiFetch('/api/v1/host/bpf-bypass/optimize', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.bpf_bypass) {
@@ -6775,7 +7004,7 @@ const optimizeBpfBypass = async () => {
 
 const toggleBpfRule = async (ruleId) => {
   try {
-    const res = await fetch('/api/v1/host/bpf-bypass/toggle', {
+    const res = await apiFetch('/api/v1/host/bpf-bypass/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rule_id: ruleId })
@@ -6812,7 +7041,7 @@ const optimizingMultiPath = ref(false)
 
 const fetchMultiPathBonding = async () => {
   try {
-    const res = await fetch('/api/v1/network/multipath-bonding/status')
+    const res = await apiFetch('/api/v1/network/multipath-bonding/status')
     if (res.ok) {
       const data = await res.json()
       if (data.multipath_bonding) multiPathStatus.value = data.multipath_bonding
@@ -6823,7 +7052,7 @@ const fetchMultiPathBonding = async () => {
 const optimizeMultiPathBonding = async () => {
   optimizingMultiPath.value = true
   try {
-    const res = await fetch('/api/v1/network/multipath-bonding/optimize', { method: 'POST' })
+    const res = await apiFetch('/api/v1/network/multipath-bonding/optimize', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.multipath_bonding) {
@@ -6840,7 +7069,7 @@ const optimizeMultiPathBonding = async () => {
 
 const toggleMultiPathChannel = async (channelId, active) => {
   try {
-    const res = await fetch('/api/v1/network/multipath-bonding/channel/toggle', {
+    const res = await apiFetch('/api/v1/network/multipath-bonding/channel/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ channel_id: channelId, active: active })
@@ -6876,7 +7105,7 @@ const flushingMicroQoS = ref(false)
 
 const fetchMicroQoS = async () => {
   try {
-    const res = await fetch('/api/v1/network/micro-qos/status')
+    const res = await apiFetch('/api/v1/network/micro-qos/status')
     if (res.ok) {
       const data = await res.json()
       if (data.micro_qos) microQoSStatus.value = data.micro_qos
@@ -6887,7 +7116,7 @@ const fetchMicroQoS = async () => {
 const flushMicroQoS = async () => {
   flushingMicroQoS.value = true
   try {
-    const res = await fetch('/api/v1/network/micro-qos/flush', { method: 'POST' })
+    const res = await apiFetch('/api/v1/network/micro-qos/flush', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.micro_qos) {
@@ -6922,7 +7151,7 @@ const optimizingECS = ref(false)
 
 const fetchECSDispatcher = async () => {
   try {
-    const res = await fetch('/api/v1/dns/ecs-dispatcher/status')
+    const res = await apiFetch('/api/v1/dns/ecs-dispatcher/status')
     if (res.ok) {
       const data = await res.json()
       if (data.ecs_dispatcher) ecsDispatcherStatus.value = data.ecs_dispatcher
@@ -6933,7 +7162,7 @@ const fetchECSDispatcher = async () => {
 const optimizeECSDispatcher = async () => {
   optimizingECS.value = true
   try {
-    const res = await fetch('/api/v1/dns/ecs-dispatcher/optimize', { method: 'POST' })
+    const res = await apiFetch('/api/v1/dns/ecs-dispatcher/optimize', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.ecs_dispatcher) {
@@ -6964,7 +7193,7 @@ const scanningZeroTrust = ref(false)
 
 const fetchZeroTrustStatus = async () => {
   try {
-    const res = await fetch('/api/v1/security/zerotrust/status')
+    const res = await apiFetch('/api/v1/security/zerotrust/status')
     if (res.ok) {
       const data = await res.json()
       if (data.zerotrust) zeroTrustStatus.value = data.zerotrust
@@ -6975,7 +7204,7 @@ const fetchZeroTrustStatus = async () => {
 const scanZeroTrust = async () => {
   scanningZeroTrust.value = true
   try {
-    const res = await fetch('/api/v1/security/zerotrust/scan', { method: 'POST' })
+    const res = await apiFetch('/api/v1/security/zerotrust/scan', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.zerotrust) {
@@ -6993,7 +7222,7 @@ const scanZeroTrust = async () => {
 const toggleDeviceZeroTrust = async (dev) => {
   const targetPolicy = dev.policy === 'AIR_GAP_QUARANTINE' ? 'WAN_RESTRICTED' : (dev.policy === 'WAN_RESTRICTED' ? 'AIR_GAP_QUARANTINE' : 'WAN_RESTRICTED')
   try {
-    const res = await fetch('/api/v1/security/zerotrust/device/policy', {
+    const res = await apiFetch('/api/v1/security/zerotrust/device/policy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mac: dev.mac, policy: targetPolicy })
@@ -7028,7 +7257,7 @@ const optimizingPrivacyMesh = ref(false)
 
 const fetchPrivacyMesh = async () => {
   try {
-    const res = await fetch('/api/v1/dns/privacy-mesh/status')
+    const res = await apiFetch('/api/v1/dns/privacy-mesh/status')
     if (res.ok) {
       const data = await res.json()
       if (data.privacy_mesh) privacyMeshStatus.value = data.privacy_mesh
@@ -7039,7 +7268,7 @@ const fetchPrivacyMesh = async () => {
 const optimizePrivacyMesh = async () => {
   optimizingPrivacyMesh.value = true
   try {
-    const res = await fetch('/api/v1/dns/privacy-mesh/optimize', { method: 'POST' })
+    const res = await apiFetch('/api/v1/dns/privacy-mesh/optimize', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.privacy_mesh) {
@@ -7059,7 +7288,7 @@ const healingRootCause = ref(false)
 
 const fetchRootCauseReport = async () => {
   try {
-    const res = await fetch('/api/v1/ai/root-cause/report')
+    const res = await apiFetch('/api/v1/ai/root-cause/report')
     if (res.ok) {
       const data = await res.json()
       if (data.report) rootCauseReport.value = data.report
@@ -7070,7 +7299,7 @@ const fetchRootCauseReport = async () => {
 const runRootCauseDiagnosis = async () => {
   diagnosingRootCause.value = true
   try {
-    const res = await fetch('/api/v1/ai/root-cause/report')
+    const res = await apiFetch('/api/v1/ai/root-cause/report')
     if (res.ok) {
       const data = await res.json()
       if (data.report) rootCauseReport.value = data.report
@@ -7086,7 +7315,7 @@ const runRootCauseDiagnosis = async () => {
 const triggerRootCauseHeal = async () => {
   healingRootCause.value = true
   try {
-    const res = await fetch('/api/v1/ai/root-cause/heal', { method: 'POST' })
+    const res = await apiFetch('/api/v1/ai/root-cause/heal', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.heal_result) {
@@ -7123,7 +7352,7 @@ const togglingUDPRacing = ref(false)
 
 const fetchUDPRacing = async () => {
   try {
-    const res = await fetch('/api/v1/network/udp-racing/status')
+    const res = await apiFetch('/api/v1/network/udp-racing/status')
     if (res.ok) {
       const data = await res.json()
       if (data.udp_racing) udpRacingStatus.value = data.udp_racing
@@ -7134,7 +7363,7 @@ const fetchUDPRacing = async () => {
 const runUDPRacingProbe = async () => {
   probingUDPRacing.value = true
   try {
-    const res = await fetch('/api/v1/network/udp-racing/probe', {
+    const res = await apiFetch('/api/v1/network/udp-racing/probe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ domain: 'googlevideo.com' })
@@ -7154,7 +7383,7 @@ const toggleUDPRacing = async () => {
   togglingUDPRacing.value = true
   try {
     const next = !udpRacingStatus.value.enabled
-    const res = await fetch('/api/v1/network/udp-racing/toggle', {
+    const res = await apiFetch('/api/v1/network/udp-racing/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled: next })
@@ -7187,7 +7416,7 @@ const togglingFastTrack = ref(false)
 
 const fetchFastTrackStatus = async () => {
   try {
-    const res = await fetch('/api/v1/host/fasttrack/status')
+    const res = await apiFetch('/api/v1/host/fasttrack/status')
     if (res.ok) {
       const data = await res.json()
       if (data.fasttrack) fastTrackStatus.value = data.fasttrack
@@ -7198,7 +7427,7 @@ const fetchFastTrackStatus = async () => {
 const runFastTrackOptimize = async () => {
   optimizingFastTrack.value = true
   try {
-    const res = await fetch('/api/v1/host/fasttrack/optimize', { method: 'POST' })
+    const res = await apiFetch('/api/v1/host/fasttrack/optimize', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.fasttrack) fastTrackStatus.value = data.fasttrack
@@ -7215,7 +7444,7 @@ const toggleFastTrack = async () => {
   togglingFastTrack.value = true
   try {
     const next = !fastTrackStatus.value.enabled
-    const res = await fetch('/api/v1/host/fasttrack/toggle', {
+    const res = await apiFetch('/api/v1/host/fasttrack/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled: next })
@@ -7246,7 +7475,7 @@ const togglingIoTGuard = ref(false)
 
 const fetchIoTGuardStatus = async () => {
   try {
-    const res = await fetch('/api/v1/devices/iot-guard/status')
+    const res = await apiFetch('/api/v1/devices/iot-guard/status')
     if (res.ok) {
       const data = await res.json()
       if (data.iot_guard) iotGuardStatus.value = data.iot_guard
@@ -7257,7 +7486,7 @@ const fetchIoTGuardStatus = async () => {
 const toggleDeviceSandbox = async (dev) => {
   try {
     const nextSandboxed = !dev.sandboxed
-    const res = await fetch('/api/v1/devices/iot-guard/tune', {
+    const res = await apiFetch('/api/v1/devices/iot-guard/tune', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mac: dev.mac, sandboxed: nextSandboxed, up_limit_kbps: dev.up_limit_kbps })
@@ -7275,7 +7504,7 @@ const toggleIoTGuard = async () => {
   togglingIoTGuard.value = true
   try {
     const next = !iotGuardStatus.value.enabled
-    const res = await fetch('/api/v1/devices/iot-guard/toggle', {
+    const res = await apiFetch('/api/v1/devices/iot-guard/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled: next })
@@ -7389,7 +7618,7 @@ async function fetchRealLatency() {
 
   try {
 
-    const res = await fetch('/api/v1/system/latency')
+    const res = await apiFetch('/api/v1/system/latency')
 
     if (res.ok) {
 
@@ -8571,7 +8800,7 @@ async function probeSingleService(item) {
 
   try {
 
-    const res = await fetch('/api/v1/system/latency', { signal: AbortSignal.timeout(2500) }).catch(() => null)
+    const res = await apiFetch('/api/v1/system/latency', { signal: AbortSignal.timeout(2500) }).catch(() => null)
 
     if (res && res.ok) {
 
@@ -8591,7 +8820,7 @@ async function probeSingleService(item) {
 
     }
 
-    await fetch(item.url + '/favicon.ico?' + Date.now(), { 
+    await apiFetch(item.url + '/favicon.ico?' + Date.now(), { 
       mode: 'no-cors', 
       cache: 'no-store',
       signal: AbortSignal.timeout(2500)
@@ -8825,7 +9054,7 @@ async function fetchTelemetryTraffic() {
 
   try {
 
-    const res = await fetch('/api/v1/telemetry/traffic')
+    const res = await apiFetch('/api/v1/telemetry/traffic')
 
     if (res.ok) {
 
@@ -8997,7 +9226,7 @@ async function fetchDnsFilterStats() {
 
   try {
 
-    const res = await fetch('/api/v1/adblock/stats')
+    const res = await apiFetch('/api/v1/adblock/stats')
 
     if (res.ok) {
 
@@ -9074,7 +9303,7 @@ async function fetchSmartPingStatus() {
 
   try {
 
-    const res = await fetch('/api/v1/smartping/status')
+    const res = await apiFetch('/api/v1/smartping/status')
 
     if (res.ok) {
 
@@ -9098,7 +9327,7 @@ async function triggerSmartPing() {
 
   try {
 
-    const res = await fetch('/api/v1/smartping/trigger', { method: 'POST' })
+    const res = await apiFetch('/api/v1/smartping/trigger', { method: 'POST' })
 
     const data = await res.json()
 
@@ -9122,7 +9351,7 @@ async function saveSmartPingConfig(enabled, intervalMin) {
 
   try {
 
-    const res = await fetch('/api/v1/smartping/config', {
+    const res = await apiFetch('/api/v1/smartping/config', {
 
       method: 'POST',
 
@@ -9177,6 +9406,7 @@ function openUpgradeModal() {
 async function startModalUpgrade() {
 
   if (upgradingPanel.value) return
+  if (!(await ensurePasswordSafetyConfirmed())) return
 
   upgradingPanel.value = true
 
@@ -9196,7 +9426,8 @@ async function startModalUpgrade() {
 
     panelUpgradeLog.value = '⏳ 正在极速拉取对应硬件架构最新二进制...'
 
-    const res = await fetch('/api/v1/upgrade/panel?force=true', { method: 'POST' })
+    const res = await apiFetch('/api/v1/upgrade/panel?force=true', {
+      timeoutMs: 120000, method: 'POST' })
 
     const data = await res.json()
 
@@ -9652,7 +9883,7 @@ async function inspectOpenWrt() {
 
   try {
 
-    const res = await fetch('/api/v1/host/openwrt/inspect')
+    const res = await apiFetch('/api/v1/host/openwrt/inspect')
 
     if (res.ok) {
 
@@ -9690,7 +9921,7 @@ async function applyOpenWrtDirect() {
 
   try {
 
-    const res = await fetch('/api/v1/host/openwrt/apply', { method: 'POST' })
+    const res = await apiFetch('/api/v1/host/openwrt/apply', { method: 'POST' })
 
     if (res.ok) {
 
@@ -9824,7 +10055,7 @@ async function openIkuaiDockerModal() {
 
   try {
 
-    const res = await fetch('/api/v1/host/ikuai/docker-params')
+    const res = await apiFetch('/api/v1/host/ikuai/docker-params')
 
     if (res.ok) {
 
@@ -10229,7 +10460,7 @@ async function fetchSystemLogs(manual = false) {
 
   try {
 
-    const res = await fetch('/api/v1/system/logs?limit=500')
+    const res = await apiFetch('/api/v1/system/logs?limit=500')
 
     if (res.ok) {
 
@@ -10265,7 +10496,7 @@ async function clearSystemLogs() {
 
   try {
 
-    const res = await fetch('/api/v1/system/logs?action=clear', { method: 'POST' })
+    const res = await apiFetch('/api/v1/system/logs?action=clear', { method: 'POST' })
 
     if (res.ok) {
 
@@ -10363,7 +10594,7 @@ async function downloadDiagnosticReport() {
 
 async function getDesensitizedDiagnosticData() {
 
-  const res = await fetch('/api/v1/system/diagnose/export?mode=json')
+  const res = await apiFetch('/api/v1/system/diagnose/export?mode=json')
 
   if (!res.ok) throw new Error('Failed to fetch diagnostic data')
 
@@ -10473,7 +10704,7 @@ async function uploadToGithubIssue() {
 
       showToast('⚡ 检测到 GitHub PAT，正在全自动直传创建 Issue...')
 
-      const res = await fetch('https://api.github.com/repos/zyeyefyass/CubeX/issues', {
+      const res = await apiFetch('https://api.github.com/repos/zyeyefyass/CubeX/issues', {
 
         method: 'POST',
 
@@ -10944,6 +11175,8 @@ const benchmarkResult = ref({
 })
 
 
+const fakeIpBuiltinEnabled = ref(true)
+const fakeIpBuiltinCount = ref(0)
 const fakeIpFilters = ref([])
 const fakeIpDefaults = ref([])
 const newFakeIpInput = ref('')
@@ -10951,56 +11184,79 @@ const fakeIpLoading = ref(false)
 
 async function fetchFakeIpFilters() {
   try {
-    const res = await fetch('/api/v1/dns/fake-ip-filter')
+    const res = await apiFetch('/api/v1/config/fakeip-filter')
     if (res.ok) {
       const data = await res.json()
-      fakeIpFilters.value = data.filters || []
+      fakeIpBuiltinEnabled.value = data.builtin_enabled !== undefined ? Boolean(data.builtin_enabled) : true
+      fakeIpBuiltinCount.value = Number(data.builtin_count || 0)
+      fakeIpFilters.value = Array.isArray(data.custom_domains) ? data.custom_domains : (data.filters || [])
       fakeIpDefaults.value = data.defaults || []
     }
   } catch (e) {
-    console.error('Failed to fetch fake-ip-filter:', e)
+    console.error('Failed to fetch fakeip-filter:', e)
   }
+}
+
+async function saveFakeIpFilterConfig(builtinEnabled, customDomains, successMsg) {
+  fakeIpLoading.value = true
+  try {
+    const res = await apiFetch('/api/v1/config/fakeip-filter', {
+      method: 'POST',
+      json: {
+        builtin_enabled: Boolean(builtinEnabled),
+        custom_domains: customDomains
+      }
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(data?.error || `请求失败 (${res.status})`)
+    }
+    fakeIpBuiltinEnabled.value = data.builtin_enabled !== undefined ? Boolean(data.builtin_enabled) : Boolean(builtinEnabled)
+    fakeIpBuiltinCount.value = Number(data.builtin_count ?? fakeIpBuiltinCount.value)
+    fakeIpFilters.value = Array.isArray(data.custom_domains) ? data.custom_domains : customDomains
+    if (successMsg) showToast(successMsg)
+    return true
+  } catch (e) {
+    showToast('❌ Fake-IP 白名单同步失败: ' + (e?.message || '网络异常'), true)
+    return false
+  } finally {
+    fakeIpLoading.value = false
+  }
+}
+
+async function toggleFakeIpBuiltin() {
+  const nextVal = !fakeIpBuiltinEnabled.value
+  await saveFakeIpFilterConfig(
+    nextVal,
+    fakeIpFilters.value,
+    nextVal ? '✅ 已开启内置 Fake-IP 兼容放行清单' : '⚠️ 已关闭内置 Fake-IP 兼容放行清单'
+  )
 }
 
 async function addFakeIpFilter() {
   const d = newFakeIpInput.value.trim()
   if (!d) return
-  fakeIpLoading.value = true
-  try {
-    const res = await fetch('/api/v1/dns/fake-ip-filter', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ add: d })
-    })
-    if (res.ok) {
-      newFakeIpInput.value = ''
-      await fetchFakeIpFilters()
-      showToast('✅ 已成功添加 Fake-IP 过滤域名并实时生效！')
-    }
-  } catch (e) {
-    showToast('❌ 添加失败: ' + e.message, 'error')
-  } finally {
-    fakeIpLoading.value = false
+  if (fakeIpFilters.value.includes(d)) {
+    newFakeIpInput.value = ''
+    showToast('ℹ️ 该域名已在白名单中')
+    return
   }
+  const nextDomains = [...fakeIpFilters.value, d]
+  const ok = await saveFakeIpFilterConfig(
+    fakeIpBuiltinEnabled.value,
+    nextDomains,
+    '✅ 已成功添加 Fake-IP 过滤域名并实时生效！'
+  )
+  if (ok) newFakeIpInput.value = ''
 }
 
 async function removeFakeIpFilter(domain) {
-  fakeIpLoading.value = true
-  try {
-    const res = await fetch('/api/v1/dns/fake-ip-filter', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ remove: domain })
-    })
-    if (res.ok) {
-      await fetchFakeIpFilters()
-      showToast('✅ 已移除该域名')
-    }
-  } catch (e) {
-    showToast('❌ 移除失败: ' + e.message, 'error')
-  } finally {
-    fakeIpLoading.value = false
-  }
+  const nextDomains = fakeIpFilters.value.filter(item => item !== domain)
+  await saveFakeIpFilterConfig(
+    fakeIpBuiltinEnabled.value,
+    nextDomains,
+    '✅ 已移除该白名单域名并实时生效'
+  )
 }
 
 // Granular memory breakdown: Core Process RSS + Control Plane RSS = Exclusive Resident (专属常驻)
@@ -11195,7 +11451,7 @@ const fetchDnsRewriteConfig = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/dns/rewrite/config')
+    const res = await apiFetch('/api/v1/dns/rewrite/config')
 
     if (res.ok) {
 
@@ -11217,7 +11473,7 @@ const toggleDnsRewriteMaster = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/dns/rewrite/toggle', {
+    const res = await apiFetch('/api/v1/dns/rewrite/toggle', {
 
       method: 'POST',
 
@@ -11249,7 +11505,7 @@ const toggleDnsRewriteRule = async (rule) => {
 
   try {
 
-    const res = await fetch('/api/v1/dns/rewrite/rule/toggle', {
+    const res = await apiFetch('/api/v1/dns/rewrite/rule/toggle', {
 
       method: 'POST',
 
@@ -11288,7 +11544,7 @@ const resetDnsRewriteDefaults = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/dns/rewrite/reset', { method: 'POST' })
+    const res = await apiFetch('/api/v1/dns/rewrite/reset', { method: 'POST' })
 
     const data = await res.json()
 
@@ -11358,7 +11614,7 @@ const saveDnsRewriteRule = async () => {
 
   try {
 
-    const res = await fetch(endpoint, {
+    const res = await apiFetch(endpoint, {
 
       method: 'POST',
 
@@ -11403,7 +11659,7 @@ const deleteDnsRewriteRule = async (rule) => {
 
   try {
 
-    const res = await fetch('/api/v1/dns/rewrite/rule/delete', {
+    const res = await apiFetch('/api/v1/dns/rewrite/rule/delete', {
 
       method: 'POST',
 
@@ -11459,7 +11715,7 @@ const toggleFilterMaster = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/adblock/toggle', {
+    const res = await apiFetch('/api/v1/adblock/toggle', {
 
       method: 'POST',
 
@@ -11493,7 +11749,7 @@ const saveFilterAutoUpdate = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/adblock/config', {
+    const res = await apiFetch('/api/v1/adblock/config', {
 
       method: 'POST',
 
@@ -11523,7 +11779,7 @@ const toggleSourceItem = async (src) => {
 
   try {
 
-    const res = await fetch('/api/v1/adblock/source/toggle', {
+    const res = await apiFetch('/api/v1/adblock/source/toggle', {
 
       method: 'POST',
 
@@ -11559,7 +11815,7 @@ const refreshSourceItem = async (src) => {
 
   try {
 
-    const res = await fetch('/api/v1/adblock/source/refresh', {
+    const res = await apiFetch('/api/v1/adblock/source/refresh', {
 
       method: 'POST',
 
@@ -11605,7 +11861,7 @@ const addWhitelistItem = async () => {
 
   try {
 
-    const res = await fetch('/api/v1/adblock/whitelist/add', {
+    const res = await apiFetch('/api/v1/adblock/whitelist/add', {
 
       method: 'POST',
 
@@ -11639,7 +11895,7 @@ const removeWhitelistItem = async (d) => {
 
   try {
 
-    const res = await fetch('/api/v1/adblock/whitelist/delete', {
+    const res = await apiFetch('/api/v1/adblock/whitelist/delete', {
 
       method: 'POST',
 
@@ -11711,7 +11967,7 @@ const saveRuleSource = async () => {
 
   try {
 
-    const res = await fetch(endpoint, {
+    const res = await apiFetch(endpoint, {
 
       method: 'POST',
 
@@ -11754,7 +12010,7 @@ const deleteSourceItem = async (src) => {
 
   try {
 
-    const res = await fetch('/api/v1/adblock/source/delete', {
+    const res = await apiFetch('/api/v1/adblock/source/delete', {
 
       method: 'POST',
 
@@ -12559,7 +12815,7 @@ async function runSecurityAudit() {
 
   try {
 
-    const res = await fetch('/api/v1/security/radar')
+    const res = await apiFetch('/api/v1/security/radar')
 
     const data = await res.json()
 
@@ -12591,7 +12847,7 @@ async function autoRemediateSecurity() {
 
   try {
 
-    const res = await fetch('/api/v1/security/remediate', { method: 'POST' })
+    const res = await apiFetch('/api/v1/security/remediate', { method: 'POST' })
 
     const data = await res.json()
 
@@ -12667,7 +12923,7 @@ async function runDualCoreDiagnose() {
 
   try {
 
-    const res = await fetch('/api/v1/system/diagnose/dual-core')
+    const res = await apiFetch('/api/v1/system/diagnose/dual-core')
 
     const data = await res.json()
 
@@ -12825,7 +13081,7 @@ async function withdrawHostBypass() {
   if (!ok) return
   withdrawingHostBypass.value = true
   try {
-    const res = await fetch('/api/v1/host/bypass/remove', {
+    const res = await apiFetch('/api/v1/host/bypass/remove', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({})
@@ -12849,7 +13105,7 @@ async function togglePanic() {
 
   try {
 
-    await fetch('/api/v1/system/panic', {
+    await apiFetch('/api/v1/system/panic', {
 
       method: 'POST',
 
@@ -12883,7 +13139,8 @@ async function runBenchmark() {
 
     const route = currentBenchmarkRoute.value
 
-    const res = await fetch('/api/v1/engine/benchmark', {
+    const res = await apiFetch('/api/v1/engine/benchmark', {
+      timeoutMs: 60000,
 
       method: 'POST',
 
@@ -12955,7 +13212,8 @@ async function runAllLatencyTest() {
 
   try {
 
-    const res = await fetch('/api/v1/config/proxies/speedtest', {
+    const res = await apiFetch('/api/v1/config/proxies/speedtest', {
+      timeoutMs: 90000,
 
       method: 'POST',
 
@@ -13023,7 +13281,7 @@ async function fetchRouterHardware(silent = false) {
 
   try {
 
-    const res = await fetch('/api/v1/host/router/hardware')
+    const res = await apiFetch('/api/v1/host/router/hardware')
 
     const data = await res.json()
 
@@ -13051,7 +13309,7 @@ async function fetchLanClients(silent = false) {
 
   try {
 
-    const res = await fetch('/api/v1/host/router/clients')
+    const res = await apiFetch('/api/v1/host/router/clients')
 
     const data = await res.json()
 
@@ -13081,7 +13339,7 @@ async function setClientMode(client, targetMode) {
   targetTogglingMode.value = targetMode
 
   try {
-    const res = await fetch('/api/v1/host/router/clients/toggle', {
+    const res = await apiFetch('/api/v1/host/router/clients/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -13129,7 +13387,7 @@ async function batchSetClients(action) {
 
   try {
 
-    const res = await fetch('/api/v1/host/router/clients/batch', {
+    const res = await apiFetch('/api/v1/host/router/clients/batch', {
 
       method: 'POST',
 
@@ -13173,7 +13431,7 @@ async function saveClientAlias(client) {
 
   try {
 
-    const res = await fetch('/api/v1/devices/alias', {
+    const res = await apiFetch('/api/v1/devices/alias', {
 
       method: 'POST',
 
@@ -13280,7 +13538,7 @@ async function fetchLanDevices() {
 
   try {
 
-    const res = await fetch('/api/v1/devices')
+    const res = await apiFetch('/api/v1/devices')
 
     const data = await res.json()
 
@@ -13328,7 +13586,7 @@ async function saveDeviceAlias(dev) {
 
   try {
 
-    const res = await fetch('/api/v1/devices/alias', {
+    const res = await apiFetch('/api/v1/devices/alias', {
 
       method: 'POST',
 
@@ -13374,7 +13632,7 @@ async function setDeviceRouting(dev, mode, boundNode = '') {
 
   try {
 
-    await fetch('/api/v1/devices/policy', {
+    await apiFetch('/api/v1/devices/policy', {
 
       method: 'POST',
 
@@ -13416,7 +13674,7 @@ async function refreshHostTelemetry() {
 
     const [hRes] = await Promise.allSettled([
 
-      fetch('/api/v1/host/info').then(r => r.json()),
+      apiFetch('/api/v1/host/info').then(r => r.json()),
 
       fetchSystemOverview()
 
@@ -13438,7 +13696,7 @@ async function fetchHostConfig() {
 
   try {
 
-    const res = await fetch('/api/v1/host/config')
+    const res = await apiFetch('/api/v1/host/config')
 
     const data = await res.json()
 
@@ -13509,19 +13767,15 @@ async function saveCredentialsAndLinkHost() {
 
   }
 
+  if (!(await ensurePasswordSafetyConfirmed())) return
+
   savingAndLinkingHost.value = true
   savingAndLinkingStage.value = '正在验证连接...'
 
   showToast('🔍 正在测试宿主连接并验证凭据...')
 
   const fetchWithTimeout = async (url, options = {}, timeoutMs = 15000) => {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), timeoutMs)
-    try {
-      return await fetch(url, { ...options, signal: controller.signal })
-    } finally {
-      clearTimeout(timer)
-    }
+    return await apiFetch(url, { ...options, timeoutMs })
   }
 
   try {
@@ -13694,6 +13948,7 @@ async function saveCredentialsAndLinkHost() {
 async function triggerOneClickHotUpgrade(force = true) {
 
   if (upgradingPanel.value) return
+  if (!(await ensurePasswordSafetyConfirmed())) return
 
   upgradingPanel.value = true
 
@@ -13707,7 +13962,7 @@ async function triggerOneClickHotUpgrade(force = true) {
 
     const url = force ? '/api/v1/upgrade/panel?force=true' : '/api/v1/upgrade/panel'
 
-    const res = await fetch(url, { method: 'POST' })
+    const res = await apiFetch(url, { method: 'POST', timeoutMs: 120000 })
 
     const data = await res.json()
 
@@ -13742,6 +13997,9 @@ async function triggerOneClickHotUpgrade(force = true) {
 
 async function upgradePanel(force = false) {
 
+  if (upgradingPanel.value) return
+  if (!(await ensurePasswordSafetyConfirmed())) return
+
   upgradingPanel.value = true
 
   panelUpgradeLog.value = systemStatus.value?.in_docker
@@ -13752,7 +14010,7 @@ async function upgradePanel(force = false) {
 
     const url = force ? '/api/v1/upgrade/panel?force=true' : '/api/v1/upgrade/panel'
 
-    const res = await fetch(url, { method: 'POST' })
+    const res = await apiFetch(url, { method: 'POST', timeoutMs: 120000 })
 
     const data = await res.json()
 
@@ -13875,6 +14133,8 @@ async function upgradeCore(type) {
 
   }
 
+  if (!(await ensurePasswordSafetyConfirmed())) return
+
   const latestVer = type === 'mihomo' ? systemOverview.value?.mihomo_latest_version : systemOverview.value?.singbox_latest_version
 
   const confirmMsg = `【内核升级自主决策确认】\n\n确定要升级 ${type} 内核吗？${latestVer ? `(最新目标版本: ${latestVer})` : ''}\n\n⚠️ 重要提示：请自行决定是否更新到最新版，因为更新会由于配置文件语法、特性、功能等未对齐可能影响使用。\n\n是否确认继续升级？`
@@ -13898,7 +14158,8 @@ async function upgradeCore(type) {
 
   try {
 
-    const res = await fetch('/api/v1/upgrade/core', {
+    const res = await apiFetch('/api/v1/upgrade/core', {
+      timeoutMs: 120000,
 
       method: 'POST',
 
@@ -13960,7 +14221,7 @@ async function fetchGeoDataStatus(check = false) {
 
     const url = check ? '/api/v1/upgrade/geodata?check=true' : '/api/v1/upgrade/geodata'
 
-    const res = await fetch(url)
+    const res = await apiFetch(url)
 
     if (res.ok) {
 
@@ -14000,7 +14261,8 @@ async function updateGeoData() {
 
   try {
 
-    const res = await fetch('/api/v1/upgrade/geodata', { method: 'POST' })
+    const res = await apiFetch('/api/v1/upgrade/geodata', {
+      timeoutMs: 120000, method: 'POST' })
 
     const data = await res.json()
 
@@ -14130,7 +14392,7 @@ async function checkHostUpgrade(silent = false) {
 
   try {
 
-    const res = await fetch('/api/v1/host/upgrade/check')
+    const res = await apiFetch('/api/v1/host/upgrade/check')
 
     const data = await res.json()
 
@@ -14214,6 +14476,8 @@ async function executeHostUpgrade() {
 
   }
 
+  if (!(await ensurePasswordSafetyConfirmed())) return
+
   const targetVer = hostUpgradeDetails.value.latestVersion ? ` (新版本: ${hostUpgradeDetails.value.latestVersion})` : ''
 
   const confirmMsg = isRouterOS.value
@@ -14239,7 +14503,8 @@ async function executeHostUpgrade() {
 
   try {
 
-    const res = await fetch('/api/v1/host/upgrade/execute', { method: 'POST' })
+    const res = await apiFetch('/api/v1/host/upgrade/execute', {
+      timeoutMs: 120000, method: 'POST' })
 
     const data = await res.json()
 
@@ -14289,7 +14554,7 @@ async function inspectAndCleanReapplyRos() {
 
     // 1. 本端核心规则加固 + IPv4 策略路由与 Netwatch 0秒逃生编排
 
-    const res1 = await fetch('/api/v1/ros/clean-and-reapply', {
+    const res1 = await apiFetch('/api/v1/ros/clean-and-reapply', {
 
       method: 'POST',
 
@@ -14309,7 +14574,7 @@ async function inspectAndCleanReapplyRos() {
 
     try {
 
-      const res2 = await fetch('/api/v1/ros/ipv6/setup', {
+      const res2 = await apiFetch('/api/v1/ros/ipv6/setup', {
 
         method: 'POST',
 
@@ -14405,7 +14670,7 @@ async function setupRosIpv6() {
 
   try {
 
-    const res = await fetch('/api/v1/ros/ipv6/setup', {
+    const res = await apiFetch('/api/v1/ros/ipv6/setup', {
 
       method: 'POST',
 
@@ -14485,7 +14750,7 @@ async function applyLinuxHostFirewall() {
 
     if (hostConfig.value && hostConfig.value.host) {
 
-      await fetch('/api/v1/host/config', {
+      await apiFetch('/api/v1/host/config', {
 
         method: 'POST',
 
@@ -14497,7 +14762,7 @@ async function applyLinuxHostFirewall() {
 
     }
 
-    const res = await fetch('/api/v1/host/firewall/apply', {
+    const res = await apiFetch('/api/v1/host/firewall/apply', {
 
       method: 'POST',
 
@@ -14577,7 +14842,8 @@ async function askAICheck() {
 
   try {
 
-    const res = await fetch('/api/v1/ai/chat', {
+    const res = await apiFetch('/api/v1/ai/chat', {
+      timeoutMs: 90000,
 
       method: 'POST',
 
@@ -14617,7 +14883,8 @@ async function sendAIChat() {
 
   try {
 
-    const res = await fetch('/api/v1/ai/chat', {
+    const res = await apiFetch('/api/v1/ai/chat', {
+      timeoutMs: 90000,
 
       method: 'POST',
 
@@ -14671,7 +14938,7 @@ async function executeAIAction(act) {
 
     if (act.type === 'heal') {
 
-      const res = await fetch('/api/v1/system/heal', { method: 'POST' })
+      const res = await apiFetch('/api/v1/system/heal', { method: 'POST' })
 
       const data = await res.json()
 
@@ -14685,7 +14952,7 @@ async function executeAIAction(act) {
 
     } else if (act.type === 'failover') {
 
-      const res = await fetch('/api/v1/smartping/trigger', { method: 'POST' })
+      const res = await apiFetch('/api/v1/smartping/trigger', { method: 'POST' })
 
       const data = await res.json()
 
@@ -14699,7 +14966,7 @@ async function executeAIAction(act) {
 
     } else if (act.type === 'clean_conntrack') {
 
-      const res = await fetch('/api/v1/ros/conntrack/clean', { method: 'POST' })
+      const res = await apiFetch('/api/v1/ros/conntrack/clean', { method: 'POST' })
 
       const data = await res.json()
 
@@ -14721,7 +14988,7 @@ async function executeAIAction(act) {
 
     } else if (act.endpoint) {
 
-      const res = await fetch(act.endpoint, { method: 'POST' })
+      const res = await apiFetch(act.endpoint, { method: 'POST' })
 
       const data = await res.json()
 
@@ -14751,7 +15018,7 @@ async function fetchAIConfig() {
 
   try {
 
-    const res = await fetch('/api/v1/ai/config')
+    const res = await apiFetch('/api/v1/ai/config')
 
     if (res.ok) {
 
@@ -14773,7 +15040,7 @@ async function saveAIConfig() {
 
   try {
 
-    const res = await fetch('/api/v1/ai/config', {
+    const res = await apiFetch('/api/v1/ai/config', {
 
       method: 'POST',
 
@@ -14823,7 +15090,7 @@ const settingQUICMode = ref(false)
 
 const fetchRFCQUIC = async () => {
   try {
-    const res = await fetch('/api/v1/network/quic-passthrough/status')
+    const res = await apiFetch('/api/v1/network/quic-passthrough/status')
     if (res.ok) {
       const data = await res.json()
       if (data.quic_passthrough) rfcQUICStatus.value = data.quic_passthrough
@@ -14834,7 +15101,7 @@ const fetchRFCQUIC = async () => {
 const setQUICPassthroughMode = async (mode) => {
   settingQUICMode.value = true
   try {
-    const res = await fetch('/api/v1/network/quic-passthrough/mode', {
+    const res = await apiFetch('/api/v1/network/quic-passthrough/mode', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode })
@@ -14854,7 +15121,7 @@ const setQUICPassthroughMode = async (mode) => {
 const triggerQUICFallback = async () => {
   settingQUICMode.value = true
   try {
-    const res = await fetch('/api/v1/network/quic-passthrough/fallback', { method: 'POST' })
+    const res = await apiFetch('/api/v1/network/quic-passthrough/fallback', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.quic_passthrough) {
@@ -14881,7 +15148,7 @@ const probingMultiWAN = ref(false)
 
 const fetchMultiWANRacingStatus = async () => {
   try {
-    const res = await fetch('/api/v1/network/multiwan-racing/status')
+    const res = await apiFetch('/api/v1/network/multiwan-racing/status')
     if (res.ok) {
       const data = await res.json()
       if (data.multiwan_racing) multiWANRacingStatus.value = data.multiwan_racing
@@ -14891,7 +15158,7 @@ const fetchMultiWANRacingStatus = async () => {
 
 const setMultiWANPolicy = async (policy) => {
   try {
-    const res = await fetch('/api/v1/network/multiwan-racing/policy', {
+    const res = await apiFetch('/api/v1/network/multiwan-racing/policy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ policy })
@@ -14909,7 +15176,7 @@ const setMultiWANPolicy = async (policy) => {
 const probeMultiWANRacing = async () => {
   probingMultiWAN.value = true
   try {
-    const res = await fetch('/api/v1/network/multiwan-racing/probe', { method: 'POST' })
+    const res = await apiFetch('/api/v1/network/multiwan-racing/probe', { method: 'POST' })
     if (res.ok) {
       const data = await res.json()
       if (data.multiwan_racing) {
@@ -14926,51 +15193,72 @@ const probeMultiWANRacing = async () => {
 
 // ── Backup Time Machine & WAN Healer ──
 
+const exportingBackup = ref(false)
+const importingBackup = ref(false)
+
 async function exportBackup() {
+  if (exportingBackup.value) return
+  if (!(await ensurePasswordSafetyConfirmed())) return
+  exportingBackup.value = true
   try {
-    const res = await fetch('/api/v1/system/snapshot')
-    if (!res.ok) throw new Error('导出异常')
+    const res = await apiFetch('/api/v1/system/backup/export', { timeoutMs: 60000 })
+    if (!res.ok) throw new Error(`导出异常 (${res.status})`)
     const blob = await res.blob()
+    const disp = res.headers?.get?.('Content-Disposition') || ''
+    const fnMatch = disp.match(/filename="?([^";]+)"?/i)
+    const filename = (fnMatch && fnMatch[1]) ? fnMatch[1] : 'cubex-config-backup.tar.gz'
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `cubex-backup-${new Date().toISOString().slice(0, 10)}.cubex-backup.json`
+    a.download = filename
     a.click()
     URL.revokeObjectURL(url)
-    showToast('🎉 系统全量灾备快照已导出 (含数字校验签名)！')
+    showToast('🎉 配置迁移备份包 (.tar.gz) 已成功导出！')
   } catch (e) {
-    showToast('快照导出异常: ' + (e.message || '网络错误'), true)
+    showToast('配置备份导出异常: ' + (e?.message || '网络错误'), true)
+  } finally {
+    exportingBackup.value = false
   }
 }
 
 async function importBackup(ev) {
   const file = ev.target.files?.[0]
-  if (!file) return
+  if (!file || importingBackup.value) return
+  importingBackup.value = true
   try {
-    const text = await file.text()
-    const res = await fetch('/api/v1/system/snapshot', {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await apiFetch('/api/v1/system/backup/import', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: text
+      body: formData,
+      timeoutMs: 60000
     })
-    const data = await res.json()
-    if (data.status === 'ok') {
-      const msg = data.result?.message || '🎉 系统快照秒级原子恢复生效，双核已完成热重载！'
-      showToast(msg)
-      setTimeout(() => location.reload(), 1500)
+    const data = await res.json().catch(() => ({}))
+    if (res.ok && data.ok) {
+      const items = Array.isArray(data.restored_items) && data.restored_items.length > 0
+        ? `（已恢复：${data.restored_items.join('、')}）`
+        : ''
+      showToast(`🎉 配置迁移恢复成功，双核已自动重新编排生效！${items}`)
+      await Promise.allSettled([
+        fetchIR(),
+        fetchHostConfig(),
+        fetchSystemStatus(),
+        fetchFakeIpFilters()
+      ])
     } else {
-      showToast('快照导入失败: ' + (data.message || '格式无效'), true)
+      showToast('配置备份导入失败: ' + (data.error || data.message || '文件格式或校验未通过'), true)
     }
   } catch (e) {
-    showToast('快照格式无效或读取失败', true)
+    showToast('配置备份读取或导入失败: ' + (e?.message || '网络异常'), true)
   } finally {
+    importingBackup.value = false
     if (ev.target) ev.target.value = ''
   }
 }
 
 async function triggerWANHeal() {
   try {
-    const res = await fetch('/api/v1/network/wan-heal', { method: 'POST' })
+    const res = await apiFetch('/api/v1/network/wan-heal', { method: 'POST' })
     const data = await res.json()
     if (data.ok) {
       showToast('⚡ ' + (data.message || '已成功冲刷卡死在旧WAN上的僵尸连接池！'))
@@ -14994,7 +15282,7 @@ async function triggerHotRestart() {
 
   try {
 
-    const res = await fetch('/api/v1/host/hot-restart', { method: 'POST' })
+    const res = await apiFetch('/api/v1/host/hot-restart', { method: 'POST' })
 
     const data = await res.json()
 
@@ -15432,7 +15720,7 @@ function submitAddCustomNodeGroup() {
 
     regionActivePolicy.value[newId] = customNodeGroupForm.value.policy || 'auto'
 
-    fetch('/api/v1/config/routing/group/add', {
+    apiFetch('/api/v1/config/routing/group/add', {
 
       method: 'POST',
 
@@ -16198,7 +16486,8 @@ async function processSpeedtestQueue() {
 
     try {
       const timeoutMs = Math.min(180000, Math.max(45000, nodeNames.length * 1500))
-      const res = await fetch('/api/v1/config/proxies/speedtest', {
+      const res = await apiFetch('/api/v1/config/proxies/speedtest', {
+      timeoutMs: 90000,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(timeoutMs),
@@ -16592,7 +16881,7 @@ async function deletePolicyGroup(groupName) {
 
   try {
 
-    fetch('/api/v1/config/routing/group/delete', {
+    apiFetch('/api/v1/config/routing/group/delete', {
 
       method: 'POST',
 
@@ -16644,7 +16933,7 @@ function restoreDefaultPolicies() {
 
   } catch (e) {}
 
-  fetch('/api/v1/config/ir', { method: 'GET' }).then(() => fetchIR())
+  apiFetch('/api/v1/config/ir', { method: 'GET' }).then(() => fetchIR())
 
   showToast('✓ 已成功恢复 14 个官方纯业务策略与 8 大核心地区！')
 
@@ -18263,7 +18552,7 @@ async function confirmSystemPoweroff() {
 
   try {
 
-    const res = await fetch('/api/v1/system/poweroff', { method: 'POST' })
+    const res = await apiFetch('/api/v1/system/poweroff', { method: 'POST' })
 
     const data = await res.json()
 
@@ -18299,7 +18588,7 @@ async function confirmSystemReboot() {
 
   try {
 
-    const res = await fetch('/api/v1/system/reboot', { method: 'POST' })
+    const res = await apiFetch('/api/v1/system/reboot', { method: 'POST' })
 
     const data = await res.json()
 
@@ -18552,6 +18841,93 @@ const filteredPolicies = computed(() => {
   return list
 
 })
+
+const ROUTING_VIEW_MODE_KEY = 'cubex_routing_view_mode'
+const routingViewMode = ref((() => {
+  try {
+    const saved = localStorage.getItem(ROUTING_VIEW_MODE_KEY)
+    if (saved === 'minimal' || saved === 'full') return saved
+  } catch (e) {}
+  return 'full'
+})())
+
+function setRoutingViewMode(mode) {
+  const normalized = mode === 'minimal' ? 'minimal' : 'full'
+  routingViewMode.value = normalized
+  try {
+    localStorage.setItem(ROUTING_VIEW_MODE_KEY, normalized)
+  } catch (e) {}
+}
+
+const routingRegionFilter = ref('ALL')
+
+const minimalRegionPills = computed(() => {
+  const pills = [
+    { id: 'ALL', label: '全部核心策略' },
+    { id: 'DIRECT', label: '直连' }
+  ]
+  for (const reg of (allRegionDefs.value || [])) {
+    pills.push({ id: reg.id, label: reg.name })
+  }
+  return pills
+})
+
+const selectedRegionFilterLabel = computed(() => {
+  const match = minimalRegionPills.value.find(p => p.id === routingRegionFilter.value)
+  return match ? match.label : routingRegionFilter.value
+})
+
+function isCoreMinimalGroup(grp) {
+  const name = String(grp?.name || '').toLowerCase()
+  return (
+    name.includes('proxy') ||
+    name.includes('国外') ||
+    name.includes('stream') ||
+    name.includes('netflix') ||
+    name.includes('youtube') ||
+    name.includes('spotify') ||
+    name.includes('流媒体') ||
+    name === 'ai' ||
+    name.includes('ai') ||
+    name.includes('gemini') ||
+    name.includes('openai') ||
+    name.includes('claude') ||
+    name.includes('chatgpt')
+  )
+}
+
+const displayedPolicies = computed(() => {
+  const base = filteredPolicies.value
+  if (routingViewMode.value !== 'minimal') return base
+  let list = base.filter(isCoreMinimalGroup)
+  if (routingRegionFilter.value === 'ALL') return list
+  if (routingRegionFilter.value === 'DIRECT') {
+    return list.filter(grp => isDirectActive(grp) || !isForeignGroup(grp))
+  }
+  const targetReg = (allRegionDefs.value || []).find(r => r.id === routingRegionFilter.value)
+  if (!targetReg) return list
+  return list.filter(grp => isRegionActiveInGroup(grp, targetReg))
+})
+
+async function applyRegionToCorePolicies(regionId) {
+  const coreList = filteredPolicies.value.filter(grp => isCoreMinimalGroup(grp) && !isChinaGroup(grp))
+  if (coreList.length === 0) return
+  if (regionId === 'DIRECT') {
+    for (const grp of coreList) {
+      if (!isForeignGroup(grp)) {
+        await selectGroupNode(grp.name, 'DIRECT')
+      }
+    }
+    showToast('✅ 已将支持直连的核心策略切换为 DIRECT')
+    return
+  }
+  const reg = (allRegionDefs.value || []).find(r => r.id === regionId)
+  if (!reg) return
+  for (const grp of coreList) {
+    await selectPolicyRegion(grp, reg)
+  }
+  showToast(`✅ 已将核心策略一键切换至「${reg.name}」`)
+}
 
 const regionalAutoGroups = computed(() => {
 
@@ -18863,7 +19239,7 @@ async function testSingleNode(node) {
 
   try {
 
-    const res = await fetch(`/api/v1/engine/proxy/delay?name=${encodeURIComponent(node.name)}`)
+    const res = await apiFetch(`/api/v1/engine/proxy/delay?name=${encodeURIComponent(node.name)}`)
 
     if (res.ok) {
 
@@ -18915,7 +19291,8 @@ async function testProviderNodes(nodes) {
 
   try {
 
-    const res = await fetch('/api/v1/config/proxies/speedtest', {
+    const res = await apiFetch('/api/v1/config/proxies/speedtest', {
+      timeoutMs: 90000,
 
       method: 'POST',
 
@@ -19443,7 +19820,7 @@ async function quickAddGeoRule(rule) {
 
   try {
 
-    const res = await fetch('/api/v1/config/routing/group/add', {
+    const res = await apiFetch('/api/v1/config/routing/group/add', {
 
       method: 'POST',
 
@@ -19515,7 +19892,7 @@ async function quickAddPreset(preset) {
 
     const target = preset.target || '香港自动'
 
-    const res = await fetch('/api/v1/config/routing/group/add', {
+    const res = await apiFetch('/api/v1/config/routing/group/add', {
 
       method: 'POST',
 
@@ -19577,7 +19954,7 @@ async function submitAddCustomGroup() {
 
   try {
 
-    const res = await fetch('/api/v1/config/routing/group/add', {
+    const res = await apiFetch('/api/v1/config/routing/group/add', {
 
       method: 'POST',
 
@@ -19634,7 +20011,7 @@ async function deleteCustomGroup(groupName) {
 
   try {
 
-    const res = await fetch('/api/v1/config/routing/group/delete', {
+    const res = await apiFetch('/api/v1/config/routing/group/delete', {
 
       method: 'POST',
 
@@ -19884,7 +20261,7 @@ async function selectGroupNode(groupName, nodeName) {
 
   try {
 
-    const res = await fetch('/api/v1/engine/group/select', {
+    const res = await apiFetch('/api/v1/engine/group/select', {
 
       method: 'POST',
 
@@ -21258,7 +21635,7 @@ async function handleInitBackupFile(file) {
 
     }
 
-    const res = await fetch('/api/v1/backup/import', {
+    const res = await apiFetch('/api/v1/backup/import', {
 
       method: 'POST',
 
@@ -21371,7 +21748,7 @@ async function chooseFreshStart() {
 
   try {
 
-    await fetch('/api/v1/system/reset', { method: 'POST' })
+    await apiFetch('/api/v1/system/reset', { method: 'POST' })
 
     await fetchIR()
 
@@ -21587,7 +21964,7 @@ async function startInitStep3Execution() {
 
     }
 
-    await fetch('/api/v1/ros/config', {
+    await apiFetch('/api/v1/ros/config', {
 
       method: 'POST',
 
@@ -21597,7 +21974,7 @@ async function startInitStep3Execution() {
 
     })
 
-    await fetch('/api/v1/host/config', {
+    await apiFetch('/api/v1/host/config', {
 
       method: 'POST',
 
@@ -21661,7 +22038,7 @@ async function startInitStep3Execution() {
 
     try {
 
-      await fetch('/api/v1/host/firewall/apply', {
+      await apiFetch('/api/v1/host/firewall/apply', {
 
         method: 'POST',
 
@@ -21697,7 +22074,7 @@ async function startInitStep3Execution() {
 
     try {
 
-      await fetch('/api/v1/ros/clean-and-reapply', {
+      await apiFetch('/api/v1/ros/clean-and-reapply', {
 
         method: 'POST',
 
@@ -21733,7 +22110,7 @@ async function startInitStep3Execution() {
 
     try {
 
-      await fetch('/api/v1/host/firewall/apply', {
+      await apiFetch('/api/v1/host/firewall/apply', {
 
         method: 'POST',
 
@@ -21803,7 +22180,7 @@ async function fetchUIState() {
 
   try {
 
-    const res = await fetch('/api/v1/config/ui_state')
+    const res = await apiFetch('/api/v1/config/ui_state')
 
     if (res.ok) {
 
@@ -21879,7 +22256,7 @@ function syncUIStateToCloud() {
 
     try {
 
-      await fetch('/api/v1/config/ui_state', {
+      await apiFetch('/api/v1/config/ui_state', {
 
         method: 'POST',
 
@@ -22130,7 +22507,7 @@ provide('cubexApp', reactive({
   colorMode, toggleColorMode,
   showToast,
   isBackendOnline, checkBackendHeartbeat,
-  activeEngine, adblockStats, addFakeIpFilter, addWhitelistItem, aiActionResult, aiActions, aiConfig, aiLoading, aiPresetQuestions, aiPrompt, aiProviders, aiReply, authState, batchAddingNodes, batchImportingSubs, batchNodeText, batchSubText, chaosDrillReport, chaosReportModal, checkHostUpgrade, checkingGeoUpgrade, checkingHostUpgrade, chooseFreshStart, cleanActionLabelMap, cleaningRosFirewall, clearSystemLogs, completeInitWizard, confirmAndStartInitWizard, confirmSystemReboot, copyDiagnosticMarkdown, copyText, coreUpgradeFrozen, coreUpgradeLog, creatingGithubIssue, customNodes, deleteDnsRewriteRule, deleteNode, deleteSourceItem, deleteSubscription, diagnosticModal, displayedLogs, dnsBlockedLastY, dnsBlockedPath, dnsFilterStats, dnsLatencyLastY, dnsLatencyPath, dnsQueryLastY, dnsQueryPath, dnsRewriteConfig, editingDnsRewriteRule, editingRuleSource, executeAIAction, executeHostUpgrade, executingAIActionId, executingHostUpgrade, executionModal, exportBackup, fakeIpFilters, fakeIpLoading, fetchDnsFilterStats, fetchRouterHardware, fetchSystemLogs, filterConfig, filteredGeodataFiles, formatExpire, geoAutoUpdateEnabled, geoUpdateLog, geodataFilterCategory, geodataFilterEngine, geodataLastUpdateText, geodataSearchQuery, geodataStatus, getNodeDelayClass, getSubRegions, handleInitBackupUpload, handleInitFileDrop, hasAnyUpdate, healingSteps, hostBadge, hostConfig, hostInfo, hostLastExecution, hostUpgradeDetails, hostUpgradeResult, importBackup, initBackupFileInput, initDetectedPlatform, initExecuting, initHostForm, initImportStats, initImportSuccess, initImporting, initLogs, initWizardImportTab, initWizardStep, inspectAndCleanReapplyRos, ir, isHotRestarting, isIKuai, isOpenWrt, isProbingAll, isRouterOS, isSubDrawerExpanded, isUpdatingSource, launchFireworks, lockConsoleNow, logContainerRef, logFilterLevel, logFilterModule, logSearchQuery, newFakeIpInput, newWhitelistDomain, openAddDnsRewriteModal, openAddSourceModal, openEditDnsRewriteModal, openEditSourceModal, openGitHubIssuePrompt, openProbeModal, openSourcePreview, openUpgradeModal, onHostPlatformChange, panelUpgradeLog, parsedBatchNodes, parsedBatchSubs, previewingSource, probeAllFourDimensions, probeChecked, probeLastTime, refreshSourceItem, removeFakeIpFilter, removeWhitelistItem, resetDnsRewriteDefaults, routerHW, routerHWMemoryDisplay, runSecurityAudit, runSubSpeedTest, saveAIConfig, saveDnsRewriteRule, saveFilterAutoUpdate, saveRuleSource, savingAndLinkingHost, savingAndLinkingStage, securityAudit, selectAIProvider, sendAIChat, setNodeAsPrimaryOutbound, showAISettingsModal, showAuthManageModal, showDnsRewriteModal, showImportModal, showInitWizardModal, showLogsModal, showProbeModal, showGeodataDetailModal, showRuleSourceModal, showSourcePreviewModal, saveCredentialsAndLinkHost, startInitStep3Execution, stopFireworks, subHealthMap, subMetaMap, subModalTab, subNodesMap, subQuotaMap, subSpeedTesting, submitBatchNodes, submitBatchSubs, submitInitWizardImportAndLaunch, systemOverview, systemStatus, toggleCoreUpgradeFreeze, toggleDnsRewriteMaster, toggleDnsRewriteRule, toggleFilterMaster, toggleGeoAutoUpdate, toggleSourceItem, toggleSubDrawer, toggleSubscription, triggerFastSelfHeal, triggerHotRestart, triggerWANHeal, triggerInitBackupSelect, triggerQuickAIPrompt, updateAllSubscriptions, updateDetailText, updateGeoData, updateSubscription, updateSummaryText, updatingGeo, upgradeCore, upgradePanel, upgradingCoreMihomo, upgradingCoreSingbox, upgradingPanel, uploadToGithubIssue, withdrawHostBypass, withdrawingHostBypass
+  activeEngine, adblockStats, addFakeIpFilter, addWhitelistItem, aiActionResult, aiActions, aiConfig, aiLoading, aiPresetQuestions, aiPrompt, aiProviders, aiReply, authState, batchAddingNodes, batchImportingSubs, batchNodeText, batchSubText, chaosDrillReport, chaosReportModal, checkHostUpgrade, checkingGeoUpgrade, checkingHostUpgrade, chooseFreshStart, cleanActionLabelMap, cleaningRosFirewall, clearSystemLogs, completeInitWizard, confirmAndStartInitWizard, confirmSystemReboot, copyDiagnosticMarkdown, copyText, coreUpgradeFrozen, coreUpgradeLog, creatingGithubIssue, customNodes, deleteDnsRewriteRule, deleteNode, deleteSourceItem, deleteSubscription, diagnosticModal, displayedLogs, dnsBlockedLastY, dnsBlockedPath, dnsFilterStats, dnsLatencyLastY, dnsLatencyPath, dnsQueryLastY, dnsQueryPath, dnsRewriteConfig, editingDnsRewriteRule, editingRuleSource, executeAIAction, executeHostUpgrade, executingAIActionId, executingHostUpgrade, executionModal, exportBackup, exportingBackup, fakeIpBuiltinCount, fakeIpBuiltinEnabled, fakeIpFilters, fakeIpLoading, fetchDnsFilterStats, fetchRouterHardware, fetchSystemLogs, filterConfig, filteredGeodataFiles, formatExpire, geoAutoUpdateEnabled, geoUpdateLog, geodataFilterCategory, geodataFilterEngine, geodataLastUpdateText, geodataSearchQuery, geodataStatus, getNodeDelayClass, getSubRegions, handleInitBackupUpload, handleInitFileDrop, hasAnyUpdate, healingSteps, hostBadge, hostConfig, hostInfo, hostLastExecution, hostUpgradeDetails, hostUpgradeResult, importBackup, importingBackup, initBackupFileInput, initDetectedPlatform, initExecuting, initHostForm, initImportStats, initImportSuccess, initImporting, initLogs, initWizardImportTab, initWizardStep, inspectAndCleanReapplyRos, ir, isHotRestarting, isIKuai, isOpenWrt, isProbingAll, isRouterOS, isSubDrawerExpanded, isUpdatingSource, launchFireworks, lockConsoleNow, logContainerRef, logFilterLevel, logFilterModule, logSearchQuery, newFakeIpInput, newWhitelistDomain, openAddDnsRewriteModal, openAddSourceModal, openEditDnsRewriteModal, openEditSourceModal, openGitHubIssuePrompt, openProbeModal, openSourcePreview, openUpgradeModal, onHostPlatformChange, panelUpgradeLog, parsedBatchNodes, parsedBatchSubs, previewingSource, probeAllFourDimensions, probeChecked, probeLastTime, refreshSourceItem, removeFakeIpFilter, removeWhitelistItem, resetDnsRewriteDefaults, routerHW, routerHWMemoryDisplay, runSecurityAudit, runSubSpeedTest, saveAIConfig, saveDnsRewriteRule, saveFilterAutoUpdate, saveRuleSource, savingAndLinkingHost, savingAndLinkingStage, securityAudit, selectAIProvider, sendAIChat, setNodeAsPrimaryOutbound, showAISettingsModal, showAuthManageModal, showDnsRewriteModal, showImportModal, showInitWizardModal, showLogsModal, showProbeModal, showGeodataDetailModal, showRuleSourceModal, showSourcePreviewModal, saveCredentialsAndLinkHost, startInitStep3Execution, stopFireworks, subHealthMap, subMetaMap, subModalTab, subNodesMap, subQuotaMap, subSpeedTesting, submitBatchNodes, submitBatchSubs, submitInitWizardImportAndLaunch, systemOverview, systemStatus, toggleCoreUpgradeFreeze, toggleDnsRewriteMaster, toggleDnsRewriteRule, toggleFakeIpBuiltin, toggleFilterMaster, toggleGeoAutoUpdate, toggleSourceItem, toggleSubDrawer, toggleSubscription, triggerFastSelfHeal, triggerHotRestart, triggerWANHeal, triggerInitBackupSelect, triggerQuickAIPrompt, updateAllSubscriptions, updateDetailText, updateGeoData, updateSubscription, updateSummaryText, updatingGeo, upgradeCore, upgradePanel, upgradingCoreMihomo, upgradingCoreSingbox, upgradingPanel, uploadToGithubIssue, withdrawHostBypass, withdrawingHostBypass
 }))
 
 onMounted(async () => {
@@ -22138,6 +22515,11 @@ onMounted(async () => {
 
   handleGlobalKeyDown = (e) => {
     if (e.key === 'Escape') {
+      if (passwordSafetyVisible.value) {
+        dismissPasswordSafetyTip()
+        e.preventDefault()
+        return
+      }
       if (showCommandPalette.value) {
         showCommandPalette.value = false
         e.preventDefault()
@@ -22224,7 +22606,7 @@ onMounted(async () => {
     if (!isPageVisible()) return
     if (activeMasterTab.value !== 'system' && activeMasterTab.value !== 'overview') return
     try {
-      const res = await fetch('/api/v1/host/info')
+      const res = await apiFetch('/api/v1/host/info')
       if (res.ok) {
         const data = await res.json()
         if (data) {
