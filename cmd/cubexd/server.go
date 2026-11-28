@@ -363,6 +363,8 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 		TickInterval:   15 * time.Second,
 		MaxConcurrency: 4,
 		ManagedGroups:  managedEWMA,
+		ReadinessCheck: engMgr.IsCoreReady,
+		StartupGrace:   30 * time.Second,
 	}, srv.ewmaMgr, func(ev probe.SwitchEvent) {
 		srv.logBuffer.Add("INFO", "EWMA", fmt.Sprintf("微秒闭环选路: 组 [%s] 节点自适应切换: %s -> %s (原因: %s, 紧急: %v)", ev.Group, ev.FromNode, ev.ToNode, ev.Reason, ev.Emergency))
 		if srv.staleFlowKiller != nil && ev.FromNode != "" {
@@ -419,6 +421,14 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 	})
 
 	SafeGo("WANHealerWatch", func() {
+		// Wait for core readiness before watching gateway transitions to prevent early Clash API dial noise
+		for !srv.engMgr.IsCoreReady() {
+			select {
+			case <-stopCtx.Done():
+				return
+			case <-time.After(500 * time.Millisecond):
+			}
+		}
 		probeGateway := func() bool {
 			gw := schema.DetectDefaultGateway()
 			if gw == "" {
@@ -533,13 +543,19 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 		}
 
 		if _, err := engMgr.SwitchEngine(activeEng); err != nil {
-
-			log.Printf("⚠️ [Engine] Auto-boot engine %s warning: %v\n", activeEng, err)
-
+			// Early procd / container boot grace retry after brief backoff
+			select {
+			case <-srv.stopCh:
+				return
+			case <-time.After(2 * time.Second):
+			}
+			if _, retryErr := engMgr.SwitchEngine(activeEng); retryErr != nil {
+				log.Printf("[Engine] Auto-boot engine %s deferred notice: %v\n", activeEng, retryErr)
+			} else {
+				log.Printf("🚀 [Engine] Core engine %s successfully started after boot grace\n", activeEng)
+			}
 		} else {
-
 			log.Printf("🚀 [Engine] Core engine %s successfully started on boot\n", activeEng)
-
 		}
 
 		if srv.shouldRunROSPatrol() {
@@ -853,6 +869,8 @@ func (w *LogBufferWriter) Write(p []byte) (n int, err error) {
 
 			strings.Contains(lower, "connection refused") ||
 
+			strings.Contains(lower, "dial tcp 127.0.0.1:") ||
+
 			strings.Contains(lower, "connection download closed") ||
 
 			strings.Contains(lower, "connection upload closed") ||
@@ -1091,6 +1109,10 @@ type Server struct {
 
 	httpMu      sync.Mutex
 	httpServers []*http.Server
+
+	activeRateOnce    sync.Once
+	activeRateTracker *activeRateTracker
+	threeLightCfg     *threeLightProbeConfig
 }
 
 func (s *Server) registerHTTPServer(srv *http.Server) {

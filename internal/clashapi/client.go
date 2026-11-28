@@ -27,11 +27,12 @@ type ProxyEntry struct {
 
 // ConnectionEntry 描述 Clash REST API `/connections` 中的单条活跃连接。
 type ConnectionEntry struct {
-	ID       string   `json:"id"`
-	Upload   int64    `json:"upload"`
-	Download int64    `json:"download"`
-	Chains   []string `json:"chains"`
-	Rule     string   `json:"rule"`
+	ID       string    `json:"id"`
+	Upload   int64     `json:"upload"`
+	Download int64     `json:"download"`
+	Start    time.Time `json:"start,omitempty"`
+	Chains   []string  `json:"chains"`
+	Rule     string    `json:"rule"`
 	Metadata struct {
 		Network       string `json:"network"`
 		SourceIP      string `json:"sourceIP"`

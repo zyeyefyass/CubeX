@@ -49,6 +49,8 @@ func (s *Server) startDataplaneHealthLoop(ctx context.Context) {
 	failStreak := 0
 	successStreak := 1
 	isHealthy := true
+	bootStart := time.Now()
+	const bootGrace = 15 * time.Second
 
 	for {
 		select {
@@ -67,8 +69,8 @@ func (s *Server) startDataplaneHealthLoop(ctx context.Context) {
 				return
 			}
 
-			// In intentional switching grace period, maintain healthy status and skip physical probe
-			if s.engMgr.IsSwitchingInGracePeriod() {
+			// During initial cold-boot readiness grace or intentional switching grace, maintain healthy optimistic snapshot
+			if s.engMgr != nil && ((!s.engMgr.IsCoreReady() && time.Since(bootStart) < bootGrace) || s.engMgr.IsSwitchingInGracePeriod()) {
 				continue
 			}
 

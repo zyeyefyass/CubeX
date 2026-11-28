@@ -624,6 +624,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	// 14. Intelligence & AutoPilot: Triangle Engine, Target Routing, Boolean Grouping, Connections Tree, IP Perspective & AutoPilot
 	s.registerV97Routes(mux)
 	s.registerV98Routes(mux)
+	s.registerV994Routes(mux)
 
 	// 3. Static Web UI (Precompressed Gzip Direct Streaming & Zero-CPU / Zero-Copy)
 	precompressedServer := webui.NewPrecompressedFileServer(getEmbeddedFS())
@@ -710,9 +711,10 @@ func gzipMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// CRITICAL GUARD: Exempt theme assets (video & image streams) from gzip compression
-		// This preserves HTTP 206 Partial Content (Range header) and Content-Length required by iOS/Safari
-		if strings.Contains(r.URL.Path, "/themes/") && strings.Contains(r.URL.Path, "/assets/") {
+		// CRITICAL GUARD: Exempt pre-compressed gzip archives and theme assets (video & image streams) from gzip middleware
+		// This prevents double-compression on .tar.gz/.json.gz downloads and preserves HTTP 206 Partial Content for media.
+		if r.URL.Path == "/api/v1/system/backup/export" || r.URL.Path == "/api/v1/diag/bundle" ||
+			(strings.Contains(r.URL.Path, "/themes/") && strings.Contains(r.URL.Path, "/assets/")) {
 			next.ServeHTTP(w, r)
 			return
 		}

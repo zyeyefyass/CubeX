@@ -113,6 +113,8 @@ type Manager struct {
 	irVersion         uint64
 	switching         atomic.Bool
 	switchingGraceDeadline atomic.Int64
+	coreReady              atomic.Bool
+	bootedAt               time.Time
 	stopCh chan struct{}
 	stopOnce sync.Once
 
@@ -248,6 +250,7 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 
 		statusCh: make(chan schema.EngineType, 10),
 		precompiledConfig: make(map[schema.EngineType][]byte),
+		bootedAt: time.Now(),
 		stopCh: make(chan struct{}),
 	}
 
@@ -259,6 +262,22 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 
 	return mgr
 
+}
+
+// IsCoreReady reports whether a core engine process has passed its startup readiness probe.
+func (m *Manager) IsCoreReady() bool {
+	if m == nil {
+		return false
+	}
+	return m.coreReady.Load()
+}
+
+// SetCoreReady sets the core readiness state explicitly (useful for testing and coordinated boot).
+func (m *Manager) SetCoreReady(ready bool) {
+	if m == nil {
+		return
+	}
+	m.coreReady.Store(ready)
 }
 
 // SetFaultCallbacks 注册双核全挂逃生回调与上游节点假死回调。
@@ -524,6 +543,9 @@ func (m *Manager) SnapshotClashState() map[string]string {
 
 func (m *Manager) snapshotClashStateLocked() map[string]string {
 	clashAPI := m.clashAPI
+	if m.currentProc == nil || !m.coreReady.Load() {
+		clashAPI = ""
+	}
 	clashSecret := ""
 	var groups []schema.StrategyGroup
 	if m.ir != nil {
@@ -1272,6 +1294,7 @@ func (m *Manager) rollback(eng schema.EngineType, etcDir string, snapshot map[st
 }
 
 func (m *Manager) triggerAllCoresDown(reason string) {
+	m.coreReady.Store(false)
 	m.activeEngine = ""
 	m.currentProc = nil
 	m.procDone = nil
@@ -1294,15 +1317,6 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	// Set 1500ms grace window for /healthz/dataplane and Supervisor to prevent false alarms during active switch
 	m.switchingGraceDeadline.Store(time.Now().Add(1500 * time.Millisecond).UnixNano())
 
-	defer func() {
-
-		m.switching.Store(false)
-		m.switchingGraceDeadline.Store(0)
-
-		m.mu.Unlock()
-
-	}()
-
 	startTime := time.Now()
 
 	fromEngine := m.activeEngine
@@ -1315,6 +1329,17 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 		Timestamp: startTime,
 	}
+
+	defer func() {
+		m.switching.Store(false)
+		if res.Success {
+			// Post-switch stabilization grace window so background probes do not fire immediately after launch
+			m.switchingGraceDeadline.Store(time.Now().Add(2 * time.Second).UnixNano())
+		} else {
+			m.switchingGraceDeadline.Store(0)
+		}
+		m.mu.Unlock()
+	}()
 
 	if fromEngine == target {
 		m.log("INFO", "ENGINE", fmt.Sprintf("执行核心配置热重载: %s (配置同步与连接平滑保持)", target))
@@ -1565,6 +1590,7 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 		}
 	}
 	m.activeEngine = target
+	m.coreReady.Store(true)
 	res.Success = true
 	m.lastResult = res
 	m.ResetCircuitBreaker()
@@ -1608,6 +1634,13 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 func (m *Manager) prewarmEngine(target schema.EngineType) {
 
 	time.Sleep(150 * time.Millisecond)
+
+	m.mu.RLock()
+	stopping := m.stopping
+	m.mu.RUnlock()
+	if stopping || !m.coreReady.Load() {
+		return
+	}
 
 	clashAPI, clashSecret, tunIface := m.snapshotNetMeta()
 
@@ -1739,7 +1772,7 @@ func (m *Manager) StartSupervisor() {
 				if m.IsCircuitBroken() {
 					continue
 				}
-				if active == "" || proc == nil {
+				if active == "" || proc == nil || !m.coreReady.Load() {
 					continue
 				}
 
@@ -2125,6 +2158,9 @@ func (m *Manager) SetSwitchingGraceDeadline(deadline time.Time) {
 // flushStaleConnectionsAfterSwitch cleans up stale half-open connections in the kernel after an engine switch,
 // so client browsers immediately re-resolve and connect with the new core's Fake-IP pool.
 func (m *Manager) flushStaleConnectionsAfterSwitch() {
+	if !m.coreReady.Load() {
+		return
+	}
 	clashAPI, secret, _ := m.snapshotNetMeta()
 	apiClient := clashapi.NewClient(clashAPI, secret, m.httpClient)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)

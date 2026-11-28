@@ -419,6 +419,16 @@ func (s *Server) startTrafficCollector() {
 		},
 	}
 	SafeGo("TrafficCollector", func() {
+		backoff := 1 * time.Second
+		const maxBackoff = 10 * time.Second
+		sleepOrStop := func(d time.Duration) bool {
+			select {
+			case <-s.stopCh:
+				return false
+			case <-time.After(d):
+				return true
+			}
+		}
 
 		for {
 
@@ -429,6 +439,14 @@ func (s *Server) startTrafficCollector() {
 			}
 			if s.draining.Load() {
 				return
+			}
+
+			// Readiness gate: wait until core engine passes startup health check before dialing Clash API
+			if s.engMgr != nil && !s.engMgr.IsCoreReady() {
+				if !sleepOrStop(500 * time.Millisecond) {
+					return
+				}
+				continue
 			}
 
 			clashPort := 9090
@@ -445,10 +463,8 @@ func (s *Server) startTrafficCollector() {
 
 			req, reqErr := http.NewRequest(http.MethodGet, reqURL, nil)
 			if reqErr != nil {
-				select {
-				case <-s.stopCh:
+				if !sleepOrStop(backoff) {
 					return
-				case <-time.After(2 * time.Second):
 				}
 				continue
 			}
@@ -456,26 +472,32 @@ func (s *Server) startTrafficCollector() {
 			resp, err := streamClient.Do(req)
 
 			if err != nil {
-
-				select {
-				case <-s.stopCh:
+				if !sleepOrStop(backoff) {
 					return
-				case <-time.After(2 * time.Second):
 				}
-
+				if backoff < maxBackoff {
+					backoff *= 2
+					if backoff > maxBackoff {
+						backoff = maxBackoff
+					}
+				}
 				continue
-
 			}
 
 			if resp.StatusCode != http.StatusOK {
 				netutil.DrainAndCloseBody(resp)
-				select {
-				case <-s.stopCh:
+				if !sleepOrStop(backoff) {
 					return
-				case <-time.After(2 * time.Second):
+				}
+				if backoff < maxBackoff {
+					backoff *= 2
+					if backoff > maxBackoff {
+						backoff = maxBackoff
+					}
 				}
 				continue
 			}
+			backoff = 1 * time.Second
 
 			// Background periodic physical connections sampler (guaranteed single instance via sync.Once)
 			samplerOnce.Do(func() {
@@ -488,6 +510,9 @@ func (s *Server) startTrafficCollector() {
 						}
 						if s.draining.Load() {
 							return
+						}
+						if s.engMgr != nil && (!s.engMgr.IsCoreReady() || s.engMgr.IsSwitchingInGracePeriod()) {
+							continue
 						}
 						cp := 9090
 						if ir := s.engMgr.GetIR(); ir != nil && ir.Network.ClashAPIPort > 0 {

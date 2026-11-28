@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -81,13 +82,244 @@ type NetworkConfig struct {
 }
 
 type DNSConfig struct {
-	EnableFakeIP bool      `json:"enable_fake_ip" yaml:"enable_fake_ip"`
-	FakeIPRange  string    `json:"fake_ip_range" yaml:"fake_ip_range"` // 198.18.0.0/15
-	FakeIPFilter []string  `json:"fake_ip_filter" yaml:"fake_ip_filter"`
-	DirectDNS    []string  `json:"direct_dns" yaml:"direct_dns"`
-	RemoteDNS    []string  `json:"remote_dns" yaml:"remote_dns"`
-	FallbackDNS  []string  `json:"fallback_dns" yaml:"fallback_dns"`
-	DNSRules     []DNSRule `json:"dns_rules" yaml:"dns_rules"`
+	EnableFakeIP         bool      `json:"enable_fake_ip" yaml:"enable_fake_ip"`
+	FakeIPRange          string    `json:"fake_ip_range" yaml:"fake_ip_range"` // 198.18.0.0/15
+	FakeIPBuiltinEnabled *bool     `json:"fakeip_builtin_enabled,omitempty" yaml:"fakeip_builtin_enabled,omitempty"`
+	FakeIPFilter         []string  `json:"fake_ip_filter" yaml:"fake_ip_filter"`
+	DirectDNS            []string  `json:"direct_dns" yaml:"direct_dns"`
+	RemoteDNS            []string  `json:"remote_dns" yaml:"remote_dns"`
+	FallbackDNS          []string  `json:"fallback_dns" yaml:"fallback_dns"`
+	DNSRules             []DNSRule `json:"dns_rules" yaml:"dns_rules"`
+}
+
+// IsFakeIPBuiltinEnabled reports whether the built-in high-compatibility Fake-IP bypass list is active (defaults to true).
+func (d DNSConfig) IsFakeIPBuiltinEnabled() bool {
+	if d.FakeIPBuiltinEnabled == nil {
+		return true
+	}
+	return *d.FakeIPBuiltinEnabled
+}
+
+// SetFakeIPBuiltinEnabled explicitly sets whether the built-in Fake-IP bypass list is active.
+func (d *DNSConfig) SetFakeIPBuiltinEnabled(enabled bool) {
+	if d == nil {
+		return
+	}
+	v := enabled
+	d.FakeIPBuiltinEnabled = &v
+}
+
+// BuiltinFakeIPFilterDomains is the single-source-of-truth high-compatibility real-IP bypass list (>= 32 entries)
+// covering domestic banking apps, MiHome/HomeKit smart home, NTP/STUN traversal, BT/PT trackers, and LAN connectivity.
+var BuiltinFakeIPFilterDomains = []string{
+	// 1. LAN & Connectivity Detection
+	"*.lan",
+	"*.local",
+	"*.home",
+	"*.internal",
+	"*.home.arpa",
+	"*.localdomain",
+	"localhost",
+	"+.cn",
+	"+.msftconnecttest.com",
+	"+.msftncsi.com",
+	"+.connectivitycheck.gstatic.com",
+	"+.cp.cloudflare.com",
+	"+.test-ipv6.com",
+	"+.routeros.com",
+	"+.mikrotik.com",
+	"+.cloud.mikrotik.com",
+
+	// 2. Domestic Banking & Payment Apps
+	"+.icbc.com.cn",
+	"+.ccb.com",
+	"+.abchina.com",
+	"+.boc.cn",
+	"+.bankcomm.com",
+	"+.cmbchina.com",
+	"+.cmbimg.com",
+	"+.psbc.com",
+	"+.spdb.com.cn",
+	"+.cib.com.cn",
+	"+.ecitic.com",
+	"+.cebbank.com",
+	"+.pingan.com",
+	"+.cmbc.com.cn",
+	"+.hxb.com.cn",
+	"+.unionpay.com",
+	"+.95516.com",
+	"+.alipay.com",
+
+	// 3. Smart Home (MiHome / HomeKit / IoT)
+	"dlg.io.mi.com",
+	"+.io.mi.com",
+	"+.miwifi.com",
+	"+.mijia.tech",
+	"+.xiaomi.com",
+	"+.homekit.apple.com",
+	"+.push.apple.com",
+	"+.ls.apple.com",
+	"+.gs.apple.com",
+	"+.tuya.com",
+	"+.tuyacn.com",
+	"+.aqara.com",
+	"+.aqara.cn",
+	"+.home-assistant.io",
+
+	// 4. NTP Time Sync & STUN/TURN NAT Traversal
+	"*.ntp.org",
+	"+.pool.ntp.org",
+	"pool.ntp.org",
+	"+.time.windows.com",
+	"+.time.apple.com",
+	"time.asia.apple.com",
+	"+.time.google.com",
+	"+.time.cloudflare.com",
+	"+.time.edu.cn",
+	"+.ntp.aliyun.com",
+	"+.ntp.tencent.com",
+	"time.nist.gov",
+	"+.stun.*",
+	"stun.*",
+	"*.stun.*",
+	"+.turn.*",
+	"turn.*",
+	"*.turn.*",
+	"stun.miwifi.com",
+	"stun.qq.com",
+	"stun.synology.com",
+	"stun.bilibili.com",
+	"stun.163.com",
+	"stun.cloudflare.com",
+	"stun.l.google.com",
+
+	// 5. BT / PT Trackers & NAS Direct Resolving
+	"+.tracker.*",
+	"tracker.*",
+	"*.tracker.*",
+	"+.announce.*",
+	"announce.*",
+	"+.m-team.cc",
+	"+.chdbits.co",
+	"+.hdchina.org",
+	"+.ourbits.club",
+	"+.springsunday.net",
+	"+.audiences.me",
+	"+.pterclub.com",
+	"+.keepfrds.com",
+	"+.opencd.cc",
+	"+.totheglory.im",
+	"+.hdsky.me",
+	"+.zspace.com",
+	"+.zspace.cn",
+	"+.zspace.com.cn",
+	"+.zspace.cc",
+
+	// 6. Core Domestic Internet Services
+	"+.baidu.com",
+	"+.bdstatic.com",
+	"+.qq.com",
+	"+.qpic.cn",
+	"+.weixin.qq.com",
+	"+.wechat.com",
+	"+.bilibili.com",
+	"+.hdslb.com",
+	"+.bilivideo.com",
+	"+.bilivideo.cn",
+	"+.biliapi.net",
+	"+.biliapi.com",
+	"+.taobao.com",
+	"+.alicdn.com",
+	"+.jd.com",
+	"+.163.com",
+	"+.zhihu.com",
+	"+.douyin.com",
+	"+.weibo.com",
+	"+.aliyun.com",
+	"+.aliyuncs.com",
+	"+.tencent.com",
+	"+.bytedance.com",
+}
+
+// BuiltinFakeIPFilterCount returns the number of entries in the built-in Fake-IP bypass list.
+func BuiltinFakeIPFilterCount() int {
+	return len(BuiltinFakeIPFilterDomains)
+}
+
+// NormalizeFakeIPDomain validates and canonicalizes a single Fake-IP filter domain pattern.
+func NormalizeFakeIPDomain(raw string) (string, error) {
+	d := strings.ToLower(strings.TrimSpace(raw))
+	d = strings.TrimSuffix(d, ".")
+	if d == "" {
+		return "", fmt.Errorf("domain cannot be empty")
+	}
+	if len(d) > 253 {
+		return "", fmt.Errorf("domain %q exceeds maximum length", raw)
+	}
+	if strings.ContainsAny(d, " \t\r\n/\\@:?#!$%^&()=~`\"'<>;,") {
+		return "", fmt.Errorf("invalid characters in domain %q", raw)
+	}
+
+	prefix := ""
+	core := d
+	switch {
+	case strings.HasPrefix(d, "+."):
+		prefix = "+."
+		core = strings.TrimPrefix(d, "+.")
+	case strings.HasPrefix(d, "*."):
+		prefix = "*."
+		core = strings.TrimPrefix(d, "*.")
+	case strings.HasPrefix(d, "."):
+		prefix = "+."
+		core = strings.TrimPrefix(d, ".")
+	}
+	if core == "" || strings.Contains(core, "..") || strings.Contains(core, "+") {
+		return "", fmt.Errorf("invalid domain syntax %q", raw)
+	}
+	if prefix == "" && core != "localhost" && !strings.Contains(core, ".") {
+		return "", fmt.Errorf("domain %q must contain at least one dot", raw)
+	}
+
+	labels := strings.Split(core, ".")
+	for _, lbl := range labels {
+		if lbl == "" || len(lbl) > 63 {
+			return "", fmt.Errorf("invalid domain label in %q", raw)
+		}
+		if lbl == "*" {
+			continue
+		}
+		if strings.HasPrefix(lbl, "-") || strings.HasSuffix(lbl, "-") {
+			return "", fmt.Errorf("invalid hyphen placement in %q", raw)
+		}
+		for i := 0; i < len(lbl); i++ {
+			c := lbl[i]
+			if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '*') {
+				return "", fmt.Errorf("invalid character %q in domain %q", c, raw)
+			}
+		}
+	}
+	return prefix + core, nil
+}
+
+// NormalizeFakeIPDomains validates, normalizes, and deduplicates a slice of Fake-IP filter domains.
+func NormalizeFakeIPDomains(domains []string) ([]string, error) {
+	out := make([]string, 0, len(domains))
+	seen := make(map[string]struct{}, len(domains))
+	for _, raw := range domains {
+		if strings.TrimSpace(raw) == "" {
+			continue
+		}
+		norm, err := NormalizeFakeIPDomain(raw)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := seen[norm]; ok {
+			continue
+		}
+		seen[norm] = struct{}{}
+		out = append(out, norm)
+	}
+	return out, nil
 }
 
 type DNSRule struct {
@@ -233,6 +465,13 @@ func (ir *ConfigIR) NormalizeDefaults() {
 	if strings.TrimSpace(ir.DNS.FakeIPRange) == "" {
 		ir.DNS.FakeIPRange = def.DNS.FakeIPRange
 	}
+	if ir.DNS.FakeIPBuiltinEnabled == nil {
+		t := true
+		ir.DNS.FakeIPBuiltinEnabled = &t
+	}
+	if ir.DNS.FakeIPFilter == nil {
+		ir.DNS.FakeIPFilter = []string{}
+	}
 	if len(ir.DNS.DirectDNS) == 0 {
 		ir.DNS.DirectDNS = append([]string(nil), def.DNS.DirectDNS...)
 	}
@@ -276,18 +515,10 @@ func NewDefaultIR() *ConfigIR {
 			QUICPolicy:   "direct",
 		},
 		DNS: DNSConfig{
-			EnableFakeIP: true,
-			FakeIPRange:  "198.18.0.0/15",
-			FakeIPFilter: []string{
-				"geosite:cn",
-				"+.cn",
-				"*.lan", "*.local", "localhost",
-				"+.msftconnecttest.com", "+.msftncsi.com",
-				"+.test-ipv6.com", "test-ipv6.com",
-				"+.routeros.com", "+.mikrotik.com",
-				"+.bilibili.com", "+.baidu.com", "+.qq.com",
-				"+.taobao.com", "+.jd.com", "+.alipay.com", "+.163.com",
-			},
+			EnableFakeIP:         true,
+			FakeIPRange:          "198.18.0.0/15",
+			FakeIPBuiltinEnabled: func() *bool { t := true; return &t }(),
+			FakeIPFilter:         []string{},
 			DirectDNS: []string{
 				"223.5.5.5",
 				"119.29.29.29",
@@ -460,6 +691,10 @@ func (ir *ConfigIR) Clone() *ConfigIR {
 	}
 	cp := *ir
 
+	if ir.DNS.FakeIPBuiltinEnabled != nil {
+		v := *ir.DNS.FakeIPBuiltinEnabled
+		cp.DNS.FakeIPBuiltinEnabled = &v
+	}
 	cp.DNS.FakeIPFilter = append([]string(nil), ir.DNS.FakeIPFilter...)
 	cp.DNS.DirectDNS = append([]string(nil), ir.DNS.DirectDNS...)
 	cp.DNS.RemoteDNS = append([]string(nil), ir.DNS.RemoteDNS...)
