@@ -5,7 +5,7 @@ set -e
 # CubeX iStoreOS / OpenWrt Self-Extracting .run Installer Module (Strict POSIX sh / ash)
 # Zero bashisms: no [[, no declare, no source, no local, no arrays, no &>, no <<<.
 
-CUBEX_RUN_VERSION="v9.993"
+CUBEX_RUN_VERSION="v9.994"
 CUBEX_RUN_ARCH="@@CUBEX_ARCH@@"
 CUBEX_PAYLOAD_SHA256="@@CUBEX_PAYLOAD_SHA256@@"
 CUBEX_PAYLOAD_SIZE="@@CUBEX_PAYLOAD_SIZE@@"

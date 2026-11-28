@@ -154,7 +154,8 @@ def main():
     install_dst = os.path.join(release_dir, "install.sh")
     root_install = os.path.join(root, "install.sh")
     shutil.copy2(install_src, install_dst)
-    shutil.copy2(install_src, root_install)
+    if not (os.path.exists(root_install) and open(root_install, "rb").read() == open(install_src, "rb").read()):
+        shutil.copy2(install_src, root_install)
     print(f"  ✓ Native Direct Script {install_src} -> {root_install} & {install_dst}")
 
     # 3. PVE LXC (Native direct script for 100% Single-Source-of-Truth SHA256 consistency)
@@ -162,7 +163,8 @@ def main():
     pve_dst = os.path.join(release_dir, "install_pve_lxc.sh")
     root_pve = os.path.join(root, "install_pve_lxc.sh")
     shutil.copy2(pve_src, pve_dst)
-    shutil.copy2(pve_src, root_pve)
+    if not (os.path.exists(root_pve) and open(root_pve, "rb").read() == open(pve_src, "rb").read()):
+        shutil.copy2(pve_src, root_pve)
     print(f"  ✓ Native Direct Script {pve_src} -> {root_pve} & {pve_dst}")
 
     # 4. RouterOS .rsc

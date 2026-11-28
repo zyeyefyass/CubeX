@@ -373,6 +373,7 @@ def build_istoreos_run_packages(arches: list[str] | None = None) -> list[str]:
     target_arches = arches or ["amd64", "arm64"]
     release_dir = os.path.join(ROOT, "dist", "release")
     os.makedirs(release_dir, exist_ok=True)
+    ver = extract_common_version()
     built_paths = []
 
     for arch in target_arches:
@@ -384,10 +385,10 @@ def build_istoreos_run_packages(arches: list[str] | None = None) -> list[str]:
             payload_sha256=payload_sha256,
             payload_size=str(payload_size),
         )
-        verify_posix_shell_script(header_text, f"cubex_istoreos_{arch}.run header")
+        verify_posix_shell_script(header_text, f"cubex_istoreos_{ver}_{arch}.run header")
 
         header_bytes = header_text.encode("utf-8")
-        out_path = os.path.join(release_dir, f"cubex_istoreos_{arch}.run")
+        out_path = os.path.join(release_dir, f"cubex_istoreos_{ver}_{arch}.run")
         with open(out_path, "wb") as f:
             f.write(header_bytes)
             f.write(payload_bytes)

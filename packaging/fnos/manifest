@@ -1,5 +1,5 @@
 appname               = cubex
-version               = 9.993
+version               = 9.994
 display_name          = CubeX 网络与影音中枢
 desc                  = 15MB 极轻量全屋网络拓扑管理、NAS 影视刮削加速与 DNS 防抖自愈网关
 arch                  = x86_64

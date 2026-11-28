@@ -130,8 +130,8 @@ SIZE_GATE_LIMITS_MB = [
     ("docker-arm64.tar.gz", 80.0),
     ("linux-amd64.zip", 100.0),
     ("linux-arm64.zip", 100.0),
-    ("cubex_istoreos_amd64.run", 32.0),
-    ("cubex_istoreos_arm64.run", 32.0),
+    ("_amd64.run", 32.0),
+    ("_arm64.run", 32.0),
 ]
 
 POSIX_BASHISM_PATTERNS = [

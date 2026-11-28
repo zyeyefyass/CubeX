@@ -4,16 +4,16 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Target release tag (e.g. v9.993)'
+        description: 'Target release tag (e.g. v9.994)'
         required: true
-        default: 'v9.993'
+        default: 'v9.994'
         type: string
       release_id:
         description: 'Target GitHub Release ID'
         required: true
         type: string
       publish:
-        description: 'Publish release (set draft=false) after verifying 19/19 assets'
+        description: 'Publish release (set draft=false) after verifying 21/21 assets'
         required: false
         default: true
         type: boolean
@@ -168,7 +168,7 @@ jobs:
               print(f"Built {dst_zip} ({os.path.getsize(dst_zip):,} bytes)")
           PY
 
-      - name: Download 12 Small Assets, Generate SHA256SUMS, and Run Audit Gate
+      - name: Download 14 Small Assets, Generate SHA256SUMS, and Run Audit Gate
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ inputs.tag }}
@@ -197,6 +197,8 @@ jobs:
           small_names = {
               f"cubex_fnos_{tag}_amd64.fpk",
               f"cubex_fnos_{tag}_arm64.fpk",
+              f"cubex_istoreos_{tag}_amd64.run",
+              f"cubex_istoreos_{tag}_arm64.run",
               "cubexd-linux-amd64",
               "cubexd-linux-arm64",
               "cubex-linux-amd64",
@@ -246,7 +248,7 @@ jobs:
 
           python3 scripts/audit_release_artifacts.py dist/release --expected-version "${TAG}" --size-gate
 
-      - name: Upload 6 Large Archives + SHA256SUMS, Verify 19/19, and Publish
+      - name: Upload 6 Large Archives + SHA256SUMS, Verify 21/21, and Publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ inputs.tag }}
@@ -321,9 +323,11 @@ jobs:
               ], check=True)
               print(f"Uploaded {name} ({os.path.getsize(fpath):,} bytes)")
 
-          expected_19 = [
+          expected_21 = [
               f"cubex_fnos_{tag}_amd64.fpk",
               f"cubex_fnos_{tag}_arm64.fpk",
+              f"cubex_istoreos_{tag}_amd64.run",
+              f"cubex_istoreos_{tag}_arm64.run",
               f"CubeX-{tag}-ros-amd64.tar",
               f"CubeX-{tag}-ros-arm64.tar",
               f"CubeX-{tag}-docker-amd64.tar.gz",
@@ -344,7 +348,7 @@ jobs:
           ]
           _, final_assets = api("GET", f"/releases/{rel_id}/assets?per_page=100")
           final_map = {a["name"]: a for a in final_assets}
-          for name in expected_19:
+          for name in expected_21:
               if name not in final_map:
                   raise RuntimeError(f"Missing final cloud asset: {name}")
               a = final_map[name]

@@ -58,11 +58,12 @@ def get_tag():
 
 TAG = get_tag()
 
-RELEASE_TITLE = f"CubeX {TAG} · EWMA 接管范围收敛 · IPv6 多前缀去重 · 纯 IPv6 节点过滤与空组兜底版"
+RELEASE_TITLE = f"CubeX {TAG} · 空间通透液态玻璃 × 深空黑钛双主题 · 驾驶舱三灯验收 · iStoreOS 离线安装包版"
 
-RELEASE_BODY = f"""1. **收敛 `EWMAScheduler` 接管范围**：修复 `ManagedGroups` 为空时接管全量策略组的缺陷，明确排除 `🎯 国内流量`、所有用户手动 `Selector` 组及跨地区容灾组，仅管理真正的自动测速（URLTest）/ 故障转移（Fallback）组，避免国内流量绕行代理节点。
-2. **重构 `IPv6PrefixWatcher` 为多前缀集合去重并在 `ipv6: false` 时跳过无效路由刷新**：按接口与掩码前缀维护活跃地址集合，消除双前缀交替 RA 续租引起的循环误报，并在 `ipv6: false` 时直接跳过 `Tier3HostRouteHeal` 与 RouterOS 路由刷新。
-3. **双核 `ipv6: false` 自动过滤纯 IPv6 字面量节点并增加空组 `DIRECT` 兜底**：编译 Mihomo 与 sing-box 配置时，在关闭 IPv6 的模式下自动过滤纯 IPv6 字面量节点以消除 `ip version error` 与反复故障切换，若策略组过滤后为空则自动兜底为 `DIRECT`，确保双核配置合法稳定。
+RELEASE_BODY = f"""1. **「空间通透液态玻璃（浅色）× 深空黑钛金属（深色）」双主题视觉体系**：全局统一 `cbx-card`、`cbx-sub-card` 与 `cbx-nav-active` 语义化玻璃态令牌，强化深浅双模式质感与高对比度可读性。
+2. **驾驶舱「三灯一键连通性验收」与活跃节点实时速率**：新增国内直连、出国代理、Fake-IP DNS（`198.18.x.x`）三灯一键检测与双重代理冲突防呆提示；新增活跃节点实时吞吐速率与微波动线展示。
+3. **Fake-IP 兼容白名单、应用极简视图与迁移备份**：内置真实 IP 放行白名单并支持面板快捷加白及 `geosite:` / `rule-set:` 规则令牌；应用分流新增「极简 / 完整视图」持久化切换；新增配置脱敏一键导出/导入迁移包与未设密高危操作安全提醒。
+4. **iStoreOS 离线 `.run` 自包含安装包与冷启动 `0 ERROR` 加固**：新增 `cubex_istoreos_{TAG}_amd64.run` / `arm64.run` 一键自解压安装包并集成 `procd`、LuCI 菜单及干净卸载支持；新增内核就绪门控实现冷启动零报错，并修复离线宿主机触发 `DetectLocalSummary()` 同步阻塞超时的问题。
 
 ---
 
@@ -75,6 +76,8 @@ RELEASE_BODY = f"""1. **收敛 `EWMAScheduler` 接管范围**：修复 `ManagedG
 | :--- | :--- | :--- |
 | `cubex_fnos_{TAG}_amd64.fpk` | 飞牛 fnOS (x86_64) | 飞牛私有云官方应用中心原生套件安装包 |
 | `cubex_fnos_{TAG}_arm64.fpk` | 飞牛 fnOS (aarch64) | 飞牛私有云 ARM64 官方应用中心套件包 (适配 OECT / 树莓派 / RK3566) |
+| `cubex_istoreos_{TAG}_amd64.run` | iStoreOS / OpenWrt (x86_64) | 离线自包含 `.run` 一键安装包（含 `procd` / LuCI / 干净卸载） |
+| `cubex_istoreos_{TAG}_arm64.run` | iStoreOS / OpenWrt (ARM64) | ARM64 离线自包含 `.run` 一键安装包（含 `procd` / LuCI / 干净卸载） |
 | `CubeX-{TAG}-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
 | `CubeX-{TAG}-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
 | `CubeX-{TAG}-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | x86 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
@@ -91,7 +94,7 @@ RELEASE_BODY = f"""1. **收敛 `EWMAScheduler` 接管范围**：修复 `ManagedG
 | `setup-openwrt.sh` | OpenWrt 终端 | OpenWrt / iStoreOS 原生安装与联动脚本 |
 | `install_pve_lxc.sh` | Proxmox VE | PVE 容器一键创建与迁移升级脚本 |
 | `install.sh` | 通用一键安装脚本 | 通用主机一键部署与平滑升级主脚本 |
-| `SHA256SUMS` | 全平台校验文件 | 全部 19 项发布产物完整性 SHA256 校验清单 |
+| `SHA256SUMS` | 全平台校验文件 | 全部 21 项发布产物完整性 SHA256 校验清单 |
 """
 
 
@@ -362,6 +365,8 @@ def main():
     expected_assets = [
         f"cubex_fnos_{TAG}_amd64.fpk",
         f"cubex_fnos_{TAG}_arm64.fpk",
+        f"cubex_istoreos_{TAG}_amd64.run",
+        f"cubex_istoreos_{TAG}_arm64.run",
         f"CubeX-{TAG}-ros-amd64.tar",
         f"CubeX-{TAG}-ros-arm64.tar",
         f"CubeX-{TAG}-docker-amd64.tar.gz",

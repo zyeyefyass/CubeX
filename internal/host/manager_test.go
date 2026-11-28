@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestTestSSH_RouterOSPort80_AuthFailure(t *testing.T) {
@@ -284,5 +285,31 @@ func TestNormalizeHostConfigDefaults_AndCrossPlatformSwitch(t *testing.T) {
 	cfg2 := m.GetConfig()
 	if cfg2.PrivateKey != "" || cfg2.Password != "" {
 		t.Fatalf("cross-platform switch must clear stale credentials, got password=%q key=%q", cfg2.Password, cfg2.PrivateKey)
+	}
+}
+
+func TestDetectLocalSummary_NonBlockingWhenRemoteHostUnreachable(t *testing.T) {
+	tmpDir := t.TempDir()
+	m := NewManager(tmpDir)
+
+	if err := m.SaveConfig(HostConfig{
+		Enabled:      true,
+		Host:         "192.0.2.1", // TEST-NET-1 unreachable blackhole
+		Port:         22,
+		User:         "root",
+		Password:     "dummy",
+		PlatformType: "openwrt",
+	}); err != nil {
+		t.Fatalf("SaveConfig failed: %v", err)
+	}
+
+	start := time.Now()
+	plat, _ := m.DetectLocalSummary()
+	elapsed := time.Since(start)
+	if plat == "" {
+		t.Fatalf("DetectLocalSummary returned empty platformID")
+	}
+	if elapsed > 500*time.Millisecond {
+		t.Fatalf("DetectLocalSummary blocked for %v with unreachable remote host", elapsed)
 	}
 }

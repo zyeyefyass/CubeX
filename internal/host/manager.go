@@ -2036,8 +2036,12 @@ func probeLocalMetrics() (isContainer bool, containerType string, osName string,
 }
 
 // DetectLocalSummary 返回当前宿主本机识别出的平台 ID 与容器类型（供系统能力接口直接复用）。
+// Must remain non-blocking: reads only in-memory cachedInfo and falls back to local OS probing without remote SSH/HTTP calls.
 func (m *Manager) DetectLocalSummary() (platformID string, containerType string) {
-	if cached := m.GetCachedHostInfo(); cached != nil && strings.TrimSpace(cached.PlatformID) != "" {
+	m.mu.RLock()
+	cached := m.cachedInfo
+	m.mu.RUnlock()
+	if cached != nil && strings.TrimSpace(cached.PlatformID) != "" {
 		return cached.PlatformID, cached.ContainerType
 	}
 	osName := m.detectLocalHost()

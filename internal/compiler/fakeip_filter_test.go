@@ -28,9 +28,23 @@ func TestSchemaBuiltinFakeIPListAndNormalization(t *testing.T) {
 		t.Fatalf("unexpected normalized domains: %v", norm)
 	}
 
-	for _, bad := range []string{"bad domain.com", "https://evil.com/path", "foo..bar", "singlelabel"} {
+	for _, bad := range []string{"bad domain.com", "https://evil.com/path", "foo..bar", "singlelabel", "geosite:", "geosite:bad/tag"} {
 		if _, err := schema.NormalizeFakeIPDomain(bad); err == nil {
 			t.Errorf("expected error for invalid domain %q, got nil", bad)
+		}
+	}
+
+	ruleTokens, err := schema.NormalizeFakeIPDomains([]string{" Geosite:CN ", "geosite:private", "geosite:geolocation-!cn", "rule-set:cn_domain"})
+	if err != nil {
+		t.Fatalf("unexpected error normalizing rule tokens: %v", err)
+	}
+	wantTokens := []string{"geosite:cn", "geosite:private", "geosite:geolocation-!cn", "rule-set:cn_domain"}
+	if len(ruleTokens) != len(wantTokens) {
+		t.Fatalf("unexpected rule tokens count: got %v, want %v", ruleTokens, wantTokens)
+	}
+	for i := range wantTokens {
+		if ruleTokens[i] != wantTokens[i] {
+			t.Fatalf("ruleTokens[%d] = %q, want %q", i, ruleTokens[i], wantTokens[i])
 		}
 	}
 }

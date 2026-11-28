@@ -256,6 +256,19 @@ func NormalizeFakeIPDomain(raw string) (string, error) {
 	if len(d) > 253 {
 		return "", fmt.Errorf("domain %q exceeds maximum length", raw)
 	}
+	if strings.HasPrefix(d, "geosite:") || strings.HasPrefix(d, "rule-set:") {
+		prefix, tag, _ := strings.Cut(d, ":")
+		if tag == "" {
+			return "", fmt.Errorf("rule token %q missing tag", raw)
+		}
+		for i := 0; i < len(tag); i++ {
+			c := tag[i]
+			if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '!' || c == '.' || c == ',') {
+				return "", fmt.Errorf("invalid character %q in domain %q", c, raw)
+			}
+		}
+		return prefix + ":" + tag, nil
+	}
 	if strings.ContainsAny(d, " \t\r\n/\\@:?#!$%^&()=~`\"'<>;,") {
 		return "", fmt.Errorf("invalid characters in domain %q", raw)
 	}
