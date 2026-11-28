@@ -2,18 +2,19 @@
 
 <img src="assets/logo.png" width="130" height="130" alt="CubeX 3D Twilight Crystal Logo" />
 
-# 🌌 CubeX · 全自动省心双核网关
+# 🌌 CubeX · 全自动省心双核网关 (`v9.994`)
 
-### *网关不用改 · DNS不用改 · 3秒断网保底直通！极客随便折腾、全家永不断网的宿主共生零感网络系统*
+### *空间通透液态玻璃 × 深空黑钛双主题 · 国内真 IP 直出零损耗 · 3 秒断网保底直通！*
 
-> 🌟 **如果 CubeX 帮你的家庭网络实现了“装好不用管”，请点亮右上角的 Star 支持我们持续进化！** 🌟
+> 🌟 **v9.994 重磅焕新：旗舰级深浅双主题、驾驶舱三灯一键验收、内置 116+ Fake-IP 兼容放行清单与 iStoreOS 离线 `.run` 安装包全面上线！如果 CubeX 帮你实现了“装好不用管”，欢迎点亮右上角 Star 支持持续维护！**
 
 <p align="center">
 
+<a href="#"><img src="https://img.shields.io/badge/Theme-Liquid_Glass_%C3%97_Titanium-38BDF8?style=for-the-badge" alt="Dual Theme" /></a>
 <a href="#"><img src="https://img.shields.io/badge/Memory-15MB~40MB_透明口径-00F5D4?style=for-the-badge&logo=ram" alt="Memory" /></a>
 <a href="#"><img src="https://img.shields.io/badge/Fail--Open-3s_内核逃生-7B2CBF?style=for-the-badge&logo=shield" alt="Fail-Open" /></a>
-<a href="#"><img src="https://img.shields.io/badge/Dual--Core-330ms_热切-0077B6?style=for-the-badge&logo=go" alt="Dual-Core" /></a>
-<a href="#"><img src="https://img.shields.io/badge/Doctor-15%2F15_满分通过-38BDF8?style=for-the-badge&logo=checkmarx" alt="Doctor" /></a>
+<a href="#"><img src="https://img.shields.io/badge/Dual--Core-Mihomo_%C3%97_sing--box-0077B6?style=for-the-badge&logo=go" alt="Dual-Core" /></a>
+<a href="#"><img src="https://img.shields.io/badge/Doctor-15%2F15_满分通过-10B981?style=for-the-badge&logo=checkmarx" alt="Doctor" /></a>
 <a href="https://github.com/zyeyefyass/CubeX/releases/latest"><img src="https://img.shields.io/github/v/release/zyeyefyass/CubeX?label=Latest%20Release&color=FF007F&style=for-the-badge&logo=github" alt="Version" /></a>
 
 </p>
@@ -24,37 +25,45 @@
 
 <div align="center">
 
-### ⚡ 30 秒极速体验 · 一行命令开箱即用
+### ⚡ 30 秒极速体验 · 全平台一键开箱
 
-| 宿主底座平台 | 一键秒级安装命令 (复制终端回车运行 · 免代理加速) |
+| 宿主底座平台 | 一键部署 / 安装命令 (纯净零依赖 · 离线/直连友好) |
 | :--- | :--- |
 | **🥇 Proxmox VE (PVE CT)** | `bash -c "$(curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install_pve_lxc.sh)"` |
+| **🧩 iStoreOS / OpenWrt (离线 `.run`)** | 从 Releases 下载 `cubex_istoreos_*_amd64.run`（或 `arm64.run`），iStore 网页端上传或终端执行 `sh cubex_istoreos_*_amd64.run` |
 | **🐳 Docker / 飞牛 fnOS** | `docker run -d --name cubex --restart unless-stopped --network host --privileged --cap-add=NET_ADMIN --device /dev/net/tun:/dev/net/tun -v /etc/cubex/data:/app/data -v /etc/cubex/etc:/app/etc fyasshole/cubex:latest` |
 | **📶 RouterOS v7 (单机容器)** | `/tool fetch url="https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install_ros_container.rsc" mode=https dst-path=install.rsc; /import install.rsc` |
 
-> 💡 **国内极速通道**：以上命令已内嵌 `gh-proxy.com` 镜像节点，海外/已具备透明网关环境可直接去掉前缀直连 GitHub。（若宿主机系统时间异常或缺失根证书导致 SSL 报错，可追加 `-k` 重试）
+> 💡 **国内极速通道**：以上在线命令已内嵌 `gh-proxy.com` 镜像节点；**iStoreOS 离线 `.run`、飞牛 `.fpk`、Docker/ROS 离线镜像均支持 100% 离线无代理部署**。（若宿主机系统时间异常或缺失根证书导致 SSL 报错，在线脚本可追加 `-k` 重试）
 
 </div>
 
 ---
 
-### 📸 v9.9 黄金三区控制台实机界面 (实测 14.9MB RSS · 60FPS 顺滑)
+### 📸 v9.994 旗舰双主题实机主控驾驶舱 (空间通透浅色 × 深空黑钛暗色)
 
 <div align="center">
-  <img src="assets/cubex-v99-cockpit-hero.png" width="100%" alt="CubeX v9.9 黄金三区：全息主控驾驶舱 + 8柱遥测 + 局域网全息拓扑与三态分流" />
+
+#### ☀️ 方案 A · 空间通透液态玻璃（柔光浅色）
+<img src="assets/cubex-v994-light-hero.png" width="100%" alt="CubeX v9.994 空间通透液态玻璃浅色主控驾驶舱：双核切换、一键三灯连通性验收、宿主性能与活跃节点实时速率" />
+
+#### 🌙 方案 C · 深空黑钛金属（深邃暗色）
+<img src="assets/cubex-v994-dark-hero.png" width="100%" alt="CubeX v9.994 深空黑钛金属暗色主控驾驶舱：全息玻璃切边、三灯诊断卡与实时吞吐微波动线" />
+
 </div>
 
 ---
 
 ### 🥊 为什么 CubeX 是家庭和睦与 Homelab 的终极解法？
 
-| 对比维度 | 传统全包旁路由 (OpenWrt / 传统虚机) | 👑 CubeX v9.9 宿主共生零感网关 |
+| 对比维度 | 传统全包旁路由 (OpenWrt / 传统虚机) | 👑 CubeX v9.994 宿主共生零感网关 |
 | :--- | :--- | :--- |
-| **物理内存常驻** | 动辄 512MB ~ 2GB，小内存主机频繁 OOM | **透明多态内存占用**：静默底座 **~15MB** / 单核稳态 **~30MB** / 双核热备全量 105 套规则 **~40MB**（千兆满载压测死锁在 **~35MB**） |
-| **断网与单点故障** | 旁路由卡死/重启/升级，**全家立刻断网报障** | **网关+DNS全指主路由，3 秒内核级逃生，家里永不断网** |
-| **影音与 NAS 体验** | BT/PT 下载与外网争抢加速带，非必要带宽损耗 | **影音/NAS专属模式**：PT 满速直连直出，TMDB/Docker 极速加速 |
-| **全家设备配置** | 每台设备强改网关/DNS，来客人 Wi-Fi 连不上 | **100% 零修改！** 全家出厂默认 DHCP，连上 Wi-Fi 就能用 |
-| **配置与交互门槛** | 手写复杂分流规则、术语黑话多、排查困难 | **全栈大白话交互**、顶栏一句话自定义分流、全屋配置时光机 |
+| **物理内存常驻** | 动辄 512MB ~ 2GB，小内存主机频繁 OOM | **透明多态内存占用**：静默底座 **~15MB** / 单核稳态 **~30MB** / 双核热备全量 105 套规则 **~40MB**（千兆满载稳控 **~35MB**） |
+| **国内流量零损耗** | 全部流量在单网口折返进入代理进程，带宽腰斩 | **国内真实 IP 直出主路由芯片，完全不进代理进程**：千兆/万兆跑满物理线速，旁路由 **CPU 零额外开销** |
+| **Fake-IP 兼容性** | 银行 App、智能家居、NAS 与 BT/PT 常误入假 IP | **内置 116+ 项 Fake-IP 兼容真实 IP 放行清单**（覆盖网银、家居、NTP/STUN、NAS、BT/PT），支持面板快捷加白及 `geosite:` / `rule-set:` |
+| **断网与单点故障** | 旁路由卡死/重启/升级，**全家立刻断网报障** | **网关 + DNS 全指主路由，Watchdog/Netwatch 毫秒逃生，家里永不断网** |
+| **影音与 NAS 体验** | BT/PT 下载与外网争抢加速带，非必要带宽损耗 | **影音 / NAS 专属模式**：PT 满速直连直出，TMDB / Docker 镜像极速加速 |
+| **配置与运维闭环** | 规则杂乱、跨设备迁移困难、升级排障门槛高 | **驾驶舱三灯一键验收**、应用分流极简/完整双视图、**脱敏 `.tar.gz` 一键备份迁移**、开机就绪门控 `0 ERROR` |
 
 ---
 
@@ -119,7 +128,7 @@
 
   - [方式 C：爱快 iKuai 64位 主路由 Docker 部署 (保姆级 3 步搞定)](#deploy-ikuai)
 
-  - [方式 D：OpenWrt 智能软路由 Docker 部署 (带 0 秒逃生看门狗)](#deploy-openwrt)
+  - [方式 D：iStoreOS / OpenWrt 离线 `.run` 一键包与 Docker 部署 (原生 `procd` / LuCI / 0 秒逃生看门狗)](#deploy-openwrt)
 
   - [方式 E：飞牛 fnOS 原生应用套件 (.fpk) 与 Docker 极速部署](#deploy-fnos-linux)
 
@@ -263,14 +272,14 @@
 【物理主路由 (用户真实局域网段)】 (RouterOS / 爱快 / OpenWrt)
 
       │
-      ├───── [1. 目标分流域名解析] ────────► 【CubeX 容器 (独立 IP 如 10.0.0.11)】
+      ├───── [1. 目标分流域名解析] ────────► 【CubeX 容器 (<host-ip> / 如 192.168.x.11)】
       │                                       │ (双核引擎 Mihomo × sing-box v1.14+)
-      │                                       ├─ 国内域名 (微信/B站/淘宝) ➔ 返回真实国内 IP
+      │                                       ├─ 国内域名 / 116+ 内置兼容白名单 ➔ 返回物理真实 IP
       │                                       └─ 目标国际域名 (协同/开发/AI) ➔ 返回 Fake-IP (198.18.x.x)
       │
-      ├───── [2. 国内大流量 (占 90%+)] ───► 主路由硬件芯片直通光猫 ➔【国内高速互联网】(千兆/万兆拉满，CPU ~1%)
+      ├───── [2. 国内真实 IP 大流量 (占 90%+)] ──► 主路由硬件芯片原地直出光猫（完全不进入 CubeX 代理进程，高带宽零 CPU 损耗）
       │
-      └───── [3. 目标分流 Fake-IP 流量] ────► 【CubeX 容器 (10.0.0.11)】 ➔ 高速安全通道直通 ➔【全球互联网络】
+      └───── [3. 目标分流 Fake-IP 流量] ────► 【CubeX 容器 (<host-ip>)】 ➔ 高速安全通道直通 ➔【全球互联网络】
                                               ▲
                                               │ (Netwatch / 看门狗 0 秒探针实时巡检)
                                       [CubeX 重启 / 升级 / 关机时]
@@ -358,26 +367,36 @@
 ## 📢 核心演进与最新亮点 (完整记录见 [CHANGELOG.md](CHANGELOG.md) 与 [Releases 最新发布页](https://github.com/zyeyefyass/CubeX/releases/latest))
 
 > [!IMPORTANT]
-> ### 👑【v9.993 · EWMA 接管范围收敛 · IPv6 多前缀去重 · 纯 IPv6 节点过滤与空组兜底版】
+> ### 👑【v9.994 · 空间通透液态玻璃 × 深空黑钛双主题 · 驾驶舱三灯验收 · Fake-IP 白名单 · iStoreOS 离线 `.run` 版】
 >
-> 1. **🎯 收敛 `EWMAScheduler` 接管范围**：严格排除 `🎯 国内流量`、所有手动 `Selector` 组及跨地区容灾组，仅托管自动测速与故障转移分组，杜绝国内直连流量被误切代理。
-> 2. **🌐 重构 `IPv6PrefixWatcher` 多前缀集合去重**：按接口与掩码前缀维护活跃地址集合，消除双前缀交替 RA 续租导致的循环误报，并在 `ipv6: false` 时跳过无效的 RouterOS 路由刷新。
-> 3. **🛡️ 双核 `ipv6: false` 过滤纯 IPv6 字面量节点与空组兜底**：关闭 IPv6 时编译 Mihomo 与 sing-box 配置自动过滤纯 IPv6 字面量节点，消除 `ip version error` 与反复故障切换，并对过滤后的空组自动兜底为 `DIRECT`。
+> | 核心能力模块 | v9.994 升级亮点与工程价值 |
+> | :--- | :--- |
+> | **🎨 旗舰双主题视觉体系** | 上线「**空间通透液态玻璃（方案 A 浅色）× 深空黑钛金属（方案 C 深色）**」设计令牌，统一 `.cbx-card` / `.cbx-sub-card` / `.cbx-nav-active` 毛玻璃切边与高对比度可读性 |
+> | **🚦 三灯一键验收 & 双重代理防呆** | 驾驶舱新增「国内直连 · 国外加速 · Fake-IP DNS（`198.18.x.x`）」独立源生三灯并发验收，并自动检测浏览器双重代理冲突 |
+> | **📈 活跃节点实时吞吐与波动线** | 实时聚合正在承载流量的出站节点下行/上行速率与微波动线（支持 `tabular-nums` 零抖动与后台页签自动休眠省电） |
+> | **🛡️ Fake-IP 兼容放行清单与快捷加白** | **内置 116+ 项常见真实 IP 放行清单**（网银、智能家居、NTP/STUN、NAS、BT/PT），支持应用/规则面板快捷加白并兼容 `geosite:` / `rule-set:` 规则令牌 |
+> | **🎛️ 应用分流极简/完整双视图** | 支持「极简模式（隐藏高级规则细节）」与「完整视图」持久化记忆切换，桌面/手机端首屏更聚焦 |
+> | **📦 脱敏 `.tar.gz` 一键备份迁移** | 支持仅导出配置蓝图与宿主机凭据（严禁包含 `.db`/`.sqlite`/`.log`），跨容器一键原子恢复并热重载 |
+> | **🔒 未设密高危操作安全提醒** | 未启用面板访问密码时在关键运维入口与设置页发出明确安全提醒，引导一键加密控制台 |
+> | **🧩 iStoreOS 离线 `.run` 安装包** | 新增 `amd64`/`arm64` 纯离线自包含 `.run` 安装器，免 SSH/无代理直装，`procd` + LuCI 21.02+ + `/etc/sysupgrade.conf` 升级保配置 |
+> | **🩺 冷启动 `0 ERROR` 与非阻塞底座** | 新增核心就绪门控消除开机早期报错，并修复离线宿主机触发 `DetectLocalSummary()` 同步阻塞状态接口的隐患 |
 >
-> **前序亮点回顾 (v9.992)**：全站深/浅双主题语义化 Design Tokens、三大核心卡片与导航层级重构、应用分流点击触发与手机端适配，以及 PVE 7.4 兼容与全平台 `:2026/api/health` 安装存活兜底。
+> **前序亮点回顾 (v9.993)**：收敛 `EWMAScheduler` 接管范围（排除 `🎯 国内流量` 与手动 `Selector`）、重构 `IPv6PrefixWatcher` 多前缀集合去重、关闭 IPv6 时自动过滤纯 IPv6 字面量节点并增加空组 `DIRECT` 兜底。
 
 ---
 
 <a id="release-assets"></a>
-### 📦 资产下载与校验清单 (Release Assets)
+### 📦 资产下载与校验清单 (Release Assets · 共 21 项产物)
 
 > [!TIP]
-> **各平台底座发布物对照表**：请根据您的宿主底座与硬件架构，前往 **[GitHub Releases 官方发布页](https://github.com/zyeyefyass/CubeX/releases/latest)** 获取最新版本的对应资产（完整包内置双核与全量 105 套规则）：
+> **各平台底座发布物对照表**：请根据您的宿主底座与硬件架构，前往 **[GitHub Releases 官方发布页](https://github.com/zyeyefyass/CubeX/releases/latest)** 获取最新版本的对应资产（完整包内置双核与全量 105 套规则，严格 0 Windows 产物）：
 
 | 发布物文件模式 | 适用宿主与硬件架构 | 说明与用途 |
 | :--- | :--- | :--- |
-| `cubex_fnos_*_amd64.fpk` | 飞牛 fnOS (x86_64) | 飞牛私有云官方应用中心原生套件安装包 |
+| `cubex_fnos_*_amd64.fpk` | 飞牛 fnOS (x86_64) | 飞牛私有云官方应用中心原生套件安装包（规范挂载 `/app/etc` 与 `/app/data`） |
 | `cubex_fnos_*_arm64.fpk` | 飞牛 fnOS (aarch64) | 飞牛私有云 ARM64 官方应用中心套件包 (适配 OECT / 树莓派 / RK3566) |
+| `cubex_istoreos_*_amd64.run` | iStoreOS / OpenWrt (x86_64) | 纯离线自包含 `.run` 一键安装包（`≤ 32 MB`，含 `procd` 守护、LuCI 菜单与 `uninstall.sh`） |
+| `cubex_istoreos_*_arm64.run` | iStoreOS / OpenWrt (aarch64) | ARM64 纯离线自包含 `.run` 一键安装包（`≤ 32 MB`，含 `procd` 守护、LuCI 菜单与 `uninstall.sh`） |
 | `CubeX-*-ros-amd64.tar` | 软路由系统 (x86 软路由) | 软路由系统原生未压缩容器镜像（支持管理终端拖入直装） |
 | `CubeX-*-ros-arm64.tar` | 软路由系统 (RB5009/CCR/ARM) | 软路由系统 ARM64 原生容器镜像（适配 64 位 ARM 硬路由） |
 | `CubeX-*-docker-amd64.tar.gz` | Docker / 爱快 / 飞牛 / NAS / PVE | x86 容器离线镜像直装导入压缩包（内置双核与全量 105 套规则） |
@@ -394,7 +413,7 @@
 | `setup-openwrt.sh` | 开源软路由系统一键安装脚本 | 开源软路由系统原生适配安装脚本 |
 | `install_pve_lxc.sh` | 容器一键脚本 | 极简容器一键安装脚本 |
 | `install.sh` | 通用一键安装脚本 | 通用一键部署主脚本 |
-| `SHA256SUMS` | 全平台校验文件 | 所有发布产物完整性 SHA256 校验清单 |
+| `SHA256SUMS` | 全平台校验文件 | 全部 21 项发布产物完整性 SHA256 校验清单（含 20 条资产摘要） |
 
 ---
 
@@ -426,13 +445,13 @@ curl -4 -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/
 
 > 4. 自动装上守护进程并开机自启；
 
-> 5. 屏幕上直接打印出你的 CubeX 控制台网址（例如 `http://10.0.0.7:2026`）！
+> 5. 屏幕上直接打印出你的 CubeX 控制台网址（例如 `http://<host-ip>:2026`）！
 
 #### 2. 主路由配一下（30 秒搞定）
 
 进入你的物理主路由后台（ROS / 爱快 / OpenWrt）：
 
-1. 加一条静态路由：目的地填 `198.18.0.0/15`，下一跳指向 CubeX 容器的 IP（如 `10.0.0.7`）；
+1. 加一条静态路由：目的地填 `198.18.0.0/15`，下一跳指向 CubeX 容器的 IP（如 `<host-ip>`）；
 
 2. 主路由上游 DNS 填 CubeX 容器 IP，备用填公共 DNS（如 `223.5.5.5`）；
 
@@ -472,7 +491,7 @@ curl -4 -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/
 
 #### 步骤 2：创建并启动容器
 
-1. 进入【网络设置】（接口旁路），添加一个 `macvlan` 网络，绑定你的内网 LAN 口（网段按自己家里的填，如 `192.168.1.0/24` 或 `10.0.0.0/24`，网关填爱快自身的真实 LAN IP）；
+1. 进入【网络设置】（接口旁路），添加一个 `macvlan` 网络，绑定你的内网 LAN 口（网段按自己家里的填，如 `192.168.x.0/24`，网关填爱快自身的真实 LAN IP）；
 
 2. 进入【容器列表】➔ 点击【添加】：
 
@@ -480,7 +499,7 @@ curl -4 -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/
 
    - **镜像**：选择 `cubex:latest`；
 
-   - **网络类型**：选择刚刚建好的 macvlan，给它填一个专属 IP（例如 `10.0.0.11`）；
+   - **网络类型**：选择刚刚建好的 macvlan，给它填一个专属 IP（例如 `192.168.x.11`）；
 
    - **务必勾选【开机自启】和【特权模式】**；
 
@@ -490,17 +509,17 @@ curl -4 -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/
 
      * `/docker/cubex/etc` 挂载到 `/app/etc`；
 
-3. 点击保存并启动！打开浏览器访问 `http://10.0.0.11:2026` 即可看到控制台。
+3. 点击保存并启动！打开浏览器访问 `http://<host-ip>:2026` 即可看到控制台。
 
 #### 步骤 3：爱快后台设置回指（网关与 DNS 全双双指爱快主路由）
 
 1. 进入爱快【网络设置】➔【静态路由】➔ 点击【添加】：
 
-   - 目的地址填 `198.18.0.0`，子网掩码填 `255.254.0.0`，下一跳填 CubeX 的 IP（如 `10.0.0.11`），保存。
+   - 目的地址填 `198.18.0.0`，子网掩码填 `255.254.0.0`，下一跳填 CubeX 的 IP（如 `192.168.x.11`），保存。
 
 2. 进入爱快【网络设置】➔【DNS 设置】：
 
-   - 首选 DNS 填 CubeX 的 IP（如 `10.0.0.11`），备选填公共 DNS（如 `223.5.5.5`）；
+   - 首选 DNS 填 CubeX 的 IP（如 `192.168.x.11`），备选填公共 DNS（如 `223.5.5.5`）；
 
 3. **爱快自身的 DHCP 设置里的网关和首选 DNS 绝对保持爱快自身真实 LAN IP 不变！**
 
@@ -510,23 +529,38 @@ curl -4 -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/
 
 <a id="deploy-openwrt"></a>
 
-### 方式 D：OpenWrt 智能软路由 Docker 部署 (带 0 秒逃生看门狗)
+### 方式 D：iStoreOS / OpenWrt 离线 `.run` 一键包与 Docker 部署 (原生 `procd` / LuCI / 0 秒逃生看门狗)
 
-OpenWrt 自带 Docker 环境，使用 CubeX 独创的 Macvlan-Shim 方案，再也不用担心装插件把系统整变砖！
+针对 OpenWrt / iStoreOS 玩家，CubeX 提供 **纯离线自包含 `.run` 原生安装包**（推荐）与 **Macvlan Docker** 两种模式：
 
-#### 极速 2 步离线安装（国内网络推荐，0 失败率）：
+#### 途径 ①：iStoreOS 离线 `.run` 自包含安装包 (🥇 零依赖首选 · 免 SSH · 无代理可用)
+
+- **全离线免代理安装**：从 [Releases](https://github.com/zyeyefyass/CubeX/releases/latest) 下载 `cubex_istoreos_*_amd64.run`（或 `arm64.run`，均 ≤ 32 MB）；**iStore 商店网页端【手动安装】上传**即可触发执行，免 SSH、纯离线无外网代理环境同样零障碍完成安装；
+- **原生生态无缝集成**：自动写入 `procd` 开机自启守护、注册 LuCI 21.02+ 管理菜单直达控制台，并自动将持久化配置与规则写入 `/etc/sysupgrade.conf`，系统升级固件配置不丢失；
+- **完整性校验、命令行安装与干净卸载**（如需终端操作或维护）：
+  ```sh
+  # 1. 校验 .run 头部与内嵌载荷 SHA256 及 CPU 架构
+  sh cubex_istoreos_*_amd64.run --check
+
+  # 2. 执行原生安装（默认部署至 /opt/cubex）
+  sh cubex_istoreos_*_amd64.run
+
+  # 3. 干净卸载（自动清理 procd 服务、LuCI 菜单、UCI 防火墙/网络规则、nftables 与 sysupgrade 条目）
+  sh /opt/cubex/uninstall.sh          # 保留配置备份
+  sh /opt/cubex/uninstall.sh --purge  # 彻底清空配置与持久化数据
+  ```
+
+#### 途径 ②：OpenWrt Docker 离线 2 步安装（Macvlan-Shim + 0 秒逃生看门狗）
 
 1. 在上方资产清单下载最新版 `CubeX-*-docker-amd64.tar.gz` 和 `setup-openwrt.sh` 两个文件；
 
-2. 用 WinSCP 或 SSH 传到 OpenWrt 的 `/tmp` 目录，在终端执行：
+2. 上传至 OpenWrt 的 `/tmp` 目录，在终端执行：
 
-   ```bash
-
+   ```sh
    cd /tmp && sh setup-openwrt.sh
-
    ```
 
-   脚本会在 30 秒内全自动建好 Macvlan 容器、打通互通接口、下发回指路由、掐灭 IPv6 运营商 DNS 侧漏，并挂载 0 秒逃生看门狗！
+   脚本会在 30 秒内全自动建好 Macvlan 容器、打通互通接口、下发回指路由，并挂载 0 秒逃生看门狗！
 
 ---
 
@@ -719,7 +753,7 @@ CubeX 最大的特点就是**高度自动化与全链路自愈**。你不需要�
 进入控制台左侧 **【宿主共生】** 页面：
 1. **展开凭据配置**：点击右侧【配置凭据】按钮；
 2. **选择主路由类型**：根据你家里的主路由系统选择（`MikroTik RouterOS v7` / `爱快 iKuai` / `OpenWrt` / `Linux / 飞牛`）；
-3. **输入连接信息**：输入主路由 IP 地址（如 `10.0.0.1` 或 `192.168.1.1`）、管理用户名和密码；
+3. **输入连接信息**：输入主路由 IP 地址（如 `192.168.x.1`）、管理用户名和密码；
 4. **点击【保存凭据并立即联动】**：**CubeX 会在后台全自动完成主路由联动配对！** 自动注入 `198.18.0.0/15` 分流回指路由、接管 DNS 解析调度、植入 Netwatch 毫秒逃生看门狗。**用户无需去主路由后台手动敲任何命令或改动配置，全自动一键搞定！**
 
 > 💡 **通用家用硬路由（小米 / TP-Link / 华硕 ASUS / Padavan 等）免密联动边界说明**：
