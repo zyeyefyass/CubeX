@@ -52,6 +52,8 @@
     "/api/v1/network/quic/mode": "ops_control",
     "/api/v1/network/quic/status": "diagnostics",
     "/api/v1/network/udp-racing/mss": "ops_control",
+    "/api/v1/onboarding/essential-cidrs": "diagnostics",
+    "/api/v1/onboarding/verify-loop": "diagnostics",
     "/api/v1/ros/apply": "compat_alias",
     "/api/v1/ros/bidirheartbeat/probe": "diagnostics",
     "/api/v1/ros/inspect": "diagnostics",

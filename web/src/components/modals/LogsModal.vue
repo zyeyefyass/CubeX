@@ -1,7 +1,7 @@
 <template>
-  <dialog ref="dialogRef" class="modern-dialog select-none" @click="handleBackdropClick" @cancel="closeModal">
-    <div class="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in" @click.self="closeModal">
-      <div class="border border-white/20 rounded-3xl max-w-6xl w-full shadow-2xl flex flex-col text-slate-100 overflow-hidden relative" style="background-color: #080c16 !important;">
+  <dialog ref="dialogRef" closedby="any" class="modern-dialog select-none" @click="handleBackdropClick" @cancel="closeModal">
+    <div class="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center p-2.5 sm:p-5 overflow-y-auto animate-in fade-in" @click.self="closeModal">
+      <div class="cbx-terminal-box border rounded-2xl sm:rounded-3xl max-w-6xl w-full shadow-2xl flex flex-col overflow-hidden relative" style="background-color: #080c16; border-color: rgba(148,163,184,0.24);">
 
         <!-- Header -->
         <div class="px-4 sm:px-6 py-3 bg-white/[0.04] border-b border-white/10 flex items-center justify-between gap-3 select-none flex-wrap sm:flex-nowrap">
@@ -40,50 +40,50 @@
           </div>
 
           <!-- Right Controls for Logs Tab -->
-          <div v-if="activeModalTab === 'logs'" class="flex items-center gap-2 text-xs font-mono shrink-0 flex-nowrap">
-            <div class="flex items-center macos-capsule p-0.5 rounded-xl">
+          <div v-if="activeModalTab === 'logs'" class="flex items-center gap-1.5 sm:gap-2 text-xs font-mono flex-wrap sm:flex-nowrap">
+            <div class="flex items-center bg-white/5 border border-white/10 p-0.5 rounded-xl">
               <button v-for="lvl in ['ALL', 'INFO', 'WARN', 'ERROR']" :key="lvl"
                 @click="app.logFilterLevel = lvl"
-                :class="['px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer',
+                :class="['px-2.5 py-1.5 sm:py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer',
                   app.logFilterLevel === lvl ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-extrabold shadow-sm' : 'text-slate-300 hover:text-white hover:bg-white/10']">
                 {{ lvl }}
               </button>
             </div>
-            <button @click="app.clearSystemLogs" class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-slate-300 hover:text-white text-[11px] font-bold active:scale-95 transition cursor-pointer" title="清空日志">
+            <button @click="app.clearSystemLogs" class="px-2.5 py-1.5 sm:py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-slate-300 hover:text-white text-[11px] font-bold active:scale-95 transition cursor-pointer" title="清空日志">
               🗑 清屏
             </button>
-            <button @click="app.fetchSystemLogs(true)" class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-slate-300 hover:text-white active:scale-95 transition cursor-pointer" title="立即刷新日志">
+            <button @click="app.fetchSystemLogs(true)" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-slate-300 hover:text-white active:scale-95 transition cursor-pointer" title="立即刷新日志">
               🔄
             </button>
-            <button @click="app.copyDiagnosticMarkdown" class="px-3 py-1 rounded-xl text-[11px] font-bold bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-slate-200 active:scale-95 transition flex items-center gap-1 cursor-pointer" title="复制脱敏报告">
+            <button @click="app.copyDiagnosticMarkdown" class="px-3 py-1.5 sm:py-1 rounded-xl text-[11px] font-bold bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-slate-200 active:scale-95 transition flex items-center gap-1 cursor-pointer" title="复制脱敏报告">
               📋 复制报告
             </button>
-            <button @click="app.uploadToGithubIssue" :disabled="app.creatingGithubIssue" class="px-3.5 py-1 rounded-xl text-[11px] font-extrabold bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white shadow-md active:scale-95 transition flex items-center gap-1.5 cursor-pointer shrink-0">
+            <button @click="app.uploadToGithubIssue" :disabled="app.creatingGithubIssue" class="px-3.5 py-1.5 sm:py-1 rounded-xl text-[11px] font-extrabold bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white shadow-md active:scale-95 transition flex items-center gap-1.5 cursor-pointer shrink-0">
               <span v-if="app.creatingGithubIssue" class="inline-block animate-spin mr-0.5">↻</span>
               <span v-else>🚀</span>
               <span>问题反馈</span>
             </button>
-            <button @click="closeModal" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-300 hover:text-white text-xs font-bold transition cursor-pointer">
+            <button @click="closeModal" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-300 hover:text-white text-xs font-bold transition cursor-pointer" aria-label="关闭日志弹窗">
               ✕
             </button>
           </div>
 
           <!-- Right Controls for Connections Tab -->
-          <div v-else class="flex items-center gap-2 text-xs font-mono shrink-0 flex-nowrap">
+          <div v-else class="flex items-center gap-1.5 sm:gap-2 text-xs font-mono flex-wrap sm:flex-nowrap">
             <!-- View Mode Toggle -->
-            <div class="flex items-center macos-capsule p-0.5 rounded-xl border border-white/10">
+            <div class="flex items-center bg-white/5 p-0.5 rounded-xl border border-white/10 flex-wrap">
               <button @click="connViewMode = 'device'"
-                :class="['px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer',
+                :class="['px-2.5 py-1.5 sm:py-1 rounded-lg text-[10px] font-bold transition cursor-pointer',
                   connViewMode === 'device' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-sm' : 'text-slate-400 hover:text-white']">
                 📱 终端设备 (MAC)
               </button>
               <button @click="connViewMode = 'domain'"
-                :class="['px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer',
+                :class="['px-2.5 py-1.5 sm:py-1 rounded-lg text-[10px] font-bold transition cursor-pointer',
                   connViewMode === 'domain' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-sm' : 'text-slate-400 hover:text-white']">
                 🌐 目标域名
               </button>
               <button @click="connViewMode = 'flat'"
-                :class="['px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer',
+                :class="['px-2.5 py-1.5 sm:py-1 rounded-lg text-[10px] font-bold transition cursor-pointer',
                   connViewMode === 'flat' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-sm' : 'text-slate-400 hover:text-white']">
                 📋 平铺明细
               </button>
@@ -91,13 +91,13 @@
 
             <!-- Search Filter -->
             <input v-model="connSearch" placeholder="过滤域名/IP/节点..."
-              class="px-2.5 py-1 rounded-xl bg-black/40 border border-white/15 text-slate-200 placeholder-slate-500 text-[11px] focus:outline-none focus:border-cyan-400/50 w-32 sm:w-40" />
+              class="px-2.5 py-1.5 sm:py-1 rounded-xl bg-black/40 border border-white/15 text-slate-200 placeholder-slate-500 text-[11px] focus:outline-none focus:border-cyan-400/50 w-36 sm:w-40" />
 
             <!-- Refresh Button -->
-            <button @click="fetchConnections(true)" class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-300 hover:text-white active:scale-95 transition cursor-pointer" title="刷新连接">
+            <button @click="fetchConnections(true)" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-300 hover:text-white active:scale-95 transition cursor-pointer" title="刷新连接">
               <span :class="{'inline-block animate-spin': loadingConns}">🔄</span>
             </button>
-            <button @click="closeModal" class="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-300 hover:text-white text-xs font-bold transition cursor-pointer">
+            <button @click="closeModal" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-300 hover:text-white text-xs font-bold transition cursor-pointer" aria-label="关闭连接树弹窗">
               ✕
             </button>
           </div>

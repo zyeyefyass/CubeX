@@ -460,6 +460,26 @@ EOF
     /etc/init.d/cubex-watchdog enable >/dev/null 2>&1 || true
     /etc/init.d/cubex-watchdog restart >/dev/null 2>&1 || true
 
+    _ow_alive=0
+    _ow_wait=0
+    while [ "$_ow_wait" -lt 15 ]; do
+        if wget -q -T 2 -O - "http://${CUBEX_IP}:2026/api/health" 2>/dev/null | grep -q "status" || \
+           docker exec "${CONTAINER_NAME}" sh -c 'curl -fsS -m 2 http://127.0.0.1:2026/api/health >/dev/null 2>&1 || wget -q -T 2 -O - http://127.0.0.1:2026/api/health >/dev/null 2>&1' 2>/dev/null; then
+            _ow_alive=1
+            break
+        fi
+        sleep 1
+        _ow_wait=$((_ow_wait + 1))
+    done
+    if [ "$_ow_alive" -ne 1 ]; then
+        msg "${RED}========================================================================${NC}"
+        msg "${RED}❌ [存活校验失败] 容器 ${CONTAINER_NAME} 的 2026 控制端口未就绪！${NC}"
+        msg "${YELLOW}--- 最近 20 行容器日志 ---${NC}"
+        docker logs --tail 20 "${CONTAINER_NAME}" 2>&1 || true
+        msg "${RED}========================================================================${NC}"
+        exit 1
+    fi
+
     msg "${GREEN}========================================================================${NC}"
     msg "${GREEN}🎉 恭喜！CubeX OpenWrt Docker 宿主共生系统已全自动部署并加固完毕！${NC}"
     msg "${GREEN}👉 CubeX Web 控制台驾驶舱: http://${CUBEX_IP}:2026${NC}"

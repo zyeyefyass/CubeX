@@ -52,7 +52,7 @@
     <!-- ════════════════════════════════════════════════════════════════ -->
     <!-- Mode 3: 原创暮光冰晶几何矢量流光画布 (纯 CSS · 0 显存开销)           -->
     <!-- ════════════════════════════════════════════════════════════════ -->
-    <div v-else class="w-full h-full relative bg-[#0b101b]">
+    <div v-else class="w-full h-full relative" style="background: var(--cbx-bg-canvas);">
       <!-- 极客网格晶格线 -->
       <div
         class="absolute inset-0 opacity-[0.035]"
@@ -72,10 +72,10 @@
       }"
     ></div>
 
-    <!-- 柔和压暗垫层 (柔化动态高光峰值，压平背景闪烁，赏景模式淡出至 0) -->
+    <!-- 柔和压暗/柔光垫层 (双主题自适应，赏景模式淡出至 0) -->
     <div
-      class="absolute inset-0 transition-opacity duration-500 pointer-events-none"
-      style="background-color: rgba(10, 14, 22, 0.42);"
+      class="absolute inset-0 transition-all duration-500 pointer-events-none"
+      style="background-color: var(--cbx-bg-scrim);"
       :class="isPeekMode ? 'opacity-0' : 'opacity-100'"
     ></div>
   </div>

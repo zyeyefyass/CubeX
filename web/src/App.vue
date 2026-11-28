@@ -43,7 +43,7 @@
 
         <!-- Brand Hero -->
 
-        <div class="text-center border-b p-5 border-white/10 transition-all duration-300 relative">
+        <div class="text-center border-b p-5 transition-all duration-300 relative" style="border-color: var(--cbx-border-soft);">
 
           <!-- Brand Logo (视觉核心醒目居中 · 柔和温润微光) -->
 
@@ -61,7 +61,7 @@
 
             <div class="flex items-center justify-center gap-1.5">
 
-              <h1 class="text-base sm:text-[18px] font-black tracking-widest bg-gradient-to-r bg-clip-text text-transparent from-white via-sky-200 to-cyan-300 drop-shadow-[0_2px_8px_rgba(56,189,248,0.35)]">
+              <h1 class="text-base sm:text-[18px] font-black tracking-widest cbx-text-main">
 
                 CubeX
 
@@ -71,7 +71,7 @@
 
             <div class="flex items-center justify-center pt-0.5">
 
-              <span class="inline-flex items-center text-xs sm:text-[13px] px-3 py-1 rounded-full bg-sky-950/10 text-[#003865] border border-sky-600/40 font-extrabold tracking-wide shadow-sm">
+              <span class="inline-flex items-center text-xs sm:text-[13px] px-3 py-1 rounded-full cbx-badge-info border font-extrabold tracking-wide shadow-sm">
 
                 宿主共生零感网络系统
 
@@ -83,9 +83,14 @@
 
         </div>
 
-        <!-- Master Navigation Hubs (网络中枢 ➔ 应用分流 ➔ 安全防护 ➔ 宿主共生) -->
+        <!-- Master Navigation Hubs (四大一级主题强层级结构) -->
 
         <nav class="p-3 space-y-2">
+
+          <div class="px-3 pt-1 pb-2 mb-1 border-b flex items-center justify-between" style="border-color: var(--cbx-border-soft);">
+            <span class="text-[11px] font-black uppercase tracking-widest cbx-text-muted">主控视图导航</span>
+            <span class="text-[10px] font-mono font-bold cbx-text-muted">4 HUBS</span>
+          </div>
 
           <button v-for="item in navItems" :key="item.id"
 
@@ -93,21 +98,28 @@
 
             :class="[
 
-              'w-full flex items-center rounded-2xl transition-all duration-200 select-none group relative gap-3.5 px-4 py-3 text-[15px] font-bold tracking-wide',
+              'w-full flex items-center rounded-2xl transition-all duration-200 select-none group relative gap-3 px-3.5 py-3 border text-left cursor-pointer',
 
               activeMasterTab === item.id
 
-                ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-black shadow-lg shadow-sky-500/30 border border-white/20'
+                ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white shadow-lg shadow-sky-500/25 border-sky-400/50'
 
-                : 'text-[rgba(255,240,230,0.75)] hover:bg-white/10 hover:text-white border border-transparent font-medium'
+                : 'cbx-text-main hover:bg-sky-500/10 border-transparent hover:border-sky-400/30'
 
             ]">
 
             <ZootopiaIcon :name="item.id" :active="activeMasterTab === item.id" :size="24" class="shrink-0 transition-transform group-hover:scale-110" />
 
-            <span class="truncate">{{ item.label }}</span>
+            <div class="min-w-0 flex-1 leading-tight">
+              <div :class="['text-[15px] tracking-wide truncate', activeMasterTab === item.id ? 'font-black text-white' : 'font-extrabold cbx-text-main']">
+                {{ item.label }}
+              </div>
+              <div :class="['text-[11px] mt-0.5 truncate', activeMasterTab === item.id ? 'text-sky-100 font-medium' : 'cbx-text-sub font-normal']">
+                {{ item.subtitle }}
+              </div>
+            </div>
 
-            <span v-if="activeMasterTab === item.id" class="ml-auto w-2 h-2 rounded-full bg-[#1E1106] shadow-[0_0_6px_#ffffff]"></span>
+            <span v-if="activeMasterTab === item.id" class="ml-auto w-2 h-2 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.9)] shrink-0"></span>
 
           </button>
 
@@ -115,21 +127,19 @@
 
       </div>
 
-      <!-- Desktop Sidebar Bottom: GitHub Official Repository Card (Clean Frosted Glass · No Black Box) -->
+      <!-- Desktop Sidebar Bottom: GitHub Official Repository Card -->
 
-      <div class="p-3 border-t border-white/10 bg-transparent mt-auto select-none shrink-0">
+      <div class="p-3 border-t bg-transparent mt-auto select-none shrink-0" style="border-color: var(--cbx-border-soft);">
 
         <a href="https://github.com/zyeyefyass/CubeX" target="_blank" rel="noopener noreferrer"
 
-          class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-sky-400/40 text-slate-200 hover:text-white transition-all duration-300 group cursor-pointer"
+          class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl cbx-sub-card hover:border-sky-400/50 cbx-text-main transition-all duration-300 group cursor-pointer"
 
           title="访问 CubeX GitHub 官方开源仓库 (https://github.com/zyeyefyass/CubeX)">
 
           <div class="flex items-center gap-2.5 min-w-0">
 
-            <!-- Frameless Official GitHub SVG Mark (Zero Dark Box) -->
-
-            <svg class="w-5 h-5 fill-current text-[rgba(255,240,230,0.85)] group-hover:text-sky-300 group-hover:scale-110 transition-transform shrink-0" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 fill-current cbx-text-main group-hover:text-sky-500 group-hover:scale-110 transition-transform shrink-0" viewBox="0 0 24 24">
 
               <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
 
@@ -137,15 +147,15 @@
 
             <div class="flex flex-col text-left leading-none min-w-0">
 
-              <span class="text-xs font-bold tracking-tight text-white group-hover:text-sky-300 transition-colors">GitHub 仓库</span>
+              <span class="text-xs font-bold tracking-tight cbx-text-main group-hover:text-sky-500 transition-colors">GitHub 仓库</span>
 
-              <span class="text-[10px] text-[rgba(255,240,230,0.65)] font-mono tracking-tight mt-1 truncate">zyeyefyass/CubeX</span>
+              <span class="text-[10px] cbx-text-muted font-mono tracking-tight mt-1 truncate">zyeyefyass/CubeX</span>
 
             </div>
 
           </div>
 
-          <span class="text-[rgba(255,240,230,0.5)] group-hover:text-sky-300 text-xs font-mono font-bold group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform">↗</span>
+          <span class="cbx-text-muted group-hover:text-sky-500 text-xs font-mono font-bold group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform">↗</span>
 
         </a>
 
@@ -194,32 +204,34 @@
         :active-engine="activeEngine"
         :is-switching-engine="switchingEngine"
         :is-peek-mode="isPeekMode"
+        :color-mode="colorMode"
         @open-search="showCommandPalette = true"
         @switch-engine="switchEngine"
         @toggle-peek="togglePeekMode"
+        @toggle-color-mode="toggleColorMode"
         @open-logs="showLogsModal = !showLogsModal"
       />
 
-      <!-- 🩺 P3 宿主机关键环境阻断自检顶栏告警 + 一键复制脱敏诊断报告 -->
+      <!-- 🩺 宿主机关键环境阻断自检顶栏告警 + 一键复制脱敏诊断报告 -->
       <div
         v-if="requiredDoctorAlerts.length > 0 && !doctorBannerDismissed"
-        class="shrink-0 mx-3 sm:mx-5 mt-2 px-3 sm:px-4 py-2 rounded-xl bg-amber-950/85 border border-amber-400/50 text-amber-100 text-xs flex flex-wrap items-center justify-between gap-2 shadow-lg backdrop-blur-md z-20"
+        class="shrink-0 mx-3 sm:mx-5 mt-2 px-3 sm:px-4 py-2 rounded-xl cbx-badge-warn border text-xs flex flex-wrap items-center justify-between gap-2 shadow-lg backdrop-blur-md z-20"
       >
         <div class="flex items-center gap-2 min-w-0">
-          <span class="shrink-0 text-amber-300 font-bold">⚠️ 宿主机环境自检异常 ({{ requiredDoctorAlerts.length }} 项):</span>
-          <span class="truncate text-amber-100/90">{{ requiredDoctorAlerts.map(a => a.title + (a.detail ? ' — ' + a.detail : '')).join('；') }}</span>
+          <span class="shrink-0 font-bold">⚠️ 宿主机环境自检异常 ({{ requiredDoctorAlerts.length }} 项):</span>
+          <span class="truncate">{{ requiredDoctorAlerts.map(a => a.title + (a.detail ? ' — ' + a.detail : '')).join('；') }}</span>
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <button
             @click="copyDoctorCard"
             :disabled="copyingDoctorCard"
-            class="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-[11px] transition-colors cursor-pointer"
+            class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px] transition-colors cursor-pointer"
           >
             {{ copyingDoctorCard ? '生成中...' : '📋 复制诊断报告' }}
           </button>
           <button
             @click="doctorBannerDismissed = true"
-            class="px-1.5 py-1 text-amber-200/80 hover:text-white cursor-pointer"
+            class="cbx-btn-ghost px-2 py-1 rounded-lg text-xs cursor-pointer"
             title="暂时收起"
           >✕</button>
         </div>
@@ -423,25 +435,11 @@
 
       </header>
 
-      <!-- 👁️ 赏景模式悬浮退出胶囊 (纯净奶白晶曜药丸) -->
-      <div v-if="isPeekMode" @click="togglePeekMode" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full bg-white/95 border border-white text-slate-800 text-xs sm:text-sm font-black shadow-2xl flex items-center gap-2.5 cursor-pointer select-none zootopia-peek-banner animate-bounce">
+      <!-- 👁️ 赏景模式悬浮退出胶囊 -->
+      <div v-if="isPeekMode" @click="togglePeekMode" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-full cbx-modal-shell text-xs sm:text-sm font-black shadow-2xl flex items-center gap-2.5 cursor-pointer select-none zootopia-peek-banner">
         <span class="text-base">👁️</span>
         <span>已开启赏景模式 · 点击图标/任意处，或按快捷键 Alt+Z / ESC 来回切换</span>
       </div>
-
-    <!-- ════════════════════════════════════════════════════════════════════ -->
-
-    <!-- ════════════════════════════════════════════════════════════════════ -->
-
-    <!-- 🧪 双核容灾自愈安全演练实测报告弹窗 (Failover Drill Modal)             -->
-
-    <!-- Floating Regional Speedtest Toast Queue (Bottom-Right Stack, FIFO)   -->
-
-    <!-- 优化方案：常驻右下角 (bottom-20 md:bottom-6)，绝不遮挡页眉与模块标题    -->
-
-    <!-- 纯净暮光冰晶轻量毛玻璃材质：取消黑色边框与黑底，高通透全息质感          -->
-
-    <!-- ════════════════════════════════════════════════════════════════════ -->
 
     <transition-group name="speedtest-toast" tag="div"
 
@@ -449,17 +447,15 @@
 
       <div v-for="task in speedtestTasks" :key="task.id"
 
-        class="pointer-events-auto w-[210px] sm:w-[230px] rounded-2xl bg-white/10 hover:bg-white/15 backdrop-blur-2xl text-white px-3.5 py-2.5 shadow-xl border border-white/20 transition-all duration-300 flex flex-col gap-1 select-none animate-in slide-in-from-bottom-3 fade-in">
-
-        <!-- Top row: Group Name + Close '✕' Button -->
+        class="pointer-events-auto w-[210px] sm:w-[230px] rounded-2xl cbx-modal-shell px-3.5 py-2.5 shadow-xl transition-all duration-300 flex flex-col gap-1 select-none animate-in slide-in-from-bottom-3 fade-in">
 
         <div class="flex items-center justify-between">
 
-          <span class="font-bold text-sm tracking-wide text-white truncate max-w-[160px]">{{ task.name }}</span>
+          <span class="font-bold text-sm tracking-wide cbx-text-main truncate max-w-[160px]">{{ task.name }}</span>
 
           <button @click.stop="dismissSpeedtestToast(task.id)"
 
-            class="w-5 h-5 flex items-center justify-center rounded-lg hover:bg-white/15 text-slate-400 hover:text-white font-bold text-xs transition cursor-pointer"
+            class="cbx-btn-ghost w-5 h-5 flex items-center justify-center rounded-lg font-bold text-xs transition cursor-pointer"
 
             title="关闭">
 
@@ -469,13 +465,11 @@
 
         </div>
 
-        <!-- Bottom row: Status Text -->
-
-        <div class="text-xs font-mono font-medium flex items-center justify-between text-slate-300">
+        <div class="text-xs font-mono font-medium flex items-center justify-between cbx-text-sub">
 
           <template v-if="task.status === 'queued'">
 
-            <span class="flex items-center gap-1.5 opacity-80 text-slate-400">
+            <span class="flex items-center gap-1.5 cbx-text-muted">
 
               <span class="w-2 h-2 rounded-full bg-slate-500"></span>
 
@@ -483,33 +477,33 @@
 
             </span>
 
-            <span class="text-[11px] opacity-75 font-normal">{{ task.totalCount }} 节点</span>
+            <span class="text-[11px] cbx-text-muted font-normal">{{ task.totalCount }} 节点</span>
 
           </template>
 
           <template v-else-if="task.status === 'testing'">
 
-            <span class="flex items-center gap-1.5 text-emerald-300 font-bold">
+            <span class="flex items-center gap-1.5 text-sky-600 dark:text-cyan-300 font-bold">
 
-              <span class="w-3 h-3 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></span>
+              <span class="w-3 h-3 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></span>
 
               测速中...
 
             </span>
 
-            <span class="text-[11px] font-bold text-slate-300">{{ task.totalCount }} 节点</span>
+            <span class="text-[11px] font-bold cbx-text-main">{{ task.totalCount }} 节点</span>
 
           </template>
 
           <template v-else-if="task.status === 'completed'">
 
-            <span class="font-bold text-slate-200">
+            <span class="font-bold cbx-text-main">
 
               {{ task.onlineCount }}/{{ task.totalCount }} 完成
 
             </span>
 
-            <span v-if="task.winnerDelay > 0" class="text-[11px] font-mono text-emerald-400 font-bold font-tabular">
+            <span v-if="task.winnerDelay > 0" class="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold font-tabular">
 
               {{ task.winnerDelay }}ms{{ task.isCached ? ' (缓存)' : '' }}
 
@@ -519,7 +513,7 @@
 
           <template v-else>
 
-            <span class="text-rose-400 font-bold text-[11px] truncate max-w-[170px]" :title="task.errorMsg || '探测超时'">{{ task.errorMsg || '探测超时' }}</span>
+            <span class="text-rose-600 dark:text-rose-400 font-bold text-[11px] truncate max-w-[170px]" :title="task.errorMsg || '探测超时'">{{ task.errorMsg || '探测超时' }}</span>
 
           </template>
 
@@ -529,21 +523,21 @@
 
     </transition-group>
 
-    <!-- Toast Feedback Notification Banner (Fixed Eye-Care Float at Top-Center) -->
+    <!-- Toast Feedback Notification Banner -->
 
-    <div v-if="toastMsg" class="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] max-w-xl w-[92%] sm:w-auto px-5 py-3.5 rounded-2xl border text-xs sm:text-sm font-mono flex items-center justify-between gap-4 shadow-2xl backdrop-blur-2xl transition-all duration-300 animate-in fade-in slide-in-from-top-4"
+    <div v-if="toastMsg" class="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] max-w-xl w-[92%] sm:w-auto px-5 py-3.5 rounded-2xl cbx-modal-shell text-xs sm:text-sm font-mono flex items-center justify-between gap-4 shadow-2xl transition-all duration-300 animate-in fade-in slide-in-from-top-4"
 
-      :class="toastError ? 'bg-rose-100 border-rose-400 text-rose-900 shadow-md' : 'bg-[#F1F4F9] border-emerald-600/50 text-slate-800 ring-1 ring-emerald-500/20 shadow-lg'">
+      :class="toastError ? 'border-2 border-rose-500/70' : 'border-2 border-emerald-500/60'">
 
-      <div class="flex items-center gap-2.5">
+      <div class="flex items-center gap-2.5 min-w-0">
 
-        <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="toastError ? 'bg-rose-400 animate-ping' : 'bg-emerald-400 animate-ping'"></span>
+        <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="toastError ? 'bg-rose-500 animate-ping' : 'bg-emerald-500 animate-ping'"></span>
 
-        <span class="tracking-wide">{{ toastMsg }}</span>
+        <span class="tracking-wide cbx-text-main break-words">{{ toastMsg }}</span>
 
       </div>
 
-      <button @click="toastMsg = ''" class="text-slate-400 hover:text-white px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 cursor-pointer transition">✕</button>
+      <button @click="toastMsg = ''" class="cbx-btn-ghost px-2 py-0.5 rounded cursor-pointer transition shrink-0" aria-label="关闭通知">✕</button>
 
     </div>
 
@@ -562,31 +556,30 @@
           <!-- ════════════════════════════════════════════════════════════════ -->
           <!-- 视区 1: 双核全息主控驾驶舱 (Twilight Crystal Bento Cockpit)         -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <section :class="['rounded-3xl p-5 sm:p-7 transition shadow-lg relative border bg-[#F6F7FA]/[0.90] border-white/80 backdrop-blur-xl', activeEngine === 'singbox' ? 'ring-1 ring-sky-400/20' : 'ring-1 ring-purple-400/20']">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-5 pb-5 border-b border-slate-200/80">
+          <section :class="['rounded-3xl p-5 sm:p-7 transition shadow-lg cbx-card', activeEngine === 'singbox' ? 'ring-1 ring-sky-400/20' : 'ring-1 ring-purple-400/20']">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-5 pb-5 border-b" style="border-color: var(--cbx-border-soft);">
               <div class="flex items-start gap-4">
-                <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0 shadow-sm text-2xl sm:text-3xl">
+                <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl cbx-badge-ok border flex items-center justify-center shrink-0 shadow-sm text-2xl sm:text-3xl">
                   🛡️
                 </div>
                 <div>
                   <div class="flex items-center gap-2.5 flex-wrap">
-                    <h2 class="text-lg sm:text-xl font-black text-[#0F172A] tracking-wide">双核全息主控驾驶舱</h2>
-                    <!-- 98分健康徽章 -->
-                    <span class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold flex items-center gap-1.5 shadow-sm">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                    <h2 class="text-lg sm:text-xl font-black cbx-text-main tracking-wide">双核全息主控驾驶舱</h2>
+                    <span class="text-xs font-mono px-2.5 py-0.5 rounded-full cbx-badge-ok border font-bold flex items-center gap-1.5 shadow-sm">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                       {{ healthRadar.overall_score || 98 }}分 · 全屋网络极速畅通
                     </span>
                   </div>
-                  <p class="text-xs sm:text-sm text-slate-700 mt-1 font-medium font-sans">
+                  <p class="text-xs sm:text-sm cbx-text-sub mt-1 font-medium font-sans">
                     Universal IR 中间层驱动 · 遇到卡顿自动换线 · 故障保底直通不断网 · 零感自愈
                   </p>
                 </div>
               </div>
 
-              <!-- Top Actions: 一键测快慢 / 安全直通暂停 / 自愈加固 / 托管开关 -->
+              <!-- Top Actions -->
               <div class="flex items-center gap-2.5 shrink-0 self-end md:self-center flex-wrap">
                 <button @click="triggerAllServiceProbes" :disabled="probingServiceLatencies"
-                  class="px-3.5 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 border border-sky-500 text-xs font-bold text-white flex items-center gap-1.5 transition active:scale-95 shadow-md cursor-pointer disabled:opacity-50"
+                  class="px-3.5 py-2 sm:py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 border border-sky-500 text-xs font-bold text-white flex items-center gap-1.5 transition active:scale-95 shadow-md cursor-pointer disabled:opacity-50"
                   title="立即对国内外主流网站重新测速">
                   <span :class="{'animate-spin': probingServiceLatencies}">⚡</span>
                   <span>一键测快慢</span>
@@ -594,10 +587,10 @@
 
                 <button @click="toggleSafePauseProxy()" :disabled="togglingProxyPause"
                   :class="[
-                    'px-3.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-md cursor-pointer disabled:opacity-50',
+                    'px-3.5 py-2 sm:py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer disabled:opacity-50',
                     isProxyPaused
                       ? 'bg-amber-600 hover:bg-amber-700 border-amber-500 text-white'
-                      : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-800'
+                      : 'cbx-btn-ghost'
                   ]"
                   :title="isProxyPaused ? '恢复原代理分流模式并重新启用 Fake-IP 分流' : '临时安全直通：保持 53 端口 DNS 与控制台在线，关闭 Fake-IP 返回真实 IP，全家直连上网'">
                   <span v-if="togglingProxyPause" class="inline-block animate-spin">↻</span>
@@ -606,34 +599,33 @@
                 </button>
 
                 <button @click="triggerFastSelfHeal" :disabled="switchingEngine"
-                  class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-xs font-bold text-white flex items-center gap-1.5 transition active:scale-95 shadow-md cursor-pointer disabled:opacity-50"
+                  class="px-3.5 py-2 sm:py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 border border-emerald-500 text-xs font-bold text-white flex items-center gap-1.5 transition active:scale-95 shadow-md cursor-pointer disabled:opacity-50"
                   title="一键自愈策略路由与清算连接">
                   <span>🛠️ 自愈加固</span>
                 </button>
 
-                <!-- AutoPilot Toggle Switch (纯白亚克力底槽 + 高对比深石墨黑字) -->
-                <label class="flex items-center gap-2 cursor-pointer select-none bg-white hover:bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-300/90 shadow-sm transition">
-                  <span class="text-xs font-bold text-[#0F172A]">自动省心</span>
+                <label class="flex items-center gap-2 cursor-pointer select-none cbx-sub-card px-3 py-1.5 rounded-xl shadow-sm transition">
+                  <span class="text-xs font-bold cbx-text-main">自动省心</span>
                   <div class="relative">
                     <input type="checkbox" v-model="autoPilotEnabled" class="sr-only" />
-                    <div :class="['w-10 h-5 rounded-full transition-colors duration-300', autoPilotEnabled ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-slate-300']"></div>
+                    <div :class="['w-10 h-5 rounded-full transition-colors duration-300', autoPilotEnabled ? 'bg-gradient-to-r from-emerald-500 to-teal-400 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-slate-400 dark:bg-slate-600']"></div>
                     <div :class="['absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-md', autoPilotEnabled ? 'translate-x-5' : 'translate-x-0']"></div>
                   </div>
                 </label>
               </div>
             </div>
 
-            <!-- ⏸️ 安全直通暂停模式横幅 (不断网、保持 :53 DNS 与 :2026 控制台在线) -->
-            <div v-if="isProxyPaused" class="mt-4 p-4 rounded-2xl bg-amber-50 border border-amber-400 text-amber-950 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shadow-sm">
+            <!-- 安全直通暂停模式横幅 -->
+            <div v-if="isProxyPaused" class="mt-4 p-4 rounded-2xl cbx-badge-warn border flex flex-col lg:flex-row lg:items-center justify-between gap-3 shadow-sm">
               <div class="flex items-start gap-3">
                 <span class="text-xl shrink-0 mt-0.5">🛡️</span>
                 <div class="space-y-1 text-xs">
-                  <div class="font-extrabold text-sm text-amber-950 flex items-center gap-2 flex-wrap">
+                  <div class="font-extrabold text-sm cbx-text-main flex items-center gap-2 flex-wrap">
                     <span>当前处于【临时安全直通】模式（代理已暂停）</span>
-                    <span class="px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-950 border border-amber-400 font-mono text-[11px]">53 DNS 在线 · 已关闭 Fake-IP · 返回真实 IP</span>
+                    <span class="px-2 py-0.5 rounded-full cbx-badge-warn border font-mono text-[11px]">53 DNS 在线 · 已关闭 Fake-IP · 返回真实 IP</span>
                   </div>
-                  <p class="text-amber-900 leading-relaxed font-medium">
-                    <strong>临时安全直通</strong>不会关闭核心与 53 端口解析，小米/华硕等终端不改主路由设置即可直接上网；如需彻底下线 CubeX，请使用「撤回主路由规则」清理 RouterOS / 爱快 / OpenWrt 静态回指与 DNS 联动。
+                  <p class="cbx-text-sub leading-relaxed font-medium">
+                    <strong>临时安全直通</strong>不会关闭核心与 53 端口解析，终端不改主路由设置即可直接上网；如需彻底下线 CubeX，请使用「撤回主路由规则」清理主路由静态回指与 DNS 联动。
                   </p>
                 </div>
               </div>
@@ -643,44 +635,43 @@
                   ▶️ 恢复代理分流
                 </button>
                 <button @click="withdrawHostBypass()" :disabled="withdrawingHostBypass"
-                  class="px-3.5 py-2 rounded-xl bg-white hover:bg-rose-50 border border-rose-300 text-rose-800 text-xs font-bold shadow-sm cursor-pointer transition active:scale-95 disabled:opacity-50"
-                  title="仅当主路由已配置 RouterOS / 爱快 / OpenWrt 原生联动时，可一键清理主路由规则与备用 DNS">
+                  class="px-3.5 py-2 rounded-xl cbx-badge-danger border text-xs font-bold shadow-sm cursor-pointer transition active:scale-95 disabled:opacity-50">
                   {{ withdrawingHostBypass ? '正在撤回...' : '🧹 撤回主路由规则' }}
                 </button>
               </div>
             </div>
 
-            <!-- 4 Plain-Talk Status Badges (二级嵌套纯白微凸子卡片，彻底消灭泥灰底) -->
+            <!-- 4 Plain-Talk Status Badges -->
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-4">
-              <div class="p-3 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm flex items-center gap-3">
+              <div class="p-3 rounded-2xl cbx-sub-card shadow-sm flex items-center gap-3">
                 <span class="text-xl">⚡</span>
                 <div class="min-w-0 leading-tight">
-                  <div class="text-[11px] text-slate-700 font-medium">网页响应速度</div>
-                  <div class="text-xs sm:text-[13px] font-bold text-emerald-700 truncate">{{ currentActiveRoute.speedText }}</div>
+                  <div class="text-[11px] cbx-text-sub font-medium">网页响应速度</div>
+                  <div class="text-xs sm:text-[13px] font-bold text-emerald-700 dark:text-emerald-300 truncate font-tabular">{{ currentActiveRoute.speedText }}</div>
                 </div>
               </div>
 
-              <div class="p-3 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm flex items-center gap-3">
+              <div class="p-3 rounded-2xl cbx-sub-card shadow-sm flex items-center gap-3">
                 <span class="text-xl">🛡️</span>
                 <div class="min-w-0 leading-tight">
-                  <div class="text-[11px] text-slate-700 font-medium">遇到卡顿自动换线</div>
-                  <div class="text-xs sm:text-[13px] font-bold text-emerald-700 truncate">已自动避开卡顿线路</div>
+                  <div class="text-[11px] cbx-text-sub font-medium">遇到卡顿自动换线</div>
+                  <div class="text-xs sm:text-[13px] font-bold text-emerald-700 dark:text-emerald-300 truncate">已自动避开卡顿线路</div>
                 </div>
               </div>
 
-              <div class="p-3 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm flex items-center gap-3">
+              <div class="p-3 rounded-2xl cbx-sub-card shadow-sm flex items-center gap-3">
                 <span class="text-xl">🔄</span>
                 <div class="min-w-0 leading-tight">
-                  <div class="text-[11px] text-slate-700 font-medium">切换线路防卡死</div>
-                  <div class="text-xs sm:text-[13px] font-bold text-sky-700 truncate">极速重连已就绪</div>
+                  <div class="text-[11px] cbx-text-sub font-medium">切换线路防卡死</div>
+                  <div class="text-xs sm:text-[13px] font-bold text-sky-700 dark:text-cyan-300 truncate">极速重连已就绪</div>
                 </div>
               </div>
 
-              <div class="p-3 rounded-2xl bg-white/90 border border-slate-200/80 shadow-sm flex items-center gap-3">
+              <div class="p-3 rounded-2xl cbx-sub-card shadow-sm flex items-center gap-3">
                 <span class="text-xl">🏠</span>
                 <div class="min-w-0 leading-tight">
-                  <div class="text-[11px] text-slate-700 font-medium">故障保底不断网</div>
-                  <div class="text-xs sm:text-[13px] font-bold truncate" :class="isFailOpenActive ? 'text-amber-700' : 'text-emerald-700'">
+                  <div class="text-[11px] cbx-text-sub font-medium">故障保底不断网</div>
+                  <div class="text-xs sm:text-[13px] font-bold truncate" :class="isFailOpenActive ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'">
                     {{ isFailOpenActive ? '已开启直连逃生' : '国内网络正常用' }}
                   </div>
                 </div>
@@ -688,75 +679,65 @@
             </div>
           </section>
 
-          <!-- ════════════════════════════════════════════════════════════════ -->
-          <!-- 视区 2: 常用主流网站响应速度 (8 柱动态网络遥测)                       -->
-          <!-- ════════════════════════════════════════════════════════════════ -->
-          <section :class="['rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 transition shadow-lg relative border bg-[#F6F7FA]/[0.90] border-white/80 backdrop-blur-xl', activeProbeDropdown !== null ? 'z-40' : 'z-20', activeEngine === 'singbox' ? 'ring-1 ring-sky-400/20' : 'ring-1 ring-purple-400/20']">
-            <!-- Header: 标题、开启实时自动测速 toggle、⚡ 立即刷新按钮 -->
-            <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-200/80">
+          <!-- 视区 2: 常用主流网站响应速度 -->
+          <section :class="['rounded-2xl sm:rounded-3xl p-5 sm:p-6 space-y-4 transition shadow-lg relative cbx-card', activeProbeDropdown !== null ? 'z-40' : 'z-20', activeEngine === 'singbox' ? 'ring-1 ring-sky-400/20' : 'ring-1 ring-purple-400/20']">
+            <div class="flex items-center justify-between flex-wrap gap-3 pb-3 border-b" style="border-color: var(--cbx-border-soft);">
               <div>
-                <div class="flex items-center gap-3">
-                  <h3 class="text-base sm:text-lg font-bold text-[#0F172A] tracking-wide flex items-center gap-2">
+                <div class="flex items-center gap-3 flex-wrap">
+                  <h3 class="text-base sm:text-lg font-bold cbx-text-main tracking-wide flex items-center gap-2">
                     <span class="flex items-center gap-2"><ZootopiaIcon name="telemetry" :size="22" class="shrink-0" /><span>常用主流网站响应速度</span></span>
                   </h3>
-                  <!-- Toggle: 开启实时自动测速 (纯白底槽 + 高对比深石墨黑字) -->
                   <label class="flex items-center gap-2 cursor-pointer select-none">
-                    <span class="text-xs text-slate-700 font-medium">自动测速</span>
+                    <span class="text-xs cbx-text-sub font-medium">自动测速</span>
                     <div class="relative">
                       <input type="checkbox" v-model="autoSpeedtestEnabled" class="sr-only" @change="onToggleAutoSpeedtest" />
-                      <div :class="['w-9 h-5 rounded-full transition-colors duration-300', autoSpeedtestEnabled ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-slate-300']"></div>
+                      <div :class="['w-9 h-5 rounded-full transition-colors duration-300', autoSpeedtestEnabled ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-slate-400 dark:bg-slate-600']"></div>
                       <div :class="['absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-md', autoSpeedtestEnabled ? 'translate-x-4' : 'translate-x-0']"></div>
                     </div>
                   </label>
                 </div>
-                <p class="text-xs text-slate-600 mt-1 font-medium font-sans">国内外主流业务实时多域延迟探针遥测 · 绿色秒开 / 蓝色顺畅 / 故障自动换线</p>
+                <p class="text-xs cbx-text-sub mt-1 font-medium font-sans">国内外主流业务实时多域延迟探针遥测 · 绿色秒开 / 蓝色顺畅 / 故障自动换线</p>
               </div>
 
-              <!-- ⚡ Refresh probes button (纯白亚克力微凸按钮) -->
               <button @click="triggerAllServiceProbes" :disabled="probingServiceLatencies" title="立即刷新全部测速探针"
-                class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200/90 text-xs font-bold text-[#0F172A] flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer disabled:opacity-50">
+                class="px-3 py-1.5 rounded-xl cbx-btn-ghost text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer disabled:opacity-50">
                 <span :class="{'animate-spin': probingServiceLatencies}">↻</span>
                 <span>刷新测速</span>
               </button>
             </div>
 
-            <!-- Backdrop overlay to dismiss dropdown on outside click -->
             <div v-if="activeProbeDropdown !== null" @click="activeProbeDropdown = null" class="fixed inset-0 z-30"></div>
 
-            <!-- 4 Service Speedtest Cards with Custom Twilight Crystal Dropdown & 8-Bar Dynamic Pillars -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div v-for="(item, bi) in serviceProbes" :key="bi"
-                class="min-h-[72px] py-3.5 px-3 rounded-2xl bg-white/90 border border-slate-200/80 hover:border-sky-400/60 transition flex items-center justify-between gap-1 shadow-sm group relative"
+                class="min-h-[72px] py-3.5 px-3 rounded-2xl cbx-sub-card hover:border-sky-400/60 transition flex items-center justify-between gap-1 shadow-sm group relative"
                 :class="activeProbeDropdown === bi ? 'z-50 ring-2 ring-sky-400/80 shadow-[0_0_20px_rgba(2,132,199,0.2)]' : 'z-0'">
 
-                <!-- Left: Official Clean Brand Logo & Site Selector -->
                 <div class="flex items-center gap-1.5 shrink-0 min-w-0">
                   <button @click="probeSingleService(item)" title="点击立即重新测速"
                     class="w-7 h-7 flex items-center justify-center shrink-0 group-hover:scale-110 active:scale-95 transition-transform duration-200 cursor-pointer overflow-hidden">
                     <BrandLogo :name="item.logo || item.id" size="w-6 h-6" />
                   </button>
 
-                  <!-- Site Dropdown Selector Popover -->
                   <div class="relative min-w-0">
                     <button @click.stop="toggleProbeDropdown(bi)" title="点击切换测速站点"
                       class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition cursor-pointer select-none"
-                      :class="activeProbeDropdown === bi ? 'bg-sky-50 border-sky-300 text-sky-800 ring-1 ring-sky-400/30' : 'bg-white hover:bg-slate-50 border-slate-200/90 text-[#0F172A]'">
+                      :class="activeProbeDropdown === bi ? 'cbx-badge-info' : 'cbx-btn-ghost'">
                       <span class="truncate max-w-[60px] sm:max-w-[72px]">{{ item.name }}</span>
-                      <span class="text-[11px] text-sky-700 shrink-0 transition-transform duration-200" :class="activeProbeDropdown === bi ? 'rotate-180' : ''">▾</span>
+                      <span class="text-[11px] text-sky-600 dark:text-cyan-300 shrink-0 transition-transform duration-200" :class="activeProbeDropdown === bi ? 'rotate-180' : ''">▾</span>
                     </button>
 
-                    <!-- Custom Dropdown Popover Menu -->
+                    <!-- Custom Dropdown Popover Menu (Click-triggered, zero hover close) -->
                     <div v-if="activeProbeDropdown === bi"
-                      @mouseleave="activeProbeDropdown = null"
-                      class="absolute top-full mt-1.5 w-48 max-h-72 overflow-y-auto overscroll-contain bg-white border border-slate-300 rounded-2xl shadow-xl p-1.5 z-[100] text-slate-900 space-y-0.5 custom-scrollbar ring-1 ring-slate-200 animate-in fade-in zoom-in-95"
+                      class="absolute top-full mt-1.5 w-48 max-h-72 overflow-y-auto overscroll-contain cbx-modal-shell rounded-2xl shadow-xl p-1.5 z-[100] space-y-0.5 custom-scrollbar animate-in fade-in zoom-in-95"
                       :class="bi >= 2 ? 'right-0 sm:left-0' : 'left-0'">
                       <button v-for="target in availableProbeTargets" :key="target.id"
                         @click.stop="selectProbeTarget(bi, target)"
                         class="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition text-left cursor-pointer border"
-                        :class="item.id === target.id ? 'bg-sky-50 text-sky-900 font-bold border-sky-400 shadow-sm' : 'border-transparent hover:bg-slate-100 text-slate-800 hover:text-slate-950'">
+                        :class="item.id === target.id ? 'cbx-badge-info font-bold shadow-sm' : 'border-transparent cbx-text-main hover:bg-sky-500/10'">
                         <BrandLogo :name="target.logo" size="w-4 h-4" class="shrink-0" />
                         <span class="truncate flex-1 font-medium">{{ target.name }}</span>
-                        <span v-if="item.id === target.id" class="text-sky-700 text-xs font-bold shrink-0">✓</span>
+                        <span v-if="item.id === target.id" class="text-sky-600 dark:text-cyan-300 text-xs font-bold shrink-0">✓</span>
                       </button>
                     </div>
                   </div>
@@ -764,24 +745,24 @@
 
                 <!-- Right: 8 Dynamic Pillars & Latency Value -->
                 <div @click="probeSingleService(item)" class="flex items-center gap-2 shrink-0 cursor-pointer select-none" title="点击立即重新测速">
-                  <div class="flex items-end gap-[2.5px] sm:gap-[3px] h-6 shrink-0 py-0.5" title="最近 8 次测速柱状走势 (绿:秒开 | 蓝:顺畅 | 黄:略慢 | 红:超时)">
+                  <div class="flex items-end gap-[2.5px] sm:gap-[3px] h-6 shrink-0 py-0.5" title="最近 8 次测速柱状走势">
                     <span v-for="(bar, hi) in (serviceProbesBars[bi] || [])" :key="hi"
                       class="w-[3px] rounded-full transition-all duration-300"
-                      :class="bar.colorClass"
-                      :style="{ height: (probingServiceLatencies ? Math.floor(Math.random() * 16 + 5) : bar.height) + 'px' }"
+                      :class="[bar.colorClass, probingServiceLatencies ? 'cbx-probe-bar-anim' : '']"
+                      :style="{ height: bar.height + 'px', animationDelay: `${hi * 60}ms` }"
                       :title="`第 ${hi + 1} 次: ${bar.val >= 999 ? '超时' : bar.val + 'ms'}`"></span>
                   </div>
 
                   <div class="text-right min-w-[44px] pr-0.5">
                     <template v-if="!item.latency || item.latency <= 0 || item.latency >= 999 || item.error">
-                      <span class="text-xs sm:text-sm font-bold font-mono text-rose-600 animate-pulse">换线中</span>
+                      <span class="text-xs sm:text-sm font-bold font-mono text-rose-600 dark:text-rose-400 animate-pulse">换线中</span>
                     </template>
                     <template v-else>
                       <span class="text-sm sm:text-base font-black font-mono tracking-tight font-tabular"
-                        :class="item.latency > 150 ? 'text-amber-700' : (item.latency > 60 ? 'text-sky-700' : 'text-emerald-700')">
+                        :class="item.latency > 150 ? 'text-amber-600 dark:text-amber-300' : (item.latency > 60 ? 'text-sky-600 dark:text-cyan-300' : 'text-emerald-600 dark:text-emerald-400')">
                         {{ item.latency }}
                       </span>
-                      <span class="text-[10px] font-medium text-slate-500 font-sans ml-0.5">ms</span>
+                      <span class="text-[10px] font-medium cbx-text-muted font-sans ml-0.5">ms</span>
                     </template>
                   </div>
                 </div>
@@ -792,55 +773,49 @@
           <!-- ════════════════════════════════════════════════════════════════ -->
           <!-- 视区 3: 全息局域网流量动态拓扑 + 全家设备单键分流控制台              -->
           <!-- ════════════════════════════════════════════════════════════════ -->
-          <section class="macos-card p-5 sm:p-7 rounded-3xl space-y-6 border border-white/80 bg-[#F6F7FA]/[0.90] backdrop-blur-xl shadow-lg relative overflow-hidden">
-            <!-- 头部标题栏与批量操作 (合理高密布局，杜绝断行) -->
-            <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+          <section class="cbx-card p-5 sm:p-7 rounded-3xl space-y-6 shadow-lg relative overflow-hidden">
+            <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b pb-4" style="border-color: var(--cbx-border-soft);">
               <div class="space-y-1">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <h3 class="text-base sm:text-lg font-black text-[#0F172A] tracking-wide flex items-center gap-2">
+                  <h3 class="text-base sm:text-lg font-black cbx-text-main tracking-wide flex items-center gap-2">
                     <span>🎛️</span>
                     <span>全息局域网流量拓扑与设备控制台</span>
                   </h3>
-                  <span class="px-2 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200 text-[11px] font-bold">
+                  <span class="px-2 py-0.5 rounded-full cbx-badge-info border text-[11px] font-bold">
                     0秒免改网关
                   </span>
                 </div>
-                <p class="text-xs text-slate-600 font-medium font-sans">
+                <p class="text-xs cbx-text-sub font-medium font-sans">
                   点击设备名称可就地改名持久化 · 自由微调【⚡ 旁路加速】/【🎬 影音NAS专属】/【🏠 原生物理直连】
                 </p>
               </div>
 
-              <!-- 统计徽章与批量操作按钮组 (纯白微凸容器，高对比文字) -->
-              <div class="flex items-center gap-2 shrink-0 self-start xl:self-center flex-wrap sm:flex-nowrap">
-                <div class="inline-flex items-center p-1 rounded-xl bg-white/90 border border-slate-200/80 text-xs font-mono shadow-sm">
-                  <span class="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+              <div class="flex items-center gap-2 shrink-0 self-start xl:self-center flex-wrap">
+                <div class="inline-flex items-center p-1 rounded-xl cbx-sub-card text-xs font-mono shadow-sm flex-wrap gap-1">
+                  <span class="px-2.5 py-0.5 rounded-lg cbx-badge-ok font-bold border">
                     ⚡ 旁路: {{ proxiedClientsCount }}
                   </span>
-                  <span class="px-1 text-slate-400">·</span>
-                  <span class="px-2.5 py-0.5 rounded-lg bg-purple-50 text-purple-800 font-bold border border-purple-200">
+                  <span class="px-2.5 py-0.5 rounded-lg cbx-badge-purple font-bold border">
                     🎬 影音: {{ mediaClientsCount }}
                   </span>
-                  <span class="px-1 text-slate-400">·</span>
-                  <span class="px-2.5 py-0.5 text-slate-700 font-bold">
+                  <span class="px-2.5 py-0.5 cbx-text-sub font-bold">
                     🏠 直连: {{ directClientsCount }}
                   </span>
                 </div>
 
-                <div class="inline-flex items-center p-1 rounded-xl bg-white/90 border border-slate-200/80 gap-1.5 shadow-sm">
+                <div class="inline-flex items-center p-1 rounded-xl cbx-sub-card gap-1.5 shadow-sm">
                   <button @click="batchSetClients('all_proxy')" :disabled="batchProcessingClients"
-                    class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs active:scale-95 transition flex items-center gap-1 cursor-pointer disabled:opacity-50 shadow-sm"
-                    title="将全家在线设备一键接入 CubeX 旁路规则加速">
+                    class="px-3 py-1.5 sm:py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs active:scale-95 transition flex items-center gap-1 cursor-pointer disabled:opacity-50 shadow-sm">
                     <span>⚡ 全屋加速</span>
                   </button>
 
                   <button @click="batchSetClients('all_direct')" :disabled="batchProcessingClients"
-                    class="px-3 py-1 rounded-lg bg-white hover:bg-slate-50 border border-slate-200/90 text-[#0F172A] font-bold text-xs active:scale-95 transition flex items-center gap-1 cursor-pointer disabled:opacity-50 shadow-sm"
-                    title="将全家在线设备一键回归主路由直通">
+                    class="px-3 py-1.5 sm:py-1 rounded-lg cbx-btn-ghost font-bold text-xs active:scale-95 transition flex items-center gap-1 cursor-pointer disabled:opacity-50 shadow-sm">
                     <span>🏠 全体直连</span>
                   </button>
 
                   <button @click="fetchLanClients(false)" :disabled="fetchingClients"
-                    class="p-1 rounded-lg hover:bg-slate-100 text-slate-700 transition cursor-pointer"
+                    class="p-1.5 rounded-lg cbx-btn-ghost transition cursor-pointer"
                     title="刷新局域网设备列表">
                     <span :class="{'inline-block animate-spin': fetchingClients}">↻</span>
                   </button>
@@ -848,179 +823,166 @@
               </div>
             </div>
 
-            <!-- 🌐 全息局域网动态流光拓扑看板 (高对比浅雾晶透看板 · WCAG 4.5:1+) -->
-            <div class="p-4 rounded-2xl bg-white/95 border border-sky-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-mono">
-              <!-- Left Node: Online Clients -->
+            <!-- 全息局域网动态流光拓扑看板 -->
+            <div class="p-4 rounded-2xl cbx-sub-card shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-mono">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-xl shadow-sm shrink-0">
+                <div class="w-10 h-10 rounded-xl cbx-badge-info border flex items-center justify-center text-xl shadow-sm shrink-0">
                   📱
                 </div>
                 <div>
-                  <div class="text-slate-900 font-extrabold text-sm">全屋在线终端</div>
-                  <div class="text-slate-600 text-[11px] font-medium">{{ lanClients.length }} 台设备在线 · 动态嗅探</div>
+                  <div class="cbx-text-main font-extrabold text-sm">全屋在线终端</div>
+                  <div class="cbx-text-sub text-[11px] font-medium font-tabular">{{ lanClients.length }} 台设备在线 · 动态嗅探</div>
                 </div>
               </div>
 
-              <!-- Flow Connection 1 -->
               <div class="hidden md:flex flex-1 items-center justify-center px-2">
-                <div class="w-full flex items-center gap-1.5 text-slate-600">
+                <div class="w-full flex items-center gap-1.5 cbx-text-sub">
                   <div class="h-0.5 flex-1 bg-gradient-to-r from-indigo-400/60 via-sky-500/70 to-cyan-500"></div>
-                  <span class="text-[11px] text-sky-800 font-bold font-sans">局域网流量 ➔</span>
+                  <span class="text-[11px] text-sky-700 dark:text-cyan-300 font-bold font-sans">局域网流量 ➔</span>
                 </div>
               </div>
 
-              <!-- Middle Node: CubeX Gateway Hub -->
-              <div class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-sky-50/90 border border-sky-300 shrink-0 shadow-sm">
-                <div class="w-9 h-9 rounded-lg bg-sky-100 border border-sky-200 flex items-center justify-center text-lg text-sky-800 font-bold">
+              <div class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl cbx-sub-card border-sky-400/50 shrink-0 shadow-sm">
+                <div class="w-9 h-9 rounded-lg cbx-badge-info border flex items-center justify-center text-lg font-bold">
                   🧊
                 </div>
                 <div>
-                  <div class="text-slate-900 font-extrabold text-xs flex items-center gap-1.5">
+                  <div class="cbx-text-main font-extrabold text-xs flex items-center gap-1.5">
                     <span>CubeX 智能中枢</span>
                     <span class="px-1.5 py-0.5 rounded bg-sky-600 text-white text-[10px] font-bold">{{ systemStatus?.host_ip || 'CubeX' }}</span>
                   </div>
-                  <div class="text-[11px] text-emerald-800 font-bold font-tabular font-sans mt-0.5">
+                  <div class="text-[11px] text-emerald-700 dark:text-emerald-300 font-bold font-tabular font-sans mt-0.5">
                     ↓ {{ formatSpeed(liveDownSpeed) }} · ↑ {{ formatSpeed(liveUpSpeed) }}
                   </div>
                 </div>
               </div>
 
-              <!-- Flow Connection 2 -->
               <div class="hidden md:flex flex-1 items-center justify-center px-2">
-                <div class="w-full flex items-center gap-1.5 text-slate-600">
+                <div class="w-full flex items-center gap-1.5 cbx-text-sub">
                   <div class="h-0.5 flex-1 bg-gradient-to-r from-cyan-500 via-emerald-500/70 to-amber-500/70"></div>
-                  <span class="text-[11px] text-emerald-800 font-bold font-sans">双通道分流 ➔</span>
+                  <span class="text-[11px] text-emerald-700 dark:text-emerald-300 font-bold font-sans">双通道分流 ➔</span>
                 </div>
               </div>
 
-              <!-- Right Nodes: Dual Outbounds (Direct & Accelerated) -->
-              <div class="flex items-center gap-2 shrink-0">
-                <div class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 text-right leading-tight shadow-sm">
-                  <div class="text-[11px] font-extrabold text-emerald-900 flex items-center justify-end gap-1">
+              <div class="flex items-center gap-2 shrink-0 flex-wrap justify-center">
+                <div class="p-2.5 rounded-xl cbx-badge-ok border text-right leading-tight shadow-sm">
+                  <div class="text-[11px] font-extrabold flex items-center justify-end gap-1">
                     <span>🏠 国内物理直连</span>
                   </div>
-                  <div class="text-[10px] text-emerald-800 font-medium font-sans mt-0.5">硬件芯片直出 0延迟</div>
+                  <div class="text-[10px] font-medium font-sans mt-0.5 opacity-90">硬件芯片直出 0延迟</div>
                 </div>
 
-                <div class="p-2.5 rounded-xl bg-sky-50 border border-sky-300 text-right leading-tight shadow-sm">
-                  <div class="text-[11px] font-extrabold text-sky-900 flex items-center justify-end gap-1">
+                <div class="p-2.5 rounded-xl cbx-badge-info border text-right leading-tight shadow-sm">
+                  <div class="text-[11px] font-extrabold flex items-center justify-end gap-1">
                     <span>⚡ 海外规则加速</span>
                   </div>
-                  <div class="text-[10px] text-sky-800 font-medium font-sans mt-0.5">双核智能极速分流</div>
+                  <div class="text-[10px] font-medium font-sans mt-0.5 opacity-90">双核智能极速分流</div>
                 </div>
               </div>
             </div>
 
-            <!-- 搜索与分类过滤器 (高对比白底微晶条) -->
+            <!-- 搜索与分类过滤器 -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-              <div class="flex items-center gap-1.5 bg-slate-100 border border-slate-300/80 rounded-xl p-1 text-xs flex-wrap sm:flex-nowrap shadow-sm">
+              <div class="flex items-center gap-1.5 cbx-sub-card rounded-xl p-1 text-xs flex-wrap shadow-sm">
                 <button @click="clientFilterMode = 'all'"
-                  :class="['px-3 py-1 rounded-lg transition font-bold cursor-pointer', clientFilterMode === 'all' ? 'bg-sky-600 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/70']">
+                  :class="['px-3 py-1.5 sm:py-1 rounded-lg transition font-bold cursor-pointer', clientFilterMode === 'all' ? 'bg-sky-600 text-white shadow-sm' : 'cbx-text-sub hover:cbx-text-main']">
                   全部 ({{ lanClients.length }})
                 </button>
                 <button @click="clientFilterMode = 'proxy'"
-                  :class="['px-3 py-1 rounded-lg transition font-bold cursor-pointer', clientFilterMode === 'proxy' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/70']">
+                  :class="['px-3 py-1.5 sm:py-1 rounded-lg transition font-bold cursor-pointer', clientFilterMode === 'proxy' ? 'bg-emerald-600 text-white shadow-sm' : 'cbx-text-sub hover:cbx-text-main']">
                   ⚡ 旁路中 ({{ proxiedClientsCount }})
                 </button>
                 <button @click="clientFilterMode = 'media'"
-                  :class="['px-3 py-1 rounded-lg transition font-bold cursor-pointer', clientFilterMode === 'media' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/70']">
+                  :class="['px-3 py-1.5 sm:py-1 rounded-lg transition font-bold cursor-pointer', clientFilterMode === 'media' ? 'bg-purple-600 text-white shadow-sm' : 'cbx-text-sub hover:cbx-text-main']">
                   🎬 影音/NAS ({{ mediaClientsCount }})
                 </button>
                 <button @click="clientFilterMode = 'direct'"
-                  :class="['px-3 py-1 rounded-lg transition font-bold cursor-pointer', clientFilterMode === 'direct' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/70']">
+                  :class="['px-3 py-1.5 sm:py-1 rounded-lg transition font-bold cursor-pointer', clientFilterMode === 'direct' ? 'bg-slate-700 text-white shadow-sm' : 'cbx-text-sub hover:cbx-text-main']">
                   🛡️ 直连中 ({{ directClientsCount }})
                 </button>
                 <button @click="clientFilterMode = 'online'"
-                  :class="['px-3 py-1 rounded-lg transition font-bold cursor-pointer', clientFilterMode === 'online' ? 'bg-cyan-700 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white/70']">
+                  :class="['px-3 py-1.5 sm:py-1 rounded-lg transition font-bold cursor-pointer', clientFilterMode === 'online' ? 'bg-cyan-700 text-white shadow-sm' : 'cbx-text-sub hover:cbx-text-main']">
                   🟢 在线
                 </button>
               </div>
 
               <div class="relative sm:w-64">
                 <input v-model="clientSearchQuery" type="text" placeholder="搜索设备名 / IP / MAC..."
-                  class="w-full px-3 py-1.5 pl-8 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 placeholder-slate-500 focus:outline-none focus:border-sky-500 transition shadow-sm" />
-                <span class="absolute left-2.5 top-2 text-xs text-slate-500">🔍</span>
-                <button v-if="clientSearchQuery" @click="clientSearchQuery = ''" class="absolute right-2.5 top-1.5 text-xs text-slate-500 hover:text-slate-900">✕</button>
+                  class="w-full px-3 py-2 sm:py-1.5 pl-8 rounded-xl text-xs focus:outline-none transition shadow-sm" />
+                <span class="absolute left-2.5 top-2 text-xs cbx-text-muted">🔍</span>
+                <button v-if="clientSearchQuery" @click="clientSearchQuery = ''" class="absolute right-2.5 top-1.5 text-xs cbx-text-muted hover:cbx-text-main cursor-pointer">✕</button>
               </div>
             </div>
 
-            <!-- 全家设备卡片流 (Grid · 高对比纯亮卡面 + 3:1 清晰边框) -->
+            <!-- 全家设备卡片流 (干净语义化纯色卡片 + 左侧状态色条，拒绝灰绿混浊渐变) -->
             <div v-if="filteredLanClients.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               <div v-for="dev in filteredLanClients" :key="dev.mac || dev.ip"
-                class="p-4 rounded-2xl border transition-all duration-300 relative group flex flex-col justify-between shadow-sm"
-                :class="(dev.mode === 'media' || dev.is_media) ? 'bg-purple-50/95 border-purple-300 hover:border-purple-400' : (dev.is_proxied && dev.mode !== 'direct') ? 'bg-emerald-50/95 border-emerald-300 hover:border-emerald-400' : 'bg-white border-slate-300/90 hover:border-slate-400'">
+                class="p-4 rounded-2xl cbx-sub-card border-l-4 transition-all duration-200 relative group flex flex-col justify-between shadow-sm"
+                :class="(dev.mode === 'media' || dev.is_media) ? 'border-l-purple-500' : (dev.is_proxied && dev.mode !== 'direct') ? 'border-l-emerald-500' : 'border-l-slate-400'">
 
-                <!-- 设备头部：图标、名称、就地改名、在线状态 -->
+                <!-- 设备头部 -->
                 <div class="flex items-start gap-3">
-                  <span class="text-2xl p-2 rounded-xl bg-slate-100 border border-slate-200 shrink-0">
+                  <span class="text-2xl p-2 rounded-xl cbx-btn-ghost shrink-0">
                     {{ getDeviceIcon(dev) }}
                   </span>
                   <div class="min-w-0 flex-1">
-                    <!-- 名称与就地编辑 -->
                     <div v-if="editingClientMAC === (dev.mac || dev.ip)" class="flex items-center gap-1.5">
                       <input v-model="editingClientName" @keyup.enter="saveClientAlias(dev)" @keyup.esc="editingClientMAC = ''"
-                        class="w-full px-2 py-0.5 rounded-lg bg-white border border-sky-500 text-xs text-slate-900 focus:outline-none font-bold" />
-                      <button @click="saveClientAlias(dev)" class="px-2 py-0.5 rounded-lg bg-sky-600 text-white text-xs font-bold cursor-pointer">✓</button>
-                      <button @click="editingClientMAC = ''" class="px-2 py-0.5 rounded-lg bg-slate-200 text-slate-800 text-xs font-bold cursor-pointer">✕</button>
+                        class="w-full px-2 py-1 rounded-lg text-xs focus:outline-none font-bold" />
+                      <button @click="saveClientAlias(dev)" class="px-2.5 py-1 rounded-lg bg-sky-600 text-white text-xs font-bold cursor-pointer">✓</button>
+                      <button @click="editingClientMAC = ''" class="px-2.5 py-1 rounded-lg cbx-btn-ghost text-xs font-bold cursor-pointer">✕</button>
                     </div>
-                    <div v-else class="flex items-center justify-between gap-1">
+                    <div v-else class="flex items-center justify-between gap-2">
                       <div @click="editingClientMAC = (dev.mac || dev.ip); editingClientName = (dev.name || dev.hostname || dev.ip)"
-                        class="font-black text-sm text-slate-900 truncate flex items-center gap-1.5 cursor-pointer hover:text-sky-700 transition" :title="'点击修改备注: ' + (dev.name || dev.ip)">
+                        class="font-black text-sm cbx-text-main truncate flex items-center gap-1.5 cursor-pointer hover:text-sky-600 dark:hover:text-cyan-300 transition" :title="'点击修改备注: ' + (dev.name || dev.ip)">
                         <span>{{ dev.name || dev.hostname || dev.ip }}</span>
-                        <span v-if="dev.is_custom" class="text-[10px] text-amber-700 font-bold">✎</span>
+                        <span v-if="dev.is_custom" class="text-[10px] text-amber-600 dark:text-amber-400 font-bold">✎</span>
                       </div>
                       <button @click="editingClientMAC = (dev.mac || dev.ip); editingClientName = (dev.name || dev.hostname || dev.ip)"
-                        class="opacity-0 group-hover:opacity-100 text-[11px] text-slate-600 hover:text-sky-700 font-bold transition shrink-0 p-0.5 cursor-pointer">
+                        class="cbx-btn-ghost px-2 py-1 rounded-lg text-[11px] font-semibold transition shrink-0 cursor-pointer">
                         编辑备注
                       </button>
                     </div>
 
-                    <!-- IP 与 MAC 地址 -->
-                    <div class="text-[11px] font-mono text-slate-600 flex items-center gap-2 mt-1">
-                      <span class="text-sky-800 font-bold font-tabular">{{ dev.ip }}</span>
-                      <span class="text-slate-400">·</span>
-                      <span class="text-slate-600 truncate font-medium">{{ dev.mac && dev.mac !== '-' ? dev.mac : '局域网终端' }}</span>
+                    <!-- IP 与 MAC 地址 (清晰高对比) -->
+                    <div class="text-[11px] font-mono cbx-text-sub flex items-center gap-2 mt-1 flex-wrap">
+                      <span class="text-sky-700 dark:text-cyan-300 font-bold font-tabular">{{ dev.ip }}</span>
+                      <span class="cbx-text-muted">·</span>
+                      <span class="cbx-text-sub truncate font-medium font-tabular">{{ dev.mac && dev.mac !== '-' ? dev.mac : '局域网终端' }}</span>
                     </div>
                   </div>
                 </div>
 
-                <!-- 分隔线与分流控制 3 档极速模式开关组 -->
-                <div class="pt-3.5 mt-3.5 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                <!-- 分流控制 3 档极速模式开关组 -->
+                <div class="pt-3.5 mt-3.5 border-t flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5" style="border-color: var(--cbx-border-soft);">
                   <div class="min-w-0">
                     <div class="text-xs font-extrabold flex items-center gap-1.5"
-                      :class="(dev.mode === 'media' || dev.is_media) ? 'text-purple-900' : (dev.is_proxied && dev.mode !== 'direct') ? 'text-emerald-900' : 'text-slate-800'">
+                      :class="(dev.mode === 'media' || dev.is_media) ? 'text-purple-700 dark:text-purple-300' : (dev.is_proxied && dev.mode !== 'direct') ? 'text-emerald-700 dark:text-emerald-300' : 'cbx-text-main'">
                       <span>{{ (dev.mode === 'media' || dev.is_media) ? '🎬 影音/NAS专属加速' : (dev.is_proxied && dev.mode !== 'direct') ? '⚡ 旁路全功能加速' : '🛡️ 主路由原生直连' }}</span>
                     </div>
-                    <div class="text-[10px] text-slate-600 font-medium mt-0.5 font-sans truncate">
+                    <div class="text-[10px] cbx-text-sub font-medium mt-0.5 font-sans truncate">
                       {{ (dev.mode === 'media' || dev.is_media) ? '海报刮削加速 · PT下载物理直通' : (dev.is_proxied && dev.mode !== 'direct') ? '走 CubeX 智能分流与防泄露' : '走主路由默认物理网关直出' }}
                     </div>
                   </div>
 
-                  <!-- 3 档极速模式微调开关 -->
-                  <div class="inline-flex items-center p-0.5 rounded-xl bg-slate-100 border border-slate-300 shrink-0 self-end sm:self-auto">
-                    <!-- ⚡ 旁路 -->
+                  <div class="inline-flex items-center p-0.5 rounded-xl cbx-sub-card shrink-0 self-end sm:self-auto">
                     <button @click="setClientMode(dev, 'proxy')" :disabled="togglingClientIP === dev.ip"
-                      class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-0.5 font-bold"
-                      :class="(dev.is_proxied && dev.mode !== 'media' && dev.mode !== 'direct') ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white'"
-                      title="开启 CubeX 旁路全功能规则分流加速">
+                      class="px-2.5 py-1.5 sm:py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-0.5 font-bold"
+                      :class="(dev.is_proxied && dev.mode !== 'media' && dev.mode !== 'direct') ? 'bg-emerald-600 text-white shadow-sm' : 'cbx-text-sub hover:cbx-text-main'">
                       <span v-if="togglingClientIP === dev.ip && targetTogglingMode === 'proxy'" class="inline-block animate-spin text-[10px]">↻</span>
                       <span>⚡ 旁路</span>
                     </button>
 
-                    <!-- 🎬 影音 -->
                     <button @click="setClientMode(dev, 'media')" :disabled="togglingClientIP === dev.ip"
-                      class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-0.5 font-bold"
-                      :class="(dev.mode === 'media' || dev.is_media) ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white'"
-                      title="影视海报刮削与Docker加速 · PT/下载物理芯片直通">
+                      class="px-2.5 py-1.5 sm:py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-0.5 font-bold"
+                      :class="(dev.mode === 'media' || dev.is_media) ? 'bg-purple-600 text-white shadow-sm' : 'cbx-text-sub hover:cbx-text-main'">
                       <span v-if="togglingClientIP === dev.ip && targetTogglingMode === 'media'" class="inline-block animate-spin text-[10px]">↻</span>
                       <span>🎬 影音</span>
                     </button>
 
-                    <!-- 🏠 直连 -->
                     <button @click="setClientMode(dev, 'direct')" :disabled="togglingClientIP === dev.ip"
-                      class="px-2 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-0.5 font-bold"
-                      :class="(!dev.is_proxied || dev.mode === 'direct') ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-700 hover:text-slate-950 hover:bg-white'"
-                      title="回归主路由原生物理芯片直通">
+                      class="px-2.5 py-1.5 sm:py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-0.5 font-bold"
+                      :class="(!dev.is_proxied || dev.mode === 'direct') ? 'bg-slate-700 text-white shadow-sm' : 'cbx-text-sub hover:cbx-text-main'">
                       <span v-if="togglingClientIP === dev.ip && targetTogglingMode === 'direct'" class="inline-block animate-spin text-[10px]">↻</span>
                       <span>🏠 直连</span>
                     </button>
@@ -1030,10 +992,10 @@
             </div>
 
             <!-- 空状态提示 -->
-            <div v-else class="text-center py-10 space-y-2 text-slate-600 bg-white/80 rounded-2xl border border-slate-200">
+            <div v-else class="text-center py-10 space-y-2 cbx-sub-card rounded-2xl">
               <div class="text-3xl">🔍</div>
-              <div class="text-sm font-bold text-slate-900">未找到匹配的局域网终端</div>
-              <div class="text-xs text-slate-600">点击右上角刷新，或清除搜索条件</div>
+              <div class="text-sm font-bold cbx-text-main">未找到匹配的局域网终端</div>
+              <div class="text-xs cbx-text-sub">点击右上角刷新，或清除搜索条件</div>
             </div>
           </section>
 
@@ -1061,29 +1023,29 @@
 
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-1.5 select-none">
 
-              <!-- Left: 3 Sub-tabs Capsule Switcher (h-[42px] 胶囊容器 · 高对比白金文字) -->
+              <!-- Left: 3 Sub-tabs Capsule Switcher -->
 
-              <div class="h-[42px] flex items-center gap-1.5 p-1 rounded-2xl macos-capsule shrink-0">
+              <div class="flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-1 rounded-2xl cbx-sub-card shrink-0">
 
                 <button @click="routingSubTab = 'policy'"
 
                   :class="[
 
-                    'h-[34px] px-3.5 rounded-xl text-xs font-bold transition flex items-center gap-2 select-none cursor-pointer',
+                    'min-h-[36px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 select-none cursor-pointer',
 
                     routingSubTab === 'policy'
 
                       ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-black shadow-md shadow-sky-500/25'
 
-                      : 'text-white/85 hover:text-white hover:bg-white/10'
+                      : 'cbx-text-sub hover:cbx-text-main'
 
                   ]">
 
                   <span>策略</span>
 
-                  <span :class="['text-[11px] px-2 py-0.5 rounded-full font-mono font-bold',
+                  <span :class="['text-[11px] px-2 py-0.5 rounded-full font-mono font-bold font-tabular',
 
-                    routingSubTab === 'policy' ? 'bg-slate-900 text-white font-bold' : 'bg-[#F1F4F9] border border-slate-300/60 text-slate-700']">
+                    routingSubTab === 'policy' ? 'bg-slate-900/90 text-white font-bold' : 'cbx-btn-ghost']">
 
                     {{ filteredPolicies.length }}
 
@@ -1095,21 +1057,21 @@
 
                   :class="[
 
-                    'h-[34px] px-3.5 rounded-xl text-xs font-bold transition flex items-center gap-2 select-none cursor-pointer',
+                    'min-h-[36px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 select-none cursor-pointer',
 
                     routingSubTab === 'node'
 
                       ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-black shadow-md shadow-sky-500/25'
 
-                      : 'text-white/85 hover:text-white hover:bg-white/10'
+                      : 'cbx-text-sub hover:cbx-text-main'
 
                   ]">
 
                   <span>地区</span>
 
-                  <span :class="['text-[11px] px-2 py-0.5 rounded-full font-mono font-bold',
+                  <span :class="['text-[11px] px-2 py-0.5 rounded-full font-mono font-bold font-tabular',
 
-                    routingSubTab === 'node' ? 'bg-slate-900 text-white font-bold' : 'bg-[#F1F4F9] border border-slate-300/60 text-slate-700']">
+                    routingSubTab === 'node' ? 'bg-slate-900/90 text-white font-bold' : 'cbx-btn-ghost']">
 
                     {{ regionalAutoGroups.length }}
 
@@ -1121,21 +1083,21 @@
 
                   :class="[
 
-                    'h-[34px] px-3.5 rounded-xl text-xs font-bold transition flex items-center gap-2 select-none cursor-pointer',
+                    'min-h-[36px] px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 select-none cursor-pointer',
 
                     routingSubTab === 'sub'
 
                       ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-black shadow-md shadow-sky-500/25'
 
-                      : 'text-white/85 hover:text-white hover:bg-white/10'
+                      : 'cbx-text-sub hover:cbx-text-main'
 
                   ]">
 
                   <span>订阅</span>
 
-                  <span :class="['text-[11px] px-2 py-0.5 rounded-full font-mono font-bold',
+                  <span :class="['text-[11px] px-2 py-0.5 rounded-full font-mono font-bold font-tabular',
 
-                    routingSubTab === 'sub' ? 'bg-slate-900 text-white font-bold' : 'bg-[#F1F4F9] border border-slate-300/60 text-slate-700']">
+                    routingSubTab === 'sub' ? 'bg-slate-900/90 text-white font-bold' : 'cbx-btn-ghost']">
 
                     {{ (ir.subscriptions || []).length }}
 
@@ -1145,19 +1107,17 @@
 
               </div>
 
-              <!-- Right: Quick Tools & Context Action Buttons (h-[42px] 对称对齐 · 取消搜索框与刷新按钮) -->
+              <!-- Right: Quick Tools & Context Action Buttons -->
 
-              <div class="flex items-center gap-2.5 shrink-0 flex-wrap sm:flex-nowrap">
-
-                <!-- ⚡ 全员测速 (高透全息胶囊 · 暖金与白文字) -->
+              <div class="flex items-center gap-2 shrink-0 flex-wrap">
 
                 <button @click="runAllLatencyTest" :disabled="testingLatency"
 
-                  class="h-[42px] px-4 rounded-2xl text-xs font-bold macos-capsule hover:border-sky-400/50 text-slate-700 hover:text-slate-900 transition flex items-center gap-1.5 shadow-sm active:scale-95 whitespace-nowrap cursor-pointer">
+                  class="min-h-[40px] px-3.5 rounded-2xl text-xs font-bold cbx-btn-ghost transition flex items-center gap-1.5 shadow-sm active:scale-95 whitespace-nowrap cursor-pointer">
 
                   <span v-if="testingLatency" class="inline-block animate-spin">⏳</span>
 
-                  <span v-else class="text-sky-200">⚡</span>
+                  <span v-else class="text-sky-600 dark:text-cyan-300">⚡</span>
 
                   <span>{{ testingLatency ? '测速中...' : '全员测速' }}</span>
 
@@ -1165,15 +1125,15 @@
 
                 <button v-if="routingSubTab === 'policy'" @click="restoreDefaultPolicies" title="一键恢复官方默认 14 个业务分流策略与 8 大地区"
 
-                  class="h-[42px] px-3.5 rounded-2xl text-xs font-bold macos-capsule hover:border-sky-400/50 text-slate-700 hover:text-slate-900 transition flex items-center gap-1.5 active:scale-95 whitespace-nowrap shadow-sm cursor-pointer"
+                  class="min-h-[40px] px-3.5 rounded-2xl text-xs font-bold cbx-btn-ghost transition flex items-center gap-1.5 active:scale-95 whitespace-nowrap shadow-sm cursor-pointer"
 
-                  :class="deletedPolicyGroupNames.length > 0 ? 'border-amber-500/40 text-amber-200' : ''">
+                  :class="deletedPolicyGroupNames.length > 0 ? 'cbx-badge-warn border' : ''">
 
-                  <span class="text-sky-200">↺</span>
+                  <span class="text-sky-600 dark:text-cyan-300">↺</span>
 
                   <span>恢复默认策略 (14个)</span>
 
-                  <span v-if="deletedPolicyGroupNames.length > 0" class="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-200 font-mono">
+                  <span v-if="deletedPolicyGroupNames.length > 0" class="text-[10px] px-1.5 py-0.2 rounded-full cbx-badge-warn font-mono">
 
                     {{ deletedPolicyGroupNames.length }}
 
@@ -1183,25 +1143,25 @@
 
                 <button v-if="routingSubTab === 'policy'" @click="showAddGroupModal = true"
 
-                  class="h-[42px] px-4 rounded-2xl text-xs font-black bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white shadow-md shadow-sky-500/25 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+                  class="min-h-[40px] px-4 rounded-2xl text-xs font-black bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white shadow-md shadow-sky-500/25 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
 
                   <span>➕ 添加策略</span>
 
                 </button>
 
-                <div v-else-if="routingSubTab === 'node'" class="flex items-center gap-2">
+                <div v-else-if="routingSubTab === 'node'" class="flex items-center gap-2 flex-wrap">
 
                   <button @click="restoreDefaultRegions" title="一键恢复官方预设 8 大核心地区聚类"
 
-                    class="h-[42px] px-3.5 rounded-2xl text-xs font-bold macos-capsule hover:border-sky-400/50 text-slate-700 hover:text-slate-900 transition flex items-center gap-1.5 active:scale-95 whitespace-nowrap shadow-sm cursor-pointer"
+                    class="min-h-[40px] px-3.5 rounded-2xl text-xs font-bold cbx-btn-ghost transition flex items-center gap-1.5 active:scale-95 whitespace-nowrap shadow-sm cursor-pointer"
 
-                    :class="deletedRegionIds.length > 0 ? 'border-amber-500/40 text-amber-200' : ''">
+                    :class="deletedRegionIds.length > 0 ? 'cbx-badge-warn border' : ''">
 
-                    <span class="text-sky-200">↺</span>
+                    <span class="text-sky-600 dark:text-cyan-300">↺</span>
 
                     <span>恢复默认地区 (8个)</span>
 
-                    <span v-if="deletedRegionIds.length > 0" class="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/30 text-amber-200 font-mono">
+                    <span v-if="deletedRegionIds.length > 0" class="text-[10px] px-1.5 py-0.2 rounded-full cbx-badge-warn font-mono">
 
                       {{ deletedRegionIds.length }}
 
@@ -1211,7 +1171,7 @@
 
                   <button @click="showAddCustomNodeGroupModal = true"
 
-                    class="h-[42px] px-4 rounded-2xl text-xs font-black bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white shadow-md shadow-sky-500/25 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+                    class="min-h-[40px] px-4 rounded-2xl text-xs font-black bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white shadow-md shadow-sky-500/25 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
 
                     <span>➕ 添加分组</span>
 
@@ -1219,7 +1179,7 @@
 
                   <button @click="openImportModal('node')"
 
-                    class="h-[42px] px-3.5 rounded-2xl text-xs font-bold macos-capsule hover:border-sky-400/50 text-slate-700 hover:text-slate-900 transition flex items-center gap-1 whitespace-nowrap cursor-pointer">
+                    class="min-h-[40px] px-3.5 rounded-2xl text-xs font-bold cbx-btn-ghost transition flex items-center gap-1 whitespace-nowrap cursor-pointer">
 
                     <span>📥 导入节点</span>
 
@@ -1229,7 +1189,7 @@
 
                 <button v-else-if="routingSubTab === 'sub'" @click="openImportModal('sub')"
 
-                  class="h-[42px] px-4 rounded-2xl text-xs font-black bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white shadow-md shadow-sky-500/25 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
+                  class="min-h-[40px] px-4 rounded-2xl text-xs font-black bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white shadow-md shadow-sky-500/25 active:scale-95 transition flex items-center gap-1.5 whitespace-nowrap cursor-pointer">
 
                   <span>➕ 导入订阅</span>
 
@@ -1239,15 +1199,11 @@
 
             </div>
 
-            <!-- ════════════════════════════════════════════════════════════ -->
-
-            <!-- SUB-TAB 1: 策略分流 (Policies)                                 -->
-
-            <!-- ════════════════════════════════════════════════════════════ -->
+            <!-- SUB-TAB 1: 策略分流 (Policies) -->
 
             <div v-if="routingSubTab === 'policy'" class="space-y-4">
 
-              <div v-if="filteredPolicies.length === 0" class="p-8 text-center rounded-3xl bg-white/10 text-white/85 border border-slate-800 text-slate-400">
+              <div v-if="filteredPolicies.length === 0" class="p-8 text-center rounded-3xl cbx-card cbx-text-sub">
 
                 <span class="text-2xl block mb-2">🔍</span>
 
@@ -1273,7 +1229,7 @@
 
                 :class="[
 
-                  'rounded-3xl macos-glass-card hover:border-sky-400/40 transition-all duration-300 shadow-xl relative p-4 sm:p-5 space-y-4',
+                  'rounded-3xl cbx-card hover:border-sky-400/40 transition-all duration-300 shadow-xl relative p-4 sm:p-5 space-y-4',
 
                   draggedGroupIndex === grpIdx ? 'opacity-40 scale-[0.98] border-cyan-400 shadow-2xl shadow-sky-500/20 ring-1 ring-cyan-400/50' : '',
 
@@ -1283,17 +1239,15 @@
 
                 ]">
 
-                <!-- Card Header: Drag Handle, Brand Icon, Name, Badges, Outbound Route Breadcrumb, Top-Right Latency Badge -->
+                <!-- Card Header -->
 
-                <div class="flex items-start justify-between gap-3">
+                <div class="flex flex-wrap items-start justify-between gap-3">
 
                   <div class="flex items-center gap-3 min-w-0">
 
-                    <!-- Drag Handle (仅业务策略允许拖拽，核心基石常驻固定，只有按住此把手区域才允许拖拽排序) -->
-
                     <div v-if="!grp.is_immutable"
 
-                      class="drag-handle text-slate-300 hover:text-emerald-300 cursor-grab active:cursor-grabbing px-2 py-1.5 rounded-lg hover:bg-cyan-500/10 transition select-none text-base shrink-0 border border-transparent hover:border-cyan-500/30"
+                      class="drag-handle cbx-text-muted hover:text-sky-500 cursor-grab active:cursor-grabbing px-2 py-1.5 rounded-lg hover:bg-cyan-500/10 transition select-none text-base shrink-0 border border-transparent hover:border-cyan-500/30"
 
                       title="按住拖拽排序分流策略"
 
@@ -1305,13 +1259,11 @@
 
                     </div>
 
-                    <div v-else class="text-amber-500/70 p-1 select-none text-xs shrink-0 font-mono" title="系统核心基石策略，位置常驻固定">
+                    <div v-else class="text-amber-500/80 p-1 select-none text-xs shrink-0 font-mono" title="系统核心基石策略，位置常驻固定">
 
                       🔒
 
                     </div>
-
-                    <!-- Brand Vector Logo -->
 
                     <div class="w-10 h-10 flex items-center justify-center shrink-0">
 
@@ -1323,21 +1275,21 @@
 
                       <div class="flex items-center gap-2 flex-wrap">
 
-                        <span class="text-base font-bold text-slate-900 tracking-wide truncate">{{ cleanGroupNameMap[grp.name] || grp.name }}</span>
+                        <span class="text-base font-bold cbx-text-main tracking-wide truncate">{{ cleanGroupNameMap[grp.name] || grp.name }}</span>
 
-                        <span class="text-xs px-2 py-0.5 rounded-md font-mono bg-white/10 text-slate-600 border border-slate-700/60">
+                        <span class="text-xs px-2 py-0.5 rounded-md font-mono cbx-btn-ghost">
 
                           {{ chinaGroupMap[grp.name] ? '国内穿透' : (grp.name.includes('Speed') ? '测速穿透' : '域名穿透') }}
 
                         </span>
 
-                        <span class="text-xs font-mono text-slate-400">
+                        <span class="text-xs font-mono cbx-text-muted font-tabular">
 
                           Selector ({{ groupCandidateCountMap[grp.name] || 0 }})
 
                         </span>
 
-                        <span v-if="grp.is_custom" class="text-[10px] px-1.5 py-0.2 rounded font-mono bg-purple-950 text-purple-300 border border-purple-500/40">
+                        <span v-if="grp.is_custom" class="text-[10px] px-1.5 py-0.2 rounded font-mono cbx-badge-purple border">
 
                           自定义
 
@@ -1345,19 +1297,17 @@
 
                       </div>
 
-                      <!-- Active Route Path Breadcrumb (仅当指向嵌套策略组且最终落地节点不同时才显示跳转箭头) -->
+                      <div class="text-xs font-mono cbx-text-sub flex items-center gap-1.5 truncate">
 
-                      <div class="text-xs font-mono text-slate-300 flex items-center gap-1.5 truncate">
+                        <span class="cbx-text-muted">{{ candidateFlagMap[grp.now || grp.proxies?.[0]] || '🌐' }}</span>
 
-                        <span class="text-slate-400">{{ candidateFlagMap[grp.now || grp.proxies?.[0]] || '🌐' }}</span>
-
-                        <span class="text-emerald-300 font-bold">{{ grp.now || grp.proxies?.[0] || 'DIRECT' }}</span>
+                        <span class="text-emerald-700 dark:text-emerald-300 font-bold">{{ grp.now || grp.proxies?.[0] || 'DIRECT' }}</span>
 
                         <template v-if="resolveActualProxyNode(grp.now || grp.proxies?.[0]) && resolveActualProxyNode(grp.now || grp.proxies?.[0]) !== (grp.now || grp.proxies?.[0])">
 
-                          <span class="text-slate-300">➔</span>
+                          <span class="cbx-text-muted">➔</span>
 
-                          <span class="text-slate-300 truncate max-w-[280px] sm:max-w-md">{{ actualProxyNodeCacheMap?.[grp.name] || (grp.now || grp.proxies?.[0]) }}</span>
+                          <span class="cbx-text-sub truncate max-w-[280px] sm:max-w-md">{{ actualProxyNodeCacheMap?.[grp.name] || (grp.now || grp.proxies?.[0]) }}</span>
 
                         </template>
 
@@ -1367,13 +1317,11 @@
 
                   </div>
 
-                  <!-- Active Outbound Latency Badge & Delete/Immutable Group Badge -->
-
                   <div class="shrink-0 flex items-center gap-2">
 
                     <span :class="[
 
-                      'px-3 py-1 rounded-full text-xs font-mono font-bold shadow-sm flex items-center gap-1.5 transition-all duration-300',
+                      'px-3 py-1 rounded-full text-xs font-mono font-bold shadow-sm flex items-center gap-1.5 transition-all duration-300 font-tabular',
 
                       getLatencyRadarBadgeClass(getGroupActiveLatency(grp), true)
 
@@ -1385,11 +1333,9 @@
 
                     </span>
 
-                    <!-- 核心基石徽章 (不可删除) vs 普通策略组删除按钮 -->
-
                     <span v-if="grp.is_immutable"
 
-                      class="text-[11px] px-2.5 py-1 rounded-xl font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1 shadow-sm select-none"
+                      class="text-[11px] px-2.5 py-1 rounded-xl font-bold cbx-badge-warn border flex items-center gap-1 shadow-sm select-none"
 
                       title="系统核心基石策略，受底层网络安全保护，不可删除">
 
@@ -1401,7 +1347,7 @@
 
                     <button v-else @click="deletePolicyGroup(grp.name)" title="移除此应用分流策略"
 
-                      class="text-slate-300 hover:text-rose-400 text-xs px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/60 hover:bg-rose-950/60 border border-slate-700/40 hover:border-rose-500/40 transition">
+                      class="cbx-badge-danger border text-xs px-2.5 py-1.5 rounded-lg transition cursor-pointer">
 
                       ✕
 
@@ -1499,7 +1445,7 @@
 
                         <RegionFlag v-else country-code="CN" name="中国" size-class="w-4 h-2.5" />
 
-                        <span class="text-xs sm:text-[13px] font-black truncate text-slate-900 tracking-wide">
+                        <span class="text-xs sm:text-[13px] font-black truncate text-white tracking-wide">
 
                           {{ chinaGroupMap[grp.name] ? '直连 (独占)' : '直连' }}
 
@@ -1605,7 +1551,7 @@
 
                             <span v-if="isRegionActiveInGroup(grp, reg)" class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)] animate-pulse shrink-0"></span>
 
-                            <span class="text-xs sm:text-[13px] font-black truncate text-slate-900 tracking-wide">
+                            <span class="text-xs sm:text-[13px] font-black truncate text-white tracking-wide">
 
                               {{ reg.name }}
 
@@ -1747,19 +1693,19 @@
 
                     </div>
 
-                    <!-- 4. ➕ 增加出站候选项 (支持自建、其它、直连、各地区与拒绝) -->
+                    <!-- 4. 增加出站候选项 -->
 
                     <div v-if="hasAddableOutbounds(grp)"
 
-                      class="w-full aspect-[3/2] p-2 sm:p-2.5 rounded-2xl border border-dashed border-white/20 hover:border-sky-400/50 bg-black/25 flex flex-col items-center justify-center transition select-none group">
+                      class="w-full aspect-[3/2] p-2 sm:p-2.5 rounded-2xl border border-dashed cbx-sub-card hover:border-sky-400/60 flex flex-col items-center justify-center transition select-none group">
 
-                      <span class="text-base text-slate-300 group-hover:text-emerald-300 mb-1 transition">➕</span>
+                      <span class="text-base cbx-text-sub group-hover:text-sky-600 dark:group-hover:text-cyan-300 mb-1 transition">➕</span>
 
                       <select
 
                         @change="restoreCandidateToGroup(grp, $event.target.value); $event.target.value = ''"
 
-                        class="w-full text-[10px] font-mono font-semibold py-1 px-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/90 text-emerald-300 appearance-none text-center cursor-pointer hover:border-cyan-500/40">
+                        class="w-full text-[10px] font-mono font-semibold py-1 px-1 rounded-lg appearance-none text-center cursor-pointer">
 
                         <option value="" disabled selected>增加出站</option>
 
@@ -1767,7 +1713,7 @@
 
                         <option v-for="r in (excludedRegionsMap[grp.name] || [])" :key="r.id" :value="r.id">
 
-                          {{ r.flag || '🌍' }} {{ r.name }}
+                          {{ r.name }}
 
                         </option>
 
@@ -1789,23 +1735,17 @@
 
             </div>
 
-            <!-- ════════════════════════════════════════════════════════════ -->
-
-            <!-- SUB-TAB 2: 地区节点组 (Regional & Custom Node Groups)           -->
-
-            <!-- ════════════════════════════════════════════════════════════ -->
+            <!-- SUB-TAB 2: 地区节点组 (Regional & Custom Node Groups) -->
 
             <div v-else-if="routingSubTab === 'node'" class="space-y-3">
 
-              <div v-if="regionalAutoGroups.length === 0" class="p-8 text-center rounded-2xl bg-white/10 text-white/85 border border-slate-800 text-slate-400">
+              <div v-if="regionalAutoGroups.length === 0" class="p-8 text-center rounded-2xl cbx-card cbx-text-sub">
 
                 <span class="text-2xl block mb-2">🔍</span>
 
                 <span>未找到与「{{ routingSearchQuery }}」匹配的节点组</span>
 
               </div>
-
-              <!-- Compact 2-Column Responsive Grid (No Excessive Blank Space) -->
 
               <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
 
@@ -1825,33 +1765,27 @@
 
                   :class="[
 
-                    'rounded-2xl macos-glass-card hover:border-sky-400/40 transition-all duration-200 shadow-md p-3.5 space-y-2.5 group cursor-move select-none',
+                    'rounded-2xl cbx-card hover:border-sky-400/50 transition-all duration-200 shadow-md p-3.5 sm:p-4 space-y-2.5 group cursor-move select-none',
 
-                    draggedRegionId === reg.id ? 'opacity-30 scale-[0.98] border-cyan-400 ring-2 ring-cyan-400/50' : 'border-slate-700/60 hover:border-slate-500',
+                    draggedRegionId === reg.id ? 'opacity-30 scale-[0.98] border-cyan-400 ring-2 ring-cyan-400/50' : '',
 
-                    dragOverRegionId === reg.id && draggedRegionId !== reg.id ? 'border-cyan-400 bg-cyan-950/40 ring-2 ring-cyan-400' : ''
+                    dragOverRegionId === reg.id && draggedRegionId !== reg.id ? 'border-cyan-400 ring-2 ring-cyan-400' : ''
 
                   ]">
 
-                  <!-- ── Group Header (Tier 1: Identity, Badges, Latency & Fast Actions) ── -->
+                  <!-- Group Header -->
 
-                  <div class="flex items-center justify-between gap-3">
+                  <div class="flex flex-wrap items-center justify-between gap-2.5">
 
-                    <!-- Left: Drag + Flag + Group Name + Type Badge + Count Badge -->
+                    <div class="flex items-center gap-2 min-w-0">
 
-                    <div class="flex items-center gap-2.5 min-w-0">
-
-                      <!-- Drag Handle -->
-
-                      <div class="region-drag-handle text-slate-300 group-hover:text-sky-300 px-2 py-1.5 rounded-lg hover:bg-cyan-500/10 transition select-none text-base shrink-0 border border-transparent hover:border-cyan-500/30"
+                      <div class="region-drag-handle cbx-text-muted group-hover:text-sky-500 px-2 py-1.5 rounded-lg hover:bg-cyan-500/10 transition select-none text-base shrink-0 border border-transparent hover:border-cyan-500/30"
 
                         title="按住拖拽排序">
 
                         ⠿
 
                       </div>
-
-                      <!-- Pure Vector Flag / Icon (Click to Speedtest Region Nodes) -->
 
                       <div class="shrink-0 flex items-center cursor-pointer hover:scale-110 active:scale-95 transition"
 
@@ -1863,31 +1797,29 @@
 
                       </div>
 
-                      <!-- Group Name & Category Tags -->
+                      <div class="flex items-center gap-1.5 flex-wrap min-w-0">
 
-                      <div class="flex items-center gap-2 flex-wrap min-w-0">
+                        <span class="text-sm sm:text-base font-bold cbx-text-main tracking-wide truncate max-w-[130px] sm:max-w-[180px]">{{ reg.name }}</span>
 
-                        <span class="text-sm sm:text-base font-bold text-slate-900 tracking-wide truncate max-w-[130px] sm:max-w-[180px]">{{ reg.name }}</span>
-
-                        <span v-if="reg.type === 'sub'" class="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium bg-purple-950/90 text-purple-300 border border-purple-500/30 whitespace-nowrap shrink-0">
+                        <span v-if="reg.type === 'sub'" class="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold cbx-badge-purple border whitespace-nowrap shrink-0">
 
                           ✈️ 订阅源
 
                         </span>
 
-                        <span v-else-if="reg.id === 'CUSTOM'" class="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium bg-indigo-950/90 text-indigo-300 border border-indigo-500/30 whitespace-nowrap shrink-0">
+                        <span v-else-if="reg.id === 'CUSTOM'" class="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold cbx-badge-info border whitespace-nowrap shrink-0">
 
                           🏠 自建
 
                         </span>
 
-                        <span v-else class="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium bg-cyan-950/90 text-emerald-300 border border-cyan-500/30 whitespace-nowrap shrink-0">
+                        <span v-else class="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold cbx-badge-ok border whitespace-nowrap shrink-0">
 
                           🌍 地区
 
                         </span>
 
-                        <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-white/10 text-white/90 text-slate-300 border border-slate-700/60 whitespace-nowrap shrink-0">
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold cbx-btn-ghost whitespace-nowrap shrink-0 font-tabular">
 
                           {{ reg.totalCount }} 节点
 
@@ -1897,41 +1829,33 @@
 
                     </div>
 
-                    <!-- Right: Latency Badge + Fast Speedtest + Delete Button -->
+                    <div class="flex items-center gap-1.5 shrink-0">
 
-                    <div class="flex items-center gap-2 shrink-0">
+                      <span :class="['px-2.5 py-1 rounded-xl text-xs font-mono font-bold shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition select-none whitespace-nowrap flex items-center gap-1 font-tabular',
 
-                      <!-- Latency badge (Click to speedtest) -->
-
-                      <span :class="['px-2.5 py-1 rounded-xl text-xs font-mono font-bold shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition select-none whitespace-nowrap flex items-center gap-1',
-
-                        regionTestingMap[reg.id] ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse' : getLatencyRadarBadgeClass(reg.winnerLatency, false)]"
+                        regionTestingMap[reg.id] ? 'cbx-badge-warn border animate-pulse' : getLatencyRadarBadgeClass(reg.winnerLatency, false)]"
 
                         @click.stop="enqueueRegionSpeedtest(reg)"
 
                         :title="regionTestingMap[reg.id] ? '正在测速中...' : '点击立即测速该分组所有节点'">
 
-                        <span class="w-1.5 h-1.5 rounded-full" :class="reg.winnerLatency > 0 ? (reg.winnerLatency < 60 ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : (reg.winnerLatency < 150 ? 'bg-cyan-400 shadow-[0_0_6px_#22d3ee]' : (reg.winnerLatency < 300 ? 'bg-amber-400' : 'bg-rose-500'))) : 'bg-slate-500'"></span>
+                        <span class="w-1.5 h-1.5 rounded-full" :class="reg.winnerLatency > 0 ? (reg.winnerLatency < 60 ? 'bg-emerald-500' : (reg.winnerLatency < 150 ? 'bg-cyan-500' : (reg.winnerLatency < 300 ? 'bg-amber-500' : 'bg-rose-500'))) : 'bg-slate-400'"></span>
 
                         <span>{{ regionTestingMap[reg.id] ? '测速中...' : (reg.winnerLatency > 0 ? `${reg.winnerLatency}ms` : '⚡ 未测速') }}</span>
 
                       </span>
 
-                      <!-- Quick Test Button -->
-
                       <button @click.stop="testRegionGroupNodes(reg)" :disabled="regionTestingMap[reg.id]" title="并发测速该组全部节点"
 
-                        class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-cyan-950/80 border border-slate-800 hover:border-cyan-500/40 text-emerald-300 text-xs font-semibold transition active:scale-95 disabled:opacity-60 cursor-pointer">
+                        class="p-1.5 px-2.5 rounded-xl cbx-btn-ghost text-sky-600 dark:text-emerald-300 text-xs font-semibold transition active:scale-95 disabled:opacity-60 cursor-pointer">
 
                         <span :class="{'inline-block animate-spin': regionTestingMap[reg.id]}">⚡</span>
 
                       </button>
 
-                      <!-- Region Group Delete Button -->
-
                       <button @click.stop="deleteRegionDef(reg.id)" title="删除此地区节点组"
 
-                        class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-rose-950/80 border border-slate-800 hover:border-rose-500/40 text-slate-300 hover:text-rose-400 text-xs transition active:scale-95">
+                        class="p-1.5 px-2.5 rounded-xl cbx-badge-danger border text-xs transition active:scale-95 cursor-pointer">
 
                         ✕
 
@@ -1941,19 +1865,17 @@
 
                   </div>
 
-                  <!-- ── Group Sub-Bar (Tier 2: Active Outbound Route & Policy Strategy Selector) ── -->
+                  <!-- Group Sub-Bar (移动端优雅换行，拒绝浅底浅绿出站字) -->
 
-                  <div class="pt-2 border-t border-slate-800/60 flex items-center justify-between gap-2.5">
+                  <div class="pt-2 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-2.5" style="border-color: var(--cbx-border-soft);">
 
-                    <!-- Left: Outbound Winner -->
+                    <div class="text-[11px] font-mono flex items-center gap-1.5 truncate min-w-0">
 
-                    <div class="text-[11px] font-mono text-emerald-300 flex items-center gap-1.5 truncate min-w-0">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>
 
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_6px_#10b981] animate-pulse"></span>
+                      <span class="cbx-text-muted shrink-0">出站:</span>
 
-                      <span class="text-slate-400 shrink-0">出站:</span>
-
-                      <span class="font-bold text-emerald-300 truncate max-w-[140px] sm:max-w-[200px]" :title="reg.winner || '自动优选就绪'">
+                      <span class="font-bold truncate max-w-[180px] sm:max-w-[220px]" style="color: var(--cbx-ok-fg);" :title="reg.winner || '自动优选就绪'">
 
                         {{ reg.winner || '自动优选就绪' }}
 
@@ -1961,17 +1883,13 @@
 
                     </div>
 
-                    <!-- Right: Policy Strategy Selector + Toggle Nodes Button -->
-
-                    <div class="flex items-center gap-2 shrink-0">
-
-                      <!-- 策略下拉切换器: 自动 / 故转 / 容灾 -->
+                    <div class="flex items-center gap-2 shrink-0 flex-wrap">
 
                       <select :value="regionActivePolicy[reg.id] || 'auto'"
 
                         @change="selectRegionPolicy(reg, $event.target.value)"
 
-                        class="px-2.5 py-1 rounded-xl text-xs font-bold font-mono bg-slate-950 border border-slate-700/80 hover:border-cyan-400 focus:border-cyan-400 text-emerald-300 outline-none transition cursor-pointer shadow-sm">
+                        class="px-2.5 py-1.5 rounded-xl text-xs font-bold font-mono outline-none transition cursor-pointer shadow-sm">
 
                         <option value="auto">⚡ 自动 (URLTest)</option>
 
@@ -1981,19 +1899,17 @@
 
                       </select>
 
-                      <!-- Toggle Node List Button (Collapsed by Default) -->
-
                       <button @click.stop="toggleRegionExpand(reg.id)"
 
-                        class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-700/80 text-slate-200 text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+                        class="px-2.5 py-1.5 rounded-xl cbx-btn-ghost text-xs transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer"
 
                         :title="expandedRegion[reg.id] ? '收起节点清单' : '展开查看该组全部节点'">
 
                         <span class="text-[11px] font-medium">{{ expandedRegion[reg.id] ? '收起' : '节点' }}</span>
 
-                        <span class="text-[10px] text-emerald-300 font-mono font-semibold">({{ reg.totalCount }})</span>
+                        <span class="text-[10px] text-sky-700 dark:text-cyan-300 font-mono font-bold font-tabular">({{ reg.totalCount }})</span>
 
-                        <span class="text-[10px] text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': expandedRegion[reg.id] }">▾</span>
+                        <span class="text-[10px] cbx-text-muted transition-transform duration-200" :class="{ 'rotate-180': expandedRegion[reg.id] }">▾</span>
 
                       </button>
 
@@ -2001,26 +1917,25 @@
 
                   </div>
 
-                  <!-- Collapsible Node List (Hidden by default, shown only when user explicitly toggles it!) -->
+                  <!-- Collapsible Node List (Click-only trigger, zero hover popups!) -->
 
-                  <div v-if="expandedRegion[reg.id]" class="pt-2.5 border-t border-slate-800/60 space-y-2 animate-in fade-in duration-200">
+                  <div v-if="expandedRegion[reg.id]" class="pt-2.5 border-t space-y-2 animate-in fade-in duration-200" style="border-color: var(--cbx-border-soft);">
 
-                    <!-- 真实空状态展示（彻底告别 3 个虚假 Mock 节点） -->
-                    <div v-if="!reg.providers || reg.providers.length === 0 || reg.totalCount === 0" class="py-6 text-center text-xs text-slate-400 space-y-2 select-none">
+                    <div v-if="!reg.providers || reg.providers.length === 0 || reg.totalCount === 0" class="py-6 text-center text-xs cbx-text-muted space-y-2 select-none">
                       <div class="text-2xl">📭</div>
-                      <div class="font-bold text-slate-300">当前分组暂无可用节点</div>
-                      <div class="text-[11px] text-slate-400">请在下方「订阅与节点管理」导入订阅或批量添加自建节点</div>
+                      <div class="font-bold cbx-text-main">当前分组暂无可用节点</div>
+                      <div class="text-[11px] cbx-text-sub">请在下方「订阅与节点管理」导入订阅或批量添加自建节点</div>
                     </div>
 
-                    <div v-for="provider in reg.providers" :key="provider.name" class="space-y-1">
+                    <div v-for="provider in reg.providers" :key="provider.name" class="space-y-1.5">
 
-                      <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
+                      <div class="flex items-center justify-between text-[11px] font-mono cbx-text-sub">
 
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
 
-                          <span class="font-bold text-slate-300">{{ provider.name }} ({{ (provider.displayNodes || provider.nodes).length }} 节点)</span>
+                          <span class="font-bold cbx-text-main">{{ provider.name }} ({{ (provider.displayNodes || provider.nodes).length }} 节点)</span>
 
-                          <span v-if="hideSlowNodes && provider.hiddenCount > 0" class="text-[11px] px-1.5 py-0.2 rounded bg-slate-800 text-amber-300/90 border border-slate-700/60 font-sans">
+                          <span v-if="hideSlowNodes && provider.hiddenCount > 0" class="text-[11px] px-1.5 py-0.2 rounded cbx-badge-warn border font-sans">
 
                             已折叠 {{ provider.hiddenCount }} 个慢速备用
 
@@ -2028,7 +1943,7 @@
 
                         </div>
 
-                        <button @click="hideSlowNodes = !hideSlowNodes" class="text-[10px] text-cyan-400 hover:text-cyan-300 hover:underline select-none cursor-pointer">
+                        <button @click="hideSlowNodes = !hideSlowNodes" class="text-[10px] text-sky-600 dark:text-cyan-300 font-bold hover:underline select-none cursor-pointer">
 
                           {{ hideSlowNodes ? '展开全量' : '折叠慢速' }}
 
@@ -2036,59 +1951,69 @@
 
                       </div>
 
-                      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
+                      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
 
-                        <button v-for="node in (provider.displayNodes || provider.nodes)" :key="node.name"
+                        <div v-for="node in (provider.displayNodes || provider.nodes)" :key="node.name"
 
                           @click="selectRegionalNodeItem(reg, node.name)"
-                          @mouseenter="handleNodeMouseEnter(node.name)"
-                          @mouseleave="handleNodeMouseLeave"
+
+                          role="button"
+
+                          tabindex="0"
+
+                          @keydown.enter="selectRegionalNodeItem(reg, node.name)"
 
                           :class="[
 
-                            'p-1.5 px-2 rounded-lg text-left transition flex flex-col justify-between gap-1 border select-none active:scale-95',
+                            'p-2.5 rounded-xl text-left transition flex flex-col justify-between gap-1.5 border select-none cursor-pointer',
 
                             reg.winner === node.name
 
-                              ? 'bg-emerald-500 text-white font-bold border-emerald-400 shadow-sm ring-1 ring-emerald-300/40'
+                              ? 'bg-emerald-600 text-white font-bold border-emerald-500 shadow-sm ring-1 ring-emerald-400/40'
 
-                              : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-slate-600 border-slate-800/90 hover:border-cyan-500/40'
+                              : 'cbx-sub-card hover:border-sky-400/60'
 
                           ]">
 
                           <div class="text-[11px] truncate font-semibold flex items-center justify-between gap-1">
 
-                            <span class="truncate">{{ node.name }}</span>
+                            <span class="truncate" :class="reg.winner === node.name ? 'text-white' : 'cbx-text-main'">{{ node.name }}</span>
 
                             <div class="flex items-center gap-1 shrink-0">
                               <span v-if="triangleScores[node.name]"
                                 @click.stop="openIPPerspective(node.name)"
-                                class="text-[9px] px-1 py-0.2 rounded font-mono font-black border cursor-pointer hover:scale-105 active:scale-95 transition font-tabular"
+                                class="text-[9px] px-1.5 py-0.2 rounded font-mono font-black border cursor-pointer hover:scale-105 active:scale-95 transition font-tabular"
                                 :class="triangleScores[node.name].total_score < 60
-                                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+                                  ? 'cbx-badge-danger animate-pulse'
                                   : (triangleScores[node.name].total_score >= 90
-                                    ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
+                                    ? 'cbx-badge-warn'
                                     : (triangleScores[node.name].total_score >= 80
-                                      ? 'bg-cyan-400/20 text-cyan-300 border-cyan-400/40'
-                                      : 'bg-emerald-400/20 text-emerald-300 border-emerald-400/30'))"
+                                      ? 'cbx-badge-info'
+                                      : 'cbx-badge-ok'))"
                                 :title="'稳定三角综合评分: ' + Math.round(triangleScores[node.name].total_score) + '分 | 点击透视四宫格'">
                                 {{ Math.round(triangleScores[node.name].total_score) }}分
                               </span>
-                              <span v-else-if="nodeScores[node.name]" class="text-[10px] px-1 py-0.2 rounded font-mono font-bold shrink-0" :class="nodeScores[node.name].grade.startsWith('S') ? 'bg-amber-400/20 text-amber-300 border border-amber-400/40' : (nodeScores[node.name].grade.startsWith('A') ? 'bg-cyan-400/20 text-cyan-300 border border-cyan-400/40' : 'bg-slate-700/50 text-slate-400')">
+                              <span v-else-if="nodeScores[node.name]" class="text-[10px] px-1 py-0.2 rounded border font-mono font-bold shrink-0" :class="nodeScores[node.name].grade.startsWith('S') ? 'cbx-badge-warn' : (nodeScores[node.name].grade.startsWith('A') ? 'cbx-badge-info' : 'cbx-btn-ghost')">
                                 {{ nodeScores[node.name].grade.split(' ')[0] }}
                               </span>
-                              <button @click.stop="triggerBurstSpeedtest(node.name)"
-                                class="text-[9px] px-1 rounded bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 font-bold transition active:scale-95 cursor-pointer"
+                              <button type="button" @click.stop="openIPPerspective(node.name)"
+                                class="cbx-touch-extend text-[10px] px-1.5 py-0.5 rounded cbx-btn-ghost font-semibold transition active:scale-95 cursor-pointer"
+                                title="点击打开 IP 透视四宫格详情"
+                                aria-label="查看节点透视详情">
+                                🔍
+                              </button>
+                              <button type="button" @click.stop="triggerBurstSpeedtest(node.name)"
+                                class="cbx-touch-extend text-[10px] px-1.5 py-0.5 rounded cbx-badge-warn border font-bold transition active:scale-95 cursor-pointer"
                                 title="触发单节点 ≤2MB 闪电测速">
                                 ⚡
                               </button>
-                              <button @click.stop="setNodeAsPrimaryOutbound(node.name)"
-                                class="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/20 hover:bg-sky-500/40 text-sky-300 border border-sky-400/30 font-semibold transition active:scale-95 cursor-pointer whitespace-nowrap"
-                                title="⚡ 立即设为当前分流主力节点">
-                                ⚡主力
+                              <button type="button" @click.stop="setNodeAsPrimaryOutbound(node.name)"
+                                class="cbx-touch-extend text-[10px] px-1.5 py-0.5 rounded cbx-badge-info border font-semibold transition active:scale-95 cursor-pointer whitespace-nowrap"
+                                title="立即设为当前分流主力节点">
+                                主力
                               </button>
-                              <button @click.stop="deleteNode(node.name)"
-                                class="text-[9px] px-1 py-0.5 rounded bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 font-semibold transition active:scale-95 cursor-pointer"
+                              <button type="button" @click.stop="deleteNode(node.name)"
+                                class="cbx-touch-extend text-[10px] px-1.5 py-0.5 rounded cbx-badge-danger border font-semibold transition active:scale-95 cursor-pointer"
                                 title="移除此节点">
                                 ✕
                               </button>
@@ -2100,15 +2025,15 @@
 
                             <div class="flex items-center gap-1 truncate">
 
-                              <span :class="reg.winner === node.name ? 'text-emerald-100' : 'text-slate-400'">{{ node.type || 'vless' }}</span>
+                              <span :class="reg.winner === node.name ? 'text-emerald-100' : 'cbx-text-muted'">{{ node.type || 'vless' }}</span>
 
-                              <span v-if="node.name.includes('原生') || (nodeScores[node.name] && nodeScores[node.name].ip_quality_score >= 90)" class="px-1 rounded text-[8px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">原生</span>
+                              <span v-if="node.name.includes('原生') || (nodeScores[node.name] && nodeScores[node.name].ip_quality_score >= 90)" class="px-1 rounded text-[9px] cbx-badge-ok border">原生</span>
 
-                              <span v-if="node.ports || node.mport" class="px-1 rounded text-[8px] bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 font-mono" :title="'端口跳跃: ' + (node.ports || node.mport)">⚡跳</span>
+                              <span v-if="node.ports || node.mport" class="px-1 rounded text-[9px] cbx-badge-info border font-mono" :title="'端口跳跃: ' + (node.ports || node.mport)">⚡跳</span>
 
                             </div>
 
-                            <span :class="['px-1 rounded font-bold', getNodePillClass(node.delay, reg.winner === node.name, node.delay_status)]">
+                            <span :class="['px-1.5 py-0.2 rounded font-bold font-tabular', getNodePillClass(node.delay, reg.winner === node.name, node.delay_status)]">
 
                               {{ node.delay > 0 ? `${node.delay}ms` : (node.delay_text || '⚡') }}
 
@@ -2116,7 +2041,7 @@
 
                           </div>
 
-                        </button>
+                        </div>
 
                       </div>
 
@@ -2130,11 +2055,7 @@
 
             </div>
 
-            <!-- ════════════════════════════════════════════════════════════ -->
-
-            <!-- SUB-TAB 3: 订阅中心 (Subscriptions / Airport Matrix)           -->
-
-            <!-- ════════════════════════════════════════════════════════════ -->
+            <!-- SUB-TAB 3: 订阅中心 (Subscriptions / Airport Matrix) -->
 
             <div v-else-if="routingSubTab === 'sub'" class="space-y-4">
 
@@ -2142,13 +2063,13 @@
 
               <!-- Empty State -->
 
-              <div v-if="filteredSubscriptions.length === 0" class="p-10 text-center rounded-3xl bg-white/10 text-white/85 border border-slate-800 text-slate-400 space-y-3">
+              <div v-if="filteredSubscriptions.length === 0" class="p-10 text-center rounded-3xl cbx-card cbx-text-sub space-y-3">
 
                 <span class="text-3xl block">✈️</span>
 
-                <div class="text-sm font-bold text-slate-800">尚未接入订阅源或无匹配项</div>
+                <div class="text-sm font-bold cbx-text-main">尚未接入订阅源或无匹配项</div>
 
-                <p class="text-xs text-slate-400 max-w-md mx-auto">
+                <p class="text-xs cbx-text-sub max-w-md mx-auto">
 
                   CubeX 支持一键直连导入 Clash、Sing-box、V2Ray 等全协议通用订阅链接，智能解析节点并自动分配至各地测速分组。
 
@@ -2156,7 +2077,7 @@
 
                 <button @click="openImportModal('sub')"
 
-                  class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-bold shadow-md shadow-sky-500/20 active:scale-95 transition inline-flex items-center gap-1.5">
+                  class="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white shadow-md shadow-sky-500/20 active:scale-95 transition inline-flex items-center gap-1.5 cursor-pointer">
 
                   <span>➕ 立即导入订阅源</span>
 
@@ -2168,35 +2089,33 @@
 
               <div v-for="sub in filteredSubscriptions" :key="sub.id"
 
-                class="rounded-3xl macos-glass-card hover:border-sky-400/40 transition-all duration-300 shadow-xl overflow-hidden p-5 space-y-4">
-
-                <!-- Airport Header: Name, Update Info, Quota & Expiry, Progress Bar, Actions -->
+                class="rounded-3xl cbx-card hover:border-sky-400/40 transition-all duration-300 shadow-xl overflow-hidden p-5 space-y-4">
 
                 <div class="space-y-2.5">
 
                   <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
 
-                    <div>
+                    <div class="min-w-0">
 
                       <div class="flex items-center gap-2 flex-wrap">
 
                         <div class="flex items-center gap-1.5 group cursor-pointer" @click="startSubEdit(sub)" title="点击修改此订阅名称与链接">
 
-                          <span class="text-base font-bold text-slate-900 tracking-wide group-hover:text-sky-600 transition-colors">{{ sub.name }}</span>
+                          <span class="text-base font-bold cbx-text-main tracking-wide group-hover:text-sky-600 dark:group-hover:text-cyan-300 transition-colors">{{ sub.name }}</span>
 
-                          <span class="text-xs text-slate-300 group-hover:text-emerald-300 opacity-60 group-hover:opacity-100 transition-opacity">✏️</span>
+                          <span class="text-xs cbx-text-muted group-hover:text-sky-500 opacity-70 group-hover:opacity-100 transition-opacity">✏️</span>
 
                         </div>
 
-                        <span class="text-xs font-mono text-slate-400">
+                        <span class="text-xs font-mono cbx-text-muted">
 
                           {{ subMetaMap[sub.id]?.testedText }}
 
                         </span>
 
-                        <span :class="['text-[10px] px-2 py-0.5 rounded-full font-mono font-bold',
+                        <span :class="['text-[10px] px-2 py-0.5 rounded-full font-mono font-bold border',
 
-                          sub.enabled ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-slate-600']">
+                          sub.enabled ? 'cbx-badge-ok' : 'cbx-btn-ghost']">
 
                           {{ sub.enabled ? '● 启用中' : '○ 已停用' }}
 
@@ -2204,7 +2123,7 @@
 
                       </div>
 
-                      <div class="text-[11px] font-mono text-slate-400 mt-0.5">
+                      <div class="text-[11px] font-mono cbx-text-sub mt-0.5">
 
                         {{ subMetaMap[sub.id]?.updatedAtText }}
 
@@ -2212,45 +2131,43 @@
 
                     </div>
 
-                    <!-- Right: Actions + Quota String -->
-
                     <div class="text-left sm:text-right space-y-1 shrink-0">
 
-                      <div class="flex items-center sm:justify-end gap-1.5 font-mono">
+                      <div class="flex items-center sm:justify-end gap-1.5 font-mono flex-wrap">
 
                         <button @click="runSubSpeedTest(sub.id)" :disabled="subSpeedTesting[sub.id]" title="测速本订阅所有节点"
 
-                          class="p-1.5 px-2 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/30 text-emerald-300 text-xs transition flex items-center gap-1">
+                          class="p-1.5 px-2.5 rounded-xl cbx-badge-info border text-xs transition flex items-center gap-1 cursor-pointer">
 
                           <span :class="{ 'inline-block animate-spin': subSpeedTesting[sub.id] }">⚡</span>
 
-                          <span class="text-[10px]">测速</span>
+                          <span class="text-[10px] font-bold">测速</span>
 
                         </button>
 
                         <button @click="startSubEdit(sub)" title="修改此订阅名称与链接"
 
-                          class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 hover:border-cyan-500/40 text-slate-200 text-xs transition flex items-center gap-1">
+                          class="p-1.5 px-2.5 rounded-xl cbx-btn-ghost text-xs transition flex items-center gap-1 cursor-pointer">
 
                           <span>✏️</span>
 
-                          <span class="text-[10px]">修改</span>
+                          <span class="text-[10px] font-bold">修改</span>
 
                         </button>
 
                         <button @click="updateSubscription(sub.id)" title="重新同步拉取此订阅源"
 
-                          class="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 text-slate-200 text-xs transition flex items-center gap-1">
+                          class="p-1.5 px-2.5 rounded-xl cbx-btn-ghost text-xs transition flex items-center gap-1 cursor-pointer">
 
                           <span>🔄</span>
 
-                          <span class="text-[10px]">更新</span>
+                          <span class="text-[10px] font-bold">更新</span>
 
                         </button>
 
                         <button @click="toggleSubscription(sub.id, !sub.enabled)" :title="sub.enabled ? '停用此订阅' : '启用此订阅'"
 
-                          class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 text-xs transition">
+                          class="p-1.5 px-2 rounded-xl cbx-btn-ghost text-xs transition cursor-pointer">
 
                           {{ sub.enabled ? '⏸️' : '▶️' }}
 
@@ -2258,7 +2175,7 @@
 
                         <button @click="deleteSubscription(sub.id)" title="删除此订阅"
 
-                          class="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-rose-950/60 border border-slate-800 hover:border-rose-500/40 text-rose-400 text-xs transition">
+                          class="p-1.5 px-2 rounded-xl cbx-badge-danger border text-xs transition cursor-pointer">
 
                           🗑️
 
@@ -2266,19 +2183,17 @@
 
                       </div>
 
-                      <!-- Quota & Expiry Line -->
+                      <div class="text-[11px] font-mono cbx-text-sub flex items-center sm:justify-end gap-2 flex-wrap font-tabular">
 
-                      <div class="text-[11px] font-mono text-slate-300 flex items-center sm:justify-end gap-2 flex-wrap">
-
-                        <span :class="(subQuotaMap[sub.id || sub.name]?.percent || 0) >= 90 ? 'text-rose-400 font-bold' : 'text-slate-300'">
+                        <span :class="(subQuotaMap[sub.id || sub.name]?.percent || 0) >= 90 ? 'text-rose-600 dark:text-rose-400 font-bold' : 'cbx-text-sub'">
 
                           已用 {{ subQuotaMap[sub.id || sub.name]?.usedStr }} / {{ subQuotaMap[sub.id || sub.name]?.totalStr }}, 剩 {{ subQuotaMap[sub.id || sub.name]?.remStr }}
 
                         </span>
 
-                        <span class="text-slate-300">·</span>
+                        <span class="cbx-text-muted">·</span>
 
-                        <span class="text-slate-400">{{ subMetaMap[sub.id]?.expireText }}</span>
+                        <span class="cbx-text-muted">{{ subMetaMap[sub.id]?.expireText }}</span>
 
                       </div>
 
@@ -2286,25 +2201,25 @@
 
                   </div>
 
-                  <!-- Expanded Inline Edit Panel for Name and URL -->
+                  <!-- Expanded Inline Edit Panel -->
 
-                  <div v-if="editingSubId === sub.id" 
+                  <div v-if="editingSubId === sub.id"
 
-                    class="p-4 rounded-2xl bg-slate-950/90 border border-cyan-400/50 shadow-2xl space-y-3 animate-in fade-in duration-200">
+                    class="p-4 rounded-2xl cbx-sub-card border-2 border-sky-400/50 shadow-xl space-y-3 animate-in fade-in duration-200">
 
-                    <div class="flex items-center justify-between">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
 
                       <div class="flex items-center gap-2">
 
                         <span class="text-sm">✏️</span>
 
-                        <span class="text-xs font-bold text-cyan-300">修改订阅配置</span>
+                        <span class="text-xs font-bold text-sky-600 dark:text-cyan-300">修改订阅配置</span>
 
-                        <span class="text-[10px] text-slate-400 font-mono">({{ sub.id }})</span>
+                        <span class="text-[10px] cbx-text-muted font-mono">({{ sub.id }})</span>
 
                       </div>
 
-                      <span class="text-[11px] font-mono text-slate-400">
+                      <span class="text-[11px] font-mono cbx-text-sub font-tabular">
 
                         当前节点数: {{ subNodesMap[sub.id]?.length || 0 }} 个
 
@@ -2314,11 +2229,9 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
 
-                      <!-- 订阅名称 -->
-
                       <div class="space-y-1">
 
-                        <label class="text-[11px] text-slate-300 font-bold flex items-center gap-1">
+                        <label class="text-[11px] cbx-text-main font-bold flex items-center gap-1">
 
                           <span>🏷️</span> 订阅名称
 
@@ -2326,17 +2239,15 @@
 
                         <input v-model="editingSubName" @keyup.esc="cancelSubEdit" @keyup.enter="saveSubEdit(sub.id)"
 
-                          class="w-full px-3 py-1.5 rounded-xl bg-white/5 border border-white/20 focus:border-cyan-400 text-white text-xs font-bold focus:outline-none focus:ring-1 focus:ring-cyan-300"
+                          class="w-full px-3 py-1.5 rounded-xl text-xs font-bold focus:outline-none"
 
                           placeholder="输入订阅名称" />
 
                       </div>
 
-                      <!-- 订阅地址 -->
-
                       <div class="md:col-span-2 space-y-1">
 
-                        <label class="text-[11px] text-slate-300 font-bold flex items-center gap-1">
+                        <label class="text-[11px] cbx-text-main font-bold flex items-center gap-1">
 
                           <span>🔗</span> 订阅地址 (URL)
 
@@ -2344,7 +2255,7 @@
 
                         <input v-model="editingSubUrl" @keyup.esc="cancelSubEdit" @keyup.enter="saveSubEdit(sub.id)"
 
-                          class="w-full px-3 py-1.5 rounded-xl bg-white/5 border border-white/20 focus:border-cyan-400 text-white text-xs font-mono focus:outline-none focus:ring-1 focus:ring-cyan-300"
+                          class="w-full px-3 py-1.5 rounded-xl text-xs font-mono focus:outline-none"
 
                           placeholder="http:// 或 https:// 订阅链接" />
 
@@ -2352,17 +2263,17 @@
 
                     </div>
 
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1.5 border-t border-slate-800/80">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1.5 border-t" style="border-color: var(--cbx-border-soft);">
 
-                      <div class="text-[10px] text-slate-400">
+                      <div class="text-[10px] cbx-text-sub">
 
-                        <span v-if="editingSubSaving" class="text-cyan-300 flex items-center gap-1 font-mono">
+                        <span v-if="editingSubSaving" class="text-sky-600 dark:text-cyan-300 flex items-center gap-1 font-mono">
 
                           <span class="animate-spin">⏳</span> 正在验证新订阅链接并热重载核心...
 
                         </span>
 
-                        <span v-else class="text-slate-400">
+                        <span v-else class="cbx-text-muted">
 
                           💡 提示：若仅改名称将秒级重命名；若修改链接将全自动抓取新节点并原子替换。
 
@@ -2374,7 +2285,7 @@
 
                         <button @click="cancelSubEdit" :disabled="editingSubSaving"
 
-                          class="px-3 py-1 rounded-xl bg-white/10 hover:bg-slate-800 border border-white/20 text-slate-300 text-xs font-bold transition">
+                          class="px-3 py-1.5 rounded-xl cbx-btn-ghost text-xs font-bold transition cursor-pointer">
 
                           取消
 
@@ -2382,7 +2293,7 @@
 
                         <button @click="saveSubEdit(sub.id)" :disabled="editingSubSaving"
 
-                          class="px-3.5 py-1 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-slate-950 text-xs font-bold transition shadow-md active:scale-95 flex items-center gap-1">
+                          class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white text-xs font-bold transition shadow-md active:scale-95 flex items-center gap-1 cursor-pointer">
 
                           <span>✓</span> 保存修改
 
@@ -2396,7 +2307,7 @@
 
                   <!-- Quota Progress Bar -->
 
-                  <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800/80">
+                  <div class="w-full h-1.5 cbx-progress-track rounded-full overflow-hidden">
 
                     <div :class="['h-full transition-all duration-500 rounded-full',
 
@@ -2412,21 +2323,21 @@
 
                 <!-- Dropdown Accordion Toggle Button -->
 
-                <div class="pt-2 border-t border-slate-800/60 flex items-center justify-between">
+                <div class="pt-2 border-t flex items-center justify-between flex-wrap gap-2" style="border-color: var(--cbx-border-soft);">
 
                   <button @click="toggleSubDrawer(sub.id)"
 
-                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white border border-slate-800 hover:border-cyan-500/40 text-xs font-mono text-emerald-300 hover:text-emerald-300 transition-all select-none group shadow-sm active:scale-95">
+                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl cbx-btn-ghost text-xs font-mono transition-all select-none group shadow-sm active:scale-95 cursor-pointer">
 
                     <span class="text-xs transition-transform duration-200" :class="{ 'rotate-180': isSubDrawerExpanded(sub.id) }">▾</span>
 
-                    <span class="font-bold">{{ isSubDrawerExpanded(sub.id) ? '收起节点列表' : '展开全部节点' }}</span>
+                    <span class="font-bold text-sky-700 dark:text-cyan-300">{{ isSubDrawerExpanded(sub.id) ? '收起节点列表' : '展开全部节点' }}</span>
 
-                    <span class="text-slate-400 group-hover:text-emerald-300">({{ subNodesMap[sub.id]?.length || 0 }} 个节点)</span>
+                    <span class="cbx-text-sub font-tabular">({{ subNodesMap[sub.id]?.length || 0 }} 个节点)</span>
 
                   </button>
 
-                  <span class="text-[11px] font-mono text-slate-300">
+                  <span class="text-[11px] font-mono cbx-text-muted">
 
                     {{ isSubDrawerExpanded(sub.id) ? '已展开全部节点' : '默认收起 · 点击展开查看并测速' }}
 
@@ -2434,40 +2345,50 @@
 
                 </div>
 
-                <!-- Collapsible Node Grid -->
+                <!-- Collapsible Node Grid (Click-only IP perspective trigger) -->
 
                 <div v-if="isSubDrawerExpanded(sub.id)"
 
-                  class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2 pt-1 transition-all duration-300 animate-in fade-in">
+                  class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 pt-1 transition-all duration-300 animate-in fade-in">
 
-                  <button v-for="node in (subNodesMap[sub.id] || [])" :key="node.name"
+                  <div v-for="node in (subNodesMap[sub.id] || [])" :key="node.name"
 
                     @click="testSingleNode(node)"
-                    @mouseenter="handleNodeMouseEnter(node.name)"
-                    @mouseleave="handleNodeMouseLeave"
 
-                    class="p-2 rounded-xl text-left transition-all duration-200 flex flex-col justify-between gap-1.5 border border-slate-800/90 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:border-cyan-500/40 shadow-sm active:scale-95 group">
+                    role="button"
 
-                    <div class="text-xs truncate font-semibold text-slate-300 group-hover:text-sky-300 flex items-center justify-between gap-1">
+                    tabindex="0"
+
+                    @keydown.enter="testSingleNode(node)"
+
+                    class="p-2.5 rounded-xl text-left transition-all duration-200 flex flex-col justify-between gap-1.5 cbx-sub-card hover:border-sky-400/60 shadow-sm cursor-pointer group">
+
+                    <div class="text-xs truncate font-semibold cbx-text-main group-hover:text-sky-600 dark:group-hover:text-cyan-300 flex items-center justify-between gap-1">
 
                       <span class="truncate">{{ node.name }}</span>
 
                       <div class="flex items-center gap-1 shrink-0">
                         <span v-if="triangleScores[node.name]"
                           @click.stop="openIPPerspective(node.name)"
-                          class="text-[9px] px-1 py-0.2 rounded font-mono font-black border cursor-pointer hover:scale-105 active:scale-95 transition font-tabular"
+                          class="text-[9px] px-1.5 py-0.2 rounded font-mono font-black border cursor-pointer hover:scale-105 active:scale-95 transition font-tabular"
                           :class="triangleScores[node.name].total_score < 60
-                            ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+                            ? 'cbx-badge-danger animate-pulse'
                             : (triangleScores[node.name].total_score >= 90
-                              ? 'bg-amber-400/20 text-amber-300 border-amber-400/40'
+                              ? 'cbx-badge-warn'
                               : (triangleScores[node.name].total_score >= 80
-                                ? 'bg-cyan-400/20 text-cyan-300 border-cyan-400/40'
-                                : 'bg-emerald-400/20 text-emerald-300 border-emerald-400/30'))"
+                                ? 'cbx-badge-info'
+                                : 'cbx-badge-ok'))"
                           :title="'稳定三角综合评分: ' + Math.round(triangleScores[node.name].total_score) + '分 | 点击透视四宫格'">
                           {{ Math.round(triangleScores[node.name].total_score) }}分
                         </span>
-                        <button @click.stop="triggerBurstSpeedtest(node.name)"
-                          class="text-[9px] px-1 rounded bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 font-bold transition active:scale-95 cursor-pointer"
+                        <button type="button" @click.stop="openIPPerspective(node.name)"
+                          class="cbx-touch-extend text-[10px] px-1.5 py-0.5 rounded cbx-btn-ghost font-semibold transition active:scale-95 cursor-pointer"
+                          title="点击打开 IP 透视四宫格详情"
+                          aria-label="查看节点透视详情">
+                          🔍
+                        </button>
+                        <button type="button" @click.stop="triggerBurstSpeedtest(node.name)"
+                          class="cbx-touch-extend text-[10px] px-1.5 py-0.5 rounded cbx-badge-warn border font-bold transition active:scale-95 cursor-pointer"
                           title="触发单节点 ≤2MB 闪电测速">
                           ⚡
                         </button>
@@ -2475,19 +2396,19 @@
 
                     </div>
 
-                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-400">
+                    <div class="flex items-center justify-between text-[10px] font-mono cbx-text-muted">
 
                       <div class="flex items-center gap-1 truncate">
 
                         <span>{{ node.type || 'vless' }}</span>
 
-                        <span v-if="node.ports || node.mport || (node.server_ports && node.server_ports.length)" class="px-1 py-0.2 rounded text-[8px] bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 font-mono animate-pulse" :title="'端口跳跃: ' + (node.ports || node.mport || node.server_ports)">⚡跳跃</span>
+                        <span v-if="node.ports || node.mport || (node.server_ports && node.server_ports.length)" class="px-1 py-0.2 rounded text-[9px] cbx-badge-info border font-mono" :title="'端口跳跃: ' + (node.ports || node.mport || node.server_ports)">⚡跳跃</span>
 
                         <span v-else>/ udp</span>
 
                       </div>
 
-                      <span :class="['px-1.5 py-0.2 rounded font-bold text-[11px]', getNodePillClass(node.delay, false, node.delay_status)]">
+                      <span :class="['px-1.5 py-0.2 rounded font-bold text-[11px] font-tabular', getNodePillClass(node.delay, false, node.delay_status)]">
 
                         {{ node.delay > 0 ? `${node.delay}ms` : (node.delay_text || '⚡') }}
 
@@ -2495,7 +2416,7 @@
 
                     </div>
 
-                  </button>
+                  </div>
 
                 </div>
 
@@ -2513,29 +2434,29 @@
 
           <!-- ════════════════════════════════════════════════════════════════ -->
 
-          <div v-if="showUpgradeModal" class="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div v-if="showUpgradeModal" @click.self="!upgradingPanel && (showUpgradeModal = false)" class="fixed inset-0 z-[10000] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in">
 
-            <div class="w-full max-w-2xl rounded-3xl macos-glass-card shadow-2xl p-6 sm:p-7 space-y-5 text-slate-200 max-h-[90vh] flex flex-col">
+            <div class="w-full max-w-2xl rounded-3xl cbx-modal-shell shadow-2xl p-5 sm:p-7 space-y-5 max-h-[90vh] flex flex-col">
 
               <!-- Modal Header -->
 
-              <div class="flex items-center justify-between border-b border-slate-700/60 pb-4 shrink-0">
+              <div class="flex items-center justify-between border-b pb-4 shrink-0" style="border-color: var(--cbx-border-soft);">
 
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 min-w-0">
 
-                  <div class="shrink-0 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <div class="shrink-0 flex items-center justify-center">
 
                     <ZootopiaIcon name="system" :size="32" class="drop-shadow-md" />
 
                   </div>
 
-                  <div>
+                  <div class="min-w-0">
 
-                    <h3 class="text-base sm:text-lg font-bold text-slate-900 tracking-wide flex items-center gap-2">
+                    <h3 class="text-base sm:text-lg font-bold cbx-text-main tracking-wide flex items-center gap-2 flex-wrap">
 
                       <span>CubeX 新版核心升级中枢</span>
 
-                      <span class="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-sky-200 border border-sky-400/30 font-bold drop-shadow-sm font-mono font-bold">
+                      <span class="text-[10px] px-2 py-0.5 rounded-full cbx-badge-info border font-mono font-bold">
 
                         {{ systemOverview.panel_latest_version || 'vcheck' }}
 
@@ -2543,9 +2464,9 @@
 
                     </h3>
 
-                    <p class="text-xs text-slate-400 mt-0.5 font-mono">
+                    <p class="text-xs cbx-text-sub mt-0.5 font-mono">
 
-                      当前运行: <span class="text-slate-300 font-semibold">{{ systemOverview.cubex_version || 'vcheck' }}</span> ➔ 目标新版: <span class="text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'vcheck' }}</span>
+                      当前运行: <span class="cbx-text-main font-semibold">{{ systemOverview.cubex_version || 'vcheck' }}</span> ➔ 目标新版: <span class="text-emerald-700 dark:text-emerald-300 font-semibold">{{ systemOverview.panel_latest_version || 'vcheck' }}</span>
 
                     </p>
 
@@ -2553,15 +2474,15 @@
 
                 </div>
 
-                <button v-if="!upgradingPanel" @click="showUpgradeModal = false" class="p-1.5 rounded-xl hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-slate-600 hover:text-white transition cursor-pointer">✕</button>
+                <button v-if="!upgradingPanel" @click="showUpgradeModal = false" class="cbx-btn-ghost px-2.5 py-1.5 rounded-xl transition cursor-pointer shrink-0" aria-label="关闭升级弹窗">✕</button>
 
               </div>
 
-              <!-- Upgrade Highlights (新版核心升级亮点) -->
+              <!-- Upgrade Highlights -->
 
               <div class="flex-1 overflow-y-auto space-y-3.5 pr-1 custom-scrollbar">
 
-                <div class="text-xs font-bold text-emerald-300 tracking-wider uppercase flex items-center gap-1.5">
+                <div class="text-xs font-bold text-sky-700 dark:text-cyan-300 tracking-wider uppercase flex items-center gap-1.5">
 
                   <span>✨</span>
 
@@ -2571,27 +2492,27 @@
 
                 <div class="space-y-2.5 text-xs">
 
-                  <div class="p-3 rounded-2xl bg-slate-950/70 border border-amber-500/30 space-y-1">
+                  <div class="p-3 rounded-2xl cbx-sub-card space-y-1">
 
-                    <div class="font-bold text-amber-300 flex items-center gap-1.5">
+                    <div class="font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
 
                       <span>🙇‍♂️</span>
 
-                      <span>全面根治历史网关与子网硬编码缺陷 (已在3.2彻底修复)</span>
+                      <span>全面根治历史网关与子网硬编码缺陷</span>
 
                     </div>
 
-                    <p class="text-slate-300 leading-relaxed text-[11px]">
+                    <p class="cbx-text-sub leading-relaxed text-[11px]">
 
-                      早先版本因部分脚本硬编码特定网关/网段（如 10.0.0.x）导致非该网段用户无法正常分流与加速。现已全平台推行动态网关与子网嗅探准则，静态回指与 DHCP 劫持 100% 杜绝黑洞丢包！
+                      全平台推行动态网关与子网嗅探准则，静态回指与 DHCP 劫持彻底杜绝黑洞丢包。
 
                     </p>
 
                   </div>
 
-                  <div class="p-3 rounded-2xl bg-slate-950/70 border border-cyan-500/30 space-y-1">
+                  <div class="p-3 rounded-2xl cbx-sub-card space-y-1">
 
-                    <div class="font-bold text-emerald-300 flex items-center gap-1.5">
+                    <div class="font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
 
                       <span>🛡️</span>
 
@@ -2599,7 +2520,7 @@
 
                     </div>
 
-                    <p class="text-slate-300 leading-relaxed text-[11px]">
+                    <p class="cbx-text-sub leading-relaxed text-[11px]">
 
                       后台 60 秒周期通过本地代理端口发起轻量国际链路握手探针，若国际链路连续 3 次假死，系统自动无感触发双核容灾热切换（Mihomo ⇄ sing-box），保障家庭网络绝不断流！
 
@@ -2607,9 +2528,9 @@
 
                   </div>
 
-                  <div class="p-3 rounded-2xl bg-slate-950/70 border border-purple-500/30 space-y-1">
+                  <div class="p-3 rounded-2xl cbx-sub-card space-y-1">
 
-                    <div class="font-bold text-purple-300 flex items-center gap-1.5">
+                    <div class="font-bold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
 
                       <span>🔒</span>
 
@@ -2617,7 +2538,7 @@
 
                     </div>
 
-                    <p class="text-slate-300 leading-relaxed text-[11px]">
+                    <p class="cbx-text-sub leading-relaxed text-[11px]">
 
                       核心稳定运行 25 秒自动持久化安全快照，遭遇配置损坏或异常启动时内核自动回滚至上一次正常快照，杜绝配置改错导致失联。
 
@@ -2625,37 +2546,19 @@
 
                   </div>
 
-                  <div class="p-3 rounded-2xl bg-slate-950/70 border border-emerald-500/30 space-y-1">
+                  <div class="p-3 rounded-2xl cbx-sub-card space-y-1">
 
-                    <div class="font-bold text-emerald-300 flex items-center gap-1.5">
+                    <div class="font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
 
                       <span>🌐</span>
 
-                      <span>全息网络健康度动态跑分看板 (Cyber Health Radar)</span>
+                      <span>全息网络健康度动态跑分看板</span>
 
                     </div>
 
-                    <p class="text-slate-300 leading-relaxed text-[11px]">
+                    <p class="cbx-text-sub leading-relaxed text-[11px]">
 
-                      直观呈现直连穿透、境外代理、DNS防侧漏、0秒逃生就绪度与底座负载五维雷达评估，一眼看清日常网络健康状态。
-
-                    </p>
-
-                  </div>
-
-                  <div class="p-3 rounded-2xl bg-slate-950/70 border border-sky-500/30 space-y-1">
-
-                    <div class="font-bold text-emerald-300 flex items-center gap-1.5">
-
-                      <span>⚡</span>
-
-                      <span>一键全栈自愈可视化时序步骤条 (Step Tracker)</span>
-
-                    </div>
-
-                    <p class="text-slate-300 leading-relaxed text-[11px]">
-
-                      单按钮全栈自愈重构，弹窗以清晰的六维时序链步骤条呈现 ICMP 封穴、策略路由、逃生探针与 IPv6 防侧漏加固，掌控感拉满。
+                      直观呈现直连穿透、境外代理、DNS防侧漏、0秒逃生就绪度与底座负载五维评估，一眼看清日常网络健康状态。
 
                     </p>
 
@@ -2663,23 +2566,21 @@
 
                 </div>
 
-                <!-- Live Upgrade Process & Status (实时升级过程) -->
+                <!-- Live Upgrade Process & Status -->
 
-                <div v-if="upgradingPanel || upgradeStep > 0" class="pt-3 border-t border-slate-800 space-y-3">
+                <div v-if="upgradingPanel || upgradeStep > 0" class="pt-3 border-t space-y-3" style="border-color: var(--cbx-border-soft);">
 
-                  <div class="text-xs font-bold text-emerald-300 tracking-wider uppercase flex items-center gap-1.5">
+                  <div class="text-xs font-bold text-sky-700 dark:text-cyan-300 tracking-wider uppercase flex items-center gap-1.5">
 
                     <span class="inline-block animate-spin" v-if="upgradingPanel">↻</span>
 
                     <span v-else>✅</span>
 
-                    <span>升级进度与实时执行状态 ({{ upgradeProgress }}%)</span>
+                    <span class="font-tabular">升级进度与实时执行状态 ({{ upgradeProgress }}%)</span>
 
                   </div>
 
-                  <!-- Progress Bar -->
-
-                  <div class="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800 p-0.5">
+                  <div class="w-full cbx-progress-track h-2.5 rounded-full overflow-hidden p-0.5">
 
                     <div class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full rounded-full transition-all duration-500"
 
@@ -2687,27 +2588,25 @@
 
                   </div>
 
-                  <!-- Upgrade Step Tracker -->
-
                   <div class="space-y-2 text-xs font-mono">
 
                     <div v-for="(st, idx) in upgradeProcessSteps" :key="idx"
 
-                      class="flex items-center justify-between p-2 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px]">
+                      class="flex items-center justify-between p-2 rounded-xl cbx-sub-card text-[11px]">
 
                       <div class="flex items-center gap-2">
 
-                        <span v-if="upgradeStep > idx" class="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 flex items-center justify-center text-[10px] font-bold">✓</span>
+                        <span v-if="upgradeStep > idx" class="w-4 h-4 rounded-full cbx-badge-ok border flex items-center justify-center text-[10px] font-bold">✓</span>
 
-                        <span v-else-if="upgradeStep === idx" class="w-4 h-4 rounded-full bg-cyan-500/20 text-emerald-300 border border-cyan-500/50 flex items-center justify-center text-[10px] animate-spin font-bold">↻</span>
+                        <span v-else-if="upgradeStep === idx" class="w-4 h-4 rounded-full cbx-badge-info border flex items-center justify-center text-[10px] animate-spin font-bold">↻</span>
 
-                        <span v-else class="w-4 h-4 rounded-full bg-white/10 text-slate-600 flex items-center justify-center text-[10px] font-bold">{{ idx + 1 }}</span>
+                        <span v-else class="w-4 h-4 rounded-full cbx-btn-ghost flex items-center justify-center text-[10px] font-bold">{{ idx + 1 }}</span>
 
-                        <span :class="upgradeStep >= idx ? 'text-slate-200' : 'text-slate-300'">{{ st.title }}</span>
+                        <span :class="upgradeStep >= idx ? 'cbx-text-main font-semibold' : 'cbx-text-muted'">{{ st.title }}</span>
 
                       </div>
 
-                      <span :class="upgradeStep > idx ? 'text-emerald-400' : (upgradeStep === idx ? 'text-emerald-300 animate-pulse' : 'text-white/40')">
+                      <span :class="upgradeStep > idx ? 'text-emerald-600 dark:text-emerald-400 font-bold' : (upgradeStep === idx ? 'text-sky-600 dark:text-cyan-300 animate-pulse font-bold' : 'cbx-text-muted')">
 
                         {{ upgradeStep > idx ? '完成' : (upgradeStep === idx ? '正在执行...' : '等待中') }}
 
@@ -2717,7 +2616,7 @@
 
                   </div>
 
-                  <div v-if="panelUpgradeLog" class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-emerald-300 font-mono">
+                  <div v-if="panelUpgradeLog" class="p-2.5 rounded-xl cbx-terminal-box border text-xs text-emerald-300 font-mono">
 
                     {{ panelUpgradeLog }}
 
@@ -2729,11 +2628,11 @@
 
               <!-- Modal Footer -->
 
-              <div class="pt-4 border-t border-slate-800 flex items-center justify-between shrink-0">
+              <div class="pt-4 border-t flex flex-wrap items-center justify-between gap-2 shrink-0" style="border-color: var(--cbx-border-soft);">
 
-                <span class="text-xs text-slate-400">
+                <span class="text-xs cbx-text-sub">
 
-                  <span v-if="upgradingPanel" class="text-emerald-300 font-mono animate-pulse">⚡ 正在执行平滑热更，连接保持不断流...</span>
+                  <span v-if="upgradingPanel" class="text-sky-600 dark:text-cyan-300 font-mono animate-pulse">⚡ 正在执行平滑热更，连接保持不断流...</span>
 
                   <span v-else>💡 升级耗时约 3~5 秒，升级后自动保留现有所有策略与连接</span>
 
@@ -2743,7 +2642,7 @@
 
                   <button v-if="!upgradingPanel && upgradeStep === 0" @click="showUpgradeModal = false"
 
-                    class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-bold transition cursor-pointer">
+                    class="px-4 py-2 rounded-xl cbx-btn-ghost text-xs font-bold transition cursor-pointer">
 
                     暂不更新
 
@@ -2751,7 +2650,7 @@
 
                   <button v-if="upgradeStep === 0" @click="startModalUpgrade" :disabled="upgradingPanel"
 
-                    class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs shadow-lg shadow-sky-500/20 active:scale-95 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
+                    class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white font-black text-xs shadow-lg shadow-sky-500/20 active:scale-95 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50">
 
                     <span>⚡ 确认立即平滑热更</span>
 
@@ -2759,7 +2658,7 @@
 
                   <button v-else-if="upgradeStep >= 4" @click="location.reload()"
 
-                    class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 active:scale-95 transition flex items-center gap-1.5 cursor-pointer">
+                    class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-black text-xs shadow-lg shadow-emerald-500/20 active:scale-95 transition flex items-center gap-1.5 cursor-pointer">
 
                     <span>🔄 立即刷新体验新版</span>
 
@@ -2777,23 +2676,23 @@
 
           <!-- ════════════════════════════════════════════════════════════════ -->
 
-          <div v-if="showAddGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in overflow-hidden">
+          <div v-if="showAddGroupModal" @click.self="showAddGroupModal = false" class="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in overflow-hidden">
 
-            <div class="flex flex-col w-full max-w-xl sm:max-w-2xl max-h-[88vh] rounded-2xl sm:rounded-3xl macos-glass-card shadow-2xl text-slate-200 overflow-hidden">
+            <div class="flex flex-col w-full max-w-xl sm:max-w-2xl max-h-[88vh] rounded-2xl sm:rounded-3xl cbx-modal-shell shadow-2xl overflow-hidden">
 
               <!-- Pinned Header -->
 
-              <div class="shrink-0 p-4 sm:p-5 border-b border-slate-700/60 bg-white/[0.03] flex items-center justify-between">
+              <div class="shrink-0 p-4 sm:p-5 border-b flex items-center justify-between" style="border-color: var(--cbx-border-soft);">
 
                 <div class="flex items-center gap-2">
 
                   <span class="text-xl">➕</span>
 
-                  <h3 class="text-base font-bold text-slate-900">手动添加应用分流策略组</h3>
+                  <h3 class="text-base font-bold cbx-text-main">手动添加应用分流策略组</h3>
 
                 </div>
 
-                <button @click="showAddGroupModal = false" class="text-slate-400 hover:text-white text-lg font-bold cursor-pointer">✕</button>
+                <button @click="showAddGroupModal = false" class="cbx-btn-ghost px-2.5 py-1 rounded-lg text-sm font-bold cursor-pointer" aria-label="关闭弹窗">✕</button>
 
               </div>
 
@@ -2801,39 +2700,37 @@
 
               <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 custom-scrollbar">
 
-              <!-- 🔀 双模选择器导航：常用高频推荐 vs 105套全量权威规则集库 -->
+              <div class="flex items-center justify-between gap-2 flex-wrap border-b pb-2.5" style="border-color: var(--cbx-border-soft);">
 
-              <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
-
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
 
                   <button type="button" @click="addGroupActiveTab = 'presets'"
 
-                    class="px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
+                    class="px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer border"
 
-                    :class="addGroupActiveTab === 'presets' ? 'bg-cyan-500/20 text-emerald-300 border border-cyan-400/40 shadow-sm' : 'text-slate-400 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/60 border border-transparent'">
+                    :class="addGroupActiveTab === 'presets' ? 'cbx-badge-info shadow-sm' : 'cbx-btn-ghost'">
 
                     <span>🔥 快捷常用应用</span>
 
-                    <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 text-slate-600 font-mono">{{ availablePresetServices.length }}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded-full cbx-btn-ghost font-mono font-tabular">{{ availablePresetServices.length }}</span>
 
                   </button>
 
                   <button type="button" @click="addGroupActiveTab = 'georules'"
 
-                    class="px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
+                    class="px-3 py-1.5 rounded-xl font-bold text-xs transition flex items-center gap-1.5 cursor-pointer border"
 
-                    :class="addGroupActiveTab === 'georules' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 shadow-sm' : 'text-slate-400 hover:text-white bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/60 border border-transparent'">
+                    :class="addGroupActiveTab === 'georules' ? 'cbx-badge-ok shadow-sm' : 'cbx-btn-ghost'">
 
                     <span>📚 官方应用规则库</span>
 
-                    <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 font-mono font-bold">{{ allUniqueGeoRules.length }} 套</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded-full cbx-badge-ok border font-mono font-bold font-tabular">{{ allUniqueGeoRules.length }} 套</span>
 
                   </button>
 
                 </div>
 
-                <div class="text-[10px] font-mono text-slate-400 hidden sm:block">
+                <div class="text-[10px] font-mono cbx-text-muted hidden sm:block">
 
                   {{ addGroupActiveTab === 'presets' ? '自动过滤已添加项' : '点击任一规则智能填入表单' }}
 
@@ -2841,17 +2738,17 @@
 
               </div>
 
-              <!-- 模式 A: 快捷选自日常高频应用 -->
+              <!-- 模式 A -->
 
               <div v-if="addGroupActiveTab === 'presets'" class="space-y-1.5">
 
-                <div class="flex items-center justify-between text-xs">
+                <div class="flex items-center justify-between gap-2 flex-wrap text-xs">
 
-                  <span class="text-slate-400 font-mono flex items-center gap-1">
+                  <span class="cbx-text-sub font-mono flex items-center gap-1">
 
                     <span>💡 快捷选自日常高频应用</span>
 
-                    <span class="text-[10px] text-emerald-300">(自动过滤已存在)</span>
+                    <span class="text-[10px] text-emerald-600 dark:text-emerald-300">(自动过滤已存在)</span>
 
                   </span>
 
@@ -2859,7 +2756,7 @@
 
                     <button type="button" @click="showAddCustomPresetForm = !showAddCustomPresetForm"
 
-                      class="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-0.5 hover:underline cursor-pointer">
+                      class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5 hover:underline cursor-pointer">
 
                       ➕ 增加常用
 
@@ -2867,7 +2764,7 @@
 
                     <button type="button" @click="resetPresetsToDefault"
 
-                      class="text-[10px] text-slate-300 hover:text-slate-400 font-mono hover:underline cursor-pointer">
+                      class="text-[10px] cbx-text-muted hover:cbx-text-main font-mono hover:underline cursor-pointer">
 
                       🔄 恢复默认
 
@@ -2877,15 +2774,13 @@
 
                 </div>
 
-                <!-- Custom Add Preset Form (Collapsible) -->
+                <div v-if="showAddCustomPresetForm" class="p-3 rounded-2xl cbx-sub-card border-2 border-emerald-500/40 space-y-2 text-xs animate-in fade-in">
 
-                <div v-if="showAddCustomPresetForm" class="p-3 rounded-2xl bg-slate-900/90 text-white border border-emerald-500/50 space-y-2 text-xs animate-in fade-in">
-
-                  <div class="font-bold text-emerald-300 flex items-center justify-between">
+                  <div class="font-bold text-emerald-700 dark:text-emerald-300 flex items-center justify-between">
 
                     <span>新增日常高频应用模版</span>
 
-                    <button type="button" @click="showAddCustomPresetForm = false" class="text-slate-400 hover:text-white font-bold">✕</button>
+                    <button type="button" @click="showAddCustomPresetForm = false" class="cbx-btn-ghost px-2 py-0.5 rounded font-bold cursor-pointer">✕</button>
 
                   </div>
 
@@ -2893,7 +2788,7 @@
 
                     <input v-model="newCustomPreset.name" placeholder="应用名称 (如: HuggingFace)"
 
-                      class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-xs outline-none focus:border-emerald-400" />
+                      class="px-3 py-2 rounded-xl font-mono text-xs outline-none" />
 
                     <LogoPicker v-model="newCustomPreset.icon" />
 
@@ -2903,7 +2798,7 @@
 
                     <input v-model="newCustomPreset.rule_value" placeholder="规则/域名 (如: geosite:huggingface)"
 
-                      class="px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono text-xs outline-none focus:border-emerald-400" />
+                      class="px-3 py-2 rounded-xl font-mono text-xs outline-none" />
 
                     <button type="button" @click="submitAddCustomPreset"
 
@@ -2917,29 +2812,23 @@
 
                 </div>
 
-                <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 rounded-xl bg-slate-950/80 border border-slate-800 custom-scrollbar">
+                <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 rounded-xl cbx-sub-card custom-scrollbar">
 
                   <div v-for="preset in availablePresetServices" :key="preset.id"
 
-                    class="group inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-mono bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-cyan-950/70 border border-slate-800 hover:border-cyan-500/50 text-slate-300 transition select-none">
-
-                    <!-- Brand Vector Logo -->
+                    class="group inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-mono cbx-sub-card transition select-none">
 
                     <BrandLogo :icon="preset.icon" size="w-3.5 h-3.5" />
 
-                    <!-- Click to fill form -->
-
-                    <span @click="applyPreset(preset)" class="cursor-pointer hover:text-emerald-300 truncate max-w-[130px]" title="点击将模版填入下方表单">
+                    <span @click="applyPreset(preset)" class="cursor-pointer cbx-text-main hover:text-sky-600 dark:hover:text-cyan-300 truncate max-w-[130px]" title="点击将模版填入下方表单">
 
                       {{ preset.name }}
 
                     </span>
 
-                    <!-- ⚡ 一键添加按钮 -->
-
                     <button type="button" @click.stop="quickAddPreset(preset)" :disabled="quickAddingId === preset.id"
 
-                      class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 hover:bg-cyan-500 text-emerald-300 hover:text-slate-950 transition active:scale-95 shadow-sm cursor-pointer"
+                      class="px-1.5 py-0.5 rounded text-[10px] font-bold cbx-badge-info border transition active:scale-95 shadow-sm cursor-pointer"
 
                       title="一键立即添加并自动生效">
 
@@ -2947,11 +2836,9 @@
 
                     </button>
 
-                    <!-- ✕ 删除按钮 -->
-
                     <button type="button" @click.stop="removeHighFreqPreset(preset.id)"
 
-                      class="text-slate-300 hover:text-rose-400 px-0.5 transition cursor-pointer"
+                      class="cbx-text-muted hover:text-rose-500 px-0.5 transition cursor-pointer"
 
                       title="从高频常用中删除此项">
 
@@ -2961,21 +2848,19 @@
 
                   </div>
 
-                  <div v-if="availablePresetServices.length === 0" class="text-slate-300 text-[11px] py-1 px-1">
+                  <div v-if="availablePresetServices.length === 0" class="cbx-text-sub text-[11px] py-1 px-1">
 
-                    🎉 所有推荐的日常高频分流组已全量就绪！点击上方「📚 105 套全量规则集库」可挑选更多。
+                    🎉 所有推荐的日常高频分流组已全量就绪！点击上方「📚 官方应用规则库」可挑选更多。
 
                   </div>
 
                 </div>
 
-                <!-- 解释提示：消除用户认知困惑 -->
-
-                <div class="text-[10px] text-slate-400 flex items-center justify-between p-1 bg-white/5 text-white/70 rounded-lg border border-slate-800/60">
+                <div class="text-[10px] cbx-text-sub flex items-center justify-between p-2 cbx-sub-card rounded-lg">
 
                   <span class="truncate">💡 看板已自动运行主流应用组。更多海量分流，请切换上方全量库：</span>
 
-                  <button type="button" @click="addGroupActiveTab = 'georules'" class="text-emerald-300 hover:text-emerald-300 font-bold hover:underline shrink-0 ml-1 cursor-pointer">
+                  <button type="button" @click="addGroupActiveTab = 'georules'" class="text-sky-600 dark:text-cyan-300 font-bold hover:underline shrink-0 ml-1 cursor-pointer">
 
                     切换至 105 套全量规则集 ➔
 
@@ -2985,11 +2870,9 @@
 
               </div>
 
-              <!-- 模式 B: 官方应用规则库选择器 (纯应用专线，已过滤底层基础网络) -->
+              <!-- 模式 B -->
 
               <div v-else class="space-y-2">
-
-                <!-- 8 大领域分类筛选胶囊 (移动端支持横向滑动自适应) -->
 
                 <div class="flex items-center gap-1 overflow-x-auto py-0.5 custom-scrollbar pb-1">
 
@@ -2997,15 +2880,15 @@
 
                     @click="geoRulePickerCategory = cat.id"
 
-                    class="px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-xs font-bold transition flex items-center gap-1 shrink-0 cursor-pointer select-none"
+                    class="px-2 sm:px-2.5 py-1 rounded-xl text-[10px] sm:text-xs font-bold transition flex items-center gap-1 shrink-0 cursor-pointer select-none border"
 
-                    :class="geoRulePickerCategory === cat.id ? 'bg-cyan-500/20 text-emerald-300 border border-cyan-400/50 shadow-sm' : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700'">
+                    :class="geoRulePickerCategory === cat.id ? 'cbx-badge-info shadow-sm' : 'cbx-btn-ghost'">
 
                     <span>{{ cat.icon }}</span>
 
                     <span>{{ cat.name }}</span>
 
-                    <span class="text-[11px] px-1 py-0.2 rounded-full font-mono" :class="geoRulePickerCategory === cat.id ? 'bg-cyan-950 text-emerald-300' : 'bg-slate-950 text-slate-300'">{{ cat.count }}</span>
+                    <span class="text-[11px] px-1 py-0.2 rounded-full font-mono cbx-btn-ghost font-tabular">{{ cat.count }}</span>
 
                   </button>
 
@@ -3015,23 +2898,23 @@
 
                   <div class="relative flex-1">
 
-                    <input v-model="geoRulePickerSearch" placeholder="🔍 快速搜索应用规则 (如 tiktok, discord, blizzard, binance, netease, gitlab, ea, zoom)..."
+                    <input v-model="geoRulePickerSearch" placeholder="🔍 快速搜索应用规则 (如 tiktok, discord, blizzard, gitlab)..."
 
-                      class="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 focus:border-cyan-400 outline-none text-white font-mono text-xs shadow-inner" />
+                      class="w-full px-3 py-1.5 rounded-xl font-mono text-xs shadow-inner outline-none" />
 
-                    <button v-if="geoRulePickerSearch" @click="geoRulePickerSearch = ''" class="absolute right-2.5 top-1.5 text-slate-400 hover:text-white text-xs cursor-pointer">✕</button>
+                    <button v-if="geoRulePickerSearch" @click="geoRulePickerSearch = ''" class="absolute right-2.5 top-1.5 cbx-text-muted hover:cbx-text-main text-xs cursor-pointer">✕</button>
 
                   </div>
 
-                  <span class="text-[10px] font-mono text-slate-400 shrink-0">显示 {{ filteredGeoRules.length }} / {{ allUniqueGeoRules.length }} 套</span>
+                  <span class="text-[10px] font-mono cbx-text-muted shrink-0 font-tabular">显示 {{ filteredGeoRules.length }} / {{ allUniqueGeoRules.length }} 套</span>
 
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-52 sm:max-h-60 overflow-y-auto p-1.5 sm:p-2 rounded-2xl bg-slate-950/80 border border-slate-800 custom-scrollbar">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-52 sm:max-h-60 overflow-y-auto p-1.5 sm:p-2 rounded-2xl cbx-sub-card custom-scrollbar">
 
                   <div v-for="rule in filteredGeoRules" :key="rule.id"
 
-                    class="group flex items-center justify-between p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/90 hover:bg-cyan-950/60 border border-slate-800/80 hover:border-cyan-500/40 transition gap-1.5">
+                    class="group flex items-center justify-between p-2 rounded-xl cbx-sub-card hover:border-sky-400/50 transition gap-1.5">
 
                     <div class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer" @click="selectGeoRule(rule)" title="点击填入下方表单">
 
@@ -3039,9 +2922,9 @@
 
                       <div class="min-w-0 flex-1">
 
-                        <div class="text-xs font-bold text-slate-200 group-hover:text-sky-300 truncate">{{ rule.name }}</div>
+                        <div class="text-xs font-bold cbx-text-main group-hover:text-sky-600 dark:group-hover:text-cyan-300 truncate">{{ rule.name }}</div>
 
-                        <div class="text-[10px] text-slate-400 font-mono truncate">{{ rule.category }} · {{ rule.base }}.mrs / .srs</div>
+                        <div class="text-[10px] cbx-text-muted font-mono truncate">{{ rule.category }} · {{ rule.base }}.mrs / .srs</div>
 
                       </div>
 
@@ -3049,7 +2932,7 @@
 
                     <div class="flex items-center gap-1 shrink-0">
 
-                      <button type="button" @click="selectGeoRule(rule)" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer">
+                      <button type="button" @click="selectGeoRule(rule)" class="px-2 py-1 rounded-lg text-[10px] font-bold cbx-btn-ghost transition cursor-pointer">
 
                         填入
 
@@ -3057,7 +2940,7 @@
 
                       <button type="button" @click="quickAddGeoRule(rule)" :disabled="quickAddingId === rule.id"
 
-                        class="px-2 py-1 rounded-lg text-[10px] font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-sm transition active:scale-95 cursor-pointer">
+                        class="px-2 py-1 rounded-lg text-[10px] font-bold bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white shadow-sm transition active:scale-95 cursor-pointer">
 
                         {{ quickAddingId === rule.id ? '添加中...' : '⚡ 添加' }}
 
@@ -3067,7 +2950,7 @@
 
                   </div>
 
-                  <div v-if="filteredGeoRules.length === 0" class="col-span-1 sm:col-span-2 text-center text-slate-300 text-xs py-4">
+                  <div v-if="filteredGeoRules.length === 0" class="col-span-1 sm:col-span-2 text-center cbx-text-muted text-xs py-4">
 
                     未找到匹配的应用规则，支持输入拼音或英文关键字搜索。
 
@@ -3081,17 +2964,17 @@
 
                 <div>
 
-                  <label class="block text-slate-400 font-mono mb-1">应用分流名称 (例: Spotify / Steam / TikTok)</label>
+                  <label class="block cbx-text-sub font-semibold font-mono mb-1">应用分流名称 (例: Spotify / Steam / TikTok)</label>
 
                   <input v-model="newGroupForm.name" placeholder="请输入应用名称..."
 
-                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono" />
+                    class="w-full px-3 py-2 rounded-xl outline-none font-mono" />
 
                 </div>
 
                 <div>
 
-                  <label class="block text-slate-400 font-mono mb-1">官方应用图标标识</label>
+                  <label class="block cbx-text-sub font-semibold font-mono mb-1">官方应用图标标识</label>
 
                   <LogoPicker v-model="newGroupForm.icon" />
 
@@ -3099,11 +2982,11 @@
 
                 <div>
 
-                  <label class="block text-slate-400 font-mono mb-1">默认绑定出站策略</label>
+                  <label class="block cbx-text-sub font-semibold font-mono mb-1">默认绑定出站策略</label>
 
                   <select v-model="newGroupForm.target"
 
-                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono">
+                    class="w-full px-3 py-2 rounded-xl outline-none font-mono">
 
                     <optgroup v-for="reg in allRegionDefs" :key="reg.id" :label="`${reg.name}集群策略`">
 
@@ -3114,8 +2997,6 @@
                       <option :value="reg.disaster">{{ reg.disaster }} (🛡️ 地区容灾)</option>
 
                     </optgroup>
-
-                    <!-- 确保即便地区列表经过局部过滤，自建与其它集群在添加策略组时依然始终可选 -->
 
                     <optgroup v-if="!allRegionDefs.some(r => r.id === 'CUSTOM')" label="🏠 自建节点集群">
 
@@ -3153,9 +3034,9 @@
 
                   <div class="flex items-center justify-between mb-1">
 
-                    <label class="block text-slate-400 font-mono">绑定匹配规则集/域名 (可选)</label>
+                    <label class="block cbx-text-sub font-semibold font-mono">绑定匹配规则集/域名 (可选)</label>
 
-                    <button type="button" @click="addGroupActiveTab = 'georules'" class="text-[11px] text-emerald-300 hover:text-emerald-300 font-bold flex items-center gap-1 hover:underline cursor-pointer">
+                    <button type="button" @click="addGroupActiveTab = 'georules'" class="text-[11px] text-sky-600 dark:text-cyan-300 font-bold flex items-center gap-1 hover:underline cursor-pointer">
 
                       <span>📚 从 105 套规则库快速挑选 ▾</span>
 
@@ -3165,7 +3046,7 @@
 
                   <input v-model="newGroupForm.rule_value" placeholder="例: rule-set:tiktok 或 geosite:spotify 或 spotify.com"
 
-                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono" />
+                    class="w-full px-3 py-2 rounded-xl outline-none font-mono" />
 
                 </div>
 
@@ -3175,15 +3056,15 @@
 
               <!-- Pinned Footer -->
 
-              <div class="shrink-0 p-3 sm:p-4 border-t border-sky-900/40 bg-white/[0.03] flex items-center justify-end gap-3">
+              <div class="shrink-0 p-3 sm:p-4 border-t flex items-center justify-end gap-3" style="border-color: var(--cbx-border-soft);">
 
-                <button @click="showAddGroupModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+                <button @click="showAddGroupModal = false" class="px-4 py-2 rounded-xl cbx-btn-ghost text-xs font-semibold cursor-pointer">
 
                   取消
 
                 </button>
 
-                <button @click="submitAddCustomGroup" class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-bold text-xs font-bold shadow-md shadow-sky-500/20 active:scale-95 transition">
+                <button @click="submitAddCustomGroup" class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-bold text-xs shadow-md shadow-sky-500/20 active:scale-95 transition cursor-pointer">
 
                   保存并生效
 
@@ -3195,101 +3076,67 @@
 
           </div>
 
-          <!-- ════════════════════════════════════════════════════════════════ -->
+          <!-- MODAL: 添加自定义节点分组 -->
 
-          <!-- MODAL: 添加自定义节点分组 (支持按国家预设 / 订阅源 / 多关键词智能筛选) -->
+          <div v-if="showAddCustomNodeGroupModal" @click.self="showAddCustomNodeGroupModal = false" class="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in overflow-hidden">
 
-          <!-- ════════════════════════════════════════════════════════════════ -->
+            <div class="flex flex-col w-full max-w-lg max-h-[88vh] rounded-2xl sm:rounded-3xl cbx-modal-shell shadow-2xl overflow-hidden">
 
-          <div v-if="showAddCustomNodeGroupModal" class="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in overflow-hidden">
-
-            <div class="flex flex-col w-full max-w-lg max-h-[88vh] rounded-2xl sm:rounded-3xl macos-glass-card shadow-2xl text-slate-200 overflow-hidden">
-
-              <!-- Pinned Header -->
-
-              <div class="shrink-0 p-4 sm:p-5 border-b border-slate-700/60 bg-white/[0.03] flex items-center justify-between">
+              <div class="shrink-0 p-4 sm:p-5 border-b flex items-center justify-between" style="border-color: var(--cbx-border-soft);">
 
                 <div class="flex items-center gap-2">
 
                   <span class="text-xl">➕</span>
 
-                  <h3 class="text-base font-bold text-slate-900">添加自定义节点分组</h3>
+                  <h3 class="text-base font-bold cbx-text-main">添加自定义节点分组</h3>
 
                 </div>
 
-                <button @click="showAddCustomNodeGroupModal = false" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+                <button @click="showAddCustomNodeGroupModal = false" class="cbx-btn-ghost px-2.5 py-1 rounded-lg text-sm font-bold cursor-pointer" aria-label="关闭弹窗">✕</button>
 
               </div>
 
-              <!-- Scrollable Body -->
-
               <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 text-xs custom-scrollbar">
-
-                <!-- 1. Source Type Selection (3 Options) -->
 
                 <div>
 
-                  <label class="block text-slate-400 font-mono mb-1.5 font-bold">选择分组归集模式</label>
+                  <label class="block cbx-text-sub font-mono mb-1.5 font-bold">选择分组归集模式</label>
 
-                  <div class="grid grid-cols-3 gap-2">
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
 
                     <button type="button" @click="customNodeGroupForm.source_type = 'preset'"
 
-                      :class="['p-2 rounded-xl border text-left transition select-none',
+                      :class="['p-2.5 rounded-xl border text-left transition select-none cursor-pointer',
 
-                        customNodeGroupForm.source_type === 'preset'
+                        customNodeGroupForm.source_type === 'preset' ? 'cbx-badge-info shadow-sm' : 'cbx-btn-ghost']">
 
-                          ? 'bg-cyan-950/80 border-cyan-400 text-emerald-200 shadow-sm ring-1 ring-cyan-400/40'
+                      <div class="font-bold flex items-center gap-1 text-[11px] truncate"><span>🌍 地区预设</span></div>
 
-                          : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 border-slate-800 text-slate-400 hover:text-slate-200']">
-
-                      <div class="font-bold flex items-center gap-1 text-[11px] truncate">
-
-                        <span>🌍 地区预设</span>
-
-                      </div>
-
-                      <div class="text-[11px] text-slate-400 mt-0.5 truncate">多选批量建组</div>
+                      <div class="text-[11px] cbx-text-sub mt-0.5 truncate">多选批量建组</div>
 
                     </button>
 
                     <button type="button" @click="customNodeGroupForm.source_type = 'sub'"
 
-                      :class="['p-2 rounded-xl border text-left transition select-none',
+                      :class="['p-2.5 rounded-xl border text-left transition select-none cursor-pointer',
 
-                        customNodeGroupForm.source_type === 'sub'
+                        customNodeGroupForm.source_type === 'sub' ? 'cbx-badge-info shadow-sm' : 'cbx-btn-ghost']">
 
-                          ? 'bg-cyan-950/80 border-cyan-400 text-emerald-200 shadow-sm ring-1 ring-cyan-400/40'
+                      <div class="font-bold flex items-center gap-1 text-[11px] truncate"><span>✈️ 订阅专组</span></div>
 
-                          : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 border-slate-800 text-slate-400 hover:text-slate-200']">
-
-                      <div class="font-bold flex items-center gap-1 text-[11px] truncate">
-
-                        <span>✈️ 订阅专组</span>
-
-                      </div>
-
-                      <div class="text-[11px] text-slate-400 mt-0.5 truncate">按订阅源单独归集</div>
+                      <div class="text-[11px] cbx-text-sub mt-0.5 truncate">按订阅源单独归集</div>
 
                     </button>
 
                     <button type="button" @click="customNodeGroupForm.source_type = 'keyword'"
 
-                      :class="['p-2 rounded-xl border text-left transition select-none',
+                      :class="['p-2.5 rounded-xl border text-left transition select-none cursor-pointer',
 
-                        customNodeGroupForm.source_type === 'keyword'
+                        customNodeGroupForm.source_type === 'keyword' ? 'cbx-badge-info shadow-sm' : 'cbx-btn-ghost']">
 
-                          ? 'bg-cyan-950/80 border-cyan-400 text-emerald-200 shadow-sm ring-1 ring-cyan-400/40'
+                      <div class="font-bold flex items-center gap-1 text-[11px] truncate"><span>🔍 关键词筛选</span></div>
 
-                          : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/80 border-slate-800 text-slate-400 hover:text-slate-200']">
-
-                      <div class="font-bold flex items-center gap-1 text-[11px] truncate">
-
-                        <span>🔍 关键词筛选</span>
-
-                      </div>
-
-                      <div class="text-[11px] text-slate-400 mt-0.5 truncate">多词 OR/AND</div>
+                      <div class="text-[11px] cbx-text-sub mt-0.5 truncate">多词 OR/AND</div>
 
                     </button>
 
@@ -3297,17 +3144,17 @@
 
                 </div>
 
-                <!-- Case 0: Dynamic Keyword Filter Mode (OR / AND logic) -->
+                <!-- Case 0: Dynamic Keyword Filter -->
 
-                <div v-if="customNodeGroupForm.source_type === 'keyword'" class="space-y-3 p-3 rounded-2xl bg-white/10 text-white/90 border border-cyan-500/30 animate-in fade-in">
+                <div v-if="customNodeGroupForm.source_type === 'keyword'" class="space-y-3 p-3 rounded-2xl cbx-sub-card animate-in fade-in">
 
                   <div>
 
-                    <label class="block text-slate-300 font-mono mb-1 font-bold flex items-center justify-between">
+                    <label class="cbx-text-main font-mono mb-1 font-bold flex items-center justify-between">
 
                       <span>关键词智能筛选 (逗号分隔多个词)</span>
 
-                      <span class="text-[10px] text-emerald-300 font-mono">大小写不敏感</span>
+                      <span class="text-[10px] text-sky-600 dark:text-cyan-300 font-mono">大小写不敏感</span>
 
                     </label>
 
@@ -3315,27 +3162,21 @@
 
                       placeholder="例: 香港, BGP, 专线 或 0.5x, SG"
 
-                      class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono" />
+                      class="w-full px-3 py-2 rounded-xl outline-none font-mono" />
 
                   </div>
 
-                  <!-- OR / AND Toggle Capsule -->
+                  <div class="flex items-center justify-between gap-2 flex-wrap pt-1">
 
-                  <div class="flex items-center justify-between pt-1">
+                    <span class="cbx-text-sub font-mono text-[11px]">多词匹配逻辑：</span>
 
-                    <span class="text-slate-400 font-mono text-[11px]">多词匹配逻辑：</span>
-
-                    <div class="flex items-center rounded-xl bg-slate-950 p-0.5 border border-slate-800">
+                    <div class="flex items-center rounded-xl cbx-sub-card p-0.5">
 
                       <button type="button" @click="customNodeGroupForm.filter_logic = 'ALL'"
 
                         :class="['px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer',
 
-                          customNodeGroupForm.filter_logic === 'ALL'
-
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-400/40 shadow-sm'
-
-                            : 'text-slate-400 hover:text-white']">
+                          customNodeGroupForm.filter_logic === 'ALL' ? 'cbx-badge-warn border shadow-sm' : 'cbx-text-sub hover:cbx-text-main']">
 
                         🌐 全部 (ALL)
 
@@ -3345,11 +3186,7 @@
 
                         :class="['px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer',
 
-                          customNodeGroupForm.filter_logic === 'OR' || (!customNodeGroupForm.filter_logic || customNodeGroupForm.filter_logic === '')
-
-                            ? 'bg-cyan-500/20 text-emerald-300 border border-cyan-400/40 shadow-sm'
-
-                            : 'text-slate-400 hover:text-white']">
+                          customNodeGroupForm.filter_logic === 'OR' || (!customNodeGroupForm.filter_logic || customNodeGroupForm.filter_logic === '') ? 'cbx-badge-info border shadow-sm' : 'cbx-text-sub hover:cbx-text-main']">
 
                         ⚡ 任一 (OR)
 
@@ -3359,11 +3196,7 @@
 
                         :class="['px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer',
 
-                          customNodeGroupForm.filter_logic === 'AND'
-
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 shadow-sm'
-
-                            : 'text-slate-400 hover:text-white']">
+                          customNodeGroupForm.filter_logic === 'AND' ? 'cbx-badge-ok border shadow-sm' : 'cbx-text-sub hover:cbx-text-main']">
 
                         🎯 全中 (AND)
 
@@ -3373,19 +3206,17 @@
 
                   </div>
 
-                  <!-- Live Matched Nodes Preview -->
-
-                  <div class="pt-2 border-t border-slate-800/80 space-y-1.5">
+                  <div class="pt-2 border-t space-y-1.5" style="border-color: var(--cbx-border-soft);">
 
                     <div class="flex items-center justify-between text-[11px] font-mono">
 
-                      <span class="text-slate-300">
+                      <span class="cbx-text-sub">
 
-                        实时匹配：<strong :class="matchedKeywordNodes.length > 0 ? 'text-emerald-400' : 'text-slate-300'">{{ matchedKeywordNodes.length }}</strong> 个节点
+                        实时匹配：<strong :class="matchedKeywordNodes.length > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'cbx-text-sub'">{{ matchedKeywordNodes.length }}</strong> 个节点
 
                       </span>
 
-                      <span v-if="matchedKeywordNodes.length > 0" class="text-[10px] text-slate-400">
+                      <span v-if="matchedKeywordNodes.length > 0" class="text-[10px] cbx-text-muted">
 
                         自动过滤无效/公告节点
 
@@ -3393,17 +3224,17 @@
 
                     </div>
 
-                    <div v-if="matchedKeywordNodes.length > 0" class="flex flex-wrap gap-1 max-h-28 overflow-y-auto p-1.5 rounded-xl bg-slate-950/80 border border-slate-800 custom-scrollbar">
+                    <div v-if="matchedKeywordNodes.length > 0" class="flex flex-wrap gap-1 max-h-28 overflow-y-auto p-1.5 rounded-xl cbx-sub-card custom-scrollbar">
 
                       <span v-for="node in matchedKeywordNodes.slice(0, 30)" :key="node"
 
-                        class="px-2 py-0.5 rounded-md bg-cyan-950/60 border border-cyan-500/30 text-emerald-200 text-[10px] font-mono truncate max-w-[180px]">
+                        class="px-2 py-0.5 rounded-md cbx-badge-info border text-[10px] font-mono truncate max-w-[180px]">
 
                         {{ node }}
 
                       </span>
 
-                      <span v-if="matchedKeywordNodes.length > 30" class="text-[10px] text-slate-300 self-center px-1">
+                      <span v-if="matchedKeywordNodes.length > 30" class="text-[10px] cbx-text-muted self-center px-1">
 
                         +还有 {{ matchedKeywordNodes.length - 30 }} 个...
 
@@ -3411,7 +3242,7 @@
 
                     </div>
 
-                    <div v-else-if="(customNodeGroupForm.keywords_str || '').trim()" class="text-center text-slate-300 py-3 text-[11px] font-mono">
+                    <div v-else-if="(customNodeGroupForm.keywords_str || '').trim()" class="text-center cbx-text-muted py-3 text-[11px] font-mono">
 
                       未找到包含该关键词的节点，请尝试其他关键词
 
@@ -3421,37 +3252,35 @@
 
                 </div>
 
-                <!-- 2. Case 1: Country Preset Picker (Multi-select enabled!) -->
+                <!-- Case 1: Country Preset Picker -->
 
                 <div v-else-if="customNodeGroupForm.source_type === 'preset'" class="space-y-2.5">
 
-                  <div class="flex items-center justify-between">
+                  <div class="flex items-center justify-between gap-2 flex-wrap">
 
-                    <label class="block text-slate-300 font-mono font-bold flex items-center gap-1.5">
+                    <label class="cbx-text-main font-mono font-bold flex items-center gap-1.5">
 
                       <span>点击选择国家 / 地区 (支持一次多选)</span>
 
-                      <span class="text-[10px] text-emerald-300 font-normal">多选可一键批量建组</span>
+                      <span class="text-[10px] text-sky-600 dark:text-cyan-300 font-normal">多选可一键批量建组</span>
 
                     </label>
-
-                    <!-- Quick action buttons: 全选 / 清空 -->
 
                     <div class="flex items-center gap-2 font-mono text-[11px]">
 
                       <button type="button" @click="selectAllCountryPresets"
 
-                        class="text-emerald-300 hover:text-emerald-200 hover:underline">
+                        class="text-emerald-600 dark:text-emerald-300 font-bold hover:underline cursor-pointer">
 
                         ✓ 全选
 
                       </button>
 
-                      <span class="text-white/40">|</span>
+                      <span class="cbx-text-muted">|</span>
 
                       <button type="button" @click="clearAllCountryPresets"
 
-                        class="text-slate-400 hover:text-slate-200 hover:underline">
+                        class="cbx-text-sub hover:cbx-text-main hover:underline cursor-pointer">
 
                         清空
 
@@ -3461,9 +3290,7 @@
 
                   </div>
 
-                  <!-- Country Buttons Grid -->
-
-                  <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1.5 max-h-48 overflow-y-auto p-1.5 rounded-xl bg-slate-950/80 border border-slate-800/80">
+                  <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-1.5 max-h-48 overflow-y-auto p-1.5 rounded-xl cbx-sub-card">
 
                     <button v-for="preset in availableCountryPresets" :key="preset.code"
 
@@ -3473,19 +3300,19 @@
 
                       :class="[
 
-                        'p-2 rounded-lg border text-left flex items-center justify-between gap-1 transition select-none group',
+                        'p-2 rounded-lg border text-left flex items-center justify-between gap-1 transition select-none cursor-pointer',
 
                         (customNodeGroupForm.selected_countries || []).includes(preset.code)
 
-                          ? 'bg-cyan-950 border-cyan-400 text-emerald-200 shadow-sm ring-1 ring-cyan-400/60'
+                          ? 'cbx-badge-info shadow-sm'
 
-                          : 'bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/90 border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white'
+                          : 'cbx-btn-ghost'
 
                       ]">
 
                       <div class="flex items-center gap-1.5 min-w-0">
 
-                        <span class="text-sm shrink-0">{{ preset.flag }}</span>
+                        <span class="text-[10px] font-mono font-bold cbx-badge-info px-1 rounded shrink-0">{{ preset.code || 'GLB' }}</span>
 
                         <span class="truncate text-[11px] font-medium">{{ preset.name }}</span>
 
@@ -3493,27 +3320,25 @@
 
                       <span v-if="(customNodeGroupForm.selected_countries || []).includes(preset.code)"
 
-                        class="text-emerald-300 text-xs font-bold shrink-0">✓</span>
+                        class="text-emerald-600 dark:text-emerald-300 text-xs font-bold shrink-0">✓</span>
 
                     </button>
 
                   </div>
 
-                  <!-- Selected Country Badges Preview -->
-
                   <div v-if="(customNodeGroupForm.selected_countries || []).length > 0"
 
-                    class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white/90 border border-cyan-500/30 space-y-2">
+                    class="p-2.5 rounded-xl cbx-sub-card space-y-2">
 
                     <div class="flex items-center justify-between text-[11px] font-mono">
 
-                      <span class="text-slate-300">
+                      <span class="cbx-text-sub">
 
-                        已选 <strong class="text-emerald-300">{{ customNodeGroupForm.selected_countries.length }}</strong> 个地区:
+                        已选 <strong class="text-sky-600 dark:text-cyan-300">{{ customNodeGroupForm.selected_countries.length }}</strong> 个地区:
 
                       </span>
 
-                      <button type="button" @click="clearAllCountryPresets" class="text-slate-300 hover:text-rose-400 text-[10px]">
+                      <button type="button" @click="clearAllCountryPresets" class="cbx-text-sub hover:text-rose-500 text-[10px] cursor-pointer">
 
                         全部清除
 
@@ -3525,61 +3350,51 @@
 
                       <span v-for="code in customNodeGroupForm.selected_countries" :key="code"
 
-                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-950/80 border border-cyan-500/40 text-emerald-200 text-[11px] font-mono">
+                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md cbx-badge-info border text-[11px] font-mono">
 
                         <span>{{ code || '全球' }}</span>
 
                         <span>{{ countryNameMap[code] || code }}</span>
 
-                        <button type="button" @click.stop="removeCountryPreset(code)" class="hover:text-rose-400 ml-0.5 text-xs leading-none">✕</button>
+                        <button type="button" @click.stop="removeCountryPreset(code)" class="hover:text-rose-500 ml-0.5 text-xs leading-none cursor-pointer">✕</button>
 
                       </span>
 
                     </div>
 
-                    <!-- Multi-country Mode Switcher (When > 1 countries selected) -->
-
                     <div v-if="customNodeGroupForm.selected_countries.length > 1"
 
-                      class="pt-2 border-t border-slate-800 space-y-1.5">
+                      class="pt-2 border-t space-y-1.5" style="border-color: var(--cbx-border-soft);">
 
-                      <div class="text-[11px] font-bold text-slate-300 flex items-center justify-between">
+                      <div class="text-[11px] font-bold cbx-text-main flex items-center justify-between">
 
                         <span>多选建组方式:</span>
 
                       </div>
 
-                      <div class="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono">
 
                         <button type="button" @click="customNodeGroupForm.multi_mode = 'batch'"
 
-                          :class="['p-2 rounded-lg border text-left transition',
+                          :class="['p-2 rounded-lg border text-left transition cursor-pointer',
 
-                            customNodeGroupForm.multi_mode !== 'combine'
-
-                              ? 'bg-cyan-950 border-cyan-400 text-emerald-200 font-bold'
-
-                              : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-300']">
+                            customNodeGroupForm.multi_mode !== 'combine' ? 'cbx-badge-info font-bold' : 'cbx-btn-ghost']">
 
                           <div>⚡ 批量创建各独立分组 (推荐)</div>
 
-                          <div class="text-[11px] text-slate-300 font-normal mt-0.5">一键生成 {{ customNodeGroupForm.selected_countries.length }} 个独立地区组，各自带区域标识</div>
+                          <div class="text-[11px] cbx-text-sub font-normal mt-0.5">一键生成 {{ customNodeGroupForm.selected_countries.length }} 个独立地区组</div>
 
                         </button>
 
                         <button type="button" @click="customNodeGroupForm.multi_mode = 'combine'"
 
-                          :class="['p-2 rounded-lg border text-left transition',
+                          :class="['p-2 rounded-lg border text-left transition cursor-pointer',
 
-                            customNodeGroupForm.multi_mode === 'combine'
-
-                              ? 'bg-cyan-950 border-cyan-400 text-emerald-200 font-bold'
-
-                              : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-300']">
+                            customNodeGroupForm.multi_mode === 'combine' ? 'cbx-badge-info font-bold' : 'cbx-btn-ghost']">
 
                           <div>🌐 合并为一个复合分组</div>
 
-                          <div class="text-[11px] text-slate-400 font-normal mt-0.5">将这 {{ customNodeGroupForm.selected_countries.length }} 个地区节点归并为同一组</div>
+                          <div class="text-[11px] cbx-text-sub font-normal mt-0.5">将这 {{ customNodeGroupForm.selected_countries.length }} 个地区节点归并为同一组</div>
 
                         </button>
 
@@ -3595,13 +3410,13 @@
 
                 <div v-else class="space-y-2">
 
-                  <label class="block text-slate-300 font-mono mb-1 font-bold">选择绑定的订阅源</label>
+                  <label class="block cbx-text-sub font-mono mb-1 font-bold">选择绑定的订阅源</label>
 
                   <select v-model="customNodeGroupForm.sub_id"
 
                     @change="onCustomGroupSubChange"
 
-                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono">
+                    class="w-full px-3 py-2 rounded-xl outline-none font-mono">
 
                     <option value="" disabled>-- 请选择已绑定的订阅源 --</option>
 
@@ -3615,33 +3430,29 @@
 
                 </div>
 
-                <!-- Group Name Input (Only show when single country, combine mode, or sub mode) -->
-
                 <div v-if="customNodeGroupForm.source_type === 'keyword' || customNodeGroupForm.source_type === 'sub' || (customNodeGroupForm.selected_countries || []).length <= 1 || customNodeGroupForm.multi_mode === 'combine'">
 
-                  <label class="block text-slate-300 font-mono mb-1 font-bold">分组显示名称</label>
+                  <label class="block cbx-text-sub font-mono mb-1 font-bold">分组显示名称</label>
 
-                  <input v-model="customNodeGroupForm.name" :placeholder="customNodeGroupForm.multi_mode === 'combine' ? '请输入合并组名称 (如: 东南亚专区 / 欧美联合)...' : '请输入分组名称 (如: 英国专区 / 快雷专属)...'"
+                  <input v-model="customNodeGroupForm.name" :placeholder="customNodeGroupForm.multi_mode === 'combine' ? '请输入合并组名称 (如: 东南亚专区 / 欧美联合)...' : '请输入分组名称 (如: 英国专区 / 专线专属)...'"
 
-                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono" />
+                    class="w-full px-3 py-2 rounded-xl outline-none font-mono" />
 
                 </div>
 
-                <div v-else class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400 font-mono">
+                <div v-else class="p-2.5 rounded-xl cbx-sub-card text-[11px] cbx-text-sub font-mono">
 
                   💡 已启用批量独立建组模式：将自动按各国家法定名称分别命名，无需手动输入。
 
                 </div>
 
-                <!-- Default Strategy Selection -->
-
                 <div>
 
-                  <label class="block text-slate-300 font-mono mb-1 font-bold">默认分流策略</label>
+                  <label class="block cbx-text-sub font-mono mb-1 font-bold">默认分流策略</label>
 
                   <select v-model="customNodeGroupForm.policy"
 
-                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-cyan-400 outline-none text-white font-mono">
+                    class="w-full px-3 py-2 rounded-xl outline-none font-mono">
 
                     <option value="auto">⚡ 自动 (URLTest 最优延迟竞速)</option>
 
@@ -3657,9 +3468,9 @@
 
               <!-- Pinned Footer Buttons -->
 
-              <div class="shrink-0 p-3 sm:p-4 border-t border-sky-900/40 bg-white/[0.03] flex items-center justify-end gap-3">
+              <div class="shrink-0 p-3 sm:p-4 border-t flex flex-wrap items-center justify-end gap-3" style="border-color: var(--cbx-border-soft);">
 
-                <button @click="showAddCustomNodeGroupModal = false" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 hover:border-sky-400/50 text-white hover:bg-slate-700 text-slate-300 text-xs font-semibold">
+                <button @click="showAddCustomNodeGroupModal = false" class="px-4 py-2 rounded-xl cbx-btn-ghost text-xs font-semibold cursor-pointer">
 
                   取消
 
@@ -3667,7 +3478,7 @@
 
                 <button @click="submitAddCustomNodeGroup"
 
-                  class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white font-extrabold text-xs font-bold shadow-md shadow-sky-500/20 active:scale-95 transition flex items-center gap-1.5">
+                  class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white font-extrabold text-xs shadow-md shadow-sky-500/20 active:scale-95 transition flex items-center gap-1.5 cursor-pointer">
 
                   <span v-if="customNodeGroupForm.source_type === 'keyword'">
 
@@ -3786,9 +3597,9 @@
 
     <!-- 📱 移动端 6 大主模块常驻底部导航栏 (Permanent Mobile Safe-Area Bottom Dock · 6 等分绝对铺满 · 暮光落日金高亮) -->
 
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-[#E5EAF1]/98 border-t border-slate-300/60 px-1 py-1 pb-safe shadow-lg select-none text-slate-800">
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-[100] cbx-modal-shell border-t px-1.5 py-1 pb-safe shadow-lg select-none" style="border-color: var(--cbx-border-soft);">
 
-    <div class="grid grid-cols-4 [grid-template-columns:repeat(4,minmax(0,1fr))] gap-0.5 w-full items-center">
+    <div class="grid grid-cols-4 [grid-template-columns:repeat(4,minmax(0,1fr))] gap-1 w-full items-center">
 
       <button v-for="item in navItems" :key="item.id"
 
@@ -3796,13 +3607,13 @@
 
         :class="[
 
-          'flex flex-col items-center justify-center min-h-[48px] py-1 px-0.5 rounded-xl transition-transform active:scale-90 duration-150 select-none cursor-pointer w-full min-w-0 overflow-hidden',
+          'flex flex-col items-center justify-center min-h-[50px] py-1.5 px-1 rounded-xl transition-transform active:scale-90 duration-150 select-none cursor-pointer w-full min-w-0 overflow-hidden',
 
           activeMasterTab === item.id
 
             ? 'bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white font-black shadow-md shadow-sky-500/30'
 
-            : 'text-slate-300 hover:text-white'
+            : 'cbx-text-sub hover:cbx-text-main'
 
         ]">
 
@@ -3818,8 +3629,8 @@
 
   <!-- Ctrl/Cmd + K 极客瞬态指令舱 (Command Palette) -->
   <div v-if="showCommandPalette" class="cubex-cmd-backdrop animate-in fade-in duration-150" @click.self="closeCommandPalette">
-    <div class="cubex-cmd-modal flex flex-col shadow-2xl">
-      <div class="p-3.5 border-b border-white/10 flex items-center gap-3 bg-slate-900/40">
+    <div class="cubex-cmd-modal cbx-modal-shell flex flex-col shadow-2xl overflow-hidden rounded-2xl">
+      <div class="p-3.5 border-b flex items-center gap-3" style="border-color: var(--cbx-border-soft);">
         <span class="text-lg">⚡</span>
         <input
           ref="commandPaletteInputRef"
@@ -3828,9 +3639,9 @@
           @keydown="onCommandPaletteKeyDown"
           type="text"
           placeholder="输入指令关键词或按上下键选择 (ESC 退出)..."
-          class="flex-1 bg-transparent text-sm text-white placeholder-slate-400 focus:outline-none font-mono"
+          class="flex-1 bg-transparent border-0 text-sm cbx-text-main focus:outline-none font-mono"
         />
-        <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-white/10 text-slate-300 border border-white/15">ESC 退出</span>
+        <span class="text-[10px] font-mono px-2 py-0.5 rounded cbx-btn-ghost">ESC 退出</span>
       </div>
       <div class="max-h-[360px] overflow-y-auto p-2 space-y-1">
         <div
@@ -3843,13 +3654,13 @@
         >
           <div class="flex items-center gap-2.5">
             <span class="text-base">{{ cmd.icon }}</span>
-            <span class="text-xs font-semibold text-slate-100 tracking-wide">{{ cmd.title }}</span>
+            <span class="text-xs font-semibold cbx-text-main tracking-wide">{{ cmd.title }}</span>
           </div>
-          <span class="text-[10px] font-mono font-bold text-sky-400 px-1.5 py-0.5 rounded bg-sky-950/60 border border-sky-500/30">
+          <span class="text-[10px] font-mono font-bold cbx-badge-info border px-1.5 py-0.5 rounded">
             {{ cmd.shortcut }}
           </span>
         </div>
-        <div v-if="commandController.filtered.length === 0" class="p-6 text-center text-xs text-slate-400 font-mono">
+        <div v-if="commandController.filtered.length === 0" class="p-6 text-center text-xs cbx-text-muted font-mono">
           未找到匹配指令
         </div>
       </div>
@@ -3862,7 +3673,7 @@
 
 <script setup>
 
-import { ref, reactive, computed, watch, onMounted, nextTick, provide, defineAsyncComponent } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick, provide, defineAsyncComponent } from 'vue'
 import TwilightTopBar from './components/TwilightTopBar.vue'
 import ThemeBackground from './components/ThemeBackground.vue'
 import { useDataplane } from './composables/useDataplane.js'
@@ -3960,7 +3771,7 @@ const {
   fetchDataplaneHealth
 } = useDataplane()
 
-const { fetchThemes } = useThemeEngine()
+const { fetchThemes, colorMode, toggleColorMode } = useThemeEngine()
 
 const {
   nodeBuffer,
@@ -4087,9 +3898,9 @@ const mainRouterPlatform = computed(() => {
     }
   }
   return {
-    name: 'RouterOS',
-    version: 'v7.x',
-    logo: '/host-routeros-icon.svg'
+    name: '自适应网关',
+    version: '--',
+    logo: '/logo-cubex.svg'
   }
 })
 
@@ -4135,15 +3946,15 @@ const currentActiveRoute = computed(() => {
       }
     }
     let speedText = '秒开 ' + latency + 'ms'
-    let speedClass = 'text-emerald-300'
+    let speedClass = 'text-emerald-600 dark:text-emerald-300'
     let signalBars = 3
     if (latency > 150) {
       speedText = '良好 ' + latency + 'ms'
-      speedClass = 'text-amber-300'
+      speedClass = 'text-amber-600 dark:text-amber-300'
       signalBars = 2
     } else if (latency > 300) {
       speedText = '较慢 ' + latency + 'ms'
-      speedClass = 'text-rose-300'
+      speedClass = 'text-rose-600 dark:text-rose-300'
       signalBars = 1
     }
     return {
@@ -4161,7 +3972,7 @@ const currentActiveRoute = computed(() => {
       nodeName: '智能自动优选',
       latency: 35,
       speedText: '秒开 35ms',
-      speedClass: 'text-emerald-300',
+      speedClass: 'text-emerald-600 dark:text-emerald-300',
       signalBars: 3,
       category: '海外加速'
     }
@@ -4464,8 +4275,6 @@ watch(activeMasterTab, (newTab) => {
   } else if (newTab === 'rules') {
     fetchDnsFilterStats()
     fetchDnsRewriteConfig()
-  } else if (newTab === 'diagnostics') {
-    fetchSystemLogs(true)
   } else if (newTab === 'system') {
     fetchRouterHardware(true)
     fetchFlowOffload()
@@ -4477,10 +4286,10 @@ watch(activeMasterTab, (newTab) => {
 })
 
 const navItems = [
-  { id: 'overview', label: '网络中枢', icon: 'overview' },
-  { id: 'routing', label: '应用分流', icon: 'routing' },
-  { id: 'rules', label: '安全防护', icon: 'rules' },
-  { id: 'system', label: '宿主共生', icon: 'system' }
+  { id: 'overview', label: '网络中枢', subtitle: '双核驾驶舱 · 终端拓扑', icon: 'overview' },
+  { id: 'routing', label: '应用分流', subtitle: '策略路由 · 节点订阅', icon: 'routing' },
+  { id: 'rules', label: '安全防护', subtitle: '防泄露雷达 · 广告拦截', icon: 'rules' },
+  { id: 'system', label: '宿主共生', subtitle: '底座联动 · 灾备升级', icon: 'system' }
 ]
 
 // 🎨 疯狂动物城 1 & 2 主题 独立超高清海报配置 (WebP 硬件解码)
@@ -4572,20 +4381,6 @@ const showIPPerspectiveModal = ref(false)
 const currentPerspectiveNode = ref('')
 const ipPerspectiveModalRef = ref(null)
 
-let nodeHoverTimer = null
-function handleNodeMouseEnter(nodeName) {
-  if (nodeHoverTimer) clearTimeout(nodeHoverTimer)
-  nodeHoverTimer = setTimeout(() => {
-    openIPPerspective(nodeName)
-  }, 250) // 250ms debounce (Gemini 4.0 requirement)
-}
-function handleNodeMouseLeave() {
-  if (nodeHoverTimer) {
-    clearTimeout(nodeHoverTimer)
-    nodeHoverTimer = null
-  }
-}
-
 async function openIPPerspective(nodeName) {
   if (!nodeName) return
   currentPerspectiveNode.value = nodeName
@@ -4606,7 +4401,7 @@ async function triggerBurstSpeedtest(nodeName) {
     })
     const data = await res.json()
     if (data.ok) {
-      showToast(`[${nodeName}] 闪电测速完成: 速率 ${data.speed_mbps.toFixed(1)} Mbps，耗时 ${data.duration_ms}ms`, 'success')
+      showToast(`[${nodeName}] 闪电测速完成: 速率 ${Number(data.speed_mbps || 0).toFixed(1)} Mbps，耗时 ${data.duration_ms ?? '--'}ms`, 'success')
       await fetchTriangleScores()
     } else {
       showToast(`闪电测速失败: ${data.error || '未知错误'}`, 'error')
@@ -5081,7 +4876,7 @@ const probeRFC8305 = async () => {
     if (res.ok) {
       const d = await res.json()
       await fetchRFC8305()
-      showToast(d.probe_result ? `🎉 双栈竞速测算胜出: ${d.probe_result.winner} (时延: ${d.probe_result.winner_latency.toFixed(1)}ms)` : '双栈竞速测算完成！')
+      showToast(d.probe_result ? `🎉 双栈竞速测算胜出: ${d.probe_result.winner} (时延: ${Number(d.probe_result.winner_latency || 0).toFixed(1)}ms)` : '双栈竞速测算完成！')
     }
   } catch (e) {
     showToast('双栈竞速测算异常: ' + e.message, true)
@@ -6800,7 +6595,7 @@ const runConntrackFlush = async () => {
 
 const rootBgClass = computed(() => {
 
-  return 'bg-transparent text-[#1e293b] selection:bg-sky-500/30 selection:text-sky-900'
+  return 'bg-transparent cbx-text-main selection:bg-sky-500/30'
 
 })
 
@@ -12709,13 +12504,16 @@ const currentBenchmarkRoute = computed(() => {
 
 // ── Helpers ──
 
+let toastTimer = null
 function showToast(msg, isErr = false) {
 
   toastMsg.value = msg
 
-  toastError.value = isErr
+  toastError.value = isErr === true || isErr === 'error'
 
-  setTimeout(() => { toastMsg.value = '' }, 3500)
+  if (toastTimer) clearTimeout(toastTimer)
+
+  toastTimer = setTimeout(() => { toastMsg.value = '' }, 3500)
 
 }
 
@@ -16631,14 +16429,8 @@ let draggedGroupIndex = null
 
 let isGrabbingBizHandle = false
 
-if (typeof window !== 'undefined') {
-
-  window.addEventListener('mouseup', () => {
-
-    isGrabbingBizHandle = false
-
-  })
-
+const handleGlobalMouseUp = () => {
+  isGrabbingBizHandle = false
 }
 
 function onDragStart(event, index) {
@@ -22277,23 +22069,23 @@ async function runAuthorizedMountLoad() {
 
   await fetchHostConfig()
 
+  const appIntervalIds = []
+
   // Initial Health Radar Probe & periodic sync
 
   refreshHealthRadar()
   fetchTriangleScores()
-  setInterval(() => { if (isPageVisible()) fetchTriangleScores() }, 15000)
+  appIntervalIds.push(setInterval(() => { if (isPageVisible()) fetchTriangleScores() }, 15000))
 
-  setInterval(() => { if (isPageVisible()) refreshHealthRadar() }, 60000)
+  appIntervalIds.push(setInterval(() => { if (isPageVisible()) refreshHealthRadar() }, 60000))
 
   // Initial latency probe
 
   fetchRealLatency()
 
-  setInterval(() => { if (isPageVisible()) fetchRealLatency() }, 30000)
+  appIntervalIds.push(setInterval(() => { if (isPageVisible()) fetchRealLatency() }, 30000))
 
   fetchSmartPingStatus()
-
-  // setInterval(fetchSmartPingStatus, 30000) // Deactivated for stability
 
   // Fetch LAN Devices
 
@@ -22301,7 +22093,7 @@ async function runAuthorizedMountLoad() {
 
   fetchLanClients(true)
 
-  setInterval(() => {
+  appIntervalIds.push(setInterval(() => {
 
     if (activeMasterTab.value === 'overview' && !document.hidden) {
 
@@ -22309,11 +22101,9 @@ async function runAuthorizedMountLoad() {
 
     }
 
-  }, 10000)
+  }, 10000))
 
   fetchLanDevices()
-
-
 
   // Fetch Overview Dynamic Telemetry & DNS Filter Stats & DNS Rewrite
 
@@ -22332,16 +22122,21 @@ async function runAuthorizedMountLoad() {
   }
 }
 
+const appLifecycleTimers = []
+let handleGlobalKeyDown = null
+let handleHashChange = null
+
 provide('cubexApp', reactive({
+  colorMode, toggleColorMode,
   showToast,
   isBackendOnline, checkBackendHeartbeat,
   activeEngine, adblockStats, addFakeIpFilter, addWhitelistItem, aiActionResult, aiActions, aiConfig, aiLoading, aiPresetQuestions, aiPrompt, aiProviders, aiReply, authState, batchAddingNodes, batchImportingSubs, batchNodeText, batchSubText, chaosDrillReport, chaosReportModal, checkHostUpgrade, checkingGeoUpgrade, checkingHostUpgrade, chooseFreshStart, cleanActionLabelMap, cleaningRosFirewall, clearSystemLogs, completeInitWizard, confirmAndStartInitWizard, confirmSystemReboot, copyDiagnosticMarkdown, copyText, coreUpgradeFrozen, coreUpgradeLog, creatingGithubIssue, customNodes, deleteDnsRewriteRule, deleteNode, deleteSourceItem, deleteSubscription, diagnosticModal, displayedLogs, dnsBlockedLastY, dnsBlockedPath, dnsFilterStats, dnsLatencyLastY, dnsLatencyPath, dnsQueryLastY, dnsQueryPath, dnsRewriteConfig, editingDnsRewriteRule, editingRuleSource, executeAIAction, executeHostUpgrade, executingAIActionId, executingHostUpgrade, executionModal, exportBackup, fakeIpFilters, fakeIpLoading, fetchDnsFilterStats, fetchRouterHardware, fetchSystemLogs, filterConfig, filteredGeodataFiles, formatExpire, geoAutoUpdateEnabled, geoUpdateLog, geodataFilterCategory, geodataFilterEngine, geodataLastUpdateText, geodataSearchQuery, geodataStatus, getNodeDelayClass, getSubRegions, handleInitBackupUpload, handleInitFileDrop, hasAnyUpdate, healingSteps, hostBadge, hostConfig, hostInfo, hostLastExecution, hostUpgradeDetails, hostUpgradeResult, importBackup, initBackupFileInput, initDetectedPlatform, initExecuting, initHostForm, initImportStats, initImportSuccess, initImporting, initLogs, initWizardImportTab, initWizardStep, inspectAndCleanReapplyRos, ir, isHotRestarting, isIKuai, isOpenWrt, isProbingAll, isRouterOS, isSubDrawerExpanded, isUpdatingSource, launchFireworks, lockConsoleNow, logContainerRef, logFilterLevel, logFilterModule, logSearchQuery, newFakeIpInput, newWhitelistDomain, openAddDnsRewriteModal, openAddSourceModal, openEditDnsRewriteModal, openEditSourceModal, openGitHubIssuePrompt, openProbeModal, openSourcePreview, openUpgradeModal, onHostPlatformChange, panelUpgradeLog, parsedBatchNodes, parsedBatchSubs, previewingSource, probeAllFourDimensions, probeChecked, probeLastTime, refreshSourceItem, removeFakeIpFilter, removeWhitelistItem, resetDnsRewriteDefaults, routerHW, routerHWMemoryDisplay, runSecurityAudit, runSubSpeedTest, saveAIConfig, saveDnsRewriteRule, saveFilterAutoUpdate, saveRuleSource, savingAndLinkingHost, savingAndLinkingStage, securityAudit, selectAIProvider, sendAIChat, setNodeAsPrimaryOutbound, showAISettingsModal, showAuthManageModal, showDnsRewriteModal, showImportModal, showInitWizardModal, showLogsModal, showProbeModal, showGeodataDetailModal, showRuleSourceModal, showSourcePreviewModal, saveCredentialsAndLinkHost, startInitStep3Execution, stopFireworks, subHealthMap, subMetaMap, subModalTab, subNodesMap, subQuotaMap, subSpeedTesting, submitBatchNodes, submitBatchSubs, submitInitWizardImportAndLaunch, systemOverview, systemStatus, toggleCoreUpgradeFreeze, toggleDnsRewriteMaster, toggleDnsRewriteRule, toggleFilterMaster, toggleGeoAutoUpdate, toggleSourceItem, toggleSubDrawer, toggleSubscription, triggerFastSelfHeal, triggerHotRestart, triggerWANHeal, triggerInitBackupSelect, triggerQuickAIPrompt, updateAllSubscriptions, updateDetailText, updateGeoData, updateSubscription, updateSummaryText, updatingGeo, upgradeCore, upgradePanel, upgradingCoreMihomo, upgradingCoreSingbox, upgradingPanel, uploadToGithubIssue, withdrawHostBypass, withdrawingHostBypass
 }))
 
 onMounted(async () => {
-  // Global shortcut router with strict ESC priority stack
-  window.addEventListener('keydown', (e) => {
-    // 1. ESC 严格优先级栈 (严禁使用单键 ESC 进入赏景模式，仅关闭顶层或退出赏景)
+  window.addEventListener('mouseup', handleGlobalMouseUp)
+
+  handleGlobalKeyDown = (e) => {
     if (e.key === 'Escape') {
       if (showCommandPalette.value) {
         showCommandPalette.value = false
@@ -22353,25 +22148,21 @@ onMounted(async () => {
         e.preventDefault()
         return
       }
-      // 没有浮层打开时，单键 ESC 绝不执行隐藏，杜绝误触惊吓
       return
     }
 
-    // 2. Alt+Z 组合键显式切换赏景模式
     if (e.altKey && (e.key === 'z' || e.key === 'Z')) {
       e.preventDefault()
       togglePeekMode()
       return
     }
 
-    // 3. ⌘K / Ctrl+K 指令舱快速唤起/收起
     if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
       e.preventDefault()
       showCommandPalette.value = !showCommandPalette.value
       return
     }
 
-    // 4. Global shortcut: press "/" to focus routing search input
     if (e.key === '/' && activeMasterTab.value === 'routing') {
       const tag = document.activeElement?.tagName?.toLowerCase()
       if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') {
@@ -22381,7 +22172,6 @@ onMounted(async () => {
       }
     }
 
-    // 5. 快捷键 L / Alt+L 唤起或收起实时系统日志与终端
     if ((e.key === 'l' || e.key === 'L') && !e.ctrlKey && !e.metaKey) {
       const tag = document.activeElement?.tagName?.toLowerCase()
       if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') {
@@ -22390,9 +22180,9 @@ onMounted(async () => {
         return
       }
     }
-  })
+  }
+  window.addEventListener('keydown', handleGlobalKeyDown)
 
-  // 启动后台离线失联感知心跳
   backendHeartbeatTimer = setInterval(checkBackendHeartbeat, 4000)
 
   const _authInit = await refreshConsoleAuthStatus()
@@ -22401,127 +22191,67 @@ onMounted(async () => {
     await runAuthorizedMountLoad()
   }
 
-  // ⚡ 智能按需调度器：仅在页面可见、已解锁且对应 Tab 激活时才轮询，后台或锁定时静默休眠
-
   let isFetchingTelemetry = false
-
-  // 1. 流量遥测 (仅在总览页且可见时采样；用户滑动/触控期间跳过，手机端 3s 电脑端 1.5s · 满帧 120 FPS 绝不卡顿)
-
   let telemetryTickCounter = 0
 
-  setInterval(async () => {
-
+  appLifecycleTimers.push(setInterval(async () => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
-
     telemetryTickCounter++
-
-    // 手机端每 2 拍 (3秒) 采样一次，电脑端每拍 (1.5秒) 采样一次；用户快速滑动期间暂停 DOM 重绘
-
     if (isMobile && telemetryTickCounter % 2 !== 0) return
-
     if (isUserScrolling) return
-
     if (isPageVisible() && activeMasterTab.value === 'overview' && !isFetchingTelemetry) {
-
       isFetchingTelemetry = true
-
       try {
-
         await fetchTelemetryTraffic()
-
       } finally {
-
         isFetchingTelemetry = false
-
       }
-
     }
+  }, 1500))
 
-  }, 1500)
-
-  // 2. 双核主控内存与状态 (仅前台可见时每 3s 刷新)
-
-  setInterval(async () => {
-
+  appLifecycleTimers.push(setInterval(async () => {
     if (!isPageVisible()) return
-
     try {
-
       const res = await apiFetch('/api/v1/system/status', { skipWhenHidden: true, timeoutMs: 4000 })
-
       const data = await res.json()
-
       if (data) {
-
         systemStatus.value = { ...systemStatus.value, ...data }
-
       }
-
     } catch (e) {}
+  }, 3000))
 
-  }, 3000)
-
-  // 3. 宿主系统硬件探针 (仅总览或系统页激活时每 6s 刷新)
-
-  setInterval(async () => {
-
+  appLifecycleTimers.push(setInterval(async () => {
     if (!isPageVisible()) return
-
     if (activeMasterTab.value !== 'system' && activeMasterTab.value !== 'overview') return
-
     try {
-
       const res = await fetch('/api/v1/host/info')
-
       if (res.ok) {
-
         const data = await res.json()
-
         if (data) {
-
           hostInfo.value = { ...hostInfo.value, ...data }
-
         }
-
       }
-
     } catch (e) {}
+  }, 6000))
 
-  }, 6000)
-
-  // 4. DNS 拦截过滤统计 (仅在规则页激活时每 10s 刷新)
-
-  setInterval(() => {
-
+  appLifecycleTimers.push(setInterval(() => {
     if (isPageVisible() && activeMasterTab.value === 'rules') {
-
       fetchDnsFilterStats()
-
     }
+  }, 10000))
 
-  }, 10000)
-
-  // 5. 环形实时日志流 (仅在诊断页激活且前台可见时每 3s 刷新)
-
-  setInterval(() => {
-
+  appLifecycleTimers.push(setInterval(() => {
     if (isPageVisible() && showLogsModal.value) {
-
       fetchSystemLogs()
-
     }
+  }, 3000))
 
-  }, 3000)
-
-  // 6. 页面可见性生命周期深度冻结与单帧合并快照唤醒 (Page Visibility Hibernation)
   frameScheduler.onWakeup(() => {
     if (!isPageVisible()) return
     frameScheduler.enqueue('coalesced-wakeup-snapshot', () => {
       if (activeMasterTab.value === 'overview') {
         fetchTelemetryTraffic()
         fetchTriangleScores()
-      } else if (activeMasterTab.value === 'diagnostics') {
-        fetchSystemLogs()
       } else if (activeMasterTab.value === 'rules') {
         fetchDnsFilterStats()
         fetchDnsRewriteConfig()
@@ -22529,27 +22259,30 @@ onMounted(async () => {
     })
   })
 
-  // Tab navigation via URL Hash (for screenshots & direct deep-linking)
-
-  const syncHash = () => {
-
+  handleHashChange = () => {
     const raw = window.location.hash.replace(/^#\/?/, '')
-
     if (VALID_TABS.includes(raw)) {
-
       activeMasterTab.value = raw
-
     }
-
   }
 
-  syncHash()
-
-  window.addEventListener('hashchange', syncHash)
-
+  handleHashChange()
+  window.addEventListener('hashchange', handleHashChange)
   bindGeekCommandPalette(openCommandPalette)
   fetchOnboardingDoctor()
+})
 
+onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('mouseup', handleGlobalMouseUp)
+    if (handleGlobalKeyDown) window.removeEventListener('keydown', handleGlobalKeyDown)
+    if (handleHashChange) window.removeEventListener('hashchange', handleHashChange)
+  }
+  if (backendHeartbeatTimer) clearInterval(backendHeartbeatTimer)
+  if (pollingResumeTimer) clearTimeout(pollingResumeTimer)
+  if (toastTimer) clearTimeout(toastTimer)
+  appLifecycleTimers.forEach(id => clearInterval(id))
+  appLifecycleTimers.length = 0
 })
 
 </script>

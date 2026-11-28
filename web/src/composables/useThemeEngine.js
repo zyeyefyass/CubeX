@@ -8,6 +8,45 @@ const isImporting = ref(false)
 const importError = ref('')
 const isLoading = ref(false)
 
+const COLOR_MODE_STORAGE_KEY = 'cubex_color_mode'
+function getInitialColorMode() {
+  if (typeof window === 'undefined') return 'dark'
+  try {
+    const saved = localStorage.getItem(COLOR_MODE_STORAGE_KEY)
+    if (saved === 'light' || saved === 'dark') return saved
+  } catch (e) {}
+  return 'dark'
+}
+const colorMode = ref(getInitialColorMode())
+
+function applyColorMode(mode) {
+  if (typeof document === 'undefined') return
+  const normalized = mode === 'light' ? 'light' : 'dark'
+  document.documentElement.setAttribute('data-theme', normalized)
+  document.documentElement.style.colorScheme = normalized
+  const themeMeta = document.querySelector('meta[name="theme-color"]')
+  if (themeMeta) {
+    themeMeta.setAttribute('content', normalized === 'light' ? '#eef2f7' : '#090f1d')
+  }
+}
+
+function setColorMode(mode) {
+  const normalized = mode === 'light' ? 'light' : 'dark'
+  colorMode.value = normalized
+  applyColorMode(normalized)
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(COLOR_MODE_STORAGE_KEY, normalized)
+    } catch (e) {}
+  }
+}
+
+function toggleColorMode() {
+  setColorMode(colorMode.value === 'dark' ? 'light' : 'dark')
+}
+
+applyColorMode(colorMode.value)
+
 const tokenKeyRegex = /^--cbx-[a-z0-9_-]+$/
 const tokenColorRegex = /^(#[0-9a-fA-F]{3,8}|rgba?\([0-9.,\s%]+\)|hsla?\([0-9.,\s%deg]+\))$/
 
@@ -42,12 +81,12 @@ function applyTokens(tokens) {
 
 export function useThemeEngine() {
   const activeTheme = computed(() => {
-    return themes.value.find(t => t.id === 'dark-skull-luxury') || themes.value.find(t => t.id === activeThemeID.value) || {
-      id: 'dark-skull-luxury',
-      name: '暗夜曜金 · 奢华骷髅',
-      type: 'video',
-      tier: 'exclusive',
-      assets: { video: 'bg.mp4', poster: 'poster.webp' },
+    return themes.value.find(t => t.id === activeThemeID.value) || themes.value.find(t => t.id === 'dark-skull-luxury') || themes.value[0] || {
+      id: 'twilight-default',
+      name: '暮光冰晶 (默认)',
+      type: 'vector',
+      tier: 'builtin',
+      assets: {},
       tokens: {}
     }
   })
@@ -156,6 +195,9 @@ export function useThemeEngine() {
     activeThemeID,
     playbackMode,
     activeTheme,
+    colorMode,
+    setColorMode,
+    toggleColorMode,
     isImporting,
     importError,
     isLoading,

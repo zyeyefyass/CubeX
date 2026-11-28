@@ -3,7 +3,7 @@
 # ═════════════════════════════════════════════════════════════════════════════
 # 🌌 CubeX 向后兼容转发入口 (scripts/openwrt/setup-openwrt.sh)
 # 适用底座: OpenWrt / iStoreOS Docker Macvlan (自动转发至 install.sh --platform=openwrt-docker)
-# Target Version: v9.991
+# Target Version: v9.992
 # ═════════════════════════════════════════════════════════════════════════════
 set -e
 

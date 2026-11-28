@@ -10,7 +10,7 @@ RED='\033[0;31m'
 NC='\033[0m'
 BOLD='\033[1m'
 
-CUBEX_DEFAULT_TAG="v9.991"
+CUBEX_DEFAULT_TAG="v9.992"
 CUBEX_GH_MIRRORS="https://ghfast.top https://ghproxy.net https://gh-proxy.com https://gh.ddlc.top DIRECT"
 CUBEX_FASTEST_MIRROR=""
 
@@ -399,4 +399,31 @@ check_resolv_self_loop() {
             esac
         done
     fi
+}
+
+cubex_verify_panel_alive() {
+    _cvpa_host="${1:-127.0.0.1}"
+    _cvpa_port="${2:-2026}"
+    _cvpa_max="${3:-15}"
+    _cvpa_i=0
+    while [ "$_cvpa_i" -lt "$_cvpa_max" ]; do
+        if command -v curl >/dev/null 2>&1; then
+            if curl -fsS -m 2 "http://127.0.0.1:${_cvpa_port}/api/health" >/dev/null 2>&1 || \
+               curl -fsS -m 2 "http://${_cvpa_host}:${_cvpa_port}/api/health" >/dev/null 2>&1; then
+                return 0
+            fi
+        elif command -v wget >/dev/null 2>&1; then
+            if wget -q -T 2 -O - "http://127.0.0.1:${_cvpa_port}/api/health" >/dev/null 2>&1 || \
+               wget -q -T 2 -O - "http://${_cvpa_host}:${_cvpa_port}/api/health" >/dev/null 2>&1; then
+                return 0
+            fi
+        elif command -v nc >/dev/null 2>&1; then
+            if nc -z -w 1 127.0.0.1 "$_cvpa_port" >/dev/null 2>&1; then
+                return 0
+            fi
+        fi
+        sleep 1
+        _cvpa_i=$((_cvpa_i + 1))
+    done
+    return 1
 }

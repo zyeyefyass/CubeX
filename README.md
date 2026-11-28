@@ -13,7 +13,7 @@
 <a href="#"><img src="https://img.shields.io/badge/Memory-15MB~40MB_透明口径-00F5D4?style=for-the-badge&logo=ram" alt="Memory" /></a>
 <a href="#"><img src="https://img.shields.io/badge/Fail--Open-3s_内核逃生-7B2CBF?style=for-the-badge&logo=shield" alt="Fail-Open" /></a>
 <a href="#"><img src="https://img.shields.io/badge/Dual--Core-330ms_热切-0077B6?style=for-the-badge&logo=go" alt="Dual-Core" /></a>
-<a href="#"><img src="https://img.shields.io/badge/Doctor-14%2F14_满分通过-38BDF8?style=for-the-badge&logo=checkmarx" alt="Doctor" /></a>
+<a href="#"><img src="https://img.shields.io/badge/Doctor-15%2F15_满分通过-38BDF8?style=for-the-badge&logo=checkmarx" alt="Doctor" /></a>
 <a href="https://github.com/zyeyefyass/CubeX/releases/latest"><img src="https://img.shields.io/github/v/release/zyeyefyass/CubeX?label=Latest%20Release&color=FF007F&style=for-the-badge&logo=github" alt="Version" /></a>
 
 </p>
@@ -358,14 +358,14 @@
 ## 📢 核心演进与最新亮点 (完整记录见 [CHANGELOG.md](CHANGELOG.md) 与 [Releases 最新发布页](https://github.com/zyeyefyass/CubeX/releases/latest))
 
 > [!IMPORTANT]
-> ### 👑【v9.991 · sing-box v1.14.6 平滑换核 · 模块化安装脚本 · 自检归因与接口防漂移版】
+> ### 👑【v9.992 · 深浅双主题设计体系 · 视觉层次重构 · 交互防误触与手机端适配 · PVE 7.4 安装存活兜底版】
 >
-> 1. **⚡ 平滑升级 `sing-box` 至 `v1.14.6` 纯静态版**：同步多架构 musl 静态内核并严格保持热更新向前兼容，12 场景全矩阵校验零告警通过。
-> 2. **🧩 安装脚本模块化重构与 POSIX 语法门禁**：通用下载测速引擎收口至 `scripts/modules/`，构建期装配 `install.sh` 并保留各底座旧链接转发壳，纳入 `sh -n` / `ash -n` 一致性强制审计。
-> 3. **🔗 前后端契约防漂移与 `apiFetch` 收敛**：由 `/api/v1/system/status` 与 `/api/v1/system/capabilities` 统一下发双核版本、宿主平台与能力开关，彻底清除前端版本号兜底，新增 `/api/v1` 静态路由比对门禁。
-> 4. **🩺 持久化挂载自检、订阅脱敏归因与跨路由切换清理**：新增 `/app/etc` & `/app/data` 挂载检测、订阅失败精准分类与 `*url.Error` Token 防泄露，规范化持久化配置并在跨主路由切换时自动清除旧凭据残留。
+> 1. **🌗 全站深/浅双主题语义化 Design Tokens 与一键切换**：统一全站卡片、弹窗与标签语义色，彻底消灭浅色模式白底白字、浅底荧光字与灰底灰字，深浅双模式高对比度清晰可读。
+> 2. **🎨 三大核心卡片与导航层级重构**：重做终端设备卡、地区策略组卡与稳定三角综合得分卡，消除杂色渐变与撞色混排，强化左侧四大主控导航分组层次。
+> 3. **👆 点击触发防误触与手机端深度适配**：应用分流节点详情由悬停改为显式点击触发；手机端顶栏新增紧凑型双核切换胶囊，修复窄屏挤压、横向溢出与按钮热区。
+> 4. **🛠️ 前端核心状态与 PVE 7.4 安装存活兜底**：修复 Toast 错判/定时器覆盖、详情竞态与未登录越权请求；补强 PVE 7.4 模板/cgroup 兼容、ARP+ICMP 联合 IP 判重及 `:2026/api/health` 安装强制存活探测。
 >
-> **前序亮点回顾 (v9.99)**：统一内核接口客户端并补全错误日志，移除冗余 `geoip.metadb` 与历史垫片大幅瘦身镜像，全端清除硬编码内网地址并上线发布包体积红线校验。
+> **前序亮点回顾 (v9.991)**：平滑升级 `sing-box` 至 `v1.14.6` 纯静态版，完成全平台安装脚本模块化重构、`apiFetch` 前后端契约防漂移审计及宿主机 `/app/etc`、`/app/data` 持久化挂载自检。
 
 ---
 
@@ -695,7 +695,7 @@ docker run -d \
 
 ```bash
 
-curl -4 -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | bash
+curl -4 -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/zyeyefyass/CubeX/main/install.sh | sh
 
 ```
 

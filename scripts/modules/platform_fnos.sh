@@ -79,6 +79,15 @@ run_platform_fnos() {
       -e CUBEX_LISTEN=:2026 \
       fyasshole/cubex:latest
 
+    if ! cubex_verify_panel_alive "${_fnos_host_ip:-127.0.0.1}" "2026" "15"; then
+        msg "${RED}=================================================================${NC}"
+        msg "${RED}❌ [存活校验失败] 飞牛 fnOS 容器已启动但 2026 端口未就绪！${NC}"
+        msg "${YELLOW}--- 最近 20 行容器日志 ---${NC}"
+        docker logs --tail 20 cubex 2>&1 || true
+        msg "${RED}=================================================================${NC}"
+        exit 1
+    fi
+
     msg "\n${GREEN}=================================================================${NC}"
     msg "${GREEN}  🎉 恭喜！CubeX ${CUBEX_DEFAULT_TAG} 在飞牛 fnOS 上启动成功！${NC}"
     msg "${GREEN}=================================================================${NC}"

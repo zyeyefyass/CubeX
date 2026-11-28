@@ -11,11 +11,24 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="CubeX" />
     <meta name="application-name" content="CubeX" />
-    <meta name="msapplication-TileColor" content="#001529" />
-    <meta name="theme-color" content="#001529" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="msapplication-TileColor" content="#090f1d" />
+    <meta name="theme-color" content="#090f1d" />
     <title>CubeX · 宿主共生零感网络系统</title>
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('cubex_color_mode');
+          var mode = (saved === 'light' || saved === 'dark') ? saved : 'dark';
+          document.documentElement.setAttribute('data-theme', mode);
+          document.documentElement.style.colorScheme = mode;
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
   </head>
-  <body class="bg-[#001529] text-slate-200 antialiased selection:bg-teal-500/30 selection:text-teal-200">
+  <body class="antialiased selection:bg-sky-500/30">
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>

@@ -120,24 +120,30 @@ if [ -z "$SUBNET_PREFIX" ]; then
     exit 1
 fi
 
-# 3.4 动态智能选择未被占用的 IP (自动执行 ping 冲突检测)
+# 3.4 动态智能选择未被占用的 IP (ping + ARP/Neighbor 复合冲突检测，避免误撞防火墙静默主机)
 DEFAULT_CT_IP=""
 if [ -n "$CUSTOM_IP" ]; then
     DEFAULT_CT_IP="$CUSTOM_IP"
 else
-    # 候选 IP 列表: 7, 77, 88, 107, 207, 227
-    for candidate in 7 77 88 107 207 227 17 27 37 47; do
+    for candidate in 107 207 227 77 88 17 27 37 47 7; do
         CHECK_IP="${SUBNET_PREFIX}.${candidate}"
         if [ "$CHECK_IP" != "$GW_IP" ] && [ "$CHECK_IP" != "$HOST_IP" ]; then
-            # ping 探测是否已有设备占用
-            if ! ping -c 1 -W 1 "$CHECK_IP" >/dev/null 2>&1; then
+            IP_IN_USE=0
+            if ping -c 1 -W 1 "$CHECK_IP" >/dev/null 2>&1; then
+                IP_IN_USE=1
+            elif ip neigh show "$CHECK_IP" 2>/dev/null | grep -qiE "REACHABLE|STALE|DELAY|PROBE|PERMANENT"; then
+                IP_IN_USE=1
+            elif command -v arping >/dev/null 2>&1 && arping -f -c 1 -w 1 -I "$PVE_BRIDGE" "$CHECK_IP" >/dev/null 2>&1; then
+                IP_IN_USE=1
+            fi
+            if [ "$IP_IN_USE" -eq 0 ]; then
                 DEFAULT_CT_IP="${CHECK_IP}/24"
                 break
             fi
         fi
     done
     if [ -z "$DEFAULT_CT_IP" ]; then
-        DEFAULT_CT_IP="${SUBNET_PREFIX}.77/24"
+        DEFAULT_CT_IP="${SUBNET_PREFIX}.107/24"
     fi
 fi
 
@@ -291,14 +297,19 @@ modprobe xt_mark 2>/dev/null || true
 sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
 
 if [ "$IS_UPGRADE" -eq 0 ]; then
-    # 6. 模板探查 (优先复用本地已有模板，防止外网断流报错)
+    # 6. 模板探查 (兼容 PVE 7.4/8.x，自动嗅探支持 vztmpl 的模板存储池)
     echo -e "\n${CYAN}📦 [2/5] 探查并匹配 Alpine Linux LXC 模板 (${PVE_ARCH})...${NC}"
+TPL_STORAGE=$(pvesm status -content vztmpl 2>/dev/null | awk 'NR>1 && $3=="active" {print $1}' | head -n1)
+if [ -z "$TPL_STORAGE" ]; then
+    TPL_STORAGE=$(pvesm status -content vztmpl 2>/dev/null | awk 'NR>1 {print $1}' | head -n1)
+fi
+TPL_STORAGE="${TPL_STORAGE:-local}"
+
 TEMPLATE=""
-# 优先检查本地已经存在的对应架构 Alpine 模板 (严格过滤架构后缀，避免错用 arm64/amd64)
-LOCAL_TEMPLATES=$(pveam list local 2>/dev/null | grep -i 'alpine' | grep "${PVE_ARCH}" | awk '{print $1}' | tail -n1 || true)
+LOCAL_TEMPLATES=$(pveam list "$TPL_STORAGE" 2>/dev/null | grep -i 'alpine' | grep "${PVE_ARCH}" | awk '{print $1}' | tail -n1 || true)
 if [ -n "$LOCAL_TEMPLATES" ]; then
     TEMPLATE=$(basename "$LOCAL_TEMPLATES")
-    echo -e "${GREEN}✓ 发现本地已缓存的 Alpine 模板: ${TEMPLATE} (免重复下载，秒级开机)${NC}"
+    echo -e "${GREEN}✓ 发现本地已缓存的 Alpine 模板 (${TPL_STORAGE}): ${TEMPLATE}${NC}"
 fi
 
 if [ -z "$TEMPLATE" ]; then
@@ -308,15 +319,19 @@ if [ -z "$TEMPLATE" ]; then
     if [ -z "$TEMPLATE" ]; then
         TEMPLATE="alpine-3.20-default_20240606_${PVE_ARCH}.tar.xz"
     fi
-    if ! pveam list local 2>/dev/null | grep -q "$TEMPLATE"; then
-        echo -e "${BLUE}正在下载 Alpine 模板: ${TEMPLATE}...${NC}"
-        pveam download local "$TEMPLATE"
+    if ! pveam list "$TPL_STORAGE" 2>/dev/null | grep -q "$TEMPLATE"; then
+        echo -e "${BLUE}正在下载 Alpine 模板到 ${TPL_STORAGE}: ${TEMPLATE}...${NC}"
+        if ! pveam download "$TPL_STORAGE" "$TEMPLATE"; then
+            echo -e "${RED}❌ [模板下载失败] pveam download ${TPL_STORAGE} ${TEMPLATE} 失败！${NC}"
+            echo -e "${YELLOW}💡 PVE 7.4 常见排查: 请检查宿主机 DNS、时间同步 (chronyc/date) 或执行 'pveam update && pveam available | grep alpine' 验证模板仓库连通性。${NC}"
+            exit 1
+        fi
     fi
 fi
 
 # 7. 创建极速优化 LXC 容器
 echo -e "\n${CYAN}🚀 [3/5] 正在创建 CubeX LXC 原生容器 (CT $CT_ID)...${NC}"
-pct create "$CT_ID" "local:vztmpl/$TEMPLATE" \
+pct create "$CT_ID" "${TPL_STORAGE}:vztmpl/$TEMPLATE" \
     --ostype alpine \
     --hostname "$CT_NAME" \
     --cores 2 \
@@ -330,17 +345,21 @@ pct create "$CT_ID" "local:vztmpl/$TEMPLATE" \
     --onboot 1 \
     --start 0
 
-# 8. 注入 TUN 设备穿透 (确保容器原生支持 /dev/net/tun 与高并发网络)
+# 8. 注入 TUN 设备穿透 (自适应 PVE 7.4 cgroup v1 与 PVE 8+ cgroup v2)
 echo -e "${CYAN}🔧 [4/5] 注入宿主内核 TUN 设备直通与 cgroup 白名单...${NC}"
 CONF_FILE="/etc/pve/lxc/${CT_ID}.conf"
-# 防御性解除 PVE 网卡防火墙拦截 (确保 2026 控制台端口秒开无阻断)
 sed -i 's/firewall=1/firewall=0/g' "$CONF_FILE" 2>/dev/null || true
 pve-firewall restart 2>/dev/null || true
 
-cat << 'EOF' >> "$CONF_FILE"
+if [ -f /sys/fs/cgroup/cgroup.controllers ]; then
+    LXC_CGROUP_TUN="lxc.cgroup2.devices.allow: c 10:200 rwm"
+else
+    LXC_CGROUP_TUN="lxc.cgroup.devices.allow: c 10:200 rwm"
+fi
+cat << EOF >> "$CONF_FILE"
 
 # === CubeX Native TUN & Acceleration Direct Pass ===
-lxc.cgroup2.devices.allow: c 10:200 rwm
+${LXC_CGROUP_TUN}
 lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file
 EOF
 
@@ -420,6 +439,15 @@ for attempt in 1 2; do
     sleep 1
 done
 
+if [ "$INSTALLED" -ne 1 ]; then
+    if ! command -v iptables >/dev/null 2>&1 || { ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; }; then
+        echo "❌ [依赖安装失败] 容器内 apk add 失败且关键依赖 (iptables / curl) 缺失！"
+        echo "请检查容器网络/DNS (/etc/resolv.conf):"
+        cat /etc/resolv.conf 2>/dev/null || true
+        exit 1
+    fi
+fi
+
 # 安装完成 ca-certificates 后无缝升级回安全 HTTPS 镜像源
 sed -i 's|http://|https://|g' /etc/apk/repositories 2>/dev/null || true
 
@@ -434,9 +462,10 @@ cat << "INIT" > /etc/init.d/cubexd
 name="cubexd"
 description="CubeX System Control Plane Daemon"
 command="/opt/CubeX/bin/cubexd"
-command_args=""
+command_args="-dir /opt/CubeX -listen :2026"
 directory="/opt/CubeX"
 supervisor="supervise-daemon"
+respawn_delay=2
 respawn_max=0
 output_log="/var/log/cubexd.log"
 error_log="/var/log/cubexd.err"
@@ -571,12 +600,15 @@ with zipfile.ZipFile(zpath, "r") as z:
     fi
 fi
 
-# 极端降级兜底：若宿主拉取完整包仍未成功，由宿主机独立拉取控制面与引擎核心直接推送
+# 极端降级兜底：若宿主拉取完整包仍未成功，由宿主机独立拉取控制面与双引擎核心直接推送
 if [ "$UNPACKED_OK" -eq 0 ]; then
-    echo -e "${YELLOW}⚠️ 完整包拉取受阻，启用宿主机独立拉取控制面与内核降级策略...${NC}"
+    echo -e "${YELLOW}⚠️ 完整包拉取受阻，启用宿主机独立拉取控制面与双内核降级策略...${NC}"
     pct exec "$CT_ID" -- mkdir -p /opt/CubeX/bin /opt/CubeX/rules /opt/CubeX/etc /opt/CubeX/data /usr/local/bin
+    if [ -z "${REL_TAG:-}" ]; then
+        cubex_resolve_latest_tag "${CUSTOM_VER:-}"
+    fi
     REL_TAG="${CUSTOM_VER:-$REL_TAG}"
-    
+
     # 1. cubexd 控制面
     TMP_BIN="/tmp/cubexd_${PVE_ARCH}_$$"
     if cubex_download_with_mirrors "https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubexd-linux-${PVE_ARCH}" "$TMP_BIN" "elf_is_valid" "60" "0"; then
@@ -584,12 +616,27 @@ if [ "$UNPACKED_OK" -eq 0 ]; then
     fi
     rm -f "$TMP_BIN"
 
-    # 2. sing-box 核心
+    # 2. cubex CLI
+    TMP_CLI="/tmp/cubex_cli_${PVE_ARCH}_$$"
+    if cubex_download_with_mirrors "https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/cubex-linux-${PVE_ARCH}" "$TMP_CLI" "elf_is_valid" "60" "0"; then
+        pct push "$CT_ID" "$TMP_CLI" /opt/CubeX/bin/cubex -perms 755
+        pct exec "$CT_ID" -- ln -sf /opt/CubeX/bin/cubex /usr/local/bin/cubex 2>/dev/null || true
+    fi
+    rm -f "$TMP_CLI"
+
+    # 3. sing-box 核心
     TMP_SB="/tmp/sb_${PVE_ARCH}_$$"
     if cubex_download_with_mirrors "https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/sing-box-linux-${PVE_ARCH}" "$TMP_SB" "elf_is_valid" "60" "0"; then
         pct push "$CT_ID" "$TMP_SB" /opt/CubeX/bin/sing-box -perms 755
     fi
     rm -f "$TMP_SB"
+
+    # 4. mihomo 核心
+    TMP_MH="/tmp/mh_${PVE_ARCH}_$$"
+    if cubex_download_with_mirrors "https://github.com/zyeyefyass/CubeX/releases/download/${REL_TAG}/mihomo-linux-${PVE_ARCH}" "$TMP_MH" "elf_is_valid" "60" "0"; then
+        pct push "$CT_ID" "$TMP_MH" /opt/CubeX/bin/mihomo -perms 755
+    fi
+    rm -f "$TMP_MH"
 fi
 
 # 增量升级校验：仅当未解压完整发布包时，允许从本地构建目录注入独立控制面
@@ -623,12 +670,30 @@ if [ ! -f /etc/init.d/cubexd ] || ! head -n 1 /etc/init.d/cubexd | grep -q "open
 fi
 rc-update add cubexd default >/dev/null 2>&1 || true
 '
-echo -e "${CYAN}🚀 正在启动 CubeX 守护进程...${NC}"
+echo -e "${CYAN}🚀 正在启动 CubeX 守护进程并验证 :2026 服务监听就绪...${NC}"
 pct exec "$CT_ID" -- rc-service cubexd restart >/dev/null 2>&1 || true
-sleep 2
 
-# 12. 运行状态校验
-if pct exec "$CT_ID" -- pgrep -f cubexd >/dev/null 2>&1; then
+# 12. 强制端口与健康接口存活校验 (最多等待 15 秒，绝不允许假成功)
+PVE_PANEL_READY=0
+for wait_tick in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+    if pct exec "$CT_ID" -- sh -c '
+        if command -v curl >/dev/null 2>&1; then
+            curl -fsS -m 2 http://127.0.0.1:2026/api/health >/dev/null 2>&1
+        elif command -v wget >/dev/null 2>&1; then
+            wget -q -T 2 -O - http://127.0.0.1:2026/api/health >/dev/null 2>&1
+        elif command -v nc >/dev/null 2>&1; then
+            nc -z 127.0.0.1 2026 >/dev/null 2>&1
+        else
+            pgrep -f cubexd >/dev/null 2>&1
+        fi
+    ' >/dev/null 2>&1; then
+        PVE_PANEL_READY=1
+        break
+    fi
+    sleep 1
+done
+
+if [ "$PVE_PANEL_READY" -eq 1 ]; then
     # 注册 PVE 宿主快捷指令 (一键穿透直达容器)
     cat << PVECLI > /usr/local/bin/cubex 2>/dev/null || true
 #!/bin/sh
@@ -659,7 +724,15 @@ PVECLI
         echo -e "${GREEN}${BOLD}═════════════════════════════════════════════════════════════════${NC}\n"
     fi
 else
-    echo -e "${YELLOW}⚠️ 容器已就绪，但尚未下载到 CubeX 二进制文件。可通过命令手动推送:${NC}"
-    echo -e "  pct push ${CT_ID} dist/cubexd-linux-amd64 /opt/CubeX/bin/cubexd -perms 755"
-    echo -e "  pct exec ${CT_ID} -- rc-service cubexd start"
+    echo -e "\n${RED}${BOLD}═════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${RED}${BOLD}❌ [存活校验失败] CT ${CT_ID} 内的 CubeX 控制台 (:2026) 未就绪，拒绝连接！${NC}"
+    echo -e "${RED}${BOLD}═════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${YELLOW}--- 服务状态 (rc-service cubexd status) ---${NC}"
+    pct exec "$CT_ID" -- rc-service cubexd status 2>&1 || true
+    echo -e "${YELLOW}--- 端口监听 (ss / netstat) ---${NC}"
+    pct exec "$CT_ID" -- sh -c 'ss -tulnp 2>/dev/null || netstat -tulnp 2>/dev/null || true'
+    echo -e "${YELLOW}--- 最近 20 行运行日志 (/var/log/cubexd.log & .err) ---${NC}"
+    pct exec "$CT_ID" -- sh -c 'tail -n 20 /var/log/cubexd.log /var/log/cubexd.err 2>/dev/null || true'
+    echo -e "${YELLOW}👉 可手动排查: pct enter ${CT_ID} && /opt/CubeX/bin/cubexd -dir /opt/CubeX -listen :2026${NC}"
+    exit 1
 fi

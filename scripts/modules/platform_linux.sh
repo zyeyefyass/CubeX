@@ -404,6 +404,24 @@ EOF
     LOCAL_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++)if($i=="src")print $(i+1)}' || hostname -i 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
     check_resolv_self_loop
 
+    if ! cubex_verify_panel_alive "$LOCAL_IP" "${APP_PORT:-2026}" "15"; then
+        echo ""
+        msg "${RED}═════════════════════════════════════════════════════════════════════════${NC}"
+        msg "${BOLD}${RED}❌ [存活校验失败] cubexd 控制面未在 :${APP_PORT:-2026} 端口监听就绪！${NC}"
+        msg "${YELLOW}请排查以下最近 20 行运行日志:${NC}"
+        if command -v docker >/dev/null 2>&1 && docker ps -a --format '{{.Names}}' | grep -q '^cubex$'; then
+            docker logs --tail 20 cubex 2>&1 || true
+        elif command -v journalctl >/dev/null 2>&1 && systemctl list-units --type=service 2>/dev/null | grep -q cubex; then
+            journalctl -u cubex -n 20 --no-pager 2>&1 || true
+        elif [ -f /var/log/cubexd.log ] || [ -f /var/log/cubexd.err ]; then
+            tail -n 20 /var/log/cubexd.log /var/log/cubexd.err 2>/dev/null || true
+        else
+            tail -n 20 "${INSTALL_DIR}/data/cubexd.log" 2>/dev/null || true
+        fi
+        msg "${RED}═════════════════════════════════════════════════════════════════════════${NC}"
+        exit 1
+    fi
+
     echo ""
     msg "${GREEN}═════════════════════════════════════════════════════════════════════════${NC}"
     msg "${BOLD}${GREEN}🎉 恭喜！CubeX · 次世代双擎高可用旁路网关部署成功！${NC}"

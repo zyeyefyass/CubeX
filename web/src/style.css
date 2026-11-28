@@ -2,182 +2,331 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* ══════════════════════════════════════════════════════════════════════ */
+/* 🎨 CubeX v9.992 双主题语义化 Design Tokens (Light / Dark WCAG AA)      */
+/* ══════════════════════════════════════════════════════════════════════ */
+:root,
+[data-theme="light"] {
   color-scheme: light;
   --cubex-primary: #0284c7;
-  --cubex-primary-glow: rgba(2, 132, 199, 0.25);
-  --cubex-secondary: #7b2cbf;
-  --cubex-accent-cyan: #0284c7;
-  --cubex-accent-amber: #b45309;
-  --cubex-glass-bg: rgba(228, 233, 240, 0.90);
-  --cubex-glass-border: rgba(148, 163, 184, 0.35);
-  --cubex-text-main: #1e293b;
-  --cubex-text-muted: #475569;
-  --cubex-text-sub: #64748b;
+  --cubex-primary-hover: #0369a1;
+  --cubex-primary-glow: rgba(2, 132, 199, 0.16);
+  --cubex-secondary: #6d28d9;
 
-  /* 🥛 Windhawk 柔光雾面奶白材质体系 (Milky Acrylic / Frosted Cream Mica) */
-  --cbx-milky-bg: rgba(228, 233, 240, 0.90);
-  --cbx-milky-bg-sub: rgba(241, 244, 249, 0.94);
-  --cbx-milky-bg-hover: rgba(235, 239, 245, 0.96);
-  --cbx-milky-border: rgba(148, 163, 184, 0.35);
-  --cbx-milky-border-sub: rgba(203, 213, 225, 0.60);
+  --cbx-bg-canvas: #eef2f7;
+  --cbx-bg-canvas-radial: radial-gradient(circle at 50% 0%, #f8fafc 0%, #e2e8f0 100%);
+  --cbx-bg-scrim: rgba(241, 245, 249, 0.74);
+
+  --cbx-surface-card: rgba(255, 255, 255, 0.94);
+  --cbx-surface-card-hover: rgba(255, 255, 255, 0.99);
+  --cbx-surface-sub: #f1f5f9;
+  --cbx-surface-sub-hover: #e2e8f0;
+  --cbx-surface-elevated: #ffffff;
+  --cbx-surface-sidebar: rgba(248, 250, 252, 0.96);
+  --cbx-surface-topbar: rgba(248, 250, 252, 0.95);
+  --cbx-surface-capsule: rgba(255, 255, 255, 0.92);
+  --cbx-surface-input: #ffffff;
+  --cbx-surface-terminal: #0f172a;
+  --cbx-surface-hover: rgba(15, 23, 42, 0.06);
+
+  --cbx-border: rgba(148, 163, 184, 0.42);
+  --cbx-border-sub: rgba(148, 163, 184, 0.30);
+  --cbx-border-strong: rgba(100, 116, 139, 0.55);
+
+  --cbx-text-primary: #0f172a;
+  --cbx-text-secondary: #334155;
+  --cbx-text-muted: #475569;
+  --cbx-text-subtle: #64748b;
+
+  --cbx-accent-fg: #0369a1;
+  --cbx-accent-bg: #e0f2fe;
+  --cbx-accent-border: #7dd3fc;
+
+  --cbx-ok-fg: #047857;
+  --cbx-ok-bg: #d1fae5;
+  --cbx-ok-border: #6ee7b7;
+
+  --cbx-warn-fg: #b45309;
+  --cbx-warn-bg: #fef3c7;
+  --cbx-warn-border: #fcd34d;
+
+  --cbx-danger-fg: #be123c;
+  --cbx-danger-bg: #ffe4e6;
+  --cbx-danger-border: #fda4af;
+
+  --cbx-purple-fg: #6d28d9;
+  --cbx-purple-bg: #ede9fe;
+  --cbx-purple-border: #c4b5fd;
+
+  --cbx-shadow-card: 0 4px 18px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --cbx-shadow-card-hover: 0 8px 24px rgba(15, 23, 42, 0.09);
+  --cbx-scrollbar-thumb: rgba(100, 116, 139, 0.45);
+  --cbx-scrollbar-track: rgba(15, 23, 42, 0.04);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --cubex-primary: #38bdf8;
+  --cubex-primary-hover: #0ea5e9;
+  --cubex-primary-glow: rgba(56, 189, 248, 0.22);
+  --cubex-secondary: #a855f7;
+
+  --cbx-bg-canvas: #090f1d;
+  --cbx-bg-canvas-radial: radial-gradient(circle at 50% 0%, #131d33 0%, #090f1d 65%, #050811 100%);
+  --cbx-bg-scrim: rgba(8, 12, 22, 0.54);
+
+  --cbx-surface-card: rgba(17, 24, 39, 0.90);
+  --cbx-surface-card-hover: rgba(23, 33, 52, 0.94);
+  --cbx-surface-sub: rgba(28, 38, 59, 0.92);
+  --cbx-surface-sub-hover: rgba(36, 48, 74, 0.96);
+  --cbx-surface-elevated: #162033;
+  --cbx-surface-sidebar: rgba(13, 20, 34, 0.94);
+  --cbx-surface-topbar: rgba(13, 20, 34, 0.92);
+  --cbx-surface-capsule: rgba(26, 36, 56, 0.90);
+  --cbx-surface-input: #0f172a;
+  --cbx-surface-terminal: #060a14;
+  --cbx-surface-hover: rgba(255, 255, 255, 0.08);
+
+  --cbx-border: rgba(148, 163, 184, 0.22);
+  --cbx-border-sub: rgba(148, 163, 184, 0.16);
+  --cbx-border-strong: rgba(56, 189, 248, 0.36);
+
+  --cbx-text-primary: #f1f5f9;
+  --cbx-text-secondary: #cbd5e1;
+  --cbx-text-muted: #94a3b8;
+  --cbx-text-subtle: #7c8da5;
+
+  --cbx-accent-fg: #38bdf8;
+  --cbx-accent-bg: rgba(14, 165, 233, 0.18);
+  --cbx-accent-border: rgba(56, 189, 248, 0.38);
+
+  --cbx-ok-fg: #34d399;
+  --cbx-ok-bg: rgba(16, 185, 129, 0.16);
+  --cbx-ok-border: rgba(52, 211, 153, 0.36);
+
+  --cbx-warn-fg: #fbbf24;
+  --cbx-warn-bg: rgba(245, 158, 11, 0.18);
+  --cbx-warn-border: rgba(251, 191, 36, 0.38);
+
+  --cbx-danger-fg: #fb7185;
+  --cbx-danger-bg: rgba(244, 63, 94, 0.18);
+  --cbx-danger-border: rgba(251, 113, 133, 0.38);
+
+  --cbx-purple-fg: #c4b5fd;
+  --cbx-purple-bg: rgba(139, 92, 246, 0.18);
+  --cbx-purple-border: rgba(196, 181, 253, 0.36);
+
+  --cbx-shadow-card: 0 8px 28px rgba(0, 0, 0, 0.32), 0 1px 3px rgba(0, 0, 0, 0.20);
+  --cbx-shadow-card-hover: 0 10px 32px rgba(0, 0, 0, 0.42);
+  --cbx-scrollbar-thumb: rgba(148, 163, 184, 0.35);
+  --cbx-scrollbar-track: rgba(255, 255, 255, 0.04);
+}
+
+html {
+  scroll-padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  accent-color: var(--cubex-primary);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #0b101b;
-  color: #1e293b;
-  overflow-x: hidden;
+  background-color: var(--cbx-bg-canvas);
+  color: var(--cbx-text-primary);
   position: relative;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   -webkit-font-smoothing: auto;
   -moz-osx-font-smoothing: auto;
+  overflow-wrap: break-word;
+  transition: background-color 0.25s ease, color 0.2s ease;
 }
 
-/* 底层暗调画布：衬托上方奶白晶体悬浮景深 */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -20;
-  background: radial-gradient(circle at 50% 0%, #151c2c 0%, #0b101b 65%, #050810 100%);
+  background: var(--cbx-bg-canvas-radial);
   pointer-events: none;
 }
 
-/* 🌿 去蓝光护眼滤镜 (Anti-Blue-Light Optical Warm Spectrum 4500K) */
+/* 🌿 去蓝光护眼滤镜 */
 .anti-blue-active {
   filter: sepia(0.20) saturate(0.90) brightness(0.94) contrast(0.96) hue-rotate(-5deg);
   transition: filter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ══════════════════════════════════════════════════════════════════════ */
-/* 🥛 Windhawk 奶白全息微晶体系 (低亮度雾面奶灰 · 零 backdrop-filter)   */
+/* 🧱 语义化容器与面板体系 (双主题自适应 · 零过度模糊性能损耗)            */
 /* ══════════════════════════════════════════════════════════════════════ */
-
-/* 一级大卡片容器（柔和雾白 · 24px 大圆角 · 柔和收边 · 彻底禁绝 backdrop-filter 释放 GPU） */
 .macos-glass-card,
-.macos-card {
-  background: rgba(228, 233, 240, 0.90) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border-radius: 24px !important;
-  border: 1px solid rgba(148, 163, 184, 0.35) !important;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
-  color: #1e293b !important;
-  -webkit-font-smoothing: auto !important;
-  -moz-osx-font-smoothing: auto !important;
+.macos-card,
+.cbx-card {
+  background: var(--cbx-surface-card);
+  border-radius: 24px;
+  border: 1px solid var(--cbx-border);
+  box-shadow: var(--cbx-shadow-card);
+  color: var(--cbx-text-primary);
   transform: translateZ(0);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 .macos-glass-card:hover,
-.macos-card:hover {
-  background: rgba(235, 239, 245, 0.94) !important;
-  border-color: rgba(148, 163, 184, 0.50) !important;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08) !important;
+.macos-card:hover,
+.cbx-card:hover {
+  background: var(--cbx-surface-card-hover);
+  border-color: var(--cbx-border-strong);
+  box-shadow: var(--cbx-shadow-card-hover);
 }
 
-/* 左侧导航栏 */
+.macos-sub-card,
+.cbx-sub-card {
+  background: var(--cbx-surface-sub);
+  border: 1px solid var(--cbx-border-sub);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  color: var(--cbx-text-primary);
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.macos-sub-card:hover,
+.cbx-sub-card:hover {
+  background: var(--cbx-surface-sub-hover);
+  border-color: var(--cbx-border-strong);
+}
+
+.cbx-modal-shell {
+  background: var(--cbx-surface-elevated);
+  border: 1px solid var(--cbx-border);
+  color: var(--cbx-text-primary);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.cbx-modal-header {
+  background: var(--cbx-surface-sub);
+  border-bottom: 1px solid var(--cbx-border-sub);
+}
+
+.cbx-modal-footer {
+  border-top: 1px solid var(--cbx-border-sub);
+}
+
 .macos-sidebar {
-  background: rgba(228, 233, 240, 0.92) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border-right: 1px solid rgba(148, 163, 184, 0.35) !important;
-  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.05) !important;
-  color: #1e293b !important;
+  background: var(--cbx-surface-sidebar);
+  border-right: 1px solid var(--cbx-border);
+  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.06);
+  color: var(--cbx-text-primary);
   contain: layout style;
   transform: translateZ(0);
 }
 
-/* 顶部状态栏 */
 .macos-topbar {
-  background: rgba(228, 233, 240, 0.90) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.35) !important;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04) !important;
-  color: #1e293b !important;
+  background: var(--cbx-surface-topbar);
+  border-bottom: 1px solid var(--cbx-border);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  color: var(--cbx-text-primary);
 }
 
-/* 顶部与全局胶囊组件 */
 .macos-capsule {
-  background: rgba(241, 244, 249, 0.94) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border: 1px solid rgba(203, 213, 225, 0.60) !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03) !important;
-  color: #0f172a !important;
+  background: var(--cbx-surface-capsule);
+  border: 1px solid var(--cbx-border);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  color: var(--cbx-text-primary);
   transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
 }
 
 .macos-capsule:hover {
-  background: rgba(248, 250, 252, 0.98) !important;
-  border-color: rgba(148, 163, 184, 0.8) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+  background: var(--cbx-surface-card-hover);
+  border-color: var(--cbx-border-strong);
 }
 
-/* 二级嵌套子卡片 */
-.macos-sub-card {
-  background: rgba(241, 244, 249, 0.94) !important;
-  border: 1px solid rgba(203, 213, 225, 0.60) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03) !important;
-  border-radius: 16px !important;
-  color: #1e293b !important;
-  text-shadow: none !important;
-  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+/* 语义文字与徽章辅助类 */
+.cbx-text-main { color: var(--cbx-text-primary); }
+.cbx-text-sub { color: var(--cbx-text-secondary); }
+.cbx-text-muted { color: var(--cbx-text-muted); }
+
+.cbx-btn-ghost {
+  background: var(--cbx-surface-sub);
+  border: 1px solid var(--cbx-border);
+  color: var(--cbx-text-primary);
+}
+.cbx-btn-ghost:hover {
+  background: var(--cbx-surface-sub-hover);
+  border-color: var(--cbx-border-strong);
 }
 
-.macos-sub-card:hover {
-  background: rgba(248, 250, 252, 0.98) !important;
-  border-color: rgba(148, 163, 184, 0.8) !important;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06) !important;
+.cbx-badge-info {
+  background: var(--cbx-accent-bg);
+  color: var(--cbx-accent-fg);
+  border: 1px solid var(--cbx-accent-border);
+}
+.cbx-badge-ok {
+  background: var(--cbx-ok-bg);
+  color: var(--cbx-ok-fg);
+  border: 1px solid var(--cbx-ok-border);
+}
+.cbx-badge-warn {
+  background: var(--cbx-warn-bg);
+  color: var(--cbx-warn-fg);
+  border: 1px solid var(--cbx-warn-border);
+}
+.cbx-badge-danger {
+  background: var(--cbx-danger-bg);
+  color: var(--cbx-danger-fg);
+  border: 1px solid var(--cbx-danger-border);
+}
+.cbx-badge-purple {
+  background: var(--cbx-purple-bg);
+  color: var(--cbx-purple-fg);
+  border: 1px solid var(--cbx-purple-border);
+}
+
+/* 独立深色终端窗口（始终保持暗色高对比终端质感） */
+.cbx-terminal-box,
+.bg-\[\#000d1a\] {
+  color-scheme: dark;
+  background: var(--cbx-surface-terminal);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 14px;
+  color: #f1f5f9;
+}
+
+/* 输入控件规范 */
+input, select, textarea {
+  background: var(--cbx-surface-input);
+  border: 1px solid var(--cbx-border);
+  color: var(--cbx-text-primary);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--cbx-text-muted);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--cubex-primary);
+  box-shadow: 0 0 0 3px var(--cubex-primary-glow);
+  outline: none;
+}
+
+select option {
+  background-color: var(--cbx-surface-elevated);
+  color: var(--cbx-text-primary);
+  padding: 6px 10px;
 }
 
 /* 一键赏景模式 (Peek Mode) */
 .zootopia-peek-active,
 body.wallpaper-peek-mode .zootopia-peek-active {
-  opacity: 0.15 !important;
-  pointer-events: none !important;
-  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  opacity: 0.15;
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .zootopia-peek-banner {
-  pointer-events: auto !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* 日志流终端视窗 (纯净深黑夜晶) */
-.bg-\[\#000d1a\] {
-  background: rgba(15, 23, 42, 0.95) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  border-radius: 14px !important;
-  color: #f8fafc !important;
-  text-shadow: none !important;
-}
-
-/* 输入控件规范 (Input / Select / Textarea) */
-input, select, textarea {
-  background: rgba(241, 244, 249, 0.94) !important;
-  border: 1px solid rgba(203, 213, 225, 0.70) !important;
-  color: #0f172a !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border-radius: 14px !important;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03) !important;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-}
-
-input:focus, select:focus, textarea:focus {
-  background: #ffffff !important;
-  border-color: #0284c7 !important;
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
-  outline: none !important;
+  pointer-events: auto;
 }
 
 /* 标题光学衬底 */
@@ -185,104 +334,105 @@ input:focus, select:focus, textarea:focus {
   display: inline-block;
   padding: 10px 20px;
   border-radius: 18px;
-  background: rgba(241, 244, 249, 0.94) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border: 1px solid rgba(203, 213, 225, 0.60) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
-  color: #0f172a !important;
+  background: var(--cbx-surface-card);
+  border: 1px solid var(--cbx-border);
+  box-shadow: var(--cbx-shadow-card);
+  color: var(--cbx-text-primary);
 }
-
-/* ══════════════════════════════════════════════════════════════════════ */
-/* 🖋️ 高对比度排版与层级文字 (消灭全树 Recalc Style 卡顿)             */
-/* ══════════════════════════════════════════════════════════════════════ */
 
 h1, h2, h3, h4, .macos-title {
-  color: #0f172a !important;
-  text-shadow: none !important;
+  color: var(--cbx-text-primary);
+  text-wrap: balance;
 }
 
-.macos-glass-card h1, .macos-glass-card h2, .macos-glass-card h3, .macos-glass-card h4,
-.macos-card h1, .macos-card h2, .macos-card h3, .macos-card h4,
-.macos-sidebar h1, .macos-sidebar h2, .macos-sidebar h3,
-.macos-topbar h1, .macos-topbar h2, .macos-topbar h3 {
-  color: #0f172a !important;
-}
-
-/* 侧边栏 Brand Typography 专属优化 */
 .macos-sidebar h1 {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0284c7 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
+  background: linear-gradient(135deg, var(--cbx-text-primary) 0%, var(--cubex-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-/* 地区徽章 */
+/* 地区徽章（深色背景图片叠层，固定白字高对比） */
 .region-badge {
-  background: rgba(15, 23, 42, 0.85) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border: 1px solid rgba(255, 255, 255, 0.20) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
-  color: #ffffff !important;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  color: #ffffff;
 }
-
 .region-badge * {
-  color: #ffffff !important;
+  color: #ffffff;
 }
 
-/* 顶部双核热切居中药丸 */
+/* 顶部双核热切药丸 */
 #cubex-topbar-engine-switch button.active-engine {
-  background: #0f172a !important;
-  color: #ffffff !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.28) !important;
-  border: 1px solid rgba(255, 255, 255, 0.25) !important;
-}
-#cubex-topbar-engine-switch button.active-engine * {
-  color: #ffffff !important;
+  background: var(--cbx-text-primary);
+  color: var(--cbx-surface-elevated);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
 }
 #cubex-topbar-engine-switch button:not(.active-engine) {
-  background: transparent !important;
-  color: #334155 !important;
-  border-color: transparent !important;
+  background: transparent;
+  color: var(--cbx-text-secondary);
 }
 #cubex-topbar-engine-switch button:not(.active-engine):hover {
-  background: rgba(241, 244, 249, 0.94) !important;
-  color: #0f172a !important;
+  background: var(--cbx-surface-hover);
+  color: var(--cbx-text-primary);
+}
+
+/* Command Palette */
+.cubex-cmd-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  background: rgba(8, 12, 22, 0.65);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10vh 1rem 1rem;
+}
+.cubex-cmd-modal {
+  width: 100%;
+  max-width: 36rem;
+  border-radius: 1.25rem;
+  background: var(--cbx-surface-elevated);
+  border: 1px solid var(--cbx-border-strong);
+  color: var(--cbx-text-primary);
+  overflow: hidden;
+}
+.cubex-cmd-item[aria-selected="true"],
+.cubex-cmd-item:hover {
+  background: var(--cbx-accent-bg);
 }
 
 /* 滚动条 */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.45) rgba(0, 0, 0, 0.04);
+  scrollbar-color: var(--cbx-scrollbar-thumb) var(--cbx-scrollbar-track);
 }
 
 .no-scrollbar {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 .no-scrollbar::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
+  display: none;
+  width: 0;
+  height: 0;
 }
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.03);
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.45);
-  background-clip: padding-box;
-  border-radius: 9999px;
-  border: 2px solid transparent;
-  transition: background-color 0.2s ease;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.75);
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--cbx-scrollbar-track);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--cbx-scrollbar-thumb);
+    background-clip: padding-box;
+    border-radius: 9999px;
+    border: 2px solid transparent;
+  }
 }
 
 /* Safe area utilities */
@@ -294,94 +444,44 @@ h1, h2, h3, h4, .macos-title {
   height: 100dvh;
 }
 
-/* 下拉菜单样式 */
-select {
-  color-scheme: light;
-}
-
-select option {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
-  padding: 6px 10px;
-}
-
-select option:checked,
-select option:hover {
-  background-color: #0284c7 !important;
-  color: #ffffff !important;
-}
-
-/* ══════════════════════════════════════════════════════════════════════ */
-/* ⚡ 全局禁绝 backdrop-filter（释放 90% GPU 压力与滚动 Overdraw）        */
-/* ══════════════════════════════════════════════════════════════════════ */
-
+/* GPU 合成性能：禁用高开销全页毛玻璃 */
 .backdrop-blur-sm,
 .backdrop-blur,
 .backdrop-blur-md,
 .backdrop-blur-xl,
 .backdrop-blur-2xl {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 button, a, input, select, textarea, [role="button"] {
   touch-action: manipulation;
 }
 
-.macos-glass-card,
-.macos-sub-card,
-.macos-sidebar {
-  -webkit-overflow-scrolling: touch;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  overscroll-behavior: auto;
+/* 移动端粗指针触控热区标准 (>= 44x44px) */
+@media (pointer: coarse) {
+  .cbx-touch-extend {
+    position: relative;
+  }
+  .cbx-touch-extend::after {
+    content: "";
+    position: absolute;
+    inset: -10px;
+  }
 }
 
-.overflow-y-auto,
-.overflow-x-auto,
-.custom-scrollbar {
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-}
-
-/* 手机端 (<= 768px) 深度性能降载模式 */
 @media (max-width: 768px) {
-  *,
-  *::before,
-  *::after {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-
-  .macos-glass-card {
-    background: rgba(228, 233, 240, 0.96) !important;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
-  }
-
-  .macos-sub-card {
-    background: rgba(241, 244, 249, 0.98) !important;
-  }
-
-  nav.md\:hidden {
-    background: rgba(228, 233, 240, 0.98) !important;
-    border-top: 1px solid rgba(148, 163, 184, 0.35) !important;
-    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06) !important;
+  .cbx-mobile-target {
+    min-height: 44px;
   }
 }
 
-/* ══════════════════════════════════════════════════════════════════════ */
-/* 🌐 Google Chrome Modern Web Guidance: Baseline Performance & Zero-CLS  */
-/* ══════════════════════════════════════════════════════════════════════ */
-
-/* 等宽数字排版：高频刷新上下行速率与毫秒延迟时绝对零布局抖动 (CLS = 0) */
+/* 等宽数字排版 & CSS Containment (Zero-CLS) */
 .tabular-nums,
 .font-tabular {
-  font-variant-numeric: tabular-nums !important;
+  font-variant-numeric: tabular-nums;
 }
 
-/* 现代 CSS Containment 与 Content Visibility 视口跳过 */
 .modern-cv-auto {
   content-visibility: auto;
   contain-intrinsic-size: 0 44px;
@@ -394,7 +494,17 @@ button, a, input, select, textarea, [role="button"] {
   contain: layout style;
 }
 
-/* 原生 <dialog> 顶层壳加速 */
+/* 测速波形条纯 CSS 呼吸动效（替代模板 Math.random()） */
+@keyframes cbxProbePulse {
+  0%, 100% { transform: scaleY(0.55); opacity: 0.75; }
+  50% { transform: scaleY(1.15); opacity: 1; }
+}
+.cbx-probe-bar-anim {
+  transform-origin: bottom center;
+  animation: cbxProbePulse 0.8s ease-in-out infinite;
+}
+
+/* 原生 <dialog> 顶层壳 */
 dialog.modern-dialog {
   margin: auto;
   border: none;
@@ -407,7 +517,5 @@ dialog.modern-dialog {
 }
 
 dialog.modern-dialog::backdrop {
-  background: rgba(0, 8, 20, 0.60);
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  background: rgba(8, 12, 22, 0.62);
 }

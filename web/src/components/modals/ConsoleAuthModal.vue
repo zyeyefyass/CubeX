@@ -1,25 +1,22 @@
 <template>
   <teleport to="body">
-    <!-- Mode 1: Full-screen Auth Gate (when console lock is armed and session is unauthenticated) -->
+    <!-- Mode 1: Full-screen Auth Gate -->
     <div
       v-if="mode === 'login' && visible"
-      class="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-[#0b101b]/95 animate-in fade-in"
+      class="fixed inset-0 z-[11000] flex items-center justify-center p-4 bg-black/80 animate-in fade-in"
     >
-      <div class="w-full max-w-md rounded-3xl macos-glass-card shadow-2xl p-7 space-y-6 text-slate-800 border border-slate-300/60 relative overflow-hidden">
-        <div class="absolute -right-24 -top-24 w-64 h-64 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
-        <div class="absolute -left-24 -bottom-24 w-64 h-64 bg-purple-500/10 rounded-full blur-2xl pointer-events-none"></div>
-
-        <div class="flex flex-col items-center text-center space-y-3 relative z-10">
+      <div class="w-full max-w-md rounded-3xl cbx-modal-shell p-6 sm:p-7 space-y-6 relative overflow-hidden">
+        <div class="flex flex-col items-center text-center space-y-3">
           <img src="/logo-cubex.svg" class="w-14 h-14 object-contain" alt="CubeX" />
           <div>
-            <h2 class="text-lg font-black text-slate-900 tracking-wide">CubeX 控制台访问锁</h2>
-            <p class="text-xs text-slate-600 mt-1">当前控制台已启用口令保护，请输入访问密码解锁</p>
+            <h2 class="text-lg font-black cbx-text-main tracking-wide">CubeX 控制台访问锁</h2>
+            <p class="text-xs cbx-text-muted mt-1">当前控制台已启用口令保护，请输入访问密码解锁</p>
           </div>
         </div>
 
-        <form @submit.prevent="submitLogin" class="space-y-4 relative z-10">
+        <form @submit.prevent="submitLogin" class="space-y-4">
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1.5">访问密码</label>
+            <label class="block text-xs font-semibold cbx-text-sub mb-1.5">访问密码</label>
             <div class="relative">
               <input
                 v-model="loginPassword"
@@ -27,26 +24,26 @@
                 autocomplete="current-password"
                 autofocus
                 placeholder="请输入控制台访问密码"
-                class="w-full px-3.5 py-2.5 pr-12 rounded-xl bg-black/40 border border-white/20 text-white placeholder-slate-400 text-sm font-mono focus:outline-none focus:border-cyan-400 transition"
+                class="w-full px-3.5 py-2.5 pr-14 rounded-xl text-sm font-mono"
               />
               <button
                 type="button"
                 @click="showPass = !showPass"
-                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-300 hover:text-white px-1.5 py-1 cursor-pointer"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs cbx-text-muted hover:cbx-text-main px-2 py-1 cursor-pointer font-semibold"
               >
                 {{ showPass ? '隐藏' : '显示' }}
               </button>
             </div>
           </div>
 
-          <div v-if="errorMsg" class="p-2.5 rounded-xl bg-rose-500/15 border border-rose-400/40 text-rose-200 text-xs font-medium">
+          <div v-if="errorMsg" class="p-2.5 rounded-xl cbx-badge-danger text-xs font-medium">
             {{ errorMsg }}
           </div>
 
           <button
             type="submit"
             :disabled="submitting || !loginPassword"
-            class="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white font-extrabold text-sm transition active:scale-95 cursor-pointer shadow-lg shadow-sky-500/25 disabled:opacity-50"
+            class="w-full py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold text-sm transition active:scale-95 cursor-pointer shadow-md disabled:opacity-50"
           >
             {{ submitting ? '正在核验身份...' : '🔓 解锁进入控制台' }}
           </button>
@@ -57,16 +54,16 @@
     <!-- Mode 2: Console Lock Management Modal -->
     <div
       v-else-if="mode === 'manage' && visible"
-      class="fixed inset-0 z-[10400] flex items-center justify-center p-4 bg-black/75 backdrop-blur-xl animate-in fade-in"
+      class="fixed inset-0 z-[10400] flex items-center justify-center p-4 bg-black/70 animate-in fade-in"
       @click.self="$emit('close')"
     >
-      <div class="w-full max-w-md rounded-3xl macos-glass-card shadow-2xl p-6 space-y-5 text-slate-200 border border-cyan-500/35 relative overflow-hidden">
-        <div class="flex items-center justify-between border-b border-white/10 pb-3.5">
+      <div class="w-full max-w-md rounded-3xl cbx-modal-shell p-6 space-y-5 relative overflow-hidden">
+        <div class="flex items-center justify-between border-b pb-3.5" style="border-color: var(--cbx-border-sub);">
           <div class="flex items-center gap-2.5">
             <span class="text-xl">🔐</span>
             <div>
-              <h3 class="text-base font-bold text-white">控制台访问安全锁</h3>
-              <p class="text-xs text-slate-300 mt-0.5">
+              <h3 class="text-base font-bold cbx-text-main">控制台访问安全锁</h3>
+              <p class="text-xs cbx-text-muted mt-0.5">
                 {{ authEnabled ? '已启用口令锁定（支持随时修改或关闭）' : '默认免密直连 · 可按需设定局域网访问密码' }}
               </p>
             </div>
@@ -74,24 +71,25 @@
           <button
             type="button"
             @click="$emit('close')"
-            class="p-1.5 rounded-xl hover:bg-white/10 text-slate-300 hover:text-white transition cursor-pointer"
+            aria-label="关闭弹窗"
+            class="cbx-btn-ghost min-w-[36px] min-h-[36px] p-1.5 rounded-xl transition cursor-pointer flex items-center justify-center cbx-touch-extend"
           >✕</button>
         </div>
 
         <form @submit.prevent="submitPasswordUpdate" class="space-y-3.5">
           <div v-if="authEnabled">
-            <label class="block text-xs font-semibold text-slate-300 mb-1">当前密码</label>
+            <label class="block text-xs font-semibold cbx-text-sub mb-1">当前密码</label>
             <input
               v-model="currentPassword"
               type="password"
               autocomplete="current-password"
               placeholder="输入当前访问密码"
-              class="w-full px-3.5 py-2 rounded-xl bg-black/35 border border-white/20 text-white placeholder-slate-400 text-xs font-mono focus:outline-none focus:border-cyan-400"
+              class="w-full px-3.5 py-2 rounded-xl text-xs font-mono"
             />
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1">
+            <label class="block text-xs font-semibold cbx-text-sub mb-1">
               {{ authEnabled ? '新密码（留空则关闭访问锁）' : '设置控制台访问密码（至少 4 位）' }}
             </label>
             <input
@@ -99,21 +97,21 @@
               type="password"
               autocomplete="new-password"
               :placeholder="authEnabled ? '输入新密码，或留空关闭密码保护' : '请输入至少 4 位访问密码'"
-              class="w-full px-3.5 py-2 rounded-xl bg-black/35 border border-white/20 text-white placeholder-slate-400 text-xs font-mono focus:outline-none focus:border-cyan-400"
+              class="w-full px-3.5 py-2 rounded-xl text-xs font-mono"
             />
           </div>
 
-          <div v-if="errorMsg" class="p-2.5 rounded-xl bg-rose-500/15 border border-rose-400/40 text-rose-200 text-xs">
+          <div v-if="errorMsg" class="p-2.5 rounded-xl cbx-badge-danger text-xs font-medium">
             {{ errorMsg }}
           </div>
 
-          <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/10">
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t" style="border-color: var(--cbx-border-sub);">
             <button
               v-if="authEnabled"
               type="button"
               @click="lockNow"
               :disabled="submitting"
-              class="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-200 text-xs font-bold transition cursor-pointer"
+              class="px-3.5 py-2 rounded-xl cbx-badge-warn text-xs font-bold transition cursor-pointer"
             >
               🔒 立即锁定
             </button>
@@ -121,12 +119,12 @@
               <button
                 type="button"
                 @click="$emit('close')"
-                class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-slate-200 text-xs font-bold transition cursor-pointer"
+                class="cbx-btn-ghost px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
               >取消</button>
               <button
                 type="submit"
                 :disabled="submitting"
-                class="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-cyan-500 hover:from-sky-500 hover:to-cyan-400 text-white text-xs font-extrabold transition cursor-pointer shadow-md disabled:opacity-50"
+                class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-extrabold transition cursor-pointer shadow-sm disabled:opacity-50"
               >
                 {{ submitting ? '保存中...' : (authEnabled && !newPassword ? '关闭密码锁' : '保存并生效') }}
               </button>
@@ -142,7 +140,7 @@
 import { ref, watch } from 'vue'
 
 const props = defineProps({
-  mode: { type: String, default: 'login' }, // 'login' | 'manage'
+  mode: { type: String, default: 'login' },
   visible: { type: Boolean, default: false },
   authEnabled: { type: Boolean, default: false }
 })
