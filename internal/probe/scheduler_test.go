@@ -2,7 +2,11 @@ package probe
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -120,5 +124,51 @@ func TestPenalizeAndRotateActiveDecay(t *testing.T) {
 	restored, ok := ewma.GetNodeSnapshot(node)
 	if !ok || restored.ConsecutiveFails != 0 {
 		t.Errorf("expected EWMA ConsecutiveFails reset to 0 after decay, got %d", restored.ConsecutiveFails)
+	}
+}
+
+func TestEWMAScheduler_BareHostPortAndErrorPropagation(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/proxies" {
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"proxies": map[string]any{
+					"Proxy": map[string]any{"name": "Proxy", "type": "Selector", "now": "N1", "all": []string{"N1", "N2"}},
+				},
+			})
+			return
+		}
+		if r.Method == http.MethodPut && r.URL.Path == "/proxies/Proxy" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+
+	sched := NewEWMAScheduler(SchedulerConfig{
+		ClashAPIBase: strings.TrimPrefix(srv.URL, "http://"),
+	}, NewEWMAManager(), nil)
+
+	if !strings.HasPrefix(sched.cfg.ClashAPIBase, "http://") {
+		t.Fatalf("expected normalized http:// ClashAPIBase, got %q", sched.cfg.ClashAPIBase)
+	}
+	proxies, err := sched.fetchProxiesSnapshot(context.Background())
+	if err != nil || len(proxies) != 1 {
+		t.Fatalf("expected fetchProxiesSnapshot success with bare host:port, got err=%v", err)
+	}
+	if err := sched.switchClashGroup(context.Background(), "Proxy", "N2"); err != nil {
+		t.Fatalf("expected switchClashGroup success with bare host:port, got err=%v", err)
+	}
+
+	srvErr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srvErr.Close()
+	schedErr := NewEWMAScheduler(SchedulerConfig{ClashAPIBase: srvErr.URL}, NewEWMAManager(), nil)
+	if _, err := schedErr.fetchProxiesSnapshot(context.Background()); err == nil {
+		t.Fatalf("expected explicit error on HTTP 500 fetchProxiesSnapshot")
+	}
+	if err := schedErr.switchClashGroup(context.Background(), "Proxy", "N2"); err == nil {
+		t.Fatalf("expected explicit error on HTTP 500 switchClashGroup")
 	}
 }

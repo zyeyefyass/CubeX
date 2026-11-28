@@ -116,6 +116,18 @@ FORBIDDEN_AMD64_V3_MARKERS = [
     b"v4 microarchitecture support",
 ]
 
+FORBIDDEN_CONTAINER_PATHS_RE = re.compile(r"(micube|open[-_]?box|ros[-_]?box)", re.IGNORECASE)
+
+# Post-musl static dual-core gzip-9 floor: sing-box(30.55)+mihomo(21.53)+cubexd(5.11)+geo/rules(10.36)+Alpine(8.08) ≈ 75.65MB (amd64) / 71.32MB (arm64)
+SIZE_GATE_LIMITS_MB = [
+    ("ros-amd64.tar", 88.0),
+    ("ros-arm64.tar", 88.0),
+    ("docker-amd64.tar.gz", 80.0),
+    ("docker-arm64.tar.gz", 80.0),
+    ("linux-amd64.zip", 100.0),
+    ("linux-arm64.zip", 100.0),
+]
+
 
 def check_amd64_binary_isa(archive_name, inner_path, content_bytes):
     """Ensure published x86_64/amd64 Go ELF binaries do not require x86-64-v3 (AVX2) instructions."""
@@ -307,9 +319,15 @@ def audit_nested_oci_layer(archive_name, layer_name, raw_bytes, expected_version
         try:
             with tarfile.open(fileobj=io.BytesIO(raw_bytes), mode=sub_mode) as stf:
                 for sm in stf.getmembers():
+                    if FORBIDDEN_CONTAINER_PATHS_RE.search(sm.name):
+                        errors.append(f"[{archive_name} -> {layer_name}::{sm.name}] CLEAN-ROOM VIOLATION: Forbidden legacy path in OCI layer!")
                     if not sm.isfile():
                         continue
                     sbase = os.path.basename(sm.name)
+                    if sm.name.endswith((".json", ".yaml", ".yml", ".sh")) and sm.size < 2 * 1024 * 1024:
+                        sf_txt = stf.extractfile(sm)
+                        if sf_txt:
+                            errors.extend(check_file_content(archive_name, f"{layer_name}::{sm.name}", sf_txt.read()))
                     if any(k in sbase for k in ("cubexd", "cubex", "mihomo", "sing-box")):
                         sf = stf.extractfile(sm)
                         if sf:
@@ -380,7 +398,41 @@ def audit_tar(archive_path, expected_version=""):
     print(f"   -> Checked {files_checked} total files ({configs_checked} config/text files, {cubexd_checked} cubexd binaries).")
     return errors, cubexd_checked
 
-def audit_directory(release_dir, allow_windows=False, expected_version=None):
+def check_archive_size_gate(release_dir):
+    errors = []
+    print("\n📏 Checking Release Size Gate (cubex-slimmer)...")
+    for fname in sorted(os.listdir(release_dir)):
+        fpath = os.path.join(release_dir, fname)
+        if not os.path.isfile(fpath):
+            continue
+        for suffix, limit_mb in SIZE_GATE_LIMITS_MB:
+            if fname.endswith(suffix):
+                size_mb = os.path.getsize(fpath) / (1024 * 1024)
+                status = "✅ PASS" if size_mb <= limit_mb else "❌ FAIL"
+                print(f"   {status} {fname:<40} {size_mb:6.2f} MB / <= {limit_mb:.1f} MB")
+                if size_mb > limit_mb:
+                    errors.append(f"[{fname}] SIZE GATE EXCEEDED: {size_mb:.2f} MB > {limit_mb:.1f} MB limit!")
+                    # Print top 10 largest entries inside archive for quick diagnosis
+                    try:
+                        entries = []
+                        if fname.endswith(".zip"):
+                            with zipfile.ZipFile(fpath, "r") as zf:
+                                entries = [(zi.file_size, zi.filename) for zi in zf.infolist() if not zi.is_dir()]
+                        else:
+                            mode = "r:*" if fname.endswith((".tar.gz", ".tgz")) else "r:"
+                            with tarfile.open(fpath, mode) as tf:
+                                entries = [(m.size, m.name) for m in tf.getmembers() if m.isfile()]
+                        entries.sort(reverse=True)
+                        print("      Top 10 entries:")
+                        for sz, nm in entries[:10]:
+                            print(f"        - {sz/(1024*1024):6.2f} MB  {nm}")
+                    except Exception:
+                        pass
+                break
+    return errors
+
+
+def audit_directory(release_dir, allow_windows=False, expected_version=None, size_gate=False):
     target_version = resolve_expected_version(expected_version)
     print("=" * 80)
     print("🛡️  CubeX Automated Release Artifacts Desensitization Audit")
@@ -435,6 +487,9 @@ def audit_directory(release_dir, allow_windows=False, expected_version=None):
     if target_version and total_cubexd_checked == 0:
         all_errors.append(f"[release-dir] VERSION AUDIT ERROR: Found 0 cubexd binaries in {release_dir} to verify version '{target_version}'!")
 
+    if size_gate:
+        all_errors.extend(check_archive_size_gate(release_dir))
+
     print("\n" + "=" * 80)
     if all_errors:
         print(f"🚨 AUDIT FAILED! Detected {len(all_errors)} desensitization / compliance violations:")
@@ -462,5 +517,6 @@ if __name__ == "__main__":
     parser.add_argument("release_dir", nargs="?", default=os.path.join(os.path.dirname(__file__), "..", "dist", "release"))
     parser.add_argument("--allow-windows", action="store_true", help="Allow Windows release binaries")
     parser.add_argument("--expected-version", "--version", dest="expected_version", default=None, help="Expected cubexd version string (e.g. v9.96)")
+    parser.add_argument("--size-gate", action="store_true", help="Enforce cubex-slimmer size limits on release packages")
     parsed = parser.parse_args()
-    audit_directory(parsed.release_dir, allow_windows=parsed.allow_windows, expected_version=parsed.expected_version)
+    audit_directory(parsed.release_dir, allow_windows=parsed.allow_windows, expected_version=parsed.expected_version, size_gate=parsed.size_gate)

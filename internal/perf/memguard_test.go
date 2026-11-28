@@ -3,6 +3,7 @@ package perf
 import (
 	"bytes"
 	"context"
+	"runtime/debug"
 	"testing"
 	"time"
 )
@@ -42,4 +43,17 @@ func TestMemoryGuard_ScavengeAndIdleCheck(t *testing.T) {
 
 	time.Sleep(120 * time.Millisecond)
 	cancel()
+}
+
+func TestMemoryGuard_PreservesPreconfiguredLimitWhenZero(t *testing.T) {
+	prev := debug.SetMemoryLimit(16 * 1024 * 1024)
+	defer debug.SetMemoryLimit(prev)
+
+	mg := NewMemoryGuard(0, nil)
+	if got := mg.LimitMiB(); got != 16 {
+		t.Fatalf("expected preserved LimitMiB=16, got %d", got)
+	}
+	if cur := debug.SetMemoryLimit(-1); cur != 16*1024*1024 {
+		t.Fatalf("expected runtime memory limit unchanged at 16MiB, got %d", cur)
+	}
 }

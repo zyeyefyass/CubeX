@@ -3,8 +3,6 @@ package engine
 import (
 	"bufio"
 
-	"bytes"
-
 	"context"
 
 	"crypto/sha256"
@@ -34,6 +32,8 @@ import (
 	"runtime"
 	"runtime/debug"
 
+	"strconv"
+
 	"strings"
 
 	"sync"
@@ -44,14 +44,15 @@ import (
 
 	"time"
 
-	"github.com/zyeyefyass/CubeX/internal/netutil"
-
-	"strconv"
-
+	"github.com/zyeyefyass/CubeX/internal/clashapi"
 	"github.com/zyeyefyass/CubeX/internal/compiler"
-
+	"github.com/zyeyefyass/CubeX/internal/config"
+	"github.com/zyeyefyass/CubeX/internal/netutil"
+	"github.com/zyeyefyass/CubeX/internal/perf"
 	"github.com/zyeyefyass/CubeX/internal/schema"
 )
+
+var ansiStripRegex = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07`)
 
 // SwitchResult contains statistics about the kernel switch.
 
@@ -104,7 +105,8 @@ type Manager struct {
 
 	logCallback LogFunc
 
-	dryRunCache sync.Map
+	dryRunCache     sync.Map
+	dryRunCacheSize atomic.Int32
 
 	precompiledConfig map[schema.EngineType][]byte
 	precompiledMu     sync.RWMutex
@@ -125,6 +127,8 @@ type Manager struct {
 	lastCoreError       string
 	recentStderr        []string
 	switchHook          func(schema.EngineType) (*SwitchResult, error)
+	onAllCoresDown      func(reason string)
+	onUpstreamStall     func(active schema.EngineType, detail string)
 }
 
 // NewManager creates a dual-engine manager.
@@ -258,7 +262,7 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 		stopCh: make(chan struct{}),
 	}
 
-	go mgr.WarmStandbyConfigs()
+	netutil.SafeGo("WarmStandbyConfigs", mgr.WarmStandbyConfigs)
 
 	mgr.StartSupervisor()
 
@@ -266,6 +270,14 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 
 	return mgr
 
+}
+
+// SetFaultCallbacks 注册双核全挂逃生回调与上游节点假死回调。
+func (m *Manager) SetFaultCallbacks(onAllCoresDown func(reason string), onUpstreamStall func(active schema.EngineType, detail string)) {
+	m.cbMu.Lock()
+	m.onAllCoresDown = onAllCoresDown
+	m.onUpstreamStall = onUpstreamStall
+	m.cbMu.Unlock()
 }
 
 // WarmStandbyConfigs pre-compiles standby engine configuration in the background to achieve zero-millisecond compile latency during hot-swap.
@@ -496,7 +508,9 @@ func (m *Manager) UpdateIRWithErr(newIR *schema.ConfigIR) error {
 		return persistErr
 	}
 
-	go m.prewarmStandbyVersion(curVer)
+	netutil.SafeGo("PrewarmStandbyVersion", func() {
+		m.prewarmStandbyVersion(curVer)
+	})
 	return nil
 }
 
@@ -507,63 +521,56 @@ func (m *Manager) UpdateIR(newIR *schema.ConfigIR) {
 	}
 }
 
-// SnapshotClashState snapshots active selector node choices from 127.0.0.1:9090/proxies.
-
+// SnapshotClashState snapshots active selector node choices from Clash API.
 func (m *Manager) SnapshotClashState() map[string]string {
+	clashAPI, clashSecret, _ := m.snapshotNetMeta()
+	var groups []schema.StrategyGroup
+	m.mu.RLock()
+	if m.ir != nil && len(m.ir.Groups) > 0 {
+		groups = append([]schema.StrategyGroup(nil), m.ir.Groups...)
+	}
+	m.mu.RUnlock()
+	return m.snapshotClashStateWithMeta(clashAPI, clashSecret, groups)
+}
 
+func (m *Manager) snapshotClashStateLocked() map[string]string {
+	clashAPI := m.clashAPI
+	clashSecret := ""
+	var groups []schema.StrategyGroup
+	if m.ir != nil {
+		clashSecret = m.ir.Network.ClashSecret
+		if len(m.ir.Groups) > 0 {
+			groups = m.ir.Groups
+		}
+	}
+	return m.snapshotClashStateWithMeta(clashAPI, clashSecret, groups)
+}
+
+func (m *Manager) snapshotClashStateWithMeta(clashAPI, clashSecret string, groups []schema.StrategyGroup) map[string]string {
 	snapshot := make(map[string]string)
 
-	url := fmt.Sprintf("%s/proxies", m.clashAPI)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Millisecond)
-
-	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-
-	if err == nil {
-
-		if resp, err := m.httpClient.Do(req); err == nil {
-
-			defer netutil.DrainAndCloseBody(resp)
-
-			if resp.StatusCode == http.StatusOK {
-				var data struct {
-					Proxies map[string]struct {
-						Now string `json:"now"`
-					} `json:"proxies"`
-				}
-				if err := json.NewDecoder(resp.Body).Decode(&data); err == nil {
-					for name, p := range data.Proxies {
-						if p.Now != "" {
-							snapshot[name] = p.Now
-						}
-					}
+	if clashAPI != "" {
+		apiClient := clashapi.NewClient(clashAPI, clashSecret, m.httpClient)
+		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Millisecond)
+		proxies, err := apiClient.GetProxies(ctx)
+		cancel()
+		if err == nil {
+			for name, p := range proxies {
+				if p.Now != "" {
+					snapshot[name] = p.Now
 				}
 			}
-
 		}
-
 	}
 
 	// Fallback / merge with IR defaults if any group is missing in snapshot
-
-	if m.ir != nil {
-
-		for _, g := range m.ir.Groups {
-
-			if snapshot[g.Name] == "" && g.Now != "" {
-
-				snapshot[g.Name] = g.Now
-
-			}
-
+	for _, g := range groups {
+		if snapshot[g.Name] == "" && g.Now != "" {
+			snapshot[g.Name] = g.Now
 		}
-
 	}
 
 	return snapshot
-
 }
 
 // RestoreClashState injects cached state into the newly launched core's Clash API concurrently.
@@ -576,7 +583,8 @@ func (m *Manager) RestoreClashState(snapshot map[string]string) int {
 
 	}
 
-	_, clashSecret, _ := m.snapshotNetMeta()
+	clashAPI, clashSecret, _ := m.snapshotNetMeta()
+	apiClient := clashapi.NewClient(clashAPI, clashSecret, m.httpClient)
 
 	var wg sync.WaitGroup
 
@@ -596,53 +604,18 @@ func (m *Manager) RestoreClashState(snapshot map[string]string) int {
 
 		sem <- struct{}{}
 
-		go func(grp, node string) {
-
+		grp, node := groupName, targetNode
+		netutil.SafeGo("RestoreClashGroup", func() {
 			defer wg.Done()
-
 			defer func() { <-sem }()
 
-			escapedGroup := url.PathEscape(grp)
-
-			u := fmt.Sprintf("%s/proxies/%s", m.clashAPI, escapedGroup)
-
-			payload, _ := json.Marshal(map[string]string{"name": node})
-
 			ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
-
 			defer cancel()
 
-			req, err := http.NewRequestWithContext(ctx, http.MethodPut, u, bytes.NewReader(payload))
-
-			if err != nil {
-
-				return
-
+			if err := apiClient.SwitchProxy(ctx, grp, node); err == nil {
+				atomic.AddInt64(&restoredCount, 1)
 			}
-
-			req.Header.Set("Content-Type", "application/json")
-
-			if clashSecret != "" {
-
-				req.Header.Set("Authorization", "Bearer "+clashSecret)
-
-			}
-
-			resp, err := m.httpClient.Do(req)
-
-			if err == nil {
-
-				netutil.DrainAndCloseBody(resp)
-
-				if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNoContent {
-
-					atomic.AddInt64(&restoredCount, 1)
-
-				}
-
-			}
-
-		}(groupName, targetNode)
+		})
 
 	}
 
@@ -704,56 +677,6 @@ func (m *Manager) findBinary(binName string) string {
 
 }
 
-func detectTotalRAMMb() int64 {
-	totalMb := int64(1024) // Sensible default
-
-	// 1. Check cgroups v2 memory.max
-	if data, err := os.ReadFile("/sys/fs/cgroup/memory.max"); err == nil {
-		str := strings.TrimSpace(string(data))
-		if str != "" && str != "max" {
-			if bytesVal, err := strconv.ParseInt(str, 10, 64); err == nil && bytesVal > 0 {
-				mb := bytesVal / (1024 * 1024)
-				if mb > 0 && mb < totalMb {
-					totalMb = mb
-				}
-			}
-		}
-	}
-
-	// 2. Check cgroups v1 memory.limit_in_bytes
-	if data, err := os.ReadFile("/sys/fs/cgroup/memory/memory.limit_in_bytes"); err == nil {
-		str := strings.TrimSpace(string(data))
-		if str != "" {
-			if bytesVal, err := strconv.ParseInt(str, 10, 64); err == nil && bytesVal > 0 && bytesVal < (1<<60) {
-				mb := bytesVal / (1024 * 1024)
-				if mb > 0 && mb < totalMb {
-					totalMb = mb
-				}
-			}
-		}
-	}
-
-	// 3. Check /proc/meminfo
-	if data, err := os.ReadFile("/proc/meminfo"); err == nil {
-		for _, line := range strings.Split(string(data), "\n") {
-			if strings.HasPrefix(line, "MemTotal:") {
-				fields := strings.Fields(line)
-				if len(fields) >= 2 {
-					if totalKb, err := strconv.ParseInt(fields[1], 10, 64); err == nil {
-						mb := totalKb / 1024
-						if mb > 0 && (totalMb == 1024 || mb < totalMb) {
-							totalMb = mb
-						}
-					}
-				}
-				break
-			}
-		}
-	}
-
-	return totalMb
-}
-
 func getAdaptiveEngineMemoryLimits() (gomemlimit string, gogc string) {
 	if customLimit := os.Getenv("CUBEX_CORE_GOMEMLIMIT"); customLimit != "" {
 		gc := os.Getenv("CUBEX_CORE_GOGC")
@@ -763,7 +686,7 @@ func getAdaptiveEngineMemoryLimits() (gomemlimit string, gogc string) {
 		return "GOMEMLIMIT=" + customLimit, "GOGC=" + gc
 	}
 
-	totalMb := detectTotalRAMMb()
+	totalMb := perf.DetectTotalRAMMb()
 	limitMb := 64
 	gc := 100
 
@@ -827,8 +750,6 @@ func (m *Manager) streamLogPipe(eng schema.EngineType, pipeType string, r io.Rea
 		module = "MIHOMO"
 
 	}
-
-	ansiStripRegex := regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]|\x1b\].*?\x07`)
 
 	for scanner.Scan() {
 
@@ -1011,13 +932,13 @@ func (m *Manager) startEngineProcess(eng schema.EngineType, cmd *exec.Cmd) (*syn
 
 		pipeWG.Add(1)
 
-		go func() {
+		netutil.SafeGo("EngineStdoutPipe", func() {
 
 			defer pipeWG.Done()
 
 			m.streamLogPipe(eng, "stdout", stdoutPipe)
 
-		}()
+		})
 
 	}
 
@@ -1025,13 +946,13 @@ func (m *Manager) startEngineProcess(eng schema.EngineType, cmd *exec.Cmd) (*syn
 
 		pipeWG.Add(1)
 
-		go func() {
+		netutil.SafeGo("EngineStderrPipe", func() {
 
 			defer pipeWG.Done()
 
 			m.streamLogPipe(eng, "stderr", stderrPipe)
 
-		}()
+		})
 
 	}
 
@@ -1155,7 +1076,8 @@ const (
 func (m *Manager) Stop() {
 	m.mu.Lock()
 	m.stopping = true
-	m.stopCurrentCoreWithGrace(ShutdownGracePeriod)
+	active := m.activeEngine
+	m.stopCurrentCoreWithGrace(active, ShutdownGracePeriod)
 	m.reclaimOSMemory()
 	m.mu.Unlock()
 
@@ -1165,16 +1087,20 @@ func (m *Manager) Stop() {
 }
 
 func (m *Manager) stopCurrentCore(binName string) {
-	m.stopCurrentCoreWithGrace(HotSwitchGracePeriod)
+	m.stopCurrentCoreWithGrace(schema.EngineType(binName), HotSwitchGracePeriod)
 }
 
-func (m *Manager) stopCurrentCoreWithGrace(gracePeriod time.Duration) {
+func (m *Manager) stopCurrentCoreWithGrace(target schema.EngineType, gracePeriod time.Duration) {
 	if m.currentProc == nil || m.currentProc.Pid <= 0 {
 		return
 	}
 
 	pid := m.currentProc.Pid
 	done := m.procDone
+	procBin := "sing-box"
+	if target == schema.EngineMihomo || string(target) == "mihomo" {
+		procBin = "mihomo"
+	}
 
 	defer func() {
 		m.currentProc = nil
@@ -1219,7 +1145,8 @@ func (m *Manager) stopCurrentCoreWithGrace(gracePeriod time.Duration) {
 		case <-time.After(500 * time.Millisecond):
 			log.Printf("🚨 [Engine] Process group %d stuck after SIGKILL", pid)
 			if runtime.GOOS != "windows" {
-				_ = exec.Command("killall", "-9", "mihomo", "sing-box").Run()
+				// 仅清理当前失控引擎对应进程名，绝不误杀另一内核
+				_ = exec.Command("pkill", "-9", "-x", procBin).Run()
 			}
 		}
 	}
@@ -1301,68 +1228,71 @@ func (m *Manager) reclaimOSMemory() {
 	debug.FreeOSMemory()
 }
 
-func (m *Manager) rollback(eng schema.EngineType, etcDir string, snapshot map[string]string) {
+func (m *Manager) rollback(eng schema.EngineType, etcDir string, snapshot map[string]string, prevConfig []byte) bool {
+	if eng == "" {
+		return false
+	}
 
 	log.Printf("🛡️ [Engine] Initiating emergency self-healing rollback to %s...", eng)
 
 	binName := "mihomo"
-
 	configFile := "config.yaml"
-
 	if eng == schema.EngineSingbox {
-
 		binName = "sing-box"
-
 		configFile = "config.json"
-
 	}
 
 	binPath := m.findBinary(binName)
-
 	configPath := filepath.Join(etcDir, configFile)
-
-	cmd := m.buildCmd(eng, binPath, etcDir, configPath)
-
-	if pipeWG, err := m.startEngineProcess(eng, cmd); err == nil {
-
-		m.currentProc = cmd.Process
-
-		done := make(chan struct{})
-
-		m.procDone = done
-
-		log.Printf("🛡️ [Engine] Rollback process for %s started with PID %d", eng, cmd.Process.Pid)
-
-		go m.waitEngineProcess(eng, cmd, pipeWG, done)
-
-		if m.probeCoreHealth(eng, 3*time.Second) {
-
-			m.RestoreClashState(snapshot)
-
-			m.activeEngine = eng
-
-			if m.ir != nil {
-
-				m.ir.Meta.ActiveEngine = eng
-
-				if data, mErr := json.MarshalIndent(m.ir, "", "  "); mErr == nil {
-
-					_ = schema.WriteFileAtomicSecure(filepath.Join(m.workDir, "data", "config.ir.json"), data)
-
-				}
-
-			}
-
-			log.Printf("✅ [Engine] Self-healing rollback to %s succeeded! Network preserved.", eng)
-
-		}
-
-	} else {
-
-		log.Printf("🚨 [Engine] Critical: rollback to %s failed: %v", eng, err)
-
+	if len(prevConfig) > 0 {
+		_ = schema.WriteFileAtomicSecure(configPath, prevConfig)
 	}
 
+	cmd := m.buildCmd(eng, binPath, etcDir, configPath)
+	pipeWG, err := m.startEngineProcess(eng, cmd)
+	if err != nil {
+		log.Printf("🚨 [Engine] Critical: rollback to %s failed: %v", eng, err)
+		return false
+	}
+
+	m.currentProc = cmd.Process
+	done := make(chan struct{})
+	m.procDone = done
+	log.Printf("🛡️ [Engine] Rollback process for %s started with PID %d", eng, cmd.Process.Pid)
+
+	netutil.SafeGo("WaitRollbackEngine", func() {
+		m.waitEngineProcess(eng, cmd, pipeWG, done)
+	})
+
+	if m.probeCoreHealth(eng, 3*time.Second) {
+		m.RestoreClashState(snapshot)
+		m.activeEngine = eng
+		if m.ir != nil {
+			m.ir.Meta.ActiveEngine = eng
+			if data, mErr := json.MarshalIndent(m.ir, "", "  "); mErr == nil {
+				_ = schema.WriteFileAtomicSecure(filepath.Join(m.workDir, "data", "config.ir.json"), data)
+			}
+		}
+		log.Printf("✅ [Engine] Self-healing rollback to %s succeeded! Network preserved.", eng)
+		return true
+	}
+
+	log.Printf("🚨 [Engine] Critical: rollback process %s failed health probe; stopping orphaned rollback process", eng)
+	m.stopCurrentCore(binName)
+	return false
+}
+
+func (m *Manager) triggerAllCoresDown(reason string) {
+	m.activeEngine = ""
+	m.currentProc = nil
+	m.procDone = nil
+	m.log("ERROR", "ENGINE", fmt.Sprintf("🚨 双核均启动/回滚失败，触发保底直通逃生: %s", reason))
+	m.cbMu.RLock()
+	cb := m.onAllCoresDown
+	m.cbMu.RUnlock()
+	if cb != nil {
+		cb(reason)
+	}
 }
 
 // SwitchEngine performs the Make-Before-Break Zero-Downtime Hot-Swap with health probe & auto-rollback.
@@ -1403,9 +1333,9 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 		m.log("INFO", "ENGINE", fmt.Sprintf("发起双核热切换: %s ➔ %s (Zero-Downtime 平滑容灾)", fromEngine, target))
 	}
 
-	// Step 1: Snapshot active selections
+	// Step 1: Snapshot active selections (lock already held by SwitchEngine)
 	t0 := time.Now()
-	snapshot := m.SnapshotClashState()
+	snapshot := m.snapshotClashStateLocked()
 	dSnapshot := time.Since(t0).Milliseconds()
 
 	// Synchronize snapshot selections into IR so new engine defaults directly to active nodes
@@ -1460,11 +1390,15 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	}
 	dCompile := time.Since(tCompStart).Milliseconds()
 
-	// Persist target config
+	// Persist target config (save previous config bytes for in-place reload rollback)
 	tWriteStart := time.Now()
 	etcDir := filepath.Join(m.workDir, "etc")
 	_ = os.MkdirAll(etcDir, 0700)
 	targetConfigPath := filepath.Join(etcDir, configFileName)
+	var prevConfigBytes []byte
+	if oldData, rErr := os.ReadFile(targetConfigPath); rErr == nil {
+		prevConfigBytes = oldData
+	}
 
 	if err := schema.WriteFileAtomicSecure(targetConfigPath, configData); err != nil {
 		res.Success = false
@@ -1494,6 +1428,9 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 		if _, verified := m.dryRunCache.Load(cacheKey); !verified {
 			if err := m.dryRunCheck(target, binPath, etcDir, targetConfigPath); err != nil {
+				if fromEngine == target && len(prevConfigBytes) > 0 {
+					_ = schema.WriteFileAtomicSecure(targetConfigPath, prevConfigBytes)
+				}
 				m.setLastCoreError(err.Error())
 				m.log("ERROR", "ENGINE", fmt.Sprintf("⚠️ 目标内核配置预检失败，阻断热重载以保护当前稳定运行态: %v", err))
 				res.Success = false
@@ -1501,7 +1438,16 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 				m.lastResult = res
 				return res, err
 			}
+			// 限制 dryRunCache 上限，避免长期频繁切配导致无界增长
+			if m.dryRunCacheSize.Load() >= 16 {
+				m.dryRunCache.Range(func(k, _ any) bool {
+					m.dryRunCache.Delete(k)
+					return true
+				})
+				m.dryRunCacheSize.Store(0)
+			}
 			m.dryRunCache.Store(cacheKey, true)
+			m.dryRunCacheSize.Add(1)
 		} else {
 			m.log("INFO", "ENGINE", fmt.Sprintf("⚡ 目标内核配置预检通过 (缓存极速命中 0ms): %s", target))
 		}
@@ -1529,6 +1475,18 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 		prevBin = "sing-box"
 	}
 	m.stopCurrentCore(prevBin)
+	var waitPorts []int
+	if m.ir != nil {
+		if m.ir.Network.ClashAPIPort > 0 {
+			waitPorts = append(waitPorts, m.ir.Network.ClashAPIPort)
+		}
+		if m.ir.Network.MixedPort > 0 {
+			waitPorts = append(waitPorts, m.ir.Network.MixedPort)
+		}
+	}
+	if len(waitPorts) > 0 && !m.waitForPortsRelease(waitPorts, 1500*time.Millisecond) {
+		log.Printf("⚠️ [Engine] Timeout waiting for ports %v release before spawning %s", waitPorts, target)
+	}
 	dStop := time.Since(tStopStart).Milliseconds()
 
 	// Step 5: Start new engine
@@ -1540,8 +1498,12 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 		log.Printf("🚨 [Engine] Failed to spawn %s: %v. Triggering self-healing rollback to %s!", target, err, fromEngine)
 		m.setLastCoreError(err.Error())
 		res.ErrorMessage = fmt.Sprintf("failed to spawn %s: %v", target, err)
-		if fromEngine != "" && fromEngine != target {
-			m.rollback(fromEngine, etcDir, snapshot)
+		var rollbackPrev []byte
+		if fromEngine == target {
+			rollbackPrev = prevConfigBytes
+		}
+		if fromEngine == "" || !m.rollback(fromEngine, etcDir, snapshot, rollbackPrev) {
+			m.triggerAllCoresDown(res.ErrorMessage)
 		}
 		res.Success = false
 		m.lastResult = res
@@ -1553,7 +1515,9 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	m.procDone = done
 	log.Printf("🚀 [Engine] Core engine %s started with PID %d", target, cmd.Process.Pid)
 
-	go m.waitEngineProcess(target, cmd, pipeWG, done)
+	netutil.SafeGo("WaitEngineProcess", func() {
+		m.waitEngineProcess(target, cmd, pipeWG, done)
+	})
 	dStart := time.Since(tStartStart).Milliseconds()
 
 	// Step 6: Active Health Probe (verify Clash API and DNS readiness within 3s)
@@ -1569,8 +1533,12 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 		m.setLastCoreError(res.ErrorMessage)
 		log.Printf("🚨 [Engine] Target core %s failed health probe after launch! Triggering self-healing rollback to %s...", target, fromEngine)
 		m.stopCurrentCore(binName)
-		if fromEngine != "" && fromEngine != target {
-			m.rollback(fromEngine, etcDir, snapshot)
+		var rollbackPrev []byte
+		if fromEngine == target {
+			rollbackPrev = prevConfigBytes
+		}
+		if fromEngine == "" || !m.rollback(fromEngine, etcDir, snapshot, rollbackPrev) {
+			m.triggerAllCoresDown(res.ErrorMessage)
 		}
 		res.Success = false
 		m.lastResult = res
@@ -1580,10 +1548,14 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	// Step 7: Restore node states (asynchronously reconcile via Clash API; target core boots with active snapshot nodes at index 0)
 	tRestoreStart := time.Now()
-	go func(snap map[string]string) {
-		count := m.RestoreClashState(snap)
+	snapCopy := make(map[string]string, len(snapshot))
+	for k, v := range snapshot {
+		snapCopy[k] = v
+	}
+	netutil.SafeGo("RestoreClashState", func() {
+		count := m.RestoreClashState(snapCopy)
 		log.Printf("✨ [Engine] Asynchronous proxy state reconciliation completed (%d groups)", count)
-	}(snapshot)
+	})
 	dRestore := time.Since(tRestoreStart).Milliseconds()
 	restoredCount := len(snapshot)
 
@@ -1612,7 +1584,7 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 	m.reclaimOSMemory()
 
 	// Stage 7.6: Flush stale half-open connections via Clash API (prevents client connection stalls across Fake-IP pools)
-	go m.flushStaleConnectionsAfterSwitch()
+	netutil.SafeGo("FlushStaleConnectionsAfterSwitch", m.flushStaleConnectionsAfterSwitch)
 
 	log.Printf("⏱️ [Engine Timing] Snapshot: %dms, Compile: %dms, Write: %dms, DryRun: %dms, Stop: %dms, Start: %dms, Probe: %dms, Restore: %dms -> Total: %dms",
 		dSnapshot, dCompile, dWrite, dDry, dStop, dStart, dProbe, dRestore, res.ElapsedMs)
@@ -1633,8 +1605,8 @@ func (m *Manager) SwitchEngine(target schema.EngineType) (*SwitchResult, error) 
 
 	}
 
-	go m.prewarmEngine(target)
-	go m.WarmStandbyConfigs()
+	netutil.SafeGo("PrewarmEngine", func() { m.prewarmEngine(target) })
+	netutil.SafeGo("WarmStandbyConfigs", m.WarmStandbyConfigs)
 
 	return res, nil
 
@@ -1659,9 +1631,28 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 
 	}
 
-	warmGroups := []string{"🌐 国外流量", "YouTube", "Google", "AI"}
+	// 优先从当前 IR 抽取业务策略组进行预热，不写死固定分组名
+	var warmGroups []string
+	m.mu.RLock()
+	if m.ir != nil {
+		for _, g := range m.ir.Groups {
+			if g.Category == "service" || g.Category == "business" {
+				warmGroups = append(warmGroups, g.Name)
+				if len(warmGroups) >= 4 {
+					break
+				}
+			}
+		}
+	}
+	m.mu.RUnlock()
+	if len(warmGroups) == 0 {
+		warmGroups = []string{"🌐 国外流量", "YouTube", "Google", "AI"}
+	}
 
 	testURL := "https://www.gstatic.com/generate_204"
+	if config.GlobalRuntimeSpec != nil && len(config.GlobalRuntimeSpec.ProbeURLs) > 0 {
+		testURL = config.GlobalRuntimeSpec.ProbeURLs[0]
+	}
 
 	for _, g := range warmGroups {
 
@@ -1732,7 +1723,7 @@ func (m *Manager) prewarmEngine(target schema.EngineType) {
 
 // StartSupervisor runs the 2.5s periodic health heartbeat & auto-healing state machine
 func (m *Manager) StartSupervisor() {
-	go func() {
+	netutil.SafeGo("EngineSupervisor", func() {
 		ticker := time.NewTicker(2500 * time.Millisecond)
 		defer ticker.Stop()
 		var healthyConsecutive int
@@ -1855,7 +1846,7 @@ func (m *Manager) StartSupervisor() {
 
 		}
 
-	}()
+	})
 
 }
 
@@ -1902,205 +1893,99 @@ func (m *Manager) GetLastKnownGoodTime() string {
 // or failed health checks, it automatically triggers a circuit-breaker to safely fall back to an active dynamic group.
 
 func (m *Manager) PatrolCircuitBreaker() int {
-
 	clashAPI, clashSecret, _ := m.snapshotNetMeta()
-
-	u := fmt.Sprintf("%s/proxies", clashAPI)
+	apiClient := clashapi.NewClient(clashAPI, clashSecret, m.httpClient)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1200*time.Millisecond)
-
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
-
+	proxies, err := apiClient.GetProxies(ctx)
 	if err != nil {
-
 		return 0
-
-	}
-
-	if clashSecret != "" {
-
-		req.Header.Set("Authorization", "Bearer "+clashSecret)
-
-	}
-
-	resp, err := m.httpClient.Do(req)
-
-	if err != nil {
-
-		return 0
-
-	}
-
-	defer netutil.DrainAndCloseBody(resp)
-
-	if resp.StatusCode != http.StatusOK {
-
-		return 0
-
-	}
-
-	body, err := io.ReadAll(resp.Body)
-
-	if err != nil {
-
-		return 0
-
-	}
-
-	var data struct {
-		Proxies map[string]clashProxyEntry `json:"proxies"`
-	}
-
-	if err := json.Unmarshal(body, &data); err != nil {
-
-		return 0
-
 	}
 
 	healedCount := 0
-	globalPhysicalCount := countGlobalPhysicalNodes(data.Proxies)
+	globalPhysicalCount := countGlobalPhysicalNodes(proxies)
 
 	isSafeTarget := func(name string) bool {
-
 		return strings.Contains(name, "自动") || strings.Contains(name, "故转") ||
-
 			strings.Contains(name, "容灾") || name == "DIRECT" || name == "REJECT" || name == "block"
-
 	}
 
-	for grpName, grp := range data.Proxies {
-
+	for grpName, grp := range proxies {
 		if grp.Type != "Selector" || grp.Now == "" || isSafeTarget(grp.Now) {
-
 			continue
-
 		}
 
 		// grp.Now is a single physical node (e.g. "[HHost-JP] xtls-reality"). Check its health.
-
-		nodeInfo, exists := data.Proxies[grp.Now]
-
+		nodeInfo, exists := proxies[grp.Now]
 		if !exists {
-
 			continue
-
 		}
 
 		isDead := false
-
 		lastDelay := 0
-
 		if len(nodeInfo.History) > 0 {
-
 			lastDelay = nodeInfo.History[len(nodeInfo.History)-1].Delay
-
 			if lastDelay <= 0 || lastDelay >= 7500 {
-
 				isDead = true
-
 			}
-
 		}
 
 		if isDead {
-
 			if globalPhysicalCount <= 1 {
 				m.logCircuitHoldOnce(grpName, grp.Now, fmt.Sprintf("🛡️ 智能熔断: 策略组 [%s] 节点 [%s] 异常(%dms)，但全局仅配置 %d 个有效物理节点，禁止切入空分组或 DIRECT，原地保留等待主路由/外网恢复", grpName, grp.Now, lastDelay, globalPhysicalCount))
 				continue
 			}
 
 			// Find optimal non-empty fallback dynamic target from grp.All
-			fallbackTarget := selectCircuitBreakerFallback(data.Proxies, grp.All, grp.Now)
+			fallbackTarget := selectCircuitBreakerFallback(proxies, grp.All, grp.Now)
 			if fallbackTarget == "" {
 				m.logCircuitHoldOnce(grpName, grp.Now, fmt.Sprintf("🛡️ 智能熔断: 策略组 [%s] 节点 [%s] 异常(%dms)，备选自动/容灾分组均为空或无其他可用物理节点，原地保留等待主路由/外网恢复", grpName, grp.Now, lastDelay))
 				continue
 			}
 
 			if fallbackTarget != grp.Now {
-
-				putURL := fmt.Sprintf("%s/proxies/%s", m.clashAPI, url.PathEscape(grpName))
-
-				payload, _ := json.Marshal(map[string]string{"name": fallbackTarget})
-
-				pReq, pErr := http.NewRequestWithContext(context.Background(), http.MethodPut, putURL, bytes.NewReader(payload))
-
-				if pErr == nil {
-
-					pReq.Header.Set("Content-Type", "application/json")
-
-					if clashSecret != "" {
-
-						pReq.Header.Set("Authorization", "Bearer "+clashSecret)
-
-					}
-
-					if pResp, err := m.httpClient.Do(pReq); err == nil {
-
-						pStatus := pResp.StatusCode
-						netutil.DrainAndCloseBody(pResp)
-						if pStatus != http.StatusOK && pStatus != http.StatusNoContent {
-							continue
-						}
-
-						m.mu.Lock()
-
-						if m.ir != nil {
-
-							for i := range m.ir.Groups {
-
-								if m.ir.Groups[i].Name == grpName {
-
-									m.ir.Groups[i].Now = fallbackTarget
-
-									break
-
-								}
-
-							}
-
-							atomic.AddUint64(&m.irVersion, 1)
-							m.precompiledMu.Lock()
-							m.precompiledConfig = make(map[schema.EngineType][]byte)
-							m.precompiledMu.Unlock()
-
-							if data, err := json.MarshalIndent(m.ir, "", "  "); err == nil {
-
-								_ = schema.WriteFileAtomicSecure(filepath.Join(m.workDir, "data", "config.ir.json"), data)
-
-							}
-
-						}
-
-						m.mu.Unlock()
-
-						healedCount++
-
-						log.Printf("🛡️ [CircuitBreaker] 策略组 [%s] 节点 [%s] 延迟异常(%dms)，已触发智能熔断回退至 [%s]！", grpName, grp.Now, lastDelay, fallbackTarget)
-
-						m.log("WARN", "HA", fmt.Sprintf("🛡️ 智能熔断: 策略组 [%s] 单节点 [%s] 异常不可达，已静默回退至 [%s]", grpName, grp.Now, fallbackTarget))
-
-					}
-
+				ctxPut, cancelPut := context.WithTimeout(context.Background(), 1500*time.Millisecond)
+				sErr := apiClient.SwitchProxy(ctxPut, grpName, fallbackTarget)
+				cancelPut()
+				if sErr != nil {
+					continue
 				}
 
+				m.mu.Lock()
+				if m.ir != nil {
+					for i := range m.ir.Groups {
+						if m.ir.Groups[i].Name == grpName {
+							m.ir.Groups[i].Now = fallbackTarget
+							break
+						}
+					}
+					atomic.AddUint64(&m.irVersion, 1)
+					m.precompiledMu.Lock()
+					m.precompiledConfig = make(map[schema.EngineType][]byte)
+					m.precompiledMu.Unlock()
+					if data, err := json.MarshalIndent(m.ir, "", "  "); err == nil {
+						_ = schema.WriteFileAtomicSecure(filepath.Join(m.workDir, "data", "config.ir.json"), data)
+					}
+				}
+				m.mu.Unlock()
+
+				healedCount++
+				log.Printf("🛡️ [CircuitBreaker] 策略组 [%s] 节点 [%s] 延迟异常(%dms)，已触发智能熔断回退至 [%s]！", grpName, grp.Now, lastDelay, fallbackTarget)
+				m.log("WARN", "HA", fmt.Sprintf("🛡️ 智能熔断: 策略组 [%s] 单节点 [%s] 异常不可达，已静默回退至 [%s]", grpName, grp.Now, fallbackTarget))
 			}
-
 		}
-
 	}
 
 	return healedCount
-
 }
 
 // StartEndToEndWatchdog periodically verifies actual outbound data flow through the proxy.
-
-// If outbound traffic hangs/freezes repeatedly while process is alive, it auto-switches to the standby engine.
-
+// If the local core is unresponsive or both proxy and domestic paths stall, it auto-switches to the standby engine;
+// if the core Clash API & domestic network are healthy while only proxy targets time out, it avoids unnecessary kernel thrashing.
 func (m *Manager) StartEndToEndWatchdog() {
-	go func() {
+	netutil.SafeGo("EngineE2EWatchdog", func() {
 		select {
 		case <-m.stopCh:
 			return
@@ -2120,6 +2005,9 @@ func (m *Manager) StartEndToEndWatchdog() {
 				stopping := m.stopping
 				active := m.activeEngine
 				ir := m.ir.Clone()
+				proc := m.currentProc
+				procDone := m.procDone
+				clashAPI := m.clashAPI
 				m.mu.RUnlock()
 
 				if stopping {
@@ -2135,117 +2023,103 @@ func (m *Manager) StartEndToEndWatchdog() {
 					continue
 				}
 
-			proxyPort := 7890
+				proxyPort := 7890
+				if ir.Network.MixedPort > 0 {
+					proxyPort = ir.Network.MixedPort
+				}
+				proxyURL, err := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", proxyPort))
+				if err != nil {
+					continue
+				}
 
-			if ir.Network.MixedPort > 0 {
+				probeURLs := []string{"https://www.gstatic.com/generate_204", "http://cp.cloudflare.com/generate_204"}
+				if config.GlobalRuntimeSpec != nil && len(config.GlobalRuntimeSpec.ProbeURLs) > 0 {
+					probeURLs = config.GlobalRuntimeSpec.ProbeURLs
+				}
 
-				proxyPort = ir.Network.MixedPort
+				transport := &http.Transport{
+					Proxy: http.ProxyURL(proxyURL),
+					DialContext: (&net.Dialer{
+						Timeout: 4 * time.Second,
+					}).DialContext,
+					ResponseHeaderTimeout: 4 * time.Second,
+					DisableKeepAlives:     true,
+				}
+				client := &http.Client{
+					Transport: transport,
+					Timeout:   5 * time.Second,
+				}
 
-			}
-
-			proxyURL, err := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", proxyPort))
-
-			if err != nil {
-
-				continue
-
-			}
-
-			transport := &http.Transport{
-
-				Proxy: http.ProxyURL(proxyURL),
-
-				DialContext: (&net.Dialer{
-
-					Timeout: 4 * time.Second,
-				}).DialContext,
-
-				ResponseHeaderTimeout: 4 * time.Second,
-
-				DisableKeepAlives: true,
-			}
-
-			client := &http.Client{
-
-				Transport: transport,
-
-				Timeout: 5 * time.Second,
-			}
-
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
-			req, rErr := http.NewRequestWithContext(ctx, http.MethodGet, "http://cp.cloudflare.com/generate_204", nil)
-
-			ok := false
-
-			if rErr == nil {
-
-				resp, dErr := client.Do(req)
-
-				if dErr == nil {
-
-					netutil.DrainAndCloseBody(resp)
-
-					if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusOK {
-
-						ok = true
-
+				ok := false
+				for _, targetURL := range probeURLs {
+					ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					req, rErr := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
+					if rErr == nil {
+						resp, dErr := client.Do(req)
+						if dErr == nil {
+							netutil.DrainAndCloseBody(resp)
+							if resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusOK {
+								ok = true
+							}
+						}
 					}
-
+					cancel()
+					if ok {
+						break
+					}
 				}
+				transport.CloseIdleConnections()
 
-			}
-
-			transport.CloseIdleConnections()
-
-			cancel()
-
-			if ok {
-
-				if failCount > 0 {
-
-					m.log("INFO", "WATCHDOG", fmt.Sprintf("✅ 国际分流业务链路恢复畅通 (引擎: %s)", active))
-
-				}
-
-				failCount = 0
-
-			} else {
-
-				failCount++
-
-				m.log("WARN", "WATCHDOG", fmt.Sprintf("⚠️ 国际分流业务链路探测超时 (引擎: %s, 连续失败: %d/3)", active, failCount))
-
-				if failCount >= 3 {
-
+				if ok {
+					if failCount > 0 {
+						m.log("INFO", "WATCHDOG", fmt.Sprintf("✅ 国际分流业务链路恢复畅通 (引擎: %s)", active))
+					}
 					failCount = 0
+				} else {
+					failCount++
+					m.log("WARN", "WATCHDOG", fmt.Sprintf("⚠️ 国际分流业务链路探测超时 (引擎: %s, 连续失败: %d/6)", active, failCount))
 
-					standby := schema.EngineSingbox
+					if failCount >= 3 {
+						// 区分“内核/本地代理端口挂死”与“仅上游节点波动”：
+						// 若内核 Clash API 存活且国内直连正常，第 3~5 次先上报上游节点异常交由 EWMA/熔断处理；
+						// 若内核失联或连续 6 次仍无法恢复，再执行内核热切换。
+						coreAlive := m.probeCoreHealthFor(proc, procDone, active, clashAPI, 800*time.Millisecond)
+						domesticOK := probeDirectConnectivity()
+						if coreAlive && domesticOK && failCount < 6 {
+							m.cbMu.RLock()
+							upCb := m.onUpstreamStall
+							m.cbMu.RUnlock()
+							if upCb != nil {
+								upCb(active, fmt.Sprintf("连续 %d 次代理探测超时，内核接口与直连正常", failCount))
+							}
+							continue
+						}
 
-					if active == schema.EngineSingbox {
-
-						standby = schema.EngineMihomo
-
+						failCount = 0
+						standby := schema.EngineSingbox
+						if active == schema.EngineSingbox {
+							standby = schema.EngineMihomo
+						}
+						m.log("WARN", "SUPERVISOR", fmt.Sprintf("🚨 核心 %s 链路连续异常，触发容灾热切换 ➔ %s...", active, standby))
+						if res, err := m.SwitchEngine(standby); err == nil {
+							m.log("INFO", "SUPERVISOR", fmt.Sprintf("✅ 业务假死容灾自愈完成: 已切换至 %s (耗时 %d ms)", standby, res.ElapsedMs))
+						}
 					}
-
-					m.log("WARN", "SUPERVISOR", fmt.Sprintf("🚨 核心 %s 国际分流业务链路连续假死，触发业务级无感容灾热切换 ➔ %s...", active, standby))
-
-					if res, err := m.SwitchEngine(standby); err == nil {
-
-						m.log("INFO", "SUPERVISOR", fmt.Sprintf("✅ 业务假死容灾自愈完成: 已切换至 %s (耗时 %d ms)", standby, res.ElapsedMs))
-
-					}
-
 				}
-
 			}
-
-			}
-
 		}
+	})
+}
 
-	}()
-
+func probeDirectConnectivity() bool {
+	for _, addr := range []string{"223.5.5.5:53", "119.29.29.29:53"} {
+		c, err := net.DialTimeout("tcp", addr, 800*time.Millisecond)
+		if err == nil {
+			_ = c.Close()
+			return true
+		}
+	}
+	return false
 }
 
 // IsSwitchingInGracePeriod checks if an intentional core switch is currently in progress within the 1500ms grace window.
@@ -2262,43 +2136,16 @@ func (m *Manager) SetSwitchingGraceDeadline(deadline time.Time) {
 // flushStaleConnectionsAfterSwitch cleans up stale half-open connections in the kernel after an engine switch,
 // so client browsers immediately re-resolve and connect with the new core's Fake-IP pool.
 func (m *Manager) flushStaleConnectionsAfterSwitch() {
-	m.mu.RLock()
-	port := 9090
-	secret := ""
-	if m.ir != nil {
-		if m.ir.Network.ClashAPIPort > 0 {
-			port = m.ir.Network.ClashAPIPort
-		}
-		secret = m.ir.Network.ClashSecret
-	}
-	m.mu.RUnlock()
-
-	u := fmt.Sprintf("http://127.0.0.1:%d/connections", port)
+	clashAPI, secret, _ := m.snapshotNetMeta()
+	apiClient := clashapi.NewClient(clashAPI, secret, m.httpClient)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, u, nil)
-	if err != nil {
-		return
-	}
-	if secret != "" {
-		req.Header.Set("Authorization", "Bearer "+secret)
-	}
-	resp, err := m.httpClient.Do(req)
-	if err == nil {
-		netutil.DrainAndCloseBody(resp)
-		log.Printf("🧹 [Engine] Flushed stale connections via Clash API (%s)", u)
+	if err := apiClient.DeleteAllConnections(ctx); err == nil {
+		log.Printf("🧹 [Engine] Flushed stale connections via Clash API (%s)", apiClient.BaseURL)
 	}
 }
 
-type clashProxyEntry struct {
-	Name    string   `json:"name"`
-	Type    string   `json:"type"`
-	Now     string   `json:"now"`
-	All     []string `json:"all"`
-	History []struct {
-		Delay int `json:"delay"`
-	} `json:"history"`
-}
+type clashProxyEntry = clashapi.ProxyEntry
 
 func isVirtualOrBuiltInProxy(name, typ string) bool {
 	switch strings.ToUpper(strings.TrimSpace(name)) {

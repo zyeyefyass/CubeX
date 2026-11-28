@@ -46,7 +46,15 @@ import (
 	"time"
 
 	"github.com/zyeyefyass/CubeX/internal/config"
+	"github.com/zyeyefyass/CubeX/internal/netenv"
 )
+
+var injectedPanelVersion string
+
+// SetLocalPanelVersion 允许主控进程注入编译期版本号，避免硬编码兜底漂移。
+func SetLocalPanelVersion(v string) {
+	injectedPanelVersion = strings.TrimSpace(v)
+}
 
 // Manager handles RouterOS connectivity, Mihomo core upgrades,
 
@@ -193,47 +201,9 @@ type ROSConfig struct {
 
 // NewManager initialises the ROS and system upgrade manager.
 
-// DetectDefaultGatewayIP inspects the host's routing table to dynamically locate the main router / default gateway IP.
+// DetectDefaultGatewayIP inspects the host's routing table via netenv without guessing x.x.x.1.
 func DetectDefaultGatewayIP() string {
-	// 1. Linux standard: Parse /proc/net/route
-	if data, err := os.ReadFile("/proc/net/route"); err == nil {
-		lines := strings.Split(string(data), "\n")
-		for _, line := range lines[1:] {
-			fields := strings.Fields(line)
-			if len(fields) >= 3 {
-				dest := fields[1]
-				gw := fields[2]
-				// Destination "00000000" signifies default route
-				if dest == "00000000" && gw != "00000000" && len(gw) == 8 {
-					val, err := strconv.ParseUint(gw, 16, 32)
-					if err == nil {
-						ip := net.IPv4(byte(val), byte(val>>8), byte(val>>16), byte(val>>24))
-						if ip != nil && !ip.IsUnspecified() && !ip.IsLoopback() {
-							return ip.String()
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// 2. Fallback: Query system network interfaces and deduce likely gateway in local subnet
-	if addrs, err := net.InterfaceAddrs(); err == nil {
-		for _, a := range addrs {
-			if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-				if ip4 := ipnet.IP.To4(); ip4 != nil {
-					if ip4[0] == 10 || (ip4[0] == 172 && ip4[1] >= 16 && ip4[1] <= 31) || (ip4[0] == 192 && ip4[1] == 168) {
-						gwIP := net.IPv4(ip4[0], ip4[1], ip4[2], 1)
-						if !gwIP.Equal(ip4) {
-							return gwIP.String()
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return ""
+	return netenv.DetectHostTopology("", "").GatewayIP
 }
 
 func NewManager(rootDir string) *Manager {
@@ -432,9 +402,7 @@ func (m *Manager) GetOverview() map[string]any {
 	}
 
 	if latestPanel == "" {
-
-		latestPanel = "v9.98"
-
+		latestPanel = panelVer
 	}
 
 	if latestSingbox == "" {
@@ -1302,7 +1270,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 // ──────────────────────────────────────────────
 
 func (m *Manager) getLocalPanelVersion() string {
-	return "v9.98"
+	return "v9.99"
 
 }
 
@@ -1318,6 +1286,9 @@ func (m *Manager) getEffectiveLocalPanelVersion() string {
 				return v
 			}
 		}
+	}
+	if injectedPanelVersion != "" {
+		return injectedPanelVersion
 	}
 	return m.getLocalPanelVersion()
 }
@@ -3499,57 +3470,19 @@ func (m *Manager) GetROS(path string) ([]byte, error) {
 // GetOutboundIP attempts to discover the local IP of the container/host used to reach RouterOS.
 
 func (m *Manager) GetOutboundIP() string {
-
 	m.mu.Lock()
-
 	host := m.config.Host
-
 	m.mu.Unlock()
 
-	if host == "" {
-
-		host = "223.5.5.5"
-
-	}
-
-	conn, err := net.DialTimeout("udp", host+":80", 1*time.Second)
-
-	if err != nil {
-
-		// Fallback to checking local network interfaces
-
-		addrs, err := net.InterfaceAddrs()
-
-		if err == nil {
-
-			for _, a := range addrs {
-
-				if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-
-					if ip4 := ipnet.IP.To4(); ip4 != nil {
-
-						return ip4.String()
-
-					}
-
-				}
-
+	if host != "" {
+		if conn, err := net.DialTimeout("udp", host+":80", 1*time.Second); err == nil {
+			defer conn.Close()
+			if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok && localAddr.IP != nil && !localAddr.IP.IsLoopback() {
+				return localAddr.IP.String()
 			}
-
 		}
-
-		return ""
-
 	}
-
-	defer conn.Close()
-
-	if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok && localAddr.IP != nil {
-		return localAddr.IP.String()
-	}
-
-	return ""
-
+	return netenv.DetectHostTopology("", "").LocalIP
 }
 
 // ──────────────────────────────────────────────

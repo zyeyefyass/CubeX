@@ -255,7 +255,7 @@ def run_chaos_drill():
     else:
         print("  ✓ 拔电全家零掉线: 国内网页与解析 100% 飞速无感 (满分)")
 
-    if not heal_detected or "10.0.0.7" not in dns_restored.get("servers", ""):
+    if not heal_detected or CUBEX_IP not in dns_restored.get("servers", ""):
         score -= 10
         print("  ✗ 容器重启后未能在 3 秒内恢复 CubeX 状态 (-10分)")
     else:

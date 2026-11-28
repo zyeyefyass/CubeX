@@ -27,7 +27,7 @@ func MetaCoreVersions(metaPaths ...string) (singboxVer, mihomoVer string) {
 	mihomoVer = DefaultMihomoVersion
 
 	candidates := append([]string{}, metaPaths...)
-	candidates = append(candidates, "meta.json", "/app/meta.json", "/opt/CubeX/meta.json")
+	candidates = append(candidates, "meta.json", "/app/meta.json", "/opt/cubex/meta.json", "/opt/CubeX/meta.json")
 	for _, p := range candidates {
 		if strings.TrimSpace(p) == "" {
 			continue
@@ -60,7 +60,7 @@ type RuntimeSpec struct {
 	// 1. 网络与端口绑定（取代写死 IP 假兜底, 2026, 7890, 9090, 53, "cubex-tun"）
 	CubeXHostIP       string        `json:"cubex_host_ip"`       // 动态嗅探本机主网卡 IP，零假兜底
 	ControlListenAddr string        `json:"control_listen_addr"` // 默认 ":2026"
-	ClashAPIAddr      string        `json:"clash_api_addr"`      // 默认 "127.0.0.1:9090"
+	ClashAPIAddr      string        `json:"clash_api_addr"`      // 仅环境变量 CUBEX_CLASH_API 显式覆盖时非空（已规范化为 http://host:port）；为空时由 ResolveClashAPIBase 按 IR 端口推导
 	MixedProxyAddr    string        `json:"mixed_proxy_addr"`    // 默认 "127.0.0.1:7890"
 	DNSListenPort     int           `json:"dns_listen_port"`     // 默认 53
 	TunInterfaceName  string        `json:"tun_interface_name"`  // 默认 "cubex-tun"
@@ -98,7 +98,7 @@ func LoadRuntimeSpec() *RuntimeSpec {
 	return &RuntimeSpec{
 		CubeXHostIP:       hostIP,
 		ControlListenAddr: envOrDefault("CUBEX_CONTROL_ADDR", ":2026"),
-		ClashAPIAddr:      envOrDefault("CUBEX_CLASH_API", "127.0.0.1:9090"),
+		ClashAPIAddr:      NormalizeBaseURL(envOrDefault("CUBEX_CLASH_API", "")),
 		MixedProxyAddr:    envOrDefault("CUBEX_MIXED_ADDR", "127.0.0.1:7890"),
 		DNSListenPort:     envIntOrDefault("CUBEX_DNS_PORT", 53),
 		TunInterfaceName:  envOrDefault("CUBEX_TUN_NAME", "cubex-tun"),
@@ -112,6 +112,42 @@ func LoadRuntimeSpec() *RuntimeSpec {
 		ChildGoMemLimit: envOrDefault("CUBEX_CHILD_GOMEMLIMIT", memLimit),
 		ChildGoGC:       envOrDefault("CUBEX_CHILD_GOGC", goGC),
 	}
+}
+
+// ResolveDefaultWorkDir 统一探测 CubeX 默认工作目录（兼容 /app 容器、/opt/cubex 与历史 /opt/CubeX 安装路径）。
+func ResolveDefaultWorkDir() string {
+	for _, dir := range []string{"/app", "/opt/cubex", "/opt/CubeX"} {
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			return dir
+		}
+	}
+	return "/opt/cubex"
+}
+
+// NormalizeBaseURL 将 "127.0.0.1:9090" / "http://127.0.0.1:9090/" 等形式统一规范为 "http://127.0.0.1:9090"。
+// 空输入返回空串。缺少 scheme 时自动补全 http://，避免 net/http 构造请求时报
+// "first path segment in URL cannot contain colon" 而静默失效。
+func NormalizeBaseURL(addr string) string {
+	addr = strings.TrimSpace(addr)
+	if addr == "" {
+		return ""
+	}
+	if !strings.Contains(addr, "://") {
+		addr = "http://" + addr
+	}
+	return strings.TrimRight(addr, "/")
+}
+
+// ResolveClashAPIBase 返回内核 Clash API 的规范 Base URL：
+// 优先使用 CUBEX_CLASH_API 显式覆盖，否则按 IR 中配置的 ClashAPIPort（缺省 9090）推导本地回环地址。
+func ResolveClashAPIBase(irPort int) string {
+	if GlobalRuntimeSpec != nil && GlobalRuntimeSpec.ClashAPIAddr != "" {
+		return GlobalRuntimeSpec.ClashAPIAddr
+	}
+	if irPort <= 0 {
+		irPort = 9090
+	}
+	return "http://127.0.0.1:" + strconv.Itoa(irPort)
 }
 
 func envOrDefault(key, def string) string {

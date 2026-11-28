@@ -1,7 +1,7 @@
 {
   "name": "cubex",
   "title": "CubeX",
-  "version": "v9.98",
+  "version": "v9.99",
   "description": "宿主共生双引擎智能透明网关 · 网关与DNS统一协同 · 全家终端零改动接入",
   "icon": "https://raw.githubusercontent.com/zyeyefyass/CubeX/main/logo-cubex.svg",
   "developer": "fyasshole",
@@ -11,7 +11,7 @@
     "utilities"
   ],
   "compose": {
-    "version": "v9.98",
+    "version": "v9.99",
     "services": {
       "cubex": {
         "image": "fyasshole/cubex:latest",

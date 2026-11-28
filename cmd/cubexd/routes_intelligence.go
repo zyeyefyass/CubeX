@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"runtime"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/zyeyefyass/CubeX/internal/compiler"
+	"github.com/zyeyefyass/CubeX/internal/device"
 	"github.com/zyeyefyass/CubeX/internal/netutil"
 	"github.com/zyeyefyass/CubeX/internal/probe"
 	"github.com/zyeyefyass/CubeX/internal/schema"
@@ -457,6 +459,22 @@ func (s *Server) handleTelemetryConnectionsTree(w http.ResponseWriter, r *http.R
 	formatted := make([]formattedConnection, 0, len(rawConns))
 	now := time.Now()
 
+	// 从当前 IR 动态解析 TUN 网段并预建设备 IP 映射表，避免硬编码前缀与 O(N*M) 重复加锁
+	tunCIDR := "172.19.0.1/30"
+	if ir := s.engMgr.GetIR(); ir != nil && strings.TrimSpace(ir.Network.TunIPv4) != "" {
+		tunCIDR = strings.TrimSpace(ir.Network.TunIPv4)
+	}
+	_, tunNet, _ := net.ParseCIDR(tunCIDR)
+
+	devByIP := make(map[string]device.Device)
+	if s.devMgr != nil {
+		for _, dev := range s.devMgr.GetDevices() {
+			if dev.IP != "" {
+				devByIP[dev.IP] = dev
+			}
+		}
+	}
+
 	for _, item := range rawConns {
 		var c struct {
 			ID       string `json:"id"`
@@ -485,28 +503,24 @@ func (s *Server) handleTelemetryConnectionsTree(w http.ResponseWriter, r *http.R
 			durSec = 0
 		}
 
-		// Level 1 primary key: MAC with fallback to SourceIP (Gemini 4.0 Instruction 3)
+		// Level 1 primary key: MAC with fallback to SourceIP
 		clientMAC := ""
 		clientDevice := c.Metadata.SourceIP
-		if c.Metadata.SourceIP == "172.19.0.1" || strings.HasPrefix(c.Metadata.SourceIP, "172.19.") {
+		parsedSrcIP := net.ParseIP(strings.TrimSpace(c.Metadata.SourceIP))
+		if tunNet != nil && parsedSrcIP != nil && tunNet.Contains(parsedSrcIP) {
 			clientDevice = "CubeX 旁路由系统 (TUN内部回环)"
 			clientMAC = "本机系统"
 		} else if c.Metadata.SourceIP == "127.0.0.1" || c.Metadata.SourceIP == "::1" {
 			clientDevice = "CubeX 控制面服务 (Localhost)"
 			clientMAC = "本机系统"
-		} else if s.devMgr != nil {
-			for _, dev := range s.devMgr.GetDevices() {
-				if dev.IP == c.Metadata.SourceIP {
-					if dev.MAC != "" {
-						clientMAC = dev.MAC
-					}
-					if dev.Name != "" {
-						clientDevice = dev.Name
-					} else if dev.HostName != "" {
-						clientDevice = dev.HostName
-					}
-					break
-				}
+		} else if dev, ok := devByIP[c.Metadata.SourceIP]; ok {
+			if dev.MAC != "" {
+				clientMAC = dev.MAC
+			}
+			if dev.Name != "" {
+				clientDevice = dev.Name
+			} else if dev.HostName != "" {
+				clientDevice = dev.HostName
 			}
 		}
 

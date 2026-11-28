@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/zyeyefyass/CubeX/internal/config"
 	"github.com/zyeyefyass/CubeX/internal/onboarding"
+	"github.com/zyeyefyass/CubeX/internal/perf"
 	"log"
 	"net"
 	"net/http"
@@ -18,80 +20,16 @@ import (
 )
 
 var (
-	version = "v9.98"
+	version = "v9.99"
 
 	startTime = time.Now()
 )
 
 func configureAdaptiveMemoryLimit() {
-
 	// Base fallback: 24MiB default ceiling for cubexd control plane
-
 	limit := int64(24 * 1024 * 1024)
-
 	gcPercent := 40
-
-	totalMb := int64(1024)
-
-	// 1. Check cgroups v2 memory.max
-	if data, err := os.ReadFile("/sys/fs/cgroup/memory.max"); err == nil {
-		str := strings.TrimSpace(string(data))
-		if str != "" && str != "max" {
-			if bytesVal, err := strconv.ParseInt(str, 10, 64); err == nil && bytesVal > 0 {
-				mb := bytesVal / (1024 * 1024)
-				if mb > 0 && mb < totalMb {
-					totalMb = mb
-				}
-			}
-		}
-	}
-
-	// 2. Check cgroups v1 memory.limit_in_bytes
-	if data, err := os.ReadFile("/sys/fs/cgroup/memory/memory.limit_in_bytes"); err == nil {
-		str := strings.TrimSpace(string(data))
-		if str != "" {
-			if bytesVal, err := strconv.ParseInt(str, 10, 64); err == nil && bytesVal > 0 && bytesVal < (1<<60) {
-				mb := bytesVal / (1024 * 1024)
-				if mb > 0 && mb < totalMb {
-					totalMb = mb
-				}
-			}
-		}
-	}
-
-	// 3. Check total system RAM on Linux via /proc/meminfo
-
-	if data, err := os.ReadFile("/proc/meminfo"); err == nil {
-
-		for _, line := range strings.Split(string(data), "\n") {
-
-			if strings.HasPrefix(line, "MemTotal:") {
-
-				fields := strings.Fields(line)
-
-				if len(fields) >= 2 {
-
-					if totalKb, err := strconv.ParseInt(fields[1], 10, 64); err == nil {
-
-						mb := totalKb / 1024
-
-						if mb > 0 && (totalMb == 1024 || mb < totalMb) {
-
-							totalMb = mb
-
-						}
-
-					}
-
-				}
-
-				break
-
-			}
-
-		}
-
-	}
+	totalMb := perf.DetectTotalRAMMb()
 
 	if totalMb <= 256 {
 		limit = 12 * 1024 * 1024 // 256M container: 12MiB
@@ -108,11 +46,8 @@ func configureAdaptiveMemoryLimit() {
 	}
 
 	debug.SetMemoryLimit(limit)
-
 	debug.SetGCPercent(gcPercent)
-
 	log.Printf("🛡️ [Supervisor] Adaptive GOMEMLIMIT configured: %d MiB (GCPercent=%d, DetectedRAM=%dMB)\n", limit/(1024*1024), gcPercent, totalMb)
-
 }
 
 // safeRecover provides panic interception and stack tracing for all asynchronous goroutines.
@@ -173,22 +108,8 @@ func bindWithFallback(initialAddr string) (net.Listener, string, error) {
 func main() {
 	configureAdaptiveMemoryLimit()
 
-	SafeGo("MemoryScavenger", func() {
-		time.Sleep(15 * time.Second)
-		runtime.GC()
-		debug.FreeOSMemory()
-
-		scavengeInterval := 3 * time.Minute
-		ticker := time.NewTicker(scavengeInterval)
-		defer ticker.Stop()
-		for range ticker.C {
-			runtime.GC()
-			debug.FreeOSMemory()
-		}
-	})
-
 	listenAddr := flag.String("listen", ":2026", "Listen address (e.g. :2026 or 0.0.0.0:2026)")
-	workDir := flag.String("dir", "", "Working directory (defaults to current dir or /opt/CubeX)")
+	workDir := flag.String("dir", "", "Working directory (defaults to current dir, /app, or /opt/cubex)")
 	runDoctor := flag.Bool("doctor", false, "Run onboarding doctor environment preflight and print diagnostic report")
 	flag.Parse()
 
@@ -210,11 +131,7 @@ func main() {
 		if runtime.GOOS == "windows" {
 			dir = "."
 		} else {
-			if _, err := os.Stat("/app"); err == nil {
-				dir = "/app"
-			} else {
-				dir = "/opt/CubeX"
-			}
+			dir = config.ResolveDefaultWorkDir()
 		}
 	}
 

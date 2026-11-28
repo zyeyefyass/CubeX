@@ -2,9 +2,25 @@ package netutil
 
 import (
 	"io"
+	"log"
 	"net/http"
+	"runtime"
 	"time"
 )
+
+// SafeGo 在带 panic 捕获的后台协程中执行 fn，防止未捕获异常击穿主守护进程。
+func SafeGo(name string, fn func()) {
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				buf := make([]byte, 4096)
+				n := runtime.Stack(buf, false)
+				log.Printf("⚠️ [SafeGo] Recovered from panic in [%s]: %v\nStack:\n%s\n", name, r, string(buf[:n]))
+			}
+		}()
+		fn()
+	}()
+}
 
 const maxDrainBytes = 64 * 1024 // 最多排空 64KB 残余数据，兼顾连接复用与防恶意大流阻塞
 

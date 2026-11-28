@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/zyeyefyass/CubeX/internal/config"
 	"github.com/zyeyefyass/CubeX/internal/dataplane"
 	"github.com/zyeyefyass/CubeX/internal/engine"
 	"github.com/zyeyefyass/CubeX/internal/lifecycle"
@@ -53,8 +54,11 @@ func (s *Server) Run(listenAddr string) error {
 
 	handler := recoveryMiddleware(gzipMiddleware(corsMiddleware(authMiddleware(s.authMgr, mux))))
 	httpServer := &http.Server{
-		Handler: handler,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
+	s.registerHTTPServer(httpServer)
 	var httpServer80 *http.Server
 
 	// Dual-port listening: if port 80 is available (e.g. standalone container), also serve on port 80 for seamless access (http://<IP>)
@@ -62,7 +66,12 @@ func (s *Server) Run(listenAddr string) error {
 		ln80, err80 := net.Listen("tcp", ":80")
 		if err80 == nil {
 			log.Printf("🌐 [Web Direct] Port 80 is free! Also serving dashboard directly at http://<host-ip>/ (Port 80)\n")
-			httpServer80 = &http.Server{Handler: handler}
+			httpServer80 = &http.Server{
+				Handler:           handler,
+				ReadHeaderTimeout: 10 * time.Second,
+				IdleTimeout:       60 * time.Second,
+			}
+			s.registerHTTPServer(httpServer80)
 			srv80 := httpServer80
 			SafeGo("WebDirectPort80", func() {
 				if sErr := srv80.Serve(ln80); sErr != nil && sErr != http.ErrServerClosed {
@@ -354,9 +363,16 @@ func (s *Server) handleRestartService(w http.ResponseWriter, r *http.Request) {
 	})
 
 	SafeGo("RestartDaemon", func() {
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(350 * time.Millisecond)
+		s.shutdownHTTPServers(800 * time.Millisecond)
+		s.Close()
 		if s.engMgr != nil {
-			_, _ = s.engMgr.SwitchEngine(s.engMgr.GetActiveEngine())
+			s.engMgr.Stop()
+		}
+		// 托管环境（Container entrypoint / systemd / OpenRC）仅干净退出，由外部守护方拉起，防止双实例端口漂移
+		if os.Getenv("CUBEX_SUPERVISED") == "1" || os.Getenv("INVOCATION_ID") != "" || os.Getenv("RC_SVCNAME") != "" {
+			log.Println("🔄 [RestartDaemon] 检测到托管守护环境，已释放监听并退出交由守护方拉起新实例...")
+			os.Exit(0)
 		}
 		exe, err := os.Executable()
 		if err == nil {
@@ -687,9 +703,10 @@ func (s *Server) handleFailoverDrill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 步骤 3: 策略路由自愈与僵尸连接清算
+	// 步骤 3: 策略路由自愈与僵尸连接定向清算（仅清理 Fake-IP 网段，严禁误杀正常直连）
 	tFlush := time.Now()
-	exec.Command("conntrack", "-F").Run()
+	_ = exec.Command("conntrack", "-D", "-d", config.DefaultFakeIPRange).Run()
+	_ = exec.Command("conntrack", "-D", "-s", config.DefaultFakeIPRange).Run()
 	step3Ms := time.Since(tFlush).Milliseconds()
 	if step3Ms == 0 {
 		step3Ms = 18

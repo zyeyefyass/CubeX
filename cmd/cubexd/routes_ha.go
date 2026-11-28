@@ -2484,7 +2484,9 @@ func (s *Server) handleDeviceToggle(w http.ResponseWriter, r *http.Request) {
 		SafeGo("KillClientConns", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 800*time.Millisecond)
 			defer cancel()
-			_, _ = s.staleFlowKiller.KillClientConnections(ctx, req.IP)
+			if _, kErr := s.staleFlowKiller.KillClientConnections(ctx, req.IP); kErr != nil {
+				log.Printf("⚠️ [StaleKiller] 斩断终端 %s 旧连接失败: %v", req.IP, kErr)
+			}
 		})
 	}
 

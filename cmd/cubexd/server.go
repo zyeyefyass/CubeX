@@ -23,6 +23,7 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/mcp"
 	"github.com/zyeyefyass/CubeX/internal/netenv"
 	"github.com/zyeyefyass/CubeX/internal/netstack"
+	"github.com/zyeyefyass/CubeX/internal/netutil"
 	"github.com/zyeyefyass/CubeX/internal/onboarding"
 	"github.com/zyeyefyass/CubeX/internal/perf"
 	"github.com/zyeyefyass/CubeX/internal/probe"
@@ -64,9 +65,8 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 	// Ensure kernel forwarding and NAT Masquerade on Linux (veth / gateway mode)
 
 	if runtime.GOOS == "linux" {
-
-		_ = exec.Command("sh", "-c", "echo 1 > /proc/sys/net/ipv4/ip_forward 2>/dev/null; iptables -P FORWARD ACCEPT 2>/dev/null; iptables -t nat -A POSTROUTING -j MASQUERADE 2>/dev/null").Run()
-
+		// 幂等启用 IP 转发与 NAT 伪装，避免重启叠加重复 MASQUERADE 规则
+		_ = exec.Command("sh", "-c", "echo 1 > /proc/sys/net/ipv4/ip_forward 2>/dev/null; iptables -P FORWARD ACCEPT 2>/dev/null; (iptables -t nat -C POSTROUTING -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -j MASQUERADE 2>/dev/null)").Run()
 	}
 
 	// Initialize Universal IR
@@ -107,6 +107,7 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 
 	// ROS Manager
 
+	ros.SetLocalPanelVersion(version)
 	rosMgr := ros.NewManager(dir)
 
 	// Adblock & Domain Filter Manager
@@ -285,17 +286,19 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 		},
 	}
 
-	srv.mcpServer = mcp.NewServer(srv, "v9.7.0")
+	srv.mcpServer = mcp.NewServer(srv, version)
 	srv.monthlyLedger = traffic.NewMonthlyLedger(dir)
 	srv.autoSyncGuard = sub.NewAutoSyncGuard()
 	if cfgIR != nil && len(cfgIR.Proxies) > 0 {
 		srv.autoSyncGuard.SetInitialState(cfgIR.Proxies)
 	}
 
-	clashAPIAddr := config.GlobalRuntimeSpec.ClashAPIAddr
-	if clashAPIAddr == "" && cfgIR != nil && cfgIR.Network.ClashAPIPort > 0 {
-		clashAPIAddr = fmt.Sprintf("http://127.0.0.1:%d", cfgIR.Network.ClashAPIPort)
+	irClashPort := 0
+	if cfgIR != nil {
+		irClashPort = cfgIR.Network.ClashAPIPort
 	}
+	// 统一规范化的 Clash API Base（含 http:// scheme），供 WANHealer / 清道夫 / 终端透视 / EWMA 共用
+	clashAPIAddr := config.ResolveClashAPIBase(irClashPort)
 	clashSecret := ""
 	if cfgIR != nil {
 		clashSecret = cfgIR.Network.ClashSecret
@@ -332,8 +335,11 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 	srv.circuitBreaker = probe.NewPassiveCircuitBreaker(5, 5*time.Minute, func(nodeName, reason string) {
 		srv.logBuffer.Add("WARN", "AutoPilot", fmt.Sprintf("被动流量遥测熔断: 节点 [%s] 异常黑洞/连续握手超时 (原因: %s)，已自动隔离 5 分钟", nodeName, reason))
 		if srv.staleFlowKiller != nil {
-			killed, _ := srv.staleFlowKiller.KillNodeConnections(context.Background(), nodeName)
-			if killed > 0 {
+			killed, kErr := srv.staleFlowKiller.KillNodeConnections(context.Background(), nodeName)
+			if kErr != nil {
+				log.Printf("⚠️ [StaleKiller] 被动熔断清理旧节点 [%s] 连接失败: %v", nodeName, kErr)
+				srv.logBuffer.Add("WARN", "StaleKiller", fmt.Sprintf("被动熔断清理旧节点 [%s] 连接失败: %v", nodeName, kErr))
+			} else if killed > 0 {
 				srv.logBuffer.Add("INFO", "StaleKiller", fmt.Sprintf("被动熔断精准清道夫: 已立即斩断旧节点 [%s] 僵尸会话 %d 条 (0误伤其它节点与直连)", nodeName, killed))
 			}
 		}
@@ -342,18 +348,25 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 	})
 
 	srv.ewmaSched = probe.NewEWMAScheduler(probe.SchedulerConfig{
-		ClashAPIBase:   config.GlobalRuntimeSpec.ClashAPIAddr,
+		ClashAPIBase:   clashAPIAddr,
+		ClashAPISecret: clashSecret,
 		TickInterval:   15 * time.Second,
 		MaxConcurrency: 4,
 	}, srv.ewmaMgr, func(ev probe.SwitchEvent) {
 		srv.logBuffer.Add("INFO", "EWMA", fmt.Sprintf("微秒闭环选路: 组 [%s] 节点自适应切换: %s -> %s (原因: %s, 紧急: %v)", ev.Group, ev.FromNode, ev.ToNode, ev.Reason, ev.Emergency))
 		if srv.staleFlowKiller != nil && ev.FromNode != "" {
-			killed, _ := srv.staleFlowKiller.KillNodeConnections(context.Background(), ev.FromNode)
-			if killed > 0 {
+			killed, kErr := srv.staleFlowKiller.KillNodeConnections(context.Background(), ev.FromNode)
+			if kErr != nil {
+				log.Printf("⚠️ [StaleKiller] 节点漂移清理旧节点 [%s] 连接失败: %v", ev.FromNode, kErr)
+				srv.logBuffer.Add("WARN", "StaleKiller", fmt.Sprintf("节点漂移清理旧节点 [%s] 连接失败: %v", ev.FromNode, kErr))
+			} else if killed > 0 {
 				srv.logBuffer.Add("INFO", "StaleKiller", fmt.Sprintf("节点漂移精准清道夫: 清理旧节点 [%s] 僵尸会话 %d 条 (0误伤其它节点与直连)", ev.FromNode, killed))
 			}
 		} else if ev.Emergency && srv.wanHealer != nil {
-			_ = srv.wanHealer.FlushStaleConnections(context.Background(), fmt.Sprintf("EWMA紧急熔断切换 [%s]", ev.Group))
+			if fErr := srv.wanHealer.FlushStaleConnections(context.Background(), fmt.Sprintf("EWMA紧急熔断切换 [%s]", ev.Group)); fErr != nil {
+				log.Printf("⚠️ [WAN_HEALER] EWMA紧急熔断冲刷陈旧连接失败: %v", fErr)
+				srv.logBuffer.Add("WARN", "WAN_HEALER", fmt.Sprintf("EWMA紧急熔断冲刷陈旧连接失败: %v", fErr))
+			}
 		}
 	})
 	srv.ewmaSched.SetCircuitBreaker(srv.circuitBreaker)
@@ -369,13 +382,23 @@ func NewServer(dir string, listenAddr string) (*Server, error) {
 			srv.logBuffer.Add("INFO", "FAIL_OPEN", fmt.Sprintf("✅ 代理引擎恢复健康，已切回正常加速: %s", reason))
 		}
 	})
+	engMgr.SetFaultCallbacks(
+		func(reason string) {
+			if srv.failOpenCtrl != nil {
+				_ = srv.failOpenCtrl.TriggerFailOpen(context.Background(), reason)
+			}
+		},
+		func(active schema.EngineType, detail string) {
+			srv.logBuffer.Add("WARN", "WATCHDOG", fmt.Sprintf("⚠️ 引擎 %s 上游节点链路异常（内核与国内直连正常），交由 EWMA/熔断调度处理: %s", active, detail))
+		},
+	)
 	stopCtx, stopCancel := context.WithCancel(context.Background())
 	SafeGo("StopCtxMonitor", func() {
 		<-srv.stopCh
 		stopCancel()
 	})
 
-	srv.memGuard = perf.NewMemoryGuard(24, nil)
+	srv.memGuard = perf.NewMemoryGuard(0, nil)
 	SafeGo("IdleMemoryScavenger", func() {
 		srv.memGuard.StartIdleScavenger(stopCtx, 3*time.Minute)
 	})
@@ -1061,6 +1084,34 @@ type Server struct {
 
 	stopCh   chan struct{}
 	stopOnce sync.Once
+
+	httpMu      sync.Mutex
+	httpServers []*http.Server
+}
+
+func (s *Server) registerHTTPServer(srv *http.Server) {
+	if srv == nil {
+		return
+	}
+	s.httpMu.Lock()
+	s.httpServers = append(s.httpServers, srv)
+	s.httpMu.Unlock()
+}
+
+func (s *Server) shutdownHTTPServers(timeout time.Duration) {
+	s.httpMu.Lock()
+	servers := append([]*http.Server(nil), s.httpServers...)
+	s.httpMu.Unlock()
+	if len(servers) == 0 {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	for _, srv := range servers {
+		if srv != nil {
+			_ = srv.Shutdown(ctx)
+		}
+	}
 }
 
 // Close gracefully stops the server background workers and sets draining
@@ -1127,22 +1178,9 @@ func (s *Server) UpdateIRAndReload(ir *schema.ConfigIR, debounce time.Duration) 
 
 
 
-func safeRecover(name string) {
-	if r := recover(); r != nil {
-		buf := make([]byte, 4096)
-		n := runtime.Stack(buf, false)
-		log.Printf("⚠️ [SafeGo] Recovered from panic in [%s]: %v\nStack:\n%s\n", name, r, string(buf[:n]))
-	}
-}
-
 // SafeGo launches a function in a protected goroutine with automatic panic recovery.
-
-
 func SafeGo(name string, fn func()) {
-	go func() {
-		defer safeRecover(name)
-		fn()
-	}()
+	netutil.SafeGo(name, fn)
 }
 
 // WriteFileAtomic writes data to a temporary file, fsyncs it to disk, and atomically renames
@@ -1397,53 +1435,12 @@ func maskROSConfigResponse(raw map[string]string) map[string]string {
 
 
 func detectOutboundIP() string {
-	conn, err := net.DialTimeout("udp", "223.5.5.5:80", 1*time.Second)
-	if err == nil {
-		defer conn.Close()
-		if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
-			return localAddr.IP.String()
-		}
-	}
-	addrs, err := net.InterfaceAddrs()
-	if err == nil {
-		for _, a := range addrs {
-			if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-				if ip4 := ipnet.IP.To4(); ip4 != nil {
-					return ip4.String()
-				}
-			}
-		}
-	}
-	return "127.0.0.1"
+	return netenv.DetectHostTopology("", "").LocalIP
 }
 
-// detectDefaultGateway dynamically discovers the default gateway on Linux (/proc/net/route) or infers from outbound IP
-
-
+// detectDefaultGateway dynamically discovers the default gateway via netenv without guessing x.x.x.1.
 func detectDefaultGateway() string {
-	if data, err := os.ReadFile("/proc/net/route"); err == nil {
-		lines := strings.Split(string(data), "\n")
-		for _, line := range lines[1:] {
-			fields := strings.Fields(line)
-			if len(fields) >= 3 && fields[1] == "00000000" { // Destination 0.0.0.0
-				var ipBytes [4]byte
-				if n, _ := fmt.Sscanf(fields[2], "%02X%02X%02X%02X", &ipBytes[3], &ipBytes[2], &ipBytes[1], &ipBytes[0]); n == 4 {
-					gw := net.IP(ipBytes[:]).String()
-					if gw != "0.0.0.0" {
-						return gw
-					}
-				}
-			}
-		}
-	}
-	outIP := detectOutboundIP()
-	if outIP != "" && outIP != "127.0.0.1" {
-		parts := strings.Split(outIP, ".")
-		if len(parts) == 4 {
-			return parts[0] + "." + parts[1] + "." + parts[2] + ".1"
-		}
-	}
-	return ""
+	return netenv.DetectHostTopology("", "").GatewayIP
 }
 
 // ============================================================================
@@ -1485,7 +1482,7 @@ func parseAdblockIntercept(msg string) (domain, clientIP, rule string, ok bool) 
 	}
 
 	rulePart := "217heidai (去广告&隐私追踪)"
-	clientIP = "10.0.0.1"
+	clientIP = "未知终端"
 
 	// 1. Mihomo 经典格式: ... 10.0.0.50:54321 --> ad.com:443 match ... using REJECT
 	if arrowIdx := strings.Index(msg, " --> "); arrowIdx != -1 {

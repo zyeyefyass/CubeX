@@ -69,7 +69,7 @@
 
                 <span>当前运行:</span>
 
-                <strong class="text-emerald-300">{{ app.systemOverview.cubex_version || 'Test v8.4' }}</strong>
+                <strong class="text-emerald-300">{{ app.systemOverview.cubex_version || '—' }}</strong>
 
               </div>
 
@@ -77,7 +77,7 @@
 
                 <span>云端 Release:</span>
 
-                <span class="text-slate-800">{{ app.systemOverview.panel_latest_version || app.systemOverview.cubex_version || 'Test v8.4' }}</span>
+                <span class="text-slate-800">{{ app.systemOverview.panel_latest_version || app.systemOverview.cubex_version || '—' }}</span>
 
               </div>
 

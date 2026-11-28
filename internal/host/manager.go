@@ -1134,28 +1134,16 @@ func (m *Manager) ProbeHost() (*HostInfo, error) {
 
 // GetOutboundIP attempts to discover the local IP of the container/host used to reach target host.
 func (m *Manager) GetOutboundIP(targetHost string) string {
-	if targetHost == "" {
-		targetHost = "223.5.5.5"
-	}
-	conn, err := net.DialTimeout("udp", targetHost+":80", 1*time.Second)
-	if err == nil {
-		defer conn.Close()
-		if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
-			return localAddr.IP.String()
-		}
-	}
-	// Fallback to checking local network interfaces
-	addrs, err := net.InterfaceAddrs()
-	if err == nil {
-		for _, a := range addrs {
-			if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-				if ip4 := ipnet.IP.To4(); ip4 != nil {
-					return ip4.String()
-				}
+	if targetHost != "" {
+		conn, err := net.DialTimeout("udp", targetHost+":80", 1*time.Second)
+		if err == nil {
+			defer conn.Close()
+			if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok && !localAddr.IP.IsLoopback() {
+				return localAddr.IP.String()
 			}
 		}
 	}
-	return "127.0.0.1"
+	return netenv.DetectHostTopology("", "").LocalIP
 }
 
 // ApplyFirewall configures IP forwarding, panel TCP port, and line-speed sysctl optimization on the host.

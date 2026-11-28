@@ -5,8 +5,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
+	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/clashapi"
 )
 
 func TestStaleFlowKiller_KillNodeConnections(t *testing.T) {
@@ -15,20 +19,8 @@ func TestStaleFlowKiller_KillNodeConnections(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet && r.URL.Path == "/connections" {
-			resp := clashConnectionsResponse{
-				Connections: []struct {
-					ID       string   `json:"id"`
-					Upload   int64    `json:"upload"`
-					Download int64    `json:"download"`
-					Chains   []string `json:"chains"`
-					Rule     string   `json:"rule"`
-					Metadata struct {
-						Network       string `json:"network"`
-						SourceIP      string `json:"sourceIP"`
-						DestinationIP string `json:"destinationIP"`
-						Host          string `json:"host"`
-					} `json:"metadata"`
-				}{
+			resp := clashapi.ConnectionsResponse{
+				Connections: []clashapi.ConnectionEntry{
 					{
 						ID:     "conn-1",
 						Chains: []string{"Proxy", "HK-01"},
@@ -99,20 +91,8 @@ func TestStaleFlowKiller_KillStalledConnections(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet && r.URL.Path == "/connections" {
-			resp := clashConnectionsResponse{
-				Connections: []struct {
-					ID       string   `json:"id"`
-					Upload   int64    `json:"upload"`
-					Download int64    `json:"download"`
-					Chains   []string `json:"chains"`
-					Rule     string   `json:"rule"`
-					Metadata struct {
-						Network       string `json:"network"`
-						SourceIP      string `json:"sourceIP"`
-						DestinationIP string `json:"destinationIP"`
-						Host          string `json:"host"`
-					} `json:"metadata"`
-				}{
+			resp := clashapi.ConnectionsResponse{
+				Connections: []clashapi.ConnectionEntry{
 					{
 						ID:     "conn-stalled",
 						Chains: []string{"Proxy", "HK-01"},
@@ -162,5 +142,61 @@ func TestStaleFlowKiller_KillStalledConnections(t *testing.T) {
 	defer mu.Unlock()
 	if len(deletedIDs) != 1 || deletedIDs[0] != "conn-stalled" {
 		t.Fatalf("unexpected deleted IDs: %v", deletedIDs)
+	}
+}
+
+func TestStaleFlowKiller_DeleteBatchCancelsCleanly(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(150 * time.Millisecond)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer ts.Close()
+
+	killer := NewStaleFlowKiller(ts.URL, "")
+	ids := make([]string, 32)
+	for i := range ids {
+		ids[i] = "id"
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Millisecond)
+	defer cancel()
+
+	start := time.Now()
+	_ = killer.deleteBatch(ctx, ids)
+	if elapsed := time.Since(start); elapsed > 500*time.Millisecond {
+		t.Fatalf("deleteBatch blocked too long after ctx cancel: %v", elapsed)
+	}
+}
+
+func TestStaleFlowKiller_BareHostPortAndErrorPropagation(t *testing.T) {
+	srvOK := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/connections" {
+			_ = json.NewEncoder(w).Encode(clashapi.ConnectionsResponse{
+				Connections: []clashapi.ConnectionEntry{{ID: "c-bare", Chains: []string{"HK-01"}}},
+			})
+			return
+		}
+		if r.Method == http.MethodDelete {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srvOK.Close()
+
+	killer := NewStaleFlowKiller(strings.TrimPrefix(srvOK.URL, "http://"), "")
+	killed, err := killer.KillNodeConnections(context.Background(), "HK-01")
+	if err != nil || killed != 1 {
+		t.Fatalf("expected bare host:port KillNodeConnections=1, got killed=%d err=%v", killed, err)
+	}
+
+	srvErr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srvErr.Close()
+
+	killerErr := NewStaleFlowKiller(srvErr.URL, "")
+	if _, err := killerErr.KillNodeConnections(context.Background(), "HK-01"); err == nil {
+		t.Fatalf("expected explicit error when Clash API returns 500")
 	}
 }

@@ -42,8 +42,10 @@ func (s *Server) handleAutoPilotStatus(w http.ResponseWriter, r *http.Request) {
 
 	var scavengeCount uint64
 	var lastScavenge int64
+	var softLimitMiB int64 = 24
 	if s.memGuard != nil {
 		scavengeCount, lastScavenge = s.memGuard.GetScavengeStats()
+		softLimitMiB = s.memGuard.LimitMiB()
 	}
 
 	status := map[string]any{
@@ -54,7 +56,7 @@ func (s *Server) handleAutoPilotStatus(w http.ResponseWriter, r *http.Request) {
 		},
 		"fail_open": failOpenRep,
 		"memory_guard": map[string]any{
-			"soft_limit_mib":      24,
+			"soft_limit_mib":      softLimitMiB,
 			"idle_scavenge_count": scavengeCount,
 			"last_scavenge_milli": lastScavenge,
 		},

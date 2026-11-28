@@ -1,10 +1,6 @@
 import { createApp } from 'vue'
 import './style.css'
 import App from './App.vue'
-import { initDemoMock } from './mock.js'
-
-// 在 GitHub Pages 或 Demo 模式下激活只读仿真拦截器
-initDemoMock()
 
 // 全局异常捕获与白屏防护
 window.addEventListener('error', (event) => {
@@ -14,10 +10,24 @@ window.addEventListener('error', (event) => {
   }
 })
 
-const app = createApp(App)
+async function bootstrap() {
+  const isDemoMode =
+    window.location.hostname.includes('github.io') ||
+    window.location.search.includes('demo=1') ||
+    window.location.protocol === 'file:' ||
+    import.meta.env.VITE_DEMO_MODE === 'true'
 
-app.config.errorHandler = (err, vm, info) => {
-  console.error('[CubeX Vue Runtime Error]:', err, info)
+  // 仅在 Demo 模式下按需动态加载仿真拦截器，避免污染生产主包体积
+  if (isDemoMode) {
+    const { initDemoMock } = await import('./mock.js')
+    initDemoMock()
+  }
+
+  const app = createApp(App)
+  app.config.errorHandler = (err, vm, info) => {
+    console.error('[CubeX Vue Runtime Error]:', err, info)
+  }
+  app.mount('#app')
 }
 
-app.mount('#app')
+bootstrap()

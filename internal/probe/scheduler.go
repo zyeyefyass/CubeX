@@ -1,17 +1,16 @@
 package probe
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/zyeyefyass/CubeX/internal/netutil"
+	"log"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/clashapi"
 )
 
 // SchedulerConfig defines parameters for closed-loop EWMA route arbitration.
@@ -42,17 +41,34 @@ type SwitchEvent struct {
 
 // EWMAScheduler provides microsecond-precision adaptive closed-loop route optimization.
 type EWMAScheduler struct {
-	cfg           SchedulerConfig
-	ewma          *EWMAManager
-	httpClient    *http.Client
-	sem           chan struct{}
+	cfg            SchedulerConfig
+	ewma           *EWMAManager
+	api            *clashapi.Client
+	sem            chan struct{}
 	mu            sync.Mutex
 	coldCursors   map[string]int       // tracks ring cursor position per policy group
 	groupSwitchAt map[string]time.Time // tracks last switch timestamp per policy group
 	penalizedUntil map[string]time.Time // tracks temporary blackhole penalty expiration per node (default 300s)
-	pausedUntil   atomic.Int64         // kernel switchover silence barrier timestamp (UnixNano)
+	pausedUntil    atomic.Int64         // kernel switchover silence barrier timestamp (UnixNano)
+	lastErrLogAt   time.Time
 	circuitBreaker *PassiveCircuitBreaker
-	onSwitch      func(ev SwitchEvent)
+	onSwitch       func(ev SwitchEvent)
+}
+
+func (s *EWMAScheduler) logErrorThrottled(action string, err error) {
+	if err == nil {
+		return
+	}
+	now := time.Now()
+	s.mu.Lock()
+	shouldLog := s.lastErrLogAt.IsZero() || now.Sub(s.lastErrLogAt) >= 30*time.Second
+	if shouldLog {
+		s.lastErrLogAt = now
+	}
+	s.mu.Unlock()
+	if shouldLog {
+		log.Printf("⚠️ [EWMAScheduler] %s: %v", action, err)
+	}
 }
 
 // SetCircuitBreaker 注入被动流量遥测熔断器
@@ -98,10 +114,16 @@ func NewEWMAScheduler(cfg SchedulerConfig, ewma *EWMAManager, onSwitch func(Swit
 		IdleConnTimeout:     30 * time.Second,
 	}
 
+	apiClient := clashapi.NewClient(cfg.ClashAPIBase, cfg.ClashAPISecret, &http.Client{
+		Transport: tr,
+		Timeout:   cfg.ProbeTimeout + 1*time.Second,
+	})
+	cfg.ClashAPIBase = apiClient.BaseURL
+
 	return &EWMAScheduler{
 		cfg:            cfg,
 		ewma:           ewma,
-		httpClient:     &http.Client{Transport: tr, Timeout: cfg.ProbeTimeout + 1*time.Second},
+		api:            apiClient,
 		sem:            make(chan struct{}, cfg.MaxConcurrency),
 		coldCursors:    make(map[string]int),
 		groupSwitchAt:  make(map[string]time.Time),
@@ -133,19 +155,7 @@ func (s *EWMAScheduler) Run(ctx context.Context) {
 	}
 }
 
-type clashProxiesResp struct {
-	Proxies map[string]clashProxyItem `json:"proxies"`
-}
-
-type clashProxyItem struct {
-	Name    string   `json:"name"`
-	Type    string   `json:"type"`
-	Now     string   `json:"now"`
-	All     []string `json:"all"`
-	History []struct {
-		Delay int `json:"delay"`
-	} `json:"history"`
-}
+type clashProxyItem = clashapi.ProxyEntry
 
 // RunSingleCycle executes a single round of tiered sampling and closed-loop routing evaluation (public for testing).
 func (s *EWMAScheduler) RunSingleCycle(ctx context.Context) {
@@ -158,7 +168,11 @@ func (s *EWMAScheduler) runSingleCycle(ctx context.Context) {
 	s.mu.Unlock()
 
 	proxies, err := s.fetchProxiesSnapshot(ctx)
-	if err != nil || len(proxies) == 0 {
+	if err != nil {
+		s.logErrorThrottled("拉取内核策略组快照失败", err)
+		return
+	}
+	if len(proxies) == 0 {
 		return
 	}
 
@@ -315,7 +329,9 @@ func (s *EWMAScheduler) EvaluateAndSwitchGroup(ctx context.Context, groupName, c
 	if !hasCur || curStat.ConsecutiveFails >= 2 {
 		reason := fmt.Sprintf("fast-failover: active node %s consecutive_fails=%d, switch to %s (eff=%dms)",
 			currentActive, curStat.ConsecutiveFails, best.NodeName, best.EffectiveDelay)
-		if err := s.switchClashGroup(ctx, groupName, best.NodeName); err == nil {
+		if err := s.switchClashGroup(ctx, groupName, best.NodeName); err != nil {
+			s.logErrorThrottled(fmt.Sprintf("紧急切换策略组 [%s -> %s] 失败", groupName, best.NodeName), err)
+		} else {
 			s.recordSwitch(groupName, currentActive, best.NodeName, reason, true)
 		}
 		return
@@ -340,7 +356,9 @@ func (s *EWMAScheduler) EvaluateAndSwitchGroup(ctx context.Context, groupName, c
 		return
 	}
 
-	if err := s.switchClashGroup(ctx, groupName, best.NodeName); err == nil {
+	if err := s.switchClashGroup(ctx, groupName, best.NodeName); err != nil {
+		s.logErrorThrottled(fmt.Sprintf("主动优化切换策略组 [%s -> %s] 失败", groupName, best.NodeName), err)
+	} else {
 		s.recordSwitch(groupName, currentActive, best.NodeName, reason, false)
 	}
 }
@@ -364,96 +382,24 @@ func (s *EWMAScheduler) recordSwitch(group, from, to, reason string, emergency b
 }
 
 func (s *EWMAScheduler) probeNodeDelay(ctx context.Context, nodeName string) (int, bool) {
-	u := fmt.Sprintf("%s/proxies/%s/delay?url=%s&timeout=%d",
-		strings.TrimRight(s.cfg.ClashAPIBase, "/"),
-		url.PathEscape(nodeName),
-		url.QueryEscape(s.cfg.ProbeTargetURL),
-		s.cfg.ProbeTimeout.Milliseconds(),
-	)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
-	if err != nil {
+	if s.api == nil {
 		return 0, false
 	}
-	if s.cfg.ClashAPISecret != "" {
-		req.Header.Set("Authorization", "Bearer "+s.cfg.ClashAPISecret)
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return 0, false
-	}
-	defer netutil.DrainAndCloseBody(resp)
-
-	if resp.StatusCode != http.StatusOK {
-		return 0, false
-	}
-
-	var data struct {
-		Delay int `json:"delay"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil || data.Delay <= 0 {
-		return 0, false
-	}
-	return data.Delay, true
+	return s.api.ProbeNodeDelay(ctx, nodeName, s.cfg.ProbeTargetURL, s.cfg.ProbeTimeout)
 }
 
 func (s *EWMAScheduler) switchClashGroup(ctx context.Context, groupName, targetNode string) error {
-	if s.cfg.ClashAPIBase == "" {
+	if s.api == nil || s.api.BaseURL == "" {
 		return nil
 	}
-	u := fmt.Sprintf("%s/proxies/%s",
-		strings.TrimRight(s.cfg.ClashAPIBase, "/"),
-		url.PathEscape(groupName),
-	)
-	bodyBytes, _ := json.Marshal(map[string]string{"name": targetNode})
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, u, bytes.NewReader(bodyBytes))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if s.cfg.ClashAPISecret != "" {
-		req.Header.Set("Authorization", "Bearer "+s.cfg.ClashAPISecret)
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer netutil.DrainAndCloseBody(resp)
-
-	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("clash api switch group %s returned status %d", groupName, resp.StatusCode)
-	}
-	return nil
+	return s.api.SwitchProxy(ctx, groupName, targetNode)
 }
 
 func (s *EWMAScheduler) fetchProxiesSnapshot(ctx context.Context) (map[string]clashProxyItem, error) {
-	u := strings.TrimRight(s.cfg.ClashAPIBase, "/") + "/proxies"
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
-	if err != nil {
-		return nil, err
+	if s.api == nil || s.api.BaseURL == "" {
+		return nil, fmt.Errorf("clash api base url is empty")
 	}
-	if s.cfg.ClashAPISecret != "" {
-		req.Header.Set("Authorization", "Bearer "+s.cfg.ClashAPISecret)
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer netutil.DrainAndCloseBody(resp)
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
-	}
-
-	var parsed clashProxiesResp
-	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
-		return nil, err
-	}
-	return parsed.Proxies, nil
+	return s.api.GetProxies(ctx)
 }
 
 func (s *EWMAScheduler) filterManagedGroups(proxies map[string]clashProxyItem) []clashProxyItem {
@@ -557,6 +503,7 @@ func (s *EWMAScheduler) PenalizeAndRotateActive(reason string) (prevNode, nextNo
 
 	proxies, err := s.fetchProxiesSnapshot(ctx)
 	if err != nil {
+		s.logErrorThrottled("黑洞惩罚轮换拉取内核节点快照失败", err)
 		return "", ""
 	}
 	groups := s.filterManagedGroups(proxies)
@@ -598,6 +545,7 @@ func (s *EWMAScheduler) PenalizeAndRotateActive(reason string) (prevNode, nextNo
 			ranked = s.ewma.RankNodes(realCandidates)
 		}
 
+		// 仅在锁内筛选目标节点，锁外执行 HTTP 切换，避免持锁期间发生网络 IO 阻塞
 		s.mu.Lock()
 		for _, cand := range ranked {
 			if cand.NodeName != g.Now {
@@ -605,9 +553,6 @@ func (s *EWMAScheduler) PenalizeAndRotateActive(reason string) (prevNode, nextNo
 					continue // skip candidate in penalty cooling window
 				}
 				nextNode = cand.NodeName
-				if err := s.switchClashGroup(ctx, g.Name, cand.NodeName); err == nil {
-					s.recordSwitch(g.Name, g.Now, cand.NodeName, reason, true)
-				}
 				break
 			}
 		}
@@ -620,9 +565,6 @@ func (s *EWMAScheduler) PenalizeAndRotateActive(reason string) (prevNode, nextNo
 						continue
 					}
 					nextNode = cand
-					if err := s.switchClashGroup(ctx, g.Name, cand); err == nil {
-						s.recordSwitch(g.Name, g.Now, cand, reason, true)
-					}
 					break
 				}
 			}
@@ -630,6 +572,11 @@ func (s *EWMAScheduler) PenalizeAndRotateActive(reason string) (prevNode, nextNo
 		s.mu.Unlock()
 
 		if nextNode != "" {
+			if err := s.switchClashGroup(ctx, g.Name, nextNode); err != nil {
+				s.logErrorThrottled(fmt.Sprintf("黑洞惩罚切换策略组 [%s -> %s] 失败", g.Name, nextNode), err)
+			} else {
+				s.recordSwitch(g.Name, g.Now, nextNode, reason, true)
+			}
 			break
 		}
 	}

@@ -13,7 +13,7 @@ COPY web/ ./
 RUN npm run build
 
 # Stage 2: Build Multi-Arch Gateway Daemon (cubexd)
-FROM --platform=$BUILDPLATFORM golang:alpine AS server-builder
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS server-builder
 ENV GOTOOLCHAIN=auto
 ARG TARGETOS
 ARG TARGETARCH
@@ -28,9 +28,9 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
 # Stage 3: Minimal Runtime Container
 FROM --platform=$TARGETPLATFORM alpine:3.21 AS runtime
 ARG TARGETARCH
-ARG CUBEX_VERSION=v9.98
+ARG CUBEX_VERSION=v9.99
 
-# Install essential network tools for transparent proxy, TUN, routing, and glibc binary compatibility
+# Install essential network tools for transparent proxy, TUN, and routing (both cores are pure static ELFs)
 RUN apk add --no-cache \
     iptables \
     ip6tables \
@@ -40,8 +40,6 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata \
     procps \
-    gcompat \
-    libc6-compat \
     && rm -rf /var/cache/apk/*
 
 # OCI Image Brand Annotations & Standard Metadata
@@ -67,8 +65,9 @@ COPY bin/${TARGETARCH}/mihomo /app/bin/mihomo
 COPY bin/${TARGETARCH}/sing-box /app/bin/sing-box
 
 # Copy default configurations, rulesets (MRS / SRS) and geodata
-COPY etc/ /app/defaults/etc/
-COPY data/ /app/defaults/data/
+COPY etc/GeoIP.dat etc/geosite.dat /app/defaults/etc/
+COPY etc/rules/ /app/defaults/etc/rules/
+COPY packaging/defaults/data/ /app/defaults/data/
 
 # Copy Entrypoint
 COPY scripts/docker/entrypoint.sh /app/entrypoint.sh

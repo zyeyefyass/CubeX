@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -93,5 +94,27 @@ func TestClientInspector_TopLANActivityAndKick(t *testing.T) {
 	defer mu.Unlock()
 	if len(deletedIDs) != 10 {
 		t.Errorf("expected 10 DELETE calls, got %d", len(deletedIDs))
+	}
+}
+
+func TestClientInspector_BareHostPortAndErrorPropagation(t *testing.T) {
+	srvOK := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"connections": []any{}})
+	}))
+	defer srvOK.Close()
+
+	ci := NewClientInspector(strings.TrimPrefix(srvOK.URL, "http://"), "")
+	if rep, err := ci.InspectTopLANActivity(context.Background()); err != nil || rep == nil {
+		t.Fatalf("expected bare host:port InspectTopLANActivity success, got rep=%v err=%v", rep, err)
+	}
+
+	srvErr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srvErr.Close()
+
+	ciErr := NewClientInspector(srvErr.URL, "")
+	if _, err := ciErr.InspectTopLANActivity(context.Background()); err == nil {
+		t.Fatalf("expected explicit error when Clash API returns 500")
 	}
 }

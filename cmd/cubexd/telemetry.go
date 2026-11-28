@@ -12,6 +12,7 @@ import (
 	"github.com/zyeyefyass/CubeX/internal/sub"
 	"github.com/zyeyefyass/CubeX/internal/telemetry"
 	"github.com/zyeyefyass/CubeX/internal/traffic"
+	"log"
 	"math"
 	"net"
 	"net/http"
@@ -576,9 +577,17 @@ func (s *Server) HandlePassiveStallCheck(ctx context.Context, activeConns int, u
 	// Step 2: 使用精准清道夫斩断旧黑洞节点会话，避免无差别冲刷误伤直连
 	killed := 0
 	if s.staleFlowKiller != nil && prevNode != "" {
-		killed, _ = s.staleFlowKiller.KillNodeConnections(ctx, prevNode)
+		var kErr error
+		killed, kErr = s.staleFlowKiller.KillNodeConnections(ctx, prevNode)
+		if kErr != nil {
+			log.Printf("⚠️ [STALL_HEAL] 清理死链节点 [%s] 会话失败: %v", prevNode, kErr)
+			s.logBuffer.Add("WARN", "STALL_HEAL", fmt.Sprintf("清理死链节点 [%s] 会话失败: %v", prevNode, kErr))
+		}
 	} else if s.wanHealer != nil {
-		_ = s.wanHealer.FlushStaleConnections(ctx, "PassiveStallBlackhole")
+		if fErr := s.wanHealer.FlushStaleConnections(ctx, "PassiveStallBlackhole"); fErr != nil {
+			log.Printf("⚠️ [STALL_HEAL] 冲刷死链黑洞连接池失败: %v", fErr)
+			s.logBuffer.Add("WARN", "STALL_HEAL", fmt.Sprintf("冲刷死链黑洞连接池失败: %v", fErr))
+		}
 	}
 
 	// Step 3: 写入 64KB 内存黑匣子备查与系统日志
@@ -1752,7 +1761,7 @@ func (s *Server) processBlockedConnections(conns []traffic.ConnectionMeta) {
 			}
 			clientIP := c.Metadata.SourceIP
 			if clientIP == "" {
-				clientIP = "10.0.0.1"
+				clientIP = "未知终端"
 			}
 			ruleName := c.Rule
 			if ruleName == "" {

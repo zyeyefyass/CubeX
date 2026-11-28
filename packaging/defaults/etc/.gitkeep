@@ -1,0 +1,2 @@
+# Clean default etc directory placeholder for release packaging.
+# Rulesets (etc/rules/*) and required geodata are populated at package time.

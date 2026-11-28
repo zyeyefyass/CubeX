@@ -448,9 +448,9 @@
 
                   <div class="flex items-center justify-between">
 
-                    <span>当前运行: <strong class="text-sky-900 font-black text-sm">{{ app.systemOverview.cubex_version || 'Test v8.4' }}</strong></span>
+                    <span>当前运行: <strong class="text-sky-900 font-black text-sm">{{ app.systemOverview.cubex_version || '—' }}</strong></span>
 
-                    <span class="text-slate-500">云端最新: <span class="text-slate-800 font-bold">{{ app.systemOverview.panel_latest_version || app.systemOverview.cubex_version || 'Test v8.4' }}</span></span>
+                    <span class="text-slate-500">云端最新: <span class="text-slate-800 font-bold">{{ app.systemOverview.panel_latest_version || app.systemOverview.cubex_version || '—' }}</span></span>
 
                   </div>
 

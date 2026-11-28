@@ -6,14 +6,15 @@ import re
 import json
 
 def get_current_version():
-    try:
-        with open('meta.json', 'r', encoding='utf-8') as f:
-            return json.load(f).get('version', 'Test v7.6')
-    except Exception:
-        return 'Test v7.6'
+    meta_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'meta.json')
+    with open(meta_path, 'r', encoding='utf-8') as f:
+        ver = str(json.load(f).get('version', '')).strip()
+    if not ver:
+        raise RuntimeError("meta.json missing 'version' field")
+    return ver
 
 CUR_VER = get_current_version()
-LOADER_VER = CUR_VER.replace('Test v', '')
+LOADER_VER = CUR_VER.lstrip('vV')
 
 LOADER_TEMPLATE = f"""#!/bin/sh
 # ==============================================================================
@@ -121,7 +122,7 @@ def protect_ros_script(src_path, dst_path):
 
     lines = content.splitlines()
     clean_lines = [
-        "# 🌌 CubeX RouterOS Automated Deployment Engine (Test v4.1)",
+        f"# 🌌 CubeX RouterOS Automated Deployment Engine ({CUR_VER})",
         "# Proprietary & Confidential. All Rights Reserved."
     ]
     for l in lines:

@@ -2,13 +2,14 @@ package telemetry
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/zyeyefyass/CubeX/internal/netutil"
+	"log"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/clashapi"
 )
 
 // ClientTrafficSummary 汇总单台局域网终端设备的实时代理连接与流量占用
@@ -23,11 +24,11 @@ type ClientTrafficSummary struct {
 
 // DomainTrafficSummary 汇总单个目标域名/主机的高频访问统计
 type DomainTrafficSummary struct {
-	Host         string `json:"host"`
-	ActiveConns  int    `json:"active_conns"`
-	DownloadTotal int64 `json:"download_total"`
-	MatchedRule  string `json:"matched_rule"`
-	OutboundNode string `json:"outbound_node"`
+	Host          string `json:"host"`
+	ActiveConns   int    `json:"active_conns"`
+	DownloadTotal int64  `json:"download_total"`
+	MatchedRule   string `json:"matched_rule"`
+	OutboundNode  string `json:"outbound_node"`
 }
 
 // LANInspectorReport 返回给前端的极简定长透视报告（恒定 < 4KB，绝不卡死浏览器）
@@ -39,38 +40,22 @@ type LANInspectorReport struct {
 
 // ClientInspector 负责从内核 Clash API 零膨胀提取局域网终端流量画像
 type ClientInspector struct {
-	clashAPIBase   string
-	clashAPISecret string
-	httpClient     *http.Client
+	api *clashapi.Client
 }
 
 // NewClientInspector 初始化局域网终端流量画像透视器
 func NewClientInspector(clashAPIBase, secret string) *ClientInspector {
 	return &ClientInspector{
-		clashAPIBase:   strings.TrimRight(clashAPIBase, "/"),
-		clashAPISecret: secret,
-		httpClient:     &http.Client{Timeout: 2 * time.Second},
+		api: clashapi.NewClient(clashAPIBase, secret, &http.Client{Timeout: 2 * time.Second}),
 	}
-}
-
-type rawClashConnSnapshot struct {
-	Connections []struct {
-		ID       string   `json:"id"`
-		Upload   int64    `json:"upload"`
-		Download int64    `json:"download"`
-		Rule     string   `json:"rule"`
-		Chains   []string `json:"chains"`
-		Metadata struct {
-			SourceIP      string `json:"sourceIP"`
-			DestinationIP string `json:"destinationIP"`
-			Host          string `json:"host"`
-		} `json:"metadata"`
-	} `json:"connections"`
 }
 
 // InspectTopLANActivity 聚合当前活跃连接，找出消耗流量最大的局域网设备与目标域名
 func (ci *ClientInspector) InspectTopLANActivity(ctx context.Context) (*LANInspectorReport, error) {
-	snap, err := ci.fetchRawConnections(ctx)
+	if ci.api == nil {
+		return nil, fmt.Errorf("clash api client not initialized")
+	}
+	snap, err := ci.api.GetConnections(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -163,8 +148,11 @@ func (ci *ClientInspector) KickClientConnections(ctx context.Context, targetSour
 	if targetSourceIP == "" {
 		return 0, fmt.Errorf("empty source_ip")
 	}
+	if ci.api == nil {
+		return 0, fmt.Errorf("clash api client not initialized")
+	}
 
-	snap, err := ci.fetchRawConnections(ctx)
+	snap, err := ci.api.GetConnections(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -172,41 +160,12 @@ func (ci *ClientInspector) KickClientConnections(ctx context.Context, targetSour
 	kicked := 0
 	for _, c := range snap.Connections {
 		if c.Metadata.SourceIP == targetSourceIP && c.ID != "" {
-			req, err := http.NewRequestWithContext(ctx, http.MethodDelete,
-				fmt.Sprintf("%s/connections/%s", ci.clashAPIBase, c.ID), nil)
-			if err != nil {
-				continue
-			}
-			if ci.clashAPISecret != "" {
-				req.Header.Set("Authorization", "Bearer "+ci.clashAPISecret)
-			}
-			if resp, err := ci.httpClient.Do(req); err == nil {
-				netutil.DrainAndCloseBody(resp)
+			if err := ci.api.DeleteConnection(ctx, c.ID); err != nil {
+				log.Printf("⚠️ [ClientInspector] 断开终端 %s 连接 %s 失败: %v", targetSourceIP, c.ID, err)
+			} else {
 				kicked++
 			}
 		}
 	}
 	return kicked, nil
-}
-
-func (ci *ClientInspector) fetchRawConnections(ctx context.Context) (*rawClashConnSnapshot, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ci.clashAPIBase+"/connections", nil)
-	if err != nil {
-		return nil, err
-	}
-	if ci.clashAPISecret != "" {
-		req.Header.Set("Authorization", "Bearer "+ci.clashAPISecret)
-	}
-
-	resp, err := ci.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer netutil.DrainAndCloseBody(resp)
-
-	var snap rawClashConnSnapshot
-	if err := json.NewDecoder(resp.Body).Decode(&snap); err != nil {
-		return nil, err
-	}
-	return &snap, nil
 }

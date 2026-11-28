@@ -106,7 +106,7 @@ $printMsg "📦 [4/5 存储与环境就绪] 正在定位可用磁盘分区...";
     :set installDir ($diskRoot . "/cubex");
 }
 
-:local tarName ("CubeX-v9.98-ros-" . $tarArch . ".tar");
+:local tarName ("CubeX-v9.99-ros-" . $tarArch . ".tar");
 :local foundTar "";
 :if ([:len [/file find where name=$tarName]] > 0) do={
     :set foundTar $tarName;

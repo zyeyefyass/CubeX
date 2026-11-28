@@ -48,24 +48,22 @@ def detect_proxy():
 PROXY = detect_proxy()
 
 def get_tag():
-    try:
-        with open(ROOT_DIR / "meta.json", "r", encoding="utf-8") as f:
-            v = json.load(f).get("version", "v9.93")
-            if not v.startswith("v"):
-                v = f"v{v}"
-            return v
-    except Exception:
-        return "v9.93"
+    with open(ROOT_DIR / "meta.json", "r", encoding="utf-8") as f:
+        v = str(json.load(f).get("version", "")).strip()
+    if not v:
+        raise RuntimeError("meta.json missing 'version' field")
+    if not v.startswith("v"):
+        v = f"v{v}"
+    return v
 
 TAG = get_tag()
 
-RELEASE_TITLE = f"CubeX {TAG} · 双核对齐 v1.14.5/v1.19.34 通用兼容版 · 挂载与宿主探测修复 · RouterOS 旧表/悬空标记根治"
+RELEASE_TITLE = f"CubeX {TAG} · 稳定性加固 · 全端去硬编码与容器大幅瘦身版"
 
-RELEASE_BODY = f"""1. **双核统一对齐至 `sing-box v1.14.5` 与 `mihomo v1.19.34` 通用兼容版**：全平台切换为纯静态 musl 版 `sing-box v1.14.5` 与通用指令集 `mihomo v1.19.34`，解决无高级指令集 CPU 与轻量容器运行库缺失导致的启动退出问题。
-2. **修复 `VLESS-Reality` 参数引发的 `sing-box` 解码报错**：规范 `spider_x` 字段编译输出，消除 `sing-box` 配置文件解析异常，保障节点稳定握手连通。
-3. **修复飞牛 `fnOS` 挂载路径错位与 `PVE LXC` 宿主误判**：将 `fnOS` 套件及编排路径统一收敛为 `/app/etc` 与 `/app/data`，并重构本地宿主探测逻辑，准确区分容器、PVE LXC 与原生系统环境。
-4. **统一 RouterOS 路由表为 `cubex` 并根治旧表残留与跨主路由切换冲突**：在删除旧策略路由表 `table-cubex-8228` 前前置清理对应规则并自动清剿悬空 `*hex` 路由标记，同步修复从开源软路由切换至 RouterOS 时凭据与平台缓存冲突，实现自愈、重配与对称撤回零残留。
-5. **全栈瘦身去冗余与脚本单一真源对齐**：清理冗余代码并统一各底座一键安装与容灾脚本版本，固化自 `v9.98` 起永久生效的五道发版硬门禁规范。
+RELEASE_BODY = f"""1. **稳定性与双核切换全面加固**：统一内核接口客户端并补全错误日志，修复网络波动、僵尸连接清理与自动选路异常；加固双核停启端口释放、失败自动回滚与防重入重启保护。
+2. **全端去硬编码与动态拓扑识别**：统一本机地址、网关与内存配额探测，清除代码、前端及脚本中残留的静态内网地址与过期版本号兜底，防火墙转发规则改为幂等写入防止重启重复堆积。
+3. **容器深度瘦身与纯净模板打包**：移除冗余 `geoip.metadb`（8MB）与容器兼容垫片，消除遗留历史镜像层并切换为纯净默认模板打包；RouterOS 镜像瘦身 21~26MB（降至 71~75MB），ARM64 Docker 镜像瘦身 25MB。
+4. **新增全量体积门禁与脱敏硬校验**：发布前强制校验包体大小、零私有节点/零订阅与双核版本对齐，防止后续版本膨胀或带出本地运行态数据。
 
 ---
 

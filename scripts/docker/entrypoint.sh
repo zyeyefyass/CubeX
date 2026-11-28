@@ -1,18 +1,6 @@
 #!/bin/sh
 set -e
 
-# Ensure glibc dynamic linker compatibility for sing-box on musl/Alpine
-mkdir -p /lib /lib64 2>/dev/null || true
-if [ ! -e /lib64/ld-linux-x86-64.so.2 ] && [ -f /lib/ld-musl-x86_64.so.1 ]; then
-    ln -s /lib/ld-musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2 2>/dev/null || true
-fi
-if [ ! -e /lib/ld-linux-aarch64.so.1 ] && [ -f /lib/ld-musl-aarch64.so.1 ]; then
-    ln -s /lib/ld-musl-aarch64.so.1 /lib/ld-linux-aarch64.so.1 2>/dev/null || true
-fi
-if [ ! -e /lib64/ld-linux-aarch64.so.1 ] && [ -f /lib/ld-musl-aarch64.so.1 ]; then
-    ln -s /lib/ld-musl-aarch64.so.1 /lib64/ld-linux-aarch64.so.1 2>/dev/null || true
-fi
-
 echo "🚀 [CubeX] Starting CubeX Container Initialization..."
 
 # 1. Initialize /app/etc if empty or missing critical geodata / rules
@@ -28,9 +16,6 @@ if [ -d "/app/defaults/etc/rules" ] && [ ! -f "/app/etc/rules/adblocksingbox.srs
     cp -rn /app/defaults/etc/rules/* /app/etc/rules/ 2>/dev/null || cp -r /app/defaults/etc/rules/* /app/etc/rules/ 2>/dev/null || true
 fi
 
-if [ ! -f "/app/etc/geoip.metadb" ] && [ -f "/app/defaults/etc/geoip.metadb" ]; then
-    cp /app/defaults/etc/geoip.metadb /app/etc/geoip.metadb 2>/dev/null || true
-fi
 if [ ! -f "/app/etc/geosite.dat" ] && [ -f "/app/defaults/etc/geosite.dat" ]; then
     cp /app/defaults/etc/geosite.dat /app/etc/geosite.dat 2>/dev/null || true
 fi
@@ -54,7 +39,7 @@ iptables -t mangle -C PREROUTING -d 192.168.0.0/16 -j RETURN 2>/dev/null || ipta
 iptables -t mangle -C PREROUTING -d 127.0.0.0/8 -j RETURN 2>/dev/null || iptables -t mangle -I PREROUTING 4 -d 127.0.0.0/8 -j RETURN 2>/dev/null || true
 iptables -t mangle -C PREROUTING -d 224.0.0.0/4 -j RETURN 2>/dev/null || iptables -t mangle -I PREROUTING 5 -d 224.0.0.0/4 -j RETURN 2>/dev/null || true
 
-iptables -t nat -A POSTROUTING -j MASQUERADE 2>/dev/null || true
+iptables -t nat -C POSTROUTING -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -j MASQUERADE 2>/dev/null || true
 
 # Asymmetric bypass routing, ARP storm defense & ICMP redirect suppression (Essential for iKuai / ROS / PVE / fnOS)
 sysctl -w net.ipv4.conf.all.rp_filter=0 2>/dev/null || true

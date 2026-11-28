@@ -1,15 +1,14 @@
 ﻿param(
-
     [switch]$IncludeWindows = $false,
-    [switch]$SkipHealthAudit = $false
-
+    [switch]$SkipHealthAudit = $false,
+    [switch]$SkipRetention = $false
 )
 
 
 
 $ErrorActionPreference = "Stop"
 
-$Version = "v9.98"
+$Version = "v9.99"
 
 $RootDir = Resolve-Path "$PSScriptRoot\.."
 
@@ -87,18 +86,14 @@ if ($IncludeWindows) {
     go build -ldflags="-s -w" -o "$DistDir\cubexd.exe" ./cmd/cubexd
 
 } else {
-
-    Write-Host "   -> Skipping Windows cubexd.exe build (暂时不发布windows?" -ForegroundColor DarkGray
-
+    Write-Host "   -> Skipping Windows cubexd.exe build (per no-Windows release policy)" -ForegroundColor DarkGray
 }
 
-
-
-# Linux amd64 & arm64 Compilation with Garble AST Obfuscation & Literal Encryption
-Write-Host "   -> Cross-compiling Linux amd64 & arm64 cubexd & cubex CLI with Garble..." -ForegroundColor Green
-python "$RootDir\scripts\compile_all_garble.py"
+# Linux amd64 & arm64 Pure Static Compilation
+Write-Host "   -> Cross-compiling Linux amd64 & arm64 cubexd & cubex CLI..." -ForegroundColor Green
+python "$RootDir\scripts\compile_linux.py"
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "Garble compilation failed!"
+    Write-Error "Linux compilation failed!"
     exit 1
 }
 
@@ -148,18 +143,18 @@ function Assemble-ReleasePackage($TargetName, $GatewayBinary, $ArchType) {
 
 
 
-    # Copy Geodata and 217heidai Dual-Format Rules (.mrs for Mihomo, .srs for sing-box)
+    # Copy Clean-Room Default IR, Geodata (GeoIP.dat + geosite.dat) and 101 MRS/SRS Rules
+    $RulesDst = "$StageDir\etc\rules"
+    New-Item -ItemType Directory -Path $RulesDst -Force | Out-Null
+    Copy-Item -Path "$RootDir\etc\rules\*" -Destination $RulesDst -Recurse -Force
+    foreach ($geo in @("GeoIP.dat", "geosite.dat")) {
+        if (Test-Path "$RootDir\etc\$geo") {
+            Copy-Item -Path "$RootDir\etc\$geo" -Destination "$StageDir\etc\$geo" -Force
+        }
+    }
+    Copy-Item -Path "$RootDir\packaging\defaults\data\*" -Destination "$StageDir\data" -Recurse -Force
 
-    Copy-Item -Path "$RootDir\etc\*" -Destination "$StageDir\etc" -Recurse -Force
-
-    Copy-Item -Path "$RootDir\data\*" -Destination "$StageDir\data" -Recurse -Force
-
-    if (Test-Path "$StageDir\data\ros_backup") { Remove-Item -Path "$StageDir\data\ros_backup" -Recurse -Force }
-
-
-
-    # Strict Desensitization: strip runtime caches, logs, databases, and sanitize configs
-
+    # Strict Desensitization: secondary safety check
     python "$RootDir\scripts\desensitize.py" $StageDir | Out-Host
 
 
@@ -245,96 +240,16 @@ if ($IncludeWindows) {
     Compress-Archive -Path "$stageWin\*" -DestinationPath "$ReleaseDir\CubeX-$Version-windows-amd64.zip" -Force
 
 } else {
-
-    Write-Host "?Skipping Windows amd64 packaging (暂时不发?Windows ?..." -ForegroundColor DarkGray
-
+    Write-Host "   -> Skipping Windows amd64 packaging (per no-Windows release policy)..." -ForegroundColor DarkGray
 }
 
-
-
-# 6. Packaging Dedicated RouterOS v7 Container Packages (Uncompressed .tar for WinBox /container/add)
-
-Write-Host "📦 [4/4] Packaging RouterOS v7 Dedicated Container Images (Uncompressed .tar + RSC Script)..." -ForegroundColor Yellow
-
-
-
-# Helper to assemble RouterOS container rootfs .tar
-
-function Assemble-RosContainer($TargetName, $GatewayBinary, $ArchType) {
-
-    $RosStage = "$DistDir\staging\$TargetName"
-
-    if (Test-Path $RosStage) { Remove-Item -Path $RosStage -Recurse -Force }
-
-    New-Item -ItemType Directory -Path "$RosStage\app\bin" -Force | Out-Null
-
-    New-Item -ItemType Directory -Path "$RosStage\app\etc" -Force | Out-Null
-
-    New-Item -ItemType Directory -Path "$RosStage\app\data" -Force | Out-Null
-
-
-
-    # Binaries inside container /app/bin (container-slim: standard build, NO cubex CLI)
-    # RouterOS containers only need cubexd daemon, cubex CLI is excluded
-
-    $ContainerBinary = "$DistDir\cubexd-container-$ArchType"
-    if (Test-Path $ContainerBinary) {
-        Write-Host "   -> Using container-slim binary: $ContainerBinary" -ForegroundColor Green
-        Copy-Item -Path $ContainerBinary -Destination "$RosStage\app\bin\cubexd" -Force
-    } else {
-        Write-Host "   -> Container-slim not found, falling back to garble binary" -ForegroundColor Yellow
-        Copy-Item -Path $GatewayBinary -Destination "$RosStage\app\bin\cubexd" -Force
-    }
-
-    Copy-Item -Path "$RootDir\bin\$ArchType\mihomo" -Destination "$RosStage\app\bin\mihomo" -Force
-
-    Copy-Item -Path "$RootDir\bin\$ArchType\sing-box" -Destination "$RosStage\app\bin\sing-box" -Force
-
-
-
-    # Rulesets & configs inside container
-
-    Copy-Item -Path "$RootDir\meta.json" -Destination "$RosStage\app\meta.json" -Force
-
-    Copy-Item -Path "$RootDir\etc\*" -Destination "$RosStage\app\etc" -Recurse -Force
-
-    Copy-Item -Path "$RootDir\data\*" -Destination "$RosStage\app\data" -Recurse -Force
-
-    if (Test-Path "$RosStage\app\data\ros_backup") { Remove-Item -Path "$RosStage\app\data\ros_backup" -Recurse -Force }
-
-
-
-    # Strict Desensitization: strip runtime caches, logs, databases, and sanitize configs
-
-    python "$RootDir\scripts\desensitize.py" $RosStage | Out-Host
-
-
-
-    # Uncompressed .tar (RouterOS strictly requires uncompressed .tar, NOT .tar.gz)
-
-    tar -cf "$ReleaseDir\$TargetName.tar" -C "$RosStage" app
-
-    return $RosStage
-
+# 6. Packaging Unified Clean-Room RouterOS OCI & Docker Offline Archives
+Write-Host "📦 [4/4] Packaging Clean-Room RouterOS (.tar) & Docker (.tar.gz) Container Images..." -ForegroundColor Yellow
+python "$RootDir\scripts\build_oci.py" --arch all --format all | Out-Host
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Unified OCI/Docker packaging failed!"
+    exit 1
 }
-
-
-
-Assemble-RosContainer "CubeX-$Version-ros-amd64" "$DistDir\cubexd-linux-amd64" "amd64" | Out-Null
-
-Assemble-RosContainer "CubeX-$Version-ros-arm64" "$DistDir\cubexd-linux-arm64" "arm64" | Out-Null
-
-
-
-# Build true OCI images for RouterOS container engine
-
-python "$RootDir\scripts\build_ros_containers.py" | Out-Host
-
-
-
-# Build fnOS / Linux Docker offline image
-
-python "$RootDir\scripts\build_docker_tar.py" | Out-Host
 
 # Build fnOS Native .fpk Packages
 python "$RootDir\scripts\build_fnos_fpk.py" | Out-Host
@@ -393,41 +308,26 @@ Get-ChildItem -Path $ReleaseDir | Select-Object Name, Length
 
 
 
-# 7. Strict Automated Post-Packaging Desensitization & Unpack Audit
+# 7. Strict Automated Post-Packaging Desensitization, Size-Gate & Unpack Audit
 
-Write-Host "`n🛡? Executing Mandatory Post-Packaging Desensitization Audit (.tar & .zip independent unpack)..." -ForegroundColor Cyan
+Write-Host "`n🛡️ Executing Mandatory Post-Packaging Desensitization & Size-Gate Audit (.tar & .zip independent unpack)..." -ForegroundColor Cyan
 
-$auditArgs = @("$ReleaseDir", "--expected-version", "$Version")
+$auditArgs = @("$ReleaseDir", "--expected-version", "$Version", "--size-gate")
 
 if ($IncludeWindows) {
-
     $auditArgs += "--allow-windows"
-
 }
 
 python "$RootDir\scripts\audit_release_artifacts.py" @auditArgs
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "🚨 Post-Packaging Desensitization Audit Failed! Release is blocked."
+    Write-Error "🚨 Post-Packaging Desensitization / Size-Gate Audit Failed! Release is blocked."
     exit 1
 }
 
-# Enforce Strict 10-Version Retention Policy Across All Platforms
-python "$RootDir\scripts\enforce_10_version_retention.py"
-
-
-
-
-
-
-
-
-# # ════════════════════════════════════════════════════════════════════════════?
-
-# CubeX Release Packaging Script (Bundles Dual Cores + Geodata + Rules + Config)
-
-# Target Version: Test v2.5
-
-# Formats: Native .zip for General Releases + Uncompressed .tar for RouterOS
-
-# ════════════════════════════════════════════════════════════════════════════
+if (-not $SkipRetention) {
+    # Enforce Strict 10-Version Retention Policy Across All Platforms
+    python "$RootDir\scripts\enforce_10_version_retention.py"
+} else {
+    Write-Host "ℹ️  Skipping remote 10-version retention cleanup (-SkipRetention)" -ForegroundColor DarkCyan
+}

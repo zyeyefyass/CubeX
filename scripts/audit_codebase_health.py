@@ -82,27 +82,28 @@ else:
 # -------------------------------------------------------------
 log_header("CHECK 2: Concurrency, Goroutine & Panic Boundary Analysis")
 cubexd_dir = os.path.join(ROOT, "cmd", "cubexd")
+engine_dir = os.path.join(ROOT, "internal", "engine")
 cubexd_content = ""
-for fname in sorted(os.listdir(cubexd_dir)):
-    if fname.endswith(".go") and not fname.endswith("_test.go"):
-        with open(os.path.join(cubexd_dir, fname), "r", encoding="utf-8", errors="ignore") as f:
-            cubexd_content += f.read() + "\n"
+for scan_dir in (cubexd_dir, engine_dir):
+    if not os.path.isdir(scan_dir):
+        continue
+    for fname in sorted(os.listdir(scan_dir)):
+        if fname.endswith(".go") and not fname.endswith("_test.go"):
+            with open(os.path.join(scan_dir, fname), "r", encoding="utf-8", errors="ignore") as f:
+                cubexd_content += f.read() + "\n"
 
-# Count raw 'go func(' outside SafeGo wrapper (only 1 allowed inside SafeGo itself)
+# Count raw 'go func(' outside SafeGo wrapper (0 expected when netutil.SafeGo is used)
 raw_goroutines = len(re.findall(r'\bgo\s+func\(', cubexd_content))
-recover_count = len(re.findall(r'\brecover\(\)', cubexd_content))
 safego_calls = len(re.findall(r'\bSafeGo\(', cubexd_content))
 
-print(f"  • Raw unguarded go func( in cubexd: {raw_goroutines}")
-print(f"  • SafeGo() guarded goroutines in cubexd: {safego_calls}")
-print(f"  • Panic Recovery blocks (recover()) in cubexd: {recover_count}")
+print(f"  • Raw unguarded go func( in cubexd + engine: {raw_goroutines}")
+print(f"  • SafeGo() guarded goroutines in cubexd + engine: {safego_calls}")
 
-if recover_count == 0 or raw_goroutines > 1:
+if raw_goroutines > 0:
     print("  ⚠️  WARNING: Found unguarded raw go func() outside SafeGo(). Unhandled panic in any goroutine may crash daemon.")
     results["checks"]["panic_guard"] = {
         "status": "WARN",
         "raw_goroutines": raw_goroutines,
-        "recover_count": recover_count,
         "safego_calls": safego_calls
     }
     results["warnings"] += 1
@@ -225,30 +226,37 @@ log_header("CHECK 5: Clean-Room & Zero-Hardcode Gateway Policy Compliance")
 legacy_matches = []
 hardcoded_ip_matches = []
 legacy_regex = re.compile(r'open[-_]?box|ros[-_]?box', re.I)
-hardcoded_ip_regex = re.compile(r'(?<![0-9])(?:10\.0\.0\.(?:1|2|7|11|228)|192\.168\.(?:1|0)\.(?:1|2|7|11))(?!/[0-9])')
+hardcoded_ip_regex = re.compile(r'(?<![0-9])(?:10\.0\.0\.(?:1|2|7|11|228)|192\.168\.(?:1|0|88)\.(?:1|2|7|11))(?!/[0-9])')
 
-EXCLUDE_DIRS = {".git", "dist", "node_modules", "bin", "scratch", ".gemini", "docs", "video_materials", "scripts", "aerial-tv", "cleanyourtv"}
-EXCLUDE_EXTS = {".dat", ".bin", ".png", ".jpg", ".svg", ".ico", ".mp4", ".tar", ".gz", ".zip", ".md", ".ttf", ".woff", ".woff2", ".otf"}
+EXCLUDE_DIRS = {".git", "dist", "node_modules", "bin", "scratch", ".gemini", "docs", "video_materials", "scripts", "aerial-tv", "cleanyourtv", "packaging", "dist-fpk", "build", "data", "etc", "oppo-dv-mkv-v2.1.2-beta-full"}
+EXCLUDE_EXTS = {".dat", ".bin", ".png", ".jpg", ".svg", ".ico", ".mp4", ".tar", ".gz", ".zip", ".md", ".ttf", ".woff", ".woff2", ".otf", ".apk", ".txt"}
 for root, dirs, files in os.walk(ROOT):
     dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
     for file in files:
         ext = os.path.splitext(file)[1].lower()
-        if ext in EXCLUDE_EXTS or file.endswith("_test.go"):
+        if ext in EXCLUDE_EXTS or file.endswith("_test.go") or file in ("mock.js", "package-lock.json", "fetch_screenshot.py", "launch_aerial.py", "list_apps.py"):
             continue
         filepath = os.path.join(root, file)
-        relpath = os.path.relpath(filepath, ROOT)
-        if "package-lock.json" in relpath or "dist" in relpath:
+        relpath = os.path.relpath(filepath, ROOT).replace("\\", "/")
+        if "dist/" in relpath:
             continue
+        # Only enforce strict zero-hardcode IP check on business Go/Vue/JS source
+        in_business_src = relpath.startswith(("cmd/", "internal/", "web/src/"))
         try:
             with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                 for idx, line in enumerate(f, 1):
                     stripped = line.strip()
                     if legacy_regex.search(line):
                         legacy_matches.append((relpath, idx, stripped))
-                    if hardcoded_ip_regex.search(line):
-                        if stripped.startswith("//") or stripped.startswith("#") or stripped.startswith("/*"):
+                    if in_business_src and hardcoded_ip_regex.search(line):
+                        code_part = line.split("//", 1)[0].strip()
+                        if not code_part or stripped.startswith(("//", "#", "/*", "*", "<!--")):
                             continue
-                        # If in scripts or backend, check if it's dynamic fallback
+                        if not hardcoded_ip_regex.search(code_part):
+                            continue
+                        # Allow explicit user-facing example strings in error messages / schema placeholders
+                        if "例如" in code_part or "例:" in code_part or "placeholder=" in code_part.lower():
+                            continue
                         hardcoded_ip_matches.append((relpath, idx, stripped))
         except Exception:
             pass
@@ -263,10 +271,16 @@ else:
     results["checks"]["clean_room"] = {"status": "FAIL", "matches": legacy_matches[:5]}
     results["failures"] += 1
 
-# Check hardcoded IPs (allow if only inside diagnostic probe or fallback)
-print(f"  • Active hardcoded IP occurrences: {len(hardcoded_ip_matches)}")
-results["checks"]["hardcoded_ips"] = {"status": "PASS", "count": len(hardcoded_ip_matches)}
-results["passed"] += 1
+print(f"  • Active hardcoded private host IP occurrences in business src: {len(hardcoded_ip_matches)}")
+if len(hardcoded_ip_matches) == 0:
+    print("  ✓ Zero hardcoded private host IPs in business Go/Vue source.")
+    results["checks"]["hardcoded_ips"] = {"status": "PASS", "count": 0}
+    results["passed"] += 1
+else:
+    for p, lno, l in hardcoded_ip_matches[:10]:
+        print(f"    ✗ {p}:{lno} -> {l[:100]}")
+    results["checks"]["hardcoded_ips"] = {"status": "FAIL", "count": len(hardcoded_ip_matches), "matches": hardcoded_ip_matches[:10]}
+    results["failures"] += 1
 
 # -------------------------------------------------------------
 # CHECK 6: Release Desensitization Gating Audit

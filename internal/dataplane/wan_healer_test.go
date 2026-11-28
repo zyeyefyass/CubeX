@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -77,5 +79,28 @@ func TestWANHealer_WatchGatewayTransition(t *testing.T) {
 
 	if flushCount == 0 {
 		t.Error("expected FlushStaleConnections to be triggered on offline->online transition")
+	}
+}
+
+func TestWANHealer_BareHostPortAndErrorPropagation(t *testing.T) {
+	var shouldFail atomic.Bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if shouldFail.Load() {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	bare := strings.TrimPrefix(srv.URL, "http://")
+	h := NewWANHealer(bare, "", nil)
+	if err := h.FlushStaleConnections(context.Background(), "bare-host-test"); err != nil {
+		t.Fatalf("expected bare host:port to normalize and succeed, got: %v", err)
+	}
+
+	shouldFail.Store(true)
+	if err := h.FlushStaleConnections(context.Background(), "fail-test"); err == nil {
+		t.Fatalf("expected explicit error when Clash API returns 500")
 	}
 }

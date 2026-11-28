@@ -90,6 +90,18 @@ def desensitize(target_dir):
                     ob["outbounds"] = filtered
                     clean_outbounds.append(ob)
             sb["outbounds"] = clean_outbounds
+            # Strip any personal RFC1918 device host rules in sing-box route.rules
+            route_cfg = sb.get("route")
+            if isinstance(route_cfg, dict) and isinstance(route_cfg.get("rules"), list):
+                clean_rules = []
+                for rule in route_cfg["rules"]:
+                    src_cidrs = rule.get("source_ip_cidr") if isinstance(rule, dict) else None
+                    if isinstance(src_cidrs, list) and any(
+                        str(c).startswith(("10.", "192.168.", "172.")) for c in src_cidrs
+                    ):
+                        continue
+                    clean_rules.append(rule)
+                route_cfg["rules"] = clean_rules
             with open(sb_path, "w", encoding="utf-8") as f:
                 json.dump(sb, f, indent=2, ensure_ascii=False)
             print(f"  ✓ Desensitized {sb_path}")
@@ -104,6 +116,7 @@ def desensitize(target_dir):
                 lines = f.readlines()
             new_lines = []
             skip_proxies = False
+            personal_src_cidr = re.compile(r"^\s*-\s*SRC-IP-CIDR,(?:10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.)")
             for line in lines:
                 if line.startswith("proxies:"):
                     new_lines.append("proxies: []\n")
@@ -113,6 +126,8 @@ def desensitize(target_dir):
                     if line.startswith("proxy-groups:") or (line and not line.startswith(" ") and not line.startswith("-") and ":" in line):
                         skip_proxies = False
                         new_lines.append(line)
+                    continue
+                if personal_src_cidr.match(line):
                     continue
                 new_lines.append(line)
 
@@ -148,7 +163,7 @@ def desensitize(target_dir):
                 with open(cp, "r", encoding="utf-8") as f:
                     c = json.load(f)
                 c["password"] = ""
-                c["host"] = "192.168.88.1"
+                c["host"] = ""
                 if "private_key" in c:
                     c["private_key"] = ""
                 with open(cp, "w", encoding="utf-8") as f:

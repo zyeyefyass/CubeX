@@ -101,13 +101,15 @@ func (f *Fetcher) Fetch(urlStr string) (*FetchResult, error) {
 	}
 	proxyURL, pErr := url.Parse(mixedAddr)
 	if pErr == nil {
+		proxyTr := &http.Transport{
+			Proxy:           http.ProxyURL(proxyURL),
+			DialContext:     CreateFastDualStackDialer(),
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		defer proxyTr.CloseIdleConnections()
 		proxyClient := &http.Client{
-			Transport: &http.Transport{
-				Proxy:           http.ProxyURL(proxyURL),
-				DialContext:     CreateFastDualStackDialer(),
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-			Timeout: 20 * time.Second,
+			Transport: proxyTr,
+			Timeout:   20 * time.Second,
 		}
 		if resProxy, errProxy := f.doFetch(urlStr, proxyClient); errProxy == nil {
 			return resProxy, nil

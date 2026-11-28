@@ -3,55 +3,36 @@ package dataplane
 import (
 	"context"
 	"fmt"
-	"github.com/zyeyefyass/CubeX/internal/netutil"
+	"log"
 	"net/http"
-	"strings"
 	"time"
+
+	"github.com/zyeyefyass/CubeX/internal/clashapi"
 )
 
 // WANHealer 监控主路由网络状态切换，在 PPPoE 重拨或上游闪断恢复瞬间冲刷内核陈旧 Socket
 type WANHealer struct {
-	clashAPIBase   string
-	clashAPISecret string
-	httpClient     *http.Client
-	onHealed       func(reason string)
+	api      *clashapi.Client
+	onHealed func(reason string)
 }
 
 // NewWANHealer 创建 WAN 重拨与僵尸连接瞬时冲刷器
 func NewWANHealer(clashAPIBase, secret string, onHealed func(reason string)) *WANHealer {
 	return &WANHealer{
-		clashAPIBase:   strings.TrimRight(clashAPIBase, "/"),
-		clashAPISecret: secret,
-		httpClient:     &http.Client{Timeout: 2 * time.Second},
-		onHealed:       onHealed,
+		api:      clashapi.NewClient(clashAPIBase, secret, &http.Client{Timeout: 2 * time.Second}),
+		onHealed: onHealed,
 	}
 }
 
 // FlushStaleConnections 调用内核 Clash API (DELETE /connections) 瞬时清理绑定在旧 WAN IP 上的僵尸连接
 // 优势：无需重启 Mihomo / sing-box 进程，0 内存毛刺，耗时 < 3ms
 func (h *WANHealer) FlushStaleConnections(ctx context.Context, reason string) error {
-	if h.clashAPIBase == "" {
+	if h.api == nil || h.api.BaseURL == "" {
 		return nil
 	}
-	url := h.clashAPIBase + "/connections"
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
-	if err != nil {
-		return err
-	}
-	if h.clashAPISecret != "" {
-		req.Header.Set("Authorization", "Bearer "+h.clashAPISecret)
-	}
-
-	resp, err := h.httpClient.Do(req)
-	if err != nil {
+	if err := h.api.DeleteAllConnections(ctx); err != nil {
 		return fmt.Errorf("flush stale connections failed: %w", err)
 	}
-	defer netutil.DrainAndCloseBody(resp)
-
-	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code %d on connection flush", resp.StatusCode)
-	}
-
 	if h.onHealed != nil {
 		h.onHealed(reason)
 	}
@@ -82,7 +63,9 @@ func (h *WANHealer) WatchGatewayTransition(ctx context.Context, interval time.Du
 			currentReachable := probeGatewayFn()
 			if !lastReachable && currentReachable {
 				// 状态从不可达翻转为可达：主路由已完成重拨或网关自愈
-				_ = h.FlushStaleConnections(ctx, "上游网关PPPoE重拨/闪断后自愈恢复")
+				if err := h.FlushStaleConnections(ctx, "上游网关PPPoE重拨/闪断后自愈恢复"); err != nil {
+					log.Printf("⚠️ [WANHealer] 网关恢复后冲刷陈旧连接失败: %v", err)
+				}
 			}
 			lastReachable = currentReachable
 		}

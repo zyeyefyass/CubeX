@@ -30,9 +30,9 @@ const (
 // GatewayModeSpec 定义主旁模式配置参数
 type GatewayModeSpec struct {
 	Mode              GatewayTopologyMode `json:"mode"`
-	PrimaryInterface  string              `json:"primary_interface"`   // 自动探测，如 "eth0"
-	CubeXLocalIP      string              `json:"cubex_local_ip"`      // 自动探测，如 "192.168.1.7"
-	UpstreamGatewayIP string              `json:"upstream_gateway_ip"` // 主路由 IP，如 "192.168.1.1"
+	PrimaryInterface  string              `json:"primary_interface"`   // 自动探测主网卡名
+	CubeXLocalIP      string              `json:"cubex_local_ip"`      // 自动探测本机 LAN IPv4
+	UpstreamGatewayIP string              `json:"upstream_gateway_ip"` // 自动探测上级主路由网关 IPv4
 	UpstreamDNS       string              `json:"upstream_dns"`        // 默认 "223.5.5.5"
 	EnableMasquerade  bool                `json:"enable_masquerade"`   // 旁路由防不对称路由丢包开关（默认开启）
 }

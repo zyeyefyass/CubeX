@@ -73,24 +73,18 @@ jobs:
           curl -sL "https://github.com/MetaCubeX/mihomo/releases/download/${MH_VER}/mihomo-linux-arm64-${MH_VER}.gz" | gzip -d > bin/arm64/mihomo
           chmod +x bin/amd64/mihomo bin/arm64/mihomo
 
-          echo "Downloading official sing-box ${SB_TAG} binaries..."
-          curl -sL "https://github.com/SagerNet/sing-box/releases/download/${SB_TAG}/sing-box-${SB_VER}-linux-amd64.tar.gz" | tar -xz -C /tmp
+          echo "Downloading official static musl sing-box ${SB_TAG} binaries..."
+          curl -sL "https://github.com/SagerNet/sing-box/releases/download/${SB_TAG}/sing-box-${SB_VER}-linux-amd64-musl.tar.gz" | tar -xz -C /tmp
           mv /tmp/sing-box-*/sing-box bin/amd64/sing-box
           rm -rf /tmp/sing-box-*
-          curl -sL "https://github.com/SagerNet/sing-box/releases/download/${SB_TAG}/sing-box-${SB_VER}-linux-arm64.tar.gz" | tar -xz -C /tmp
+          curl -sL "https://github.com/SagerNet/sing-box/releases/download/${SB_TAG}/sing-box-${SB_VER}-linux-arm64-musl.tar.gz" | tar -xz -C /tmp
           mv /tmp/sing-box-*/sing-box bin/arm64/sing-box
           rm -rf /tmp/sing-box-*
           chmod +x bin/amd64/sing-box bin/arm64/sing-box
 
           echo "Downloading GeoIP and GeoSite rulesets..."
-          curl -sLo etc/geoip.metadb https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb
           curl -sLo etc/geosite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
           curl -sLo etc/GeoIP.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat
-
-          # Ensure default fallback data without creating empty config files
-          if [ ! -f data/config.ir.json ] || [ ! -s data/config.ir.json ]; then
-            echo "{}" > data/config.ir.json
-          fi
 
       - name: Build and Push Multi-Arch Docker Image
         uses: docker/build-push-action@v5

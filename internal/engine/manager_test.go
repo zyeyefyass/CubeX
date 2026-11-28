@@ -2,6 +2,7 @@ package engine
 
 import (
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -466,6 +467,42 @@ func TestPatrolCircuitBreaker_MultiNodeSwitchesToNonEmptyAutoGroup(t *testing.T)
 	}
 	if mgr.ir.Groups[0].Now != "🇯🇵 日本自动" {
 		t.Fatalf("expected persisted group Now='🇯🇵 日本自动', got %q", mgr.ir.Groups[0].Now)
+	}
+}
+
+func TestWaitForPortsRelease_WaitsAndDetectsFree(t *testing.T) {
+	mgr := &Manager{}
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen failed: %v", err)
+	}
+	port := ln.Addr().(*net.TCPAddr).Port
+
+	go func() {
+		time.Sleep(60 * time.Millisecond)
+		_ = ln.Close()
+	}()
+
+	if !mgr.waitForPortsRelease([]int{port}, 600*time.Millisecond) {
+		t.Fatalf("expected waitForPortsRelease to succeed after listener closed")
+	}
+}
+
+func TestTriggerAllCoresDown_ClearsStateAndInvokesCallback(t *testing.T) {
+	mgr := &Manager{
+		activeEngine: schema.EngineSingbox,
+	}
+	var gotReason string
+	mgr.SetFaultCallbacks(func(reason string) {
+		gotReason = reason
+	}, nil)
+
+	mgr.triggerAllCoresDown("both cores failed")
+	if mgr.GetActiveEngine() != "" {
+		t.Fatalf("expected activeEngine cleared, got %q", mgr.GetActiveEngine())
+	}
+	if gotReason != "both cores failed" {
+		t.Fatalf("expected callback reason 'both cores failed', got %q", gotReason)
 	}
 }
 

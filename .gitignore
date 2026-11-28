@@ -50,7 +50,8 @@ oppo-dv-mkv*/
 !scripts/publish_release*.py
 !scripts/pack_theme.py
 !scripts/precompress_dist.py
-!scripts/compile_all_garble.py
+!scripts/compile_linux.py
+!scripts/build_oci.py
 !scripts/build_fnos_fpk.py
 !scripts/package_release.sh
 !scripts/package_release.ps1
