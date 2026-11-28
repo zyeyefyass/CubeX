@@ -1,0 +1,333 @@
+name: Build and Upload Large Release Assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Target release tag (e.g. v9.993)'
+        required: true
+        default: 'v9.993'
+        type: string
+      release_id:
+        description: 'Target GitHub Release ID'
+        required: true
+        type: string
+      publish:
+        description: 'Publish release (set draft=false) after verifying 19/19 assets'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-upload:
+    name: Build & Upload 6 Large Archives + SHA256SUMS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Target Tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Prepare Multi-Arch Cores & Geodata
+        run: |
+          mkdir -p bin/amd64 bin/arm64 etc/rules dist/docker dist/release
+
+          MH_VER=$(python3 -c 'import json; d=json.load(open("meta.json")); print(d.get("core_versions", {}).get("mihomo", "v1.19.34"))')
+          SB_TAG=$(python3 -c 'import json; d=json.load(open("meta.json")); print(d.get("core_versions", {}).get("sing_box", "v1.14.6"))')
+          SB_VER="${SB_TAG#v}"
+
+          echo "Downloading official Mihomo ${MH_VER} (-compatible- amd64 + arm64)..."
+          curl -fsSL "https://github.com/MetaCubeX/mihomo/releases/download/${MH_VER}/mihomo-linux-amd64-compatible-${MH_VER}.gz" | gzip -d > bin/amd64/mihomo
+          curl -fsSL "https://github.com/MetaCubeX/mihomo/releases/download/${MH_VER}/mihomo-linux-arm64-${MH_VER}.gz" | gzip -d > bin/arm64/mihomo
+          chmod +x bin/amd64/mihomo bin/arm64/mihomo
+
+          echo "Downloading official static musl sing-box ${SB_TAG} (amd64 + arm64)..."
+          curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/${SB_TAG}/sing-box-${SB_VER}-linux-amd64-musl.tar.gz" | tar -xz -C /tmp
+          mv /tmp/sing-box-*/sing-box bin/amd64/sing-box
+          rm -rf /tmp/sing-box-*
+          curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/${SB_TAG}/sing-box-${SB_VER}-linux-arm64-musl.tar.gz" | tar -xz -C /tmp
+          mv /tmp/sing-box-*/sing-box bin/arm64/sing-box
+          rm -rf /tmp/sing-box-*
+          chmod +x bin/amd64/sing-box bin/arm64/sing-box
+
+          echo "Downloading GeoIP.dat and geosite.dat..."
+          curl -fsSLo etc/geosite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          curl -fsSLo etc/GeoIP.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat
+
+      - name: Pull Base OCI Layers from Docker Hub
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          IMAGE="fyasshole/cubex:${TAG}"
+          for ARCH in amd64 arm64; do
+            echo "Pulling ${IMAGE} for linux/${ARCH}..."
+            docker pull --platform "linux/${ARCH}" "${IMAGE}"
+            docker save -o "dist/docker/CubeX-ros-${ARCH}-oci-base.tar" "${IMAGE}"
+            docker rmi "${IMAGE}"
+          done
+
+      - name: Build 4 Container Offline Archives (ROS + Docker)
+        run: |
+          python3 scripts/build_oci.py --arch all --format all
+
+      - name: Build 2 Linux Release ZIPs (amd64 + arm64)
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import shutil
+          import subprocess
+          import sys
+          import zipfile
+
+          tag = os.environ["TAG"]
+          root = os.getcwd()
+          dist_dir = os.path.join(root, "dist")
+          release_dir = os.path.join(dist_dir, "release")
+          os.makedirs(release_dir, exist_ok=True)
+
+          for arch in ("amd64", "arm64"):
+              pkg_name = f"CubeX-{tag}-linux-{arch}"
+              stage = os.path.join(dist_dir, "staging", pkg_name)
+              if os.path.exists(stage):
+                  shutil.rmtree(stage)
+              os.makedirs(os.path.join(stage, "bin"), exist_ok=True)
+              os.makedirs(os.path.join(stage, "etc", "rules"), exist_ok=True)
+              os.makedirs(os.path.join(stage, "data"), exist_ok=True)
+
+              shutil.copy2(os.path.join(dist_dir, f"cubexd-linux-{arch}"), os.path.join(stage, "bin", "cubexd"))
+              shutil.copy2(os.path.join(dist_dir, f"cubex-linux-{arch}"), os.path.join(stage, "bin", "cubex"))
+              shutil.copy2(os.path.join(root, "bin", arch, "mihomo"), os.path.join(stage, "bin", "mihomo"))
+              shutil.copy2(os.path.join(root, "bin", arch, "sing-box"), os.path.join(stage, "bin", "sing-box"))
+
+              for fn in os.listdir(os.path.join(root, "etc", "rules")):
+                  src_p = os.path.join(root, "etc", "rules", fn)
+                  if os.path.isfile(src_p):
+                      shutil.copy2(src_p, os.path.join(stage, "etc", "rules", fn))
+              for gf in ("GeoIP.dat", "geosite.dat"):
+                  gp = os.path.join(root, "etc", gf)
+                  if os.path.exists(gp):
+                      shutil.copy2(gp, os.path.join(stage, "etc", gf))
+              for fn in os.listdir(os.path.join(root, "packaging", "defaults", "data")):
+                  src_p = os.path.join(root, "packaging", "defaults", "data", fn)
+                  if os.path.isfile(src_p):
+                      shutil.copy2(src_p, os.path.join(stage, "data", fn))
+
+              subprocess.run([sys.executable, os.path.join(root, "scripts", "desensitize.py"), stage], check=True)
+
+              for doc in ("meta.json", "install.sh", "docker-compose.yml", "README.md", "LICENSE"):
+                  shutil.copy2(os.path.join(root, doc), os.path.join(stage, doc))
+
+              dst_zip = os.path.join(release_dir, f"{pkg_name}.zip")
+              with zipfile.ZipFile(dst_zip, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+                  for r, _, files in os.walk(stage):
+                      for f in sorted(files):
+                          full = os.path.join(r, f)
+                          rel = os.path.relpath(full, stage).replace("\\", "/")
+                          is_bin = rel.startswith("bin/") or rel.endswith(".sh")
+                          zi = zipfile.ZipInfo(rel)
+                          zi.external_attr = (0o755 << 16) if is_bin else (0o644 << 16)
+                          with open(full, "rb") as fp:
+                              z.writestr(zi, fp.read(), compress_type=zipfile.ZIP_DEFLATED)
+              shutil.rmtree(stage)
+              print(f"Built {dst_zip} ({os.path.getsize(dst_zip):,} bytes)")
+          PY
+
+      - name: Download 12 Small Assets, Generate SHA256SUMS, and Run Audit Gate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import urllib.request
+
+          tok = os.environ["GITHUB_TOKEN"]
+          repo = os.environ["REPO"]
+          rel_id = os.environ["RELEASE_ID"]
+          tag = os.environ["TAG"]
+          release_dir = os.path.join("dist", "release")
+
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{repo}/releases/{rel_id}/assets?per_page=100",
+              headers={"Authorization": f"token {tok}", "Accept": "application/vnd.github.v3+json"},
+          )
+          with urllib.request.urlopen(req, timeout=30) as resp:
+              cloud_assets = json.loads(resp.read().decode("utf-8"))
+
+          small_names = {
+              f"cubex_fnos_{tag}_amd64.fpk",
+              f"cubex_fnos_{tag}_arm64.fpk",
+              "cubexd-linux-amd64",
+              "cubexd-linux-arm64",
+              "cubex-linux-amd64",
+              "cubex-linux-arm64",
+              "install_ros_container.rsc",
+              "install_openwrt_docker.sh",
+              "setup-routeros-v7.rsc",
+              "setup-openwrt.sh",
+              "install_pve_lxc.sh",
+              "install.sh",
+          }
+
+          cloud_map = {a["name"]: a for a in cloud_assets}
+          for name in sorted(small_names):
+              if name not in cloud_map:
+                  raise RuntimeError(f"Missing small asset on Release {rel_id}: {name}")
+              a = cloud_map[name]
+              if a.get("state") != "uploaded":
+                  raise RuntimeError(f"Asset {name} not uploaded: state={a.get('state')}")
+              dl_req = urllib.request.Request(
+                  a["url"],
+                  headers={"Authorization": f"token {tok}", "Accept": "application/octet-stream"},
+              )
+              dst = os.path.join(release_dir, name)
+              with urllib.request.urlopen(dl_req, timeout=60) as r:
+                  data = r.read()
+              with open(dst, "wb") as f:
+                  f.write(data)
+              assert len(data) == a["size"], f"Size mismatch for {name}: {len(data)} != {a['size']}"
+              print(f"Downloaded {name} ({len(data):,} bytes)")
+
+          sha_lines = []
+          for fn in sorted(os.listdir(release_dir)):
+              if fn == "SHA256SUMS":
+                  continue
+              fp = os.path.join(release_dir, fn)
+              if os.path.isfile(fp):
+                  h = hashlib.sha256()
+                  with open(fp, "rb") as f:
+                      for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                          h.update(chunk)
+                  sha_lines.append(f"{h.hexdigest()}  {fn}\n")
+          with open(os.path.join(release_dir, "SHA256SUMS"), "w", encoding="ascii", newline="\n") as sf:
+              sf.writelines(sha_lines)
+          print(f"Generated SHA256SUMS with {len(sha_lines)} entries")
+          PY
+
+          python3 scripts/audit_release_artifacts.py dist/release --expected-version "${TAG}" --size-gate
+
+      - name: Upload 6 Large Archives + SHA256SUMS, Verify 19/19, and Publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          PUBLISH_FLAG: ${{ inputs.publish }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+          import urllib.request
+
+          tok = os.environ["GITHUB_TOKEN"]
+          repo = os.environ["REPO"]
+          rel_id = os.environ["RELEASE_ID"]
+          tag = os.environ["TAG"]
+          publish_flag = os.environ.get("PUBLISH_FLAG", "true").lower() == "true"
+          release_dir = os.path.join("dist", "release")
+
+          def api(method, path, payload=None):
+              url = f"https://api.github.com/repos/{repo}{path}"
+              data = json.dumps(payload).encode("utf-8") if payload is not None else None
+              headers = {
+                  "Authorization": f"token {tok}",
+                  "Accept": "application/vnd.github.v3+json",
+              }
+              if data is not None:
+                  headers["Content-Type"] = "application/json"
+              req = urllib.request.Request(url, data=data, headers=headers, method=method)
+              with urllib.request.urlopen(req, timeout=60) as resp:
+                  raw = resp.read().decode("utf-8")
+                  return resp.status, (json.loads(raw) if raw else {})
+
+          _, rel = api("GET", f"/releases/{rel_id}")
+          upload_base = rel["upload_url"].split("{")[0]
+          _, existing = api("GET", f"/releases/{rel_id}/assets?per_page=100")
+          existing_map = {a["name"]: a for a in existing}
+
+          to_upload = [
+              f"CubeX-{tag}-ros-amd64.tar",
+              f"CubeX-{tag}-ros-arm64.tar",
+              f"CubeX-{tag}-docker-amd64.tar.gz",
+              f"CubeX-{tag}-docker-arm64.tar.gz",
+              f"CubeX-{tag}-linux-amd64.zip",
+              f"CubeX-{tag}-linux-arm64.zip",
+              "SHA256SUMS",
+          ]
+
+          for name in to_upload:
+              fpath = os.path.join(release_dir, name)
+              if not os.path.isfile(fpath):
+                  raise RuntimeError(f"Missing generated file: {fpath}")
+              if name in existing_map:
+                  api("DELETE", f"/releases/assets/{existing_map[name]['id']}")
+                  print(f"Deleted old asset {name} (id={existing_map[name]['id']})")
+              ctype = "application/octet-stream"
+              if name.endswith(".tar"):
+                  ctype = "application/x-tar"
+              elif name.endswith(".tar.gz"):
+                  ctype = "application/gzip"
+              elif name.endswith(".zip"):
+                  ctype = "application/zip"
+              elif name == "SHA256SUMS":
+                  ctype = "text/plain"
+              subprocess.run([
+                  "curl", "-fsSL", "-X", "POST",
+                  "-H", f"Authorization: token {tok}",
+                  "-H", f"Content-Type: {ctype}",
+                  "--data-binary", f"@{fpath}",
+                  f"{upload_base}?name={name}",
+              ], check=True)
+              print(f"Uploaded {name} ({os.path.getsize(fpath):,} bytes)")
+
+          expected_19 = [
+              f"cubex_fnos_{tag}_amd64.fpk",
+              f"cubex_fnos_{tag}_arm64.fpk",
+              f"CubeX-{tag}-ros-amd64.tar",
+              f"CubeX-{tag}-ros-arm64.tar",
+              f"CubeX-{tag}-docker-amd64.tar.gz",
+              f"CubeX-{tag}-docker-arm64.tar.gz",
+              f"CubeX-{tag}-linux-amd64.zip",
+              f"CubeX-{tag}-linux-arm64.zip",
+              "cubexd-linux-amd64",
+              "cubexd-linux-arm64",
+              "cubex-linux-amd64",
+              "cubex-linux-arm64",
+              "install_ros_container.rsc",
+              "install_openwrt_docker.sh",
+              "setup-routeros-v7.rsc",
+              "setup-openwrt.sh",
+              "install_pve_lxc.sh",
+              "install.sh",
+              "SHA256SUMS",
+          ]
+          _, final_assets = api("GET", f"/releases/{rel_id}/assets?per_page=100")
+          final_map = {a["name"]: a for a in final_assets}
+          for name in expected_19:
+              if name not in final_map:
+                  raise RuntimeError(f"Missing final cloud asset: {name}")
+              a = final_map[name]
+              exp_sz = os.path.getsize(os.path.join(release_dir, name))
+              if a.get("state") != "uploaded" or a.get("size") != exp_sz:
+                  raise RuntimeError(f"Asset verification failed for {name}: state={a.get('state')}, size={a.get('size')}/{exp_sz}")
+              print(f"Verified {name}: state=uploaded, size={exp_sz:,}")
+
+          if publish_flag:
+              _, pub = api("PATCH", f"/releases/{rel_id}", {"draft": False, "tag_name": tag})
+              print(f"Published Release: {pub.get('html_url')} (draft={pub.get('draft')})")
+          PY
