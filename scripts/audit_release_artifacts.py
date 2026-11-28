@@ -16,6 +16,10 @@ import json
 import tarfile
 import zipfile
 import io
+import hashlib
+import shutil
+import subprocess
+import tempfile
 
 META_JSON_PATH = os.path.join(os.path.dirname(__file__), "..", "meta.json")
 
@@ -126,7 +130,78 @@ SIZE_GATE_LIMITS_MB = [
     ("docker-arm64.tar.gz", 80.0),
     ("linux-amd64.zip", 100.0),
     ("linux-arm64.zip", 100.0),
+    ("cubex_istoreos_amd64.run", 32.0),
+    ("cubex_istoreos_arm64.run", 32.0),
 ]
+
+POSIX_BASHISM_PATTERNS = [
+    (r"(^|[;&|(\s])\[\[(\s|$)", "[["),
+    (r"(^|[;&|\s])declare\s+", "declare"),
+    (r"(^|[;&|\s])source\s+", "source (use '.')"),
+    (r"&>\s*\S", "&> redirect"),
+    (r"<<<", "<<< herestring"),
+]
+
+
+def _find_sh_binary():
+    found = shutil.which("sh")
+    if found:
+        return found
+    for cand in (
+        r"C:\Program Files\Git\bin\sh.exe",
+        r"C:\Program Files\Git\usr\bin\sh.exe",
+        "/bin/sh",
+        "/usr/bin/sh",
+    ):
+        if os.path.exists(cand):
+            return cand
+    return None
+
+
+def _strip_quoted_heredocs(lines):
+    kept = []
+    delim = None
+    for idx, line in enumerate(lines, 1):
+        s = line.strip()
+        if delim is not None:
+            if s == delim:
+                delim = None
+            continue
+        m_hd = re.search(r"<<-?\s*['\"]?([A-Za-z0-9_]+)['\"]?", line)
+        if m_hd and not line.lstrip().startswith("#"):
+            if "'" in line[m_hd.start():m_hd.end()]:
+                delim = m_hd.group(1)
+        kept.append((idx, line))
+    return kept
+
+
+def check_posix_shell_script(archive_name, inner_path, text):
+    errors = []
+    for lno, line in _strip_quoted_heredocs(text.splitlines()):
+        if line.lstrip().startswith("#"):
+            continue
+        for pat, label in POSIX_BASHISM_PATTERNS:
+            if re.search(pat, line):
+                errors.append(
+                    f"[{archive_name} -> {inner_path}:{lno}] POSIX BASHISM VIOLATION ({label}): {line.strip()[:80]}"
+                )
+    sh_bin = _find_sh_binary()
+    if sh_bin:
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".sh", delete=False, newline="\n") as tf:
+            tf.write(text)
+            tmp_path = tf.name
+        try:
+            res = subprocess.run([sh_bin, "-n", tmp_path], capture_output=True, text=True)
+            if res.returncode != 0:
+                errors.append(
+                    f"[{archive_name} -> {inner_path}] SH SYNTAX ERROR (sh -n): {(res.stderr or res.stdout).strip()}"
+                )
+        finally:
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+    return errors
 
 
 def check_amd64_binary_isa(archive_name, inner_path, content_bytes):
@@ -398,6 +473,115 @@ def audit_tar(archive_path, expected_version=""):
     print(f"   -> Checked {files_checked} total files ({configs_checked} config/text files, {cubexd_checked} cubexd binaries).")
     return errors, cubexd_checked
 
+def _split_run_archive(run_path):
+    with open(run_path, "rb") as rf:
+        raw = rf.read()
+    marker = b"\n__ARCHIVE_BELOW__\n"
+    idx = raw.find(marker)
+    if idx < 0:
+        if raw.startswith(b"__ARCHIVE_BELOW__\n"):
+            return b"__ARCHIVE_BELOW__\n", raw[len(b"__ARCHIVE_BELOW__\n"):]
+        return None, None
+    split_at = idx + len(marker)
+    return raw[:split_at], raw[split_at:]
+
+
+def audit_run_installer(run_path, expected_version=""):
+    archive_name = os.path.basename(run_path)
+    errors = []
+    files_checked = 0
+    configs_checked = 0
+    cubexd_checked = 0
+
+    print(f"\n📦 Auditing Self-Extracting .run Installer: {archive_name}")
+    header_bytes, payload_bytes = _split_run_archive(run_path)
+    if header_bytes is None or payload_bytes is None:
+        errors.append(f"[{archive_name}] INVALID .run FORMAT: Missing __ARCHIVE_BELOW__ marker!")
+        return errors, cubexd_checked
+
+    try:
+        header_text = header_bytes.decode("utf-8")
+    except UnicodeDecodeError as e:
+        errors.append(f"[{archive_name}] HEADER ENCODING ERROR: POSIX header is not valid UTF-8: {e}")
+        return errors, cubexd_checked
+
+    if not header_text.startswith("#!/bin/sh\n"):
+        errors.append(f"[{archive_name}] POSIX HEADER ERROR: Must start with #!/bin/sh shebang!")
+
+    errors.extend(check_file_content(archive_name, "header.sh", header_bytes))
+    errors.extend(check_posix_shell_script(archive_name, "header.sh", header_text))
+
+    actual_sha = hashlib.sha256(payload_bytes).hexdigest()
+    m_sha = re.search(r'^CUBEX_PAYLOAD_SHA256="([0-9a-f]{64})"', header_text, re.MULTILINE)
+    if not m_sha:
+        errors.append(f"[{archive_name}] INTEGRITY ERROR: Missing embedded CUBEX_PAYLOAD_SHA256 in header!")
+    elif m_sha.group(1) != actual_sha:
+        errors.append(
+            f"[{archive_name}] INTEGRITY MISMATCH: Header SHA256 {m_sha.group(1)} != payload SHA256 {actual_sha}!"
+        )
+
+    if expected_version:
+        m_ver = re.search(r'^CUBEX_RUN_VERSION="([^"]+)"', header_text, re.MULTILINE)
+        if m_ver and normalize_version_tag(m_ver.group(1)) != expected_version:
+            errors.append(
+                f"[{archive_name} -> header.sh] VERSION MISMATCH: "
+                f"CUBEX_RUN_VERSION='{m_ver.group(1)}' != expected '{expected_version}'!"
+            )
+
+    try:
+        with tarfile.open(fileobj=io.BytesIO(payload_bytes), mode="r:gz") as tf:
+            for member in tf.getmembers():
+                if FORBIDDEN_CONTAINER_PATHS_RE.search(member.name):
+                    errors.append(f"[{archive_name} -> payload::{member.name}] CLEAN-ROOM VIOLATION: Forbidden legacy path!")
+                if not member.isfile():
+                    continue
+                files_checked += 1
+                filename = member.name
+                base = os.path.basename(filename)
+                for pat in FORBIDDEN_FILE_PATTERNS:
+                    if re.search(pat, base, re.IGNORECASE) or re.search(pat, filename, re.IGNORECASE):
+                        errors.append(f"[{archive_name}] FORBIDDEN FILE: payload::{filename}")
+                for pat in FORBIDDEN_FLAG_IMAGE_PATTERNS:
+                    if pat.search(filename):
+                        errors.append(f"[{archive_name}] FORBIDDEN FLAG IMAGE FILE: payload::{filename}")
+
+                fobj = tf.extractfile(member)
+                if not fobj:
+                    continue
+                if filename.endswith((".json", ".yaml", ".yml", ".rsc", ".conf", ".sh", ".env", ".txt", ".md")):
+                    configs_checked += 1
+                    content = fobj.read()
+                    errors.extend(check_file_content(archive_name, f"payload::{filename}", content))
+                    if filename.endswith(".sh"):
+                        errors.extend(
+                            check_posix_shell_script(
+                                archive_name,
+                                f"payload::{filename}",
+                                content.decode("utf-8", errors="replace"),
+                            )
+                        )
+                elif any(k in base for k in ("cubexd", "cubex", "mihomo", "sing-box")):
+                    bcontent = fobj.read()
+                    errors.extend(check_amd64_binary_isa(archive_name, f"payload::{filename}", bcontent))
+                    ver_errs, found = check_cubexd_binary_version(
+                        archive_name, f"payload::{filename}", bcontent, expected_version
+                    )
+                    errors.extend(ver_errs)
+                    if found:
+                        cubexd_checked += 1
+    except Exception as e:
+        errors.append(f"[{archive_name}] PAYLOAD UNPACK ERROR: Failed to inspect embedded payload.tar.gz: {e}")
+
+    if expected_version and cubexd_checked == 0:
+        errors.append(f"[{archive_name}] VERSION AUDIT ERROR: No cubexd executable found inside .run payload!")
+
+    print(
+        f"   -> Checked POSIX header + {files_checked} payload files "
+        f"({configs_checked} config/text files, {cubexd_checked} cubexd binaries)."
+    )
+    return errors, cubexd_checked
+
+
 def check_archive_size_gate(release_dir):
     errors = []
     print("\n📏 Checking Release Size Gate (cubex-slimmer)...")
@@ -418,6 +602,11 @@ def check_archive_size_gate(release_dir):
                         if fname.endswith(".zip"):
                             with zipfile.ZipFile(fpath, "r") as zf:
                                 entries = [(zi.file_size, zi.filename) for zi in zf.infolist() if not zi.is_dir()]
+                        elif fname.endswith(".run"):
+                            _, payload_bytes = _split_run_archive(fpath)
+                            if payload_bytes:
+                                with tarfile.open(fileobj=io.BytesIO(payload_bytes), mode="r:gz") as tf:
+                                    entries = [(m.size, m.name) for m in tf.getmembers() if m.isfile()]
                         else:
                             mode = "r:*" if fname.endswith((".tar.gz", ".tgz")) else "r:"
                             with tarfile.open(fpath, mode) as tf:
@@ -458,7 +647,7 @@ def audit_directory(release_dir, allow_windows=False, expected_version=None, siz
                         f"[{f}] POLICY VIOLATION: Windows release artifact detected without explicit authorization! "
                         "Per security policy, Windows versions must NEVER be released without explicit instructions."
                     )
-            if f.endswith((".zip", ".tar", ".tar.gz", ".tgz")):
+            if f.endswith((".zip", ".tar", ".tar.gz", ".tgz", ".run")):
                 archives.append(p)
             elif any(k in f for k in ("cubexd", "cubex", "mihomo", "sing-box")) and not f.endswith(".fpk"):
                 with open(p, "rb") as bf:
@@ -470,12 +659,16 @@ def audit_directory(release_dir, allow_windows=False, expected_version=None, siz
                     standalone_cubexd_checked += 1
 
     if not archives and standalone_cubexd_checked == 0 and not all_errors:
-        print(f"⚠️  No release archives (.tar, .tar.gz, .zip) found in {release_dir}")
+        print(f"⚠️  No release archives (.tar, .tar.gz, .zip, .run) found in {release_dir}")
         sys.exit(0)
 
     for arch in sorted(archives):
         if arch.endswith(".zip"):
             errs, cnt = audit_zip(arch, target_version)
+            all_errors.extend(errs)
+            archive_cubexd_checked += cnt
+        elif arch.endswith(".run"):
+            errs, cnt = audit_run_installer(arch, target_version)
             all_errors.extend(errs)
             archive_cubexd_checked += cnt
         elif arch.endswith((".tar", ".tar.gz", ".tgz")):
@@ -506,7 +699,7 @@ def audit_directory(release_dir, allow_windows=False, expected_version=None, siz
         print("   ✓ 0 Runtime Caches / DBs (cache.db, logs, sqlite)")
         print("   ✓ 0 x86-64-v3/v4 Restricted AMD64 Binaries (Universal Compatible)")
         print("   ✓ 0 Unauthorized Windows Release Artifacts")
-        print(f"   ✓ 100% Binary Version Alignment ({target_version}) across standalone, .zip, .tar, .tar.gz & OCI layers")
+        print(f"   ✓ 100% Binary Version Alignment ({target_version}) across standalone, .zip, .tar, .tar.gz, .run & OCI layers")
         print("   ✓ 100% Clean-Room & Zero-Legacy Compliance")
         print("=" * 80)
         sys.exit(0)
