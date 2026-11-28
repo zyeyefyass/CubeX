@@ -55,3 +55,16 @@ export class GeekCommandController {
     }
   }
 }
+
+// 注册 Ctrl+K / Cmd+K 极客指令舱快捷键
+export function bindGeekCommandPalette(toggleModalFn) {
+  if (typeof window === 'undefined') return () => {}
+  const handler = (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault()
+      toggleModalFn()
+    }
+  }
+  window.addEventListener('keydown', handler)
+  return () => window.removeEventListener('keydown', handler)
+}

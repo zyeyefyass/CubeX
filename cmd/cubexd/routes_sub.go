@@ -224,8 +224,14 @@ func (s *Server) handleSubAdd(w http.ResponseWriter, r *http.Request) {
 		res, err = fetcher.Fetch(req.URL)
 
 		if err != nil {
-
-			sendJSON(w, map[string]any{"status": "error", "error": err.Error()})
+			cat, dom, usedProxy := sub.ClassifyFetchError(err)
+			sendJSON(w, map[string]any{
+				"status":         "error",
+				"error":          err.Error(),
+				"error_category": cat,
+				"error_domain":   dom,
+				"used_proxy":     usedProxy,
+			})
 
 			return
 
@@ -1686,14 +1692,24 @@ func (s *Server) handleSubEdit(w http.ResponseWriter, r *http.Request) {
 	if err != nil || res == nil || res.NodeCount == 0 {
 
 		errMsg := "新订阅链接验证失败（未能获取到有效节点），已自动保留现有节点与配置！"
+		var cat, dom string
+		var usedProxy bool
 
 		if err != nil {
-
+			cat, dom, usedProxy = sub.ClassifyFetchError(err)
 			errMsg = fmt.Sprintf("新订阅解析失败: %v，已安全保留原配置！", err)
 
+		} else {
+			cat = "parse_failed"
 		}
 
-		sendJSON(w, map[string]any{"ok": false, "error": errMsg})
+		sendJSON(w, map[string]any{
+			"ok":             false,
+			"error":          errMsg,
+			"error_category": cat,
+			"error_domain":   dom,
+			"used_proxy":     usedProxy,
+		})
 
 		return
 
@@ -1952,6 +1968,7 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 
 	var targetQuota sub.QuotaTelemetry
 	subFound := false
+	var singleFetchErr error
 
 	for i := range ir.Subscriptions {
 		if ir.Subscriptions[i].ID != req.ID {
@@ -1987,7 +2004,12 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 			}
 			totalNodes += res.NodeCount
 		} else {
-			log.Printf("⚠️ [Sub] Failed to fetch sub '%s' (%s): %v. Preserving existing nodes.", ir.Subscriptions[i].Name, ir.Subscriptions[i].URL, err)
+			singleFetchErr = err
+			cat, dom, usedProxy := sub.ClassifyFetchError(err)
+			log.Printf("⚠️ [Sub] Failed to fetch sub '%s' (domain=%s, category=%s, used_proxy=%v): %v. Preserving existing nodes.", ir.Subscriptions[i].Name, dom, cat, usedProxy, err)
+			if s.logBuffer != nil {
+				s.logBuffer.Add("WARN", "SUB", fmt.Sprintf("订阅「%s」拉取失败 (%s, 域名=%s): 已保留现有节点", ir.Subscriptions[i].Name, cat, dom))
+			}
 			for _, p := range ir.Proxies {
 				if p.SubID == ir.Subscriptions[i].ID {
 					updatedProxies = append(updatedProxies, p)
@@ -2000,6 +2022,19 @@ func (s *Server) handleSubUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if !subFound {
 		http.Error(w, "subscription not found", http.StatusNotFound)
+		return
+	}
+	if singleFetchErr != nil {
+		cat, dom, usedProxy := sub.ClassifyFetchError(singleFetchErr)
+		sendJSON(w, map[string]any{
+			"ok":             false,
+			"status":         "fetch_failed",
+			"error":          singleFetchErr.Error(),
+			"error_category": cat,
+			"error_domain":   dom,
+			"used_proxy":     usedProxy,
+			"total_nodes":    totalNodes,
+		})
 		return
 	}
 

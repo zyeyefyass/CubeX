@@ -190,6 +190,7 @@
         :router-version="mainRouterPlatform.version"
         :router-logo="mainRouterPlatform.logo"
         :app-version="computedAppVersion"
+        :core-versions="systemStatus.core_versions || {}"
         :active-engine="activeEngine"
         :is-switching-engine="switchingEngine"
         :is-peek-mode="isPeekMode"
@@ -198,6 +199,31 @@
         @toggle-peek="togglePeekMode"
         @open-logs="showLogsModal = !showLogsModal"
       />
+
+      <!-- 🩺 P3 宿主机关键环境阻断自检顶栏告警 + 一键复制脱敏诊断报告 -->
+      <div
+        v-if="requiredDoctorAlerts.length > 0 && !doctorBannerDismissed"
+        class="shrink-0 mx-3 sm:mx-5 mt-2 px-3 sm:px-4 py-2 rounded-xl bg-amber-950/85 border border-amber-400/50 text-amber-100 text-xs flex flex-wrap items-center justify-between gap-2 shadow-lg backdrop-blur-md z-20"
+      >
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="shrink-0 text-amber-300 font-bold">⚠️ 宿主机环境自检异常 ({{ requiredDoctorAlerts.length }} 项):</span>
+          <span class="truncate text-amber-100/90">{{ requiredDoctorAlerts.map(a => a.title + (a.detail ? ' — ' + a.detail : '')).join('；') }}</span>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            @click="copyDoctorCard"
+            :disabled="copyingDoctorCard"
+            class="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-[11px] transition-colors cursor-pointer"
+          >
+            {{ copyingDoctorCard ? '生成中...' : '📋 复制诊断报告' }}
+          </button>
+          <button
+            @click="doctorBannerDismissed = true"
+            class="px-1.5 py-1 text-amber-200/80 hover:text-white cursor-pointer"
+            title="暂时收起"
+          >✕</button>
+        </div>
+      </div>
 
       <!-- 🚀 下方独立滚动视口 (硬性高度约束 + contain: content，隔绝合成器重绘，稳跑 60FPS) -->
       <div
@@ -3857,8 +3883,8 @@ const DiagnosticOpsModals = defineAsyncComponent(() => import('./components/moda
 const IPPerspectiveModal = defineAsyncComponent(() => import('./components/modals/IPPerspectiveModal.vue'))
 import ConsoleAuthModal from './components/modals/ConsoleAuthModal.vue'
 import { frameScheduler, enablePeekModeWithGuard } from './utils/scheduler'
-import { GeekCommandController } from './utils/command-palette'
-import { SymbioticStreamClient, bindGeekCommandPalette } from './utils/telemetry-stream'
+import { GeekCommandController, bindGeekCommandPalette } from './utils/command-palette'
+import { apiFetch, configureApiClient } from './utils/apiFetch'
 import { freezeTelemetryPayload } from './utils/perf-freeze.js'
 import { formatBytes } from './utils/format.js'
 import { copyTextToClipboard } from './utils/clipboard.js'
@@ -3868,7 +3894,7 @@ if (typeof window !== 'undefined' && !window.__cubexNativeFetch) {
   window.__cubexNativeFetch = window.fetch.bind(window)
   window.fetch = async (...args) => {
     const reqUrl = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '')
-    const isTelemetry = reqUrl.includes('/api/v1/probe') || reqUrl.includes('/api/v1/status') || reqUrl.includes('/api/v1/ir') || reqUrl.includes('/api/v1/traffic')
+    const isTelemetry = reqUrl.includes('/api/v1/system/status') || reqUrl.includes('/api/v1/system/latency') || reqUrl.includes('/api/v1/config/ir') || reqUrl.includes('/api/v1/telemetry/traffic')
 
     let tracker = null
     if (isTelemetry) {
@@ -3906,6 +3932,12 @@ if (typeof window !== 'undefined' && !window.__cubexNativeFetch) {
 }
 
 const authState = ref({ checked: false, enabled: false, authenticated: true })
+configureApiClient({
+  onUnauthorized: () => {
+    authState.value.enabled = true
+    authState.value.authenticated = false
+  },
+})
 const showAuthManageModal = ref(false)
 const needsAuthUnlock = computed(() => authState.value.enabled && !authState.value.authenticated)
 const isPollingSuspended = ref(false)
@@ -5014,7 +5046,7 @@ const triggerFastSelfHeal = async () => {
 
 }
 
-// ── Test v7.6 维度一：RFC 8305 Happy Eyeballs v2 双栈竞速 ──
+// ── RFC 8305 Happy Eyeballs v2 双栈竞速 ──
 const rfc8305Status = ref({
   enabled: true,
   resolution_delay_ms: 50,
@@ -5058,7 +5090,7 @@ const probeRFC8305 = async () => {
   }
 }
 
-// ── Test v7.6 维度二：Linux 原生 Splice 零拷贝 ──
+// ── Linux 原生 Splice 零拷贝 ──
 const spliceStatus = ref({
   enabled: true,
   active_flows: 64,
@@ -5093,7 +5125,7 @@ const flushSplicePipes = async () => {
   }
 }
 
-// ── Test v7.6 维度三：RouterOS / 爱快 20ms 双向心跳与热修补 ──
+// ── RouterOS / 爱快 20ms 双向心跳与热修补 ──
 const bidirHeartbeatStatus = ref({
   enabled: true,
   interval_ms: 20,
@@ -5130,7 +5162,7 @@ const applyBidirPatch = async () => {
   }
 }
 
-// ── Test v7.0 维度一：TCP BBRv3 与 Happy Eyeballs v2 ──
+// ── TCP BBRv3 与 Happy Eyeballs v2 ──
 
 const bbrStatus = ref({
 
@@ -5240,7 +5272,7 @@ const fetchHappyEyeballs = async () => {
 
 }
 
-// ── Test v7.0 维度二：全网拓扑动态绘制 ──
+// ── 全网拓扑动态绘制 ──
 
 const networkTopology = ref({
 
@@ -5308,7 +5340,7 @@ const refreshTopology = async () => {
 
 }
 
-// ── Test v7.0 维度三：全家终端精细化带宽画像与单设备 VIP 抢占流控 ──
+// ── 全家终端精细化带宽画像与单设备 VIP 抢占流控 ──
 
 const deviceFlows = ref([])
 
@@ -5390,7 +5422,7 @@ const setDevicePriority = async (dev, priority) => {
 
 }
 
-// ── Test v7.0 维度四：7x24h 智能哨兵巡检与异常自愈黑匣子 ──
+// ── 7x24h 智能哨兵巡检与异常自愈黑匣子 ──
 
 const sentinelStatus = ref({
 
@@ -5470,7 +5502,7 @@ const triggerSentinelHeal = async () => {
 
 }
 
-// ── Test v7.1 进阶特性 ──
+// ── ──
 
 // 维度一：QUIC 0-RTT 连接迁移
 
@@ -5886,7 +5918,7 @@ async function checkBackendHeartbeat() {
   }
 }
 
-// ── Test v7.2 维度一：多宽带 / 5G CPE 多路径智能分流与毫秒容灾 ──
+// ── 多宽带 / 5G CPE 多路径智能分流与毫秒容灾 ──
 
 const multiwanBinding = ref({
 
@@ -5962,7 +5994,7 @@ const updateMultiwanPolicy = async (newPolicy) => {
 
 }
 
-// ── Test v7.2 维度二：全链路微突发抖动与跳 Ping 主动探测雷达 (Jitter Radar) ──
+// ── 全链路微突发抖动与跳 Ping 主动探测雷达 (Jitter Radar) ──
 
 const jitterRadarReport = ref({
 
@@ -6028,7 +6060,7 @@ const runJitterProbe = async () => {
 
 }
 
-// ── Test v7.2 维度三：AI 全维网络健康周报与全景卡片 ──
+// ── AI 全维网络健康周报与全景卡片 ──
 
 const weeklyReport = ref({
 
@@ -6646,7 +6678,7 @@ const toggleShadowAuditor = async () => {
   }
 }
 
-// ── Test v7.5 核心进阶特性：高防风控自适应会话粘滞一致性哈希调度 ──
+// ── 高防风控自适应会话粘滞一致性哈希调度 ──
 const sessionAffinityStatus = ref({
   enabled: true,
   strategy: 'consistent-hash',
@@ -6706,7 +6738,7 @@ const resetSessionAffinity = async () => {
   }
 }
 
-// ── Test v7.5 核心进阶特性：双引擎内存极简回收与连接池热清洗 ──
+// ── 双引擎内存极简回收与连接池热清洗 ──
 const memoryConntrackStatus = ref({
   auto_reclaim_enabled: true,
   heap_alloc_mb: 28.5,
@@ -6784,7 +6816,7 @@ const headerBgClass = computed(() => {
 
 })
 
-// ── Test v7.8 核心进阶特性：AI 伴生管家全网三秒健康拓扑极客雷达与根因自愈 ──
+// ── AI 伴生管家全网三秒健康拓扑极客雷达与根因自愈 ──
 const rootCauseReport = ref({
   timestamp: '',
   overall_score: 0,
@@ -6794,7 +6826,7 @@ const rootCauseReport = ref({
   hops: [],
   elapsed_ms: 0
 })
-// ── Test v7.8 核心进阶特性：流媒体 4K 秒开专项诊断与 TCP/UDP 竞速 ──
+// ── 流媒体 4K 秒开专项诊断与 TCP/UDP 竞速 ──
 const streamingReport = ref({
   overall_score: 0,
   udp_qos_risk: false,
@@ -6854,7 +6886,7 @@ const triggerStreamingHeal = async () => {
   }
 }
 
-// ── Test v7.8 核心进阶特性：微流吞吐采样与多出口拥塞自适应切流 ──
+// ── 微流吞吐采样与多出口拥塞自适应切流 ──
 const adaptiveSlicingStatus = ref({
   enabled: true,
   sampling_interval_sec: 2,
@@ -6904,7 +6936,7 @@ const toggleAdaptiveSlicing = async () => {
   }
 }
 
-// ── Test v7.8 核心进阶特性：基于 BPF/XDP 的极速网络数据流旁路短路直通 ──
+// ── 基于 BPF/XDP 的极速网络数据流旁路短路直通 ──
 const bpfBypassStatus = ref({
   engine_mode: 'TC BPF + Linux RAW NOTRACK',
   kernel_hook_active: false,
@@ -6963,7 +6995,7 @@ const toggleBpfRule = async (ruleId) => {
   }
 }
 
-// ── Test v7.9 核心演进特性 ──
+// ── ──
 // 1. 多路径微流并发聚合 (MultiPath Bonding)
 const multiPathStatus = ref({
   enabled: true,
@@ -7181,7 +7213,7 @@ const toggleDeviceZeroTrust = async (dev) => {
   }
 }
 
-// ── Test v7.8 核心进阶特性：全协议 DNS 防泄漏与网格防污染 ──
+// ── 全协议 DNS 防泄漏与网格防污染 ──
 const privacyMeshStatus = ref({
   enabled: true,
   total_queries_filtered: 1924500,
@@ -7274,7 +7306,7 @@ const triggerRootCauseHeal = async () => {
   }
 }
 
-// ── Test v7.8 核心进阶特性：UDP 智能避障与并发极速竞速总线 ──
+// ── UDP 智能避障与并发极速竞速总线 ──
 const udpRacingStatus = ref({
   enabled: true,
   active_racing_channels: 5,
@@ -7343,7 +7375,7 @@ const toggleUDPRacing = async () => {
   }
 }
 
-// ── Test v7.8 核心进阶特性：软路由硬件加速快路径与旁路直通协同 ──
+// ── 软路由硬件加速快路径与旁路直通协同 ──
 const fastTrackStatus = ref({
   enabled: true,
   ros_version: 'RouterOS v7.x',
@@ -7404,7 +7436,7 @@ const toggleFastTrack = async () => {
   }
 }
 
-// ── Test v7.8 核心进阶特性：全屋智能设备行为沙盒与异常上传拦截 ──
+// ── 全屋智能设备行为沙盒与异常上传拦截 ──
 const iotGuardStatus = ref({
   enabled: false,
   total_monitored_devices: 0,
@@ -9407,7 +9439,7 @@ async function startModalUpgrade() {
 
         try {
 
-          const checkRes = await fetch('/api/v1/system/status?t=' + Date.now())
+          const checkRes = await apiFetch('/api/v1/system/status?t=' + Date.now(), { timeoutMs: 3000 })
 
           if (checkRes.ok) {
 
@@ -10226,11 +10258,67 @@ const filteredGeodataFiles = computed(() => {
 
 })
 
+const doctorReport = ref(null)
+const doctorBannerDismissed = ref(false)
+const copyingDoctorCard = ref(false)
+const requiredDoctorAlerts = computed(() => {
+  const checks = doctorReport.value?.checks || []
+  return checks.filter(c => !c.passed && c.severity === 'REQUIRED')
+})
+
+async function fetchOnboardingDoctor() {
+  try {
+    const res = await apiFetch('/api/v1/onboarding/doctor', { skipWhenHidden: true, timeoutMs: 8000 })
+    if (res.ok) {
+      const data = await res.json()
+      if (data && Array.isArray(data.checks)) {
+        doctorReport.value = data
+      }
+    }
+  } catch (e) {}
+}
+
+async function copyDoctorCard() {
+  if (copyingDoctorCard.value) return
+  copyingDoctorCard.value = true
+  try {
+    const res = await apiFetch('/api/v1/doctor/export-card', { timeoutMs: 10000 })
+    const data = await res.json()
+    const md = data?.data?.markdown || JSON.stringify(data?.data?.report || doctorReport.value || {}, null, 2)
+    const ok = await copyTextToClipboard(md)
+    showToast(ok ? '📋 已复制脱敏诊断报告到剪贴板' : '⚠️ 复制失败，请手动复制', !ok)
+  } catch (e) {
+    showToast('❌ 获取诊断报告失败: ' + (e?.message || '网络异常'), true)
+  } finally {
+    copyingDoctorCard.value = false
+  }
+}
+
+const SUB_ERR_LABELS = {
+  dns_failed: 'DNS 解析失败（请检查上游 DNS 或是否自环）',
+  connect_timeout: '连接订阅服务器超时（请检查网络/镜像/代理回退）',
+  tls_failed: 'TLS/SSL 握手失败（请检查系统时间或根证书）',
+  http_status: '订阅服务器返回异常 HTTP 状态码（链接可能失效）',
+  body_too_large: '订阅响应体超过 15MB 上限',
+  parse_failed: '订阅内容解析失败（格式非有效 Clash/Base64/SIP002）',
+  invalid_url: '订阅链接格式非法',
+  network_error: '网络请求失败',
+}
+
+function formatSubFetchError(data, fallback = '订阅拉取失败') {
+  const cat = data?.error_category
+  if (!cat) return data?.error || fallback
+  const label = SUB_ERR_LABELS[cat] || data?.error || fallback
+  const dom = data?.error_domain ? ` [${data.error_domain}]` : ''
+  const via = data?.used_proxy ? '（已尝试本地代理回退）' : ''
+  return `${label}${dom}${via}`
+}
+
 async function fetchSystemOverview() {
 
   try {
 
-    const res = await fetch('/api/v1/system/overview')
+    const res = await apiFetch('/api/v1/system/overview', { skipWhenHidden: true })
 
     if (res.ok) {
 
@@ -12835,13 +12923,13 @@ async function switchEngine(target) {
 
   try {
 
-    const res = await fetch('/api/v1/engine/switch', {
+    const res = await apiFetch('/api/v1/engine/switch', {
 
       method: 'POST',
 
-      headers: { 'Content-Type': 'application/json' },
+      json: { engine: target },
 
-      body: JSON.stringify({ engine: target })
+      timeoutMs: 25000
 
     })
 
@@ -12896,10 +12984,10 @@ async function toggleSafePauseProxy(explicitPaused = null) {
   const targetPaused = typeof explicitPaused === 'boolean' ? explicitPaused : !isProxyPaused.value
   togglingProxyPause.value = true
   try {
-    const res = await fetch('/api/v1/engine/pause', {
+    const res = await apiFetch('/api/v1/engine/pause', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paused: targetPaused })
+      json: { paused: targetPaused },
+      timeoutMs: 15000
     })
     const data = await res.json()
     if (res.ok && data.ok) {
@@ -14827,7 +14915,11 @@ async function executeAIAction(act) {
 
       await switchEngine(targetEng)
 
-      resultMsg = `双核平滑热切换成功：当前活动核心已无缝热重载为【${targetEng === 'singbox' ? 'sing-box v1.14' : 'Mihomo v1.19'}】！`
+      const cvs = systemStatus.value?.core_versions || {}
+      const engVerLabel = targetEng === 'singbox'
+        ? `sing-box ${cvs.sing_box || ''}`.trim()
+        : `Mihomo ${cvs.mihomo || ''}`.trim()
+      resultMsg = `双核平滑热切换成功：当前活动核心已无缝热重载为【${engVerLabel}】！`
 
     } else if (act.endpoint) {
 
@@ -20320,17 +20412,17 @@ async function submitBatchSubs() {
 
   try {
 
-    const res = await fetch('/api/v1/config/subscriptions/batch-add', {
+    const res = await apiFetch('/api/v1/config/subscriptions/batch-add', {
 
       method: 'POST',
 
-      headers: { 'Content-Type': 'application/json' },
-
-      body: JSON.stringify({
+      json: {
 
         items: items.map(it => ({ name: it.name, url: it.url }))
 
-      })
+      },
+
+      timeoutMs: 45000
 
     })
 
@@ -20386,17 +20478,15 @@ async function submitBatchNodes() {
 
   try {
 
-    const res = await fetch('/api/v1/config/subscriptions/node/batch-add', {
+    const res = await apiFetch('/api/v1/config/subscriptions/node/batch-add', {
 
       method: 'POST',
 
-      headers: { 'Content-Type': 'application/json' },
-
-      body: JSON.stringify({
+      json: {
 
         items: items.map(it => ({ name: it.name, link: it.link }))
 
-      })
+      }
 
     })
 
@@ -20463,19 +20553,19 @@ async function submitAddSubscription() {
 
   try {
 
-    const res = await fetch('/api/v1/config/subscriptions/add', {
+    const res = await apiFetch('/api/v1/config/subscriptions/add', {
 
       method: 'POST',
 
-      headers: { 'Content-Type': 'application/json' },
-
-      body: JSON.stringify({
+      json: {
 
         name: newSubName.value.trim() || '订阅源',
 
         url: newSubUrl.value.trim()
 
-      })
+      },
+
+      timeoutMs: 45000
 
     })
 
@@ -20497,7 +20587,7 @@ async function submitAddSubscription() {
 
     } else {
 
-      showToast('导入失败: ' + (data.error || '无法解析订阅'), true)
+      showToast('导入失败: ' + formatSubFetchError(data, '无法解析订阅'), true)
 
     }
 
@@ -20529,19 +20619,17 @@ async function submitAddNode() {
 
   try {
 
-    const res = await fetch('/api/v1/config/subscriptions/node/add', {
+    const res = await apiFetch('/api/v1/config/subscriptions/node/add', {
 
       method: 'POST',
 
-      headers: { 'Content-Type': 'application/json' },
-
-      body: JSON.stringify({
+      json: {
 
         name: newNodeName.value.trim(),
 
         link: newNodeLink.value.trim()
 
-      })
+      }
 
     })
 
@@ -20633,13 +20721,13 @@ async function saveSubEdit(subId) {
 
   try {
 
-    const res = await fetch('/api/v1/config/subscriptions/edit', {
+    const res = await apiFetch('/api/v1/config/subscriptions/edit', {
 
       method: 'POST',
 
-      headers: { 'Content-Type': 'application/json' },
+      json: { id: subId, name: newName, url: newUrl },
 
-      body: JSON.stringify({ id: subId, name: newName, url: newUrl })
+      timeoutMs: 45000
 
     })
 
@@ -20659,7 +20747,7 @@ async function saveSubEdit(subId) {
 
     } else {
 
-      showToast(`⚠️ 修改失败: ${data.error || '未知错误'}`)
+      showToast(`⚠️ 修改失败: ${formatSubFetchError(data, '未知错误')}`, true)
 
     }
 
@@ -20688,13 +20776,11 @@ async function deleteSubscription(subId) {
 
   try {
 
-    const res = await fetch('/api/v1/config/subscriptions/delete', {
+    const res = await apiFetch('/api/v1/config/subscriptions/delete', {
 
       method: 'POST',
 
-      headers: { 'Content-Type': 'application/json' },
-
-      body: JSON.stringify({ id: subId })
+      json: { id: subId }
 
     })
 
@@ -20716,13 +20802,11 @@ async function toggleSubscription(subId, enabled) {
 
   try {
 
-    const res = await fetch('/api/v1/config/subscriptions/toggle', {
+    const res = await apiFetch('/api/v1/config/subscriptions/toggle', {
 
       method: 'POST',
 
-      headers: { 'Content-Type': 'application/json' },
-
-      body: JSON.stringify({ id: subId, enabled })
+      json: { id: subId, enabled }
 
     })
 
@@ -20743,10 +20827,10 @@ async function toggleSubscription(subId, enabled) {
 async function updateSubscription(subId) {
   showToast('正在重新拉取此订阅源最新节点...')
   try {
-    const res = await fetch('/api/v1/config/subscriptions/update', {
+    const res = await apiFetch('/api/v1/config/subscriptions/update', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: subId })
+      json: { id: subId },
+      timeoutMs: 45000
     })
     const data = await res.json()
     if (data.ok) {
@@ -20758,6 +20842,9 @@ async function updateSubscription(subId) {
         showToast(data.message || `🎉 订阅已更新！当前收录 ${data.total_nodes || 0} 个有效节点`)
       }
       await fetchIR()
+    } else if (data.status === 'fetch_failed' || data.error_category) {
+      showToast('⚠️ 订阅更新失败: ' + formatSubFetchError(data, '拉取异常') + '，已保留现有节点', true)
+      await fetchIR()
     }
   } catch (e) {
     showToast('更新指令已完成')
@@ -20767,10 +20854,10 @@ async function updateSubscription(subId) {
 async function updateAllSubscriptions() {
   showToast('正在并发拉取所有订阅源最新节点...')
   try {
-    const res = await fetch('/api/v1/config/subscriptions/update', {
+    const res = await apiFetch('/api/v1/config/subscriptions/update', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
+      json: {},
+      timeoutMs: 60000
     })
     const data = await res.json()
     if (data.ok) {
@@ -20799,13 +20886,11 @@ async function deleteNode(nodeName) {
 
   try {
 
-    const res = await fetch('/api/v1/config/subscriptions/node/delete', {
+    const res = await apiFetch('/api/v1/config/subscriptions/node/delete', {
 
       method: 'POST',
 
-      headers: { 'Content-Type': 'application/json' },
-
-      body: JSON.stringify({ name: nodeName })
+      json: { name: nodeName }
 
     })
 
@@ -21183,15 +21268,13 @@ async function runSubSpeedTest(subId) {
 
   try {
 
-    const res = await fetch('/api/v1/config/subscriptions/speedtest', {
+    const res = await apiFetch('/api/v1/config/subscriptions/speedtest', {
 
       method: 'POST',
 
-      headers: { 'Content-Type': 'application/json' },
-
       signal: AbortSignal.timeout(180000),
 
-      body: JSON.stringify({ id: subId })
+      json: { id: subId }
 
     })
 
@@ -21259,7 +21342,7 @@ async function fetchIR() {
 
   try {
 
-    const res = await fetch('/api/v1/config/ir')
+    const res = await apiFetch('/api/v1/config/ir')
 
     const data = await res.json()
 
@@ -22116,15 +22199,15 @@ async function runAuthorizedMountLoad() {
 
     const [stRes, adRes, hostRes, secRes, ovRes] = await Promise.allSettled([
 
-      fetch('/api/v1/system/status').then(r => r.json()),
+      apiFetch('/api/v1/system/status').then(r => r.json()),
 
-      fetch('/api/v1/adblock/stats').then(r => r.json()),
+      apiFetch('/api/v1/adblock/stats').then(r => r.json()),
 
-      fetch('/api/v1/host/info').then(r => r.json()),
+      apiFetch('/api/v1/host/info').then(r => r.json()),
 
-      fetch('/api/v1/security/radar').then(r => r.json()),
+      apiFetch('/api/v1/security/radar').then(r => r.json()),
 
-      fetch('/api/v1/system/overview').then(r => r.json())
+      apiFetch('/api/v1/system/overview').then(r => r.json())
 
     ])
 
@@ -22364,7 +22447,7 @@ onMounted(async () => {
 
     try {
 
-      const res = await fetch('/api/v1/system/status')
+      const res = await apiFetch('/api/v1/system/status', { skipWhenHidden: true, timeoutMs: 4000 })
 
       const data = await res.json()
 
@@ -22465,23 +22548,7 @@ onMounted(async () => {
   window.addEventListener('hashchange', syncHash)
 
   bindGeekCommandPalette(openCommandPalette)
-
-  const streamClient = new SymbioticStreamClient(frameScheduler, {
-    onTelemetry: (data) => {
-      if (data.system_status) {
-        systemStatus.value = { ...systemStatus.value, ...data.system_status }
-      }
-      if (data.speed) {
-        liveStreamSpeed.value = data.speed
-      }
-    },
-    onFlightEvent: (ev) => {
-      if (ev.level === 'CRIT' || ev.level === 'WARN') {
-        showToast(`[黑匣子 ${ev.category}] ${ev.summary}`)
-      }
-    }
-  })
-  streamClient.connect()
+  fetchOnboardingDoctor()
 
 })
 

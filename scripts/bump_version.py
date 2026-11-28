@@ -62,37 +62,21 @@ with open("web/src/App.vue", "w", encoding="utf-8", newline='') as f:
     f.write(vue_text)
 print("✓ Updated web/src/App.vue fallback versions")
 
-# 8. install scripts & ros scripts fallback tags
-replace_in_file("scripts/install.sh", r'REL_TAG="(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?"', f'REL_TAG="{TARGET_TAG}"')
-replace_in_file("scripts/install_pve_lxc.sh", r'REL_TAG="(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?"', f'REL_TAG="{TARGET_TAG}"')
-if os.path.exists("scripts/openwrt/setup-openwrt.sh"):
-    replace_in_file("scripts/openwrt/setup-openwrt.sh", r'REL_TAG="(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?"', f'REL_TAG="{TARGET_TAG}"')
-if os.path.exists("scripts/install_ros_container.rsc"):
-    replace_in_file("scripts/install_ros_container.rsc", r'CubeX-(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?-ros-', f'CubeX-{TARGET_TAG}-ros-')
-if os.path.exists("scripts/ros/setup-routeros-v7.rsc"):
-    replace_in_file("scripts/ros/setup-routeros-v7.rsc", r'CubeX-(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?-ros-', f'CubeX-{TARGET_TAG}-ros-')
+# 8. modular installer source tags & rebuild standalone installers
+replace_in_file("scripts/modules/common.sh", r'CUBEX_DEFAULT_TAG="(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?"', f'CUBEX_DEFAULT_TAG="{TARGET_TAG}"')
+replace_in_file("scripts/modules/ros/common.rsc", r'CubeX-(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?-ros-', f'CubeX-{TARGET_TAG}-ros-')
 if os.path.exists("scripts/build_fnos_fpk.py"):
     replace_in_file("scripts/build_fnos_fpk.py", r'VERSION\s*=\s*"(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?"', f'VERSION = "{CLEAN_NUM}"')
-if os.path.exists("scripts/install_pve_lxc.sh"):
-    replace_in_file("scripts/install_pve_lxc.sh", r'\$\{CUSTOM_VER:-\$\{REL_TAG:-(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?\}\}', f'${{CUSTOM_VER:-${{REL_TAG:-{TARGET_TAG}}}}}')
 if os.path.exists("Dockerfile"):
     replace_in_file("Dockerfile", r'ARG CUBEX_VERSION=(?:Test-)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?', f'ARG CUBEX_VERSION={TARGET_TAG}')
 if os.path.exists("scripts/fnos/app.json"):
     replace_in_file("scripts/fnos/app.json", r'"version":\s*"(?:Test\s+)?v?[0-9]+\.[0-9]+(?:\.[0-9]+)?"', f'"version": "{TARGET_VER}"')
 if os.path.exists("scripts/fnos/docker-compose.yml"):
     replace_in_file("scripts/fnos/docker-compose.yml", r'\(v[0-9]+\.[0-9]+(?:\.[0-9]+)?\)', f'({TARGET_VER})')
-if os.path.exists("scripts/fnos/install-fnos.sh"):
-    replace_in_file("scripts/fnos/install-fnos.sh", r'CubeX (?:Test )?v[0-9]+\.[0-9]+(?:\.[0-9]+)?', f'CubeX {TARGET_VER}')
 
-# 9. Sync scripts to root ensuring single source of truth & SHA256 consistency
-import shutil
-shutil.copyfile("scripts/install.sh", "install.sh")
-shutil.copyfile("scripts/install_pve_lxc.sh", "install_pve_lxc.sh")
-if os.path.exists("scripts/install_ros_container.rsc"):
-    shutil.copyfile("scripts/install_ros_container.rsc", "install_ros_container.rsc")
-print("✓ Synchronized scripts/install.sh -> install.sh")
-print("✓ Synchronized scripts/install_pve_lxc.sh -> install_pve_lxc.sh")
-print("✓ Synchronized scripts/install_ros_container.rsc -> install_ros_container.rsc")
+# 9. Rebuild all installers from scripts/modules/ and synchronize root copies
+subprocess.run([sys.executable, "scripts/build_installers.py"], check=True)
+subprocess.run([sys.executable, "scripts/build_installers.py", "--check"], check=True)
 
 # 10. Verify consistency across all 10 core files
 print("\n🔍 Verifying atomic version consistency across all 10 core files...")

@@ -3,6 +3,7 @@ package sub
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"github.com/zyeyefyass/CubeX/internal/config"
 	"github.com/zyeyefyass/CubeX/internal/netutil"
@@ -16,6 +17,100 @@ import (
 
 	"github.com/zyeyefyass/CubeX/internal/schema"
 )
+
+const maxSubResponseBytes = 15 * 1024 * 1024
+
+// FetchError 为订阅拉取提供结构化失败归因，严格只保留域名（脱敏隐藏路径与 token）。
+type FetchError struct {
+	Category  string `json:"category"`   // dns_failed | connect_timeout | tls_failed | http_status | body_too_large | parse_failed | invalid_url | network_error
+	Domain    string `json:"domain"`     // desensitized host only
+	UsedProxy bool   `json:"used_proxy"` // whether local mixed-port fallback was attempted
+	Message   string `json:"message"`
+	Err       error  `json:"-"`
+}
+
+func (e *FetchError) Error() string {
+	if e == nil {
+		return ""
+	}
+	return e.Message
+}
+
+func (e *FetchError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+	return e.Err
+}
+
+// ClassifyFetchError 提取订阅拉取错误的归因分类、域名与代理回退标记。
+func ClassifyFetchError(err error) (category, domain string, usedProxy bool) {
+	if err == nil {
+		return "", "", false
+	}
+	var fe *FetchError
+	if errors.As(err, &fe) {
+		return fe.Category, fe.Domain, fe.UsedProxy
+	}
+	return classifyRawErrorString(err), "", false
+}
+
+func sanitizeNetworkErrDetail(err error, rawURL, domain string) string {
+	if err == nil {
+		return ""
+	}
+	var ue *url.Error
+	msg := err.Error()
+	if errors.As(err, &ue) && ue.Err != nil {
+		msg = ue.Err.Error()
+	}
+	if rawURL != "" && strings.Contains(msg, rawURL) {
+		if domain == "" {
+			domain = "<redacted>"
+		}
+		msg = strings.ReplaceAll(msg, rawURL, domain)
+	}
+	return msg
+}
+
+func extractDesensitizedDomain(rawURL string) string {
+	u, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil {
+		return ""
+	}
+	return u.Hostname()
+}
+
+func classifyRawErrorString(err error) string {
+	if err == nil {
+		return ""
+	}
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		return "dns_failed"
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return "connect_timeout"
+	}
+	low := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(low, "no such host") || strings.Contains(low, "lookup "):
+		return "dns_failed"
+	case strings.Contains(low, "timeout") || strings.Contains(low, "deadline exceeded"):
+		return "connect_timeout"
+	case strings.Contains(low, "tls") || strings.Contains(low, "x509") || strings.Contains(low, "certificate"):
+		return "tls_failed"
+	case strings.Contains(low, "http status"):
+		return "http_status"
+	case strings.Contains(low, "exceeds 15mb") || strings.Contains(low, "body too large"):
+		return "body_too_large"
+	case strings.Contains(low, "parse") || strings.Contains(low, "no valid") || strings.Contains(low, "unmarshal") || strings.Contains(low, "empty"):
+		return "parse_failed"
+	default:
+		return "network_error"
+	}
+}
 
 // CreateFastDualStackDialer returns a dial function that prioritizes IPv4 addresses,
 // preventing hanging on unreachable IPv6 routes when DNS returns AAAA records (Happy Eyeballs fast fallback).
@@ -89,12 +184,19 @@ type FetchResult struct {
 
 // Fetch downloads subscription content from a URL and extracts standard ProxyNodes.
 func (f *Fetcher) Fetch(urlStr string) (*FetchResult, error) {
+	domain := extractDesensitizedDomain(urlStr)
 	res, err := f.doFetch(urlStr, f.client)
 	if err == nil {
 		return res, nil
 	}
 
-	// Automatic fallback to local core mixed-port if direct fetching times out or is blocked by GFW
+	// Parse/HTTP/size errors should surface directly without futile proxy retries, unless network failed
+	var directFE *FetchError
+	if errors.As(err, &directFE) && (directFE.Category == "parse_failed" || directFE.Category == "body_too_large" || directFE.Category == "invalid_url") {
+		return nil, directFE
+	}
+
+	// Automatic fallback to local core mixed-port if direct fetching times out or is blocked
 	mixedAddr := config.GlobalRuntimeSpec.MixedProxyAddr
 	if !strings.Contains(mixedAddr, "://") {
 		mixedAddr = "http://" + mixedAddr
@@ -111,19 +213,42 @@ func (f *Fetcher) Fetch(urlStr string) (*FetchResult, error) {
 			Transport: proxyTr,
 			Timeout:   20 * time.Second,
 		}
-		if resProxy, errProxy := f.doFetch(urlStr, proxyClient); errProxy == nil {
+		resProxy, errProxy := f.doFetch(urlStr, proxyClient)
+		if errProxy == nil {
 			return resProxy, nil
+		}
+		var proxyFE *FetchError
+		if errors.As(errProxy, &proxyFE) {
+			proxyFE.UsedProxy = true
+			if proxyFE.Domain == "" {
+				proxyFE.Domain = domain
+			}
+			// Keep direct error category if proxy itself refused connection because core wasn't up yet
+			if directFE != nil && strings.Contains(strings.ToLower(proxyFE.Message), "connection refused") {
+				directFE.UsedProxy = true
+				return nil, directFE
+			}
+			return nil, proxyFE
 		}
 	}
 
+	if directFE != nil {
+		return nil, directFE
+	}
 	return nil, err
 }
 
 func (f *Fetcher) doFetch(urlStr string, client *http.Client) (*FetchResult, error) {
 	startTime := time.Now()
+	domain := extractDesensitizedDomain(urlStr)
 	req, err := http.NewRequest(http.MethodGet, urlStr, nil)
 	if err != nil {
-		return nil, fmt.Errorf("invalid subscription url: %w", err)
+		return nil, &FetchError{
+			Category: "invalid_url",
+			Domain:   domain,
+			Message:  fmt.Sprintf("invalid subscription url: %v", err),
+			Err:      err,
+		}
 	}
 
 	singboxVer, _ := config.MetaCoreVersions()
@@ -131,18 +256,40 @@ func (f *Fetcher) doFetch(urlStr string, client *http.Client) (*FetchResult, err
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("network request failed: %w", err)
+		cat := classifyRawErrorString(err)
+		return nil, &FetchError{
+			Category: cat,
+			Domain:   domain,
+			Message:  fmt.Sprintf("network request failed (%s) for host %s: %s", cat, domain, sanitizeNetworkErrDetail(err, urlStr, domain)),
+			Err:      err,
+		}
 	}
 	defer netutil.DrainAndCloseBody(resp)
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("subscription server returned HTTP status %d", resp.StatusCode)
+		return nil, &FetchError{
+			Category: "http_status",
+			Domain:   domain,
+			Message:  fmt.Sprintf("subscription server returned HTTP status %d", resp.StatusCode),
+		}
 	}
 
-	// Guard against memory explosion with 15MB limit reader
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 15*1024*1024))
+	// Guard against memory explosion with 15MB limit reader (+1 byte overflow sentinel)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxSubResponseBytes+1))
 	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
+		return nil, &FetchError{
+			Category: classifyRawErrorString(err),
+			Domain:   domain,
+			Message:  fmt.Sprintf("failed to read response body for host %s: %s", domain, sanitizeNetworkErrDetail(err, urlStr, domain)),
+			Err:      err,
+		}
+	}
+	if len(body) > maxSubResponseBytes {
+		return nil, &FetchError{
+			Category: "body_too_large",
+			Domain:   domain,
+			Message:  "subscription response exceeds 15MB limit (body_too_large)",
+		}
 	}
 
 	res := &FetchResult{
@@ -174,7 +321,12 @@ func (f *Fetcher) doFetch(urlStr string, client *http.Client) (*FetchResult, err
 
 	nodes, err := ParseSubscription(body)
 	if err != nil {
-		return nil, err
+		return nil, &FetchError{
+			Category: "parse_failed",
+			Domain:   domain,
+			Message:  fmt.Sprintf("subscription parse failed: %v", err),
+			Err:      err,
+		}
 	}
 
 	res.Nodes = nodes

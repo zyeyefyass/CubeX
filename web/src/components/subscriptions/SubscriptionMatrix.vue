@@ -136,6 +136,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { apiFetch } from '../../utils/apiFetch'
 
 const loading = ref(false)
 const reports = ref([])
@@ -222,7 +223,7 @@ const summaryBadgeClass = computed(() => {
 const refreshQuality = async () => {
   loading.value = true
   try {
-    const res = await fetch('/api/v1/config/subscriptions/quality')
+    const res = await apiFetch('/api/v1/config/subscriptions/quality')
     const data = await res.json()
     if (data.code === 0 && Array.isArray(data.data)) {
       reports.value = data.data

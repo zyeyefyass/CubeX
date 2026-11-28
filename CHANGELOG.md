@@ -4,6 +4,19 @@
 
 ---
 
+## [v9.991] - 2026-11-28
+
+### 👑 sing-box v1.14.6 平滑换核 · 模块化安装脚本 · 前后端接口防漂移与宿主机自检归因
+
+1. **平滑升级内置 `sing-box` 至 `v1.14.6` 纯静态版**：同步更新多架构 musl 静态二进制，严守零新版本独占语法规范并保持存量用户热更新兼容，12 场景全矩阵 `sing-box check` 零报错零弃用告警通过。
+2. **Linux 全平台安装脚本模块化重构合并**：将通用镜像测速下载引擎与各底座逻辑拆分至 `scripts/modules/`，构建期统一装配单文件 `install.sh` 与 `install_pve_lxc.sh`，保留旧链接向后兼容转发壳并纳入 `sh -n` / `busybox ash -n` 与一致性门禁。
+3. **前后端接口能力同步、路由防漂移审计与 `apiFetch` 统一收敛**：新增 `/api/v1/system/capabilities` 并扩展 `/api/v1/system/status` 实时下发双核版本、宿主平台与能力开关；清除前端版本硬编码兜底及无效 SSE 调用，收口 `apiFetch()` 请求并在健康审计新增前后端 `/api/v1` 路由静态比对门禁。
+4. **新增宿主机持久化挂载自检与订阅拉取脱敏归因**：新增 `/app/etc` 与 `/app/data` 持久化目录可写及挂载点自检并接入前端顶部告警横幅与诊断卡复制；精准区分 `dns_failed`、`connect_timeout`、`tls_failed`、`http_status`、`body_too_large`、`parse_failed` 等失败类型，同时修复底层 `*url.Error` Query Token 脱敏泄露。
+5. **跨主路由切换清理与持久化配置规范化**：统一规范 `host-config.json`、`ros-config.json`、`gateway_mode.json` 与 `config.ir.json` 默认值与异常端口兜底，切换主路由平台时自动清空旧平台凭据与残留。
+6. **前端静态资源与历史冗余瘦身**：移除零引用 SVG 资产与过期注释，精简预压缩产物，全面对齐多架构包体大小红线。
+
+---
+
 ## [v9.99] - 2026-11-28
 
 ### 👑 稳定性加固 · 全端去硬编码 · 容器与离线包深度瘦身

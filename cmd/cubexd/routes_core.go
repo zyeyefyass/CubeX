@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/zyeyefyass/CubeX/internal/backup"
+	"github.com/zyeyefyass/CubeX/internal/config"
 	"github.com/zyeyefyass/CubeX/internal/engine"
+	"github.com/zyeyefyass/CubeX/internal/host"
 	"github.com/zyeyefyass/CubeX/internal/onboarding"
 	"github.com/zyeyefyass/CubeX/internal/profile"
 	"github.com/zyeyefyass/CubeX/internal/ros"
@@ -62,7 +64,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 
 	mux.HandleFunc("/api/v1/doctor/export-card", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		doc := onboarding.RunOnboardingDoctor(r.Context(), detectOutboundIP(), 2026, "198.18.0.0/15")
+		doc := onboarding.RunOnboardingDoctorWithWorkDir(r.Context(), detectOutboundIP(), 2026, "198.18.0.0/15", s.workDir)
 		activeCore := string(s.engMgr.GetActiveEngine())
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"code": 0,
@@ -77,6 +79,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/v1/auth/logout", s.handleAuthLogout)
 	mux.HandleFunc("/api/v1/auth/password", s.handleAuthPassword)
 	mux.HandleFunc("/api/v1/system/status", s.handleSystemStatus)
+	mux.HandleFunc("/api/v1/system/capabilities", s.handleSystemCapabilities)
 
 	mux.HandleFunc("/api/v1/system/edition", s.handleSystemEdition)
 	mux.HandleFunc("/api/v1/system/store-mode", s.handleSystemStoreMode)
@@ -773,6 +776,45 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 
 
+func (s *Server) buildCapabilitiesPayload(ir *schema.ConfigIR) map[string]any {
+	sbVer, mhVer := config.MetaCoreVersions()
+	platformID := runtime.GOOS
+	containerType := ""
+	if s.hostMgr != nil {
+		platformID, containerType = s.hostMgr.DetectLocalSummary()
+	}
+	_ = host.HostInfo{}
+	faultStatus := s.engMgr.GetEngineFaultStatus()
+	rosConfigured := s.rosMgr != nil && strings.TrimSpace(s.rosMgr.GetConfig()["host"]) != ""
+	hostConfigured := s.hostMgr != nil && s.hostMgr.IsIKuaiOrOpenWrtConfigured()
+	ipv6Enabled := false
+	if ir != nil {
+		ipv6Enabled = ir.Network.IPv6
+	}
+	return map[string]any{
+		"version": version,
+		"core_versions": map[string]string{
+			"sing_box": sbVer,
+			"mihomo":   mhVer,
+		},
+		"platform_id":    platformID,
+		"container_type": containerType,
+		"capabilities": map[string]bool{
+			"tun_ready":       faultStatus.TunReady,
+			"ipv6":            ipv6Enabled,
+			"ros_configured":  rosConfigured,
+			"host_configured": hostConfigured,
+			"store_mode":      s.isStoreSafeMode(),
+			"in_docker":       isSupervisedContainerEnv(),
+		},
+	}
+}
+
+func (s *Server) handleSystemCapabilities(w http.ResponseWriter, r *http.Request) {
+	ir := s.engMgr.GetIR()
+	sendJSON(w, s.buildCapabilitiesPayload(ir))
+}
+
 func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 
 	var m runtime.MemStats
@@ -785,10 +827,15 @@ func (s *Server) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 
 	appRSS, coreRSS, totalOverhead := s.getLiveMemoryMetrics()
 	faultStatus := s.engMgr.GetEngineFaultStatus()
+	caps := s.buildCapabilitiesPayload(ir)
 
 	resp := map[string]any{
 
 		"version": version,
+		"core_versions": caps["core_versions"],
+		"platform_id": caps["platform_id"],
+		"container_type": caps["container_type"],
+		"capabilities": caps["capabilities"],
 
 		"host_ip": s.detectHostIP(),
 
@@ -1544,6 +1591,7 @@ func (s *Server) handleBackupImport(w http.ResponseWriter, r *http.Request) {
 
 		if json.Unmarshal(data, &restoredIR) == nil {
 
+			restoredIR.NormalizeDefaults()
 			schema.SyncAllStrategyGroups(&restoredIR)
 
 			_ = s.engMgr.UpdateIRWithErr(&restoredIR)

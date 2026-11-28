@@ -2,6 +2,7 @@
 // CubeX 数据面健康契约与大白话诊断中枢
 import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue'
 import { copyTextToClipboard } from '../utils/clipboard'
+import { apiFetch } from '../utils/apiFetch'
 
 export function useDataplane() {
   const snapshot = shallowRef({
@@ -56,9 +57,11 @@ export function useDataplane() {
     if (typeof window === 'undefined' || isFetching.value) return
     isFetching.value = true
     try {
-      const res = await fetch('/healthz/dataplane', {
+      const res = await apiFetch('/healthz/dataplane', {
         headers: { 'Accept': 'application/json' },
-        cache: 'no-store'
+        cache: 'no-store',
+        skipWhenHidden: true,
+        timeoutMs: 4000
       })
       if (res.ok || res.status === 503) {
         const data = await res.json()

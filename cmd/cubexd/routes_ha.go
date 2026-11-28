@@ -1393,6 +1393,9 @@ func (s *Server) handleHostConfig(w http.ResponseWriter, r *http.Request) {
 
 					"password": cfg.Password,
 				})
+			} else if plat != "" && plat != "auto" && s.rosMgr != nil && s.rosMgr.IsConfigured() {
+				// Switching explicitly to another platform (iKuai/OpenWrt/Linux/fnOS/PVE) clears stale ros-config.json
+				_ = s.rosMgr.ClearConfig()
 			}
 
 		}

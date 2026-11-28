@@ -100,6 +100,20 @@ func (c *GatewayModeController) saveSpecToDisk(spec GatewayModeSpec) error {
 	return os.Rename(tmpPath, filePath)
 }
 
+// NormalizeDefaults ensures persisted gateway_mode.json fields fall back to safe defaults on upgrade/switch.
+func (s *GatewayModeSpec) NormalizeDefaults() {
+	s.PrimaryInterface = strings.TrimSpace(s.PrimaryInterface)
+	s.CubeXLocalIP = strings.TrimSpace(s.CubeXLocalIP)
+	s.UpstreamGatewayIP = strings.TrimSpace(s.UpstreamGatewayIP)
+	s.UpstreamDNS = strings.TrimSpace(s.UpstreamDNS)
+	if s.Mode != ModeSingleNICBypass && s.Mode != ModeSymbioticRoute {
+		s.Mode = ModeSingleNICBypass
+	}
+	if s.UpstreamDNS == "" {
+		s.UpstreamDNS = "223.5.5.5"
+	}
+}
+
 // RestoreOnBoot 在 cubexd 守护进程启动时调用：
 // 若存在历史保存的主旁模式配置，立即重放 sysctl 与 nftables MASQUERADE 规则，防止容器重启后断网
 func (c *GatewayModeController) RestoreOnBoot(ctx context.Context) error {
@@ -122,6 +136,7 @@ func (c *GatewayModeController) RestoreOnBoot(ctx context.Context) error {
 	if err := json.Unmarshal(raw, &saved); err != nil {
 		return err
 	}
+	saved.NormalizeDefaults()
 
 	_, err = c.ApplyMode(ctx, saved)
 	return err
@@ -129,6 +144,7 @@ func (c *GatewayModeController) RestoreOnBoot(ctx context.Context) error {
 
 // ApplyMode 一键应用用户选择的网络模式（含防自环死锁校验 + sysctl 调优 + nftables 伪装自愈）
 func (c *GatewayModeController) ApplyMode(ctx context.Context, spec GatewayModeSpec) (*GatewayModeStatus, error) {
+	spec.NormalizeDefaults()
 	if spec.PrimaryInterface == "" || spec.CubeXLocalIP == "" || spec.UpstreamGatewayIP == "" {
 		iface, localIP, gwIP := autoDetectNetworkTopology()
 		if spec.PrimaryInterface == "" {

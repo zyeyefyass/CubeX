@@ -13,6 +13,8 @@ Performs comprehensive auditing across:
 import os
 import sys
 import re
+import glob
+import shutil
 import subprocess
 import json
 import time
@@ -394,6 +396,179 @@ if os.path.exists(triad_script):
         results["failures"] += 1
 else:
     print("  • scripts/verify_big_three_routers.py not found.")
+
+# -------------------------------------------------------------
+# CHECK 10: Modular Installer Parity & POSIX/Bash Syntax Gate
+# -------------------------------------------------------------
+log_header("CHECK 10: Modular Installer Parity & Shell Syntax Gate")
+build_inst_script = os.path.join(ROOT, "scripts", "build_installers.py")
+installer_gate_errors = []
+if not os.path.exists(build_inst_script):
+    installer_gate_errors.append("Missing scripts/build_installers.py")
+else:
+    b_code, b_out = run_cmd(f"python \"{build_inst_script}\" --check")
+    if b_code != 0:
+        installer_gate_errors.append(f"Installer parity check failed: {b_out}")
+
+def find_shell_bin(name):
+    import shutil
+    found = shutil.which(name)
+    if found:
+        return found
+    for cand in [
+        os.path.join(r"C:\Program Files\Git\bin", f"{name}.exe"),
+        os.path.join(r"C:\Program Files\Git\usr\bin", f"{name}.exe"),
+        f"/bin/{name}",
+        f"/usr/bin/{name}",
+    ]:
+        if os.path.exists(cand):
+            return cand
+    return None
+
+def strip_quoted_heredocs(lines):
+    kept = []
+    delim = None
+    for idx, line in enumerate(lines, 1):
+        s = line.strip()
+        if delim is not None:
+            if s == delim:
+                delim = None
+            continue
+        m_hd = re.search(r"<<-?\s*['\"]?([A-Za-z0-9_]+)['\"]?", line)
+        if m_hd and not line.lstrip().startswith("#"):
+            # Only skip blocks whose heredoc delimiter is single-quoted (written inside remote bash/config) or service payloads
+            if "'" in line[m_hd.start():m_hd.end()]:
+                delim = m_hd.group(1)
+        kept.append((idx, line))
+    return kept
+
+sh_bin = find_shell_bin("sh")
+bash_bin = find_shell_bin("bash")
+posix_scripts = [
+    "scripts/install.sh",
+    "scripts/openwrt/setup-openwrt.sh",
+    "scripts/install_openwrt_docker.sh",
+    "scripts/fnos/install-fnos.sh",
+    "scripts/docker/entrypoint.sh",
+]
+bash_scripts = [
+    "scripts/install_pve_lxc.sh",
+]
+strict_bashism_patterns = [
+    (r'(^|[;&|(\s])\[\[(\s|$)', "[["),
+    (r'(^|[;&|\s])declare\s+', "declare"),
+    (r'(^|[;&|\s])source\s+', "source (use '.')"),
+    (r'&>\s*\S', "&> redirect"),
+    (r'<<<', "<<< herestring"),
+]
+
+for rel in posix_scripts:
+    abspath = os.path.join(ROOT, rel)
+    if not os.path.exists(abspath):
+        installer_gate_errors.append(f"Missing POSIX script: {rel}")
+        continue
+    if sh_bin:
+        sc, so = run_cmd(f"\"{sh_bin}\" -n \"{abspath}\"")
+        if sc != 0:
+            installer_gate_errors.append(f"sh -n failed on {rel}: {so}")
+    raw_lines = open(abspath, "r", encoding="utf-8", errors="ignore").readlines()
+    for lno, line in strip_quoted_heredocs(raw_lines):
+        if line.lstrip().startswith("#"):
+            continue
+        for pat, label in strict_bashism_patterns:
+            if re.search(pat, line):
+                installer_gate_errors.append(f"POSIX bashism '{label}' in {rel}:{lno}: {line.strip()[:80]}")
+
+for rel in bash_scripts:
+    abspath = os.path.join(ROOT, rel)
+    if not os.path.exists(abspath):
+        installer_gate_errors.append(f"Missing bash script: {rel}")
+        continue
+    if bash_bin:
+        bc, bo = run_cmd(f"\"{bash_bin}\" -n \"{abspath}\"")
+        if bc != 0:
+            installer_gate_errors.append(f"bash -n failed on {rel}: {bo}")
+
+if installer_gate_errors:
+    for err in installer_gate_errors:
+        print(f"  ✗ {err}")
+    results["checks"]["installer_parity_gate"] = {"status": "FAIL", "errors": installer_gate_errors}
+    results["failures"] += 1
+else:
+    print(f"  ✓ Installer Parity (--check) + POSIX sh -n ({len(posix_scripts)}) + bash -n ({len(bash_scripts)}) PASSED.")
+    results["checks"]["installer_parity_gate"] = {"status": "PASS"}
+    results["passed"] += 1
+
+# -------------------------------------------------------------
+# CHECK 11: Frontend-Backend /api/v1 Contract & Allowlist Gate
+# -------------------------------------------------------------
+log_header("CHECK 11: Frontend-Backend /api/v1 Route Contract Gate")
+allowlist_path = os.path.join(ROOT, "scripts", "modules", "api_route_allowlist.json")
+be_routes = set()
+for go_file in glob.glob(os.path.join(ROOT, "cmd", "cubexd", "*.go")):
+    txt = open(go_file, "r", encoding="utf-8", errors="ignore").read()
+    for m in re.finditer(r'mux\.HandleFunc\(\s*"(/api/v1/[^"]+)"', txt):
+        be_routes.add(m.group(1))
+
+fe_routes = set()
+fe_refs = {}
+for root_dir, _, files in os.walk(os.path.join(ROOT, "web", "src")):
+    for fn in files:
+        if not fn.endswith((".js", ".vue")) or fn == "mock.js":
+            continue
+        txt = open(os.path.join(root_dir, fn), "r", encoding="utf-8", errors="ignore").read()
+        for m in re.finditer(r'[\'"`](/api/v1/[a-zA-Z0-9_\-\${}\./]+)', txt):
+            start = m.start()
+            prefix_ctx = txt[max(0, start - 12):start]
+            if "http" in prefix_ctx:
+                continue
+            r = m.group(1).split("?")[0]
+            if "${" in r:
+                r = r.split("${")[0]
+            fe_routes.add(r)
+            fe_refs.setdefault(r, []).append(fn)
+
+dead_fe_routes = []
+for r in sorted(fe_routes):
+    matched = (
+        (r in be_routes)
+        or any(r.startswith(b) for b in be_routes if b.endswith("/"))
+        or any(b.startswith(r) for b in be_routes if r.endswith("/"))
+    )
+    if not matched:
+        dead_fe_routes.append(f"{r} ({', '.join(sorted(set(fe_refs.get(r, []))))})")
+
+allowlisted_routes = {}
+if os.path.exists(allowlist_path):
+    allowlisted_routes = json.load(open(allowlist_path, "r", encoding="utf-8")).get("routes", {})
+
+unallowlisted_be_routes = []
+for b in sorted(be_routes):
+    used_fe = (
+        (b in fe_routes)
+        or any(f.startswith(b) for f in fe_routes if b.endswith("/"))
+        or any(b.startswith(f) and f.endswith("/") for f in fe_routes)
+    )
+    if not used_fe and b not in allowlisted_routes:
+        unallowlisted_be_routes.append(b)
+
+if dead_fe_routes or unallowlisted_be_routes or not os.path.exists(allowlist_path):
+    if not os.path.exists(allowlist_path):
+        print(f"  ✗ Missing allowlist file: {allowlist_path}")
+    for d in dead_fe_routes:
+        print(f"  ✗ Dead Frontend API reference (no backend handler): {d}")
+    for u in unallowlisted_be_routes:
+        print(f"  ✗ Unreferenced Backend route not in allowlist: {u}")
+    results["checks"]["api_route_contract"] = {
+        "status": "FAIL",
+        "dead_fe": dead_fe_routes,
+        "unallowlisted_be": unallowlisted_be_routes,
+    }
+    results["failures"] += 1
+else:
+    print(f"  ✓ /api/v1 Route Contract PASS: {len(be_routes)} BE routes, {len(fe_routes)} FE endpoints, 0 dead FE calls, {len(allowlisted_routes)} allowlisted BE-only routes.")
+    results["checks"]["api_route_contract"] = {"status": "PASS", "be_count": len(be_routes), "fe_count": len(fe_routes)}
+    results["passed"] += 1
 
 
 # -------------------------------------------------------------

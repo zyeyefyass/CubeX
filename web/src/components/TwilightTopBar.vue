@@ -29,7 +29,7 @@
               ? 'active-engine bg-[#0f172a] text-white shadow-md'
               : 'text-slate-700 hover:text-slate-950 hover:bg-white/50'
           ]"
-          title="切换至 sing-box v1.14+ 极速内核"
+          :title="coreVersions?.sing_box ? `切换至 sing-box ${coreVersions.sing_box} 极速内核` : '切换至 sing-box 极速内核'"
         >
           <img
             src="/logo-singbox.svg"
@@ -47,7 +47,7 @@
               ? 'active-engine bg-[#0f172a] text-white shadow-md'
               : 'text-slate-700 hover:text-slate-950 hover:bg-white/50'
           ]"
-          title="切换至 Mihomo 规则完备内核"
+          :title="coreVersions?.mihomo ? `切换至 Mihomo ${coreVersions.mihomo} 规则完备内核` : '切换至 Mihomo 规则完备内核'"
         >
           <img
             src="/logo-mihomo.svg"
@@ -106,6 +106,10 @@ defineProps({
   appVersion: {
     type: String,
     default: '--'
+  },
+  coreVersions: {
+    type: Object,
+    default: () => ({})
   },
   activeEngine: {
     type: String,

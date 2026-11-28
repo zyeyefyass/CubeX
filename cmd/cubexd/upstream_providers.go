@@ -388,7 +388,7 @@ func (s *Server) handleOnboardingDoctor(w http.ResponseWriter, r *http.Request) 
 	if envIP := os.Getenv("CUBEX_HOST_IP"); envIP != "" {
 		hostIP = envIP
 	}
-	rep := onboarding.RunOnboardingDoctor(r.Context(), hostIP, 2026, "198.18.0.0/15")
+	rep := onboarding.RunOnboardingDoctorWithWorkDir(r.Context(), hostIP, 2026, "198.18.0.0/15", s.workDir)
 	sendJSON(w, rep)
 }
 

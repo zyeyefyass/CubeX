@@ -1270,7 +1270,7 @@ func (m *Manager) TriggerROSFirmwareUpgrade() error {
 // ──────────────────────────────────────────────
 
 func (m *Manager) getLocalPanelVersion() string {
-	return "v9.99"
+	return "v9.991"
 
 }
 
@@ -2968,8 +2968,25 @@ func (m *Manager) loadConfig() {
 	}
 
 	_ = json.Unmarshal(data, &m.config)
-	m.config.Port = sanitizeROSPort(m.config.Port)
+	m.config = NormalizeROSConfigDefaults(m.config)
 
+}
+
+// NormalizeROSConfigDefaults ensures persisted ros-config.json fields stay normalized and rejects invalid/SSH ports.
+func NormalizeROSConfigDefaults(cfg ROSConfig) ROSConfig {
+	cfg.Host = strings.TrimSpace(cfg.Host)
+	cfg.User = strings.TrimSpace(cfg.User)
+	cfg.Port = sanitizeROSPort(cfg.Port)
+	return cfg
+}
+
+// ClearConfig clears active RouterOS credentials when the user explicitly switches to a non-RouterOS host platform.
+func (m *Manager) ClearConfig() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.config = ROSConfig{Port: "80"}
+	m.lastConnected = false
+	return m.saveConfigLocked()
 }
 
 func (m *Manager) saveConfigLocked() error {
@@ -3020,7 +3037,11 @@ func sanitizeROSPort(port string) string {
 	if p == "" || p == "0" || p == "22" {
 		return "80"
 	}
-	return p
+	pNum, err := strconv.Atoi(p)
+	if err != nil || pNum <= 0 || pNum > 65535 {
+		return "80"
+	}
+	return strconv.Itoa(pNum)
 }
 
 func buildROSURLFrom(host, port, apiPath string) (string, error) {

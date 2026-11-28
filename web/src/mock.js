@@ -258,7 +258,7 @@ export function initDemoMock() {
       const isStoreQuery = window.location.search.includes('store=1');
       return jsonResponse({
         ok: true,
-        version: 'v9.9.0',
+        version: typeof __CUBEX_PKG_VERSION__ !== 'undefined' ? __CUBEX_PKG_VERSION__ : 'demo',
         edition: 'Host-Symbiotic AutoPilot',
         activeEngine: currentEngine,
         engineStatus: 'running',

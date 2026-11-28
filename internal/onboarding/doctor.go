@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -36,6 +37,11 @@ type QuickstartGuideReport struct {
 
 // RunOnboardingDoctor 执行全自动新手环境诊断并生成个性化部署指引
 func RunOnboardingDoctor(ctx context.Context, hostIP string, controlPort int, fakeIPSubnet string) *QuickstartGuideReport {
+	return RunOnboardingDoctorWithWorkDir(ctx, hostIP, controlPort, fakeIPSubnet, "")
+}
+
+// RunOnboardingDoctorWithWorkDir 执行环境诊断，并校验持久化配置/数据目录的可写与容器挂载状态。
+func RunOnboardingDoctorWithWorkDir(ctx context.Context, hostIP string, controlPort int, fakeIPSubnet, workDir string) *QuickstartGuideReport {
 	if hostIP == "" {
 		topo := netenv.DetectHostTopology("", "")
 		if topo.LocalIP != "" {
@@ -51,7 +57,7 @@ func RunOnboardingDoctor(ctx context.Context, hostIP string, controlPort int, fa
 		fakeIPSubnet = "198.18.0.0/15"
 	}
 
-	checks := make([]CheckItemStatus, 0, 5)
+	checks := make([]CheckItemStatus, 0, 6)
 
 	// Check 1: /dev/net/tun 字符设备可用性校验
 	tunCheck := checkTunDevice()
@@ -73,7 +79,11 @@ func RunOnboardingDoctor(ctx context.Context, hostIP string, controlPort int, fa
 	resolvCheck := checkResolvConfSelfLoop(hostIP)
 	checks = append(checks, resolvCheck)
 
-	allRequiredPassed := tunCheck.Passed && capCheck.Passed
+	// Check 6: 持久化配置与数据目录（/app/etc & /app/data 或工作目录）可写与容器挂载校验
+	persistCheck := checkPersistMount(workDir)
+	checks = append(checks, persistCheck)
+
+	allRequiredPassed := tunCheck.Passed && capCheck.Passed && persistCheck.Passed
 
 	rep := &QuickstartGuideReport{
 		GeneratedAt:  time.Now(),
@@ -190,6 +200,108 @@ func checkResolvConfSelfLoop(hostIP string) CheckItemStatus {
 	}
 	item.Passed = true
 	item.Detail = fmt.Sprintf("/etc/resolv.conf 无自环风险 (nameservers: %s)", strings.Join(audit.Nameservers, ", "))
+	return item
+}
+
+func isContainerRuntimeEnv() bool {
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		return true
+	}
+	if os.Getenv("CUBEX_SUPERVISED") == "1" {
+		return true
+	}
+	return false
+}
+
+func checkPersistMount(workDir string) CheckItemStatus {
+	base := strings.TrimSpace(workDir)
+	if base == "" {
+		for _, cand := range []string{"/app", "/opt/cubex", "/opt/CubeX"} {
+			if st, err := os.Stat(cand); err == nil && st.IsDir() {
+				base = cand
+				break
+			}
+		}
+	}
+	if base == "" {
+		base = "."
+	}
+	etcDir := filepath.Join(base, "etc")
+	dataDir := filepath.Join(base, "data")
+	mountInfoRaw, _ := os.ReadFile("/proc/self/mountinfo")
+	return checkPersistMountFrom(etcDir, dataDir, string(mountInfoRaw), isContainerRuntimeEnv())
+}
+
+func checkDirWritable(dir string) error {
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	f, err := os.CreateTemp(dir, ".cubex-write-probe-*")
+	if err != nil {
+		return err
+	}
+	name := f.Name()
+	_ = f.Close()
+	_ = os.Remove(name)
+	return nil
+}
+
+func parseMountPoints(mountInfo string) map[string]bool {
+	mounts := make(map[string]bool)
+	for _, line := range strings.Split(mountInfo, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 5 {
+			mounts[fields[4]] = true
+		}
+	}
+	return mounts
+}
+
+func checkPersistMountFrom(etcDir, dataDir, mountInfo string, inDocker bool) CheckItemStatus {
+	item := CheckItemStatus{
+		ID:       "persist_mount",
+		Title:    "持久化目录可写与容器卷挂载校验 (etc / data)",
+		Severity: "REQUIRED",
+	}
+
+	if err := checkDirWritable(etcDir); err != nil {
+		item.Passed = false
+		item.Detail = fmt.Sprintf("配置目录不可写 (%s): %v", etcDir, err)
+		item.Remediation = "【容器/宿主机权限修复】确保宿主机挂载目录具备写权限 (如 chmod -R 755 或核对 PUID/PGID 与只读标志 :ro)。"
+		return item
+	}
+	if err := checkDirWritable(dataDir); err != nil {
+		item.Passed = false
+		item.Detail = fmt.Sprintf("数据目录不可写 (%s): %v", dataDir, err)
+		item.Remediation = "【容器/宿主机权限修复】确保宿主机 /app/data 映射目录非只读且有足够磁盘空间。"
+		return item
+	}
+
+	if inDocker && strings.TrimSpace(mountInfo) != "" {
+		mounts := parseMountPoints(mountInfo)
+		normEtc := filepath.ToSlash(filepath.Clean(etcDir))
+		normData := filepath.ToSlash(filepath.Clean(dataDir))
+		missing := make([]string, 0, 2)
+		if !mounts[normEtc] {
+			missing = append(missing, normEtc)
+		}
+		if !mounts[normData] {
+			missing = append(missing, normData)
+		}
+		if len(missing) > 0 {
+			item.Passed = false
+			item.Severity = "RECOMMENDED"
+			item.Detail = fmt.Sprintf("检测到容器内未独立挂载持久化卷 (%s)，重建或升级容器将丢失订阅与规则配置", strings.Join(missing, ", "))
+			item.Remediation = "【Docker / 飞牛 fnOS 修复】补充卷映射参数：\n-v /etc/cubex/data:/app/data -v /etc/cubex/etc:/app/etc"
+			return item
+		}
+		item.Passed = true
+		item.Detail = fmt.Sprintf("%s 与 %s 已独立持久化挂载且读写正常", normEtc, normData)
+		return item
+	}
+
+	item.Passed = true
+	item.Detail = fmt.Sprintf("配置与数据目录 (%s, %s) 读写就绪", etcDir, dataDir)
 	return item
 }
 

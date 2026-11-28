@@ -84,6 +84,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useThemeEngine } from '../composables/useThemeEngine.js'
+import { apiFetch } from '../utils/apiFetch.js'
 
 const props = defineProps({
   activeMasterTab: {
@@ -106,14 +107,14 @@ const blobVideoUrl = ref('')
 const videoUrl = computed(() => {
   if (activeTheme.value.type !== 'video') return ''
   const assetName = activeTheme.value.assets?.video || 'bg.mp4'
-  return `/api/themes/${activeTheme.value.id}/assets/${assetName}`
+  return `/api/v1/themes/${activeTheme.value.id}/assets/${assetName}`
 })
 
 // Anti-IDM Blob URL generator: Fetch video into in-memory Blob URL to prevent IDM floating download bar
 async function resolveAntiIDMVideoBlob(url) {
-  if (!url || typeof window === 'undefined' || !window.fetch) return
+  if (!url || typeof window === 'undefined') return
   try {
-    const res = await fetch(url)
+    const res = await apiFetch(url, { timeoutMs: 30000 })
     if (res.ok) {
       const blob = await res.blob()
       if (blobVideoUrl.value && blobVideoUrl.value.startsWith('blob:')) {

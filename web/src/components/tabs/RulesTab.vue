@@ -1074,6 +1074,7 @@
 <script setup>
 import { inject, ref, computed, onMounted } from 'vue'
 import ZootopiaIcon from '../ZootopiaIcon.vue'
+import { apiFetch } from '../../utils/apiFetch'
 const app = inject('cubexApp')
 const showWhitelistSection = ref(false)
 
@@ -1106,10 +1107,9 @@ async function handleQuickAdd(outbound) {
   }
   quickAdding.value = true
   try {
-    const res = await fetch('/api/v1/rules/user-overrides/target', {
+    const res = await apiFetch('/api/v1/rules/user-overrides/target', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ target: domain, outbound })
+      json: { target: domain, outbound }
     })
     const data = await res.json()
     if (data.ok) {
@@ -1129,10 +1129,9 @@ async function handleQuickAdd(outbound) {
 
 async function handleQuickClear(domain) {
   try {
-    const res = await fetch('/api/v1/rules/user-overrides/target', {
+    const res = await apiFetch('/api/v1/rules/user-overrides/target', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ target: domain, outbound: 'CLEAR' })
+      json: { target: domain, outbound: 'CLEAR' }
     })
     const data = await res.json()
     if (data.ok) {
@@ -1147,7 +1146,7 @@ async function handleQuickClear(domain) {
 }
 async function fetchUserOverrides() {
   try {
-    const res = await fetch('/api/v1/rules/overrides')
+    const res = await apiFetch('/api/v1/rules/overrides')
     if (res.ok) {
       const data = await res.json()
       if (data.ok && data.data) {

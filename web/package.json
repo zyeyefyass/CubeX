@@ -1,7 +1,7 @@
 {
   "name": "cubex-web",
   "private": true,
-  "version": "9.99",
+  "version": "9.991",
   "type": "module",
   "scripts": {
     "dev": "vite",

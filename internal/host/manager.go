@@ -107,11 +107,39 @@ func NewManager(rootDir string) *Manager {
 	return m
 }
 
+func NormalizeHostConfigDefaults(cfg HostConfig) HostConfig {
+	cfg.Host = strings.TrimSpace(cfg.Host)
+	cfg.User = strings.TrimSpace(cfg.User)
+	cfg.PlatformType = strings.ToLower(strings.TrimSpace(cfg.PlatformType))
+	if cfg.User == "" {
+		cfg.User = "root"
+	}
+	if cfg.PlatformType == "ikuai" || cfg.PlatformType == "routeros" {
+		cfg.PrivateKey = ""
+	}
+	if cfg.Host == "" {
+		cfg.Enabled = false
+		cfg.PlatformType = ""
+	}
+	if port, err := ValidateHostPortForPlatform(cfg.PlatformType, cfg.Port); err == nil {
+		cfg.Port = port
+	} else {
+		switch cfg.PlatformType {
+		case "ikuai", "routeros":
+			cfg.Port = 80
+		default:
+			cfg.Port = 22
+		}
+	}
+	return cfg
+}
+
 func (m *Manager) loadConfig() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if data, err := os.ReadFile(m.configFile); err == nil {
 		_ = json.Unmarshal(data, &m.config)
+		m.config = NormalizeHostConfigDefaults(m.config)
 	}
 }
 
@@ -158,6 +186,9 @@ func ValidateHostPortForPlatform(platformType string, port int) (int, error) {
 func (m *Manager) SaveConfig(cfg HostConfig) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	cfg.Host = strings.TrimSpace(cfg.Host)
+	cfg.User = strings.TrimSpace(cfg.User)
+	cfg.PlatformType = strings.ToLower(strings.TrimSpace(cfg.PlatformType))
 	normPort, err := ValidateHostPortForPlatform(cfg.PlatformType, cfg.Port)
 	if err != nil {
 		return err
@@ -166,16 +197,21 @@ func (m *Manager) SaveConfig(cfg HostConfig) error {
 	if cfg.User == "" {
 		cfg.User = "root"
 	}
-	if cfg.Password == "******" || (cfg.Password == "" && cfg.Host == m.config.Host) {
+	sameTarget := cfg.Host == m.config.Host && (cfg.PlatformType == "" || m.config.PlatformType == "" || cfg.PlatformType == m.config.PlatformType)
+	if cfg.Password == "******" || (cfg.Password == "" && sameTarget) {
 		cfg.Password = m.config.Password
 	}
-	if cfg.PrivateKey == "******" || (cfg.PrivateKey == "" && cfg.Host == m.config.Host) {
+	if cfg.PrivateKey == "******" || (cfg.PrivateKey == "" && sameTarget) {
 		cfg.PrivateKey = m.config.PrivateKey
 	}
-	if strings.TrimSpace(cfg.Host) == "" {
+	if cfg.PlatformType == "ikuai" || cfg.PlatformType == "routeros" {
+		// Non-SSH REST/RPC platforms never reuse stale SSH private keys from previous Linux/OpenWrt hosts
+		cfg.PrivateKey = ""
+	}
+	if cfg.Host == "" {
 		cfg.Enabled = false
 		cfg.PlatformType = ""
-	} else if cfg.Host != "" {
+	} else {
 		cfg.Enabled = true
 	}
 	if !strings.EqualFold(cfg.Host, m.config.Host) || cfg.Port != m.config.Port || !strings.EqualFold(cfg.PlatformType, m.config.PlatformType) || !cfg.Enabled {
@@ -1997,6 +2033,17 @@ func probeLocalMetrics() (isContainer bool, containerType string, osName string,
 	}
 
 	return
+}
+
+// DetectLocalSummary 返回当前宿主本机识别出的平台 ID 与容器类型（供系统能力接口直接复用）。
+func (m *Manager) DetectLocalSummary() (platformID string, containerType string) {
+	if cached := m.GetCachedHostInfo(); cached != nil && strings.TrimSpace(cached.PlatformID) != "" {
+		return cached.PlatformID, cached.ContainerType
+	}
+	osName := m.detectLocalHost()
+	platformID = m.detectLocalPlatformID(osName)
+	_, containerType, _, _, _, _, _, _ = probeLocalMetrics()
+	return platformID, containerType
 }
 
 func (m *Manager) detectLocalHost() string {

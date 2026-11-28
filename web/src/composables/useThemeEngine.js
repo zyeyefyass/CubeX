@@ -1,4 +1,5 @@
 import { ref, computed, watch, onMounted } from 'vue'
+import { apiFetch } from '../utils/apiFetch'
 
 const themes = ref([])
 const activeThemeID = ref('dark-skull-luxury')
@@ -54,7 +55,7 @@ export function useThemeEngine() {
   async function fetchThemes() {
     isLoading.value = true
     try {
-      const res = await fetch('/api/themes')
+      const res = await apiFetch('/api/v1/themes')
       if (res.ok) {
         const data = await res.json()
         if (data && data.themes) {
@@ -75,10 +76,9 @@ export function useThemeEngine() {
     try {
       const payload = { id }
       if (mode) payload.playback_mode = mode
-      const res = await fetch('/api/themes/activate', {
+      const res = await apiFetch('/api/v1/themes/activate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        json: payload
       })
       if (res.ok) {
         activeThemeID.value = id
@@ -108,7 +108,7 @@ export function useThemeEngine() {
       const formData = new FormData()
       formData.append('theme', file)
 
-      const res = await fetch('/api/themes/import', {
+      const res = await apiFetch('/api/v1/themes/import', {
         method: 'POST',
         body: formData
       })
@@ -134,7 +134,7 @@ export function useThemeEngine() {
   async function deleteTheme(id) {
     if (!id || id === 'twilight-default' || id === 'legacy-wallpapers') return false
     try {
-      const res = await fetch(`/api/themes/${id}`, { method: 'DELETE' })
+      const res = await apiFetch(`/api/v1/themes/${id}`, { method: 'DELETE' })
       if (res.ok) {
         await fetchThemes()
         return true

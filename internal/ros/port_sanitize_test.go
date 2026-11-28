@@ -172,3 +172,30 @@ func TestUpgradePanel_CrossSegmentV999ToV991(t *testing.T) {
 		t.Fatalf("expected v9.91 -> v9.91 blocked as already_latest, got allow=%v reason=%s", allow, reason)
 	}
 }
+
+func TestROSConfig_NormalizeAndClear(t *testing.T) {
+	norm := NormalizeROSConfigDefaults(ROSConfig{
+		Host: " 192.168.88.1 ",
+		Port: "not-a-number",
+		User: " admin ",
+	})
+	if norm.Host != "192.168.88.1" || norm.User != "admin" || norm.Port != "80" {
+		t.Fatalf("unexpected NormalizeROSConfigDefaults: %+v", norm)
+	}
+
+	mgr := NewManager(t.TempDir())
+	if err := mgr.SaveConfig(map[string]string{
+		"host": "192.168.88.1", "port": "443", "user": "admin", "password": "pw",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if !mgr.IsConfigured() {
+		t.Fatalf("expected rosMgr IsConfigured=true")
+	}
+	if err := mgr.ClearConfig(); err != nil {
+		t.Fatal(err)
+	}
+	if mgr.IsConfigured() || mgr.GetConfig()["host"] != "" || mgr.GetConfig()["port"] != "80" {
+		t.Fatalf("expected ClearConfig to reset rosMgr cleanly, got %+v", mgr.GetConfig())
+	}
+}

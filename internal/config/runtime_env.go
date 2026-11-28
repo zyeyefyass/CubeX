@@ -17,7 +17,7 @@ const (
 	DefaultFakeIPRange   = "198.18.0.0/15"
 	DefaultFakeIPv6Range = "fc00::/18"
 
-	DefaultSingBoxVersion = "v1.14.5"
+	DefaultSingBoxVersion = "v1.14.6"
 	DefaultMihomoVersion  = "v1.19.34"
 )
 

@@ -65,7 +65,7 @@ jobs:
           mkdir -p bin/amd64 bin/arm64 etc/rules data
 
           MH_VER=$(python3 -c 'import json; d=json.load(open("meta.json")); print(d.get("core_versions", {}).get("mihomo", "v1.19.34"))')
-          SB_TAG=$(python3 -c 'import json; d=json.load(open("meta.json")); print(d.get("core_versions", {}).get("sing_box", "v1.14.5"))')
+          SB_TAG=$(python3 -c 'import json; d=json.load(open("meta.json")); print(d.get("core_versions", {}).get("sing_box", "v1.14.6"))')
           SB_VER="${SB_TAG#v}"
 
           echo "Downloading official Mihomo ${MH_VER} binaries (-compatible- amd64 + arm64)..."

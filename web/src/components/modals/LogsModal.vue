@@ -370,6 +370,7 @@
 <script setup>
 import { inject, ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { formatBytes } from '../../utils/format'
+import { apiFetch } from '../../utils/apiFetch'
 
 const app = inject('cubexApp')
 
@@ -393,7 +394,7 @@ const monthlyTraffic = ref({
 
 async function fetchMonthlyTraffic() {
   try {
-    const res = await fetch('/api/v1/traffic/monthly')
+    const res = await apiFetch('/api/v1/traffic/monthly')
     const data = await res.json()
     if (data && data.ok) {
       monthlyTraffic.value = data
@@ -463,7 +464,7 @@ function switchToConnections() {
 async function fetchConnections(manual = false) {
   if (manual) loadingConns.value = true
   try {
-    const res = await fetch('/api/v1/telemetry/connections')
+    const res = await apiFetch('/api/v1/telemetry/connections')
     if (res.ok) {
       const data = await res.json()
       if (data.ok && Array.isArray(data.connections)) {
@@ -578,10 +579,9 @@ function showToast(msg) {
 async function quickOverride(target, outbound) {
   if (!target) return
   try {
-    const res = await fetch('/api/v1/rules/override-target', {
+    const res = await apiFetch('/api/v1/rules/override-target', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ target, outbound })
+      json: { target, outbound }
     })
     const data = await res.json()
     if (data.ok) {

@@ -1277,6 +1277,7 @@
 import { inject, ref, onMounted } from 'vue'
 import ZootopiaIcon from '../ZootopiaIcon.vue'
 import { copyTextToClipboard } from '../../utils/clipboard'
+import { apiFetch } from '../../utils/apiFetch'
 
 const app = inject('cubexApp')
 
@@ -1292,7 +1293,7 @@ const loopVerifyResult = ref(null)
 
 async function fetchTriRouterBundle() {
   try {
-    const res = await fetch('/api/v1/onboarding/tri-router')
+    const res = await apiFetch('/api/v1/onboarding/tri-router')
     if (res.ok) {
       triRouterBundle.value = await res.json()
     }
@@ -1304,7 +1305,7 @@ async function fetchTriRouterBundle() {
 async function verifySymbioticLoop() {
   verifyingLoop.value = true
   try {
-    const res = await fetch('/api/v1/onboarding/verify-loop')
+    const res = await apiFetch('/api/v1/onboarding/verify-loop')
     if (res.ok) {
       loopVerifyResult.value = await res.json()
       if (app && typeof app.showToast === 'function') {
@@ -1338,7 +1339,7 @@ function copyRouterOSScript() {
 
 async function copyDirectCIDRRoutes(brand) {
   try {
-    const res = await fetch('/api/v1/onboarding/essential-cidrs')
+    const res = await apiFetch('/api/v1/onboarding/essential-cidrs')
     if (res.ok) {
       const data = await res.json()
       if (brand === 'routeros' && data.routeros_script) {
@@ -1369,7 +1370,7 @@ function copyIKuaiMemo() {
 async function refreshGatewayStatus() {
   loadingGateway.value = true
   try {
-    const res = await fetch('/api/v1/onboarding/gateway-mode')
+    const res = await apiFetch('/api/v1/onboarding/gateway-mode')
     if (res.ok) {
       gatewayStatus.value = await res.json()
     }
@@ -1391,10 +1392,9 @@ async function applyGatewayMode(mode) {
       upstream_dns: '223.5.5.5',
       enable_masquerade: true,
     }
-    const res = await fetch('/api/v1/onboarding/gateway-mode', {
+    const res = await apiFetch('/api/v1/onboarding/gateway-mode', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      json: payload,
     })
     if (res.ok) {
       gatewayStatus.value = await res.json()

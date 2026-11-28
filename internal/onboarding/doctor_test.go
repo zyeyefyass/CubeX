@@ -2,6 +2,7 @@ package onboarding
 
 import (
 	"context"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -70,3 +71,52 @@ func TestRunOnboardingDoctor(t *testing.T) {
 		t.Errorf("expected at least 3 host snippets, got: %d", len(report.HostSnippets))
 	}
 }
+
+func TestCheckPersistMountFrom_ContainerMountsAndWritable(t *testing.T) {
+	tmp := t.TempDir()
+	// 1. Bare-metal / non-container writable directories pass as REQUIRED
+	res := checkPersistMountFrom(tmp+"/etc", tmp+"/data", "", false)
+	if !res.Passed || res.ID != "persist_mount" {
+		t.Fatalf("expected non-container writable check to pass, got %+v", res)
+	}
+
+	// 2. Container with explicit mountpoints in mountinfo passes
+	etcDir := tmp + "/etc"
+	dataDir := tmp + "/data"
+	normEtc := filepath.ToSlash(filepath.Clean(etcDir))
+	normData := filepath.ToSlash(filepath.Clean(dataDir))
+	mountOK := "101 80 8:1 /vol1/cubex/etc " + normEtc + " rw,relatime - ext4 /dev/sda1 rw\n" +
+		"102 80 8:1 /vol1/cubex/data " + normData + " rw,relatime - ext4 /dev/sda1 rw\n"
+	resOK := checkPersistMountFrom(etcDir, dataDir, mountOK, true)
+	if !resOK.Passed {
+		t.Fatalf("expected mounted container dirs to pass, got %+v", resOK)
+	}
+	mounts := parseMountPoints("101 80 8:1 /vol1/cubex/etc /app/etc rw,relatime - ext4 /dev/sda1 rw\n" +
+		"102 80 8:1 /vol1/cubex/data /app/data rw,relatime - ext4 /dev/sda1 rw\n")
+	if !mounts["/app/etc"] || !mounts["/app/data"] {
+		t.Fatalf("parseMountPoints failed to extract /app/etc and /app/data: %+v", mounts)
+	}
+
+	// 3. Container missing /app/data mount flags clear warning & remediation
+	mountMissing := "101 80 8:1 /vol1/cubex/etc " + normEtc + " rw - ext4 /dev/sda1 rw\n"
+	resMissing := checkPersistMountFrom(etcDir, dataDir, mountMissing, true)
+	if resMissing.Passed || resMissing.Severity != "RECOMMENDED" || !strings.Contains(resMissing.Detail, normData) {
+		t.Fatalf("expected missing mount warning for %s, got %+v", normData, resMissing)
+	}
+}
+
+func TestGatewayModeSpec_NormalizeDefaults(t *testing.T) {
+	spec := GatewayModeSpec{
+		Mode:              GatewayTopologyMode("invalid_legacy"),
+		PrimaryInterface:  " eth0 ",
+		CubeXLocalIP:      " 192.168.10.2 ",
+		UpstreamGatewayIP: " 192.168.10.1 ",
+		UpstreamDNS:       "  ",
+	}
+	spec.NormalizeDefaults()
+	if spec.Mode != ModeSingleNICBypass || spec.UpstreamDNS != "223.5.5.5" ||
+		spec.PrimaryInterface != "eth0" || spec.CubeXLocalIP != "192.168.10.2" {
+		t.Fatalf("unexpected normalized GatewayModeSpec: %+v", spec)
+	}
+}
+

@@ -251,3 +251,38 @@ func TestDetectLocalHostFrom_AllPlatforms(t *testing.T) {
 		})
 	}
 }
+
+func TestNormalizeHostConfigDefaults_AndCrossPlatformSwitch(t *testing.T) {
+	tmpDir := t.TempDir()
+	m := NewManager(tmpDir)
+
+	// 1. OpenWrt SSH config with PrivateKey
+	if err := m.SaveConfig(HostConfig{
+		Host:         " 192.168.50.1 ",
+		Port:         22,
+		User:         "",
+		Password:     "openwrt-pass",
+		PrivateKey:   "-----BEGIN OPENSSH PRIVATE KEY-----",
+		PlatformType: "OpenWrt",
+	}); err != nil {
+		t.Fatalf("SaveConfig openwrt failed: %v", err)
+	}
+	cfg := m.GetConfig()
+	if cfg.Host != "192.168.50.1" || cfg.User != "root" || cfg.PlatformType != "openwrt" {
+		t.Fatalf("expected normalized host/user/platform, got %+v", cfg)
+	}
+
+	// 2. Switch same IP to iKuai with empty Password -> must clear stale SSH PrivateKey and must not leak OpenWrt Password
+	if err := m.SaveConfig(HostConfig{
+		Host:         "192.168.50.1",
+		Port:         80,
+		User:         "admin",
+		PlatformType: "ikuai",
+	}); err != nil {
+		t.Fatalf("SaveConfig ikuai failed: %v", err)
+	}
+	cfg2 := m.GetConfig()
+	if cfg2.PrivateKey != "" || cfg2.Password != "" {
+		t.Fatalf("cross-platform switch must clear stale credentials, got password=%q key=%q", cfg2.Password, cfg2.PrivateKey)
+	}
+}

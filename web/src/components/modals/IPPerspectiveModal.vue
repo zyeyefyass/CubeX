@@ -168,6 +168,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
+import { apiFetch } from '../../utils/apiFetch'
 
 const props = defineProps({
   visible: Boolean,
@@ -212,7 +213,7 @@ function handleBackdropClick(e) {
 async function fetchPerspective(node, force = false) {
   if (!node) return
   try {
-    const res = await fetch(`/api/v1/config/proxies/ip-perspective?node=${encodeURIComponent(node)}${force ? '&refresh=1' : ''}&_t=${Date.now()}`)
+    const res = await apiFetch(`/api/v1/config/proxies/ip-perspective?node=${encodeURIComponent(node)}${force ? '&refresh=1' : ''}&_t=${Date.now()}`)
     if (res.ok) {
       const data = await res.json()
       if (data.ok) {
@@ -226,10 +227,10 @@ async function triggerBurst() {
   if (!props.nodeName || testingBurst.value) return
   testingBurst.value = true
   try {
-    const res = await fetch('/api/v1/config/proxies/burst-speedtest', {
+    const res = await apiFetch('/api/v1/config/proxies/burst-speedtest', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ node: props.nodeName })
+      json: { node: props.nodeName },
+      timeoutMs: 30000
     })
     const data = await res.json()
     if (data.ok) {

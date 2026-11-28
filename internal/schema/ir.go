@@ -3,6 +3,7 @@ package schema
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -176,6 +177,77 @@ type Profile struct {
 	QuicBlock    bool   `json:"quic_block" yaml:"quic_block"`
 	AdBlock      bool   `json:"ad_block" yaml:"ad_block"`
 	SpeedtestURL string `json:"speedtest_url" yaml:"speedtest_url"`
+}
+
+// NormalizeDefaults fills missing required defaults when loading older or partially populated config.ir.json files.
+func (ir *ConfigIR) NormalizeDefaults() {
+	if ir == nil {
+		return
+	}
+	def := NewDefaultIR()
+	if strings.TrimSpace(ir.Meta.Version) == "" {
+		ir.Meta.Version = def.Meta.Version
+	}
+	if ir.Meta.ActiveEngine != EngineMihomo && ir.Meta.ActiveEngine != EngineSingbox {
+		ir.Meta.ActiveEngine = def.Meta.ActiveEngine
+	}
+	if ir.Meta.ProxyMode == "" {
+		ir.Meta.ProxyMode = def.Meta.ProxyMode
+	}
+	if strings.TrimSpace(ir.Meta.ActiveProfile) == "" {
+		ir.Meta.ActiveProfile = def.Meta.ActiveProfile
+	}
+	if strings.TrimSpace(ir.Meta.LogLevel) == "" {
+		ir.Meta.LogLevel = def.Meta.LogLevel
+	}
+	if strings.TrimSpace(ir.Network.TunInterface) == "" {
+		ir.Network.TunInterface = def.Network.TunInterface
+	}
+	if strings.TrimSpace(ir.Network.TunIPv4) == "" {
+		ir.Network.TunIPv4 = def.Network.TunIPv4
+	}
+	if ir.Network.TunMTU <= 0 {
+		ir.Network.TunMTU = def.Network.TunMTU
+	}
+	if strings.TrimSpace(ir.Network.TunStack) == "" {
+		ir.Network.TunStack = def.Network.TunStack
+	}
+	if ir.Network.TProxyPort <= 0 {
+		ir.Network.TProxyPort = def.Network.TProxyPort
+	}
+	if ir.Network.MixedPort <= 0 {
+		ir.Network.MixedPort = def.Network.MixedPort
+	}
+	if ir.Network.RedirPort <= 0 {
+		ir.Network.RedirPort = def.Network.RedirPort
+	}
+	if ir.Network.DNSPort <= 0 || ir.Network.DNSPort == 1053 {
+		ir.Network.DNSPort = def.Network.DNSPort
+	}
+	if ir.Network.ClashAPIPort <= 0 {
+		ir.Network.ClashAPIPort = def.Network.ClashAPIPort
+	}
+	if strings.TrimSpace(ir.Network.QUICPolicy) == "" {
+		ir.Network.QUICPolicy = def.Network.QUICPolicy
+	}
+	if strings.TrimSpace(ir.DNS.FakeIPRange) == "" {
+		ir.DNS.FakeIPRange = def.DNS.FakeIPRange
+	}
+	if len(ir.DNS.DirectDNS) == 0 {
+		ir.DNS.DirectDNS = append([]string(nil), def.DNS.DirectDNS...)
+	}
+	if len(ir.DNS.RemoteDNS) == 0 {
+		ir.DNS.RemoteDNS = append([]string(nil), def.DNS.RemoteDNS...)
+	}
+	if ir.Subscriptions == nil {
+		ir.Subscriptions = []Subscription{}
+	}
+	if ir.Proxies == nil {
+		ir.Proxies = []ProxyNode{}
+	}
+	if ir.Rules == nil {
+		ir.Rules = []Rule{}
+	}
 }
 
 // NewDefaultIR creates an optimized default CubeX Universal IR configuration.

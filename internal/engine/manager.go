@@ -215,19 +215,8 @@ func NewManager(workDir string, initialIR *schema.ConfigIR) *Manager {
 
 	}
 
+	initialIR.NormalizeDefaults()
 	schema.SyncAllStrategyGroups(initialIR)
-
-	if initialIR.Network.DNSPort == 0 || initialIR.Network.DNSPort == 1053 {
-
-		initialIR.Network.DNSPort = 53
-
-	}
-
-	if initialIR.Network.ClashAPIPort <= 0 {
-
-		initialIR.Network.ClashAPIPort = 9090
-
-	}
 
 	if cleanData, err := json.MarshalIndent(initialIR, "", "  "); err == nil {
 
