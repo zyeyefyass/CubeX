@@ -25,7 +25,13 @@ var (
 	startTime = time.Now()
 )
 
-func configureAdaptiveMemoryLimit() {
+func configureAdaptiveMemoryLimit() int64 {
+	if envLimit := strings.TrimSpace(os.Getenv("GOMEMLIMIT")); envLimit != "" {
+		cur := debug.SetMemoryLimit(-1)
+		log.Printf("[Supervisor] Using preconfigured GOMEMLIMIT=%s (active=%d MiB)\n", envLimit, cur/(1024*1024))
+		return cur
+	}
+
 	// Base fallback: 24MiB default ceiling for cubexd control plane
 	limit := int64(24 * 1024 * 1024)
 	gcPercent := 40
@@ -47,7 +53,8 @@ func configureAdaptiveMemoryLimit() {
 
 	debug.SetMemoryLimit(limit)
 	debug.SetGCPercent(gcPercent)
-	log.Printf("🛡️ [Supervisor] Adaptive GOMEMLIMIT configured: %d MiB (GCPercent=%d, DetectedRAM=%dMB)\n", limit/(1024*1024), gcPercent, totalMb)
+	log.Printf("[Supervisor] Adaptive GOMEMLIMIT configured: %d MiB (GCPercent=%d, DetectedRAM=%dMB)\n", limit/(1024*1024), gcPercent, totalMb)
+	return limit
 }
 
 // safeRecover provides panic interception and stack tracing for all asynchronous goroutines.

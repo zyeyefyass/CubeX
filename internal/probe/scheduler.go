@@ -27,6 +27,8 @@ type SchedulerConfig struct {
 	SwitchMarginRatio float64       // proactive relative improvement ratio, default 0.18 (18%)
 	SwitchCooldown    time.Duration // per-group proactive switch cooldown, default 60s
 	ManagedGroups     []string      // explicit groups to manage (empty = auto-detect non-excluded URLTest/Fallback groups only)
+	ReadinessCheck    func() bool   // optional startup readiness gate; skips probing cleanly until true
+	StartupGrace      time.Duration // grace period suppressing transient startup connection errors (default 30s)
 }
 
 // SwitchEvent records an audited closed-loop proxy routing transition.
@@ -49,10 +51,14 @@ type EWMAScheduler struct {
 	coldCursors   map[string]int       // tracks ring cursor position per policy group
 	groupSwitchAt map[string]time.Time // tracks last switch timestamp per policy group
 	penalizedUntil map[string]time.Time // tracks temporary blackhole penalty expiration per node (default 300s)
-	pausedUntil    atomic.Int64         // kernel switchover silence barrier timestamp (UnixNano)
-	lastErrLogAt   time.Time
-	circuitBreaker *PassiveCircuitBreaker
-	onSwitch       func(ev SwitchEvent)
+	pausedUntil      atomic.Int64         // kernel switchover silence barrier timestamp (UnixNano)
+	startedAt        time.Time
+	consecutiveFails int
+	backoffTicks     int
+	everSucceeded    bool
+	lastErrLogAt     time.Time
+	circuitBreaker   *PassiveCircuitBreaker
+	onSwitch         func(ev SwitchEvent)
 }
 
 func (s *EWMAScheduler) logErrorThrottled(action string, err error) {
@@ -107,6 +113,9 @@ func NewEWMAScheduler(cfg SchedulerConfig, ewma *EWMAManager, onSwitch func(Swit
 	if cfg.SwitchCooldown <= 0 {
 		cfg.SwitchCooldown = 60 * time.Second
 	}
+	if cfg.StartupGrace <= 0 {
+		cfg.StartupGrace = 30 * time.Second
+	}
 
 	tr := &http.Transport{
 		MaxIdleConns:        8,
@@ -128,6 +137,7 @@ func NewEWMAScheduler(cfg SchedulerConfig, ewma *EWMAManager, onSwitch func(Swit
 		coldCursors:    make(map[string]int),
 		groupSwitchAt:  make(map[string]time.Time),
 		penalizedUntil: make(map[string]time.Time),
+		startedAt:      time.Now(),
 		onSwitch:       onSwitch,
 	}
 }
@@ -150,6 +160,18 @@ func (s *EWMAScheduler) Run(ctx context.Context) {
 			if time.Now().UnixNano() < s.pausedUntil.Load() {
 				continue
 			}
+			if s.cfg.ReadinessCheck != nil && !s.cfg.ReadinessCheck() {
+				continue
+			}
+			s.mu.Lock()
+			skipTicks := s.backoffTicks
+			if skipTicks > 0 {
+				s.backoffTicks--
+			}
+			s.mu.Unlock()
+			if skipTicks > 0 {
+				continue
+			}
 			s.runSingleCycle(ctx)
 		}
 	}
@@ -162,16 +184,55 @@ func (s *EWMAScheduler) RunSingleCycle(ctx context.Context) {
 	s.runSingleCycle(ctx)
 }
 
+func isTransientStartupConnErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	lower := strings.ToLower(err.Error())
+	return strings.Contains(lower, "connection refused") ||
+		strings.Contains(lower, "dial tcp") ||
+		strings.Contains(lower, "eof") ||
+		strings.Contains(lower, "context deadline exceeded")
+}
+
 func (s *EWMAScheduler) runSingleCycle(ctx context.Context) {
+	if s.cfg.ReadinessCheck != nil && !s.cfg.ReadinessCheck() {
+		return
+	}
+
 	s.mu.Lock()
 	s.sweepPenaltiesLocked(time.Now())
 	s.mu.Unlock()
 
 	proxies, err := s.fetchProxiesSnapshot(ctx)
 	if err != nil {
+		s.mu.Lock()
+		s.consecutiveFails++
+		fails := s.consecutiveFails
+		inStartupGrace := !s.everSucceeded && time.Since(s.startedAt) < s.cfg.StartupGrace
+		// Exponential tick backoff: skip 1, 2, or 4 cycles during prolonged unavailability
+		switch {
+		case fails >= 3:
+			s.backoffTicks = 4
+		case fails == 2:
+			s.backoffTicks = 2
+		default:
+			s.backoffTicks = 1
+		}
+		s.mu.Unlock()
+
+		if inStartupGrace && isTransientStartupConnErr(err) {
+			return
+		}
 		s.logErrorThrottled("拉取内核策略组快照失败", err)
 		return
 	}
+	s.mu.Lock()
+	s.consecutiveFails = 0
+	s.backoffTicks = 0
+	s.everSucceeded = true
+	s.mu.Unlock()
+
 	if len(proxies) == 0 {
 		return
 	}

@@ -293,176 +293,31 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		}
 	}
 
-	var cleanFakeIPFilter []string
-
-	if hasCNDomainMRS {
-
-		cleanFakeIPFilter = []string{
-
-			"rule-set:cn_domain",
-
-			"*.home.arpa",
-
-			"*.localdomain",
+	cleanFakeIPFilter := make([]string, 0, len(schema.BuiltinFakeIPFilterDomains)+len(ir.DNS.FakeIPFilter)+16)
+	seenFakeIP := make(map[string]struct{}, len(schema.BuiltinFakeIPFilterDomains)+len(ir.DNS.FakeIPFilter)+16)
+	appendFakeIP := func(item string) {
+		trimmed := strings.TrimSpace(item)
+		if trimmed == "" {
+			return
 		}
-
-	} else {
-
-		cleanFakeIPFilter = []string{
-
-			"geosite:private",
-
-			"geosite:cn",
+		if _, dup := seenFakeIP[trimmed]; dup {
+			return
 		}
-
+		seenFakeIP[trimmed] = struct{}{}
+		cleanFakeIPFilter = append(cleanFakeIPFilter, trimmed)
 	}
 
-	cleanFakeIPFilter = append(cleanFakeIPFilter,
-
-		"*.lan",
-
-		"*.local",
-
-		"*.home",
-
-		"*.internal",
-
-		"localhost",
-
-		"+.cn",
-
-		// NTP Servers (Strict Real IP Direct to eliminate host reboot time sync lock)
-
-		"*.ntp.org",
-
-		"+.pool.ntp.org",
-
-		"pool.ntp.org",
-
-		"+.time.windows.com",
-
-		"time.windows.com",
-
-		"+.time.apple.com",
-
-		"time.apple.com",
-
-		"time.asia.apple.com",
-
-		"+.time.google.com",
-
-		"time.google.com",
-
-		"+.time.cloudflare.com",
-
-		"time.cloudflare.com",
-
-		"+.time.edu.cn",
-
-		"+.ntp.aliyun.com",
-
-		"+.ntp.tencent.com",
-
-		"time1.cloud.tencent.com",
-
-		"time.is",
-
-		"time.nist.gov",
-
-		// RouterOS & Network Connectivity Check
-
-		"+.routeros.com",
-
-		"+.mikrotik.com",
-
-		"+.cloud.mikrotik.com",
-
-		"+.msftconnecttest.com",
-
-		"+.msftncsi.com",
-
-		"+.test-ipv6.com",
-
-		"test-ipv6.com",
-
-		"+.v6.test-ipv6.com",
-
-		"v6.test-ipv6.com",
-
-		"+.ds.test-ipv6.com",
-
-		"ds.test-ipv6.com",
-
-		"+.connectivitycheck.gstatic.com",
-
-		"+.cp.cloudflare.com",
-
-		// Common Domestic Services
-
-		"+.baidu.com",
-
-		"+.bdstatic.com",
-
-		"+.qq.com",
-
-		"+.qpic.cn",
-
-		"+.bilibili.com",
-
-		"+.hdslb.com",
-
-		"+.bilivideo.com",
-
-		"+.bilivideo.cn",
-
-		"+.biliapi.net",
-
-		"+.biliapi.com",
-
-		"+.bilicdn1.com",
-
-		"+.szbdyd.com",
-
-		"probe.test",
-
-		"probe.internal",
-
-		"*.test",
-
-		"+.taobao.com",
-
-		"+.alicdn.com",
-
-		"+.jd.com",
-
-		"+.alipay.com",
-
-		"+.163.com",
-
-		"+.zhihu.com",
-
-		"+.douyin.com",
-
-		"+.bytecdntp.com",
-
-		"+.volces.com",
-
-		"+.weibo.com",
-
-		"+.aliyun.com",
-
-		"+.aliyuncs.com",
-
-		"+.tencent.com",
-
-		"+.bytedance.com",
-
-		// NAS & Domestic Direct Resolving (Prevent Fake-IP Outbound Drop)
-		"+.zspace.com",
-		"+.zspace.cn",
-		"+.zspace.com.cn",
-		"+.zspace.cc",
-	)
+	if ir.DNS.IsFakeIPBuiltinEnabled() {
+		if hasCNDomainMRS {
+			appendFakeIP("rule-set:cn_domain")
+		} else {
+			appendFakeIP("geosite:private")
+			appendFakeIP("geosite:cn")
+		}
+		for _, builtin := range schema.BuiltinFakeIPFilterDomains {
+			appendFakeIP(builtin)
+		}
+	}
 
 	// Append user-customized Fake-IP filter whitelist from IR (convert legacy geosite entries when MRS is active)
 	for _, f := range ir.DNS.FakeIPFilter {
@@ -470,35 +325,23 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		if trimmed == "" {
 			continue
 		}
-		if hasCNDomainMRS {
-			lower := strings.ToLower(trimmed)
-			if lower == "geosite:private" || lower == "geosite:cn" || lower == "geosite:geolocation-!cn" {
-				continue
-			}
+		lower := strings.ToLower(trimmed)
+		if hasCNDomainMRS && (lower == "geosite:private" || lower == "geosite:cn" || lower == "geosite:geolocation-!cn") {
+			continue
 		}
-		cleanFakeIPFilter = append(cleanFakeIPFilter, trimmed)
+		appendFakeIP(trimmed)
+		if !strings.HasPrefix(trimmed, "+.") && !strings.HasPrefix(trimmed, "*.") &&
+			!strings.Contains(trimmed, "*") && !strings.Contains(lower, ":") && lower != "localhost" {
+			appendFakeIP("+." + trimmed)
+		}
 	}
 
-	// STUN/TURN 协议与常用穿透服务器全量免 Fake-IP（确保 Lucky / WebRTC / 游戏 NAT 穿透直接解析真实公网 IP）
-	cleanFakeIPFilter = append(cleanFakeIPFilter,
-		"+.stun.*",
-		"stun.*",
-		"*.stun.*",
-		"+.turn.*",
-		"turn.*",
-		"*.turn.*",
-	)
-
 	// Dynamically exclude all proxy server domains from fake-ip to eliminate Fake-IP loops
-
 	for _, p := range ir.Proxies {
-
 		if p.Server != "" && stdnet.ParseIP(p.Server) == nil {
-
-			cleanFakeIPFilter = append(cleanFakeIPFilter, p.Server, "+."+p.Server)
-
+			appendFakeIP(p.Server)
+			appendFakeIP("+." + p.Server)
 		}
-
 	}
 
 	// 动态注入用户强制直连域名（确保返回真实公网 IP，走主路由物理直出，杜绝死循环）
@@ -506,7 +349,8 @@ func BuildMihomo(ir *schema.ConfigIR) ([]byte, error) {
 		for _, d := range ir.UserOverrides.ForceDirectDomains {
 			d = strings.TrimSpace(d)
 			if d != "" {
-				cleanFakeIPFilter = append(cleanFakeIPFilter, d, "+."+d)
+				appendFakeIP(d)
+				appendFakeIP("+." + d)
 			}
 		}
 	}

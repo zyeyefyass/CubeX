@@ -175,6 +175,79 @@ func isSRSAvailable(ruleFilename string) bool {
 	return isRuleSetAvailable(ruleFilename, 100)
 }
 
+// buildSingboxFakeIPBypassRules collects deduplicated domain_suffix and domain_regex rules for dns-direct,
+// honoring ir.DNS.IsFakeIPBuiltinEnabled() and merging custom FakeIPFilter + UserOverrides.ForceDirectDomains.
+func buildSingboxFakeIPBypassRules(ir *schema.ConfigIR) (suffixes []string, regexes []string) {
+	seenSuffix := make(map[string]struct{})
+	seenRegex := make(map[string]struct{})
+
+	addSuffix := func(s string) {
+		if s == "" {
+			return
+		}
+		if _, dup := seenSuffix[s]; dup {
+			return
+		}
+		seenSuffix[s] = struct{}{}
+		suffixes = append(suffixes, s)
+	}
+	addRegex := func(r string) {
+		if r == "" {
+			return
+		}
+		if _, dup := seenRegex[r]; dup {
+			return
+		}
+		seenRegex[r] = struct{}{}
+		regexes = append(regexes, r)
+	}
+	addPattern := func(raw string) {
+		clean := strings.TrimSpace(raw)
+		if clean == "" {
+			return
+		}
+		lower := strings.ToLower(clean)
+		if strings.HasPrefix(lower, "geosite:") || strings.HasPrefix(lower, "rule-set:") {
+			return
+		}
+		clean = strings.TrimPrefix(clean, "+.")
+		clean = strings.TrimPrefix(clean, "*.")
+		clean = strings.TrimPrefix(clean, ".")
+		if clean == "" {
+			return
+		}
+		if strings.Contains(clean, "*") {
+			escaped := strings.ReplaceAll(clean, ".", `\.`)
+			escaped = strings.ReplaceAll(escaped, "*", `.*`)
+			addRegex(`^(?:.*\.)?` + escaped + `$`)
+			return
+		}
+		if clean == "cn" {
+			addSuffix(".cn")
+			return
+		}
+		addSuffix(clean)
+	}
+
+	if ir.DNS.IsFakeIPBuiltinEnabled() {
+		for _, builtin := range schema.BuiltinFakeIPFilterDomains {
+			addPattern(builtin)
+		}
+		addRegex(`^(stun|turn)[0-9]*\.`)
+		addRegex(`\.(stun|turn)[0-9]*\.`)
+	}
+
+	for _, f := range ir.DNS.FakeIPFilter {
+		addPattern(f)
+	}
+	if ir.UserOverrides != nil {
+		for _, d := range ir.UserOverrides.ForceDirectDomains {
+			addPattern(d)
+		}
+	}
+	return suffixes, regexes
+}
+
 // BuildSingBox transcompiles CubeX Universal IR to sing-box v1.14.5+ config.json
 func BuildSingBox(ir *schema.ConfigIR) ([]byte, error) {
 	return BuildSingBoxWithResolvConf(ir, "/etc/resolv.conf", nil, schema.DetectDefaultGateway())
@@ -637,89 +710,23 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 
 					"server": "dns-fakeip",
 				},
+			}...)
 
-				{
-					"domain_suffix": func() []string {
-						suffixes := []string{
-							".cn",
-							"bilibili.com",
-							"hdslb.com",
-							"bilivideo.com",
-							"bilivideo.cn",
-							"biliapi.net",
-							"biliapi.com",
-							"bilicdn1.com",
-							"szbdyd.com",
-							"baidu.com",
-							"bdstatic.com",
-							"qq.com",
-							"qpic.cn",
-							"taobao.com",
-							"alicdn.com",
-							"aliyun.com",
-							"aliyuncs.com",
-							"jd.com",
-							"alipay.com",
-							"163.com",
-							"douyin.com",
-							"bytecdntp.com",
-							"volces.com",
-							"msftconnecttest.com",
-							"msftncsi.com",
-							"test-ipv6.com",
-							"v6.test-ipv6.com",
-							"ds.test-ipv6.com",
-							"ntp.org",
-							"pool.ntp.org",
-							"time.windows.com",
-							"time.apple.com",
-							"time.google.com",
-							"time.cloudflare.com",
-							"time.edu.cn",
-							"ntp.aliyun.com",
-							"ntp.tencent.com",
-							"cloud.mikrotik.com",
-							"routeros.com",
-							"mikrotik.com",
-							"zspace.com",
-							"zspace.cn",
-							"zspace.com.cn",
-							"zspace.cc",
-							"stun.miwifi.com",
-							"stun.qq.com",
-							"stun.synology.com",
-							"stun.bilibili.com",
-							"stun.163.com",
-							"stun.cloudflare.com",
-							"stun.l.google.com",
-						}
-						for _, f := range ir.DNS.FakeIPFilter {
-							clean := strings.TrimSpace(f)
-							clean = strings.TrimPrefix(clean, "+.")
-							clean = strings.TrimPrefix(clean, "*.")
-							lower := strings.ToLower(clean)
-							if clean != "" && !strings.HasPrefix(lower, "geosite:") && !strings.HasPrefix(lower, "rule-set:") {
-								suffixes = append(suffixes, clean)
-							}
-						}
-						if ir.UserOverrides != nil {
-							for _, d := range ir.UserOverrides.ForceDirectDomains {
-								d = strings.TrimSpace(d)
-								if d != "" {
-									suffixes = append(suffixes, d)
-								}
-							}
-						}
-						return suffixes
-					}(),
-					"server": "dns-direct",
-				},
-
-				{
-					"domain_regex": []string{`^(stun|turn)[0-9]*\.`, `\.(stun|turn)[0-9]*\.`},
+			fakeIPSuffixes, fakeIPRegexes := buildSingboxFakeIPBypassRules(ir)
+			if len(fakeIPSuffixes) > 0 {
+				baseRules = append(baseRules, map[string]any{
+					"domain_suffix": fakeIPSuffixes,
+					"server":        "dns-direct",
+				})
+			}
+			if len(fakeIPRegexes) > 0 {
+				baseRules = append(baseRules, map[string]any{
+					"domain_regex": fakeIPRegexes,
 					"server":       "dns-direct",
-				},
+				})
+			}
 
+			baseRules = append(baseRules, []map[string]any{
 				{
 					"rule_set": []string{"geosite-cn"},
 					"server":   "dns-direct",
@@ -1721,7 +1728,7 @@ func BuildSingBoxWithResolvConf(ir *schema.ConfigIR, resolvConfPath string, loca
 
 			if len(proxies) == 0 {
 
-				proxies = append(proxies, "direct")
+				proxies = append(proxies, "DIRECT")
 
 			}
 
